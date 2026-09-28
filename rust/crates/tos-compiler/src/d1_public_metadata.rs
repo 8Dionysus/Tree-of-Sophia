@@ -27,6 +27,122 @@ fn encoded(value: &Value, cap: usize) -> Result<String> {
     Ok(raw)
 }
 
+fn lower_digest(value: &Value) -> bool {
+    value.as_str().is_some_and(|raw| {
+        raw.len() == 64
+            && raw
+                .bytes()
+                .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    })
+}
+
+/// The maintained published reader's compact field order is part of the
+/// auxiliary clock binding. Reconstruct it equally for the current producer
+/// and an admitted prior row baseline; JSON map order is not an identity.
+fn reader_binding_parts_with(
+    top: &Value,
+    normalization: &str,
+    boundary: &str,
+) -> Result<(String, String, String)> {
+    if top["schema"] != "tos_published_knowledge_reader_v2"
+        || top["read_model_schema"] != SCHEMA
+        || top["graph_schema"] != "tos_knowledge_graph_v1"
+        || top["row_integrity"] != "sha256-emitted-json-v1"
+        || !lower_digest(&top["source_revision"])
+        || !lower_digest(&top["data_revision"])
+        || !lower_digest(&top["catalog_sha256"])
+        || !lower_digest(&top["lens_sha256"])
+        || top["normalization_binding"]
+            .as_object()
+            .is_none_or(|value| value.len() != 5)
+        || top["normalization_binding"]["schema"] != "tos_knowledge_graph_normalization_binding_v1"
+        || [
+            "processor_digest",
+            "entity_registry_digest",
+            "relation_registry_digest",
+            "configuration_digest",
+        ]
+        .iter()
+        .any(|key| !lower_digest(&top["normalization_binding"][*key]))
+        || top["authority_boundary"]
+            .as_object()
+            .is_none_or(|value| value.len() < 4)
+        || top["authority_boundary"]["source_owner"] != "Tree-of-Sophia"
+        || top["authority_boundary"]["is_source"] != false
+        || top["authority_boundary"]["is_canon"] != false
+        || top["authority_boundary"]["writes_to_tree"] != false
+    {
+        return Err(Error::Invalid("public D1 reader binding top"));
+    }
+    let top_raw = format!(
+        "{{\"schema\":\"tos_published_knowledge_reader_v2\",\"read_model_schema\":{schema},\"source_revision\":{source},\"data_revision\":{revision},\"graph_schema\":{graph},\"normalization_binding\":{normalization},\"catalog_sha256\":{catalog},\"row_integrity\":\"sha256-emitted-json-v1\",\"authority_boundary\":{boundary},\"lens_sha256\":{lens}}}",
+        schema = encoded(&top["read_model_schema"], 128)?,
+        source = encoded(&top["source_revision"], 128)?,
+        revision = encoded(&top["data_revision"], 128)?,
+        graph = encoded(&top["graph_schema"], 128)?,
+        normalization = normalization,
+        catalog = encoded(&top["catalog_sha256"], 128)?,
+        boundary = boundary,
+        lens = encoded(&top["lens_sha256"], 128)?,
+    );
+    if top_raw.len() > 131_072 {
+        return Err(Error::Budget("public D1 reader top bytes"));
+    }
+    let metadata_digest = Digest256::of_bytes(top_raw.as_bytes()).to_hex();
+    let prefix =
+        "{\"schema\":\"tos_published_knowledge_snapshot_v1\",\"publication_epoch\":".to_owned();
+    let suffix = format!(
+        ",\"metadata_sha256\":{metadata},\"read_model_schema\":{schema},\"source_revision\":{source},\"data_revision\":{revision},\"graph_schema\":{graph},\"normalization_binding\":{normalization}}}",
+        metadata = encoded(&json!(metadata_digest), 128)?,
+        schema = encoded(&top["read_model_schema"], 128)?,
+        source = encoded(&top["source_revision"], 128)?,
+        revision = encoded(&top["data_revision"], 128)?,
+        graph = encoded(&top["graph_schema"], 128)?,
+        normalization = normalization,
+    );
+    Ok((top_raw, prefix, suffix))
+}
+
+pub(crate) fn reader_binding_parts(top: &Value) -> Result<(String, String, String)> {
+    let normalization = encoded(&top["normalization_binding"], 4096)?;
+    let boundary = encoded(&top["authority_boundary"], 4096)?;
+    reader_binding_parts_with(top, &normalization, &boundary)
+}
+
+/// The independent Python v9 baseline predates Rust's sorted JSON map
+/// representation. Its nested field order is fixed by the maintained source,
+/// and its serving-state binding hashes those exact compact bytes.
+pub(crate) fn python_reader_binding_parts(top: &Value) -> Result<(String, String, String)> {
+    let normalization = &top["normalization_binding"];
+    let boundary = &top["authority_boundary"];
+    if normalization
+        .as_object()
+        .is_none_or(|value| value.len() != 5)
+        || boundary.as_object().is_none_or(|value| value.len() != 5)
+        || normalization["schema"] != "tos_knowledge_graph_normalization_binding_v1"
+        || boundary["is_source"] != false
+        || boundary["is_canon"] != false
+        || boundary["writes_to_tree"] != false
+        || boundary["source_owner"] != "Tree-of-Sophia"
+    {
+        return Err(Error::Invalid("public D1 Python predecessor binding"));
+    }
+    let normalization_raw = format!(
+        "{{\"schema\":{schema},\"processor_digest\":{processor},\"entity_registry_digest\":{entity},\"relation_registry_digest\":{relation},\"configuration_digest\":{configuration}}}",
+        schema = encoded(&normalization["schema"], 128)?,
+        processor = encoded(&normalization["processor_digest"], 128)?,
+        entity = encoded(&normalization["entity_registry_digest"], 128)?,
+        relation = encoded(&normalization["relation_registry_digest"], 128)?,
+        configuration = encoded(&normalization["configuration_digest"], 128)?,
+    );
+    let boundary_raw = format!(
+        "{{\"is_source\":false,\"is_canon\":false,\"writes_to_tree\":false,\"source_owner\":{owner},\"note\":{note}}}",
+        owner = encoded(&boundary["source_owner"], 128)?,
+        note = encoded(&boundary["note"], 4096)?,
+    );
+    reader_binding_parts_with(top, &normalization_raw, &boundary_raw)
+}
+
 fn histogram(db: &Connection, table: &str, fields: &str) -> Result<Vec<Value>> {
     let sql = format!("SELECT {fields},count(*) FROM {table} GROUP BY {fields} ORDER BY {fields}");
     let mut stmt = db.prepare(&sql)?;
@@ -119,36 +235,8 @@ pub(crate) fn prepare(
         "row_integrity":"sha256-emitted-json-v1", "authority_boundary":portable_header["authority_boundary"],
         "lens_sha256":Digest256::of_bytes(lens_raw.as_bytes()).to_hex(),
     });
-    // Python's compact binding uses insertion order. Construct that framing
-    // explicitly, so SQLite can insert the actual serving epoch between two
-    // static, hash-bound fragments without a caller-chosen epoch.
-    let top_raw = format!(
-        "{{\"schema\":\"tos_published_knowledge_reader_v2\",\"read_model_schema\":{schema},\"source_revision\":{source},\"data_revision\":{revision},\"graph_schema\":{graph},\"normalization_binding\":{normalization},\"catalog_sha256\":{catalog},\"row_integrity\":\"sha256-emitted-json-v1\",\"authority_boundary\":{boundary},\"lens_sha256\":{lens}}}",
-        schema = encoded(&json!(SCHEMA), 128)?,
-        source = encoded(&json!(source_revision), 128)?,
-        revision = encoded(&json!(revision), 128)?,
-        graph = encoded(&portable_header["schema"], 128)?,
-        normalization = encoded(&portable_header["normalization_binding"], 4096)?,
-        catalog = encoded(&reader_top["catalog_sha256"], 128)?,
-        boundary = encoded(&portable_header["authority_boundary"], 4096)?,
-        lens = encoded(&reader_top["lens_sha256"], 128)?,
-    );
-    if top_raw.len() > 131_072 {
-        return Err(Error::Budget("public D1 reader top bytes"));
-    }
+    let (top_raw, binding_prefix, binding_suffix) = reader_binding_parts(&reader_top)?;
     capture.charge_work(top_raw.len() as u64)?;
-    let metadata_digest = Digest256::of_bytes(top_raw.as_bytes()).to_hex();
-    let binding_prefix =
-        "{\"schema\":\"tos_published_knowledge_snapshot_v1\",\"publication_epoch\":".to_owned();
-    let binding_suffix = format!(
-        ",\"metadata_sha256\":{metadata},\"read_model_schema\":{schema},\"source_revision\":{source},\"data_revision\":{revision},\"graph_schema\":{graph},\"normalization_binding\":{normalization}}}",
-        metadata = encoded(&json!(metadata_digest), 128)?,
-        schema = encoded(&json!(SCHEMA), 128)?,
-        source = encoded(&json!(source_revision), 128)?,
-        revision = encoded(&json!(revision), 128)?,
-        graph = encoded(&portable_header["schema"], 128)?,
-        normalization = encoded(&portable_header["normalization_binding"], 4096)?,
-    );
     Ok(PublicMetadata {
         revision,
         reader_top,

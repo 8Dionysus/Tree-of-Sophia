@@ -639,6 +639,17 @@ baseline. Delta staging is replayable and one revision-guarded statement publish
 all changed tables atomically. Incomplete staging or a stale baseline leaves
 serving rows unchanged. Knowledge reads that cross publication return HTTP 409.
 
+The Rust `build:data` caller always prepares the complete SQL and row baseline.
+It attempts a delta when a bounded, compatible v9 deployed row baseline
+(or, if absent, the current row baseline) has the exact auxiliary publication
+descriptor. An absent or incompatible predecessor, or an unrepresentable delta
+key, leaves `counts.delta` null
+and retires any older local delta file; `deploy_edge.mjs` chooses the delta
+only when the live D1 revision equals its declared base. The build manifest
+binds measured public input labels, lengths, digests, ledger membership and
+partition-part closure for the local verifier. The Python producer remains an
+independent oracle until the Rust route passes the complete consumer check.
+
 `load:local` uses the same revision-aware selection against local D1. Full SQL
 bootstrap uses a streaming SQLite transaction when there is exactly one known
 local D1 store, with serving revisions verified through Wrangler on both sides.

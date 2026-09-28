@@ -27,9 +27,47 @@ use fs2::FileExt;
 use serde_json::{Value, json};
 use std::{
     fs::{self, OpenOptions},
+    io::{self, Write},
     path::{Path, PathBuf},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
+
+fn bounded_manifest_len(packet: &Value, capture: &PublicCapture) -> Result<usize> {
+    struct Count {
+        len: usize,
+        exceeded: bool,
+    }
+    impl Write for Count {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            let Some(next) = self
+                .len
+                .checked_add(bytes.len())
+                .filter(|n| *n <= crate::d1_public_capture::MAX_HEADER_BYTES)
+            else {
+                self.exceeded = true;
+                return Err(io::Error::other("public D1 manifest bytes"));
+            };
+            self.len = next;
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+    let mut count = Count {
+        len: 0,
+        exceeded: false,
+    };
+    serde_json::to_writer(&mut count, packet).map_err(|error| {
+        if count.exceeded {
+            Error::Budget("public D1 manifest bytes")
+        } else {
+            Error::Source(error.to_string())
+        }
+    })?;
+    capture.charge_work(count.len as u64)?;
+    Ok(count.len)
+}
 use tos_foundation::{Digest256, Digest256Hasher};
 
 #[derive(Clone, Copy, Debug)]
@@ -539,7 +577,7 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
         &metadata.binding_prefix,
         &metadata.binding_suffix,
     )?;
-    let (sql, baseline, sql_bytes, statements, baseline_bytes) = sink.finish(
+    let (sql, baseline, sql_bytes, statements, baseline_bytes, index) = sink.finish(
         &private.path.join("read-model.rows.json.next"),
         &metadata.revision,
         &metadata.reader_top,
@@ -549,6 +587,25 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
     // The normalized Stage is disposable. Release its DB, journal and TEMP
     // lifetime before copying web assets and assembling static companions.
     drop(stage);
+    let delta = match crate::d1_public_delta::load_prior(
+        &index,
+        runtime,
+        &capture,
+        limits.max_baseline_bytes,
+    )? {
+        Some(prior) => crate::d1_public_delta::produce(
+            &index,
+            prior,
+            &sql,
+            &private.path.join("read-model.delta.sql.next"),
+            &capture,
+            &metadata.revision,
+            &metadata.reader_top,
+            limits.max_sql_bytes,
+        )?,
+        None => None,
+    };
+    drop(index);
     let static_dir = private_directory(
         output
             .parent()
@@ -563,8 +620,6 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
         &catalog.catalog,
         limits.max_static_bytes,
     )?;
-    capture.verify_inputs(limits.capture)?;
-    static_summary.verify_web_inputs(&capture)?;
     let counts = json!({
         "philosophy_nodes":source_counts.philosophy_nodes,"philosophy_edges":source_counts.philosophy_edges,
         "philosophy_clusters":source_counts.cluster_node_memberships,
@@ -579,7 +634,7 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
         "source_navigation_nodes":source_counts.navigation_nodes,
         "source_navigation_edges":source_counts.navigation_edges,
         "source_navigation_rights":source_counts.navigation_rights,
-        "sql_statements":statements,"delta":null
+        "sql_statements":statements,"delta":delta.as_ref().map(|value|&value.summary)
     });
     let native_derived_rows = native
         .final_rows
@@ -617,13 +672,12 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
     // The existing 2 MiB completion envelope includes both the fixed
     // manifest fields and the measured input binding. Admit that combined
     // serialized size before constructing the potentially long binding.
-    let prior = serde_json::to_vec(&manifest).map_err(|e| Error::Source(e.to_string()))?;
+    let prior_bytes = bounded_manifest_len(&manifest, &capture)?;
     let binding_key_bytes = b",\"public_input_binding\":".len();
     let binding_bytes = crate::d1_public_capture::MAX_HEADER_BYTES
-        .checked_sub(prior.len())
+        .checked_sub(prior_bytes)
         .and_then(|remaining| remaining.checked_sub(binding_key_bytes))
         .ok_or(Error::Budget("public D1 manifest bytes"))?;
-    capture.charge_work(prior.len() as u64)?;
     manifest
         .as_object_mut()
         .ok_or(Error::Invalid("public D1 manifest object"))?
@@ -631,12 +685,20 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
             "public_input_binding".to_owned(),
             capture.manifest_input_binding(binding_bytes)?,
         );
+    // These are the final external-input checks before either completion
+    // marker can be written. The remote delta still has its own revision CAS.
+    capture.verify_inputs(limits.capture)?;
+    static_summary.verify_web_inputs(&capture)?;
+    if let Some(delta) = &delta {
+        delta.prior.recheck(&capture, limits.max_baseline_bytes)?;
+    }
     crate::d1_public_publication::publish(
         output,
         runtime,
         &static_dir.path,
         &sql,
         &baseline,
+        delta.as_ref().map(|value| value.path.as_path()),
         &manifest,
         &capture,
     )?;

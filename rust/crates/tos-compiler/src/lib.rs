@@ -7,6 +7,7 @@ pub mod d1_prepared_pair;
 mod d1_public_baseline;
 mod d1_public_build;
 mod d1_public_capture;
+mod d1_public_delta;
 mod d1_public_graph;
 mod d1_public_header;
 mod d1_public_knowledge;
@@ -19,7 +20,9 @@ mod d1_public_schema;
 mod d1_public_semantics;
 mod d1_public_sql;
 mod d1_public_static;
-pub use d1_public_build::{PublicD1Build, PublicD1BuildLimits, build_public_d1, portable_public_d1_limits};
+pub use d1_public_build::{
+    PublicD1Build, PublicD1BuildLimits, build_public_d1, portable_public_d1_limits,
+};
 pub use d1_public_capture::PublicCaptureLimits;
 mod knowledge_base;
 pub mod knowledge_candidates;

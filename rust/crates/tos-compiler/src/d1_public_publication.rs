@@ -166,16 +166,22 @@ pub(crate) fn publish(
     static_pending: &Path,
     sql_pending: &Path,
     baseline_pending: &Path,
+    delta_pending: Option<&Path>,
     manifest: &Value,
     capture: &PublicCapture,
 ) -> Result<()> {
     let mut guard = Publication::new(output, runtime);
     guard.move_into(sql_pending, &runtime.join("read-model.sql"))?;
     guard.move_into(baseline_pending, &runtime.join("read-model.rows.json"))?;
+    if let Some(delta) = delta_pending {
+        guard.move_into(delta, &runtime.join("read-model.delta.sql"))?;
+    }
     guard.move_into(static_pending, output)?;
-    // A fresh full bootstrap has no affected-pair delta candidate. Remove an
-    // older disposable delta only after all replacement carriers exist.
-    guard.retire(&runtime.join("read-model.delta.sql"))?;
+    // An absent or unproved predecessor emits only the complete bootstrap.
+    // Retire any stale delta after its replacement carriers are in place.
+    if delta_pending.is_none() {
+        guard.retire(&runtime.join("read-model.delta.sql"))?;
+    }
     atomic_manifest(&guard.markers[0], manifest, capture)?;
     atomic_manifest(&guard.markers[1], manifest, capture)?;
     guard.finish(capture)

@@ -137,48 +137,40 @@ fn supporting_claim(
     }
     Ok(last.map(|(_, id)| id))
 }
-fn cardinality(
+fn record_cardinality(
     statement: &mut Statement<'_>,
     capture: &PublicCapture,
+    direction: i64,
     endpoint: &str,
     relation_type: &str,
     scope: Option<&str>,
-    maximum: u64,
-    scoped: bool,
+    source_order: i64,
 ) -> Result<()> {
-    let limit = maximum
-        .checked_add(1)
-        .unwrap_or(u64::MAX)
-        .min(i64::MAX as u64) as i64;
+    let key_bytes = endpoint
+        .len()
+        .checked_add(relation_type.len())
+        .and_then(|n| n.checked_add(scope.map_or(0, str::len)))
+        .ok_or(Error::Budget("public D1 cardinality key bytes"))?;
+    // The scalar key is written to the TEMP row, uniqueness index and
+    // first-seen order index. This charges logical work, not physical SQLite
+    // pages or journaling; those need separate whole-build admission.
     capture.charge_work(
-        (endpoint.len() + relation_type.len() + scope.map_or(0, str::len) + 32) as u64,
+        (key_bytes as u64)
+            .checked_mul(3)
+            .and_then(|n| n.checked_add(96))
+            .ok_or(Error::Budget("public D1 cardinality key work"))?,
     )?;
-    let mut rows = statement.query(params![
+    let scope_kind = i64::from(scope.is_some());
+    let changed = statement.execute(params![
+        direction,
         endpoint,
         relation_type,
-        if scoped { MAX_ROW_BYTES as i64 } else { limit }
+        scope_kind,
+        scope.unwrap_or(""),
+        source_order
     ])?;
-    let mut count = 0u64;
-    while let Some(row) = rows.next()? {
-        if scoped {
-            // Every candidate from the existing endpoint index is admitted
-            // before copying/parsing its assertion context; no hidden SQL
-            // JSON scan over unmetered blobs or graph-sized incidence table.
-            let len = admitted_row_len(capture, row.get(0)?)?;
-            let digest: Vec<u8> = row.get(1)?;
-            let value = check_row(len, &digest, row.get(2)?)?;
-            if member(&value, "attributes.claim_ref").as_str() != scope {
-                continue;
-            }
-        } else {
-            capture.charge_work(8)?;
-        }
-        count = count
-            .checked_add(1)
-            .ok_or(Error::Budget("public D1 cardinality count"))?;
-        if count > maximum {
-            return Err(Error::Invalid("public D1 scoped relation cardinality"));
-        }
+    if changed != 1 {
+        return Err(Error::Budget("public D1 cardinality count"));
     }
     Ok(())
 }
@@ -1006,17 +998,28 @@ pub(crate) fn validate_public_semantics(
     let mut claim_gaps = Vec::<Value>::new();
     let mut live_gap_bytes = 256usize;
     stage.with_connection(WritePhase::Finalize, |db| {
+        // The Stage owns this disposable scalar summary under its existing
+        // SQLite VM, TEMP page, cache and absolute deadline guards. A public
+        // Stage has no active aggregate host-quota isolation guard.
+        // No relation payload or graph-sized Rust incidence map is retained.
+        db.execute_batch("CREATE TEMP TABLE d1_semantic_cardinality (
+            direction INTEGER NOT NULL, endpoint TEXT NOT NULL,
+            relation_type TEXT NOT NULL, scope_kind INTEGER NOT NULL,
+            scope_value TEXT NOT NULL, first_order INTEGER NOT NULL,
+            tally INTEGER NOT NULL DEFAULT 1,
+            UNIQUE(direction,endpoint,relation_type,scope_kind,scope_value)
+        );
+        CREATE INDEX d1_semantic_cardinality_order
+        ON d1_semantic_cardinality(direction,first_order);")?;
+        let mut incidence_insert = db.prepare("INSERT INTO d1_semantic_cardinality
+            (direction,endpoint,relation_type,scope_kind,scope_value,first_order)
+            VALUES (?1,?2,?3,?4,?5,?6)
+            ON CONFLICT(direction,endpoint,relation_type,scope_kind,scope_value)
+            DO UPDATE SET tally=tally+1 WHERE tally < 9223372036854775807")?;
         let mut node_lookup = db.prepare("SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?2 AND length(payload)=payload_len THEN payload ELSE NULL END FROM knowledge_nodes WHERE id=?1")?;
         let mut identity_lookup = db.prepare("SELECT type_id,entity_id FROM knowledge_nodes WHERE id=?1")?;
         let mut claim_edges = db.prepare("SELECT to_id FROM knowledge_relations WHERE from_id=?1 AND relation_type_id=?2 LIMIT 2")?;
         let mut supporting_lookup = db.prepare("SELECT source_graph,id FROM knowledge_nodes WHERE entity_id=?1 AND type_id='tos.entity.claim'")?;
-        // Existing endpoint indexes carry the bounded checks. A scoped check
-        // reads each candidate under the cumulative work budget; no private
-        // graph-sized TEMP table, sorter, journal or Rust map is created.
-        let mut subject_plain = db.prepare("SELECT 1 FROM knowledge_relations WHERE from_id=?1 AND relation_type_id=?2 LIMIT ?3")?;
-        let mut object_plain = db.prepare("SELECT 1 FROM knowledge_relations WHERE to_id=?1 AND relation_type_id=?2 LIMIT ?3")?;
-        let mut subject_scoped = db.prepare("SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?3 AND length(payload)=payload_len THEN payload ELSE NULL END FROM knowledge_relations WHERE from_id=?1 AND relation_type_id=?2")?;
-        let mut object_scoped = db.prepare("SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?3 AND length(payload)=payload_len THEN payload ELSE NULL END FROM knowledge_relations WHERE to_id=?1 AND relation_type_id=?2")?;
         {
             let mut statement = db.prepare("SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)=payload_len THEN payload ELSE NULL END,type_id,entity_id,source_graph FROM knowledge_nodes ORDER BY source_order")?;
             let mut rows = statement.query([MAX_ROW_BYTES as i64])?;
@@ -1069,7 +1072,7 @@ pub(crate) fn validate_public_semantics(
             }
         }
         {
-            let mut statement = db.prepare("SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)=payload_len THEN payload ELSE NULL END,relation_type_id,from_id,to_id,source_graph FROM knowledge_relations ORDER BY source_order")?;
+            let mut statement = db.prepare("SELECT payload_len,payload_sha256,CASE WHEN payload_len BETWEEN 0 AND ?1 AND length(payload)=payload_len THEN payload ELSE NULL END,relation_type_id,from_id,to_id,source_graph,source_order FROM knowledge_relations ORDER BY source_order")?;
             let mut rows = statement.query([MAX_ROW_BYTES as i64])?;
             while let Some(row) = rows.next()? {
                 let len = admitted_row_len(capture, row.get(0)?)?;
@@ -1079,6 +1082,7 @@ pub(crate) fn validate_public_semantics(
                 let stored_from: String = row.get(4)?;
                 let stored_to: String = row.get(5)?;
                 let stored_source: String = row.get(6)?;
+                let source_order: i64 = row.get(7)?;
                 capture.charge_work((stored_type.len() + stored_from.len() + stored_to.len() + stored_source.len()) as u64)?;
                 if string(&value, "relation_type_id") != Some(stored_type.as_str())
                     || string(&value, "from_id") != Some(stored_from.as_str())
@@ -1111,20 +1115,6 @@ pub(crate) fn validate_public_semantics(
                 let right = node_identity(&mut identity_lookup, capture, to_id)?;
                 endpoint_contract(left.as_ref(), right.as_ref(), relation_type, fallback_relation, entry, &entities, capture)?;
                 let claim_ref = string(&value, "attributes.claim_ref").unwrap_or("");
-                let scope = if string(entry, "assertion_mode") == Some("reified-claim") {
-                    member(&value, "attributes.claim_ref").as_str()
-                } else {
-                    None
-                };
-                for (endpoint, field, plain, scoped) in [
-                    (from_id, "per_subject_max", &mut subject_plain, &mut subject_scoped),
-                    (to_id, "per_object_max", &mut object_plain, &mut object_scoped),
-                ] {
-                    if let Some(maximum) = member(entry, &format!("cardinality.{field}")).as_u64() {
-                        let assertion_scoped = string(entry, "assertion_mode") == Some("reified-claim");
-                        cardinality(if assertion_scoped { scoped } else { plain }, capture, endpoint, relation_type, scope, maximum, assertion_scoped)?;
-                    }
-                }
                 if string(entry, "assertion_mode") == Some("reified-claim") {
                     let supporting = supporting_claim(&mut supporting_lookup, capture, claim_ref)?.ok_or(Error::Invalid("public D1 unresolved supporting Claim"))?;
                     if left.as_ref().is_some_and(|left| left.0 != "tos.entity.claim") {
@@ -1208,8 +1198,84 @@ pub(crate) fn validate_public_semantics(
                         return Err(Error::Invalid("public D1 record history exact member"));
                     }
                 }
+                // Only the verified scalar assertion context is retained.
+                // A missing/null Claim ref and an actual string are distinct;
+                // other types cannot satisfy the supporting-Claim rule above.
+                let scope = if string(entry, "assertion_mode") == Some("reified-claim") {
+                    match member(&value, "attributes.claim_ref") {
+                        Value::Null => None,
+                        Value::String(reference) => Some(reference.as_str()),
+                        _ => return Err(Error::Invalid("public D1 Claim assertion scope")),
+                    }
+                } else {
+                    None
+                };
+                for (direction, endpoint, field) in [
+                    (0, from_id, "per_subject_max"),
+                    (1, to_id, "per_object_max"),
+                ] {
+                    if member(entry, &format!("cardinality.{field}"))
+                        .as_u64()
+                        .is_some()
+                    {
+                        record_cardinality(
+                            &mut incidence_insert,
+                            capture,
+                            direction,
+                            endpoint,
+                            relation_type,
+                            scope,
+                            source_order,
+                        )?;
+                    }
+                }
             }
         }
+        drop(incidence_insert);
+        // Python checks outgoing groups first, then incoming groups, each in
+        // first-observed order. The private order index avoids a late sorter.
+        {
+            let mut counts = db.prepare("SELECT length(CAST(endpoint AS BLOB)),
+                length(CAST(relation_type AS BLOB)),direction,relation_type,tally
+                FROM d1_semantic_cardinality ORDER BY direction,first_order")?;
+            let mut rows = counts.query([])?;
+            while let Some(row) = rows.next()? {
+                let endpoint_len: i64 = row.get(0)?;
+                let relation_len: i64 = row.get(1)?;
+                if endpoint_len < 0 || relation_len < 0 {
+                    return Err(Error::Invalid("public D1 cardinality key length"));
+                }
+                let endpoint_len = usize::try_from(endpoint_len)
+                    .map_err(|_| Error::Budget("public D1 cardinality key bytes"))?;
+                let relation_len = usize::try_from(relation_len)
+                    .map_err(|_| Error::Budget("public D1 cardinality key bytes"))?;
+                let output_len = endpoint_len
+                    .checked_add(relation_len)
+                    .ok_or(Error::Budget("public D1 cardinality key bytes"))?;
+                if output_len > MAX_ROW_BYTES {
+                    return Err(Error::Budget("public D1 cardinality key bytes"));
+                }
+                capture.charge_work((output_len as u64).checked_mul(2)
+                    .and_then(|n| n.checked_add(32))
+                    .ok_or(Error::Budget("public D1 cardinality group work"))?)?;
+                let direction: i64 = row.get(2)?;
+                let relation_type: String = row.get(3)?;
+                let tally: i64 = row.get(4)?;
+                if (direction != 0 && direction != 1) || tally < 1 {
+                    return Err(Error::Invalid("public D1 cardinality summary"));
+                }
+                let field = if direction == 0 { "per_subject_max" } else { "per_object_max" };
+                let entry = relations.get(&relation_type)
+                    .ok_or(Error::Invalid("public D1 cardinality relation type"))?;
+                let maximum = member(entry, &format!("cardinality.{field}"))
+                    .as_u64()
+                    .ok_or(Error::Invalid("public D1 cardinality maximum"))?;
+                if tally as u64 > maximum {
+                    return Err(Error::Invalid("public D1 scoped relation cardinality"));
+                }
+            }
+        }
+        db.execute_batch("DROP TABLE d1_semantic_cardinality")?;
         Ok(())
     })?;
     relation_gaps.extend(claim_gaps);

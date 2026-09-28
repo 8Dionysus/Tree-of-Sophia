@@ -12,12 +12,12 @@ use rusqlite::{Connection, params};
 use serde_json::Value;
 use std::{
     fs::{self, OpenOptions},
-    io::{BufWriter, Write},
+    io::{self, BufWriter, Write},
     path::{Path, PathBuf},
 };
 use tos_foundation::Digest256;
 
-const TABLES: &[(&str, &[&str])] = &[
+pub(crate) const TABLES: &[(&str, &[&str])] = &[
     ("edge_meta", &["key", "part"]),
     ("philosophy_nodes", &["id"]),
     ("philosophy_edges", &["id"]),
@@ -47,6 +47,29 @@ const TABLES: &[(&str, &[&str])] = &[
         &["kind", "field", "value", "id"],
     ),
 ];
+const MAX_KEY_JSON_BYTES: usize = 6 * MAX_STATEMENT_BYTES + 4096;
+
+struct KeyCount {
+    len: usize,
+    exceeded: bool,
+}
+impl Write for KeyCount {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        let Some(next) = self
+            .len
+            .checked_add(bytes.len())
+            .filter(|len| *len <= MAX_KEY_JSON_BYTES)
+        else {
+            self.exceeded = true;
+            return Err(io::Error::other("public D1 baseline key bytes"));
+        };
+        self.len = next;
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
 
 pub(crate) struct PublicRowIndex {
     path: PathBuf,
@@ -95,7 +118,7 @@ impl PublicRowIndex {
         if admitted != pages as i64 || temp != pages as i64 {
             return Err(Error::Budget("public D1 row index page admission"));
         }
-        db.execute_batch("CREATE TABLE rows(table_name TEXT NOT NULL,sequence INTEGER NOT NULL,row_key TEXT NOT NULL,digest TEXT NOT NULL,values_json TEXT NOT NULL,PRIMARY KEY(table_name,row_key)) WITHOUT ROWID; CREATE INDEX rows_table_sequence ON rows(table_name,sequence); BEGIN IMMEDIATE;")?;
+        db.execute_batch("CREATE TABLE rows(table_name TEXT NOT NULL,sequence INTEGER NOT NULL,row_key TEXT NOT NULL,digest TEXT NOT NULL,values_json TEXT NOT NULL,segments_json TEXT NOT NULL,PRIMARY KEY(table_name,row_key)) WITHOUT ROWID; CREATE INDEX rows_table_sequence ON rows(table_name,sequence); BEGIN IMMEDIATE;")?;
         Ok(Self {
             path: path.to_owned(),
             db,
@@ -108,6 +131,7 @@ impl PublicRowIndex {
         columns: &[&str],
         values: &[&str],
         digest: Digest256,
+        segments: &[(u64, u64)],
         capture: &PublicCapture,
     ) -> Result<()> {
         let base = table
@@ -129,16 +153,44 @@ impl PublicRowIndex {
                 .ok_or(Error::Invalid("public D1 indexed key column"))?;
             selected.push(values[position]);
         }
+        if segments.is_empty()
+            || segments
+                .iter()
+                .any(|(_, length)| *length == 0 || *length > MAX_STATEMENT_BYTES as u64)
+        {
+            return Err(Error::Invalid("public D1 baseline SQL segments"));
+        }
+        let mut count = KeyCount {
+            len: 0,
+            exceeded: false,
+        };
+        serde_json::to_writer(&mut count, &selected).map_err(|error| {
+            if count.exceeded {
+                Error::Budget("public D1 baseline key bytes")
+            } else {
+                Error::Source(error.to_string())
+            }
+        })?;
+        let segment_state = segments
+            .len()
+            .checked_mul(48)
+            .ok_or(Error::Budget("public D1 baseline segments"))?;
+        let materialization_work = (count.len as u64)
+            .checked_mul(2)
+            .and_then(|bytes| bytes.checked_add(segment_state as u64))
+            .ok_or(Error::Budget("public D1 baseline materialization work"))?;
+        capture.charge_work(materialization_work)?;
         let values_json =
             serde_json::to_string(&selected).map_err(|e| Error::Source(e.to_string()))?;
-        if values_json.len() > MAX_STATEMENT_BYTES {
-            return Err(Error::Budget("public D1 baseline key bytes"));
+        let segments_json =
+            serde_json::to_string(segments).map_err(|e| Error::Source(e.to_string()))?;
+        if values_json.len() != count.len || segments_json.len() > segment_state {
+            return Err(Error::Invalid("public D1 baseline serialized size"));
         }
-        capture.charge_work(values_json.len() as u64)?;
         let sequence =
             i64::try_from(self.rows).map_err(|_| Error::Budget("public D1 baseline row count"))?;
-        self.db.execute("INSERT INTO rows(table_name,sequence,row_key,digest,values_json) VALUES (?1,?2,?3,?4,?5)",
-            params![base,sequence,&values_json,digest.to_hex(),&values_json])?;
+        self.db.execute("INSERT INTO rows(table_name,sequence,row_key,digest,values_json,segments_json) VALUES (?1,?2,?3,?4,?5,?6)",
+            params![base,sequence,&values_json,digest.to_hex(),&values_json,&segments_json])?;
         self.rows = self
             .rows
             .checked_add(1)
@@ -202,7 +254,7 @@ impl PublicRowIndex {
             write(&serde_json::to_string(table).map_err(|e| Error::Source(e.to_string()))?)?;
             write(":{")?;
             let mut statement=self.db.prepare("SELECT CASE WHEN length(row_key)<=?2 THEN row_key ELSE NULL END,digest,CASE WHEN length(values_json)<=?2 THEN values_json ELSE NULL END FROM rows WHERE table_name=?1 ORDER BY sequence")?;
-            let mut rows = statement.query(params![table, MAX_STATEMENT_BYTES as i64])?;
+            let mut rows = statement.query(params![table, MAX_KEY_JSON_BYTES as i64])?;
             let mut first = true;
             while let Some(row) = rows.next()? {
                 let key: Option<String> = row.get(0)?;
@@ -229,6 +281,9 @@ impl PublicRowIndex {
         out.get_ref().sync_all()?;
         pending.finished = true;
         Ok(bytes)
+    }
+    pub(crate) fn connection(&self) -> &Connection {
+        &self.db
     }
 }
 impl Drop for PublicRowIndex {

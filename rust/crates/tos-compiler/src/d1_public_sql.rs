@@ -84,7 +84,7 @@ pub(crate) struct SqlSink<'a> {
     max_bytes: u64,
     finished: bool,
     capture: &'a PublicCapture,
-    index: PublicRowIndex,
+    index: Option<PublicRowIndex>,
 }
 impl<'a> SqlSink<'a> {
     pub(crate) fn create(
@@ -111,7 +111,7 @@ impl<'a> SqlSink<'a> {
             max_bytes,
             finished: false,
             capture,
-            index,
+            index: Some(index),
         })
     }
     pub(crate) fn line(&mut self, statement: &str) -> Result<()> {
@@ -138,12 +138,14 @@ impl<'a> SqlSink<'a> {
         self.capture
             .charge_work((values.len() * std::mem::size_of::<&str>()) as u64)?;
         let borrowed: Vec<&str> = values.iter().map(String::as_str).collect();
+        let start = self.bytes;
         let statement = self.insert_borrowed(table, columns, &borrowed)?;
-        self.index.record(
+        self.index.as_mut().expect("public row index open").record(
             table,
             columns,
             &borrowed,
             Digest256::of_bytes(statement.as_bytes()),
+            &[(start, statement.len() as u64)],
             self.capture,
         )
     }
@@ -203,12 +205,14 @@ impl<'a> SqlSink<'a> {
             return Err(Error::Budget("D1 SQL row value bytes"));
         }
         if insert_len(table, columns, &borrowed)? <= MAX_STATEMENT_BYTES {
+            let start = self.bytes;
             let statement = self.insert_borrowed(table, columns, &borrowed)?;
-            return self.index.record(
+            return self.index.as_mut().expect("public row index open").record(
                 table,
                 columns,
                 &borrowed,
                 Digest256::of_bytes(statement.as_bytes()),
+                &[(start, statement.len() as u64)],
                 self.capture,
             );
         }
@@ -223,7 +227,9 @@ impl<'a> SqlSink<'a> {
         if chunked.is_empty() || row_bytes(&base)? > MAX_ROW_VALUE_BYTES {
             return Err(Error::Budget("D1 SQL selection row value bytes"));
         }
+        let start = self.bytes;
         let initial = self.insert_borrowed(table, columns, &base)?;
+        let mut segments = vec![(start, initial.len() as u64)];
         let mut digest = Digest256Hasher::new();
         digest.update(initial.as_bytes());
         for (column, value) in chunked {
@@ -256,13 +262,21 @@ impl<'a> SqlSink<'a> {
                     "UPDATE {table} SET {column}={column}||{} WHERE {selector};",
                     quoted
                 );
+                let start = self.bytes;
                 self.line(&statement)?;
+                segments.push((start, statement.len() as u64));
                 digest.update(b"\n");
                 digest.update(statement.as_bytes());
             }
         }
-        self.index
-            .record(table, columns, &borrowed, digest.finalize(), self.capture)
+        self.index.as_mut().expect("public row index open").record(
+            table,
+            columns,
+            &borrowed,
+            digest.finalize(),
+            &segments,
+            self.capture,
+        )
     }
     pub(crate) fn finish(
         mut self,
@@ -270,23 +284,29 @@ impl<'a> SqlSink<'a> {
         revision: &str,
         reader_top: &Value,
         max_baseline_bytes: u64,
-    ) -> Result<(PathBuf, PathBuf, u64, u64, u64)> {
-        let baseline_bytes = self.index.emit_json(
-            baseline,
-            self.capture,
-            revision,
-            reader_top,
-            max_baseline_bytes,
-        )?;
+    ) -> Result<(PathBuf, PathBuf, u64, u64, u64, PublicRowIndex)> {
+        let baseline_bytes = self
+            .index
+            .as_mut()
+            .expect("public row index open")
+            .emit_json(
+                baseline,
+                self.capture,
+                revision,
+                reader_top,
+                max_baseline_bytes,
+            )?;
         self.writer.flush()?;
         self.writer.get_ref().sync_all()?;
         self.finished = true;
+        let index = self.index.take().expect("public row index open");
         Ok((
             self.pending.clone(),
             baseline.to_owned(),
             self.bytes,
             self.statements,
             baseline_bytes,
+            index,
         ))
     }
 }

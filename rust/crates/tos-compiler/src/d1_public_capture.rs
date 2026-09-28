@@ -11,7 +11,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fmt,
     fs::{self, File},
-    io::{self, BufReader, Read, Seek, SeekFrom},
+    io::{self, BufReader, Read, Seek, SeekFrom, Write},
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
     rc::Rc,
@@ -1377,10 +1377,49 @@ impl PublicCapture {
     /// were admitted by the source-owned partition descriptors during capture;
     /// only their bounded root is exported, never private absolute paths.
     pub(crate) fn manifest_input_binding(&self, max_bytes: usize) -> Result<serde_json::Value> {
+        #[derive(serde::Serialize)]
+        struct Entry<'a> {
+            path: &'a str,
+            size_bytes: Option<u64>,
+            sha256: Option<String>,
+        }
+        struct Count {
+            len: usize,
+            max: usize,
+            exceeded: bool,
+        }
+        impl Write for Count {
+            fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+                let Some(next) = self.len.checked_add(bytes.len()).filter(|n| *n <= self.max)
+                else {
+                    self.exceeded = true;
+                    return Err(io::Error::other("public D1 manifest input binding bytes"));
+                };
+                self.len = next;
+                Ok(bytes.len())
+            }
+            fn flush(&mut self) -> io::Result<()> {
+                Ok(())
+            }
+        }
         self.check_custody()?;
         if max_bytes == 0 || max_bytes > MAX_HEADER_BYTES {
             return Err(Error::Budget("public D1 manifest input binding bytes"));
         }
+        const PREFIX: &[u8] = b"{\"sources\":[";
+        let pointer_bytes = self
+            .sources
+            .len()
+            .checked_mul(std::mem::size_of::<&SourceFile>())
+            .ok_or(Error::Budget("public D1 manifest input state"))?;
+        if PREFIX
+            .len()
+            .checked_add(self.sources.len().saturating_mul(4))
+            .is_none_or(|minimum| minimum > max_bytes)
+        {
+            return Err(Error::Budget("public D1 manifest input binding bytes"));
+        }
+        self.charge_work(pointer_bytes as u64)?;
         let mut sources = self.sources.iter().collect::<Vec<_>>();
         sources.sort_by(|a, b| a.label.cmp(&b.label));
         if sources
@@ -1389,23 +1428,15 @@ impl PublicCapture {
         {
             return Err(Error::Invalid("public D1 duplicate input label"));
         }
-        let mut raw = Vec::new();
-        let mut append = |piece: &[u8]| -> Result<()> {
-            let next = raw
-                .len()
-                .checked_add(piece.len())
-                .filter(|length| *length <= max_bytes)
-                .ok_or(Error::Budget("public D1 manifest input binding bytes"))?;
-            self.charge_work(piece.len() as u64)?;
-            raw.reserve_exact(next - raw.len());
-            raw.extend_from_slice(piece);
-            Ok(())
+        let mut count = Count {
+            len: PREFIX.len(),
+            max: max_bytes,
+            exceeded: false,
         };
-        append(b"{\"sources\":[")?;
         let mut ledger = Digest256Hasher::new();
         ledger.update(b"tos-public-ledger-membership-v1\0");
         let mut ledger_count = 0u64;
-        for (index, source) in sources.into_iter().enumerate() {
+        for (index, source) in sources.iter().enumerate() {
             self.charge_work(source.label.len() as u64 + 64)?;
             if source.digest.is_some()
                 && source
@@ -1419,28 +1450,23 @@ impl PublicCapture {
                     .checked_add(1)
                     .ok_or(Error::Budget("public D1 ledger membership count"))?;
             }
-            // A single escaped label and its fixed digest/length framing are
-            // bounded before even the transient entry serializer allocates.
-            let entry_bound = source
-                .label
-                .len()
-                .checked_mul(6)
-                .and_then(|length| length.checked_add(256))
-                .filter(|length| *length <= MAX_HEADER_BYTES)
-                .ok_or(Error::Budget("public D1 manifest input label bytes"))?;
-            let entry = serde_json::json!({
-                "path":source.label,
-                "size_bytes":source.digest.map(|_|source.len),
-                "sha256":source.digest.map(|digest|digest.to_hex()),
-            });
-            let entry = serde_json::to_vec(&entry).map_err(|e| Error::Source(e.to_string()))?;
-            if entry.len() > entry_bound {
-                return Err(Error::Invalid("public D1 manifest input entry bound"));
-            }
             if index != 0 {
-                append(b",")?;
+                count
+                    .write_all(b",")
+                    .map_err(|_| Error::Budget("public D1 manifest input binding bytes"))?;
             }
-            append(&entry)?;
+            let entry = Entry {
+                path: &source.label,
+                size_bytes: source.digest.map(|_| source.len),
+                sha256: source.digest.map(|digest| digest.to_hex()),
+            };
+            serde_json::to_writer(&mut count, &entry).map_err(|e| {
+                if count.exceeded {
+                    Error::Budget("public D1 manifest input binding bytes")
+                } else {
+                    Error::Source(e.to_string())
+                }
+            })?;
         }
         let db = self.read_db()?;
         let mut stmt =
@@ -1478,11 +1504,41 @@ impl PublicCapture {
             "partition_parts":{"count":part_count,"root_sha256":parts.finalize().to_hex()},
         });
         let suffix = serde_json::to_vec(&suffix).map_err(|e| Error::Source(e.to_string()))?;
-        // The suffix is one fixed-size object. Splice its members into the
-        // already admitted sources object without a second unbounded copy.
-        append(b"],")?;
-        append(&suffix[1..suffix.len() - 1])?;
-        append(b"}")?;
+        for piece in [
+            b"],".as_slice(),
+            &suffix[1..suffix.len() - 1],
+            b"}".as_slice(),
+        ] {
+            count
+                .write_all(piece)
+                .map_err(|_| Error::Budget("public D1 manifest input binding bytes"))?;
+        }
+        // One exact count admits the raw bytes, bounded parsed Value state and
+        // both serialization passes before any growing buffer is allocated.
+        let resident = (count.len as u64)
+            .checked_mul(4)
+            .and_then(|n| n.checked_add((sources.len() as u64).checked_mul(512)?))
+            .ok_or(Error::Budget("public D1 manifest input state"))?;
+        self.charge_work(resident)?;
+        let mut raw = Vec::with_capacity(count.len);
+        raw.extend_from_slice(PREFIX);
+        for (index, source) in sources.iter().enumerate() {
+            if index != 0 {
+                raw.push(b',');
+            }
+            let entry = Entry {
+                path: &source.label,
+                size_bytes: source.digest.map(|_| source.len),
+                sha256: source.digest.map(|digest| digest.to_hex()),
+            };
+            serde_json::to_writer(&mut raw, &entry).map_err(|e| Error::Source(e.to_string()))?;
+        }
+        raw.extend_from_slice(b"],");
+        raw.extend_from_slice(&suffix[1..suffix.len() - 1]);
+        raw.push(b'}');
+        if raw.len() != count.len {
+            return Err(Error::Invalid("public D1 manifest input serialized size"));
+        }
         serde_json::from_slice(&raw).map_err(|e| Error::Source(e.to_string()))
     }
 
