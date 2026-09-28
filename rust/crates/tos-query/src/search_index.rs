@@ -19,7 +19,10 @@ pub struct GramSeekCharge {
     pub lookups: u64,
     pub vm_steps: u64,
     pub rows: u64,
-    /// Decoded SQLite result-column bytes, not file/page I/O or heap usage.
+    /// Gram stats charge their selected scalar field. Posting seeks charge
+    /// selected fields, encoded block bytes, and every decoded position,
+    /// including positions skipped by a continuation. This is not file/page
+    /// I/O or peak heap usage.
     pub decoded_bytes: u64,
 }
 
@@ -56,7 +59,11 @@ pub struct PostingSeekBudget {
 #[derive(Clone, Debug)]
 pub struct PostingPage {
     pub positions: Vec<u64>,
+    /// True only after the exact seek reaches its end. A page filled at the
+    /// final posting still requires the ordinary empty completion probe.
     pub exhausted: bool,
+    /// `rows` counts returned positions; `decoded_bytes` also counts every
+    /// selected block field and position decoded before an `after` cursor.
     pub charged: GramSeekCharge,
 }
 
@@ -233,7 +240,9 @@ pub fn visit_complete_postings<M: SearchPostingModel>(
     let row_ceiling = seed.postings.checked_add(1).ok_or_else(|| {
         SearchV2Error::new(SearchV2ErrorCode::BudgetExceeded, "posting count overflow")
     })?;
-    let byte_ceiling = row_ceiling.checked_mul(8).ok_or_else(|| {
+    // Logical output is only a lower bound: compressed blocks may be decoded
+    // repeatedly by small pages, and their encoded/fixed fields are charged.
+    let byte_floor = row_ceiling.checked_mul(8).ok_or_else(|| {
         SearchV2Error::new(
             SearchV2ErrorCode::BudgetExceeded,
             "posting byte cap overflow",
@@ -242,7 +251,7 @@ pub fn visit_complete_postings<M: SearchPostingModel>(
     let probe_ceiling = seed.postings / budget.page_rows as u64 + 1;
     if seed.postings == 0
         || budget.max_rows < row_ceiling
-        || budget.max_decoded_bytes < byte_ceiling
+        || budget.max_decoded_bytes < byte_floor
         || budget.max_probes < probe_ceiling
     {
         return Err(SearchV2Error::new(
@@ -278,9 +287,10 @@ pub fn visit_complete_postings<M: SearchPostingModel>(
         if page.positions.len() > max_rows
             || page.charged.lookups != 1
             || page.charged.rows != page.positions.len() as u64
-            || page.charged.decoded_bytes != page.charged.rows * 8
+            || page.charged.decoded_bytes < page.charged.rows * 8
+            || page.charged.decoded_bytes > remaining_bytes
             || page.charged.vm_steps > remaining_vm
-            || (!page.exhausted && page.positions.len() < max_rows)
+            || page.exhausted != (page.positions.len() < max_rows)
         {
             return Err(SearchV2Error::new(
                 SearchV2ErrorCode::IndexIncomplete,

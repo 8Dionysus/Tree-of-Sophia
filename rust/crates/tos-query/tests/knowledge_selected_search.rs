@@ -18,10 +18,10 @@ use tos_foundation::{
 use tos_query::search_candidate::{
     CandidateReadBudget, CandidateVerifyBudget, SelectedSearchCandidate,
 };
-use tos_query::search_index::{GramSeekBudget, PostingSeekBudget};
+use tos_query::search_index::{GramSeekBudget, PostingSeekBudget, SearchPostingModel};
 use tos_query::search_v2::{
-    CurrentPolicyBinding, IndexedSearchV2Request, SearchContinuationState, SearchV2Error,
-    SearchV2ErrorCode,
+    CurrentPolicyBinding, IndexedSearchV2Request, SearchContinuationState, SearchKind,
+    SearchV2Error, SearchV2ErrorCode,
 };
 use tos_query::{
     CatalogBudget, CatalogCurrentAuthority, CatalogDisclosureLease, CatalogDisclosureScope,
@@ -227,6 +227,26 @@ fn producer_selected_indexed_pages_match_python_rank_and_original_carriers() {
     let bound =
         bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();
     let mut reader = cold.fork_reader_with_vm_budget(1_000_000).unwrap();
+    let first_posting = reader
+        .seek_postings(SearchKind::Nodes, "alp", None, 1, 1_000_000, 808)
+        .unwrap();
+    assert_eq!(first_posting.positions.len(), 1);
+    assert!(first_posting.charged.decoded_bytes > 8);
+    let continued_posting = reader
+        .seek_postings(
+            SearchKind::Nodes,
+            "alp",
+            Some(first_posting.positions[0]),
+            1,
+            1_000_000,
+            808,
+        )
+        .unwrap();
+    assert_eq!(continued_posting.positions.len(), 1);
+    assert_eq!(
+        continued_posting.charged.decoded_bytes,
+        first_posting.charged.decoded_bytes
+    );
     let policy = CurrentPolicyBinding {
         scope: "synthetic-public-projection".into(),
         issuer_ref: "synthetic-issuer".into(),

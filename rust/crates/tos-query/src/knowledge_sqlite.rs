@@ -7,7 +7,9 @@ use std::sync::{
 };
 
 use rusqlite::{ErrorCode, OptionalExtension, params};
-use tos_compiler::VerifiedKnowledgeModel;
+use tos_compiler::{
+    MAX_POSTING_DELTA_BYTES, MAX_POSTINGS_PER_BLOCK, VerifiedKnowledgeModel, decode_posting_block,
+};
 use tos_foundation::Digest256;
 
 use crate::search_candidate::{
@@ -150,31 +152,156 @@ impl SearchPostingModel for VerifiedKnowledgeModel<'_> {
             1,
             Some(move || observed.fetch_add(1, Ordering::Relaxed) >= max_vm_steps),
         );
-        let selected = (|| {
-            let mut statement = connection.prepare_cached(
-                "SELECT position FROM search_grams WHERE kind=?1 AND n=3 AND gram=?2 AND position>?3 ORDER BY position LIMIT ?4",
+        let selected =
+            (|| {
+                // The final CASE is the transfer bound: no BLOB is materialized by
+                // row.get until its SQLite type and declared length are admitted.
+                // One block always contributes at least one position after `after`,
+                // so max_rows is also a bound on consulted block rows.
+                let mut statement = connection.prepare_cached(
+                "SELECT CASE WHEN typeof(first_position)='integer' THEN first_position END, \
+                        CASE WHEN typeof(last_position)='integer' THEN last_position END, \
+                        CASE WHEN typeof(postings)='integer' THEN postings END, \
+                        CASE WHEN typeof(deltas)='blob' THEN 1 ELSE 0 END, length(deltas), \
+                        CASE WHEN typeof(deltas)='blob' AND length(deltas)<=?5 \
+                             THEN deltas END \
+                 FROM search_posting_blocks \
+                 WHERE kind=?1 AND n=3 AND gram=?2 AND last_position>?3 \
+                 ORDER BY last_position LIMIT ?4",
             ).map_err(sql_error)?;
-            let mut rows = statement
-                .query(params![
-                    kind,
-                    gram.as_bytes(),
-                    after.map_or(-1, |value| value as i64),
-                    max_rows as i64
-                ])
-                .map_err(sql_error)?;
-            let mut positions = Vec::with_capacity(max_rows);
-            while let Some(row) = rows.next().map_err(sql_error)? {
-                let position: i64 = row.get(0).map_err(sql_error)?;
-                if position < 0 {
-                    return Err(error(
-                        SearchV2ErrorCode::CorruptSelectedCarrier,
-                        "selected posting position is negative",
-                    ));
+                let mut rows = statement
+                    .query(params![
+                        kind,
+                        gram.as_bytes(),
+                        after.map_or(-1, |value| value as i64),
+                        max_rows as i64,
+                        max_decoded_bytes.min(MAX_POSTING_DELTA_BYTES as u64) as i64,
+                    ])
+                    .map_err(sql_error)?;
+                let mut positions = Vec::with_capacity(max_rows);
+                let mut decoded_bytes = 0u64;
+                let mut previous_block_last = None;
+                let mut exhausted = true;
+                while let Some(row) = rows.next().map_err(sql_error)? {
+                    let first: i64 = row
+                        .get::<_, Option<i64>>(0)
+                        .map_err(sql_error)?
+                        .ok_or_else(|| {
+                            error(
+                                SearchV2ErrorCode::CorruptSelectedCarrier,
+                                "selected posting first position type invalid",
+                            )
+                        })?;
+                    let last: i64 = row
+                        .get::<_, Option<i64>>(1)
+                        .map_err(sql_error)?
+                        .ok_or_else(|| {
+                            error(
+                                SearchV2ErrorCode::CorruptSelectedCarrier,
+                                "selected posting last position type invalid",
+                            )
+                        })?;
+                    let postings: i64 = row
+                        .get::<_, Option<i64>>(2)
+                        .map_err(sql_error)?
+                        .ok_or_else(|| {
+                            error(
+                                SearchV2ErrorCode::CorruptSelectedCarrier,
+                                "selected posting count type invalid",
+                            )
+                        })?;
+                    if first < 0
+                        || last < first
+                        || postings < 1
+                        || postings > MAX_POSTINGS_PER_BLOCK as i64
+                        || previous_block_last.is_some_and(|prior| first <= prior)
+                        || after.is_some_and(|prior| last as u64 <= prior)
+                    {
+                        return Err(error(
+                            SearchV2ErrorCode::CorruptSelectedCarrier,
+                            "selected posting block bounds invalid",
+                        ));
+                    }
+                    let delta_is_blob: i64 = row.get(3).map_err(sql_error)?;
+                    let delta_len: i64 = row
+                        .get::<_, Option<i64>>(4)
+                        .map_err(sql_error)?
+                        .ok_or_else(|| {
+                            error(
+                                SearchV2ErrorCode::CorruptSelectedCarrier,
+                                "selected posting delta length invalid",
+                            )
+                        })?;
+                    if delta_is_blob != 1
+                        || delta_len < 0
+                        || delta_len as u64 > MAX_POSTING_DELTA_BYTES as u64
+                    {
+                        return Err(error(
+                            SearchV2ErrorCode::CorruptSelectedCarrier,
+                            "selected posting delta carrier invalid",
+                        ));
+                    }
+                    // Five selected scalar fields (including the type/length guards),
+                    // the bounded encoded carrier, and every decoded position.
+                    let field_bytes = 40u64
+                        .checked_add(delta_len as u64)
+                        .and_then(|bytes| bytes.checked_add((postings as u64).checked_mul(8)?))
+                        .ok_or_else(|| {
+                            error(
+                                SearchV2ErrorCode::BudgetExceeded,
+                                "posting block byte charge overflow",
+                            )
+                        })?;
+                    decoded_bytes = decoded_bytes.checked_add(field_bytes).ok_or_else(|| {
+                        error(
+                            SearchV2ErrorCode::BudgetExceeded,
+                            "posting block byte charge overflow",
+                        )
+                    })?;
+                    if decoded_bytes > max_decoded_bytes {
+                        return Err(error(
+                            SearchV2ErrorCode::BudgetExceeded,
+                            "posting block decoded byte budget exceeded",
+                        ));
+                    }
+                    let deltas: Vec<u8> = row
+                        .get::<_, Option<Vec<u8>>>(5)
+                        .map_err(sql_error)?
+                        .ok_or_else(|| {
+                            error(
+                                SearchV2ErrorCode::CorruptSelectedCarrier,
+                                "selected posting deltas unavailable",
+                            )
+                        })?;
+                    let block =
+                        decode_posting_block(first as u64, last as u64, postings as u16, &deltas)
+                            .map_err(|reason| match reason {
+                            tos_compiler::Error::Budget(_) => error(
+                                SearchV2ErrorCode::BudgetExceeded,
+                                "posting block decode budget exceeded",
+                            ),
+                            _ => error(
+                                SearchV2ErrorCode::CorruptSelectedCarrier,
+                                "selected posting block invalid",
+                            ),
+                        })?;
+                    previous_block_last = Some(last);
+                    for position in block {
+                        if after.is_some_and(|prior| position <= prior) {
+                            continue;
+                        }
+                        positions.push(position);
+                        if positions.len() == max_rows {
+                            exhausted = false;
+                            break;
+                        }
+                    }
+                    if !exhausted {
+                        break;
+                    }
                 }
-                positions.push(position as u64);
-            }
-            Ok(positions)
-        })();
+                Ok((positions, exhausted, decoded_bytes))
+            })();
         connection.progress_handler(0, None::<fn() -> bool>);
         let steps = count.load(Ordering::Relaxed);
         if steps > max_vm_steps {
@@ -183,16 +310,16 @@ impl SearchPostingModel for VerifiedKnowledgeModel<'_> {
                 "posting seek exceeded VM budget",
             ));
         }
-        let positions = selected?;
+        let (positions, exhausted, decoded_bytes) = selected?;
         let rows = positions.len() as u64;
         Ok(PostingPage {
-            exhausted: positions.len() < max_rows,
+            exhausted,
             positions,
             charged: GramSeekCharge {
                 lookups: 1,
                 vm_steps: steps,
                 rows,
-                decoded_bytes: rows * 8,
+                decoded_bytes,
             },
         })
     }
