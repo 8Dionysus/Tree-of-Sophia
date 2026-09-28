@@ -3,9 +3,13 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import re
+import signal
 import socket
+import stat
 import subprocess
 import tempfile
 import sys
@@ -23,6 +27,241 @@ if ACCESS_SRC.as_posix() not in sys.path:
     sys.path.insert(0, ACCESS_SRC.as_posix())
 
 from tos_access.core import ToSAccessCore  # noqa: E402
+from tos_access.projection_store import ProjectionReader, is_partitioned  # noqa: E402
+
+
+# The fixed public-build closure; only the ledger directory contributes
+# variable names. Optional inputs must appear with explicit null bindings.
+SOURCE_INPUTS = (
+    "ToS/derived-exports/tos_corpus_index.min.json",
+    "ToS/derived-exports/philosophy_graph_projection.min.json",
+    "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+    "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+    "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+    "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json",
+    "access/contracts/knowledge-api.v1.json",
+    "access/contracts/knowledge-graph.v1.schema.json",
+    "access/contracts/knowledge-search-indexed.v2.schema.json",
+    "access/contracts/readable-context.v1.schema.json",
+    "access/contracts/lens-spec.v1.schema.json",
+    "access/contracts/lens-result.v1.schema.json",
+    "access/contracts/temporal-comparison-request.v1.schema.json",
+    "access/contracts/temporal-comparison-result.v1.schema.json",
+    "access/contracts/source-read.v1.schema.json",
+    "access/contracts/exploration-request.v1.schema.json",
+    "access/contracts/exploration-result.v1.schema.json",
+    "access/contracts/exploration-request.v2.schema.json",
+    "access/contracts/exploration-result.v2.schema.json",
+    "ToS/contracts/semantic-entity-type-registry.schema.json",
+    "ToS/contracts/semantic-relation-type-registry.schema.json",
+)
+OPTIONAL_INPUTS = (
+    "ToS/derived-exports/epistemic_evidence_projection.min.json",
+    "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
+)
+LEDGER_PREFIX = "ToS/source-witnesses/access-requests/public-ledger/"
+SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+MAX_MANIFEST_BYTES = 2 * 1024 * 1024 + 1
+# Each of the two verification passes uses the public build's existing work cap.
+MAX_SOURCE_PASS_BYTES = 16 * 1024 * 1024 * 1024
+MAX_PART_FILE_BYTES = 8 * 1024 * 1024 + 65536
+# This verifier holds one ordered path list in addition to the existing
+# ProjectionReader's bounded descriptor set, never a graph or part payload.
+MAX_PART_PATHS = 32768
+MAX_PART_PATH_BYTES = 16 * 1024 * 1024
+
+
+def remaining(deadline: float) -> float:
+    seconds = deadline - time.monotonic()
+    if seconds <= 0:
+        raise TimeoutError("public D1 verification deadline exceeded")
+    return seconds
+
+
+def completion_pair() -> tuple[dict[str, Any], bytes]:
+    markers = (WORKER_ROOT / "runtime/manifest.json", WORKER_ROOT / "dist/__edge/build-manifest.json")
+    packets = []
+    for marker in markers:
+        if marker.is_symlink() or not marker.is_file() or marker.stat().st_size > MAX_MANIFEST_BYTES:
+            raise AssertionError(f"public D1 completion marker missing or oversized: {marker}")
+        with marker.open("rb") as stream:
+            packets.append(stream.read(MAX_MANIFEST_BYTES + 1))
+    if packets[0] != packets[1] or len(packets[0]) > MAX_MANIFEST_BYTES:
+        raise AssertionError("public D1 runtime/static completion markers differ")
+    manifest = json.loads(packets[0])
+    if (not isinstance(manifest, dict) or manifest.get("schema") != "tos_cloudflare_edge_build_v1"
+            or manifest.get("read_model_schema") != "tos_cloudflare_edge_read_model_v9"
+            or not isinstance(manifest.get("data_revision"), str)
+            or not SHA256.fullmatch(manifest["data_revision"])):
+        raise AssertionError("public D1 v9 completion marker is invalid")
+    for name, field in (("read-model.sql", "sql_bytes"), ("read-model.rows.json", "baseline_bytes")):
+        path = WORKER_ROOT / "runtime" / name
+        size = manifest.get(field)
+        if (path.is_symlink() or not path.is_file() or type(size) is not int
+                or size < 1 or path.stat().st_size != size):
+            raise AssertionError(f"public D1 {name} differs from completion marker")
+    with (WORKER_ROOT / "runtime/read-model.rows.json").open("rb") as stream:
+        prefix = stream.read(160)
+    expected_prefix = (b'{"schema":"tos_cloudflare_edge_read_model_v9","revision":"'
+                       + manifest["data_revision"].encode("ascii") + b'"')
+    if not prefix.startswith(expected_prefix):
+        raise AssertionError("public D1 row baseline revision differs from completion marker")
+    return manifest, packets[0]
+
+
+def source_path(label: str) -> Path:
+    root = REPO_ROOT.resolve()
+    path = root / label
+    if (not path.resolve(strict=False).is_relative_to(root)
+            or any(parent.is_symlink() for parent in (path, *path.parents) if parent != root and parent.is_relative_to(root))):
+        raise AssertionError(f"public D1 source path escaped or became a symlink: {label}")
+    return path
+
+
+def source_digest(path: Path, size: int | None, work: list[int], deadline: float,
+                  max_size: int | None = None) -> tuple[int, str]:
+    remaining(deadline)
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    try:
+        before = os.fstat(fd)
+        if (not stat.S_ISREG(before.st_mode) or (size is not None and before.st_size != size)
+                or (max_size is not None and before.st_size > max_size)):
+            raise AssertionError(f"public D1 source type or size changed: {path}")
+        digest = hashlib.sha256()
+        read = 0
+        with os.fdopen(fd, "rb", closefd=False) as stream:
+            while chunk := stream.read(1024 * 1024):
+                remaining(deadline)
+                read += len(chunk)
+                work[0] += len(chunk)
+                if work[0] > MAX_SOURCE_PASS_BYTES or (size is not None and read > size):
+                    raise AssertionError("public D1 source verification work exceeded bound")
+                digest.update(chunk)
+        after = os.fstat(fd)
+        current = path.stat()
+        identity = lambda value: (value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns, value.st_ctime_ns)
+        if read != before.st_size or identity(before) != identity(after) or identity(after) != identity(current):
+            raise AssertionError(f"public D1 source changed during verification: {path}")
+        return read, digest.hexdigest()
+    finally:
+        os.close(fd)
+
+
+def binding_root(paths: list[str], domain: bytes) -> str:
+    digest = hashlib.sha256(domain)
+    for label in paths:
+        encoded = label.encode("utf-8")
+        digest.update(len(encoded).to_bytes(8, "big"))
+        digest.update(encoded)
+    return digest.hexdigest()
+
+
+def verify_inputs(manifest: dict[str, Any], deadline: float) -> None:
+    binding = manifest.get("public_input_binding")
+    if (not isinstance(binding, dict)
+            or set(binding) != {"schema", "sources", "public_ledger", "partitioned", "partition_parts"}
+            or binding["schema"] != "tos_public_input_binding_v1"
+            or not isinstance(binding["sources"], list)):
+        raise AssertionError("public D1 measured input binding is missing")
+    work = [0]
+    directory = source_path(LEDGER_PREFIX[:-1])
+    if directory.exists():
+        if directory.is_symlink() or not directory.is_dir():
+            raise AssertionError("public D1 ledger directory changed")
+        ledger = []
+        entries = 0
+        for child in directory.iterdir():
+            remaining(deadline)
+            entries += 1
+            work[0] += len(child.name.encode("utf-8"))
+            if entries > 4096 or work[0] > MAX_SOURCE_PASS_BYTES:
+                raise AssertionError("public D1 ledger enumeration exceeds builder bound")
+            if child.name.endswith(".access-request.json"):
+                ledger.append(LEDGER_PREFIX + child.name)
+        ledger.sort()
+    else:
+        ledger = []
+    sources = binding["sources"]
+    labels = [row.get("path") if isinstance(row, dict) else None for row in sources]
+    if labels != sorted((*SOURCE_INPUTS, *OPTIONAL_INPUTS, *ledger)):
+        raise AssertionError("public D1 source closure differs from fixed builder inputs")
+    present = set()
+    for row in sources:
+        if not isinstance(row, dict) or set(row) != {"path", "size_bytes", "sha256"}:
+            raise AssertionError("public D1 input entry is invalid")
+        label, size, sha = row["path"], row["size_bytes"], row["sha256"]
+        path = source_path(label)
+        if label in OPTIONAL_INPUTS and size is None and sha is None:
+            if path.exists() or path.is_symlink():
+                raise AssertionError(f"public D1 optional input appeared: {label}")
+            continue
+        if (type(size) is not int or size < 0 or not isinstance(sha, str) or not SHA256.fullmatch(sha)):
+            raise AssertionError(f"public D1 input binding is incomplete: {label}")
+        if source_digest(path, size, work, deadline) != (size, sha):
+            raise AssertionError(f"public D1 input changed since build: {label}")
+        present.add(label)
+    source_paths = manifest.get("source_paths")
+    if (not isinstance(source_paths, list) or any(not isinstance(item, str) for item in source_paths)
+            or len(source_paths) != len(set(source_paths)) or set(source_paths) != present):
+        raise AssertionError("public D1 present source set differs from completion marker")
+    ledger_binding = binding["public_ledger"]
+    if (not isinstance(ledger_binding, dict) or set(ledger_binding) != {"count", "paths_sha256"}
+            or type(ledger_binding["count"]) is not int or ledger_binding["count"] != len(ledger)
+            or ledger_binding["paths_sha256"] != binding_root(ledger, b"tos-public-ledger-membership-v1\0")):
+        raise AssertionError("public D1 ledger membership differs from build")
+    partitioned = []
+    part_binding = binding["partition_parts"]
+    if (not isinstance(part_binding, dict) or set(part_binding) != {"count", "root_sha256"}
+            or type(part_binding["count"]) is not int or part_binding["count"] < 0
+            or part_binding["count"] > MAX_PART_PATHS
+            or not isinstance(part_binding["root_sha256"], str)
+            or not SHA256.fullmatch(part_binding["root_sha256"])):
+        raise AssertionError("public D1 partition closure exceeds verifier profile")
+    paths: list[str] = []
+    retained_path_bytes = 0
+    for label in SOURCE_INPUTS[:3]:
+        path = source_path(label)
+        selected = is_partitioned(path)
+        partitioned.append(selected)
+        if selected:
+            reader = ProjectionReader(path, cache_bytes=0)
+            charged = 0
+            for part in reader.closure_paths(verify_data=False):
+                remaining(deadline)
+                # The reader may have loaded an index before yielding this
+                # descriptor. Charge it now, not after the whole tree.
+                work[0] += reader.bytes_read - charged
+                charged = reader.bytes_read
+                if work[0] > MAX_SOURCE_PASS_BYTES:
+                    raise AssertionError("public D1 source verification work exceeded bound")
+                if part != path:
+                    relative = part.relative_to(REPO_ROOT.resolve()).as_posix()
+                    encoded_bytes = len(relative.encode("utf-8"))
+                    retained_path_bytes += encoded_bytes
+                    work[0] += encoded_bytes
+                    if (len(paths) >= part_binding["count"] or len(paths) >= MAX_PART_PATHS
+                            or retained_path_bytes > MAX_PART_PATH_BYTES
+                            or work[0] > MAX_SOURCE_PASS_BYTES):
+                        raise AssertionError("public D1 partition closure exceeds verifier profile")
+                    paths.append(relative)
+            work[0] += reader.bytes_read - charged
+            if work[0] > MAX_SOURCE_PASS_BYTES:
+                raise AssertionError("public D1 source verification work exceeded bound")
+    if partitioned[0] != partitioned[2] or type(binding["partitioned"]) is not bool or binding["partitioned"] != partitioned[0]:
+        raise AssertionError("public D1 projection storage mode differs from build")
+    paths.sort()
+    if len(paths) != part_binding["count"] or any(left == right for left, right in zip(paths, paths[1:])):
+        raise AssertionError("public D1 partition closure differs from build")
+    root = hashlib.sha256(b"tos-public-part-closure-v1\0")
+    for label in paths:
+        size, sha = source_digest(source_path(label), None, work, deadline, MAX_PART_FILE_BYTES)
+        encoded = label.encode("utf-8")
+        root.update(len(encoded).to_bytes(8, "big"))
+        root.update(encoded)
+        root.update(size.to_bytes(8, "big"))
+        root.update(bytes.fromhex(sha))
+    if part_binding["root_sha256"] != root.hexdigest():
+        raise AssertionError("public D1 partition closure differs from build")
 
 
 def free_port() -> int:
@@ -76,9 +315,9 @@ def fetch_jsonl(base: str, path: str) -> list[dict[str, Any]]:
     return rows
 
 
-def wait_ready(base: str, process: subprocess.Popen[str]) -> None:
-    deadline = time.monotonic() + 30
-    while time.monotonic() < deadline:
+def wait_ready(base: str, process: subprocess.Popen[str], deadline: float) -> None:
+    ready_deadline = min(time.monotonic() + 30, deadline)
+    while time.monotonic() < ready_deadline:
         if process.poll() is not None:
             output = process.stdout.read() if process.stdout else ""
             raise RuntimeError(f"wrangler dev exited before readiness:\n{output}")
@@ -91,12 +330,71 @@ def wait_ready(base: str, process: subprocess.Popen[str]) -> None:
 
 
 def main() -> int:
-    # The offline Worker build owns this snapshot; parity verification consumes
-    # it without requiring a second source-root compilation.
-    query_store = WORKER_ROOT / "runtime/knowledge.sqlite3"
-    if query_store.is_file():
-        os.environ.setdefault("TOS_QUERY_STORE_PATH", query_store.as_posix())
-    core = ToSAccessCore.discover(REPO_ROOT)
+    if "TOS_QUERY_STORE_PATH" in os.environ or "TOS_RELEASE_ROOT" in os.environ:
+        raise AssertionError("ambient query store or managed release cannot select the independent oracle")
+    raw_seconds = os.environ.get("TOS_VERIFY_MAX_SECONDS", "")
+    if not raw_seconds.isascii() or not raw_seconds.isdecimal() or int(raw_seconds) < 1:
+        raise ValueError("TOS_VERIFY_MAX_SECONDS must be a positive whole-operation deadline")
+    deadline = time.monotonic() + int(raw_seconds)
+    def expired(_signal, _frame):
+        raise RuntimeError("public D1 local verification deadline exceeded")
+    previous_handler = signal.signal(signal.SIGALRM, expired)
+    try:
+        signal.setitimer(signal.ITIMER_REAL, remaining(deadline))
+        manifest, marker = completion_pair()
+        verify_inputs(manifest, deadline)
+        # All three public projections can be partitioned independently of the
+        # corpus-mode flag. Compile one fresh, explicit QueryStore even for a
+        # legacy corpus; never permit the Python core's ambient default store.
+        temporary = tempfile.TemporaryDirectory(prefix="tos-public-oracle-")
+        try:
+            query_store = Path(temporary.name) / "knowledge.sqlite3"
+            program = ("import json,sys; from tos_access.knowledge_compile import compile_knowledge_store; "
+                       "print(json.dumps(compile_knowledge_store(sys.argv[1],sys.argv[2],allow_legacy=True)))")
+            environment = {**os.environ, "PYTHONPATH": ACCESS_SRC.as_posix(), "PYTHONDONTWRITEBYTECODE": "1"}
+            environment.pop("TOS_QUERY_STORE_PATH", None)
+            # subprocess.run owns its child timeout and kill/wait. Suspend the
+            # parent's signal only for that call; the same absolute deadline
+            # covers the initial closure, compile, oracle and HTTP comparisons.
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            result = subprocess.run(
+                [sys.executable, "-B", "-c", program, REPO_ROOT.as_posix(), query_store.as_posix()],
+                env=environment, capture_output=True, text=True, check=True, timeout=remaining(deadline),
+            )
+            signal.setitimer(signal.ITIMER_REAL, remaining(deadline))
+            if len(result.stdout) > MAX_MANIFEST_BYTES:
+                raise AssertionError("independent Python oracle receipt exceeds verifier profile")
+            compiled = json.loads(result.stdout)
+            if compiled.get("output") != query_store.as_posix() or not query_store.is_file():
+                raise AssertionError("independent Python oracle did not complete its selected store")
+            os.environ["TOS_QUERY_STORE_PATH"] = query_store.as_posix()
+            core = ToSAccessCore.discover(
+                REPO_ROOT,
+                index_path=source_path(SOURCE_INPUTS[0]),
+                philosophy_graph_projection_path=source_path(SOURCE_INPUTS[1]),
+                bibliographic_graph_path=source_path(SOURCE_INPUTS[2]),
+                entity_type_registry_path=source_path(SOURCE_INPUTS[3]),
+                relation_type_registry_path=source_path(SOURCE_INPUTS[4]),
+                evidence_projection_path=source_path(OPTIONAL_INPUTS[0]),
+                philosophy_post_planting_audit_path=source_path(OPTIONAL_INPUTS[1]),
+                search_read_model_path=query_store.parent / "no-ambient-search-model",
+            )
+            if compiled.get("source_revision") != core.knowledge_header().get("source_revision"):
+                raise AssertionError("independent Python oracle source revision changed")
+            result_code = compare_packets(core, manifest, marker, deadline)
+        finally:
+            # Cleanup must complete even when the whole-call timer fires.
+            # It is charged against the same absolute deadline on return.
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            temporary.cleanup()
+        remaining(deadline)
+        return result_code
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous_handler)
+
+
+def compare_packets(core: ToSAccessCore, manifest: dict[str, Any], marker: bytes, deadline: float) -> int:
     port = free_port()
     base = f"http://127.0.0.1:{port}"
     # A never-drained PIPE can block Wrangler logging and internal asset reads.
@@ -107,9 +405,13 @@ def main() -> int:
         stdout=logs,
         stderr=subprocess.STDOUT,
         text=True,
+        env={key: value for key, value in os.environ.items() if key != "TOS_QUERY_STORE_PATH"},
     )
     try:
-        wait_ready(base, process)
+        wait_ready(base, process, deadline)
+        health = fetch_json(base, "/health")
+        if health.get("data_revision") != manifest["data_revision"]:
+            raise AssertionError("local D1 imported revision differs from the completed Rust build")
         node_id = "candidate-node:table-i-a01-node-016"
         target_id = "candidate-node:table-i-a01-node-014"
         source_work_id = (
@@ -121,6 +423,8 @@ def main() -> int:
         knowledge_work_id = "tos.work.friedrich-nietzsche.also-sprach-zarathustra"
         large_knowledge_node_id = "canon:tos.source.thus-spoke-zarathustra.prologue"
         knowledge_node_packet = core.knowledge_node(knowledge_node_id, 20)
+        if knowledge_node_packet.get("source_revision") != core.knowledge_header().get("source_revision"):
+            raise AssertionError("independent oracle knowledge revision changed")
         related_relations = knowledge_node_packet.get("related_relations", [])
         if not related_relations:
             raise AssertionError(f"knowledge parity node has no relation: {knowledge_node_id}")
@@ -344,11 +648,17 @@ def main() -> int:
             if response.headers.get_content_type() != "text/csv" or not response.readline().strip():
                 raise AssertionError("Cloudflare CSV scale export is not downloadable")
         print("ok: scale export CSV and empty filter")
+        verify_inputs(manifest, deadline)
+        if completion_pair()[1] != marker:
+            raise AssertionError("public D1 completion changed during verification")
     except Exception:
         logs.seek(0)
         print(logs.read()[-6000:], file=sys.stderr)
         raise
     finally:
+        # Shutdown must complete even if the packet deadline fires. The
+        # caller checks the same absolute deadline after both cleanups.
+        signal.setitimer(signal.ITIMER_REAL, 0)
         process.terminate()
         try:
             process.wait(timeout=10)
