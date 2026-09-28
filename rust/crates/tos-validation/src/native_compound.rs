@@ -4294,6 +4294,130 @@ struct WorkGrammar {
     claim_sha256: Digest256,
     binding: CutExecutionBinding,
 }
+/// Descriptive selected grammar bytes for a proposed Work Claim. Publication
+/// still requires the independent full current-cut preparation and CMD fences.
+pub struct WorkExpressionGrammarRead {
+    pub digests: BTreeMap<String, String>,
+    pub reads: Vec<PredicateRead>,
+    pub bytes_read: u64,
+    pub execution_binding: CutExecutionBinding,
+    pub claim_sha256: Digest256,
+}
+fn work_grammar_from_cut(
+    reader: &mut NativeCompoundReader<'_>,
+    schemas: &mut CutWorkerSchemaExecutor,
+    claim_raw: &[u8],
+) -> Result<WorkGrammar, ItemRefusal> {
+    let mut local_limits = reader.limits;
+    local_limits.max_state_bytes = reader
+        .limits
+        .max_state_bytes
+        .checked_sub(reader.state)
+        .ok_or(ItemRefusal::Budget)?;
+    local_limits.max_total_bytes = reader
+        .limits
+        .max_total_bytes
+        .checked_sub(reader.bytes)
+        .ok_or(ItemRefusal::Budget)?;
+    let mut local = crate::record_rules::validate_source_claim_from_cut(
+        reader.cut,
+        claim_raw,
+        schemas,
+        local_limits,
+        reader.cancelled,
+    )?;
+    if !local.issues.is_empty() || local.execution_binding != schemas.execution_binding() {
+        return Err(bad("Work Claim local profile/binding"));
+    }
+    let claim_sha256 = local.source_input_sha256;
+    let binding = local.execution_binding.clone();
+    let dependencies = std::mem::take(&mut local.dependency_digests);
+    drop(local);
+    let dependency_slots = dependencies
+        .keys()
+        .try_fold(0usize, |n, path| {
+            n.checked_add(std::mem::size_of::<(String, Digest256)>() + path.len())
+        })
+        .ok_or(ItemRefusal::Budget)?;
+    reader.temporary(
+        dependency_slots
+            .checked_add(std::mem::size_of::<BTreeMap<String, Digest256>>())
+            .ok_or(ItemRefusal::Budget)?,
+    )?;
+    let grammar_slots = dependencies
+        .keys()
+        .map(String::as_str)
+        .chain(
+            WORK_GRAMMAR_EXTRA
+                .into_iter()
+                .filter(|path| !dependencies.contains_key(*path)),
+        )
+        .try_fold(
+            std::mem::size_of::<BTreeMap<String, String>>(),
+            |n, path| n.checked_add(std::mem::size_of::<(String, String)>() + path.len() + 64),
+        )
+        .ok_or(ItemRefusal::Budget)?;
+    reader.temporary(grammar_slots)?;
+    let mut digests = dependencies
+        .iter()
+        .map(|(path, sha)| (path.clone(), sha.to_hex()))
+        .collect::<BTreeMap<_, _>>();
+    for path in WORK_GRAMMAR_EXTRA {
+        if !digests.contains_key(path) {
+            let raw = reader.required(path, MAX_FILE)?;
+            digests.insert(path.into(), Digest256::of_bytes(&raw).to_hex());
+            reader.release_temporary(std::mem::size_of::<Vec<u8>>() + raw.len());
+        }
+    }
+    Ok(WorkGrammar {
+        dependencies,
+        digests,
+        claim_sha256,
+        binding,
+    })
+}
+/// Inspect the same Work Claim grammar used by full byte preparation, before
+/// a complete create request exists. This cannot authorize source mutation.
+pub fn inspect_work_expression_grammar_from_cut(
+    cut: &CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    proposed_claim_raw: &[u8],
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<WorkExpressionGrammarRead, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    if schemas.source_revision() != cut.current().revision() || proposed_claim_raw.len() > MAX_FILE
+    {
+        return Err(bad("Work grammar source/schema or Claim size"));
+    }
+    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    reader.temporary(std::mem::size_of::<Vec<u8>>() + proposed_claim_raw.len())?;
+    let claim = reader.decoded(proposed_claim_raw)?;
+    let mut expected = canonical(&claim)?;
+    expected.push(b'\n');
+    let expected = reader.buffer(expected)?;
+    if proposed_claim_raw != expected {
+        return Err(bad("Work proposed Claim exact canonical bytes"));
+    }
+    let decoded_state = crate::record_biblio_cut::decoded_state(&claim)?;
+    drop(claim);
+    reader.release_temporary(decoded_state);
+    let encoded_state = std::mem::size_of::<Vec<u8>>() + expected.len();
+    drop(expected);
+    reader.release_temporary(encoded_state);
+    let grammar = work_grammar_from_cut(&mut reader, schemas, proposed_claim_raw)?;
+    reader.release_temporary(std::mem::size_of::<Vec<u8>>() + proposed_claim_raw.len());
+    reader.record_work_dependencies(grammar.dependencies, &grammar.digests)?;
+    reader.release_temporary(std::mem::size_of::<BTreeMap<String, Digest256>>());
+    reader.release_raw_cache();
+    Ok(WorkExpressionGrammarRead {
+        digests: grammar.digests,
+        reads: reader.reads,
+        bytes_read: reader.bytes,
+        execution_binding: grammar.binding,
+        claim_sha256: grammar.claim_sha256,
+    })
+}
 struct FinishedCompound<'a> {
     kind: CompoundKind,
     authority: Cow<'a, Value>,
@@ -4522,69 +4646,11 @@ pub fn prepare_work_expression_bytes<'a>(
     let ordered_state = crate::record_biblio_cut::ordered_state(&ordered_request)?;
     drop(ordered_request);
     reader.release_temporary(ordered_state);
-    let mut local_limits = limits;
-    local_limits.max_state_bytes = limits
-        .max_state_bytes
-        .checked_sub(reader.state)
-        .ok_or(ItemRefusal::Budget)?;
-    local_limits.max_total_bytes = limits
-        .max_total_bytes
-        .checked_sub(reader.bytes)
-        .ok_or(ItemRefusal::Budget)?;
-    let mut local = crate::record_rules::validate_source_claim_from_cut(
-        cut,
-        &claim_raw,
-        schemas,
-        local_limits,
-        cancelled,
-    )?;
-    if !local.issues.is_empty() || local.execution_binding != schemas.execution_binding() {
-        return Err(bad("Work Claim local profile/binding"));
-    }
-    let claim_sha256 = local.source_input_sha256;
-    let local_binding = local.execution_binding.clone();
-    let dependencies = std::mem::take(&mut local.dependency_digests);
-    drop(local);
+    let grammar = work_grammar_from_cut(&mut reader, schemas, &claim_raw)?;
     let claim_len = claim_raw.len();
     drop(claim_raw);
     reader.release_temporary(std::mem::size_of::<Vec<u8>>() + claim_len);
-    let dependency_slots = dependencies
-        .keys()
-        .try_fold(0usize, |n, path| {
-            n.checked_add(std::mem::size_of::<(String, Digest256)>() + path.len())
-        })
-        .ok_or(ItemRefusal::Budget)?;
-    reader.temporary(
-        dependency_slots
-            .checked_add(std::mem::size_of::<BTreeMap<String, Digest256>>())
-            .ok_or(ItemRefusal::Budget)?,
-    )?;
-    let grammar_slots = dependencies
-        .keys()
-        .map(String::as_str)
-        .chain(
-            WORK_GRAMMAR_EXTRA
-                .into_iter()
-                .filter(|path| !dependencies.contains_key(*path)),
-        )
-        .try_fold(
-            std::mem::size_of::<BTreeMap<String, String>>(),
-            |n, path| n.checked_add(std::mem::size_of::<(String, String)>() + path.len() + 64),
-        )
-        .ok_or(ItemRefusal::Budget)?;
-    reader.temporary(grammar_slots)?;
-    let mut digests = dependencies
-        .iter()
-        .map(|(path, sha)| (path.clone(), sha.to_hex()))
-        .collect::<BTreeMap<_, _>>();
-    for path in WORK_GRAMMAR_EXTRA {
-        if !digests.contains_key(path) {
-            let raw = reader.required(path, MAX_FILE)?;
-            digests.insert(path.into(), Digest256::of_bytes(&raw).to_hex());
-            reader.release_temporary(std::mem::size_of::<Vec<u8>>() + raw.len());
-        }
-    }
-    let authority = authorize(&digests)?;
+    let authority = authorize(&grammar.digests)?;
     reader.temporary(crate::record_biblio_cut::decoded_state(&authority)?)?;
     keys(
         &authority,
@@ -4614,7 +4680,7 @@ pub fn prepare_work_expression_bytes<'a>(
             "retained_transactions",
         ],
     )?;
-    if authority["dependency_bindings"]["contracts"] != json!(digests) {
+    if authority["dependency_bindings"]["contracts"] != json!(grammar.digests) {
         return Err(bad(
             "Work authorization exact Claim/form/provenance contracts",
         ));
@@ -4660,12 +4726,7 @@ pub fn prepare_work_expression_bytes<'a>(
         recorded_at,
         schemas,
         &|_| Err(bad("Work has no external companion inputs")),
-        Some(WorkGrammar {
-            dependencies,
-            digests,
-            claim_sha256,
-            binding: local_binding,
-        }),
+        Some(grammar),
     )?;
     reader.release_raw_cache();
     Ok(WorkExpressionCore {
@@ -4681,6 +4742,35 @@ struct ObjectLinkReconstructed {
     files: Package,
 }
 impl NativeCompoundReader<'_> {
+    fn record_work_dependencies(
+        &mut self,
+        dependencies: BTreeMap<String, Digest256>,
+        digests: &BTreeMap<String, String>,
+    ) -> Result<(), ItemRefusal> {
+        for (path, sha) in dependencies {
+            let relative = RelativePath::parse(&path).map_err(|_| bad("Claim contract path"))?;
+            let size = self
+                .cut
+                .current()
+                .member(&relative)
+                .ok_or_else(|| bad("Claim dependency membership"))?
+                .size_bytes;
+            account(
+                &mut self.bytes,
+                usize::try_from(size).map_err(|_| ItemRefusal::Budget)?,
+                self.limits.max_total_bytes,
+            )?;
+            self.release_temporary(std::mem::size_of::<(String, Digest256)>() + path.len());
+            if digests.get(&path).map(String::as_str) != Some(sha.to_hex().as_str()) {
+                return Err(bad("Work prechecked Claim dependency drift"));
+            }
+            self.record_read(PredicateRead::ExactPath {
+                path,
+                digest: sha.to_prefixed(),
+            })?;
+        }
+        Ok(())
+    }
     fn reconstruct(
         &mut self,
         tx: &Transaction,
@@ -4900,38 +4990,34 @@ impl NativeCompoundReader<'_> {
         if !prechecked_grammar {
             self.temporary(dependencies_state)?;
         }
-        for (path, sha) in dependency_digests {
-            let relative = RelativePath::parse(&path).map_err(|_| bad("Claim contract path"))?;
-            let size = self
-                .cut
-                .current()
-                .member(&relative)
-                .ok_or_else(|| bad("Claim dependency membership"))?
-                .size_bytes;
-            account(
-                &mut self.bytes,
-                usize::try_from(size).map_err(|_| ItemRefusal::Budget)?,
-                self.limits.max_total_bytes,
-            )?;
-            self.release_temporary(std::mem::size_of::<(String, Digest256)>() + path.len());
-            if prechecked_grammar
-                && grammar_digests.get(&path).map(String::as_str) != Some(sha.to_hex().as_str())
-            {
-                return Err(bad("Work prechecked Claim dependency drift"));
-            }
-            self.record_read(PredicateRead::ExactPath {
-                path,
-                digest: sha.to_prefixed(),
-            })?;
-        }
         if prechecked_grammar {
+            self.record_work_dependencies(dependency_digests, &grammar_digests)?;
             self.release_temporary(std::mem::size_of::<BTreeMap<String, Digest256>>());
-        }
-        if prechecked_grammar {
             for path in WORK_GRAMMAR_EXTRA {
                 if !grammar_digests.contains_key(path) {
                     return Err(bad("Work grammar missing selected contract"));
                 }
+            }
+        } else {
+            for (path, sha) in dependency_digests {
+                let relative =
+                    RelativePath::parse(&path).map_err(|_| bad("Claim contract path"))?;
+                let size = self
+                    .cut
+                    .current()
+                    .member(&relative)
+                    .ok_or_else(|| bad("Claim dependency membership"))?
+                    .size_bytes;
+                account(
+                    &mut self.bytes,
+                    usize::try_from(size).map_err(|_| ItemRefusal::Budget)?,
+                    self.limits.max_total_bytes,
+                )?;
+                self.release_temporary(std::mem::size_of::<(String, Digest256)>() + path.len());
+                self.record_read(PredicateRead::ExactPath {
+                    path,
+                    digest: sha.to_prefixed(),
+                })?;
             }
         }
         // The constructor's decoded registries/routes have now been dropped.
