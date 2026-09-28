@@ -772,10 +772,9 @@ fn package_bounded(
     }
     Ok(files)
 }
-fn refs(files: &BTreeMap<String, Vec<u8>>) -> JsonValue {
+fn refs_view<'a>(files: impl Iterator<Item = (&'a str, &'a [u8])>) -> JsonValue {
     JsonValue::Object(
         files
-            .iter()
             .map(|(name, raw)| {
                 (
                     tos_foundation::JsonString::from_utf8(name),
@@ -788,8 +787,46 @@ fn refs(files: &BTreeMap<String, Vec<u8>>) -> JsonValue {
             .collect(),
     )
 }
+fn refs(files: &BTreeMap<String, Vec<u8>>) -> JsonValue {
+    refs_view(
+        files
+            .iter()
+            .map(|(name, raw)| (name.as_str(), raw.as_slice())),
+    )
+}
 pub(crate) fn revision(files: &BTreeMap<String, Vec<u8>>) -> SourceCommandResult<JsonValue> {
     Ok(string(&record_digest(&refs(files))?.to_prefixed()))
+}
+fn revised_package_revision(
+    files: &BTreeMap<&str, &[u8]>,
+    whole_call: Option<&Rc<RefCell<ClaimCallBudget>>>,
+) -> SourceCommandResult<JsonValue> {
+    // The same refs_view recipe used by revision() is built from borrowed
+    // successor bytes. Reserve both its bounded value and the canonical hash
+    // buffer before either is allocated; no second package copy/read occurs.
+    let template = object(vec![
+        ("sha256", string(&Digest256::of_bytes(b"").to_prefixed())),
+        ("bytes", number(u64::MAX)),
+    ]);
+    let template_state = retained_value_bytes(&template)?;
+    let refs_state = files.iter().try_fold(2usize, |sum, (name, _)| {
+        sum.checked_add(catalogue_string_bound(name)?)
+            .and_then(|n| n.checked_add(template_state))
+            .and_then(|n| n.checked_add(2 + std::mem::size_of::<(JsonString, JsonValue)>()))
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim revised package digest state overflow",
+            ))
+    })?;
+    if let Some(budget) = whole_call {
+        budget.borrow().check_live(refs_state.checked_mul(2).ok_or(
+            SourceCommandError::Unsupported("Claim revised package digest state overflow"),
+        )?)?;
+    }
+    let digest = record_digest(&refs_view(files.iter().map(|(name, raw)| (*name, *raw))))?;
+    if let Some(budget) = whole_call {
+        budget.borrow_mut().retain(refs_state)?;
+    }
+    Ok(string(&digest.to_prefixed()))
 }
 fn form_name(id: &str) -> String {
     format!(
@@ -798,6 +835,38 @@ fn form_name(id: &str) -> String {
             .to_prefixed()
             .trim_start_matches("sha256:")
     )
+}
+
+fn current_claim_materializations(
+    record: &JsonValue,
+    files: &BTreeMap<String, Vec<u8>>,
+    id: &str,
+    whole_call: Option<&Rc<RefCell<ClaimCallBudget>>>,
+) -> SourceCommandResult<JsonValue> {
+    let Some(raw) = files.get(&form_name(id)) else {
+        return Ok(JsonValue::Array(vec![]));
+    };
+    if let Some(budget) = whole_call {
+        // The selected raw bytes already belong to the package. Its parsed
+        // value and the existing source-copy kernel's 262,144-byte output
+        // limit overlap here with the current record and retained context.
+        let temporary = raw
+            .len()
+            .checked_add(retained_value_bytes(record)?)
+            .and_then(|n| n.checked_add(262_144))
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim current materialization state overflow",
+            ))?;
+        budget.borrow().check_live(temporary)?;
+    }
+    let payload = parse(raw)?;
+    let materializations = JsonValue::Array(materialize_source_forms(record, &payload)?);
+    if let Some(budget) = whole_call {
+        budget
+            .borrow_mut()
+            .retain(retained_value_bytes(&materializations)?)?;
+    }
+    Ok(materializations)
 }
 
 /// Execute against the exact current selected cut and protected configuration.
@@ -2680,6 +2749,13 @@ fn run_claim_command_inner(
     }
     set(&mut response, "source", metadata_subject(record)?)?;
     set(&mut response, "revision", revision(&files)?)?;
+    if operation != "claim.revise" {
+        set(
+            &mut response,
+            "materializations",
+            current_claim_materializations(record, &files, id, whole_call.as_ref())?,
+        )?;
+    }
     if operation == "describe" {
         return ctx.plan(&handler, response, vec![], false);
     }
@@ -2826,6 +2902,11 @@ fn run_claim_command_inner(
                 // this same complete selected cut before returning.
                 read.into_inventory(ctx, cut)?;
             }
+            set(
+                &mut response,
+                "materializations",
+                current_claim_materializations(record, &files, id, whole_call.as_ref())?,
+            )?;
             set(&mut response, "receipt", receipt.clone())?;
             set(&mut response, "replayed", JsonValue::Bool(true))?;
             return ctx.plan(&handler, response, vec![], true);
@@ -2928,21 +3009,25 @@ fn run_claim_command_inner(
         .iter()
         .map(|change| reference(field(change, "form")?, "form_id", "form_version"))
         .collect::<SourceCommandResult<_>>()?;
-    set(
-        &mut response,
-        "prepared_source",
-        metadata_subject(&revised)?,
-    )?;
-    set(
-        &mut response,
-        "prepared_forms",
-        JsonValue::Array(formrefs.clone()),
-    )?;
-    set(
-        &mut response,
-        "prepared_materializations",
-        JsonValue::Array(views),
-    )?;
+    if operation == "prepare-revise" {
+        set(
+            &mut response,
+            "prepared_source",
+            metadata_subject(&revised)?,
+        )?;
+        set(
+            &mut response,
+            "prepared_forms",
+            JsonValue::Array(formrefs.clone()),
+        )?;
+        set(
+            &mut response,
+            "prepared_materializations",
+            JsonValue::Array(views),
+        )?;
+    } else {
+        set(&mut response, "materializations", JsonValue::Array(views))?;
+    }
     let mut retained_profile_bindings = BTreeMap::new();
     if let Some(binding) = retained_profile_binding {
         retained_profile_bindings.insert(id.to_owned(), binding);
@@ -3103,6 +3188,38 @@ fn run_claim_command_inner(
             before: files.get(CLAIM_HISTORY).map(|r| Digest256::of_bytes(r)),
             after: Some(published(&retained)?),
         });
+        let mut successor = files
+            .iter()
+            .map(|(name, raw)| (name.as_str(), raw.as_slice()))
+            .collect::<BTreeMap<_, _>>();
+        let mut replaced = BTreeSet::new();
+        let home_prefix = format!("{parent}/");
+        for change in &output {
+            if let Some(name) = change.path.as_str().strip_prefix(&home_prefix) {
+                if name.contains('/') || !replaced.insert(name) {
+                    return Err(SourceCommandError::Conflict(
+                        "Claim successor package path differs",
+                    ));
+                }
+                successor.insert(
+                    name,
+                    change.after.as_deref().ok_or(SourceCommandError::Conflict(
+                        "Claim successor package member absent",
+                    ))?,
+                );
+            }
+        }
+        if replaced != BTreeSet::from([CLAIM_STREAM, formname.as_str(), CLAIM_HISTORY]) {
+            return Err(SourceCommandError::Conflict(
+                "Claim successor package incomplete",
+            ));
+        }
+        set(&mut response, "source", metadata_subject(&revised)?)?;
+        set(
+            &mut response,
+            "revision",
+            revised_package_revision(&successor, whole_call.as_ref())?,
+        )?;
         set(&mut response, "receipt", receipt)?;
         account_retained_plan(&mut grounding, &response, &output)?;
         return ctx.plan(&handler, response, output, false);
