@@ -3685,7 +3685,7 @@ fn bounded_navigation(value: &str, limit: usize) -> String {
         format!("{}…", value.chars().take(limit - 1).collect::<String>())
     }
 }
-fn python_bytes_blank(raw: &[u8]) -> bool {
+pub(crate) fn python_bytes_blank(raw: &[u8]) -> bool {
     raw.iter()
         .all(|byte| matches!(*byte, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c))
 }

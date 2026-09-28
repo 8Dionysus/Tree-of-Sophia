@@ -123,7 +123,7 @@ pub struct RevisionPublication {
     pub transactions: Vec<RetainedRevisionTransaction>,
 }
 
-type Package = BTreeMap<String, Vec<u8>>;
+pub(crate) type Package = BTreeMap<String, Vec<u8>>;
 struct Inspection {
     files: Package,
     record: JsonValue,
@@ -2371,7 +2371,7 @@ fn package(
     }
     Ok(result)
 }
-fn file_refs(files: &Package, blobs: bool) -> JsonValue {
+pub(crate) fn file_refs(files: &Package, blobs: bool) -> JsonValue {
     JsonValue::Object(
         files
             .iter()
@@ -2394,10 +2394,10 @@ fn file_refs(files: &Package, blobs: bool) -> JsonValue {
             .collect(),
     )
 }
-fn revision(files: &Package) -> SourceCommandResult<String> {
+pub(crate) fn revision(files: &Package) -> SourceCommandResult<String> {
     Ok(cmd::record_digest(&file_refs(files, false))?.to_prefixed())
 }
-fn archive_path(config: &JsonValue, revision: &str) -> SourceCommandResult<String> {
+pub(crate) fn archive_path(config: &JsonValue, revision: &str) -> SourceCommandResult<String> {
     Ok(format!(
         "ToS/source-witnesses/.record-revisions/{}-{}",
         Digest256::of_bytes(cmd::text(config, "record_id")?.as_bytes()).to_hex(),

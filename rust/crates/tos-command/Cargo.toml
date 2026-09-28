@@ -25,6 +25,7 @@ unicode-normalization = "=0.1.24"
 
 [dev-dependencies]
 tos-compiler = { path = "../tos-compiler", features = ["test-fixture"] }
+tempfile = "3"
 
 [lib]
 name = "tos_command"

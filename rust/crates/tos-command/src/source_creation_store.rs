@@ -20,6 +20,15 @@ use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponent
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 const CORPUS_LOCK: &str = ".historical-create.writer.lock";
+#[path = "source_work_expression.rs"]
+mod work_expression;
+pub use work_expression::{
+    WorkExpressionPreparation, WorkExpressionPublication, WorkRecoveryDecision,
+    execute_isolated_work_expression_from_captures, recover_isolated_work_expression_from_captures,
+    replay_isolated_work_expression_from_captures, prepare_isolated_work_expression_from_proposal,
+};
+#[path = "source_work_transaction.rs"]
+pub(crate) mod work_transaction;
 pub(crate) const MAX_FILES: usize = 4096;
 pub(crate) const MAX_BYTES: usize = 33_554_432;
 
@@ -44,13 +53,13 @@ fn stamp(m: &Metadata) -> (u64, u64, u64, i64, i64, i64, i64) {
     )
 }
 // A v1 cut carries the portable declared mode, not the current inode's
-// permissions. The maintained Claim revision writer uses private 0600 temp
-// files for metadata whose portable cut mode is 0644. This compatibility
-// applies only while reading a Claim creation/replay; special bits never match.
-fn member_mode_matches(actual: u32, declared: u32, claim_read: bool) -> bool {
+// permissions. The maintained Claim revision and selected Work transaction
+// writers use private 0600 temp files for metadata whose portable cut mode is
+// 0644. This opt-in applies only to those owner readers; special bits never match.
+fn member_mode_matches(actual: u32, declared: u32, private_metadata_read: bool) -> bool {
     actual & 0o7000 == 0
         && (actual & 0o777 == declared
-            || claim_read && actual & 0o777 == 0o600 && declared == 0o644)
+            || private_metadata_read && actual & 0o777 == 0o600 && declared == 0o644)
 }
 pub(crate) fn inode(m: &Metadata) -> (u64, u64) {
     (m.dev(), m.ino())
@@ -1224,6 +1233,7 @@ impl CreationFilesystem {
             self.uid,
             staging,
             operational_sidecars,
+            None,
             &mut observed,
             &mut total,
             &mut directories,
@@ -1303,6 +1313,7 @@ fn scan(
     uid: u32,
     staging: Option<&str>,
     operational_sidecars: Option<&BTreeSet<String>>,
+    work_auxiliary: Option<&BTreeSet<String>>,
     files: &mut BTreeMap<String, (Digest256, u64, u32)>,
     total: &mut usize,
     directories: &mut usize,
@@ -1325,6 +1336,14 @@ fn scan(
     let entries = std::fs::read_dir(format!("/proc/self/fd/{}", directory.as_raw_fd()))
         .map_err(|_| SourceCommandError::Invalid("creation current directory enumeration"))?;
     let mut names = BTreeSet::new();
+    // The Work-only exact auxiliary names are checked and charged by their
+    // owning journal/archive reader after this traversal. They must not use
+    // up the ordinary authored-entry allowance in a shared parent directory.
+    let entry_limit = MAX_FILES
+        .checked_add(work_auxiliary.map_or(0, BTreeSet::len))
+        .ok_or(SourceCommandError::Invalid(
+            "creation directory entry budget overflow",
+        ))?;
     for entry in entries {
         active(deadline, cancelled)?;
         let name = entry
@@ -1332,7 +1351,7 @@ fn scan(
             .file_name()
             .into_string()
             .map_err(|_| SourceCommandError::Invalid("creation non-UTF8 source path"))?;
-        if names.len() >= MAX_FILES || !names.insert(name) {
+        if names.len() >= entry_limit || !names.insert(name) {
             return Err(SourceCommandError::Invalid(
                 "creation directory entry budget",
             ));
@@ -1376,6 +1395,12 @@ fn scan(
             }
             continue;
         }
+        // Only the Work owner may supply exact archive/journal/control names,
+        // after separately verifying their protected bytes and publication
+        // state. They remain eligible authored paths for every other cut.
+        if work_auxiliary.is_some_and(|members| members.contains(&path)) {
+            continue;
+        }
         // Directory traversal and file membership are different: weak output
         // parents can contain authored Markdown. Use the existing cut owner's
         // shared component exclusions without reading its excluded payloads.
@@ -1393,6 +1418,7 @@ fn scan(
                 uid,
                 staging,
                 operational_sidecars,
+                work_auxiliary,
                 files,
                 total,
                 directories,

@@ -301,7 +301,123 @@ fn capture_creation_with_procedure(
 }
 
 fn entity(home: &str, name: &str, raw: &[u8], role: &str) -> Value {
-    json!({"entity_ref":format!("{home}/{name}"),"role":role,"media_type":if name.ends_with(".jsonl"){"application/x-ndjson"}else{"application/json"},"size_bytes":raw.len(),"sha256":Digest256::of_bytes(raw).to_hex(),"availability":"owner_local","content_disclosure":"public_metadata_only","fixity_verified":false,"fixity_verified_at":null})
+    entity_at(&format!("{home}/{name}"), raw, role)
+}
+fn entity_at(reference: &str, raw: &[u8], role: &str) -> Value {
+    json!({"entity_ref":reference,"role":role,"media_type":if reference.ends_with(".jsonl"){"application/x-ndjson"}else{"application/json"},"size_bytes":raw.len(),"sha256":Digest256::of_bytes(raw).to_hex(),"availability":"owner_local","content_disclosure":"public_metadata_only","fixity_verified":false,"fixity_verified_at":null})
+}
+
+/// Exact process observation for the Work→Expression owner.  The returned
+/// event is a retained native capture, not a re-created Python event, source
+/// approval, or permission to publish a selected transaction.
+pub(crate) struct WorkNativeCapture {
+    pub(crate) environment_raw: Vec<u8>,
+    pub(crate) event_raw: Vec<u8>,
+}
+pub(crate) fn capture_work_expression(
+    request: &JsonValue,
+    event_id: &str,
+    expression_home: &str,
+    archive_path: &str,
+    before: &BTreeMap<String, Vec<u8>>,
+    outputs: &[(&str, &[u8])],
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<WorkNativeCapture> {
+    active(deadline, cancelled)?;
+    if before.is_empty()
+        || outputs.is_empty()
+        || outputs.len() > 64
+        || outputs.iter().any(|(_, raw)| raw.len() > 8_388_608)
+        || outputs
+            .iter()
+            .try_fold(0usize, |n, (_, raw)| n.checked_add(raw.len()))
+            .is_none_or(|n| n > 8_388_608)
+    {
+        return Err(SourceCommandError::Invalid(
+            "native Work capture selected byte budget",
+        ));
+    }
+    let started_at = instant()?;
+    let started = Instant::now();
+    let runtime = executable(deadline, cancelled)?.to_hex();
+    let argv = std::env::args_os()
+        .map(|arg| {
+            arg.into_string()
+                .map_err(|_| SourceCommandError::Invalid("native Work argv is not UTF-8"))
+        })
+        .collect::<SourceCommandResult<Vec<_>>>()?;
+    let argv_raw = serde_json::to_vec(&argv)
+        .map_err(|_| SourceCommandError::Invalid("native Work argv capture"))?;
+    let argv_digest = Digest256::of_bytes(&cmd::canonical(&cmd::parse(&argv_raw)?)?).to_hex();
+    let mut software_rows = selected_components(software, components, deadline, cancelled)?;
+    software_rows.push(json!({"name":"executing native process","version":env!("CARGO_PKG_VERSION"),"role":"serialization-runner","artifact_ref":"runtime:tos-native-executable","artifact_sha256":runtime,"verification_status":"verified"}));
+    let mut request_raw = cmd::canonical(request)?;
+    request_raw.push(b'\n');
+    let request_ref = format!("{expression_home}/source-create-request.json");
+    let environment_ref = format!("{expression_home}/source-create-environment.json");
+    let environment = json!({"runtime":"native ELF process","runtime_version":env!("CARGO_PKG_VERSION"),"runtime_artifact_sha256":runtime,"backend":"tos-command source serialization","hardware_target":std::env::consts::ARCH,"unicode_version":"16.0.0 source-command whitespace profile","argv_sha256":argv_digest});
+    let environment_raw = encoded(environment.clone())?;
+    let mut inputs = vec![entity_at(
+        &request_ref,
+        &request_raw,
+        "caller-supplied-metadata-request",
+    )];
+    let mut prior = BTreeMap::new();
+    for raw in before.values() {
+        prior.insert(
+            format!("{archive_path}/{}.blob", Digest256::of_bytes(raw).to_hex()),
+            raw,
+        );
+    }
+    inputs.extend(
+        prior
+            .iter()
+            .map(|(path, raw)| entity_at(path, raw, "retained-parent-metadata-input")),
+    );
+    let mut sorted_outputs = outputs.to_vec();
+    sorted_outputs.sort_by(|a, b| a.0.cmp(b.0));
+    if sorted_outputs.windows(2).any(|pair| pair[0].0 == pair[1].0) {
+        return Err(SourceCommandError::Invalid(
+            "duplicate native Work output path",
+        ));
+    }
+    let prepared_outputs = sorted_outputs
+        .iter()
+        .map(|(path, raw)| entity_at(path, raw, "prepared-compound-source-metadata"))
+        .collect::<Vec<_>>();
+    let derivation = event_id.replacen("tos.event.", "tos.derivation.", 1);
+    let derivations = sorted_outputs.iter().enumerate().map(|(index, (path, _))| json!({"derivation_id":format!("{derivation}.output-{index}"),"input_entity_ref":request_ref,"output_entity_ref":path,"relation":"was_derived_from","influence_asserted":true,"description":"Technical source metadata serialization; no historical influence or textual identity is asserted."}))
+        .collect::<Vec<_>>();
+    let mut method_environment = environment;
+    method_environment["environment_profile_binding"] =
+        json!({"ref":environment_ref,"sha256":Digest256::of_bytes(&environment_raw).to_hex()});
+    method_environment
+        .as_object_mut()
+        .unwrap()
+        .remove("argv_sha256");
+    let event = json!({
+        "$schema":"https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json","schema_version":"tos_provenance_event_v2","event_id":event_id,"event_version":1,"supersedes_event_ref":null,
+        "record_binding":{"manifest_ref":format!("{expression_home}/work-expression-receipt.json"),"digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"},
+        "activity":{"event_type":"annotation","started_at":started_at,"ended_at":instant()?,"status":"completed_with_warnings","terminal_reason":null,"exit_code":0,"warnings":["Completed in-process Work/Expression buffer serialization; atomic selected-metadata publication occurs afterward.","The declared record link is not accepted bibliographic or textual truth."]},
+        "entities":{"inputs":inputs,"outputs":prepared_outputs,"byproducts":[entity_at(&environment_ref,&environment_raw,"runtime-description")]},
+        "derivations":derivations,
+        "responsibility":[{"agent_ref":"software:tos-native-source-commands","agent_kind":"software","role":"executor","responsibility_posture":"performed","evidence_binding":null,"human_evidence_status":"not_applicable"}],
+        "method":{"procedure":{"name":"native-work-expression-serialization","version":"1","purpose":"Serialize one declared Work/Expression link and explicit source-copy forms without judging content."},"command_capture":{"disclosure":"withheld_digest_only","argv":null,"argv_sha256":argv_digest,"withholding_reason":"Observed process argv may contain private paths; the exact library request is captured separately."},"configuration_binding":{"ref":request_ref,"sha256":Digest256::of_bytes(&request_raw).to_hex()},"software_components":software_rows,"model_invocations":[],"environment":method_environment},
+        "manual_changes":{"status":"none_declared","change_receipts":[],"statement":"Caller authorship precedes this operation; no manual edits occur inside serialization."},
+        "measurements":[{"metric":"wall_duration_ms","status":"measured","value":started.elapsed().as_secs_f64()*1000.0,"unit":"ms","method":"Rust monotonic Instant from capture through native executable/source observation and buffer binding; excludes commit.","evidence_binding":null}],
+        "evidence_authentication":{"capture_posture":"tool_captured","signature_status":"unsigned","signature_bindings":[],"verification_status":"unverified","producer_control_boundary":"The same unsigned native process serializes and observes; hashes do not authenticate execution truth."},
+        "rights_and_visibility":{"rights_record_bindings":[],"intended_uses":["local_research","public_metadata"],"content_visibility":"tracked_public_metadata","publication_authorized":false,"publication_authority_bindings":[]},
+        "review_and_authority":{"mechanical_validation":"not_run","human_review_status":"not_performed","review_bindings":[],"accepted_uses":[],"promotion_authorized":false,"competence_evidence_bindings":[]},
+        "reproducibility":{"classification":"partially_specified","known_gaps":["Selected source capture is byte evidence only; compiler, dependencies, build and source-to-ELF relation are not attested.","Upstream research, reading and model invocation are outside this serialization.","Clock observations and durations are not deterministic; complete runtime environment is not archived."],"replay_scope":"Exact retained request and source-copy buffers only, not bibliographic truth."},
+        "authority_boundary":{"validator_role":"mechanics_and_closure_only_not_truth","claims_not_established":["execution_truth","content_truth","source_fidelity","translation_quality","semantic_correctness","rights_clearance","human_review","publication_authority","canon_authority"]}
+    });
+    Ok(WorkNativeCapture {
+        environment_raw,
+        event_raw: encoded(event)?,
+    })
 }
 
 /// Reuse only exact historical byte observations supplied by the durable owner.
