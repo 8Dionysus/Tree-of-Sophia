@@ -12,8 +12,8 @@ use crate::{
 };
 use rusqlite::{Connection, params};
 use serde::{
-    Deserializer,
-    de::{DeserializeSeed, Error as _, MapAccess, Visitor},
+    Deserialize, Deserializer,
+    de::{DeserializeSeed, Error as _, IgnoredAny, MapAccess, SeqAccess, Visitor},
 };
 use serde_json::Value;
 use std::{
@@ -56,11 +56,15 @@ impl Read for FieldReader<'_> {
             if next == 0 {
                 return Ok(0);
             }
-            self.capture.charge_work(next as u64).map_err(|error| {
-                let message = error.to_string();
-                *self.failed.borrow_mut() = Some(error);
-                io::Error::other(message)
-            })?;
+            // Admit the raw transfer and its decoded string payload before
+            // reading. Header structures have their separate field cap.
+            self.capture
+                .charge_work((next as u64) * 2)
+                .map_err(|error| {
+                    let message = error.to_string();
+                    *self.failed.borrow_mut() = Some(error);
+                    io::Error::other(message)
+                })?;
             self.prepaid = next;
         }
         let take = target.len().min(self.left.get()).min(self.prepaid);
@@ -264,6 +268,62 @@ struct TableVisitor<'a> {
     table: String,
     header: &'a mut PriorHeader,
 }
+struct PriorValues(Vec<String>);
+impl<'de> Deserialize<'de> for PriorValues {
+    fn deserialize<D: Deserializer<'de>>(de: D) -> std::result::Result<Self, D::Error> {
+        struct ValuesVisitor;
+        impl<'de> Visitor<'de> for ValuesVisitor {
+            type Value = PriorValues;
+            fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                f.write_str("at most four D1 key literals")
+            }
+            fn visit_seq<S: SeqAccess<'de>>(
+                self,
+                mut seq: S,
+            ) -> std::result::Result<Self::Value, S::Error> {
+                let mut values = Vec::with_capacity(4);
+                while values.len() < 4 {
+                    let Some(value) = seq.next_element::<String>()? else {
+                        return Ok(PriorValues(values));
+                    };
+                    values.push(value);
+                }
+                if seq.next_element::<IgnoredAny>()?.is_some() {
+                    return Err(S::Error::custom("D1 prior key field count"));
+                }
+                Ok(PriorValues(values))
+            }
+        }
+        de.deserialize_seq(ValuesVisitor)
+    }
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PriorRow {
+    digest: String,
+    values: PriorValues,
+}
+struct EqualJson<'a> {
+    expected: &'a [u8],
+    offset: usize,
+}
+impl Write for EqualJson<'_> {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        let end = self
+            .offset
+            .checked_add(bytes.len())
+            .filter(|end| *end <= self.expected.len())
+            .ok_or_else(|| io::Error::other("D1 prior key identity"))?;
+        if &self.expected[self.offset..end] != bytes {
+            return Err(io::Error::other("D1 prior key identity"));
+        }
+        self.offset = end;
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
 impl<'de> Visitor<'de> for TableVisitor<'_> {
     type Value = ();
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -277,6 +337,13 @@ impl<'de> Visitor<'de> for TableVisitor<'_> {
             .ok_or_else(|| M::Error::custom("unregistered D1 prior table"))?;
         loop {
             self.left.set(KEY_BYTES);
+            self.capture
+                .charge_work(std::mem::size_of::<String>() as u64)
+                .map_err(|error| {
+                    let message = error.to_string();
+                    *self.failed.borrow_mut() = Some(error);
+                    M::Error::custom(message)
+                })?;
             let Some(key) = map.next_key::<String>()? else {
                 break;
             };
@@ -284,38 +351,43 @@ impl<'de> Visitor<'de> for TableVisitor<'_> {
                 return Err(M::Error::custom("D1 prior row key bytes"));
             }
             self.left.set(ROW_BYTES);
-            let value: Value = map.next_value()?;
-            let digest = value
-                .get("digest")
-                .and_then(Value::as_str)
-                .filter(|v| hex_digest(v))
-                .ok_or_else(|| M::Error::custom("D1 prior digest"))?;
-            let values = value
-                .get("values")
-                .and_then(Value::as_array)
-                .ok_or_else(|| M::Error::custom("D1 prior key values"))?;
-            if value.as_object().is_none_or(|o| o.len() != 2)
-                || values.len() != keys.len()
-                || values
-                    .iter()
-                    .any(|v| v.as_str().is_none_or(|v| !key_literal(v)))
-            {
-                return Err(M::Error::custom("D1 prior key literal"));
-            }
-            let values_json = serde_json::to_string(values).map_err(M::Error::custom)?;
-            if values_json != key || values_json.len() > MAX_STATEMENT_BYTES {
-                return Err(M::Error::custom("D1 prior key identity"));
-            }
+            let fixed_state = std::mem::size_of::<PriorRow>() + 4 * std::mem::size_of::<String>();
             self.capture
-                .charge_work((key.len() + values_json.len() + 128) as u64)
+                .charge_work(fixed_state as u64)
                 .map_err(|error| {
                     let message = error.to_string();
                     *self.failed.borrow_mut() = Some(error);
                     M::Error::custom(message)
                 })?;
+            let value: PriorRow = map.next_value()?;
+            if !hex_digest(&value.digest) {
+                return Err(M::Error::custom("D1 prior digest"));
+            }
+            let values = &value.values.0;
+            if values.len() != keys.len() || values.iter().any(|value| !key_literal(value)) {
+                return Err(M::Error::custom("D1 prior key literal"));
+            }
+            if key.len() > MAX_STATEMENT_BYTES {
+                return Err(M::Error::custom("D1 prior key identity"));
+            }
+            self.capture
+                .charge_work(key.len() as u64 + 128)
+                .map_err(|error| {
+                    let message = error.to_string();
+                    *self.failed.borrow_mut() = Some(error);
+                    M::Error::custom(message)
+                })?;
+            let mut equal = EqualJson {
+                expected: key.as_bytes(),
+                offset: 0,
+            };
+            serde_json::to_writer(&mut equal, values).map_err(M::Error::custom)?;
+            if equal.offset != key.len() {
+                return Err(M::Error::custom("D1 prior key identity"));
+            }
             let sequence = i64::try_from(self.header.count).map_err(M::Error::custom)?;
             self.db.execute("INSERT INTO prior_rows(table_name,sequence,row_key,digest,values_json) VALUES (?1,?2,?3,?4,?5)",
-                params![&self.table,sequence,&key,digest,&values_json]).map_err(|error| {
+                params![&self.table,sequence,&key,&value.digest,&key]).map_err(|error| {
                     let message = error.to_string();
                     *self.failed.borrow_mut() = Some(Error::Sql(error));
                     M::Error::custom(message)
@@ -430,19 +502,31 @@ fn hash_file(
     if opened.dev() != before.dev || opened.ino() != before.ino {
         return Err(Error::Invalid("public D1 prior baseline changed"));
     }
+    if before.size > max_bytes {
+        return Err(Error::Budget("public D1 prior baseline bytes"));
+    }
+    // Admit the whole already measured read before the first kernel read.
+    capture.charge_work(
+        before
+            .size
+            .checked_add(1)
+            .ok_or(Error::Budget("public D1 prior baseline read bytes"))?,
+    )?;
     let mut buffer = [0u8; 64 * 1024];
     let mut hash = Digest256Hasher::new();
     let mut size = 0u64;
     loop {
-        let n = file.read(&mut buffer)?;
+        let remaining = before.size.saturating_sub(size);
+        let take = remaining.saturating_add(1).min(buffer.len() as u64) as usize;
+        let n = file.read(&mut buffer[..take])?;
         if n == 0 {
             break;
         }
         size = size
             .checked_add(n as u64)
-            .filter(|v| *v <= max_bytes)
-            .ok_or(Error::Budget("public D1 prior baseline bytes"))?;
-        capture.charge_work(n as u64)?;
+            .filter(|v| *v <= before.size)
+            .ok_or(Error::Invalid("public D1 prior baseline changed"))?;
+        capture.charge_work(0)?;
         hash.update(&buffer[..n]);
     }
     let after = identity(path)?;
@@ -618,7 +702,13 @@ impl DeltaWriter<'_> {
             self.values.take()
         };
         if let Some(batch) = batch {
-            self.capture.charge_work(batch.bytes as u64)?;
+            // The queued rows, joined rows and final statement coexist until
+            // the write completes. Admit both new copies before constructing.
+            self.capture.charge_work(
+                (batch.bytes as u64)
+                    .checked_mul(2)
+                    .ok_or(Error::Budget("public D1 delta batch materialization"))?,
+            )?;
             self.line(&format!("{}{};", batch.prefix, batch.rows.join(",")))?;
         }
         Ok(())
@@ -660,15 +750,44 @@ impl DeltaWriter<'_> {
         batch.rows.push(row);
         Ok(())
     }
-    fn key(&mut self, stage: &str, values_json: &str) -> Result<()> {
-        self.capture.charge_work((values_json.len() as u64) * 2)?;
-        let values: Vec<String> =
+    fn key(&mut self, stage: &str, values_json: &str) -> Result<bool> {
+        let decoded_state = (values_json.len() as u64)
+            .checked_add(
+                (std::mem::size_of::<Vec<String>>() + 4 * std::mem::size_of::<String>()) as u64,
+            )
+            .ok_or(Error::Budget("public D1 delta key state"))?;
+        self.capture.charge_work(decoded_state)?;
+        let PriorValues(values) =
             serde_json::from_str(values_json).map_err(|e| Error::Source(e.to_string()))?;
         if values.iter().any(|v| !key_literal(v)) {
             return Err(Error::Invalid("public D1 delta key literal"));
         }
+        let value_bytes = values
+            .iter()
+            .try_fold(2usize, |total, value| {
+                total
+                    .checked_add(value.len())
+                    .ok_or(Error::Budget("public D1 delta key bytes"))
+            })?
+            .checked_add(values.len().saturating_sub(1) * 2)
+            .ok_or(Error::Budget("public D1 delta key bytes"))?;
+        let prefix_bytes = "INSERT INTO ".len() + stage.len() + "_keys VALUES ".len();
+        let statement_bytes = prefix_bytes
+            .checked_add(value_bytes)
+            .and_then(|bytes| bytes.checked_add(1))
+            .ok_or(Error::Budget("public D1 delta key bytes"))?;
+        if statement_bytes > MAX_STATEMENT_BYTES {
+            return Ok(false);
+        }
+        self.capture.charge_work(
+            (value_bytes as u64)
+                .checked_mul(2)
+                .and_then(|bytes| bytes.checked_add(prefix_bytes as u64))
+                .ok_or(Error::Budget("public D1 delta key materialization"))?,
+        )?;
         let prefix = format!("INSERT INTO {stage}_keys VALUES ");
-        self.push(true, &prefix, format!("({})", values.join(", ")))
+        self.push(true, &prefix, format!("({})", values.join(", ")))?;
+        Ok(true)
     }
 }
 impl Drop for DeltaWriter<'_> {
@@ -689,7 +808,7 @@ fn segment(file: &mut File, offset: u64, length: u64, capture: &PublicCapture) -
     file.read_exact(&mut bytes)?;
     String::from_utf8(bytes).map_err(|e| Error::Source(e.to_string()))
 }
-fn stage_insert<'a>(statement: &'a str, table: &str) -> Result<(String, &'a str)> {
+fn stage_insert<'a>(statement: &'a str, table: &str) -> Result<(&'a str, &'a str)> {
     let prefix = format!("INSERT INTO {table}_next (");
     let rest = statement
         .strip_prefix(&prefix)
@@ -703,7 +822,7 @@ fn stage_insert<'a>(statement: &'a str, table: &str) -> Result<(String, &'a str)
     if columns.is_empty() || values.is_empty() {
         return Err(Error::Invalid("public D1 delta INSERT fields"));
     }
-    Ok((columns.to_owned(), values))
+    Ok((columns, values))
 }
 fn binding_expr(top: &Value) -> Result<String> {
     let (_, prefix, suffix) = reader_binding_parts(top)?;
@@ -795,21 +914,24 @@ pub(crate) fn produce(
             "CREATE UNIQUE INDEX {stage}_keys_idx ON {stage}_keys ({});",
             keys.join(", ")
         ))?;
-        let mut stmt=db.prepare("SELECT n.digest,n.values_json,n.segments_json,p.digest FROM rows AS n LEFT JOIN prior_rows AS p ON p.table_name=n.table_name AND p.row_key=n.row_key WHERE n.table_name=?1 ORDER BY n.sequence")?;
+        let mut stmt=db.prepare("SELECT length(CAST(n.digest AS BLOB)),length(CAST(n.values_json AS BLOB)),length(CAST(n.segments_json AS BLOB)),coalesce(length(CAST(p.digest AS BLOB)),0),n.digest,n.values_json,n.segments_json,p.digest FROM rows AS n LEFT JOIN prior_rows AS p ON p.table_name=n.table_name AND p.row_key=n.row_key WHERE n.table_name=?1 ORDER BY n.sequence")?;
         let mut rows = stmt.query(params![*table])?;
         while let Some(row) = rows.next()? {
-            let digest: String = row.get(0)?;
-            let values_json: String = row.get(1)?;
-            let segments_json: String = row.get(2)?;
-            let old: Option<String> = row.get(3)?;
-            let lookup_bytes = digest
-                .len()
-                .checked_add(values_json.len())
-                .and_then(|bytes| bytes.checked_add(segments_json.len()))
-                .and_then(|bytes| bytes.checked_add(old.as_ref().map_or(0, String::len)))
-                .and_then(|bytes| bytes.checked_add(128))
-                .ok_or(Error::Budget("public D1 delta lookup work"))?;
-            capture.charge_work(lookup_bytes as u64)?;
+            let mut lookup_bytes = (4 * std::mem::size_of::<String>() + 128) as u64;
+            for column in 0..4 {
+                let length: i64 = row.get(column)?;
+                lookup_bytes = lookup_bytes
+                    .checked_add(
+                        u64::try_from(length)
+                            .map_err(|_| Error::Invalid("public D1 delta lookup length"))?,
+                    )
+                    .ok_or(Error::Budget("public D1 delta lookup work"))?;
+            }
+            capture.charge_work(lookup_bytes)?;
+            let digest: String = row.get(4)?;
+            let values_json: String = row.get(5)?;
+            let segments_json: String = row.get(6)?;
+            let old: Option<String> = row.get(7)?;
             if values_json.len() > MAX_STATEMENT_BYTES {
                 return Ok(None);
             }
@@ -820,7 +942,17 @@ pub(crate) fn produce(
             changed += 1;
             changed_counts[number] += 1;
             key_counts[number] += 1;
-            writer.key(&stage, &values_json)?;
+            if !writer.key(&stage, &values_json)? {
+                return Ok(None);
+            }
+            // The captured row index contains only numeric [offset,length]
+            // pairs. Admit the tuple slots before serde allocates the Vec.
+            let segment_slots = segments_json.bytes().filter(|byte| *byte == b'[').count();
+            capture.charge_work(
+                (segment_slots as u64)
+                    .checked_mul(std::mem::size_of::<(u64, u64)>() as u64)
+                    .ok_or(Error::Budget("public D1 delta segment state"))?,
+            )?;
             let segments: Vec<(u64, u64)> =
                 serde_json::from_str(&segments_json).map_err(|e| Error::Source(e.to_string()))?;
             if segments.is_empty() {
@@ -829,6 +961,23 @@ pub(crate) fn produce(
             if segments.len() == 1 {
                 let statement = segment(&mut sql, segments[0].0, segments[0].1, capture)?;
                 let (columns, values) = stage_insert(&statement, table)?;
+                let prefix_bytes = "INSERT INTO ".len()
+                    + stage.len()
+                    + " (".len()
+                    + columns.len()
+                    + ") VALUES ".len();
+                let row_bytes = values
+                    .len()
+                    .checked_add(2)
+                    .ok_or(Error::Budget("public D1 delta row bytes"))?;
+                let full_bytes = prefix_bytes
+                    .checked_add(row_bytes)
+                    .and_then(|bytes| bytes.checked_add(1))
+                    .ok_or(Error::Budget("public D1 delta row bytes"))?;
+                if full_bytes > MAX_STATEMENT_BYTES {
+                    return Ok(None);
+                }
+                capture.charge_work(full_bytes as u64)?;
                 writer.push(
                     false,
                     &format!("INSERT INTO {stage} ({columns}) VALUES "),
@@ -851,20 +1000,37 @@ pub(crate) fn produce(
                     let tail = statement
                         .strip_prefix(&source)
                         .ok_or(Error::Invalid("public D1 delta chunk source"))?;
+                    let stage_bytes = target
+                        .len()
+                        .checked_add(tail.len())
+                        .ok_or(Error::Budget("public D1 delta chunk bytes"))?;
+                    if stage_bytes > MAX_STATEMENT_BYTES {
+                        return Ok(None);
+                    }
+                    capture.charge_work(stage_bytes as u64)?;
                     writer.line(&format!("{target}{tail}"))?;
                 }
             }
         }
         drop(rows);
         drop(stmt);
-        let mut stmt=db.prepare("SELECT p.values_json FROM prior_rows AS p LEFT JOIN rows AS n ON n.table_name=p.table_name AND n.row_key=p.row_key WHERE p.table_name=?1 AND n.row_key IS NULL ORDER BY p.sequence")?;
+        let mut stmt=db.prepare("SELECT length(CAST(p.values_json AS BLOB)),p.values_json FROM prior_rows AS p LEFT JOIN rows AS n ON n.table_name=p.table_name AND n.row_key=p.row_key WHERE p.table_name=?1 AND n.row_key IS NULL ORDER BY p.sequence")?;
         let mut rows = stmt.query(params![*table])?;
         while let Some(row) = rows.next()? {
-            let values_json: String = row.get(0)?;
-            capture.charge_work(values_json.len() as u64 + 128)?;
+            let length: i64 = row.get(0)?;
+            let length = u64::try_from(length)
+                .map_err(|_| Error::Invalid("public D1 removed key length"))?;
+            capture.charge_work(
+                length
+                    .checked_add(std::mem::size_of::<String>() as u64 + 128)
+                    .ok_or(Error::Budget("public D1 removed key work"))?,
+            )?;
+            let values_json: String = row.get(1)?;
             removed += 1;
             key_counts[number] += 1;
-            writer.key(&stage, &values_json)?;
+            if !writer.key(&stage, &values_json)? {
+                return Ok(None);
+            }
         }
         writer.flush()?;
     }
@@ -872,27 +1038,62 @@ pub(crate) fn produce(
     let publish = format!("{prefix}_publish");
     writer.line(&format!("DROP TRIGGER IF EXISTS {publish};"))?;
     let current = "(SELECT json_extract(group_concat(json_chunk, ''), '$.sha256') FROM (SELECT json_chunk FROM edge_meta WHERE key = 'data_revision' ORDER BY part))";
+    // At most one trigger is built. Reserve its whole existing statement
+    // envelope before any variable operation or copy is materialized.
+    capture.charge_work((MAX_STATEMENT_BYTES as u64) * 3)?;
     let (guards, seals) = expected_auxiliary_operations(prior.top(), next_top)?;
     let mut operations = format!(
         "SELECT CASE WHEN {current} IS NOT '{}' THEN RAISE(ABORT, 'stale delta baseline') END;{guards}",
         prior.revision()
     );
+    if operations.len() > MAX_STATEMENT_BYTES {
+        return Ok(None);
+    }
     for (number, (table, keys)) in TABLES.iter().enumerate() {
         if key_counts[number] == 0 {
             continue;
         }
         let stage = format!("{prefix}_{table}");
-        operations.push_str(&format!("SELECT CASE WHEN (SELECT count(*) FROM {stage}) != {} OR (SELECT count(*) FROM {stage}_keys) != {} THEN RAISE(ABORT, 'incomplete delta staging') END;",changed_counts[number],key_counts[number]));
+        let count_guard = format!(
+            "SELECT CASE WHEN (SELECT count(*) FROM {stage}) != {} OR (SELECT count(*) FROM {stage}_keys) != {} THEN RAISE(ABORT, 'incomplete delta staging') END;",
+            changed_counts[number], key_counts[number]
+        );
+        if operations.len().saturating_add(count_guard.len()) > MAX_STATEMENT_BYTES {
+            return Ok(None);
+        }
+        operations.push_str(&count_guard);
         let same = keys
             .iter()
             .map(|key| format!("target.{key} IS changed.{key}"))
             .collect::<Vec<_>>()
             .join(" AND ");
-        operations.push_str(&format!("DELETE FROM {table} WHERE rowid IN (SELECT target.rowid FROM {stage}_keys AS changed CROSS JOIN {table} AS target WHERE {same});"));
-        operations.push_str(&format!("INSERT INTO {table} SELECT * FROM {stage};"));
+        let replace = format!(
+            "DELETE FROM {table} WHERE rowid IN (SELECT target.rowid FROM {stage}_keys AS changed CROSS JOIN {table} AS target WHERE {same});INSERT INTO {table} SELECT * FROM {stage};"
+        );
+        if operations.len().saturating_add(replace.len()) > MAX_STATEMENT_BYTES {
+            return Ok(None);
+        }
+        operations.push_str(&replace);
+    }
+    if operations.len().saturating_add(seals.len()) > MAX_STATEMENT_BYTES {
+        return Ok(None);
     }
     operations.push_str(&seals);
-    operations.push_str(&format!("SELECT CASE WHEN {current} IS NOT '{next_revision}' THEN RAISE(ABORT, 'delta revision mismatch') END;"));
+    let final_guard = format!(
+        "SELECT CASE WHEN {current} IS NOT '{next_revision}' THEN RAISE(ABORT, 'delta revision mismatch') END;"
+    );
+    let trigger_framing = "CREATE TRIGGER ".len()
+        + publish.len()
+        + " AFTER INSERT ON tos_delta_publications WHEN NEW.revision = '' BEGIN  END;".len()
+        + next_revision.len();
+    let trigger_bytes = trigger_framing
+        .checked_add(operations.len())
+        .and_then(|bytes| bytes.checked_add(final_guard.len()))
+        .ok_or(Error::Budget("public D1 delta trigger bytes"))?;
+    if trigger_bytes > MAX_STATEMENT_BYTES {
+        return Ok(None);
+    }
+    operations.push_str(&final_guard);
     writer.line(&format!("CREATE TRIGGER {publish} AFTER INSERT ON tos_delta_publications WHEN NEW.revision = '{next_revision}' BEGIN {operations} END;"))?;
     writer.line(&format!("INSERT OR REPLACE INTO tos_delta_publications SELECT '{next_revision}', '{}' WHERE {current} IS NOT '{next_revision}';",prior.revision()))?;
     writer.line(&format!("DROP TRIGGER {publish};"))?;
