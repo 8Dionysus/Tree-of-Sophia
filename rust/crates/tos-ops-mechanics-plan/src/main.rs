@@ -12,6 +12,7 @@ enum Action {
     Execute,
     ThresholdBuild { check: bool },
     ThresholdValidate,
+    RelationPackValidate,
 }
 
 #[cfg(target_os = "linux")]
@@ -26,6 +27,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
     let mut execute = false;
     let mut threshold_build = false;
     let mut threshold_validate = false;
+    let mut relation_pack_validate = false;
     let mut check = false;
     let mut limits = Limits::default();
     while let Some(argument) = args.next() {
@@ -33,6 +35,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
             "--execute" => execute = true,
             "--threshold-registry-build" => threshold_build = true,
             "--threshold-registry-validate" => threshold_validate = true,
+            "--relation-pack-validate" => relation_pack_validate = true,
             "--check" => check = true,
             "--repo-root" => root = Some(PathBuf::from(args.next().ok_or("missing repo root")?)),
             "--python" => python = args.next().ok_or("missing Python adapter")?,
@@ -58,7 +61,11 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
             _ => return Err(format!("unknown argument: {argument}")),
         }
     }
-    if usize::from(execute) + usize::from(threshold_build) + usize::from(threshold_validate) > 1
+    if usize::from(execute)
+        + usize::from(threshold_build)
+        + usize::from(threshold_validate)
+        + usize::from(relation_pack_validate)
+        > 1
         || (check && !threshold_build)
     {
         return Err("incompatible mechanics modes".into());
@@ -69,6 +76,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
         Action::ThresholdBuild { check }
     } else if threshold_validate {
         Action::ThresholdValidate
+    } else if relation_pack_validate {
+        Action::RelationPackValidate
     } else {
         Action::Plan
     };
@@ -82,7 +91,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
 
 fn main() {
     let (root, python, action, limits) = arguments().unwrap_or_else(|error| {
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     let result = match action {
@@ -96,6 +105,20 @@ fn main() {
                     serde_json::to_string(&report).map_err(std::io::Error::other)?
                 );
                 Ok(0)
+            }),
+        Action::RelationPackValidate => tos_ops_mechanics_plan::relation_pack::validate(&root)
+            .map(|issues| {
+                if issues.is_empty() {
+                    println!("[ok] validated route-local canonical relation pack");
+                    println!("[ok] validated canonical relation predicates and endpoint classes against registries");
+                    0
+                } else {
+                    eprintln!("Tree relation-pack validation failed.");
+                    for (location, message) in issues {
+                        eprintln!("- {location}: {message}");
+                    }
+                    1
+                }
             }),
         Action::Plan | Action::Execute => tos_ops_mechanics_plan::discover(&root, &python)
             .and_then(|plan| {
@@ -121,16 +144,13 @@ fn main() {
     let code = match result {
         Ok(code) => code,
         Err(error) => {
-            let diagnostic = format!(
-                "mechanics-local {}: {error}\n",
-                if matches!(action, Action::Execute) {
-                    "execution"
-                } else if matches!(action, Action::Plan) {
-                    "plan"
-                } else {
-                    "threshold registry"
-                }
-            );
+            let route = match action {
+                Action::Execute => "execution",
+                Action::Plan => "plan",
+                Action::ThresholdBuild { .. } | Action::ThresholdValidate => "threshold registry",
+                Action::RelationPackValidate => "relation pack",
+            };
+            let diagnostic = format!("mechanics-local {route}: {error}\n",);
             #[cfg(target_os = "linux")]
             if matches!(action, Action::Execute) {
                 // A stalled diagnostic sink must not undo bounded execution.

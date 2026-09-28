@@ -2,6 +2,7 @@
 //! Lane selection and the planned tools retain their own authority.
 
 pub mod executor;
+pub mod relation_pack;
 pub mod threshold_registry;
 
 use serde::Serialize;
@@ -128,6 +129,9 @@ fn mechanics_command(
         }
         "mechanics/agon/parts/threshold-registry/scripts/validate_tos_agon_threshold_intake_registry.py" => {
             Some("--threshold-registry-validate")
+        }
+        "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py" => {
+            Some("--relation-pack-validate")
         }
         _ => None,
     };
