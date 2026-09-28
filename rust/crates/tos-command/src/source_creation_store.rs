@@ -25,6 +25,7 @@ use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 const CORPUS_LOCK: &str = ".historical-create.writer.lock";
 const CLAIM_CAPTURE_HOME: &str = ".claim-retained";
 const CLAIM_CAPTURE_INDEX: &str = "capture-index.json";
+const CLAIM_CAPTURE_INDEX_BYTES: usize = 524_288;
 #[path = "source_work_expression.rs"]
 mod work_expression;
 pub use work_expression::{
@@ -249,6 +250,60 @@ pub(crate) struct ClaimCatalogCapture {
 }
 
 impl ClaimCatalogCapture {
+    fn canonical_index(
+        &self,
+        receipt_sha256: Digest256,
+        source_revision: tos_foundation::SourceRevision,
+        whole_call: Option<&Rc<RefCell<crate::source_claims::ClaimCallBudget>>>,
+        overlapping_state: usize,
+    ) -> SourceCommandResult<Vec<u8>> {
+        if self.routes.len() > 32 {
+            return Err(SourceCommandError::Unsupported(
+                "Claim retained catalog route count",
+            ));
+        }
+        // The fixed outer fields and two byte bindings fit in 2048 bytes.
+        // A route contributes its two JSON-escaped strings (at most six bytes
+        // per input byte) and one fixed digest/size/leaf binding. Charge both
+        // the reconstructed value and its canonical buffer before either is
+        // allocated. The exact wire is still produced only by cmd::canonical.
+        let state_bound = self.routes.keys().try_fold(2048usize, |sum, path| {
+            let leaf = path
+                .rsplit_once('/')
+                .ok_or(SourceCommandError::Invalid("Claim catalog captured path"))?
+                .1;
+            path.len()
+                .checked_add(leaf.len())
+                .and_then(|n| n.checked_mul(6))
+                .and_then(|n| n.checked_add(256))
+                .and_then(|n| sum.checked_add(n))
+                .ok_or(SourceCommandError::Unsupported(
+                    "Claim retained catalog index state overflow",
+                ))
+        })?;
+        let peak = state_bound
+            .checked_mul(2)
+            .and_then(|n| n.checked_add(overlapping_state))
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim retained catalog index state overflow",
+            ))?;
+        if peak > MAX_BYTES {
+            return Err(SourceCommandError::Unsupported(
+                "Claim retained catalog index state budget",
+            ));
+        }
+        if let Some(budget) = whole_call {
+            budget.borrow().check_live(peak)?;
+        }
+        let index = cmd::canonical(&self.index(receipt_sha256, source_revision)?)?;
+        if index.len() > CLAIM_CAPTURE_INDEX_BYTES {
+            return Err(SourceCommandError::Unsupported(
+                "Claim retained catalog index byte budget",
+            ));
+        }
+        Ok(index)
+    }
+
     fn index(
         &self,
         receipt_sha256: Digest256,
@@ -700,7 +755,8 @@ impl CreationFilesystem {
         }
         capture.verify_current(self, deadline, cancelled)?;
         let receipt_digest = Digest256::of_bytes(receipt);
-        let index = cmd::canonical(&capture.index(receipt_digest, cut.current().revision())?)?;
+        let index =
+            capture.canonical_index(receipt_digest, cut.current().revision(), whole_call, 0)?;
         let name = receipt_digest.to_hex();
         let home = self.claim_capture_home(true)?;
         let manifest = capture
@@ -801,11 +857,11 @@ impl CreationFilesystem {
         owned(&directory, self.uid, true)?;
         let index_limit = if let Some(budget) = whole_call {
             let budget = budget.borrow();
-            524_288usize
+            CLAIM_CAPTURE_INDEX_BYTES
                 .min(budget.remaining_read()? as usize)
-                .min(budget.remaining_live()? / 2)
+                .min(budget.remaining_live()? / 3)
         } else {
-            524_288
+            CLAIM_CAPTURE_INDEX_BYTES
         };
         let index_raw = work_transaction::read_at(
             &directory,
@@ -821,7 +877,9 @@ impl CreationFilesystem {
         if let Some(budget) = whole_call {
             let mut budget = budget.borrow_mut();
             budget.read(index_raw.len() as u64)?;
-            budget.check_live(index_raw.len().saturating_mul(2))?;
+            budget.check_live(index_raw.len().checked_mul(3).ok_or(
+                SourceCommandError::Unsupported("Claim retained catalog index state overflow"),
+            )?)?;
         }
         let index = cmd::parse(&index_raw)?;
         if index_raw != cmd::canonical(&index)? {
@@ -977,7 +1035,18 @@ impl CreationFilesystem {
             uid: self.uid,
         };
         capture.bind_cut(original_cut, deadline, cancelled)?;
-        if capture.index(receipt_sha256, original_cut.current().revision())? != index {
+        if capture.canonical_index(
+            receipt_sha256,
+            original_cut.current().revision(),
+            whole_call,
+            index_raw
+                .len()
+                .checked_mul(2)
+                .ok_or(SourceCommandError::Unsupported(
+                    "Claim retained catalog index state overflow",
+                ))?,
+        )? != index_raw
+        {
             return Err(SourceCommandError::Conflict(
                 "Claim retained catalog index differs",
             ));
@@ -1000,7 +1069,8 @@ impl CreationFilesystem {
         capture.bind_cut(original_cut, deadline, cancelled)?;
         let receipt = &package.files()["source-create-receipt.json"];
         let digest = Digest256::of_bytes(receipt);
-        let index = cmd::canonical(&capture.index(digest, original_cut.current().revision())?)?;
+        let index =
+            capture.canonical_index(digest, original_cut.current().revision(), whole_call, 0)?;
         let manifest = capture
             .manifest
             .as_ref()
