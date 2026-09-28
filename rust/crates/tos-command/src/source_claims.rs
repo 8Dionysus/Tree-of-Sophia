@@ -11,16 +11,16 @@ use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 use std::time::Instant;
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonString, JsonValue, RelativePath,
-    canonical_count_v1, python_strip_unicode16_v1,
+    canonical_count_v1, python_strip_unicode16_v1, CanonicalProfile, Digest256, JsonLimits,
+    JsonString, JsonValue, RelativePath,
 };
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::PredicateRead;
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::PredicateRead;
 
 pub const CLAIM_STREAM: &str = "source-claims.jsonl";
 pub const CLAIM_HISTORY: &str = "claim-revision-history.json";
@@ -3348,124 +3348,221 @@ fn retained_profile_required(ctx: &CommandContext, claim: &JsonValue) -> SourceC
     )
 }
 
-// Every source value copied into these catalogue entries occurs at most twice
-// (the Claim review IDs also appear in review_refs). Count all possible field
-// names, delimiters, null defaults and fixed values before constructing an
-// entry; the exact resulting size is still charged after construction.
-fn catalogue_entry_construction_bound(
-    source_bytes: usize,
-    location: &str,
-    schema_bytes: usize,
-    keys: &[&str],
-    fixed_value_bytes: usize,
-) -> SourceCommandResult<usize> {
-    let fields = keys.iter().try_fold(4usize, |sum, key| {
-        sum.checked_add(key.len())?.checked_add(9)
-    });
-    source_bytes
-        .checked_mul(2)
-        .and_then(|sum| sum.checked_add(fields?))
-        .and_then(|sum| sum.checked_add(location.len()))
-        .and_then(|sum| sum.checked_add(schema_bytes))
-        .and_then(|sum| sum.checked_add(fixed_value_bytes))
+// A borrowed description is both the construction recipe and its pre-copy
+// bound. Adding a catalogue field necessarily adds it to the counted recipe.
+enum CataloguePart<'a> {
+    Value(&'a JsonValue),
+    Text(Cow<'a, str>),
+    Number(u64),
+    Null,
+    Links(&'a JsonValue),
+    ReviewRefs(&'a JsonValue),
+}
+struct CatalogueEntry<'a>(Vec<(&'static str, CataloguePart<'a>)>);
+
+fn catalogue_string_bound(value: &str) -> SourceCommandResult<usize> {
+    // A UTF-8 byte contributes at most one six-byte JSON escape. This covers
+    // quotes in valid RelativePaths without allocating a copied JsonString.
+    value
+        .len()
+        .checked_mul(6)
+        .and_then(|n| n.checked_add(2))
         .ok_or(SourceCommandError::Unsupported(
-            "Claim catalogue construction state overflow",
+            "Claim catalogue string state overflow",
         ))
 }
 
-const RECORD_CATALOGUE_KEYS: &[&str] = &[
-    "schema_version",
-    "record_id",
-    "record_type",
-    "preferred_label",
-    "identity_status",
-    "source_record_ref",
-    "record_sha256",
-    "source_schema_ref",
-    "links",
-];
-const CLAIM_CATALOGUE_KEYS: &[&str] = &[
-    "schema_version",
-    "source_claim_file_ref",
-    "source_claim_line",
-    "claim_sha256",
-    "claim_id",
-    "claim_type",
-    "assertion_layer",
-    "subject_ref",
-    "predicate",
-    "object",
-    "evidence_refs",
-    "maker",
-    "provenance_event_ref",
-    "epistemic_status",
-    "review_status",
-    "visibility",
-    "claim_version",
-    "review_refs",
-    "supersedes_claim_ref",
-    "qualifiers",
-    "source_schema_ref",
-];
+impl CatalogueEntry<'_> {
+    fn bound(&self) -> SourceCommandResult<usize> {
+        let mut bytes = 2usize;
+        for (key, part) in &self.0 {
+            bytes = bytes
+                .checked_add(catalogue_string_bound(key)?)
+                .and_then(|n| n.checked_add(2))
+                .ok_or(SourceCommandError::Unsupported(
+                    "Claim catalogue state overflow",
+                ))?;
+            let value_bytes = match part {
+                CataloguePart::Value(value) => retained_value_bytes(value)?,
+                CataloguePart::Text(value) => catalogue_string_bound(value)?,
+                CataloguePart::Number(_) => 20, // longest canonical u64
+                CataloguePart::Null => 4,
+                CataloguePart::Links(record) => {
+                    let mut size = 2usize;
+                    for key in CATALOG_LINK_FIELDS {
+                        if let Some(value) = record.object_get(key) {
+                            let value_bytes = retained_value_bytes(value)?;
+                            size = size
+                                .checked_add(catalogue_string_bound(key)?)
+                                .and_then(|n| n.checked_add(2))
+                                .and_then(|n| n.checked_add(value_bytes))
+                                .ok_or(SourceCommandError::Unsupported(
+                                    "Claim link state overflow",
+                                ))?;
+                        }
+                    }
+                    size
+                }
+                CataloguePart::ReviewRefs(claim) => {
+                    let mut size = 2usize;
+                    let reviews = claim
+                        .object_get("reviews")
+                        .map(|v| {
+                            v.as_array()
+                                .ok_or(SourceCommandError::Invalid("catalog Claim reviews array"))
+                        })
+                        .transpose()?
+                        .unwrap_or(&[]);
+                    for review in reviews {
+                        if let Some(value) = review
+                            .object_get("review_id")
+                            .filter(|v| v.as_str().is_some())
+                        {
+                            size = size
+                                .checked_add(retained_value_bytes(value)?)
+                                .and_then(|n| n.checked_add(1))
+                                .ok_or(SourceCommandError::Unsupported(
+                                    "Claim review state overflow",
+                                ))?;
+                        }
+                    }
+                    size
+                }
+            };
+            bytes = bytes
+                .checked_add(value_bytes)
+                .ok_or(SourceCommandError::Unsupported(
+                    "Claim catalogue state overflow",
+                ))?;
+        }
+        bytes
+            .checked_add(self.0.len().saturating_sub(1))
+            .and_then(|n| {
+                n.checked_add(
+                    self.0
+                        .len()
+                        .checked_mul(std::mem::size_of::<(&str, CataloguePart<'_>)>())?,
+                )
+            })
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim catalogue state overflow",
+            ))
+    }
 
-fn catalogue_record(
-    record: &JsonValue,
-    location: &str,
-    schema: Option<&str>,
-) -> SourceCommandResult<JsonValue> {
-    let mut result = object(vec![
+    fn construct(self) -> SourceCommandResult<JsonValue> {
+        let mut result = object(vec![]);
+        for (key, part) in self.0 {
+            let value = match part {
+                CataloguePart::Value(value) => value.clone(),
+                CataloguePart::Text(value) => string(value.as_ref()),
+                CataloguePart::Number(value) => number(value),
+                CataloguePart::Null => JsonValue::Null,
+                CataloguePart::Links(record) => {
+                    let mut links = object(vec![]);
+                    for key in CATALOG_LINK_FIELDS {
+                        if let Some(value) = record.object_get(key) {
+                            set(&mut links, key, value.clone())?;
+                        }
+                    }
+                    links
+                }
+                CataloguePart::ReviewRefs(claim) => {
+                    let reviews = claim
+                        .object_get("reviews")
+                        .map(|v| {
+                            v.as_array()
+                                .ok_or(SourceCommandError::Invalid("catalog Claim reviews array"))
+                        })
+                        .transpose()?
+                        .unwrap_or(&[])
+                        .iter()
+                        .filter_map(|v| v.object_get("review_id"))
+                        .filter(|v| v.as_str().is_some())
+                        .cloned()
+                        .collect();
+                    JsonValue::Array(reviews)
+                }
+            };
+            set(&mut result, key, value)?;
+        }
+        Ok(result)
+    }
+}
+
+fn catalogue_record<'a>(
+    record: &'a JsonValue,
+    location: &'a str,
+    schema: Option<&'a str>,
+) -> SourceCommandResult<CatalogueEntry<'a>> {
+    let mut fields = vec![
         (
             "schema_version",
-            string("tos_source_witness_catalog_entry_v1"),
+            CataloguePart::Text(Cow::Borrowed("tos_source_witness_catalog_entry_v1")),
         ),
-        ("record_id", field(record, "record_id")?.clone()),
-        ("record_type", field(record, "record_type")?.clone()),
+        (
+            "record_id",
+            CataloguePart::Value(field(record, "record_id")?),
+        ),
+        (
+            "record_type",
+            CataloguePart::Value(field(record, "record_type")?),
+        ),
         (
             "preferred_label",
             record
                 .object_get("preferred_label")
-                .cloned()
-                .unwrap_or_else(|| string("")),
+                .map(CataloguePart::Value)
+                .unwrap_or(CataloguePart::Text(Cow::Borrowed(""))),
         ),
         (
             "identity_status",
             record
                 .object_get("identity_status")
-                .cloned()
-                .unwrap_or_else(|| string("")),
+                .map(CataloguePart::Value)
+                .unwrap_or(CataloguePart::Text(Cow::Borrowed(""))),
         ),
-        ("source_record_ref", string(location)),
-        ("record_sha256", string(&record_digest(record)?.to_hex())),
-    ]);
+        (
+            "source_record_ref",
+            CataloguePart::Text(Cow::Borrowed(location)),
+        ),
+        (
+            "record_sha256",
+            CataloguePart::Text(Cow::Owned(record_digest(record)?.to_hex())),
+        ),
+    ];
     if let Some(schema) = schema {
-        set(&mut result, "source_schema_ref", string(schema))?;
+        fields.push((
+            "source_schema_ref",
+            CataloguePart::Text(Cow::Borrowed(schema)),
+        ));
     }
-    let mut links = object(vec![]);
-    for key in CATALOG_LINK_FIELDS {
-        if let Some(value) = record.object_get(key) {
-            set(&mut links, key, value.clone())?;
-        }
-    }
-    set(&mut result, "links", links)?;
-    Ok(result)
+    fields.push(("links", CataloguePart::Links(record)));
+    Ok(CatalogueEntry(fields))
 }
-fn catalogue_claim(
+
+fn catalogue_claim<'a>(
     ctx: &CommandContext,
-    claim: &JsonValue,
-    location: &str,
+    claim: &'a JsonValue,
+    location: &'a str,
     line: usize,
     profiled: bool,
-    selected_schema: Option<&str>,
-) -> SourceCommandResult<JsonValue> {
-    let mut result = object(vec![
+    selected_schema: Option<&'a str>,
+) -> SourceCommandResult<CatalogueEntry<'a>> {
+    let mut fields = vec![
         (
             "schema_version",
-            string("tos_source_witness_claim_catalog_entry_v1"),
+            CataloguePart::Text(Cow::Borrowed("tos_source_witness_claim_catalog_entry_v1")),
         ),
-        ("source_claim_file_ref", string(location)),
-        ("source_claim_line", number(line as u64)),
-        ("claim_sha256", string(&record_digest(claim)?.to_hex())),
-    ]);
+        (
+            "source_claim_file_ref",
+            CataloguePart::Text(Cow::Borrowed(location)),
+        ),
+        ("source_claim_line", CataloguePart::Number(line as u64)),
+        (
+            "claim_sha256",
+            CataloguePart::Text(Cow::Owned(record_digest(claim)?.to_hex())),
+        ),
+    ];
     for key in [
         "claim_id",
         "claim_type",
@@ -3481,41 +3578,28 @@ fn catalogue_claim(
         "visibility",
         "claim_version",
     ] {
-        set(
-            &mut result,
+        fields.push((
             key,
-            claim.object_get(key).cloned().unwrap_or(JsonValue::Null),
-        )?;
+            claim
+                .object_get(key)
+                .map(CataloguePart::Value)
+                .unwrap_or(CataloguePart::Null),
+        ));
     }
-    let reviews = claim
-        .object_get("reviews")
-        .map(|value| {
-            value
-                .as_array()
-                .ok_or(SourceCommandError::Invalid("catalog Claim reviews array"))
-        })
-        .transpose()?
-        .unwrap_or(&[])
-        .iter()
-        .filter_map(|v| v.object_get("review_id"))
-        .filter(|v| v.as_str().is_some())
-        .cloned()
-        .collect();
-    set(&mut result, "review_refs", JsonValue::Array(reviews))?;
+    fields.push(("review_refs", CataloguePart::ReviewRefs(claim)));
     for key in ["supersedes_claim_ref", "qualifiers"] {
-        if let Some(v) = claim.object_get(key) {
-            set(&mut result, key, v.clone())?;
+        if let Some(value) = claim.object_get(key) {
+            fields.push((key, CataloguePart::Value(value)));
         }
     }
     if text(claim, "schema_version")? == "tos_historical_claim_v1" {
-        set(
-            &mut result,
+        fields.push((
             "source_schema_ref",
-            string("ToS/contracts/historical-claim.schema.json"),
-        )?;
+            CataloguePart::Text(Cow::Borrowed("ToS/contracts/historical-claim.schema.json")),
+        ));
     }
     if profiled {
-        let schema: Cow<'_, str> = if let Some(schema) = selected_schema {
+        let schema = if let Some(schema) = selected_schema {
             Cow::Borrowed(schema)
         } else {
             let (_, descriptor) = profile(ctx, text(claim, "predicate")?)?;
@@ -3527,9 +3611,10 @@ fn catalogue_claim(
                 ))?;
             Cow::Owned(text(route, "schema_ref")?.to_owned())
         };
-        set(&mut result, "source_schema_ref", string(schema.as_ref()))?;
+        fields.retain(|(key, _)| *key != "source_schema_ref");
+        fields.push(("source_schema_ref", CataloguePart::Text(schema)));
     }
-    Ok(result)
+    Ok(CatalogueEntry(fields))
 }
 
 /// Exact metadata transport for the shared native resolver. The cut supplies
@@ -4451,6 +4536,27 @@ fn maintained_inventory_inner(
     } else {
         (BTreeMap::new(), None, false)
     };
+    let native_identity_state = native_identities
+        .iter()
+        .try_fold(0usize, |sum, (id, refs)| {
+            let refs_state = refs.iter().try_fold(0usize, |sum, reference| {
+                sum.checked_add(reference.len())
+                    .and_then(|n| n.checked_add(std::mem::size_of::<String>()))
+            })?;
+            sum.checked_add(id.len())
+                .and_then(|n| n.checked_add(refs_state))
+                .and_then(|n| n.checked_add(std::mem::size_of::<(String, Vec<String>)>()))
+        })
+        .and_then(|sum| sum.checked_add(native_identity_snapshot.as_ref().map_or(0, String::len)))
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim native identity state overflow",
+        ))?;
+    retained_inventory_state = retained_inventory_state
+        .checked_add(native_identity_state)
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim native identity state overflow",
+        ))?;
+    inventory_live_preflight(whole_call, retained_inventory_state, 0)?;
     let mut native_bindings = Vec::new();
     let mut kinds: BTreeMap<String, String> = NATIVE_CATALOG_KINDS
         .iter()
@@ -4464,6 +4570,20 @@ fn maintained_inventory_inner(
             );
         }
     }
+    let kinds_state = kinds
+        .iter()
+        .try_fold(0usize, |sum, (kind, name)| {
+            sum.checked_add(kind.len())
+                .and_then(|n| n.checked_add(name.len()))
+                .and_then(|n| n.checked_add(std::mem::size_of::<(String, String)>()))
+        })
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim catalogue kind state overflow",
+        ))?;
+    retained_inventory_state = retained_inventory_state.checked_add(kinds_state).ok_or(
+        SourceCommandError::Unsupported("Claim catalogue kind state overflow"),
+    )?;
+    inventory_live_preflight(whole_call, retained_inventory_state, 0)?;
     let registry_refs = [
         ENTITIES,
         "ToS/contracts/semantic-entity-type-registry.schema.json",
@@ -4600,7 +4720,18 @@ fn maintained_inventory_inner(
                     ));
                 }
                 if descriptor.object_get("native_binding_adapter").is_some() {
-                    native_bindings.push(field(&record, "native_text_binding")?.clone());
+                    let binding = field(&record, "native_text_binding")?;
+                    let binding_state = retained_value_bytes(binding)?
+                        .checked_add(std::mem::size_of::<JsonValue>())
+                        .ok_or(SourceCommandError::Unsupported(
+                            "Claim native binding state overflow",
+                        ))?;
+                    inventory_live_preflight(whole_call, retained_inventory_state, binding_state)?;
+                    native_bindings.push(binding.clone());
+                    retained_inventory_state =
+                        retained_inventory_state.checked_add(binding_state).ok_or(
+                            SourceCommandError::Unsupported("Claim native binding state overflow"),
+                        )?;
                 }
                 let route = array(descriptor, "schemas")?
                     .iter()
@@ -4661,7 +4792,33 @@ fn maintained_inventory_inner(
                 let exact = metadata_subject(&record)?;
                 let (verified, locator) = if let Some(budget) = whole_call {
                     let remaining_read = budget.borrow().remaining_read()?;
-                    let remaining_state = budget.borrow().remaining_live()?;
+                    // The inventory and this parsed owner remain live while the
+                    // nested history/archive reader allocates its own package.
+                    // They are not yet retained in ClaimCallBudget: that debit
+                    // happens when maintained_inventory_inner returns.
+                    let exact_state = retained_value_bytes(&exact)?;
+                    let member_inputs_state = member_inputs
+                        .as_ref()
+                        .map(retained_value_bytes)
+                        .transpose()?
+                        .unwrap_or(0);
+                    let local_state = retained_inventory_state
+                        .checked_add(record_state)
+                        .and_then(|sum| sum.checked_add(exact_state))
+                        .and_then(|sum| sum.checked_add(id.len()))
+                        .and_then(|sum| sum.checked_add(route_input_state))
+                        .and_then(|sum| sum.checked_add(member_inputs_state))
+                        .ok_or(SourceCommandError::Unsupported(
+                            "Claim profile resolution state overflow",
+                        ))?;
+                    let remaining_state = budget
+                        .borrow()
+                        .remaining_live()?
+                        .checked_sub(local_state)
+                        .filter(|bytes| *bytes > 0)
+                        .ok_or(SourceCommandError::Unsupported(
+                            "Claim profile resolution state budget",
+                        ))?;
                     let resolved =
                         crate::source_revisions::resolve_record_version_evidence_at_selected(
                             ctx,
@@ -4680,7 +4837,43 @@ fn maintained_inventory_inner(
                         )?;
                     let mut budget = budget.borrow_mut();
                     budget.read(resolved.bytes_read)?;
-                    budget.retain(resolved.returned_state_bytes)?;
+                    // Older non-Collection resolvers report zero retained
+                    // state. Their record, route and historical evidence are
+                    // nevertheless all live at this boundary; conservatively
+                    // retain the entire returned value graph for this call.
+                    let returned_values = [
+                        Some(&resolved.record),
+                        resolved.current_record.as_ref(),
+                        Some(&resolved.current_ref),
+                        Some(&resolved.source),
+                        Some(&resolved.history),
+                        Some(&resolved.transition),
+                        Some(&resolved.route_profile),
+                    ]
+                    .into_iter()
+                    .flatten()
+                    .try_fold(0usize, |sum, value| {
+                        sum.checked_add(retained_value_bytes(value)?).ok_or(
+                            SourceCommandError::Unsupported(
+                                "Claim profile returned state overflow",
+                            ),
+                        )
+                    })?;
+                    let returned_state = returned_values
+                        .checked_add(resolved.source_path.len())
+                        .and_then(|sum| {
+                            sum.checked_add(
+                                resolved
+                                    .reads
+                                    .len()
+                                    .checked_mul(std::mem::size_of::<PredicateRead>())?,
+                            )
+                        })
+                        .ok_or(SourceCommandError::Unsupported(
+                            "Claim profile returned state overflow",
+                        ))?
+                        .max(resolved.returned_state_bytes);
+                    budget.retain(returned_state)?;
                     (resolved.record, resolved.source_path)
                 } else if let Some(cut) = cut {
                     crate::source_revisions::resolve_record_version_from_cut(
@@ -4700,26 +4893,8 @@ fn maintained_inventory_inner(
             } else {
                 None
             };
-            let entry_bound = catalogue_entry_construction_bound(
-                record_state,
-                location,
-                schema.map_or(0, str::len),
-                RECORD_CATALOGUE_KEYS,
-                "tos_source_witness_catalog_entry_v1".len() + 2 + 66 + 6,
-            )?
-            .checked_add(
-                CATALOG_LINK_FIELDS
-                    .iter()
-                    .try_fold(0usize, |sum, key| {
-                        sum.checked_add(key.len())?.checked_add(9)
-                    })
-                    .ok_or(SourceCommandError::Unsupported(
-                        "Claim catalogue link state overflow",
-                    ))?,
-            )
-            .ok_or(SourceCommandError::Unsupported(
-                "Claim catalogue entry state overflow",
-            ))?;
+            let entry_plan = catalogue_record(&record, location, schema)?;
+            let entry_bound = entry_plan.bound()?;
             let upper_added =
                 record_state
                     .checked_add(entry_bound.checked_mul(3).ok_or(
@@ -4732,7 +4907,7 @@ fn maintained_inventory_inner(
                         "Claim catalog record state overflow",
                     ))?;
             inventory_live_preflight(whole_call, retained_inventory_state, upper_added)?;
-            let entry = catalogue_record(&record, location, schema)?;
+            let entry = entry_plan.construct()?;
             let entry_state = retained_value_bytes(&entry)?;
             let added =
                 record_state
@@ -4919,13 +5094,15 @@ fn maintained_inventory_inner(
                 if id.is_empty() {
                     return Err(SourceCommandError::Invalid("catalog Claim identity"));
                 }
-                let entry_bound = catalogue_entry_construction_bound(
-                    claim_state,
+                let entry_plan = catalogue_claim(
+                    ctx,
+                    &claim,
                     location,
-                    schema_bytes,
-                    CLAIM_CATALOGUE_KEYS,
-                    "tos_source_witness_claim_catalog_entry_v1".len() + 2 + 66 + 20 + 6,
+                    index + 1,
+                    profiled,
+                    selected_schema.as_deref(),
                 )?;
+                let entry_bound = entry_plan.bound()?;
                 let entry_and_claim = claim_state
                     .checked_add(entry_bound)
                     .and_then(|sum| {
@@ -4935,14 +5112,7 @@ fn maintained_inventory_inner(
                         "Claim catalogue Claim state overflow",
                     ))?;
                 inventory_live_preflight(whole_call, retained_inventory_state, entry_and_claim)?;
-                let entry = catalogue_claim(
-                    ctx,
-                    &claim,
-                    location,
-                    index + 1,
-                    profiled,
-                    selected_schema.as_deref(),
-                )?;
+                let entry = entry_plan.construct()?;
                 let added = retained_value_bytes(&entry)?
                     .checked_add(id.len())
                     .and_then(|sum| sum.checked_add(std::mem::size_of::<(String, JsonValue)>()))
@@ -7178,30 +7348,11 @@ fn exact_metadata_version(
         ));
     }
     let type_id = field(matches[0], "type_id")?.clone();
+    let expected_plan = catalogue_record(current_record, &resolved.source_path, expected_schema)?;
     if let Some(read) = retained.as_deref() {
-        let entry_bound = catalogue_entry_construction_bound(
-            retained_value_bytes(current_record)?,
-            &resolved.source_path,
-            expected_schema.map_or(0, str::len),
-            RECORD_CATALOGUE_KEYS,
-            "tos_source_witness_catalog_entry_v1".len() + 2 + 66 + 6,
-        )?
-        .checked_add(
-            CATALOG_LINK_FIELDS
-                .iter()
-                .try_fold(0usize, |sum, key| {
-                    sum.checked_add(key.len())?.checked_add(9)
-                })
-                .ok_or(SourceCommandError::Unsupported(
-                    "Claim catalogue link state overflow",
-                ))?,
-        )
-        .ok_or(SourceCommandError::Unsupported(
-            "Claim catalogue entry state overflow",
-        ))?;
-        read.check_temporary_state(entry_bound)?;
+        read.check_temporary_state(expected_plan.bound()?)?;
     }
-    let expected = catalogue_record(current_record, &resolved.source_path, expected_schema)?;
+    let expected = expected_plan.construct()?;
     let catalog_path = format!("ToS/source-witnesses/catalog/{filename}");
     let mut catalog = exact_selected_catalog_entry(
         ctx,
@@ -7682,7 +7833,7 @@ fn resolve_claim_reference_evidence(
     }
     let current_ref = metadata_subject(&current)?;
     let current_line = claim_stream_line(current_raw, id)?;
-    if let Some(read) = retained.as_deref() {
+    let pre_plan_state = if let Some(read) = retained.as_deref() {
         let claim_state = retained_value_bytes(&current)?;
         let registry_state = if legacy {
             0
@@ -7691,26 +7842,18 @@ fn resolve_claim_reference_evidence(
                 SourceCommandError::Unsupported("Claim catalogue profile state overflow"),
             )?
         };
-        let schema_bound = if legacy {
-            0
-        } else {
-            selected(ctx, RELATIONS)?.len()
-        };
-        let temporary = claim_state
-            .checked_add(catalogue_entry_construction_bound(
-                claim_state,
-                p.as_str(),
-                schema_bound,
-                CLAIM_CATALOGUE_KEYS,
-                "tos_source_witness_claim_catalog_entry_v1".len() + 2 + 66 + 20 + 6,
-            )?)
-            .and_then(|sum| sum.checked_add(registry_state))
-            .ok_or(SourceCommandError::Unsupported(
-                "Claim catalogue profile state overflow",
-            ))?;
-        read.check_temporary_state(temporary)?;
-    }
-    let expected_catalog = catalogue_claim(
+        let state =
+            claim_state
+                .checked_add(registry_state)
+                .ok_or(SourceCommandError::Unsupported(
+                    "Claim catalogue profile state overflow",
+                ))?;
+        read.check_temporary_state(state)?;
+        state
+    } else {
+        0
+    };
+    let expected_plan = catalogue_claim(
         ctx,
         &current,
         p.as_str(),
@@ -7718,6 +7861,13 @@ fn resolve_claim_reference_evidence(
         !legacy,
         None,
     )?;
+    if let Some(read) = retained.as_deref() {
+        let temporary = pre_plan_state.checked_add(expected_plan.bound()?).ok_or(
+            SourceCommandError::Unsupported("Claim catalogue profile state overflow"),
+        )?;
+        read.check_temporary_state(temporary)?;
+    }
+    let expected_catalog = expected_plan.construct()?;
     let mut catalog = exact_selected_catalog_entry(
         ctx,
         retained.as_deref_mut(),
