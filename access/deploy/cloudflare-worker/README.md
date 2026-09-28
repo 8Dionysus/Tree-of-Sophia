@@ -35,6 +35,11 @@ promise that a particular corpus fits. The Rust route always computes the full
 disposable v9 SQL, row baseline, and static outputs. It does not install a
 native-current read model or grant publication authority. Its SQLite page and
 work limits are per component and do not form an aggregate host-disk quota.
+`npm` first launches offline, locked Cargo from the repository's root
+`Cargo.toml`; compilation may consume separate time and build-cache space.
+The explicit deadline begins in `tos-access build-data` after compilation and
+covers the producer, not Cargo compilation. An invalid CLI deadline refuses
+before output lock, directory creation, or completion-marker changes.
 The generated D1 revision binds the source inputs, actual per-item normalized
 content revisions, capability data, and the explicit read-model schema
 version. API, LensSpec grammar, catalog, documentation, and Worker-only code

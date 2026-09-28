@@ -5,6 +5,7 @@
 use crate::{
     Error, Result,
     d1_public_capture::{MAX_ROW_BYTES, PublicCapture},
+    safe_open,
 };
 use serde_json::{Value, json};
 use std::{
@@ -30,7 +31,7 @@ pub(crate) struct StaticSummary {
 
 impl StaticSummary {
     pub(crate) fn verify_web_inputs(&self, capture: &PublicCapture) -> Result<()> {
-        let current = web_paths(&self.web_dist)?;
+        let current = web_paths(&self.web_dist, capture)?;
         if current.len() != self.web_inputs.len()
             || current
                 .iter()
@@ -90,14 +91,24 @@ impl Writer<'_> {
 }
 
 fn bounded_file(path: &Path, cap: u64, capture: &PublicCapture) -> Result<Vec<u8>> {
-    let metadata = fs::symlink_metadata(path)?;
+    let mut file = safe_open::open_regular(path, cap)?;
+    let metadata = file.metadata()?;
     if !metadata.file_type().is_file() || metadata.len() > cap {
         return Err(Error::Invalid("public D1 unsafe/oversized static input"));
     }
-    let mut raw = Vec::with_capacity(metadata.len() as usize);
-    File::open(path)?.take(cap + 1).read_to_end(&mut raw)?;
-    capture.charge_work(raw.len() as u64)?;
-    if raw.len() as u64 != metadata.len() {
+    // The known length and one growth-detection byte are admitted before
+    // allocating or reading the file. The final digest recheck still owns
+    // changed-byte refusal after all static construction.
+    capture.charge_work(
+        metadata
+            .len()
+            .checked_add(1)
+            .ok_or(Error::Budget("public D1 static read bytes"))?,
+    )?;
+    let mut raw = vec![0; metadata.len() as usize];
+    file.read_exact(&mut raw)?;
+    let mut extra = [0u8; 1];
+    if file.read(&mut extra)? != 0 {
         return Err(Error::Invalid("public D1 static input changed"));
     }
     Ok(raw)
@@ -180,20 +191,39 @@ fn supported(view: &Value) -> bool {
     )
 }
 
-fn web_paths(dist: &Path) -> Result<Vec<(PathBuf, String)>> {
+fn web_paths(dist: &Path, capture: &PublicCapture) -> Result<Vec<(PathBuf, String)>> {
     if !dist.join("index.html").is_file() || dist.is_symlink() {
         return Err(Error::Invalid("public D1 web dist missing/unsafe"));
     }
     let mut paths = Vec::new();
     let mut pending = vec![(dist.clone(), String::new())];
+    let mut seen = 0usize;
     while let Some((directory, prefix)) = pending.pop() {
         let metadata = fs::symlink_metadata(&directory)?;
         if !metadata.file_type().is_dir() {
             return Err(Error::Invalid("public D1 web directory"));
         }
-        let mut entries = fs::read_dir(&directory)?
-            .map(|entry| entry.map(|item| item.path()))
-            .collect::<std::io::Result<Vec<_>>>()?;
+        let mut entries = Vec::new();
+        for entry in fs::read_dir(&directory)? {
+            seen = seen
+                .checked_add(1)
+                .filter(|count| *count <= 65_536)
+                .ok_or(Error::Budget("public D1 web entries"))?;
+            let entry = entry?;
+            let name = entry.file_name();
+            let path_bytes = directory
+                .as_os_str()
+                .as_encoded_bytes()
+                .len()
+                .checked_add(prefix.len())
+                .and_then(|size| size.checked_add(name.as_encoded_bytes().len()))
+                .and_then(|size| {
+                    size.checked_add(std::mem::size_of::<PathBuf>() + std::mem::size_of::<String>())
+                })
+                .ok_or(Error::Budget("public D1 web path bytes"))?;
+            capture.charge_work(path_bytes as u64)?;
+            entries.push(entry.path());
+        }
         entries.sort();
         for path in entries.into_iter().rev() {
             let name = path
@@ -216,7 +246,11 @@ fn web_paths(dist: &Path) -> Result<Vec<(PathBuf, String)>> {
             } else {
                 return Err(Error::Invalid("public D1 web file type"));
             }
-            if paths.len() + pending.len() > 65_536 {
+            if paths
+                .len()
+                .checked_add(pending.len())
+                .is_none_or(|count| count > 65_536)
+            {
                 return Err(Error::Budget("public D1 web entries"));
             }
         }
@@ -232,7 +266,7 @@ fn web_assets(writer: &mut Writer<'_>, root: &Path) -> Result<Vec<(PathBuf, Dige
         }
     }
     let dist = root.join("access/web/dist");
-    let paths = web_paths(&dist)?;
+    let paths = web_paths(&dist, writer.capture)?;
     let mut manifest = Vec::with_capacity(paths.len());
     let mut index = None;
     for (path, relative) in paths {

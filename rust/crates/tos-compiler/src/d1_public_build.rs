@@ -475,7 +475,16 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
             limits.catalog,
         )
     })?;
-    let search = build_search_index(&mut stage, limits.search)?;
+    let remaining_work = capture
+        .max_work_bytes()
+        .checked_sub(capture.work_bytes())
+        .ok_or(Error::Budget("public D1 build work bytes"))?;
+    let mut search_limits = limits.search;
+    search_limits.max_work_bytes = search_limits.max_work_bytes.min(remaining_work);
+    if search_limits.max_work_bytes == 0 {
+        return Err(Error::Budget("public D1 Search work bytes"));
+    }
+    let search = build_search_index(&mut stage, search_limits)?;
     capture.charge_work(search.work_bytes)?;
     let metadata = d1_public_metadata::prepare(
         &mut stage,
