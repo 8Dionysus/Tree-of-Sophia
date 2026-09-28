@@ -1927,19 +1927,30 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
         deadline,
         &cancellation,
     );
-    assert!(matches!(
-        prepare_isolated_claim_creation_from_captures(
-            &filesystem,
-            &broken_context,
-            &broken_cut,
-            &software,
-            &components,
-            &mut broken_worker,
-            deadline,
-            &cancellation
+    let broken_archive = prepare_isolated_claim_creation_from_captures(
+        &filesystem,
+        &broken_context,
+        &broken_cut,
+        &software,
+        &components,
+        &mut broken_worker,
+        deadline,
+        &cancellation,
+    );
+    assert!(
+        matches!(
+            &broken_archive,
+            Err(SourceCommandError::SchemaExecution {
+                path,
+                root,
+                reason: tos_validation::item_rules::ItemRefusal::Source(reason),
+            }) if path == &collection_path
+                && root.as_str() == "selected Collection historical version"
+                && reason.as_str() == "native compound: schema_version"
         ),
-        Err(SourceCommandError::Invalid(_) | SourceCommandError::Conflict(_))
-    ));
+        "broken Collection archive refusal: {:?}",
+        broken_archive.as_ref().err(),
+    );
     drop(broken_worker);
     let mut budget = ExecutorBudget::laboratory();
     budget.execution_wall = deadline.saturating_duration_since(Instant::now());
