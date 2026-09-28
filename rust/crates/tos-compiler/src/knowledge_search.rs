@@ -582,11 +582,9 @@ fn write_document_page(
         .map_err(|_| Error::Budget("search page heads"))?;
     for (reader, prepared) in page.iter().enumerate() {
         if let Some(&offset) = prepared.offsets.first() {
-            heap.push(Reverse(RunHead {
-                posting: RunPosting::new(
-                    gram_slice(&prepared.doc.text, offset),
-                    prepared.row.position,
-                )?,
+            heap.push(Reverse(PageHead {
+                gram: gram_slice(&prepared.doc.text, offset),
+                position: prepared.row.position,
                 reader,
             }));
         }
@@ -597,9 +595,10 @@ fn write_document_page(
             check()?;
         }
         charge(&mut receipt.work_bytes, 8, limits)?;
-        writer.push(
+        writer.push_gram(
             &transaction,
-            head.posting,
+            head.gram,
+            head.position,
             limits,
             &mut receipt.work_bytes,
             check,
@@ -615,11 +614,9 @@ fn write_document_page(
         indices[head.reader] += 1;
         let prepared = &page[head.reader];
         if let Some(&offset) = prepared.offsets.get(indices[head.reader]) {
-            heap.push(Reverse(RunHead {
-                posting: RunPosting::new(
-                    gram_slice(&prepared.doc.text, offset),
-                    prepared.row.position,
-                )?,
+            heap.push(Reverse(PageHead {
+                gram: gram_slice(&prepared.doc.text, offset),
+                position: prepared.row.position,
                 reader: head.reader,
             }));
         }
@@ -707,6 +704,26 @@ impl PartialOrd for RunPosting {
     }
 }
 
+#[derive(Eq, PartialEq)]
+struct PageHead<'a> {
+    gram: &'a [u8],
+    position: i64,
+    reader: usize,
+}
+impl Ord for PageHead<'_> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.gram
+            .cmp(other.gram)
+            .then(self.position.cmp(&other.position))
+            .then(self.reader.cmp(&other.reader))
+    }
+}
+impl PartialOrd for PageHead<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 struct TempRunWriter {
     run_id: i64,
     chunk_no: usize,
@@ -723,27 +740,30 @@ impl TempRunWriter {
             pending: Vec::new(),
         }
     }
-    fn push(
+    fn push_gram(
         &mut self,
         db: &Connection,
-        posting: RunPosting,
+        gram: &[u8],
+        position: i64,
         limits: SearchBuildLimits,
         work: &mut u64,
         check: &dyn Fn() -> Result<()>,
     ) -> Result<()> {
-        if self
-            .gram
-            .is_some_and(|prior| prior.gram() != posting.gram())
-        {
+        if position < 0 {
+            return Err(Error::Invalid("search run posting"));
+        }
+        if self.gram.is_some_and(|prior| prior.gram() != gram) {
             self.flush(db, limits, work, check)?;
         }
-        self.gram = Some(posting);
+        if self.gram.is_none_or(|prior| prior.gram() != gram) {
+            self.gram = Some(RunPosting::new(gram, position)?);
+        }
         if self.pending.is_empty() {
             self.pending
                 .try_reserve_exact(MAX_POSTINGS_PER_BLOCK)
                 .map_err(|_| Error::Budget("search run block positions"))?;
         }
-        self.pending.push(posting.position);
+        self.pending.push(position as u64);
         if self.pending.len() == MAX_POSTINGS_PER_BLOCK {
             self.flush(db, limits, work, check)?;
         }
