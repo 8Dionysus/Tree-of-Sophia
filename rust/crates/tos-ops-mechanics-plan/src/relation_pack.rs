@@ -378,13 +378,10 @@ where
     let predicates = table(root, PREDICATES)?;
     let class_table = table(root, CLASSES)?;
     required_columns(&pack, &["edge_id", "from_id", "to_id", "predicate_id"])?;
-    required_columns(
-        &nodes,
-        &["status", "node_id", "canonical_label", "node_class"],
-    )?;
+    required_columns(&nodes, &["status", "node_id", "node_class"])?;
     required_columns(&events, &["status", "es_id", "kind"])?;
     required_columns(&principles, &["status", "principle_id"])?;
-    required_columns(&edges, &["status", "from_id", "to_id"])?;
+    required_columns(&edges, &["status"])?;
     required_columns(
         &predicates,
         &["predicate_id", "allowed_from_classes", "allowed_to_classes"],
