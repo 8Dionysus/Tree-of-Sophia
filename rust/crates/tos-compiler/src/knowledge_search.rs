@@ -1,19 +1,21 @@
 //! Complete indexed-v2 substring carrier over the selected normalized graph.
-//! SQLite owns the gram deduplication and external ordering; the stage owns
-//! the private candidate and independently guarded spill namespace. The
+//! One bounded document page writes canonical documents and unique per-document
+//! grams to an ephemeral SQLite key tree. Final posting pages then follow that
+//! tree's order into the selected primary key. The stage owns the private
+//! candidate and independently guarded spill namespace. The
 //! caller's `StageLimits` supplies cumulative SQLite VM steps, page/output,
 //! cache and host-enforced temporary-file caps. `SearchBuildLimits` supplies
 //! additional row, posting and work caps. No in-process temp-size sample is
 //! claimed to bound a single SQLite statement's external spill.
 
 use crate::{
-    knowledge_stage::{KnowledgeStage, WritePhase},
     Error, Result,
+    knowledge_stage::{KnowledgeStage, WritePhase},
 };
-use rusqlite::{params, params_from_iter, Connection, OptionalExtension, Statement};
+use rusqlite::{Connection, OptionalExtension, Statement, params, params_from_iter};
 use tos_foundation::{
-    canonical_bytes_v1, parse_json, python_lower_unicode16_v1, CanonicalProfile, Digest256,
-    Digest256Hasher, JsonLimits, JsonMode, JsonString, JsonValue,
+    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonString, JsonValue,
+    canonical_bytes_v1, parse_json, python_lower_unicode16_v1,
 };
 
 pub const SEARCH_PROFILE: &str = "tos-python-native-unicode-v1";
@@ -32,7 +34,7 @@ pub struct SearchBuildLimits {
     /// Counts payload reads, serialized/lowercased documents, rank fields and
     /// every attempted gram write (including duplicates).
     pub max_work_bytes: u64,
-    /// Limits one direct posting SQL statement and its Rust batch.
+    /// Limits one staging or final posting SQL statement and its Rust batch.
     pub gram_batch_rows: usize,
 }
 
@@ -93,6 +95,12 @@ struct Document {
     serialization_bytes: usize,
 }
 
+struct PreparedDocument {
+    row: SourceRow,
+    doc: Document,
+    offsets: Vec<usize>,
+}
+
 fn charge(work: &mut u64, amount: usize, limits: SearchBuildLimits) -> Result<()> {
     *work = work
         .checked_add(amount as u64)
@@ -124,6 +132,14 @@ fn build_inner(
 ) -> Result<SearchIndexReceipt> {
     limits.validate()?;
     stage.with_connection(WritePhase::Search, |db| {
+        // Catalog's rolled-back TEMP tables may have left free pages. Enable
+        // in-place reclamation before this producer creates its own TEMP tree;
+        // the final seal must not retain that tree's file allocation.
+        db.execute_batch("PRAGMA temp.auto_vacuum=INCREMENTAL; VACUUM temp")?;
+        let mode: i64 = db.query_row("PRAGMA temp.auto_vacuum", [], |row| row.get(0))?;
+        if mode != 2 {
+            return Err(Error::Invalid("search TEMP reclamation mode"));
+        }
         db.execute_batch(SCHEMA).map_err(Error::from)
     })?;
     let mut receipt = SearchIndexReceipt {
@@ -141,11 +157,14 @@ fn build_inner(
         ("relations", "knowledge_relations"),
     ] {
         let mut after = -1i64;
+        let before_kind_postings = receipt.postings;
+        let mut page = Vec::new();
+        let mut page_text_bytes = 0usize;
         loop {
             let row = stage.with_connection(WritePhase::Search, |db| {
                 fetch_next(db, table, after, limits.max_payload_bytes)
             })?;
-            let Some(row) = row else {
+            let Some(mut row) = row else {
                 break;
             };
             if row.position
@@ -178,8 +197,31 @@ fn build_inner(
                     + doc.native_id_lower.len(),
                 limits,
             )?;
+            let offsets = stage.with_connection_checks(WritePhase::Search, |_, check| {
+                prepare_gram_offsets(&doc, limits, &mut receipt.work_bytes, check)
+            })?;
+            row.payload = None;
+            if !page.is_empty()
+                && (page.len() == limits.gram_batch_rows
+                    || page_text_bytes
+                        .checked_add(doc.text.len())
+                        .ok_or(Error::Budget("search document page bytes"))?
+                        > limits.max_document_bytes)
+            {
+                stage.with_connection_checks(WritePhase::Search, |db, check| {
+                    write_document_page(db, check, &page, kind, limits, &mut receipt)
+                })?;
+                page.clear();
+                page_text_bytes = 0;
+            }
+            page_text_bytes = page_text_bytes
+                .checked_add(doc.text.len())
+                .ok_or(Error::Budget("search document page bytes"))?;
+            page.push(PreparedDocument { row, doc, offsets });
+        }
+        if !page.is_empty() {
             stage.with_connection_checks(WritePhase::Search, |db, check| {
-                write_document(db, check, &row, &doc, kind, limits, &mut receipt)
+                write_document_page(db, check, &page, kind, limits, &mut receipt)
             })?;
         }
         let normalized_count: u64 = stage.with_connection(WritePhase::Search, |db| {
@@ -198,10 +240,24 @@ fn build_inner(
         if normalized_count != produced {
             return Err(Error::Invalid("search normalized document coverage"));
         }
+        stage.with_connection_checks(WritePhase::Search, |db, check| {
+            copy_ordered_kind(
+                db,
+                check,
+                kind,
+                limits,
+                receipt.postings - before_kind_postings,
+            )
+        })?;
+        stage.with_connection(WritePhase::Search, |db| {
+            db.execute_batch("PRAGMA temp.incremental_vacuum")?;
+            Ok(())
+        })?;
     }
     // Grouping is an external SQLite index scan under the stage VM and host
     // spill quota. A cap failure poisons and removes the private candidate.
     stage.with_connection(WritePhase::Search, |db| {
+        db.execute_batch("DROP TABLE search_ordered_grams; PRAGMA temp.incremental_vacuum")?;
         db.execute("INSERT INTO search_gram_stats(kind,n,gram,postings) SELECT kind,n,gram,COUNT(*) FROM search_grams GROUP BY kind,n,gram", [])?;
         db.execute("CREATE INDEX search_document_filter ON search_documents(kind,source_graph,kind_id,predicate_id,position)", [])?;
         Ok(())
@@ -401,32 +457,20 @@ fn default_spaced_json(compact: &[u8], cap: usize) -> Result<Vec<u8>> {
     Ok(out)
 }
 
-fn write_document(
-    db: &mut Connection,
-    check: &dyn Fn() -> Result<()>,
-    row: &SourceRow,
+fn prepare_gram_offsets(
     doc: &Document,
-    kind: &str,
     limits: SearchBuildLimits,
-    receipt: &mut SearchIndexReceipt,
-) -> Result<()> {
-    limits.validate()?;
+    work_bytes: &mut u64,
+    check: &dyn Fn() -> Result<()>,
+) -> Result<Vec<usize>> {
     check()?;
     if doc.chars > limits.max_document_chars || doc.text.len() > limits.max_document_bytes {
         return Err(Error::Budget("search document bytes/chars"));
     }
     let gram_count = doc.chars.saturating_sub(2);
-    let offset_bytes = gram_count
+    gram_count
         .checked_mul(std::mem::size_of::<usize>())
         .ok_or(Error::Budget("search gram offsets"))?;
-    let max_offset_bytes = limits
-        .max_document_chars
-        .saturating_sub(2)
-        .checked_mul(std::mem::size_of::<usize>())
-        .ok_or(Error::Budget("search gram offsets"))?;
-    if offset_bytes > max_offset_bytes {
-        return Err(Error::Budget("search gram offsets"));
-    }
     let mut offsets = Vec::new();
     offsets
         .try_reserve_exact(gram_count)
@@ -443,7 +487,7 @@ fn write_document(
                     .next()
                     .expect("gram third character")
                     .len_utf8();
-            charge(&mut receipt.work_bytes, end - first, limits)?;
+            charge(work_bytes, end - first, limits)?;
             offsets.push(first);
             first = second;
             second = third;
@@ -456,69 +500,76 @@ fn write_document(
     offsets.sort_unstable_by(|a, b| gram_slice(&doc.text, *a).cmp(gram_slice(&doc.text, *b)));
     offsets.dedup_by(|a, b| gram_slice(&doc.text, *a) == gram_slice(&doc.text, *b));
     check()?;
-    let transaction = db.transaction()?;
-    transaction.execute(
-        "INSERT INTO search_documents(kind,position,id,source_graph,kind_id,predicate_id,id_lower,native_id_lower,identity_values,visible_values,document_chars,document_digest) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
-        params![kind,row.position,row.id,row.source_graph,
-            if kind == "nodes" { row.term_id.as_str() } else { "" },
-            if kind == "relations" { row.term_id.as_str() } else { "" },
-            doc.id_lower,doc.native_id_lower,doc.identity_values,doc.visible_values,
-            doc.chars as i64,doc.digest.as_bytes().as_slice()],
-    )?;
+    Ok(offsets)
+}
+
+fn write_document_page(
+    db: &mut Connection,
+    check: &dyn Fn() -> Result<()>,
+    page: &[PreparedDocument],
+    kind: &str,
+    limits: SearchBuildLimits,
+    receipt: &mut SearchIndexReceipt,
+) -> Result<()> {
+    limits.validate()?;
     check()?;
-    let mut document_postings = 0u64;
-    // A document has one SQL shape for every full chunk and at most one
-    // shorter tail. Prepare the full shape once inside this transaction.
-    let mut full_statement = if offsets.len() >= limits.gram_batch_rows {
-        Some(transaction.prepare(&posting_batch_sql(limits.gram_batch_rows)?)?)
-    } else {
-        None
-    };
-    for batch in offsets.chunks(limits.gram_batch_rows) {
+    if page.is_empty() || page.len() > limits.gram_batch_rows {
+        return Err(Error::Budget("search document page rows"));
+    }
+    let transaction = db.transaction()?;
+    let mut page_postings = 0u64;
+    let mut page_chars = 0u64;
+    let mut full_statement = transaction.prepare(&posting_batch_sql(limits.gram_batch_rows)?)?;
+    for prepared in page {
         check()?;
-        let inserted = if batch.len() == limits.gram_batch_rows {
-            insert_posting_batch(
-                full_statement
-                    .as_mut()
-                    .expect("prepared full posting shape"),
-                kind,
-                row.position,
-                &doc.text,
-                batch,
-            )?
-        } else {
-            let tail_sql = posting_batch_sql(batch.len())?;
-            let mut tail_statement = transaction.prepare(&tail_sql)?;
-            insert_posting_batch(&mut tail_statement, kind, row.position, &doc.text, batch)?
-        };
-        document_postings = document_postings
-            .checked_add(inserted)
-            .ok_or(Error::Budget("search postings"))?;
-        receipt
-            .postings
-            .checked_add(document_postings)
-            .filter(|n| *n <= limits.max_postings)
-            .ok_or(Error::Budget("search postings"))?;
-        check()?;
+        let row = &prepared.row;
+        let doc = &prepared.doc;
+        transaction.execute(
+            "INSERT INTO search_documents(kind,position,id,source_graph,kind_id,predicate_id,id_lower,native_id_lower,identity_values,visible_values,document_chars,document_digest) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
+            params![kind,row.position,row.id,row.source_graph,
+                if kind == "nodes" { row.term_id.as_str() } else { "" },
+                if kind == "relations" { row.term_id.as_str() } else { "" },
+                doc.id_lower,doc.native_id_lower,doc.identity_values,doc.visible_values,
+                doc.chars as i64,doc.digest.as_bytes().as_slice()],
+        )?;
+        for batch in prepared.offsets.chunks(limits.gram_batch_rows) {
+            check()?;
+            let inserted = if batch.len() == limits.gram_batch_rows {
+                insert_staging_batch(&mut full_statement, row.position, &doc.text, batch)?
+            } else {
+                let mut tail = transaction.prepare(&posting_batch_sql(batch.len())?)?;
+                insert_staging_batch(&mut tail, row.position, &doc.text, batch)?
+            };
+            page_postings = page_postings
+                .checked_add(inserted)
+                .ok_or(Error::Budget("search postings"))?;
+            receipt
+                .postings
+                .checked_add(page_postings)
+                .filter(|value| *value <= limits.max_postings)
+                .ok_or(Error::Budget("search postings"))?;
+            check()?;
+        }
+        page_chars = page_chars
+            .checked_add(doc.chars as u64)
+            .ok_or(Error::Budget("search document characters"))?;
     }
     let next_postings = receipt
         .postings
-        .checked_add(document_postings)
-        .filter(|n| *n <= limits.max_postings)
+        .checked_add(page_postings)
+        .filter(|value| *value <= limits.max_postings)
         .ok_or(Error::Budget("search postings"))?;
-    let next_documents = if kind == "nodes" {
+    let next_documents = (if kind == "nodes" {
         receipt.node_documents
     } else {
         receipt.relation_documents
-    }
-    .checked_add(1)
+    })
+    .checked_add(page.len() as u64)
     .ok_or(Error::Budget("search document rows"))?;
     let next_chars = receipt
         .document_chars
-        .checked_add(doc.chars as u64)
+        .checked_add(page_chars)
         .ok_or(Error::Budget("search document characters"))?;
-    // A late guard refusal must happen while rollback still covers the source
-    // document row and every directly inserted posting batch.
     check()?;
     drop(full_statement);
     transaction.commit()?;
@@ -545,39 +596,108 @@ fn posting_batch_sql(rows: usize) -> Result<String> {
         return Err(Error::Budget("search gram batch rows"));
     }
     Ok(format!(
-        "INSERT OR IGNORE INTO search_grams(kind,n,gram,position) VALUES {}",
+        "INSERT OR IGNORE INTO search_ordered_grams(gram,position) VALUES {}",
         (0..rows)
-            .map(|index| format!("(?1,{GRAM_N},?{},?2)", index + 3))
+            .map(|index| format!("(?{},?1)", index + 2))
             .collect::<Vec<_>>()
             .join(",")
     ))
 }
 
-fn insert_posting_batch(
+fn insert_staging_batch(
     statement: &mut Statement<'_>,
-    kind: &str,
     position: i64,
     text: &str,
     batch: &[usize],
 ) -> Result<u64> {
-    if batch.len() > MAX_GRAM_BATCH_ROWS {
-        return Err(Error::Budget("search gram batch rows"));
-    }
-    if batch.is_empty() {
-        return Ok(0);
-    }
-    // Each call binds every parameter anew; rusqlite resets the statement on
-    // execute, and the next chunk may reuse this same prepared SQL shape.
     let grams = batch
         .iter()
         .map(|offset| gram_slice(text, *offset))
         .collect::<Vec<_>>();
-    let mut parameters: Vec<&dyn rusqlite::ToSql> = Vec::with_capacity(batch.len() + 2);
-    parameters.push(&kind);
+    let mut parameters: Vec<&dyn rusqlite::ToSql> = Vec::with_capacity(batch.len() + 1);
     parameters.push(&position);
     parameters.extend(grams.iter().map(|gram| gram as &dyn rusqlite::ToSql));
     let inserted = statement.execute(params_from_iter(parameters))?;
     u64::try_from(inserted).map_err(|_| Error::Budget("search postings"))
+}
+
+fn copy_ordered_kind(
+    db: &mut Connection,
+    check: &dyn Fn() -> Result<()>,
+    kind: &str,
+    limits: SearchBuildLimits,
+    expected: u64,
+) -> Result<()> {
+    limits.validate()?;
+    let mut copied_total = 0u64;
+    loop {
+        check()?;
+        let transaction = db.transaction()?;
+        let mut transaction_copied = 0u64;
+        let mut exhausted = false;
+        // Each statement remains at the caller's batch cap; at most the
+        // existing 1024-row static ceiling shares one durable transaction.
+        for _ in 0..(MAX_GRAM_BATCH_ROWS / limits.gram_batch_rows) {
+            check()?;
+            let mut page = Vec::new();
+            {
+                let mut statement = transaction.prepare(
+                    "SELECT gram,position FROM search_ordered_grams ORDER BY gram,position LIMIT ?1",
+                )?;
+                let mut rows = statement.query(params![limits.gram_batch_rows as i64])?;
+                while let Some(row) = rows.next()? {
+                    page.push((row.get::<_, Vec<u8>>(0)?, row.get::<_, i64>(1)?));
+                }
+            }
+            if page.is_empty() {
+                exhausted = true;
+                break;
+            }
+            check()?;
+            let (last_gram, last_position) = page.last().expect("nonempty page");
+            let inserted = transaction.execute(
+                "INSERT INTO search_grams(kind,n,gram,position)
+                 SELECT ?1,3,gram,position FROM search_ordered_grams
+                 WHERE (gram,position)<=(?2,?3)
+                 ORDER BY gram,position LIMIT ?4",
+                params![
+                    kind,
+                    last_gram,
+                    last_position,
+                    limits.gram_batch_rows as i64
+                ],
+            )?;
+            if inserted != page.len() {
+                return Err(Error::Invalid("search ordered copy coverage"));
+            }
+            check()?;
+            let deleted = transaction.execute(
+                "DELETE FROM search_ordered_grams WHERE (gram,position)<=(?1,?2)",
+                params![last_gram, last_position],
+            )?;
+            if deleted != page.len() {
+                return Err(Error::Invalid("search ordered staging coverage"));
+            }
+            transaction_copied = transaction_copied
+                .checked_add(inserted as u64)
+                .ok_or(Error::Budget("search ordered postings"))?;
+            check()?;
+        }
+        let next_copied = copied_total
+            .checked_add(transaction_copied)
+            .filter(|value| *value <= expected)
+            .ok_or(Error::Budget("search ordered postings"))?;
+        check()?;
+        transaction.commit()?;
+        copied_total = next_copied;
+        if exhausted {
+            break;
+        }
+    }
+    if copied_total != expected {
+        return Err(Error::Invalid("search ordered posting total"));
+    }
+    Ok(())
 }
 
 fn hash_field(hash: &mut Digest256Hasher, field: &[u8]) {
@@ -681,6 +801,9 @@ CREATE TABLE search_grams(
 CREATE TABLE search_gram_stats(
  kind TEXT NOT NULL,n INTEGER NOT NULL,gram BLOB NOT NULL,postings INTEGER NOT NULL,
  PRIMARY KEY(kind,n,gram)) WITHOUT ROWID;
+CREATE TEMP TABLE search_ordered_grams(
+ gram BLOB NOT NULL,position INTEGER NOT NULL,
+ PRIMARY KEY(gram,position)) WITHOUT ROWID;
 "#;
 
 #[cfg(test)]
@@ -730,7 +853,7 @@ mod tests {
     }
 
     #[test]
-    fn direct_posting_batches_dedup_and_rollback_late_failure() {
+    fn ordered_posting_pages_preserve_unicode_and_rollback_boundaries() {
         let mut db = Connection::open_in_memory().unwrap();
         db.execute_batch(SCHEMA).unwrap();
         let make_row = |position, id: &str| {
@@ -759,9 +882,8 @@ mod tests {
             work_bytes: 0,
             search_index_root_sha256: String::new(),
         };
-        let mut expected_total = 0u64;
-        for (position, id) in [(7, "n7"), (8, "n8")] {
-            let row = make_row(position, id);
+        let prepare = |position, id: &str, receipt: &mut SearchIndexReceipt| {
+            let mut row = make_row(position, id);
             let doc = document(&row, "nodes", row.payload.as_deref().unwrap(), limits()).unwrap();
             let expected = doc
                 .text
@@ -781,27 +903,49 @@ mod tests {
                     .count()
                     > limits().gram_batch_rows
             );
-            let mut batch_limits = limits();
-            if position == 8 {
-                // The second real document has two reusable full statements
-                // and one tail, while the first keeps the narrow late-batch
-                // boundary used by the rollback cases below.
-                assert!(expected.len() >= 8);
-                batch_limits.gram_batch_rows = (expected.len() - 1) / 2;
-                assert!(batch_limits.gram_batch_rows <= MAX_GRAM_BATCH_ROWS);
-                assert_eq!(expected.len() / batch_limits.gram_batch_rows, 2);
-                assert_ne!(expected.len() % batch_limits.gram_batch_rows, 0);
-            }
-            write_document(
-                &mut db,
-                &|| Ok(()),
-                &row,
-                &doc,
-                "nodes",
-                batch_limits,
-                &mut receipt,
-            )
+            let offsets =
+                prepare_gram_offsets(&doc, limits(), &mut receipt.work_bytes, &|| Ok(())).unwrap();
+            assert_eq!(offsets.len(), expected.len());
+            row.payload = None;
+            (PreparedDocument { row, doc, offsets }, expected)
+        };
+        let (first, expected_first) = prepare(7, "n7", &mut receipt);
+        let (second, expected_second) = prepare(8, "n8", &mut receipt);
+        assert!(expected_first.len() >= 8);
+        assert_eq!(expected_first.len(), expected_second.len());
+        let mut writer_limits = limits();
+        writer_limits.gram_batch_rows = (expected_first.len() - 1) / 2;
+        assert_eq!(expected_first.len() / writer_limits.gram_batch_rows, 2);
+        assert_ne!(expected_first.len() % writer_limits.gram_batch_rows, 0);
+        write_document_page(
+            &mut db,
+            &|| Ok(()),
+            &[first, second],
+            "nodes",
+            writer_limits,
+            &mut receipt,
+        )
+        .unwrap();
+        let expected_total = (expected_first.len() + expected_second.len()) as u64;
+        assert_eq!(receipt.postings, expected_total);
+        assert_eq!(receipt.node_documents, 2);
+        copy_ordered_kind(&mut db, &|| Ok(()), "nodes", writer_limits, expected_total).unwrap();
+        let expected_order = expected_first
+            .iter()
+            .map(|gram| (gram.clone(), 7i64))
+            .chain(expected_second.iter().map(|gram| (gram.clone(), 8i64)))
+            .collect::<std::collections::BTreeSet<_>>();
+        let actual_order = db
+            .prepare("SELECT gram,position FROM search_grams ORDER BY kind,n,gram,position")
+            .unwrap()
+            .query_map([], |row| {
+                Ok((row.get::<_, Vec<u8>>(0)?, row.get::<_, i64>(1)?))
+            })
+            .unwrap()
+            .collect::<std::result::Result<Vec<_>, _>>()
             .unwrap();
+        assert_eq!(actual_order, expected_order.into_iter().collect::<Vec<_>>());
+        for (position, expected) in [(7, expected_first), (8, expected_second)] {
             let actual = db
                 .prepare("SELECT gram FROM search_grams WHERE kind='nodes' AND position=?1 ORDER BY gram")
                 .unwrap()
@@ -810,11 +954,7 @@ mod tests {
                 .collect::<std::result::Result<Vec<_>, _>>()
                 .unwrap();
             assert_eq!(actual, expected.into_iter().collect::<Vec<_>>());
-            expected_total += actual.len() as u64;
         }
-        assert_eq!(receipt.postings, expected_total);
-        assert_eq!(receipt.node_documents, 2);
-        let committed_chars = receipt.document_chars;
         let repeated: i64 = db
             .query_row(
                 "SELECT COUNT(*) FROM search_grams WHERE gram=X'616161'",
@@ -823,97 +963,59 @@ mod tests {
             )
             .unwrap();
         assert_eq!(repeated, 2);
+        let committed_chars = receipt.document_chars;
 
-        // A posting cap reached after earlier bounded statements rolls back
-        // the entire new document without changing the committed receipt.
-        let capped = make_row(9, "n9");
-        let capped_doc = document(
-            &capped,
-            "nodes",
-            capped.payload.as_deref().unwrap(),
-            limits(),
-        )
-        .unwrap();
+        // A cap refusal after bounded inserts rolls back its whole document
+        // page and cannot advance the committed receipt.
+        let (capped, _) = prepare(9, "n9", &mut receipt);
         let mut tight = limits();
         tight.max_postings = receipt.postings + 3;
         assert!(matches!(
-            write_document(
-                &mut db,
-                &|| Ok(()),
-                &capped,
-                &capped_doc,
-                "nodes",
-                tight,
-                &mut receipt
-            ),
+            write_document_page(&mut db, &|| Ok(()), &[capped], "nodes", tight, &mut receipt),
             Err(Error::Budget("search postings"))
         ));
         db.execute_batch(
-            "CREATE TRIGGER refuse_late_posting BEFORE INSERT ON search_grams
+            "CREATE TEMP TRIGGER refuse_late_staging BEFORE INSERT ON search_ordered_grams
              WHEN NEW.position=10 AND NEW.gram=X'626262'
-             BEGIN SELECT RAISE(ABORT,'refuse late posting'); END;",
+             BEGIN SELECT RAISE(ABORT,'refuse late staging'); END;",
         )
         .unwrap();
-        let refused = make_row(10, "n10");
-        let refused_doc = document(
-            &refused,
-            "nodes",
-            refused.payload.as_deref().unwrap(),
-            limits(),
-        )
-        .unwrap();
-        assert!(write_document(
-            &mut db,
-            &|| Ok(()),
-            &refused,
-            &refused_doc,
-            "nodes",
-            limits(),
-            &mut receipt
-        )
-        .is_err());
-        let guarded = make_row(11, "n11");
-        let guarded_doc = document(
-            &guarded,
-            "nodes",
-            guarded.payload.as_deref().unwrap(),
-            limits(),
-        )
-        .unwrap();
+        let (retry, _) = prepare(9, "n9", &mut receipt);
+        let (refused, _) = prepare(10, "n10", &mut receipt);
+        assert!(
+            write_document_page(
+                &mut db,
+                &|| Ok(()),
+                &[retry, refused],
+                "nodes",
+                limits(),
+                &mut receipt,
+            )
+            .is_err()
+        );
+        db.execute_batch("DROP TRIGGER refuse_late_staging")
+            .unwrap();
+        let (guarded, _) = prepare(11, "n11", &mut receipt);
         let checks = std::cell::Cell::new(0);
-        let after_first_insert = guarded_doc
-            .chars
-            .saturating_sub(2)
-            .div_ceil(limits().gram_batch_rows)
-            + 6;
         assert!(matches!(
-            write_document(
+            write_document_page(
                 &mut db,
                 &|| {
                     checks.set(checks.get() + 1);
-                    if checks.get() == after_first_insert {
+                    if checks.get() == 5 {
                         Err(Error::Invalid("fixture late guard"))
                     } else {
                         Ok(())
                     }
                 },
-                &guarded,
-                &guarded_doc,
+                &[guarded],
                 "nodes",
                 limits(),
-                &mut receipt
+                &mut receipt,
             ),
             Err(Error::Invalid("fixture late guard"))
         ));
         assert!(db.is_autocommit());
-        let failed_postings: i64 = db
-            .query_row(
-                "SELECT COUNT(*) FROM search_grams WHERE position IN (9,10,11)",
-                [],
-                |r| r.get(0),
-            )
-            .unwrap();
-        assert_eq!(failed_postings, 0);
         let failed_documents: i64 = db
             .query_row(
                 "SELECT COUNT(*) FROM search_documents WHERE position IN (9,10,11)",
@@ -921,18 +1023,68 @@ mod tests {
                 |r| r.get(0),
             )
             .unwrap();
-        assert_eq!(failed_documents, 0);
-        let committed: i64 = db
-            .query_row("SELECT COUNT(*) FROM search_documents", [], |r| r.get(0))
+        let failed_staging: i64 = db
+            .query_row("SELECT COUNT(*) FROM search_ordered_grams", [], |r| {
+                r.get(0)
+            })
             .unwrap();
-        assert_eq!(committed, 2);
-        let committed_postings: i64 = db
-            .query_row("SELECT COUNT(*) FROM search_grams", [], |r| r.get(0))
-            .unwrap();
-        assert_eq!(committed_postings as u64, expected_total);
+        assert_eq!((failed_documents, failed_staging), (0, 0));
         assert_eq!(receipt.postings, expected_total);
         assert_eq!(receipt.node_documents, 2);
         assert_eq!(receipt.document_chars, committed_chars);
+
+        // The final ordered copy is page-atomic too. An earlier copied page
+        // remains, while the failing page retains its staging keys.
+        let (late, expected_late) = prepare(12, "n12", &mut receipt);
+        write_document_page(
+            &mut db,
+            &|| Ok(()),
+            &[late],
+            "nodes",
+            limits(),
+            &mut receipt,
+        )
+        .unwrap();
+        db.execute_batch(
+            "CREATE TRIGGER refuse_late_final BEFORE INSERT ON search_grams
+             WHEN NEW.position=12 AND NEW.gram=X'626262'
+             BEGIN SELECT RAISE(ABORT,'refuse late final'); END;",
+        )
+        .unwrap();
+        assert!(
+            copy_ordered_kind(
+                &mut db,
+                &|| Ok(()),
+                "nodes",
+                limits(),
+                expected_late.len() as u64,
+            )
+            .is_err()
+        );
+        assert!(db.is_autocommit());
+        let prior_postings: i64 = db
+            .query_row(
+                "SELECT COUNT(*) FROM search_grams WHERE position IN (7,8)",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(prior_postings as u64, expected_total);
+        let refused_final: i64 = db
+            .query_row(
+                "SELECT COUNT(*) FROM search_grams WHERE position=12 AND gram=X'626262'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let retained_stage: i64 = db
+            .query_row(
+                "SELECT COUNT(*) FROM search_ordered_grams WHERE position=12 AND gram=X'626262'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!((refused_final, retained_stage), (0, 1));
     }
 
     #[test]
