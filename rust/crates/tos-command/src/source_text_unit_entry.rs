@@ -1021,9 +1021,12 @@ pub fn execute_first_text_unit_from_captures(
         ("files", file_refs(prepared.files.iter())),
         ("grants_admission", JsonValue::Bool(false)),
     ]);
+    let receipt_raw = line(&receipt)?;
+    drop(receipt);
+    let receipt = cmd::parse(&receipt_raw)?;
     prepared
         .files
-        .insert("source-create-receipt.json".into(), line(&receipt)?);
+        .insert("source-create-receipt.json".into(), receipt_raw);
     if prepared
         .files
         .values()

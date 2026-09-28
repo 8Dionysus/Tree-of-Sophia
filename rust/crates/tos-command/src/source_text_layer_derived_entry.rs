@@ -1326,10 +1326,13 @@ pub fn execute_derived_text_layer_from_captures(
                 ("files", file_refs(prepared.output.files.iter())),
                 ("grants_admission", JsonValue::Bool(false)),
             ]);
+            let receipt_raw = line(&receipt)?;
+            drop(receipt);
+            let receipt = cmd::parse(&receipt_raw)?;
             prepared
                 .output
                 .files
-                .insert("source-create-receipt.json".into(), line(&receipt)?);
+                .insert("source-create-receipt.json".into(), receipt_raw);
             if prepared
                 .output
                 .files

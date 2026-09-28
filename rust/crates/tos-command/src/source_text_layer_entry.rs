@@ -1029,6 +1029,8 @@ pub fn execute_initial_text_layer_from_captures(
         ("grants_admission", JsonValue::Bool(false)),
     ]);
     let receipt_raw = line(&receipt)?;
+    drop(receipt);
+    let receipt = cmd::parse(&receipt_raw)?;
     prepared
         .output
         .files
