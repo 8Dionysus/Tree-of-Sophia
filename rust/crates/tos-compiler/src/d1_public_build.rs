@@ -132,7 +132,9 @@ impl PublicD1BuildLimits {
 /// no aggregate host disk or sorter-spill quota is inferred from them.
 pub fn portable_public_d1_limits(max_build_seconds: u64) -> Result<PublicD1BuildLimits> {
     let base = Limits::default();
-    let row = base.max_row_bytes;
+    // SearchBuildLimits::validate admits at most 8,000,000 source/rank bytes
+    // and Unicode scalars; use that same ceiling for every normalized family.
+    let row = base.max_row_bytes.min(8_000_000);
     let rows = base.max_rows;
     let work = base.max_work_bytes;
     let page_rows = 8usize;
@@ -242,6 +244,8 @@ pub fn portable_public_d1_limits(max_build_seconds: u64) -> Result<PublicD1Build
             max_work_bytes: work,
         },
     };
+    let mut stage_sqlite = base;
+    stage_sqlite.max_row_bytes = row;
     let limits = PublicD1BuildLimits {
         capture: PublicCaptureLimits {
             max_input_bytes: base.max_output_bytes,
@@ -252,10 +256,10 @@ pub fn portable_public_d1_limits(max_build_seconds: u64) -> Result<PublicD1Build
             sqlite_cache_kib: base.sqlite_cache_kib,
         },
         stage: StageLimits {
-            sqlite: base,
+            sqlite: stage_sqlite,
             max_temp_bytes: base.max_output_bytes,
             max_seek_rows: 1024,
-            max_seek_bytes: page_bytes as u64,
+            max_seek_bytes: page_bytes_u64,
         },
         native,
         scope: ScopeLimits {
