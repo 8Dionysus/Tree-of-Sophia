@@ -529,7 +529,7 @@ impl OwnerTextDerivedSelection {
             if !expected.contains(&cmd::text(reported, "maker_type")?)
                 || ["agent_ref", "method", "version"].iter().any(|key| {
                     cmd::text(reported, key)
-                        .is_err_or(|value| value.trim().is_empty() || value.len() > 2048)
+                        .map_or(true, |value| value.trim().is_empty() || value.len() > 2048)
                 })
             {
                 return Err(SourceCommandError::Invalid(
@@ -721,7 +721,7 @@ impl OwnerTextUnitSelection {
         ];
         if delegated
             .iter()
-            .any(|(name, kind)| cmd::text(&config, name).is_err_or(|id| !opaque_id(id, kind)))
+            .any(|(name, kind)| cmd::text(&config, name).map_or(true, |id| !opaque_id(id, kind)))
         {
             return Err(SourceCommandError::Invalid(
                 "native TextUnit opaque identities",
@@ -931,7 +931,7 @@ impl OwnerTextInitialLayerSelection {
         cmd::exact_keys(digests, &["work", "expression", "edition", "item"])?;
         if ["work", "expression", "edition", "item"]
             .iter()
-            .any(|kind| cmd::text(digests, kind).is_err_or(|sha| !lower_sha(sha)))
+            .any(|kind| cmd::text(digests, kind).map_or(true, |sha| !lower_sha(sha)))
         {
             return Err(SourceCommandError::Invalid(
                 "native TextLayer record digests",

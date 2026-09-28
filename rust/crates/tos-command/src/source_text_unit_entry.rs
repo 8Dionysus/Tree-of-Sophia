@@ -1044,7 +1044,6 @@ pub fn execute_first_text_unit_from_captures(
             &prepared.files,
             || prepared.verify_stage_current(deadline, cancelled),
             || prepared.verify_current(software, components, None, deadline, cancelled),
-            None,
             deadline,
             cancelled,
         )?;
@@ -1056,6 +1055,7 @@ pub fn execute_first_text_unit_from_captures(
             &prepared.files,
             || prepared.verify_stage_current(deadline, cancelled),
             || prepared.verify_current(software, components, None, deadline, cancelled),
+            None,
             deadline,
             cancelled,
         )?;

@@ -252,7 +252,7 @@ pub(crate) fn selected_identity_snapshot(
             cmd::string(&Digest256::of_bytes(&bytes).to_prefixed()),
         );
         if reference.ends_with(".jsonl") {
-            for line in bytes.split_inclusive(|byte| byte == b'\n') {
+            for line in bytes.split_inclusive(|byte| *byte == b'\n') {
                 let line = line.strip_suffix(b"\n").unwrap_or(line);
                 if line.iter().all(u8::is_ascii_whitespace) {
                     continue;

@@ -461,7 +461,7 @@ pub(crate) fn validate_material(material: &JsonValue, page: bool) -> SourceComma
             "content_sha256",
         ]
         .iter()
-        .any(|name| cmd::text(material, name).is_err_or(|value| !sha(value)))
+        .any(|name| cmd::text(material, name).map_or(true, |value| !sha(value)))
     {
         return Err(SourceCommandError::Denied("native owner OCR grant invalid"));
     }
@@ -527,7 +527,7 @@ pub(crate) fn validate_page_binding(binding: &JsonValue) -> SourceCommandResult<
             "sample_plan_sha256",
         ]
         .iter()
-        .any(|name| cmd::text(binding, name).is_err_or(|value| !sha(value)))
+        .any(|name| cmd::text(binding, name).map_or(true, |value| !sha(value)))
     {
         return Err(SourceCommandError::Invalid("native owner page OCR binding"));
     }
