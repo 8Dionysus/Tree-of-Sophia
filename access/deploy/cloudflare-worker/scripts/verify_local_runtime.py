@@ -128,13 +128,15 @@ def source_digest(path: Path, size: int | None, work: list[int], deadline: float
         if (not stat.S_ISREG(before.st_mode) or (size is not None and before.st_size != size)
                 or (max_size is not None and before.st_size > max_size)):
             raise AssertionError(f"public D1 source type or size changed: {path}")
-        work[0] += before.st_size
+        # Read at most the selected length plus one sentinel byte. Admit that
+        # whole physical read before allocating or hashing any part of it.
+        work[0] += before.st_size + 1
         if work[0] > MAX_SOURCE_PASS_BYTES:
             raise AssertionError("public D1 source verification work exceeded bound")
         digest = hashlib.sha256()
         read = 0
-        with os.fdopen(fd, "rb", closefd=False) as stream:
-            while chunk := stream.read(1024 * 1024):
+        with os.fdopen(fd, "rb", buffering=0, closefd=False) as stream:
+            while chunk := stream.read(min(1024 * 1024, before.st_size - read + 1)):
                 remaining(deadline)
                 read += len(chunk)
                 if read > before.st_size:

@@ -321,15 +321,18 @@ class ProjectionReader:
         if root_size > MAX_ROOT_BYTES:
             raise ProjectionStoreError("projection root exceeds bound")
         if self._before_read is not None:
-            self._before_read(root_size, root_size)
-        with self.path.open("rb") as stream:
-            self._root_bytes = stream.read(MAX_ROOT_BYTES + 1)
-        if len(self._root_bytes) > MAX_ROOT_BYTES:
-            raise ProjectionStoreError("projection root exceeds bound")
+            self._before_read(root_size + 1, root_size + 1)
+        with self.path.open("rb", buffering=0) as stream:
+            self._root_bytes = stream.read(root_size + 1)
+        if len(self._root_bytes) != root_size:
+            raise ProjectionStoreError("projection root size changed during selection")
         self._initialize_manifest(cache_bytes)
 
     def _initialize_manifest(self, cache_bytes):
         """Validate already bounded root bytes; also used by immutable views."""
+        # Snapshot readers initialize retained bytes directly and never select
+        # a physical root. Their ordinary part reads have no extra hook.
+        self._before_read = getattr(self, "_before_read", None)
         self.manifest = _strict_json(self._root_bytes)
         root = self.manifest
         if (not isinstance(root, dict) or set(root) != {"schema_version", "logical_schema", "header", "limits", "collections"}
@@ -404,8 +407,8 @@ class ProjectionReader:
         if path.stat().st_size != descriptor["size_bytes"]:
             raise ProjectionStoreError(f"projection part size mismatch: {path}")
         if self._before_read is not None:
-            self._before_read(descriptor["size_bytes"], descriptor["decoded_bytes"])
-        with path.open("rb") as stream:
+            self._before_read(descriptor["size_bytes"] + 1, descriptor["decoded_bytes"] + 1)
+        with path.open("rb", buffering=0) as stream:
             stored = stream.read(descriptor["size_bytes"] + 1)
         if len(stored) != descriptor["size_bytes"]:
             raise ProjectionStoreError("projection part size changed while reading")
@@ -567,11 +570,11 @@ def is_partitioned(path: Path, *, before_read: Callable[[int, int], None] | None
     if size > MAX_ROOT_BYTES:
         return False
     if before_read is not None:
-        before_read(size, size)
-    with path.open("rb") as stream:
-        raw = stream.read(MAX_ROOT_BYTES + 1)
-    if len(raw) > MAX_ROOT_BYTES:
-        return False
+        before_read(size + 1, size + 1)
+    with path.open("rb", buffering=0) as stream:
+        raw = stream.read(size + 1)
+    if len(raw) != size:
+        raise ProjectionStoreError("projection root size changed during detection")
     value = _strict_json(raw)
     return isinstance(value, dict) and value.get("schema_version") == FORMAT
 
