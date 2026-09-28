@@ -4294,15 +4294,6 @@ struct WorkGrammar {
     claim_sha256: Digest256,
     binding: CutExecutionBinding,
 }
-/// Descriptive selected grammar bytes for a proposed Work Claim. Publication
-/// still requires the independent full current-cut preparation and CMD fences.
-pub struct WorkExpressionGrammarRead {
-    pub digests: BTreeMap<String, String>,
-    pub reads: Vec<PredicateRead>,
-    pub bytes_read: u64,
-    pub execution_binding: CutExecutionBinding,
-    pub claim_sha256: Digest256,
-}
 fn work_grammar_from_cut(
     reader: &mut NativeCompoundReader<'_>,
     schemas: &mut CutWorkerSchemaExecutor,
@@ -4374,48 +4365,6 @@ fn work_grammar_from_cut(
         digests,
         claim_sha256,
         binding,
-    })
-}
-/// Inspect the same Work Claim grammar used by full byte preparation, before
-/// a complete create request exists. This cannot authorize source mutation.
-pub fn inspect_work_expression_grammar_from_cut(
-    cut: &CorpusCutReader,
-    schemas: &mut CutWorkerSchemaExecutor,
-    proposed_claim_raw: &[u8],
-    limits: ItemLimits,
-    cancelled: &AtomicBool,
-) -> Result<WorkExpressionGrammarRead, ItemRefusal> {
-    check(limits.deadline, cancelled)?;
-    if schemas.source_revision() != cut.current().revision() || proposed_claim_raw.len() > MAX_FILE
-    {
-        return Err(bad("Work grammar source/schema or Claim size"));
-    }
-    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
-    reader.temporary(std::mem::size_of::<Vec<u8>>() + proposed_claim_raw.len())?;
-    let claim = reader.decoded(proposed_claim_raw)?;
-    let mut expected = canonical(&claim)?;
-    expected.push(b'\n');
-    let expected = reader.buffer(expected)?;
-    if proposed_claim_raw != expected {
-        return Err(bad("Work proposed Claim exact canonical bytes"));
-    }
-    let decoded_state = crate::record_biblio_cut::decoded_state(&claim)?;
-    drop(claim);
-    reader.release_temporary(decoded_state);
-    let encoded_state = std::mem::size_of::<Vec<u8>>() + expected.len();
-    drop(expected);
-    reader.release_temporary(encoded_state);
-    let grammar = work_grammar_from_cut(&mut reader, schemas, proposed_claim_raw)?;
-    reader.release_temporary(std::mem::size_of::<Vec<u8>>() + proposed_claim_raw.len());
-    reader.record_work_dependencies(grammar.dependencies, &grammar.digests)?;
-    reader.release_temporary(std::mem::size_of::<BTreeMap<String, Digest256>>());
-    reader.release_raw_cache();
-    Ok(WorkExpressionGrammarRead {
-        digests: grammar.digests,
-        reads: reader.reads,
-        bytes_read: reader.bytes,
-        execution_binding: grammar.binding,
-        claim_sha256: grammar.claim_sha256,
     })
 }
 struct FinishedCompound<'a> {
@@ -4668,12 +4617,96 @@ pub fn prepare_work_expression_bytes<'a>(
     if schemas.source_revision() != cut.current().revision() || request_raw.len() > MAX_FILE {
         return Err(bad("Work source/schema revision or request size"));
     }
-    let kind = CompoundKind::WorkExpression;
+    crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
+        .map_err(|_| bad("Work recorded aware instant"))?;
+    let reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    prepare_work_expression_with_reader(
+        reader,
+        schemas,
+        scope,
+        Cow::Borrowed(request_raw),
+        owned_before,
+        recorded_at,
+        None,
+        authorize,
+    )
+}
+
+/// Produce a descriptive Work preview from one selected Claim grammar pass.
+/// The callback builds its request and authorization from those exact digests;
+/// the later create operation independently rereads the current cut.
+pub fn prepare_work_expression_preview_bytes<'a>(
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    proposed_claim_raw: &[u8],
+    owned_before: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+    build_request_and_authorization: impl FnOnce(
+        &BTreeMap<String, String>,
+    ) -> Result<(Vec<u8>, Value), ItemRefusal>,
+) -> Result<WorkExpressionCore<'a>, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    if schemas.source_revision() != cut.current().revision() || proposed_claim_raw.len() > MAX_FILE
+    {
+        return Err(bad("Work grammar source/schema or Claim size"));
+    }
     crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
         .map_err(|_| bad("Work recorded aware instant"))?;
     let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    // The caller's proposed Claim stays live during the callback and byte
+    // recipe, so its state shares the same operation envelope as the grammar.
+    reader.temporary(std::mem::size_of::<Vec<u8>>() + proposed_claim_raw.len())?;
+    let claim = reader.decoded(proposed_claim_raw)?;
+    let mut expected = canonical(&claim)?;
+    expected.push(b'\n');
+    let expected = reader.buffer(expected)?;
+    if proposed_claim_raw != expected {
+        return Err(bad("Work proposed Claim exact canonical bytes"));
+    }
+    let decoded_state = crate::record_biblio_cut::decoded_state(&claim)?;
+    drop(claim);
+    reader.release_temporary(decoded_state);
+    let encoded_state = std::mem::size_of::<Vec<u8>>() + expected.len();
+    drop(expected);
+    reader.release_temporary(encoded_state);
+    let grammar = work_grammar_from_cut(&mut reader, schemas, proposed_claim_raw)?;
+    if grammar.binding != schemas.execution_binding() {
+        return Err(bad("Work preview schema binding changed"));
+    }
+    let (request_raw, authority) = build_request_and_authorization(&grammar.digests)?;
+    prepare_work_expression_with_reader(
+        reader,
+        schemas,
+        scope,
+        Cow::Owned(request_raw),
+        owned_before,
+        recorded_at,
+        Some((proposed_claim_raw, grammar)),
+        |_| Ok(authority),
+    )
+}
+
+fn prepare_work_expression_with_reader<'a>(
+    mut reader: NativeCompoundReader<'a>,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    request_raw: Cow<'_, [u8]>,
+    owned_before: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+    prechecked: Option<(&[u8], WorkGrammar)>,
+    authorize: impl FnOnce(&BTreeMap<String, String>) -> Result<Value, ItemRefusal>,
+) -> Result<WorkExpressionCore<'a>, ItemRefusal> {
+    check(reader.limits.deadline, reader.cancelled)?;
+    if schemas.source_revision() != reader.cut.current().revision() || request_raw.len() > MAX_FILE
+    {
+        return Err(bad("Work source/schema revision or request size"));
+    }
+    let kind = CompoundKind::WorkExpression;
     reader.temporary(std::mem::size_of::<Vec<u8>>() + request_raw.len())?;
-    let request_raw = request_raw.to_vec();
+    let request_raw = request_raw.into_owned();
     let request = reader.decoded(&request_raw)?;
     let observation = request_valid_with(&request, kind, &mut |value| {
         reader.canonical_observation(value)
@@ -4697,7 +4730,17 @@ pub fn prepare_work_expression_bytes<'a>(
     let ordered_state = crate::record_biblio_cut::ordered_state(&ordered_request)?;
     drop(ordered_request);
     reader.release_temporary(ordered_state);
-    let grammar = work_grammar_from_cut(&mut reader, schemas, &claim_raw)?;
+    let grammar = if let Some((proposed_claim_raw, grammar)) = prechecked {
+        if claim_raw.as_slice() != proposed_claim_raw
+            || grammar.claim_sha256 != Digest256::of_bytes(&claim_raw)
+            || grammar.binding != schemas.execution_binding()
+        {
+            return Err(bad("Work preview request Claim/worker changed"));
+        }
+        grammar
+    } else {
+        work_grammar_from_cut(&mut reader, schemas, &claim_raw)?
+    };
     let claim_len = claim_raw.len();
     drop(claim_raw);
     reader.release_temporary(std::mem::size_of::<Vec<u8>>() + claim_len);
