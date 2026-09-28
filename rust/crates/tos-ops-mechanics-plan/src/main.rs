@@ -1,4 +1,5 @@
 use std::env;
+use std::io::Write;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::time::Duration;
@@ -106,20 +107,26 @@ fn main() {
                 );
                 Ok(0)
             }),
-        Action::RelationPackValidate => tos_ops_mechanics_plan::relation_pack::validate(&root)
-            .map(|issues| {
-                if issues.is_empty() {
+        Action::RelationPackValidate => {
+            let mut diagnostics = std::io::stderr().lock();
+            let mut first_issue = true;
+            tos_ops_mechanics_plan::relation_pack::validate(&root, |location, message| {
+                if first_issue {
+                    writeln!(diagnostics, "Tree relation-pack validation failed.")?;
+                    first_issue = false;
+                }
+                writeln!(diagnostics, "- {location}: {message}")
+            })
+            .map(|valid| {
+                if valid {
                     println!("[ok] validated route-local canonical relation pack");
                     println!("[ok] validated canonical relation predicates and endpoint classes against registries");
                     0
                 } else {
-                    eprintln!("Tree relation-pack validation failed.");
-                    for (location, message) in issues {
-                        eprintln!("- {location}: {message}");
-                    }
                     1
                 }
-            }),
+            })
+        }
         Action::Plan | Action::Execute => tos_ops_mechanics_plan::discover(&root, &python)
             .and_then(|plan| {
                 if matches!(action, Action::Plan) {
