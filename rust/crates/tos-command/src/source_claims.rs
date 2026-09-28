@@ -799,6 +799,7 @@ pub(crate) fn revision(files: &BTreeMap<String, Vec<u8>>) -> SourceCommandResult
 }
 fn revised_package_revision(
     files: &BTreeMap<&str, &[u8]>,
+    overlapping_state: usize,
     whole_call: Option<&Rc<RefCell<ClaimCallBudget>>>,
 ) -> SourceCommandResult<JsonValue> {
     // The same refs_view recipe used by revision() is built from borrowed
@@ -818,9 +819,13 @@ fn revised_package_revision(
             ))
     })?;
     if let Some(budget) = whole_call {
-        budget.borrow().check_live(refs_state.checked_mul(2).ok_or(
-            SourceCommandError::Unsupported("Claim revised package digest state overflow"),
-        )?)?;
+        let peak = refs_state
+            .checked_mul(2)
+            .and_then(|state| state.checked_add(overlapping_state))
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim revised package digest state overflow",
+            ))?;
+        budget.borrow().check_live(peak)?;
     }
     let digest = record_digest(&refs_view(files.iter().map(|(name, raw)| (*name, *raw))))?;
     if let Some(budget) = whole_call {
@@ -3215,10 +3220,35 @@ fn run_claim_command_inner(
             ));
         }
         set(&mut response, "source", metadata_subject(&revised)?)?;
+        let overlapping_state = output
+            .iter()
+            .try_fold(retained_value_bytes(&response)?, |state, change| {
+                state
+                    .checked_add(change.path.as_str().len())
+                    .and_then(|state| state.checked_add(change.after.as_ref().map_or(0, Vec::len)))
+                    .and_then(|state| state.checked_add(std::mem::size_of::<SourceChange>()))
+                    .ok_or(SourceCommandError::Unsupported(
+                        "Claim revised result overlap overflow",
+                    ))
+            })?
+            .checked_add(
+                successor
+                    .len()
+                    .checked_mul(std::mem::size_of::<(&str, &[u8])>())
+                    .ok_or(SourceCommandError::Unsupported(
+                        "Claim revised result overlap overflow",
+                    ))?,
+            )
+            .and_then(|state| {
+                state.checked_add(replaced.len().checked_mul(std::mem::size_of::<&str>())?)
+            })
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim revised result overlap overflow",
+            ))?;
         set(
             &mut response,
             "revision",
-            revised_package_revision(&successor, whole_call.as_ref())?,
+            revised_package_revision(&successor, overlapping_state, whole_call.as_ref())?,
         )?;
         set(&mut response, "receipt", receipt)?;
         account_retained_plan(&mut grounding, &response, &output)?;
