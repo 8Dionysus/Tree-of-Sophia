@@ -945,11 +945,10 @@ fn checked_current_source(
     Ok(raw)
 }
 fn catalog_lines(raw: &[u8]) -> impl Iterator<Item = &[u8]> {
-    // Catalog source line numbers are physical JSONL lines. A blank interior
-    // line is invalid; only the empty segment after a terminal LF is omitted.
-    raw.strip_suffix(b"\n")
-        .unwrap_or(raw)
-        .split(|b| *b == b'\n')
+    // Empty input has no physical line. A real blank line remains visible to
+    // the caller, while a terminal LF does not create a further line.
+    raw.split_inclusive(|b| *b == b'\n')
+        .map(|line| line.strip_suffix(b"\n").unwrap_or(line))
 }
 fn known_catalog_kind(kind: &str, basename: &str) -> bool {
     let expected = match kind {
@@ -2433,11 +2432,7 @@ pub fn replay_isolated_work_expression_from_captures(
         .map_err(|_| SourceCommandError::Unsupported("current Work Claim custody incomplete"))?
         .raw;
     let mut current_claim = None;
-    for line in claims_raw
-        .strip_suffix(b"\n")
-        .unwrap_or(claims_raw.as_slice())
-        .split(|byte| *byte == b'\n')
-    {
+    for line in catalog_lines(&claims_raw) {
         active(limits.deadline, cancelled)?;
         if crate::source_claims::python_bytes_blank(line) {
             continue;
