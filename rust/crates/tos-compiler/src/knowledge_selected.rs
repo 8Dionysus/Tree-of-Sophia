@@ -2,7 +2,10 @@
 //! Source admission, immutable inode custody and current disclosure rights are
 //! independent owner obligations. No model path is reopened after admission.
 
-use crate::{Error, Result, knowledge_stage, safe_open, stream_digest};
+use crate::{
+    Error, MAX_POSTING_DELTA_BYTES, MAX_POSTINGS_PER_BLOCK, Result, decode_posting_block,
+    knowledge_stage, safe_open, stream_digest,
+};
 use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
 use std::{
     fs::File,
@@ -1430,8 +1433,8 @@ const SELECTED_TABLES: [(&str, &str); 13] = [
         "92de863c3d48671f36580e57f70252d4c7048f1bc4ae360cf302075a643a14db",
     ),
     (
-        "search_grams",
-        "3d485fccd8f105156592462f47999c8f3d4780266bc359798a3db9e27323c646",
+        "search_posting_blocks",
+        "56dc93c046acfec0667d5ee37ea86320d69609fcc8b138243dfd88a50aa9e6ad",
     ),
     (
         "source_scope",
@@ -1582,12 +1585,15 @@ pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
             ][..],
         ),
         (
-            "search_grams",
+            "search_posting_blocks",
             &[
                 "kind:TEXT:1",
                 "n:INTEGER:2",
                 "gram:BLOB:3",
-                "position:INTEGER:4",
+                "last_position:INTEGER:4",
+                "first_position:INTEGER:0",
+                "postings:INTEGER:0",
+                "deltas:BLOB:0",
             ][..],
         ),
         (
@@ -2001,7 +2007,7 @@ fn verify_search(
     work: &mut u64,
 ) -> Result<()> {
     let mut root = Digest256Hasher::new();
-    hash_bytes(&mut root, b"tos-knowledge-search-index-v1");
+    hash_bytes(&mut root, b"tos-knowledge-search-posting-blocks-v1");
     hash_bytes(&mut root, &[0]);
     let mut documents = [0u64; 2];
     let mut doc_statement = db.prepare(
@@ -2134,11 +2140,18 @@ fn verify_search(
     }
     hash_bytes(&mut root, &[1]);
     let mut postings = 0u64;
+    let mut previous_block: Option<(String, Vec<u8>, u64, u16)> = None;
     let mut gram_statement = db.prepare(
-        "SELECT CASE WHEN typeof(kind)='text' AND length(CAST(kind AS BLOB))<=16 THEN kind ELSE NULL END,n,CASE WHEN typeof(gram)='blob' AND length(gram)<=12 THEN gram ELSE NULL END,position
-         FROM search_grams ORDER BY kind,n,gram,position"
+        "SELECT CASE WHEN typeof(kind)='text' AND length(CAST(kind AS BLOB))<=16 THEN kind ELSE NULL END,
+         CASE WHEN typeof(n)='integer' THEN n ELSE NULL END,
+         CASE WHEN typeof(gram)='blob' AND length(gram)<=12 THEN gram ELSE NULL END,
+         CASE WHEN typeof(last_position)='integer' THEN last_position ELSE NULL END,
+         CASE WHEN typeof(first_position)='integer' THEN first_position ELSE NULL END,
+         CASE WHEN typeof(postings)='integer' THEN postings ELSE NULL END,
+         CASE WHEN typeof(deltas)='blob' AND length(deltas)<=?1 THEN deltas ELSE NULL END
+         FROM search_posting_blocks ORDER BY kind,n,gram,last_position"
     )?;
-    let mut gram_rows = gram_statement.query([])?;
+    let mut gram_rows = gram_statement.query([MAX_POSTING_DELTA_BYTES as i64])?;
     while let Some(row) = gram_rows.next()? {
         let kind: String = row
             .get::<_, Option<String>>(0)?
@@ -2148,20 +2161,49 @@ fn verify_search(
             "relations" => 1,
             _ => return Err(Error::Invalid("knowledge gram kind")),
         };
-        let n: i64 = row.get(1)?;
+        let n: i64 = row
+            .get::<_, Option<i64>>(1)?
+            .ok_or(Error::Invalid("knowledge gram n type"))?;
         let gram: Option<Vec<u8>> = row.get(2)?;
         let gram = gram.ok_or(Error::Budget("knowledge gram bytes"))?;
-        let position: i64 = row.get(3)?;
+        let last: i64 = row
+            .get::<_, Option<i64>>(3)?
+            .ok_or(Error::Invalid("knowledge block last type"))?;
+        let first: i64 = row
+            .get::<_, Option<i64>>(4)?
+            .ok_or(Error::Invalid("knowledge block first type"))?;
+        let count: i64 = row
+            .get::<_, Option<i64>>(5)?
+            .ok_or(Error::Invalid("knowledge block count type"))?;
+        let deltas: Vec<u8> = row
+            .get::<_, Option<Vec<u8>>>(6)?
+            .ok_or(Error::Invalid("knowledge block deltas type/length"))?;
         if n != 3
-            || position < 0
-            || position as u64 >= documents[k]
+            || last < 0
+            || first < 0
+            || count <= 0
+            || count > MAX_POSTINGS_PER_BLOCK as i64
             || std::str::from_utf8(&gram).ok().map(|s| s.chars().count()) != Some(3)
         {
-            return Err(Error::Invalid("knowledge gram shape/position"));
+            return Err(Error::Invalid("knowledge gram block shape"));
         }
+        let positions = decode_posting_block(first as u64, last as u64, count as u16, &deltas)?;
+        charge(work, positions.len() * 8, limits.max_work_bytes)?;
+        if positions.iter().any(|position| *position >= documents[k]) {
+            return Err(Error::Invalid("knowledge gram block orphan"));
+        }
+        if let Some((prior_kind, prior_gram, prior_last, prior_count)) = &previous_block {
+            if prior_kind == &kind
+                && prior_gram == &gram
+                && (*prior_count as usize != MAX_POSTINGS_PER_BLOCK || first as u64 <= *prior_last)
+            {
+                return Err(Error::Invalid("knowledge gram block partition"));
+            }
+        }
+        previous_block = Some((kind, gram, last as u64, count as u16));
         hash_sql_row(&mut root, row, work, limits.max_work_bytes)?;
         postings = postings
-            .checked_add(1)
+            .checked_add(count as u64)
             .ok_or(Error::Budget("knowledge postings"))?;
         if postings > limits.max_rows {
             return Err(Error::Budget("knowledge postings"));
@@ -2169,7 +2211,7 @@ fn verify_search(
     }
     hash_bytes(&mut root, &[2]);
     let mut aggregate = db.prepare(
-        "SELECT CASE WHEN typeof(kind)='text' AND length(CAST(kind AS BLOB))<=16 THEN kind ELSE NULL END,n,CASE WHEN typeof(gram)='blob' AND length(gram)<=12 THEN gram ELSE NULL END,COUNT(*) FROM search_grams GROUP BY kind,n,gram ORDER BY kind,n,gram",
+        "SELECT CASE WHEN typeof(kind)='text' AND length(CAST(kind AS BLOB))<=16 THEN kind ELSE NULL END,n,CASE WHEN typeof(gram)='blob' AND length(gram)<=12 THEN gram ELSE NULL END,SUM(postings) FROM search_posting_blocks GROUP BY kind,n,gram ORDER BY kind,n,gram",
     )?;
     let mut grouped_rows = aggregate.query([])?;
     let mut stat_statement = db.prepare(

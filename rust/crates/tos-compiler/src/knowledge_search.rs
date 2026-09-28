@@ -10,6 +10,7 @@
 
 use crate::{
     Error, Result,
+    knowledge_posting_codec::{MAX_POSTINGS_PER_BLOCK, decode_posting_block, encode_posting_block},
     knowledge_stage::{KnowledgeStage, WritePhase},
 };
 use rusqlite::{Connection, OptionalExtension, Statement, params, params_from_iter};
@@ -266,12 +267,13 @@ fn build_inner(
     // spill quota. A cap failure poisons and removes the private candidate.
     stage.with_connection(WritePhase::Search, |db| {
         retire_search_staging(db)?;
-        db.execute("INSERT INTO search_gram_stats(kind,n,gram,postings) SELECT kind,n,gram,COUNT(*) FROM search_grams GROUP BY kind,n,gram", [])?;
+        db.execute("INSERT INTO search_gram_stats(kind,n,gram,postings) SELECT kind,n,gram,SUM(postings) FROM search_posting_blocks GROUP BY kind,n,gram", [])?;
         db.execute("CREATE INDEX search_document_filter ON search_documents(kind,source_graph,kind_id,predicate_id,position)", [])?;
         Ok(())
     })?;
-    let (postings, distinct, root) =
-        stage.with_connection(WritePhase::Search, |db| verify_and_root(db, &receipt))?;
+    let (postings, distinct, root) = stage.with_connection(WritePhase::Search, |db| {
+        verify_and_root(db, &mut receipt, limits)
+    })?;
     if postings != receipt.postings {
         return Err(Error::Invalid("search posting coverage"));
     }
@@ -638,21 +640,34 @@ fn copy_ordered_kind(
 ) -> Result<()> {
     limits.validate()?;
     let mut copied_total = 0u64;
+    let mut after: Option<(Vec<u8>, i64)> = None;
+    let mut pending_gram = Vec::new();
+    let mut pending_positions = Vec::new();
+    pending_positions
+        .try_reserve_exact(MAX_POSTINGS_PER_BLOCK)
+        .map_err(|_| Error::Budget("search posting block buffer"))?;
     loop {
         check()?;
         let transaction = db.transaction()?;
         let mut transaction_copied = 0u64;
         let mut exhausted = false;
-        // Each statement remains at the caller's batch cap; at most the
-        // existing 1024-row static ceiling shares one durable transaction.
+        // Each seek remains at the caller's batch cap. A transaction reads at
+        // most the existing 1024-row ceiling; only one unfinished block can
+        // cross that private transaction boundary.
         for _ in 0..(MAX_GRAM_BATCH_ROWS / limits.gram_batch_rows) {
             check()?;
             let mut page = Vec::new();
             {
-                let mut statement = transaction.prepare(
-                    "SELECT gram,position FROM search_ordered_grams ORDER BY gram,position LIMIT ?1",
-                )?;
-                let mut rows = statement.query(params![limits.gram_batch_rows as i64])?;
+                let mut statement = transaction.prepare(if after.is_some() {
+                    "SELECT gram,position FROM search_ordered_grams WHERE (gram,position)>(?1,?2) ORDER BY gram,position LIMIT ?3"
+                } else {
+                    "SELECT gram,position FROM search_ordered_grams ORDER BY gram,position LIMIT ?1"
+                })?;
+                let mut rows = if let Some((gram, position)) = &after {
+                    statement.query(params![gram, position, limits.gram_batch_rows as i64])?
+                } else {
+                    statement.query(params![limits.gram_batch_rows as i64])?
+                };
                 while let Some(row) = rows.next()? {
                     page.push((row.get::<_, Vec<u8>>(0)?, row.get::<_, i64>(1)?));
                 }
@@ -661,35 +676,60 @@ fn copy_ordered_kind(
                 exhausted = true;
                 break;
             }
-            check()?;
-            let (last_gram, last_position) = page.last().expect("nonempty page");
-            let inserted = transaction.execute(
-                "INSERT INTO search_grams(kind,n,gram,position)
-                 SELECT ?1,3,gram,position FROM search_ordered_grams
-                 WHERE (gram,position)<=(?2,?3)
-                 ORDER BY gram,position LIMIT ?4",
-                params![
-                    kind,
-                    last_gram,
-                    last_position,
-                    limits.gram_batch_rows as i64
-                ],
-            )?;
-            if inserted != page.len() {
-                return Err(Error::Invalid("search ordered copy coverage"));
+            let short_page = page.len() < limits.gram_batch_rows;
+            for (gram, position) in page {
+                if position < 0 {
+                    return Err(Error::Invalid("search staged posting position"));
+                }
+                if !pending_positions.is_empty() && gram != pending_gram {
+                    transaction_copied = transaction_copied
+                        .checked_add(write_posting_block(
+                            &transaction,
+                            kind,
+                            &pending_gram,
+                            &pending_positions,
+                            check,
+                        )?)
+                        .ok_or(Error::Budget("search ordered postings"))?;
+                    pending_positions.clear();
+                }
+                if pending_positions.is_empty() {
+                    pending_gram = gram.clone();
+                } else if position as u64 <= *pending_positions.last().expect("nonempty block") {
+                    return Err(Error::Invalid("search staged posting order"));
+                }
+                pending_positions.push(position as u64);
+                after = Some((gram, position));
+                if pending_positions.len() == MAX_POSTINGS_PER_BLOCK {
+                    transaction_copied = transaction_copied
+                        .checked_add(write_posting_block(
+                            &transaction,
+                            kind,
+                            &pending_gram,
+                            &pending_positions,
+                            check,
+                        )?)
+                        .ok_or(Error::Budget("search ordered postings"))?;
+                    pending_positions.clear();
+                }
             }
             check()?;
-            let deleted = transaction.execute(
-                "DELETE FROM search_ordered_grams WHERE (gram,position)<=(?1,?2)",
-                params![last_gram, last_position],
-            )?;
-            if deleted != page.len() {
-                return Err(Error::Invalid("search ordered staging coverage"));
+            if short_page {
+                exhausted = true;
+                break;
             }
+        }
+        if exhausted && !pending_positions.is_empty() {
             transaction_copied = transaction_copied
-                .checked_add(inserted as u64)
+                .checked_add(write_posting_block(
+                    &transaction,
+                    kind,
+                    &pending_gram,
+                    &pending_positions,
+                    check,
+                )?)
                 .ok_or(Error::Budget("search ordered postings"))?;
-            check()?;
+            pending_positions.clear();
         }
         let next_copied = copied_total
             .checked_add(transaction_copied)
@@ -708,19 +748,52 @@ fn copy_ordered_kind(
     Ok(())
 }
 
+fn write_posting_block(
+    transaction: &rusqlite::Transaction<'_>,
+    kind: &str,
+    gram: &[u8],
+    positions: &[u64],
+    check: &dyn Fn() -> Result<()>,
+) -> Result<u64> {
+    check()?;
+    let (first, last, count, deltas) = encode_posting_block(positions)?;
+    let inserted = transaction.execute(
+        "INSERT INTO search_posting_blocks(kind,n,gram,last_position,first_position,postings,deltas) VALUES (?1,3,?2,?3,?4,?5,?6)",
+        params![kind, gram, last as i64, first as i64, i64::from(count), deltas],
+    )?;
+    if inserted != 1 {
+        return Err(Error::Invalid("search posting block insert"));
+    }
+    let deleted = transaction.execute(
+        "DELETE FROM search_ordered_grams WHERE gram=?1 AND position<=?2",
+        params![gram, last as i64],
+    )?;
+    if deleted != positions.len() {
+        return Err(Error::Invalid("search posting block staging coverage"));
+    }
+    check()?;
+    Ok(u64::from(count))
+}
+
 fn hash_field(hash: &mut Digest256Hasher, field: &[u8]) {
     hash.update(&(field.len() as u64).to_be_bytes());
     hash.update(field);
 }
 
-fn verify_and_root(db: &Connection, expected: &SearchIndexReceipt) -> Result<(u64, u64, String)> {
+fn verify_and_root(
+    db: &Connection,
+    expected: &mut SearchIndexReceipt,
+    limits: SearchBuildLimits,
+) -> Result<(u64, u64, String)> {
     let mut hash = Digest256Hasher::new();
-    hash_field(&mut hash, b"tos-knowledge-search-index-v1");
+    hash_field(&mut hash, b"tos-knowledge-search-posting-blocks-v1");
     let mut counts = [0u64; 3];
     let mut document_positions = [0u64; 2];
+    let mut logical_postings = 0u64;
+    let mut previous_block: Option<(String, Vec<u8>, u64, u16)> = None;
     for (table_index, sql) in [
         "SELECT kind,position,id,source_graph,kind_id,predicate_id,id_lower,native_id_lower,identity_values,visible_values,document_chars,document_digest FROM search_documents ORDER BY kind,position",
-        "SELECT kind,n,gram,position FROM search_grams ORDER BY kind,n,gram,position",
+        "SELECT kind,n,gram,last_position,first_position,postings,deltas FROM search_posting_blocks ORDER BY kind,n,gram,last_position",
         "SELECT kind,n,gram,postings FROM search_gram_stats ORDER BY kind,n,gram",
     ].iter().enumerate() {
         hash_field(&mut hash, &[table_index as u8]);
@@ -754,9 +827,35 @@ fn verify_and_root(db: &Connection, expected: &SearchIndexReceipt) -> Result<(u6
                 if std::str::from_utf8(&gram).ok().map(|s| s.chars().count()) != Some(GRAM_N as usize) {
                     return Err(Error::Invalid("search root gram code points"));
                 }
-                let value: i64 = row.get(3)?;
-                if (table_index == 1 && value < 0) || (table_index == 2 && value <= 0) {
-                    return Err(Error::Invalid("search root posting field"));
+                if table_index == 1 {
+                    let last: i64 = row.get(3)?;
+                    let first: i64 = row.get(4)?;
+                    let count: i64 = row.get(5)?;
+                    let deltas: Vec<u8> = row.get(6)?;
+                    if first < 0 || last < 0 || count <= 0 || count > MAX_POSTINGS_PER_BLOCK as i64 {
+                        return Err(Error::Invalid("search root block shape"));
+                    }
+                    let positions = decode_posting_block(first as u64, last as u64, count as u16, &deltas)?;
+                    charge(&mut expected.work_bytes, deltas.len(), limits)?;
+                    charge(&mut expected.work_bytes, positions.len() * 8, limits)?;
+                    charge(&mut expected.work_bytes, gram.len() + 24, limits)?;
+                    if positions.iter().any(|position| *position >= document_positions[kind_index]) {
+                        return Err(Error::Invalid("search root orphan posting"));
+                    }
+                    if let Some((prior_kind, prior_gram, prior_last, prior_count)) = &previous_block {
+                        if prior_kind == &kind && prior_gram == &gram {
+                            if *prior_count as usize != MAX_POSTINGS_PER_BLOCK || first as u64 <= *prior_last {
+                                return Err(Error::Invalid("search root block partition"));
+                            }
+                        }
+                    }
+                    previous_block = Some((kind.clone(), gram, last as u64, count as u16));
+                    logical_postings = logical_postings
+                        .checked_add(count as u64)
+                        .ok_or(Error::Budget("search root postings"))?;
+                } else {
+                    let value: i64 = row.get(3)?;
+                    if value <= 0 { return Err(Error::Invalid("search root stat count")); }
                 }
             }
             for col in 0..row.as_ref().column_count() {
@@ -774,25 +873,31 @@ fn verify_and_root(db: &Connection, expected: &SearchIndexReceipt) -> Result<(u6
                 .node_documents
                 .checked_add(expected.relation_documents)
                 .ok_or(Error::Budget("search documents"))?
-        || counts[1] != expected.postings
+        || logical_postings != expected.postings
     {
         return Err(Error::Invalid("search root table coverage"));
     }
-    let sum: Option<i64> =
-        db.query_row("SELECT SUM(postings) FROM search_gram_stats", [], |r| {
-            r.get(0)
-        })?;
-    if sum.unwrap_or(0) < 0 || sum.unwrap_or(0) as u64 != counts[1] {
-        return Err(Error::Invalid("search gram stats coverage"));
+    let mut grouped = db.prepare("SELECT kind,n,gram,SUM(postings) FROM search_posting_blocks GROUP BY kind,n,gram ORDER BY kind,n,gram")?;
+    let mut actual = grouped.query([])?;
+    let mut stats =
+        db.prepare("SELECT kind,n,gram,postings FROM search_gram_stats ORDER BY kind,n,gram")?;
+    let mut declared = stats.query([])?;
+    while let Some(row) = declared.next()? {
+        let group = actual
+            .next()?
+            .ok_or(Error::Invalid("search gram stats extra"))?;
+        let left: (String, i64, Vec<u8>, i64) =
+            (row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?);
+        let right: (String, i64, Vec<u8>, i64) =
+            (group.get(0)?, group.get(1)?, group.get(2)?, group.get(3)?);
+        if left != right {
+            return Err(Error::Invalid("search gram stats coverage"));
+        }
     }
-    let orphans: i64 = db.query_row(
-        "SELECT COUNT(*) FROM search_grams g LEFT JOIN search_documents d ON d.kind=g.kind AND d.position=g.position WHERE d.position IS NULL",
-        [], |r| r.get(0),
-    )?;
-    if orphans != 0 {
-        return Err(Error::Invalid("search orphan posting"));
+    if actual.next()?.is_some() {
+        return Err(Error::Invalid("search gram stats absent"));
     }
-    Ok((counts[1], counts[2], hash.finalize().to_hex()))
+    Ok((logical_postings, counts[2], hash.finalize().to_hex()))
 }
 
 const SCHEMA: &str = r#"
@@ -803,9 +908,11 @@ CREATE TABLE search_documents(
  identity_values TEXT NOT NULL,visible_values TEXT NOT NULL,
  document_chars INTEGER NOT NULL,document_digest BLOB NOT NULL,
  PRIMARY KEY(kind,position)) WITHOUT ROWID;
-CREATE TABLE search_grams(
- kind TEXT NOT NULL,n INTEGER NOT NULL,gram BLOB NOT NULL,position INTEGER NOT NULL,
- PRIMARY KEY(kind,n,gram,position)) WITHOUT ROWID;
+CREATE TABLE search_posting_blocks(
+ kind TEXT NOT NULL,n INTEGER NOT NULL,gram BLOB NOT NULL,
+ last_position INTEGER NOT NULL,first_position INTEGER NOT NULL,
+ postings INTEGER NOT NULL,deltas BLOB NOT NULL,
+ PRIMARY KEY(kind,n,gram,last_position)) WITHOUT ROWID;
 CREATE TABLE search_gram_stats(
  kind TEXT NOT NULL,n INTEGER NOT NULL,gram BLOB NOT NULL,postings INTEGER NOT NULL,
  PRIMARY KEY(kind,n,gram)) WITHOUT ROWID;
@@ -863,6 +970,24 @@ mod tests {
 
     #[test]
     fn ordered_posting_pages_preserve_unicode_and_rollback_boundaries() {
+        let read_postings = |db: &Connection| {
+            let mut statement = db.prepare("SELECT gram,first_position,last_position,postings,deltas FROM search_posting_blocks ORDER BY kind,n,gram,last_position").unwrap();
+            let mut rows = statement.query([]).unwrap();
+            let mut postings = Vec::new();
+            while let Some(row) = rows.next().unwrap() {
+                let gram: Vec<u8> = row.get(0).unwrap();
+                let first: i64 = row.get(1).unwrap();
+                let last: i64 = row.get(2).unwrap();
+                let count: i64 = row.get(3).unwrap();
+                let deltas: Vec<u8> = row.get(4).unwrap();
+                for position in
+                    decode_posting_block(first as u64, last as u64, count as u16, &deltas).unwrap()
+                {
+                    postings.push((gram.clone(), position as i64));
+                }
+            }
+            postings
+        };
         let tick = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -965,33 +1090,20 @@ mod tests {
             .map(|gram| (gram.clone(), 7i64))
             .chain(expected_second.iter().map(|gram| (gram.clone(), 8i64)))
             .collect::<std::collections::BTreeSet<_>>();
-        let actual_order = db
-            .prepare("SELECT gram,position FROM search_grams ORDER BY kind,n,gram,position")
-            .unwrap()
-            .query_map([], |row| {
-                Ok((row.get::<_, Vec<u8>>(0)?, row.get::<_, i64>(1)?))
-            })
-            .unwrap()
-            .collect::<std::result::Result<Vec<_>, _>>()
-            .unwrap();
+        let actual_order = read_postings(&db);
         assert_eq!(actual_order, expected_order.into_iter().collect::<Vec<_>>());
         for (position, expected) in [(7, expected_first), (8, expected_second)] {
-            let actual = db
-                .prepare("SELECT gram FROM search_grams WHERE kind='nodes' AND position=?1 ORDER BY gram")
-                .unwrap()
-                .query_map([position], |r| r.get::<_, Vec<u8>>(0))
-                .unwrap()
-                .collect::<std::result::Result<Vec<_>, _>>()
-                .unwrap();
+            let actual = actual_order
+                .iter()
+                .filter(|(_, p)| *p == position)
+                .map(|(gram, _)| gram.clone())
+                .collect::<Vec<_>>();
             assert_eq!(actual, expected.into_iter().collect::<Vec<_>>());
         }
-        let repeated: i64 = db
-            .query_row(
-                "SELECT COUNT(*) FROM search_grams WHERE gram=X'616161'",
-                [],
-                |r| r.get(0),
-            )
-            .unwrap();
+        let repeated = actual_order
+            .iter()
+            .filter(|(gram, _)| gram == b"aaa")
+            .count();
         assert_eq!(repeated, 2);
         let committed_chars = receipt.document_chars;
 
@@ -1081,8 +1193,8 @@ mod tests {
         )
         .unwrap();
         db.execute_batch(
-            "CREATE TRIGGER refuse_late_final BEFORE INSERT ON search_grams
-             WHEN NEW.position=12 AND NEW.gram=X'626262'
+            "CREATE TRIGGER refuse_late_final BEFORE INSERT ON search_posting_blocks
+             WHEN NEW.first_position=12 AND NEW.gram=X'626262'
              BEGIN SELECT RAISE(ABORT,'refuse late final'); END;",
         )
         .unwrap();
@@ -1097,21 +1209,15 @@ mod tests {
             .is_err()
         );
         assert!(db.is_autocommit());
-        let prior_postings: i64 = db
-            .query_row(
-                "SELECT COUNT(*) FROM search_grams WHERE position IN (7,8)",
-                [],
-                |r| r.get(0),
-            )
-            .unwrap();
+        let prior_postings = read_postings(&db)
+            .iter()
+            .filter(|(_, p)| *p == 7 || *p == 8)
+            .count();
         assert_eq!(prior_postings as u64, expected_total);
-        let refused_final: i64 = db
-            .query_row(
-                "SELECT COUNT(*) FROM search_grams WHERE position=12 AND gram=X'626262'",
-                [],
-                |r| r.get(0),
-            )
-            .unwrap();
+        let refused_final = read_postings(&db)
+            .iter()
+            .filter(|(gram, p)| gram == b"bbb" && *p == 12)
+            .count();
         let retained_stage: i64 = db
             .query_row(
                 "SELECT COUNT(*) FROM search_ordered_grams WHERE position=12 AND gram=X'626262'",
@@ -1129,6 +1235,37 @@ mod tests {
             expected_late.len() as u64,
         )
         .unwrap();
+        // The real ordered-copy writer must close a full block before the
+        // same gram's final one-position block, even across tiny SQL pages.
+        for position in 20..277i64 {
+            db.execute(
+                "INSERT INTO search_ordered_grams(gram,position) VALUES (X'7a7a7a',?1)",
+                [position],
+            )
+            .unwrap();
+        }
+        copy_ordered_kind(&mut db, &|| Ok(()), "nodes", limits(), 257).unwrap();
+        let blocks = db
+            .prepare("SELECT first_position,last_position,postings,deltas FROM search_posting_blocks WHERE gram=X'7a7a7a' ORDER BY last_position")
+            .unwrap()
+            .query_map([], |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?, row.get::<_, i64>(2)?, row.get::<_, Vec<u8>>(3)?)))
+            .unwrap()
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .unwrap();
+        assert_eq!(blocks.len(), 2);
+        assert_eq!((blocks[0].0, blocks[0].1, blocks[0].2), (20, 275, 256));
+        assert_eq!((blocks[1].0, blocks[1].1, blocks[1].2), (276, 276, 1));
+        assert_eq!(
+            decode_posting_block(20, 275, 256, &blocks[0].3).unwrap(),
+            (20..276).collect::<Vec<_>>()
+        );
+        let mut nonminimal = blocks[0].3.clone();
+        nonminimal[0] = 0x81;
+        nonminimal.insert(1, 0);
+        assert!(decode_posting_block(20, 275, 256, &nonminimal).is_err());
+        let mut trailing = blocks[1].3.clone();
+        trailing.push(0);
+        assert!(decode_posting_block(276, 276, 1, &trailing).is_err());
         retire_search_staging(&db).unwrap();
         let freelist: i64 = db
             .query_row("PRAGMA temp.freelist_count", [], |row| row.get(0))

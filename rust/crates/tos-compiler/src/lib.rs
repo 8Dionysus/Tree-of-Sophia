@@ -41,10 +41,14 @@ mod knowledge_native_finalize;
 mod knowledge_navigation_finalize;
 mod knowledge_original_rows;
 mod knowledge_philosophy_original;
+mod knowledge_posting_codec;
 pub use knowledge_philosophy_original::{
     KNOWLEDGE_PHILOSOPHY_MODEL_ABI, PHILOSOPHY_ORIGINAL_PROFILE, PhilosophyOriginalCollection,
     PhilosophyOriginalInput, PhilosophyOriginalPage, PhilosophyOriginalReceipt,
     PhilosophyOriginalRow, philosophy_original_rows_root, retain_philosophy_original,
+};
+pub use knowledge_posting_codec::{
+    MAX_POSTING_DELTA_BYTES, MAX_POSTINGS_PER_BLOCK, decode_posting_block,
 };
 mod knowledge_navigation_original;
 pub use knowledge_navigation_original::{

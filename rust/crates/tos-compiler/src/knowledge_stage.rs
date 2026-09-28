@@ -1195,7 +1195,7 @@ pub(crate) fn selected_table_closure(db: &Connection) -> Result<()> {
         "knowledge_relations",
         "source_scope",
         "search_documents",
-        "search_grams",
+        "search_posting_blocks",
         "search_gram_stats",
         "catalog_index_meta",
         "catalog_facet_fields",
