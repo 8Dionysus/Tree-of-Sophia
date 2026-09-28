@@ -67,6 +67,14 @@ fn foundation_value(value: &serde_json::Value) -> SourceCommandResult<JsonValue>
     cmd::parse(&raw)
 }
 
+fn finished_receipt(child: &BTreeMap<String, Vec<u8>>) -> SourceCommandResult<JsonValue> {
+    cmd::parse(
+        child
+            .get("work-expression-receipt.json")
+            .ok_or(SourceCommandError::Conflict("Work finished receipt absent"))?,
+    )
+}
+
 struct WorkOwner {
     configuration: JsonValue,
     request: JsonValue,
@@ -2220,7 +2228,7 @@ fn prepare_work_application(
             "Work finished byte recipe differs from selected transaction",
         ));
     }
-    let receipt = foundation_value(&finished.receipt)?;
+    let receipt = finished_receipt(&finished.child)?;
     let read_observations = finished.reads;
     let plan = owner.plan(
         authorization,
@@ -2647,6 +2655,7 @@ pub fn recover_isolated_work_expression_from_captures(
         worker,
     )
     .map_err(item_error)?;
+    let receipt = finished_receipt(&finished.child)?;
     let expected = owner.plan(
         pending.plan.authorization.clone(),
         &before,
@@ -2661,7 +2670,6 @@ pub fn recover_isolated_work_expression_from_captures(
     }
     let selected = selected_sides(&pending.plan)?;
     let read_observations = finished.reads;
-    let receipt = foundation_value(&finished.receipt)?;
     worker
         .finish(limits.deadline, cancelled)
         .map_err(item_error)?;
