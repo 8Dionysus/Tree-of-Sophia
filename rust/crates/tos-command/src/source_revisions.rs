@@ -3966,6 +3966,30 @@ pub(crate) fn resolve_record_version_evidence_at_from_cut(
     )
 }
 
+/// The Claim inventory supplies an exact selected physical owner path and
+/// rejects duplicate identities before it returns. Keep bounded history/copy
+/// observations without another global selected-file discovery pass.
+pub(crate) fn resolve_record_version_evidence_at_selected(
+    ctx: &CommandContext,
+    owner_path: &str,
+    limits: ItemLimits,
+    exact: &JsonValue,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ResolvedRecordVersion> {
+    resolve_record_version_selected(
+        ctx,
+        None,
+        Some(owner_path),
+        Some(limits),
+        exact,
+        worker,
+        deadline,
+        cancelled,
+    )
+}
+
 fn resolve_record_version_selected(
     ctx: &CommandContext,
     cut: Option<&CorpusCutReader>,
@@ -3976,9 +4000,10 @@ fn resolve_record_version_selected(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ResolvedRecordVersion> {
-    // The selected-owner route is reached only through the already checked
-    // whole Claim inventory. Rechecking its entire file vector for every
-    // participant would turn one bounded preparation into N full scans.
+    // The selected-owner route is reached only through a whole Claim
+    // inventory which rejects duplicate identities before returning. Rechecking
+    // its entire file vector for every participant would turn one bounded
+    // preparation into N full scans.
     if selected_path.is_none() {
         ctx.check()?;
     }

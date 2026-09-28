@@ -1031,11 +1031,17 @@ fn charge_selected_claim_context(
         .ok_or(SourceCommandError::Unsupported(
             "Claim selected cut size overflow",
         ))?;
-    let software_copy = ctx
+    let (software_copy, software_paths, software_count) = ctx
         .files
         .iter()
         .filter(|file| !file.path.as_str().starts_with("ToS/"))
-        .try_fold(0usize, |sum, file| sum.checked_add(file.raw.len()))
+        .try_fold((0usize, 0usize, 0usize), |(bytes, paths, count), file| {
+            Some((
+                bytes.checked_add(file.raw.len())?,
+                paths.checked_add(file.path.as_str().len())?,
+                count.checked_add(1)?,
+            ))
+        })
         .ok_or(SourceCommandError::Unsupported(
             "Claim selected software state overflow",
         ))?;
@@ -1044,6 +1050,10 @@ fn charge_selected_claim_context(
     budget.retain(
         authored
             .checked_add(software_copy)
+            .and_then(|sum| sum.checked_add(software_paths))
+            .and_then(|sum| {
+                sum.checked_add(software_count.checked_mul(std::mem::size_of::<SourceFile>())?)
+            })
             .and_then(|sum| sum.checked_add(selected_paths))
             .and_then(|sum| {
                 sum.checked_add(selected_count.checked_mul(std::mem::size_of::<SourceFile>())?)
@@ -3241,6 +3251,14 @@ fn claim_profile_inputs(
     inputs: &mut JsonValue,
 ) -> SourceCommandResult<&'static str> {
     let (_, descriptor) = profile(ctx, text(claim, "predicate")?)?;
+    claim_profile_inputs_selected(ctx, claim, &descriptor, inputs)
+}
+fn claim_profile_inputs_selected(
+    ctx: &CommandContext,
+    claim: &JsonValue,
+    descriptor: &JsonValue,
+    inputs: &mut JsonValue,
+) -> SourceCommandResult<&'static str> {
     let reader = text(&descriptor, "reader")?;
     if reader.starts_with("identity-transition-")
         && !["identity-transition-v1", "identity-transition-v2"].contains(&reader)
@@ -3329,6 +3347,67 @@ fn retained_profile_required(ctx: &CommandContext, claim: &JsonValue) -> SourceC
                 == Some("collection-membership-versions-v1"),
     )
 }
+
+// Every source value copied into these catalogue entries occurs at most twice
+// (the Claim review IDs also appear in review_refs). Count all possible field
+// names, delimiters, null defaults and fixed values before constructing an
+// entry; the exact resulting size is still charged after construction.
+fn catalogue_entry_construction_bound(
+    source_bytes: usize,
+    location: &str,
+    schema_bytes: usize,
+    keys: &[&str],
+    fixed_value_bytes: usize,
+) -> SourceCommandResult<usize> {
+    let fields = keys.iter().try_fold(4usize, |sum, key| {
+        sum.checked_add(key.len())?.checked_add(9)
+    });
+    source_bytes
+        .checked_mul(2)
+        .and_then(|sum| sum.checked_add(fields?))
+        .and_then(|sum| sum.checked_add(location.len()))
+        .and_then(|sum| sum.checked_add(schema_bytes))
+        .and_then(|sum| sum.checked_add(fixed_value_bytes))
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim catalogue construction state overflow",
+        ))
+}
+
+const RECORD_CATALOGUE_KEYS: &[&str] = &[
+    "schema_version",
+    "record_id",
+    "record_type",
+    "preferred_label",
+    "identity_status",
+    "source_record_ref",
+    "record_sha256",
+    "source_schema_ref",
+    "links",
+];
+const CLAIM_CATALOGUE_KEYS: &[&str] = &[
+    "schema_version",
+    "source_claim_file_ref",
+    "source_claim_line",
+    "claim_sha256",
+    "claim_id",
+    "claim_type",
+    "assertion_layer",
+    "subject_ref",
+    "predicate",
+    "object",
+    "evidence_refs",
+    "maker",
+    "provenance_event_ref",
+    "epistemic_status",
+    "review_status",
+    "visibility",
+    "claim_version",
+    "review_refs",
+    "supersedes_claim_ref",
+    "qualifiers",
+    "source_schema_ref",
+];
+
 fn catalogue_record(
     record: &JsonValue,
     location: &str,
@@ -3376,6 +3455,7 @@ fn catalogue_claim(
     location: &str,
     line: usize,
     profiled: bool,
+    selected_schema: Option<&str>,
 ) -> SourceCommandResult<JsonValue> {
     let mut result = object(vec![
         (
@@ -3435,18 +3515,19 @@ fn catalogue_claim(
         )?;
     }
     if profiled {
-        let (_, descriptor) = profile(ctx, text(claim, "predicate")?)?;
-        let route = array(&descriptor, "schemas")?
-            .iter()
-            .find(|v| v.object_get("schema_version") == claim.object_get("schema_version"))
-            .ok_or(SourceCommandError::Unsupported(
-                "Claim catalogue schema route",
-            ))?;
-        set(
-            &mut result,
-            "source_schema_ref",
-            field(route, "schema_ref")?.clone(),
-        )?;
+        let schema: Cow<'_, str> = if let Some(schema) = selected_schema {
+            Cow::Borrowed(schema)
+        } else {
+            let (_, descriptor) = profile(ctx, text(claim, "predicate")?)?;
+            let route = array(&descriptor, "schemas")?
+                .iter()
+                .find(|v| v.object_get("schema_version") == claim.object_get("schema_version"))
+                .ok_or(SourceCommandError::Unsupported(
+                    "Claim catalogue schema route",
+                ))?;
+            Cow::Owned(text(route, "schema_ref")?.to_owned())
+        };
+        set(&mut result, "source_schema_ref", string(schema.as_ref()))?;
     }
     Ok(result)
 }
@@ -4342,7 +4423,17 @@ fn maintained_inventory_inner(
     cancelled: &AtomicBool,
     whole_call: Option<&Rc<RefCell<ClaimCallBudget>>>,
 ) -> SourceCommandResult<MaintainedInventory> {
-    inventory_live_preflight(whole_call, 0, selected(ctx, ENTITIES)?.len())?;
+    let registry_raw = selected(ctx, ENTITIES)?;
+    inventory_live_preflight(
+        whole_call,
+        0,
+        registry_raw
+            .len()
+            .checked_mul(3)
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim selected registry state overflow",
+            ))?,
+    )?;
     let entities = crate::source_revisions::validate_source_profile_registry(
         executor, deadline, cancelled, ctx,
     )?;
@@ -4383,6 +4474,17 @@ fn maintained_inventory_inner(
         RELATIONS,
         "ToS/contracts/semantic-relation-type-registry.schema.json",
     ];
+    let initial_digest_state = registry_refs
+        .iter()
+        .chain(claim_registry_refs.iter())
+        .try_fold(0usize, |sum, name| {
+            sum.checked_add(name.len())?
+                .checked_add(64 + 9 + std::mem::size_of::<(JsonString, JsonValue)>())
+        })
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim registry digest state overflow",
+        ))?;
+    inventory_live_preflight(whole_call, retained_inventory_state, initial_digest_state)?;
     let mut record_inputs = raw_digests(ctx, &registry_refs, false)?;
     let mut record_member_inputs = BTreeMap::new();
     if native_schema_used {
@@ -4403,6 +4505,20 @@ fn maintained_inventory_inner(
     let mut prior = BTreeMap::new();
     let mut events = object(vec![]);
     let mut anchors = object(vec![]);
+    let inventory_index_state = ctx
+        .files
+        .len()
+        .checked_mul(std::mem::size_of::<&SourceFile>())
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim inventory path index state overflow",
+        ))?;
+    retained_inventory_state = retained_inventory_state
+        .checked_add(initial_digest_state)
+        .and_then(|sum| sum.checked_add(inventory_index_state))
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim inventory path index state overflow",
+        ))?;
+    inventory_live_preflight(whole_call, retained_inventory_state, 0)?;
     let mut inventory = ctx.files.iter().collect::<Vec<_>>();
     inventory.sort_by(|left, right| left.path.as_str().cmp(right.path.as_str()));
     let mut has_profiled_claim = false;
@@ -4432,11 +4548,8 @@ fn maintained_inventory_inner(
         if let Some((kind, _)) = kinds.iter().find(|(_, name)| name.as_str() == basename) {
             inventory_live_preflight(whole_call, retained_inventory_state, file.raw.len())?;
             let record = parse(&file.raw)?;
-            inventory_live_preflight(
-                whole_call,
-                retained_inventory_state,
-                retained_value_bytes(&record)?,
-            )?;
+            let record_state = retained_value_bytes(&record)?;
+            inventory_live_preflight(whole_call, retained_inventory_state, record_state)?;
             if text(&record, "record_type")? != kind {
                 return Err(SourceCommandError::Conflict(
                     "catalog record kind differs from basename",
@@ -4467,6 +4580,17 @@ fn maintained_inventory_inner(
                 None
             };
             let schema = if let Some(descriptor) = descriptor {
+                // The selected resolver returns the same current record and
+                // its exact subject while this parsed record is still live.
+                inventory_live_preflight(
+                    whole_call,
+                    retained_inventory_state,
+                    record_state
+                        .checked_mul(3)
+                        .ok_or(SourceCommandError::Unsupported(
+                            "Claim profile resolution state overflow",
+                        ))?,
+                )?;
                 if cut.is_none()
                     && (descriptor.object_get("native_binding_adapter").is_some()
                         || record.object_get("native_text_binding").is_some())
@@ -4484,12 +4608,48 @@ fn maintained_inventory_inner(
                     .ok_or(SourceCommandError::Unsupported(
                         "catalog metadata schema route",
                     ))?;
+                let route_input_state = array(route, "schema_dependencies")?
+                    .iter()
+                    .map(|value| {
+                        value
+                            .as_str()
+                            .ok_or(SourceCommandError::Invalid("schema dependency"))
+                    })
+                    .chain([
+                        Ok("ToS/contracts/corpus-record.schema.json"),
+                        text(route, "schema_ref"),
+                    ])
+                    .try_fold(0usize, |sum, name| {
+                        sum.checked_add(name?.len())
+                            .and_then(|sum| sum.checked_add(64 + 9))
+                            .ok_or(SourceCommandError::Unsupported(
+                                "Claim schema route state overflow",
+                            ))
+                    })?;
+                inventory_live_preflight(
+                    whole_call,
+                    retained_inventory_state,
+                    record_state
+                        .checked_mul(3)
+                        .and_then(|sum| sum.checked_add(initial_digest_state))
+                        .and_then(|sum| sum.checked_add(route_input_state))
+                        .ok_or(SourceCommandError::Unsupported(
+                            "Claim schema route state overflow",
+                        ))?,
+                )?;
+                let inputs_before = retained_value_bytes(&record_inputs)?;
                 include_route(
                     ctx,
                     &mut record_inputs,
                     route,
                     &["ToS/contracts/corpus-record.schema.json"],
                 )?;
+                let inputs_after = retained_value_bytes(&record_inputs)?;
+                retained_inventory_state = retained_inventory_state
+                    .checked_add(inputs_after.saturating_sub(inputs_before))
+                    .ok_or(SourceCommandError::Unsupported(
+                        "Claim schema route state overflow",
+                    ))?;
                 if let Some(inputs) = &mut member_inputs {
                     include_route(
                         ctx,
@@ -4499,7 +4659,30 @@ fn maintained_inventory_inner(
                     )?;
                 }
                 let exact = metadata_subject(&record)?;
-                let (verified, locator) = if let Some(cut) = cut {
+                let (verified, locator) = if let Some(budget) = whole_call {
+                    let remaining_read = budget.borrow().remaining_read()?;
+                    let remaining_state = budget.borrow().remaining_live()?;
+                    let resolved =
+                        crate::source_revisions::resolve_record_version_evidence_at_selected(
+                            ctx,
+                            location,
+                            tos_validation::item_rules::ItemLimits {
+                                max_member_bytes: 8_388_608usize.min(remaining_read as usize),
+                                max_total_bytes: remaining_read,
+                                max_state_bytes: remaining_state,
+                                max_issues: 256,
+                                deadline,
+                            },
+                            &exact,
+                            executor,
+                            deadline,
+                            cancelled,
+                        )?;
+                    let mut budget = budget.borrow_mut();
+                    budget.read(resolved.bytes_read)?;
+                    budget.retain(resolved.returned_state_bytes)?;
+                    (resolved.record, resolved.source_path)
+                } else if let Some(cut) = cut {
                     crate::source_revisions::resolve_record_version_from_cut(
                         ctx, cut, &exact, executor, deadline, cancelled,
                     )?
@@ -4517,8 +4700,39 @@ fn maintained_inventory_inner(
             } else {
                 None
             };
+            let entry_bound = catalogue_entry_construction_bound(
+                record_state,
+                location,
+                schema.map_or(0, str::len),
+                RECORD_CATALOGUE_KEYS,
+                "tos_source_witness_catalog_entry_v1".len() + 2 + 66 + 6,
+            )?
+            .checked_add(
+                CATALOG_LINK_FIELDS
+                    .iter()
+                    .try_fold(0usize, |sum, key| {
+                        sum.checked_add(key.len())?.checked_add(9)
+                    })
+                    .ok_or(SourceCommandError::Unsupported(
+                        "Claim catalogue link state overflow",
+                    ))?,
+            )
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim catalogue entry state overflow",
+            ))?;
+            let upper_added =
+                record_state
+                    .checked_add(entry_bound.checked_mul(3).ok_or(
+                        SourceCommandError::Unsupported("Claim catalogue entry state overflow"),
+                    )?)
+                    .and_then(|sum| sum.checked_add(id.len().saturating_mul(2)))
+                    .and_then(|sum| sum.checked_add(location.len().saturating_mul(2)))
+                    .and_then(|sum| sum.checked_add(3 * std::mem::size_of::<(String, JsonValue)>()))
+                    .ok_or(SourceCommandError::Unsupported(
+                        "Claim catalog record state overflow",
+                    ))?;
+            inventory_live_preflight(whole_call, retained_inventory_state, upper_added)?;
             let entry = catalogue_record(&record, location, schema)?;
-            let record_state = retained_value_bytes(&record)?;
             let entry_state = retained_value_bytes(&entry)?;
             let added =
                 record_state
@@ -4584,8 +4798,28 @@ fn maintained_inventory_inner(
                 if !["public", "public_metadata_only"].contains(&text(&claim, "visibility")?) {
                     return Err(SourceCommandError::Denied("catalog Claim visibility"));
                 }
+                let mut selected_schema = None;
+                let mut schema_bytes =
+                    if text(&claim, "schema_version")? == "tos_historical_claim_v1" {
+                        "ToS/contracts/historical-claim.schema.json".len()
+                    } else {
+                        0
+                    };
                 if profiled {
-                    claim_profile_inputs(ctx, &claim, &mut prior_profile_inputs)?;
+                    let registry_bytes = selected(ctx, RELATIONS)?.len();
+                    inventory_live_preflight(
+                        whole_call,
+                        retained_inventory_state,
+                        claim_state
+                            .checked_add(registry_bytes.checked_mul(3).ok_or(
+                                SourceCommandError::Unsupported(
+                                    "Claim profile registry state overflow",
+                                ),
+                            )?)
+                            .ok_or(SourceCommandError::Unsupported(
+                                "Claim profile registry state overflow",
+                            ))?,
+                    )?;
                     let (_, descriptor) = profile(ctx, text(&claim, "predicate")?)?;
                     let route = array(&descriptor, "schemas")?
                         .iter()
@@ -4595,6 +4829,75 @@ fn maintained_inventory_inner(
                         .ok_or(SourceCommandError::Unsupported(
                             "existing Claim schema route",
                         ))?;
+                    let mut route_refs = array(route, "schema_dependencies")?
+                        .iter()
+                        .map(|value| {
+                            value
+                                .as_str()
+                                .ok_or(SourceCommandError::Invalid("schema dependency"))
+                        })
+                        .chain([text(route, "schema_ref")]);
+                    let route_digest_state = route_refs.try_fold(0usize, |sum, name| {
+                        sum.checked_add(name?.len())
+                            .and_then(|sum| sum.checked_add(64 + 9))
+                            .ok_or(SourceCommandError::Unsupported(
+                                "Claim profile route state overflow",
+                            ))
+                    })?;
+                    let fixed_digest_state = [
+                        "ToS/contracts/claim-packet.schema.json",
+                        "ToS/contracts/knowledge-assessment.schema.json",
+                        "ToS/contracts/source-claim-record.schema.json",
+                        "ToS/contracts/historical-claim.schema.json",
+                        "ToS/contracts/corpus-record.schema.json",
+                        "ToS/contracts/source-structured-value.schema.json",
+                        "ToS/contracts/scoped-member-structure.schema.json",
+                        "ToS/contracts/claim-display-fields.schema.json",
+                    ]
+                    .iter()
+                    .try_fold(0usize, |sum, name| {
+                        sum.checked_add(name.len())?.checked_add(64 + 9)
+                    })
+                    .ok_or(SourceCommandError::Unsupported(
+                        "Claim profile route state overflow",
+                    ))?;
+                    inventory_live_preflight(
+                        whole_call,
+                        retained_inventory_state,
+                        claim_state
+                            .checked_add(registry_bytes.checked_mul(3).ok_or(
+                                SourceCommandError::Unsupported(
+                                    "Claim profile registry state overflow",
+                                ),
+                            )?)
+                            .and_then(|sum| sum.checked_add(route_digest_state))
+                            .and_then(|sum| sum.checked_add(fixed_digest_state))
+                            .ok_or(SourceCommandError::Unsupported(
+                                "Claim profile route state overflow",
+                            ))?,
+                    )?;
+                    let inputs_before = retained_value_bytes(&prior_profile_inputs)?;
+                    claim_profile_inputs_selected(
+                        ctx,
+                        &claim,
+                        &descriptor,
+                        &mut prior_profile_inputs,
+                    )?;
+                    let inputs_after = retained_value_bytes(&prior_profile_inputs)?;
+                    retained_inventory_state = retained_inventory_state
+                        .checked_add(inputs_after.saturating_sub(inputs_before))
+                        .ok_or(SourceCommandError::Unsupported(
+                            "Claim profile route state overflow",
+                        ))?;
+                    schema_bytes = text(route, "schema_ref")?.len();
+                    inventory_live_preflight(
+                        whole_call,
+                        retained_inventory_state,
+                        claim_state.checked_add(schema_bytes).ok_or(
+                            SourceCommandError::Unsupported("Claim schema path state overflow"),
+                        )?,
+                    )?;
+                    selected_schema = Some(text(route, "schema_ref")?.to_owned());
                     schema_check(
                         executor,
                         location,
@@ -4616,7 +4919,30 @@ fn maintained_inventory_inner(
                 if id.is_empty() {
                     return Err(SourceCommandError::Invalid("catalog Claim identity"));
                 }
-                let entry = catalogue_claim(ctx, &claim, location, index + 1, profiled)?;
+                let entry_bound = catalogue_entry_construction_bound(
+                    claim_state,
+                    location,
+                    schema_bytes,
+                    CLAIM_CATALOGUE_KEYS,
+                    "tos_source_witness_claim_catalog_entry_v1".len() + 2 + 66 + 20 + 6,
+                )?;
+                let entry_and_claim = claim_state
+                    .checked_add(entry_bound)
+                    .and_then(|sum| {
+                        sum.checked_add(selected_schema.as_ref().map_or(0, String::len))
+                    })
+                    .ok_or(SourceCommandError::Unsupported(
+                        "Claim catalogue Claim state overflow",
+                    ))?;
+                inventory_live_preflight(whole_call, retained_inventory_state, entry_and_claim)?;
+                let entry = catalogue_claim(
+                    ctx,
+                    &claim,
+                    location,
+                    index + 1,
+                    profiled,
+                    selected_schema.as_deref(),
+                )?;
                 let added = retained_value_bytes(&entry)?
                     .checked_add(id.len())
                     .and_then(|sum| sum.checked_add(std::mem::size_of::<(String, JsonValue)>()))
@@ -6852,6 +7178,29 @@ fn exact_metadata_version(
         ));
     }
     let type_id = field(matches[0], "type_id")?.clone();
+    if let Some(read) = retained.as_deref() {
+        let entry_bound = catalogue_entry_construction_bound(
+            retained_value_bytes(current_record)?,
+            &resolved.source_path,
+            expected_schema.map_or(0, str::len),
+            RECORD_CATALOGUE_KEYS,
+            "tos_source_witness_catalog_entry_v1".len() + 2 + 66 + 6,
+        )?
+        .checked_add(
+            CATALOG_LINK_FIELDS
+                .iter()
+                .try_fold(0usize, |sum, key| {
+                    sum.checked_add(key.len())?.checked_add(9)
+                })
+                .ok_or(SourceCommandError::Unsupported(
+                    "Claim catalogue link state overflow",
+                ))?,
+        )
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim catalogue entry state overflow",
+        ))?;
+        read.check_temporary_state(entry_bound)?;
+    }
     let expected = catalogue_record(current_record, &resolved.source_path, expected_schema)?;
     let catalog_path = format!("ToS/source-witnesses/catalog/{filename}");
     let mut catalog = exact_selected_catalog_entry(
@@ -7333,8 +7682,42 @@ fn resolve_claim_reference_evidence(
     }
     let current_ref = metadata_subject(&current)?;
     let current_line = claim_stream_line(current_raw, id)?;
-    let expected_catalog =
-        catalogue_claim(ctx, &current, p.as_str(), current_line as usize, !legacy)?;
+    if let Some(read) = retained.as_deref() {
+        let claim_state = retained_value_bytes(&current)?;
+        let registry_state = if legacy {
+            0
+        } else {
+            selected(ctx, RELATIONS)?.len().checked_mul(3).ok_or(
+                SourceCommandError::Unsupported("Claim catalogue profile state overflow"),
+            )?
+        };
+        let schema_bound = if legacy {
+            0
+        } else {
+            selected(ctx, RELATIONS)?.len()
+        };
+        let temporary = claim_state
+            .checked_add(catalogue_entry_construction_bound(
+                claim_state,
+                p.as_str(),
+                schema_bound,
+                CLAIM_CATALOGUE_KEYS,
+                "tos_source_witness_claim_catalog_entry_v1".len() + 2 + 66 + 20 + 6,
+            )?)
+            .and_then(|sum| sum.checked_add(registry_state))
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim catalogue profile state overflow",
+            ))?;
+        read.check_temporary_state(temporary)?;
+    }
+    let expected_catalog = catalogue_claim(
+        ctx,
+        &current,
+        p.as_str(),
+        current_line as usize,
+        !legacy,
+        None,
+    )?;
     let mut catalog = exact_selected_catalog_entry(
         ctx,
         retained.as_deref_mut(),
