@@ -731,7 +731,7 @@ pub fn validate_surface(root: &Path) -> io::Result<()> {
     .map(str::to_owned)
     .chain(QUEST_IDS.iter().map(|id| format!("quests/{id}.yaml")));
     for relative in required_paths {
-        if !root.join(relative).exists() {
+        if !root.join(&relative).exists() {
             return Err(invalid(format!("missing required file: {relative}")));
         }
     }
