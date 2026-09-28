@@ -504,7 +504,9 @@ impl<'a> KnowledgeStage<'a> {
     }
     /// A bounded producer may add catalog/search tables and indexed joins to
     /// this private database. The caller must keep its own row/byte budgets;
-    /// the stage holds the SQLite VM/page/cache limits and host quota guard.
+    /// the stage holds SQLite VM/page/cache limits. Admitted native stages also
+    /// retain their host isolation guard; the disposable public-build profile
+    /// has no host quota and does not claim aggregate disk-spill isolation.
     /// Any callback or quota failure poisons the stage, so `finish` refuses it.
     pub(crate) fn with_connection<T>(
         &mut self,

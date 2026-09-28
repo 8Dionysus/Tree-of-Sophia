@@ -565,7 +565,6 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
     )?;
     capture.verify_inputs(limits.capture)?;
     static_summary.verify_web_inputs(&capture)?;
-    let public_input_binding = capture.manifest_input_binding()?;
     let counts = json!({
         "philosophy_nodes":source_counts.philosophy_nodes,"philosophy_edges":source_counts.philosophy_edges,
         "philosophy_clusters":source_counts.cluster_node_memberships,
@@ -587,7 +586,7 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
         .nodes
         .checked_add(native.final_rows.relations)
         .ok_or(Error::Budget("public D1 native row count"))?;
-    let manifest = json!({
+    let mut manifest = json!({
         "schema":"tos_cloudflare_edge_build_v1",
         "read_model_schema":"tos_cloudflare_edge_read_model_v9",
         "data_revision":metadata.revision,
@@ -596,7 +595,6 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
         "build_stages":{"read-model":"computed","static-responses":"computed"},
         "source_owner":"Tree-of-Sophia",
         "source_paths":capture.source_labels(),
-        "public_input_binding":public_input_binding,
         "producer_paths":["rust/crates/tos-compiler/src/d1_public_build.rs",
             "rust/crates/tos-compiler/src/d1_public_capture.rs",
             "rust/crates/tos-compiler/src/d1_public_rows.rs",
@@ -616,6 +614,23 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
         "native_derived_rows":native_derived_rows,
         "sql_bytes":sql_bytes,"baseline_bytes":baseline_bytes,
     });
+    // The existing 2 MiB completion envelope includes both the fixed
+    // manifest fields and the measured input binding. Admit that combined
+    // serialized size before constructing the potentially long binding.
+    let prior = serde_json::to_vec(&manifest).map_err(|e| Error::Source(e.to_string()))?;
+    let binding_key_bytes = b",\"public_input_binding\":".len();
+    let binding_bytes = crate::d1_public_capture::MAX_HEADER_BYTES
+        .checked_sub(prior.len())
+        .and_then(|remaining| remaining.checked_sub(binding_key_bytes))
+        .ok_or(Error::Budget("public D1 manifest bytes"))?;
+    capture.charge_work(prior.len() as u64)?;
+    manifest
+        .as_object_mut()
+        .ok_or(Error::Invalid("public D1 manifest object"))?
+        .insert(
+            "public_input_binding".to_owned(),
+            capture.manifest_input_binding(binding_bytes)?,
+        );
     crate::d1_public_publication::publish(
         output,
         runtime,
