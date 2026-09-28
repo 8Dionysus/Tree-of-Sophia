@@ -1279,8 +1279,14 @@ fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
             .iter()
             .map(|reference| reference["id"].as_str().unwrap().to_owned())
             .collect::<Vec<_>>();
+        // The structured value retains its own attributed wording; the
+        // qualifier statement below remains a separate Claim assertion.
         let object = serde_json::json!({
             "kind":"identity-transition-proposal", "operation":"split",
+            "source_wording":{
+                "text":"Synthetic source wording proposes one provisional Agent identity splitting into two; no transition is performed.",
+                "language":"en", "script":"Latn"
+            },
             "members":identities, "predecessors":[predecessor], "successors":successors,
             "mapping":[
                 {"predecessor":refs[0]["id"],"successor":refs[1]["id"]},
