@@ -128,10 +128,9 @@ pub fn build_search_index(
 }
 
 fn initialize_search_storage(db: &Connection) -> Result<()> {
-    // Catalog's rolled-back TEMP tables may have left free pages. Enable
-    // in-place reclamation before this producer creates its own TEMP tree;
-    // the final seal must not retain that tree's file allocation.
-    db.execute_batch("PRAGMA temp.auto_vacuum=INCREMENTAL; VACUUM temp")?;
+    // Stage creation fixes this before Catalog first allocates TEMP pages.
+    // Search refuses a changed or missing mode rather than attempting to
+    // retrofit an already-used TEMP database.
     let mode: i64 = db.query_row("PRAGMA temp.auto_vacuum", [], |row| row.get(0))?;
     if mode != 2 {
         return Err(Error::Invalid("search TEMP reclamation mode"));
@@ -1010,6 +1009,19 @@ mod tests {
             .query_row("PRAGMA temp_store", [], |row| row.get(0))
             .unwrap();
         assert_eq!(temp_store, 1);
+        crate::knowledge_stage::configure_stage_temp_reclamation(&db).unwrap();
+        let initial_mode: i64 = db
+            .query_row("PRAGMA temp.auto_vacuum", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(initial_mode, 2);
+        db.execute_batch(
+            "SAVEPOINT prior_catalog_temp;
+             CREATE TEMP TABLE prior_catalog_rows(value INTEGER);
+             INSERT INTO prior_catalog_rows VALUES(1);
+             ROLLBACK TO prior_catalog_temp;
+             RELEASE prior_catalog_temp;",
+        )
+        .unwrap();
         initialize_search_storage(&db).unwrap();
         let make_row = |position, id: &str| {
             let payload = format!(

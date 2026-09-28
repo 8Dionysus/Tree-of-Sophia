@@ -355,6 +355,10 @@ impl<'a> KnowledgeStage<'a> {
         let db = Connection::open(candidate)?;
         stage.db = Some(db);
         stage.vm_used = Some(sqlite_budget::configure(stage.db(), limits.sqlite)?);
+        // Catalog is the first TEMP consumer on the full-model path. Fix its
+        // physical reclamation mode before any TEMP schema or page is created;
+        // later PRAGMA changes cannot retrofit an existing TEMP database.
+        configure_stage_temp_reclamation(stage.db())?;
         stage.check(WritePhase::Schema)?;
         stage.db().execute_batch(SCHEMA)?;
         stage.check(WritePhase::Schema)?;
@@ -1145,6 +1149,15 @@ impl<'a> KnowledgeStage<'a> {
             sqlite_size_bytes,
         })
     }
+}
+
+pub(crate) fn configure_stage_temp_reclamation(db: &Connection) -> Result<()> {
+    db.execute_batch("PRAGMA temp.auto_vacuum=INCREMENTAL")?;
+    let mode: i64 = db.query_row("PRAGMA temp.auto_vacuum", [], |row| row.get(0))?;
+    if mode != 2 {
+        return Err(Error::Invalid("stage TEMP reclamation mode"));
+    }
+    Ok(())
 }
 
 /// VACUUM builds a second database while the current one is still present.
