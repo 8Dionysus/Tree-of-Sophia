@@ -408,6 +408,304 @@ pub fn verify_work_expression_from_cut(
     reader.verify(claim_path, claim, schemas)
 }
 
+/// An exact Collection record version and the selected bytes that established
+/// it. A historical version remains historical; this is no writer grant.
+#[derive(Debug)]
+pub struct CollectionVersionObservation {
+    pub record_raw: Vec<u8>,
+    pub source_path: String,
+    pub current_ref: Value,
+    pub version_status: &'static str,
+    pub archive_blob_ref: Option<String>,
+    pub archive_manifest_ref: Option<String>,
+    pub archive_manifest_sha256: Option<String>,
+    pub package_revision: Option<String>,
+    pub history_ref: Option<String>,
+    pub history_sha256: Option<String>,
+    pub history_receipt_count: usize,
+    pub retained_baseline_ref: Value,
+    pub transition: Option<Value>,
+    pub transaction_id: Option<String>,
+    pub transaction_manifest_sha256: Option<String>,
+    pub reads: Vec<PredicateRead>,
+    pub bytes_read: u64,
+    /// Logical objects/slots/payloads retained by this returned observation.
+    pub returned_state_bytes: usize,
+}
+
+/// Resolve one Collection version through the selected current package and
+/// its complete retained history. Each native membership transition used by
+/// that lineage still goes through the existing compound verifier.
+pub fn verify_collection_version_from_cut(
+    cut: &CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    collection_source_path: &str,
+    exact: &Value,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<CollectionVersionObservation, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    keys(exact, &["id", "version", "digest"])?;
+    if schemas.source_revision() != cut.current().revision()
+        || !collection_source_path.starts_with("ToS/source-witnesses/collections/")
+        || !collection_source_path.ends_with("/collection.json")
+        || !typed_id(text(exact, "id")?, "collection")
+        || integer(exact, "version")? == 0
+    {
+        return Err(bad("selected Collection exact source/worker/type"));
+    }
+    hash(text(exact, "digest")?)?;
+    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    let selected_phase = reader.temporary_state;
+    let mut selected = reader.selected(collection_source_path)?;
+    // selected() already charges each member buffer, map entry and key.
+    reader.temporary(std::mem::size_of::<Package>())?;
+    let current_raw = selected
+        .get("collection.json")
+        .ok_or_else(|| bad("selected Collection record absent"))?;
+    let current = reader.decoded(current_raw)?;
+    if current["record_type"] != "collection" || text(&current, "record_id")? != text(exact, "id")?
+    {
+        return Err(bad("selected Collection typed identity"));
+    }
+    let current_ref = json!({
+        "id":text(&current,"record_id")?,
+        "version":integer(&current,"record_version")?,
+        "digest":reader.canonical_observation(&current)?.0,
+    });
+    reader.temporary(crate::record_biblio_cut::decoded_state(&current_ref)?)?;
+    let history = reader.history(collection_source_path, &selected)?;
+    let receipts = array(&history, "receipts")?;
+    let history_receipt_count = receipts.len();
+    let baseline = receipts
+        .first()
+        .map(|receipt| &receipt["previous_source"])
+        .unwrap_or(&current_ref);
+    reader.temporary(crate::record_biblio_cut::decoded_state(baseline)?)?;
+    let retained_baseline_ref = baseline.clone();
+    let mut historical_index = None;
+    for (index, receipt) in receipts.iter().enumerate() {
+        check(limits.deadline, cancelled)?;
+        let operation = text(&receipt["request"], "operation")?;
+        if operation == "collection.work.attach" {
+            let publication = &receipt["publication"];
+            let transaction_id = text(publication, "transaction_id")?;
+            let transaction = reader.transaction(transaction_id)?;
+            if transaction.status != "committed" {
+                return Err(bad("Collection membership transition not committed"));
+            }
+            let scope = &transaction.manifest["plan"]["authorization"]["scope"];
+            if text(scope, "collection_source_path")? != collection_source_path
+                || text(scope, "collection_id")? != text(exact, "id")?
+            {
+                return Err(bad("Collection transition selected parent"));
+            }
+            let claim_path = text(scope, "claim_source_path")?;
+            let claim_id = text(scope, "claim_id")?;
+            let claim_phase = reader.temporary_state;
+            let request_path = format!("{}/source-create-request.json", parent(claim_path)?);
+            let request_raw = transaction
+                .files
+                .get(&request_path)
+                .and_then(|(_, after)| after.as_deref())
+                .ok_or_else(|| bad("Collection transition original request absent"))?;
+            if reader.decoded(request_raw)? != receipt["request"] {
+                return Err(bad("Collection parent receipt/request transaction changed"));
+            }
+            let claim_raw = reader.required(claim_path, MAX_FILE)?;
+            let claim = reader.single_membership_claim(&claim_raw, claim_id)?;
+            if claim["predicate"] != "contains_work"
+                || claim["subject_ref"] != scope["collection_id"]
+                || claim["object"] != scope["work_id"]
+            {
+                return Err(bad("Collection transition current qualified association"));
+            }
+            let observed = reader.verify_inner(claim_path, &claim, schemas)?;
+            if observed.transport != NativeTransportState::Committed
+                || observed.transaction_id != transaction_id
+                || observed.manifest_sha256 != transaction.manifest_sha256
+                || observed.claim_path != claim_path
+                || observed.claim_id != claim_id
+                || text(&receipt["request"]["claim"], "claim_id")? != claim_id
+            {
+                return Err(bad("Collection transition exact Claim/manifest"));
+            }
+            reader.release_temporary_since(claim_phase);
+        } else if operation != "record.revise" {
+            return Err(ItemRefusal::Unsupported(format!(
+                "Collection parent transition {operation}"
+            )));
+        }
+        if receipt["previous_source"] == *exact {
+            if historical_index.replace(index).is_some() {
+                return Err(bad("Collection historical version ambiguous"));
+            }
+        }
+    }
+    let current_match = current_ref == *exact;
+    if current_match && historical_index.is_some() {
+        return Err(bad("Collection exact version current/archive ambiguity"));
+    }
+    if !current_match && historical_index.is_none() {
+        return Err(bad("Collection exact historical version absent"));
+    }
+    let collection_home = parent(collection_source_path)?;
+    let history_ref = selected
+        .get(HISTORY)
+        .map(|_| format!("{collection_home}/{HISTORY}"));
+    let history_sha256 = selected
+        .get(HISTORY)
+        .map(|raw| Digest256::of_bytes(raw).to_prefixed());
+    let mut archive_blob_ref = None;
+    let mut archive_manifest_ref = None;
+    let mut archive_manifest_sha256 = None;
+    let mut package_revision = None;
+    let mut transition = None;
+    let mut transaction_id = None;
+    let mut transaction_manifest_sha256 = None;
+    let record_raw = if let Some(index) = historical_index {
+        let receipt = &receipts[index];
+        let archive_phase = reader.temporary_state;
+        let mut archived = reader.archive(collection_source_path, text(exact, "id")?, receipt)?;
+        let raw = archived
+            .remove("collection.json")
+            .ok_or_else(|| bad("Collection archived record absent"))?;
+        let archived_record = reader.decoded(&raw)?;
+        if archived_record["record_type"] != "collection"
+            || !reader.reference_matches(&archived_record, "record_id", "record_version", exact)?
+        {
+            return Err(bad("Collection archive exact version changed"));
+        }
+        let archive_path = text(receipt, "archive_path")?;
+        let manifest_ref = format!("{archive_path}/manifest.json");
+        let manifest_raw = reader.required(&manifest_ref, MAX_FILE)?;
+        let manifest = reader.decoded(&manifest_raw)?;
+        let blob = text(&manifest["files"]["collection.json"], "blob")?;
+        archive_blob_ref = Some(format!("{archive_path}/{blob}"));
+        archive_manifest_sha256 = Some(Digest256::of_bytes(&manifest_raw).to_prefixed());
+        archive_manifest_ref = Some(manifest_ref);
+        package_revision = Some(text(receipt, "previous_revision")?.to_owned());
+        transition = Some(reader.value_copy(receipt)?);
+        if let Some(publication) = receipt.get("publication") {
+            let id = text(publication, "transaction_id")?;
+            let tx = reader.transaction(id)?;
+            if tx.status != "committed" {
+                return Err(bad("Collection historical transition not committed"));
+            }
+            transaction_id = Some(id.to_owned());
+            transaction_manifest_sha256 = Some(tx.manifest_sha256.clone());
+        }
+        drop(archived);
+        reader.release_temporary_since(archive_phase);
+        raw
+    } else {
+        selected
+            .remove("collection.json")
+            .ok_or_else(|| bad("selected Collection record absent"))?
+    };
+    drop(current);
+    drop(selected);
+    drop(history);
+    reader.release_temporary_since(selected_phase);
+    reader.release_raw_cache();
+    let output_early = (std::mem::size_of::<Vec<u8>>() + record_raw.len())
+        .checked_add(crate::record_biblio_cut::decoded_state(&current_ref)?)
+        .and_then(|n| {
+            n.checked_add(crate::record_biblio_cut::decoded_state(&retained_baseline_ref).ok()?)
+        })
+        .and_then(|n| {
+            n.checked_add(match &transition {
+                Some(value) => crate::record_biblio_cut::decoded_state(value).ok()?,
+                None => 0,
+            })
+        })
+        .ok_or(ItemRefusal::Budget)?;
+    reader.temporary(output_early)?;
+    let mut observation = CollectionVersionObservation {
+        record_raw,
+        source_path: collection_source_path.to_owned(),
+        current_ref,
+        version_status: if current_match {
+            "current"
+        } else {
+            "historical"
+        },
+        archive_blob_ref,
+        archive_manifest_ref,
+        archive_manifest_sha256,
+        package_revision,
+        history_ref,
+        history_sha256,
+        history_receipt_count,
+        retained_baseline_ref,
+        transition,
+        transaction_id,
+        transaction_manifest_sha256,
+        reads: std::mem::take(&mut reader.reads),
+        bytes_read: reader.bytes,
+        returned_state_bytes: 0,
+    };
+    let reads_state = observation
+        .reads
+        .iter()
+        .try_fold(0usize, |sum, read| {
+            sum.checked_add(crate::record_biblio_cut::predicate_state(read).ok()?)
+        })
+        .ok_or(ItemRefusal::Budget)?;
+    let retained = std::mem::size_of::<CollectionVersionObservation>()
+        .checked_add(observation.record_raw.len())
+        .and_then(|n| n.checked_add(observation.source_path.len()))
+        .and_then(|n| {
+            n.checked_add(
+                crate::record_biblio_cut::decoded_state(&observation.current_ref)
+                    .ok()?
+                    .checked_sub(std::mem::size_of::<Value>())?,
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                crate::record_biblio_cut::decoded_state(&observation.retained_baseline_ref)
+                    .ok()?
+                    .checked_sub(std::mem::size_of::<Value>())?,
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(match &observation.transition {
+                Some(value) => crate::record_biblio_cut::decoded_state(value)
+                    .ok()?
+                    .checked_sub(std::mem::size_of::<Value>())?,
+                None => 0,
+            })
+        })
+        .and_then(|n| {
+            [
+                &observation.archive_blob_ref,
+                &observation.archive_manifest_ref,
+                &observation.archive_manifest_sha256,
+                &observation.package_revision,
+                &observation.history_ref,
+                &observation.history_sha256,
+                &observation.transaction_id,
+                &observation.transaction_manifest_sha256,
+            ]
+            .into_iter()
+            .try_fold(n, |sum, value| {
+                sum.checked_add(value.as_ref().map_or(0, String::len))
+            })
+        })
+        .and_then(|n| n.checked_add(reads_state))
+        .ok_or(ItemRefusal::Budget)?;
+    reader.temporary(
+        retained
+            .checked_sub(reads_state)
+            .and_then(|n| n.checked_sub(output_early))
+            .ok_or(ItemRefusal::Budget)?,
+    )?;
+    observation.returned_state_bytes = retained;
+    check(limits.deadline, cancelled)?;
+    Ok(observation)
+}
+
 // Maintained bibliographic recipes share only their transport and exact
 // buffer-construction law. These constants are owner profiles, not grants.
 #[derive(Clone, Copy, PartialEq, Eq)]
