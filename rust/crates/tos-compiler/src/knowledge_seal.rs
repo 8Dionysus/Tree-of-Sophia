@@ -16,7 +16,7 @@ use tos_foundation::{
     parse_json,
 };
 
-pub const KNOWLEDGE_MODEL_ABI: &str = "tos_knowledge_read_model_v2_postings_v1";
+pub const KNOWLEDGE_MODEL_ABI: &str = tos_foundation::KNOWLEDGE_MODEL_ABI_V2_POSTINGS_V1;
 const GRAPH_ROOT_DOMAIN: &str = "tos-knowledge-graph-root-v1";
 
 struct CappedWriter {

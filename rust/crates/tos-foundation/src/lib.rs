@@ -8,6 +8,7 @@ mod digest;
 mod error;
 mod identity;
 mod json;
+mod knowledge_model_abi;
 mod logical_ref;
 mod path;
 mod unicode;
@@ -23,6 +24,11 @@ pub use json::{
     canonical_digest_v1, canonical_feed_digest_v1, canonical_raw_bytes_profile,
     canonical_raw_bytes_v1, emit_json_profile, emit_preserved_json, emit_python_compact_json,
     emit_value_preserved_json, parse_json, parse_json_profile,
+};
+pub use knowledge_model_abi::{
+    KNOWLEDGE_MODEL_ABI_V2_POSTINGS_V1, KNOWLEDGE_MODEL_ABI_V3_POSTINGS_V1,
+    KNOWLEDGE_MODEL_ABI_V4_POSTINGS_V1, KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1,
+    KNOWLEDGE_MODEL_ABI_V6_POSTINGS_V1, KNOWLEDGE_POSTINGS_MODEL_ABIS,
 };
 pub use logical_ref::LogicalRecordRefV1;
 pub use path::RelativePath;

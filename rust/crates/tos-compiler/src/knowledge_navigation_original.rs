@@ -7,7 +7,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use tos_foundation::{Digest256, Digest256Hasher};
 
 pub const NAVIGATION_ORIGINAL_PROFILE: &str = "tos_navigation_original_v1";
-pub const KNOWLEDGE_NAVIGATION_MODEL_ABI: &str = "tos_knowledge_read_model_v3_postings_v1";
+pub const KNOWLEDGE_NAVIGATION_MODEL_ABI: &str = tos_foundation::KNOWLEDGE_MODEL_ABI_V3_POSTINGS_V1;
 pub(crate) const META_TABLE: &str = "navigation_original_meta";
 pub(crate) const ROW_TABLE: &str = "navigation_original_rows";
 pub(crate) const MEMBER_TABLE: &str = "navigation_original_members";

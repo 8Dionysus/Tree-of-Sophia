@@ -12,7 +12,7 @@ use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonMode, canonical_bytes_v1, parse_json,
 };
 
-pub const KNOWLEDGE_MANAGED_MODEL_ABI: &str = "tos_knowledge_read_model_v6_postings_v1";
+pub const KNOWLEDGE_MANAGED_MODEL_ABI: &str = tos_foundation::KNOWLEDGE_MODEL_ABI_V6_POSTINGS_V1;
 pub const MANAGED_SOURCE_SCHEMA: &str = "tos_managed_agent_selected_source_v1";
 pub const MANAGED_GRAPH_SCHEMA: &str = "tos_knowledge_graph_v2";
 pub const MANAGED_CATALOG_SCHEMA: &str = "tos_knowledge_catalog_v2";

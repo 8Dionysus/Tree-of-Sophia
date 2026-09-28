@@ -12,7 +12,7 @@ use tos_foundation::{Digest256, Digest256Hasher};
 
 pub const CORPUS_ORIGINAL_PROFILE: &str = "tos_corpus_original_v1";
 pub const NATIVE_CORPUS_ORIGINAL_PROFILE: &str = "tos_corpus_original_native_v1";
-pub const KNOWLEDGE_CORPUS_MODEL_ABI: &str = "tos_knowledge_read_model_v5_postings_v1";
+pub const KNOWLEDGE_CORPUS_MODEL_ABI: &str = tos_foundation::KNOWLEDGE_MODEL_ABI_V5_POSTINGS_V1;
 const MAX_INDEX_TEXT_BYTES: usize = 4096;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

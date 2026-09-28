@@ -7,7 +7,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonMode, parse_json};
 
 pub const PHILOSOPHY_ORIGINAL_PROFILE: &str = "tos_philosophy_original_v1";
-pub const KNOWLEDGE_PHILOSOPHY_MODEL_ABI: &str = "tos_knowledge_read_model_v4_postings_v1";
+pub const KNOWLEDGE_PHILOSOPHY_MODEL_ABI: &str = tos_foundation::KNOWLEDGE_MODEL_ABI_V4_POSTINGS_V1;
 pub(crate) const META_TABLE: &str = "philosophy_original_meta";
 pub(crate) const ROW_TABLE: &str = "philosophy_original_rows";
 pub(crate) const META_DDL: &str = "CREATE TABLE philosophy_original_meta(singleton INTEGER PRIMARY KEY CHECK(singleton=1),receipt BLOB NOT NULL)";

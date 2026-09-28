@@ -8,14 +8,14 @@
 
 use std::collections::BTreeSet;
 
-use tos_foundation::{Digest256, python_lower_unicode16_v1, python_strip_unicode16_v1};
+use tos_foundation::{
+    Digest256, KNOWLEDGE_POSTINGS_MODEL_ABIS, python_lower_unicode16_v1, python_strip_unicode16_v1,
+};
 
 pub const INDEXED_SEARCH_V2_OPERATION: &str = "tos_knowledge_search_indexed_v2";
+/// Legacy semantic-only fixtures retain their original in-memory identity.
+/// No native cold reader admits this old expanded-posting physical format.
 pub const SEARCH_READ_MODEL_ABI_V1: &str = "tos_knowledge_read_model_v1";
-pub const SEARCH_READ_MODEL_ABI_V2: &str = "tos_knowledge_read_model_v2";
-pub const SEARCH_READ_MODEL_ABI_V3: &str = "tos_knowledge_read_model_v3";
-pub const SEARCH_READ_MODEL_ABI_V4: &str = "tos_knowledge_read_model_v4";
-pub const SEARCH_READ_MODEL_ABI_V5: &str = "tos_knowledge_read_model_v5";
 pub const QUERY_PRIMITIVE_PROFILE: &str = "tos-query-primitives-v1";
 pub const SEARCH_UNICODE_PROFILE: &str = "tos-python-native-unicode-v1";
 pub const SEARCH_QUERY_MAX_CODE_POINTS: usize = 256;
@@ -288,10 +288,7 @@ fn validate_selection<V: SelectedQueryVocabulary + ?Sized>(
         ));
     }
     if selection.model_abi != SEARCH_READ_MODEL_ABI_V1
-        && selection.model_abi != SEARCH_READ_MODEL_ABI_V2
-        && selection.model_abi != SEARCH_READ_MODEL_ABI_V3
-        && selection.model_abi != SEARCH_READ_MODEL_ABI_V4
-        && selection.model_abi != SEARCH_READ_MODEL_ABI_V5
+        && !KNOWLEDGE_POSTINGS_MODEL_ABIS.contains(&selection.model_abi.as_str())
     {
         return Err(SearchV2Error::new(
             SearchV2ErrorCode::UnsupportedModel,

@@ -406,14 +406,7 @@ pub(crate) fn validate(
     }
     if expected.model_size_bytes == 0
         || expected.model_size_bytes > limits.max_file_bytes
-        || ![
-            KNOWLEDGE_MODEL_ABI,
-            crate::KNOWLEDGE_NAVIGATION_MODEL_ABI,
-            crate::KNOWLEDGE_PHILOSOPHY_MODEL_ABI,
-            crate::KNOWLEDGE_CORPUS_MODEL_ABI,
-            crate::KNOWLEDGE_MANAGED_MODEL_ABI,
-        ]
-        .contains(&expected.model_abi.as_str())
+        || !tos_foundation::KNOWLEDGE_POSTINGS_MODEL_ABIS.contains(&expected.model_abi.as_str())
         || !expected.complete
         || expected.source_scopes.is_empty()
         || expected.source_scopes.len() > limits.max_sources

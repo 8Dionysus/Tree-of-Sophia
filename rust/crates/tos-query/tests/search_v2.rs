@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1, parse_json,
+    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonValue,
+    KNOWLEDGE_MODEL_ABI_V2_POSTINGS_V1, KNOWLEDGE_MODEL_ABI_V3_POSTINGS_V1, canonical_bytes_v1,
+    parse_json,
 };
 use tos_query::SearchDocumentBudget;
 use tos_query::search_candidate::{
@@ -526,6 +528,22 @@ fn request_refuses_unknown_membership_and_invalid_page_limits() {
 #[test]
 fn selection_must_be_complete_profiled_and_bound_to_selected_vocabulary() {
     let vocabulary = FixtureVocabulary::selected();
+    let mut current = selection(&vocabulary);
+    current.model_abi = KNOWLEDGE_MODEL_ABI_V2_POSTINGS_V1.into();
+    request("query").normalize(&current, &vocabulary).unwrap();
+
+    // The old unsuffixed physical model cannot be admitted by the current
+    // semantic selection path even though v1 in-memory fixtures remain.
+    let mut expanded = selection(&vocabulary);
+    expanded.model_abi = "tos_knowledge_read_model_v2".into();
+    assert_eq!(
+        request("query")
+            .normalize(&expanded, &vocabulary)
+            .unwrap_err()
+            .code,
+        SearchV2ErrorCode::UnsupportedModel
+    );
+
     let mut incomplete = selection(&vocabulary);
     incomplete.complete = false;
     assert_eq!(
@@ -580,7 +598,8 @@ fn selection_must_be_complete_profiled_and_bound_to_selected_vocabulary() {
 #[test]
 fn continuation_binds_query_selection_and_independent_kind_positions() {
     let vocabulary = FixtureVocabulary::selected();
-    let selected = selection(&vocabulary);
+    let mut selected = selection(&vocabulary);
+    selected.model_abi = KNOWLEDGE_MODEL_ABI_V2_POSTINGS_V1.into();
     let normalized = request("query").normalize(&selected, &vocabulary).unwrap();
     let policy = current_policy();
     let mut state = SearchContinuationState::new(
@@ -621,6 +640,10 @@ fn continuation_binds_query_selection_and_independent_kind_positions() {
         SearchV2ErrorCode::StaleSelection
     );
     for changed in [
+        SearchSelectionBinding {
+            model_abi: KNOWLEDGE_MODEL_ABI_V3_POSTINGS_V1.into(),
+            ..selected.clone()
+        },
         SearchSelectionBinding {
             catalog_packet_sha256: Digest256::of_bytes(b"new catalog packet"),
             ..selected.clone()
