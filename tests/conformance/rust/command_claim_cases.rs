@@ -1500,6 +1500,246 @@ fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
             response(restored.command())["receipt"]["grants_admission"],
             false
         );
+        drop(restored);
+        drop(replay_worker);
+        drop(current_worker);
+
+        // Revise the profiled Claim through the same protected native owner.
+        // The original catalogue companion remains bound to creation while
+        // the current generated catalogue and cut advance with this command.
+        let form_name = format!(
+            "source-claims.{}.human-forms.json",
+            Digest256::of_bytes(claim["claim_id"].as_str().unwrap().as_bytes()).to_hex()
+        );
+        let lock_name = format!(".{form_name}.writer.lock");
+        let home = created.home().as_str();
+        let lock_path = isolated.path().join(home).join(&lock_name);
+        fs::write(&lock_path, b"").unwrap();
+        fs::set_permissions(&lock_path, fs::Permissions::from_mode(0o600)).unwrap();
+        let revision_owner = serde_json::json!({
+            "schema_version":format!("tos_local_identity_proposal_revision_owner_{version}"),
+            "uid":uid, "principal_id":claim["maker"]["agent_ref"],
+            "source_root":isolated.path(), "source_path":source_path,
+            "authority_ref":"synthetic-test-only:identity-correction-no-admission",
+            "expires_at":"2099-01-01T00:00:00Z", "claim_id":claim["claim_id"],
+            "allowed_operations":["claim.revise"], "allowed_fields":["qualifiers"],
+            "allowed_evidence_refs":claim["evidence_refs"],
+            "allowed_form_ids":[format!("tos.form.synthetic-identity-{version}")],
+            "allowed_form_field_ids":["claim.statement"],
+            "allowed_object_values":[claim["object"]],
+            "allowed_object_refs":refs.iter().map(|r| r["id"].clone()).collect::<Vec<_>>(),
+            "allowed_related_claim_refs":[]
+        });
+        let revision_owner_path = isolated.path().join("identity-revision-owner.json");
+        fs::write(
+            &revision_owner_path,
+            source_bytes(&source_value(&revision_owner)),
+        )
+        .unwrap();
+        fs::set_permissions(&revision_owner_path, fs::Permissions::from_mode(0o600)).unwrap();
+        let revision_filesystem = CreationFilesystem::select_isolated(
+            &isolated,
+            &revision_owner_path,
+            deadline,
+            &cancellation,
+        )
+        .unwrap();
+        let correction = serde_json::json!({
+            "schema_version":"tos_local_source_command_v1", "operation":"prepare-revise",
+            "fields":{"qualifiers":{"statement":format!(
+                "{} [retained identity wording correction; no admission]",
+                claim["qualifiers"]["statement"].as_str().unwrap()
+            )}},
+            "forms":[{"form_id":revision_owner["allowed_form_ids"][0],"field_id":"claim.statement"}],
+            "reason":"Retain an isolated identity proposal wording correction."
+        });
+        let mut revision_context = selected_context(
+            &current_files,
+            &software_files,
+            &revision_owner,
+            &correction,
+            current,
+        );
+        revision_context.effective_uid = u64::from(uid);
+        let mut preview_budget = ExecutorBudget::laboratory();
+        preview_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+        assert!(!preview_budget.execution_wall.is_zero());
+        let mut revision_preview_worker =
+            super::command_form_cases::schemas_for_profile_with_budget(
+                &current_cut,
+                FormatProfile::LegacyPythonObserved20260923,
+                preview_budget,
+                deadline,
+                &cancellation,
+            );
+        let revision_preview = prepare_isolated_claim_revision_from_captures(
+            &revision_filesystem,
+            &revision_context,
+            &cut,
+            &current_cut,
+            &software,
+            &components,
+            &mut revision_preview_worker,
+            deadline,
+            &cancellation,
+        )
+        .unwrap();
+        drop(revision_preview_worker);
+        let prepared = response(&revision_preview);
+        let mut oracle_files = current_files.clone();
+        oracle_files.insert(format!("{home}/{lock_name}"), Vec::new());
+        let catalog_home = isolated.path().join("ToS/source-witnesses/catalog");
+        for entry in fs::read_dir(&catalog_home).unwrap() {
+            let entry = entry.unwrap();
+            if entry.file_type().unwrap().is_file() {
+                let leaf = entry.file_name().into_string().unwrap();
+                oracle_files.insert(
+                    format!("ToS/source-witnesses/catalog/{leaf}"),
+                    fs::read(entry.path()).unwrap(),
+                );
+            }
+        }
+        let independent =
+            maintained_oracle(&oracle_files, &revision_owner, &correction, &repository);
+        assert_eq!(
+            prepared["expected_dependencies"],
+            independent["expected_dependencies"]
+        );
+        assert_eq!(prepared["source_bindings"], independent["source_bindings"]);
+        let mut revision_request = correction;
+        revision_request["operation"] = Value::String("claim.revise".into());
+        revision_request["command_id"] =
+            Value::String(format!("synthetic:identity-proposal-correction-{version}"));
+        revision_request["expected_configuration"] = prepared["owner_configuration"].clone();
+        revision_request["expected_source"] = prepared["source"].clone();
+        revision_request["expected_revision"] = prepared["revision"].clone();
+        revision_request["expected_dependencies"] = prepared["expected_dependencies"].clone();
+        revision_request["expected_inputs"] = prepared["source_bindings"].clone();
+        revision_context.request_raw = serde_json::to_vec(&revision_request).unwrap();
+        let mut revision_budget = ExecutorBudget::laboratory();
+        revision_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+        assert!(!revision_budget.execution_wall.is_zero());
+        let mut revision_worker = super::command_form_cases::schemas_for_profile_with_budget(
+            &current_cut,
+            FormatProfile::LegacyPythonObserved20260923,
+            revision_budget,
+            deadline,
+            &cancellation,
+        );
+        let (revised, revision_publication) = execute_isolated_claim_revision_from_captures(
+            &revision_filesystem,
+            &revision_context,
+            &cut,
+            &current_cut,
+            &software,
+            &components,
+            &mut revision_worker,
+            deadline,
+            &cancellation,
+        )
+        .unwrap();
+        drop(revision_worker);
+        assert!(!revision_publication.replayed);
+        assert_eq!(
+            revised.commit(),
+            Err(SourceCommandError::MissingProductionAdmission)
+        );
+        let revised_result = response(&revised);
+        assert_eq!(revised_result["receipt"]["grants_admission"], false);
+        let archive = revised_result["receipt"]["archive_path"].as_str().unwrap();
+        assert!(
+            isolated
+                .path()
+                .join(archive)
+                .join("manifest.json")
+                .is_file()
+        );
+        let mut corrected_files = current_files;
+        apply_changes(&mut corrected_files, &revised);
+        for change in &revised.changes {
+            if let Some(raw) = &change.after {
+                assert_eq!(
+                    fs::read(isolated.path().join(change.path.as_str())).unwrap(),
+                    *raw
+                );
+            }
+        }
+        let corrected = successor(&corrected_files, &store, current);
+        let corrected_cut = open_cut(&store, corrected, deadline, &cancellation);
+        publish_fixture_catalog(&repository, isolated.path(), deadline);
+        let mut original_budget = ExecutorBudget::laboratory();
+        original_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+        assert!(!original_budget.execution_wall.is_zero());
+        let mut original_worker = super::command_form_cases::schemas_for_profile_with_budget(
+            &cut,
+            FormatProfile::LegacyPythonObserved20260923,
+            original_budget,
+            deadline,
+            &cancellation,
+        );
+        let mut latest_budget = ExecutorBudget::laboratory();
+        latest_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+        assert!(!latest_budget.execution_wall.is_zero());
+        let mut latest_worker = super::command_form_cases::schemas_for_profile_with_budget(
+            &corrected_cut,
+            FormatProfile::LegacyPythonObserved20260923,
+            latest_budget,
+            deadline,
+            &cancellation,
+        );
+        let (restored_after_revision, original_replayed, original_result) =
+            execute_isolated_claim_creation_from_captures(
+                &filesystem,
+                &context,
+                &cut,
+                &corrected_cut,
+                &software,
+                &components,
+                &mut original_worker,
+                Some(&mut latest_worker),
+                deadline,
+                &cancellation,
+            )
+            .unwrap();
+        assert!(original_replayed.replayed);
+        assert_eq!(restored_after_revision.files(), &original);
+        assert_eq!(original_result, restored_after_revision.command().response);
+        assert!(fs::read(&lock_path).unwrap().is_empty());
+        drop(original_worker);
+        drop(latest_worker);
+        let mut retry_context = selected_context(
+            &corrected_files,
+            &software_files,
+            &revision_owner,
+            &revision_request,
+            corrected,
+        );
+        retry_context.effective_uid = u64::from(uid);
+        let mut retry_budget = ExecutorBudget::laboratory();
+        retry_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+        assert!(!retry_budget.execution_wall.is_zero());
+        let mut retry_worker = super::command_form_cases::schemas_for_profile_with_budget(
+            &corrected_cut,
+            FormatProfile::LegacyPythonObserved20260923,
+            retry_budget,
+            deadline,
+            &cancellation,
+        );
+        let (retried, retry_publication) = execute_isolated_claim_revision_from_captures(
+            &revision_filesystem,
+            &retry_context,
+            &cut,
+            &corrected_cut,
+            &software,
+            &components,
+            &mut retry_worker,
+            deadline,
+            &cancellation,
+        )
+        .unwrap();
+        assert!(retry_publication.replayed);
+        assert!(retried.changes.is_empty());
+        assert_eq!(response(&retried)["receipt"], revised_result["receipt"]);
     }
 }
 
@@ -1833,4 +2073,243 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
         response(restored.command())["receipt"]["grants_admission"],
         false
     );
+    drop(restored);
+    drop(original_worker);
+    drop(current_worker);
+
+    // The historical Collection basis remains fixed while the attributed
+    // order Claim itself receives one native source-copy correction.
+    let form_name = format!(
+        "source-claims.{}.human-forms.json",
+        Digest256::of_bytes(claim["claim_id"].as_str().unwrap().as_bytes()).to_hex()
+    );
+    let lock_name = format!(".{form_name}.writer.lock");
+    let home = created.home().as_str();
+    let lock_path = isolated.path().join(home).join(&lock_name);
+    fs::write(&lock_path, b"").unwrap();
+    fs::set_permissions(&lock_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let revision_owner = serde_json::json!({
+        "schema_version":"tos_local_claim_revision_owner_v1", "uid":uid,
+        "principal_id":claim["maker"]["agent_ref"],
+        "source_root":isolated.path(), "source_path":source_path,
+        "authority_ref":"synthetic-test-only:collection-order-correction-no-membership-grant",
+        "expires_at":"2099-01-01T00:00:00Z", "claim_id":claim["claim_id"],
+        "allowed_operations":["claim.revise"], "allowed_fields":["qualifiers"],
+        "allowed_evidence_refs":claim["evidence_refs"],
+        "allowed_form_ids":["tos.form.synthetic-collection-order"],
+        "allowed_form_field_ids":["claim.statement"]
+    });
+    let revision_owner_path = isolated.path().join("order-revision-owner.json");
+    fs::write(
+        &revision_owner_path,
+        source_bytes(&source_value(&revision_owner)),
+    )
+    .unwrap();
+    fs::set_permissions(&revision_owner_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let revision_filesystem = CreationFilesystem::select_isolated(
+        &isolated,
+        &revision_owner_path,
+        deadline,
+        &cancellation,
+    )
+    .unwrap();
+    let correction = serde_json::json!({
+        "schema_version":"tos_local_source_command_v1", "operation":"prepare-revise",
+        "fields":{"qualifiers":{"statement":format!(
+            "{} [retained order wording correction; no membership grant]",
+            claim["qualifiers"]["statement"].as_str().unwrap()
+        )}},
+        "forms":[{"form_id":"tos.form.synthetic-collection-order","field_id":"claim.statement"}],
+        "reason":"Retain an isolated attributed order wording correction."
+    });
+    let mut revision_context = selected_context(
+        &current_files,
+        &software_files,
+        &revision_owner,
+        &correction,
+        current,
+    );
+    revision_context.effective_uid = u64::from(uid);
+    let mut preview_budget = ExecutorBudget::laboratory();
+    preview_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+    assert!(!preview_budget.execution_wall.is_zero());
+    let mut revision_preview_worker = super::command_form_cases::schemas_for_profile_with_budget(
+        &current_cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        preview_budget,
+        deadline,
+        &cancellation,
+    );
+    let revision_preview = prepare_isolated_claim_revision_from_captures(
+        &revision_filesystem,
+        &revision_context,
+        &cut,
+        &current_cut,
+        &software,
+        &components,
+        &mut revision_preview_worker,
+        deadline,
+        &cancellation,
+    )
+    .unwrap();
+    drop(revision_preview_worker);
+    let prepared = response(&revision_preview);
+    assert_eq!(
+        prepared["source_bindings"]["collection_orders"]
+            .as_object()
+            .unwrap()
+            .len(),
+        1
+    );
+    let mut oracle_files = current_files.clone();
+    oracle_files.insert(format!("{home}/{lock_name}"), Vec::new());
+    for entry in fs::read_dir(isolated.path().join("ToS/source-witnesses/catalog")).unwrap() {
+        let entry = entry.unwrap();
+        if entry.file_type().unwrap().is_file() {
+            let leaf = entry.file_name().into_string().unwrap();
+            oracle_files.insert(
+                format!("ToS/source-witnesses/catalog/{leaf}"),
+                fs::read(entry.path()).unwrap(),
+            );
+        }
+    }
+    let independent = maintained_oracle(&oracle_files, &revision_owner, &correction, &repository);
+    assert_eq!(
+        prepared["expected_dependencies"],
+        independent["expected_dependencies"]
+    );
+    assert_eq!(prepared["source_bindings"], independent["source_bindings"]);
+    let mut revision_request = correction;
+    revision_request["operation"] = Value::String("claim.revise".into());
+    revision_request["command_id"] = Value::String("synthetic:collection-order-correction".into());
+    revision_request["expected_configuration"] = prepared["owner_configuration"].clone();
+    revision_request["expected_source"] = prepared["source"].clone();
+    revision_request["expected_revision"] = prepared["revision"].clone();
+    revision_request["expected_dependencies"] = prepared["expected_dependencies"].clone();
+    revision_request["expected_inputs"] = prepared["source_bindings"].clone();
+    revision_context.request_raw = serde_json::to_vec(&revision_request).unwrap();
+    let mut revision_budget = ExecutorBudget::laboratory();
+    revision_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+    assert!(!revision_budget.execution_wall.is_zero());
+    let mut revision_worker = super::command_form_cases::schemas_for_profile_with_budget(
+        &current_cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        revision_budget,
+        deadline,
+        &cancellation,
+    );
+    let (revised, revision_publication) = execute_isolated_claim_revision_from_captures(
+        &revision_filesystem,
+        &revision_context,
+        &cut,
+        &current_cut,
+        &software,
+        &components,
+        &mut revision_worker,
+        deadline,
+        &cancellation,
+    )
+    .unwrap();
+    drop(revision_worker);
+    assert!(!revision_publication.replayed);
+    assert_eq!(
+        revised.commit(),
+        Err(SourceCommandError::MissingProductionAdmission)
+    );
+    let revised_result = response(&revised);
+    assert_eq!(revised_result["receipt"]["grants_admission"], false);
+    let archive = revised_result["receipt"]["archive_path"].as_str().unwrap();
+    assert!(
+        isolated
+            .path()
+            .join(archive)
+            .join("manifest.json")
+            .is_file()
+    );
+    let mut corrected_files = current_files;
+    apply_changes(&mut corrected_files, &revised);
+    for change in &revised.changes {
+        if let Some(raw) = &change.after {
+            assert_eq!(
+                fs::read(isolated.path().join(change.path.as_str())).unwrap(),
+                *raw
+            );
+        }
+    }
+    let corrected = successor(&corrected_files, &store, current);
+    let corrected_cut = open_cut(&store, corrected, deadline, &cancellation);
+    publish_fixture_catalog(&repository, isolated.path(), deadline);
+    let mut original_budget = ExecutorBudget::laboratory();
+    original_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+    assert!(!original_budget.execution_wall.is_zero());
+    let mut original_worker = super::command_form_cases::schemas_for_profile_with_budget(
+        &cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        original_budget,
+        deadline,
+        &cancellation,
+    );
+    let mut latest_budget = ExecutorBudget::laboratory();
+    latest_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+    assert!(!latest_budget.execution_wall.is_zero());
+    let mut latest_worker = super::command_form_cases::schemas_for_profile_with_budget(
+        &corrected_cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        latest_budget,
+        deadline,
+        &cancellation,
+    );
+    let (restored_after_revision, original_replayed, original_result) =
+        execute_isolated_claim_creation_from_captures(
+            &filesystem,
+            &context,
+            &cut,
+            &corrected_cut,
+            &software,
+            &components,
+            &mut original_worker,
+            Some(&mut latest_worker),
+            deadline,
+            &cancellation,
+        )
+        .unwrap();
+    assert!(original_replayed.replayed);
+    assert_eq!(restored_after_revision.files(), &original);
+    assert_eq!(original_result, restored_after_revision.command().response);
+    assert!(fs::read(&lock_path).unwrap().is_empty());
+    drop(original_worker);
+    drop(latest_worker);
+    let mut retry_context = selected_context(
+        &corrected_files,
+        &software_files,
+        &revision_owner,
+        &revision_request,
+        corrected,
+    );
+    retry_context.effective_uid = u64::from(uid);
+    let mut retry_budget = ExecutorBudget::laboratory();
+    retry_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+    assert!(!retry_budget.execution_wall.is_zero());
+    let mut retry_worker = super::command_form_cases::schemas_for_profile_with_budget(
+        &corrected_cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        retry_budget,
+        deadline,
+        &cancellation,
+    );
+    let (retried, retry_publication) = execute_isolated_claim_revision_from_captures(
+        &revision_filesystem,
+        &retry_context,
+        &cut,
+        &corrected_cut,
+        &software,
+        &components,
+        &mut retry_worker,
+        deadline,
+        &cancellation,
+    )
+    .unwrap();
+    assert!(retry_publication.replayed);
+    assert!(retried.changes.is_empty());
+    assert_eq!(response(&retried)["receipt"], revised_result["receipt"]);
 }

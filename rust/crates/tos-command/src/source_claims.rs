@@ -833,10 +833,7 @@ pub fn run_claim_command_from_cut(
         ));
     }
     let files = complete_authored_inputs(ctx, cut, deadline, cancelled)?;
-    let complete = CommandContext {
-        files,
-        ..ctx.clone()
-    };
+    let complete = claim_context_with_files(ctx, cut.current().revision(), files);
     complete.check()?;
     run_claim_command_inner(
         &complete,
@@ -971,21 +968,45 @@ fn selected_claim_context_from_captures(
             .filter(|input| !input.path.as_str().starts_with("ToS/"))
             .cloned(),
     );
-    let complete = CommandContext {
-        files,
-        ..ctx.clone()
-    };
+    let complete = claim_context_with_files(ctx, cut.current().revision(), files);
     complete.check()?;
     Ok(complete)
+}
+
+fn claim_context_with_files(
+    ctx: &CommandContext,
+    base_revision: tos_foundation::SourceRevision,
+    files: Vec<SourceFile>,
+) -> CommandContext {
+    CommandContext {
+        base_revision,
+        configuration_raw: ctx.configuration_raw.clone(),
+        request_raw: ctx.request_raw.clone(),
+        recorded_at: ctx.recorded_at.clone(),
+        effective_uid: ctx.effective_uid,
+        files,
+    }
 }
 
 fn claim_call_for_selected_context(
     ctx: &CommandContext,
 ) -> SourceCommandResult<Rc<RefCell<ClaimCallBudget>>> {
-    let live = ctx
+    let files = ctx
         .files
         .iter()
-        .try_fold(0usize, |sum, file| sum.checked_add(file.raw.len()))
+        .try_fold(0usize, |sum, file| {
+            sum.checked_add(file.raw.len())
+                .and_then(|sum| sum.checked_add(file.path.as_str().len()))
+                .and_then(|sum| sum.checked_add(std::mem::size_of::<SourceFile>()))
+        })
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim caller state overflow",
+        ))?;
+    let live = files
+        .checked_add(ctx.configuration_raw.len())
+        .and_then(|sum| sum.checked_add(ctx.request_raw.len()))
+        .and_then(|sum| sum.checked_add(ctx.recorded_at.len()))
+        .and_then(|sum| sum.checked_add(std::mem::size_of::<CommandContext>()))
         .ok_or(SourceCommandError::Unsupported(
             "Claim caller state overflow",
         ))?;
@@ -997,11 +1018,15 @@ fn charge_selected_claim_context(
     cut: &CorpusCutReader,
     whole_call: &Rc<RefCell<ClaimCallBudget>>,
 ) -> SourceCommandResult<()> {
-    let authored = cut
+    let (authored, selected_paths, selected_count) = cut
         .current()
         .members()
-        .try_fold(0usize, |sum, member| {
-            sum.checked_add(usize::try_from(member.size_bytes).ok()?)
+        .try_fold((0usize, 0usize, 0usize), |(bytes, paths, count), member| {
+            Some((
+                bytes.checked_add(usize::try_from(member.size_bytes).ok()?)?,
+                paths.checked_add(member.path.as_str().len())?,
+                count.checked_add(1)?,
+            ))
         })
         .ok_or(SourceCommandError::Unsupported(
             "Claim selected cut size overflow",
@@ -1019,6 +1044,14 @@ fn charge_selected_claim_context(
     budget.retain(
         authored
             .checked_add(software_copy)
+            .and_then(|sum| sum.checked_add(selected_paths))
+            .and_then(|sum| {
+                sum.checked_add(selected_count.checked_mul(std::mem::size_of::<SourceFile>())?)
+            })
+            .and_then(|sum| sum.checked_add(ctx.configuration_raw.len()))
+            .and_then(|sum| sum.checked_add(ctx.request_raw.len()))
+            .and_then(|sum| sum.checked_add(ctx.recorded_at.len()))
+            .and_then(|sum| sum.checked_add(std::mem::size_of::<CommandContext>()))
             .ok_or(SourceCommandError::Unsupported(
                 "Claim selected context state overflow",
             ))?,
@@ -1472,28 +1505,14 @@ pub fn execute_isolated_claim_creation_from_captures(
                 .borrow()
                 .bind_cut(current_cut, deadline, cancelled)?;
         }
-        let current_context = CommandContext {
-            base_revision: current_cut.current().revision(),
-            files: vec![],
-            ..ctx.clone()
-        };
-        ctx.check_from_selected_captures(original_cut, software, components, deadline, cancelled)?;
         if let Some(budget) = &whole_call {
-            charge_selected_claim_context(&current_context, current_cut, budget)?;
+            charge_selected_claim_context(ctx, current_cut, budget)?;
         }
+        let current_context =
+            claim_context_with_files(ctx, current_cut.current().revision(), vec![]);
+        ctx.check_from_selected_captures(original_cut, software, components, deadline, cancelled)?;
         let mut current_files =
             complete_authored_inputs(&current_context, current_cut, deadline, cancelled)?;
-        if let Some(budget) = &whole_call {
-            let software_bytes = ctx
-                .files
-                .iter()
-                .filter(|file| !file.path.as_str().starts_with("ToS/"))
-                .try_fold(0usize, |sum, file| sum.checked_add(file.raw.len()))
-                .ok_or(SourceCommandError::Unsupported(
-                    "Claim current software state overflow",
-                ))?;
-            budget.borrow_mut().retain(software_bytes)?;
-        }
         current_files.extend(
             ctx.files
                 .iter()
@@ -1650,6 +1669,8 @@ fn checked_isolated_claim_revision(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<CheckedClaimRevision> {
+    let whole_call = claim_call_for_selected_context(ctx)?;
+    charge_selected_claim_context(ctx, current_cut, &whole_call)?;
     let complete = selected_claim_context_from_captures(
         ctx,
         current_cut,
@@ -1658,47 +1679,6 @@ fn checked_isolated_claim_revision(
         deadline,
         cancelled,
     )?;
-    let complete_bytes = complete
-        .files
-        .iter()
-        .try_fold(0usize, |sum, file| {
-            sum.checked_add(file.raw.len())
-                .filter(|bytes| *bytes <= CLAIM_COMPLETE_BYTES as usize)
-        })
-        .ok_or(SourceCommandError::Unsupported(
-            "Claim complete input state budget",
-        ))?;
-    let authored_read_bytes = complete
-        .files
-        .iter()
-        .try_fold(0usize, |sum, file| {
-            if file.path.as_str().starts_with("ToS/") {
-                sum.checked_add(file.raw.len())
-            } else {
-                Some(sum)
-            }
-        })
-        .ok_or(SourceCommandError::Unsupported(
-            "Claim authored input read overflow",
-        ))?;
-    let caller_bytes = ctx
-        .files
-        .iter()
-        .try_fold(0usize, |sum, file| {
-            sum.checked_add(file.raw.len())
-                .filter(|bytes| *bytes <= CLAIM_COMPLETE_BYTES as usize)
-        })
-        .ok_or(SourceCommandError::Unsupported(
-            "Claim caller input state budget",
-        ))?;
-    let whole_call = Rc::new(RefCell::new(ClaimCallBudget::new(
-        authored_read_bytes as u64,
-        complete_bytes
-            .checked_add(caller_bytes)
-            .ok_or(SourceCommandError::Unsupported(
-                "Claim selected contexts state overflow",
-            ))?,
-    )?));
     let (config, source_path, _, create, _) = config(&complete)?;
     if create {
         return Err(SourceCommandError::Denied(
@@ -1718,7 +1698,9 @@ fn checked_isolated_claim_revision(
             .ok_or(SourceCommandError::Invalid("Claim revision parent"))?
             .0,
     )?;
-    let current = rows(selected(&complete, source_path.as_str())?)?;
+    let current_raw = selected(&complete, source_path.as_str())?;
+    whole_call.borrow().check_live(current_raw.len())?;
+    let current = rows(current_raw)?;
     let record = current
         .get(text(&config, "claim_id")?)
         .ok_or(SourceCommandError::Conflict(
@@ -2281,6 +2263,16 @@ fn run_claim_command_inner(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
+    if let Some(budget) = &whole_call {
+        let temporary = ctx
+            .configuration_raw
+            .len()
+            .checked_add(ctx.request_raw.len())
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim request/configuration state overflow",
+            ))?;
+        budget.borrow().check_live(temporary)?;
+    }
     // Planning must bind the complete read closure as well as caller inputs.
     // A partial caller context cannot be used to bind this proposal afterward.
     if selected_context.is_some_and(|selected| selected.files.len() != ctx.files.len()) {
@@ -2314,6 +2306,9 @@ fn run_claim_command_inner(
             "ToS/contracts/semantic-entity-type-registry.schema.json",
         ),
     ] {
+        if let Some(budget) = &whole_call {
+            budget.borrow().check_live(selected(ctx, source)?.len())?;
+        }
         schema_check(
             executor,
             source,
@@ -3622,6 +3617,7 @@ impl SignNativeRead for ProfileMetadataReader<'_> {
 /// Existing maintained selected-cut catalog mechanics, shared by Claim and
 /// source-create handlers. These observations carry no permission or admission.
 pub(crate) struct MaintainedInventory {
+    profile_entities: Option<JsonValue>,
     pub records: JsonValue,
     pub record_inputs: JsonValue,
     pub record_member_inputs: BTreeMap<String, JsonValue>,
@@ -3692,8 +3688,25 @@ impl RetainedProfileRead {
         whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     ) -> SourceCommandResult<Self> {
         ctx.check()?;
-        let inventory = maintained_inventory(ctx, executor, deadline, cancelled)?;
-        let entities = json_file(ctx, ENTITIES)?;
+        let mut inventory = maintained_inventory_inner(
+            ctx,
+            None,
+            false,
+            executor,
+            deadline,
+            cancelled,
+            whole_call.as_ref(),
+        )?;
+        let entities = if whole_call.is_some() {
+            inventory
+                .profile_entities
+                .take()
+                .ok_or(SourceCommandError::Conflict(
+                    "Claim retained profile registry absent",
+                ))?
+        } else {
+            json_file(ctx, ENTITIES)?
+        };
         let raw_bytes = ctx
             .files
             .iter()
@@ -3786,7 +3799,11 @@ impl RetainedProfileRead {
                 ))?
         };
         if let Some(budget) = &whole_call {
-            *budget.borrow_mut() = ClaimCallBudget::new(read_bytes, state_bytes)?;
+            let mut budget = budget.borrow_mut();
+            let additional = state_bytes.checked_sub(budget.live_state_bytes).ok_or(
+                SourceCommandError::Unsupported("Claim retained state basis changed"),
+            )?;
+            budget.retain(additional)?;
         }
         Ok(Self {
             inventory: Some(inventory),
@@ -3804,6 +3821,14 @@ impl RetainedProfileRead {
     }
 
     fn debit(&mut self, bytes_read: u64, state_bytes: usize) -> SourceCommandResult<()> {
+        if let Some(budget) = &self.whole_call {
+            let mut budget = budget.borrow_mut();
+            budget.read(bytes_read)?;
+            budget.retain(state_bytes)?;
+            self.read_bytes = budget.read_bytes;
+            self.state_bytes = budget.live_state_bytes;
+            return Ok(());
+        }
         self.read_bytes = self
             .read_bytes
             .checked_add(bytes_read)
@@ -3818,13 +3843,13 @@ impl RetainedProfileRead {
             .ok_or(SourceCommandError::Unsupported(
                 "Claim retained state budget",
             ))?;
-        if let Some(budget) = &self.whole_call {
-            *budget.borrow_mut() = ClaimCallBudget::new(self.read_bytes, self.state_bytes)?;
-        }
         Ok(())
     }
 
     fn remaining_read_bytes(&self) -> SourceCommandResult<u64> {
+        if let Some(budget) = &self.whole_call {
+            return budget.borrow().remaining_read();
+        }
         CLAIM_COMPLETE_BYTES
             .checked_sub(self.read_bytes)
             .filter(|remaining| *remaining > 0)
@@ -3834,6 +3859,9 @@ impl RetainedProfileRead {
     }
 
     fn remaining_state_bytes(&self) -> SourceCommandResult<usize> {
+        if let Some(budget) = &self.whole_call {
+            return budget.borrow().remaining_live();
+        }
         (CLAIM_COMPLETE_BYTES as usize)
             .checked_sub(self.state_bytes)
             .filter(|remaining| *remaining > 0)
@@ -3934,6 +3962,12 @@ impl RetainedProfileRead {
                     digest,
                 } => {
                     let raw = selected(ctx, location)?;
+                    if raw.len() as u64 > self.remaining_read_bytes()?.saturating_sub(recheck_bytes)
+                    {
+                        return Err(SourceCommandError::Unsupported(
+                            "retained Claim read recheck budget",
+                        ));
+                    }
                     if Digest256::of_bytes(raw).to_prefixed() != *digest {
                         return Err(SourceCommandError::Conflict(
                             "retained Claim exact path read differs from complete cut",
@@ -3966,7 +4000,7 @@ pub(crate) fn maintained_inventory(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<MaintainedInventory> {
-    maintained_inventory_inner(ctx, None, false, executor, deadline, cancelled)
+    maintained_inventory_inner(ctx, None, false, executor, deadline, cancelled, None)
 }
 
 /// Complete authored membership comes from the actual cut, independently of
@@ -3985,12 +4019,17 @@ pub(crate) fn maintained_inventory_from_cut(
             .filter(|f| !f.path.as_str().starts_with("ToS/"))
             .cloned(),
     );
-    let complete = CommandContext {
-        files,
-        ..ctx.clone()
-    };
+    let complete = claim_context_with_files(ctx, cut.current().revision(), files);
     complete.check()?;
-    maintained_inventory_inner(&complete, Some(cut), false, executor, deadline, cancelled)
+    maintained_inventory_inner(
+        &complete,
+        Some(cut),
+        false,
+        executor,
+        deadline,
+        cancelled,
+        None,
+    )
 }
 
 /// Only the privately verified complete managed Agent input may use this route.
@@ -4027,6 +4066,7 @@ pub(crate) fn maintained_agent_inventory_from_managed(
         executor,
         deadline,
         cancelled,
+        None,
     )?;
     complete_agent_inventory(inventory)
 }
@@ -4278,6 +4318,21 @@ pub(crate) fn agent_inventory_contribution(
     ]))
 }
 
+fn inventory_live_preflight(
+    whole_call: Option<&Rc<RefCell<ClaimCallBudget>>>,
+    retained: usize,
+    additional: usize,
+) -> SourceCommandResult<()> {
+    if let Some(budget) = whole_call {
+        budget
+            .borrow()
+            .check_live(retained.checked_add(additional).ok_or(
+                SourceCommandError::Unsupported("Claim inventory state overflow"),
+            )?)?;
+    }
+    Ok(())
+}
+
 fn maintained_inventory_inner(
     ctx: &CommandContext,
     cut: Option<&CorpusCutReader>,
@@ -4285,10 +4340,14 @@ fn maintained_inventory_inner(
     executor: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
+    whole_call: Option<&Rc<RefCell<ClaimCallBudget>>>,
 ) -> SourceCommandResult<MaintainedInventory> {
+    inventory_live_preflight(whole_call, 0, selected(ctx, ENTITIES)?.len())?;
     let entities = crate::source_revisions::validate_source_profile_registry(
         executor, deadline, cancelled, ctx,
     )?;
+    let mut retained_inventory_state = retained_value_bytes(&entities)?;
+    inventory_live_preflight(whole_call, 0, retained_inventory_state)?;
     let types = array(&entities, "types")?;
     // collect_records seeds its collision universe before reading metadata.
     // Even an empty snapshot is observed only by the cut-backed owner reader.
@@ -4371,7 +4430,13 @@ fn maintained_inventory_inner(
             ));
         }
         if let Some((kind, _)) = kinds.iter().find(|(_, name)| name.as_str() == basename) {
+            inventory_live_preflight(whole_call, retained_inventory_state, file.raw.len())?;
             let record = parse(&file.raw)?;
+            inventory_live_preflight(
+                whole_call,
+                retained_inventory_state,
+                retained_value_bytes(&record)?,
+            )?;
             if text(&record, "record_type")? != kind {
                 return Err(SourceCommandError::Conflict(
                     "catalog record kind differs from basename",
@@ -4453,6 +4518,23 @@ fn maintained_inventory_inner(
                 None
             };
             let entry = catalogue_record(&record, location, schema)?;
+            let record_state = retained_value_bytes(&record)?;
+            let entry_state = retained_value_bytes(&entry)?;
+            let added =
+                record_state
+                    .checked_add(entry_state.checked_mul(3).ok_or(
+                        SourceCommandError::Unsupported("Claim catalog entry state overflow"),
+                    )?)
+                    .and_then(|sum| sum.checked_add(id.len().saturating_mul(2)))
+                    .and_then(|sum| sum.checked_add(location.len().saturating_mul(2)))
+                    .and_then(|sum| sum.checked_add(3 * std::mem::size_of::<(String, JsonValue)>()))
+                    .ok_or(SourceCommandError::Unsupported(
+                        "Claim catalog record state overflow",
+                    ))?;
+            inventory_live_preflight(whole_call, retained_inventory_state, added)?;
+            retained_inventory_state = retained_inventory_state.checked_add(added).ok_or(
+                SourceCommandError::Unsupported("Claim catalog record state overflow"),
+            )?;
             if objects.insert(id.clone(), entry.clone()).is_some() {
                 return Err(SourceCommandError::Conflict(
                     "complete catalog has duplicate metadata identity",
@@ -4495,7 +4577,10 @@ fn maintained_inventory_inner(
                 } {
                     continue;
                 }
+                inventory_live_preflight(whole_call, retained_inventory_state, raw.len())?;
                 let claim = parse(raw)?;
+                let claim_state = retained_value_bytes(&claim)?;
+                inventory_live_preflight(whole_call, retained_inventory_state, claim_state)?;
                 if !["public", "public_metadata_only"].contains(&text(&claim, "visibility")?) {
                     return Err(SourceCommandError::Denied("catalog Claim visibility"));
                 }
@@ -4531,13 +4616,26 @@ fn maintained_inventory_inner(
                 if id.is_empty() {
                     return Err(SourceCommandError::Invalid("catalog Claim identity"));
                 }
-                if prior
-                    .insert(
-                        id,
-                        catalogue_claim(ctx, &claim, location, index + 1, profiled)?,
-                    )
-                    .is_some()
-                {
+                let entry = catalogue_claim(ctx, &claim, location, index + 1, profiled)?;
+                let added = retained_value_bytes(&entry)?
+                    .checked_add(id.len())
+                    .and_then(|sum| sum.checked_add(std::mem::size_of::<(String, JsonValue)>()))
+                    .ok_or(SourceCommandError::Unsupported(
+                        "Claim catalog Claim state overflow",
+                    ))?;
+                inventory_live_preflight(
+                    whole_call,
+                    retained_inventory_state,
+                    claim_state
+                        .checked_add(added)
+                        .ok_or(SourceCommandError::Unsupported(
+                            "Claim catalog Claim state overflow",
+                        ))?,
+                )?;
+                retained_inventory_state = retained_inventory_state.checked_add(added).ok_or(
+                    SourceCommandError::Unsupported("Claim catalog Claim state overflow"),
+                )?;
+                if prior.insert(id, entry).is_some() {
                     return Err(SourceCommandError::Conflict(
                         "complete catalog has duplicate Claim identity",
                     ));
@@ -4566,7 +4664,13 @@ fn maintained_inventory_inner(
                 {
                     continue;
                 }
+                inventory_live_preflight(whole_call, retained_inventory_state, raw.len())?;
                 let payload = parse(raw)?;
+                inventory_live_preflight(
+                    whole_call,
+                    retained_inventory_state,
+                    retained_value_bytes(&payload)?,
+                )?;
                 let Some(id) = payload.object_get(key) else {
                     continue;
                 };
@@ -4582,6 +4686,17 @@ fn maintained_inventory_inner(
                         "duplicate complete evidence index identity",
                     ));
                 }
+                let added = retained_value_bytes(&payload)?
+                    .checked_mul(2)
+                    .and_then(|sum| sum.checked_add(id.len() + location.len()))
+                    .and_then(|sum| sum.checked_add(std::mem::size_of::<(JsonString, JsonValue)>()))
+                    .ok_or(SourceCommandError::Unsupported(
+                        "Claim evidence index state overflow",
+                    ))?;
+                inventory_live_preflight(whole_call, retained_inventory_state, added)?;
+                retained_inventory_state = retained_inventory_state.checked_add(added).ok_or(
+                    SourceCommandError::Unsupported("Claim evidence index state overflow"),
+                )?;
                 set(
                     indexed,
                     id,
@@ -4678,6 +4793,7 @@ fn maintained_inventory_inner(
         set(&mut record_catalog, kind, JsonValue::Array(entries.clone()))?;
     }
     Ok(MaintainedInventory {
+        profile_entities: whole_call.map(|_| entities),
         records: record_catalog,
         record_inputs,
         record_member_inputs,
