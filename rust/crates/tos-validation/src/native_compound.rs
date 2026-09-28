@@ -4533,6 +4533,57 @@ impl WorkExpressionCore<'_> {
         }
         Ok(rows)
     }
+    /// Consume only the prepared parent/child buffers for a descriptive
+    /// preview. The actual byte buffers move; no capture or receipt is made.
+    pub fn into_prepared_outputs(self) -> Result<BTreeMap<String, Vec<u8>>, ItemRefusal> {
+        let WorkExpressionCore {
+            reader, prepared, ..
+        } = self;
+        let CompoundCore {
+            authority,
+            parent_files,
+            child_files,
+            ..
+        } = prepared;
+        let scope = &authority["scope"];
+        let parent_home = parent(text(scope, "work_source_path")?)?;
+        let child_home = parent(text(scope, "expression_source_path")?)?;
+        let count = parent_files
+            .len()
+            .checked_add(child_files.len())
+            .ok_or(ItemRefusal::Budget)?;
+        if count > 64 {
+            return Err(ItemRefusal::Budget);
+        }
+        let mut slots = std::mem::size_of::<BTreeMap<String, Vec<u8>>>();
+        for (home, files) in [(parent_home, &parent_files), (child_home, &child_files)] {
+            for (name, _) in files {
+                slots = slots
+                    .checked_add(std::mem::size_of::<(String, Vec<u8>)>())
+                    .and_then(|n| n.checked_add(home.len()))
+                    .and_then(|n| n.checked_add(1))
+                    .and_then(|n| n.checked_add(name.len()))
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+        }
+        let used = reader.state.checked_add(slots).ok_or(ItemRefusal::Budget)?;
+        if used > reader.limits.max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "prepared Work output map slots",
+                used: Some(used as u64),
+                limit: Some(reader.limits.max_state_bytes as u64),
+            });
+        }
+        let mut outputs = BTreeMap::new();
+        for (home, files) in [(parent_home, parent_files), (child_home, child_files)] {
+            for (name, raw) in files {
+                if outputs.insert(format!("{home}/{name}"), raw).is_some() {
+                    return Err(bad("prepared Work duplicate output path"));
+                }
+            }
+        }
+        Ok(outputs)
+    }
 }
 /// Bind actual native capture bytes to prepared buffers. CMD must separately
 /// check selected software, physical source and journal fences before publish.
