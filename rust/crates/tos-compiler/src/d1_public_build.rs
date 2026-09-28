@@ -104,6 +104,7 @@ impl PublicD1BuildLimits {
         n.titles.validate()?;
         n.inherited.validate()?;
         n.finalize.validate()?;
+        NativeFamilyInputs::bounded_from(n).topology.validate()?;
         self.search.validate()?;
         if self.scope.max_sources == 0
             || self.scope.max_rows == 0
@@ -137,7 +138,15 @@ pub fn portable_public_d1_limits(max_build_seconds: u64) -> Result<PublicD1Build
     let row = base.max_row_bytes.min(8_000_000);
     let rows = base.max_rows;
     let work = base.max_work_bytes;
-    let page_rows = 8usize;
+    // Semantic joins retain two topology pages at once under their existing
+    // 64-MiB pair ceiling. Derive the shared native page width from that law.
+    let paired_row_bytes = row
+        .checked_mul(2)
+        .ok_or(Error::Budget("public D1 pair page arithmetic"))?;
+    let page_rows = 8usize.min((64 * 1024 * 1024) / paired_row_bytes);
+    if page_rows == 0 {
+        return Err(Error::Budget("public D1 pair page arithmetic"));
+    }
     let page_bytes = page_rows
         .checked_mul(row)
         .ok_or(Error::Budget("public D1 page arithmetic"))?;
@@ -271,7 +280,7 @@ pub fn portable_public_d1_limits(max_build_seconds: u64) -> Result<PublicD1Build
         search: SearchBuildLimits {
             max_payload_bytes: row,
             max_document_chars: row,
-            max_document_bytes: page_bytes,
+            max_document_bytes: 64_000_000,
             max_rank_field_bytes: row,
             max_postings: 10_000_000,
             max_work_bytes: work,
