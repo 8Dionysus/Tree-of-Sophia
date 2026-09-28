@@ -2108,13 +2108,15 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
     fs::write(&lock_path, b"").unwrap();
     fs::set_permissions(&lock_path, fs::Permissions::from_mode(0o600)).unwrap();
     let revision_owner = serde_json::json!({
-        "schema_version":"tos_local_claim_revision_owner_v1", "uid":uid,
+        "schema_version":"tos_local_claim_revision_owner_v4", "uid":uid,
         "principal_id":claim["maker"]["agent_ref"],
         "source_root":isolated.path(), "source_path":source_path,
         "authority_ref":"synthetic-test-only:collection-order-correction-no-membership-grant",
         "expires_at":"2099-01-01T00:00:00Z", "claim_id":claim["claim_id"],
         "allowed_operations":["claim.revise"], "allowed_fields":["qualifiers"],
         "allowed_evidence_refs":claim["evidence_refs"],
+        "allowed_object_refs":claim["object"]["members"],
+        "allowed_object_values":[claim["object"]],
         "allowed_form_ids":["tos.form.synthetic-collection-order"],
         "allowed_form_field_ids":["claim.statement"]
     });
