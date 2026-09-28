@@ -557,11 +557,12 @@ impl OwnerTextDerivedSelection {
                 "native derived TextLayer limits",
             ));
         }
+        let operation = operation.to_owned();
         Ok(Self {
             config,
             raw,
             path,
-            operation: operation.to_owned(),
+            operation,
         })
     }
 }

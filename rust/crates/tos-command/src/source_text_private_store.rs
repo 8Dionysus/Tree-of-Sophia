@@ -570,13 +570,6 @@ pub(crate) fn publish_private_text(
     if !leaf(target_name) {
         return Err(bad_plan());
     }
-    let uid = context.account_uid();
-    let parent = tos_fd_open::open_absolute_directory(parent_path)
-        .map_err(|_| SourceCommandError::Denied("native Text destination parent"))?;
-    let parent_before = directory(&parent, uid, true)?;
-    let root = tos_fd_open::open_absolute_directory(context.private_root())
-        .map_err(|_| SourceCommandError::Denied("native Text private root"))?;
-    directory(&root, uid, true)?;
     let target_rel = target
         .strip_prefix(context.private_root())
         .map_err(|_| bad_plan())?
@@ -591,6 +584,13 @@ pub(crate) fn publish_private_text(
             "native Text destination changed before staging",
         ));
     }
+    let uid = context.account_uid();
+    let parent = tos_fd_open::open_absolute_directory(parent_path)
+        .map_err(|_| SourceCommandError::Denied("native Text destination parent"))?;
+    let parent_before = directory(&parent, uid, true)?;
+    let root = tos_fd_open::open_absolute_directory(context.private_root())
+        .map_err(|_| SourceCommandError::Denied("native Text private root"))?;
+    directory(&root, uid, true)?;
     match rustix::fs::mkdirat(&root, control_name.as_str(), Mode::from_raw_mode(0o700)) {
         Ok(()) => {
             root.sync_all().map_err(|_| bad_plan())?;
