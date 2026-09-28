@@ -149,7 +149,7 @@ fn build_inner(
     limits: SearchBuildLimits,
 ) -> Result<SearchIndexReceipt> {
     limits.validate()?;
-    stage.with_connection(WritePhase::Search, initialize_search_storage)?;
+    stage.with_connection(WritePhase::Search, |db| initialize_search_storage(db))?;
     let mut receipt = SearchIndexReceipt {
         profile: SEARCH_PROFILE,
         node_documents: 0,
