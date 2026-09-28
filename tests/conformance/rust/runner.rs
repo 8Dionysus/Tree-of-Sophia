@@ -829,5 +829,8 @@ mod command_claim_cases;
 #[path = "command_work_cases.rs"]
 mod command_work_cases;
 
+#[path = "command_text_cases.rs"]
+mod command_text_cases;
+
 #[path = "compiler_source_cases.rs"]
 mod compiler_source_cases;

@@ -119,13 +119,14 @@ pub(crate) fn state(value: &JsonValue) -> SourceCommandResult<()> {
     Ok(())
 }
 
-fn read_state(
-    fs: &CreationFilesystem,
+fn read_state_at(
+    root: &File,
+    uid: u32,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Option<JsonValue>> {
     active(deadline, cancelled)?;
-    let witness = walk(&fs.root, HOME, fs.uid)?;
+    let witness = walk(root, HOME, uid)?;
     let mut descriptor: File = match rustix::fs::openat(
         &witness,
         CONTROL,
@@ -136,7 +137,7 @@ fn read_state(
         Err(Errno::NOENT) => return Ok(None),
         Err(_) => return Err(SourceCommandError::Denied("publication control unsafe")),
     };
-    let initial = owned(&descriptor, fs.uid, false)?;
+    let initial = owned(&descriptor, uid, false)?;
     if initial.mode() & 0o7000 != 0 || !matches!(initial.mode() & 0o777, 0o600 | 0o644) {
         return Err(SourceCommandError::Denied("publication control file mode"));
     }
@@ -154,7 +155,7 @@ fn read_state(
     )
     .map(File::from)
     .map_err(|_| SourceCommandError::Conflict("publication control changed during read"))?;
-    let current = owned(&again, fs.uid, false)?;
+    let current = owned(&again, uid, false)?;
     if stamp(&initial) != stamp(&current) || inode(&initial) != inode(&current) {
         return Err(SourceCommandError::Conflict(
             "publication control replaced during read",
@@ -163,6 +164,14 @@ fn read_state(
     let value = cmd::parse(&bytes)?;
     state(&value)?;
     Ok(Some(value))
+}
+
+fn read_state(
+    fs: &CreationFilesystem,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Option<JsonValue>> {
+    read_state_at(&fs.root, fs.uid, deadline, cancelled)
 }
 
 impl PublicationSnapshot {
@@ -182,7 +191,19 @@ impl PublicationSnapshot {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
-        let state = read_state(fs, deadline, cancelled)?;
+        Self::select_at(&fs.root, fs.uid, deadline, cancelled)
+    }
+
+    /// Same physical selected publication control for the actual owner-local
+    /// Text consumer. Its independently protected context supplies the root;
+    /// the control alone never grants private reading or publication.
+    pub(crate) fn select_at(
+        root: &File,
+        uid: u32,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        let state = read_state_at(root, uid, deadline, cancelled)?;
         if state
             .as_ref()
             .is_some_and(|v| cmd::text(v, "phase").ok() != Some("ready"))
@@ -213,7 +234,17 @@ impl PublicationSnapshot {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
-        let now = read_state(fs, deadline, cancelled)?;
+        self.verify_at(&fs.root, fs.uid, deadline, cancelled)
+    }
+
+    pub(crate) fn verify_at(
+        &self,
+        root: &File,
+        uid: u32,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        let now = read_state_at(root, uid, deadline, cancelled)?;
         if now
             .as_ref()
             .is_some_and(|v| cmd::text(v, "phase").ok() != Some("ready"))

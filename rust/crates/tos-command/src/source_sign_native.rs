@@ -3,6 +3,7 @@
 //! source admission, publication permission or an authenticated provider claim.
 
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
+use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
@@ -75,6 +76,41 @@ pub(crate) struct ResolvedSignBindingBatch {
     pub schema_digests: BTreeMap<String, Digest256>,
 }
 
+pub(crate) struct ResolvedInitialTextSource {
+    pub(crate) payload_entry: JsonValue,
+    pub(crate) inputs: Vec<NativeInput>,
+    pub(crate) input_snapshot: String,
+    pub(crate) schema_digests: BTreeMap<String, Digest256>,
+}
+
+/// Exact current predecessor for the owner-local TextUnit and TextLayer
+/// creators. This is a selected read observation, never a private grant or a
+/// claim that the representation has been reviewed.
+pub(crate) struct ResolvedOwnerTextLayer {
+    pub(crate) layer: JsonValue,
+    pub(crate) raw: Vec<u8>,
+    pub(crate) inputs: Vec<NativeInput>,
+    pub(crate) input_snapshot: String,
+}
+
+pub(crate) struct ResolvedOwnerTextPacket {
+    pub(crate) packet: JsonValue,
+    pub(crate) layer: JsonValue,
+    pub(crate) raw: Vec<u8>,
+    pub(crate) inputs: Vec<NativeInput>,
+    pub(crate) input_snapshot: String,
+}
+
+pub(crate) struct ResolvedDerivedTextSource {
+    pub(crate) payload_entry: JsonValue,
+    pub(crate) source_binding: JsonValue,
+    pub(crate) predecessor: Option<JsonValue>,
+    pub(crate) predecessor_record_raw: Option<Vec<u8>>,
+    pub(crate) predecessor_raw: Option<Vec<u8>>,
+    pub(crate) inputs: Vec<NativeInput>,
+    pub(crate) input_snapshot: String,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedSignNative {
     /// Maintained Record.from_payload inputs: id/version/payload/origin_id.
@@ -88,6 +124,11 @@ struct Cached {
     raw: Vec<u8>,
     kind: NativeReadKind,
 }
+#[derive(Clone, Copy)]
+enum NativeRoute {
+    Sign,
+    OwnerText,
+}
 struct Native<'a, R: SignNativeRead + ?Sized> {
     reader: &'a mut R,
     worker: &'a mut CutWorkerSchemaExecutor,
@@ -97,6 +138,7 @@ struct Native<'a, R: SignNativeRead + ?Sized> {
     schemas: BTreeMap<String, Digest256>,
     remaining_metadata: usize,
     remaining_content: usize,
+    route_profile: NativeRoute,
 }
 fn path(name: &str) -> SourceCommandResult<RelativePath> {
     RelativePath::parse(name)
@@ -152,10 +194,16 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
                 "native reference leaves its selected source home",
             ));
         }
-        if name.starts_with("ToS/source-witnesses/owner-local/") || self.reader.owner_local(name)? {
-            return Err(SourceCommandError::Unsupported(
-                "Sign v2/v3 excludes owner-local transport context",
-            ));
+        let owner_local = self.reader.owner_local(name)?;
+        if name.starts_with("ToS/source-witnesses/owner-local/") || owner_local {
+            if !matches!(self.route_profile, NativeRoute::OwnerText)
+                || !owner_local
+                || matches!(kind, NativeReadKind::Schema)
+            {
+                return Err(SourceCommandError::Unsupported(
+                    "native owner-local transport is absent from this reader",
+                ));
+            }
         }
         Ok(())
     }
@@ -353,9 +401,8 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         &mut self,
         binding: &JsonValue,
         scope: &JsonValue,
-        layer: &JsonValue,
+        layer_scope: &JsonValue,
     ) -> SourceCommandResult<JsonValue> {
-        let layer_scope = cmd::field(layer, "source_binding")?;
         let refs = cmd::field(binding, "source_record_refs")?;
         let mut records = BTreeMap::new();
         for kind in ["work", "expression", "edition", "item"] {
@@ -417,6 +464,179 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             ));
         }
         Ok(manifest)
+    }
+
+    // The initial owner-local TextLayer has no predecessor layer to resolve.
+    // Its protected configuration supplies the exact scope and selected raw
+    // record digests; this is still a source/rights observation, not a grant.
+    fn owner_text_layer_source(
+        &mut self,
+        config: &JsonValue,
+        media: &[&str],
+        check_file_size: bool,
+    ) -> SourceCommandResult<JsonValue> {
+        if !matches!(self.route_profile, NativeRoute::OwnerText) {
+            return Err(SourceCommandError::Denied("initial TextLayer reader route"));
+        }
+        let scope = cmd::field(config, "source_scope")?;
+        let refs = cmd::field(config, "source_record_refs")?;
+        let digests = cmd::field(config, "source_record_sha256")?;
+        cmd::exact_keys(refs, &["work", "expression", "edition", "item"])?;
+        cmd::exact_keys(digests, &["work", "expression", "edition", "item"])?;
+        for kind in ["work", "expression", "edition", "item"] {
+            let name = cmd::text(refs, kind)?;
+            let expected = cmd::text(digests, kind)?;
+            let (record, _) = self.record(name, Some(expected))?;
+            self.validate(&record, "corpus-record.schema.json", name)?;
+            if cmd::text(&record, "record_type")? != kind
+                || cmd::field(&record, "record_id")? != cmd::field(scope, &format!("{kind}_ref"))?
+            {
+                return Err(SourceCommandError::Conflict(
+                    "initial TextLayer exact source record binding",
+                ));
+            }
+        }
+        let layer_scope = cmd::object(vec![
+            ("work_ref", cmd::field(scope, "work_ref")?.clone()),
+            (
+                "expression_ref",
+                cmd::field(scope, "expression_ref")?.clone(),
+            ),
+            ("edition_ref", cmd::field(scope, "edition_ref")?.clone()),
+            ("item_ref", cmd::field(scope, "item_ref")?.clone()),
+            ("source_file_ref", cmd::field(scope, "file_ref")?.clone()),
+            (
+                "source_file_sha256",
+                cmd::field(scope, "file_sha256")?.clone(),
+            ),
+        ]);
+        let manifest = self.source_scope(config, scope, &layer_scope)?;
+        let item_ref = cmd::text(refs, "item")?;
+        let item = self.record(item_ref, Some(cmd::text(digests, "item")?))?.0;
+        self.raw(
+            cmd::text(&item, "item_manifest_ref")?,
+            Some(cmd::text(config, "manifest_sha256")?),
+            NativeReadKind::Metadata,
+        )?;
+        if cmd::text(&manifest, "visibility")? != "local_only" {
+            return Err(SourceCommandError::Denied(
+                "initial TextLayer needs a local-only Item",
+            ));
+        }
+        let entries = cmd::array(&manifest, "payload_files")?
+            .iter()
+            .filter(|entry| entry.object_get("file_id") == scope.object_get("file_ref"))
+            .collect::<Vec<_>>();
+        if entries.len() != 1
+            || !media.contains(&cmd::text(entries[0], "media_type")?)
+            || check_file_size
+                && cmd::integer(entries[0], "byte_size")?
+                    != cmd::integer(cmd::field(config, "source_access")?, "byte_size")?
+        {
+            return Err(SourceCommandError::Conflict(
+                "initial TextLayer exact EPUB File binding",
+            ));
+        }
+        let rights = cmd::array(
+            cmd::field(config, "derivation_access")?,
+            "rights_record_refs",
+        )?;
+        if rights.is_empty() || rights.len() > 16 {
+            return Err(SourceCommandError::Invalid(
+                "initial TextLayer rights set budget",
+            ));
+        }
+        let layer_id = cmd::text(cmd::field(config, "identities")?, "layer_id")?;
+        let mut unique = BTreeSet::new();
+        let mut item_rights = false;
+        let mut layer_rights = false;
+        for row in rights {
+            cmd::exact_keys(row, &["ref", "sha256"])?;
+            let name = cmd::text(row, "ref")?;
+            if !unique.insert(name) {
+                return Err(SourceCommandError::Invalid(
+                    "initial TextLayer duplicate rights",
+                ));
+            }
+            let (record, _) = self.record(name, Some(cmd::text(row, "sha256")?))?;
+            self.validate(&record, "rights-record.schema.json", name)?;
+            if ["superseded", "legal_review_requested"]
+                .contains(&cmd::text(&record, "review_status")?)
+                || ["permission_denied", "conflicting_evidence"]
+                    .contains(&cmd::text(&record, "assessment_status")?)
+            {
+                return Err(SourceCommandError::Denied(
+                    "initial TextLayer inactive rights",
+                ));
+            }
+            let posture = cmd::text(&record, "derivative_posture")?;
+            let refs = cmd::array(&record, "scope_refs")?;
+            let has = |value: &str| refs.iter().any(|entry| entry.as_str() == Some(value));
+            let item = cmd::text(scope, "item_ref")?;
+            let file = cmd::text(scope, "file_ref")?;
+            if name == cmd::text(&manifest, "rights_ref")? {
+                if !has(item)
+                    || !has(file)
+                    || !["local_research_only", "allowed"].contains(&posture)
+                {
+                    return Err(SourceCommandError::Denied(
+                        "initial TextLayer Item/File derivation rights",
+                    ));
+                }
+                item_rights = true;
+            }
+            let assessments = match record.object_get("layer_assessments") {
+                Some(value) => value.as_array().ok_or(SourceCommandError::Invalid(
+                    "initial TextLayer rights assessments",
+                ))?,
+                None => &[],
+            };
+            let assessment = assessments
+                .iter()
+                .filter(|entry| {
+                    entry
+                        .object_get("scope_refs")
+                        .and_then(JsonValue::as_array)
+                        .is_some_and(|scope| {
+                            scope.iter().any(|ref_id| ref_id.as_str() == Some(layer_id))
+                        })
+                })
+                .collect::<Vec<_>>();
+            if !assessment.is_empty() {
+                for entry in assessment {
+                    if !["local_research_only", "allowed"]
+                        .contains(&cmd::text(entry, "derivative_posture")?)
+                        || ["permission_denied", "conflicting_evidence"]
+                            .contains(&cmd::text(entry, "assessment_status")?)
+                        || ["superseded", "legal_review_requested"]
+                            .contains(&cmd::text(entry, "review_status")?)
+                    {
+                        return Err(SourceCommandError::Denied(
+                            "initial TextLayer assessed rights",
+                        ));
+                    }
+                    layer_rights = true;
+                }
+            } else if has(layer_id) {
+                if !["local_research_only", "allowed"].contains(&posture) {
+                    return Err(SourceCommandError::Denied(
+                        "initial TextLayer own derivation rights",
+                    ));
+                }
+                layer_rights = true;
+            }
+            if !has(layer_id) && !has(item) && !has(file) {
+                return Err(SourceCommandError::Denied(
+                    "initial TextLayer unrelated rights",
+                ));
+            }
+        }
+        if !item_rights || !layer_rights {
+            return Err(SourceCommandError::Denied(
+                "initial TextLayer needs Item and layer rights",
+            ));
+        }
+        Ok(entries[0].clone())
     }
 
     fn layer_dependencies(
@@ -876,7 +1096,7 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         }
         self.layer_dependencies(&layer, &raw, name, &mut BTreeSet::new())?;
         let scope = layer_scope(cmd::field(&layer, "source_binding")?)?;
-        let manifest = self.source_scope(binding, &scope, &layer)?;
+        let manifest = self.source_scope(binding, &scope, cmd::field(&layer, "source_binding")?)?;
         let rep = cmd::field(&layer, "representation")?;
         if !["text/plain", "text/plain; charset=utf-8"].contains(&cmd::text(rep, "media_type")?)
             || cmd::text(rep, "content_file_id")?
@@ -1079,7 +1299,8 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         self.metadata(&packet_raw, packet_path, "unit")?;
         self.layer_dependencies(&layer, &layer_raw, layer_path, &mut BTreeSet::new())?;
         let source_scope = cmd::field(&packet, "source_scope")?;
-        let manifest = self.source_scope(binding, source_scope, &layer)?;
+        let manifest =
+            self.source_scope(binding, source_scope, cmd::field(&layer, "source_binding")?)?;
         let rep = cmd::field(&layer, "representation")?;
         let normalization = cmd::text(rep, "character_normalization")?;
         let unicode_form = if normalization == "none" {
@@ -1534,6 +1755,392 @@ fn selected_native<'a, R: SignNativeRead + ?Sized>(
         schemas: BTreeMap::new(),
         remaining_metadata: MAX_METADATA_BYTES,
         remaining_content: MAX_CONTENT_BYTES,
+        route_profile: NativeRoute::Sign,
+    })
+}
+
+/// The concrete owner-local Text creator selects this route only after its
+/// protected operation configuration has passed separate read/derive grants.
+/// The shared native reader still checks exact current source, grammar,
+/// topology and rights before the caller can open the acquired EPUB payload.
+pub(crate) fn resolve_initial_owner_text_source(
+    context: &mut crate::source_text_owner::OwnerTextContext,
+    worker: &mut CutWorkerSchemaExecutor,
+    grant: &crate::source_text_owner::OwnerTextInitialLayerSelection,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ResolvedInitialTextSource> {
+    context.snapshot(deadline, cancelled)?;
+    let mut native = Native {
+        reader: context,
+        worker,
+        deadline,
+        cancelled,
+        cache: BTreeMap::new(),
+        schemas: BTreeMap::new(),
+        remaining_metadata: MAX_METADATA_BYTES,
+        remaining_content: MAX_CONTENT_BYTES,
+        route_profile: NativeRoute::OwnerText,
+    };
+    let payload_entry =
+        native.owner_text_layer_source(&grant.config, &["application/epub+zip"], true)?;
+    let input_snapshot = native.snapshot()?;
+    let inputs = selected_inputs(&native);
+    Ok(ResolvedInitialTextSource {
+        payload_entry,
+        inputs,
+        input_snapshot,
+        schema_digests: native.schemas,
+    })
+}
+
+/// The same selected owner-local metadata, Item/File and rights pass serves
+/// correction, normalization and supplied transcription. It never grants the
+/// independent private read or authorizes publication.
+fn selected_anchor_semantics(anchor: &JsonValue) -> SourceCommandResult<()> {
+    // This is the owner-local semantic subset which the selected JSON Schema
+    // cannot express. It never resolves the selector against private content.
+    let value: Value = serde_json::from_slice(&cmd::canonical(anchor)?)
+        .map_err(|_| SourceCommandError::Invalid("native derived source anchor JSON"))?;
+    let bad = || SourceCommandError::Invalid("native derived source anchor semantics");
+    if value["supersedes_anchor_ref"].is_string()
+        && value["supersedes_anchor_ref"] == value["anchor_id"]
+    {
+        return Err(bad());
+    }
+    let payload = &value["selector_payload"];
+    let publication = &value["publication_boundary"];
+    if payload["kind"] == "withheld_selector_receipt" {
+        if publication["source_text_in_record"] == true {
+            return Err(bad());
+        }
+        return Ok(());
+    }
+    let expression = &payload["expression"];
+    let envelopes = match expression["mode"].as_str().ok_or_else(bad)? {
+        "single" => vec![&expression["selector"]],
+        "alternatives" => expression["alternatives"]
+            .as_array()
+            .ok_or_else(bad)?
+            .iter()
+            .collect(),
+        "refinement_chain" => expression["steps"]
+            .as_array()
+            .ok_or_else(bad)?
+            .iter()
+            .collect(),
+        _ => return Err(bad()),
+    };
+    if envelopes.is_empty() {
+        return Err(bad());
+    }
+    let target = &value["target"]["file_sha256"];
+    if expression["mode"] == "alternatives" {
+        if envelopes
+            .iter()
+            .any(|row| row["state"]["representation_sha256"] != *target)
+        {
+            return Err(bad());
+        }
+    } else if envelopes[0]["state"]["representation_sha256"] != *target {
+        return Err(bad());
+    }
+    let mut has_text_quote = false;
+    for envelope in envelopes {
+        let selector = &envelope["selector"];
+        let state = &envelope["state"];
+        let kind = selector["type"].as_str().ok_or_else(bad)?;
+        has_text_quote |= kind == "text_quote";
+        if matches!(kind, "text_quote" | "text_position")
+            && state.get("character_normalization").is_none()
+        {
+            return Err(bad());
+        }
+        if matches!(kind, "text_position" | "byte_position")
+            && selector["start"]
+                .as_u64()
+                .zip(selector["end"].as_u64())
+                .is_some_and(|(start, end)| start >= end)
+        {
+            return Err(bad());
+        }
+        if kind == "page_region" {
+            let (width, height) = (
+                selector["width"].as_f64().ok_or_else(bad)?,
+                selector["height"].as_f64().ok_or_else(bad)?,
+            );
+            let (x, y) = (
+                selector["x"].as_f64().ok_or_else(bad)?,
+                selector["y"].as_f64().ok_or_else(bad)?,
+            );
+            match selector["coordinate_space"].as_str().ok_or_else(bad)? {
+                "normalized_0_1" if x + width > 1.0 || y + height > 1.0 => return Err(bad()),
+                "pixels" | "points"
+                    if x + width > selector["source_width"].as_f64().ok_or_else(bad)?
+                        || y + height > selector["source_height"].as_f64().ok_or_else(bad)? =>
+                {
+                    return Err(bad());
+                }
+                _ => (),
+            }
+        }
+    }
+    if has_text_quote
+        && (publication["record_storage"] == "tracked"
+            && publication["source_content_visibility"] != "public"
+            || publication["source_text_in_record"] == false)
+        || publication["source_text_in_record"] == true && !has_text_quote
+    {
+        return Err(bad());
+    }
+    Ok(())
+}
+
+pub(crate) fn resolve_derived_owner_text_source(
+    context: &mut crate::source_text_owner::OwnerTextContext,
+    worker: &mut CutWorkerSchemaExecutor,
+    config: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ResolvedDerivedTextSource> {
+    context.snapshot(deadline, cancelled)?;
+    let mut native = Native {
+        reader: context,
+        worker,
+        deadline,
+        cancelled,
+        cache: BTreeMap::new(),
+        schemas: BTreeMap::new(),
+        remaining_metadata: MAX_METADATA_BYTES,
+        remaining_content: MAX_CONTENT_BYTES,
+        route_profile: NativeRoute::OwnerText,
+    };
+    let supplied = cmd::text(cmd::field(config, "input")?, "kind")? != "text_layer";
+    let media = if cmd::text(cmd::field(config, "input")?, "kind")? == "retained_pdf_page" {
+        &["application/pdf"][..]
+    } else {
+        &[
+            "application/epub+zip",
+            "application/pdf",
+            "image/png",
+            "image/jpeg",
+            "image/tiff",
+            "image/webp",
+        ][..]
+    };
+    let payload_entry = native.owner_text_layer_source(config, media, false)?;
+    let scope = cmd::field(config, "source_scope")?;
+    let (source_binding, predecessor, predecessor_record_raw, predecessor_raw) = if supplied {
+        let target = cmd::field(cmd::field(config, "input")?, "anchor")?;
+        let name = cmd::text(target, "record_ref")?;
+        let (anchor, _) = native.record(name, Some(cmd::text(target, "record_sha256")?))?;
+        native.validate(&anchor, "source-anchor-v2.schema.json", name)?;
+        selected_anchor_semantics(&anchor)?;
+        let anchor_target = cmd::field(&anchor, "target")?;
+        if cmd::field(&anchor, "anchor_id")? != cmd::field(target, "anchor_id")?
+            || cmd::field(anchor_target, "item_id")? != cmd::field(scope, "item_ref")?
+            || cmd::field(anchor_target, "file_id")? != cmd::field(scope, "file_ref")?
+            || cmd::field(anchor_target, "file_sha256")? != cmd::field(scope, "file_sha256")?
+            || cmd::field(anchor_target, "media_type")? != cmd::field(&payload_entry, "media_type")?
+        {
+            return Err(SourceCommandError::Conflict(
+                "native derived Text anchor differs",
+            ));
+        }
+        if cmd::text(cmd::field(config, "input")?, "kind")? == "retained_pdf_page" {
+            crate::source_text_owner_ocr::validate_page_anchor(
+                &anchor,
+                cmd::field(cmd::field(config, "material")?, "input_representation")?,
+                scope,
+            )?;
+        }
+        let binding = cmd::object(vec![
+            ("work_ref", cmd::field(scope, "work_ref")?.clone()),
+            (
+                "expression_ref",
+                cmd::field(scope, "expression_ref")?.clone(),
+            ),
+            ("edition_ref", cmd::field(scope, "edition_ref")?.clone()),
+            ("item_ref", cmd::field(scope, "item_ref")?.clone()),
+            ("source_file_ref", cmd::field(scope, "file_ref")?.clone()),
+            (
+                "source_file_sha256",
+                cmd::field(scope, "file_sha256")?.clone(),
+            ),
+            ("anchor_contract", cmd::string("tos_source_anchor_v2")),
+            (
+                "anchors",
+                JsonValue::Array(vec![cmd::object(vec![
+                    ("anchor_id", cmd::field(target, "anchor_id")?.clone()),
+                    (
+                        "anchor_record_ref",
+                        cmd::field(target, "record_ref")?.clone(),
+                    ),
+                    (
+                        "anchor_record_sha256",
+                        cmd::field(target, "record_sha256")?.clone(),
+                    ),
+                ])]),
+            ),
+        ]);
+        (binding, None, None, None)
+    } else {
+        let binding = cmd::field(cmd::field(config, "input")?, "binding")?;
+        if cmd::field(binding, "source_record_refs")? != cmd::field(config, "source_record_refs")? {
+            return Err(SourceCommandError::Conflict(
+                "native derived Text predecessor scope",
+            ));
+        }
+        let layer = native.resolve_layer_metadata(binding)?;
+        let target = cmd::field(binding, "text_layer")?;
+        let record_raw = native.read(
+            cmd::text(target, "record_ref")?,
+            Some(cmd::text(target, "record_sha256")?),
+            false,
+            false,
+        )?;
+        let layer_scope = cmd::field(&layer, "source_binding")?;
+        for kind in ["work", "expression", "edition", "item"] {
+            if cmd::field(layer_scope, &format!("{kind}_ref"))?
+                != cmd::field(scope, &format!("{kind}_ref"))?
+            {
+                return Err(SourceCommandError::Conflict(
+                    "native derived Text predecessor source",
+                ));
+            }
+        }
+        if cmd::field(layer_scope, "source_file_ref")? != cmd::field(scope, "file_ref")?
+            || cmd::field(layer_scope, "source_file_sha256")? != cmd::field(scope, "file_sha256")?
+        {
+            return Err(SourceCommandError::Conflict(
+                "native derived Text predecessor File",
+            ));
+        }
+        let rep = cmd::field(&layer, "representation")?;
+        let raw = native.raw(
+            cmd::text(rep, "content_ref")?,
+            Some(cmd::text(rep, "content_sha256")?),
+            NativeReadKind::Content,
+        )?;
+        let text = std::str::from_utf8(&raw)
+            .map_err(|_| SourceCommandError::Invalid("native derived Text UTF-8"))?;
+        let span = cmd::field(rep, "text_scope")?;
+        if cmd::integer(span, "start")? != 0
+            || cmd::integer(span, "end")? != text.chars().count() as u64
+            || cmd::text(rep, "language")? != cmd::text(config, "language")?
+            || raw.len() as u64 != cmd::integer(cmd::field(config, "source_access")?, "byte_size")?
+        {
+            return Err(SourceCommandError::Conflict(
+                "native derived Text predecessor representation",
+            ));
+        }
+        check_normalization(text, cmd::text(rep, "character_normalization")?)?;
+        native.derived_content(&layer, text)?;
+        (
+            layer_scope.clone(),
+            Some(layer),
+            Some(record_raw),
+            Some(raw),
+        )
+    };
+    let input_snapshot = native.snapshot()?;
+    let inputs = selected_inputs(&native);
+    Ok(ResolvedDerivedTextSource {
+        payload_entry,
+        source_binding,
+        predecessor,
+        predecessor_record_raw,
+        predecessor_raw,
+        inputs,
+        input_snapshot,
+    })
+}
+
+pub(crate) fn resolve_owner_text_layer(
+    context: &mut crate::source_text_owner::OwnerTextContext,
+    worker: &mut CutWorkerSchemaExecutor,
+    binding: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ResolvedOwnerTextLayer> {
+    context.snapshot(deadline, cancelled)?;
+    let mut native = Native {
+        reader: context,
+        worker,
+        deadline,
+        cancelled,
+        cache: BTreeMap::new(),
+        schemas: BTreeMap::new(),
+        remaining_metadata: MAX_METADATA_BYTES,
+        remaining_content: MAX_CONTENT_BYTES,
+        route_profile: NativeRoute::OwnerText,
+    };
+    let layer = native.resolve_layer_metadata(binding)?;
+    let rep = cmd::field(&layer, "representation")?;
+    let raw = native.raw(
+        cmd::text(rep, "content_ref")?,
+        Some(cmd::text(rep, "content_sha256")?),
+        NativeReadKind::Content,
+    )?;
+    let text = std::str::from_utf8(&raw)
+        .map_err(|_| SourceCommandError::Invalid("native owner Text exact UTF-8"))?;
+    let text_scope = cmd::field(rep, "text_scope")?;
+    if cmd::integer(text_scope, "start")? != 0
+        || cmd::integer(text_scope, "end")? != text.chars().count() as u64
+    {
+        return Err(SourceCommandError::Conflict(
+            "native owner Text scope differs",
+        ));
+    }
+    check_normalization(text, cmd::text(rep, "character_normalization")?)?;
+    native.derived_content(&layer, text)?;
+    let input_snapshot = native.snapshot()?;
+    let inputs = selected_inputs(&native);
+    Ok(ResolvedOwnerTextLayer {
+        layer,
+        raw,
+        inputs,
+        input_snapshot,
+    })
+}
+
+/// Packet-mode TextUnit creation keeps the existing native packet/layer/unit
+/// resolver and its exact rights/content checks, but runs through the already
+/// protected owner-local reader selected by the Text command.
+pub(crate) fn resolve_owner_text_packet(
+    context: &mut crate::source_text_owner::OwnerTextContext,
+    worker: &mut CutWorkerSchemaExecutor,
+    binding: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ResolvedOwnerTextPacket> {
+    context.snapshot(deadline, cancelled)?;
+    let mut native = Native {
+        reader: context,
+        worker,
+        deadline,
+        cancelled,
+        cache: BTreeMap::new(),
+        schemas: BTreeMap::new(),
+        remaining_metadata: MAX_METADATA_BYTES,
+        remaining_content: MAX_CONTENT_BYTES,
+        route_profile: NativeRoute::OwnerText,
+    };
+    let (packet, layer, _) = native.resolve(binding, NativeReadScope::ExactOwnerLocal)?;
+    let rep = cmd::field(&layer, "representation")?;
+    let raw = native.raw(
+        cmd::text(rep, "content_ref")?,
+        Some(cmd::text(rep, "content_sha256")?),
+        NativeReadKind::Content,
+    )?;
+    let input_snapshot = native.snapshot()?;
+    let inputs = selected_inputs(&native);
+    Ok(ResolvedOwnerTextPacket {
+        packet,
+        layer,
+        raw,
+        inputs,
+        input_snapshot,
     })
 }
 

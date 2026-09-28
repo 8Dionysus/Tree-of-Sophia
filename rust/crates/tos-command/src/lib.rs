@@ -20,6 +20,22 @@ pub mod source_revisions;
 mod source_serialization;
 mod source_sign;
 mod source_sign_native;
+mod source_text_identity;
+pub mod source_text_layer_derived_entry;
+mod source_text_layer_derived_proposal;
+pub mod source_text_layer_entry;
+mod source_text_layer_native;
+mod source_text_layer_normalize;
+mod source_text_layer_payload;
+mod source_text_layer_proposal;
+mod source_text_layer_xml;
+mod source_text_layer_zip;
+mod source_text_owner;
+mod source_text_owner_ocr;
+mod source_text_private_store;
+pub mod source_text_unit_entry;
+mod source_text_unit_native;
+mod source_text_unit_proposal;
 
 use tos_foundation::Digest256;
 

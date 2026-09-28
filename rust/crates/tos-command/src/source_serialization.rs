@@ -54,7 +54,10 @@ pub(crate) fn instant() -> SourceCommandResult<String> {
     ))
 }
 
-fn executable(deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<Digest256> {
+pub(crate) fn executable(
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Digest256> {
     // Kernel-owned /proc/self/exe deliberately addresses the running image,
     // including a deleted inode. Never open a request-selected runtime path.
     let mut file = File::open("/proc/self/exe")
@@ -132,7 +135,7 @@ fn encoded(value: Value) -> SourceCommandResult<Vec<u8>> {
     Ok(raw)
 }
 
-fn selected_components(
+pub(crate) fn selected_components(
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     deadline: Instant,
@@ -183,6 +186,7 @@ pub(crate) fn capture_creation(
         software,
         components,
         "native-source-metadata-serialization",
+        None,
         deadline,
         cancelled,
     )
@@ -206,6 +210,199 @@ pub(crate) fn capture_claim_creation(
         software,
         components,
         "native-claim-serialization",
+        None,
+        deadline,
+        cancelled,
+    )
+}
+
+struct OwnerTextCapture<'a> {
+    rights: &'a JsonValue,
+    inputs: Vec<Value>,
+    event_type: &'static str,
+    source_path: &'a str,
+    warning: &'static str,
+    purpose: &'static str,
+    replay_scope: &'static str,
+}
+
+/// The separately granted owner-local Text writer uses the same observed
+/// request/ELF/software capture, with explicit private source dependencies.
+/// This still does not authenticate an upstream OCR or an owner's assessment.
+pub(crate) fn capture_initial_text_layer(
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    source_path: &str,
+    rights: &JsonValue,
+    inputs: Vec<Value>,
+    files: &mut BTreeMap<String, Vec<u8>>,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    if inputs.len() != 2 || files.get("content.txt").is_none() {
+        return Err(SourceCommandError::Invalid(
+            "native Text capture source closure",
+        ));
+    }
+    capture_creation_with_procedure(
+        request,
+        event_id,
+        home,
+        files,
+        software,
+        components,
+        "exact-native-text-layer-structural-extraction",
+        Some(OwnerTextCapture {
+            rights,
+            inputs,
+            event_type: "native_extraction",
+            source_path,
+            warning: "Exact acquired File and member verified; declared bounded structural extraction completed; atomic private publication follows and no textual assessment is performed.",
+            purpose: "Extract a separately granted exact EPUB member/selector into an immutable unreviewed private TextLayer; no OCR, silent Unicode rewrite or segmentation.",
+            replay_scope: "Exact retained source/configuration/implementation and bounded extraction output; not textual correctness or deterministic provenance timestamps.",
+        }),
+        deadline,
+        cancelled,
+    )
+}
+
+pub(crate) fn capture_first_text_unit(
+    first: bool,
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    source_path: &str,
+    rights: &JsonValue,
+    inputs: Vec<Value>,
+    files: &mut BTreeMap<String, Vec<u8>>,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    if inputs.len() != if first { 2 } else { 3 } || !files.contains_key("source-text-unit.v1.json")
+    {
+        return Err(SourceCommandError::Invalid(
+            "native TextUnit capture closure",
+        ));
+    }
+    capture_creation_with_procedure(
+        request,
+        event_id,
+        home,
+        files,
+        software,
+        components,
+        if first {
+            "exact-native-first-text-unit-segmentation"
+        } else {
+            "exact-native-text-unit-construction"
+        },
+        Some(OwnerTextCapture {
+            rights,
+            inputs,
+            event_type: "annotation",
+            source_path,
+            warning: if first {
+                "Exact selected TextLayer and private representation verified; first segmentation is a method proposal, not source or linguistic truth."
+            } else {
+                "Exact selected native packet, TextLayer and private representation verified; new segmentation is a method proposal, not source or linguistic truth."
+            },
+            purpose: if first {
+                "Construct one bounded first TextUnit segmentation from an independently granted exact TextLayer; no content mutation or semantic promotion."
+            } else {
+                "Construct a bounded TextUnit proposal from one exact predecessor packet and layer; no content mutation or semantic promotion."
+            },
+            replay_scope: "Exact retained layer/configuration/implementation and proposed boundaries; not historical source truth or deterministic provenance timestamps.",
+        }),
+        deadline,
+        cancelled,
+    )
+}
+
+pub(crate) fn capture_derived_text_layer(
+    operation: &str,
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    source_path: &str,
+    rights: &JsonValue,
+    inputs: Vec<Value>,
+    files: &mut BTreeMap<String, Vec<u8>>,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    if inputs.is_empty()
+        || inputs.len() > 3
+        || !files.contains_key("content.txt")
+        || !matches!(
+            operation,
+            "text-layer.correct"
+                | "text-layer.normalize"
+                | "text-layer.record-transcription"
+                | "text-layer.record-ocr"
+                | "text-layer.record-owner-ocr"
+                | "text-layer.record-owner-page-ocr"
+        )
+    {
+        return Err(SourceCommandError::Invalid(
+            "native derived Text capture closure",
+        ));
+    }
+    let procedure = format!(
+        "exact-native-text-layer-{}",
+        operation
+            .strip_prefix("text-layer.")
+            .ok_or(SourceCommandError::Invalid("native derived Text procedure"))?
+    );
+    capture_creation_with_procedure(
+        request,
+        event_id,
+        home,
+        files,
+        software,
+        components,
+        &procedure,
+        Some(OwnerTextCapture {
+            rights,
+            inputs,
+            event_type: if matches!(
+                operation,
+                "text-layer.record-transcription"
+                    | "text-layer.record-ocr"
+                    | "text-layer.record-owner-ocr"
+                    | "text-layer.record-owner-page-ocr"
+            ) {
+                "annotation"
+            } else if operation == "text-layer.normalize" {
+                "normalization"
+            } else {
+                "correction"
+            },
+            source_path,
+            warning: if matches!(
+                operation,
+                "text-layer.record-owner-ocr" | "text-layer.record-owner-page-ocr"
+            ) {
+                "The stronger owner's retained OCR execution was authenticated; ToS copied its result without rerunning inference. Private publication follows, with no textual truth or review granted."
+            } else {
+                "Exact selected source and owner-local representation were checked; private publication follows and no textual truth or review is granted."
+            },
+            purpose: if matches!(
+                operation,
+                "text-layer.record-owner-ocr" | "text-layer.record-owner-page-ocr"
+            ) {
+                "Record one separately granted TextLayer from an exact signed stronger-owner OCR result; no new inference or semantic promotion occurs in this command."
+            } else {
+                "Record one separately granted bounded TextLayer derivation from exact selected bytes; no inference or semantic promotion is claimed."
+            },
+            replay_scope: "Exact retained owner configuration, source and implementation with bounded derived bytes; not source fidelity or deterministic capture clocks.",
+        }),
         deadline,
         cancelled,
     )
@@ -219,6 +416,7 @@ fn capture_creation_with_procedure(
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     procedure_name: &str,
+    private_text: Option<OwnerTextCapture<'_>>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
@@ -277,7 +475,7 @@ fn capture_creation_with_procedure(
         binding("source-create-environment.json", &environment_raw);
     // The observed ELF digest is runtime metadata, not a repository-file
     // responsibility binding or an authenticated source-to-image relation.
-    let event = json!({
+    let mut event = json!({
         "$schema":"https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json","schema_version":"tos_provenance_event_v2","event_id":event_id,"event_version":1,"supersedes_event_ref":null,
         "record_binding":{"manifest_ref":format!("{home}/source-create-receipt.json"),"digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"},
         "activity":{"event_type":"annotation","started_at":started_at,"ended_at":instant()?,"status":"completed_with_warnings","terminal_reason":null,"exit_code":0,"warnings":["Completed in-process buffer serialization; atomic publication occurs afterward.","Selected source bytes are not build or execution authentication; stored-byte fixity is not attested."]},
@@ -293,6 +491,53 @@ fn capture_creation_with_procedure(
         "reproducibility":{"classification":"partially_specified","known_gaps":["Selected source capture is byte evidence only; compiler, dependencies, build and source-to-ELF relationship are not attested.","Upstream research/source reading/model invocation are outside this serialization.","Clock observations and durations are not deterministic; complete runtime environment is not archived."],"replay_scope":"Exact retained request and source-copy buffers only, not historical or semantic correctness."},
         "authority_boundary":{"validator_role":"mechanics_and_closure_only_not_truth","claims_not_established":["execution_truth","content_truth","source_fidelity","translation_quality","semantic_correctness","rights_clearance","human_review","publication_authority","canon_authority"]}
     });
+    if let Some(profile) = private_text {
+        let rights: Value = serde_json::from_slice(&cmd::canonical(profile.rights)?)
+            .map_err(|_| SourceCommandError::Invalid("native Text rights capture"))?;
+        let input_count = profile.inputs.len();
+        event["activity"]["event_type"] = json!(profile.event_type);
+        event["activity"]["warnings"][0] = json!(profile.warning);
+        event["entities"]["inputs"]
+            .as_array_mut()
+            .ok_or(SourceCommandError::Invalid("native Text event inputs"))?
+            .extend(profile.inputs);
+        for group in ["inputs", "outputs", "byproducts"] {
+            for row in event["entities"][group]
+                .as_array_mut()
+                .ok_or(SourceCommandError::Invalid("native Text event entities"))?
+            {
+                row["content_disclosure"] = json!("private_content");
+                if row["entity_ref"]
+                    .as_str()
+                    .is_some_and(|reference| reference.ends_with("/content.txt"))
+                {
+                    row["media_type"] = json!("text/plain; charset=utf-8");
+                }
+            }
+        }
+        for index in 0..input_count {
+            let source_ref = event["entities"]["inputs"][index + 1]["entity_ref"].clone();
+            event["derivations"].as_array_mut().ok_or(SourceCommandError::Invalid("native Text event derivations"))?
+                .push(json!({"derivation_id":format!("{}.native-{index}",event_id.replacen("tos.event.","tos.derivation.",1)),
+                    "input_entity_ref":source_ref,"output_entity_ref":profile.source_path,
+                    "relation":"selection_from","influence_asserted":true,
+                    "description":"Technical exact-source dependency for structural extraction, not source fidelity or textual truth."}));
+        }
+        event["method"]["configuration_binding"] = binding(
+            "source-create-owner-configuration.json",
+            files
+                .get("source-create-owner-configuration.json")
+                .ok_or(SourceCommandError::Invalid("native Text retained grant"))?,
+        );
+        event["method"]["procedure"]["purpose"] = json!(profile.purpose);
+        event["rights_and_visibility"]["rights_record_bindings"] = rights;
+        event["rights_and_visibility"]["intended_uses"] = json!(["local_research"]);
+        event["rights_and_visibility"]["content_visibility"] = json!("local_only");
+        event["reproducibility"]["known_gaps"][0] = json!(
+            "Source selection and rights decisions belong to the independent owner; this capture records bounded extraction mechanics without assessing source fidelity or content truth."
+        );
+        event["reproducibility"]["replay_scope"] = json!(profile.replay_scope);
+    }
     let event_raw = encoded(event)?;
     files.insert("source-create-request.json".into(), request_raw);
     files.insert("source-create-environment.json".into(), environment_raw);
