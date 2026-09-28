@@ -13,6 +13,8 @@ use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath, python_strip_unicode16_v1};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
+use tos_validation::PredicateRead;
+use tos_validation::item_rules::ItemLimits;
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 const HISTORY: &str = "source-revision-history.json";
@@ -612,11 +614,68 @@ fn verify_history(
     files: &Package,
     record: &JsonValue,
 ) -> SourceCommandResult<JsonValue> {
+    Ok(verify_history_accounted(ctx, config, files, record, None)?.0)
+}
+
+fn archive_declared_read_bytes(
+    ctx: &CommandContext,
+    receipt: &JsonValue,
+) -> SourceCommandResult<u64> {
+    let manifest = format!("{}/manifest.json", cmd::text(receipt, "archive_path")?);
+    let raw = required(ctx, &manifest)?;
+    let value = cmd::parse(raw)?;
+    cmd::field(&value, "files")?
+        .as_object()
+        .ok_or(SourceCommandError::Invalid("archive files map"))?
+        .values()
+        .try_fold(raw.len() as u64, |sum, binding| {
+            sum.checked_add(cmd::integer(binding, "bytes")?)
+                .ok_or(SourceCommandError::Unsupported(
+                    "retained metadata read byte overflow",
+                ))
+        })
+}
+
+fn verify_history_accounted(
+    ctx: &CommandContext,
+    config: &JsonValue,
+    files: &Package,
+    record: &JsonValue,
+    max_read_bytes: Option<u64>,
+) -> SourceCommandResult<(JsonValue, u64)> {
     let value = history(files, record)?;
     let (_, base) = split(cmd::text(config, "source_path")?)?;
     let receipts = cmd::array(&value, "receipts")?;
+    let mut bytes_read = 0u64;
     for (index, receipt) in receipts.iter().enumerate() {
+        if let Some(limit) = max_read_bytes {
+            let declared = archive_declared_read_bytes(ctx, receipt)?;
+            if bytes_read
+                .checked_add(declared)
+                .is_none_or(|sum| sum > limit)
+            {
+                return Err(SourceCommandError::Unsupported(
+                    "retained metadata read budget",
+                ));
+            }
+        }
         let (archived, _) = read_archive(ctx, config, receipt)?;
+        let manifest = format!("{}/manifest.json", cmd::text(receipt, "archive_path")?);
+        bytes_read = bytes_read
+            .checked_add(required(ctx, &manifest)?.len() as u64)
+            .and_then(|sum| {
+                archived
+                    .values()
+                    .try_fold(sum, |sum, raw| sum.checked_add(raw.len() as u64))
+            })
+            .ok_or(SourceCommandError::Unsupported(
+                "record history read byte overflow",
+            ))?;
+        if max_read_bytes.is_some_and(|limit| bytes_read > limit) {
+            return Err(SourceCommandError::Unsupported(
+                "retained metadata read budget",
+            ));
+        }
         let previous = cmd::parse(
             archived
                 .get(base)
@@ -632,7 +691,7 @@ fn verify_history(
             ));
         }
     }
-    Ok(value)
+    Ok((value, bytes_read))
 }
 fn inspect(
     cut: Option<&CorpusCutReader>,
@@ -645,7 +704,7 @@ fn inspect(
 ) -> SourceCommandResult<Inspection> {
     let source_path = cmd::text(config, "source_path")?;
     let (_, base) = split(source_path)?;
-    let files = package(ctx, source_path, family.selected())?;
+    let files = package(ctx, source_path, family.selected(), None)?;
     let record = cmd::parse(
         files
             .get(base)
@@ -2343,14 +2402,38 @@ fn package(
     ctx: &CommandContext,
     source_path: &str,
     selected: bool,
+    remaining_state_bytes: Option<usize>,
 ) -> SourceCommandResult<Package> {
     let (parent, base) = split(source_path)?;
     let selected_names = names(source_path)?;
     let prefix = format!("{parent}/");
     let mut result = Package::new();
+    let mut total_bytes = 0usize;
+    let mut state_bytes = std::mem::size_of::<Package>();
     for file in &ctx.files {
         if let Some(name) = file.path.as_str().strip_prefix(&prefix) {
             if !name.contains('/') && (!selected || selected_names.iter().any(|s| s == name)) {
+                total_bytes = total_bytes
+                    .checked_add(file.raw.len())
+                    .filter(|total| *total <= 8_388_608)
+                    .ok_or(SourceCommandError::Unsupported(
+                        "record package state or byte budget",
+                    ))?;
+                state_bytes = state_bytes
+                    .checked_add(file.raw.len())
+                    .and_then(|total| total.checked_add(name.len()))
+                    .and_then(|total| total.checked_add(std::mem::size_of::<(String, Vec<u8>)>()))
+                    .filter(|total| {
+                        remaining_state_bytes.is_none_or(|remaining| *total <= remaining)
+                    })
+                    .ok_or(SourceCommandError::Unsupported(
+                        "record package state or byte budget",
+                    ))?;
+                if result.len() >= 64 || file.raw.len() > 2_097_152 {
+                    return Err(SourceCommandError::Invalid(
+                        "record package presence or budget",
+                    ));
+                }
                 result.insert(name.into(), file.raw.clone());
             } else if !selected && name.contains('/') {
                 return Err(SourceCommandError::Denied(
@@ -2363,7 +2446,7 @@ fn package(
         || result.is_empty()
         || result.len() > 64
         || result.values().any(|b| b.len() > 2_097_152)
-        || result.values().map(Vec::len).sum::<usize>() > 8_388_608
+        || total_bytes > 8_388_608
     {
         return Err(SourceCommandError::Invalid(
             "record package presence or budget",
@@ -3714,7 +3797,9 @@ pub fn resolve_record_version(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(JsonValue, String)> {
-    resolve_record_version_selected(ctx, None, exact, worker, deadline, cancelled)
+    let resolved =
+        resolve_record_version_selected(ctx, None, None, None, exact, worker, deadline, cancelled)?;
+    Ok((resolved.record, resolved.source_path))
 }
 
 pub(crate) fn resolve_record_version_from_cut(
@@ -3730,31 +3815,125 @@ pub(crate) fn resolve_record_version_from_cut(
             "metadata resolver selected cut differs",
         ));
     }
-    resolve_record_version_selected(ctx, Some(cut), exact, worker, deadline, cancelled)
+    let resolved = resolve_record_version_selected(
+        ctx,
+        Some(cut),
+        None,
+        None,
+        exact,
+        worker,
+        deadline,
+        cancelled,
+    )?;
+    Ok((resolved.record, resolved.source_path))
+}
+
+/// Evidence produced by the same exact-version read and retained archive
+/// verification. It describes a source version; it grants no current use.
+pub(crate) struct ResolvedRecordVersion {
+    pub record: JsonValue,
+    pub current_record: Option<JsonValue>,
+    pub source_path: String,
+    pub current_ref: JsonValue,
+    pub version_status: &'static str,
+    pub source: JsonValue,
+    pub history: JsonValue,
+    pub transition: JsonValue,
+    pub route_profile: JsonValue,
+    pub bytes_read: u64,
+    pub returned_state_bytes: usize,
+    pub reads: Vec<PredicateRead>,
+}
+
+pub(crate) fn resolve_record_version_evidence(
+    ctx: &CommandContext,
+    exact: &JsonValue,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ResolvedRecordVersion> {
+    resolve_record_version_selected(ctx, None, None, None, exact, worker, deadline, cancelled)
+}
+
+pub(crate) fn resolve_record_version_evidence_from_cut(
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    exact: &JsonValue,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ResolvedRecordVersion> {
+    if cut.current().revision() != ctx.base_revision {
+        return Err(SourceCommandError::Conflict(
+            "metadata evidence selected cut differs",
+        ));
+    }
+    resolve_record_version_selected(
+        ctx,
+        Some(cut),
+        None,
+        None,
+        exact,
+        worker,
+        deadline,
+        cancelled,
+    )
+}
+
+/// The Claim inventory has already proved global selected identity uniqueness.
+/// Read the exact borrowed owner path without cloning or rescanning its cut.
+pub(crate) fn resolve_record_version_evidence_at_from_cut(
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    owner_path: &str,
+    collection_limits: ItemLimits,
+    exact: &JsonValue,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ResolvedRecordVersion> {
+    if cut.current().revision() != ctx.base_revision {
+        return Err(SourceCommandError::Conflict(
+            "metadata owner selected cut differs",
+        ));
+    }
+    resolve_record_version_selected(
+        ctx,
+        Some(cut),
+        Some(owner_path),
+        Some(collection_limits),
+        exact,
+        worker,
+        deadline,
+        cancelled,
+    )
 }
 
 fn resolve_record_version_selected(
     ctx: &CommandContext,
     cut: Option<&CorpusCutReader>,
+    selected_path: Option<&str>,
+    collection_limits: Option<ItemLimits>,
     exact: &JsonValue,
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<(JsonValue, String)> {
-    ctx.check()?;
+) -> SourceCommandResult<ResolvedRecordVersion> {
+    // The selected-owner route is reached only through the already checked
+    // whole Claim inventory. Rechecking its entire file vector for every
+    // participant would turn one bounded preparation into N full scans.
+    if selected_path.is_none() {
+        ctx.check()?;
+    }
     exact_ref(exact)?;
     if worker.source_revision() != ctx.base_revision {
         return Err(SourceCommandError::Conflict(
             "metadata resolver worker and source cut differ",
         ));
     }
-    let mut matches = Vec::new();
-    for file in &ctx.files {
-        let location = file.path.as_str();
+    let (location, record, subject) = if let Some(location) = selected_path {
         if !location.starts_with("ToS/source-witnesses/")
             || !location.ends_with(".json")
-            || location.ends_with(".human-forms.json")
-            || location.ends_with(HISTORY)
             || location.split('/').any(|part| {
                 part.starts_with('.')
                     || matches!(
@@ -3763,23 +3942,50 @@ fn resolve_record_version_selected(
                     )
             })
         {
-            continue;
+            return Err(SourceCommandError::Denied("selected metadata owner path"));
         }
-        let record = cmd::parse(&file.raw)?;
-        if let Ok(subject) = source_forms::metadata_subject(&record) {
-            if cmd::field(&subject, "id")? == cmd::field(exact, "id")? {
-                matches.push((location, record, subject));
+        let record = cmd::parse(required(ctx, location)?)?;
+        let subject = source_forms::metadata_subject(&record)?;
+        if cmd::field(&subject, "id")? != cmd::field(exact, "id")? {
+            return Err(SourceCommandError::Conflict(
+                "selected metadata owner identity",
+            ));
+        }
+        (location, record, subject)
+    } else {
+        let mut matches = Vec::new();
+        for file in &ctx.files {
+            let location = file.path.as_str();
+            if !location.starts_with("ToS/source-witnesses/")
+                || !location.ends_with(".json")
+                || location.ends_with(".human-forms.json")
+                || location.ends_with(HISTORY)
+                || location.split('/').any(|part| {
+                    part.starts_with('.')
+                        || matches!(
+                            part,
+                            "owner-local" | "catalog" | "payload" | "local-content" | "private"
+                        )
+                })
+            {
+                continue;
+            }
+            let record = cmd::parse(&file.raw)?;
+            if let Ok(subject) = source_forms::metadata_subject(&record) {
+                if cmd::field(&subject, "id")? == cmd::field(exact, "id")? {
+                    matches.push((location, record, subject));
+                }
             }
         }
-    }
-    if matches.len() != 1 {
-        return Err(SourceCommandError::Conflict(
-            "exact metadata identity has no unique selected current owner",
-        ));
-    }
-    let (location, record, subject) = matches
-        .pop()
-        .ok_or(SourceCommandError::Conflict("selected metadata missing"))?;
+        if matches.len() != 1 {
+            return Err(SourceCommandError::Conflict(
+                "exact metadata identity has no unique selected current owner",
+            ));
+        }
+        matches
+            .pop()
+            .ok_or(SourceCommandError::Conflict("selected metadata missing"))?
+    };
     let schema_version = cmd::text(&record, "schema_version")?;
     let mut descriptor = cmd::object(vec![
         ("source_path", cmd::string(location)),
@@ -3840,31 +4046,340 @@ fn resolve_record_version_selected(
     };
     // This descriptor routes a read. It is never evaluated as a protected
     // configuration or used to manufacture a grant or preparation plan.
-    let mut routed = ctx.clone();
-    routed.configuration_raw = cmd::canonical(&descriptor)?;
-    profile(
+    let (route_profile, _, _, _) = profile(
         cut,
         worker,
         deadline,
         cancelled,
-        &routed,
+        ctx,
         &descriptor,
         family,
         &record,
     )?;
-    let files = package(&routed, location, true)?;
-    let retained = verify_history(&routed, &descriptor, &files, &record)?;
-    if cmd::same(&subject, exact)? {
-        return Ok((record, location.into()));
+    if family == RevisionFamily::CorpusSelectedV3
+        && cmd::text(&record, "record_type")? == "collection"
+        && let Some(cut) = cut
+    {
+        let exact_raw = cmd::canonical(exact)?;
+        let exact_serde: serde_json::Value = serde_json::from_slice(&exact_raw)
+            .map_err(|_| SourceCommandError::Invalid("Collection exact reference conversion"))?;
+        let limits = collection_limits.unwrap_or(ItemLimits {
+            max_member_bytes: 8_388_608,
+            max_total_bytes: 33_554_432,
+            max_state_bytes: 33_554_432,
+            max_issues: 256,
+            deadline,
+        });
+        let observed = tos_validation::native_compound::verify_collection_version_from_cut(
+            cut,
+            worker,
+            location,
+            &exact_serde,
+            limits,
+            cancelled,
+        )
+        .map_err(|reason| SourceCommandError::SchemaExecution {
+            path: location.to_owned(),
+            root: "selected Collection historical version".to_owned(),
+            reason,
+        })?;
+        if observed.source_path != location {
+            return Err(SourceCommandError::Conflict(
+                "Collection version verifier selected another owner",
+            ));
+        }
+        // The verifier's returned objects remain live while the Foundation
+        // representation and short serde transport buffers are constructed.
+        let mut returned_state_bytes = observed.returned_state_bytes;
+        let mut account_conversion = |bytes: usize| -> SourceCommandResult<()> {
+            returned_state_bytes = returned_state_bytes
+                .checked_add(bytes)
+                .and_then(|total| total.checked_add(bytes))
+                .filter(|total| *total <= limits.max_state_bytes)
+                .ok_or(SourceCommandError::Unsupported(
+                    "Collection conversion state budget",
+                ))?;
+            Ok(())
+        };
+        let current_ref_wire = serde_json::to_vec(&observed.current_ref)
+            .map_err(|_| SourceCommandError::Invalid("Collection current reference conversion"))?;
+        account_conversion(current_ref_wire.len())?;
+        let current_ref = cmd::parse(&current_ref_wire)?;
+        let transition = match observed.transition {
+            Some(receipt) => {
+                let receipt_wire = serde_json::to_vec(&receipt)
+                    .map_err(|_| SourceCommandError::Invalid("Collection transition conversion"))?;
+                account_conversion(receipt_wire.len())?;
+                let receipt = cmd::parse(&receipt_wire)?;
+                cmd::object(
+                    [
+                        "command_id",
+                        "recorded_at",
+                        "previous_source",
+                        "source",
+                        "request_digest",
+                    ]
+                    .iter()
+                    .map(|key| Ok((*key, cmd::field(&receipt, key)?.clone())))
+                    .collect::<SourceCommandResult<Vec<_>>>()?,
+                )
+            }
+            None => JsonValue::Null,
+        };
+        let historical = observed.version_status == "historical";
+        let source = cmd::object(vec![
+            ("source_ref", cmd::string(location)),
+            (
+                "record_bytes",
+                cmd::number(observed.record_raw.len() as u64),
+            ),
+            (
+                "record_sha256",
+                cmd::string(&Digest256::of_bytes(&observed.record_raw).to_prefixed()),
+            ),
+            (
+                "archive_blob_ref",
+                observed
+                    .archive_blob_ref
+                    .as_deref()
+                    .map(cmd::string)
+                    .unwrap_or(JsonValue::Null),
+            ),
+            (
+                "archive_manifest_ref",
+                observed
+                    .archive_manifest_ref
+                    .as_deref()
+                    .map(cmd::string)
+                    .unwrap_or(JsonValue::Null),
+            ),
+            (
+                "archive_manifest_sha256",
+                observed
+                    .archive_manifest_sha256
+                    .as_deref()
+                    .map(cmd::string)
+                    .unwrap_or(JsonValue::Null),
+            ),
+            (
+                "package_revision",
+                observed
+                    .package_revision
+                    .as_deref()
+                    .map(cmd::string)
+                    .unwrap_or(JsonValue::Null),
+            ),
+        ]);
+        let baseline_wire = serde_json::to_vec(&observed.retained_baseline_ref)
+            .map_err(|_| SourceCommandError::Invalid("Collection history baseline conversion"))?;
+        account_conversion(baseline_wire.len())?;
+        let history = cmd::object(vec![
+            (
+                "source_ref",
+                observed
+                    .history_ref
+                    .as_deref()
+                    .map(cmd::string)
+                    .unwrap_or(JsonValue::Null),
+            ),
+            (
+                "sha256",
+                observed
+                    .history_sha256
+                    .as_deref()
+                    .map(cmd::string)
+                    .unwrap_or(JsonValue::Null),
+            ),
+            (
+                "receipt_count",
+                cmd::number(observed.history_receipt_count as u64),
+            ),
+            ("retained_record_chain_verified", JsonValue::Bool(true)),
+            ("retained_baseline_ref", cmd::parse(&baseline_wire)?),
+        ]);
+        account_conversion(observed.record_raw.len())?;
+        let historical_record = cmd::parse(&observed.record_raw)?;
+        return Ok(ResolvedRecordVersion {
+            record: historical_record,
+            current_record: historical.then_some(record),
+            source_path: location.to_owned(),
+            current_ref,
+            version_status: observed.version_status,
+            source,
+            history,
+            transition,
+            route_profile,
+            bytes_read: observed.bytes_read,
+            returned_state_bytes,
+            reads: observed.reads,
+        });
     }
-    for receipt in cmd::array(&retained, "receipts")? {
+    let files = package(
+        ctx,
+        location,
+        true,
+        collection_limits.map(|limits| limits.max_state_bytes),
+    )?;
+    let selected_bytes_read = files
+        .values()
+        .try_fold(0u64, |sum, raw| sum.checked_add(raw.len() as u64))
+        .ok_or(SourceCommandError::Unsupported(
+            "selected metadata read byte overflow",
+        ))?;
+    let history_allowance = collection_limits
+        .map(|limits| {
+            limits
+                .max_total_bytes
+                .checked_sub(selected_bytes_read)
+                .ok_or(SourceCommandError::Unsupported(
+                    "selected metadata read budget",
+                ))
+        })
+        .transpose()?;
+    let (retained, history_bytes_read) =
+        verify_history_accounted(ctx, &descriptor, &files, &record, history_allowance)?;
+    let bytes_read = selected_bytes_read.checked_add(history_bytes_read).ok_or(
+        SourceCommandError::Unsupported("metadata read byte overflow"),
+    )?;
+    let (parent, base) = split(location)?;
+    let history_raw = files.get(HISTORY);
+    let history_receipts = cmd::array(&retained, "receipts")?;
+    let baseline = history_receipts
+        .first()
+        .map(|receipt| cmd::field(receipt, "previous_source"))
+        .transpose()?
+        .unwrap_or(&subject);
+    let history_evidence = cmd::object(vec![
+        (
+            "source_ref",
+            history_raw
+                .map(|_| cmd::string(&format!("{parent}/{HISTORY}")))
+                .unwrap_or(JsonValue::Null),
+        ),
+        (
+            "sha256",
+            history_raw
+                .map(|raw| cmd::string(&Digest256::of_bytes(raw).to_prefixed()))
+                .unwrap_or(JsonValue::Null),
+        ),
+        ("receipt_count", cmd::number(history_receipts.len() as u64)),
+        ("retained_record_chain_verified", JsonValue::Bool(true)),
+        ("retained_baseline_ref", baseline.clone()),
+    ]);
+    let source_evidence = |raw: &[u8], archive: Option<(&str, &str, &str)>| {
+        cmd::object(vec![
+            ("source_ref", cmd::string(location)),
+            ("record_bytes", cmd::number(raw.len() as u64)),
+            (
+                "record_sha256",
+                cmd::string(&Digest256::of_bytes(raw).to_prefixed()),
+            ),
+            (
+                "archive_blob_ref",
+                archive
+                    .map(|(blob, _, _)| cmd::string(blob))
+                    .unwrap_or(JsonValue::Null),
+            ),
+            (
+                "archive_manifest_ref",
+                archive
+                    .map(|(_, manifest, _)| cmd::string(manifest))
+                    .unwrap_or(JsonValue::Null),
+            ),
+            (
+                "archive_manifest_sha256",
+                archive
+                    .map(|(_, _, digest)| cmd::string(digest))
+                    .unwrap_or(JsonValue::Null),
+            ),
+            ("package_revision", JsonValue::Null),
+        ])
+    };
+    if cmd::same(&subject, exact)? {
+        let raw = files
+            .get(base)
+            .ok_or(SourceCommandError::Conflict("current record absent"))?;
+        return Ok(ResolvedRecordVersion {
+            current_record: None,
+            record,
+            source_path: location.into(),
+            current_ref: subject,
+            version_status: "current",
+            source: source_evidence(raw, None),
+            history: history_evidence,
+            transition: JsonValue::Null,
+            route_profile,
+            bytes_read,
+            returned_state_bytes: 0,
+            reads: Vec::new(),
+        });
+    }
+    for receipt in history_receipts {
         if cmd::same(cmd::field(receipt, "previous_source")?, exact)? {
-            let (archived, _) = read_archive(&routed, &descriptor, receipt)?;
-            let (_, base) = split(location)?;
-            let record = cmd::parse(archived.get(base).ok_or(SourceCommandError::Conflict(
+            if let Some(limits) = collection_limits {
+                let declared = archive_declared_read_bytes(ctx, receipt)?;
+                if bytes_read
+                    .checked_add(declared)
+                    .is_none_or(|sum| sum > limits.max_total_bytes)
+                {
+                    return Err(SourceCommandError::Unsupported(
+                        "retained metadata read budget",
+                    ));
+                }
+            }
+            let (archived, locations) = read_archive(ctx, &descriptor, receipt)?;
+            let raw = archived.get(base).ok_or(SourceCommandError::Conflict(
                 "retained metadata record absent",
-            ))?)?;
-            return Ok((record, location.into()));
+            ))?;
+            let archived_record = cmd::parse(raw)?;
+            let blob = cmd::text(cmd::field(&locations, base)?, "archive_path")?;
+            let manifest = format!("{}/manifest.json", cmd::text(receipt, "archive_path")?);
+            let manifest_digest = Digest256::of_bytes(required(ctx, &manifest)?).to_prefixed();
+            let mut source = source_evidence(raw, Some((blob, &manifest, &manifest_digest)));
+            cmd::set(
+                &mut source,
+                "package_revision",
+                cmd::field(receipt, "previous_revision")?.clone(),
+            )?;
+            let transition = cmd::object(
+                [
+                    "command_id",
+                    "recorded_at",
+                    "previous_source",
+                    "source",
+                    "request_digest",
+                ]
+                .iter()
+                .map(|key| Ok((*key, cmd::field(receipt, key)?.clone())))
+                .collect::<SourceCommandResult<Vec<_>>>()?,
+            );
+            let selected_archive_bytes = archived
+                .values()
+                .try_fold(0u64, |sum, raw| sum.checked_add(raw.len() as u64))
+                .ok_or(SourceCommandError::Unsupported(
+                    "metadata archive read byte overflow",
+                ))?;
+            let manifest_bytes = required(ctx, &manifest)?.len() as u64;
+            let selected_archive_read_bytes = bytes_read
+                .checked_add(selected_archive_bytes)
+                .and_then(|sum| sum.checked_add(manifest_bytes))
+                .ok_or(SourceCommandError::Unsupported(
+                    "metadata archive read byte overflow",
+                ))?;
+            return Ok(ResolvedRecordVersion {
+                record: archived_record,
+                current_record: Some(record.clone()),
+                source_path: location.into(),
+                current_ref: subject,
+                version_status: "historical",
+                source,
+                history: history_evidence,
+                transition,
+                route_profile,
+                bytes_read: selected_archive_read_bytes,
+                returned_state_bytes: 0,
+                reads: Vec::new(),
+            });
         }
     }
     Err(SourceCommandError::Conflict(

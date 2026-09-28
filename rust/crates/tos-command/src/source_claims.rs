@@ -9,14 +9,19 @@ use crate::source_sign_native::{NativeReadKind, NativeReadScope, SignNativeRead}
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath, python_strip_unicode16_v1};
+use tos_foundation::{
+    CanonicalProfile, Digest256, JsonLimits, JsonString, JsonValue, RelativePath,
+    canonical_count_v1, python_strip_unicode16_v1,
+};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
+use tos_validation::PredicateRead;
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 pub const CLAIM_STREAM: &str = "source-claims.jsonl";
 pub const CLAIM_HISTORY: &str = "claim-revision-history.json";
 const RELATIONS: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
 const ENTITIES: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
+const CLAIM_COMPLETE_BYTES: u64 = 33_554_432;
 const FIELDS: &[&str] = &[
     "qualifiers",
     "evidence_refs",
@@ -699,7 +704,7 @@ pub fn run_claim_command(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
-    run_claim_command_inner(ctx, None, false, executor, deadline, cancelled)
+    run_claim_command_inner(ctx, None, None, false, executor, deadline, cancelled)
 }
 
 /// Authenticate the complete current member universe before inventory-based
@@ -727,7 +732,15 @@ pub fn run_claim_command_from_cut(
         ..ctx.clone()
     };
     complete.check()?;
-    run_claim_command_inner(&complete, Some(ctx), false, executor, deadline, cancelled)
+    run_claim_command_inner(
+        &complete,
+        Some(ctx),
+        Some(cut),
+        false,
+        executor,
+        deadline,
+        cancelled,
+    )
 }
 
 /// Software rule-contract bytes are custody-checked through their separate
@@ -743,7 +756,15 @@ pub fn run_claim_command_from_captures(
 ) -> SourceCommandResult<PreparedCommand> {
     let complete =
         selected_claim_context_from_captures(ctx, cut, software, components, deadline, cancelled)?;
-    run_claim_command_inner(&complete, Some(ctx), false, executor, deadline, cancelled)
+    run_claim_command_inner(
+        &complete,
+        Some(ctx),
+        Some(cut),
+        false,
+        executor,
+        deadline,
+        cancelled,
+    )
 }
 
 fn selected_claim_context_from_captures(
@@ -861,7 +882,15 @@ fn claim_creation_from_captures(
             "native Claim serialization requires claims.create",
         ));
     }
-    let preview = run_claim_command_inner(&complete, Some(ctx), true, worker, deadline, cancelled)?;
+    let preview = run_claim_command_inner(
+        &complete,
+        Some(ctx),
+        Some(cut),
+        true,
+        worker,
+        deadline,
+        cancelled,
+    )?;
     if preview.changes.len() != 1 || preview.changes[0].before.is_some() {
         return Err(SourceCommandError::Conflict(
             "initial Claim serialization proposal closure",
@@ -1162,6 +1191,7 @@ pub fn execute_isolated_claim_creation_from_captures(
             }
             reference_replay_snapshot(
                 &current_context,
+                current_cut,
                 &parse(&ctx.configuration_raw)?,
                 &parse(&ctx.request_raw)?,
                 current_worker,
@@ -1237,7 +1267,9 @@ fn reference_replay_required(
 ) -> SourceCommandResult<bool> {
     for claim in array(request, "claims")? {
         let (_, descriptor) = profile(current, text(claim, "predicate")?)?;
-        if text(&descriptor, "reader")? == "structured-reference-value-v1" {
+        if text(&descriptor, "reader")? == "structured-reference-value-v1"
+            || retained_profile_required(current, claim)?
+        {
             return Ok(true);
         }
     }
@@ -1246,38 +1278,67 @@ fn reference_replay_required(
 
 fn reference_replay_snapshot(
     current: &CommandContext,
+    cut: &CorpusCutReader,
     config: &JsonValue,
     request: &JsonValue,
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Digest256> {
-    let mut dependencies = Vec::new();
+    let mut special_claims = Vec::new();
+    let mut bindings = BTreeMap::new();
+    let mut retained = None;
     for claim in array(request, "claims")? {
         let (_, descriptor) = profile(current, text(claim, "predicate")?)?;
-        if text(&descriptor, "reader")? == "structured-reference-value-v1" {
+        if text(&descriptor, "reader")? == "structured-reference-value-v1"
+            || retained_profile_required(current, claim)?
+        {
             let (_, create, version) = family(text(config, "schema_version")?)?;
             if !create {
                 return Err(SourceCommandError::Denied("reference replay owner family"));
             }
             claim_scope(config, claim, true, version)?;
-            validate_ground(current, config, claim, version, worker, deadline, cancelled)?;
-            dependencies.push(
-                maintained_grounding(
-                    current,
-                    config,
-                    std::slice::from_ref(claim),
-                    None,
-                    true,
-                    worker,
-                    deadline,
-                    cancelled,
-                )?
-                .dependencies,
-            );
+            if retained.is_none() && retained_profile_required(current, claim)? {
+                retained = Some(RetainedProfileRead::new(
+                    current, worker, deadline, cancelled,
+                )?);
+            }
+            let binding = validate_ground(
+                current,
+                Some(cut),
+                retained.as_mut(),
+                config,
+                claim,
+                version,
+                worker,
+                deadline,
+                cancelled,
+            )?;
+            if let Some(binding) = binding {
+                if let Some(read) = retained.as_mut() {
+                    read.debit(0, retained_value_bytes(&binding.1)?)?;
+                }
+                bindings.insert(text(claim, "claim_id")?.to_owned(), binding);
+            }
+            special_claims.push(claim.clone());
         }
     }
-    Ok(record_digest(&JsonValue::Array(dependencies))?)
+    let grounding = maintained_grounding(
+        current,
+        config,
+        &special_claims,
+        None,
+        true,
+        retained
+            .take()
+            .map(|read| read.into_inventory(current, Some(cut)))
+            .transpose()?,
+        &bindings,
+        worker,
+        deadline,
+        cancelled,
+    )?;
+    Ok(record_digest(&grounding.dependencies)?)
 }
 
 fn retained_claim_creation_files(
@@ -1415,7 +1476,7 @@ pub(crate) fn complete_authored_inputs(
             "Claim inventory cut differs from command base",
         ));
     }
-    const MAX_COMPLETE_BYTES: u64 = 33_554_432;
+    const MAX_COMPLETE_BYTES: u64 = CLAIM_COMPLETE_BYTES;
     let software_inputs = ctx
         .files
         .iter()
@@ -1536,6 +1597,7 @@ pub(crate) fn complete_authored_inputs(
 fn run_claim_command_inner(
     ctx: &CommandContext,
     selected_context: Option<&CommandContext>,
+    cut: Option<&CorpusCutReader>,
     serialize_creation: bool,
     executor: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
@@ -1584,6 +1646,7 @@ fn run_claim_command_inner(
         )?;
     }
     let files = package(ctx, &p)?;
+    let mut retained = None;
     let mut response = object(vec![
         (
             "schema_version",
@@ -1660,9 +1723,15 @@ fn run_claim_command_inner(
             return Err(SourceCommandError::Invalid("initial Claim batch capacity"));
         }
         let mut seen = BTreeSet::new();
+        let mut retained_profile_bindings = BTreeMap::new();
         let mut raw = Vec::new();
         for claim in claims {
             claim_scope(&config, claim, true, version)?;
+            if retained.is_none() && retained_profile_required(ctx, claim)? {
+                retained = Some(RetainedProfileRead::new(
+                    ctx, executor, deadline, cancelled,
+                )?);
+            }
             if integer(claim, "claim_version")? != 1
                 || claim
                     .object_get("assessment_refs")
@@ -1679,7 +1748,22 @@ fn run_claim_command_inner(
             if !seen.insert(text(claim, "claim_id")?) {
                 return Err(SourceCommandError::Conflict("duplicate initial Claim"));
             }
-            validate_ground(ctx, &config, claim, version, executor, deadline, cancelled)?;
+            if let Some(binding) = validate_ground(
+                ctx,
+                cut,
+                retained.as_mut(),
+                &config,
+                claim,
+                version,
+                executor,
+                deadline,
+                cancelled,
+            )? {
+                if let Some(read) = retained.as_mut() {
+                    read.debit(0, retained_value_bytes(&binding.1)?)?;
+                }
+                retained_profile_bindings.insert(text(claim, "claim_id")?.to_owned(), binding);
+            }
             raw.extend(canonical(claim)?);
             raw.push(b'\n');
         }
@@ -1711,7 +1795,19 @@ fn run_claim_command_inner(
             ));
         }
         let grounding = maintained_grounding(
-            ctx, &config, claims, None, false, executor, deadline, cancelled,
+            ctx,
+            &config,
+            claims,
+            None,
+            false,
+            retained
+                .take()
+                .map(|read| read.into_inventory(ctx, cut))
+                .transpose()?,
+            &retained_profile_bindings,
+            executor,
+            deadline,
+            cancelled,
         )?;
         set(
             &mut response,
@@ -1865,16 +1961,39 @@ fn run_claim_command_inner(
                     return Err(SourceCommandError::Denied("Claim form field scope"));
                 }
             }
-            validate_ground(ctx, &config, record, version, executor, deadline, cancelled)?;
-            let retained = archive(ctx, &config, receipt)?;
-            let predecessors = rows(&retained[CLAIM_STREAM])?;
+            if retained.is_none() && retained_profile_required(ctx, record)? {
+                retained = Some(RetainedProfileRead::new(
+                    ctx, executor, deadline, cancelled,
+                )?);
+            }
+            validate_ground(
+                ctx,
+                cut,
+                retained.as_mut(),
+                &config,
+                record,
+                version,
+                executor,
+                deadline,
+                cancelled,
+            )?;
+            let archived = archive(ctx, &config, receipt)?;
+            let predecessors = rows(&archived[CLAIM_STREAM])?;
             let predecessor = predecessors.get(id).ok_or(SourceCommandError::Conflict(
                 "Claim retry predecessor absent",
             ))?;
             let successor = advance_claim(predecessor, fields, layer)?;
             claim_scope(&config, &successor, false, version)?;
             validate_ground(
-                ctx, &config, &successor, version, executor, deadline, cancelled,
+                ctx,
+                cut,
+                retained.as_mut(),
+                &config,
+                &successor,
+                version,
+                executor,
+                deadline,
+                cancelled,
             )?;
             set(&mut response, "receipt", receipt.clone())?;
             set(&mut response, "replayed", JsonValue::Bool(true))?;
@@ -1883,9 +2002,26 @@ fn run_claim_command_inner(
     }
     let revised = advance_claim(record, fields, layer)?;
     claim_scope(&config, &revised, false, version)?;
-    validate_ground(
-        ctx, &config, &revised, version, executor, deadline, cancelled,
+    if retained.is_none() && retained_profile_required(ctx, &revised)? {
+        retained = Some(RetainedProfileRead::new(
+            ctx, executor, deadline, cancelled,
+        )?);
+    }
+    let retained_profile_binding = validate_ground(
+        ctx,
+        cut,
+        retained.as_mut(),
+        &config,
+        &revised,
+        version,
+        executor,
+        deadline,
+        cancelled,
     )?;
+    if let (Some(read), Some((_, binding))) = (retained.as_mut(), retained_profile_binding.as_ref())
+    {
+        read.debit(0, retained_value_bytes(binding)?)?;
+    }
     let forms = array(&request, "forms")?;
     if forms.is_empty() || forms.len() > 32 {
         return Err(SourceCommandError::Invalid("Claim form selections"));
@@ -1971,12 +2107,21 @@ fn run_claim_command_inner(
         "prepared_materializations",
         JsonValue::Array(views),
     )?;
+    let mut retained_profile_bindings = BTreeMap::new();
+    if let Some(binding) = retained_profile_binding {
+        retained_profile_bindings.insert(id.to_owned(), binding);
+    }
     let grounding = maintained_grounding(
         ctx,
         &config,
         std::slice::from_ref(&revised),
         Some(forms),
         true,
+        retained
+            .take()
+            .map(|read| read.into_inventory(ctx, cut))
+            .transpose()?,
+        &retained_profile_bindings,
         executor,
         deadline,
         cancelled,
@@ -2266,13 +2411,15 @@ fn claim_profile_inputs(
     let (_, descriptor) = profile(ctx, text(claim, "predicate")?)?;
     let reader = text(&descriptor, "reader")?;
     if reader.starts_with("identity-transition-")
+        && !["identity-transition-v1", "identity-transition-v2"].contains(&reader)
         || descriptor
             .object_get("object_reference_set")
             .and_then(|v| v.object_get("basis_adapter"))
-            .is_some()
+            .and_then(JsonValue::as_str)
+            .is_some_and(|adapter| adapter != "collection-membership-versions-v1")
     {
         return Err(SourceCommandError::Unsupported(
-            "maintained exact retained identity/order provenance bindings adapter",
+            "declared retained Claim provenance bindings adapter",
         ));
     }
     let route = array(&descriptor, "schemas")?
@@ -2337,6 +2484,18 @@ fn claim_profile_inputs(
     } else {
         "identity"
     })
+}
+
+fn retained_profile_required(ctx: &CommandContext, claim: &JsonValue) -> SourceCommandResult<bool> {
+    let (_, descriptor) = profile(ctx, text(claim, "predicate")?)?;
+    Ok(
+        text(&descriptor, "reader")?.starts_with("identity-transition-")
+            || descriptor
+                .object_get("object_reference_set")
+                .and_then(|value| value.object_get("basis_adapter"))
+                .and_then(JsonValue::as_str)
+                == Some("collection-membership-versions-v1"),
+    )
 }
 fn catalogue_record(
     record: &JsonValue,
@@ -2637,6 +2796,205 @@ pub(crate) struct MaintainedInventory {
     pub anchors: JsonValue,
     pub native_identity_snapshot: Option<String>,
     pub native_text_snapshot: Option<String>,
+}
+
+type MetadataBinding = (JsonValue, String, JsonValue, JsonValue, &'static str);
+
+struct RetainedCatalogRows {
+    by_id: BTreeMap<String, (usize, usize, u64)>,
+    sha256: String,
+}
+
+/// One selected Claim invocation owns its complete identity index and the
+/// retained reads derived from it. None of these observations grants use.
+struct RetainedProfileRead {
+    inventory: Option<MaintainedInventory>,
+    entities: JsonValue,
+    catalogs: BTreeMap<String, RetainedCatalogRows>,
+    metadata: BTreeMap<String, MetadataBinding>,
+    claims: BTreeMap<String, ResolvedClaimReference>,
+    observed_reads: Vec<PredicateRead>,
+    read_bytes: u64,
+    state_bytes: usize,
+}
+
+fn retained_value_bytes(value: &JsonValue) -> SourceCommandResult<usize> {
+    canonical_count_v1(
+        value,
+        CanonicalProfile::SourceCommandInputV1,
+        JsonLimits {
+            max_bytes: CLAIM_COMPLETE_BYTES as usize,
+            ..JsonLimits::default()
+        },
+    )
+    .map_err(|_| SourceCommandError::Unsupported("Claim retained logical state budget"))
+}
+
+impl RetainedProfileRead {
+    fn new(
+        ctx: &CommandContext,
+        executor: &mut CutWorkerSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        ctx.check()?;
+        let inventory = maintained_inventory(ctx, executor, deadline, cancelled)?;
+        let entities = json_file(ctx, ENTITIES)?;
+        let raw_bytes = ctx
+            .files
+            .iter()
+            .try_fold(0usize, |sum, file| sum.checked_add(file.raw.len()))
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim complete input state overflow",
+            ))?;
+        let mut state_bytes = raw_bytes
+            .checked_add(retained_value_bytes(&entities)?)
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim retained inventory state overflow",
+            ))?;
+        for value in [
+            &inventory.records,
+            &inventory.record_inputs,
+            &inventory.claim_profile_inputs,
+            &inventory.events,
+            &inventory.anchors,
+        ] {
+            state_bytes = state_bytes
+                .checked_add(retained_value_bytes(value)?)
+                .ok_or(SourceCommandError::Unsupported(
+                    "Claim retained inventory state overflow",
+                ))?;
+        }
+        for map in [
+            &inventory.objects,
+            &inventory.source_records,
+            &inventory.claims,
+            &inventory.record_member_inputs,
+        ] {
+            for (name, value) in map {
+                let value_bytes = retained_value_bytes(value)?;
+                state_bytes = state_bytes
+                    .checked_add(name.len() + std::mem::size_of::<(String, JsonValue)>())
+                    .and_then(|n| n.checked_add(value_bytes))
+                    .ok_or(SourceCommandError::Unsupported(
+                        "Claim retained inventory state overflow",
+                    ))?;
+            }
+        }
+        for snapshot in [
+            inventory.native_identity_snapshot.as_deref(),
+            inventory.native_text_snapshot.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            state_bytes = state_bytes
+                .checked_add(snapshot.len() + std::mem::size_of::<String>())
+                .ok_or(SourceCommandError::Unsupported(
+                    "Claim retained inventory state overflow",
+                ))?;
+        }
+        if state_bytes > CLAIM_COMPLETE_BYTES as usize {
+            return Err(SourceCommandError::Unsupported(
+                "Claim retained inventory state budget",
+            ));
+        }
+        Ok(Self {
+            inventory: Some(inventory),
+            entities,
+            catalogs: BTreeMap::new(),
+            metadata: BTreeMap::new(),
+            claims: BTreeMap::new(),
+            observed_reads: Vec::new(),
+            read_bytes: raw_bytes as u64,
+            state_bytes,
+        })
+    }
+
+    fn debit(&mut self, bytes_read: u64, state_bytes: usize) -> SourceCommandResult<()> {
+        self.read_bytes = self
+            .read_bytes
+            .checked_add(bytes_read)
+            .filter(|n| *n <= CLAIM_COMPLETE_BYTES)
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim retained read budget",
+            ))?;
+        self.state_bytes = self
+            .state_bytes
+            .checked_add(state_bytes)
+            .filter(|n| *n <= CLAIM_COMPLETE_BYTES as usize)
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim retained state budget",
+            ))?;
+        Ok(())
+    }
+
+    fn remaining_read_bytes(&self) -> SourceCommandResult<u64> {
+        CLAIM_COMPLETE_BYTES
+            .checked_sub(self.read_bytes)
+            .filter(|remaining| *remaining > 0)
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim retained read budget",
+            ))
+    }
+
+    fn remaining_state_bytes(&self) -> SourceCommandResult<usize> {
+        (CLAIM_COMPLETE_BYTES as usize)
+            .checked_sub(self.state_bytes)
+            .filter(|remaining| *remaining > 0)
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim retained state budget",
+            ))
+    }
+
+    fn inventory(&self) -> SourceCommandResult<&MaintainedInventory> {
+        self.inventory.as_ref().ok_or(SourceCommandError::Conflict(
+            "Claim retained inventory released",
+        ))
+    }
+
+    fn into_inventory(
+        mut self,
+        ctx: &CommandContext,
+        cut: Option<&CorpusCutReader>,
+    ) -> SourceCommandResult<MaintainedInventory> {
+        let cut = cut.ok_or(SourceCommandError::Unsupported(
+            "retained Claim needs complete selected cut",
+        ))?;
+        if cut.current().revision() != ctx.base_revision {
+            return Err(SourceCommandError::Conflict(
+                "retained Claim selected cut changed",
+            ));
+        }
+        let mut recheck_bytes = 0u64;
+        for read in &self.observed_reads {
+            match read {
+                PredicateRead::ExactPath {
+                    path: location,
+                    digest,
+                } => {
+                    let raw = selected(ctx, location)?;
+                    if Digest256::of_bytes(raw).to_prefixed() != *digest {
+                        return Err(SourceCommandError::Conflict(
+                            "retained Claim exact path read differs from complete cut",
+                        ));
+                    }
+                    recheck_bytes = recheck_bytes.checked_add(raw.len() as u64).ok_or(
+                        SourceCommandError::Unsupported("retained Claim read recheck overflow"),
+                    )?;
+                }
+                _ => {
+                    return Err(SourceCommandError::Unsupported(
+                        "retained Claim predicate read outside selected path closure",
+                    ));
+                }
+            }
+        }
+        self.debit(recheck_bytes, 0)?;
+        self.inventory.take().ok_or(SourceCommandError::Conflict(
+            "Claim retained inventory released",
+        ))
+    }
 }
 pub(crate) fn maintained_inventory(
     ctx: &CommandContext,
@@ -3376,6 +3734,8 @@ fn maintained_grounding(
     claims: &[JsonValue],
     forms: Option<&[JsonValue]>,
     allow_existing: bool,
+    prepared_inventory: Option<MaintainedInventory>,
+    retained_profile_bindings: &BTreeMap<String, (&'static str, JsonValue)>,
     executor: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -3390,7 +3750,10 @@ fn maintained_grounding(
         events,
         anchors,
         ..
-    } = maintained_inventory(ctx, executor, deadline, cancelled)?;
+    } = match prepared_inventory {
+        Some(inventory) => inventory,
+        None => maintained_inventory(ctx, executor, deadline, cancelled)?,
+    };
     let mut new_profile_inputs = raw_digests(
         ctx,
         &[
@@ -3405,6 +3768,8 @@ fn maintained_grounding(
         ("objects", object(vec![])),
         ("evidence", object(vec![])),
     ]);
+    let mut identity_proposals = object(vec![]);
+    let mut collection_orders = object(vec![]);
     let mut bound_objects = object(vec![]);
     let mut bound_evidence = object(vec![]);
     let mut values = object(vec![]);
@@ -3431,9 +3796,53 @@ fn maintained_grounding(
         }
         let reader_kind = claim_profile_inputs(ctx, claim, &mut new_profile_inputs)?;
         let (relation, descriptor) = profile(ctx, text(claim, "predicate")?)?;
+        let claim_id = text(claim, "claim_id")?;
+        let special = if text(&descriptor, "reader")?.starts_with("identity-transition-") {
+            Some("identity_proposals")
+        } else if descriptor
+            .object_get("object_reference_set")
+            .and_then(|value| value.object_get("basis_adapter"))
+            .and_then(JsonValue::as_str)
+            == Some("collection-membership-versions-v1")
+        {
+            Some("collection_orders")
+        } else {
+            None
+        };
+        if let Some(kind) = special {
+            let (observed_kind, observed) =
+                retained_profile_bindings
+                    .get(claim_id)
+                    .ok_or(SourceCommandError::Conflict(
+                        "exact retained Claim provenance binding absent from validation",
+                    ))?;
+            if *observed_kind != kind {
+                return Err(SourceCommandError::Conflict(
+                    "retained Claim provenance binding family changed",
+                ));
+            }
+            set(
+                if kind == "identity_proposals" {
+                    &mut identity_proposals
+                } else {
+                    &mut collection_orders
+                },
+                claim_id,
+                observed.clone(),
+            )?;
+        }
         let mut identities = BTreeSet::from([text(claim, "subject_ref")?.to_owned()]);
         if reader_kind == "identity" {
-            identities.insert(text(claim, "object")?.to_owned());
+            if let Some(id) = field(claim, "object")?.as_str() {
+                identities.insert(id.to_owned());
+            }
+        }
+        if special == Some("identity_proposals") {
+            for side in ["predecessors", "successors"] {
+                for reference in array(field(claim, "object")?, side)? {
+                    identities.insert(text(reference, "id")?.to_owned());
+                }
+            }
         }
         if reader_kind == "temporal" && text(field(claim, "object")?, "kind")? == "relative-order" {
             identities.insert(
@@ -3534,6 +3943,16 @@ fn maintained_grounding(
     }
     set(&mut bindings, "objects", bound_objects)?;
     set(&mut bindings, "evidence", bound_evidence)?;
+    // The maintained producer includes an empty identity_proposals object
+    // whenever this batch has Collection orders, too.
+    if !identity_proposals.as_object().unwrap().is_empty()
+        || !collection_orders.as_object().unwrap().is_empty()
+    {
+        set(&mut bindings, "identity_proposals", identity_proposals)?;
+    }
+    if !collection_orders.as_object().unwrap().is_empty() {
+        set(&mut bindings, "collection_orders", collection_orders)?;
+    }
     if !values.as_object().unwrap().is_empty() {
         set(&mut bindings, "values", values)?;
     }
@@ -3846,13 +4265,15 @@ pub(crate) fn maintained_evidence(
 }
 fn validate_ground(
     ctx: &CommandContext,
+    cut: Option<&CorpusCutReader>,
+    retained: Option<&mut RetainedProfileRead>,
     config: &JsonValue,
     claim: &JsonValue,
     version: u8,
     executor: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<()> {
+) -> SourceCommandResult<Option<(&'static str, JsonValue)>> {
     if !["public", "public_metadata_only"].contains(&text(claim, "visibility")?)
         || text(claim, "claim_type")? != "relation"
         || text(claim, "claim_id")? == text(claim, "subject_ref")?
@@ -3933,8 +4354,14 @@ fn validate_ground(
         }
     }
     if reader.starts_with("identity-transition-") {
-        return validate_identity_ground(ctx, config, claim, reader, executor, deadline, cancelled);
+        return Ok(Some((
+            "identity_proposals",
+            validate_identity_ground(
+                ctx, cut, retained, config, claim, reader, executor, deadline, cancelled,
+            )?,
+        )));
     }
+    let mut retained_profile_binding = None;
     let value = field(claim, "object")?;
     let mut endpoints = vec![(
         text(claim, "subject_ref")?.to_owned(),
@@ -3999,7 +4426,12 @@ fn validate_ground(
                             "collection membership basis adapter",
                         ));
                     }
-                    ground_collection_membership(ctx, claim, executor, deadline, cancelled)?;
+                    retained_profile_binding = Some((
+                        "collection_orders",
+                        ground_collection_membership(
+                            ctx, cut, retained, claim, executor, deadline, cancelled,
+                        )?,
+                    ));
                 }
 
                 schema_check(
@@ -4140,7 +4572,7 @@ fn validate_ground(
             }
         }
     }
-    Ok(())
+    Ok(retained_profile_binding)
 }
 fn find_record(ctx: &CommandContext, id: &str) -> SourceCommandResult<(JsonValue, String)> {
     let mut found = None;
@@ -4663,15 +5095,488 @@ fn exact_ref(value: &JsonValue) -> SourceCommandResult<()> {
     }
     Ok(())
 }
+fn exact_selected_catalog_entry(
+    ctx: &CommandContext,
+    mut retained: Option<&mut RetainedProfileRead>,
+    catalog_path: &str,
+    identity: &str,
+    identity_field: &str,
+    expected: &JsonValue,
+    max_bytes: usize,
+) -> SourceCommandResult<JsonValue> {
+    let raw = selected(ctx, catalog_path)?;
+    if raw.len() > max_bytes {
+        return Err(SourceCommandError::Unsupported(
+            "retained catalog byte budget",
+        ));
+    }
+    if let Some(cached) = retained
+        .as_deref()
+        .and_then(|read| read.catalogs.get(catalog_path))
+    {
+        let (start, len, line) = cached
+            .by_id
+            .get(identity)
+            .ok_or(SourceCommandError::Conflict(
+                "exact retained identity absent from selected public catalog",
+            ))?;
+        if !same(&parse(&raw[*start..*start + *len])?, expected)? {
+            return Err(SourceCommandError::Conflict(
+                "retained catalog current source binding differs",
+            ));
+        }
+        return Ok(object(vec![
+            ("source_ref", string(catalog_path)),
+            ("line", number(*line)),
+            ("sha256", string(&cached.sha256)),
+        ]));
+    }
+    let mut publication_bytes = 0u64;
+    let control_ref = "ToS/source-witnesses/.metadata-publication.json";
+    let control_raw = ctx.file(&path(control_ref)?)?;
+    publication_bytes += control_raw.map_or(0, |raw| raw.len() as u64);
+    let control = control_raw.map(parse).transpose()?;
+    let token = if let Some(control) = &control {
+        exact_keys(
+            control,
+            &[
+                "schema_version",
+                "generation",
+                "transition_id",
+                "phase",
+                "transaction_id",
+                "manifest_sha256",
+                "outcome",
+                "recovery_authorization",
+                "token",
+            ],
+        )?;
+        if text(control, "schema_version")? != "tos_source_metadata_publication_v1"
+            || integer(control, "generation")? == 0
+            || integer(control, "generation")? > 9_007_199_254_740_991
+            || text(control, "phase")? != "ready"
+            || !["committed", "rolled-back"].contains(&text(control, "outcome")?)
+        {
+            return Err(SourceCommandError::Conflict(
+                "retained catalog publication control state",
+            ));
+        }
+        let authenticated = object(
+            [
+                "schema_version",
+                "generation",
+                "transition_id",
+                "phase",
+                "transaction_id",
+                "manifest_sha256",
+                "outcome",
+                "recovery_authorization",
+            ]
+            .iter()
+            .map(|key| Ok((*key, field(control, key)?.clone())))
+            .collect::<SourceCommandResult<Vec<_>>>()?,
+        );
+        if text(control, "token")? != Digest256::of_bytes(&canonical(&authenticated)?).to_prefixed()
+        {
+            return Err(SourceCommandError::Conflict(
+                "retained catalog publication control token",
+            ));
+        }
+        Some(text(control, "token")?)
+    } else {
+        None
+    };
+    let manifest_ref = "ToS/source-witnesses/catalog/catalog.manifest.json";
+    let manifest_raw = ctx.file(&path(manifest_ref)?)?;
+    publication_bytes += manifest_raw.map_or(0, |raw| raw.len() as u64);
+    let manifest = manifest_raw.map(parse).transpose()?;
+    if let Some(manifest) = &manifest {
+        let binding = manifest.object_get("selected_metadata_publication");
+        match (binding, token) {
+            (None, None) => (),
+            (Some(binding), Some(token)) => {
+                exact_keys(binding, &["protocol", "token", "files"])?;
+                if text(binding, "protocol")? != "tos_selected_source_metadata_v1"
+                    || text(binding, "token")? != token
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "retained catalog publication binding",
+                    ));
+                }
+                let mut routes = field(manifest, "record_files")?
+                    .as_object()
+                    .ok_or(SourceCommandError::Invalid("retained catalog routes"))?
+                    .values()
+                    .map(|value| {
+                        Ok(value
+                            .as_str()
+                            .ok_or(SourceCommandError::Invalid("retained catalog route"))?
+                            .to_owned())
+                    })
+                    .collect::<SourceCommandResult<Vec<_>>>()?;
+                routes.push(text(manifest, "claim_file")?.to_owned());
+                let expected = routes.into_iter().collect::<BTreeSet<_>>();
+                let files =
+                    field(binding, "files")?
+                        .as_object()
+                        .ok_or(SourceCommandError::Invalid(
+                            "retained catalog publication files",
+                        ))?;
+                let actual = files
+                    .keys()
+                    .map(|key| {
+                        key.as_str()
+                            .map(str::to_owned)
+                            .ok_or(SourceCommandError::Invalid(
+                                "retained catalog publication path",
+                            ))
+                    })
+                    .collect::<SourceCommandResult<BTreeSet<_>>>()?;
+                if expected != actual {
+                    return Err(SourceCommandError::Conflict(
+                        "retained catalog published file closure",
+                    ));
+                }
+                for (location, digest) in files {
+                    let location = location.as_str().ok_or(SourceCommandError::Invalid(
+                        "retained catalog publication path",
+                    ))?;
+                    let published = selected(ctx, location)?;
+                    publication_bytes = publication_bytes
+                        .checked_add(published.len() as u64)
+                        .ok_or(SourceCommandError::Unsupported(
+                            "retained catalog publication read overflow",
+                        ))?;
+                    if Digest256::of_bytes(published).to_hex()
+                        != digest.as_str().ok_or(SourceCommandError::Invalid(
+                            "retained catalog publication digest",
+                        ))?
+                    {
+                        return Err(SourceCommandError::Conflict(
+                            "retained catalog published file bytes",
+                        ));
+                    }
+                }
+            }
+            _ => {
+                return Err(SourceCommandError::Conflict(
+                    "retained catalog publication absent",
+                ));
+            }
+        }
+    } else if token.is_some() {
+        return Err(SourceCommandError::Conflict(
+            "retained catalog manifest absent for selected publication",
+        ));
+    }
+    let mut found = None;
+    let mut identities = BTreeSet::new();
+    let mut positions = BTreeMap::new();
+    let mut rows_seen = 0usize;
+    let mut offset = 0usize;
+    for (index, line) in raw.split_inclusive(|byte| *byte == b'\n').enumerate() {
+        let start = offset;
+        offset = offset
+            .checked_add(line.len())
+            .ok_or(SourceCommandError::Unsupported(
+                "retained catalog offset overflow",
+            ))?;
+        let line = line.strip_suffix(b"\n").unwrap_or(line);
+        let decoded = std::str::from_utf8(line)
+            .map_err(|_| SourceCommandError::Invalid("retained catalog UTF-8"))?;
+        if stripped(decoded)?.is_empty() {
+            continue;
+        }
+        rows_seen += 1;
+        if rows_seen > 8192 || line.len() > 1_048_576 {
+            return Err(SourceCommandError::Unsupported(
+                "retained catalog row budget",
+            ));
+        }
+        let entry = parse(line)?;
+        let id = text(&entry, identity_field)?;
+        if !identities.insert(id.to_owned()) {
+            return Err(SourceCommandError::Conflict(
+                "retained catalog identity duplicated",
+            ));
+        }
+        positions.insert(id.to_owned(), (start, line.len(), (index + 1) as u64));
+        if id == identity {
+            if !same(&entry, expected)? {
+                return Err(SourceCommandError::Conflict(
+                    "retained catalog current source binding differs",
+                ));
+            }
+            found = Some((index + 1) as u64);
+        }
+    }
+    let line = found.ok_or(SourceCommandError::Conflict(
+        "exact retained identity absent from selected public catalog",
+    ))?;
+    let sha256 = Digest256::of_bytes(raw).to_prefixed();
+    if let Some(read) = retained.as_deref_mut() {
+        let indexed_state = positions
+            .keys()
+            .try_fold(0usize, |sum, id| {
+                sum.checked_add(id.len() + std::mem::size_of::<(String, (usize, usize, u64))>())
+            })
+            .ok_or(SourceCommandError::Unsupported(
+                "retained catalog index state overflow",
+            ))?;
+        read.debit(
+            (raw.len() as u64).checked_add(publication_bytes).ok_or(
+                SourceCommandError::Unsupported("retained catalog read overflow"),
+            )?,
+            indexed_state
+                .checked_add(catalog_path.len() + sha256.len())
+                .ok_or(SourceCommandError::Unsupported(
+                    "retained catalog index state overflow",
+                ))?,
+        )?;
+        read.catalogs.insert(
+            catalog_path.to_owned(),
+            RetainedCatalogRows {
+                by_id: positions,
+                sha256: sha256.clone(),
+            },
+        );
+    }
+    Ok(object(vec![
+        ("source_ref", string(catalog_path)),
+        ("line", number(line)),
+        ("sha256", string(&sha256)),
+    ]))
+}
+
+fn exact_metadata_version(
+    ctx: &CommandContext,
+    cut: Option<&CorpusCutReader>,
+    mut retained: Option<&mut RetainedProfileRead>,
+    reference: &JsonValue,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(JsonValue, String, JsonValue, JsonValue, &'static str)> {
+    exact_ref(reference)?;
+    let key = record_digest(reference)?.to_hex();
+    if let Some(cached) = retained
+        .as_deref_mut()
+        .and_then(|read| read.metadata.get(&key))
+    {
+        return Ok(cached.clone());
+    }
+    let mut resolved = if let (Some(cut), Some(read)) = (cut, retained.as_deref_mut()) {
+        let owner_path = text(
+            read.inventory()?
+                .objects
+                .get(text(reference, "id")?)
+                .ok_or(SourceCommandError::Conflict(
+                    "retained metadata owner absent from complete inventory",
+                ))?,
+            "source_record_ref",
+        )?
+        .to_owned();
+        let remaining_read = read.remaining_read_bytes()?;
+        crate::source_revisions::resolve_record_version_evidence_at_from_cut(
+            ctx,
+            cut,
+            &owner_path,
+            tos_validation::item_rules::ItemLimits {
+                max_member_bytes: 8_388_608usize.min(remaining_read as usize),
+                max_total_bytes: remaining_read,
+                max_state_bytes: read.remaining_state_bytes()?,
+                max_issues: 256,
+                deadline,
+            },
+            reference,
+            executor,
+            deadline,
+            cancelled,
+        )?
+    } else if let Some(cut) = cut {
+        crate::source_revisions::resolve_record_version_evidence_from_cut(
+            ctx, cut, reference, executor, deadline, cancelled,
+        )?
+    } else {
+        crate::source_revisions::resolve_record_version_evidence(
+            ctx, reference, executor, deadline, cancelled,
+        )?
+    };
+    if let Some(read) = retained.as_deref_mut() {
+        read.debit(resolved.bytes_read, resolved.returned_state_bytes)?;
+        read.observed_reads.append(&mut resolved.reads);
+    }
+    let current_record = resolved.current_record.as_ref().unwrap_or(&resolved.record);
+    let kind = native_record_type(current_record)?;
+    let schema_version = text(current_record, "schema_version")?;
+    let (adapter, filename, schema_ref, expected_schema) = if schema_version
+        == "tos_corpus_record_v1"
+    {
+        let filename = match kind {
+            "agent" => "agents.jsonl",
+            "place" => "places.jsonl",
+            "organization" => "organizations.jsonl",
+            "work" => "works.jsonl",
+            "expression" => "expressions.jsonl",
+            "edition" => "editions.jsonl",
+            "collection" => "collections.jsonl",
+            "item" => "items.jsonl",
+            _ => return Err(SourceCommandError::Unsupported("metadata catalog family")),
+        };
+        (
+            "native-corpus",
+            filename,
+            "ToS/contracts/corpus-record.schema.json",
+            None,
+        )
+    } else {
+        let route = array(&resolved.route_profile, "schemas")?
+            .iter()
+            .find(|route| {
+                route.object_get("schema_version") == current_record.object_get("schema_version")
+            })
+            .ok_or(SourceCommandError::Unsupported(
+                "retained metadata profile schema route",
+            ))?;
+        (
+            "declared-profile",
+            text(&resolved.route_profile, "catalog_filename")?,
+            text(route, "schema_ref")?,
+            Some(text(route, "schema_ref")?),
+        )
+    };
+    let entities_owned = retained
+        .is_none()
+        .then(|| json_file(ctx, ENTITIES))
+        .transpose()?;
+    let entities = retained
+        .as_deref()
+        .map(|read| &read.entities)
+        .or(entities_owned.as_ref())
+        .ok_or(SourceCommandError::Conflict(
+            "retained entity registry unavailable",
+        ))?;
+    let matches = array(entities, "types")?
+        .iter()
+        .filter(|entry| {
+            if adapter == "declared-profile" {
+                entry
+                    .object_get("source_record_profile")
+                    .and_then(|profile| profile.object_get("record_type"))
+                    .and_then(JsonValue::as_str)
+                    == Some(kind)
+            } else {
+                entry
+                    .object_get("source_mappings")
+                    .and_then(JsonValue::as_array)
+                    .is_some_and(|mappings| {
+                        mappings.iter().any(|mapping| {
+                            mapping
+                                .object_get("source_graph")
+                                .and_then(JsonValue::as_str)
+                                == Some("source-navigation")
+                                && mapping
+                                    .object_get("source_kind_id")
+                                    .and_then(JsonValue::as_str)
+                                    == Some(kind)
+                        })
+                    })
+            }
+        })
+        .collect::<Vec<_>>();
+    if matches.len() != 1 {
+        return Err(SourceCommandError::Conflict(
+            "metadata identity has no unique selected type descriptor",
+        ));
+    }
+    let type_id = field(matches[0], "type_id")?.clone();
+    let expected = catalogue_record(current_record, &resolved.source_path, expected_schema)?;
+    let catalog_path = format!("ToS/source-witnesses/catalog/{filename}");
+    let mut catalog = exact_selected_catalog_entry(
+        ctx,
+        retained.as_deref_mut(),
+        &catalog_path,
+        text(reference, "id")?,
+        "record_id",
+        &expected,
+        8_388_608,
+    )?;
+    set(
+        &mut catalog,
+        "source_record_ref",
+        string(&resolved.source_path),
+    )?;
+    set(
+        &mut catalog,
+        "current_record_ref",
+        resolved.current_ref.clone(),
+    )?;
+    let descriptor = object(vec![
+        ("adapter", string(adapter)),
+        ("record_type", string(kind)),
+        ("profile_type_id", type_id.clone()),
+        ("source_schema_ref", string(schema_ref)),
+        ("source_schema_version", string(schema_version)),
+        ("source_scope", string("public_metadata_only")),
+        ("record_kind", string("subject")),
+        ("identity_field", string("record_id")),
+        (
+            "source_basename",
+            field(&resolved.route_profile, "source_basename")?.clone(),
+        ),
+        ("schema_version", string(schema_version)),
+        ("schema_ref", string(schema_ref)),
+        ("type_id", type_id),
+    ]);
+    let provenance = object(vec![
+        ("verification_scope", string("selected-record-chain")),
+        ("all_package_bytes_verified", JsonValue::Bool(false)),
+        ("catalog", catalog),
+        ("descriptor", descriptor.clone()),
+        ("history", resolved.history),
+        ("source", resolved.source),
+        ("transition", resolved.transition),
+    ]);
+    let result = (
+        resolved.record,
+        resolved.source_path,
+        descriptor,
+        provenance,
+        resolved.version_status,
+    );
+    if let Some(read) = retained.as_deref_mut() {
+        let provenance_state = retained_value_bytes(&result.3)?;
+        let output_state = retained_value_bytes(&result.0)?
+            .checked_add(retained_value_bytes(&result.2)?)
+            .and_then(|n| n.checked_add(provenance_state))
+            .and_then(|n| n.checked_add(result.1.len()))
+            .ok_or(SourceCommandError::Unsupported(
+                "retained metadata output state overflow",
+            ))?;
+        read.debit(
+            0,
+            output_state
+                .checked_mul(2)
+                .ok_or(SourceCommandError::Unsupported(
+                    "retained metadata cached state overflow",
+                ))?,
+        )?;
+        read.metadata.insert(key, result.clone());
+    }
+    Ok(result)
+}
+
 fn validate_identity_ground(
     ctx: &CommandContext,
+    cut: Option<&CorpusCutReader>,
+    mut retained: Option<&mut RetainedProfileRead>,
     config: &JsonValue,
     claim: &JsonValue,
     reader: &str,
     executor: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<()> {
+) -> SourceCommandResult<JsonValue> {
     let v2 = reader == "identity-transition-v2";
     let predicate = if v2 {
         "subject_identity_transition_proposal"
@@ -4766,14 +5671,21 @@ fn validate_identity_ground(
     }
     let entities = json_file(ctx, ENTITIES)?;
     let types = array(&entities, "types")?;
+    let mut participants = Vec::new();
     for reference in left.iter().chain(right) {
-        let (record, source) = crate::source_revisions::resolve_record_version(
-            ctx, reference, executor, deadline, cancelled,
+        let (record, source, descriptor, provenance, _) = exact_metadata_version(
+            ctx,
+            cut,
+            retained.as_deref_mut(),
+            reference,
+            executor,
+            deadline,
+            cancelled,
         )?;
         let kind = native_record_type(&record)?;
-        let entry = types
+        let matching = types
             .iter()
-            .find(|entry| {
+            .filter(|entry| {
                 entry
                     .object_get("source_mappings")
                     .and_then(JsonValue::as_array)
@@ -4790,9 +5702,18 @@ fn validate_identity_ground(
                         })
                     })
             })
-            .ok_or(SourceCommandError::Invalid(
+            .collect::<Vec<_>>();
+        if matching.len() != 1 {
+            return Err(SourceCommandError::Invalid(
                 "identity participant source type",
-            ))?;
+            ));
+        }
+        let entry = matching[0];
+        if field(entry, "type_id")? != field(&descriptor, "type_id")? {
+            return Err(SourceCommandError::Conflict(
+                "identity participant exact descriptor type differs from Claim mapping",
+            ));
+        }
         if entry.object_get("abstract") != Some(&JsonValue::Bool(false)) {
             return Err(SourceCommandError::Invalid(
                 "identity participant must have concrete source type",
@@ -4808,6 +5729,7 @@ fn validate_identity_ground(
             if role == "semantic"
                 && (text(profile, "reader")? != "semantic-metadata-v1"
                     || text(profile, "identity_proposal_adapter")? != "exact-semantic-metadata-v1"
+                    || text(profile, "graph_layer")? != "source-profile"
                     || text(profile, "record_type")? != kind
                     || !source.ends_with(&format!("/{}", text(profile, "source_basename")?))
                     || !source.starts_with("ToS/source-witnesses/")
@@ -4853,6 +5775,11 @@ fn validate_identity_ground(
             // The exact metadata owner resolver above validates each actual
             // native carrier schema and retained history; no copied descriptor.
         }
+        participants.push(object(vec![
+            ("ref", reference.clone()),
+            ("descriptor", descriptor),
+            ("provenance", provenance),
+        ]));
     }
     let unresolved = array(value, "unresolved_links")?;
     if unresolved.len() > 32 {
@@ -4880,6 +5807,7 @@ fn validate_identity_ground(
             "proposal predecessor navigation differs",
         ));
     }
+    let mut related_bindings = Vec::new();
     for reference in related {
         exact_ref(reference)?;
         grant(config, "allowed_related_claim_refs", reference)?;
@@ -4888,9 +5816,10 @@ fn validate_identity_ground(
                 "identity proposal cannot reference itself as retained assertion",
             ));
         }
-        let retained = resolve_claim_reference(ctx, reference)?;
+        let retained_claim =
+            resolve_claim_reference_evidence(ctx, retained.as_deref_mut(), reference)?;
         if same(reference, previous)? {
-            let p = text(&retained, "predicate")?;
+            let p = text(&retained_claim.record, "predicate")?;
             if p != "identity_transition_proposal"
                 && !(v2 && p == "subject_identity_transition_proposal")
             {
@@ -4902,7 +5831,8 @@ fn validate_identity_ground(
             let route = array(&profile, "schemas")?
                 .iter()
                 .find(|route| {
-                    route.object_get("schema_version") == retained.object_get("schema_version")
+                    route.object_get("schema_version")
+                        == retained_claim.record.object_get("schema_version")
                 })
                 .ok_or(SourceCommandError::Invalid(
                     "identity predecessor schema route",
@@ -4910,63 +5840,296 @@ fn validate_identity_ground(
             schema_check(
                 executor,
                 text(config, "source_path")?,
-                &retained,
+                &retained_claim.record,
                 text(route, "schema_ref")?,
                 deadline,
                 cancelled,
             )?;
         }
+        related_bindings.push(object(vec![
+            ("ref", reference.clone()),
+            ("provenance", retained_claim.provenance),
+        ]));
     }
-    Ok(())
+    Ok(object(vec![
+        ("participants", JsonValue::Array(participants)),
+        ("claims", JsonValue::Array(related_bindings)),
+    ]))
 }
 fn resolve_claim_reference(
     ctx: &CommandContext,
     reference: &JsonValue,
 ) -> SourceCommandResult<JsonValue> {
-    exact_ref(reference)?;
-    let id = text(reference, "id")?;
-    let mut found = None;
-    for file in &ctx.files {
-        if !file.path.as_str().starts_with("ToS/source-witnesses/")
-            || !file.path.as_str().ends_with("/source-claims.jsonl")
-            || file.path.as_str().contains("/.record-revisions/")
-        {
-            continue;
-        }
-        let records = rows(&file.raw)?;
-        if let Some(record) = records.get(id) {
-            if found.is_some() {
-                return Err(SourceCommandError::Conflict(
-                    "duplicate current Claim owner",
-                ));
-            }
-            found = Some((record.clone(), file.path.clone()));
-        }
-    }
-    let (record, p) = found.ok_or(SourceCommandError::Unsupported(
-        "related Claim owner source not selected",
-    ))?;
-    let mut config = parse(&ctx.configuration_raw)?;
-    set(&mut config, "source_path", string(p.as_str()))?;
-    set(&mut config, "claim_id", string(id))?;
-    let files = package(ctx, &p)?;
-    let history = verify_claim_history(ctx, &config, &p, &files)?;
-    if same(&metadata_subject(&record)?, reference)? {
-        return Ok(record);
-    }
-    for receipt in array(&history, "receipts")? {
-        if same(field(receipt, "previous_source")?, reference)? {
-            let retained = archive(ctx, &config, receipt)?;
-            return rows(&retained[CLAIM_STREAM])?
-                .remove(id)
-                .ok_or(SourceCommandError::Conflict(
-                    "exact related Claim absent in archive",
-                ));
+    Ok(resolve_claim_reference_evidence(ctx, None, reference)?.record)
+}
+
+#[derive(Clone)]
+struct ResolvedClaimReference {
+    record: JsonValue,
+    provenance: JsonValue,
+    version_status: &'static str,
+}
+
+fn collection_membership_stream_path(location: &str) -> bool {
+    let parts = location.split('/').collect::<Vec<_>>();
+    parts.len() == 6
+        && parts[..3] == ["ToS", "source-witnesses", "collections"]
+        && parts[5] == "membership-claims.jsonl"
+        && parts[3..5].iter().all(|part| {
+            !part.is_empty()
+                && part.split(['.', '-']).all(|segment| {
+                    !segment.is_empty()
+                        && segment
+                            .bytes()
+                            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
+                })
+        })
+}
+
+fn claim_stream_line(raw: &[u8], id: &str) -> SourceCommandResult<u64> {
+    for (index, line) in raw.split_inclusive(|byte| *byte == b'\n').enumerate() {
+        let line = line.strip_suffix(b"\n").unwrap_or(line);
+        if !python_bytes_blank(line) && text(&parse(line)?, "claim_id")? == id {
+            return Ok((index + 1) as u64);
         }
     }
-    Err(SourceCommandError::Unsupported(
-        "exact related Claim version not retained in selected owner history",
+    Err(SourceCommandError::Conflict(
+        "exact Claim row absent from verified stream",
     ))
+}
+
+fn resolve_claim_reference_evidence(
+    ctx: &CommandContext,
+    mut retained: Option<&mut RetainedProfileRead>,
+    reference: &JsonValue,
+) -> SourceCommandResult<ResolvedClaimReference> {
+    exact_ref(reference)?;
+    let key = record_digest(reference)?.to_hex();
+    if let Some(cached) = retained
+        .as_deref_mut()
+        .and_then(|read| read.claims.get(&key))
+    {
+        return Ok(cached.clone());
+    }
+    let id = text(reference, "id")?;
+    let (current, p, current_raw) = if let Some(read) = retained.as_deref_mut() {
+        let source_path = text(
+            read.inventory()?
+                .claims
+                .get(id)
+                .ok_or(SourceCommandError::Conflict(
+                    "related Claim absent from complete selected inventory",
+                ))?,
+            "source_claim_file_ref",
+        )?;
+        let p = path(source_path)?;
+        let raw = selected(ctx, source_path)?;
+        let current = rows(raw)?.remove(id).ok_or(SourceCommandError::Conflict(
+            "related Claim selected owner identity changed",
+        ))?;
+        (current, p, raw)
+    } else {
+        let mut found = None;
+        for file in &ctx.files {
+            if !file.path.as_str().starts_with("ToS/source-witnesses/")
+                || !(file.path.as_str().ends_with("/source-claims.jsonl")
+                    || collection_membership_stream_path(file.path.as_str()))
+                || file.path.as_str().contains("/.record-revisions/")
+            {
+                continue;
+            }
+            let records = rows(&file.raw)?;
+            if let Some(record) = records.get(id) {
+                if found.is_some() {
+                    return Err(SourceCommandError::Conflict(
+                        "duplicate current Claim owner",
+                    ));
+                }
+                found = Some((record.clone(), file.path.clone(), &file.raw));
+            }
+        }
+        found.ok_or(SourceCommandError::Unsupported(
+            "related Claim owner source not selected",
+        ))?
+    };
+    let legacy = collection_membership_stream_path(p.as_str());
+    if legacy
+        && (text(&current, "schema_version")? != "tos_claim_packet_v1"
+            || text(&current, "claim_type")? != "bibliographic"
+            || text(&current, "predicate")? != "contains_work"
+            || text(&current, "assertion_layer")? != "bibliographic_assertion"
+            || current.object_get("polarity").and_then(JsonValue::as_str) != Some("positive")
+                && current.object_get("polarity").is_some()
+            || !text(&current, "subject_ref")?.starts_with("tos.collection.")
+            || !text(&current, "object")?.starts_with("tos.work."))
+    {
+        return Err(SourceCommandError::Conflict(
+            "legacy Collection membership source contract differs",
+        ));
+    }
+    let current_ref = metadata_subject(&current)?;
+    let current_line = claim_stream_line(current_raw, id)?;
+    let expected_catalog =
+        catalogue_claim(ctx, &current, p.as_str(), current_line as usize, !legacy)?;
+    let mut catalog = exact_selected_catalog_entry(
+        ctx,
+        retained.as_deref_mut(),
+        "ToS/source-witnesses/catalog/claims.jsonl",
+        id,
+        "claim_id",
+        &expected_catalog,
+        33_554_432,
+    )?;
+    set(&mut catalog, "source_claim_file_ref", string(p.as_str()))?;
+    set(&mut catalog, "source_claim_line", number(current_line))?;
+    set(&mut catalog, "current_record_ref", current_ref.clone())?;
+    set(
+        &mut catalog,
+        "visibility",
+        field(&current, "visibility")?.clone(),
+    )?;
+    let mut selected_record = current.clone();
+    let mut selected_stream = current_raw.to_vec();
+    let mut selected_line = current_line;
+    let mut selected_revision = JsonValue::Null;
+    let mut selected_blob = JsonValue::Null;
+    let mut transition = JsonValue::Null;
+    let mut version_status = "current";
+    let history = if legacy {
+        if !same(&current_ref, reference)? {
+            return Err(SourceCommandError::Conflict(
+                "legacy Collection membership has no retained predecessor",
+            ));
+        }
+        object(vec![
+            ("source_ref", JsonValue::Null),
+            ("sha256", JsonValue::Null),
+            ("receipt_count", number(0)),
+            ("correction_chain_verified", JsonValue::Bool(false)),
+            ("adapter", string("retained-collection-membership-v1")),
+        ])
+    } else {
+        let mut config = parse(&ctx.configuration_raw)?;
+        set(&mut config, "source_path", string(p.as_str()))?;
+        set(&mut config, "claim_id", string(id))?;
+        let files = package(ctx, &p)?;
+        let history = verify_claim_history(ctx, &config, &p, &files)?;
+        selected_revision = revision(&files)?;
+        if !same(&current_ref, reference)? {
+            let mut selected_receipt = None;
+            for receipt in array(&history, "receipts")? {
+                if same(field(receipt, "previous_source")?, reference)? {
+                    if selected_receipt.replace(receipt).is_some() {
+                        return Err(SourceCommandError::Conflict(
+                            "exact related Claim predecessor duplicated in history",
+                        ));
+                    }
+                }
+            }
+            let receipt = selected_receipt.ok_or(SourceCommandError::Unsupported(
+                "exact related Claim version not retained in selected owner history",
+            ))?;
+            let retained = archive(ctx, &config, receipt)?;
+            selected_stream = retained
+                .get(CLAIM_STREAM)
+                .ok_or(SourceCommandError::Conflict("archived Claim stream absent"))?
+                .clone();
+            selected_record =
+                rows(&selected_stream)?
+                    .remove(id)
+                    .ok_or(SourceCommandError::Conflict(
+                        "exact related Claim absent in archive",
+                    ))?;
+            selected_line = claim_stream_line(&selected_stream, id)?;
+            selected_revision = field(receipt, "previous_revision")?.clone();
+            let manifest_path = format!("{}/manifest.json", text(receipt, "archive_path")?);
+            let manifest = parse(selected(ctx, &manifest_path)?)?;
+            let blob = text(field(field(&manifest, "files")?, CLAIM_STREAM)?, "blob")?;
+            selected_blob = string(&format!("{}/{blob}", text(receipt, "archive_path")?));
+            transition = object(
+                [
+                    "command_id",
+                    "recorded_at",
+                    "previous_source",
+                    "source",
+                    "request_digest",
+                ]
+                .iter()
+                .map(|key| Ok((*key, field(receipt, key)?.clone())))
+                .collect::<SourceCommandResult<Vec<_>>>()?,
+            );
+            version_status = "historical";
+        }
+        object(vec![
+            (
+                "source_ref",
+                string(&format!(
+                    "{}/{}",
+                    p.as_str().rsplit_once('/').unwrap().0,
+                    CLAIM_HISTORY
+                )),
+            ),
+            (
+                "sha256",
+                files
+                    .get(CLAIM_HISTORY)
+                    .map(|raw| string(&Digest256::of_bytes(raw).to_prefixed()))
+                    .unwrap_or(JsonValue::Null),
+            ),
+            (
+                "receipt_count",
+                number(array(&history, "receipts")?.len() as u64),
+            ),
+            ("correction_chain_verified", JsonValue::Bool(true)),
+        ])
+    };
+    if !same(&metadata_subject(&selected_record)?, reference)? {
+        return Err(SourceCommandError::Conflict(
+            "exact related Claim historical binding differs",
+        ));
+    }
+    let source = object(vec![
+        ("source_ref", string(p.as_str())),
+        (
+            "stream_sha256",
+            string(&Digest256::of_bytes(&selected_stream).to_prefixed()),
+        ),
+        ("stream_bytes", number(selected_stream.len() as u64)),
+        ("package_revision", selected_revision),
+        ("archive_blob_ref", selected_blob),
+        ("line", number(selected_line)),
+    ]);
+    let result = ResolvedClaimReference {
+        record: selected_record,
+        provenance: object(vec![
+            ("catalog", catalog),
+            ("source", source),
+            ("history", history),
+            ("transition", transition),
+        ]),
+        version_status,
+    };
+    if let Some(read) = retained.as_deref_mut() {
+        let state = retained_value_bytes(&result.record)?
+            .checked_add(retained_value_bytes(&result.provenance)?)
+            .and_then(|n| n.checked_add(selected_stream.len()))
+            .and_then(|n| n.checked_add(std::mem::size_of::<ResolvedClaimReference>()))
+            .ok_or(SourceCommandError::Unsupported(
+                "retained Claim evidence state overflow",
+            ))?;
+        read.debit(
+            (current_raw.len() as u64)
+                .checked_add(selected_stream.len() as u64)
+                .ok_or(SourceCommandError::Unsupported(
+                    "retained Claim evidence read overflow",
+                ))?,
+            state.checked_mul(2).ok_or(SourceCommandError::Unsupported(
+                "retained Claim cached state overflow",
+            ))?,
+        )?;
+        read.claims.insert(key, result.clone());
+    }
+    Ok(result)
 }
 
 fn validate_member_order(claim: &JsonValue) -> SourceCommandResult<()> {
@@ -5053,11 +6216,13 @@ fn validate_member_order(claim: &JsonValue) -> SourceCommandResult<()> {
 
 fn ground_collection_membership(
     ctx: &CommandContext,
+    cut: Option<&CorpusCutReader>,
+    mut retained: Option<&mut RetainedProfileRead>,
     claim: &JsonValue,
     executor: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<()> {
+) -> SourceCommandResult<JsonValue> {
     let value = field(claim, "object")?;
     let collection_ref = field(value, "collection_version")?;
     exact_ref(collection_ref)?;
@@ -5067,8 +6232,10 @@ fn ground_collection_membership(
             "Collection order exact own Collection version",
         ));
     }
-    let (collection, _) = crate::source_revisions::resolve_record_version(
+    let (collection, _, _, collection_provenance, collection_status) = exact_metadata_version(
         ctx,
+        cut,
+        retained.as_deref_mut(),
         collection_ref,
         executor,
         deadline,
@@ -5094,6 +6261,9 @@ fn ground_collection_membership(
     }
     let mut binding_ids = BTreeSet::new();
     let mut resolved = BTreeSet::new();
+    let mut bound = Vec::new();
+    let mut input_digests = BTreeMap::new();
+    bind_retained_version_inputs(&collection_provenance, &mut input_digests)?;
     let declared = collection
         .object_get("membership_claim_refs")
         .and_then(JsonValue::as_array)
@@ -5106,34 +6276,112 @@ fn ground_collection_membership(
                 "membership basis is repeated or absent from exact Collection",
             ));
         }
-        let member = resolve_claim_reference(ctx, reference)?;
-        let legacy = text(&member, "schema_version")? == "tos_claim_packet_v1"
-            && text(&member, "claim_type")? == "bibliographic";
-        let native = text(&member, "schema_version")? == "tos_source_relation_claim_v1"
-            && text(&member, "claim_type")? == "relation";
-        let object = text(&member, "object")?;
+        let member = resolve_claim_reference_evidence(ctx, retained.as_deref_mut(), reference)?;
+        let legacy = text(&member.record, "schema_version")? == "tos_claim_packet_v1"
+            && text(&member.record, "claim_type")? == "bibliographic";
+        let native = text(&member.record, "schema_version")? == "tos_source_relation_claim_v1"
+            && text(&member.record, "claim_type")? == "relation";
+        let member_object = text(&member.record, "object")?;
         let polarity = member
+            .record
             .object_get("polarity")
             .and_then(JsonValue::as_str)
             .or(if legacy { Some("positive") } else { None });
         if !(legacy || native)
             || !["bibliographic_assertion", "scholarly_report"]
-                .contains(&text(&member, "assertion_layer")?)
-            || text(&member, "subject_ref")? != subject
-            || text(&member, "predicate")? != "contains_work"
+                .contains(&text(&member.record, "assertion_layer")?)
+            || text(&member.record, "subject_ref")? != subject
+            || text(&member.record, "predicate")? != "contains_work"
             || polarity != Some("positive")
-            || !members.contains(object)
-            || !resolved.insert(object.to_owned())
+            || !members.contains(member_object)
+            || !resolved.insert(member_object.to_owned())
         {
             return Err(SourceCommandError::Invalid(
                 "basis must be distinct positive membership in exact Collection",
             ));
         }
+        bind_retained_version_inputs(&member.provenance, &mut input_digests)?;
+        bound.push(object(vec![
+            ("ref", reference.clone()),
+            ("provenance", member.provenance),
+            ("version_status", string(member.version_status)),
+        ]));
     }
     if resolved != members.iter().map(|v| (*v).to_owned()).collect() {
         return Err(SourceCommandError::Invalid(
             "Collection membership basis does not close scoped member set",
         ));
+    }
+    Ok(object(vec![
+        (
+            "collection",
+            object(vec![
+                ("ref", collection_ref.clone()),
+                ("provenance", collection_provenance),
+                ("version_status", string(collection_status)),
+            ]),
+        ),
+        ("memberships", JsonValue::Array(bound)),
+        (
+            "input_digests",
+            JsonValue::Object(
+                input_digests
+                    .into_iter()
+                    .map(|(key, value)| {
+                        (tos_foundation::JsonString::from_utf8(&key), string(&value))
+                    })
+                    .collect(),
+            ),
+        ),
+        ("establishes_membership", JsonValue::Bool(false)),
+        ("grants_admission", JsonValue::Bool(false)),
+    ]))
+}
+
+fn bind_retained_version_inputs(
+    provenance: &JsonValue,
+    digests: &mut BTreeMap<String, String>,
+) -> SourceCommandResult<()> {
+    let mut bind = |location: &str, prefixed: &str| -> SourceCommandResult<()> {
+        let digest = Digest256::from_prefixed(prefixed)
+            .map_err(|_| SourceCommandError::Invalid("retained provenance digest"))?
+            .to_hex();
+        if let Some(previous) = digests.insert(location.to_owned(), digest.clone()) {
+            if previous != digest {
+                return Err(SourceCommandError::Conflict(
+                    "retained provenance path has conflicting digests",
+                ));
+            }
+        }
+        Ok(())
+    };
+    for section in ["catalog", "history"] {
+        let entry = field(provenance, section)?;
+        if let (Some(source), Some(digest)) = (
+            entry.object_get("source_ref").and_then(JsonValue::as_str),
+            entry.object_get("sha256").and_then(JsonValue::as_str),
+        ) {
+            bind(source, digest)?;
+        }
+    }
+    let source = field(provenance, "source")?;
+    let location = source
+        .object_get("archive_blob_ref")
+        .and_then(JsonValue::as_str)
+        .unwrap_or(text(source, "source_ref")?);
+    let digest = source
+        .object_get("record_sha256")
+        .or_else(|| source.object_get("stream_sha256"))
+        .and_then(JsonValue::as_str)
+        .ok_or(SourceCommandError::Invalid(
+            "retained source provenance digest",
+        ))?;
+    bind(location, digest)?;
+    if let Some(manifest) = source
+        .object_get("archive_manifest_ref")
+        .and_then(JsonValue::as_str)
+    {
+        bind(manifest, text(source, "archive_manifest_sha256")?)?;
     }
     Ok(())
 }
