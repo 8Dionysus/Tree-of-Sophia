@@ -1652,6 +1652,7 @@ pub fn execute_isolated_claim_creation_from_captures(
                     )?,
                     original_cut,
                     whole_call.as_ref(),
+                    true,
                     deadline,
                     cancelled,
                 )?,
@@ -1851,6 +1852,7 @@ fn checked_isolated_claim_revision(
             original_receipt,
             original_cut,
             Some(&whole_call),
+            false,
             deadline,
             cancelled,
         )?;

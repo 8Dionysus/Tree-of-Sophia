@@ -755,8 +755,19 @@ impl CreationFilesystem {
         }
         capture.verify_current(self, deadline, cancelled)?;
         let receipt_digest = Digest256::of_bytes(receipt);
-        let index =
-            capture.canonical_index(receipt_digest, cut.current().revision(), whole_call, 0)?;
+        // With a whole-call budget the selected capture was retained by the
+        // Claim reader. Without one, include its still-live bytes locally.
+        let local_capture = if whole_call.is_some() {
+            0
+        } else {
+            capture.selected_bytes()?
+        };
+        let index = capture.canonical_index(
+            receipt_digest,
+            cut.current().revision(),
+            whole_call,
+            local_capture,
+        )?;
         let name = receipt_digest.to_hex();
         let home = self.claim_capture_home(true)?;
         let manifest = capture
@@ -848,6 +859,7 @@ impl CreationFilesystem {
         receipt: &[u8],
         original_cut: &CorpusCutReader,
         whole_call: Option<&Rc<RefCell<crate::source_claims::ClaimCallBudget>>>,
+        retain_result: bool,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<ClaimCatalogCapture> {
@@ -907,6 +919,11 @@ impl CreationFilesystem {
                 "Claim retained catalog source/receipt binding",
             ));
         }
+        // The raw index and its decoded representation remain live while the
+        // selected catalog members are read. `total` tracks raw index plus
+        // already selected member bytes; neither is in the whole-call retained
+        // state yet. Two more index lengths cover its decoded representation
+        // and the selected route/closure names derived from it.
         let mut total = index_raw.len();
         let mut required = BTreeSet::from([
             CLAIM_CAPTURE_INDEX.to_owned(),
@@ -923,15 +940,26 @@ impl CreationFilesystem {
                     "Claim retained catalog byte budget",
                 ));
             }
+            let member_peak = index_raw
+                .len()
+                .checked_mul(2)
+                .and_then(|index_state| total.checked_add(index_state))
+                .and_then(|n| {
+                    (declared as usize)
+                        .checked_mul(2)
+                        .and_then(|new| n.checked_add(new))
+                })
+                .ok_or(SourceCommandError::Unsupported(
+                    "Claim retained catalog state overflow",
+                ))?;
+            if member_peak > MAX_BYTES {
+                return Err(SourceCommandError::Unsupported(
+                    "Claim retained catalog state budget",
+                ));
+            }
             if let Some(budget) = whole_call {
                 let mut budget = budget.borrow_mut();
-                budget.check_live(
-                    total
-                        .checked_add((declared as usize).saturating_mul(2))
-                        .ok_or(SourceCommandError::Unsupported(
-                            "Claim retained catalog state overflow",
-                        ))?,
-                )?;
+                budget.check_live(member_peak)?;
                 budget.read(declared)?;
             }
             let raw = work_transaction::read_at(
@@ -1025,6 +1053,8 @@ impl CreationFilesystem {
                 "Claim retained catalog file closure",
             ));
         }
+        drop(actual);
+        drop(required);
         let capture = ClaimCatalogCapture {
             catalog: None,
             catalog_identity: None,
@@ -1042,6 +1072,7 @@ impl CreationFilesystem {
             index_raw
                 .len()
                 .checked_mul(2)
+                .and_then(|index_state| total.checked_add(index_state))
                 .ok_or(SourceCommandError::Unsupported(
                     "Claim retained catalog index state overflow",
                 ))?,
@@ -1050,6 +1081,16 @@ impl CreationFilesystem {
             return Err(SourceCommandError::Conflict(
                 "Claim retained catalog index differs",
             ));
+        }
+        drop(index);
+        drop(index_raw);
+        // Only the caller that keeps this capture beyond the read retains its
+        // selected bytes. Validation-only readers discard the local copy; they
+        // paid its full overlap above without permanently debiting live state.
+        if retain_result {
+            if let Some(budget) = whole_call {
+                budget.borrow_mut().retain(capture.selected_bytes()?)?;
+            }
         }
         Ok(capture)
     }
@@ -1069,8 +1110,17 @@ impl CreationFilesystem {
         capture.bind_cut(original_cut, deadline, cancelled)?;
         let receipt = &package.files()["source-create-receipt.json"];
         let digest = Digest256::of_bytes(receipt);
-        let index =
-            capture.canonical_index(digest, original_cut.current().revision(), whole_call, 0)?;
+        let local_capture = if whole_call.is_some() {
+            0
+        } else {
+            capture.selected_bytes()?
+        };
+        let index = capture.canonical_index(
+            digest,
+            original_cut.current().revision(),
+            whole_call,
+            local_capture,
+        )?;
         let manifest = capture
             .manifest
             .as_ref()
@@ -1620,6 +1670,7 @@ impl CreationFilesystem {
                     )?,
                     original_cut,
                     Some(whole_call),
+                    false,
                     deadline,
                     cancelled,
                 )?;
@@ -1806,6 +1857,7 @@ impl CreationFilesystem {
                     ))?,
                 original_cut,
                 Some(whole_call),
+                false,
                 deadline,
                 cancelled,
             )?;
