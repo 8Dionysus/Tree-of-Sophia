@@ -2,11 +2,16 @@
 //! admission. Schemas are executed by the actual bounded source-cut worker.
 //! Unsupported grounding adapters fail closed without flattening their values.
 use crate::source_command::*;
+use crate::source_creation_store::{ClaimCatalogCapture, CreationFilesystem};
 use crate::source_forms::{
     apply_form_changes, materialize_source_forms, metadata_subject, prepare_form_change,
 };
 use crate::source_sign_native::{NativeReadKind, NativeReadScope, SignNativeRead};
+use std::borrow::Cow;
+use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
+use std::rc::Rc;
+use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{
@@ -22,6 +27,67 @@ pub const CLAIM_HISTORY: &str = "claim-revision-history.json";
 const RELATIONS: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
 const ENTITIES: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const CLAIM_COMPLETE_BYTES: u64 = 33_554_432;
+
+/// One isolated Claim invocation's source/catalog/history work. Software
+/// capture and the schema executable retain their separate owner budgets.
+pub(crate) struct ClaimCallBudget {
+    read_bytes: u64,
+    live_state_bytes: usize,
+}
+impl ClaimCallBudget {
+    fn new(read_bytes: u64, live_state_bytes: usize) -> SourceCommandResult<Self> {
+        if read_bytes > CLAIM_COMPLETE_BYTES || live_state_bytes > CLAIM_COMPLETE_BYTES as usize {
+            return Err(SourceCommandError::Unsupported(
+                "Claim whole-call source budget",
+            ));
+        }
+        Ok(Self {
+            read_bytes,
+            live_state_bytes,
+        })
+    }
+    pub(crate) fn read(&mut self, bytes: u64) -> SourceCommandResult<()> {
+        self.read_bytes = self
+            .read_bytes
+            .checked_add(bytes)
+            .filter(|n| *n <= CLAIM_COMPLETE_BYTES)
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim whole-call read budget",
+            ))?;
+        Ok(())
+    }
+    pub(crate) fn check_live(&self, additional: usize) -> SourceCommandResult<()> {
+        if self
+            .live_state_bytes
+            .checked_add(additional)
+            .is_none_or(|n| n > CLAIM_COMPLETE_BYTES as usize)
+        {
+            return Err(SourceCommandError::Unsupported(
+                "Claim whole-call live state budget",
+            ));
+        }
+        Ok(())
+    }
+    pub(crate) fn retain(&mut self, bytes: usize) -> SourceCommandResult<()> {
+        self.check_live(bytes)?;
+        self.live_state_bytes += bytes;
+        Ok(())
+    }
+    pub(crate) fn remaining_read(&self) -> SourceCommandResult<u64> {
+        CLAIM_COMPLETE_BYTES
+            .checked_sub(self.read_bytes)
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim whole-call read budget",
+            ))
+    }
+    pub(crate) fn remaining_live(&self) -> SourceCommandResult<usize> {
+        (CLAIM_COMPLETE_BYTES as usize)
+            .checked_sub(self.live_state_bytes)
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim whole-call live state budget",
+            ))
+    }
+}
 const FIELDS: &[&str] = &[
     "qualifiers",
     "evidence_refs",
@@ -463,6 +529,21 @@ fn config(
     }
     exact_keys(&c, &keys)?;
     bounded_list(&c, "allowed_operations", 1)?;
+    let identity_predicate = match text(&c, "schema_version")? {
+        "tos_local_identity_proposal_create_owner_v1" => Some("identity_transition_proposal"),
+        "tos_local_identity_proposal_create_owner_v2" => {
+            Some("subject_identity_transition_proposal")
+        }
+        _ => None,
+    };
+    if let Some(expected) = identity_predicate {
+        let predicates = array(&c, "allowed_predicates")?;
+        if predicates.len() != 1 || predicates[0].as_str() != Some(expected) {
+            return Err(SourceCommandError::Denied(
+                "identity proposal delegation selects its exact predicate",
+            ));
+        }
+    }
     for operation in array(&c, "allowed_operations")? {
         if operation.as_str()
             != Some(if create {
@@ -650,20 +731,43 @@ fn package(
     ctx: &CommandContext,
     p: &RelativePath,
 ) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
+    package_bounded(ctx, p, None, None)
+}
+
+fn package_bounded(
+    ctx: &CommandContext,
+    p: &RelativePath,
+    remaining_read: Option<u64>,
+    remaining_state: Option<usize>,
+) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
     let parent = p
         .as_str()
         .rsplit_once('/')
         .ok_or(SourceCommandError::Invalid("Claim parent"))?
         .0;
     let mut files = BTreeMap::new();
+    let mut total = 0usize;
     for f in &ctx.files {
         if let Some(name) = f.path.as_str().strip_prefix(&format!("{parent}/")) {
             if !name.contains('/') {
+                total = total
+                    .checked_add(f.raw.len())
+                    .filter(|sum| {
+                        *sum <= 8_388_608
+                            && remaining_read.is_none_or(|cap| *sum as u64 <= cap)
+                            && remaining_state.is_none_or(|cap| *sum <= cap)
+                    })
+                    .ok_or(SourceCommandError::Unsupported(
+                        "Claim package read or state budget",
+                    ))?;
+                if files.len() >= 64 || f.raw.len() > 8_388_608 {
+                    return Err(SourceCommandError::Invalid("Claim package budget"));
+                }
                 files.insert(name.into(), f.raw.clone());
             }
         }
     }
-    if files.len() > 64 || files.values().map(Vec::len).sum::<usize>() > 8_388_608 {
+    if files.len() > 64 || total > 8_388_608 {
         return Err(SourceCommandError::Invalid("Claim package budget"));
     }
     Ok(files)
@@ -684,7 +788,7 @@ fn refs(files: &BTreeMap<String, Vec<u8>>) -> JsonValue {
             .collect(),
     )
 }
-fn revision(files: &BTreeMap<String, Vec<u8>>) -> SourceCommandResult<JsonValue> {
+pub(crate) fn revision(files: &BTreeMap<String, Vec<u8>>) -> SourceCommandResult<JsonValue> {
     Ok(string(&record_digest(&refs(files))?.to_prefixed()))
 }
 fn form_name(id: &str) -> String {
@@ -704,7 +808,9 @@ pub fn run_claim_command(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedCommand> {
-    run_claim_command_inner(ctx, None, None, false, executor, deadline, cancelled)
+    run_claim_command_inner(
+        ctx, None, None, None, None, None, false, executor, deadline, cancelled,
+    )
 }
 
 /// Authenticate the complete current member universe before inventory-based
@@ -736,6 +842,9 @@ pub fn run_claim_command_from_cut(
         &complete,
         Some(ctx),
         Some(cut),
+        None,
+        None,
+        None,
         false,
         executor,
         deadline,
@@ -760,11 +869,90 @@ pub fn run_claim_command_from_captures(
         &complete,
         Some(ctx),
         Some(cut),
+        None,
+        None,
+        None,
         false,
         executor,
         deadline,
         cancelled,
     )
+}
+
+/// Read-only isolated creation preview for Claims whose exact grounding needs
+/// the separately selected generated catalogue. The physical owner and
+/// selected cut are rechecked; the returned plan has no publication route.
+pub fn prepare_isolated_claim_creation_from_captures(
+    filesystem: &CreationFilesystem,
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedCommand> {
+    let (_, _, _, create, _) = config(ctx)?;
+    if !create || text(&parse(&ctx.request_raw)?, "operation")? != "prepare-create" {
+        return Err(SourceCommandError::Unsupported(
+            "isolated Claim creation preview operation",
+        ));
+    }
+    filesystem.current_context(ctx, deadline, cancelled)?;
+    let whole_call = claim_call_for_selected_context(ctx)?;
+    charge_selected_claim_context(ctx, cut, &whole_call)?;
+    let complete =
+        selected_claim_context_from_captures(ctx, cut, software, components, deadline, cancelled)?;
+    let request = parse(&ctx.request_raw)?;
+    let needs_catalog = array(&request, "claims")?
+        .iter()
+        .map(|claim| retained_profile_required(&complete, claim))
+        .collect::<SourceCommandResult<Vec<_>>>()?
+        .into_iter()
+        .any(|needed| needed);
+    let catalog = if needs_catalog {
+        let budget = whole_call.borrow();
+        budget.check_live(8192)?;
+        if budget.remaining_read()? < 8192 {
+            return Err(SourceCommandError::Unsupported(
+                "Claim catalog control read budget",
+            ));
+        }
+        drop(budget);
+        let selected = filesystem.select_claim_catalog(deadline, cancelled)?;
+        selected.bind_cut(cut, deadline, cancelled)?;
+        let bytes = selected.control().map_or(0, <[u8]>::len);
+        let mut budget = whole_call.borrow_mut();
+        budget.read(bytes as u64)?;
+        budget.retain(bytes)?;
+        Some(Rc::new(RefCell::new(selected)))
+    } else {
+        None
+    };
+    let plan = run_claim_command_inner(
+        &complete,
+        Some(&complete),
+        Some(cut),
+        catalog.clone(),
+        None,
+        Some(whole_call.clone()),
+        false,
+        worker,
+        deadline,
+        cancelled,
+    )?;
+    filesystem.current_context(ctx, deadline, cancelled)?;
+    if let Some(catalog) = catalog {
+        let bytes = catalog.borrow().selected_bytes()?;
+        let mut budget = whole_call.borrow_mut();
+        budget.check_live(bytes)?;
+        budget.read(bytes as u64)?;
+        drop(budget);
+        catalog
+            .borrow()
+            .verify_current(filesystem, deadline, cancelled)?;
+    }
+    Ok(plan)
 }
 
 fn selected_claim_context_from_captures(
@@ -791,6 +979,52 @@ fn selected_claim_context_from_captures(
     Ok(complete)
 }
 
+fn claim_call_for_selected_context(
+    ctx: &CommandContext,
+) -> SourceCommandResult<Rc<RefCell<ClaimCallBudget>>> {
+    let live = ctx
+        .files
+        .iter()
+        .try_fold(0usize, |sum, file| sum.checked_add(file.raw.len()))
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim caller state overflow",
+        ))?;
+    Ok(Rc::new(RefCell::new(ClaimCallBudget::new(0, live)?)))
+}
+
+fn charge_selected_claim_context(
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    whole_call: &Rc<RefCell<ClaimCallBudget>>,
+) -> SourceCommandResult<()> {
+    let authored = cut
+        .current()
+        .members()
+        .try_fold(0usize, |sum, member| {
+            sum.checked_add(usize::try_from(member.size_bytes).ok()?)
+        })
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim selected cut size overflow",
+        ))?;
+    let software_copy = ctx
+        .files
+        .iter()
+        .filter(|file| !file.path.as_str().starts_with("ToS/"))
+        .try_fold(0usize, |sum, file| sum.checked_add(file.raw.len()))
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim selected software state overflow",
+        ))?;
+    let mut budget = whole_call.borrow_mut();
+    budget.read(authored as u64)?;
+    budget.retain(
+        authored
+            .checked_add(software_copy)
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim selected context state overflow",
+            ))?,
+    )
+}
+
 /// A complete, native-observed Claim creation package. Its selected context is
 /// retained for custody checks, not as a grant to the canonical source writer.
 pub struct SerializedClaimCreation {
@@ -800,6 +1034,7 @@ pub struct SerializedClaimCreation {
     files: BTreeMap<String, Vec<u8>>,
     operational_sidecars: BTreeSet<String>,
     components: SoftwareComponentSelectionV1,
+    catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
 }
 
 impl SerializedClaimCreation {
@@ -821,6 +1056,9 @@ impl SerializedClaimCreation {
     pub(crate) fn operational_sidecars(&self) -> &BTreeSet<String> {
         &self.operational_sidecars
     }
+    pub(crate) fn catalog_capture(&self) -> Option<&Rc<RefCell<ClaimCatalogCapture>>> {
+        self.catalog_capture.as_ref()
+    }
 }
 
 /// Complete Claim planning, native capture, provenance execution and the
@@ -831,11 +1069,22 @@ fn serialize_claim_creation_from_captures(
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     worker: &mut CutWorkerSchemaExecutor,
+    catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
+    whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<SerializedClaimCreation> {
     claim_creation_from_captures(
-        ctx, cut, software, components, worker, None, deadline, cancelled,
+        ctx,
+        cut,
+        software,
+        components,
+        worker,
+        None,
+        catalog_capture,
+        whole_call,
+        deadline,
+        cancelled,
     )
 }
 
@@ -849,6 +1098,8 @@ fn restore_claim_creation_from_captures(
     components: &SoftwareComponentSelectionV1,
     worker: &mut CutWorkerSchemaExecutor,
     retained: &BTreeMap<String, Vec<u8>>,
+    catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
+    whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<SerializedClaimCreation> {
@@ -859,6 +1110,8 @@ fn restore_claim_creation_from_captures(
         components,
         worker,
         Some(retained),
+        catalog_capture,
+        whole_call,
         deadline,
         cancelled,
     )
@@ -871,9 +1124,14 @@ fn claim_creation_from_captures(
     components: &SoftwareComponentSelectionV1,
     worker: &mut CutWorkerSchemaExecutor,
     retained: Option<&BTreeMap<String, Vec<u8>>>,
+    catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
+    whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<SerializedClaimCreation> {
+    if let Some(budget) = &whole_call {
+        charge_selected_claim_context(ctx, cut, budget)?;
+    }
     let complete =
         selected_claim_context_from_captures(ctx, cut, software, components, deadline, cancelled)?;
     let request = parse(&complete.request_raw)?;
@@ -886,6 +1144,9 @@ fn claim_creation_from_captures(
         &complete,
         Some(ctx),
         Some(cut),
+        catalog_capture.clone(),
+        None,
+        whole_call.clone(),
         true,
         worker,
         deadline,
@@ -914,6 +1175,9 @@ fn claim_creation_from_captures(
         .after
         .as_ref()
         .ok_or(SourceCommandError::Conflict("initial Claim stream absent"))?;
+    if let Some(budget) = &whole_call {
+        budget.borrow_mut().retain(stream.len())?;
+    }
     let mut files = BTreeMap::from([(CLAIM_STREAM.to_owned(), stream.clone())]);
     if let Some(original) = retained {
         crate::source_serialization::restore_creation_capture(
@@ -970,6 +1234,15 @@ fn claim_creation_from_captures(
             "Claim creation package byte closure",
         ));
     }
+    if let Some(budget) = &whole_call {
+        let package_bytes = files.values().map(Vec::len).sum::<usize>();
+        budget
+            .borrow_mut()
+            .retain(package_bytes.saturating_sub(stream.len()))?;
+        if retained.is_none() {
+            budget.borrow_mut().retain(package_bytes)?;
+        }
+    }
     if retained.is_some_and(|original| original != &files) {
         return Err(SourceCommandError::Conflict(
             "retained Claim creation package differs from original request",
@@ -1006,6 +1279,7 @@ fn claim_creation_from_captures(
         files,
         operational_sidecars,
         components: components.clone(),
+        catalog_capture,
     })
 }
 
@@ -1155,18 +1429,71 @@ pub fn execute_isolated_claim_creation_from_captures(
     )?;
     let request = parse(&ctx.request_raw)?;
     let allowed_names = claim_creation_allowed_names(&request)?;
-    let retained =
-        filesystem.read_claim_retained(ctx, &home, &allowed_names, deadline, cancelled)?;
+    let needs_catalog = array(&request, "claims")?
+        .iter()
+        .map(|claim| retained_profile_required(ctx, claim))
+        .collect::<SourceCommandResult<Vec<_>>>()?
+        .into_iter()
+        .any(|needed| needed);
+    let whole_call = needs_catalog
+        .then(|| claim_call_for_selected_context(ctx))
+        .transpose()?;
+    if let Some(budget) = &whole_call {
+        let budget = budget.borrow();
+        budget.check_live(8192)?;
+        if budget.remaining_read()? < 8192 {
+            return Err(SourceCommandError::Unsupported(
+                "Claim catalog control read budget",
+            ));
+        }
+    }
+    let current_catalog = needs_catalog
+        .then(|| filesystem.select_claim_catalog(deadline, cancelled))
+        .transpose()?
+        .map(|selected| Rc::new(RefCell::new(selected)));
+    if let (Some(budget), Some(catalog)) = (&whole_call, &current_catalog) {
+        let control_bytes = catalog.borrow().control().map_or(0, <[u8]>::len);
+        let mut budget = budget.borrow_mut();
+        budget.read(control_bytes as u64)?;
+        budget.retain(control_bytes)?;
+    }
+    let retained = filesystem.read_claim_retained(
+        ctx,
+        &home,
+        &allowed_names,
+        whole_call.as_ref(),
+        deadline,
+        cancelled,
+    )?;
     let mut current = None;
     let serialized = if let Some(retained) = &retained {
+        if let Some(catalog) = &current_catalog {
+            catalog
+                .borrow()
+                .bind_cut(current_cut, deadline, cancelled)?;
+        }
         let current_context = CommandContext {
             base_revision: current_cut.current().revision(),
             files: vec![],
             ..ctx.clone()
         };
         ctx.check_from_selected_captures(original_cut, software, components, deadline, cancelled)?;
+        if let Some(budget) = &whole_call {
+            charge_selected_claim_context(&current_context, current_cut, budget)?;
+        }
         let mut current_files =
             complete_authored_inputs(&current_context, current_cut, deadline, cancelled)?;
+        if let Some(budget) = &whole_call {
+            let software_bytes = ctx
+                .files
+                .iter()
+                .filter(|file| !file.path.as_str().starts_with("ToS/"))
+                .try_fold(0usize, |sum, file| sum.checked_add(file.raw.len()))
+                .ok_or(SourceCommandError::Unsupported(
+                    "Claim current software state overflow",
+                ))?;
+            budget.borrow_mut().retain(software_bytes)?;
+        }
         current_files.extend(
             ctx.files
                 .iter()
@@ -1195,6 +1522,8 @@ pub fn execute_isolated_claim_creation_from_captures(
                 &parse(&ctx.configuration_raw)?,
                 &parse(&ctx.request_raw)?,
                 current_worker,
+                current_catalog.clone(),
+                whole_call.clone(),
                 deadline,
                 cancelled,
             )?;
@@ -1210,7 +1539,23 @@ pub fn execute_isolated_claim_creation_from_captures(
             &parse(&ctx.request_raw)?,
             &source_path,
             retained,
+            whole_call.as_ref(),
         )?;
+        let original_catalog = if needs_catalog {
+            Some(Rc::new(RefCell::new(
+                filesystem.read_claim_catalog_capture(
+                    original.get("source-create-receipt.json").ok_or(
+                        SourceCommandError::Conflict("Claim original receipt absent"),
+                    )?,
+                    original_cut,
+                    whole_call.as_ref(),
+                    deadline,
+                    cancelled,
+                )?,
+            )))
+        } else {
+            None
+        };
         current = Some(current_context);
         restore_claim_creation_from_captures(
             ctx,
@@ -1219,22 +1564,42 @@ pub fn execute_isolated_claim_creation_from_captures(
             components,
             worker,
             &original,
+            original_catalog,
+            whole_call.clone(),
             deadline,
             cancelled,
         )?
     } else {
+        if let Some(catalog) = &current_catalog {
+            catalog
+                .borrow()
+                .bind_cut(original_cut, deadline, cancelled)?;
+        }
         serialize_claim_creation_from_captures(
             ctx,
             original_cut,
             software,
             components,
             worker,
+            current_catalog.clone(),
+            whole_call.clone(),
             deadline,
             cancelled,
         )?
     };
     crate::source_creation_store::finish_creation_worker(worker, deadline, cancelled)?;
+    if let Some(catalog) = &current_catalog {
+        if let Some(budget) = &whole_call {
+            let bytes = catalog.borrow().selected_bytes()?;
+            budget.borrow_mut().check_live(bytes)?;
+            budget.borrow_mut().read(bytes as u64)?;
+        }
+        catalog
+            .borrow()
+            .verify_current(filesystem, deadline, cancelled)?;
+    }
     let publication = if retained.is_some() {
+        let current_catalog_borrow = current_catalog.as_ref().map(|catalog| catalog.borrow());
         filesystem.replay_claim_isolated(
             &serialized,
             original_cut,
@@ -1242,6 +1607,8 @@ pub fn execute_isolated_claim_creation_from_captures(
                 "Claim replay current cut absent",
             ))?,
             current_cut,
+            current_catalog_borrow.as_deref(),
+            whole_call.as_ref(),
             software,
             components,
             deadline,
@@ -1251,6 +1618,7 @@ pub fn execute_isolated_claim_creation_from_captures(
         filesystem.publish_claim_isolated(
             &serialized,
             original_cut,
+            whole_call.as_ref(),
             software,
             components,
             deadline,
@@ -1259,6 +1627,276 @@ pub fn execute_isolated_claim_creation_from_captures(
     };
     let response = serialized.command().response.clone();
     Ok((serialized, publication, response))
+}
+
+struct CheckedClaimRevision {
+    context: CommandContext,
+    home: RelativePath,
+    before: BTreeMap<String, Vec<u8>>,
+    operational_sidecars: BTreeSet<String>,
+    plan: PreparedCommand,
+    current_catalog: Option<Rc<RefCell<ClaimCatalogCapture>>>,
+    whole_call: Rc<RefCell<ClaimCallBudget>>,
+}
+
+fn checked_isolated_claim_revision(
+    filesystem: &CreationFilesystem,
+    ctx: &CommandContext,
+    original_cut: &CorpusCutReader,
+    current_cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<CheckedClaimRevision> {
+    let complete = selected_claim_context_from_captures(
+        ctx,
+        current_cut,
+        software,
+        components,
+        deadline,
+        cancelled,
+    )?;
+    let complete_bytes = complete
+        .files
+        .iter()
+        .try_fold(0usize, |sum, file| {
+            sum.checked_add(file.raw.len())
+                .filter(|bytes| *bytes <= CLAIM_COMPLETE_BYTES as usize)
+        })
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim complete input state budget",
+        ))?;
+    let authored_read_bytes = complete
+        .files
+        .iter()
+        .try_fold(0usize, |sum, file| {
+            if file.path.as_str().starts_with("ToS/") {
+                sum.checked_add(file.raw.len())
+            } else {
+                Some(sum)
+            }
+        })
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim authored input read overflow",
+        ))?;
+    let caller_bytes = ctx
+        .files
+        .iter()
+        .try_fold(0usize, |sum, file| {
+            sum.checked_add(file.raw.len())
+                .filter(|bytes| *bytes <= CLAIM_COMPLETE_BYTES as usize)
+        })
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim caller input state budget",
+        ))?;
+    let whole_call = Rc::new(RefCell::new(ClaimCallBudget::new(
+        authored_read_bytes as u64,
+        complete_bytes
+            .checked_add(caller_bytes)
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim selected contexts state overflow",
+            ))?,
+    )?));
+    let (config, source_path, _, create, _) = config(&complete)?;
+    if create {
+        return Err(SourceCommandError::Denied(
+            "isolated Claim revision owner family",
+        ));
+    }
+    let request = parse(&complete.request_raw)?;
+    if !["prepare-revise", "claim.revise"].contains(&text(&request, "operation")?) {
+        return Err(SourceCommandError::Unsupported(
+            "isolated Claim revision operation",
+        ));
+    }
+    let home = path(
+        source_path
+            .as_str()
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid("Claim revision parent"))?
+            .0,
+    )?;
+    let current = rows(selected(&complete, source_path.as_str())?)?;
+    let record = current
+        .get(text(&config, "claim_id")?)
+        .ok_or(SourceCommandError::Conflict(
+            "delegated Claim absent from current cut",
+        ))?;
+    let mut names = BTreeSet::new();
+    let prefix = format!("{}/", home.as_str());
+    for input in complete
+        .files
+        .iter()
+        .filter(|input| input.path.as_str().starts_with(&prefix))
+    {
+        let leaf = &input.path.as_str()[prefix.len()..];
+        if !leaf.contains('/') {
+            names.insert(leaf.to_owned());
+        }
+    }
+    let mut operational_sidecars = BTreeSet::new();
+    for id in current.keys() {
+        let lock = format!(".{}.writer.lock", form_name(id));
+        names.insert(lock.clone());
+        operational_sidecars.insert(format!("{}/{}", home.as_str(), lock));
+    }
+    let before = filesystem
+        .read_claim_retained(
+            &complete,
+            &home,
+            &names,
+            Some(&whole_call),
+            deadline,
+            cancelled,
+        )?
+        .ok_or(SourceCommandError::Conflict(
+            "Claim revision current package absent",
+        ))?;
+    let needs_catalog = retained_profile_required(&complete, record)?;
+    if needs_catalog {
+        let budget = whole_call.borrow();
+        budget.check_live(8192)?;
+        if budget.remaining_read()? < 8192 {
+            return Err(SourceCommandError::Unsupported(
+                "Claim catalog control read budget",
+            ));
+        }
+    }
+    let current_catalog = needs_catalog
+        .then(|| filesystem.select_claim_catalog(deadline, cancelled))
+        .transpose()?
+        .map(|capture| Rc::new(RefCell::new(capture)));
+    if let Some(catalog) = &current_catalog {
+        let control_bytes = catalog.borrow().control().map_or(0, <[u8]>::len);
+        whole_call.borrow_mut().read(control_bytes as u64)?;
+        whole_call.borrow_mut().retain(control_bytes)?;
+        catalog
+            .borrow()
+            .bind_cut(current_cut, deadline, cancelled)?;
+        let original_receipt =
+            before
+                .get("source-create-receipt.json")
+                .ok_or(SourceCommandError::Conflict(
+                    "Claim original receipt absent",
+                ))?;
+        filesystem.read_claim_catalog_capture(
+            original_receipt,
+            original_cut,
+            Some(&whole_call),
+            deadline,
+            cancelled,
+        )?;
+    }
+    let plan = run_claim_command_inner(
+        &complete,
+        Some(&complete),
+        Some(current_cut),
+        current_catalog.clone(),
+        Some(&before),
+        Some(whole_call.clone()),
+        false,
+        worker,
+        deadline,
+        cancelled,
+    )?;
+    Ok(CheckedClaimRevision {
+        context: complete,
+        home,
+        before,
+        operational_sidecars,
+        plan,
+        current_catalog,
+        whole_call,
+    })
+}
+
+/// Read-only isolated preview uses the actual flat predecessor, including
+/// exact empty operational locks, while returning only an unauthorised plan.
+pub fn prepare_isolated_claim_revision_from_captures(
+    filesystem: &CreationFilesystem,
+    ctx: &CommandContext,
+    original_cut: &CorpusCutReader,
+    current_cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<PreparedCommand> {
+    let prepared = checked_isolated_claim_revision(
+        filesystem,
+        ctx,
+        original_cut,
+        current_cut,
+        software,
+        components,
+        worker,
+        deadline,
+        cancelled,
+    )?;
+    if text(&parse(&ctx.request_raw)?, "operation")? != "prepare-revise" {
+        return Err(SourceCommandError::Unsupported(
+            "Claim revision preview operation",
+        ));
+    }
+    Ok(prepared.plan)
+}
+
+/// The only isolated native revision entry rebuilds the package internally;
+/// neither a public proposal nor a retained receipt is a publication grant.
+pub fn execute_isolated_claim_revision_from_captures(
+    filesystem: &CreationFilesystem,
+    ctx: &CommandContext,
+    original_cut: &CorpusCutReader,
+    current_cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(
+    PreparedCommand,
+    crate::source_creation_store::CreationPublication,
+)> {
+    let prepared = checked_isolated_claim_revision(
+        filesystem,
+        ctx,
+        original_cut,
+        current_cut,
+        software,
+        components,
+        worker,
+        deadline,
+        cancelled,
+    )?;
+    if text(&parse(&ctx.request_raw)?, "operation")? != "claim.revise" {
+        return Err(SourceCommandError::Unsupported(
+            "Claim revision commit operation",
+        ));
+    }
+    crate::source_creation_store::finish_creation_worker(worker, deadline, cancelled)?;
+    let current_catalog = prepared
+        .current_catalog
+        .as_ref()
+        .map(|capture| capture.borrow());
+    let publication = filesystem.publish_claim_revision_isolated(
+        &prepared.context,
+        &prepared.home,
+        &prepared.before,
+        &prepared.operational_sidecars,
+        &prepared.plan,
+        original_cut,
+        current_cut,
+        current_catalog.as_deref(),
+        &prepared.whole_call,
+        software,
+        components,
+        deadline,
+        cancelled,
+    )?;
+    Ok((prepared.plan, publication))
 }
 
 fn reference_replay_required(
@@ -1282,6 +1920,8 @@ fn reference_replay_snapshot(
     config: &JsonValue,
     request: &JsonValue,
     worker: &mut CutWorkerSchemaExecutor,
+    catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
+    whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Digest256> {
@@ -1300,7 +1940,12 @@ fn reference_replay_snapshot(
             claim_scope(config, claim, true, version)?;
             if retained.is_none() && retained_profile_required(current, claim)? {
                 retained = Some(RetainedProfileRead::new(
-                    current, worker, deadline, cancelled,
+                    current,
+                    worker,
+                    deadline,
+                    cancelled,
+                    catalog_capture.clone(),
+                    whole_call.clone(),
                 )?);
             }
             let binding = validate_ground(
@@ -1347,6 +1992,7 @@ fn retained_claim_creation_files(
     request: &JsonValue,
     source_path: &RelativePath,
     direct: &BTreeMap<String, Vec<u8>>,
+    whole_call: Option<&Rc<RefCell<ClaimCallBudget>>>,
 ) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
     let home = source_path
         .as_str()
@@ -1407,12 +2053,41 @@ fn retained_claim_creation_files(
                 .map_err(crate::source_forms::form_error)?;
         }
     }
-    let history = verify_claim_history(current, config, source_path, direct)?;
-    let archived_or_current = if let Some(first) = array(&history, "receipts")?.first() {
-        archive(current, config, first)?
+    let mut first_archive = None;
+    let history = verify_claim_history_inner(
+        current,
+        config,
+        source_path,
+        direct,
+        None,
+        whole_call,
+        0,
+        Some(&mut first_archive),
+    )?;
+    let archived_or_current = if !array(&history, "receipts")?.is_empty() {
+        first_archive.ok_or(SourceCommandError::Conflict(
+            "Claim first verified archive absent",
+        ))?
     } else {
+        if let Some(budget) = whole_call {
+            let bytes = direct.values().map(Vec::len).sum::<usize>();
+            budget.borrow_mut().retain(bytes)?;
+        }
         direct.clone()
     };
+    if let Some(budget) = whole_call {
+        let bytes = required
+            .iter()
+            .try_fold(0usize, |sum, name| {
+                archived_or_current
+                    .get(name)
+                    .and_then(|raw| sum.checked_add(raw.len()))
+            })
+            .ok_or(SourceCommandError::Conflict(
+                "Claim archived creation member absent",
+            ))?;
+        budget.borrow_mut().retain(bytes)?;
+    }
     let original = required
         .iter()
         .map(|name| {
@@ -1598,6 +2273,9 @@ fn run_claim_command_inner(
     ctx: &CommandContext,
     selected_context: Option<&CommandContext>,
     cut: Option<&CorpusCutReader>,
+    catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
+    selected_package: Option<&BTreeMap<String, Vec<u8>>>,
+    whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     serialize_creation: bool,
     executor: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
@@ -1645,8 +2323,111 @@ fn run_claim_command_inner(
             cancelled,
         )?;
     }
-    let files = package(ctx, &p)?;
     let mut retained = None;
+    if !create && !["describe", "inspect-version"].contains(&operation) {
+        let id = text(&config, "claim_id")?;
+        let current = rows(selected(ctx, p.as_str())?)?;
+        let record = current
+            .get(id)
+            .ok_or(SourceCommandError::Conflict("delegated Claim absent"))?;
+        if retained_profile_required(ctx, record)? {
+            retained = Some(RetainedProfileRead::new(
+                ctx,
+                executor,
+                deadline,
+                cancelled,
+                catalog_capture.clone(),
+                whole_call.clone(),
+            )?);
+        }
+    }
+    let files = if let Some(selected_package) = selected_package {
+        if create || selected_package.len() > 64 {
+            return Err(SourceCommandError::Invalid("Claim selected package scope"));
+        }
+        let package_size = selected_package
+            .values()
+            .try_fold(0usize, |total, raw| {
+                total.checked_add(raw.len()).filter(|sum| *sum <= 8_388_608)
+            })
+            .ok_or(SourceCommandError::Invalid(
+                "Claim selected package byte budget",
+            ))?;
+        if let Some(read) = retained.as_ref() {
+            if (whole_call.is_none() && package_size as u64 > read.remaining_read_bytes()?)
+                || package_size > read.remaining_state_bytes()?
+            {
+                return Err(SourceCommandError::Unsupported(
+                    "Claim package read or state budget",
+                ));
+            }
+        } else if let Some(budget) = &whole_call {
+            budget.borrow_mut().retain(package_size)?;
+        }
+        let parent = p
+            .as_str()
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid("Claim selected package parent"))?
+            .0;
+        let selected = ctx
+            .files
+            .iter()
+            .filter_map(|file| {
+                file.path
+                    .as_str()
+                    .strip_prefix(&format!("{parent}/"))
+                    .filter(|name| !name.contains('/'))
+                    .map(|name| (name, file.raw.as_slice()))
+            })
+            .collect::<BTreeMap<_, _>>();
+        for (name, raw) in selected_package {
+            if name.ends_with(".writer.lock") {
+                if !raw.is_empty() {
+                    return Err(SourceCommandError::Conflict(
+                        "Claim operational lock changed",
+                    ));
+                }
+            } else if selected.get(name.as_str()).copied() != Some(raw.as_slice()) {
+                return Err(SourceCommandError::Conflict(
+                    "Claim package differs from selected cut",
+                ));
+            }
+        }
+        if selected
+            .keys()
+            .any(|name| !selected_package.contains_key(*name))
+        {
+            return Err(SourceCommandError::Conflict(
+                "Claim selected package member absent",
+            ));
+        }
+        selected_package.clone()
+    } else if let Some(read) = retained.as_ref() {
+        package_bounded(
+            ctx,
+            &p,
+            Some(read.remaining_read_bytes()?),
+            Some(read.remaining_state_bytes()?),
+        )?
+    } else {
+        package(ctx, &p)?
+    };
+    let package_bytes = files.values().try_fold(0usize, |sum, raw| {
+        sum.checked_add(raw.len())
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim package byte overflow",
+            ))
+    })?;
+    if let Some(read) = retained.as_mut() {
+        read.debit(
+            if selected_package.is_some() && whole_call.is_some() {
+                0
+            } else {
+                package_bytes as u64
+            },
+            package_bytes,
+        )?;
+    }
     let mut response = object(vec![
         (
             "schema_version",
@@ -1729,7 +2510,12 @@ fn run_claim_command_inner(
             claim_scope(&config, claim, true, version)?;
             if retained.is_none() && retained_profile_required(ctx, claim)? {
                 retained = Some(RetainedProfileRead::new(
-                    ctx, executor, deadline, cancelled,
+                    ctx,
+                    executor,
+                    deadline,
+                    cancelled,
+                    catalog_capture.clone(),
+                    whole_call.clone(),
                 )?);
             }
             if integer(claim, "claim_version")? != 1
@@ -1794,7 +2580,7 @@ fn run_claim_command_inner(
                 "creation replay requires complete retained provenance and predecessor closure",
             ));
         }
-        let grounding = maintained_grounding(
+        let mut grounding = maintained_grounding(
             ctx,
             &config,
             claims,
@@ -1814,7 +2600,7 @@ fn run_claim_command_inner(
             "expected_dependencies",
             grounding.dependencies.clone(),
         )?;
-        set(&mut response, "source_bindings", grounding.bindings)?;
+        set(&mut response, "source_bindings", grounding.bindings.clone())?;
         set(
             &mut response,
             "prepared_files",
@@ -1842,16 +2628,13 @@ fn run_claim_command_inner(
                 ));
             }
         }
-        return ctx.plan(
-            &handler,
-            response,
-            vec![SourceChange {
-                path: p,
-                before: None,
-                after: Some(raw),
-            }],
-            false,
-        );
+        let changes = vec![SourceChange {
+            path: p,
+            before: None,
+            after: Some(raw),
+        }];
+        account_retained_plan(&mut grounding, &response, &changes)?;
+        return ctx.plan(&handler, response, changes, false);
     }
     let stream = files
         .get(CLAIM_STREAM)
@@ -1861,7 +2644,35 @@ fn run_claim_command_inner(
     let record = records
         .get(id)
         .ok_or(SourceCommandError::Conflict("delegated Claim absent"))?;
-    let history = verify_claim_history(ctx, &config, &p, &files)?;
+    let history = verify_claim_history_inner(
+        ctx,
+        &config,
+        &p,
+        &files,
+        retained.as_mut(),
+        None,
+        0, // The live current package was already debited above.
+        None,
+    )?;
+    if let Some(read) = retained.as_mut() {
+        read.debit(0, retained_value_bytes(&history)?)?;
+        let owner = VerifiedClaimOwner {
+            history: history.clone(),
+            revision: revision(&files)?,
+            history_sha256: files
+                .get(CLAIM_HISTORY)
+                .map(|raw| Digest256::of_bytes(raw).to_prefixed()),
+        };
+        let cached = retained_value_bytes(&owner.history)?
+            .checked_add(retained_value_bytes(&owner.revision)?)
+            .and_then(|sum| sum.checked_add(p.as_str().len()))
+            .and_then(|sum| sum.checked_add(std::mem::size_of::<VerifiedClaimOwner>()))
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim verified owner state overflow",
+            ))?;
+        read.debit(0, cached)?;
+        read.claim_owners.insert(p.as_str().to_owned(), owner);
+    }
     set(&mut response, "source", metadata_subject(record)?)?;
     set(&mut response, "revision", revision(&files)?)?;
     if operation == "describe" {
@@ -1963,7 +2774,12 @@ fn run_claim_command_inner(
             }
             if retained.is_none() && retained_profile_required(ctx, record)? {
                 retained = Some(RetainedProfileRead::new(
-                    ctx, executor, deadline, cancelled,
+                    ctx,
+                    executor,
+                    deadline,
+                    cancelled,
+                    catalog_capture.clone(),
+                    whole_call.clone(),
                 )?);
             }
             validate_ground(
@@ -1977,7 +2793,11 @@ fn run_claim_command_inner(
                 deadline,
                 cancelled,
             )?;
-            let archived = archive(ctx, &config, receipt)?;
+            let archived = if let Some(read) = retained.as_mut() {
+                archive_accounted(ctx, &config, receipt, read, 0)?
+            } else {
+                archive(ctx, &config, receipt)?
+            };
             let predecessors = rows(&archived[CLAIM_STREAM])?;
             let predecessor = predecessors.get(id).ok_or(SourceCommandError::Conflict(
                 "Claim retry predecessor absent",
@@ -1995,6 +2815,12 @@ fn run_claim_command_inner(
                 deadline,
                 cancelled,
             )?;
+            if let Some(read) = retained.take() {
+                // A retained revision replay has no fresh grounding call to
+                // consume the read set; bind its historical observations to
+                // this same complete selected cut before returning.
+                read.into_inventory(ctx, cut)?;
+            }
             set(&mut response, "receipt", receipt.clone())?;
             set(&mut response, "replayed", JsonValue::Bool(true))?;
             return ctx.plan(&handler, response, vec![], true);
@@ -2004,7 +2830,12 @@ fn run_claim_command_inner(
     claim_scope(&config, &revised, false, version)?;
     if retained.is_none() && retained_profile_required(ctx, &revised)? {
         retained = Some(RetainedProfileRead::new(
-            ctx, executor, deadline, cancelled,
+            ctx,
+            executor,
+            deadline,
+            cancelled,
+            catalog_capture.clone(),
+            whole_call.clone(),
         )?);
     }
     let retained_profile_binding = validate_ground(
@@ -2111,7 +2942,7 @@ fn run_claim_command_inner(
     if let Some(binding) = retained_profile_binding {
         retained_profile_bindings.insert(id.to_owned(), binding);
     }
-    let grounding = maintained_grounding(
+    let mut grounding = maintained_grounding(
         ctx,
         &config,
         std::slice::from_ref(&revised),
@@ -2208,10 +3039,13 @@ fn run_claim_command_inner(
                 continue;
             }
             let path = path(&format!("{archive_path}/{name}"))?;
-            if ctx.file(&path)?.is_some() {
-                return Err(SourceCommandError::Conflict(
-                    "Claim predecessor archive path occupied",
-                ));
+            if let Some(prior) = ctx.file(&path)? {
+                if prior != raw {
+                    return Err(SourceCommandError::Conflict(
+                        "Claim predecessor archive path occupied",
+                    ));
+                }
+                continue;
             }
             output.push(SourceChange {
                 path,
@@ -2220,16 +3054,20 @@ fn run_claim_command_inner(
             });
         }
         let manifest_path = path(&format!("{archive_path}/manifest.json"))?;
-        if ctx.file(&manifest_path)?.is_some() {
-            return Err(SourceCommandError::Conflict(
-                "Claim predecessor manifest path occupied",
-            ));
+        let manifest_raw = published(&manifest)?;
+        if let Some(prior) = ctx.file(&manifest_path)? {
+            if prior != manifest_raw {
+                return Err(SourceCommandError::Conflict(
+                    "Claim predecessor manifest path occupied",
+                ));
+            }
+        } else {
+            output.push(SourceChange {
+                path: manifest_path,
+                before: None,
+                after: Some(manifest_raw),
+            });
         }
-        output.push(SourceChange {
-            path: manifest_path,
-            before: None,
-            after: Some(published(&manifest)?),
-        });
         let mut retained = history.clone();
         let mut receipts = array(&retained, "receipts")?.to_vec();
         receipts.push(receipt.clone());
@@ -2255,26 +3093,24 @@ fn run_claim_command_inner(
             after: Some(published(&retained)?),
         });
         set(&mut response, "receipt", receipt)?;
+        account_retained_plan(&mut grounding, &response, &output)?;
         return ctx.plan(&handler, response, output, false);
     }
     let parent = p.as_str().rsplit_once('/').unwrap().0;
-    ctx.plan(
-        &handler,
-        response,
-        vec![
-            SourceChange {
-                path: p.clone(),
-                before: Some(Digest256::of_bytes(stream)),
-                after: Some(replace_claim_row(stream, &revised)?),
-            },
-            SourceChange {
-                path: path(&format!("{parent}/{formname}"))?,
-                before: files.get(&formname).map(|r| Digest256::of_bytes(r)),
-                after: Some(published(&payload)?),
-            },
-        ],
-        false,
-    )
+    let changes = vec![
+        SourceChange {
+            path: p.clone(),
+            before: Some(Digest256::of_bytes(stream)),
+            after: Some(replace_claim_row(stream, &revised)?),
+        },
+        SourceChange {
+            path: path(&format!("{parent}/{formname}"))?,
+            before: files.get(&formname).map(|r| Digest256::of_bytes(r)),
+            after: Some(published(&payload)?),
+        },
+    ];
+    account_retained_plan(&mut grounding, &response, &changes)?;
+    ctx.plan(&handler, response, changes, false)
 }
 /// Fixed maintained rule-contract inputs, not executed producers or issuers.
 pub const CLAIM_GROUNDING_RULE_INPUTS: &[&str] = &[
@@ -2347,6 +3183,7 @@ const LEGACY_CLAIM_STREAMS: &[&str] = &[
 struct ClaimGrounding {
     dependencies: JsonValue,
     bindings: JsonValue,
+    retained_budget: Option<RetainedProfileRead>,
 }
 pub(crate) fn raw_digests(
     ctx: &CommandContext,
@@ -2805,6 +3642,13 @@ struct RetainedCatalogRows {
     sha256: String,
 }
 
+#[derive(Clone)]
+struct VerifiedClaimOwner {
+    history: JsonValue,
+    revision: JsonValue,
+    history_sha256: Option<String>,
+}
+
 /// One selected Claim invocation owns its complete identity index and the
 /// retained reads derived from it. None of these observations grants use.
 struct RetainedProfileRead {
@@ -2813,9 +3657,17 @@ struct RetainedProfileRead {
     catalogs: BTreeMap<String, RetainedCatalogRows>,
     metadata: BTreeMap<String, MetadataBinding>,
     claims: BTreeMap<String, ResolvedClaimReference>,
+    claim_owners: BTreeMap<String, VerifiedClaimOwner>,
+    catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
     observed_reads: Vec<PredicateRead>,
     read_bytes: u64,
     state_bytes: usize,
+    whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
+}
+
+struct RetainedGroundingInput {
+    inventory: MaintainedInventory,
+    budget: RetainedProfileRead,
 }
 
 fn retained_value_bytes(value: &JsonValue) -> SourceCommandResult<usize> {
@@ -2836,6 +3688,8 @@ impl RetainedProfileRead {
         executor: &mut CutWorkerSchemaExecutor,
         deadline: Instant,
         cancelled: &AtomicBool,
+        catalog_capture: Option<Rc<RefCell<ClaimCatalogCapture>>>,
+        whole_call: Option<Rc<RefCell<ClaimCallBudget>>>,
     ) -> SourceCommandResult<Self> {
         ctx.check()?;
         let inventory = maintained_inventory(ctx, executor, deadline, cancelled)?;
@@ -2847,7 +3701,20 @@ impl RetainedProfileRead {
             .ok_or(SourceCommandError::Unsupported(
                 "Claim complete input state overflow",
             ))?;
+        let captured_control_bytes = catalog_capture
+            .as_ref()
+            .and_then(|capture| capture.borrow().control().map(<[u8]>::len))
+            .unwrap_or(0);
+        let control_bytes_to_add = if whole_call.is_some() {
+            0
+        } else {
+            captured_control_bytes
+        };
         let mut state_bytes = raw_bytes
+            .checked_add(control_bytes_to_add)
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim retained control state overflow",
+            ))?
             .checked_add(retained_value_bytes(&entities)?)
             .ok_or(SourceCommandError::Unsupported(
                 "Claim retained inventory state overflow",
@@ -2894,10 +3761,32 @@ impl RetainedProfileRead {
                     "Claim retained inventory state overflow",
                 ))?;
         }
+        if let Some(budget) = &whole_call {
+            let budget = budget.borrow();
+            state_bytes = state_bytes
+                .checked_add(budget.live_state_bytes.checked_sub(raw_bytes).ok_or(
+                    SourceCommandError::Unsupported("Claim whole-call state basis"),
+                )?)
+                .ok_or(SourceCommandError::Unsupported(
+                    "Claim whole-call state overflow",
+                ))?;
+        }
         if state_bytes > CLAIM_COMPLETE_BYTES as usize {
             return Err(SourceCommandError::Unsupported(
                 "Claim retained inventory state budget",
             ));
+        }
+        let read_bytes = if let Some(budget) = &whole_call {
+            budget.borrow().read_bytes
+        } else {
+            (raw_bytes as u64)
+                .checked_add(captured_control_bytes as u64)
+                .ok_or(SourceCommandError::Unsupported(
+                    "Claim retained control read overflow",
+                ))?
+        };
+        if let Some(budget) = &whole_call {
+            *budget.borrow_mut() = ClaimCallBudget::new(read_bytes, state_bytes)?;
         }
         Ok(Self {
             inventory: Some(inventory),
@@ -2905,9 +3794,12 @@ impl RetainedProfileRead {
             catalogs: BTreeMap::new(),
             metadata: BTreeMap::new(),
             claims: BTreeMap::new(),
+            claim_owners: BTreeMap::new(),
+            catalog_capture,
             observed_reads: Vec::new(),
-            read_bytes: raw_bytes as u64,
+            read_bytes,
             state_bytes,
+            whole_call,
         })
     }
 
@@ -2926,6 +3818,9 @@ impl RetainedProfileRead {
             .ok_or(SourceCommandError::Unsupported(
                 "Claim retained state budget",
             ))?;
+        if let Some(budget) = &self.whole_call {
+            *budget.borrow_mut() = ClaimCallBudget::new(self.read_bytes, self.state_bytes)?;
+        }
         Ok(())
     }
 
@@ -2947,6 +3842,71 @@ impl RetainedProfileRead {
             ))
     }
 
+    fn check_temporary_state(&self, bytes: usize) -> SourceCommandResult<()> {
+        if bytes > self.remaining_state_bytes()? {
+            return Err(SourceCommandError::Unsupported(
+                "Claim retained temporary state budget",
+            ));
+        }
+        Ok(())
+    }
+
+    fn claim_owner(
+        &mut self,
+        ctx: &CommandContext,
+        config: &JsonValue,
+        p: &RelativePath,
+    ) -> SourceCommandResult<VerifiedClaimOwner> {
+        if let Some(owner) = self.claim_owners.get(p.as_str()) {
+            self.check_temporary_state(retained_value_bytes(&owner.history)?)?;
+            return Ok(owner.clone());
+        }
+        let files = package_bounded(
+            ctx,
+            p,
+            Some(self.remaining_read_bytes()?),
+            Some(self.remaining_state_bytes()?),
+        )?;
+        let package_bytes = files.values().try_fold(0usize, |sum, raw| {
+            sum.checked_add(raw.len())
+                .ok_or(SourceCommandError::Unsupported(
+                    "Claim package byte overflow",
+                ))
+        })?;
+        self.debit(package_bytes as u64, 0)?;
+        let history = verify_claim_history_inner(
+            ctx,
+            config,
+            p,
+            &files,
+            Some(self),
+            None,
+            package_bytes,
+            None,
+        )?;
+        let owner = VerifiedClaimOwner {
+            revision: revision(&files)?,
+            history_sha256: files
+                .get(CLAIM_HISTORY)
+                .map(|raw| Digest256::of_bytes(raw).to_prefixed()),
+            history,
+        };
+        let state = retained_value_bytes(&owner.history)?
+            .checked_add(retained_value_bytes(&owner.revision)?)
+            .and_then(|sum| sum.checked_add(p.as_str().len()))
+            .and_then(|sum| sum.checked_add(std::mem::size_of::<VerifiedClaimOwner>()))
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim verified owner state overflow",
+            ))?;
+        self.check_temporary_state(package_bytes.checked_add(state).ok_or(
+            SourceCommandError::Unsupported("Claim verified owner state overflow"),
+        )?)?;
+        self.debit(0, state)?;
+        self.claim_owners
+            .insert(p.as_str().to_owned(), owner.clone());
+        Ok(owner)
+    }
+
     fn inventory(&self) -> SourceCommandResult<&MaintainedInventory> {
         self.inventory.as_ref().ok_or(SourceCommandError::Conflict(
             "Claim retained inventory released",
@@ -2957,7 +3917,7 @@ impl RetainedProfileRead {
         mut self,
         ctx: &CommandContext,
         cut: Option<&CorpusCutReader>,
-    ) -> SourceCommandResult<MaintainedInventory> {
+    ) -> SourceCommandResult<RetainedGroundingInput> {
         let cut = cut.ok_or(SourceCommandError::Unsupported(
             "retained Claim needs complete selected cut",
         ))?;
@@ -2991,9 +3951,13 @@ impl RetainedProfileRead {
             }
         }
         self.debit(recheck_bytes, 0)?;
-        self.inventory.take().ok_or(SourceCommandError::Conflict(
+        let inventory = self.inventory.take().ok_or(SourceCommandError::Conflict(
             "Claim retained inventory released",
-        ))
+        ))?;
+        Ok(RetainedGroundingInput {
+            inventory,
+            budget: self,
+        })
     }
 }
 pub(crate) fn maintained_inventory(
@@ -3734,12 +4698,19 @@ fn maintained_grounding(
     claims: &[JsonValue],
     forms: Option<&[JsonValue]>,
     allow_existing: bool,
-    prepared_inventory: Option<MaintainedInventory>,
+    prepared_inventory: Option<RetainedGroundingInput>,
     retained_profile_bindings: &BTreeMap<String, (&'static str, JsonValue)>,
     executor: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ClaimGrounding> {
+    let (inventory, mut retained_budget) = match prepared_inventory {
+        Some(prepared) => (prepared.inventory, Some(prepared.budget)),
+        None => (
+            maintained_inventory(ctx, executor, deadline, cancelled)?,
+            None,
+        ),
+    };
     let MaintainedInventory {
         records: record_catalog,
         record_inputs,
@@ -3750,10 +4721,7 @@ fn maintained_grounding(
         events,
         anchors,
         ..
-    } = match prepared_inventory {
-        Some(inventory) => inventory,
-        None => maintained_inventory(ctx, executor, deadline, cancelled)?,
-    };
+    } = inventory;
     let mut new_profile_inputs = raw_digests(
         ctx,
         &[
@@ -4091,10 +5059,43 @@ fn maintained_grounding(
             .to_prefixed(),
         );
     }
+    if let Some(read) = retained_budget.as_mut() {
+        let dependencies_state = retained_value_bytes(&dependencies)?;
+        let result_state = retained_value_bytes(&grounding)?
+            .checked_add(retained_value_bytes(&bindings)?)
+            .and_then(|sum| sum.checked_add(dependencies_state))
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim grounding output state overflow",
+            ))?;
+        read.debit(0, result_state)?;
+    }
     Ok(ClaimGrounding {
         dependencies,
         bindings,
+        retained_budget,
     })
+}
+
+fn account_retained_plan(
+    grounding: &mut ClaimGrounding,
+    response: &JsonValue,
+    changes: &[SourceChange],
+) -> SourceCommandResult<()> {
+    if let Some(read) = grounding.retained_budget.as_mut() {
+        let output_bytes = changes.iter().try_fold(0usize, |sum, change| {
+            sum.checked_add(change.after.as_ref().map_or(0, Vec::len))
+                .ok_or(SourceCommandError::Unsupported(
+                    "Claim prepared change state overflow",
+                ))
+        })?;
+        let state = retained_value_bytes(response)?
+            .checked_add(output_bytes)
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim prepared result state overflow",
+            ))?;
+        read.debit(0, state)?;
+    }
+    Ok(())
 }
 
 fn bounded_navigation(value: &str, limit: usize) -> String {
@@ -4266,7 +5267,7 @@ pub(crate) fn maintained_evidence(
 fn validate_ground(
     ctx: &CommandContext,
     cut: Option<&CorpusCutReader>,
-    retained: Option<&mut RetainedProfileRead>,
+    mut retained: Option<&mut RetainedProfileRead>,
     config: &JsonValue,
     claim: &JsonValue,
     version: u8,
@@ -4357,7 +5358,15 @@ fn validate_ground(
         return Ok(Some((
             "identity_proposals",
             validate_identity_ground(
-                ctx, cut, retained, config, claim, reader, executor, deadline, cancelled,
+                ctx,
+                cut,
+                retained.as_deref_mut(),
+                config,
+                claim,
+                reader,
+                executor,
+                deadline,
+                cancelled,
             )?,
         )));
     }
@@ -4429,7 +5438,13 @@ fn validate_ground(
                     retained_profile_binding = Some((
                         "collection_orders",
                         ground_collection_membership(
-                            ctx, cut, retained, claim, executor, deadline, cancelled,
+                            ctx,
+                            cut,
+                            retained.as_deref_mut(),
+                            claim,
+                            executor,
+                            deadline,
+                            cancelled,
                         )?,
                     ));
                 }
@@ -4478,7 +5493,27 @@ fn validate_ground(
     let entities = json_file(ctx, ENTITIES)?;
     let types = array(&entities, "types")?;
     for (id, allowed_types) in endpoints {
-        let (record, _loc) = find_record(ctx, &id)?;
+        let (record, _loc) = if let Some(read) = retained.as_deref_mut() {
+            let location = text(
+                read.inventory()?
+                    .objects
+                    .get(&id)
+                    .ok_or(SourceCommandError::Conflict(
+                        "Claim endpoint absent from complete selected inventory",
+                    ))?,
+                "source_record_ref",
+            )?
+            .to_owned();
+            let record = parse(selected(ctx, &location)?)?;
+            if text(&metadata_subject(&record)?, "id")? != id {
+                return Err(SourceCommandError::Conflict(
+                    "Claim endpoint selected identity changed",
+                ));
+            }
+            (record, location)
+        } else {
+            find_record(ctx, &id)?
+        };
         let record_type = native_record_type(&record)?;
         let entity = types
             .iter()
@@ -4521,9 +5556,22 @@ fn validate_ground(
             )?;
         } else {
             let reference = metadata_subject(&record)?;
-            let (verified, source) = crate::source_revisions::resolve_record_version(
-                ctx, &reference, executor, deadline, cancelled,
-            )?;
+            let (verified, source) = if retained.is_some() {
+                let (verified, source, _, _, _) = exact_metadata_version(
+                    ctx,
+                    cut,
+                    retained.as_deref_mut(),
+                    &reference,
+                    executor,
+                    deadline,
+                    cancelled,
+                )?;
+                (verified, source)
+            } else {
+                crate::source_revisions::resolve_record_version(
+                    ctx, &reference, executor, deadline, cancelled,
+                )?
+            };
             if !same(&record, &verified)? || source != _loc {
                 return Err(SourceCommandError::Conflict(
                     "native endpoint current owner changed",
@@ -4746,10 +5794,108 @@ fn archive(
     Ok(restored)
 }
 
+fn archive_accounted(
+    ctx: &CommandContext,
+    config: &JsonValue,
+    receipt: &JsonValue,
+    read: &mut RetainedProfileRead,
+    live_package_bytes: usize,
+) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
+    let location = text(receipt, "archive_path")?;
+    let prefix = format!("{location}/");
+    let mut archive_bytes = 0usize;
+    let mut members = 0usize;
+    for file in &ctx.files {
+        if let Some(name) = file.path.as_str().strip_prefix(&prefix) {
+            if name.contains('/') {
+                continue;
+            }
+            archive_bytes = archive_bytes
+                .checked_add(file.raw.len())
+                .filter(|sum| *sum <= 8_388_608)
+                .ok_or(SourceCommandError::Unsupported(
+                    "Claim archive package byte budget",
+                ))?;
+            members += 1;
+        }
+    }
+    if members > 64 || archive_bytes as u64 > read.remaining_read_bytes()? {
+        return Err(SourceCommandError::Unsupported(
+            "Claim retained archive read budget",
+        ));
+    }
+    let manifest_raw = selected(ctx, &format!("{location}/manifest.json"))?;
+    read.check_temporary_state(live_package_bytes.checked_add(manifest_raw.len()).ok_or(
+        SourceCommandError::Unsupported("Claim archive manifest state overflow"),
+    )?)?;
+    let manifest_state = retained_value_bytes(&parse(manifest_raw)?)?;
+    // archive() holds its copied blob package while restoring the bound
+    // names into a second package. The current owner package is also live.
+    let temporary = live_package_bytes
+        .checked_add(archive_bytes)
+        .and_then(|sum| sum.checked_add(archive_bytes))
+        .and_then(|sum| sum.checked_add(manifest_state))
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim archive temporary state overflow",
+        ))?;
+    read.check_temporary_state(temporary)?;
+    let restored = archive(ctx, config, receipt)?;
+    read.debit(archive_bytes as u64, 0)?;
+    Ok(restored)
+}
+
+fn archive_for_claim_call(
+    ctx: &CommandContext,
+    config: &JsonValue,
+    receipt: &JsonValue,
+    budget: &Rc<RefCell<ClaimCallBudget>>,
+    live_package_bytes: usize,
+) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
+    let prefix = format!("{}/", text(receipt, "archive_path")?);
+    let manifest_raw = selected(ctx, &format!("{prefix}manifest.json"))?;
+    budget.borrow().check_live(
+        live_package_bytes
+            .checked_add(manifest_raw.len().saturating_mul(2))
+            .ok_or(SourceCommandError::Unsupported(
+                "Claim archive manifest state overflow",
+            ))?,
+    )?;
+    let manifest_state = retained_value_bytes(&parse(manifest_raw)?)?;
+    let archive_bytes = ctx
+        .files
+        .iter()
+        .filter(|file| {
+            file.path
+                .as_str()
+                .strip_prefix(&prefix)
+                .is_some_and(|name| !name.contains('/'))
+        })
+        .try_fold(0usize, |sum, file| {
+            sum.checked_add(file.raw.len())
+                .filter(|value| *value <= 8_388_608)
+        })
+        .ok_or(SourceCommandError::Unsupported(
+            "Claim archive package byte budget",
+        ))?;
+    {
+        let mut budget = budget.borrow_mut();
+        budget.check_live(
+            live_package_bytes
+                .checked_add(archive_bytes.saturating_mul(2))
+                .and_then(|sum| sum.checked_add(manifest_state))
+                .ok_or(SourceCommandError::Unsupported(
+                    "Claim archive temporary state overflow",
+                ))?,
+        )?;
+        budget.read(archive_bytes as u64)?;
+    }
+    archive(ctx, config, receipt)
+}
+
 fn blob_name(raw: &[u8]) -> String {
     format!("{}.blob", Digest256::of_bytes(raw).to_hex())
 }
-fn archive_refs(files: &BTreeMap<String, Vec<u8>>) -> JsonValue {
+pub(crate) fn archive_refs(files: &BTreeMap<String, Vec<u8>>) -> JsonValue {
     let mut result = refs(files);
     if let JsonValue::Object(entries) = &mut result {
         for (name, binding) in entries {
@@ -4787,6 +5933,19 @@ pub fn verify_claim_history(
     p: &RelativePath,
     files: &BTreeMap<String, Vec<u8>>,
 ) -> SourceCommandResult<JsonValue> {
+    verify_claim_history_inner(ctx, config, p, files, None, None, 0, None)
+}
+
+fn verify_claim_history_inner(
+    ctx: &CommandContext,
+    config: &JsonValue,
+    p: &RelativePath,
+    files: &BTreeMap<String, Vec<u8>>,
+    mut read: Option<&mut RetainedProfileRead>,
+    whole_call: Option<&Rc<RefCell<ClaimCallBudget>>>,
+    live_package_bytes: usize,
+    mut first_archive: Option<&mut Option<BTreeMap<String, Vec<u8>>>>,
+) -> SourceCommandResult<JsonValue> {
     let history = files
         .get(CLAIM_HISTORY)
         .map(|r| parse(r))
@@ -4798,6 +5957,11 @@ pub fn verify_claim_history(
                 ("receipts", JsonValue::Array(vec![])),
             ])
         });
+    if let Some(budget) = whole_call {
+        budget
+            .borrow_mut()
+            .retain(retained_value_bytes(&history)?)?;
+    }
     exact_keys(&history, &["schema_version", "source_path", "receipts"])?;
     if text(&history, "schema_version")? != "tos_claim_revision_history_v1"
         || text(&history, "source_path")? != p.as_str()
@@ -4883,7 +6047,33 @@ pub fn verify_claim_history(
                 ));
             }
         }
-        let retained = archive(ctx, config, receipt)?;
+        let retained = if let Some(read) = read.as_deref_mut() {
+            archive_accounted(
+                ctx,
+                config,
+                receipt,
+                read,
+                live_package_bytes
+                    .checked_add(expected.as_ref().map_or(0, Vec::len))
+                    .ok_or(SourceCommandError::Unsupported(
+                        "Claim history temporary state overflow",
+                    ))?,
+            )?
+        } else if let Some(budget) = whole_call {
+            archive_for_claim_call(
+                ctx,
+                config,
+                receipt,
+                budget,
+                live_package_bytes
+                    .checked_add(expected.as_ref().map_or(0, Vec::len))
+                    .ok_or(SourceCommandError::Unsupported(
+                        "Claim history temporary state overflow",
+                    ))?,
+            )?
+        } else {
+            archive(ctx, config, receipt)?
+        };
         let before = retained
             .get(CLAIM_STREAM)
             .ok_or(SourceCommandError::Conflict("archived stream absent"))?;
@@ -4994,6 +6184,18 @@ pub fn verify_claim_history(
                 ));
             }
         }
+        if let Some(output) = first_archive.take() {
+            if let Some(budget) = whole_call {
+                let bytes = retained
+                    .values()
+                    .try_fold(0usize, |sum, raw| sum.checked_add(raw.len()))
+                    .ok_or(SourceCommandError::Unsupported(
+                        "Claim first archive state overflow",
+                    ))?;
+                budget.borrow_mut().retain(bytes)?;
+            }
+            *output = Some(retained);
+        }
     }
     let current = files
         .get(CLAIM_STREAM)
@@ -5103,8 +6305,33 @@ fn exact_selected_catalog_entry(
     identity_field: &str,
     expected: &JsonValue,
     max_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
-    let raw = selected(ctx, catalog_path)?;
+    let capture = retained
+        .as_deref()
+        .and_then(|read| read.catalog_capture.as_ref())
+        .cloned();
+    let captured_raw: Option<Arc<[u8]>> = if let Some(selected) = capture.as_ref() {
+        let read = retained
+            .as_deref_mut()
+            .ok_or(SourceCommandError::Conflict("Claim catalog budget absent"))?;
+        let allowance = read
+            .remaining_read_bytes()?
+            .min(read.remaining_state_bytes()? as u64) as usize;
+        let (raw, newly_read) =
+            selected
+                .borrow_mut()
+                .route(catalog_path, max_bytes, allowance, deadline, cancelled)?;
+        read.debit(newly_read as u64, newly_read)?;
+        Some(raw)
+    } else {
+        None
+    };
+    let raw = match captured_raw.as_deref() {
+        Some(raw) => raw,
+        None => selected(ctx, catalog_path)?,
+    };
     if raw.len() > max_bytes {
         return Err(SourceCommandError::Unsupported(
             "retained catalog byte budget",
@@ -5133,7 +6360,11 @@ fn exact_selected_catalog_entry(
     }
     let mut publication_bytes = 0u64;
     let control_ref = "ToS/source-witnesses/.metadata-publication.json";
-    let control_raw = ctx.file(&path(control_ref)?)?;
+    let captured = capture.as_ref().map(|capture| capture.borrow());
+    let control_raw = match captured.as_ref() {
+        Some(capture) => capture.control(),
+        None => ctx.file(&path(control_ref)?)?,
+    };
     publication_bytes += control_raw.map_or(0, |raw| raw.len() as u64);
     let control = control_raw.map(parse).transpose()?;
     let token = if let Some(control) = &control {
@@ -5187,10 +6418,29 @@ fn exact_selected_catalog_entry(
         None
     };
     let manifest_ref = "ToS/source-witnesses/catalog/catalog.manifest.json";
-    let manifest_raw = ctx.file(&path(manifest_ref)?)?;
+    let manifest_raw = match captured.as_ref() {
+        Some(capture) => capture.manifest(),
+        None => ctx.file(&path(manifest_ref)?)?,
+    };
     publication_bytes += manifest_raw.map_or(0, |raw| raw.len() as u64);
     let manifest = manifest_raw.map(parse).transpose()?;
     if let Some(manifest) = &manifest {
+        if text(manifest, "schema_version")? != "tos_source_witness_catalog_v3" {
+            return Err(SourceCommandError::Unsupported(
+                "retained catalog manifest profile",
+            ));
+        }
+        let route_selected = text(manifest, "claim_file")? == catalog_path
+            || field(manifest, "record_files")?
+                .as_object()
+                .ok_or(SourceCommandError::Invalid("retained catalog routes"))?
+                .values()
+                .any(|value| value.as_str() == Some(catalog_path));
+        if !route_selected {
+            return Err(SourceCommandError::Conflict(
+                "retained catalog route absent from manifest",
+            ));
+        }
         let binding = manifest.object_get("selected_metadata_publication");
         match (binding, token) {
             (None, None) => (),
@@ -5237,25 +6487,17 @@ fn exact_selected_catalog_entry(
                         "retained catalog published file closure",
                     ));
                 }
-                for (location, digest) in files {
-                    let location = location.as_str().ok_or(SourceCommandError::Invalid(
-                        "retained catalog publication path",
+                let digest = files
+                    .iter()
+                    .find(|(path, _)| path.as_str() == Some(catalog_path))
+                    .map(|(_, digest)| digest)
+                    .ok_or(SourceCommandError::Conflict(
+                        "retained catalog selected digest absent",
                     ))?;
-                    let published = selected(ctx, location)?;
-                    publication_bytes = publication_bytes
-                        .checked_add(published.len() as u64)
-                        .ok_or(SourceCommandError::Unsupported(
-                            "retained catalog publication read overflow",
-                        ))?;
-                    if Digest256::of_bytes(published).to_hex()
-                        != digest.as_str().ok_or(SourceCommandError::Invalid(
-                            "retained catalog publication digest",
-                        ))?
-                    {
-                        return Err(SourceCommandError::Conflict(
-                            "retained catalog published file bytes",
-                        ));
-                    }
+                if digest.as_str() != Some(Digest256::of_bytes(raw).to_hex().as_str()) {
+                    return Err(SourceCommandError::Conflict(
+                        "retained catalog published file bytes",
+                    ));
                 }
             }
             _ => {
@@ -5324,9 +6566,13 @@ fn exact_selected_catalog_entry(
                 "retained catalog index state overflow",
             ))?;
         read.debit(
-            (raw.len() as u64).checked_add(publication_bytes).ok_or(
-                SourceCommandError::Unsupported("retained catalog read overflow"),
-            )?,
+            if capture.is_some() {
+                0
+            } else {
+                (raw.len() as u64).checked_add(publication_bytes).ok_or(
+                    SourceCommandError::Unsupported("retained catalog read overflow"),
+                )?
+            },
             indexed_state
                 .checked_add(catalog_path.len() + sha256.len())
                 .ok_or(SourceCommandError::Unsupported(
@@ -5500,6 +6746,8 @@ fn exact_metadata_version(
         "record_id",
         &expected,
         8_388_608,
+        deadline,
+        cancelled,
     )?;
     set(
         &mut catalog,
@@ -5816,8 +7064,13 @@ fn validate_identity_ground(
                 "identity proposal cannot reference itself as retained assertion",
             ));
         }
-        let retained_claim =
-            resolve_claim_reference_evidence(ctx, retained.as_deref_mut(), reference)?;
+        let retained_claim = resolve_claim_reference_evidence(
+            ctx,
+            retained.as_deref_mut(),
+            reference,
+            deadline,
+            cancelled,
+        )?;
         if same(reference, previous)? {
             let p = text(&retained_claim.record, "predicate")?;
             if p != "identity_transition_proposal"
@@ -5856,13 +7109,6 @@ fn validate_identity_ground(
         ("claims", JsonValue::Array(related_bindings)),
     ]))
 }
-fn resolve_claim_reference(
-    ctx: &CommandContext,
-    reference: &JsonValue,
-) -> SourceCommandResult<JsonValue> {
-    Ok(resolve_claim_reference_evidence(ctx, None, reference)?.record)
-}
-
 #[derive(Clone)]
 struct ResolvedClaimReference {
     record: JsonValue,
@@ -5902,6 +7148,8 @@ fn resolve_claim_reference_evidence(
     ctx: &CommandContext,
     mut retained: Option<&mut RetainedProfileRead>,
     reference: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
 ) -> SourceCommandResult<ResolvedClaimReference> {
     exact_ref(reference)?;
     let key = record_digest(reference)?.to_hex();
@@ -5979,6 +7227,8 @@ fn resolve_claim_reference_evidence(
         "claim_id",
         &expected_catalog,
         33_554_432,
+        deadline,
+        cancelled,
     )?;
     set(&mut catalog, "source_claim_file_ref", string(p.as_str()))?;
     set(&mut catalog, "source_claim_line", number(current_line))?;
@@ -5989,7 +7239,7 @@ fn resolve_claim_reference_evidence(
         field(&current, "visibility")?.clone(),
     )?;
     let mut selected_record = current.clone();
-    let mut selected_stream = current_raw.to_vec();
+    let mut selected_stream: Cow<'_, [u8]> = Cow::Borrowed(current_raw);
     let mut selected_line = current_line;
     let mut selected_revision = JsonValue::Null;
     let mut selected_blob = JsonValue::Null;
@@ -6012,9 +7262,21 @@ fn resolve_claim_reference_evidence(
         let mut config = parse(&ctx.configuration_raw)?;
         set(&mut config, "source_path", string(p.as_str()))?;
         set(&mut config, "claim_id", string(id))?;
-        let files = package(ctx, &p)?;
-        let history = verify_claim_history(ctx, &config, &p, &files)?;
-        selected_revision = revision(&files)?;
+        let (history, history_sha256) = if let Some(read) = retained.as_deref_mut() {
+            let owner = read.claim_owner(ctx, &config, &p)?;
+            selected_revision = owner.revision;
+            (owner.history, owner.history_sha256)
+        } else {
+            let files = package(ctx, &p)?;
+            let history = verify_claim_history(ctx, &config, &p, &files)?;
+            selected_revision = revision(&files)?;
+            (
+                history,
+                files
+                    .get(CLAIM_HISTORY)
+                    .map(|raw| Digest256::of_bytes(raw).to_prefixed()),
+            )
+        };
         if !same(&current_ref, reference)? {
             let mut selected_receipt = None;
             for receipt in array(&history, "receipts")? {
@@ -6029,11 +7291,16 @@ fn resolve_claim_reference_evidence(
             let receipt = selected_receipt.ok_or(SourceCommandError::Unsupported(
                 "exact related Claim version not retained in selected owner history",
             ))?;
-            let retained = archive(ctx, &config, receipt)?;
-            selected_stream = retained
-                .get(CLAIM_STREAM)
-                .ok_or(SourceCommandError::Conflict("archived Claim stream absent"))?
-                .clone();
+            let mut archived = if let Some(read) = retained.as_deref_mut() {
+                archive_accounted(ctx, &config, receipt, read, 0)?
+            } else {
+                archive(ctx, &config, receipt)?
+            };
+            selected_stream = Cow::Owned(
+                archived
+                    .remove(CLAIM_STREAM)
+                    .ok_or(SourceCommandError::Conflict("archived Claim stream absent"))?,
+            );
             selected_record =
                 rows(&selected_stream)?
                     .remove(id)
@@ -6071,9 +7338,9 @@ fn resolve_claim_reference_evidence(
             ),
             (
                 "sha256",
-                files
-                    .get(CLAIM_HISTORY)
-                    .map(|raw| string(&Digest256::of_bytes(raw).to_prefixed()))
+                history_sha256
+                    .as_deref()
+                    .map(string)
                     .unwrap_or(JsonValue::Null),
             ),
             (
@@ -6276,7 +7543,13 @@ fn ground_collection_membership(
                 "membership basis is repeated or absent from exact Collection",
             ));
         }
-        let member = resolve_claim_reference_evidence(ctx, retained.as_deref_mut(), reference)?;
+        let member = resolve_claim_reference_evidence(
+            ctx,
+            retained.as_deref_mut(),
+            reference,
+            deadline,
+            cancelled,
+        )?;
         let legacy = text(&member.record, "schema_version")? == "tos_claim_packet_v1"
             && text(&member.record, "claim_type")? == "bibliographic";
         let native = text(&member.record, "schema_version")? == "tos_source_relation_claim_v1"

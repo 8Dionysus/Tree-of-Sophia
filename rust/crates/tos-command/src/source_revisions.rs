@@ -11,7 +11,10 @@ use crate::source_forms;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath, python_strip_unicode16_v1};
+use tos_foundation::{
+    CanonicalProfile, Digest256, JsonLimits, JsonString, JsonValue, RelativePath,
+    canonical_count_v1, python_strip_unicode16_v1,
+};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::PredicateRead;
 use tos_validation::item_rules::ItemLimits;
@@ -480,13 +483,40 @@ fn read_archive(
     config: &JsonValue,
     receipt: &JsonValue,
 ) -> SourceCommandResult<(Package, JsonValue)> {
+    read_archive_bounded(ctx, config, receipt, None, None)
+}
+
+fn read_archive_bounded(
+    ctx: &CommandContext,
+    config: &JsonValue,
+    receipt: &JsonValue,
+    remaining_read_bytes: Option<u64>,
+    remaining_state_bytes: Option<usize>,
+) -> SourceCommandResult<(Package, JsonValue)> {
     let location = archive_path(config, cmd::text(receipt, "previous_revision")?)?;
     if cmd::text(receipt, "archive_path")? != location {
         return Err(SourceCommandError::Conflict(
             "archive locator is not derived from exact subject and package",
         ));
     }
-    let manifest = cmd::parse(required(ctx, &format!("{location}/manifest.json"))?)?;
+    let manifest_raw = required(ctx, &format!("{location}/manifest.json"))?;
+    if remaining_read_bytes.is_some_and(|cap| manifest_raw.len() as u64 > cap)
+        || remaining_state_bytes.is_some_and(|cap| manifest_raw.len() > cap)
+    {
+        return Err(SourceCommandError::Unsupported(
+            "retained metadata archive manifest budget",
+        ));
+    }
+    let manifest = cmd::parse(manifest_raw)?;
+    let manifest_state = canonical_count_v1(
+        &manifest,
+        CanonicalProfile::SourceCommandInputV1,
+        JsonLimits {
+            max_bytes: 8_388_608,
+            ..JsonLimits::default()
+        },
+    )
+    .map_err(|_| SourceCommandError::Unsupported("retained metadata manifest state budget"))?;
     let selected = cmd::text(&manifest, "schema_version")? == "tos_source_package_archive_v2";
     let mut keys = vec![
         "schema_version",
@@ -521,6 +551,20 @@ fn read_archive(
     let mut files = Package::new();
     let mut locations = Vec::new();
     let mut blobs = BTreeSet::new();
+    let mut copied_bytes = manifest_raw.len() as u64;
+    let mut state_bytes = std::mem::size_of::<Package>()
+        .checked_add(std::mem::size_of::<JsonValue>())
+        .and_then(|sum| sum.checked_add(manifest_state))
+        .ok_or(SourceCommandError::Unsupported(
+            "retained metadata archive state overflow",
+        ))?;
+    if remaining_read_bytes.is_some_and(|cap| copied_bytes > cap)
+        || remaining_state_bytes.is_some_and(|cap| state_bytes > cap)
+    {
+        return Err(SourceCommandError::Unsupported(
+            "retained metadata archive budget",
+        ));
+    }
     for (name, binding) in refs {
         let name = name
             .as_str()
@@ -536,6 +580,21 @@ fn read_archive(
         }
         let blob_path = format!("{location}/{blob}");
         let raw = required(ctx, &blob_path)?;
+        copied_bytes = copied_bytes
+            .checked_add(raw.len() as u64)
+            .filter(|sum| remaining_read_bytes.is_none_or(|cap| *sum <= cap))
+            .ok_or(SourceCommandError::Unsupported(
+                "retained metadata archive read budget",
+            ))?;
+        state_bytes = state_bytes
+            .checked_add(raw.len())
+            .and_then(|sum| sum.checked_add(name.len() + blob_path.len()))
+            .and_then(|sum| sum.checked_add(std::mem::size_of::<(String, Vec<u8>)>()))
+            .and_then(|sum| sum.checked_add(std::mem::size_of::<(JsonString, JsonValue)>()))
+            .filter(|sum| remaining_state_bytes.is_none_or(|cap| *sum <= cap))
+            .ok_or(SourceCommandError::Unsupported(
+                "retained metadata archive state budget",
+            ))?;
         if raw.len() > 2_097_152
             || Digest256::of_bytes(raw).to_prefixed() != digest
             || raw.len() as u64 != cmd::integer(binding, "bytes")?
@@ -614,26 +673,7 @@ fn verify_history(
     files: &Package,
     record: &JsonValue,
 ) -> SourceCommandResult<JsonValue> {
-    Ok(verify_history_accounted(ctx, config, files, record, None)?.0)
-}
-
-fn archive_declared_read_bytes(
-    ctx: &CommandContext,
-    receipt: &JsonValue,
-) -> SourceCommandResult<u64> {
-    let manifest = format!("{}/manifest.json", cmd::text(receipt, "archive_path")?);
-    let raw = required(ctx, &manifest)?;
-    let value = cmd::parse(raw)?;
-    cmd::field(&value, "files")?
-        .as_object()
-        .ok_or(SourceCommandError::Invalid("archive files map"))?
-        .values()
-        .try_fold(raw.len() as u64, |sum, binding| {
-            sum.checked_add(cmd::integer(binding, "bytes")?)
-                .ok_or(SourceCommandError::Unsupported(
-                    "retained metadata read byte overflow",
-                ))
-        })
+    Ok(verify_history_accounted(ctx, config, files, record, None, None)?.0)
 }
 
 fn verify_history_accounted(
@@ -642,24 +682,34 @@ fn verify_history_accounted(
     files: &Package,
     record: &JsonValue,
     max_read_bytes: Option<u64>,
+    max_state_bytes: Option<usize>,
 ) -> SourceCommandResult<(JsonValue, u64)> {
     let value = history(files, record)?;
+    let history_state = canonical_count_v1(
+        &value,
+        CanonicalProfile::SourceCommandInputV1,
+        JsonLimits {
+            max_bytes: 8_388_608,
+            ..JsonLimits::default()
+        },
+    )
+    .map_err(|_| SourceCommandError::Unsupported("retained metadata history state budget"))?;
+    let archive_state = max_state_bytes
+        .map(|limit| {
+            limit
+                .checked_sub(history_state)
+                .ok_or(SourceCommandError::Unsupported(
+                    "retained metadata history state budget",
+                ))
+        })
+        .transpose()?;
     let (_, base) = split(cmd::text(config, "source_path")?)?;
     let receipts = cmd::array(&value, "receipts")?;
     let mut bytes_read = 0u64;
     for (index, receipt) in receipts.iter().enumerate() {
-        if let Some(limit) = max_read_bytes {
-            let declared = archive_declared_read_bytes(ctx, receipt)?;
-            if bytes_read
-                .checked_add(declared)
-                .is_none_or(|sum| sum > limit)
-            {
-                return Err(SourceCommandError::Unsupported(
-                    "retained metadata read budget",
-                ));
-            }
-        }
-        let (archived, _) = read_archive(ctx, config, receipt)?;
+        let remaining_read = max_read_bytes.map(|limit| limit.saturating_sub(bytes_read));
+        let (archived, _) =
+            read_archive_bounded(ctx, config, receipt, remaining_read, archive_state)?;
         let manifest = format!("{}/manifest.json", cmd::text(receipt, "archive_path")?);
         bytes_read = bytes_read
             .checked_add(required(ctx, &manifest)?.len() as u64)
@@ -682,10 +732,17 @@ fn verify_history_accounted(
                 .ok_or(SourceCommandError::Conflict("archived source missing"))?,
         )?;
         let retained = history(&archived, &previous)?;
-        if !cmd::same(
-            cmd::field(&retained, "receipts")?,
-            &JsonValue::Array(receipts[..index].to_vec()),
-        )? {
+        let prefix = cmd::array(&retained, "receipts")?;
+        let mut same_prefix = prefix.len() == index;
+        if same_prefix {
+            for (left, right) in prefix.iter().zip(&receipts[..index]) {
+                if !cmd::same(left, right)? {
+                    same_prefix = false;
+                    break;
+                }
+            }
+        }
+        if !same_prefix {
             return Err(SourceCommandError::Conflict(
                 "retained predecessor history prefix differs",
             ));
@@ -4218,7 +4275,7 @@ fn resolve_record_version_selected(
         ctx,
         location,
         true,
-        collection_limits.map(|limits| limits.max_state_bytes),
+        collection_limits.map(|limits| limits.max_state_bytes.min(limits.max_total_bytes as usize)),
     )?;
     let selected_bytes_read = files
         .values()
@@ -4236,8 +4293,18 @@ fn resolve_record_version_selected(
                 ))
         })
         .transpose()?;
-    let (retained, history_bytes_read) =
-        verify_history_accounted(ctx, &descriptor, &files, &record, history_allowance)?;
+    let (retained, history_bytes_read) = verify_history_accounted(
+        ctx,
+        &descriptor,
+        &files,
+        &record,
+        history_allowance,
+        collection_limits.map(|limits| {
+            limits
+                .max_state_bytes
+                .saturating_sub(selected_bytes_read as usize)
+        }),
+    )?;
     let bytes_read = selected_bytes_read.checked_add(history_bytes_read).ok_or(
         SourceCommandError::Unsupported("metadata read byte overflow"),
     )?;
@@ -4316,18 +4383,17 @@ fn resolve_record_version_selected(
     }
     for receipt in history_receipts {
         if cmd::same(cmd::field(receipt, "previous_source")?, exact)? {
-            if let Some(limits) = collection_limits {
-                let declared = archive_declared_read_bytes(ctx, receipt)?;
-                if bytes_read
-                    .checked_add(declared)
-                    .is_none_or(|sum| sum > limits.max_total_bytes)
-                {
-                    return Err(SourceCommandError::Unsupported(
-                        "retained metadata read budget",
-                    ));
-                }
-            }
-            let (archived, locations) = read_archive(ctx, &descriptor, receipt)?;
+            let (archived, locations) = read_archive_bounded(
+                ctx,
+                &descriptor,
+                receipt,
+                collection_limits.map(|limits| limits.max_total_bytes.saturating_sub(bytes_read)),
+                collection_limits.map(|limits| {
+                    limits
+                        .max_state_bytes
+                        .saturating_sub(selected_bytes_read as usize)
+                }),
+            )?;
             let raw = archived.get(base).ok_or(SourceCommandError::Conflict(
                 "retained metadata record absent",
             ))?;
