@@ -14,6 +14,9 @@ enum Action {
     ThresholdBuild { check: bool },
     ThresholdValidate,
     RelationPackValidate,
+    QuestbookValidate,
+    PublicMirrorValidate,
+    PublicMirrorSync,
 }
 
 #[cfg(target_os = "linux")]
@@ -29,6 +32,9 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
     let mut threshold_build = false;
     let mut threshold_validate = false;
     let mut relation_pack_validate = false;
+    let mut questbook_validate = false;
+    let mut public_mirror_validate = false;
+    let mut public_mirror_sync = false;
     let mut check = false;
     let mut limits = Limits::default();
     while let Some(argument) = args.next() {
@@ -37,6 +43,9 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
             "--threshold-registry-build" => threshold_build = true,
             "--threshold-registry-validate" => threshold_validate = true,
             "--relation-pack-validate" => relation_pack_validate = true,
+            "--questbook-validate" => questbook_validate = true,
+            "--public-mirror-validate" => public_mirror_validate = true,
+            "--public-mirror-sync" => public_mirror_sync = true,
             "--check" => check = true,
             "--repo-root" => root = Some(PathBuf::from(args.next().ok_or("missing repo root")?)),
             "--python" => python = args.next().ok_or("missing Python adapter")?,
@@ -66,6 +75,9 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
         + usize::from(threshold_build)
         + usize::from(threshold_validate)
         + usize::from(relation_pack_validate)
+        + usize::from(questbook_validate)
+        + usize::from(public_mirror_validate)
+        + usize::from(public_mirror_sync)
         > 1
         || (check && !threshold_build)
     {
@@ -79,6 +91,12 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
         Action::ThresholdValidate
     } else if relation_pack_validate {
         Action::RelationPackValidate
+    } else if questbook_validate {
+        Action::QuestbookValidate
+    } else if public_mirror_validate {
+        Action::PublicMirrorValidate
+    } else if public_mirror_sync {
+        Action::PublicMirrorSync
     } else {
         Action::Plan
     };
@@ -92,7 +110,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
 
 fn main() {
     let (root, python, action, limits) = arguments().unwrap_or_else(|error| {
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     let result = match action {
@@ -127,6 +145,32 @@ fn main() {
                 }
             })
         }
+        Action::QuestbookValidate => tos_ops_mechanics_plan::questbook::validate_surface(&root)
+            .map(|()| {
+                println!("[ok] validated questbook boundary-runtime surfaces");
+                0
+            }),
+        Action::PublicMirrorValidate => {
+            tos_ops_mechanics_plan::public_mirror::validate(&root).map(|issues| {
+                if issues.is_empty() {
+                    println!("[ok] validated ToS/canon/example compatibility mirrors");
+                    0
+                } else {
+                    eprintln!("Tree/example sync check failed.");
+                    for (location, message) in issues {
+                        eprintln!("- {location}: {message}");
+                    }
+                    1
+                }
+            })
+        }
+        Action::PublicMirrorSync => tos_ops_mechanics_plan::public_mirror::write_examples(&root)
+            .map(|written| {
+                for path in written {
+                    println!("[ok] wrote {path}");
+                }
+                0
+            }),
         Action::Plan | Action::Execute => tos_ops_mechanics_plan::discover(&root, &python)
             .and_then(|plan| {
                 if matches!(action, Action::Plan) {
@@ -151,11 +195,17 @@ fn main() {
     let code = match result {
         Ok(code) => code,
         Err(error) => {
+            if matches!(action, Action::QuestbookValidate) {
+                eprintln!("[error] {error}");
+                std::process::exit(1);
+            }
             let route = match action {
                 Action::Execute => "execution",
                 Action::Plan => "plan",
                 Action::ThresholdBuild { .. } | Action::ThresholdValidate => "threshold registry",
                 Action::RelationPackValidate => "relation pack",
+                Action::QuestbookValidate => "questbook",
+                Action::PublicMirrorValidate | Action::PublicMirrorSync => "public mirror",
             };
             let diagnostic = format!("mechanics-local {route}: {error}\n",);
             #[cfg(target_os = "linux")]

@@ -2,6 +2,8 @@
 //! Lane selection and the planned tools retain their own authority.
 
 pub mod executor;
+pub mod public_mirror;
+pub mod questbook;
 pub mod relation_pack;
 pub mod threshold_registry;
 
@@ -132,6 +134,10 @@ fn mechanics_command(
         }
         "mechanics/relation-weaving/parts/graph-promotion/scripts/validate_tree_relation_pack.py" => {
             Some("--relation-pack-validate")
+        }
+        "mechanics/questbook/scripts/validate_questbook_surface.py" => Some("--questbook-validate"),
+        "mechanics/boundary-bridge/parts/public-mirror-sync/scripts/validate_tree_example_sync.py" => {
+            Some("--public-mirror-validate")
         }
         _ => None,
     };
