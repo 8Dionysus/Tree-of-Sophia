@@ -3444,7 +3444,17 @@ fn claim_profile_inputs_selected(
         ],
     )?;
     let temporal = ["historical-temporal-v1", "document-catalogue-temporal-v1"].contains(&reader);
-    let structured = ["structured-value-v1", "structured-reference-value-v1"].contains(&reader);
+    // SourceClaimProfiles treats both proposal readers as structured values:
+    // their object bytes and the shared structured-value contract contribute
+    // to the maintained grounding fingerprint independently of the endpoint
+    // provenance returned by their exact historical reader.
+    let structured = [
+        "structured-value-v1",
+        "structured-reference-value-v1",
+        "identity-transition-v1",
+        "identity-transition-v2",
+    ]
+    .contains(&reader);
     if temporal {
         include_schema(ctx, inputs, "ToS/contracts/historical-claim.schema.json")?;
     }
