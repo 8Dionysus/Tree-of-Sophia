@@ -3022,8 +3022,14 @@ fn run_claim_command_inner(
             ("source", metadata_subject(&revised)?),
             ("previous_revision", previous_revision.clone()),
             ("archive_path", string(&archive_path)),
-            ("dependencies", grounding.dependencies),
-            ("source_bindings", grounding.bindings),
+            (
+                "dependencies",
+                std::mem::replace(&mut grounding.dependencies, JsonValue::Null),
+            ),
+            (
+                "source_bindings",
+                std::mem::replace(&mut grounding.bindings, JsonValue::Null),
+            ),
             ("changed_fields", changed_fields),
             ("forms", JsonValue::Array(formrefs)),
             ("grants_admission", JsonValue::Bool(false)),
@@ -7046,8 +7052,8 @@ fn exact_selected_catalog_entry(
             || field(manifest, "record_files")?
                 .as_object()
                 .ok_or(SourceCommandError::Invalid("retained catalog routes"))?
-                .values()
-                .any(|value| value.as_str() == Some(catalog_path));
+                .iter()
+                .any(|(_, value)| value.as_str() == Some(catalog_path));
         if !route_selected {
             return Err(SourceCommandError::Conflict(
                 "retained catalog route absent from manifest",
@@ -7068,8 +7074,8 @@ fn exact_selected_catalog_entry(
                 let mut routes = field(manifest, "record_files")?
                     .as_object()
                     .ok_or(SourceCommandError::Invalid("retained catalog routes"))?
-                    .values()
-                    .map(|value| {
+                    .iter()
+                    .map(|(_, value)| {
                         Ok(value
                             .as_str()
                             .ok_or(SourceCommandError::Invalid("retained catalog route"))?
@@ -7085,8 +7091,8 @@ fn exact_selected_catalog_entry(
                             "retained catalog publication files",
                         ))?;
                 let actual = files
-                    .keys()
-                    .map(|key| {
+                    .iter()
+                    .map(|(key, _)| {
                         key.as_str()
                             .map(str::to_owned)
                             .ok_or(SourceCommandError::Invalid(
@@ -7809,7 +7815,7 @@ fn resolve_claim_reference_evidence(
                         "duplicate current Claim owner",
                     ));
                 }
-                found = Some((record.clone(), file.path.clone(), &file.raw));
+                found = Some((record.clone(), file.path.clone(), file.raw.as_slice()));
             }
         }
         found.ok_or(SourceCommandError::Unsupported(
