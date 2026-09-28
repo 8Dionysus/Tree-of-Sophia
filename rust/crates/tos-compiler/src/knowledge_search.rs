@@ -1211,7 +1211,7 @@ fn merge_ordered_kind(
                 .ok_or(Error::Budget("search run id"))?;
         }
         start = output_start;
-        count = count.div_ceil(fan_in);
+        count = count / fan_in + i64::from(count % fan_in != 0);
     }
     let mut writer = FinalWriter::new()?;
     let copied = merge_group(
