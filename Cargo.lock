@@ -1508,6 +1508,9 @@ dependencies = [
 name = "tos-command"
 version = "0.0.0"
 dependencies = [
+ "base64",
+ "crc32fast",
+ "flate2",
  "postgres",
  "rustix",
  "serde_json",
@@ -1521,6 +1524,7 @@ dependencies = [
  "tos-source-store",
  "tos-validation",
  "unicode-normalization",
+ "xml",
 ]
 
 [[package]]
@@ -1881,6 +1885,12 @@ name = "wit-bindgen"
 version = "0.57.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
+
+[[package]]
+name = "xml"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f45bb2c13fec6a6cb4c0f76a7e94839e110a14ec803ec2940777a94c347bc52"
 
 [[package]]
 name = "yaml-rust2"
