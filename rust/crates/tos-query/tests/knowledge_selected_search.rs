@@ -225,15 +225,17 @@ fn producer_selected_indexed_pages_match_python_rank_and_original_carriers() {
 import hashlib,json,sys
 from pathlib import Path
 repo=Path(sys.argv[1]);sys.path.insert(0,str(repo/'access/src'))
-from tos_access.knowledge import search_knowledge_graph
-raw=sys.stdin.buffer.read();graph=json.loads(raw)
+from tos_access import knowledge as k
+raw=sys.stdin.buffer.read(int(sys.argv[2]));graph=json.loads(raw)
+descriptor=json.load(sys.stdin.buffer)
+k.KNOWLEDGE_SOURCES=tuple(s['source_graph_id'] for s in descriptor['sources'])
 oracle=json.loads((repo/'rust/crates/tos-query/tests/fixtures/cmp_knowledge_search_python_oracle.json').read_bytes())
 sources=oracle['sources']
 json.dump({'input_sha256':hashlib.sha256(raw).hexdigest(),
            'query':oracle['query'],'false_positive_query':oracle['false_positive_query'],
            'sources':sources,
-           'reference':search_knowledge_graph(graph,oracle['query'],sources=sources),
-           'false_positive_reference':search_knowledge_graph(graph,oracle['false_positive_query'],sources=sources)},
+           'reference':k.search_knowledge_graph(graph,oracle['query'],sources=sources),
+           'false_positive_reference':k.search_knowledge_graph(graph,oracle['false_positive_query'],sources=sources)},
           sys.stdout,ensure_ascii=False,allow_nan=False)
 "#;
     let mut child = Command::new("python3")
@@ -241,17 +243,16 @@ json.dump({'input_sha256':hashlib.sha256(raw).hexdigest(),
         .arg("-c")
         .arg(script)
         .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../.."))
+        .arg(fixture.graph_input_bytes.len().to_string())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
         .unwrap();
-    child
-        .stdin
-        .take()
-        .unwrap()
-        .write_all(&fixture.graph_input_bytes)
-        .unwrap();
+    let mut input = child.stdin.take().unwrap();
+    input.write_all(&fixture.graph_input_bytes).unwrap();
+    input.write_all(&fixture.descriptor_bytes).unwrap();
+    drop(input);
     let output = child.wait_with_output().unwrap();
     assert!(
         output.status.success(),
