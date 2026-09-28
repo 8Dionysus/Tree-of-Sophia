@@ -937,7 +937,7 @@ pub(crate) struct WorkCorpusFence<'a> {
 pub(crate) struct WorkGuard<'a> {
     pub(crate) full_membership: bool,
     pub(crate) journal_members: &'a BTreeSet<String>,
-    pub(crate) control_pending: bool,
+    pub(crate) pending_state: Option<&'a JsonValue>,
     pub(crate) prior_completion_ready: bool,
 }
 impl<'a> WorkCorpusFence<'a> {
@@ -1741,7 +1741,7 @@ fn move_pending(
             WorkGuard {
                 full_membership,
                 journal_members: &journal_members,
-                control_pending: true,
+                pending_state: Some(pending),
                 prior_completion_ready: true,
             },
         )
@@ -1908,7 +1908,7 @@ impl WorkCorpusFence<'_> {
             WorkGuard {
                 full_membership: false,
                 journal_members: &no_journal,
-                control_pending: false,
+                pending_state: None,
                 prior_completion_ready: false,
             },
         )?;
@@ -1972,7 +1972,7 @@ impl WorkCorpusFence<'_> {
             WorkGuard {
                 full_membership: true,
                 journal_members: &journal_members,
-                control_pending: false,
+                pending_state: None,
                 prior_completion_ready: current.is_some(),
             },
         )?;

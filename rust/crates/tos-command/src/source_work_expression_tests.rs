@@ -476,7 +476,7 @@ print(json.dumps({'request':case.request(),'work_ref':case.work_ref,
             plan,
             &guard.snapshot,
             |summary, extent| {
-                if extent.control_pending
+                if extent.pending_state.is_some()
                     && !switched
                     && mixed_selected(isolated.path(), &selected_witnesses)
                 {

@@ -1483,16 +1483,37 @@ fn after_cut_budget(
     Ok(())
 }
 
+enum WorkControlRead<'a> {
+    Ready(&'a PublicationSnapshot),
+    Pending(&'a JsonValue),
+}
+
+impl WorkControlRead<'_> {
+    fn verify(
+        &self,
+        fs: &CreationFilesystem,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        match self {
+            Self::Ready(snapshot) => snapshot.verify_current(fs, deadline, cancelled),
+            Self::Pending(state) => work_transaction::still_pending(fs, state, deadline, cancelled),
+        }
+    }
+}
+
 /// Current validator reads stay physical at each mover edge. A preview also
 /// contains ExactPath observations of its not-yet-published output bytes;
 /// those must match the prepared buffers rather than the predecessor cut.
-/// Complete membership passes catch unrelated authored paths separately.
+/// The original CONTROL read stays cut-bound while the live ready/pending
+/// state is checked through the protected publication owner.
 fn selected_reads_current(
     fs: &CreationFilesystem,
     cut: &CorpusCutReader,
     reads: &[PredicateRead],
     selected: &BTreeMap<String, SelectedSides>,
     projected: &[(String, &[u8])],
+    control: WorkControlRead<'_>,
     limit: u64,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -1508,6 +1529,28 @@ fn selected_reads_current(
         if projected.iter().any(|(candidate_path, raw)| {
             candidate_path == path && Digest256::of_bytes(raw).to_prefixed() == *digest
         }) {
+            continue;
+        }
+        if path == "ToS/source-witnesses/.metadata-publication.json" {
+            let reference = relative(path)?;
+            let member = cut
+                .current()
+                .member(&reference)
+                .ok_or(SourceCommandError::Conflict(
+                    "Work original publication absent from cut",
+                ))?;
+            if member.sha256.to_prefixed() != *digest {
+                return Err(SourceCommandError::Conflict(
+                    "Work original publication read differs from selected cut",
+                ));
+            }
+            if let WorkControlRead::Ready(snapshot) = &control {
+                if snapshot.member_binding()? != Some((member.sha256, member.size_bytes)) {
+                    return Err(SourceCommandError::Conflict(
+                        "Work ready publication differs from selected cut",
+                    ));
+                }
+            }
             continue;
         }
         let retained = path.starts_with("ToS/source-witnesses/.record-revisions/")
@@ -1551,7 +1594,7 @@ fn selected_reads_current(
             ));
         }
     }
-    Ok(())
+    control.verify(fs, deadline, cancelled)
 }
 
 fn selected_current(
@@ -1634,7 +1677,7 @@ fn physical_current(
     snapshot: Option<&PublicationSnapshot>,
     archive: &work_transaction::WorkArchive,
     prior: Option<(&str, &str)>,
-    guard: work_transaction::WorkGuard<'_>,
+    guard: &work_transaction::WorkGuard<'_>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
@@ -1653,7 +1696,7 @@ fn physical_current(
     } else {
         None
     };
-    if !guard.control_pending {
+    if guard.pending_state.is_none() {
         snapshot
             .ok_or(SourceCommandError::Invalid("Work ready snapshot absent"))?
             .verify_current(fs, deadline, cancelled)?;
@@ -1690,7 +1733,7 @@ fn physical_current(
             }
             base.insert(member.path.as_str().to_owned(), member);
         }
-        if !guard.control_pending {
+        if guard.pending_state.is_none() {
             let baseline = base
                 .get(&control)
                 .map(|member| (member.sha256, member.size_bytes));
@@ -1738,7 +1781,7 @@ fn physical_current(
                     }
                     if let Some(member) = base.get(path) {
                         if !member_mode_matches(mode, member.mode, true)
-                            || (path != &control || !guard.control_pending)
+                            || (path != &control || guard.pending_state.is_none())
                                 && (Digest256::of_bytes(&raw) != member.sha256
                                     || raw.len() as u64 != member.size_bytes)
                         {
@@ -1748,7 +1791,9 @@ fn physical_current(
                         }
                     }
                 }
-                None if path == &control && !guard.control_pending && !base.contains_key(path) => {}
+                None if path == &control
+                    && guard.pending_state.is_none()
+                    && !base.contains_key(path) => {}
                 None => {
                     return Err(SourceCommandError::Conflict(
                         "Work auxiliary member disappeared",
@@ -2048,6 +2093,7 @@ pub fn prepare_isolated_work_expression_from_proposal(
         core.reads(),
         &BTreeMap::new(),
         &outputs,
+        WorkControlRead::Ready(&snapshot),
         limits.max_total_bytes,
         limits.deadline,
         cancelled,
@@ -2112,16 +2158,21 @@ impl WorkApplicationGuard {
             Some(&self.snapshot),
             &self.stored_archive,
             self.prior_id.as_deref().zip(self.snapshot.token.as_deref()),
-            extent,
+            &extent,
             limits.deadline,
             cancelled,
         )?;
+        let control = match extent.pending_state {
+            Some(state) => WorkControlRead::Pending(state),
+            None => WorkControlRead::Ready(&self.snapshot),
+        };
         selected_reads_current(
             fs,
             cut,
             &self.read_observations,
             &self.selected,
             &[],
+            control,
             limits.max_total_bytes,
             limits.deadline,
             cancelled,
@@ -2712,16 +2763,20 @@ pub fn recover_isolated_work_expression_from_captures(
             None,
             &archive,
             prior_id.as_deref().zip(publication_token),
-            extent,
+            &extent,
             limits.deadline,
             cancelled,
         )?;
+        let pending_state = extent.pending_state.ok_or(SourceCommandError::Conflict(
+            "Work recovery publication is not pending",
+        ))?;
         selected_reads_current(
             fs,
             original_cut,
             &read_observations,
             &selected,
             &[],
+            WorkControlRead::Pending(pending_state),
             limits.max_total_bytes,
             limits.deadline,
             cancelled,
