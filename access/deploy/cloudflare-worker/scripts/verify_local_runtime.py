@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare representative Cloudflare Worker packets with the ToS Python core."""
+"""Compare public D1 Worker packets with the independent ToS Python core."""
 
 from __future__ import annotations
 
@@ -22,6 +22,8 @@ from typing import Any, Callable
 
 WORKER_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = Path(__file__).resolve().parents[4]
+SELECTED_SOURCE_ROOT = Path(os.environ.get("TOS_VERIFY_SOURCE_ROOT", REPO_ROOT.as_posix()))
+SOURCE_ROOT = SELECTED_SOURCE_ROOT.resolve()
 ACCESS_SRC = REPO_ROOT / "access" / "src"
 if ACCESS_SRC.as_posix() not in sys.path:
     sys.path.insert(0, ACCESS_SRC.as_posix())
@@ -70,6 +72,7 @@ MAX_PART_FILE_BYTES = 8 * 1024 * 1024 + 65536
 # each index is format-bounded to 128 KiB before parsing. No graph is loaded.
 MAX_PART_PATHS = 32768
 MAX_PART_PATH_BYTES = 16 * 1024 * 1024
+VERIFY_PROFILES = ("production", "representative")
 
 
 def remaining(deadline: float) -> float:
@@ -111,7 +114,7 @@ def completion_pair() -> tuple[dict[str, Any], bytes]:
 
 
 def source_path(label: str) -> Path:
-    root = REPO_ROOT.resolve()
+    root = SOURCE_ROOT
     path = root / label
     if (not path.resolve(strict=False).is_relative_to(root)
             or any(parent.is_symlink() for parent in (path, *path.parents) if parent != root and parent.is_relative_to(root))):
@@ -239,7 +242,7 @@ def verify_inputs(manifest: dict[str, Any], deadline: float) -> None:
             for part in reader.closure_paths(verify_data=False):
                 remaining(deadline)
                 if part != path:
-                    relative = part.relative_to(REPO_ROOT.resolve()).as_posix()
+                    relative = part.relative_to(SOURCE_ROOT).as_posix()
                     encoded_bytes = len(relative.encode("utf-8"))
                     retained_path_bytes += encoded_bytes
                     work[0] += encoded_bytes
@@ -272,9 +275,9 @@ def free_port() -> int:
 
 
 def normalize_paths(value: Any) -> Any:
-    prefix = REPO_ROOT.resolve().as_posix() + "/"
+    prefix = SOURCE_ROOT.as_posix() + "/"
     if isinstance(value, str):
-        if value == REPO_ROOT.resolve().as_posix():
+        if value == SOURCE_ROOT.as_posix():
             return "Tree-of-Sophia"
         if value.startswith(prefix):
             return value.removeprefix(prefix)
@@ -333,6 +336,15 @@ def wait_ready(base: str, process: subprocess.Popen[str], deadline: float) -> No
 def main() -> int:
     if "TOS_QUERY_STORE_PATH" in os.environ or "TOS_RELEASE_ROOT" in os.environ:
         raise AssertionError("ambient query store or managed release cannot select the independent oracle")
+    profile = os.environ.get("TOS_VERIFY_PROFILE", "production")
+    if profile not in VERIFY_PROFILES:
+        raise ValueError("TOS_VERIFY_PROFILE must be production or representative")
+    if (profile == "representative") != ("TOS_VERIFY_SOURCE_ROOT" in os.environ):
+        raise ValueError("representative verification requires its explicit source root")
+    if (not SELECTED_SOURCE_ROOT.is_absolute() or not SOURCE_ROOT.is_dir()
+            or SELECTED_SOURCE_ROOT.is_symlink()
+            or (profile == "representative" and SOURCE_ROOT == REPO_ROOT.resolve())):
+        raise AssertionError("public D1 selected source root is missing or unsafe")
     raw_seconds = os.environ.get("TOS_VERIFY_MAX_SECONDS", "")
     if not raw_seconds.isascii() or not raw_seconds.isdecimal() or int(raw_seconds) < 1:
         raise ValueError("TOS_VERIFY_MAX_SECONDS must be a positive whole-operation deadline")
@@ -343,6 +355,14 @@ def main() -> int:
     try:
         signal.setitimer(signal.ITIMER_REAL, remaining(deadline))
         manifest, marker = completion_pair()
+        expected_base = os.environ.get("TOS_VERIFY_EXPECT_DELTA_FROM")
+        if expected_base is not None:
+            delta = manifest.get("counts", {}).get("delta", {})
+            if (profile != "representative" or not SHA256.fullmatch(expected_base)
+                    or not isinstance(delta, dict) or delta.get("available") is not True
+                    or delta.get("base_revision") != expected_base
+                    or delta.get("target_revision") != manifest["data_revision"]):
+                raise AssertionError("representative successor delta does not bind its predecessor")
         verify_inputs(manifest, deadline)
         # All three public projections can be partitioned independently of the
         # corpus-mode flag. Compile one fresh, explicit QueryStore even for a
@@ -359,7 +379,7 @@ def main() -> int:
             # covers the initial closure, compile, oracle and HTTP comparisons.
             signal.setitimer(signal.ITIMER_REAL, 0)
             result = subprocess.run(
-                [sys.executable, "-B", "-c", program, REPO_ROOT.as_posix(), query_store.as_posix()],
+                [sys.executable, "-B", "-c", program, SOURCE_ROOT.as_posix(), query_store.as_posix()],
                 env=environment, capture_output=True, text=True, check=True, timeout=remaining(deadline),
             )
             signal.setitimer(signal.ITIMER_REAL, remaining(deadline))
@@ -370,7 +390,7 @@ def main() -> int:
                 raise AssertionError("independent Python oracle did not complete its selected store")
             os.environ["TOS_QUERY_STORE_PATH"] = query_store.as_posix()
             core = ToSAccessCore.discover(
-                REPO_ROOT,
+                SOURCE_ROOT,
                 index_path=source_path(SOURCE_INPUTS[0]),
                 philosophy_graph_projection_path=source_path(SOURCE_INPUTS[1]),
                 bibliographic_graph_path=source_path(SOURCE_INPUTS[2]),
@@ -382,7 +402,7 @@ def main() -> int:
             )
             if compiled.get("source_revision") != core.knowledge_header().get("source_revision"):
                 raise AssertionError("independent Python oracle source revision changed")
-            result_code = compare_packets(core, manifest, marker, deadline)
+            result_code = compare_packets(core, manifest, marker, deadline, profile)
         finally:
             # Cleanup must complete even when the whole-call timer fires.
             # It is charged against the same absolute deadline on return.
@@ -395,7 +415,78 @@ def main() -> int:
         signal.signal(signal.SIGALRM, previous_handler)
 
 
-def compare_packets(core: ToSAccessCore, manifest: dict[str, Any], marker: bytes, deadline: float) -> int:
+def compare_representative_packets(core: ToSAccessCore, base: str) -> None:
+    """The existing access test fixture's finite public read surface.
+
+    This is a software gate over representative inputs, not the stronger
+    production/large-payload/scale profile below.
+    """
+    quote = lambda value: urllib.parse.quote(value, safe="")
+    knowledge_node_id = "philosophy:a"
+    node_packet = core.knowledge_node(knowledge_node_id, 20)
+    if node_packet.get("source_revision") != core.knowledge_header().get("source_revision"):
+        raise AssertionError("representative oracle knowledge revision changed")
+    relations = node_packet.get("related_relations", [])
+    if not relations:
+        raise AssertionError("representative knowledge node has no relation")
+    relation_id = str(relations[0]["id"])
+    cases: list[tuple[str, Callable[[], dict[str, Any]], str]] = [
+        ("corpus status", core.status, "/api/corpus/status"),
+        ("corpus summary", core.summary, "/api/corpus/summary"),
+        ("philosophy status", core.philosophy_status, "/api/philosophy/status"),
+        ("philosophy views", core.philosophy_views, "/api/philosophy/views"),
+        ("knowledge catalog", core.knowledge_catalog, "/api/knowledge/catalog"),
+        ("knowledge contracts", core.knowledge_contracts, "/api/knowledge/contracts"),
+        ("knowledge search", lambda: core.knowledge_search("Alpha", sources=["philosophy"], limit=5),
+         "/api/knowledge/search?query=Alpha&sources=philosophy&limit=5"),
+        ("knowledge node", lambda: node_packet,
+         f"/api/knowledge/nodes/{quote(knowledge_node_id)}?relation_limit=20"),
+        ("knowledge relation", lambda: core.knowledge_relation(relation_id),
+         f"/api/knowledge/relations/{quote(relation_id)}"),
+        ("knowledge focus", lambda: core.knowledge_focus(knowledge_node_id, depth=1),
+         f"/api/knowledge/focus/{quote(knowledge_node_id)}?depth=1"),
+        ("stored knowledge lens", lambda: core.stored_knowledge_lens("chronology"),
+         "/api/knowledge/lenses/chronology"),
+        ("philosophy view", lambda: core.philosophy_view("chronology", 100),
+         "/api/philosophy/views/chronology?limit=100"),
+        ("corpus view", lambda: core.graph_view("corpus-topology", 37),
+         "/api/corpus/graph-views/corpus-topology?limit=37"),
+        ("corpus search", lambda: core.search("Alpha", 5),
+         "/api/corpus/search?query=Alpha&limit=5"),
+        ("philosophy search", lambda: core.philosophy_search("Alpha", 5),
+         "/api/philosophy/search?query=Alpha&limit=5"),
+        ("source descent", lambda: core.source_descend("philosophy.eras.fixture", 8, 20),
+         "/api/source/navigation/philosophy.eras.fixture?max_depth=8&limit=20"),
+        ("source dossier", lambda: core.source_dossier("tos.link.fixture.download", 20),
+         "/api/source/dossiers/tos.link.fixture.download?limit=20"),
+        ("philosophy node", lambda: core.philosophy_node("a"),
+         "/api/philosophy/nodes/a"),
+        ("philosophy neighborhood", lambda: core.philosophy_neighborhood("a", 1, [], [], 10),
+         "/api/philosophy/neighborhood/a?depth=1&limit=10"),
+        ("philosophy path", lambda: core.philosophy_path_between("a", "b", [], [], 2, "outgoing", None, [], 2),
+         "/api/philosophy/paths?from=a&to=b&max_depth=2&direction=outgoing&alternatives=2"),
+        ("philosophy evidence", lambda: core.evidence_lens_packet("philosophy", "a", "direct-only", 10),
+         "/api/philosophy/query/epistemic/a?view_id=direct-only&limit=10"),
+    ]
+    for label, expected, path in cases:
+        if fetch_json(base, path) != normalize_paths(expected()):
+            raise AssertionError(f"representative Cloudflare contract drift for {label}")
+        print(f"ok representative: {label}")
+
+    spec = {"schema_version": "tos_lens_spec_v1", "lens_id": "relations-first",
+            "sources": ["philosophy"],
+            "node_query": {"enabled": False, "match": "all", "filters": []},
+            "relation_query": {"match": "all", "filters": [
+                {"field": "predicate_id", "op": "eq", "value": "relates"}]},
+            "composition": {"endpoint_policy": "independent"},
+            "limits": {"nodes": 10, "relations": 10, "groups": 10}}
+    if post_json(base, "/api/knowledge/lenses/compile", spec) != normalize_paths(core.compile_knowledge_lens(spec)):
+        raise AssertionError("representative Cloudflare lens drift")
+    print("ok representative: compiled knowledge lens")
+
+
+def compare_packets(core: ToSAccessCore, manifest: dict[str, Any], marker: bytes,
+                    deadline: float, profile: str) -> int:
     port = free_port()
     base = f"http://127.0.0.1:{port}"
     # A never-drained PIPE can block Wrangler logging and internal asset reads.
@@ -406,13 +497,22 @@ def compare_packets(core: ToSAccessCore, manifest: dict[str, Any], marker: bytes
         stdout=logs,
         stderr=subprocess.STDOUT,
         text=True,
-        env={key: value for key, value in os.environ.items() if key != "TOS_QUERY_STORE_PATH"},
+        env={key: value for key, value in os.environ.items()
+             if key not in {"TOS_QUERY_STORE_PATH", "TOS_VERIFY_SOURCE_ROOT",
+                            "TOS_VERIFY_PROFILE", "TOS_VERIFY_EXPECT_DELTA_FROM"}},
     )
     try:
         wait_ready(base, process, deadline)
         health = fetch_json(base, "/health")
         if health.get("data_revision") != manifest["data_revision"]:
             raise AssertionError("local D1 imported revision differs from the completed Rust build")
+        if profile == "representative":
+            compare_representative_packets(core, base)
+            verify_inputs(manifest, deadline)
+            if completion_pair()[1] != marker:
+                raise AssertionError("public D1 completion changed during verification")
+            print("representative software profile only; production and scale coverage remains outstanding")
+            return 0
         node_id = "candidate-node:table-i-a01-node-016"
         target_id = "candidate-node:table-i-a01-node-014"
         source_work_id = (
