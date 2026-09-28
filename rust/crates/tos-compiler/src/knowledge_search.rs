@@ -1,6 +1,6 @@
 //! Complete indexed-v2 substring carrier over the selected normalized graph.
-//! One bounded document page writes canonical documents and unique per-document
-//! grams to bounded, sorted private TEMP run chunks. Bounded merge passes
+//! One bounded prepared page writes canonical documents and gram-grouped
+//! private TEMP run blocks. Bounded merge passes
 //! stream those chunks into the selected posting blocks. The stage owns the private
 //! candidate and independently guarded spill namespace. The
 //! caller's `StageLimits` supplies cumulative SQLite VM steps, page/output,
@@ -10,7 +10,9 @@
 
 use crate::{
     Error, Result,
-    knowledge_posting_codec::{MAX_POSTINGS_PER_BLOCK, decode_posting_block, encode_posting_block},
+    knowledge_posting_codec::{
+        MAX_POSTING_DELTA_BYTES, MAX_POSTINGS_PER_BLOCK, decode_posting_block, encode_posting_block,
+    },
     knowledge_stage::{KnowledgeStage, WritePhase},
 };
 use rusqlite::{Connection, OptionalExtension, params};
@@ -39,7 +41,8 @@ pub struct SearchBuildLimits {
     /// Counts payload reads, serialized/lowercased documents, rank fields and
     /// every attempted gram write (including duplicates).
     pub max_work_bytes: u64,
-    /// Limits one staging or final posting SQL statement and its Rust batch.
+    /// Limits one prepared document page, cancellation cadence, and merge fan-in.
+    /// Private run and selected posting blocks retain their existing 256 cap.
     pub gram_batch_rows: usize,
 }
 
@@ -172,7 +175,18 @@ fn build_inner(
         let before_kind_postings = receipt.postings;
         let mut page = Vec::new();
         let mut page_text_bytes = 0usize;
+        let mut run_count = 0i64;
         loop {
+            if page.len() == limits.gram_batch_rows {
+                stage.with_connection_checks(WritePhase::Search, |db, check| {
+                    write_document_page(db, check, &page, kind, run_count, limits, &mut receipt)
+                })?;
+                run_count = run_count
+                    .checked_add(1)
+                    .ok_or(Error::Budget("search run id"))?;
+                page.clear();
+                page_text_bytes = 0;
+            }
             let row = stage.with_connection(WritePhase::Search, |db| {
                 fetch_next(db, table, after, limits.max_payload_bytes)
             })?;
@@ -209,23 +223,25 @@ fn build_inner(
                     + doc.native_id_lower.len(),
                 limits,
             )?;
-            let offsets = stage.with_connection_checks(WritePhase::Search, |_, check| {
-                prepare_gram_offsets(&doc, limits, &mut receipt.work_bytes, check)
-            })?;
             row.payload = None;
             if !page.is_empty()
-                && (page.len() == limits.gram_batch_rows
-                    || page_text_bytes
-                        .checked_add(doc.text.len())
-                        .ok_or(Error::Budget("search document page bytes"))?
-                        > limits.max_document_bytes)
+                && page_text_bytes
+                    .checked_add(doc.text.len())
+                    .ok_or(Error::Budget("search document page bytes"))?
+                    > limits.max_document_bytes
             {
                 stage.with_connection_checks(WritePhase::Search, |db, check| {
-                    write_document_page(db, check, &page, kind, limits, &mut receipt)
+                    write_document_page(db, check, &page, kind, run_count, limits, &mut receipt)
                 })?;
+                run_count = run_count
+                    .checked_add(1)
+                    .ok_or(Error::Budget("search run id"))?;
                 page.clear();
                 page_text_bytes = 0;
             }
+            let offsets = stage.with_connection_checks(WritePhase::Search, |_, check| {
+                prepare_gram_offsets(&doc, limits, &mut receipt.work_bytes, check)
+            })?;
             page_text_bytes = page_text_bytes
                 .checked_add(doc.text.len())
                 .ok_or(Error::Budget("search document page bytes"))?;
@@ -233,8 +249,11 @@ fn build_inner(
         }
         if !page.is_empty() {
             stage.with_connection_checks(WritePhase::Search, |db, check| {
-                write_document_page(db, check, &page, kind, limits, &mut receipt)
+                write_document_page(db, check, &page, kind, run_count, limits, &mut receipt)
             })?;
+            run_count = run_count
+                .checked_add(1)
+                .ok_or(Error::Budget("search run id"))?;
             page.clear();
         }
         let normalized_count: u64 = stage.with_connection(WritePhase::Search, |db| {
@@ -254,15 +273,13 @@ fn build_inner(
             return Err(Error::Invalid("search normalized document coverage"));
         }
         stage.with_connection_checks(WritePhase::Search, |db, check| {
-            let ids = (0..produced)
-                .map(|id| i64::try_from(id).map_err(|_| Error::Budget("search run id")))
-                .collect::<Result<Vec<_>>>()?;
             merge_ordered_kind(
                 db,
                 check,
                 kind,
                 limits,
-                &ids,
+                0,
+                run_count,
                 receipt.postings - before_kind_postings,
                 &mut receipt.work_bytes,
             )
@@ -527,6 +544,7 @@ fn write_document_page(
     check: &dyn Fn() -> Result<()>,
     page: &[PreparedDocument],
     kind: &str,
+    run_id: i64,
     limits: SearchBuildLimits,
     receipt: &mut SearchIndexReceipt,
 ) -> Result<()> {
@@ -550,40 +568,63 @@ fn write_document_page(
                 doc.id_lower,doc.native_id_lower,doc.identity_values,doc.visible_values,
                 doc.chars as i64,doc.digest.as_bytes().as_slice()],
         )?;
-        for (chunk_no, batch) in prepared.offsets.chunks(limits.gram_batch_rows).enumerate() {
-            check()?;
-            let mut records = Vec::new();
-            records
-                .try_reserve_exact(batch.len())
-                .map_err(|_| Error::Budget("search run chunk records"))?;
-            for offset in batch {
-                records.push(RunPosting::new(
-                    gram_slice(&doc.text, *offset),
-                    row.position,
-                )?);
-            }
-            insert_run_chunk(
-                &transaction,
-                row.position,
-                chunk_no,
-                &records,
-                limits,
-                &mut receipt.work_bytes,
-            )?;
-            page_postings = page_postings
-                .checked_add(batch.len() as u64)
-                .ok_or(Error::Budget("search postings"))?;
-            receipt
-                .postings
-                .checked_add(page_postings)
-                .filter(|value| *value <= limits.max_postings)
-                .ok_or(Error::Budget("search postings"))?;
-            check()?;
-        }
         page_chars = page_chars
             .checked_add(doc.chars as u64)
             .ok_or(Error::Budget("search document characters"))?;
     }
+    let mut indices = Vec::new();
+    indices
+        .try_reserve_exact(page.len())
+        .map_err(|_| Error::Budget("search page heads"))?;
+    indices.resize(page.len(), 0usize);
+    let mut heap = BinaryHeap::new();
+    heap.try_reserve(page.len())
+        .map_err(|_| Error::Budget("search page heads"))?;
+    for (reader, prepared) in page.iter().enumerate() {
+        if let Some(&offset) = prepared.offsets.first() {
+            heap.push(Reverse(RunHead {
+                posting: RunPosting::new(
+                    gram_slice(&prepared.doc.text, offset),
+                    prepared.row.position,
+                )?,
+                reader,
+            }));
+        }
+    }
+    let mut writer = TempRunWriter::new(run_id);
+    while let Some(Reverse(head)) = heap.pop() {
+        if page_postings % limits.gram_batch_rows as u64 == 0 {
+            check()?;
+        }
+        charge(&mut receipt.work_bytes, 8, limits)?;
+        writer.push(
+            &transaction,
+            head.posting,
+            limits,
+            &mut receipt.work_bytes,
+            check,
+        )?;
+        page_postings = page_postings
+            .checked_add(1)
+            .ok_or(Error::Budget("search postings"))?;
+        receipt
+            .postings
+            .checked_add(page_postings)
+            .filter(|value| *value <= limits.max_postings)
+            .ok_or(Error::Budget("search postings"))?;
+        indices[head.reader] += 1;
+        let prepared = &page[head.reader];
+        if let Some(&offset) = prepared.offsets.get(indices[head.reader]) {
+            heap.push(Reverse(RunHead {
+                posting: RunPosting::new(
+                    gram_slice(&prepared.doc.text, offset),
+                    prepared.row.position,
+                )?,
+                reader: head.reader,
+            }));
+        }
+    }
+    writer.finish(&transaction, limits, &mut receipt.work_bytes, check)?;
     let next_postings = receipt
         .postings
         .checked_add(page_postings)
@@ -666,73 +707,137 @@ impl PartialOrd for RunPosting {
     }
 }
 
-fn put_position(mut value: u64, out: &mut Vec<u8>) {
-    while value >= 0x80 {
-        out.push((value as u8 & 0x7f) | 0x80);
-        value >>= 7;
-    }
-    out.push(value as u8);
+struct TempRunWriter {
+    run_id: i64,
+    chunk_no: usize,
+    gram: Option<RunPosting>,
+    pending: Vec<u64>,
 }
 
-fn take_position(bytes: &[u8], offset: &mut usize) -> Result<u64> {
-    let start = *offset;
-    let mut value = 0u64;
-    loop {
-        let byte = *bytes
-            .get(*offset)
-            .ok_or(Error::Invalid("search run position length"))?;
-        *offset += 1;
-        if *offset - start > 9 {
-            return Err(Error::Invalid("search run position length"));
+impl TempRunWriter {
+    fn new(run_id: i64) -> Self {
+        Self {
+            run_id,
+            chunk_no: 0,
+            gram: None,
+            pending: Vec::new(),
         }
-        value |= u64::from(byte & 0x7f) << (7 * (*offset - start - 1));
-        if byte & 0x80 == 0 {
-            if (*offset - start > 1 && byte == 0) || value > i64::MAX as u64 {
-                return Err(Error::Invalid("search run position canonical"));
+    }
+    fn push(
+        &mut self,
+        db: &Connection,
+        posting: RunPosting,
+        limits: SearchBuildLimits,
+        work: &mut u64,
+        check: &dyn Fn() -> Result<()>,
+    ) -> Result<()> {
+        if self
+            .gram
+            .is_some_and(|prior| prior.gram() != posting.gram())
+        {
+            self.flush(db, limits, work, check)?;
+        }
+        self.gram = Some(posting);
+        if self.pending.is_empty() {
+            self.pending
+                .try_reserve_exact(MAX_POSTINGS_PER_BLOCK)
+                .map_err(|_| Error::Budget("search run block positions"))?;
+        }
+        self.pending.push(posting.position);
+        if self.pending.len() == MAX_POSTINGS_PER_BLOCK {
+            self.flush(db, limits, work, check)?;
+        }
+        Ok(())
+    }
+    fn push_block(
+        &mut self,
+        db: &Connection,
+        block: &RunBlock,
+        limits: SearchBuildLimits,
+        work: &mut u64,
+        check: &dyn Fn() -> Result<()>,
+    ) -> Result<()> {
+        if self
+            .gram
+            .is_some_and(|prior| prior.gram() != block.first_key().gram())
+        {
+            self.flush(db, limits, work, check)?;
+        }
+        self.gram = Some(block.first_key());
+        let mut remaining = block.positions.as_slice();
+        while !remaining.is_empty() {
+            let take = (MAX_POSTINGS_PER_BLOCK - self.pending.len())
+                .min(limits.gram_batch_rows)
+                .min(remaining.len());
+            if self.pending.capacity() < MAX_POSTINGS_PER_BLOCK {
+                self.pending
+                    .try_reserve_exact(MAX_POSTINGS_PER_BLOCK)
+                    .map_err(|_| Error::Budget("search run block positions"))?;
             }
-            return Ok(value);
+            self.pending.extend_from_slice(&remaining[..take]);
+            remaining = &remaining[take..];
+            check()?;
+            if self.pending.len() == MAX_POSTINGS_PER_BLOCK {
+                self.flush(db, limits, work, check)?;
+            }
         }
+        Ok(())
+    }
+    fn flush(
+        &mut self,
+        db: &Connection,
+        limits: SearchBuildLimits,
+        work: &mut u64,
+        check: &dyn Fn() -> Result<()>,
+    ) -> Result<()> {
+        if self.pending.is_empty() {
+            return Ok(());
+        }
+        check()?;
+        let gram = self.gram.expect("run block gram");
+        insert_run_block(
+            db,
+            self.run_id,
+            self.chunk_no,
+            gram.gram(),
+            &self.pending,
+            limits,
+            work,
+        )?;
+        self.chunk_no = self
+            .chunk_no
+            .checked_add(1)
+            .ok_or(Error::Budget("search run chunk number"))?;
+        self.pending.clear();
+        check()?;
+        Ok(())
+    }
+    fn finish(
+        &mut self,
+        db: &Connection,
+        limits: SearchBuildLimits,
+        work: &mut u64,
+        check: &dyn Fn() -> Result<()>,
+    ) -> Result<()> {
+        self.flush(db, limits, work, check)
     }
 }
 
-fn insert_run_chunk(
+fn insert_run_block(
     db: &Connection,
     run_id: i64,
     chunk_no: usize,
-    records: &[RunPosting],
+    gram: &[u8],
+    positions: &[u64],
     limits: SearchBuildLimits,
     work: &mut u64,
 ) -> Result<()> {
-    if records.is_empty() || records.len() > limits.gram_batch_rows {
-        return Err(Error::Budget("search run chunk rows"));
-    }
-    let cap = records
-        .len()
-        .checked_mul(22)
-        .ok_or(Error::Budget("search run chunk bytes"))?;
-    let mut payload = Vec::new();
-    payload
-        .try_reserve_exact(cap)
-        .map_err(|_| Error::Budget("search run chunk bytes"))?;
-    let mut previous = None;
-    for record in records {
-        if previous.is_some_and(|prior| *record <= prior) {
-            return Err(Error::Invalid("search run chunk order"));
-        }
-        payload.push(record.len);
-        payload.extend_from_slice(record.gram());
-        put_position(record.position, &mut payload);
-        previous = Some(*record);
-    }
-    charge(work, payload.len(), limits)?;
+    let (first, last, count, deltas) = encode_posting_block(positions)?;
+    charge(work, gram.len() + 24 + deltas.len(), limits)?;
     let changed = db.execute(
-        "INSERT INTO search_run_chunks(run_id,chunk_no,postings,payload) VALUES (?1,?2,?3,?4)",
-        params![
-            run_id,
-            i64::try_from(chunk_no).map_err(|_| Error::Budget("search run chunk number"))?,
-            records.len() as i64,
-            payload
-        ],
+        "INSERT INTO search_run_chunks(run_id,chunk_no,gram,first_position,last_position,postings,deltas) VALUES (?1,?2,?3,?4,?5,?6,?7)",
+        params![run_id, i64::try_from(chunk_no).map_err(|_| Error::Budget("search run chunk number"))?,
+            gram, first as i64, last as i64, i64::from(count), deltas],
     )?;
     if changed != 1 {
         return Err(Error::Invalid("search run chunk insert"));
@@ -740,103 +845,81 @@ fn insert_run_chunk(
     Ok(())
 }
 
-fn read_run_chunk(
-    db: &Connection,
-    run_id: i64,
-    chunk_no: i64,
-    limits: SearchBuildLimits,
-    work: &mut u64,
-) -> Result<Option<Vec<RunPosting>>> {
-    let cap = limits
-        .gram_batch_rows
-        .checked_mul(22)
-        .ok_or(Error::Budget("search run chunk bytes"))?;
-    let row: Option<(i64, Option<Vec<u8>>)> = db.query_row(
-        "SELECT postings,CASE WHEN length(payload)<=?3 THEN payload ELSE NULL END FROM search_run_chunks WHERE run_id=?1 AND chunk_no=?2",
-        params![run_id, chunk_no, cap as i64],
-        |row| Ok((row.get(0)?, row.get(1)?)),
-    ).optional()?;
-    let Some((count, payload)) = row else {
-        return Ok(None);
-    };
-    if count <= 0 || count as usize > limits.gram_batch_rows {
-        return Err(Error::Invalid("search run chunk count"));
-    }
-    let payload = payload.ok_or(Error::Budget("search run chunk bytes"))?;
-    charge(work, payload.len(), limits)?;
-    let mut records = Vec::new();
-    records
-        .try_reserve_exact(count as usize)
-        .map_err(|_| Error::Budget("search run chunk decode"))?;
-    let mut offset = 0usize;
-    for _ in 0..count {
-        let len = *payload
-            .get(offset)
-            .ok_or(Error::Invalid("search run gram length"))? as usize;
-        offset += 1;
-        let end = offset
-            .checked_add(len)
-            .filter(|end| *end <= payload.len())
-            .ok_or(Error::Invalid("search run gram length"))?;
-        let mut next = end;
-        let position = take_position(&payload, &mut next)?;
-        let record = RunPosting::new(&payload[offset..end], position as i64)?;
-        if records.last().is_some_and(|prior| record <= *prior) {
-            return Err(Error::Invalid("search run chunk order"));
+struct RunBlock {
+    gram: [u8; 12],
+    len: u8,
+    positions: Vec<u64>,
+}
+impl RunBlock {
+    fn first_key(&self) -> RunPosting {
+        RunPosting {
+            gram: self.gram,
+            len: self.len,
+            position: self.positions[0],
         }
-        records.push(record);
-        offset = next;
     }
-    if offset != payload.len() {
-        return Err(Error::Invalid("search run chunk trailing bytes"));
+    fn last_key(&self) -> RunPosting {
+        RunPosting {
+            gram: self.gram,
+            len: self.len,
+            position: *self.positions.last().expect("nonempty run block"),
+        }
     }
-    Ok(Some(records))
 }
 
 struct RunReader {
     run_id: i64,
     next_chunk: i64,
-    records: Vec<RunPosting>,
-    index: usize,
     previous: Option<RunPosting>,
 }
-
 impl RunReader {
     fn new(run_id: i64) -> Self {
         Self {
             run_id,
             next_chunk: 0,
-            records: Vec::new(),
-            index: 0,
             previous: None,
         }
     }
-
-    fn next(
+    fn next_block(
         &mut self,
         db: &Connection,
         limits: SearchBuildLimits,
         work: &mut u64,
-    ) -> Result<Option<RunPosting>> {
-        if self.index == self.records.len() {
-            let Some(records) = read_run_chunk(db, self.run_id, self.next_chunk, limits, work)?
-            else {
-                return Ok(None);
-            };
-            self.next_chunk = self
-                .next_chunk
-                .checked_add(1)
-                .ok_or(Error::Budget("search run chunk number"))?;
-            self.records = records;
-            self.index = 0;
+    ) -> Result<Option<RunBlock>> {
+        let row: Option<(Option<Vec<u8>>, i64, i64, i64, Option<Vec<u8>>)> = db.query_row(
+            "SELECT CASE WHEN typeof(gram)='blob' AND length(gram) BETWEEN 3 AND 12 THEN gram ELSE NULL END,first_position,last_position,postings,CASE WHEN typeof(deltas)='blob' AND length(deltas)<=?3 THEN deltas ELSE NULL END FROM search_run_chunks WHERE run_id=?1 AND chunk_no=?2",
+            params![self.run_id, self.next_chunk, MAX_POSTING_DELTA_BYTES as i64],
+            |row| Ok((row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?,row.get(4)?)),
+        ).optional()?;
+        let Some((gram, first, last, count, deltas)) = row else {
+            return Ok(None);
+        };
+        let gram = gram.ok_or(Error::Invalid("search run gram length"))?;
+        let deltas = deltas.ok_or(Error::Invalid("search run delta length"))?;
+        if first < 0 || last < 0 || count <= 0 || count > MAX_POSTINGS_PER_BLOCK as i64 {
+            return Err(Error::Invalid("search run block shape"));
         }
-        let record = self.records[self.index];
-        if self.previous.is_some_and(|prior| record <= prior) {
+        let shape = RunPosting::new(&gram, first)?;
+        charge(work, gram.len() + 24 + deltas.len(), limits)?;
+        let positions = decode_posting_block(first as u64, last as u64, count as u16, &deltas)?;
+        charge(work, positions.len() * 8, limits)?;
+        let block = RunBlock {
+            gram: shape.gram,
+            len: shape.len,
+            positions,
+        };
+        if self
+            .previous
+            .is_some_and(|prior| block.first_key() <= prior)
+        {
             return Err(Error::Invalid("search run order"));
         }
-        self.previous = Some(record);
-        self.index += 1;
-        Ok(Some(record))
+        self.previous = Some(block.last_key());
+        self.next_chunk = self
+            .next_chunk
+            .checked_add(1)
+            .ok_or(Error::Budget("search run chunk number"))?;
+        Ok(Some(block))
     }
 }
 
@@ -861,43 +944,61 @@ impl PartialOrd for RunHead {
 fn merge_group(
     db: &mut Connection,
     check: &dyn Fn() -> Result<()>,
-    ids: &[i64],
+    first_run: i64,
+    run_count: usize,
     limits: SearchBuildLimits,
     work: &mut u64,
-    mut emit: impl FnMut(&mut Connection, RunPosting, &mut u64) -> Result<()>,
+    mut emit: impl FnMut(&mut Connection, &RunBlock, &mut u64) -> Result<()>,
 ) -> Result<u64> {
+    // Prepared pages cover consecutive source_order ranges. A run block's
+    // positions are therefore wholly before or after another page's block
+    // for the same gram; merging block heads is equivalent to merging every
+    // logical posting, and the strict global check below refuses any breach.
     let mut readers = Vec::new();
     readers
-        .try_reserve_exact(ids.len())
+        .try_reserve_exact(run_count)
         .map_err(|_| Error::Budget("search merge readers"))?;
-    readers.extend(ids.iter().copied().map(RunReader::new));
+    let mut current = Vec::new();
+    current
+        .try_reserve_exact(run_count)
+        .map_err(|_| Error::Budget("search merge blocks"))?;
     let mut heap = BinaryHeap::new();
-    heap.try_reserve(ids.len())
+    heap.try_reserve(run_count)
         .map_err(|_| Error::Budget("search merge heads"))?;
-    for (reader, stream) in readers.iter_mut().enumerate() {
-        if let Some(posting) = stream.next(db, limits, work)? {
-            heap.push(Reverse(RunHead { posting, reader }));
+    for index in 0..run_count {
+        let id = first_run
+            .checked_add(i64::try_from(index).map_err(|_| Error::Budget("search run id"))?)
+            .ok_or(Error::Budget("search run id"))?;
+        let mut reader = RunReader::new(id);
+        let block = reader.next_block(db, limits, work)?;
+        if let Some(block) = &block {
+            heap.push(Reverse(RunHead {
+                posting: block.first_key(),
+                reader: index,
+            }));
         }
+        readers.push(reader);
+        current.push(block);
     }
     let mut previous = None;
     let mut count = 0u64;
     while let Some(Reverse(head)) = heap.pop() {
-        if count % limits.gram_batch_rows as u64 == 0 {
-            check()?;
-        }
-        if previous.is_some_and(|prior| head.posting <= prior) {
+        check()?;
+        let block = current[head.reader].take().expect("heap run block");
+        if previous.is_some_and(|prior| block.first_key() <= prior) {
             return Err(Error::Invalid("search merged posting order"));
         }
-        charge(work, usize::from(head.posting.len) + 8, limits)?;
-        emit(db, head.posting, work)?;
+        charge(work, block.positions.len() * 8, limits)?;
+        emit(db, &block, work)?;
         count = count
-            .checked_add(1)
+            .checked_add(block.positions.len() as u64)
             .filter(|value| *value <= limits.max_postings)
             .ok_or(Error::Budget("search postings"))?;
-        previous = Some(head.posting);
-        if let Some(posting) = readers[head.reader].next(db, limits, work)? {
+        previous = Some(block.last_key());
+        current[head.reader] = readers[head.reader].next_block(db, limits, work)?;
+        if let Some(block) = &current[head.reader] {
             heap.push(Reverse(RunHead {
-                posting,
+                posting: block.first_key(),
                 reader: head.reader,
             }));
         }
@@ -909,97 +1010,103 @@ fn merge_group(
 struct FinalBlock {
     gram: [u8; 12],
     len: u8,
-    positions: Vec<u64>,
+    start: usize,
+    end: usize,
 }
 struct FinalWriter {
     gram: Option<RunPosting>,
-    pending: Vec<u64>,
-    ready: Vec<FinalBlock>,
-    ready_postings: usize,
+    positions: Vec<u64>,
+    complete_until: usize,
+    blocks: Vec<FinalBlock>,
     written: u64,
 }
 
 impl FinalWriter {
-    fn new() -> Self {
-        Self {
+    fn new() -> Result<Self> {
+        let mut positions = Vec::new();
+        positions
+            .try_reserve_exact(MAX_GRAM_BATCH_ROWS)
+            .map_err(|_| Error::Budget("search final position page"))?;
+        let mut blocks = Vec::new();
+        blocks
+            .try_reserve_exact(MAX_GRAM_BATCH_ROWS)
+            .map_err(|_| Error::Budget("search final block page"))?;
+        Ok(Self {
             gram: None,
-            pending: Vec::new(),
-            ready: Vec::new(),
-            ready_postings: 0,
+            positions,
+            complete_until: 0,
+            blocks,
             written: 0,
-        }
+        })
     }
-    fn push(
+    fn push_block(
         &mut self,
         db: &mut Connection,
         check: &dyn Fn() -> Result<()>,
         kind: &str,
-        posting: RunPosting,
+        block: &RunBlock,
+        limits: SearchBuildLimits,
+        work: &mut u64,
     ) -> Result<()> {
         if self
             .gram
-            .is_some_and(|prior| prior.gram() != posting.gram())
+            .is_some_and(|prior| prior.gram() != block.first_key().gram())
         {
-            self.complete(db, check, kind)?;
+            self.complete();
         }
-        self.gram = Some(posting);
-        if self.pending.is_empty() {
-            self.pending
-                .try_reserve_exact(MAX_POSTINGS_PER_BLOCK)
-                .map_err(|_| Error::Budget("search posting block buffer"))?;
-        }
-        self.pending.push(posting.position);
-        if self.pending.len() == MAX_POSTINGS_PER_BLOCK {
-            self.complete(db, check, kind)?;
+        self.gram = Some(block.first_key());
+        let mut remaining = block.positions.as_slice();
+        while !remaining.is_empty() {
+            if self.positions.len() == MAX_GRAM_BATCH_ROWS {
+                self.flush(db, check, kind, limits, work)?;
+            }
+            let take = (MAX_POSTINGS_PER_BLOCK - (self.positions.len() - self.complete_until))
+                .min(MAX_GRAM_BATCH_ROWS - self.positions.len())
+                .min(limits.gram_batch_rows)
+                .min(remaining.len());
+            self.positions.extend_from_slice(&remaining[..take]);
+            remaining = &remaining[take..];
+            check()?;
+            if self.positions.len() - self.complete_until == MAX_POSTINGS_PER_BLOCK {
+                self.complete();
+            }
         }
         Ok(())
     }
-    fn complete(
-        &mut self,
-        db: &mut Connection,
-        check: &dyn Fn() -> Result<()>,
-        kind: &str,
-    ) -> Result<()> {
-        if self.pending.is_empty() {
-            return Ok(());
+    fn complete(&mut self) {
+        if self.positions.len() == self.complete_until {
+            return;
         }
-        if self.ready_postings + self.pending.len() > MAX_GRAM_BATCH_ROWS {
-            self.flush(db, check, kind)?;
-        }
-        let gram = self.gram.expect("pending gram");
-        self.ready_postings += self.pending.len();
-        self.ready
-            .try_reserve(1)
-            .map_err(|_| Error::Budget("search final block page"))?;
-        self.ready.push(FinalBlock {
+        let gram = self.gram.expect("pending final gram");
+        self.blocks.push(FinalBlock {
             gram: gram.gram,
             len: gram.len,
-            positions: std::mem::take(&mut self.pending),
+            start: self.complete_until,
+            end: self.positions.len(),
         });
-        if self.ready_postings == MAX_GRAM_BATCH_ROWS {
-            self.flush(db, check, kind)?;
-        }
-        Ok(())
+        self.complete_until = self.positions.len();
     }
     fn flush(
         &mut self,
         db: &mut Connection,
         check: &dyn Fn() -> Result<()>,
         kind: &str,
+        limits: SearchBuildLimits,
+        work: &mut u64,
     ) -> Result<()> {
-        if self.ready.is_empty() {
+        if self.blocks.is_empty() {
             return Ok(());
         }
         check()?;
         let tx = db.transaction()?;
         let mut count = 0u64;
-        for block in &self.ready {
+        for block in &self.blocks {
             count = count
                 .checked_add(write_posting_block(
                     &tx,
                     kind,
                     &block.gram[..usize::from(block.len)],
-                    &block.positions,
+                    &self.positions[block.start..block.end],
                     check,
                 )?)
                 .ok_or(Error::Budget("search ordered postings"))?;
@@ -1010,8 +1117,11 @@ impl FinalWriter {
             .written
             .checked_add(count)
             .ok_or(Error::Budget("search ordered postings"))?;
-        self.ready.clear();
-        self.ready_postings = 0;
+        let pending = self.positions.len() - self.complete_until;
+        charge(work, pending * 8, limits)?;
+        self.positions.drain(..self.complete_until);
+        self.complete_until = 0;
+        self.blocks.clear();
         Ok(())
     }
     fn finish(
@@ -1019,9 +1129,11 @@ impl FinalWriter {
         db: &mut Connection,
         check: &dyn Fn() -> Result<()>,
         kind: &str,
+        limits: SearchBuildLimits,
+        work: &mut u64,
     ) -> Result<u64> {
-        self.complete(db, check, kind)?;
-        self.flush(db, check, kind)?;
+        self.complete();
+        self.flush(db, check, kind, limits, work)?;
         Ok(self.written)
     }
 }
@@ -1031,73 +1143,74 @@ fn merge_ordered_kind(
     check: &dyn Fn() -> Result<()>,
     kind: &str,
     limits: SearchBuildLimits,
-    run_ids: &[i64],
+    first_run: i64,
+    run_count: i64,
     expected: u64,
     work: &mut u64,
 ) -> Result<()> {
-    let fan_in = limits.gram_batch_rows.max(2);
-    let mut ids = Vec::new();
-    ids.try_reserve_exact(run_ids.len())
-        .map_err(|_| Error::Budget("search run ids"))?;
-    ids.extend_from_slice(run_ids);
-    let mut next_id = ids
-        .iter()
-        .copied()
-        .max()
-        .unwrap_or(-1)
-        .checked_add(1)
-        .ok_or(Error::Budget("search run id"))?;
-    while ids.len() > fan_in {
-        let mut next = Vec::new();
-        next.try_reserve_exact(ids.len().div_ceil(fan_in))
-            .map_err(|_| Error::Budget("search merge run ids"))?;
-        for group in ids.chunks(fan_in) {
-            check()?;
-            if group.len() == 1 {
-                next.push(group[0]);
-                continue;
-            }
-            let output_id = next_id;
-            next_id = next_id
-                .checked_add(1)
-                .ok_or(Error::Budget("search run id"))?;
-            let mut chunk = Vec::new();
-            chunk
-                .try_reserve_exact(limits.gram_batch_rows)
-                .map_err(|_| Error::Budget("search merge output chunk"))?;
-            let mut chunk_no = 0usize;
-            merge_group(db, check, group, limits, work, |db, posting, work| {
-                chunk.push(posting);
-                if chunk.len() == limits.gram_batch_rows {
-                    insert_run_chunk(db, output_id, chunk_no, &chunk, limits, work)?;
-                    chunk.clear();
-                    chunk_no = chunk_no
-                        .checked_add(1)
-                        .ok_or(Error::Budget("search run chunk number"))?;
-                    check()?;
-                }
-                Ok(())
-            })?;
-            if !chunk.is_empty() {
-                insert_run_chunk(db, output_id, chunk_no, &chunk, limits, work)?;
-                check()?;
-            }
-            for id in group {
-                retire_run(db, check, *id)?;
-            }
-            next.push(output_id);
-        }
-        ids = next;
+    if first_run < 0 || run_count < 0 {
+        return Err(Error::Invalid("search run generation"));
     }
-    let mut writer = FinalWriter::new();
-    let copied = merge_group(db, check, &ids, limits, work, |db, posting, _| {
-        writer.push(db, check, kind, posting)
-    })?;
-    let written = writer.finish(db, check, kind)?;
+    let fan_in =
+        i64::try_from(limits.gram_batch_rows.max(2)).map_err(|_| Error::Budget("search fan in"))?;
+    let mut start = first_run;
+    let mut count = run_count;
+    while count > fan_in {
+        let output_start = start
+            .checked_add(count)
+            .ok_or(Error::Budget("search run id"))?;
+        let mut offset = 0i64;
+        while offset < count {
+            check()?;
+            let size = (count - offset).min(fan_in);
+            let output_id = output_start
+                .checked_add(offset / fan_in)
+                .ok_or(Error::Budget("search run id"))?;
+            let mut writer = TempRunWriter::new(output_id);
+            let group_start = start
+                .checked_add(offset)
+                .ok_or(Error::Budget("search run id"))?;
+            merge_group(
+                db,
+                check,
+                group_start,
+                size as usize,
+                limits,
+                work,
+                |db, block, work| writer.push_block(db, block, limits, work, check),
+            )?;
+            writer.finish(db, limits, work, check)?;
+            let group_end = group_start
+                .checked_add(size)
+                .ok_or(Error::Budget("search run id"))?;
+            for id in group_start..group_end {
+                retire_run(db, check, id)?;
+            }
+            offset = offset
+                .checked_add(size)
+                .ok_or(Error::Budget("search run id"))?;
+        }
+        start = output_start;
+        count = count.div_ceil(fan_in);
+    }
+    let mut writer = FinalWriter::new()?;
+    let copied = merge_group(
+        db,
+        check,
+        start,
+        count as usize,
+        limits,
+        work,
+        |db, block, work| writer.push_block(db, check, kind, block, limits, work),
+    )?;
+    let written = writer.finish(db, check, kind, limits, work)?;
     if copied != expected || written != expected {
         return Err(Error::Invalid("search ordered posting total"));
     }
-    for id in ids {
+    let generation_end = start
+        .checked_add(count)
+        .ok_or(Error::Budget("search run id"))?;
+    for id in start..generation_end {
         retire_run(db, check, id)?;
     }
     Ok(())
@@ -1293,7 +1406,8 @@ CREATE TABLE search_gram_stats(
  PRIMARY KEY(kind,n,gram)) WITHOUT ROWID;
 CREATE TEMP TABLE search_run_chunks(
  run_id INTEGER NOT NULL,chunk_no INTEGER NOT NULL,
- postings INTEGER NOT NULL,payload BLOB NOT NULL,
+ gram BLOB NOT NULL,first_position INTEGER NOT NULL,last_position INTEGER NOT NULL,
+ postings INTEGER NOT NULL,deltas BLOB NOT NULL,
  PRIMARY KEY(run_id,chunk_no)) WITHOUT ROWID;
 "#;
 
@@ -1466,6 +1580,7 @@ mod tests {
             &|| Ok(()),
             &[first, second],
             "nodes",
+            7,
             writer_limits,
             &mut receipt,
         )
@@ -1478,7 +1593,8 @@ mod tests {
             &|| Ok(()),
             "nodes",
             writer_limits,
-            &[7, 8],
+            7,
+            1,
             expected_total,
             &mut receipt.work_bytes,
         )
@@ -1511,12 +1627,20 @@ mod tests {
         let mut tight = limits();
         tight.max_postings = receipt.postings + 3;
         assert!(matches!(
-            write_document_page(&mut db, &|| Ok(()), &[capped], "nodes", tight, &mut receipt),
+            write_document_page(
+                &mut db,
+                &|| Ok(()),
+                &[capped],
+                "nodes",
+                9,
+                tight,
+                &mut receipt
+            ),
             Err(Error::Budget("search postings"))
         ));
         db.execute_batch(
             "CREATE TEMP TRIGGER refuse_late_staging BEFORE INSERT ON search_run_chunks
-             WHEN NEW.run_id=10 AND NEW.chunk_no>0
+             WHEN NEW.run_id=9 AND NEW.chunk_no>0
              BEGIN SELECT RAISE(ABORT,'refuse late staging'); END;",
         )
         .unwrap();
@@ -1528,6 +1652,7 @@ mod tests {
                 &|| Ok(()),
                 &[retry, refused],
                 "nodes",
+                9,
                 limits(),
                 &mut receipt,
             )
@@ -1551,6 +1676,7 @@ mod tests {
                 },
                 &[guarded],
                 "nodes",
+                11,
                 limits(),
                 &mut receipt,
             ),
@@ -1584,6 +1710,7 @@ mod tests {
             &|| Ok(()),
             &[late],
             "nodes",
+            12,
             limits(),
             &mut receipt,
         )
@@ -1600,7 +1727,8 @@ mod tests {
                 &|| Ok(()),
                 "nodes",
                 limits(),
-                &[12],
+                12,
+                1,
                 expected_late.len() as u64,
                 &mut receipt.work_bytes,
             )
@@ -1631,7 +1759,8 @@ mod tests {
             &|| Ok(()),
             "nodes",
             limits(),
-            &[12],
+            12,
+            1,
             expected_late.len() as u64,
             &mut receipt.work_bytes,
         )
@@ -1644,15 +1773,16 @@ mod tests {
                 .chunks(limits().gram_batch_rows)
                 .enumerate()
             {
-                let records = positions
+                let block = positions
                     .iter()
-                    .map(|position| RunPosting::new(b"zzz", *position).unwrap())
+                    .map(|position| *position as u64)
                     .collect::<Vec<_>>();
-                insert_run_chunk(
+                insert_run_block(
                     &db,
                     run_id,
                     chunk_no,
-                    &records,
+                    b"zzz",
+                    &block,
                     limits(),
                     &mut receipt.work_bytes,
                 )
@@ -1664,7 +1794,8 @@ mod tests {
             &|| Ok(()),
             "nodes",
             limits(),
-            &[20, 21, 22],
+            20,
+            3,
             257,
             &mut receipt.work_bytes,
         )
