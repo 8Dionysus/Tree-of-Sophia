@@ -36,7 +36,7 @@ fn compact_seed(item: &JsonValue) -> Result<JsonValue> {
                 if let JsonValue::Object(ref mut sem) = semantics {
                     for (name, claim) in sem {
                         if name.as_str() == Some("claim") {
-                            if let JsonValue::Object(ref mut members) = claim {
+                            if let JsonValue::Object(members) = claim {
                                 members.retain(|(name, _)| {
                                     name.as_str() != Some("source_canonical_json")
                                 });

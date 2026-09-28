@@ -139,6 +139,8 @@ pub fn portable_public_d1_limits(max_build_seconds: u64) -> Result<PublicD1Build
     let page_bytes = page_rows
         .checked_mul(row)
         .ok_or(Error::Budget("public D1 page arithmetic"))?;
+    let page_bytes_u64 =
+        u64::try_from(page_bytes).map_err(|_| Error::Budget("public D1 page arithmetic"))?;
     let endpoint_rows = rows
         .checked_mul(2)
         .ok_or(Error::Budget("public D1 endpoint arithmetic"))?;
@@ -172,7 +174,7 @@ pub fn portable_public_d1_limits(max_build_seconds: u64) -> Result<PublicD1Build
             max_page_rows: page_rows,
             max_raw_bytes: row,
             max_context_bytes: row,
-            max_page_bytes: page_bytes,
+            max_page_bytes: page_bytes_u64,
             max_work_bytes: work,
         },
         navigation_relations: crate::NavigationRelationNormalizeLimits {
@@ -226,7 +228,7 @@ pub fn portable_public_d1_limits(max_build_seconds: u64) -> Result<PublicD1Build
             max_endpoint_evidence_rows: endpoint_rows,
             max_view_tokens: rows,
             max_page_rows: page_rows,
-            max_page_bytes: page_bytes,
+            max_page_bytes: page_bytes_u64,
             max_row_bytes: row,
             max_work_bytes: work,
         },

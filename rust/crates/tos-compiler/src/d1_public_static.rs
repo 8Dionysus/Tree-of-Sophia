@@ -195,8 +195,17 @@ fn web_paths(dist: &Path, capture: &PublicCapture) -> Result<Vec<(PathBuf, Strin
     if !dist.join("index.html").is_file() || dist.is_symlink() {
         return Err(Error::Invalid("public D1 web dist missing/unsafe"));
     }
+    let root_path_bytes = dist
+        .as_os_str()
+        .as_encoded_bytes()
+        .len()
+        .checked_add(std::mem::size_of::<PathBuf>() + std::mem::size_of::<String>())
+        .ok_or(Error::Budget("public D1 web path bytes"))?;
+    capture.charge_work(
+        u64::try_from(root_path_bytes).map_err(|_| Error::Budget("public D1 web path bytes"))?,
+    )?;
     let mut paths = Vec::new();
-    let mut pending = vec![(dist.clone(), String::new())];
+    let mut pending = vec![(dist.to_path_buf(), String::new())];
     let mut seen = 0usize;
     while let Some((directory, prefix)) = pending.pop() {
         let metadata = fs::symlink_metadata(&directory)?;
