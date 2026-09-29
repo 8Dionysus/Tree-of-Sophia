@@ -85,6 +85,30 @@ fn maintained_claim_addition_whole_transaction_and_access() {
     let connection = rusqlite::Connection::open(&db_path).unwrap();
     connection.busy_timeout(Duration::from_secs(2)).unwrap();
     assert!(connection.is_autocommit());
+    // Finite maintained consumer envelope; library defaults remain portable.
+    let publication_limits = PublicationLimits {
+        max_mutations: 100_000,
+        ..PublicationLimits::default()
+    };
+    let catalog_limits = CatalogMaintenanceLimits {
+        max_delta_bytes: 16_777_216,
+        max_catalog_entries: 16_384,
+        max_aggregate_bytes: 16_777_216,
+        max_catalog_bytes: 8_388_608,
+        max_index_bytes: 67_108_864,
+        ..CatalogMaintenanceLimits::default()
+    };
+    let semantic_limits = SemanticMaintenanceLimits {
+        max_rows: 100_000,
+        max_queries: 100_000,
+        max_writes: 100_000,
+        max_read_bytes: 33_554_432,
+        max_input_bytes: 16_777_216,
+        max_input_values: 1_000_000,
+        max_output_items: 16_384,
+        max_bytes: 67_108_864,
+        ..SemanticMaintenanceLimits::default()
+    };
     let binding = typed(&packet["binding"]);
     let old_binding_path = workspace.path().join("old-binding.json");
     fs::write(&old_binding_path, canonical_lf(&packet["binding"])).unwrap();
@@ -100,11 +124,9 @@ fn maintained_claim_addition_whole_transaction_and_access() {
             .collect(),
         source_order_profile: SourceOrderProfile::SourceGraphId,
     };
-    let source = PreparedSourceInputs::parse(
-        &canonical_lf(&packet["source_inputs"]),
-        PublicationLimits::default(),
-    )
-    .unwrap();
+    let source =
+        PreparedSourceInputs::parse(&canonical_lf(&packet["source_inputs"]), publication_limits)
+            .unwrap();
     // Explicit native auxiliary bootstrap over the SAME immutable predecessor.
     // Preserve the original Python semantic rows in a bounded reference packet;
     // no executable hash is relabeled on the imported index.
@@ -184,7 +206,7 @@ fn maintained_claim_addition_whole_transaction_and_access() {
                 &packet["header"]["normalization_binding"],
                 "processor_digest",
             ),
-            SemanticMaintenanceLimits::default(),
+            semantic_limits,
         )
         .unwrap();
         assert_eq!(typed(&packet["baseline_semantic_report"]), report);
@@ -267,9 +289,9 @@ fn maintained_claim_addition_whole_transaction_and_access() {
         .apply_transaction(
             &tx,
             &progress,
-            PublicationLimits::default(),
-            CatalogMaintenanceLimits::default(),
-            SemanticMaintenanceLimits::default(),
+            publication_limits,
+            catalog_limits,
+            semantic_limits,
         )
         .unwrap();
     assert_eq!(result["prepared_committed"], false);
