@@ -41,6 +41,8 @@ mod public_text;
 mod responsibility;
 #[path = "source_native_text_cli.rs"]
 mod text_owner;
+#[path = "source_native_work_cli.rs"]
+mod work;
 
 const MAX_INVOCATION: usize = 1_048_576;
 const MAX_REQUEST: usize = 1_048_576;
@@ -404,6 +406,18 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
             }
             "tos_local_expression_edition_owner_v1" => {
                 return edition::run(
+                    &invocation,
+                    &request_raw,
+                    &store,
+                    &cut,
+                    &software,
+                    &components,
+                    deadline,
+                    &cancelled,
+                );
+            }
+            "tos_local_work_expression_owner_v1" => {
+                return work::run(
                     &invocation,
                     &request_raw,
                     &store,

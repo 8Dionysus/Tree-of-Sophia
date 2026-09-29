@@ -2985,6 +2985,113 @@ fn compile_local_claim_routes(entities_raw:&Value, relations:&Value, base_state:
     Ok(routes)
 }
 
+/// Read-only Work/Expression descriptors from the same compiled Claim routes.
+/// Registry schema verdicts belong to the caller's bounded source-cut worker.
+pub fn work_expression_source_descriptors(
+    entities_raw: &[u8],
+    relations_raw: &[u8],
+    corpus_raw: &[u8],
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<Value, crate::item_rules::ItemRefusal> {
+    use crate::item_rules::ItemRefusal;
+    local_claim_checkpoint(limits, cancelled)?;
+    let mut state = 0usize;
+    let mut decode = |raw: &[u8]| {
+        if raw.len() > limits.max_member_bytes {
+            return Err(ItemRefusal::Budget);
+        }
+        let (value, used) = crate::record_biblio_cut::bounded_decoded_state(
+            raw,
+            tos_foundation::JsonLimits::default(),
+            limits
+                .max_state_bytes
+                .checked_sub(state)
+                .ok_or(ItemRefusal::Budget)?,
+            limits.deadline,
+            cancelled,
+        )?;
+        state = state.checked_add(used).ok_or(ItemRefusal::Budget)?;
+        Ok(value)
+    };
+    let total = entities_raw
+        .len()
+        .checked_add(relations_raw.len())
+        .and_then(|n| n.checked_add(corpus_raw.len()))
+        .ok_or(ItemRefusal::Budget)?;
+    if total as u64 > limits.max_total_bytes {
+        return Err(ItemRefusal::Budget);
+    }
+    let entities = decode(entities_raw)?;
+    let relations = decode(relations_raw)?;
+    let corpus = decode(corpus_raw)?;
+    let routes = compile_local_claim_routes(&entities, &relations, state, limits, cancelled)
+        .map_err(|error| match error {
+            LocalClaimCompileError::Refusal(reason) => reason,
+            LocalClaimCompileError::Rule(code, detail) => {
+                ItemRefusal::Source(format!("{code}: {detail}"))
+            }
+        })?;
+    state = state.checked_add(local_route_state(&routes)?).ok_or(ItemRefusal::Budget)?;
+    local_claim_state_check(state, 0, limits)?;
+    let route = routes
+        .get(&(
+            "has_expression".into(),
+            "tos_source_relation_claim_v1".into(),
+        ))
+        .ok_or_else(|| {
+            ItemRefusal::Unsupported("Work/Expression Claim profile route absent".into())
+        })?;
+    let relation = &relations["relations"][route.relation];
+    let profile = &relation["source_claim_profile"];
+    let schema = &profile["schemas"][route.schema];
+    let version = corpus["properties"]["schema_version"]["const"]
+        .as_str()
+        .ok_or_else(|| ItemRefusal::Source("corpus schema version declaration absent".into()))?;
+    let mut result = serde_json::Map::new();
+    for kind in ["work", "expression"] {
+        local_claim_checkpoint(limits, cancelled)?;
+        let entry = entities["types"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|entry| {
+                entry["source_mappings"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .any(|mapping| {
+                        local_string(mapping, "source_graph") == Some("source-claims")
+                            && local_string(mapping, "source_kind_id") == Some(kind)
+                    })
+            })
+            .ok_or_else(|| ItemRefusal::Source(format!("{kind} source mapping absent")))?;
+        result.insert(
+            kind.into(),
+            json!({"type_id":entry["type_id"],"record_type":kind,
+            "schema_ref":"ToS/contracts/corpus-record.schema.json","schema_version":version,
+            "source_basename":format!("{kind}.json")}),
+        );
+    }
+    result.insert(
+        "has_expression".into(),
+        json!({"relation_type_id":relation["relation_type_id"],
+        "predicate":"has_expression","reader":profile["reader"],"schema_ref":schema["schema_ref"],
+        "schema_version":schema["schema_version"],"assertion_layers":profile["assertion_layers"],
+        "source_basename":"source-claims.jsonl"}),
+    );
+    let result = Value::Object(result);
+    crate::record_biblio_cut::decoded_wire_size(
+        &result,
+        limits
+            .max_state_bytes
+            .checked_sub(state)
+            .ok_or(ItemRefusal::Budget)?,
+    )?;
+    local_claim_checkpoint(limits, cancelled)?;
+    Ok(result)
+}
+
 fn local_claim_resources(
     cut:&tos_source_store::CorpusCutReader, paths:&[String], claim:&Value, route_state:usize, worker:&crate::source_cut::CutWorkerSchemaExecutor,
     limits:crate::item_rules::ItemLimits,cancelled:&std::sync::atomic::AtomicBool,bytes:&mut u64,

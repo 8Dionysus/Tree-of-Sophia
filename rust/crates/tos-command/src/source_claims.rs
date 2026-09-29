@@ -673,6 +673,46 @@ fn schema_check(
         )),
     }
 }
+/// Current read-only Work/Expression profile view, using the maintained
+/// registry compiler and the same bounded worker schema checks as Claim.
+pub(crate) fn work_expression_source_descriptors(
+    ctx: &CommandContext,
+    worker: &mut CutWorkerSchemaExecutor,
+    limits: tos_validation::item_rules::ItemLimits,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    crate::source_revisions::validate_source_profile_registry(
+        worker,
+        limits.deadline,
+        cancelled,
+        ctx,
+    )?;
+    schema_check(
+        worker,
+        RELATIONS,
+        &json_file(ctx, RELATIONS)?,
+        "ToS/contracts/semantic-relation-type-registry.schema.json",
+        limits.deadline,
+        cancelled,
+    )?;
+    let corpus = "ToS/contracts/corpus-record.schema.json";
+    let descriptors = tos_validation::record_rules::work_expression_source_descriptors(
+        selected(ctx, ENTITIES)?,
+        selected(ctx, RELATIONS)?,
+        selected(ctx, corpus)?,
+        limits,
+        cancelled,
+    )
+    .map_err(|reason| SourceCommandError::SchemaExecution {
+        path: "work.expression.describe".into(),
+        root: "existing source profile registry".into(),
+        reason,
+    })?;
+    let raw = serde_json::to_vec(&descriptors)
+        .map_err(|_| SourceCommandError::Invalid("Work descriptors JSON"))?;
+    parse(&raw)
+}
+
 fn claim_scope(
     config: &JsonValue,
     claim: &JsonValue,

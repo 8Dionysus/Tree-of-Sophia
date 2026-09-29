@@ -332,7 +332,7 @@ fn configuration(ctx: &CommandContext) -> SourceCommandResult<(JsonValue, Revisi
     Ok((config, family))
 }
 
-fn history(files: &Package, record: &JsonValue) -> SourceCommandResult<JsonValue> {
+pub(crate) fn history(files: &Package, record: &JsonValue) -> SourceCommandResult<JsonValue> {
     let subject = source_forms::metadata_subject(record)?;
     let value = match files.get(HISTORY) {
         Some(raw) => cmd::parse(raw)?,
