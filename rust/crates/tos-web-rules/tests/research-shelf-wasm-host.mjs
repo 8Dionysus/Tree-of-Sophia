@@ -29,12 +29,12 @@ const {installResearchShelfRules,createMemoryResearchShelfStore,importSuppliedRe
   validateShelfExport,readingKey}=consumer;
 const revision='a'.repeat(64),content='b'.repeat(64),at='2026-09-28T12:00:00.000Z';
 const target={kind:'node',id:'tos.node.shelf-wasm',sourceRevision:revision,contentRevision:content};
-const input=id=>({id,title:`Shelf ${id}`,type:'material',target,collectionIds:[]});
+const input=id=>({id,title:`  Shelf ${id} `,type:'material',target,collectionIds:[]});
 async function exercise(){
   const store=createMemoryResearchShelfStore({now:()=>at});
   const created=await store.save(input('one'),{expectedRevision:null});
   await store.save(input('two'),{expectedRevision:null});
-  const collection=await store.saveCollection({id:'group',title:'Group'});
+  const collection=await store.saveCollection({id:'group',title:' Group '});
   await assert.rejects(store.save({...created.item,target:{...target,id:'other-node'}},
     {expectedRevision:created.item.revision}),error=>error.code==='invalid-input','exact target is immutable');
   const renamed=await store.saveCollection({id:'group',title:'Renamed'},
@@ -53,8 +53,13 @@ async function exercise(){
   return {packet:withoutExportTime(packet),after:withoutExportTime(after),detached,page,identical};
 }
 const oracle=await exercise();
-const reading={v:1,activeKey:readingKey('node',target.id),entries:[{...target,preferred:'default',positions:[]}]};
+const reading={v:1,activeKey:readingKey('node',target.id),entries:[{...target,preferred:'default',positions:[[JSON.stringify([readingKey('node',target.id),revision,content,'default']),{top:0,details:[],anchor:null}]]}]};
 const migrationOptions={source:'reading-resume',now:()=>at};
+const reportCases=[
+  {source:'research-workspace',section:'notes',count:256,single:false},
+  {source:'workspace-copy',section:'history',count:3,single:false},
+  {source:'workspace-copy',section:'resume',count:1,single:true},
+];
 const oracleMigration=importSuppliedResearchPacket(reading,migrationOptions);
 installResearchShelfRules(binding);
 const actual=await exercise();
@@ -80,6 +85,18 @@ finally{duplicate.free();}
 assert.throws(()=>new binding.ResearchShelfPacketIndex(encode.encode(JSON.stringify({
   schema:'tos.research_shelf.export.v1',version:1,generation:0,recordCount:200_001,collectionCount:0,
 }))),/limit/u,'record bound without whole-record allocation');
-console.log(JSON.stringify({status:'pass',cases:11,host:`Node ${process.version} WebAssembly`,
+const decode=new TextDecoder();
+for(const value of reportCases){
+  const actual=JSON.parse(decode.decode(binding.research_shelf_rule_wasm_v1(encode.encode(JSON.stringify({operation:'migration_skips',value})))));
+  const reason=value.section==='notes'?'non-portable-note':'legacy-graph-pose';
+  assert.deepEqual(actual,Array.from({length:value.count},(_,index)=>({source:value.source,section:value.section,index:value.single?null:index,reason})));
+}
+const lateCollision={...actual.packet,records:[{...actual.packet.records[0],id:'new-first'}, {...actual.packet.records[1],title:'conflict'}]};
+const atomic=createMemoryResearchShelfStore({now:()=>at});
+await atomic.import(actual.packet);
+await assert.rejects(atomic.import(lateCollision),error=>error.code==='conflict');
+assert.equal(await atomic.get('new-first'),null,'late collision leaves no early import');
+await atomic.close();
+console.log(JSON.stringify({status:'pass',cases:15,host:`Node ${process.version} WebAssembly`,
   wasm_bytes:wasm.byteLength,glue_bytes:(await stat(bindingPath)).size,startup_ms:Number(startupMs.toFixed(3)),
   packet_index:'chunked ids',whole_packet_wasm_copy:false}));

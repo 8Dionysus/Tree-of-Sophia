@@ -17,10 +17,38 @@ function ruleError(error){
   return failure;
 }
 
+// Match the existing Rust parser's bounds before stringify/UTF-8 copies. Raw
+// string/key units are a lower bound on their JSON byte representation. Visits
+// include queued values so a huge invalid container is refused before enqueue.
+const INPUT_BYTES=1_048_576,INPUT_VISITS=300_000,INPUT_DEPTH=64;
+function encodeRuleRequest(value){
+  const pending=[[value,0]];let visits=0,units=0;
+  const text=value=>{units+=value.length;if(units>INPUT_BYTES)throw new Error('limit');};
+  while(pending.length){
+    const [item,depth]=pending.pop();
+    if(++visits>INPUT_VISITS||depth>INPUT_DEPTH)throw new Error('limit');
+    if(typeof item==='string'){text(item);continue;}
+    if(!item||typeof item!=='object')continue;
+    if(Array.isArray(item)){
+      if(item.length>INPUT_VISITS-visits-pending.length)throw new Error('limit');
+      for(const child of item)pending.push([child,depth+1]);
+    }else{
+      for(const key in item)if(Object.hasOwn(item,key)){
+        text(key);
+        if(visits+pending.length>=INPUT_VISITS)throw new Error('limit');
+        pending.push([item[key],depth+1]);
+      }
+    }
+  }
+  const bytes=encoder.encode(JSON.stringify(value));
+  if(bytes.byteLength>INPUT_BYTES)throw new Error('limit');
+  return bytes;
+}
+
 export function researchShelfRule(operation,value){
   if(!runtime)return null;
   try{
-    return JSON.parse(decoder.decode(runtime.research_shelf_rule_wasm_v1(encoder.encode(JSON.stringify({operation,value})))));
+    return JSON.parse(decoder.decode(runtime.research_shelf_rule_wasm_v1(encodeRuleRequest({operation,value}))));
   }catch(error){throw ruleError(error);}
 }
 

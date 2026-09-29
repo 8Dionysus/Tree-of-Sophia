@@ -3,8 +3,8 @@
 
 use std::collections::HashSet;
 use tos_foundation::{
-    emit_value_preserved_json, parse_json, JsonLimits, JsonMode, JsonNumber, JsonNumberKind,
-    JsonString, JsonValue,
+    JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue,
+    emit_value_preserved_json, parse_json,
 };
 
 const MAX_SAFE: u64 = 9_007_199_254_740_991;
@@ -208,27 +208,68 @@ fn validate_record(value: &JsonValue) -> Result<JsonValue, &'static str> {
         ],
         &[],
     ) {
+        return invalid("invalid-target");
+    }
+    let id = string(value, "id")
+        .filter(|s| bounded(s, 1024))
+        .ok_or("invalid-target")?;
+    let title = string(value, "title")
+        .filter(|s| bounded(s, 256))
+        .ok_or("invalid-target")?;
+    let kind = string(value, "type")
+        .filter(|s| ["material", "form", "text", "lens", "route"].contains(s))
+        .ok_or("invalid-record")?;
+    if title.trim_matches(js_trim).is_empty() {
         return invalid("invalid-record");
     }
-    let id = string(value, "id").ok_or("invalid-record")?;
-    let title = string(value, "title").ok_or("invalid-record")?;
-    let kind = string(value, "type").ok_or("invalid-record")?;
-    let created = string(value, "createdAt").ok_or("invalid-record")?;
-    let updated = string(value, "updatedAt").ok_or("invalid-record")?;
-    if !bounded(id, 1024)
-        || !bounded(title, 256)
-        || title.trim_matches(js_trim).is_empty()
-        || !["material", "form", "text", "lens", "route"].contains(&kind)
-        || !get(value, "target").is_some_and(|v| target(kind, v))
+    if !get(value, "target").is_some_and(|v| target(kind, v))
         || !get(value, "collectionIds").is_some_and(|v| ids(v, 32, 256))
-        || !timestamp(created)
-        || !timestamp(updated)
-        || timestamp_before(updated, created)
-        || number(value, "revision", 1).is_none()
     {
+        return invalid("invalid-target");
+    }
+    let created = string(value, "createdAt")
+        .filter(|s| timestamp(s))
+        .ok_or("invalid-record")?;
+    let updated = string(value, "updatedAt")
+        .filter(|s| timestamp(s))
+        .ok_or("invalid-record")?;
+    if timestamp_before(updated, created) {
         return invalid("invalid-record");
     }
-    Ok(value.clone())
+    let revision = number(value, "revision", 1).ok_or("invalid-input")?;
+    let record = obj(vec![
+        ("id", JsonValue::String(JsonString::from_utf8(id))),
+        (
+            "title",
+            JsonValue::String(JsonString::from_utf8(title.trim_matches(js_trim))),
+        ),
+        ("type", JsonValue::String(JsonString::from_utf8(kind))),
+        ("target", get(value, "target").unwrap().clone()),
+        (
+            "collectionIds",
+            get(value, "collectionIds").unwrap().clone(),
+        ),
+        (
+            "createdAt",
+            JsonValue::String(JsonString::from_utf8(created)),
+        ),
+        (
+            "updatedAt",
+            JsonValue::String(JsonString::from_utf8(updated)),
+        ),
+        ("revision", num(revision)),
+    ]);
+    // The owning target decoder runs in the caller. This is the shelf's exact
+    // emitted record cap, applied before returning a second host object.
+    emit_value_preserved_json(
+        &record,
+        JsonLimits {
+            max_bytes: 208_192,
+            ..Default::default()
+        },
+    )
+    .map_err(|_| "limit")?;
+    Ok(record)
 }
 fn validate_collection(value: &JsonValue) -> Result<JsonValue, &'static str> {
     if !exact(
@@ -236,23 +277,43 @@ fn validate_collection(value: &JsonValue) -> Result<JsonValue, &'static str> {
         &["id", "title", "createdAt", "updatedAt", "revision"],
         &[],
     ) {
+        return invalid("invalid-target");
+    }
+    let id = string(value, "id")
+        .filter(|s| bounded(s, 256))
+        .ok_or("invalid-target")?;
+    let title = string(value, "title")
+        .filter(|s| bounded(s, 128))
+        .ok_or("invalid-target")?;
+    if title.trim_matches(js_trim).is_empty() {
         return invalid("invalid-record");
     }
-    let id = string(value, "id").ok_or("invalid-record")?;
-    let title = string(value, "title").ok_or("invalid-record")?;
-    let created = string(value, "createdAt").ok_or("invalid-record")?;
-    let updated = string(value, "updatedAt").ok_or("invalid-record")?;
-    if !bounded(id, 256)
-        || !bounded(title, 128)
-        || title.trim_matches(js_trim).is_empty()
-        || !timestamp(created)
-        || !timestamp(updated)
-        || timestamp_before(updated, created)
-        || number(value, "revision", 1).is_none()
-    {
+    let created = string(value, "createdAt")
+        .filter(|s| timestamp(s))
+        .ok_or("invalid-record")?;
+    let updated = string(value, "updatedAt")
+        .filter(|s| timestamp(s))
+        .ok_or("invalid-record")?;
+    if timestamp_before(updated, created) {
         return invalid("invalid-record");
     }
-    Ok(value.clone())
+    let revision = number(value, "revision", 1).ok_or("invalid-input")?;
+    Ok(obj(vec![
+        ("id", JsonValue::String(JsonString::from_utf8(id))),
+        (
+            "title",
+            JsonValue::String(JsonString::from_utf8(title.trim_matches(js_trim))),
+        ),
+        (
+            "createdAt",
+            JsonValue::String(JsonString::from_utf8(created)),
+        ),
+        (
+            "updatedAt",
+            JsonValue::String(JsonString::from_utf8(updated)),
+        ),
+        ("revision", num(revision)),
+    ]))
 }
 fn field_or(value: &JsonValue, key: &str, fallback: JsonValue) -> JsonValue {
     match get(value, key) {
@@ -293,7 +354,7 @@ fn create_record(value: &JsonValue) -> Result<JsonValue, &'static str> {
     if get(input, "id").is_some_and(|v| v.as_str() != Some(id)) {
         return invalid("invalid-input");
     }
-    Ok(obj(vec![
+    validate_record(&obj(vec![
         ("id", JsonValue::String(JsonString::from_utf8(id))),
         (
             "title",
@@ -355,7 +416,7 @@ fn update_record(value: &JsonValue) -> Result<JsonValue, &'static str> {
     let at = string(value, "now")
         .filter(|s| timestamp(s))
         .ok_or("invalid-record")?;
-    Ok(obj(vec![
+    validate_record(&obj(vec![
         ("id", get(old, "id").unwrap().clone()),
         (
             "title",
@@ -393,7 +454,7 @@ fn create_collection(value: &JsonValue) -> Result<JsonValue, &'static str> {
     let at = string(value, "now")
         .filter(|s| timestamp(s))
         .ok_or("invalid-record")?;
-    Ok(obj(vec![
+    validate_collection(&obj(vec![
         ("id", JsonValue::String(JsonString::from_utf8(id))),
         (
             "title",
@@ -424,7 +485,7 @@ fn update_collection(value: &JsonValue) -> Result<JsonValue, &'static str> {
     let at = string(value, "now")
         .filter(|s| timestamp(s))
         .ok_or("invalid-record")?;
-    Ok(obj(vec![
+    validate_collection(&obj(vec![
         ("id", get(old, "id").ok_or("invalid-record")?.clone()),
         (
             "title",
@@ -829,6 +890,122 @@ fn migration_policy(value: &JsonValue) -> Result<JsonValue, &'static str> {
     };
     Ok(JsonValue::String(JsonString::from_utf8(posture)))
 }
+// A single canonical owner target enters at a time. Full workspace-copy bodies
+// and all output records never coexist in one WASM request.
+fn migration_record(value: &JsonValue) -> Result<JsonValue, &'static str> {
+    if !exact(
+        value,
+        &["source", "section", "index", "target", "now"],
+        &["hasPositions"],
+    ) {
+        return invalid("invalid-input");
+    }
+    let source = string(value, "source").ok_or("migration-required")?;
+    let section = string(value, "section").ok_or("invalid-input")?;
+    let index = number(value, "index", 0).ok_or("invalid-input")?;
+    let body = get(value, "target").ok_or("invalid-target")?;
+    let kind = match (source, section) {
+        ("reading-resume" | "workspace-copy", "entries") if index < 2 => "material",
+        ("research-workspace" | "workspace-copy", "lenses") if index < 12 => "lens",
+        _ => return invalid("invalid-input"),
+    };
+    let has_positions = match get(value, "hasPositions") {
+        None => false,
+        Some(value) => value.as_bool().ok_or("invalid-input")?,
+    };
+    if kind != "material" && has_positions {
+        return invalid("invalid-input");
+    }
+    let skipped = if has_positions {
+        vec![obj(vec![
+            ("source", JsonValue::String(JsonString::from_utf8(source))),
+            (
+                "section",
+                JsonValue::String(JsonString::from_utf8("entries")),
+            ),
+            ("index", num(index)),
+            (
+                "reason",
+                JsonValue::String(JsonString::from_utf8("non-portable-reading-position")),
+            ),
+        ])]
+    } else {
+        Vec::new()
+    };
+    let id = migration_id(&obj(vec![
+        ("type", JsonValue::String(JsonString::from_utf8(kind))),
+        ("target", body.clone()),
+    ]))?;
+    let title = if kind == "material" {
+        "Материал"
+    } else {
+        get(body, "draft")
+            .and_then(|draft| string(draft, "name"))
+            .ok_or("invalid-target")?
+    };
+    let record = create_record(&obj(vec![
+        (
+            "input",
+            obj(vec![
+                ("title", JsonValue::String(JsonString::from_utf8(title))),
+                ("type", JsonValue::String(JsonString::from_utf8(kind))),
+                ("target", body.clone()),
+                ("collectionIds", JsonValue::Array(Vec::new())),
+            ]),
+        ),
+        ("id", id.clone()),
+        ("now", get(value, "now").ok_or("invalid-record")?.clone()),
+    ]))?;
+    Ok(obj(vec![
+        ("record", record),
+        ("skipped", JsonValue::Array(skipped)),
+        (
+            "retained",
+            obj(vec![
+                ("source", JsonValue::String(JsonString::from_utf8(source))),
+                ("section", JsonValue::String(JsonString::from_utf8(section))),
+                ("index", num(index)),
+                ("type", JsonValue::String(JsonString::from_utf8(kind))),
+                ("recordId", id),
+            ]),
+        ),
+    ]))
+}
+fn migration_skips(value: &JsonValue) -> Result<JsonValue, &'static str> {
+    if !exact(value, &["source", "section", "count", "single"], &[]) {
+        return invalid("invalid-input");
+    }
+    let source = string(value, "source").ok_or("migration-required")?;
+    let section = string(value, "section").ok_or("invalid-input")?;
+    let count = number(value, "count", 0)
+        .filter(|n| *n <= 256)
+        .ok_or("limit")?;
+    let single = get(value, "single")
+        .and_then(JsonValue::as_bool)
+        .ok_or("invalid-input")?;
+    if single && count > 1 {
+        return invalid("invalid-input");
+    }
+    let reason = migration_policy(&obj(vec![
+        ("source", JsonValue::String(JsonString::from_utf8(source))),
+        ("section", JsonValue::String(JsonString::from_utf8(section))),
+    ]))?;
+    if reason.as_str().is_some_and(|s| s.starts_with("retain-")) {
+        return invalid("invalid-input");
+    }
+    Ok(JsonValue::Array(
+        (0..count)
+            .map(|index| {
+                obj(vec![
+                    ("source", JsonValue::String(JsonString::from_utf8(source))),
+                    ("section", JsonValue::String(JsonString::from_utf8(section))),
+                    ("index", if single { JsonValue::Null } else { num(index) }),
+                    ("reason", reason.clone()),
+                ])
+            })
+            .collect(),
+    ))
+}
 pub fn research_shelf_rule_v1(raw: &[u8]) -> Result<Vec<u8>, &'static str> {
     let doc = parse_json(
         raw,
@@ -874,6 +1051,8 @@ pub fn research_shelf_rule_v1(raw: &[u8]) -> Result<Vec<u8>, &'static str> {
         "import_plan" => import_plan(value)?,
         "migration_id" => migration_id(value)?,
         "migration_policy" => migration_policy(value)?,
+        "migration_record" => migration_record(value)?,
+        "migration_skips" => migration_skips(value)?,
         _ => return Err("invalid-input"),
     };
     emit_value_preserved_json(
