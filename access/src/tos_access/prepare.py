@@ -174,7 +174,7 @@ def _exclusive_json(path: Path, value: dict) -> None:
         raise
 
 
-def prepare(source_root: str | Path, output_dir: str | Path, *,
+def reference_prepare(source_root: str | Path, output_dir: str | Path, *,
             limits: PublicationLimits | None = None,
             search_scratch_limits: BulkBootstrapLimits | None = None,
             maintenance: MaintenanceAttachmentLimits | None = None,
@@ -271,6 +271,51 @@ def prepare(source_root: str | Path, output_dir: str | Path, *,
         receipt["maintenance"] = attached
     _exclusive_json(output / "binding.json", binding)
     _exclusive_json(output / "completed.json", receipt)
+    return receipt
+
+
+def prepare(source_root: str | Path, output_dir: str | Path, *,
+            limits: PublicationLimits | None = None,
+            search_scratch_limits: BulkBootstrapLimits | None = None,
+            maintenance: MaintenanceAttachmentLimits | None = None,
+            native_executable: str | Path | None = None,
+            native_timeout: int | None = None) -> dict:
+    """Explicit installed native bootstrap; reference source graph is not run."""
+    import subprocess
+    from .prepared_native import select_publication_executor
+    if native_executable is None and "TOS_PREPARED_EXECUTOR" not in os.environ:
+        import shutil
+        installed = shutil.which("tos")
+        if installed is None:
+            raise ValueError("installed tos or explicit TOS_PREPARED_EXECUTOR required")
+        native_executable = Path(installed).resolve()
+    executable, seconds = select_publication_executor(native_executable, native_timeout)
+    limits = limits or PublicationLimits()
+    if search_scratch_limits is not None:
+        if not isinstance(search_scratch_limits, BulkBootstrapLimits):
+            raise ValueError("explicit BulkBootstrapLimits required")
+        search_scratch_limits.validate()
+    if maintenance is not None and not isinstance(maintenance, MaintenanceAttachmentLimits):
+        raise ValueError("explicit MaintenanceAttachmentLimits required")
+    root = Path(source_root).expanduser().resolve(strict=True)
+    output = Path(output_dir).expanduser().absolute()
+    command = [str(executable), "prepare", "--source-root", str(root),
+               "--output-dir", str(output), "--max-seconds", str(seconds),
+               "--publication-limits", json.dumps(asdict(limits), separators=(",", ":"))]
+    if search_scratch_limits is not None:
+        command += ["--search-scratch-limits", json.dumps(asdict(search_scratch_limits), separators=(",", ":"))]
+    if maintenance is not None:
+        command += ["--maintenance-limits", json.dumps(asdict(maintenance), separators=(",", ":"))]
+    child = subprocess.run(command, capture_output=True, check=False, timeout=seconds)
+    if child.returncode != 0:
+        raise RuntimeError("native prepare refused; incomplete attempt remains")
+    if len(child.stdout) > limits.max_metadata_bytes or child.stderr:
+        raise ValueError("native prepare receipt envelope")
+    receipt = json.loads(child.stdout)
+    if (not isinstance(receipt, dict) or receipt.get("schema") != SCHEMA
+            or receipt.get("status") != "completed" or receipt.get("source_root") != root.as_posix()
+            or receipt.get("output_dir") != output.as_posix()):
+        raise ValueError("native prepare completion receipt")
     return receipt
 
 

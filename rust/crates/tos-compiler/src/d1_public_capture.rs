@@ -72,6 +72,8 @@ impl PublicCaptureLimits {
 /// capture without the full build's final input recheck and output completion.
 pub struct PublicCapture {
     root: PathBuf,
+    prepared_profile: bool,
+    prepared_state: Vec<(PathBuf, PathBuf, u64, u64, i64, i64, i64, i64)>,
     path: PathBuf,
     inode: (u64, u64),
     sources: Vec<SourceFile>,
@@ -105,6 +107,43 @@ impl Drop for PendingCapture<'_> {
             name.push(suffix);
             let _ = fs::remove_file(PathBuf::from(name));
         }
+    }
+}
+
+// Maintained prepare selects these five carriers, including their original
+// symlink resolution and path/mtime/size/inode/ctime currentness observations.
+const PREPARED_INPUTS: [&str; 5] = [
+    "ToS/derived-exports/tos_corpus_index.min.json",
+    "ToS/derived-exports/philosophy_graph_projection.min.json",
+    "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
+    "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+    "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+];
+fn prepared_state(root: &Path) -> Result<Vec<(PathBuf, PathBuf, u64, u64, i64, i64, i64, i64)>> {
+    PREPARED_INPUTS
+        .iter()
+        .map(|name| {
+            let selected = root.join(name);
+            let resolved = fs::canonicalize(&selected)?;
+            let m = fs::metadata(&selected)?;
+            Ok((
+                selected,
+                resolved,
+                m.len(),
+                m.ino(),
+                m.mtime(),
+                m.mtime_nsec(),
+                m.ctime(),
+                m.ctime_nsec(),
+            ))
+        })
+        .collect()
+}
+fn profile_open(path: &Path, cap: u64, prepared: bool) -> Result<File> {
+    if prepared {
+        safe_open::open_regular(&fs::canonicalize(path)?, cap)
+    } else {
+        safe_open::open_regular(path, cap)
     }
 }
 
@@ -921,7 +960,32 @@ impl PublicCapture {
         limits: PublicCaptureLimits,
         deadline: Instant,
     ) -> Result<Self> {
+        Self::create_profile(root, staging, limits, deadline, false)
+    }
+
+    /// Five maintained prepare input roles. Software contracts are compiled
+    /// code companions; optional public-release inputs are not prepare inputs.
+    pub(crate) fn create_prepared(
+        root: &Path,
+        staging: &Path,
+        limits: PublicCaptureLimits,
+        deadline: Instant,
+    ) -> Result<Self> {
+        Self::create_profile(root, staging, limits, deadline, true)
+    }
+    fn create_profile(
+        root: &Path,
+        staging: &Path,
+        limits: PublicCaptureLimits,
+        deadline: Instant,
+        prepared_profile: bool,
+    ) -> Result<Self> {
         limits.validate()?;
+        let prepared_state = if prepared_profile {
+            prepared_state(root)?
+        } else {
+            Vec::new()
+        };
         if Instant::now() >= deadline {
             return Err(Error::Budget("public D1 capture deadline"));
         }
@@ -969,7 +1033,7 @@ impl PublicCapture {
             ),
         ] {
             let path = root.join(relative);
-            let mut file = safe_open::open_regular(&path, limits.max_input_bytes)?;
+            let mut file = profile_open(&path, limits.max_input_bytes, prepared_profile)?;
             let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
                 if Instant::now() >= deadline {
                     return Err(Error::Budget("public D1 capture deadline"));
@@ -1025,18 +1089,36 @@ impl PublicCapture {
                     .end()
                     .map_err(|e| Error::Source(e.to_string()))?;
             }
-            let stored_schema: Vec<u8> = db.query_row(
-                "SELECT json FROM capture_headers WHERE role=?1 AND path='schema_version'",
-                [role],
-                |row| row.get(0),
-            )?;
+            let stored_schema: Option<Vec<u8>> = db
+                .query_row(
+                    "SELECT json FROM capture_headers WHERE role=?1 AND path='schema_version'",
+                    [role],
+                    |row| row.get(0),
+                )
+                .optional()?;
             let expected_schema = match role {
                 CORPUS => "tos_corpus_index_v1",
                 PHILOSOPHY => "tos_philosophy_graph_projection_v2",
                 CLAIMS => "tos_source_witness_bibliographic_graph_v1",
                 _ => return Err(Error::Invalid("public D1 source role")),
             };
-            if json(&stored_schema, 4096)?.as_str() != Some(expected_schema) {
+            let schema = stored_schema
+                .as_deref()
+                .map(|raw| json(raw, 4096))
+                .transpose()?;
+            if prepared_profile {
+                if role == PHILOSOPHY
+                    && !matches!(
+                        schema.as_ref().and_then(JsonValue::as_str),
+                        Some(
+                            "tos_philosophy_graph_projection_v1"
+                                | "tos_philosophy_graph_projection_v2"
+                        )
+                    )
+                {
+                    return Err(Error::Invalid("prepared philosophy source schema"));
+                }
+            } else if schema.as_ref().and_then(JsonValue::as_str) != Some(expected_schema) {
                 return Err(Error::Invalid("public D1 source schema"));
             }
             if role == CORPUS {
@@ -1054,7 +1136,7 @@ impl PublicCapture {
                 len,
             });
         }
-        if corpus_partitioned != claims_partitioned {
+        if !prepared_profile && corpus_partitioned != claims_partitioned {
             return Err(Error::Invalid("public D1 coupled projection storage mode"));
         }
         for relative in [
@@ -1077,8 +1159,17 @@ impl PublicCapture {
             "ToS/contracts/semantic-entity-type-registry.schema.json",
             "ToS/contracts/semantic-relation-type-registry.schema.json",
         ] {
+            if prepared_profile
+                && !matches!(
+                    relative,
+                    "ToS/doctrine/semantic-interchange/entity-types.v1.json"
+                        | "ToS/doctrine/semantic-interchange/relation-types.v1.json"
+                )
+            {
+                continue;
+            }
             let path = root.join(relative);
-            let mut file = safe_open::open_regular(&path, limits.max_input_bytes)?;
+            let mut file = profile_open(&path, limits.max_input_bytes, prepared_profile)?;
             let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
                 if Instant::now() >= deadline {
                     return Err(Error::Budget("public D1 capture deadline"));
@@ -1092,75 +1183,77 @@ impl PublicCapture {
                 len,
             });
         }
-        for relative in [
-            "ToS/derived-exports/epistemic_evidence_projection.min.json",
-            "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
-        ] {
-            let path = root.join(relative);
-            if path.exists() || path.is_symlink() {
-                let mut file = safe_open::open_regular(&path, limits.max_input_bytes)?;
-                let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
-                    if Instant::now() >= deadline {
-                        return Err(Error::Budget("public D1 capture deadline"));
-                    }
-                    checked_add(&mut work_bytes, n, limits.max_work_bytes)
-                })?;
-                sources.push(SourceFile {
-                    label: relative.to_owned(),
-                    path,
-                    digest: Some(digest),
-                    len,
-                });
-            } else {
-                sources.push(SourceFile {
-                    label: relative.to_owned(),
-                    path,
-                    digest: None,
-                    len: 0,
-                });
-            }
-        }
-        let ledger_relative = "ToS/source-witnesses/access-requests/public-ledger";
-        let ledger = root.join(ledger_relative);
-        if ledger.exists() {
-            if ledger.is_symlink() || !ledger.is_dir() {
-                return Err(Error::Invalid("public D1 ledger directory"));
-            }
-            let mut names = Vec::new();
-            for entry in std::fs::read_dir(&ledger)? {
-                if names.len() == 4096 {
-                    return Err(Error::Budget("public D1 ledger membership"));
+        if !prepared_profile {
+            for relative in [
+                "ToS/derived-exports/epistemic_evidence_projection.min.json",
+                "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
+            ] {
+                let path = root.join(relative);
+                if path.exists() || path.is_symlink() {
+                    let mut file = profile_open(&path, limits.max_input_bytes, prepared_profile)?;
+                    let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
+                        if Instant::now() >= deadline {
+                            return Err(Error::Budget("public D1 capture deadline"));
+                        }
+                        checked_add(&mut work_bytes, n, limits.max_work_bytes)
+                    })?;
+                    sources.push(SourceFile {
+                        label: relative.to_owned(),
+                        path,
+                        digest: Some(digest),
+                        len,
+                    });
+                } else {
+                    sources.push(SourceFile {
+                        label: relative.to_owned(),
+                        path,
+                        digest: None,
+                        len: 0,
+                    });
                 }
-                let name = entry?.file_name();
-                checked_add(
-                    &mut work_bytes,
-                    name.as_encoded_bytes().len(),
-                    limits.max_work_bytes,
-                )?;
-                names.push(name);
             }
-            names.sort();
-            for name in names {
-                let name = name
-                    .to_str()
-                    .ok_or(Error::Invalid("public D1 ledger filename"))?;
-                if !name.ends_with(".access-request.json") {
-                    continue;
+            let ledger_relative = "ToS/source-witnesses/access-requests/public-ledger";
+            let ledger = root.join(ledger_relative);
+            if ledger.exists() {
+                if ledger.is_symlink() || !ledger.is_dir() {
+                    return Err(Error::Invalid("public D1 ledger directory"));
                 }
-                let path = ledger.join(name);
-                let mut file = safe_open::open_regular(&path, 256_000)?;
-                let (digest, len) = source_digest(&mut file, 256_000, |n| {
-                    if Instant::now() >= deadline {
-                        return Err(Error::Budget("public D1 capture deadline"));
+                let mut names = Vec::new();
+                for entry in std::fs::read_dir(&ledger)? {
+                    if names.len() == 4096 {
+                        return Err(Error::Budget("public D1 ledger membership"));
                     }
-                    checked_add(&mut work_bytes, n, limits.max_work_bytes)
-                })?;
-                sources.push(SourceFile {
-                    label: format!("{ledger_relative}/{name}"),
-                    path,
-                    digest: Some(digest),
-                    len,
-                });
+                    let name = entry?.file_name();
+                    checked_add(
+                        &mut work_bytes,
+                        name.as_encoded_bytes().len(),
+                        limits.max_work_bytes,
+                    )?;
+                    names.push(name);
+                }
+                names.sort();
+                for name in names {
+                    let name = name
+                        .to_str()
+                        .ok_or(Error::Invalid("public D1 ledger filename"))?;
+                    if !name.ends_with(".access-request.json") {
+                        continue;
+                    }
+                    let path = ledger.join(name);
+                    let mut file = safe_open::open_regular(&path, 256_000)?;
+                    let (digest, len) = source_digest(&mut file, 256_000, |n| {
+                        if Instant::now() >= deadline {
+                            return Err(Error::Budget("public D1 capture deadline"));
+                        }
+                        checked_add(&mut work_bytes, n, limits.max_work_bytes)
+                    })?;
+                    sources.push(SourceFile {
+                        label: format!("{ledger_relative}/{name}"),
+                        path,
+                        digest: Some(digest),
+                        len,
+                    });
+                }
             }
         }
         if std::fs::metadata(staging)?.len() > limits.max_staging_bytes {
@@ -1174,10 +1267,13 @@ impl PublicCapture {
         pending.complete = true;
         Ok(Self {
             root: root.to_owned(),
+            prepared_profile,
+            prepared_state,
             path: staging.to_owned(),
             inode: (metadata.dev(), metadata.ino()),
             sources,
-            partitioned: corpus_partitioned == Some(true),
+            partitioned: corpus_partitioned == Some(true)
+                || (prepared_profile && claims_partitioned == Some(true)),
             rows,
             work_bytes: Rc::new(Cell::new(work_bytes)),
             max_work_bytes: limits.max_work_bytes,
@@ -1260,6 +1356,9 @@ impl PublicCapture {
 
     pub fn verify_inputs(&self, limits: PublicCaptureLimits) -> Result<()> {
         self.check_custody()?;
+        if self.prepared_profile && prepared_state(&self.root)? != self.prepared_state {
+            return Err(Error::Invalid("prepared source state changed"));
+        }
         if limits.max_work_bytes != self.max_work_bytes {
             return Err(Error::Invalid("public D1 changed work budget"));
         }
@@ -1272,7 +1371,8 @@ impl PublicCapture {
                 }
                 continue;
             }
-            let mut file = safe_open::open_regular(&source.path, limits.max_input_bytes)?;
+            let mut file =
+                profile_open(&source.path, limits.max_input_bytes, self.prepared_profile)?;
             let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
                 self.charge_work(n as u64)
             })?;
@@ -1280,41 +1380,43 @@ impl PublicCapture {
                 return Err(Error::Invalid("public D1 source changed during build"));
             }
         }
-        let ledger = self
-            .root
-            .join("ToS/source-witnesses/access-requests/public-ledger");
-        let mut current = BTreeSet::new();
-        if ledger.exists() {
-            if ledger.is_symlink() || !ledger.is_dir() {
-                return Err(Error::Invalid("public D1 ledger changed"));
-            }
-            for entry in std::fs::read_dir(&ledger)? {
-                if current.len() >= 4096 {
-                    return Err(Error::Budget("public D1 ledger membership"));
+        if !self.prepared_profile {
+            let ledger = self
+                .root
+                .join("ToS/source-witnesses/access-requests/public-ledger");
+            let mut current = BTreeSet::new();
+            if ledger.exists() {
+                if ledger.is_symlink() || !ledger.is_dir() {
+                    return Err(Error::Invalid("public D1 ledger changed"));
                 }
-                let entry = entry?;
-                let name = entry.file_name();
-                self.charge_work(name.as_encoded_bytes().len() as u64)?;
-                let name = name
-                    .to_str()
-                    .ok_or(Error::Invalid("public D1 ledger filename"))?;
-                if name.ends_with(".access-request.json") {
-                    current.insert(name.to_owned());
+                for entry in std::fs::read_dir(&ledger)? {
+                    if current.len() >= 4096 {
+                        return Err(Error::Budget("public D1 ledger membership"));
+                    }
+                    let entry = entry?;
+                    let name = entry.file_name();
+                    self.charge_work(name.as_encoded_bytes().len() as u64)?;
+                    let name = name
+                        .to_str()
+                        .ok_or(Error::Invalid("public D1 ledger filename"))?;
+                    if name.ends_with(".access-request.json") {
+                        current.insert(name.to_owned());
+                    }
                 }
             }
-        }
-        let captured = self
-            .sources
-            .iter()
-            .filter_map(|source| {
-                source
-                    .label
-                    .strip_prefix("ToS/source-witnesses/access-requests/public-ledger/")
-            })
-            .map(str::to_owned)
-            .collect::<BTreeSet<_>>();
-        if current != captured {
-            return Err(Error::Invalid("public D1 ledger membership changed"));
+            let captured = self
+                .sources
+                .iter()
+                .filter_map(|source| {
+                    source
+                        .label
+                        .strip_prefix("ToS/source-witnesses/access-requests/public-ledger/")
+                })
+                .map(str::to_owned)
+                .collect::<BTreeSet<_>>();
+            if current != captured {
+                return Err(Error::Invalid("public D1 ledger membership changed"));
+            }
         }
         let db = self.read_db()?;
         let mut statement =
@@ -1567,6 +1669,31 @@ impl PublicCapture {
     }
 
     pub fn read_input(&self, label: &str, cap: usize) -> Result<Option<Vec<u8>>> {
+        if self.prepared_profile {
+            let software: Option<&[u8]> = match label {
+                "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json" => {
+                    Some(include_bytes!(
+                        "../../../../ToS/doctrine/semantic-interchange/query-vocabulary.v1.json"
+                    ))
+                }
+                "ToS/contracts/semantic-entity-type-registry.schema.json" => Some(include_bytes!(
+                    "../../../../ToS/contracts/semantic-entity-type-registry.schema.json"
+                )),
+                "ToS/contracts/semantic-relation-type-registry.schema.json" => {
+                    Some(include_bytes!(
+                        "../../../../ToS/contracts/semantic-relation-type-registry.schema.json"
+                    ))
+                }
+                _ => None,
+            };
+            if let Some(raw) = software {
+                if raw.len() > cap {
+                    return Err(Error::Budget("prepared software companion bytes"));
+                }
+                self.charge_work(raw.len() as u64)?;
+                return Ok(Some(raw.to_vec()));
+            }
+        }
         self.check_custody()?;
         let source = self
             .sources
@@ -1580,7 +1707,7 @@ impl PublicCapture {
             return Err(Error::Budget("public D1 input bytes"));
         }
         self.charge_work(source.len)?;
-        let mut file = safe_open::open_regular(&source.path, cap as u64)?;
+        let mut file = profile_open(&source.path, cap as u64, self.prepared_profile)?;
         let mut raw = Vec::with_capacity(source.len as usize);
         file.take(cap as u64 + 1).read_to_end(&mut raw)?;
         if raw.len() as u64 != source.len || Digest256::of_bytes(&raw) != expected {

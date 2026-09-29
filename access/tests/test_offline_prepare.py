@@ -59,6 +59,11 @@ class OfflinePrepareTests(unittest.TestCase):
     def command(self, *extra, env=None):
         environment = {**os.environ, "PYTHONPATH": str(REPO / "access/src"),
                        "PYTHONDONTWRITEBYTECODE": "1", **(env or {})}
+        native = environment.get("TOS_NATIVE_SOURCE_PREPARE_EXECUTABLE")
+        if native:
+            return subprocess.run([native, "prepare", "--source-root", str(self.root),
+                                   "--output-dir", str(self.output), "--max-seconds", "20", *extra],
+                                  env=environment, capture_output=True, text=True, timeout=30)
         return subprocess.run([sys.executable, "-m", "tos_access.prepare", "--source-root", str(self.root),
                                "--output-dir", str(self.output), *extra],
                               env=environment, capture_output=True, text=True, timeout=30)
@@ -87,6 +92,19 @@ class OfflinePrepareTests(unittest.TestCase):
         graph = normalize_paths(expected["graph"], self.root)
         catalog = normalize_paths(expected["catalog"], self.root)
         self.assertEqual(receipt["source_revision"], graph["source_revision"])
+        if os.environ.get("TOS_NATIVE_SOURCE_PREPARE_EXECUTABLE"):
+            # Native software has a distinct processor/configuration identity.
+            # All graph rows, counts, source revision, reads and boundaries still
+            # compare with the unique source oracle below.
+            native_binding = receipt["normalization_binding"]
+            self.assertEqual(native_binding["schema"], graph["normalization_binding"]["schema"])
+            for key in ("entity_registry_digest", "relation_registry_digest"):
+                self.assertEqual(native_binding[key], graph["normalization_binding"][key])
+            self.assertEqual(len(native_binding["processor_digest"]), 64)
+            self.assertEqual(len(native_binding["configuration_digest"]), 64)
+            graph["normalization_binding"] = native_binding
+            if "normalization_binding" in catalog:
+                catalog["normalization_binding"] = native_binding
         binding = json.loads((self.output / "binding.json").read_text())
         self.assertEqual(binding, receipt["binding"])
         reader = PublishedKnowledgeReadModel(self.output / "snapshot.sqlite", binding)
@@ -180,7 +198,7 @@ class OfflinePrepareTests(unittest.TestCase):
         with patch.object(source.ToSAccessCore, "knowledge_snapshot_once", side_effect=AssertionError("invalid caps reached source")):
             for limits in ({}, producer.BulkBootstrapLimits(1, 100)):
                 with self.assertRaises(ValueError):
-                    producer.prepare(self.root, self.output, search_scratch_limits=limits)
+                    producer.reference_prepare(self.root, self.output, search_scratch_limits=limits)
                 self.assertFalse(self.output.exists())
         result = self.command("--bulk-search-scratch-bytes", "65536", "--bulk-search-scratch-mutations", "1")
         self.assertEqual(result.returncode, 1)
@@ -200,7 +218,7 @@ class OfflinePrepareTests(unittest.TestCase):
                     rows.append(value["id"])
             return original(value, root)
         with patch.object(producer, "normalize_paths", side_effect=convert):
-            receipt = producer.prepare(self.root, self.output)
+            receipt = producer.reference_prepare(self.root, self.output)
         self.assertEqual(len(rows), 2 * (receipt["build_counts"]["nodes"] + receipt["build_counts"]["relations"]))
         self.assertEqual(rows[:len(rows) // 2], rows[len(rows) // 2:])
 
@@ -261,7 +279,7 @@ class OfflinePrepareTests(unittest.TestCase):
                 try:
                     with patch.object(source, stage, side_effect=call_then_drift):
                         with self.assertRaisesRegex(RuntimeError, "source changed during one-shot"):
-                            producer.prepare(self.root, self.output)
+                            producer.reference_prepare(self.root, self.output)
                     self.assertIs(active_cache.get(), sentinel)
                 finally:
                     active_cache.reset(token)
@@ -272,7 +290,7 @@ class OfflinePrepareTests(unittest.TestCase):
         with patch.object(source.ToSAccessCore, "knowledge_snapshot", side_effect=AssertionError("mutable snapshot")), \
              patch.object(source.ToSAccessCore, "_canonical_source_inputs", side_effect=AssertionError("delta retention")), \
              patch.object(source, "_read_json_version", side_effect=AssertionError("shared raw cache")):
-            receipt = producer.prepare(self.root, self.output)
+            receipt = producer.reference_prepare(self.root, self.output)
         self.assertEqual(receipt["status"], "completed")
 
     def test_missing_source_and_partial_publication_never_complete(self):
@@ -290,7 +308,7 @@ class OfflinePrepareTests(unittest.TestCase):
             raise RuntimeError("injected failure")
         with patch.object(producer, "publish_prepared_rows", side_effect=fail):
             with self.assertRaisesRegex(RuntimeError, "injected failure"):
-                producer.prepare(self.root, partial)
+                producer.reference_prepare(self.root, partial)
         self.assertEqual((partial / "snapshot.sqlite").read_text(), "unfinished")
         self.assertFalse((partial / "binding.json").exists())
         self.assertFalse((partial / "completed.json").exists())
@@ -304,7 +322,7 @@ class OfflinePrepareTests(unittest.TestCase):
             return binding
         with patch.object(producer, "publish_prepared_rows", side_effect=publish_then_drift):
             with self.assertRaisesRegex(RuntimeError, "source changed"):
-                producer.prepare(self.root, self.output)
+                producer.reference_prepare(self.root, self.output)
         self.assertTrue((self.output / "snapshot.sqlite").exists())
         self.assertFalse((self.output / "binding.json").exists())
         self.assertFalse((self.output / "completed.json").exists())
@@ -317,13 +335,13 @@ class OfflinePrepareTests(unittest.TestCase):
             return original(path, value)
         with patch.object(producer, "_exclusive_json", side_effect=fail_completion):
             with self.assertRaisesRegex(OSError, "injected receipt failure"):
-                producer.prepare(self.root, self.output)
+                producer.reference_prepare(self.root, self.output)
         self.assertTrue((self.output / "binding.json").exists())
         self.assertFalse((self.output / "completed.json").exists())
 
     def test_actual_publication_limit_failure_and_last_marker_io_failure(self):
         with self.assertRaises(Exception):
-            producer.prepare(self.root, self.output, limits=producer.PublicationLimits(max_bytes=4096))
+            producer.reference_prepare(self.root, self.output, limits=producer.PublicationLimits(max_bytes=4096))
         self.assertFalse((self.output / "snapshot.sqlite").exists())
         self.assertFalse((self.output / "binding.json").exists())
         self.assertFalse((self.output / "completed.json").exists())
@@ -335,7 +353,7 @@ class OfflinePrepareTests(unittest.TestCase):
             return original(path)
         with patch.object(producer, "_sync_directory", side_effect=fail_final_sync):
             with self.assertRaisesRegex(OSError, "injected final sync failure"):
-                producer.prepare(self.root, partial)
+                producer.reference_prepare(self.root, partial)
         self.assertTrue((partial / "binding.json").exists())
         self.assertFalse((partial / "completed.json").exists())
 

@@ -823,3 +823,5 @@ fn compile_created<I: NavigationInput>(
         sqlite_size_bytes: size,
     })
 }
+
+pub mod native_prepare;

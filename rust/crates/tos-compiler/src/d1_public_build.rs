@@ -379,7 +379,7 @@ fn input(capture: &PublicCapture, path: &str, cap: usize) -> Result<Vec<u8>> {
         .ok_or(Error::Invalid("public D1 required source absent"))
 }
 
-fn processor_binding(
+pub(crate) fn processor_binding(
     root: &PublicRepositoryRoot,
     descriptor: &[u8],
     entity: &[u8],

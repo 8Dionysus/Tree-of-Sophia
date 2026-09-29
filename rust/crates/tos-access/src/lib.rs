@@ -30,3 +30,5 @@ pub use common::{
     IndexedSearchParams, NoOwner, Params, PreparedPacket, QuerySession, RegisteredOperation,
     SEARCH_OPERATION_ID, checked_execute, descriptor, registered_operations,
 };
+
+pub mod native_prepare;

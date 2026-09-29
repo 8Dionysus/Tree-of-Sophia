@@ -28,6 +28,11 @@ class OfflineMaintenanceTests(unittest.TestCase):
         write_source(self.root)
 
     def command(self, *extra):
+        native = os.environ.get("TOS_NATIVE_SOURCE_PREPARE_EXECUTABLE")
+        if native:
+            return subprocess.run([native, "prepare", "--source-root", str(self.root),
+                                   "--output-dir", str(self.output), "--max-seconds", "20", *extra],
+                capture_output=True, text=True, timeout=30, env=os.environ.copy())
         return subprocess.run([sys.executable, "-m", "tos_access.prepare", "--source-root", str(self.root),
             "--output-dir", str(self.output), *extra], capture_output=True, text=True, timeout=30,
             env={**os.environ, "PYTHONPATH": str(REPO / "access/src"), "PYTHONDONTWRITEBYTECODE": "1"})
@@ -62,8 +67,8 @@ class OfflineMaintenanceTests(unittest.TestCase):
             return publication.reference_publish_prepared_rows(path, **values)
         with (patch.object(producer, "publish_prepared_rows", side_effect=reference_rows),
               patch.object(producer, "_attach_maintenance", side_effect=reference_attachment)):
-            reference = producer.prepare(self.root, reference_output, **options)
-        actual = producer.prepare(self.root, self.output, **options)
+            reference = producer.reference_prepare(self.root, reference_output, **options)
+        actual = producer.reference_prepare(self.root, self.output, **options)
         self.assertEqual(actual["binding"], reference["binding"])
         self.assertEqual(actual["maintenance"]["catalog_digest"], reference["maintenance"]["catalog_digest"])
         self.assertEqual(actual["maintenance"]["semantic_report_sha256"], reference["maintenance"]["semantic_report_sha256"])
@@ -93,14 +98,14 @@ class OfflineMaintenanceTests(unittest.TestCase):
             return original(path, **values)
         with (patch.object(native, "native_maintenance", side_effect=abort),
               self.assertRaisesRegex(RuntimeError, "source changed")):
-            producer.prepare(self.root, self.output, **options)
+            producer.reference_prepare(self.root, self.output, **options)
         self.assert_incomplete_rolled_back()
 
     def test_default_snapshot_and_prepare_packet_remain_unchanged(self):
         core = source.ToSAccessCore.discover(self.root)
         self.assertEqual(set(core.knowledge_snapshot_once()), {"graph", "catalog", "source_state"})
         with patch.object(producer, "bootstrap_prepared_maintenance_transaction", side_effect=AssertionError("default attachment")):
-            result = producer.prepare(self.root, self.output)
+            result = producer.reference_prepare(self.root, self.output)
         self.assertNotIn("maintenance", result)
         self.assertNotIn("catalog_state", self.tables())
         self.assertNotIn("semantic_state", self.tables())
@@ -205,7 +210,7 @@ class OfflineMaintenanceTests(unittest.TestCase):
         def missing(core, **options):
             return original(core)
         with patch.object(source.ToSAccessCore, "knowledge_snapshot_once", missing), self.assertRaisesRegex(ValueError, "CatalogInputs"):
-            producer.prepare(self.root, self.output, maintenance=producer.MaintenanceAttachmentLimits())
+            producer.reference_prepare(self.root, self.output, maintenance=producer.MaintenanceAttachmentLimits())
         self.assertFalse((self.output / "completed.json").exists())
         self.assertFalse((self.output / "snapshot.sqlite").exists())
 
@@ -230,7 +235,7 @@ class OfflineMaintenanceTests(unittest.TestCase):
             self.assertEqual(options["semantic_limits"].max_input_bytes, 16 * 1024 * 1024)
             return original(db, **options)
         with patch.object(producer, "bootstrap_prepared_maintenance_transaction", side_effect=inspect):
-            result = producer.prepare(self.root, self.output, limits=publication, maintenance=maintenance)
+            result = producer.reference_prepare(self.root, self.output, limits=publication, maintenance=maintenance)
         attached = result["maintenance"]
         self.assertEqual(attached["declared_limits"]["max_mutations"], 123456)
         self.assertEqual(attached["effective_limits"]["publication"]["max_bytes"], 2 * 1024 * 1024)
@@ -246,7 +251,7 @@ class OfflineMaintenanceTests(unittest.TestCase):
                 raise KeyboardInterrupt() if stage == "interrupt" else RuntimeError("injected stage failure")
             error = KeyboardInterrupt if stage == "interrupt" else RuntimeError
             with patch.object(joined, name, side_effect=fail), self.assertRaises(error):
-                producer.prepare(self.root, self.output, maintenance=producer.MaintenanceAttachmentLimits())
+                producer.reference_prepare(self.root, self.output, maintenance=producer.MaintenanceAttachmentLimits())
             self.assert_incomplete_rolled_back()
 
     def test_source_and_selected_binding_drift_before_commit_roll_back(self):
@@ -262,7 +267,7 @@ class OfflineMaintenanceTests(unittest.TestCase):
                     db.execute("UPDATE knowledge_exploration_clock SET epoch=epoch+1")
                 return result
             with patch.object(producer, "bootstrap_prepared_maintenance_transaction", side_effect=drift_after), self.assertRaises((ValueError, RuntimeError)):
-                producer.prepare(self.root, self.output, maintenance=producer.MaintenanceAttachmentLimits())
+                producer.reference_prepare(self.root, self.output, maintenance=producer.MaintenanceAttachmentLimits())
             self.assert_incomplete_rolled_back()
 
     def test_registry_path_values_are_not_rewritten_or_rebound_to_force_reproduction(self):
@@ -277,7 +282,7 @@ class OfflineMaintenanceTests(unittest.TestCase):
             self.assertEqual(options["inputs"].header["normalization_binding"]["entity_registry_digest"], k._stable_digest(registry))
             return original(db, **options)
         with patch.object(producer, "bootstrap_prepared_maintenance_transaction", side_effect=inspect), self.assertRaises(ValueError):
-            producer.prepare(self.root, self.output, maintenance=producer.MaintenanceAttachmentLimits())
+            producer.reference_prepare(self.root, self.output, maintenance=producer.MaintenanceAttachmentLimits())
         self.assert_incomplete_rolled_back()
 
     def test_separate_write_and_shared_file_limits_refuse_without_completion(self):
@@ -287,7 +292,7 @@ class OfflineMaintenanceTests(unittest.TestCase):
                              ("semantic-bytes", replace(base, semantic_limits=replace(base.semantic_limits, max_bytes=4096)))):
             self.output = Path(self.tmp.name) / name
             with self.assertRaises(ValueError):
-                producer.prepare(self.root, self.output, maintenance=limits)
+                producer.reference_prepare(self.root, self.output, maintenance=limits)
             self.assert_incomplete_rolled_back()
 
     def test_invalid_modes_and_caps_refuse_before_output_creation(self):
@@ -299,7 +304,7 @@ class OfflineMaintenanceTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertFalse(self.output.exists())
         with self.assertRaises(ValueError):
-            producer.prepare(self.root, self.output, maintenance={})
+            producer.reference_prepare(self.root, self.output, maintenance={})
         self.assertFalse(self.output.exists())
 
     def test_postcommit_marker_failure_is_incomplete_not_a_claimed_sql_rollback(self):
@@ -309,7 +314,7 @@ class OfflineMaintenanceTests(unittest.TestCase):
                 raise OSError("injected marker failure")
             return original(path, value)
         with patch.object(producer, "_exclusive_json", side_effect=fail), self.assertRaises(OSError):
-            producer.prepare(self.root, self.output, maintenance=producer.MaintenanceAttachmentLimits())
+            producer.reference_prepare(self.root, self.output, maintenance=producer.MaintenanceAttachmentLimits())
         self.assertFalse((self.output / "completed.json").exists())
         self.assertTrue({"catalog_state", "semantic_state"} <= self.tables())
 
