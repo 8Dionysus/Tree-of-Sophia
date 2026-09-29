@@ -123,6 +123,48 @@ It contains program code, API contracts, static schemas and browser assets;
 and authorization. Standalone ToS software follows this repository's release
 route independently of AbyssOS helpers.
 
+## Local native owner-command delivery
+
+Source mutations have a separate owner-scoped installation route. They are not
+part of the read-only access software archive. From the exact reviewed checkout,
+install the native dispatcher and its schema worker in a fresh absolute prefix:
+
+```sh
+owner_prefix=/absolute/fresh-owner-prefix
+cargo +1.98.1 install --debug --locked --offline --path rust/crates/tos-command \
+  --bin tos-native-owner-command --root "$owner_prefix"
+cargo +1.98.1 install --debug --locked --offline --path rust/crates/tos-validation \
+  --bin tos-schema-worker --root "$owner_prefix"
+sha256sum "$owner_prefix/bin/tos-native-owner-command" "$owner_prefix/bin/tos-schema-worker"
+```
+
+Preparation needs its own admitted storage/process budget. Keep the exact source,
+lock, toolchain and both resulting product identities with the owner receipt;
+an executable found on PATH is not an authorization or a matching worker proof.
+The owner supplies a protected, user-owned `0600` invocation file and protected
+owner config, with absolute `native_executable` and `schema_worker.absolute_path`
+from this prefix and their exact SHA digests. The existing invocation also binds
+owned corpus store/source revision, software capture/restored root and selection,
+software components and finite budgets. Claim/Item profiles retain explicit
+`original_source_revision`; Alignment retains `owner_context`. Family-specific
+profiles and authorized operations belong to the command owner.
+
+The current explicit local invocation path is runnable with the selected owner
+request on stdin:
+
+```sh
+python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py \
+  --owner-config /absolute/protected-owner-config.json \
+  --native-invocation /absolute/protected-native-invocation.json < /absolute/request.json
+```
+
+The installed executable also accepts `--invocation ABSOLUTE_FILE` directly.
+Both routes must retain the same selected owner/source/rights/recovery and worker
+custody checks. Installing products does not construct an invocation, authorize a
+mutation, select a production corpus or switch a running cohort. Retain Python
+reference APIs while the remaining native handler successors are completed;
+normal default dispatcher cutover is coordinated with the command owner.
+
 ## Registry source-contract changes
 
 An authored semantic-registry change uses the independent
