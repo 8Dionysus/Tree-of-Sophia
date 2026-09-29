@@ -228,7 +228,8 @@ impl PreparedLocalExecutor {
             (s.read.max_row_bytes.max(131_072) + 4096)
                 .try_into()
                 .map_err(|_| unavailable())?,
-        );
+        )
+        .map_err(|_| unavailable())?;
         db.pragma_update(None, "query_only", true)
             .map_err(|_| unavailable())?;
         if state(&s.path)? != before

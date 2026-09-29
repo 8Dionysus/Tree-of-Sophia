@@ -1375,7 +1375,7 @@ mod selected_knowledge {
     #[test]
     #[ignore = "requires OPS-retained binary and source checkout plus isolated fs-verity admission"]
     fn managed_local_installed_entrypoint_retains_real_release_and_kernel_custody() {
-        use std::process::{Command, Stdio};
+        use std::process::Command;
         use tos_access::release_state::{ManagedRelease, NATIVE_DATA_SCHEMA};
         use tos_compiler::knowledge_full_fixture::{
             NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS,
@@ -1389,7 +1389,7 @@ mod selected_knowledge {
         // Absolute setup deadline belongs to the existing 240-second finite
         // isolated case. The enclosing admitted runner remains the hard wall.
         let producer_deadline = std::time::Instant::now() + Duration::from_secs(240);
-        use crate::native_child::{OwnedChild, bounded_output, bounded_sha};
+        use crate::native_child::{OwnedChild, bounded_child_output, bounded_output, bounded_sha};
         fn bounded_wait(child: &mut OwnedChild) -> std::process::ExitStatus {
             let deadline = std::time::Instant::now() + Duration::from_secs(60);
             loop {
@@ -1527,7 +1527,10 @@ mod selected_knowledge {
         fn bounded_source(path: &std::path::Path) -> Vec<u8> {
             let mut file = tos_fd_open::open_absolute_regular(path, 1_048_576).unwrap();
             let mut raw = Vec::new();
-            file.by_ref().take(1_048_577).read_to_end(&mut raw).unwrap();
+            std::io::Read::by_ref(&mut file)
+                .take(1_048_577)
+                .read_to_end(&mut raw)
+                .unwrap();
             assert!(
                 raw.len() <= 1_048_576,
                 "selected source grew beyond byte cap"
@@ -1699,7 +1702,7 @@ with tempfile.TemporaryDirectory() as d:
             cold_limits.max_row_bytes
         );
         assert_eq!(
-            stage_limits.sqlite.sqlite_cache_kib,
+            u64::from(stage_limits.sqlite.sqlite_cache_kib),
             cold_limits.sqlite_cache_kib
         );
         let process = NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS;
@@ -5526,7 +5529,11 @@ mod native_child {
             let _ = self.0.wait();
         }
     }
-    fn bounded_child_output(mut child: OwnedChild, stdout_max: usize, timeout: Duration) -> Output {
+    fn bounded_child_output_until(
+        mut child: OwnedChild,
+        stdout_max: usize,
+        timeout: Duration,
+    ) -> Output {
         use std::sync::mpsc;
         use std::time::Instant;
         const STDERR_MAX: usize = 16 * 1024;
@@ -5586,6 +5593,9 @@ mod native_child {
             std::thread::sleep(Duration::from_millis(10));
         }
     }
+    pub(super) fn bounded_child_output(child: OwnedChild, stdout_max: usize) -> Output {
+        bounded_child_output_until(child, stdout_max, Duration::from_secs(60))
+    }
     pub(super) fn bounded_output(command: &mut Command, stdout_max: usize) -> Output {
         bounded_output_until(command, stdout_max, Duration::from_secs(60))
     }
@@ -5599,7 +5609,7 @@ mod native_child {
             .stderr(Stdio::piped())
             .spawn()
             .unwrap();
-        bounded_child_output(OwnedChild(child), stdout_max, timeout)
+        bounded_child_output_until(OwnedChild(child), stdout_max, timeout)
     }
     pub(super) fn bounded_sha(path: &std::path::Path, max: u64) -> Digest256 {
         use std::os::unix::fs::MetadataExt;
@@ -5736,7 +5746,7 @@ mod prepared_compressed {
         .unwrap();
         let executor = tos_access::prepared_local::PreparedLocalExecutor::open(
             path.clone(),
-            binding_path,
+            binding_path.clone(),
             None,
         )
         .unwrap();
