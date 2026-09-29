@@ -6,7 +6,11 @@ use std::{
     path::{Path, PathBuf},
     time::{Duration, Instant},
 };
-use tos_compiler::local_prepared::{self, PreparedChange, PreparedRows, PublicationLimits};
+use tos_compiler::{
+    local_prepared::{self, BootstrapSearch, PreparedChange, PreparedRows, PublicationLimits},
+    local_prepared_bulk::BulkBootstrapLimits,
+    local_prepared_reuse::PreparedSearchReuse,
+};
 use tos_foundation::{JsonLimits, JsonMode, JsonValue, emit_python_compact_json, parse_json};
 
 fn parse(raw: &[u8], cap: usize) -> Result<JsonValue, String> {
@@ -201,6 +205,86 @@ fn decode_change(raw: &[u8], cap: usize) -> Result<PreparedChange, String> {
         },
     })
 }
+fn bootstrap_search(frame: &JsonValue) -> Result<BootstrapSearch, String> {
+    let donor = frame.object_get("search_reuse");
+    let scratch = frame.object_get("search_scratch_path");
+    let scratch_limits = frame.object_get("search_scratch_limits");
+    if donor.is_some() && (scratch.is_some() || scratch_limits.is_some()) {
+        return Err("prepared donor and bulk are mutually exclusive".into());
+    }
+    if scratch.is_some() != scratch_limits.is_some() {
+        return Err("prepared bulk requires scratch path and limits".into());
+    }
+    if let Some(request) = donor {
+        exact(
+            request,
+            &[
+                "path",
+                "binding",
+                "max_source_bytes",
+                "max_copy_bytes",
+                "max_copy_rows",
+                "max_batch_bytes",
+                "max_queries",
+                "max_vm_steps",
+                "max_validation_state_bytes",
+            ],
+        )?;
+        return Ok(BootstrapSearch::Reuse(PreparedSearchReuse {
+            path: path(text(request, "path")?)?,
+            binding: field(request, "binding")?.clone(),
+            max_source_bytes: uint(field(request, "max_source_bytes")?)?,
+            max_copy_bytes: uint(field(request, "max_copy_bytes")?)?,
+            max_copy_rows: uint(field(request, "max_copy_rows")?)?,
+            max_batch_bytes: usize::try_from(uint(field(request, "max_batch_bytes")?)?)
+                .map_err(|_| "prepared donor batch size range")?,
+            max_queries: uint(field(request, "max_queries")?)?,
+            max_vm_steps: uint(field(request, "max_vm_steps")?)?,
+            max_validation_state_bytes: usize::try_from(uint(field(
+                request,
+                "max_validation_state_bytes",
+            )?)?)
+            .map_err(|_| "prepared donor state size range")?,
+            progress: false,
+        }));
+    }
+    if let (Some(scratch), Some(values)) = (scratch, scratch_limits) {
+        exact(
+            values,
+            &[
+                "max_bytes",
+                "max_mutations",
+                "max_cached_terms",
+                "max_cached_bytes",
+                "batch_size",
+                "max_cached_tails",
+                "max_tail_bytes",
+            ],
+        )?;
+        let size = |key: &str| -> Result<usize, String> {
+            usize::try_from(uint(field(values, key)?)?)
+                .map_err(|_| "prepared bulk size range".into())
+        };
+        return Ok(BootstrapSearch::Bulk {
+            scratch_path: path(
+                scratch
+                    .as_str()
+                    .ok_or("prepared scratch path must be a string")?,
+            )?,
+            limits: BulkBootstrapLimits {
+                max_bytes: uint(field(values, "max_bytes")?)?,
+                max_mutations: uint(field(values, "max_mutations")?)?,
+                max_cached_terms: size("max_cached_terms")?,
+                max_cached_bytes: size("max_cached_bytes")?,
+                batch_size: size("batch_size")?,
+                max_cached_tails: size("max_cached_tails")?,
+                max_tail_bytes: size("max_tail_bytes")?,
+            },
+        });
+    }
+    Ok(BootstrapSearch::Buffered)
+}
+
 fn run(
     input: &mut dyn BufRead,
     stdout: &mut dyn Write,
@@ -245,24 +329,32 @@ fn run(
     let catalog = field(&frame, "catalog")?;
     let binding = match operation {
         "bootstrap" => {
-            exact(
-                &frame,
-                &[
-                    "operation",
-                    "path",
-                    "header",
-                    "catalog",
-                    "limits",
-                    "max_seconds",
-                ],
-            )?;
+            let mut keys = vec![
+                "operation",
+                "path",
+                "header",
+                "catalog",
+                "limits",
+                "max_seconds",
+            ];
+            for key in [
+                "search_reuse",
+                "search_scratch_path",
+                "search_scratch_limits",
+            ] {
+                if frame.object_get(key).is_some() {
+                    keys.push(key);
+                }
+            }
+            exact(&frame, &keys)?;
+            let search = bootstrap_search(&frame)?;
             let mut rows = StreamRows {
                 input,
                 deadline,
                 row_cap: limits.max_row_bytes,
             };
-            local_prepared::publish_prepared_rows_until(
-                &path, header, catalog, &mut rows, limits, deadline,
+            local_prepared::publish_prepared_rows_with_search_until(
+                &path, header, catalog, &mut rows, limits, search, deadline,
             )
             .map_err(|e| e.to_string())?
         }

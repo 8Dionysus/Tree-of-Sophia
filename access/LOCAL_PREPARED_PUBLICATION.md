@@ -156,15 +156,21 @@ binding = apply_prepared_delta(existing_path, expected_binding=binding,
 
 The adapter streams both repeatable bootstrap row passes to one native process
 and one publication transaction. It bounds each input/output frame and supervises
-one absolute operation deadline; native SQL observes that same deadline.
+one absolute operation deadline; native SQL and the polled stdin adapter observe
+that same deadline, including a live idle pipe during the second source pass.
 Delta input is bounded before taking the write lock, and the compiler retains
 only bounded addressed raw carriers while preparing search documents one at a
 time. A timeout may leave an unselected interrupted candidate requiring offline
 owner inspection; it never returns success or selects that file.
 
 This opt-in path does not transfer a live Python SQLite transaction to another
-process. The existing Python caller-owned transaction helper, search-donor reuse
-and explicit scratch-backed bulk bootstrap retain their original APIs. Native
+process. The existing Python caller-owned transaction helper retains its original
+API. The same file-owner opt-in also accepts `search_reuse=PreparedSearchReuse(...)`
+or the explicit `search_scratch_path`/`search_scratch_limits` pair, under the same
+separate donor-read/copy/state or scratch-page/write/cache budgets described below.
+A Python donor progress callback remains an explicit unsupported native profile;
+its original Python route is available by omitting native selection. No automatic
+fallback, donor mutation, scratch adoption or per-row subprocess occurs. Native
 Rust callers can use `tos_compiler::local_prepared` directly inside their owned
 connection/transaction, including explicit optional-store installers. Truthy
 compound index dimensions outside the normalized scalar/string carrier profile
@@ -259,7 +265,11 @@ validation; it avoids rebuilding unchanged postings, not all global work.
 The fresh normalized row factory still runs twice and its complete emitted-row
 digest must agree. The source population and sparse source-order tokens must
 match the donor exactly. Changed complete rows become bounded search-document
-replacements, including sidecar changes, because full JSON is searchable.
+replacements, including sidecar changes, because full JSON is searchable. Native
+reuse retains only bounded changed raw rows on its second pass and prepares those
+search documents lazily; unchanged fresh rows do not undergo a redundant new
+search preparation. Complete old donor search projections are still regenerated
+for the integrity check.
 Unchanged text/postings are copied through the fixed search-v3 schema. A new
 descriptor, header, catalog, lens and cursor incarnation bind the successor;
 the donor and existing reader are untouched. Donor read bytes, copied bytes and

@@ -215,6 +215,76 @@ class PreparedPublicationTests(unittest.TestCase):
         self.assertGreater(restored['publication_epoch'], new_actual['publication_epoch'])
         self.assertNotEqual(restored, actual)
 
+    @unittest.skipUnless(os.environ.get('TOS_NATIVE_PREPARED_EXECUTABLE'),
+                         'explicit protected native publication executable required')
+    def test_native_donor_file_owner_matches_python_successor_and_preserves_predecessor(self):
+        """Actual maintained donor caller retains complete unchanged search bytes."""
+        old = self.publish()
+        before = self.path.read_bytes()
+        graph = copy.deepcopy(self.graph)
+        graph['source_revision'] = 'd' * 64
+        graph['normalization_binding']['processor_digest'] = 'e' * 64
+        graph['nodes'][0]['probe']['new-context'] = 'native donor successor'
+        header = {key: value for key, value in graph.items() if key not in ('nodes', 'relations')}
+        catalog = {**self.catalog, 'source_revision': graph['source_revision']}
+        reference = self.path.with_name('donor-reference.sqlite')
+        target = self.path.with_name('donor-native.sqlite')
+        expected = publish_prepared(reference, graph=graph, catalog=catalog)
+        actual = publish_prepared_rows(target, source_header=header, catalog=catalog,
+            row_factory=lambda kind: iter(graph[kind + 's']),
+            search_reuse=PreparedSearchReuse(self.path, self.binding),
+            native_executable=os.environ['TOS_NATIVE_PREPARED_EXECUTABLE'], native_timeout=20)
+        self.assertEqual(actual, expected)
+        self.assertEqual(self.path.read_bytes(), before)
+        for query in ('', 'native donor successor', 'a', 'missing'):
+            packets = [SearchStore(selected, binding=binding).query_page(kind='node', query=query,
+                page_size=10, candidate_budget=100, verification_bytes=1_000_000)
+                for selected, binding in ((reference, expected), (target, actual))]
+            for key in ('matches', 'returned_count', 'total_matching', 'has_more'):
+                self.assertEqual(packets[0].get(key), packets[1].get(key), (query, key))
+        with closing(sqlite3.connect(self.path)) as donor, closing(sqlite3.connect(target)) as candidate:
+            self.assertEqual(donor.execute('SELECT * FROM search_text_chunks WHERE doc_id IN (2,3,4) ORDER BY doc_id,category,field,chunk').fetchall(),
+                             candidate.execute('SELECT * FROM search_text_chunks WHERE doc_id IN (2,3,4) ORDER BY doc_id,category,field,chunk').fetchall())
+            self.assertNotEqual(donor.execute('SELECT cursor_key FROM search_header').fetchone(),
+                                candidate.execute('SELECT cursor_key FROM search_header').fetchone())
+        self.assertEqual(PublishedLensService(old).execute(lens()), execute_knowledge_lens(self.graph, lens()))
+        refused = self.path.with_name('donor-refused.sqlite')
+        with self.assertRaises(ValueError):
+            publish_prepared_rows(refused, source_header=header, catalog=catalog,
+                row_factory=lambda kind: iter(graph[kind + 's']),
+                search_reuse=PreparedSearchReuse(self.path, self.binding, max_queries=1),
+                native_executable=os.environ['TOS_NATIVE_PREPARED_EXECUTABLE'], native_timeout=20)
+        self.assertFalse(refused.exists())
+        self.assertEqual(self.path.read_bytes(), before)
+
+    @unittest.skipUnless(os.environ.get('TOS_NATIVE_PREPARED_EXECUTABLE'),
+                         'explicit protected native publication executable required')
+    def test_native_bulk_file_owner_matches_python_and_removes_private_scratch(self):
+        """Actual bounded disk-tail producer uses the same full carriers/search."""
+        reference = self.path.with_name('bulk-reference.sqlite')
+        target = self.path.with_name('bulk-native.sqlite')
+        scratch = self.path.with_name('bulk-scratch.sqlite')
+        expected = publish_prepared(reference, graph=self.graph, catalog=self.catalog)
+        actual = publish_prepared(target, graph=self.graph, catalog=self.catalog,
+            search_scratch_path=scratch,
+            search_scratch_limits=BulkBootstrapLimits(max_bytes=1_048_576, max_mutations=200_000,
+                max_cached_terms=2, max_cached_bytes=1024, batch_size=16,
+                max_cached_tails=2, max_tail_bytes=1024),
+            native_executable=os.environ['TOS_NATIVE_PREPARED_EXECUTABLE'], native_timeout=20)
+        self.assertEqual(actual, expected)
+        self.assertFalse(scratch.exists())
+        for query in ('', 'слово', 'a', 'missing'):
+            packets = [SearchStore(selected, binding=binding).query_page(kind='node', query=query,
+                page_size=10, candidate_budget=100, verification_bytes=1_000_000)
+                for selected, binding in ((reference, expected), (target, actual))]
+            for key in ('matches', 'returned_count', 'total_matching', 'has_more'):
+                self.assertEqual(packets[0].get(key), packets[1].get(key), (query, key))
+        for table in ('edge_meta', 'prepared_documents', 'prepared_state',
+                      'knowledge_nodes', 'knowledge_relations', 'knowledge_lens_order'):
+            with closing(sqlite3.connect(reference)) as before, closing(sqlite3.connect(target)) as after:
+                self.assertEqual(sorted(before.execute(f'SELECT * FROM {table}').fetchall()),
+                                 sorted(after.execute(f'SELECT * FROM {table}').fetchall()), table)
+
     def test_new_file_normalization_bootstrap_reuses_search_without_changing_old_reader(self):
         old = self.publish()
         previous = self.state()

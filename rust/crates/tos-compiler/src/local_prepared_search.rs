@@ -117,7 +117,7 @@ impl PreparedSearchDocument {
         document.metadata()?;
         Ok(document)
     }
-    fn metadata(&self) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>)> {
+    pub(crate) fn metadata(&self) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>)> {
         address(self.doc_id)?;
         valid_kind(&self.kind)?;
         if self
@@ -510,8 +510,8 @@ pub fn decode_search_reverse(
     Ok(terms)
 }
 
-type Term = (u8, u8, Vec<u8>);
-fn document_terms(document: &PreparedSearchDocument) -> Result<BTreeSet<Term>> {
+pub(crate) type Term = (u8, u8, Vec<u8>);
+pub(crate) fn document_terms(document: &PreparedSearchDocument) -> Result<BTreeSet<Term>> {
     let mut terms = BTreeSet::from([(3, 0, Vec::new())]);
     for value in &document.identities {
         let mut boundaries: Vec<usize> = value.char_indices().map(|(i, _)| i).take(769).collect();
@@ -577,18 +577,18 @@ impl CachedBlock {
             + self.addresses.len() * 8
     }
 }
-struct Writer<'a> {
-    db: &'a Connection,
-    maximum: u64,
+pub(crate) struct Writer<'a> {
+    pub(crate) db: &'a Connection,
+    pub(crate) maximum: u64,
     bootstrap: bool,
-    report: SearchWriteReport,
+    pub(crate) report: SearchWriteReport,
     cache: BTreeMap<u64, CachedBlock>,
     lru: BTreeMap<u64, u64>,
     next_recency: u64,
     cached_bytes: usize,
 }
 impl<'a> Writer<'a> {
-    fn new(db: &'a Connection, maximum: u64, bootstrap: bool) -> Result<Self> {
+    pub(crate) fn new(db: &'a Connection, maximum: u64, bootstrap: bool) -> Result<Self> {
         if maximum == 0 || maximum > if bootstrap { MAX_ADDRESS } else { 20_000_000 } {
             return Err(Error::Invalid("search mutation limit"));
         }
@@ -603,7 +603,7 @@ impl<'a> Writer<'a> {
             cached_bytes: 0,
         })
     }
-    fn write<P: Params>(&mut self, sql: &str, parameters: P) -> Result<usize> {
+    pub(crate) fn write<P: Params>(&mut self, sql: &str, parameters: P) -> Result<usize> {
         let before = self.db.total_changes();
         let changed = self.db.execute(sql, parameters)?;
         self.report.write_calls += 1;
@@ -617,7 +617,7 @@ impl<'a> Writer<'a> {
             ))?;
         Ok(changed)
     }
-    fn block(&mut self, term: u64, fence: &[u8], addresses: &[u64]) -> Result<()> {
+    pub(crate) fn block(&mut self, term: u64, fence: &[u8], addresses: &[u64]) -> Result<()> {
         let payload = encode_search_postings(addresses)?;
         self.write(
             "INSERT OR REPLACE INTO search_blocks VALUES (?1,?2,?3,?4)",
@@ -627,7 +627,7 @@ impl<'a> Writer<'a> {
         self.report.payload_bytes_written += payload.len() as u64;
         Ok(())
     }
-    fn keys(&mut self, addresses: &[u64]) -> Result<BTreeMap<u64, Vec<u8>>> {
+    pub(crate) fn keys(&mut self, addresses: &[u64]) -> Result<BTreeMap<u64, Vec<u8>>> {
         if addresses.len() > BLOCK_SIZE + 1 {
             return Err(Error::Invalid("search key workspace address count"));
         }
@@ -919,7 +919,7 @@ impl<'a> Writer<'a> {
             Ok(None)
         }
     }
-    fn save_values(&mut self, document: &PreparedSearchDocument) -> Result<()> {
+    pub(crate) fn save_values(&mut self, document: &PreparedSearchDocument) -> Result<()> {
         for (category, values) in [
             ("identity", &document.identities[..]),
             ("visible", &document.visible[..]),
@@ -1075,7 +1075,7 @@ impl<'a> Writer<'a> {
     }
 }
 
-fn require_transaction(db: &Connection) -> Result<()> {
+pub(crate) fn require_transaction(db: &Connection) -> Result<()> {
     if db.is_autocommit() {
         Err(Error::Invalid(
             "already-open caller search transaction required",
@@ -1084,7 +1084,7 @@ fn require_transaction(db: &Connection) -> Result<()> {
         Ok(())
     }
 }
-fn page_cap(db: &Connection, requested: u64) -> Result<u64> {
+pub(crate) fn page_cap(db: &Connection, requested: u64) -> Result<u64> {
     let current: u64 = db.query_row("PRAGMA max_page_count", [], |r| r.get(0))?;
     let cap = current.min(requested);
     let pages: u64 = db.query_row("PRAGMA page_count", [], |r| r.get(0))?;
@@ -1100,14 +1100,14 @@ fn page_cap(db: &Connection, requested: u64) -> Result<u64> {
     }
     Ok(cap)
 }
-fn cursor_key() -> Result<[u8; 32]> {
+pub(crate) fn cursor_key() -> Result<[u8; 32]> {
     let mut key = [0; 32];
     // Kernel entropy is read afresh at each publication. No deterministic key,
     // clock, digest, source binding or old incarnation is an entropy fallback.
     File::open("/dev/urandom")?.read_exact(&mut key)?;
     Ok(key)
 }
-fn database_bytes(db: &Connection) -> Result<u64> {
+pub(crate) fn database_bytes(db: &Connection) -> Result<u64> {
     let pages: u64 = db.query_row("PRAGMA page_count", [], |r| r.get(0))?;
     let size: u64 = db.query_row("PRAGMA page_size", [], |r| r.get(0))?;
     pages

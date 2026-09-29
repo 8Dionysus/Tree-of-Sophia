@@ -248,8 +248,20 @@ def publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dic
     It is not an addressed normalization migration of the donor in place.
     """
     if native_executable is not None or native_timeout is not None:
-        if search_reuse is not None or search_scratch_path is not None or search_scratch_limits is not None:
-            raise ValueError('native file publication requires its buffered full bootstrap; donor/bulk routes remain explicit Python APIs')
+        if search_reuse is not None and (search_scratch_path is not None or search_scratch_limits is not None):
+            raise ValueError('search reuse and full bulk search are mutually exclusive')
+        if (search_scratch_path is None) != (search_scratch_limits is None):
+            raise ValueError('bulk search requires both an explicit scratch path and limits')
+        if search_scratch_limits is not None:
+            if not isinstance(search_scratch_limits, BulkBootstrapLimits):
+                raise ValueError('explicit BulkBootstrapLimits required')
+            search_scratch_limits.validate()
+        if search_reuse is not None:
+            from .prepared_search_reuse import PreparedSearchReuse
+            if not isinstance(search_reuse, PreparedSearchReuse):
+                raise ValueError('explicit PreparedSearchReuse required')
+            if search_reuse.progress is not None:
+                raise ValueError('unsupported native donor progress callback profile; retain the explicit Python caller')
         from .prepared_native import native_publication
         selected = limits or PublicationLimits()
         _header(source_header, catalog)
@@ -257,7 +269,9 @@ def publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dic
             raise ValueError('explicit repeatable normalized row factory required')
         return native_publication(path, executable=native_executable, timeout=native_timeout,
                                   operation='bootstrap', header=source_header, catalog=catalog,
-                                  limits=selected, row_factory=row_factory)
+                                  limits=selected, row_factory=row_factory, search_reuse=search_reuse,
+                                  search_scratch_path=search_scratch_path,
+                                  search_scratch_limits=search_scratch_limits)
     options = dict(source_header=source_header, catalog=catalog, row_factory=row_factory,
                    limits=limits, search_scratch_path=search_scratch_path,
                    search_scratch_limits=search_scratch_limits)

@@ -15,7 +15,8 @@ HEADER_FRAME_BYTES = 16_843_008
 
 
 def native_publication(path, *, executable, timeout, operation, header, catalog,
-                       limits, row_factory=None, changes=None, expected_binding=None):
+                       limits, row_factory=None, changes=None, expected_binding=None,
+                       search_reuse=None, search_scratch_path=None, search_scratch_limits=None):
     if (not isinstance(executable, (str, Path)) or not Path(executable).is_absolute()
             or not Path(executable).is_file()):
         raise ValueError('native prepared publication requires an absolute selected executable')
@@ -24,6 +25,14 @@ def native_publication(path, *, executable, timeout, operation, header, catalog,
     frame = {'operation': operation, 'path': str(Path(path).absolute()),
              'header': header, 'catalog': catalog, 'limits': dataclasses.asdict(limits),
              'max_seconds': timeout}
+    if search_reuse is not None:
+        frame['search_reuse'] = {field.name: getattr(search_reuse, field.name)
+                                for field in dataclasses.fields(search_reuse)
+                                if field.name not in ('path', 'progress')}
+        frame['search_reuse']['path'] = str(Path(search_reuse.path).absolute())
+    if search_scratch_path is not None:
+        frame['search_scratch_path'] = str(Path(search_scratch_path).absolute())
+        frame['search_scratch_limits'] = dataclasses.asdict(search_scratch_limits)
     if operation == 'delta':
         frame['expected_binding'] = expected_binding
 

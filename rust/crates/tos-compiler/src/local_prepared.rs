@@ -9,7 +9,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fs::{self, OpenOptions},
     os::unix::fs::{MetadataExt, OpenOptionsExt},
-    path::Path,
+    path::{Path, PathBuf},
     time::Instant,
 };
 use tos_foundation::{
@@ -71,6 +71,17 @@ impl PublicationLimits {
 pub trait PreparedRows {
     fn visit(&mut self, kind: &str, sink: &mut dyn FnMut(&JsonValue) -> Result<()>) -> Result<()>;
 }
+/// Explicit whole-bootstrap alternatives. The caller reserves donor reads or
+/// private scratch separately; neither path is an automatic fallback.
+pub enum BootstrapSearch {
+    Buffered,
+    Reuse(crate::local_prepared_reuse::PreparedSearchReuse),
+    Bulk {
+        scratch_path: PathBuf,
+        limits: crate::local_prepared_bulk::BulkBootstrapLimits,
+    },
+}
+
 #[derive(Clone, Debug)]
 pub struct PreparedChange {
     pub operation: String,
@@ -283,7 +294,7 @@ fn put_metadata(
     Ok(())
 }
 
-fn validate_header(header: &JsonValue, catalog: &JsonValue) -> Result<()> {
+pub(crate) fn validate_header(header: &JsonValue, catalog: &JsonValue) -> Result<()> {
     if header.as_object().is_none()
         || header.object_get("nodes").is_some()
         || header.object_get("relations").is_some()
@@ -325,7 +336,7 @@ fn validate_header(header: &JsonValue, catalog: &JsonValue) -> Result<()> {
     }
     Ok(())
 }
-fn capabilities() -> JsonValue {
+pub(crate) fn capabilities() -> JsonValue {
     object(vec![
         ("full_rows", JsonValue::Bool(true)),
         ("catalog", JsonValue::Bool(true)),
@@ -814,7 +825,15 @@ pub fn publish_prepared_rows<R: PreparedRows>(
     rows: &mut R,
     limits: PublicationLimits,
 ) -> Result<JsonValue> {
-    publish_prepared_rows_with_deadline(path, header, catalog, rows, limits, None)
+    publish_prepared_rows_with_deadline(
+        path,
+        header,
+        catalog,
+        rows,
+        limits,
+        BootstrapSearch::Buffered,
+        None,
+    )
 }
 /// Native adapter variant. One absolute deadline covers both row passes and SQL.
 pub fn publish_prepared_rows_until<R: PreparedRows>(
@@ -825,20 +844,110 @@ pub fn publish_prepared_rows_until<R: PreparedRows>(
     limits: PublicationLimits,
     deadline: Instant,
 ) -> Result<JsonValue> {
-    publish_prepared_rows_with_deadline(path, header, catalog, rows, limits, Some(deadline))
+    publish_prepared_rows_with_deadline(
+        path,
+        header,
+        catalog,
+        rows,
+        limits,
+        BootstrapSearch::Buffered,
+        Some(deadline),
+    )
 }
+pub fn publish_prepared_rows_with_search<R: PreparedRows>(
+    path: &Path,
+    header: &JsonValue,
+    catalog: &JsonValue,
+    rows: &mut R,
+    limits: PublicationLimits,
+    search: BootstrapSearch,
+) -> Result<JsonValue> {
+    publish_prepared_rows_with_deadline(path, header, catalog, rows, limits, search, None)
+}
+pub fn publish_prepared_rows_with_search_until<R: PreparedRows>(
+    path: &Path,
+    header: &JsonValue,
+    catalog: &JsonValue,
+    rows: &mut R,
+    limits: PublicationLimits,
+    search: BootstrapSearch,
+    deadline: Instant,
+) -> Result<JsonValue> {
+    publish_prepared_rows_with_deadline(path, header, catalog, rows, limits, search, Some(deadline))
+}
+fn write_bootstrap_rows<R: PreparedRows>(
+    db: &Connection,
+    rows: &mut R,
+    count: u64,
+    limits: PublicationLimits,
+    deadline: Option<Instant>,
+    emit: &mut dyn FnMut(u64, &str, &JsonValue, u64, String) -> Result<()>,
+) -> Result<(u64, String)> {
+    let mut actual = Digest256Hasher::new();
+    let mut address = 0u64;
+    for kind in KINDS {
+        let mut position = 0u64;
+        rows.visit(kind, &mut |item| {
+            check_deadline(deadline)?;
+            address += 1;
+            if address > count {
+                return Err(Error::Invalid("prepared changed repeatable input"));
+            }
+            let token = position
+                .checked_mul(STRIDE)
+                .filter(|n| *n <= MAX_ADDRESS)
+                .ok_or(Error::Budget("prepared source order"))?;
+            position += 1;
+            let raw = row(kind, item, limits)?;
+            let id = required(item, "id")?;
+            frame(&mut actual, kind, id, address, token, &raw)?;
+            put_row(db, kind, item, &raw, limits)?;
+            db.execute(
+                "INSERT INTO prepared_documents VALUES(?1,?2,?3,?4)",
+                params![kind, id, address as i64, token as i64],
+            )?;
+            if kind == "relation" {
+                endpoint(db, required(item, "from_id")?)?;
+                endpoint(db, required(item, "to_id")?)?;
+            }
+            emit(address, kind, item, token, raw)
+        })?;
+    }
+    Ok((address, actual.finalize().to_hex()))
+}
+
 fn publish_prepared_rows_with_deadline<R: PreparedRows>(
     path: &Path,
     header: &JsonValue,
     catalog: &JsonValue,
     rows: &mut R,
     limits: PublicationLimits,
+    search_mode: BootstrapSearch,
     deadline: Option<Instant>,
 ) -> Result<JsonValue> {
     limits.validate()?;
     validate_header(header, catalog)?;
     lens(header, &Default::default())?;
     compact(catalog, limits.max_metadata_bytes)?;
+    let (mut donor, bulk) = match search_mode {
+        BootstrapSearch::Buffered => (None, None),
+        BootstrapSearch::Reuse(request) => (
+            Some(crate::local_prepared_reuse::SearchDonor::open(
+                request, limits, deadline,
+            )?),
+            None,
+        ),
+        BootstrapSearch::Bulk {
+            scratch_path,
+            limits,
+        } => {
+            limits.validate()?;
+            if scratch_path == path {
+                return Err(Error::Invalid("prepared scratch aliases target"));
+            }
+            (None, Some((scratch_path, limits)))
+        }
+    };
     let mut hash = Digest256Hasher::new();
     let mut count = 0u64;
     let mut source_bytes = 0u64;
@@ -861,12 +970,18 @@ fn publish_prepared_rows_with_deadline<R: PreparedRows>(
                 .filter(|n| *n <= MAX_ADDRESS)
                 .ok_or(Error::Budget("prepared source order"))?;
             position += 1;
+            if let Some(donor) = &mut donor {
+                donor.observe(kind, required(item, "id")?, &raw, count, token)?;
+            }
             adjust(&mut hist[k], cell(kind, item)?, true)?;
             if hist[0].bytes + hist[1].bytes > 1_048_576 {
                 return Err(Error::Budget("prepared lens histogram bytes"));
             }
             frame(&mut hash, kind, required(item, "id")?, count, token, &raw)
         })?;
+    }
+    if let Some(donor) = &mut donor {
+        donor.finish_observation(count)?;
     }
     let expected = hash.finalize().to_hex();
     let descriptor = descriptor(
@@ -912,48 +1027,126 @@ fn publish_prepared_rows_with_deadline<R: PreparedRows>(
             .checked_sub(already)
             .and_then(|n| n.checked_sub(4 * count + 1))
             .ok_or(Error::Budget("prepared search mutations"))?;
-        let mut actual = Digest256Hasher::new();
-        let mut address = 0u64;
-        let search_report = search::initialize_with(
-            &db,
-            &binding,
-            search_max,
-            maximum * db.query_row("PRAGMA page_size", [], |r| r.get::<_, u64>(0))?,
-            |sink| {
-                for kind in KINDS {
-                    let mut position = 0u64;
-                    rows.visit(kind, &mut |item| {
-                        check_deadline(deadline)?;
-                        address += 1;
-                        if address > count {
-                            return Err(Error::Invalid("prepared changed repeatable input"));
+        let search_bytes =
+            maximum * db.query_row("PRAGMA page_size", [], |r| r.get::<_, u64>(0))?;
+        let mut second = None;
+        let mut scratch_mutations = 0u64;
+        let search_report = if let Some(donor) = &mut donor {
+            let mut replacements = Vec::new();
+            let mut changed_bytes = 0usize;
+            second = Some(write_bootstrap_rows(
+                &db,
+                rows,
+                count,
+                limits,
+                deadline,
+                &mut |address, kind, item, order, raw| {
+                    if donor.should_replace(kind, required(item, "id")?) {
+                        changed_bytes = changed_bytes
+                            .checked_add(raw.len())
+                            .filter(|n| *n <= limits.max_change_bytes)
+                            .ok_or(Error::Budget("prepared donor retained changes"))?;
+                        if replacements.len() >= limits.max_changes {
+                            return Err(Error::Budget("prepared donor replacement count"));
                         }
-                        let token = position
-                            .checked_mul(STRIDE)
-                            .filter(|n| *n <= MAX_ADDRESS)
-                            .ok_or(Error::Budget("prepared source order"))?;
-                        position += 1;
-                        let raw = row(kind, item, limits)?;
-                        let id = required(item, "id")?;
-                        frame(&mut actual, kind, id, address, token, &raw)?;
-                        put_row(&db, kind, item, &raw, limits)?;
-                        db.execute(
-                            "INSERT INTO prepared_documents VALUES(?1,?2,?3,?4)",
-                            params![kind, id, address as i64, token as i64],
-                        )?;
-                        if kind == "relation" {
-                            endpoint(&db, required(item, "from_id")?)?;
-                            endpoint(&db, required(item, "to_id")?)?;
-                        }
-                        sink(search::PreparedSearchDocument::from_item(
-                            address, kind, item, token,
-                        )?)
-                    })?;
+                        replacements.push((address, kind.to_owned(), order, raw));
+                    }
+                    Ok(())
+                },
+            )?);
+            if second
+                .as_ref()
+                .is_none_or(|(address, hash)| *address != count || hash != &expected)
+            {
+                return Err(Error::Invalid("prepared changed repeatable input"));
+            }
+            if replacements.len() != donor.changed_documents() {
+                return Err(Error::Invalid("prepared donor replacement set differs"));
+            }
+            let copied = donor.copy_into(&db, maximum, search_max)?;
+            let remaining = search_max
+                .checked_sub(copied.mutations)
+                .filter(|n| *n > 0)
+                .ok_or(Error::Budget("prepared donor seal mutations"))?;
+            let mut report = if search::header(donor.binding())? == search::header(&binding)? {
+                if !replacements.is_empty() {
+                    return Err(Error::Invalid(
+                        "prepared donor equal binding with replacements",
+                    ));
                 }
+                if db.execute(
+                    "UPDATE search_header SET cursor_key=?1 WHERE singleton=1",
+                    [&search::cursor_key()?[..]],
+                )? != 1
+                {
+                    return Err(Error::Invalid("prepared donor fresh incarnation seal"));
+                }
+                search::SearchWriteReport {
+                    mutations: 1,
+                    write_calls: 1,
+                    ..Default::default()
+                }
+            } else {
+                search::apply_delta(
+                    &db,
+                    donor.binding(),
+                    &binding,
+                    replacements.into_iter().map(|(address, kind, order, raw)| {
+                        check_deadline(deadline)?;
+                        Ok(search::SearchChange::Update(
+                            search::PreparedSearchDocument::from_item(
+                                address,
+                                &kind,
+                                &parse(&raw, limits.max_row_bytes)?,
+                                order,
+                            )?,
+                        ))
+                    }),
+                    remaining.min(20_000_000),
+                )?
+            };
+            report.mutations = report
+                .mutations
+                .checked_add(copied.mutations)
+                .ok_or(Error::Budget("prepared donor total mutations"))?;
+            report
+        } else {
+            let produce = |sink: &mut dyn FnMut(search::PreparedSearchDocument) -> Result<()>| {
+                second = Some(write_bootstrap_rows(
+                    &db,
+                    rows,
+                    count,
+                    limits,
+                    deadline,
+                    &mut |address, kind, item, order, _raw| {
+                        sink(search::PreparedSearchDocument::from_item(
+                            address, kind, item, order,
+                        )?)
+                    },
+                )?);
                 Ok(())
-            },
-        )?;
-        if address != count || actual.finalize().to_hex() != expected {
+            };
+            if let Some((scratch_path, scratch_limits)) = bulk {
+                let report = crate::local_prepared_bulk::initialize_bulk_with(
+                    &db,
+                    &binding,
+                    &scratch_path,
+                    scratch_limits,
+                    search_max,
+                    search_bytes,
+                    produce,
+                    deadline,
+                )?;
+                scratch_mutations = report.scratch_mutations;
+                report.search
+            } else {
+                search::initialize_with(&db, &binding, search_max, search_bytes, produce)?
+            }
+        };
+        if second
+            .as_ref()
+            .is_none_or(|(address, hash)| *address != count || hash != &expected)
+        {
             return Err(Error::Invalid("prepared changed repeatable input"));
         }
         let high: u64 = db.query_row(
@@ -973,13 +1166,17 @@ fn publish_prepared_rows_with_deadline<R: PreparedRows>(
             ],
         )?;
         cap(&db, limits, Some(maximum))?;
-        if db.total_changes() > limits.max_mutations
+        if db.total_changes().saturating_add(scratch_mutations) > limits.max_mutations
             || already
                 .saturating_add(4 * count + 1)
                 .saturating_add(search_report.mutations)
+                .saturating_add(scratch_mutations)
                 > limits.max_mutations
         {
             return Err(Error::Budget("whole prepared mutations"));
+        }
+        if let Some(donor) = &mut donor {
+            donor.recheck_before_commit()?;
         }
         check_path_stamp(path, &stamp)?;
         check_deadline(deadline)?;
@@ -1062,7 +1259,7 @@ fn integer(value: &JsonValue) -> Result<u64> {
         _ => Err(Error::Invalid("prepared safe integer")),
     }
 }
-fn verify_descriptor(value: &JsonValue, raw: &str, top: &JsonValue) -> Result<()> {
+pub(crate) fn verify_descriptor(value: &JsonValue, raw: &str, top: &JsonValue) -> Result<()> {
     if compact(value, raw.len())? != raw
         || hash_text(raw) != required(top, "data_revision")?
         || required(value, "schema")? != DESCRIPTOR_SCHEMA

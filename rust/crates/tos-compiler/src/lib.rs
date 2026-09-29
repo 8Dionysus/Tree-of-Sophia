@@ -22,7 +22,9 @@ mod d1_public_sql;
 mod d1_public_static;
 pub mod local_prepared;
 pub mod local_prepared_aux;
+pub mod local_prepared_bulk;
 mod local_prepared_read;
+pub mod local_prepared_reuse;
 pub mod local_prepared_search;
 pub use d1_public_build::{
     PublicD1Build, PublicD1BuildLimits, build_public_d1, portable_public_d1_limits,
