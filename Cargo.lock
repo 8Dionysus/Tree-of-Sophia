@@ -1496,6 +1496,7 @@ name = "tos-access"
 version = "0.0.0"
 dependencies = [
  "flate2",
+ "libc",
  "rawzip",
  "rusqlite",
  "toml",
