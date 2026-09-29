@@ -848,6 +848,16 @@ fn exploration_software_contracts_survive_unselected_data_and_all_native_wires()
     let capability_get = handle_get(&executor, "GET", capability_route, profile);
     assert_eq!(capability_get.status, 200);
     assert_eq!(capability_get.body, capability_bytes);
+    assert_eq!(
+        handle_get(
+            &executor,
+            "GET",
+            capability_route,
+            profile.with_query_timeout(std::time::Duration::ZERO),
+        )
+        .status,
+        408
+    );
     let capability_head = handle_get(&executor, "HEAD", capability_route, profile);
     assert_eq!(capability_head.status, 200);
     let mut capability_output = vec![];
