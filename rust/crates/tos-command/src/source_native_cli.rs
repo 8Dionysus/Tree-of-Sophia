@@ -4,9 +4,9 @@
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_serialization::executable;
 use crate::source_text_alignment_entry::{
-    NativeAlignmentRecovery, describe_owner_alignment_from_cut,
-    execute_owner_alignment_from_captures, inspect_owner_alignment_from_cut,
-    inspect_owner_alignment_recovery_from_cut, prepare_owner_alignment_from_captures,
+    NativeAlignmentRecovery, describe_owner_alignment_selected,
+    execute_owner_alignment_from_captures, inspect_owner_alignment_recovery_selected,
+    inspect_owner_alignment_selected, prepare_owner_alignment_from_captures,
     selected_owner_cli_profile,
 };
 use crate::source_text_owner::{normalized_absolute, read_absolute};
@@ -288,10 +288,9 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
                 "grants_admission":false,"assessment_applied":false,"aligner_executed":false});
             match operation {
                 "describe" => {
-                    let described = describe_owner_alignment_from_cut(
-                        &context,
-                        &owner,
-                        &cut,
+                    let described = describe_owner_alignment_selected(
+                        profile.context,
+                        profile.grant,
                         &mut schema,
                         deadline,
                         &cancelled,
@@ -310,11 +309,10 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
                     } else {
                         None
                     };
-                    let inspected = inspect_owner_alignment_from_cut(
-                        &context,
-                        &owner,
+                    let inspected = inspect_owner_alignment_selected(
+                        profile.context,
+                        profile.grant,
                         exact,
-                        &cut,
                         &mut schema,
                         deadline,
                         &cancelled,
@@ -349,12 +347,11 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
                     );
                 }
                 "inspect-recovery" => {
-                    let recovery = inspect_owner_alignment_recovery_from_cut(
-                        &context,
-                        &owner,
+                    let recovery = inspect_owner_alignment_recovery_selected(
+                        profile.context,
+                        profile.grant,
                         &profile.source_path,
                         cmd::text(&request, "command_id")?,
-                        &cut,
                         &mut schema,
                         deadline,
                         &cancelled,

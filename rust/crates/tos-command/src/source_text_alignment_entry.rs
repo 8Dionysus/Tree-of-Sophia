@@ -1124,10 +1124,9 @@ fn dependencies(
 }
 
 fn prepare(
-    context_path: &Path,
-    grant_path: &Path,
+    mut context: OwnerTextContext,
+    grant: OwnerTextAlignmentSelection,
     request: &JsonValue,
-    cut: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     worker: &mut CutWorkerSchemaExecutor,
@@ -1136,21 +1135,7 @@ fn prepare(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PreparedAlignment> {
     active(deadline, cancelled)?;
-    let path = RelativePath::parse(CONTEXT_SCHEMA)
-        .map_err(|_| SourceCommandError::Invalid("native alignment context contract path"))?;
-    let selected = cut
-        .read_member(
-            cut.current().revision(),
-            &path,
-            MAX_CONTRACT as u64,
-            deadline,
-            cancelled,
-        )
-        .map_err(|_| SourceCommandError::Conflict("native alignment context contract"))?;
-    let (mut context, _) =
-        OwnerTextContext::select(context_path, &selected.raw, worker, deadline, cancelled)?;
     let publication = context.select_publication(deadline, cancelled)?;
-    let grant = OwnerTextAlignmentSelection::select(&context, grant_path, deadline, cancelled)?;
     let contracts = selected_contracts(&context, worker, deadline, cancelled)?;
     let owner_configuration = configuration(&context, &grant, &contracts, deadline, cancelled)?;
     let resolved = resolve_owner_alignment(
@@ -1451,17 +1436,10 @@ pub fn prepare_owner_alignment_from_captures(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<NativeAlignmentPreview> {
     let deadline = deadline.min(Instant::now() + Duration::from_secs(60));
+    let (context, grant) =
+        selected_owner(context_path, grant_path, cut, worker, deadline, cancelled)?;
     let prepared = prepare(
-        context_path,
-        grant_path,
-        proposal,
-        cut,
-        software,
-        components,
-        worker,
-        None,
-        deadline,
-        cancelled,
+        context, grant, proposal, software, components, worker, None, deadline, cancelled,
     )?;
     finish_creation_worker(worker, deadline, cancelled)?;
     prepared.verify_current(cut, software, components, None, deadline, cancelled)?;
@@ -1829,20 +1807,8 @@ pub fn execute_owner_alignment_from_captures(
 ) -> SourceCommandResult<NativeAlignmentResult> {
     let deadline = deadline.min(Instant::now() + Duration::from_secs(60));
     active(deadline, cancelled)?;
-    let schema = RelativePath::parse(CONTEXT_SCHEMA)
-        .map_err(|_| SourceCommandError::Invalid("native alignment context schema path"))?;
-    let selected = cut
-        .read_member(
-            cut.current().revision(),
-            &schema,
-            MAX_CONTRACT as u64,
-            deadline,
-            cancelled,
-        )
-        .map_err(|_| SourceCommandError::Conflict("native alignment context contract"))?;
-    let (context, _) =
-        OwnerTextContext::select(context_path, &selected.raw, worker, deadline, cancelled)?;
-    let grant = OwnerTextAlignmentSelection::select(&context, grant_path, deadline, cancelled)?;
+    let (context, grant) =
+        selected_owner(context_path, grant_path, cut, worker, deadline, cancelled)?;
     let source_path = cmd::text(&grant.config, "source_path")?.to_owned();
     let target = context.private_new_package_target(&source_path)?;
     let custody =
@@ -1853,16 +1819,7 @@ pub fn execute_owner_alignment_from_captures(
         None
     };
     let mut prepared = prepare(
-        context_path,
-        grant_path,
-        request,
-        cut,
-        software,
-        components,
-        worker,
-        exclude,
-        deadline,
-        cancelled,
+        context, grant, request, software, components, worker, exclude, deadline, cancelled,
     )?;
     request_create(
         request,
@@ -1906,7 +1863,10 @@ pub fn execute_owner_alignment_from_captures(
         PrivateTextCustody::Pending(files) => {
             let receipt = verify_retained(&prepared, request, &files, worker, deadline, cancelled)?;
             finish_creation_worker(worker, deadline, cancelled)?;
-            prepared.verify_current(cut, software, components, None, deadline, cancelled)?;
+            // Preparation already resolved the selected inputs under both rights.
+            // Staging authenticates the current owner/epoch; the publisher makes
+            // the sole complete current-input check under its final lock hold.
+            prepared.verify_stage_current(deadline, cancelled)?;
             publish_private_text(
                 &prepared.context,
                 &source_path,
@@ -2006,7 +1966,7 @@ pub fn execute_owner_alignment_from_captures(
         ));
     }
     finish_creation_worker(worker, deadline, cancelled)?;
-    prepared.verify_current(cut, software, components, None, deadline, cancelled)?;
+    prepared.verify_stage_current(deadline, cancelled)?;
     publish_private_text(
         &prepared.context,
         &source_path,
@@ -2053,6 +2013,8 @@ fn selected_owner(
 }
 
 pub(crate) struct NativeAlignmentCliProfile {
+    pub(crate) context: OwnerTextContext,
+    pub(crate) grant: OwnerTextAlignmentSelection,
     pub(crate) owner_configuration: String,
     pub(crate) delegated_operation: &'static str,
     pub(crate) source_path: String,
@@ -2060,7 +2022,8 @@ pub(crate) struct NativeAlignmentCliProfile {
 }
 
 /// Descriptive selected owner facts for the opt-in local CLI response. The
-/// actual read operation selects and verifies its owner again before output.
+/// actual read operation consumes this same protected selection; no second
+/// profile can diverge from the owner facts reported in the response.
 pub(crate) fn selected_owner_cli_profile(
     context_path: &Path,
     grant_path: &Path,
@@ -2092,8 +2055,10 @@ pub(crate) fn selected_owner_cli_profile(
         Err(_) => return Err(SourceCommandError::Denied("native alignment CLI target")),
     };
     Ok(NativeAlignmentCliProfile {
-        owner_configuration,
         delegated_operation: grant.operation,
+        context,
+        grant,
+        owner_configuration,
         source_path,
         target_exists,
     })
@@ -2111,6 +2076,16 @@ pub fn describe_owner_alignment_from_cut(
     let deadline = deadline.min(Instant::now() + Duration::from_secs(60));
     let (context, grant) =
         selected_owner(context_path, grant_path, cut, worker, deadline, cancelled)?;
+    describe_owner_alignment_selected(context, grant, worker, deadline, cancelled)
+}
+
+pub(crate) fn describe_owner_alignment_selected(
+    context: OwnerTextContext,
+    grant: OwnerTextAlignmentSelection,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<NativeAlignmentDescription> {
     let target = context.private_new_package_target(cmd::text(&grant.config, "source_path")?)?;
     let exists = match target.symlink_metadata() {
         Ok(metadata)
@@ -2265,8 +2240,19 @@ pub fn inspect_owner_alignment_from_cut(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<NativeAlignmentInspection> {
     let deadline = deadline.min(Instant::now() + Duration::from_secs(60));
-    let (mut context, grant) =
+    let (context, grant) =
         selected_owner(context_path, grant_path, cut, worker, deadline, cancelled)?;
+    inspect_owner_alignment_selected(context, grant, exact_version, worker, deadline, cancelled)
+}
+
+pub(crate) fn inspect_owner_alignment_selected(
+    mut context: OwnerTextContext,
+    grant: OwnerTextAlignmentSelection,
+    exact_version: Option<&JsonValue>,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<NativeAlignmentInspection> {
     let publication = context.select_publication(deadline, cancelled)?;
     let (current_ref, body) =
         selected_inspection_record(&context, &grant, worker, deadline, cancelled)?;
@@ -2406,6 +2392,20 @@ pub fn inspect_owner_alignment_recovery_from_cut(
     let deadline = deadline.min(Instant::now() + Duration::from_secs(60));
     let (context, grant) =
         selected_owner(context_path, grant_path, cut, worker, deadline, cancelled)?;
+    inspect_owner_alignment_recovery_selected(
+        context, grant, target_ref, command_id, worker, deadline, cancelled,
+    )
+}
+
+pub(crate) fn inspect_owner_alignment_recovery_selected(
+    context: OwnerTextContext,
+    grant: OwnerTextAlignmentSelection,
+    target_ref: &str,
+    command_id: &str,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<NativeAlignmentRecovery> {
     if cmd::text(&grant.config, "source_path")? != target_ref {
         return Err(SourceCommandError::Denied(
             "native alignment recovery target",
