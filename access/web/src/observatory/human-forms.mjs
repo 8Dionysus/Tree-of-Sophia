@@ -1,5 +1,5 @@
 import {t} from './ui-i18n.mjs';
-import {selectedClaimContext,selectedClaimPath,selectedClaimClosure,selectedClaimWording} from './claim-reading-rules.mjs';
+import {selectedClaimContext,selectedClaimPath,selectedClaimClosure,selectedClaimWording,validateClaimClosurePath} from './claim-reading-rules.mjs';
 import {decodeHumanFormSelection,FORM_WIRE_BUDGET} from '../../../shared/human-form-selection-codec.ts';
 import {essentialContext} from './record-context.mjs';
 import {contentLanguage,exactFormRef,sameFormRef,validFormIdentity as rustValidFormIdentity,
@@ -117,8 +117,9 @@ export function claimPathFor(packet,nodeId){
 export function claimPathClosure(packet,path){
   try{
     const owned=object(path)&&claimPathFor(packet,path.claim_node_id)===path;
-    const {node,relations}=claimContext(packet,path?.reading);
-    return selectedClaimClosure(packet,path,node,relations,owned);
+    validateClaimClosurePath(path,owned);
+    const {node,relations}=claimContext(packet,path.reading);
+    return selectedClaimClosure(packet,path,node,relations);
   }catch{throw new FormContractError();}
 }
 export function resolveClaimReading(packet,reading){

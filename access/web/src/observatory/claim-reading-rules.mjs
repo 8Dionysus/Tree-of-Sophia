@@ -21,49 +21,61 @@ export function installClaimReadingRules(runtime){
   validate=runtime.validate_claim_reading_wasm_v1;
 }
 export function selectedClaimContext(packet,reading){
-  // These scans observe original values. They do not serialize the graph.
-  const node=packet.nodes?.find(item=>item.id===reading?.node_id);
   const relationIds=reading?.relation_context_ids;
-  const relations=Array.isArray(relationIds)?relationIds.map(id=>packet.relations?.find(item=>item.id===id)):[];
-  rule('context',{
+  rule('context-declaration',{
     reading_object:object(reading),mode:scalar(reading?.mode),standalone_false:reading?.standalone===false,
     wording_state:scalar(reading?.wording_state),context_pointers_exact:JSON.stringify(reading?.context_pointers)===JSON.stringify(['/semantics','/epistemic']),
-    relation_context_ids:strings(relationIds)?ids(relationIds):null,node_found:Boolean(node),
-    revision_equal:Boolean(node)&&node.content_revision===reading?.content_revision,
-    semantics_object:object(node?.semantics),epistemic_object:object(node?.epistemic),relations_found:relations.every(Boolean),
+    relation_context_ids:strings(relationIds)?ids(relationIds):null,
+  });
+  const node=packet.nodes?.find(item=>item.id===reading.node_id);
+  rule('context-source',{node_found:Boolean(node),revision_equal:Boolean(node)&&node.content_revision===reading.content_revision,
+    semantics_object:object(node?.semantics),epistemic_object:object(node?.epistemic)});
+  const relations=relationIds.map(id=>{
+    const relation=packet.relations?.find(item=>item.id===id);
+    rule('context-relation',{found:Boolean(relation)});return relation;
   });
   return {node,relations};
 }
 export function selectedClaimPath(packet,nodeId){
   const scene=packet?.scene,compact=scene?.compact,paths=compact?.claim_paths;
+  const header={compact_absent:compact===undefined,scene_schema:scalar(scene?.schema_version),compact_object:object(compact),
+    rule:scalar(compact?.rule),authority:scalar(compact?.authority),paths_array:Array.isArray(paths)};
+  rule('path-header',header);
   const matches=[];
   if(Array.isArray(paths))for(let i=0;i<paths.length;i++)if(object(paths[i])&&paths[i].claim_node_id===nodeId)matches.push(i);
-  const index=rule('path',{compact_absent:compact===undefined,scene_schema:scalar(scene?.schema_version),compact_object:object(compact),
-    rule:scalar(compact?.rule),authority:scalar(compact?.authority),paths_array:Array.isArray(paths),matches});
+  const index=rule('path',{matches});
   return index===null?null:paths[index];
 }
-export function selectedClaimClosure(packet,path,node,relations,owned){
-  const claim=node.semantics.claim,primary=path.relation_ids,detail=path.detail_relation_ids;
-  const relationIds=Array.isArray(primary)&&Array.isArray(detail)?[...primary,...detail]:[];
-  const nodeIds=[...new Set([...(Array.isArray(path.node_ids)?path.node_ids:[]),...relations.flatMap(r=>[r.from_id,r.to_id])])];
-  const allMembers=packet.relations.filter(r=>r.from_id===node.id&&r.relation_type_id==='tos.relation.claim-value-member');
-  const memberRelations=Array.isArray(detail)?detail.map(id=>relations.find(r=>r.id===id)).filter(r=>r?.relation_type_id==='tos.relation.claim-value-member'):[];
-  const descriptor=r=>r?{to_id:scalar(r.to_id),relation_type_id:scalar(r.relation_type_id),from_claim:r.from_id===node.id}:null;
-  rule('closure',{
-    path_object:object(path),path_owned:owned,id_nonempty:typeof path.id==='string'&&Boolean(path.id),relation_type_string:typeof path.relation_type_id==='string',
-    node_ids:strings(path.node_ids)?ids(path.node_ids):null,relation_ids:strings(primary)?ids(primary):null,detail_relation_ids:strings(detail)?ids(detail):null,
-    middle_equal:path.node_ids?.[1]===path.claim_node_id,reading_node_equal:path.reading?.node_id===path.claim_node_id,
-    claim_object:object(claim),mapping_status:scalar(claim?.predicate_mapping_status),predicate_equal:claim?.relation_type_id===path.relation_type_id,
-    subject_equal:claim?.subject_node_id===path.node_ids?.[0],object_equal:claim?.object_node_id===path.node_ids?.[2],
-    endpoints_different:path.node_ids?.[0]!==node.id&&path.node_ids?.[2]!==node.id,
-    relations:relations.map(descriptor),relation_set_complete:relations.every(r=>relationIds.includes(r.id)),
-    primary_selected:Array.isArray(primary)?Array.from(primary,id=>descriptor(relations.find(r=>r.id===id))):null,
-    detail_selected:Array.isArray(detail)?Array.from(detail,id=>descriptor(relations.find(r=>r.id===id))):null,
-    has_member_declaration:object(claim)&&own(claim,'value_member_node_ids'),has_member_edges:allMembers.length>0,
-    member_ids:strings(claim?.value_member_node_ids)?ids(claim.value_member_node_ids):null,
-    member_count_complete:memberRelations.length===allMembers.length,
-    closure_nodes_present:nodeIds.every(id=>typeof id==='string'&&packet.nodes.some(n=>n.id===id)),
+export function validateClaimClosurePath(path,owned){
+  rule('closure-path',{
+    path_object:object(path),path_owned:owned,id_nonempty:typeof path?.id==='string'&&Boolean(path.id),relation_type_string:typeof path?.relation_type_id==='string',
+    node_ids:strings(path?.node_ids)?ids(path.node_ids):null,relation_ids:strings(path?.relation_ids)?ids(path.relation_ids):null,
+    detail_relation_ids:strings(path?.detail_relation_ids)?ids(path.detail_relation_ids):null,
+    middle_equal:path?.node_ids?.[1]===path?.claim_node_id,reading_node_equal:path?.reading?.node_id===path?.claim_node_id,
   });
+}
+export function selectedClaimClosure(packet,path,node,relations){
+  const claim=node.semantics.claim,primary=path.relation_ids,detail=path.detail_relation_ids;
+  rule('closure-claim',{
+    claim_object:object(claim),mapping_status:scalar(claim?.predicate_mapping_status),predicate_equal:claim?.relation_type_id===path.relation_type_id,
+    subject_equal:claim?.subject_node_id===path.node_ids[0],object_equal:claim?.object_node_id===path.node_ids[2],
+    endpoints_different:path.node_ids[0]!==node.id&&path.node_ids[2]!==node.id,
+  });
+  const relationIds=[...primary,...detail];
+  const descriptor=r=>r?{to_id:scalar(r.to_id),relation_type_id:scalar(r.relation_type_id),from_claim:r.from_id===node.id}:null;
+  const members=rule('closure-relations',{
+    node_ids:ids(path.node_ids),relation_ids:ids(primary),detail_relation_ids:ids(detail),
+    relations:relations.map(descriptor),relation_set_complete:relations.every(r=>relationIds.includes(r.id)),
+    primary_selected:Array.from(primary,id=>descriptor(relations.find(r=>r.id===id))),
+    detail_selected:Array.from(detail,id=>descriptor(relations.find(r=>r.id===id))),
+  });
+  const allMembers=packet.relations.filter(r=>r.from_id===node.id&&r.relation_type_id==='tos.relation.claim-value-member');
+  rule('closure-members',{
+    members,has_member_declaration:own(claim,'value_member_node_ids'),has_member_edges:allMembers.length>0,
+    member_ids:(own(claim,'value_member_node_ids')||allMembers.length)&&strings(claim.value_member_node_ids)?ids(claim.value_member_node_ids):null,member_count_complete:members.length===allMembers.length,
+  });
+  const nodeIds=[...new Set([...path.node_ids,...relations.flatMap(r=>[r.from_id,r.to_id])])];
+  rule('closure-nodes',{closure_nodes_present:nodeIds.every(id=>typeof id==='string'&&packet.nodes.some(n=>n.id===id))});
   return {nodeIds,relationIds,node};
 }
 export function selectedClaimWording(node,reading,forms){
