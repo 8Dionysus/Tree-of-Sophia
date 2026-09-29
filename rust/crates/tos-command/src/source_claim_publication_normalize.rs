@@ -850,15 +850,12 @@ pub fn normalize_claim_candidate(
                 spec.identity_id.as_deref(),
                 &left_node["display"]["title"],
                 &right_node["display"]["title"],
-                "",
+                if graph == "canon" {
+                    "canon"
+                } else {
+                    "derived-export"
+                },
             )?;
-            if relation
-                .pointer("/epistemic/authority_layer")
-                .and_then(Value::as_str)
-                == Some("")
-            {
-                relation["epistemic"]["authority_layer"] = Value::Null;
-            }
             if let Some(context) = context {
                 let semantics = relation["semantics"]
                     .as_object_mut()
