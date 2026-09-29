@@ -1,4 +1,5 @@
 import {t} from './ui-i18n.mjs';
+import {selectedClaimContext,selectedClaimPath,selectedClaimClosure,selectedClaimWording} from './claim-reading-rules.mjs';
 import {decodeHumanFormSelection,FORM_WIRE_BUDGET} from '../../../shared/human-form-selection-codec.ts';
 import {essentialContext} from './record-context.mjs';
 import {contentLanguage,exactFormRef,sameFormRef,validFormIdentity as rustValidFormIdentity,
@@ -11,7 +12,6 @@ export const FORM_ROLES=['name','caption','hover','statement','grounds','history
 export const FORM_STATES=['ready','missing','unavailable','ambiguous','over-budget'];
 const own=(value,key)=>Object.prototype.hasOwnProperty.call(value,key);
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
-const strings=value=>Array.isArray(value)&&value.every(item=>typeof item==='string');
 export class FormContractError extends Error {constructor(){super(t('Пакет формы неполон или не соответствует версии материала.'));}}
 const requireForm=value=>{if(!value)throw new FormContractError();};
 function boundedJSON(value,limit){
@@ -109,78 +109,22 @@ export function formView(raw){
 // A compact Claim's wording pointer names an entire packet. Context pointers
 // and explicit relation identities remain part of that same reading unit.
 function claimContext(packet,reading){
-  requireForm(object(reading)&&['claim-with-mandatory-context','claim-with-shared-form-context-v2'].includes(reading.mode)&&reading.standalone===false
-    &&['available','missing'].includes(reading.wording_state)
-    &&JSON.stringify(reading.context_pointers)===JSON.stringify(['/semantics','/epistemic'])
-    &&strings(reading.relation_context_ids)&&new Set(reading.relation_context_ids).size===reading.relation_context_ids.length);
-  const node=packet.nodes?.find(item=>item.id===reading.node_id);
-  requireForm(node&&node.content_revision===reading.content_revision&&object(node.semantics)&&object(node.epistemic));
-  const relations=reading.relation_context_ids.map(id=>{const value=packet.relations?.find(item=>item.id===id);requireForm(value);return value;});
-  return {node,relations};
+  try{return selectedClaimContext(packet,reading);}catch{throw new FormContractError();}
 }
 export function claimPathFor(packet,nodeId){
-  const scene=packet?.scene;if(scene?.compact===undefined)return null;
-  requireForm(scene.schema_version==='tos_knowledge_scene_v1'&&object(scene.compact)
-    &&scene.compact.rule==='explicit-claim-paths-v1'&&scene.compact.authority==='presentation-only-no-new-assertion'
-    &&Array.isArray(scene.compact.claim_paths));
-  const paths=scene.compact.claim_paths.filter(path=>object(path)&&path.claim_node_id===nodeId);
-  requireForm(paths.length<=1);return paths[0]||null;
+  try{return selectedClaimPath(packet,nodeId);}catch{throw new FormContractError();}
 }
 export function claimPathClosure(packet,path){
-  requireForm(object(path)&&claimPathFor(packet,path.claim_node_id)===path
-    &&typeof path.id==='string'&&Boolean(path.id)&&typeof path.relation_type_id==='string'
-    &&strings(path.node_ids)&&path.node_ids.length===3&&path.node_ids[1]===path.claim_node_id
-    &&strings(path.relation_ids)&&path.relation_ids.length===2&&strings(path.detail_relation_ids)
-    &&path.reading?.node_id===path.claim_node_id);
-  const {node,relations}=claimContext(packet,path.reading),claim=node.semantics.claim;
-  requireForm(object(claim)&&claim.predicate_mapping_status==='mapped'&&claim.relation_type_id===path.relation_type_id
-    &&claim.subject_node_id===path.node_ids[0]&&claim.object_node_id===path.node_ids[2]
-    &&path.node_ids[0]!==node.id&&path.node_ids[2]!==node.id);
-  const relationIds=[...path.relation_ids,...path.detail_relation_ids];
-  requireForm(new Set(relationIds).size===relationIds.length&&relationIds.length===relations.length
-    &&relations.every(relation=>relationIds.includes(relation.id)));
-  for(const [index,id]of path.relation_ids.entries()){
-    const relation=relations.find(item=>item.id===id);
-    requireForm(relation?.from_id===node.id&&relation.to_id===path.node_ids[index===0?0:2]
-      &&relation.relation_type_id===['tos.relation.has-subject','tos.relation.has-object'][index]);
-  }
-  const memberRelations=[];
-  for(const id of path.detail_relation_ids){
-    const relation=relations.find(item=>item.id===id);
-    requireForm(relation?.from_id===node.id&&['tos.relation.claim-supported-by','tos.relation.claim-value-member'].includes(relation.relation_type_id));
-    if(relation.relation_type_id==='tos.relation.claim-value-member')memberRelations.push(relation);
-  }
-  const allMemberRelations=packet.relations.filter(relation=>relation.from_id===node.id&&relation.relation_type_id==='tos.relation.claim-value-member');
-  if(own(claim,'value_member_node_ids')||allMemberRelations.length){
-    const memberIds=claim.value_member_node_ids;
-    // Only the normalized declaration owns the complete reference set. These
-    // structural edges do not establish accepted membership or a Sign judgment.
-    requireForm(strings(memberIds)&&memberIds.length>0&&memberIds.every(Boolean)
-      &&new Set(memberIds).size===memberIds.length&&memberRelations.length===memberIds.length
-      &&memberRelations.length===allMemberRelations.length
-      &&new Set(memberRelations.map(relation=>relation.to_id)).size===memberIds.length
-      &&memberRelations.every(relation=>memberIds.includes(relation.to_id)));
-  }
-  const nodeIds=[...new Set([...path.node_ids,...relations.flatMap(relation=>[relation.from_id,relation.to_id])])];
-  requireForm(nodeIds.every(id=>typeof id==='string'&&packet.nodes.some(item=>item.id===id)));
-  return {nodeIds,relationIds,node};
+  try{
+    const owned=object(path)&&claimPathFor(packet,path.claim_node_id)===path;
+    const {node,relations}=claimContext(packet,path?.reading);
+    return selectedClaimClosure(packet,path,node,relations,owned);
+  }catch{throw new FormContractError();}
 }
 export function resolveClaimReading(packet,reading){
   const {node,relations}=claimContext(packet,reading);
-  const forms=validateHumanForms(node),path=reading.wording_pointer;let wording=null;
-  const shared=reading.mode==='claim-with-shared-form-context-v2';
-  if(shared)requireForm(node.human_form_selection?.schema_version==='tos_human_form_selection_v2');
-  if(reading.wording_state==='missing')requireForm(path===null);
-  else if(shared){
-    requireForm(typeof path==='string'&&/^\/human_form_selection\/roles\/(caption|statement|hover)$/.test(path));
-    const role=path.split('/')[3];requireForm(forms?.roles[role]?.state==='ready');wording=forms.roles[role].packet;
-  }else if(typeof path==='string'&&/^\/human_form_selection\/roles\/(caption|statement|hover)\/packet$/.test(path)){
-    requireForm(node.human_form_selection?.schema_version==='tos_human_form_selection_v1');
-    const role=path.split('/')[3];requireForm(forms?.roles[role]?.state==='ready');wording=forms.roles[role].packet;
-  }else{
-    requireForm(['/display_selection/fields/summary','/display_selection/fields/title'].includes(path));
-    wording=node.display_selection?.fields?.[path.split('/')[3]];requireForm(object(wording)&&wording.content_available===true);
-  }
+  const forms=validateHumanForms(node);let wording;
+  try{wording=selectedClaimWording(node,reading,forms);}catch{throw new FormContractError();}
   return {reading:structuredClone(reading),wording:structuredClone(wording),semantics:structuredClone(node.semantics),
     epistemic:structuredClone(node.epistemic),relations:structuredClone(relations)};
 }
