@@ -841,7 +841,6 @@ fn creation_information(
         )?;
     } else if family == CreationFamily::Artifact {
         cmd::set(&mut result, "record_type", cmd::string("artifact"))?;
-        cmd::set(&mut result, "source_bindings", cmd::field(&config, "source_bindings")?.clone())?;
         cmd::set(&mut result, "source_profile", cmd::object(vec![
             ("record_type", cmd::string("artifact")),
             ("identity_field", cmd::string("artifact_id")),
