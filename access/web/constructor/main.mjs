@@ -17,13 +17,21 @@ import {installBrowserWorkspaceMachine} from '../src/research-workspace-rust.ts'
 import {installSourceFormRules} from './source-form-session-rust.mjs';
 import {installHumanFormRules} from '../src/observatory/human-form-rules.mjs';
 import {installLiveResumeRules} from './live-resume.mjs';
+import {installConditionRules} from '../src/observatory/lens-conditions-rust.mjs';
+import {installReadingRules} from '../src/observatory/reading-resume-rust.mjs';
+import {installClaimReferenceRules} from '../src/observatory/claim-reference-rust.mjs';
+import {installResearchShelfRules} from '../src/research-shelf/rules.mjs';
 import initRules,* as rules from '../../deploy/cloudflare-worker/generated/tos_web_rules.js';
 await initRules(new URL('../../deploy/cloudflare-worker/generated/tos_web_rules_bg.wasm',import.meta.url));
 installBrowserWorkspaceMachine(rules.BrowserWorkspaceSession);
 installSourceFormRules(rules);
 installHumanFormRules(rules);
+installConditionRules(rules);
 installLiveResumeRules(rules);
 installConstructorRules(rules);
+installResearchShelfRules(rules);
+installClaimReferenceRules(rules);
+installReadingRules(rules);
 
 const root=document.querySelector('#tree');
 let lang=new URL(location.href).searchParams.get('lang')==='en'?'en':'ru';

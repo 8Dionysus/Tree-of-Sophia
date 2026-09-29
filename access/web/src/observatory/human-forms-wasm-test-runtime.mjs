@@ -10,3 +10,16 @@ runtime.initSync({module:new WebAssembly.Module(Uint8Array.from(readFileSync(new
 ))))});
 installHumanFormRules(runtime);
 installReadingRules(runtime);
+
+import {installBrowserWorkspaceMachine} from '../research-workspace-rust.ts';
+import {installConstructorRules} from '../../constructor/model.mjs';
+import {installSourceFormRules} from '../../constructor/source-form-session-rust.mjs';
+import {installResearchShelfRules} from '../research-shelf/rules.mjs';
+import {installClaimReferenceRules} from './claim-reference-rust.mjs';
+import {installConditionRules} from './lens-conditions-rust.mjs';
+installBrowserWorkspaceMachine(runtime.BrowserWorkspaceSession);
+installConstructorRules(runtime);
+installSourceFormRules(runtime);
+installResearchShelfRules(runtime);
+installClaimReferenceRules(runtime);
+installConditionRules(runtime);

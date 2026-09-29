@@ -1,5 +1,4 @@
 /** Browser custody for the Rust constructor authoring session. */
-import {createConstructorModel as createLegacyConstructorModel} from './model-legacy.mjs';
 import {createBrowserResearchWorkspace} from '../src/research-workspace-rust.ts';
 
 export const CONSTRUCTOR_SCHEMA='tos_constructor_workspace_v1';
@@ -24,9 +23,7 @@ export function installConstructorRules(runtime){
 }
 
 export function createConstructorModel(library,{storage,key='tos.constructor.v1'}={}){
-  // Direct source tests retain the original oracle until OPS builds the matched
-  // product. The serving entry installs the Rust session before creating a model.
-  if(!ConstructorSession)return createLegacyConstructorModel(library,{storage,key});
+  if(!ConstructorSession)throw new Error('constructor WASM session is unavailable');
   if(typeof key!=='string'||!key.trim()||key.length>256)throw new Error('storage key must be nonempty text of at most 256 characters');
   const machine=new ConstructorSession(bytes(library));
   let persistence=storage,blocked=false,lastError=null;

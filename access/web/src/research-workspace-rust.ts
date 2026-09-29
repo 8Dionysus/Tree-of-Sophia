@@ -1,5 +1,5 @@
 /** Browser storage and event adapter for the shared Rust research machine. */
-import {createResearchWorkspace, type ResearchWorkspaceOptions, type ResearchWorkspaceState,
+import {type ResearchWorkspaceOptions, type ResearchWorkspaceState,
   type ResearchWorkspaceSummary, type WorkspaceListener, type WorkspaceSelection,
   type ResearchProposalInput, type ResearchProposal, type ResearchHypothesis,
   type RouteSnapshot} from './research-workspace.ts';
@@ -55,9 +55,7 @@ function proposalFromPacket(item:any):ResearchProposal {
 }
 
 export function createBrowserResearchWorkspace(options:ResearchWorkspaceOptions={}) {
-  // Direct source/test imports remain on the old implementation until the
-  // generated product is installed. The real browser entry always installs it.
-  if(!browserMachine)return createResearchWorkspace(options);
+  if(!browserMachine)throw new Error('research workspace WASM session is unavailable');
   const machine=new browserMachine(options.sessionId??'local',options.historyLimit??50);
   const persistence=options.persistence===false?null:options.persistence;
   const listeners=new Set<WorkspaceListener>();let persistenceError:string|null=null,disposed=false;
