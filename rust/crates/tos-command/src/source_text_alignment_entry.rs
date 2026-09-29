@@ -2069,6 +2069,15 @@ fn selected_inspection_record(
                 .0;
             let files =
                 context.private_package(home, &FILES, MAX_PACKAGE + 2_048, deadline, cancelled)?;
+            if files
+                .values()
+                .try_fold(0usize, |sum, raw| sum.checked_add(raw.len()))
+                .is_none_or(|sum| sum > MAX_PACKAGE)
+            {
+                return Err(SourceCommandError::Unsupported(
+                    "native alignment inspected package budget",
+                ));
+            }
             let raw = files.get(BASENAME).ok_or(SourceCommandError::Conflict(
                 "native alignment inspected record absent",
             ))?;
