@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::io::{self, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicI32, Ordering};
-use tos_foundation::{JsonLimits, JsonMode, parse_json};
+use tos_foundation::{FoundationErrorCode, JsonLimits, JsonMode, parse_json};
 const MANIFEST: &str = "ToS/philosophy/philosophy.manifest.json";
 const SCHEMA: &str = "ToS/contracts/philosophy-source-planting.schema.json";
 type Issue = (String, String);
