@@ -212,7 +212,7 @@ def native_main(argv: list[str] | None = None) -> int:
 
     args = _parser().parse_args(argv)
     selected = os.environ.get("TOS_OPS_MECHANICS_EXECUTOR")
-    executable = selected or shutil.which("tos-ops-mechanics-plan")
+    executable = selected if selected is not None else shutil.which("tos-ops-mechanics-plan")
     if not executable:
         print("[error] install tos-ops-mechanics-plan or set TOS_OPS_MECHANICS_EXECUTOR", file=sys.stderr)
         return 1
