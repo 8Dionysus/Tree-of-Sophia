@@ -40,6 +40,7 @@ fn closure_claim(v: &JsonValue) -> Result<(), &'static str> {
 }
 fn closure_relations(v: &JsonValue) -> Result<Vec<JsonValue>, &'static str> {
     let nodes=list(get(v,"node_ids"))?; let primary=list(get(v,"relation_ids"))?; let detail=list(get(v,"detail_relation_ids"))?;
+    check(nodes.len()==3 && primary.len()==2)?;
     let ids: Vec<JsonValue> = primary.iter().chain(detail).cloned().collect();
     let relations=get(v,"relations").as_array().ok_or(ERROR)?;
     check(distinct(&ids) && ids.len()==relations.len() && yes(v,"relation_set_complete"))?;
