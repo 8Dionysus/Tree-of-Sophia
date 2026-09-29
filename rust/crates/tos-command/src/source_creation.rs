@@ -64,7 +64,7 @@ pub enum CreationFamily {
     Sign,
 }
 impl CreationFamily {
-    fn parse(schema: &str) -> SourceCommandResult<Self> {
+    pub(crate) fn parse(schema: &str) -> SourceCommandResult<Self> {
         Ok(match schema {
             "tos_local_historical_create_owner_v1" => Self::HistoricalV1,
             "tos_local_historical_create_owner_v2" => Self::HistoricalV2,
@@ -517,6 +517,34 @@ impl PreparedCreation {
         let command = plan.into_v1(prepared.context.base_revision);
         Ok(SerializedCreation { prepared, command })
     }
+    /// Cold reconstruction uses exact retained serialization evidence. The
+    /// independently selected filesystem reader owns these bytes; callers
+    /// cannot supply an alternative receipt or provenance event.
+    pub(crate) fn serialize_retained(
+        self,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        worker: &mut CutWorkerSchemaExecutor,
+        retained: &BTreeMap<String, Vec<u8>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<SerializedCreation> {
+        if self.managed_basis.is_some() {
+            return Err(SourceCommandError::Conflict(
+                "managed creation retained route",
+            ));
+        }
+        let (prepared, plan) = self.serialize_content(
+            software,
+            components,
+            worker,
+            deadline,
+            cancelled,
+            Some(retained),
+        )?;
+        let command = plan.into_v1(prepared.context.base_revision);
+        Ok(SerializedCreation { prepared, command })
+    }
     fn serialize_content(
         mut self,
         software: &SoftwareCaptureReader,
@@ -725,8 +753,22 @@ fn creation_result(
     receipt: JsonValue,
     replayed: bool,
 ) -> SourceCommandResult<JsonValue> {
-    let config = cmd::parse(&prepared.context.configuration_raw)?;
-    let family = prepared.family;
+    creation_information(
+        &prepared.context,
+        prepared.family,
+        target_exists,
+        receipt,
+        replayed,
+    )
+}
+fn creation_information(
+    context: &CommandContext,
+    family: CreationFamily,
+    target_exists: bool,
+    receipt: JsonValue,
+    replayed: bool,
+) -> SourceCommandResult<JsonValue> {
+    let config = cmd::parse(&context.configuration_raw)?;
     let mut result = cmd::object(vec![
         (
             "schema_version",
@@ -814,7 +856,7 @@ fn creation_result(
         )?;
     } else {
         let profile_id = cmd::text(&config, "profile_type_id")?;
-        let registry = json(&prepared.context, ENTITIES)?;
+        let registry = json(context, ENTITIES)?;
         let entries: Vec<_> = cmd::array(&registry, "types")?
             .iter()
             .filter(|entry| {
@@ -1395,6 +1437,76 @@ fn historical_claims(
         }
     }
     Ok(output)
+}
+
+/// Read the maintained initial source metadata without constructing a
+/// package, provenance event, receipt or publication proposal.
+pub(crate) fn initial_information_from_captures(
+    context: &CommandContext,
+    cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    target_exists: bool,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    context.check_from_selected_captures(cut, software, components, deadline, cancelled)?;
+    let mut context = context.clone();
+    let software_files: Vec<_> = context
+        .files
+        .iter()
+        .filter(|f| !f.path.as_str().starts_with("ToS/"))
+        .cloned()
+        .collect();
+    context.files = claims::complete_authored_inputs(&context, cut, deadline, cancelled)?;
+    context.files.extend(software_files);
+    context.check_from_selected_captures(cut, software, components, deadline, cancelled)?;
+    let (family, config, _) = configuration(&context)?;
+    revisions::validate_source_profile_registry(worker, deadline, cancelled, &context)?;
+    let request = cmd::parse(&context.request_raw)?;
+    let operation = cmd::text(&request, "operation")?;
+    cmd::exact_keys(
+        &request,
+        if operation == "describe" {
+            &["schema_version", "operation"]
+        } else {
+            &["schema_version", "operation", "record"]
+        },
+    )?;
+    if cmd::text(&request, "schema_version")? != "tos_local_source_command_v1"
+        || !["describe", "prepare"].contains(&operation)
+    {
+        return Err(SourceCommandError::Invalid("creation information request"));
+    }
+    let mut result = creation_information(&context, family, target_exists, JsonValue::Null, false)?;
+    if operation == "prepare" {
+        if !contains(&config, "allowed_operations", family.operation())? {
+            return Err(SourceCommandError::Denied(
+                "creation operation not delegated",
+            ));
+        }
+        let record = cmd::field(&request, "record")?;
+        initial(
+            &context, cut, worker, &config, family, record, deadline, cancelled,
+        )?;
+        cmd::set(
+            &mut result,
+            "prepared_source",
+            forms::metadata_subject(record)?,
+        )?;
+        cmd::set(
+            &mut result,
+            "source_fields",
+            JsonValue::Array(
+                forms::metadata_fields(record)?
+                    .into_iter()
+                    .map(|field| field.public())
+                    .collect(),
+            ),
+        )?;
+    }
+    Ok(result)
 }
 
 pub fn prepare_source_creation_from_captures(

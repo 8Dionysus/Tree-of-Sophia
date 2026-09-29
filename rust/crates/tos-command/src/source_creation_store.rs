@@ -2,6 +2,9 @@
 //! mechanics in an independently selected owner filesystem, not source admission.
 //! The corpus lock name and rename-no-replace protocol interoperate with Python.
 
+#[path = "source_creation_cli_selection.rs"]
+mod cli_selection;
+
 use crate::source_claims::SerializedClaimCreation;
 use crate::source_command::{self as cmd, SourceChange, SourceCommandError, SourceCommandResult};
 use crate::source_creation::{CreationPackage, SerializedCreation};
