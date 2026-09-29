@@ -320,13 +320,12 @@ impl RouteSources {
         if meta.len() > cap as u64 {
             return Err(invalid("operand input byte bound exceeded"));
         }
-        let mut raw = Vec::with_capacity(meta.len() as usize);
-        let read_cap = u64::try_from(cap)
-            .map_err(|_| invalid("operand read limit overflow"))?
-            .checked_add(1)
-            .ok_or_else(|| invalid("operand read limit overflow"))?;
-        file.take(read_cap).read_to_end(&mut raw)?;
-        if raw.len() > cap || raw.len() as u64 != meta.len() {
+        // Fixed metadata-sized storage and a one-byte EOF probe avoid a Vec
+        // growth copy when a large operand exactly fills the admitted buffer.
+        let mut raw = vec![0; meta.len() as usize];
+        let mut file = file;
+        file.read_exact(&mut raw)?;
+        if file.read(&mut [0; 1])? != 0 {
             return Err(invalid("operand input changed or exceeded byte bound"));
         }
         *read_bytes = read_bytes
