@@ -568,7 +568,7 @@ fn binding(top: &JsonValue, epoch: u64, limits: PublicationLimits) -> Result<Jso
 }
 pub(crate) fn snapshot_binding(db: &Connection) -> Result<JsonValue> {
     let top = metadata(db, TOP, 65536)?;
-    if top.as_object().is_none_or(|v| v.len() != 11) {
+    if !crate::local_prepared_read::exact_top_keys(&top) {
         return Err(Error::Invalid("prepared exact top fields"));
     }
     let epoch: u64 = db.query_row(

@@ -194,8 +194,11 @@ fn validate_binding(value: &JsonValue) -> Result<()> {
     }
     Ok(())
 }
+pub(crate) fn exact_top_keys(value: &JsonValue) -> bool {
+    exact_keys(value, TOP_KEYS)
+}
 fn validate_top(value: &JsonValue) -> Result<()> {
-    if !exact_keys(value, TOP_KEYS)
+    if !exact_top_keys(value)
         || text(value, "schema") != Some("tos_published_knowledge_reader_v2")
         || text(value, "read_model_schema") != Some(LOCAL_SCHEMA)
         || text(value, "graph_schema") != Some("tos_knowledge_graph_v1")
