@@ -838,3 +838,6 @@ mod command_text_cases;
 
 #[path = "compiler_source_cases.rs"]
 mod compiler_source_cases;
+
+mod command_claim_publication_cases;
+mod command_public_text_cases;

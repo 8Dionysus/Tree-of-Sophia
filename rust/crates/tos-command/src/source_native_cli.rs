@@ -29,6 +29,10 @@ mod claim;
 mod collection;
 #[path = "source_native_creation_cli.rs"]
 mod creation;
+#[path = "source_native_forms_cli.rs"]
+mod forms;
+#[path = "source_native_public_text_cli.rs"]
+mod public_text;
 #[path = "source_native_text_cli.rs"]
 mod text_owner;
 
@@ -328,8 +332,36 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
             | "tos_local_profile_create_owner_v1"
             | "tos_local_corpus_create_owner_v1"
             | "tos_local_corpus_create_owner_v2"
+            | "tos_local_artifact_create_owner_v1"
             | "tos_local_sign_promote_owner_v1" => {
                 return creation::run(
+                    &invocation,
+                    &request_raw,
+                    &store,
+                    &cut,
+                    &software,
+                    &components,
+                    deadline,
+                    &cancelled,
+                );
+            }
+            "tos_local_source_command_owner_v1"
+            | "tos_local_canonical_form_owner_v1"
+            | "tos_local_claim_form_owner_v1"
+            | "tos_local_claim_form_owner_v2" => {
+                return forms::run(
+                    &invocation,
+                    &request_raw,
+                    &store,
+                    &cut,
+                    &software,
+                    &components,
+                    deadline,
+                    &cancelled,
+                );
+            }
+            "tos_public_native_text_create_owner_v1" => {
+                return public_text::run(
                     &invocation,
                     &request_raw,
                     &store,
