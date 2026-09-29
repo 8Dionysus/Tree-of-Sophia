@@ -37,10 +37,14 @@ def run_step(label: str, command: list[str]) -> int:
     return completed.returncode
 
 
-def main(argv: list[str] | None = None) -> int:
+def _arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--phase', choices=('all', 'checks', 'tests'), default='all')
-    args = parser.parse_args(argv)
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _arguments(argv)
     try:
         steps = select_steps(command_sequence(RELEASE_SEQUENCE, REPO_ROOT), args.phase)
     except (KeyError, ValueError) as exc:
@@ -53,5 +57,25 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
+def native_main(argv: list[str] | None = None) -> int:
+    """Installed CLI route; phase APIs remain available to Python callers."""
+    import shutil
+    import sys
+
+    args = _arguments(argv)
+    selected = os.environ.get('TOS_RELEASE_CHECK_EXECUTOR')
+    executable = selected or shutil.which('tos-release-check')
+    if not executable:
+        print('[error] install tos-release-check or set TOS_RELEASE_CHECK_EXECUTOR', file=sys.stderr)
+        return 1
+    arguments = ['--phase', args.phase]
+    try:
+        os.execv(executable, [executable, '--repo-root', str(REPO_ROOT),
+                              '--python', sys.executable, *arguments])
+    except OSError as error:
+        print(f'[error] cannot execute native release check: {error}', file=sys.stderr)
+        return 1
+
+
 if __name__ == '__main__':
-    raise SystemExit(main())
+    raise SystemExit(native_main())

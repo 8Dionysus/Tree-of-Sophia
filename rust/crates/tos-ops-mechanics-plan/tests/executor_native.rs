@@ -217,11 +217,12 @@ esac
     fs::remove_dir_all(root).unwrap();
 }
 
-// The manifest is the command authority. This one controlled child sequence
-// guards exact Python substitution, authored order, and first-failure stop.
+// Existing controlled consumer now enters through installed Python wrappers.
+// Exact adapters guard exec replacement/argv/environment; the original tiny
+// validation sequence retains command-authority order and first-failure stop.
 #[cfg(target_os = "linux")]
 #[test]
-fn validation_lane_selection_runs_in_order_and_stops_at_first_failure() {
+fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure() {
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
     use std::process::Command;
@@ -236,35 +237,211 @@ fn validation_lane_selection_runs_in_order_and_stops_at_first_failure() {
             .as_nanos()
     ));
     fs::create_dir_all(root.join("docs/validation")).unwrap();
-    fs::write(
-        root.join("docs/validation/validation_lanes.json"),
-        r#"{"command_sequences":{"sample":[{"label":"first","command":["python","first"]},{"label":"failing","command":["python","fail"]},{"label":"later","command":["python","later"]}]}}"#,
-    )
-    .unwrap();
-    let adapter = root.join("adapter");
-    fs::write(
-        &adapter,
-        "#!/bin/sh\nprintf '%s\\n' \"$1\" >> trace\n[ \"$1\" = fail ] && exit 17\nexit 0\n",
-    )
-    .unwrap();
-    fs::set_permissions(&adapter, fs::Permissions::from_mode(0o700)).unwrap();
-    let executable = std::env::var_os("TOS_VALIDATION_LANES_TEST_EXECUTABLE")
-        .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-validation-lanes").into());
-    let output = Command::new(executable)
-        .args([
-            "--repo-root",
-            root.to_str().unwrap(),
+    fs::create_dir_all(root.join("scripts")).unwrap();
+    for (name, source) in [
+        (
+            "validation_lanes.py",
+            include_str!("../../../../scripts/validation_lanes.py"),
+        ),
+        (
+            "release_check.py",
+            include_str!("../../../../scripts/release_check.py"),
+        ),
+        (
+            "software_ci.py",
+            include_str!("../../../../scripts/software_ci.py"),
+        ),
+        (
+            "validate_mechanics_topology.py",
+            include_str!("../../../../scripts/validate_mechanics_topology.py"),
+        ),
+        (
+            "validate_active_naming.py",
+            include_str!("../../../../scripts/validate_active_naming.py"),
+        ),
+    ] {
+        fs::write(root.join("scripts").join(name), source).unwrap();
+    }
+    fs::create_dir(root.join("bin")).unwrap();
+    let selected = root.join("bin/selected native");
+    fs::write(&selected, "#!/usr/bin/python3\nimport json,os,sys\nprint(json.dumps({'argv':sys.argv,'pid':os.getpid(),'sentinel':os.environ['WRAPPER_SENTINEL'],'pytest':os.environ['PYTEST_DISABLE_PLUGIN_AUTOLOAD'],'needs':os.environ['CI_NEEDS'],'github':os.environ['GITHUB_OUTPUT']},ensure_ascii=False))\nraise SystemExit(17)\n").unwrap();
+    fs::set_permissions(&selected, fs::Permissions::from_mode(0o700)).unwrap();
+    let inspect =
+        |script: &str, key: &str, args: &[&str], expected: Vec<String>, path_lookup: bool| {
+            let mut command = Command::new("/usr/bin/python3");
+            command
+                .arg("-B")
+                .arg(root.join("scripts").join(script))
+                .args(args)
+                .env(
+                    key,
+                    if path_lookup {
+                        ""
+                    } else {
+                        selected.to_str().unwrap()
+                    },
+                )
+                .env("PATH", root.join("bin"))
+                .env("WRAPPER_SENTINEL", "source literal $value, пробел")
+                .env("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "0")
+                .env("CI_NEEDS", "{\"fixture\":true}")
+                .env("GITHUB_OUTPUT", root.join("caller-output"))
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::piped());
+            let child = command.spawn().unwrap();
+            let pid = child.id();
+            let output = child.wait_with_output().unwrap();
+            assert_eq!(
+                output.status.code(),
+                Some(17),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            assert!(output.stderr.is_empty());
+            let trace: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+            assert_eq!(
+                trace["pid"], pid,
+                "wrapper must exec rather than spawn a second owner"
+            );
+            assert_eq!(trace["argv"], serde_json::json!(expected));
+            assert_eq!(trace["sentinel"], "source literal $value, пробел");
+            assert_eq!(trace["pytest"], "0");
+            assert_eq!(trace["needs"], "{\"fixture\":true}");
+            assert_eq!(
+                trace["github"],
+                root.join("caller-output").to_str().unwrap()
+            );
+            assert!(!root.join("caller-output").exists());
+        };
+    let base = |tail: &[&str]| {
+        let mut argv = vec![
+            selected.to_str().unwrap().to_owned(),
+            "--repo-root".into(),
+            root.to_str().unwrap().into(),
+        ];
+        argv.extend(tail.iter().map(|v| (*v).to_owned()));
+        argv
+    };
+    inspect(
+        "validation_lanes.py",
+        "TOS_VALIDATION_LANES_EXECUTOR",
+        &["--che", "--sequence=quoted sequence", "--ru", "sample"],
+        base(&[
             "--python",
-            adapter.to_str().unwrap(),
+            "/usr/bin/python3",
+            "--check",
             "--sequence",
-            "sample",
+            "quoted sequence",
             "--run",
             "sample",
-            "--command-timeout-ms",
-            "2000",
-            "--lane-timeout-ms",
-            "5000",
-        ])
+        ]),
+        false,
+    );
+    inspect(
+        "release_check.py",
+        "TOS_RELEASE_CHECK_EXECUTOR",
+        &["--ph=checks"],
+        base(&["--python", "/usr/bin/python3", "--phase", "checks"]),
+        false,
+    );
+    inspect(
+        "software_ci.py",
+        "TOS_SOFTWARE_CI_EXECUTOR",
+        &["plan", "--ba=quoted ref $value", "--fu"],
+        vec![
+            selected.to_str().unwrap().into(),
+            "plan".into(),
+            "--repo-root".into(),
+            root.to_str().unwrap().into(),
+            "--base".into(),
+            "quoted ref $value".into(),
+            "--full".into(),
+        ],
+        false,
+    );
+    inspect(
+        "validate_mechanics_topology.py",
+        "TOS_OPS_MECHANICS_EXECUTOR",
+        &["legacy ignored argument"],
+        base(&["--mechanics-topology-validate"]),
+        false,
+    );
+    inspect(
+        "validate_active_naming.py",
+        "TOS_OPS_MECHANICS_EXECUTOR",
+        &[],
+        base(&["--active-naming-validate"]),
+        false,
+    );
+    let installed = root.join("bin/tos-software-ci");
+    fs::copy(&selected, &installed).unwrap();
+    inspect(
+        "software_ci.py",
+        "TOS_SOFTWARE_CI_EXECUTOR",
+        &["gate"],
+        vec![installed.to_str().unwrap().into(), "gate".into()],
+        true,
+    );
+    let unavailable = Command::new("/usr/bin/python3")
+        .arg("-B")
+        .arg(root.join("scripts/software_ci.py"))
+        .arg("gate")
+        .env("TOS_SOFTWARE_CI_EXECUTOR", root.join("missing-native"))
+        .env("PATH", root.join("bin"))
+        .output()
+        .unwrap();
+    assert_eq!(unavailable.status.code(), Some(1));
+    assert!(unavailable.stdout.is_empty());
+    assert!(
+        String::from_utf8_lossy(&unavailable.stderr).contains("cannot execute native software CI")
+    );
+    let invalid = Command::new("/usr/bin/python3")
+        .arg("-B")
+        .arg(root.join("scripts/validation_lanes.py"))
+        .arg("--unknown")
+        .env("TOS_VALIDATION_LANES_EXECUTOR", &selected)
+        .output()
+        .unwrap();
+    assert_eq!(invalid.status.code(), Some(2));
+    assert!(invalid.stdout.is_empty());
+    let help = Command::new("/usr/bin/python3")
+        .arg("-B")
+        .arg(root.join("scripts/validate_active_naming.py"))
+        .arg("--help")
+        .env("TOS_OPS_MECHANICS_EXECUTOR", root.join("missing-native"))
+        .output()
+        .unwrap();
+    assert_eq!(help.status.code(), Some(0));
+    assert!(String::from_utf8_lossy(&help.stdout).contains("--feedback-cache"));
+    // Explicit cache branch remains Python-owned, independently of whether
+    // native is installed. No real cache is written in this routing fixture.
+    let compatibility = Command::new("/usr/bin/python3").arg("-B").arg("-c")
+        .arg("import pathlib,runpy,sys; root=pathlib.Path(sys.argv[1]); sys.path.insert(0,str(root/'scripts')); modules={n:runpy.run_path(str(root/'scripts'/n),run_name='tos_import_api') for n in ['validation_lanes.py','release_check.py','software_ci.py','validate_mechanics_topology.py','validate_active_naming.py']}; assert modules['software_ci.py']['select'](['README.md'])['software_mode']=='none'; assert callable(modules['validation_lanes.py']['command_sequence']); assert callable(modules['release_check.py']['select_steps']); assert callable(modules['validate_mechanics_topology.py']['run_validation']); naming=modules['validate_active_naming.py']; seen=[]; naming['native_main'].__globals__['main']=lambda args:seen.append(args) or 23; assert naming['native_main'](['--feedback-cache=external.sqlite'])==23; assert seen==[['--feedback-cache=external.sqlite']]")
+        .arg(&root).env("TOS_OPS_MECHANICS_EXECUTOR",root.join("missing-native")).output().unwrap();
+    assert!(
+        compatibility.status.success(),
+        "{}",
+        String::from_utf8_lossy(&compatibility.stderr)
+    );
+    assert!(!root.join("external.sqlite").exists());
+    fs::write(
+        root.join("docs/validation/validation_lanes.json"),
+        r#"{"command_sequences":{"sample":[{"label":"first","command":["python","-B","adapter.py","first"]},{"label":"failing","command":["python","-B","adapter.py","fail"]},{"label":"later","command":["python","-B","adapter.py","later"]}]}}"#,
+    )
+    .unwrap();
+    let adapter = root.join("adapter.py");
+    fs::write(
+        &adapter,
+        "import pathlib,sys\nwith pathlib.Path('trace').open('a') as trace: trace.write(sys.argv[1]+'\\n')\nraise SystemExit(17 if sys.argv[1]=='fail' else 0)\n",
+    )
+    .unwrap();
+    let executable = std::env::var_os("TOS_VALIDATION_LANES_TEST_EXECUTABLE")
+        .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-validation-lanes").into());
+    let output = Command::new("/usr/bin/python3")
+        .arg("-B")
+        .arg(root.join("scripts/validation_lanes.py"))
+        .env("TOS_VALIDATION_LANES_EXECUTOR", executable)
+        .args(["--sequence", "sample", "--run", "sample"])
         .output()
         .unwrap();
     assert_eq!(output.status.code(), Some(17));
@@ -273,9 +450,9 @@ fn validation_lane_selection_runs_in_order_and_stops_at_first_failure() {
         "first\nfail\n"
     );
     let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains(&format!("first: {} first\n", adapter.display())));
+    assert!(stdout.contains("first: /usr/bin/python3 -B adapter.py first\n"));
     assert!(stdout.contains("[ok] first\n"));
-    assert!(stdout.contains(&format!("[run] failing: {} fail\n", adapter.display())));
+    assert!(stdout.contains("[run] failing: /usr/bin/python3 -B adapter.py fail\n"));
     assert!(!stdout.contains("[run] later:"));
     assert!(
         String::from_utf8(output.stderr)

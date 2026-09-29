@@ -56,6 +56,8 @@ fn active_naming_default_consumer_matches_maintained_python_and_retains_moved_hi
             .unwrap();
         let python = Command::new("/usr/bin/python3")
             .arg("-B")
+            .arg("-c")
+            .arg("import pathlib, runpy, sys; path=sys.argv[1]; sys.argv=sys.argv[1:]; sys.path.insert(0,str(pathlib.Path(path).parent)); raise SystemExit(runpy.run_path(path,run_name='tos_maintained_python_oracle')['main']())")
             .arg(root.join("scripts/validate_active_naming.py"))
             .output()
             .unwrap();

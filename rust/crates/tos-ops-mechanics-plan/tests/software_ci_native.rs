@@ -60,7 +60,11 @@ fn software_ci_actual_history_and_required_gate_match_maintained_python() {
             Command::new("/usr/bin/python3")
         };
         if !native {
-            command.arg("-B").arg(root.join("scripts/software_ci.py"));
+            // Invoke the maintained Python main explicitly. Its installed
+            // __main__ entry is native after cutover, never the Python oracle.
+            command.arg("-B").arg("-c")
+                .arg("import pathlib, runpy, sys; path=sys.argv[1]; sys.argv=sys.argv[1:]; sys.path.insert(0,str(pathlib.Path(path).parent)); raise SystemExit(runpy.run_path(path,run_name='tos_maintained_python_oracle')['main']())")
+                .arg(root.join("scripts/software_ci.py"));
         }
         command.arg(mode);
         if mode == "plan" {

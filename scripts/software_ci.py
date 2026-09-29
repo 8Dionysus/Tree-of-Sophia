@@ -110,14 +110,18 @@ def gate(needs: dict) -> None:
             raise ValueError(f'{job}: expected {expected}, got {needs.get(job)}')
 
 
-def main() -> int:
+def _arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
     plan = sub.add_parser('plan')
     plan.add_argument('--base', required=True)
     plan.add_argument('--full', action='store_true')
     sub.add_parser('gate')
-    args = parser.parse_args()
+    return parser.parse_args(argv)
+
+
+def main() -> int:
+    args = _arguments()
     if args.command == 'gate':
         gate(json.loads(os.environ['CI_NEEDS']))
         print('All selected checks succeeded; unselected checks were skipped.')
@@ -137,5 +141,28 @@ def main() -> int:
     return 0
 
 
+def native_main(argv: list[str] | None = None) -> int:
+    """Installed CLI route; selection, documentation and gate APIs stay importable."""
+    import shutil
+    import sys
+
+    args = _arguments(argv)
+    selected = os.environ.get('TOS_SOFTWARE_CI_EXECUTOR')
+    executable = selected or shutil.which('tos-software-ci')
+    if not executable:
+        print('[error] install tos-software-ci or set TOS_SOFTWARE_CI_EXECUTOR', file=sys.stderr)
+        return 1
+    arguments = [args.command]
+    if args.command == 'plan':
+        arguments.extend(['--repo-root', str(Path(__file__).resolve().parents[1]), '--base', args.base])
+        if args.full:
+            arguments.append('--full')
+    try:
+        os.execv(executable, [executable, *arguments])
+    except OSError as error:
+        print(f'[error] cannot execute native software CI: {error}', file=sys.stderr)
+        return 1
+
+
 if __name__ == '__main__':
-    raise SystemExit(main())
+    raise SystemExit(native_main())

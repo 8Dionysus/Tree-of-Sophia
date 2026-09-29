@@ -162,11 +162,16 @@ def run_sequence(sequence_id: str, repo_root: Path | None = None) -> int:
     return 0
 
 
-def main(argv: list[str] | None = None) -> int:
+def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Inspect ToS validation lanes.")
     parser.add_argument("--check", action="store_true", help="validate the lane manifest")
     parser.add_argument("--sequence", help="print a named command sequence")
     parser.add_argument("--run", metavar="SEQUENCE", help="execute a named command sequence")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = _parser()
     args = parser.parse_args(argv)
 
     if args.check:
@@ -199,5 +204,34 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
+def native_main(argv: list[str] | None = None) -> int:
+    """Installed CLI route; imported Python APIs remain available to callers."""
+    import shutil
+
+    parser = _parser()
+    args = parser.parse_args(argv)
+    if not args.check and not args.sequence and not args.run:
+        parser.print_help()
+        return 0
+    selected = os.environ.get("TOS_VALIDATION_LANES_EXECUTOR")
+    executable = selected or shutil.which("tos-validation-lanes")
+    if not executable:
+        print("[error] install tos-validation-lanes or set TOS_VALIDATION_LANES_EXECUTOR", file=sys.stderr)
+        return 1
+    arguments = []
+    if args.check:
+        arguments.append("--check")
+    if args.sequence:
+        arguments.extend(["--sequence", args.sequence])
+    if args.run:
+        arguments.extend(["--run", args.run])
+    try:
+        os.execv(executable, [executable, "--repo-root", str(REPO_ROOT),
+                              "--python", sys.executable, *arguments])
+    except OSError as error:
+        print(f"[error] cannot execute native validation lanes: {error}", file=sys.stderr)
+        return 1
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(native_main())
