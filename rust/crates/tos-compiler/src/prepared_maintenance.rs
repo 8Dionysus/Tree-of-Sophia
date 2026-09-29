@@ -485,15 +485,17 @@ fn apply_catalogued_retained_with_transition(
         });
     }
     let mut index = CatalogIndex::new(tx, catalog_limits)?;
-    let output = index.apply_delta(
-        before,
-        after,
-        &contributor_changes,
-        Some(&catalog::catalog_owner_digest(
-            &old_catalog,
-            limits.max_metadata_bytes,
-        )?),
-    )?;
+    let old_digest = catalog::catalog_owner_digest(&old_catalog, limits.max_metadata_bytes)?;
+    let output = if reviewed.is_some() {
+        if !contributor_changes.is_empty() {
+            return Err(Error::Invalid(
+                "normalization migration changes contributors",
+            ));
+        }
+        index.transition_normalization(before, after, &old_digest)?
+    } else {
+        index.apply_delta(before, after, &contributor_changes, Some(&old_digest))?
+    };
     let header = catalog::finalized_header(after, &output)?;
     let catalog_json = output.clone();
     let mut remaining_limits = limits;

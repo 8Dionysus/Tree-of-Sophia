@@ -612,6 +612,54 @@ impl<'a, 'conn> CatalogIndex<'a, 'conn> {
         }
         result
     }
+    /// Joined-owner implementation transition; no contributions are changed.
+    /// The caller verifies the reviewed processor pair and unchanged registry,
+    /// lenses and order contract, then pairs publication state in the same Tx.
+    pub(crate) fn transition_normalization(
+        &mut self,
+        before: &CatalogInputs,
+        after: &CatalogInputs,
+        expected_catalog_digest: &str,
+    ) -> Result<JsonValue> {
+        let result = (|| {
+            self.transaction()?;
+            self.storage_limit()?;
+            let (header, digest) = self.state(before)?;
+            if before.header_digest()? != header || digest != expected_catalog_digest {
+                return Err(Error::Invalid("catalog normalization predecessor differs"));
+            }
+            if semantics::catalog_owner_digest(
+                &self.render_unchecked(before)?,
+                self.limits.max_catalog_bytes,
+            )? != digest
+            {
+                return Err(Error::Invalid("catalog normalization aggregate differs"));
+            }
+            let catalog = self.render_unchecked(after)?;
+            let header = semantics::finalized_header(after, &catalog)?;
+            let new_header =
+                semantics::catalog_owner_digest(&header, self.limits.max_catalog_bytes)?;
+            let new_catalog =
+                semantics::catalog_owner_digest(&catalog, self.limits.max_catalog_bytes)?;
+            if self.tx.execute(
+                "UPDATE catalog_state SET binding=?,header_digest=?,catalog_digest=? WHERE singleton=1 AND binding=? AND header_digest=? AND catalog_digest=?",
+                params![after.binding()?, new_header, new_catalog, before.binding()?, before.header_digest()?, digest],
+            )? != 1 {
+                return Err(Error::Invalid("catalog normalization CAS"));
+            }
+            let (stored_header, stored_catalog) = self.state(after)?;
+            if stored_header != new_header || stored_catalog != new_catalog {
+                return Err(Error::Invalid("catalog normalization readback"));
+            }
+            self.size()?;
+            Ok(catalog)
+        })();
+        if result.is_err() {
+            self.failed = true;
+        }
+        result
+    }
+
     pub fn apply_delta(
         &mut self,
         before: &CatalogInputs,
