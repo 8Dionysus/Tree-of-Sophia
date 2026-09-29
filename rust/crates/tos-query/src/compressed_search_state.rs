@@ -30,6 +30,8 @@ pub enum CompressedSearchErrorCode {
     CursorExpired,
     BudgetExceeded,
     Unavailable,
+    Cancelled,
+    DeadlineExceeded,
 }
 #[derive(Debug)]
 pub struct CompressedSearchError {

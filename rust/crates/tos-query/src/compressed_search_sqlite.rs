@@ -4,7 +4,7 @@ use crate::compressed_search_state::*;
 use rusqlite::{Connection, Row, ToSql};
 use std::sync::{
     Arc,
-    atomic::{AtomicU64, Ordering},
+    atomic::{AtomicU8, AtomicU64, Ordering},
 };
 use tos_compiler::local_prepared::{PreparedReadLimits, PreparedReadTransaction};
 use tos_foundation::{Digest256, JsonMode, JsonValue, parse_json};
@@ -22,9 +22,18 @@ pub(crate) struct Read<'a> {
     owner_rows: usize,
     owner_bytes: usize,
     owner_statements: u64,
+    abort: Option<Arc<dyn crate::AbortProbe>>,
+    abort_reason: Arc<AtomicU8>,
 }
 impl<'a> Read<'a> {
     pub fn new(db: &'a Connection, limits: PreparedReadLimits) -> Result<Self> {
+        Self::with_abort(db, limits, None)
+    }
+    pub fn with_abort(
+        db: &'a Connection,
+        limits: PreparedReadLimits,
+        abort: Option<Arc<dyn crate::AbortProbe>>,
+    ) -> Result<Self> {
         if db.is_autocommit() {
             return Err(unavailable(
                 "an already-open prepared read transaction is required",
@@ -33,9 +42,25 @@ impl<'a> Read<'a> {
         let steps = Arc::new(AtomicU64::new(0));
         let observed = steps.clone();
         let max = limits.max_vm_steps;
+        let abort_reason = Arc::new(AtomicU8::new(0));
+        let observed_reason = abort_reason.clone();
+        let progress_abort = abort.clone();
         db.progress_handler(
             100,
             Some(move || {
+                if let Some(reason) = progress_abort
+                    .as_deref()
+                    .and_then(crate::AbortProbe::reason)
+                {
+                    observed_reason.store(
+                        match reason {
+                            crate::AbortReason::Cancelled => 1,
+                            crate::AbortReason::DeadlineExceeded => 2,
+                        },
+                        Ordering::Relaxed,
+                    );
+                    return true;
+                }
                 observed
                     .fetch_add(100, Ordering::Relaxed)
                     .saturating_add(100)
@@ -51,12 +76,41 @@ impl<'a> Read<'a> {
             owner_rows: 0,
             owner_bytes: 0,
             owner_statements: 0,
+            abort,
+            abort_reason,
         })
     }
     pub fn steps(&self) -> u64 {
         self.steps.load(Ordering::Relaxed)
     }
+    pub fn check_abort(&self) -> Result<()> {
+        let reason = match self.abort_reason.load(Ordering::Relaxed) {
+            1 => Some(crate::AbortReason::Cancelled),
+            2 => Some(crate::AbortReason::DeadlineExceeded),
+            _ => self.abort.as_deref().and_then(crate::AbortProbe::reason),
+        };
+        match reason {
+            Some(crate::AbortReason::Cancelled) => Err(err(
+                CompressedSearchErrorCode::Cancelled,
+                "compressed search cancelled",
+            )),
+            Some(crate::AbortReason::DeadlineExceeded) => Err(err(
+                CompressedSearchErrorCode::DeadlineExceeded,
+                "compressed search deadline exceeded",
+            )),
+            None => Ok(()),
+        }
+    }
+    pub fn reset_owner(&mut self) {
+        self.owner_rows = 0;
+        self.owner_bytes = 0;
+        self.owner_statements = 0;
+    }
+    fn sql_error(&self, error: rusqlite::Error) -> CompressedSearchError {
+        self.check_abort().err().unwrap_or_else(|| sql_error(error))
+    }
     pub fn absorb_owner(&mut self, view: &PreparedReadTransaction<'_>) -> Result<()> {
+        self.check_abort()?;
         let rows = view.read_rows();
         let bytes = view.read_bytes();
         let statements = view.statement_count();
@@ -96,7 +150,7 @@ impl<'a> Read<'a> {
             .bytes
             .checked_add(bytes)
             .ok_or_else(|| budget("prepared byte counter overflow"))?;
-        if self.bytes > self.limits.max_response_bytes {
+        if self.bytes > self.limits.max_bytes {
             return Err(budget("prepared inspection exceeds its byte budget"));
         }
         Ok(())
@@ -111,6 +165,7 @@ impl<'a> Read<'a> {
     where
         F: FnMut(&Row<'_>) -> rusqlite::Result<T>,
     {
+        self.check_abort()?;
         if self
             .steps
             .fetch_add(100, Ordering::Relaxed)
@@ -119,10 +174,10 @@ impl<'a> Read<'a> {
         {
             return Err(budget("prepared inspection exceeds its SQLite work budget"));
         }
-        let mut statement = self.db.prepare(sql).map_err(sql_error)?;
-        let mut rows = statement.query(args).map_err(sql_error)?;
+        let mut statement = self.db.prepare(sql).map_err(|e| self.sql_error(e))?;
+        let mut rows = statement.query(args).map_err(|e| self.sql_error(e))?;
         let mut result = Vec::new();
-        while let Some(row) = rows.next().map_err(sql_error)? {
+        while let Some(row) = rows.next().map_err(|e| self.sql_error(e))? {
             if tracked {
                 self.rows = self
                     .rows
@@ -143,6 +198,7 @@ impl<'a> Read<'a> {
             }
             result.push(f(row).map_err(sql_error)?);
         }
+        self.check_abort()?;
         Ok(result)
     }
     pub fn one<T, F>(

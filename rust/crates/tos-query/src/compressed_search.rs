@@ -8,6 +8,7 @@ pub use crate::compressed_search_state::{
     PublishedSearchLimits, SCHEMA,
 };
 use rusqlite::Connection;
+use std::sync::Arc;
 use tos_compiler::local_prepared::{
     PreparedReadError, PreparedReadErrorCode, PreparedReadLimits, PreparedReadTransaction,
 };
@@ -237,6 +238,98 @@ fn top_field(view: &PreparedReadTransaction<'_>, name: &str) -> Result<JsonValue
         .cloned()
         .ok_or_else(|| unavailable("incomplete prepared reader header"))
 }
+
+/// One request meter retained through the caller's post-read COMMIT/BEGIN
+/// current-binding observation. It changes no transaction boundary itself.
+pub struct PreparedSearchSession<'a> {
+    read: Read<'a>,
+}
+impl<'a> PreparedSearchSession<'a> {
+    pub fn new(connection: &'a Connection, limits: PreparedReadLimits) -> Result<Self> {
+        Ok(Self {
+            read: Read::new(connection, limits)?,
+        })
+    }
+    pub fn new_with_abort(
+        connection: &'a Connection,
+        limits: PreparedReadLimits,
+        abort: Option<Arc<dyn crate::AbortProbe>>,
+    ) -> Result<Self> {
+        Ok(Self {
+            read: Read::with_abort(connection, limits, abort)?,
+        })
+    }
+    pub fn search(
+        &mut self,
+        binding: &JsonValue,
+        request: CompressedSearchRequest,
+        limits: PublishedSearchLimits,
+        now: u64,
+    ) -> Result<JsonValue> {
+        let normalized = request.normalize()?;
+        let incoming = request.cursor.as_deref().map(decode_outer).transpose()?;
+        let body_per_kind = body_budget(self.read.limits, limits)?;
+        self.read.check_abort()?;
+        let view = PreparedReadTransaction::admit(self.read.db, binding, self.read.limits)
+            .map_err(|e| {
+                self.read
+                    .check_abort()
+                    .err()
+                    .unwrap_or_else(|| prepared_error(e))
+            })?;
+        self.read.absorb_owner(&view)?;
+        let result = search_checked(
+            &mut self.read,
+            &view,
+            request,
+            normalized,
+            limits,
+            body_per_kind,
+            now,
+            incoming,
+        );
+        drop(view);
+        self.read.reset_owner();
+        self.read.check_abort()?;
+        result
+    }
+    pub fn capability(
+        &mut self,
+        binding: &JsonValue,
+        limits: PublishedSearchLimits,
+    ) -> Result<JsonValue> {
+        let body_per_kind = body_budget(self.read.limits, limits)?;
+        self.read.check_abort()?;
+        let view = PreparedReadTransaction::admit(self.read.db, binding, self.read.limits)
+            .map_err(|e| {
+                self.read
+                    .check_abort()
+                    .err()
+                    .unwrap_or_else(|| prepared_error(e))
+            })?;
+        self.read.absorb_owner(&view)?;
+        let result = capability_checked(&mut self.read, &view, limits, body_per_kind);
+        drop(view);
+        self.read.reset_owner();
+        self.read.check_abort()?;
+        result
+    }
+    pub fn recheck_binding(&mut self, binding: &JsonValue) -> Result<()> {
+        self.read.check_abort()?;
+        let view =
+            PreparedReadTransaction::recheck_binding(self.read.db, binding, self.read.limits)
+                .map_err(|e| {
+                    self.read
+                        .check_abort()
+                        .err()
+                        .unwrap_or_else(|| prepared_error(e))
+                })?;
+        let result = self.read.absorb_owner(&view);
+        drop(view);
+        self.read.reset_owner();
+        result
+    }
+}
 fn search_checked(
     read: &mut Read<'_>,
     view: &PreparedReadTransaction<'_>,
@@ -291,7 +384,7 @@ fn search_checked(
     };
     let byte_share = read
         .limits
-        .max_response_bytes
+        .max_bytes
         .saturating_sub(read.bytes)
         .saturating_sub(FINAL_READ_BYTES)
         / 2;
