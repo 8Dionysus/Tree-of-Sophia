@@ -1600,7 +1600,9 @@ fn current_grant(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
-    fs.current_context(ctx, deadline, cancelled)?;
+    // The already parsed grant remains usable only while its exact protected
+    // bytes are freshly selected. Avoid reparsing that same JSON per payload chunk.
+    fs.current_configuration_bytes(ctx, deadline, cancelled)?;
     let now = crate::source_serialization::instant()?;
     cmd::validate_expiry(cmd::text(config, "expires_at")?, &now)?;
     cmd::validate_expiry(cmd::text(config, "payload_expires_at")?, &now)?;

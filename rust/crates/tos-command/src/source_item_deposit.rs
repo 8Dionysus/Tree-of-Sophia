@@ -591,9 +591,17 @@ pub(crate) fn ensure_deposit(
                 .saturating_sub(offset)
                 .min(count as u64) as usize;
             if retained > 0 {
-                copied
-                    .read_exact(&mut prefix[..retained])
-                    .map_err(|_| conflict())?;
+                let mut unread = &mut prefix[..retained];
+                while !unread.is_empty() {
+                    active(deadline, cancelled)?;
+                    authorize()?;
+                    match copied.read(unread) {
+                        Ok(0) => return Err(conflict()),
+                        Ok(n) => unread = &mut unread[n..],
+                        Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+                        Err(_) => return Err(conflict()),
+                    }
+                }
                 if prefix[..retained] != block[..retained] {
                     return Err(conflict());
                 }

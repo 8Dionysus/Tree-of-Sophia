@@ -1368,7 +1368,7 @@ impl CreationFilesystem {
     ) -> SourceCommandResult<()> {
         self.current_context(package.prepared().context(), deadline, cancelled)
     }
-    pub(crate) fn current_context(
+    pub(crate) fn current_configuration_bytes(
         &self,
         context: &cmd::CommandContext,
         deadline: Instant,
@@ -1403,16 +1403,25 @@ impl CreationFilesystem {
                 "creation delegation changed before publication",
             ));
         }
-        let config = cmd::parse(&bytes)?;
-        cmd::validate_expiry(
-            cmd::text(&config, "expires_at")?,
-            &crate::source_serialization::instant()?,
-        )?;
         if context.effective_uid != u64::from(self.uid) {
             return Err(SourceCommandError::Denied(
                 "creation prepared account differs",
             ));
         }
+        Ok(())
+    }
+    pub(crate) fn current_context(
+        &self,
+        context: &cmd::CommandContext,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        self.current_configuration_bytes(context, deadline, cancelled)?;
+        let config = cmd::parse(&context.configuration_raw)?;
+        cmd::validate_expiry(
+            cmd::text(&config, "expires_at")?,
+            &crate::source_serialization::instant()?,
+        )?;
         Ok(())
     }
 
