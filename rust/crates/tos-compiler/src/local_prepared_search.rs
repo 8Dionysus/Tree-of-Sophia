@@ -6,7 +6,7 @@
 //! The pager cap covers the entire main database; pager settings are not SQL
 //! data and are not promised to roll back. No corpus, digest or source is selected.
 use crate::{Error, Result};
-use rusqlite::{Connection, OptionalExtension, Params, params};
+use rusqlite::{Connection, OptionalExtension, Params, params, params_from_iter};
 use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
     fs::File,
@@ -567,6 +567,7 @@ struct CachedBlock {
     addresses: Vec<u64>,
     last_key: Option<Vec<u8>>,
     dirty: bool,
+    recency: u64,
 }
 impl CachedBlock {
     fn bytes(&self) -> usize {
@@ -582,7 +583,8 @@ struct Writer<'a> {
     bootstrap: bool,
     report: SearchWriteReport,
     cache: BTreeMap<u64, CachedBlock>,
-    lru: VecDeque<u64>,
+    lru: BTreeMap<u64, u64>,
+    next_recency: u64,
     cached_bytes: usize,
 }
 impl<'a> Writer<'a> {
@@ -596,7 +598,8 @@ impl<'a> Writer<'a> {
             bootstrap,
             report: SearchWriteReport::default(),
             cache: BTreeMap::new(),
-            lru: VecDeque::new(),
+            lru: BTreeMap::new(),
+            next_recency: 0,
             cached_bytes: 0,
         })
     }
@@ -686,8 +689,8 @@ impl<'a> Writer<'a> {
     fn take_block(&mut self, term: u64, key: &[u8]) -> Result<CachedBlock> {
         if let Some(mut block) = self.cache.remove(&term) {
             self.cached_bytes -= block.bytes();
-            if let Some(position) = self.lru.iter().position(|id| *id == term) {
-                self.lru.remove(position);
+            if self.lru.remove(&block.recency) != Some(term) {
+                return Err(Error::Invalid("search cache LRU closure"));
             }
             if block.fence.as_slice() <= key
                 && block
@@ -719,6 +722,7 @@ impl<'a> Writer<'a> {
             addresses,
             last_key,
             dirty: false,
+            recency: 0,
         })
     }
     fn retain(&mut self, mut block: CachedBlock) -> Result<()> {
@@ -730,9 +734,9 @@ impl<'a> Writer<'a> {
         while !self.cache.is_empty()
             && (self.cache.len() >= MAX_CACHE_BLOCKS || self.cached_bytes + bytes > MAX_CACHE_BYTES)
         {
-            let oldest = self
+            let (_, oldest) = self
                 .lru
-                .pop_front()
+                .pop_first()
                 .ok_or(Error::Invalid("search cache LRU closure"))?;
             let mut previous = self
                 .cache
@@ -742,8 +746,13 @@ impl<'a> Writer<'a> {
             self.report.cache_evictions += 1;
             self.flush_block(&mut previous)?;
         }
+        block.recency = self.next_recency;
+        self.next_recency = self
+            .next_recency
+            .checked_add(1)
+            .ok_or(Error::Budget("search cache recency"))?;
         self.cached_bytes += bytes;
-        self.lru.push_back(block.term);
+        self.lru.insert(block.recency, block.term);
         self.cache.insert(block.term, block);
         self.report.peak_cached_blocks = self.report.peak_cached_blocks.max(self.cache.len());
         self.report.peak_cached_bytes = self.report.peak_cached_bytes.max(self.cached_bytes);
@@ -788,6 +797,7 @@ impl<'a> Writer<'a> {
                     addresses: block.addresses[..middle].to_vec(),
                     last_key: Some(map[&block.addresses[middle - 1]].clone()),
                     dirty: true,
+                    recency: 0,
                 };
                 let mut right = CachedBlock {
                     term,
@@ -796,6 +806,7 @@ impl<'a> Writer<'a> {
                     addresses: block.addresses[middle..].to_vec(),
                     last_key: block.last_key,
                     dirty: true,
+                    recency: 0,
                 };
                 self.flush_block(&mut left)?;
                 self.flush_block(&mut right)?;
@@ -855,21 +866,29 @@ impl<'a> Writer<'a> {
         let terms = decode_search_reverse(id, kind, count as usize, &payload, &digest)?;
         self.report.reverse_reads += 1;
         let mut sentinel = false;
-        for &term in &terms {
-            let row: Option<(String, i64, i64, bool)> = self
-                .db
-                .query_row(
-                    "SELECT kind,plane,n,term_key=x'' FROM search_terms WHERE term_id=?1",
-                    [term],
-                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
-                )
-                .optional()?;
-            let (term_kind, plane, n, empty) =
-                row.ok_or(Error::Invalid("reverse references missing search term"))?;
-            if term_kind != kind {
-                return Err(Error::Invalid("reverse references wrong-kind search term"));
+        for selected in terms.chunks(512) {
+            // The reverse frame has distinct addresses. One bounded primary-key
+            // batch verifies dictionary closure without one prepare per term.
+            let placeholders = vec!["?"; selected.len()].join(",");
+            let mut statement = self.db.prepare(&format!(
+                "SELECT CASE WHEN length(CAST(kind AS BLOB))<=8 THEN kind ELSE NULL END,plane,n,term_key=x'' FROM search_terms WHERE term_id IN ({placeholders})"
+            ))?;
+            let mut rows = statement.query(params_from_iter(selected.iter()))?;
+            let mut count = 0;
+            while let Some(row) = rows.next()? {
+                let term_kind: String = row.get(0)?;
+                let plane: i64 = row.get(1)?;
+                let n: i64 = row.get(2)?;
+                let empty: bool = row.get(3)?;
+                if term_kind != kind {
+                    return Err(Error::Invalid("reverse references wrong-kind search term"));
+                }
+                count += 1;
+                sentinel |= plane == 3 && n == 0 && empty;
             }
-            sentinel |= plane == 3 && n == 0 && empty;
+            if count != selected.len() {
+                return Err(Error::Invalid("reverse references missing search term"));
+            }
         }
         if !sentinel {
             return Err(Error::Invalid("reverse omits search all-document term"));
@@ -1044,7 +1063,7 @@ impl<'a> Writer<'a> {
         Ok(())
     }
     fn flush(&mut self) -> Result<()> {
-        while let Some(term) = self.lru.pop_front() {
+        while let Some((_, term)) = self.lru.pop_first() {
             let mut block = self
                 .cache
                 .remove(&term)
