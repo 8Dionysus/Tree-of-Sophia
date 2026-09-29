@@ -242,6 +242,7 @@ pub struct PreparedReadTransaction<'a> {
     limits: PreparedReadLimits,
     rows: Cell<usize>,
     bytes: Cell<usize>,
+    statements: Cell<u64>,
 }
 
 impl<'a> PreparedReadTransaction<'a> {
@@ -273,6 +274,7 @@ impl<'a> PreparedReadTransaction<'a> {
             limits,
             rows: Cell::new(0),
             bytes: Cell::new(0),
+            statements: Cell::new(0),
         };
         view.check_schema()?;
         view.top = view.snapshot()?;
@@ -290,6 +292,20 @@ impl<'a> PreparedReadTransaction<'a> {
     }
     pub fn limits(&self) -> &PreparedReadLimits {
         &self.limits
+    }
+
+    /// Cumulative admission/recheck counters, for the caller's shared request
+    /// meter. They exclude query work done outside this handle and never reset.
+    pub fn read_rows(&self) -> usize {
+        self.rows.get()
+    }
+    pub fn read_bytes(&self) -> usize {
+        self.bytes.get()
+    }
+    /// Charge each delta against the caller's sub-callback SQLite VM tail
+    /// allowance as well as its progress callback's measured instruction work.
+    pub fn statement_count(&self) -> u64 {
+        self.statements.get()
     }
 
     /// Recheck binding/epoch in this transaction, with cumulative admission
@@ -337,7 +353,18 @@ impl<'a> PreparedReadTransaction<'a> {
             .map_err(|_| unavailable("prepared schema contains invalid UTF-8"))
     }
 
+    fn begin_statement(&self) -> Result<()> {
+        self.statements.set(
+            self.statements
+                .get()
+                .checked_add(1)
+                .ok_or_else(|| budget("prepared statement counter budget"))?,
+        );
+        Ok(())
+    }
+
     fn metadata(&self, key: &str, maximum: usize) -> Result<(Vec<u8>, JsonValue)> {
+        self.begin_statement()?;
         let mut statement = self
             .db
             .prepare("SELECT part,json_chunk FROM edge_meta WHERE key=? ORDER BY part LIMIT 257")?;
@@ -390,6 +417,7 @@ impl<'a> PreparedReadTransaction<'a> {
         {
             return Err(unavailable("prepared reader has incoherent data revision"));
         }
+        self.begin_statement()?;
         let mut statement = self
             .db
             .prepare("SELECT epoch FROM knowledge_exploration_clock WHERE singleton=1 LIMIT 2")?;
@@ -503,6 +531,7 @@ impl<'a> PreparedReadTransaction<'a> {
             ),
         ];
         for (table, expected) in TABLES {
+            self.begin_statement()?;
             let mut statement = self.db.prepare(
                 "SELECT name,type,\"notnull\",pk,hidden FROM pragma_table_xinfo(?) ORDER BY cid LIMIT 17")?;
             let mut rows = statement.query([table])?;
@@ -579,6 +608,7 @@ impl<'a> PreparedReadTransaction<'a> {
             ),
         ];
         for (index, table, expected) in INDEXES {
+            self.begin_statement()?;
             let mut statement = self.db.prepare(
                 "SELECT \"unique\",partial FROM pragma_index_list(?) WHERE name=? LIMIT 2",
             )?;
@@ -602,6 +632,7 @@ impl<'a> PreparedReadTransaction<'a> {
             ("prepared_documents", &["kind", "id"]),
         ];
         for (table, expected) in PRIMARY_KEYS {
+            self.begin_statement()?;
             let mut statement = self.db.prepare(
                 "SELECT name,\"unique\",partial FROM pragma_index_list(?) WHERE origin='pk' LIMIT 2")?;
             let mut rows = statement.query([table])?;
@@ -622,6 +653,7 @@ impl<'a> PreparedReadTransaction<'a> {
     }
 
     fn index_layout(&self, index: &str, expected: &[&str]) -> Result<()> {
+        self.begin_statement()?;
         let mut statement = self.db.prepare(
             "SELECT name,coll,\"desc\" FROM pragma_index_xinfo(?) WHERE key=1 ORDER BY seqno LIMIT 17")?;
         let mut rows = statement.query([index])?;
