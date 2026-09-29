@@ -621,13 +621,14 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
     for path in [ladder, crosswalk] {
         before.insert(path.into(), fs::read(owner.join(path)).unwrap());
     }
-    // Select the actual source-owned opening-sentence closure as one immutable
-    // metadata packet: the plan, four produced packets and nine exact current
-    // source bindings. Private text remains outside this authored carrier.
+    // Select the complete source-owned metadata packet from one exact tracked
+    // source revision. The current plan is used only to name the capture; the
+    // captured plan must be byte-identical before any selected bytes are used.
+    // This fixture does not claim the packet binds the moving INT source head.
     let opening_plan = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json";
     let plan_raw = fs::read(owner.join(opening_plan)).unwrap();
     let plan: Value = serde_json::from_slice(&plan_raw).unwrap();
-    let mut opening_selected = vec![(opening_plan.to_owned(), plan_raw)];
+    let mut opening_paths = vec![(opening_plan.to_owned(), None)];
     for field in [
         "source_sentence_packet_ref",
         "target_sentence_packet_ref",
@@ -635,25 +636,105 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
         "provenance_event_ref",
     ] {
         let path = required(&plan["outputs"], field);
-        opening_selected.push((path.to_owned(), fs::read(owner.join(path)).unwrap()));
+        opening_paths.push((path.to_owned(), None));
     }
     for (side, reference, digest) in [
         ("source", "text_layer_ref", "text_layer_record_sha256"),
         ("source", "layout_packet_ref", "layout_packet_sha256"),
-        ("source", "edition_reading_admission_ref", "edition_reading_admission_sha256"),
+        (
+            "source",
+            "edition_reading_admission_ref",
+            "edition_reading_admission_sha256",
+        ),
         ("source", "rights_ref", "rights_sha256"),
         ("target", "text_layer_ref", "text_layer_record_sha256"),
         ("target", "layout_packet_ref", "layout_packet_sha256"),
-        ("target", "expression_record_ref", "expression_record_sha256"),
-        ("target", "responsibility_claims_ref", "responsibility_claims_sha256"),
+        (
+            "target",
+            "expression_record_ref",
+            "expression_record_sha256",
+        ),
+        (
+            "target",
+            "responsibility_claims_ref",
+            "responsibility_claims_sha256",
+        ),
         ("target", "rights_ref", "rights_sha256"),
     ] {
         let path = required(&plan[side], reference);
-        let raw = fs::read(owner.join(path)).unwrap();
-        assert_eq!(Digest256::of_bytes(&raw).to_hex(), required(&plan[side], digest));
-        opening_selected.push((path.to_owned(), raw));
+        opening_paths.push((
+            path.to_owned(),
+            Some(required(&plan[side], digest).to_owned()),
+        ));
     }
-    for (path, raw) in opening_selected {
+    assert_eq!(opening_paths.len(), 14);
+    assert_eq!(
+        opening_paths
+            .iter()
+            .map(|(path, _)| path)
+            .collect::<BTreeSet<_>>()
+            .len(),
+        14
+    );
+    let prefixes = opening_paths
+        .iter()
+        .map(|(path, _)| path.as_str())
+        .collect::<Vec<_>>();
+    let opening_source = "da8fb0993298e7f1de20875cbf2bd19d9e2f5ed0";
+    let opening_capture = tempfile::tempdir().unwrap();
+    let captured = opening_capture.path().join("captured");
+    let restored = opening_capture.path().join("restored");
+    let archive_tool = owner.join("scripts/corpus_archive.py");
+    let run_archive = |command: &mut std::process::Command, label: &str| {
+        for (key, _) in std::env::vars_os() {
+            if key.to_string_lossy().starts_with("GIT_")
+                || key == "PYTHONPATH"
+                || key == "PYTHONHOME"
+            {
+                command.env_remove(key);
+            }
+        }
+        let output = command
+            .env("GIT_NO_REPLACE_OBJECTS", "1")
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .env("PYTHONDONTWRITEBYTECODE", "1")
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{label}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    };
+    let mut capture = std::process::Command::new("python3");
+    capture
+        .arg(&archive_tool)
+        .args(["capture", "--repo-root"])
+        .arg(owner.canonicalize().unwrap())
+        .args(["--commit", opening_source, "--output"])
+        .arg(&captured);
+    for prefix in &prefixes {
+        capture.arg("--include-prefix").arg(prefix);
+    }
+    run_archive(&mut capture, "exact opening source capture");
+    let captured_manifest: Value =
+        serde_json::from_slice(&fs::read(captured.join("capture.json")).unwrap()).unwrap();
+    assert_eq!(captured_manifest["source_git_commit"], opening_source);
+    let mut restore = std::process::Command::new("python3");
+    restore
+        .arg(&archive_tool)
+        .args(["restore", "--capture"])
+        .arg(&captured)
+        .arg("--output")
+        .arg(&restored);
+    run_archive(&mut restore, "exact opening source restore");
+    assert_eq!(fs::read(restored.join(opening_plan)).unwrap(), plan_raw);
+    for (path, expected_sha) in opening_paths {
+        let raw = fs::read(restored.join(&path)).unwrap();
+        if let Some(expected_sha) = expected_sha {
+            assert_eq!(Digest256::of_bytes(&raw).to_hex(), expected_sha, "{path}");
+        }
         if let Some(existing) = before.get(&path) {
             assert_eq!(existing, &raw, "selected opening-sentence source {path}");
         }
