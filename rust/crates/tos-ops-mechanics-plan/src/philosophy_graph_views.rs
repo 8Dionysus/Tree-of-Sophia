@@ -7,7 +7,9 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicI32, Ordering};
 use tos_compiler::source_philosophy_views::{self, ViewLimits};
-use tos_foundation::{CanonicalProfile, JsonLimits, JsonMode, canonical_bytes_v1, parse_json};
+use tos_foundation::{
+    CanonicalProfile, Digest256, JsonLimits, JsonMode, canonical_bytes_v1, parse_json,
+};
 const CATALOG: &str = "ToS/derived-exports/philosophy_graph_views.min.json";
 struct Sources<'a> {
     reader: RouteSources,
@@ -26,14 +28,17 @@ impl Sources<'_> {
     }
     fn object(&mut self, path: &str) -> io::Result<Value> {
         let raw = self.raw(path)?;
-        let normalized = canonical(&raw, 8 * 1024 * 1024)?;
-        let value: Value = serde_json::from_slice(&normalized).map_err(io::Error::other)?;
-        if !value.is_object() {
-            return Err(io::Error::other(format!(
-                "{path} must contain a JSON object"
-            )));
-        }
-        Ok(value)
+        decode_object(&raw, path, 8 * 1024 * 1024)
+    }
+    fn derived_object(&mut self, path: &str, max: usize) -> io::Result<(Value, Digest256)> {
+        self.check()?;
+        // Each derived operand has its own explicit read profile. It never
+        // enters the authored text cache or supplies source/canon authority.
+        let mut read_bytes = 0;
+        let raw = self.reader.bounded_bytes(path, max, &mut read_bytes, max)?;
+        let fixity = Digest256::of_bytes(&raw);
+        let value = decode_object(&raw, path, max)?;
+        Ok((value, fixity))
     }
     fn builder_read(&mut self, path: &str) -> tos_compiler::Result<Vec<u8>> {
         let raw = self
@@ -49,6 +54,16 @@ impl Sources<'_> {
             Ok(raw)
         }
     }
+}
+fn decode_object(raw: &[u8], path: &str, max: usize) -> io::Result<Value> {
+    let normalized = canonical(raw, max)?;
+    let value: Value = serde_json::from_slice(&normalized).map_err(io::Error::other)?;
+    if !value.is_object() {
+        return Err(io::Error::other(format!(
+            "{path} must contain a JSON object"
+        )));
+    }
+    Ok(value)
 }
 fn limits(max: usize) -> io::Result<JsonLimits> {
     JsonLimits::new(max, 96, 2_000_000, 4096).map_err(io::Error::other)
@@ -168,7 +183,8 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<()> {
     };
     // This function consumes the existing atlas projection, exactly like the
     // old build_payload. It does not rebuild atlas, graph or a fullphi stage.
-    let atlas = source.object(source_philosophy_views::ATLAS_REF)?;
+    let (atlas, _atlas_fixity) =
+        source.derived_object(source_philosophy_views::ATLAS_REF, 128 * 1024 * 1024)?;
     let empty = Vec::new();
     let nodes=match atlas.get("nodes"){None=>&empty,Some(v)=>v.as_array().ok_or_else(||io::Error::other("ToS/derived-exports/philosophy_atlas_projection.min.json must expose nodes and edges"))?};
     let edges=match atlas.get("edges"){None=>&empty,Some(v)=>v.as_array().ok_or_else(||io::Error::other("ToS/derived-exports/philosophy_atlas_projection.min.json must expose nodes and edges"))?};
@@ -191,7 +207,8 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<()> {
         .build(&schema)
         .map_err(io::Error::other)?;
     schema_check(&validator, &expected, &source)?;
-    let current = source.object(CATALOG)?;
+    let (current, _catalog_fixity) =
+        source.derived_object(CATALOG, ViewLimits::default().max_output_bytes)?;
     schema_check(&validator, &current, &source)?;
     source.check()?;
     let expected_bytes = render(&expected)?;

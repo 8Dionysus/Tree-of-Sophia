@@ -286,3 +286,14 @@ assertions. Duplicate JSON members keep the last decoded value at this reader
 seam before normalization for the native builder. Existing Python lane remains
 unchanged. The local compiler dependency and this candidate need separate
 whole source/cost review; prior philosophy runtime grants do not include it.
+
+The graph-view validator reads its derived atlas operand with a separate
+128 MiB cap and the current graph-view catalog with the existing builder's
+16 MiB output cap. Both use retained nofollow descriptors through byte-only
+reads, own exact raw-byte SHA-256 observations and avoid authored text caching.
+Authored/source docs keep the existing route reader and builder bounds. These
+derived byte observations grant no source, canon or runtime authority. Raw
+bytes, Foundation parse state, canonical bytes and serde DOM coexist during
+normalization; atlas DOM then coexists with builder indexes/source DOM/output.
+The separate limits preserve the whole input contract, without asserting RAM
+fit or full corpus capacity from a small controlled consumer.
