@@ -11,8 +11,9 @@ import {installDraftRules} from '../../../../access/web/src/observatory/lens-dra
 import {validateDraft,readSaved,SAVED_LENSES_KEY} from '../../../../access/web/src/observatory/lens-model.mjs';
 import {validatePathDraft} from '../../../../access/web/src/observatory/lens-path-editor.mjs';
 
-const [bindingPath,wasmPath]=process.argv.slice(2);
-if(!bindingPath||!wasmPath)throw new Error('usage: node conditions-wasm-host.mjs BINDING.mjs MODULE_bg.wasm');
+const [bindingPath,wasmPath,mode]=process.argv.slice(2),draftOnly=mode==='--draft-only';
+if(!bindingPath||!wasmPath||mode!==undefined&&!draftOnly)
+  throw new Error('usage: node conditions-wasm-host.mjs BINDING.mjs MODULE_bg.wasm [--draft-only]');
 const node={selector:'property_id',id:'tos.property.opaque',op:'in',value:[-0,false,'\ud800']};
 const relation={selector:'field',id:'display.label.default',op:'contains',value:'А\u0301'};
 const sparse=[,'kept'];
@@ -65,9 +66,11 @@ const rules=await import(pathToFileURL(bindingPath).href);
 await rules.default({module_or_path:await readFile(wasmPath)});
 installConditionRules(rules);
 installDraftRules(rules);
-for(let index=0;index<valid.length;index++)assert.deepEqual(validateConditions(structuredClone(valid[index])),oracle[index],`conditions ${index}`);
-for(const value of invalid)assert.throws(()=>validateConditions(structuredClone(value)));
-assert.deepEqual(validateConditions(path32,{maxConditions:32}),pathOracle,'path limit 32');
+if(!draftOnly){
+  for(let index=0;index<valid.length;index++)assert.deepEqual(validateConditions(structuredClone(valid[index])),oracle[index],`conditions ${index}`);
+  for(const value of invalid)assert.throws(()=>validateConditions(structuredClone(value)));
+  assert.deepEqual(validateConditions(path32,{maxConditions:32}),pathOracle,'path limit 32');
+}
 assert.deepEqual(validateDraft(structuredClone(draft)),draftOracle,'actual lens draft');
 for(let index=0;index<draftCases.length;index++)assert.deepEqual(validateDraft(draftCases[index]()),draftExpected[index],`draft ${index}`);
 for(const make of invalidDrafts)assert.throws(()=>validateDraft(make()));
@@ -75,5 +78,5 @@ assert.deepEqual(validatePathDraft(structuredClone(path)),pathExpected,'actual p
 const storage={getItem:key=>key===SAVED_LENSES_KEY?saved:null};
 assert.deepEqual(readSaved(storage),[savedOracle],'actual saved lens reader');
 assert.equal(storage.getItem(SAVED_LENSES_KEY),saved,'reader leaves storage unchanged');
-console.log(JSON.stringify({status:'pass',condition_cases:valid.length+invalid.length+1,draft_cases:draftCases.length+invalidDrafts.length+1,
+console.log(JSON.stringify({status:'pass',condition_cases:draftOnly?0:valid.length+invalid.length+1,draft_cases:draftCases.length+invalidDrafts.length+1,
   actual_consumers:['validateDraft','validatePathDraft','readSaved'],storage_write:false}));

@@ -1,4 +1,10 @@
 // Saved-draft policy uses bounded metadata; value custody stays in JS.
+// With maxNodes=40, ordinary finite stored/link JSON arrays have at most 247
+// spread slots and 254272 UTF-16 units across root strings. Valid root metadata
+// is at most 8247 bytes (v1), 8246 bytes for v2 with defined conditions; the
+// policy reply is at most 43 bytes. These are carrier bounds, not RSS claims.
+// Native Set/spread retain custom iterators: repeated or unbounded yields can
+// consume unbounded work/storage before cardinality admission or during spread.
 let normalize;
 const encoder=new TextEncoder(),decoder=new TextDecoder('utf-8',{fatal:true});
 const text=value=>typeof value==='string'?{kind:'string',units:value.length}:{kind:value===null?'null':'invalid'};
