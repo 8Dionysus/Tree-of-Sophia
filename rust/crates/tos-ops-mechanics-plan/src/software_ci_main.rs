@@ -76,7 +76,7 @@ fn run() -> Result<(), String> {
     }
     let root = root.ok_or("--repo-root is required")?;
     let base = base.ok_or("--base is required")?;
-    if base.is_empty() || base.len() > 4096 || base.contains('\0') {
+    if base.is_empty() || base.starts_with('-') || base.len() > 4096 || base.contains('\0') {
         return Err("invalid base ref".into());
     }
     if !root.is_absolute() || fs::canonicalize(&root).map_err(|e| e.to_string())? != root {

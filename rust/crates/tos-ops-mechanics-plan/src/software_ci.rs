@@ -400,6 +400,9 @@ pub fn plan(
     force_full: bool,
     cancel: &AtomicI32,
 ) -> io::Result<Selection> {
+    if base.is_empty() || base.starts_with('-') || base.len() > 4096 || base.contains('\0') {
+        return Err(invalid("invalid base ref"));
+    }
     let mut budget = Budget {
         deadline: Instant::now() + Duration::from_secs(120),
         bytes: 0,
@@ -469,6 +472,16 @@ mod tests {
     use super::*;
     #[test]
     fn omission_requires_a_known_surface_and_gate_requires_every_job() {
+        // Reject option-shaped refs before any Git reader or filesystem call.
+        assert!(
+            plan(
+                Path::new("/"),
+                "--output=foreign",
+                false,
+                &AtomicI32::new(0)
+            )
+            .is_err()
+        );
         for (paths, mode, worker, rust) in [
             (vec!["README.md", "docs/RELEASING.md"], "none", false, false),
             (vec!["access/web/src/Graph.tsx"], "browser", false, false),
