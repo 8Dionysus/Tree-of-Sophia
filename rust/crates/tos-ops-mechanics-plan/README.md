@@ -276,3 +276,13 @@ formats retain their backend checks. Finite rule diagnostic parity does not
 claim arbitrary malformed JSON/schema exception wording equality. Root source
 review and actual four-state consumer evidence remain separate from source
 wiring or formatter success.
+
+`--philosophy-graph-views-validate` is the explicit native candidate for the
+existing graph-view catalog validator. It reads the generated atlas carrier
+and uses the existing `tos-compiler` view builder; it does not build an atlas.
+Expected and current schema checks precede Python sorted compact value equality
+and the maintained lens/boundary checks. The schema profile has no format
+assertions. Duplicate JSON members keep the last decoded value at this reader
+seam before normalization for the native builder. Existing Python lane remains
+unchanged. The local compiler dependency and this candidate need separate
+whole source/cost review; prior philosophy runtime grants do not include it.

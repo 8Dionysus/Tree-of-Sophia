@@ -14,6 +14,7 @@ regex = "=1.13.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["arbitrary_precision", "preserve_order"] }
 tos-foundation = { path = "../tos-foundation" }
+tos-compiler = { path = "../tos-compiler" }
 tos-validation = { path = "../tos-validation" }
 unicode-general-category = "=1.1.0"
 yaml-rust2 = { version = "=0.13.0", default-features = false }

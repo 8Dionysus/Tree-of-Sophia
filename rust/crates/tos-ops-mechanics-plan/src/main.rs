@@ -24,6 +24,7 @@ enum Action {
     SourceHome,
     PhilosophyTopology,
     SemanticRegistryTransition,
+    PhilosophyGraphViews,
 }
 
 #[derive(Default)]
@@ -56,6 +57,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     let mut source_home = false;
     let mut philosophy_topology = false;
     let mut semantic_registry_transition = false;
+    let mut philosophy_graph_views = false;
     let mut semantic = SemanticOptions::default();
     let mut check = false;
     let mut limits = Limits::default();
@@ -75,6 +77,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
             "--source-home" => source_home = true,
             "--philosophy-topology" => philosophy_topology = true,
             "--semantic-registry-transition" => semantic_registry_transition = true,
+            "--philosophy-graph-views-validate" => philosophy_graph_views = true,
             "--baseline-commit" => {
                 let baseline = args.next().ok_or("missing baseline commit")?;
                 if baseline.starts_with('-') || baseline.len() > 4096 {
@@ -123,6 +126,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
         + usize::from(source_home)
         + usize::from(philosophy_topology)
         + usize::from(semantic_registry_transition)
+        + usize::from(philosophy_graph_views)
         > 1
         || (check && !threshold_build)
         || (!semantic_registry_transition
@@ -154,6 +158,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
         Action::ActiveNamingValidate
     } else if semantic_registry_transition {
         Action::SemanticRegistryTransition
+    } else if philosophy_graph_views {
+        Action::PhilosophyGraphViews
     } else if philosophy_topology {
         Action::PhilosophyTopology
     } else if source_home {
@@ -174,7 +180,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
 
 fn main() {
     let (root, python, action, limits, semantic) = arguments().unwrap_or_else(|error| {
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --source-home | --philosophy-topology | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --source-home | --philosophy-topology | --philosophy-graph-views-validate | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     let result = match action {
@@ -307,6 +313,9 @@ fn main() {
                 }
             })
         }
+        Action::PhilosophyGraphViews => {
+            tos_ops_mechanics_plan::philosophy_graph_views::run(&root, &CANCEL)
+        }
         Action::PhilosophyTopology => {
             tos_ops_mechanics_plan::philosophy_topology::run(&root, &CANCEL)
         }
@@ -367,6 +376,7 @@ fn main() {
                 Action::ActiveNamingValidate => "active naming",
                 Action::SourceHome => "source home",
                 Action::PhilosophyTopology => "philosophy topology",
+                Action::PhilosophyGraphViews => "philosophy graph views",
                 Action::SemanticRegistryTransition => "semantic registry transition",
             };
             let diagnostic = if matches!(action, Action::SemanticRegistryTransition) {
@@ -390,11 +400,7 @@ fn main() {
             #[cfg(not(target_os = "linux"))]
             eprint!("{diagnostic}");
             let signal = CANCEL.load(Ordering::Relaxed);
-            if signal == 0 {
-                1
-            } else {
-                128 + signal
-            }
+            if signal == 0 { 1 } else { 128 + signal }
         }
     };
     std::process::exit(code);
