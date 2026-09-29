@@ -500,7 +500,14 @@ fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
     let selected = super::validation_cut_cases::write_cut_store(&authored, &store);
     let cut = super::command_form_cases::open_cut(&store, selected, deadline, &cancelled);
 
-    let native = PathBuf::from(env!("CARGO_BIN_EXE_tos-native-owner-command"));
+    let native = PathBuf::from(
+        std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH")
+            .expect("OPS must supply the retained TOS_NATIVE_OWNER_COMMAND_PATH"),
+    );
+    assert!(
+        native.is_absolute(),
+        "native owner executable must be absolute"
+    );
     let worker_image = super::validation_cut_cases::selected_worker_path();
     let invocation_path = temporary.path().join("native-alignment-invocation.json");
     fs::write(&invocation_path, serde_json::to_vec(&serde_json::json!({
@@ -617,6 +624,32 @@ fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
         Value::String("Revised supplied description.".into());
     fs::write(&owner, alignment_owner_bytes(&config)).unwrap();
     let mut worker = text_worker(&cut, deadline, &cancelled);
+    // A deterministic native current-grant refusal uses this same worker.
+    // The retained Python boundary separately exercises revocation between
+    // second-side rights and the first content read; no race hook is added.
+    let mut revoked = config.clone();
+    revoked["source_access"]["expires_at"] = Value::String("2000-01-01T00:00:00Z".into());
+    fs::write(&owner, alignment_owner_bytes(&revoked)).unwrap();
+    assert!(matches!(
+        prepare_owner_alignment_from_captures(
+            &context,
+            &owner,
+            &source_value(&proposal),
+            &cut,
+            &software,
+            &components,
+            &mut worker,
+            deadline,
+            &cancelled,
+        ),
+        Err(tos_command::source_command::SourceCommandError::Denied(_))
+    ));
+    assert!(!private.join(&second_path).parent().unwrap().exists());
+    assert_eq!(
+        fs::read(first_home.join("native-translation-alignment.v1.json")).unwrap(),
+        first_raw
+    );
+    fs::write(&owner, alignment_owner_bytes(&config)).unwrap();
     let preview = prepare_owner_alignment_from_captures(
         &context,
         &owner,

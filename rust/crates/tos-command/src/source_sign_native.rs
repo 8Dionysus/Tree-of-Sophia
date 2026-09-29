@@ -2163,8 +2163,8 @@ pub(crate) fn resolve_owner_text_packet(
 /// cache. Metadata, topology and rights on BOTH sides must succeed before
 /// the first representation byte is requested. Rechecking exact content then
 /// uses the same reader, worker and bounded cache for every selected unit.
-pub(crate) fn resolve_owner_alignment(
-    context: &mut crate::source_text_owner::OwnerTextContext,
+pub(crate) fn resolve_owner_alignment<R: SignNativeRead + ?Sized>(
+    context: &mut R,
     worker: &mut CutWorkerSchemaExecutor,
     source: &[JsonValue],
     target: &[JsonValue],
@@ -2177,7 +2177,7 @@ pub(crate) fn resolve_owner_alignment(
             "native alignment binding count",
         ));
     }
-    context.snapshot(deadline, cancelled)?;
+    context.verify_current(deadline, cancelled)?;
     let mut native = Native {
         reader: context,
         worker,

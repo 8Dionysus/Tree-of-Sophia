@@ -10,7 +10,8 @@ use crate::source_serialization::{
     capture_owner_alignment, executable, instant, selected_components,
 };
 use crate::source_sign_native::{
-    NativeInput, ResolvedOwnerAlignment, ResolvedOwnerAlignmentSide, resolve_owner_alignment,
+    NativeInput, NativeReadKind, ResolvedOwnerAlignment, ResolvedOwnerAlignmentSide,
+    SignNativeRead, resolve_owner_alignment,
 };
 use crate::source_text_identity::selected_alignment_identity_snapshot;
 use crate::source_text_layer_entry::{checked_schema, file_refs, line};
@@ -106,6 +107,49 @@ struct PreparedAlignment {
     software_rows: Vec<Value>,
     owner_configuration: String,
     dependencies: String,
+}
+
+// A context transports bytes; this borrowed Alignment grant supplies the live
+// permission fence for every actual resolver read, including its final reread.
+struct AlignmentRead<'a> {
+    context: &'a mut OwnerTextContext,
+    grant: &'a OwnerTextAlignmentSelection,
+}
+
+impl SignNativeRead for AlignmentRead<'_> {
+    fn read(
+        &mut self,
+        reference: &str,
+        kind: NativeReadKind,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Vec<u8>> {
+        self.grant
+            .verify_current(self.context.account_uid(), deadline, cancelled)?;
+        SignNativeRead::read(
+            self.context,
+            reference,
+            kind,
+            max_bytes,
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn verify_current(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        self.grant
+            .verify_current(self.context.account_uid(), deadline, cancelled)?;
+        SignNativeRead::verify_current(self.context, deadline, cancelled)
+    }
+
+    fn owner_local(&self, reference: &str) -> SourceCommandResult<bool> {
+        SignNativeRead::owner_local(self.context, reference)
+    }
 }
 
 fn same(left: &JsonValue, right: &JsonValue) -> SourceCommandResult<bool> {
@@ -1139,7 +1183,10 @@ fn prepare(
     let contracts = selected_contracts(&context, worker, deadline, cancelled)?;
     let owner_configuration = configuration(&context, &grant, &contracts, deadline, cancelled)?;
     let resolved = resolve_owner_alignment(
-        &mut context,
+        &mut AlignmentRead {
+            context: &mut context,
+            grant: &grant,
+        },
         worker,
         bindings(&grant, "source")?,
         bindings(&grant, "target")?,
@@ -1384,6 +1431,8 @@ impl PreparedAlignment {
             deadline,
             cancelled,
         )?;
+        self.grant
+            .verify_current(self.context.account_uid(), deadline, cancelled)?;
         Ok(())
     }
 }
@@ -2268,7 +2317,10 @@ pub(crate) fn inspect_owner_alignment_selected(
         ));
     }
     let resolved = resolve_owner_alignment(
-        &mut context,
+        &mut AlignmentRead {
+            context: &mut context,
+            grant: &grant,
+        },
         worker,
         bindings(&grant, "source")?,
         bindings(&grant, "target")?,

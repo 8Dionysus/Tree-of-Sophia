@@ -162,6 +162,37 @@ pub(crate) struct OwnerTextAlignmentSelection {
 }
 
 impl OwnerTextAlignmentSelection {
+    /// Recheck the existing protected delegation before a resolver disclosure.
+    /// Equality authenticates the already parsed scope; expiry remains live.
+    /// This does not reparse schemas or replace either side's rights check.
+    pub(crate) fn verify_current(
+        &self,
+        uid: u32,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        let current = read_absolute(&self.path, uid, true, self.raw.len(), deadline, cancelled)?;
+        if current != self.raw {
+            return Err(SourceCommandError::Denied(
+                "native alignment grant changed before read",
+            ));
+        }
+        let now = crate::source_serialization::instant()?;
+        for expiry in [
+            cmd::field(&self.config, "expires_at")?,
+            cmd::field(cmd::field(&self.config, "source_access")?, "expires_at")?,
+            cmd::field(cmd::field(&self.config, "alignment_access")?, "expires_at")?,
+        ] {
+            cmd::validate_expiry(
+                expiry
+                    .as_str()
+                    .ok_or(SourceCommandError::Invalid("native alignment expiry"))?,
+                &now,
+            )?;
+        }
+        Ok(())
+    }
+
     pub(crate) fn select(
         context: &OwnerTextContext,
         owner_config: &Path,
