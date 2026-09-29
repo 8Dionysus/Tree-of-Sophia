@@ -2,7 +2,7 @@
 //! Rows stream twice into the same compiler operation; the adapter neither
 //! assembles a graph nor selects a consumer. No runtime owner is implied.
 use std::{
-    io::{BufRead, Write},
+    io::{self, BufRead, BufReader, Read, Write},
     path::{Path, PathBuf},
     time::{Duration, Instant},
 };
@@ -13,9 +13,70 @@ fn parse(raw: &[u8], cap: usize) -> Result<JsonValue, String> {
     let limits = JsonLimits::new(cap, 96, 1_000_000, 4096).map_err(|e| e.to_string())?;
     Ok(parse_json(raw, JsonMode::PublishedStrict, limits)
         .map_err(|e| e.to_string())?
-        .root()
-        .clone())
+        .into_root())
 }
+// The real stdin adapter polls before each bounded read; checking only around
+// BufRead::fill_buf cannot interrupt a pipe whose writer remains open and idle.
+struct DeadlineStdin {
+    deadline: Instant,
+}
+impl Read for DeadlineStdin {
+    fn read(&mut self, output: &mut [u8]) -> io::Result<usize> {
+        if output.is_empty() {
+            return Ok(0);
+        }
+        loop {
+            let remaining = self.deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return Err(io::Error::new(
+                    io::ErrorKind::TimedOut,
+                    "prepared input deadline",
+                ));
+            }
+            let mut input = libc::pollfd {
+                fd: libc::STDIN_FILENO,
+                events: libc::POLLIN,
+                revents: 0,
+            };
+            let timeout = remaining.as_millis().clamp(1, 1000) as i32;
+            // Same Linux poll/read mechanism as the maintained native executor.
+            // This early CLI command owns stdin; no competing buffered reader.
+            let ready = unsafe { libc::poll(&mut input, 1, timeout) };
+            if ready < 0 {
+                let error = io::Error::last_os_error();
+                if error.kind() == io::ErrorKind::Interrupted {
+                    continue;
+                }
+                return Err(error);
+            }
+            if ready == 0 {
+                continue;
+            }
+            if Instant::now() >= self.deadline {
+                return Err(io::Error::new(
+                    io::ErrorKind::TimedOut,
+                    "prepared input deadline",
+                ));
+            }
+            if input.revents & libc::POLLNVAL != 0 {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "prepared stdin descriptor",
+                ));
+            }
+            let count =
+                unsafe { libc::read(libc::STDIN_FILENO, output.as_mut_ptr().cast(), output.len()) };
+            if count >= 0 {
+                return Ok(count as usize);
+            }
+            let error = io::Error::last_os_error();
+            if error.kind() != io::ErrorKind::Interrupted {
+                return Err(error);
+            }
+        }
+    }
+}
+
 fn line(input: &mut dyn BufRead, cap: usize, deadline: Instant) -> Result<Vec<u8>, String> {
     let mut output = Vec::new();
     loop {
@@ -140,32 +201,43 @@ fn decode_change(raw: &[u8], cap: usize) -> Result<PreparedChange, String> {
         },
     })
 }
-fn run(input: &mut dyn BufRead, stdout: &mut dyn Write, seconds: u64) -> Result<(), String> {
-    // The caller supplies an explicit whole-operation deadline before any path or SQL write.
-    let started = Instant::now();
-    if seconds == 0 {
-        return Err("prepared positive max-seconds required".into());
-    }
-    let deadline = started
-        .checked_add(Duration::from_secs(seconds))
-        .ok_or("prepared deadline range")?;
+fn run(
+    input: &mut dyn BufRead,
+    stdout: &mut dyn Write,
+    seconds: u64,
+    deadline: Instant,
+) -> Result<(), String> {
     let raw = line(input, 16_843_008, deadline)?;
     let frame = parse(&raw, 16_843_008)?;
     if uint(field(&frame, "max_seconds")?)? != seconds {
         return Err("prepared stdin/argv deadline differs".into());
     }
-    if seconds == 0 {
-        return Err("prepared positive max_seconds required".into());
-    }
-    let deadline = started
-        .checked_add(Duration::from_secs(seconds))
-        .ok_or("prepared deadline range")?;
     if Instant::now() >= deadline {
         return Err("prepared deadline expired".into());
     }
-    let limits: PublicationLimits =
-        serde_json::from_slice(&encoded(field(&frame, "limits")?, 4096)?)
-            .map_err(|e| e.to_string())?;
+    let values = field(&frame, "limits")?;
+    exact(
+        values,
+        &[
+            "max_bytes",
+            "max_mutations",
+            "max_row_bytes",
+            "max_metadata_bytes",
+            "max_changes",
+            "max_change_bytes",
+        ],
+    )?;
+    let size = |key: &str| -> Result<usize, String> {
+        usize::try_from(uint(field(values, key)?)?).map_err(|_| "prepared limits size range".into())
+    };
+    let limits = PublicationLimits {
+        max_bytes: uint(field(values, "max_bytes")?)?,
+        max_mutations: uint(field(values, "max_mutations")?)?,
+        max_row_bytes: size("max_row_bytes")?,
+        max_metadata_bytes: size("max_metadata_bytes")?,
+        max_changes: size("max_changes")?,
+        max_change_bytes: size("max_change_bytes")?,
+    };
     limits.validate().map_err(|e| e.to_string())?;
     let operation = text(&frame, "operation")?;
     let path = path(text(&frame, "path")?)?;
@@ -251,7 +323,6 @@ fn run(input: &mut dyn BufRead, stdout: &mut dyn Write, seconds: u64) -> Result<
 }
 pub fn run_if_requested(
     args: &[String],
-    input: &mut dyn BufRead,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> Option<i32> {
@@ -268,8 +339,16 @@ pub fn run_if_requested(
         match args[2]
             .parse::<u64>()
             .map_err(|_| "invalid prepared max-seconds".to_owned())
-            .and_then(|seconds| run(input, stdout, seconds))
-        {
+            .and_then(|seconds| {
+                if seconds == 0 {
+                    return Err("prepared positive max-seconds required".into());
+                }
+                let deadline = Instant::now()
+                    .checked_add(Duration::from_secs(seconds))
+                    .ok_or("prepared deadline range")?;
+                let mut input = BufReader::with_capacity(8192, DeadlineStdin { deadline });
+                run(&mut input, stdout, seconds, deadline)
+            }) {
             Ok(()) => 0,
             Err(error) => {
                 let _ = writeln!(stderr, "prepared publication: {error}");

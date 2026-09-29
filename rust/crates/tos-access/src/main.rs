@@ -36,7 +36,6 @@ fn main() {
     }
     if let Some(code) = tos_access::prepared_publication::run_if_requested(
         &args,
-        &mut std::io::stdin().lock(),
         &mut std::io::stdout(),
         &mut std::io::stderr(),
     ) {

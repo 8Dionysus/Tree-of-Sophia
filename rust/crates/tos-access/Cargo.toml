@@ -7,6 +7,7 @@ rust-version.workspace = true
 license.workspace = true
 
 [dependencies]
+libc = "0.2"
 tos-foundation = { path = "../tos-foundation" }
 tos-fd-open = { path = "../tos-fd-open" }
 tos-query = { path = "../tos-query" }

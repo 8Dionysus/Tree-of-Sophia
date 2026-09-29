@@ -1,10 +1,13 @@
 """Actual-file atomic local publication and native reference preservation."""
 import copy
+import dataclasses
 from contextlib import closing
 import json
 import os
 from pathlib import Path
 import sqlite3
+import subprocess
+import time
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -101,6 +104,47 @@ class PreparedPublicationTests(unittest.TestCase):
 
     @unittest.skipUnless(os.environ.get('TOS_NATIVE_PREPARED_EXECUTABLE'),
                          'explicit protected native publication executable required')
+    def test_native_framed_input_deadline_rolls_back_stalled_second_pass(self):
+        """A live idle stdin pipe cannot outlive CLI deadline or leave its new DB."""
+        header = {key: value for key, value in self.graph.items() if key not in ('nodes', 'relations')}
+        frame = {'operation': 'bootstrap', 'path': str(self.path), 'header': header,
+                 'catalog': self.catalog, 'limits': dataclasses.asdict(PublicationLimits()),
+                 'max_seconds': 2}
+        frames = [_compact(frame)]
+        for kind in ('node', 'relation'):
+            frames.extend(_compact({'row': item}) for item in self.graph[kind + 's'])
+            frames.append('{"end":true}')
+        payload = ('\n'.join(frames) + '\n').encode('utf-8')
+        self.assertLess(len(payload), 65536)
+        process = subprocess.Popen([os.environ['TOS_NATIVE_PREPARED_EXECUTABLE'],
+                                    'prepared-publication', '--max-seconds', '2'],
+                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, close_fds=True)
+        try:
+            process.stdin.write(payload)
+            process.stdin.flush()
+            # Keep stdin open; the new DB proves bootstrap entered the same
+            # write transaction and is waiting for the absent second pass.
+            until = time.monotonic() + 1.5
+            while not self.path.exists() and process.poll() is None and time.monotonic() < until:
+                time.sleep(0.01)
+            self.assertTrue(self.path.exists(), 'native bootstrap did not reach its retained transaction')
+            self.assertEqual(process.wait(timeout=6), 2)
+            self.assertEqual(process.stdout.read(65537), b'')
+            errors = process.stderr.read(8193)
+            self.assertLessEqual(len(errors), 8192)
+            self.assertIn(b'prepared input deadline', errors)
+            self.assertFalse(self.path.exists())
+            self.assertFalse(Path(str(self.path) + '-journal').exists())
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait()
+            for stream in (process.stdin, process.stdout, process.stderr):
+                stream.close()
+
+    @unittest.skipUnless(os.environ.get('TOS_NATIVE_PREPARED_EXECUTABLE'),
+                         'explicit protected native publication executable required')
     def test_native_file_owner_matches_python_full_delta_and_atomic_auxiliary_rollback(self):
         """One real opt-in caller protects publication identity and all-lane rollback."""
         from tos_access.compact_lens_store import prepare_compact_lens_store_transaction
@@ -110,7 +154,7 @@ class PreparedPublicationTests(unittest.TestCase):
         native = self.path.with_name('native.sqlite')
         expected = publish_prepared(self.path, graph=self.graph, catalog=self.catalog)
         actual = publish_prepared(native, graph=self.graph, catalog=self.catalog,
-                                  native_executable=executable, native_timeout=120)
+                                  native_executable=executable, native_timeout=20)
         self.assertEqual(actual, expected)
         for selected in (self.path, native):
             with closing(sqlite3.connect(selected, isolation_level=None)) as db:
@@ -126,7 +170,7 @@ class PreparedPublicationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             apply_prepared_delta(native, expected_binding=actual, source_header=header,
                                  catalog=catalog, changes=[PreparedChange('delete', 'node', 'a')],
-                                 native_executable=executable, native_timeout=120)
+                                 native_executable=executable, native_timeout=20)
         with closing(sqlite3.connect(native)) as db:
             self.assertEqual(list(db.iterdump()), before)
         changed = copy.deepcopy(self.graph['nodes'][0])
@@ -141,7 +185,7 @@ class PreparedPublicationTests(unittest.TestCase):
                                            source_header=header, catalog=catalog, changes=changes)
         new_actual = apply_prepared_delta(native, expected_binding=actual, source_header=header,
                                          catalog=catalog, changes=changes,
-                                         native_executable=executable, native_timeout=120)
+                                         native_executable=executable, native_timeout=20)
         self.assertEqual(new_actual, new_expected)
         for table in ('edge_meta', 'prepared_documents', 'prepared_state',
                       'knowledge_nodes', 'knowledge_relations', 'knowledge_lens_order',
@@ -160,14 +204,14 @@ class PreparedPublicationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             apply_prepared_delta(native, expected_binding=actual, source_header=header,
                                  catalog=catalog, changes=[],
-                                 native_executable=executable, native_timeout=120)
+                                 native_executable=executable, native_timeout=20)
         # Metadata-only rollback to the earlier source revision still advances
         # actual epoch/incarnation. It cannot resurrect the predecessor binding.
         original_header = {key: value for key, value in self.graph.items()
                            if key not in ('nodes', 'relations')}
         restored = apply_prepared_delta(native, expected_binding=new_actual,
                                         source_header=original_header, catalog=self.catalog,
-                                        changes=[], native_executable=executable, native_timeout=120)
+                                        changes=[], native_executable=executable, native_timeout=20)
         self.assertGreater(restored['publication_epoch'], new_actual['publication_epoch'])
         self.assertNotEqual(restored, actual)
 
