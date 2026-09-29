@@ -304,7 +304,12 @@ impl RouteSources {
         serde_json::from_str(&source.text)
             .map_err(|e| invalid(format!("route inventory is unreadable or malformed: {e}")))
     }
-    fn walk(&mut self, rel: &str, cards: &mut BTreeSet<String>) -> io::Result<()> {
+    fn walk(
+        &mut self,
+        rel: &str,
+        paths: &mut BTreeSet<String>,
+        all_descendants: bool,
+    ) -> io::Result<()> {
         let Some(dir) = self.open(rel)? else {
             return Ok(());
         };
@@ -344,17 +349,29 @@ impl RouteSources {
         }
         children.sort_by(|a, b| a.0.cmp(&b.0));
         for (name, directory, file) in children {
+            if all_descendants {
+                paths.insert(name.clone());
+            }
             if directory {
-                self.walk(&name, cards)?;
-            } else if file
+                self.walk(&name, paths, all_descendants)?;
+            } else if !all_descendants
+                && file
                 && Path::new(&name)
                     .file_name()
                     .is_some_and(|n| n == "AGENTS.md")
             {
-                cards.insert(name);
+                paths.insert(name);
             }
         }
         Ok(())
+    }
+    /// Sorted descendants of one held directory, including files and directories.
+    /// Enumeration reads no payload bytes and uses the same custody and limits as
+    /// route-card discovery; the supplied directory itself is excluded.
+    pub fn paths(&mut self, relative: &str) -> io::Result<Vec<String>> {
+        let mut paths = BTreeSet::new();
+        self.walk(relative, &mut paths, true)?;
+        Ok(paths.into_iter().collect())
     }
     pub fn discover(&mut self, inventory: &Value) -> io::Result<Vec<String>> {
         let discovery = &inventory["route_card_discovery"];
@@ -365,7 +382,7 @@ impl RouteSources {
             }
         }
         for root in strings(&discovery["route_roots"])? {
-            self.walk(&root, &mut cards)?;
+            self.walk(&root, &mut cards, false)?;
         }
         Ok(cards.into_iter().collect())
     }
