@@ -2323,7 +2323,7 @@ pub fn inspect_owner_alignment_recovery_from_cut(
             "native alignment recovery target",
         ));
     }
-    let Some(request) =
+    let Some((request, retained_files)) =
         alignment_recovery_request(&context, target_ref, command_id, deadline, cancelled)?
     else {
         let target = context.private_new_package_target(target_ref)?;
@@ -2340,12 +2340,15 @@ pub fn inspect_owner_alignment_recovery_from_cut(
     };
     let custody =
         observe_private_text(&context, target_ref, &request, &FILES, deadline, cancelled)?;
-    let was_committed = matches!(&custody, PrivateTextCustody::Published(_));
-    if !was_committed && !matches!(&custody, PrivateTextCustody::Pending(_)) {
-        return Err(SourceCommandError::Conflict(
-            "native alignment retained control without package",
-        ));
-    }
+    let was_committed = match custody {
+        PrivateTextCustody::Published(files) if files == retained_files => true,
+        PrivateTextCustody::Pending(files) if files == retained_files => false,
+        _ => {
+            return Err(SourceCommandError::Conflict(
+                "native alignment retained control and selected package differ",
+            ));
+        }
+    };
     finish_creation_worker(worker, deadline, cancelled)?;
     Ok(if was_committed {
         NativeAlignmentRecovery::Committed

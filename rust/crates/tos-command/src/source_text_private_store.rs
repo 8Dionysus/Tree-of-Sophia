@@ -518,7 +518,7 @@ pub(crate) fn alignment_recovery_request(
     command_id: &str,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<Option<JsonValue>> {
+) -> SourceCommandResult<Option<(JsonValue, BTreeMap<String, Vec<u8>>)>> {
     if command_id.is_empty() || command_id.len() > 256 {
         return Err(bad_plan());
     }
@@ -594,18 +594,17 @@ pub(crate) fn alignment_recovery_request(
         return Err(bad_plan());
     }
     let request = cmd::parse(&request_raw)?;
+    let files = decode_plan(&raw, target_rel, &request)?;
     if cmd::text(&request, "command_id")? != command_id
         || request_digest(&request)? != cmd::text(&plan, "request_digest")?
-        || decode_plan(&raw, target_rel, &request)?
-            .get("source-create-request.json")
-            .map(Vec::as_slice)
+        || files.get("source-create-request.json").map(Vec::as_slice)
             != Some(request_raw.as_slice())
     {
         return Err(SourceCommandError::Conflict(
             "native alignment recovery request",
         ));
     }
-    Ok(Some(request))
+    Ok(Some((request, files)))
 }
 
 impl PrivateTextLocks {
