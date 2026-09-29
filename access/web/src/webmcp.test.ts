@@ -1,3 +1,4 @@
+import './observatory/human-forms-wasm-test-runtime.mjs';
 import { describe, expect, it, vi } from "vitest";
 import { createPageCommandRegistry, type PageContextSnapshot } from "./page-commands";
 import { createWebMCPAdapter, type WebMCPDocument } from "./webmcp";
@@ -41,6 +42,42 @@ function workspaceSummary() {
 }
 
 describe("WebMCP page-command binding", () => {
+  it("preserves lazy mode reads, cursor identity, UTF16 clipping and retained native callbacks", async () => {
+    let modeReads=0,cursorReads=0,pageReads=0;
+    let retained:((value:unknown)=>unknown)|undefined;
+    const mappedRefs=['source'];
+    Object.defineProperty(mappedRefs,'map',{value(callback:(value:unknown)=>unknown){
+      retained=callback;return Array.prototype.map.call(this,callback);
+    }});
+    const refs=['source'];
+    Object.defineProperty(refs,'slice',{value(start:number,end:number){
+      expect([start,end]).toEqual([0,3]);return mappedRefs;
+    }});
+    const cursor='c'.repeat(65535)+'\ud800';
+    const page={has_more:true};
+    Object.defineProperty(page,'next_cursor',{get(){
+      return ++cursorReads===3?cursor:'probe';
+    }});
+    const value={schema:'tos_knowledge_search_compressed_v3',query:'query',result_count:1,
+      nodes:[{id:'node',label:'x'.repeat(118)+'😀tail',source_refs:refs}],relations:[],counts:{},source_revision:'revision'};
+    Object.defineProperty(value,'page',{get(){pageReads++;return page;}});
+    const context={revision:0,selected:{id:'selected',kind:'node',evidence_available:false},view_id:'observatory',deep_link:'http://tos.local/'};
+    Object.defineProperty(context,'mode',{get(){return ++modeReads===1?'philosophy':'corpus';}});
+    Object.defineProperty(context,'active_layers',{get(){throw new Error('fresh corpus mode must stop before layers');}});
+    const registry={context:()=>context,subscribe:()=>()=>{},invoke:async()=>({value,context,context_revision:0})}
+      as unknown as import('./page-commands').PageCommandRegistry;
+    const tools=new Map<string,RegisteredTool>();
+    const adapter=createWebMCPAdapter(registry,{modelContext:{registerTool:async(tool:RegisteredTool)=>{tools.set(tool.name,tool);}}} as unknown as WebMCPDocument);
+    await adapter.start();
+    expect(modeReads).toBe(2);expect(tools.has('tos.page.show-neighborhood')).toBe(false);
+    const reply=await tools.get('tos.page.knowledge-search')!.execute({}, {signal:new AbortController().signal}) as {content:Array<{text:string}>};
+    const compact=JSON.parse(reply.content[0].text);
+    expect(pageReads).toBe(3);expect(cursorReads).toBe(3);expect(compact.next_cursor).toBe(cursor);
+    expect(compact.nodes[0].label).toBe('x'.repeat(118)+'\ud83d…');
+    expect(retained!('opaque\ud800')).toBe('opaque\ud800');
+    adapter.stop();
+  });
+
   it("gates Observatory paths by explicit capability and preserves full route identities", async () => {
     const id = "opaque/" + "long-id:".repeat(35);
     const current: PageContextSnapshot = {

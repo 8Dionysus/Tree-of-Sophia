@@ -1,3 +1,4 @@
+import './observatory/human-forms-wasm-test-runtime.mjs';
 import { describe, expect, it, vi } from "vitest";
 import {
   createPageCommandRegistry,
@@ -51,6 +52,19 @@ function snapshot(): PageContextSnapshot {
 }
 
 describe("page command registry", () => {
+  it("preserves iterable-before-getter focus order and skips falsey view iteration", () => {
+    const events:string[]=[];
+    const ids={*[Symbol.iterator](){events.push('iterate');yield 'node\ud800';}};
+    expect(()=>requireKnownViewId('',ids)).toThrow('(empty)');expect(events).toEqual([]);
+    const selected={kind:'node',get id(){events.push('selected');return 'node\ud800';}} as const;
+    expect(reloadableFocusId(selected,'graph',ids)).toBe('node\ud800');
+    expect(events).toEqual(['iterate','selected']);
+    events.length=0;
+    const missing={kind:'node',get id(){events.push('selected');return '';}} as const;
+    expect(reloadableFocusId(missing,'node\ud800',ids)).toBe('node\ud800');
+    expect(events).toEqual(['iterate','selected']);
+  });
+
   it("reads and exports local research state without advancing the deictic revision", async () => {
     const current = snapshot();
     const noop = vi.fn();

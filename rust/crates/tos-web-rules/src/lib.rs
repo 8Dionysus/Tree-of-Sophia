@@ -41,9 +41,14 @@ mod source_dossier;
 #[cfg(feature = "wasm")]
 mod source_form_session;
 mod temporal_session;
+#[cfg(feature = "wasm")]
+mod webmcp;
 mod workspace_copy;
 mod workspace_machine;
 mod workspace_proposal;
+
+#[cfg(feature = "wasm")]
+pub use webmcp::{WebMcpRules,WebMcpResultChoice,WebMcpToolSession,WebMcpViewSelectorSession};
 
 pub use temporal_session::{
     TemporalSession, TemporalSessionBudget, TemporalSessionStep, TemporalSessionWork,

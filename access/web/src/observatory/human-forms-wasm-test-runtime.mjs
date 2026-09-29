@@ -44,3 +44,6 @@ import {installSourceDossierRules} from './source-dossier-rules.mjs';
 import {installClientPacketRules} from './client-packet-rules.mjs';
 installSourceDossierRules(runtime);
 installClientPacketRules(runtime);
+
+import {installWebMcpRules} from '../webmcp.ts';
+installWebMcpRules(runtime);

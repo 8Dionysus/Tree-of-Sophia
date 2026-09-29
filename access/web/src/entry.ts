@@ -1,3 +1,4 @@
+import {installWebMcpRules} from './webmcp';
 import {installSourceDossierRules} from './observatory/source-dossier-rules.mjs';
 import {installClientPacketRules} from './observatory/client-packet-rules.mjs';
 import {installClientInspectionRules} from './observatory/client-inspection-rules.mjs';
@@ -30,6 +31,7 @@ installClaimReadingRules(rules);
 installClientInspectionRules(rules);
 installSourceDossierRules(rules);
 installClientPacketRules(rules);
+installWebMcpRules(rules);
 installConditionRules(rules);
 installDraftRules(rules);
 installReadingRules(rules);
