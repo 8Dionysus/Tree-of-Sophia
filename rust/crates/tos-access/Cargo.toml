@@ -25,6 +25,7 @@ name = "tos_access"
 path = "src/lib.rs"
 
 [dev-dependencies]
+serde_json = { version = "1", features = ["arbitrary_precision"] }
 tos-query = { path = "../tos-query", features = ["test-fixture"] }
 tos-compiler = { path = "../tos-compiler", features = ["test-fixture"] }
 
