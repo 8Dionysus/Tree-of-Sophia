@@ -12,7 +12,7 @@ use cold_membership_spool::{RunCollector, ScratchReader, ScratchRows};
 
 use postgres::fallible_iterator::FallibleIterator;
 use postgres::{Client, IsolationLevel, NoTls, Transaction};
-use tos_foundation::{Digest256, Digest256Hasher};
+use tos_foundation::{Digest256, Digest256Hasher, RelativePath};
 use tos_segment_store::{
     AttemptRecovery, AuditedStoreRoot, ByteDurabilityReceipt, GenerationCatalogV1,
     GenerationCoverageV1, GenerationCutV1, GenerationDescriptorV1, GenerationNamespaceV1,
@@ -517,6 +517,46 @@ impl SelectedSourceGeneration {
             Self::Warm(value) => value.selected_audit_generation,
         }
     }
+    fn installed(&self) -> &InstalledGenerationV1 {
+        match self {
+            Self::Cold(value) => &value.installed,
+            Self::Warm(value) => &value.installed,
+        }
+    }
+    fn read_limits(&self) -> GenerationReadLimits {
+        match self {
+            Self::Cold(value) => value
+                .cut
+                .streamed_profile
+                .map_or_else(generation_limits, |profile| profile.generation),
+            Self::Warm(_) => generation_limits(),
+        }
+    }
+    pub(crate) fn current_count(&self) -> u64 {
+        self.installed().descriptor().cut.current_members
+    }
+    pub(crate) fn lookup_current(
+        &self,
+        domain: &str,
+        path: &RelativePath,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<PlacementGenerationRowV1>> {
+        let key = membership_key(CURRENT_KEY_TAG, domain, path.as_str(), None)?;
+        Ok(self.installed().lookup(
+            GenerationNamespaceV1::Current,
+            &key,
+            self.read_limits(),
+            deadline,
+            cancelled,
+        )?)
+    }
+    pub(crate) fn current_stream(&self) -> DurableResult<GenerationRowStreamV1> {
+        Ok(self
+            .installed()
+            .stream(GenerationNamespaceV1::Current, self.read_limits())?)
+    }
+
     fn view(&self) -> MembershipInstallation<'_> {
         match self {
             Self::Cold(value) => MembershipInstallation {

@@ -35,14 +35,38 @@ pub struct ManagedCurrentSourceGeneration {
     store_id: [u8; 16],
     cohort: ManagedSourceCohort,
     selected: SelectedSourceGeneration,
-    metadata: BTreeMap<String, MemberMetadata>,
 }
 impl ManagedCurrentSourceGeneration {
-    pub(crate) fn members(&self) -> impl Iterator<Item = &MemberMetadata> {
-        self.metadata.values()
+    /// Authenticated descriptor count; no complete metadata materialization.
+    pub fn member_count(&self) -> u64 {
+        self.selected.current_count()
     }
-    pub(crate) fn member(&self, path: &RelativePath) -> Option<&MemberMetadata> {
-        self.metadata.get(path.as_str())
+    pub fn member(
+        &self,
+        coordinator: &mut DurablePgCoordinator,
+        store: &SegmentStore,
+        path: &RelativePath,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> Result<Option<MemberMetadata>> {
+        coordinator
+            .read_generation_source_metadata(store, self, path, deadline, cancel)
+            .map_err(durable)
+    }
+    /// Visits owned carrier metadata in selected-key order while the exact
+    /// generation/pin and current policy remain held. Successful EOF returns
+    /// independently checked count/root coverage; a partial visit proves none.
+    pub fn visit_members(
+        &self,
+        coordinator: &mut DurablePgCoordinator,
+        store: &SegmentStore,
+        deadline: Instant,
+        cancel: &AtomicBool,
+        visit: impl FnMut(MemberMetadata) -> Result<()>,
+    ) -> Result<tos_segment_store::GenerationCoverageV1> {
+        coordinator
+            .visit_generation_source_metadata(store, self, deadline, cancel, visit)
+            .map_err(durable)
     }
     pub fn digest(&self) -> Digest256 {
         self.selected.digest()
@@ -65,20 +89,15 @@ impl ManagedCurrentSourceGeneration {
     pub(crate) fn selected(&self) -> &SelectedSourceGeneration {
         &self.selected
     }
-    pub(crate) fn metadata(&self) -> &BTreeMap<String, MemberMetadata> {
-        &self.metadata
-    }
     pub(crate) fn from_verified_successor(
         store: &SegmentStore,
         cohort: ManagedSourceCohort,
         selected: crate::durable_adapter::VerifiedWarmGeneration,
-        metadata: BTreeMap<String, MemberMetadata>,
     ) -> Self {
         Self {
             store_id: store.store_id(),
             cohort,
             selected: SelectedSourceGeneration::Warm(selected),
-            metadata,
         }
     }
 
@@ -136,6 +155,9 @@ impl ManagedCurrentSourceCut {
 /// Explicit cold selection of existing durable roots without a v1 export.
 /// The present owner still performs a complete source/index/custody audit;
 /// this removes the mandatory filesystem export, not that audit's O(N) cost.
+/// An explicit private workspace/profile selects the existing streamed custody
+/// route for all cold audits. Current bodies/metadata still obey the finite
+/// creation contract; this option grants no larger complete source selection.
 pub fn select_current_source_generation(
     coordinator: &mut DurablePgCoordinator,
     store: &SegmentStore,
@@ -147,11 +169,30 @@ pub fn select_current_source_generation(
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     worker: &mut CutWorkerSchemaExecutor,
+    streamed: Option<(
+        &crate::durable_adapter::PrivateGenerationWorkspace,
+        crate::durable_adapter::StreamedGenerationProfile,
+    )>,
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> Result<ManagedCurrentSourceGeneration> {
-    let reopened = coordinator
-        .cold_reopen_source_cohort(
+    let reopened = match streamed {
+        Some((workspace, profile)) => coordinator.cold_reopen_source_cohort_streamed(
+            store,
+            domain,
+            original,
+            initial_revision,
+            initial_membership,
+            bootstrap_context,
+            software,
+            components,
+            worker,
+            workspace,
+            profile,
+            deadline,
+            cancel,
+        ),
+        None => coordinator.cold_reopen_source_cohort(
             store,
             domain,
             original,
@@ -163,8 +204,9 @@ pub fn select_current_source_generation(
             worker,
             deadline,
             cancel,
-        )
-        .map_err(durable)?;
+        ),
+    }
+    .map_err(durable)?;
     if reopened.selected.cut().through_commit_seq() != reopened.cohort.generation() {
         return Err(Error::Conflict(
             "managed generation and source cohort differ",
@@ -174,7 +216,6 @@ pub fn select_current_source_generation(
         store_id: store.store_id(),
         cohort: reopened.cohort,
         selected: SelectedSourceGeneration::Cold(reopened.selected),
-        metadata: reopened.metadata,
     })
 }
 
@@ -556,6 +597,10 @@ pub fn select_current_source_cut(
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     worker: &mut CutWorkerSchemaExecutor,
+    streamed: Option<(
+        &crate::durable_adapter::PrivateGenerationWorkspace,
+        crate::durable_adapter::StreamedGenerationProfile,
+    )>,
     isolated: &IsolatedCreationRoot,
     parent: Option<&ManagedCurrentSourceCut>,
     read_limits: ReadLimits,
@@ -567,8 +612,23 @@ pub fn select_current_source_cut(
     read_limits
         .validate()
         .map_err(|_| Error::Invalid("current cut read profile"))?;
-    let reopened = coordinator
-        .cold_reopen_source_cohort(
+    let reopened = match streamed {
+        Some((workspace, profile)) => coordinator.cold_reopen_source_cohort_streamed(
+            store,
+            domain,
+            original,
+            initial_revision,
+            initial_membership,
+            bootstrap_context,
+            software,
+            components,
+            worker,
+            workspace,
+            profile,
+            deadline,
+            cancel,
+        ),
+        None => coordinator.cold_reopen_source_cohort(
             store,
             domain,
             original,
@@ -580,10 +640,9 @@ pub fn select_current_source_cut(
             worker,
             deadline,
             cancel,
-        )
-        .map_err(durable)?;
-    // The cold owner finalized every schema frame before publishing its
-    // complete generation. This export performs no further schema operation.
+        ),
+    }
+    .map_err(durable)?;
     let total = reopened
         .files
         .values()
@@ -745,7 +804,6 @@ pub fn select_current_source_cut(
             store_id: store.store_id(),
             cohort: reopened.cohort,
             selected: SelectedSourceGeneration::Cold(reopened.selected),
-            metadata: reopened.metadata,
         },
         cut,
         membership: reopened.current_membership,

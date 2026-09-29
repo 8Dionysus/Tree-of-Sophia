@@ -188,7 +188,10 @@ pub fn select_managed_agent_creation_input(
             // Literal source references are not invented endpoint constraints.
             // Existing addressed members are read; absence is bound by the
             // complete inventory generation used below and at registration.
-            if generation.member(&path).is_some() {
+            if generation
+                .member(coordinator, store, &path, deadline, cancelled)?
+                .is_some()
+            {
                 paths.insert(path);
             }
         }
@@ -207,7 +210,7 @@ pub fn select_managed_agent_creation_input(
             ));
         }
         let member = generation
-            .member(&path)
+            .member(coordinator, store, &path, deadline, cancelled)?
             .ok_or(SourceCommandError::Conflict(
                 "managed schema resource absent",
             ))?;
@@ -233,7 +236,7 @@ pub fn select_managed_agent_creation_input(
             deadline,
             cancelled,
         )?;
-        if &observed.metadata != member || observed.current_generation != generation.commit_seq() {
+        if observed.metadata != member || observed.current_generation != generation.commit_seq() {
             return Err(SourceCommandError::Conflict(
                 "managed Agent selected observation differs",
             ));
@@ -259,7 +262,10 @@ pub fn select_managed_agent_creation_input(
             }
         }
         for dependency in observed.dependency_claims.as_deref().unwrap_or(&[]) {
-            if generation.member(dependency).is_none() {
+            if generation
+                .member(coordinator, store, dependency, deadline, cancelled)?
+                .is_none()
+            {
                 return Err(SourceCommandError::Conflict(
                     "managed addressed dependency absent",
                 ));

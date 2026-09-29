@@ -1303,6 +1303,43 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     assert_eq!(restored_replay.commit_seq, a.commit_seq);
     // A genuine complete v1 export establishes the initial full producer
     // correspondence once. Warm successors do not re-export authored bodies.
+    let generation_scratch = ScratchRoot::new();
+    let generation_workspace = PrivateGenerationWorkspace::open(
+        &generation_scratch.0,
+        ColdWorkspaceLimits {
+            max_scratch_written_bytes: 64 * 1024 * 1024,
+            max_run_bytes: 16 * 1024,
+            max_runs: 128,
+            merge_fan_in: 4,
+            max_rows: 4096,
+            max_key_bytes: 4096,
+        },
+    )
+    .unwrap();
+    let generation_profile = StreamedGenerationProfile {
+        max_commit_seq: 4096,
+        max_members: 512,
+        max_pins: 4096,
+        max_segment_bytes: 64 * 1024 * 1024,
+        max_membership_key_bytes: 16 * 1024 * 1024,
+        max_metadata_rows: 100_000,
+        max_metadata_bytes: 64 * 1024 * 1024,
+        max_elapsed: Duration::from_secs(120),
+        max_pg_temp_bytes: 64 * 1024 * 1024,
+        max_sql_statement_ms: 60_000,
+        generation: GenerationReadLimits {
+            max_descriptor_bytes: 1024 * 1024,
+            shape: GenerationShapeLimits {
+                max_partitions: 128,
+                max_rows_per_partition: 4,
+                max_key_bytes: 4096,
+                max_leaf_bytes: 256 * 1024,
+            },
+            max_stream_rows: 512,
+            max_stream_key_bytes: 16 * 1024 * 1024,
+        },
+        rows_per_leaf: 4,
+    };
     let export = tos_command::source_current_cut::select_current_source_cut(
         &mut reopened_db,
         &reopened_store,
@@ -1314,6 +1351,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         &software,
         &components,
         &mut new_worker(&cut),
+        Some((&generation_workspace, generation_profile)),
         &isolated,
         None,
         read_limits,
@@ -2209,10 +2247,65 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         &software,
         &components,
         &mut new_worker(&cut),
+        Some((&generation_workspace, generation_profile)),
         deadline,
         &cancelled,
     )
     .unwrap();
+    let mut streamed_metadata = std::collections::BTreeMap::new();
+    let metadata_coverage = current_reopened
+        .visit_members(
+            &mut recovered_db,
+            &recovered_store,
+            deadline,
+            &cancelled,
+            |metadata| {
+                assert!(
+                    streamed_metadata
+                        .insert(metadata.path.as_str().to_owned(), metadata)
+                        .is_none()
+                );
+                Ok(())
+            },
+        )
+        .unwrap();
+    assert_eq!(metadata_coverage.rows, current_reopened.member_count());
+    assert_eq!(
+        metadata_coverage.descriptor_digest,
+        current_reopened.digest()
+    );
+    assert_eq!(
+        streamed_metadata.len() as u64,
+        current_reopened.member_count()
+    );
+    let absent_path =
+        RelativePath::parse("ToS/source-witnesses/agents/never-created/agent.json").unwrap();
+    assert!(
+        current_reopened
+            .member(
+                &mut recovered_db,
+                &recovered_store,
+                &absent_path,
+                deadline,
+                &cancelled,
+            )
+            .unwrap()
+            .is_none()
+    );
+    assert!(
+        current_reopened
+            .visit_members(
+                &mut recovered_db,
+                &recovered_store,
+                deadline,
+                &cancelled,
+                |_| Err(tos_command::source_command::SourceCommandError::Denied(
+                    "test partial metadata visit"
+                )),
+            )
+            .is_err(),
+        "a partial metadata visitor cannot return complete coverage"
+    );
     for (name, expected) in &expected_original_files {
         let path = RelativePath::parse(&format!(
             "ToS/source-witnesses/agents/synthetic-durable-current/{name}"
@@ -2228,6 +2321,18 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                 &cancelled,
             )
             .unwrap();
+        let owned_metadata = current_reopened
+            .member(
+                &mut recovered_db,
+                &recovered_store,
+                &path,
+                deadline,
+                &cancelled,
+            )
+            .unwrap()
+            .unwrap();
+        assert_eq!(owned_metadata, retained.metadata);
+        assert_eq!(streamed_metadata[path.as_str()], retained.metadata);
         assert_eq!(&retained.raw, expected, "process-cold original file {name}");
         assert_eq!(retained.current_generation, expected_current_head);
     }

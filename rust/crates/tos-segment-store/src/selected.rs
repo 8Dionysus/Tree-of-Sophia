@@ -102,6 +102,76 @@ impl InstalledGenerationV1 {
         &self.descriptor
     }
 
+    /// Owned exact lookup in one authenticated leaf. Descriptor membership
+    /// certifies placement only; callers retain currentness and rights checks.
+    pub fn lookup(
+        &self,
+        namespace: GenerationNamespaceV1,
+        key: &[u8],
+        limits: GenerationReadLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<PlacementGenerationRowV1>> {
+        let limits = limits.validate()?;
+        check(deadline, cancelled)?;
+        if key.is_empty() || key.len() > limits.shape.max_key_bytes {
+            return Err(budget());
+        }
+        let catalog = match namespace {
+            GenerationNamespaceV1::History => &self.descriptor.history,
+            GenerationNamespaceV1::Current => &self.descriptor.current,
+        };
+        if catalog.partitions.len() > limits.shape.max_partitions {
+            return Err(budget());
+        }
+        let position = catalog.partitions.partition_point(|part| {
+            part.semantic
+                .bounds
+                .lower_inclusive
+                .as_deref()
+                .is_none_or(|lower| lower <= key)
+        });
+        let Some(reference) = position
+            .checked_sub(1)
+            .and_then(|position| catalog.partitions.get(position))
+        else {
+            return Ok(None);
+        };
+        if reference
+            .semantic
+            .bounds
+            .upper_exclusive
+            .as_deref()
+            .is_some_and(|upper| upper <= key)
+        {
+            return Ok(None);
+        }
+        let leaf = self.store.open_packed_leaf_checked(
+            reference.content_digest,
+            limits.shape,
+            deadline,
+            cancelled,
+        )?;
+        let described = crate::generation::describe_placement_partition(
+            self.store.domain_digest(),
+            leaf.bounds.clone(),
+            leaf.rows.iter().cloned().map(Ok),
+            limits.shape,
+        )?;
+        if leaf.bounds != reference.semantic.bounds || described != reference.semantic {
+            return Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "selected lookup leaf differs",
+            ));
+        }
+        check(deadline, cancelled)?;
+        Ok(leaf
+            .rows
+            .binary_search_by(|row| row.key.as_slice().cmp(key))
+            .ok()
+            .map(|position| leaf.rows[position].clone()))
+    }
+
     pub fn stream(
         &self,
         namespace: GenerationNamespaceV1,

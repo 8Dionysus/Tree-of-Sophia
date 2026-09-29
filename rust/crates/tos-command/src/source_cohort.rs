@@ -248,7 +248,6 @@ pub struct SourceCreationAttempt {
 }
 struct WarmContinuation {
     parent: SelectedSourceGeneration,
-    metadata: BTreeMap<String, MemberMetadata>,
     fence: std::cell::Cell<u64>,
     committed: std::cell::RefCell<Option<WarmCommitted>>,
 }
@@ -1308,6 +1307,146 @@ fn managed_model_projection_identity(
         .map_err(|_| DurableError::Corrupt("managed model projection identity invalid"))
 }
 
+fn finite_warm_parent_rows(
+    parent: &MembershipInstallation<'_>,
+    namespace: GenerationNamespaceV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<Vec<PlacementGenerationRowV1>> {
+    let count = parent.count(namespace);
+    if count > MAX_CUT {
+        return Err(DurableError::Refused(
+            "warm parent exceeds finite membership bound",
+        ));
+    }
+    let mut cursor = parent.cursor(namespace)?;
+    let mut rows = Vec::new();
+    let mut key_bytes = 0usize;
+    while let Some(row) = cursor.next_row()? {
+        active(deadline, cancelled)?;
+        key_bytes = key_bytes
+            .checked_add(row.key.len())
+            .filter(|bytes| *bytes <= MAX_TOTAL_MEMBERSHIP_KEY_BYTES)
+            .ok_or(DurableError::Refused("warm parent key byte bound exceeded"))?;
+        if rows.len() as u64 >= count
+            || rows
+                .last()
+                .is_some_and(|previous: &PlacementGenerationRowV1| previous.key >= row.key)
+        {
+            return Err(DurableError::Corrupt("warm parent order/count differs"));
+        }
+        rows.push(row);
+    }
+    cursor.finish()?;
+    let (tag, expected_root) = match namespace {
+        GenerationNamespaceV1::History => (
+            HISTORY_KEY_TAG,
+            parent.descriptor_cut.history_membership_root,
+        ),
+        GenerationNamespaceV1::Current => (
+            CURRENT_KEY_TAG,
+            parent.descriptor_cut.current_membership_root,
+        ),
+    };
+    if rows.len() as u64 != count || logical_membership_root(tag, &rows) != expected_root {
+        return Err(DurableError::Corrupt("warm parent EOF/root differs"));
+    }
+    Ok(rows)
+}
+
+fn held_generation_metadata(
+    tx: &mut Transaction<'_>,
+    store: &SegmentStore,
+    generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+) -> DurableResult<()> {
+    let selection = generation.selected().view();
+    selection.audited_root.require_store(store)?;
+    let domain = generation.cohort().domain();
+    let fence = tx.query_one(
+        "SELECT generation,maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
+        &[&domain],
+    )?;
+    let row = tx.query_one(
+        "SELECT * FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+        &[&domain],
+    )?;
+    cohort_matches(&row, generation.cohort(), true)?;
+    if as_u64(fence.get(0))? != generation.audit_generation()
+        || fence.get::<_, String>(1) != "normal"
+        || as_u64(row.get("head_seq"))? != generation.commit_seq()
+        || row.get::<_, Option<i64>>("source_generation") != Some(as_i64(generation.commit_seq())?)
+        || row.get::<_, Option<String>>("selected_generation_digest")
+            != Some(generation.digest().to_hex())
+        || row.get::<_, Option<String>>("schema_profile_digest")
+            != Some(selection.descriptor_cut.schema_profile_digest.to_hex())
+        || database_oid(tx)? != selection.descriptor_cut.database_oid
+        || !row.get::<_, bool>("rights_allowed")
+    {
+        return Err(DurableError::Conflict(
+            "selected metadata generation/policy changed",
+        ));
+    }
+    Ok(())
+}
+
+fn selected_source_metadata(
+    row: &postgres::Row,
+    selected: &PlacementGenerationRowV1,
+    domain: &str,
+    path: &RelativePath,
+) -> DurableResult<MemberMetadata> {
+    let placement = selected.placement;
+    let coordinate = placement.coordinate();
+    if selected.key != membership_key(CURRENT_KEY_TAG, domain, path.as_str(), None)?
+        || selected.logical_digest != coordinate.sha256
+        || selected.logical_length != coordinate.size_bytes
+        || row.get::<_, String>("domain") != domain
+        || row.get::<_, String>("subject") != path.as_str()
+        || row.get::<_, String>("content_digest") != selected.logical_digest.to_hex()
+        || as_u64(row.get("content_length"))? != selected.logical_length
+        || row.get::<_, Vec<u8>>("store_id") != placement.store_id()
+        || row.get::<_, String>("custody_domain_digest") != placement.domain_digest().to_hex()
+        || row.get::<_, Vec<u8>>("custody_domain") != domain.as_bytes()
+        || row.get::<_, Vec<u8>>("pin_id") != placement.pin_id()
+        || as_u64(row.get("pin_fence"))? != placement.fence_epoch()
+        || row.get::<_, String>("sto_receipt_id") != placement.receipt_id().to_hex()
+        || row.get::<_, String>("segment_digest") != placement.segment_digest().to_hex()
+        || as_u64(row.get("segment_size"))? != placement.segment_size()
+        || row.get::<_, i32>("frame_index") != placement.frame_index() as i32
+        || as_u64(row.get("frame_header_offset"))? != coordinate.header_offset
+        || row.get::<_, String>("frame_digest") != coordinate.sha256.to_hex()
+        || as_u64(row.get("frame_length"))? != coordinate.size_bytes
+        || ![
+            "tos.source-file.original-v1",
+            "tos.source-file.agent-create-v1",
+        ]
+        .contains(&row.get::<_, String>("profile_id").as_str())
+    {
+        return Err(DurableError::Corrupt("selected metadata placement differs"));
+    }
+    expose_metadata(row, path).map(|(metadata, _)| metadata)
+}
+
+fn path_from_current_key(domain: &str, key: &[u8]) -> DurableResult<RelativePath> {
+    let start = CURRENT_KEY_TAG.len() + 4 + domain.len();
+    let length_bytes: [u8; 4] = key
+        .get(start..start + 4)
+        .and_then(|bytes| bytes.try_into().ok())
+        .ok_or(DurableError::Corrupt("selected source key length absent"))?;
+    let length = u32::from_be_bytes(length_bytes) as usize;
+    let name = key
+        .get(start + 4..)
+        .filter(|name| name.len() == length)
+        .and_then(|name| std::str::from_utf8(name).ok())
+        .ok_or(DurableError::Corrupt("selected source key path absent"))?;
+    let path = RelativePath::parse(name)
+        .map_err(|_| DurableError::Corrupt("selected source key path invalid"))?;
+    if key != membership_key(CURRENT_KEY_TAG, domain, name, None)? {
+        return Err(DurableError::Corrupt("selected source key domain differs"));
+    }
+    Ok(path)
+}
+
 impl DurablePgCoordinator {
     pub(crate) fn managed_model_delta_from_commit(
         &mut self,
@@ -1339,7 +1478,8 @@ impl DurablePgCoordinator {
         }
         let domain = current.cohort().domain();
         let mut tx = self.client.transaction()?;
-        tx.batch_execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY; SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        tx.batch_execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ; SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        held_generation_metadata(&mut tx, store, current)?;
         let size = tx.query_one("SELECT octet_length(source_reads),octet_length(source_projections) FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2 AND state='committed'", &[&domain, &prepare_id])?;
         for column in 0..2 {
             if size
@@ -1402,9 +1542,13 @@ impl DurablePgCoordinator {
             let raw = change.after.as_ref().ok_or(DurableError::Refused(
                 "managed model supports initial Agent only",
             ))?;
-            let metadata = current.member(&change.path).ok_or(DurableError::Conflict(
-                "managed model changed member absent",
-            ))?;
+            let selected = current
+                .selected()
+                .lookup_current(domain, &change.path, deadline, cancelled)?
+                .ok_or(DurableError::Conflict(
+                    "managed model changed member absent",
+                ))?;
+            let metadata = selected_source_metadata(member, &selected, domain, &change.path)?;
             if member.get::<_, i32>("member_slot") as usize != slot
                 || member.get::<_, String>("subject") != change.path.as_str()
                 || member.get::<_, i64>("proposed_revision") != 1
@@ -1497,7 +1641,7 @@ impl DurablePgCoordinator {
             deadline,
             cancelled,
         )?;
-        if count != generation.members().count() as u64 || root != expected_projection {
+        if count != generation.member_count() || root != expected_projection {
             return Err(DurableError::Refused(
                 "managed model catalogue coverage unproved; FullOnly required",
             ));
@@ -1677,7 +1821,7 @@ impl DurablePgCoordinator {
             cancelled,
         )?;
         if row.get::<_, Option<String>>("source_projection_digest") != Some(inventory.root.to_hex())
-            || count != generation.members().count() as u64
+            || count != generation.member_count()
         {
             return Err(DurableError::Refused(
                 "managed projection lacks verified complete coverage; FullOnly required",
@@ -1737,6 +1881,98 @@ impl DurablePgCoordinator {
         cancelled: &AtomicBool,
     ) -> DurableResult<ManagedCurrentMember> {
         self.read_source_member_bound(store, cohort, None, path, max_bytes, deadline, cancelled)
+    }
+
+    pub(crate) fn read_generation_source_metadata(
+        &mut self,
+        store: &SegmentStore,
+        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        path: &RelativePath,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<MemberMetadata>> {
+        active(deadline, cancelled)?;
+        let selection = generation.selected();
+        selection.view().audited_root.require_store(store)?;
+        let domain = generation.cohort().domain();
+        let selected = selection.lookup_current(domain, path, deadline, cancelled)?;
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        held_generation_metadata(&mut tx, store, generation)?;
+        let row = tx.query_opt(
+            "SELECT * FROM cmd2_current WHERE domain=$1 AND subject=$2",
+            &[&domain, &path.as_str()],
+        )?;
+        let result = match (selected, row) {
+            (None, None) => None,
+            (Some(selected), Some(row)) => {
+                Some(selected_source_metadata(&row, &selected, domain, path)?)
+            }
+            _ => return Err(DurableError::Conflict("selected source presence differs")),
+        };
+        active(deadline, cancelled)?;
+        tx.commit()?;
+        Ok(result)
+    }
+
+    pub(crate) fn visit_generation_source_metadata(
+        &mut self,
+        store: &SegmentStore,
+        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        mut visit: impl FnMut(MemberMetadata) -> cmd::SourceCommandResult<()>,
+    ) -> DurableResult<GenerationCoverageV1> {
+        active(deadline, cancelled)?;
+        let mut stream = generation.selected().current_stream()?;
+        let domain = generation.cohort().domain();
+        let count = generation.member_count();
+        let mut root = membership_root_start(CURRENT_KEY_TAG, count);
+        let mut observed = 0u64;
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        held_generation_metadata(&mut tx, store, generation)?;
+        while let Some(selected) = stream.next_row(deadline, cancelled)? {
+            active(deadline, cancelled)?;
+            let path = path_from_current_key(domain, &selected.key)?;
+            let row = tx
+                .query_opt(
+                    "SELECT * FROM cmd2_current WHERE domain=$1 AND subject=$2",
+                    &[&domain, &path.as_str()],
+                )?
+                .ok_or(DurableError::Conflict(
+                    "selected metadata stream member absent",
+                ))?;
+            let metadata = selected_source_metadata(&row, &selected, domain, &path)?;
+            membership_root_row(&mut root, &selected);
+            observed += 1;
+            if observed > count {
+                return Err(DurableError::Corrupt(
+                    "selected metadata stream count exceeded",
+                ));
+            }
+            visit(metadata).map_err(source_error)?;
+        }
+        let coverage = stream
+            .coverage()
+            .ok_or(DurableError::Corrupt("selected metadata stream lacks EOF"))?;
+        if observed != count
+            || coverage.rows != count
+            || coverage.descriptor_digest != generation.digest()
+            || root.finalize()
+                != generation
+                    .selected()
+                    .view()
+                    .descriptor_cut
+                    .current_membership_root
+        {
+            return Err(DurableError::Corrupt(
+                "selected metadata EOF/count/root differs",
+            ));
+        }
+        active(deadline, cancelled)?;
+        tx.commit()?;
+        Ok(coverage)
     }
 
     pub(crate) fn read_generation_source_member(
@@ -1799,7 +2035,7 @@ impl DurablePgCoordinator {
         let mut tx = self.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
         let fence = tx.query_one(
-            "SELECT maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
+            "SELECT maintenance_state,generation FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
             &[&cohort.domain],
         )?;
         if fence.get::<_, String>(0) != "normal" {
@@ -1812,7 +2048,8 @@ impl DurablePgCoordinator {
         cohort_matches(&domain, cohort, true)?;
         if let Some(selected) = generation {
             let selected_seq = as_i64(selected.commit_seq())?;
-            if domain.get::<_, i64>("head_seq") != selected_seq
+            if as_u64(fence.get(1))? != selected.audit_generation()
+                || domain.get::<_, i64>("head_seq") != selected_seq
                 || domain.get::<_, Option<i64>>("source_generation") != Some(selected_seq)
                 || domain.get::<_, Option<String>>("selected_generation_digest")
                     != Some(selected.digest().to_hex())
@@ -1838,6 +2075,18 @@ impl DurablePgCoordinator {
             path.as_str(),
             revision,
         )?;
+        if let Some(generation) = generation {
+            let selected = generation
+                .selected()
+                .lookup_current(&cohort.domain, path, deadline, cancelled)?
+                .ok_or(DurableError::Conflict("selected current frame absent"))?;
+            selected_source_metadata(&row, &selected, &cohort.domain, path)?;
+            if selected.placement != recovered.receipt.placement() {
+                return Err(DurableError::Conflict(
+                    "selected recovered current frame differs",
+                ));
+            }
+        }
         let mut raw = Vec::new();
         store.read_selected(&recovered.receipt, max_bytes, &mut raw)?;
         active(deadline, cancelled)?;
@@ -2139,9 +2388,10 @@ impl DurablePgCoordinator {
                 "warm committed member coverage differs",
             ));
         }
-        let mut history_rows = parent.history_rows.to_vec();
-        let mut current_rows = parent.current_rows.to_vec();
-        let mut metadata = continuation.metadata.clone();
+        let mut history_rows =
+            finite_warm_parent_rows(&parent, GenerationNamespaceV1::History, deadline, cancelled)?;
+        let mut current_rows =
+            finite_warm_parent_rows(&parent, GenerationNamespaceV1::Current, deadline, cancelled)?;
         let mut member_root = Digest256Hasher::new();
         part(&mut member_root, b"cmd2-member-root-v1");
         part(&mut member_root, &(members.len() as u64).to_be_bytes());
@@ -2156,7 +2406,10 @@ impl DurablePgCoordinator {
                 .ok_or(DurableError::Corrupt("warm verified frame absent"))?;
             check_member_row(member, selected, subject, 1)?;
             if row_source_metadata(member)? != carriers[subject]
-                || metadata.contains_key(subject)
+                || continuation
+                    .parent
+                    .lookup_current(domain, &change.path, deadline, cancelled)?
+                    .is_some()
                 || selected.binding().profile_id != CREATION
                 || selected.coordinate().sha256
                     != Digest256::of_bytes(change.after.as_ref().unwrap())
@@ -2179,15 +2432,6 @@ impl DurablePgCoordinator {
                 logical_length: coordinate.size_bytes,
                 placement: selected.placement(),
             });
-            metadata.insert(
-                subject.into(),
-                MemberMetadata {
-                    path: change.path.clone(),
-                    sha256: coordinate.sha256,
-                    size_bytes: coordinate.size_bytes,
-                    mode: 0o644,
-                },
-            );
         }
         if member_root.finalize() != receipt.member_root {
             return Err(DurableError::Corrupt("warm member root differs"));
@@ -2318,9 +2562,12 @@ impl DurablePgCoordinator {
             let subject: String = c.get("subject");
             let path =
                 RelativePath::parse(&subject).map_err(|_| DurableError::Corrupt("warm path"))?;
-            let (actual, _) = expose_metadata(&c, &path)?;
+            let key = membership_key(CURRENT_KEY_TAG, domain, &subject, None)?;
+            let position = current_rows
+                .binary_search_by(|member| member.key.cmp(&key))
+                .map_err(|_| DurableError::Corrupt("warm current selected member absent"))?;
+            selected_source_metadata(&c, &current_rows[position], domain, &path)?;
             if !seen_current.insert(subject.clone())
-                || metadata.get(&subject) != Some(&actual)
                 || latest.get(&subject)
                     != Some(&(as_u64(c.get("revision"))?, metadata_locator_digest(&c)))
             {
@@ -2335,7 +2582,7 @@ impl DurablePgCoordinator {
         }
         let (projection, _, count) =
             retained_projection_root(&mut tx, domain, head, deadline, cancelled)?;
-        if count != metadata.len() as u64 {
+        if count != current_rows.len() as u64 {
             return Err(DurableError::Corrupt("warm projection coverage differs"));
         }
         append_private_metadata(&mut tx, domain, &mut state, started, requested, None)?;
@@ -2425,7 +2672,6 @@ impl DurablePgCoordinator {
                     installed,
                     selected_audit_generation,
                 },
-                metadata,
             ),
         )
     }
@@ -2744,14 +2990,7 @@ impl DurablePgCoordinator {
             .filter(|read| read.path.as_str().starts_with("ToS/"))
             .map(|read| (read.path.as_str(), read.raw_sha256))
             .collect::<BTreeMap<_, _>>();
-        if (view.inventory().is_none() && members.len() != generation.members().count())
-            || members.iter().any(|(path, sha)| {
-                RelativePath::parse(path)
-                    .ok()
-                    .and_then(|p| generation.member(&p))
-                    .is_none_or(|m| &m.sha256 != sha)
-            })
-        {
+        if view.inventory().is_none() && members.len() as u64 != generation.member_count() {
             return Err(DurableError::Conflict(
                 "managed proposal complete inventory differs",
             ));
@@ -2760,8 +2999,8 @@ impl DurablePgCoordinator {
             .observations()
             .ok_or(DurableError::Conflict("managed observations absent"))?;
         if observations.len() != members.len()
-            || observations.values().any(|observed| {
-                generation.member(&observed.metadata.path) != Some(&observed.metadata)
+            || observations.iter().any(|(path, observed)| {
+                members.get(path.as_str()) != Some(&observed.metadata.sha256)
             })
         {
             return Err(DurableError::Conflict(
@@ -3333,6 +3572,23 @@ impl DurablePgCoordinator {
                 let observed = observations.get(key).ok_or(DurableError::Conflict(
                     "managed dependency observation missing",
                 ))?;
+                if let SourceRegistrationBasis::Managed(generation) = &basis {
+                    let selected = generation
+                        .selected()
+                        .lookup_current(domain, &observed.metadata.path, deadline, cancelled)?
+                        .ok_or(DurableError::Conflict("managed selected dependency absent"))?;
+                    if selected_source_metadata(
+                        current,
+                        &selected,
+                        domain,
+                        &observed.metadata.path,
+                    )? != observed.metadata
+                    {
+                        return Err(DurableError::Conflict(
+                            "managed selected dependency differs",
+                        ));
+                    }
+                }
                 let actual_metadata = row_source_metadata(current)?;
                 let dependencies = observed.dependencies.as_ref().map(|paths| {
                     paths
@@ -3444,7 +3700,6 @@ impl DurablePgCoordinator {
             SourceRegistrationBasis::Managed(generation) if package.inventory().is_some() => {
                 Some(WarmContinuation {
                     parent: generation.selected().clone(),
-                    metadata: generation.metadata().clone(),
                     fence: std::cell::Cell::new(lock_audit_fence(&mut tx, domain)?),
                     committed: std::cell::RefCell::new(None),
                 })
@@ -3776,6 +4031,146 @@ impl DurablePgCoordinator {
                 "cold original membership exceeds existing source bounds",
             ));
         }
+        let before = match streamed {
+            Some((workspace, profile)) => self
+                .cold_verify_cut_streamed(store, domain, workspace, profile, deadline, cancelled)?,
+            None => self.cold_verify_cut_with_budget(store, domain, Some((deadline, cancelled)))?,
+        };
+        let mut metadata_tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .read_only(true)
+            .start()?;
+        metadata_tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '60s'; SET LOCAL work_mem = '4MB'")?;
+        if let Some((_, profile)) = streamed {
+            metadata_tx.query_one(
+                "SELECT set_config('temp_file_limit',$1,true)",
+                &[&format!("{}kB", profile.max_pg_temp_bytes / 1024)],
+            )?;
+            metadata_tx.query_one(
+                "SELECT set_config('statement_timeout',$1,true)",
+                &[&format!("{}ms", profile.max_sql_statement_ms)],
+            )?;
+        }
+        let domain_row = metadata_tx.query_one(
+            "SELECT d.*,f.generation AS audit_generation,f.maintenance_state
+             FROM cmd2_domain d JOIN cmd2_audit_fence f USING(domain) WHERE d.domain=$1",
+            &[&domain],
+        )?;
+        if as_u64(domain_row.get("head_seq"))? != before.through_commit_seq
+            || as_u64(domain_row.get("audit_generation"))? != before.audit_generation
+            || domain_row.get::<_, String>("maintenance_state") != "normal"
+        {
+            return Err(DurableError::Conflict(
+                "cold source metadata snapshot changed",
+            ));
+        }
+        // The returned maps and CommandContext remain finite. Refuse the
+        // complete current selection before allocating rows or reading bodies.
+        let software_count = context
+            .files
+            .iter()
+            .filter(|f| !f.path.as_str().starts_with("ToS/"))
+            .count();
+        let software_bytes = context
+            .files
+            .iter()
+            .filter(|f| !f.path.as_str().starts_with("ToS/"))
+            .try_fold(0u64, |n, f| n.checked_add(f.raw.len() as u64))
+            .ok_or(DurableError::Refused(
+                "cold software selection byte overflow",
+            ))?;
+        let admitted = metadata_tx.query_one(
+            "SELECT count(*),coalesce(sum(content_length),0)::bigint,
+                    coalesce(max(content_length),0)
+             FROM cmd2_current WHERE domain=$1",
+            &[&domain],
+        )?;
+        let current_count = as_u64(admitted.get(0))?;
+        if current_count != before.current_members
+            || current_count
+                .checked_add(software_count as u64)
+                .is_none_or(|n| n > cmd::SELECTED_SOURCE_MAX_FILES as u64)
+            || as_u64(admitted.get(2))? > 8_388_608
+            || as_u64(admitted.get(1))?
+                .checked_add(software_bytes)
+                .is_none_or(|n| n > cmd::SELECTED_SOURCE_MAX_BYTES as u64)
+        {
+            return Err(DurableError::Refused(
+                "current source exceeds existing command selection bounds",
+            ));
+        }
+        let counts = admit_cold_source_metadata(
+            &mut metadata_tx,
+            domain,
+            streamed.map(|(_, p)| p),
+            deadline,
+            cancelled,
+        )?;
+        let rows =
+            cold_source_current_rows(&mut metadata_tx, domain, counts[0], deadline, cancelled)?;
+        let mut actual = IndexRows::new();
+        let mut indexed_projections = ProjectionRows::new();
+        let mut indexed_projection_count = 0u64;
+        cold_source_key_rows(
+            &mut metadata_tx,
+            domain,
+            false,
+            counts[1],
+            deadline,
+            cancelled,
+            |row| {
+                if row.get::<_, String>("definition_digest") != definition().to_hex() {
+                    return Err(DurableError::Corrupt(
+                        "current owner index definition differs",
+                    ));
+                }
+                let kind: String = row.get("kind");
+                let path: String = row.get("path");
+                if kind == "path" {
+                    indexed_projection_count += 1;
+                    if let Some(projection) = row.get::<_, Option<Vec<u8>>>("inventory_projection")
+                    {
+                        indexed_projections.insert(path.clone(), projection);
+                    }
+                }
+                if !actual.insert((kind, row.get("token"), path)) {
+                    return Err(DurableError::Corrupt("duplicate cold owner index"));
+                }
+                Ok(())
+            },
+        )?;
+        let mut predicate_keys = BTreeSet::new();
+        cold_source_key_rows(
+            &mut metadata_tx,
+            domain,
+            true,
+            counts[2],
+            deadline,
+            cancelled,
+            |row| {
+                let kind: String = row.get("kind");
+                let scope: String = row.get("scope");
+                let token: String = row.get("token");
+                if row.get::<_, String>("definition_version") != definition().to_hex()
+                    || !["unique", "range"].contains(&kind.as_str())
+                    || (kind == "range"
+                        && !["source-home", "source-inventory"].contains(&scope.as_str()))
+                    || (scope == "source-inventory" && token != "all")
+                    || (kind == "unique"
+                        && !["metadata", "claim", "event", "anchor", "form", "path"]
+                            .contains(&scope.as_str()))
+                    || !predicate_keys.insert((kind, scope, token))
+                {
+                    return Err(DurableError::Corrupt(
+                        "stored source predicate owner definition differs",
+                    ));
+                }
+                Ok(())
+            },
+        )?;
+        metadata_tx.commit()?;
         while let Some(member) = original_stream
             .next_member(deadline, cancelled)
             .map_err(|_| DurableError::Refused("original cold EOF/fixity failure"))?
@@ -3785,21 +4180,6 @@ impl DurablePgCoordinator {
         if original_stream.coverage() != Some(initial_membership) {
             return Err(DurableError::Refused("original cold membership incomplete"));
         }
-        let before =
-            self.cold_verify_cut_with_budget(store, domain, Some((deadline, cancelled)))?;
-        let mut metadata_tx = self
-            .client
-            .build_transaction()
-            .isolation_level(IsolationLevel::RepeatableRead)
-            .read_only(true)
-            .start()?;
-        metadata_tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '60s'; SET LOCAL work_mem = '4MB'")?;
-        let domain_row =
-            metadata_tx.query_one("SELECT * FROM cmd2_domain WHERE domain=$1", &[&domain])?;
-        let rows=metadata_tx.query("SELECT c.*,a.attempt_fence AS source_attempt_fence FROM cmd2_current c JOIN cmd2_attempt a USING(domain,prepare_id) WHERE c.domain=$1 ORDER BY c.prepare_id,c.member_slot", &[&domain])?;
-        let stored=metadata_tx.query("SELECT kind,token,path,definition_digest FROM cmd2_source_index WHERE domain=$1 ORDER BY kind,token,path", &[&domain])?;
-        let persisted_predicates=metadata_tx.query("SELECT kind,scope,token,definition_version FROM cmd2_predicate WHERE domain=$1 AND owner=$2", &[&domain,&OWNER])?;
-        metadata_tx.commit()?;
         let cohort = ManagedSourceCohort {
             domain: domain.into(),
             store_id: store.store_id(),
@@ -3828,6 +4208,7 @@ impl DurablePgCoordinator {
         }
         let mut last_prepare = Vec::new();
         let mut sealed = Vec::new();
+        let mut current_placements = Vec::new();
         for row in &rows {
             active(deadline, cancelled)?;
             let path: String = row.get("subject");
@@ -3858,6 +4239,12 @@ impl DurablePgCoordinator {
                 .find(|r| r.receipt_id().to_hex() == row.get::<_, String>("sto_receipt_id"))
                 .ok_or(DurableError::Corrupt("cold current receipt absent"))?;
             check_history_locator(row, receipt, domain, &path, as_u64(row.get("revision"))?)?;
+            current_placements.push(PlacementGenerationRowV1 {
+                key: membership_key(CURRENT_KEY_TAG, domain, &path, None)?,
+                logical_digest: receipt.placement().coordinate().sha256,
+                logical_length: receipt.placement().coordinate().size_bytes,
+                placement: receipt.placement(),
+            });
             let mut raw = Vec::new();
             // Rights are checked before disclosure even for this private full
             // cold operation, and held through each exact selected frame read.
@@ -3907,6 +4294,14 @@ impl DurablePgCoordinator {
             });
             files.insert(path, raw);
         }
+        sort_complete_membership(&mut current_placements)?;
+        if logical_membership_root(CURRENT_KEY_TAG, &current_placements)
+            != before.current_membership_root
+        {
+            return Err(DurableError::Conflict(
+                "cold source current membership root changed",
+            ));
+        }
         if !expected.keys().all(|p| files.contains_key(p)) {
             return Err(DurableError::Corrupt(
                 "original bootstrap membership missing",
@@ -3935,23 +4330,19 @@ impl DurablePgCoordinator {
                     ));
                 }
             }
-            let history_projections = self.client.query("SELECT h.subject,h.inventory_projection FROM cmd2_history h JOIN cmd2_current c USING(domain,subject,revision) WHERE h.domain=$1 ORDER BY h.subject COLLATE \"C\"", &[&domain])?;
-            if history_projections.len() != projections.len()
-                || history_projections.iter().any(|row| {
-                    row.get::<_, Option<Vec<u8>>>(1).as_ref()
-                        != projections.get(&row.get::<_, String>(0))
+            if rows.len() != projections.len()
+                || rows.iter().any(|row| {
+                    row.get::<_, Option<Vec<u8>>>("retained_inventory_projection")
+                        .as_ref()
+                        != projections.get(&row.get::<_, String>("subject"))
                 })
             {
                 return Err(DurableError::Corrupt(
                     "retained Agent projection membership differs",
                 ));
             }
-            let indexed = self.client.query("SELECT path,inventory_projection FROM cmd2_source_index WHERE domain=$1 AND kind='path' ORDER BY path COLLATE \"C\"", &[&domain])?;
-            if indexed.len() != projections.len()
-                || indexed.iter().any(|row| {
-                    row.get::<_, Option<Vec<u8>>>(1).as_ref()
-                        != projections.get(&row.get::<_, String>(0))
-                })
+            if indexed_projection_count != projections.len() as u64
+                || &indexed_projections != projections
             {
                 return Err(DurableError::Corrupt(
                     "Agent index projection coverage differs",
@@ -3959,38 +4350,10 @@ impl DurablePgCoordinator {
             }
         }
         verify_manifest_indexes(original, &indexes)?;
-        let mut actual = IndexRows::new();
-        for row in stored {
-            if row.get::<_, String>(3) != cohort.definition.to_hex() {
-                return Err(DurableError::Corrupt(
-                    "current owner index definition differs",
-                ));
-            }
-            actual.insert((row.get(0), row.get(1), row.get(2)));
-        }
         if indexes != actual {
             return Err(DurableError::Corrupt(
                 "current original bodies and complete owner indexes differ",
             ));
-        }
-        let mut predicate_keys = BTreeSet::new();
-        for row in persisted_predicates {
-            let kind: String = row.get(0);
-            let scope: String = row.get(1);
-            if row.get::<_, String>(3) != cohort.definition.to_hex()
-                || !["unique", "range"].contains(&kind.as_str())
-                || (kind == "range"
-                    && !["source-home", "source-inventory"].contains(&scope.as_str()))
-                || (scope == "source-inventory" && row.get::<_, String>(2) != "all")
-                || (kind == "unique"
-                    && !["metadata", "claim", "event", "anchor", "form", "path"]
-                        .contains(&scope.as_str()))
-            {
-                return Err(DurableError::Corrupt(
-                    "stored source predicate owner definition differs",
-                ));
-            }
-            predicate_keys.insert((kind, scope, row.get::<_, String>(2)));
         }
         if !predicates(&indexes).is_subset(&predicate_keys) {
             return Err(DurableError::Corrupt(
@@ -4046,6 +4409,188 @@ impl DurablePgCoordinator {
             dependency_claims,
         })
     }
+}
+
+// Small PG pages are separate from the finite complete maps returned to the
+// creation owner. Neither a wider generation profile nor streaming custody
+// raises the existing command input or finite owner-metadata ceilings.
+const COLD_SOURCE_PAGE_ROWS: i64 = 8;
+fn admit_cold_source_metadata(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    profile: Option<StreamedGenerationProfile>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<[u64; 3]> {
+    let mut counts = [0; 3];
+    let mut rows = 0u64;
+    let mut bytes = 0u64;
+    for (i, table) in ["cmd2_current", "cmd2_source_index", "cmd2_predicate"]
+        .into_iter()
+        .enumerate()
+    {
+        active(deadline, cancelled)?;
+        let query = format!(
+            "SELECT count(*),coalesce(max(octet_length(row_to_json(t)::text)),0),
+                    coalesce(sum(octet_length(row_to_json(t)::text)),0)::bigint
+             FROM {table} t WHERE domain=$1"
+        );
+        let admitted = tx.query_one(&query, &[&domain])?;
+        counts[i] = as_u64(admitted.get(0))?;
+        rows = rows
+            .checked_add(counts[i])
+            .ok_or(DurableError::Refused("cold source metadata row overflow"))?;
+        bytes = bytes
+            .checked_add(as_u64(admitted.get(2))?)
+            .ok_or(DurableError::Refused("cold source metadata byte overflow"))?;
+        if rows > profile.map_or(100_000, |p| p.max_metadata_rows.min(100_000)) as u64
+            || bytes
+                > profile.map_or(64 * 1024 * 1024, |p| {
+                    p.max_metadata_bytes.min(64 * 1024 * 1024)
+                }) as u64
+            || admitted.get::<_, i32>(1) > 1_048_576
+        {
+            return Err(DurableError::Refused(
+                "cold source metadata preadmission exceeded",
+            ));
+        }
+    }
+    // Predicates belonging to another owner are included in the resource
+    // accounting above, but only this owner's complete keys are consumed.
+    counts[2] = as_u64(
+        tx.query_one(
+            "SELECT count(*) FROM cmd2_predicate WHERE domain=$1 AND owner=$2",
+            &[&domain, &OWNER],
+        )?
+        .get(0),
+    )?;
+    Ok(counts)
+}
+
+fn cold_source_current_rows(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    count: u64,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<Vec<postgres::Row>> {
+    let mut rows = Vec::new();
+    let mut after = (Vec::<u8>::new(), -1i32, String::new());
+    loop {
+        active(deadline, cancelled)?;
+        let page = tx.query(
+            "SELECT c.*,a.attempt_fence AS source_attempt_fence,
+                    h.inventory_projection AS retained_inventory_projection
+             FROM cmd2_current c JOIN cmd2_attempt a USING(domain,prepare_id)
+             LEFT JOIN cmd2_history h USING(domain,subject,revision)
+             WHERE c.domain=$1 AND
+               (c.prepare_id,c.member_slot,c.subject COLLATE \"C\") > ($2,$3,$4 COLLATE \"C\")
+             ORDER BY c.prepare_id,c.member_slot,c.subject COLLATE \"C\" LIMIT $5",
+            &[
+                &domain,
+                &after.0,
+                &after.1,
+                &after.2,
+                &COLD_SOURCE_PAGE_ROWS,
+            ],
+        )?;
+        if page.is_empty() {
+            break;
+        }
+        for row in page {
+            active(deadline, cancelled)?;
+            let key = (
+                row.get::<_, Vec<u8>>("prepare_id"),
+                row.get::<_, i32>("member_slot"),
+                row.get::<_, String>("subject"),
+            );
+            if key <= after || rows.len() as u64 >= count {
+                return Err(DurableError::Corrupt(
+                    "cold current keyset order/count differs",
+                ));
+            }
+            after = key;
+            rows.push(row);
+        }
+    }
+    if rows.len() as u64 != count {
+        return Err(DurableError::Corrupt("cold current EOF count differs"));
+    }
+    Ok(rows)
+}
+
+fn cold_source_key_rows(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    predicate: bool,
+    count: u64,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    mut consume: impl FnMut(&postgres::Row) -> DurableResult<()>,
+) -> DurableResult<()> {
+    let mut after: Option<(String, String, String)> = None;
+    let mut seen = 0u64;
+    loop {
+        active(deadline, cancelled)?;
+        let page = match (predicate, after.as_ref()) {
+            (false, None) => tx.query(
+                "SELECT * FROM cmd2_source_index WHERE domain=$1
+                 ORDER BY kind COLLATE \"C\",token COLLATE \"C\",path COLLATE \"C\" LIMIT $2",
+                &[&domain, &COLD_SOURCE_PAGE_ROWS],
+            )?,
+            (false, Some(key)) => tx.query(
+                "SELECT * FROM cmd2_source_index WHERE domain=$1 AND
+                   (kind COLLATE \"C\",token COLLATE \"C\",path COLLATE \"C\") >
+                   ($2 COLLATE \"C\",$3 COLLATE \"C\",$4 COLLATE \"C\")
+                 ORDER BY kind COLLATE \"C\",token COLLATE \"C\",path COLLATE \"C\" LIMIT $5",
+                &[&domain, &key.0, &key.1, &key.2, &COLD_SOURCE_PAGE_ROWS],
+            )?,
+            (true, None) => tx.query(
+                "SELECT * FROM cmd2_predicate WHERE domain=$1 AND owner=$2
+                 ORDER BY kind COLLATE \"C\",scope COLLATE \"C\",token COLLATE \"C\" LIMIT $3",
+                &[&domain, &OWNER, &COLD_SOURCE_PAGE_ROWS],
+            )?,
+            (true, Some(key)) => tx.query(
+                "SELECT * FROM cmd2_predicate WHERE domain=$1 AND owner=$2 AND
+                   (kind COLLATE \"C\",scope COLLATE \"C\",token COLLATE \"C\") >
+                   ($3 COLLATE \"C\",$4 COLLATE \"C\",$5 COLLATE \"C\")
+                 ORDER BY kind COLLATE \"C\",scope COLLATE \"C\",token COLLATE \"C\" LIMIT $6",
+                &[
+                    &domain,
+                    &OWNER,
+                    &key.0,
+                    &key.1,
+                    &key.2,
+                    &COLD_SOURCE_PAGE_ROWS,
+                ],
+            )?,
+        };
+        if page.is_empty() {
+            break;
+        }
+        for row in page {
+            active(deadline, cancelled)?;
+            let key = if predicate {
+                (row.get("kind"), row.get("scope"), row.get("token"))
+            } else {
+                (row.get("kind"), row.get("token"), row.get("path"))
+            };
+            if after.as_ref().is_some_and(|previous| previous >= &key) || seen >= count {
+                return Err(DurableError::Corrupt(
+                    "cold source keyset order/count differs",
+                ));
+            }
+            consume(&row)?;
+            after = Some(key);
+            seen += 1;
+        }
+    }
+    if seen != count {
+        return Err(DurableError::Corrupt(
+            "cold source keyset EOF count differs",
+        ));
+    }
+    Ok(())
 }
 
 fn membership_of_files(files: &BTreeMap<String, Vec<u8>>) -> SourceMembershipV1 {
