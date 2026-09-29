@@ -25,3 +25,5 @@ installResearchShelfRules(runtime);
 installClaimReferenceRules(runtime);
 installConditionRules(runtime);
 installDraftRules(runtime);
+import {installWorkspaceCopyRules} from './workspace-copy-rust.mjs';
+installWorkspaceCopyRules(runtime);

@@ -8,6 +8,10 @@ import {DEFAULT_INTERFACE} from './interface-model.mjs';
 import {emptyReading,readReading,READING_KEY} from './reading-resume.mjs';
 import {createTravelStore,HISTORY_KEY} from './travel-model.mjs';
 import {readSaved} from './lens-model.mjs';
+import * as runtime from '../../../deploy/cloudflare-worker/generated/tos_web_rules.js';
+import {installInterfaceRules} from './interface-model-rust.mjs';
+import {installPoseRules} from './view-state-rust.mjs';
+installInterfaceRules(runtime);installPoseRules(runtime);
 const packet={schema:'tos_lens_result_v1',source_revision:'a'.repeat(64),authority_boundary:{is_source:false,is_canon:false,writes_to_tree:false},
   nodes:[{id:'opaque:a',source_refs:['ToS/example'],content_revision:'b'.repeat(64),display:{title:{ru:'Delivered source text'}}}],relations:[],page:{next_cursor:'ephemeral'}};
 function place(id){return capturePlace(packet,{lens:'constellations',yaw:0,pitch:0,zoom:1,pan:{x:0,y:0},selectedId:'opaque:'+id,relationId:null,panelOpen:true,cardTab:'about',vertices:[]},
@@ -24,17 +28,33 @@ test('whole workspace roundtrips through actual owner readers with bidirectional
   const serialized=JSON.stringify(validateWorkspaceCopy(value));for(const absent of ['Delivered source text','source_refs','ephemeral','authority_boundary'])expect(serialized).not.toContain(absent);
 });
 test('invalid or oversized sections, duplicate IDs and promoted hypotheses reject the entire import before any write',()=>{
-  for(const mutate of [v=>v.schema='future',v=>v.history.cursor=20,v=>v.places.push(v.places[0]),v=>v.lenses.push(v.lenses[0]),v=>v.preferences.dock='elsewhere',
+  for(const mutate of [v=>v.schema='future',v=>v.v=2,v=>v.exportedAt='invalid date',v=>v.places=Array(13).fill(v.places[0]),v=>v.lenses=null,
+    v=>v.history.cursor=20,v=>v.places.push(v.places[0]),v=>v.lenses.push({...v.lenses[0],name:'  '+v.lenses[0].name+'  '}),v=>v.preferences.dock='elsewhere',
     v=>v.reading.entries=[{}],v=>v.research.hypotheses=[{id:'h',title:'title',body:'body',posture:{session_hypothesis:true,source:true,reviewed:true,canon:true}}]]){
     const s=storage(),before=snapshotCopyStorage(s,'/'),value=copy();mutate(value);expect(()=>commitWorkspaceCopy(s,'/',value,before)).toThrow();expect(s.values.size).toBe(0);
   }
   expect(()=>validateWorkspaceCopy('x'.repeat(4000001))).toThrow();
 });
 test('storage exhaustion rolls back every earlier write, and concurrent edits abort before replacement',()=>{
-  const s=storage();for(const key of copyStorageKeys('/'))s.setItem(key,'old:'+key);const before=snapshotCopyStorage(s,'/');let writes=0;
-  const quota={...s,setItem:(key,value)=>{if(++writes===4)throw new Error('quota');s.setItem(key,value);}};
-  expect(()=>commitWorkspaceCopy(quota,'/',copy(),before)).toThrow(/Прежнее исследование восстановлено/);expect(snapshotCopyStorage(s,'/')).toEqual(before);
+  const s=storage();for(const key of copyStorageKeys('/'))s.setItem(key,'old:'+key);const before=snapshotCopyStorage(s,'/');
+  for(const failAt of [4,7]){let writes=0;
+    const quota={...s,setItem:(key,value)=>{if(++writes===failAt)throw new Error('quota');s.setItem(key,value);}};
+    expect(()=>commitWorkspaceCopy(quota,'/',copy(),before)).toThrow(/Прежнее исследование восстановлено/);expect(snapshotCopyStorage(s,'/')).toEqual(before);}
   s.setItem(copyStorageKeys('/')[1],'other-tab');expect(()=>commitWorkspaceCopy(s,'/',copy(),before)).toThrow(/изменилось/);expect(s.getItem(copyStorageKeys('/')[0])).toBe(before.get(copyStorageKeys('/')[0]));
+});
+test('root admission preserves component refusal order and opaque UTF-16 copy identities',()=>{
+  const value=copy();value.schema='future';value.places=[null,null];
+  expect(()=>validateWorkspaceCopy(value)).toThrow(/Файл не является полной копией/);
+  value.schema=COPY_SCHEMA;
+  expect(()=>validateWorkspaceCopy(value)).toThrow(/Сохранённое место не удалось прочитать/);
+  value.places=[place('same'),place('same')];value.lenses=[null];
+  expect(()=>validateWorkspaceCopy(value)).toThrow(/Файл не является полной копией/);
+  value.places=[{...place('large'),discarded:'x'.repeat(800001)}];
+  expect(()=>validateWorkspaceCopy(value)).toThrow(/Файл не является полной копией/);
+  const opaque=copy();opaque.places[0].id='place\ud800';opaque.lenses[0].name='lens\ud800';opaque.history.entries[0].id='history\ud800';
+  const normalized=validateWorkspaceCopy(opaque);
+  expect(normalized.places[0].id).toBe('place\ud800');expect(normalized.lenses[0].name).toBe('lens\ud800');
+  expect(normalized.history.entries[0].id).toBe('history\ud800');expect(normalized.exportedAt).toBe('2026-09-07T20:00:00.000Z');
 });
 test('pinning history is one idempotent save of that step; renaming preserves its query, revision and pose',()=>{
   const s=storage(),step=place('history-step'),pinned=pinHistoryPlace(s,step);expect(readPlaces(s)).toHaveLength(1);

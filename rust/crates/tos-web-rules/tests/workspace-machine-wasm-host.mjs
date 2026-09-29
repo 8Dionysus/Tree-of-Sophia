@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
+import { register } from 'node:module';
 import { createResearchWorkspace } from '../../../../access/web/src/research-workspace.ts';
 
 const [bindingPath, wasmPath] = process.argv.slice(2);
@@ -15,6 +16,87 @@ await binding.default({ module_or_path: wasm });
 const startupMs = performance.now() - start;
 const encode = new TextEncoder();
 const decode = new TextDecoder();
+if(process.argv.includes('--workspace-copy-only')){
+  register(new URL('./live-resume-ts-loader.mjs',import.meta.url));
+  const [{installBrowserWorkspaceMachine},{installHumanFormRules},{installReadingRules},{installClaimReferenceRules},
+    {installConditionRules},{installDraftRules},{installInterfaceRules},{installPoseRules},{installWorkspaceCopyRules},
+    {COPY_SCHEMA,validateWorkspaceCopy,snapshotCopyStorage,copyStorageKeys,commitWorkspaceCopy},
+    {capturePlace},{DEFAULT_INTERFACE},{emptyReading}]=await Promise.all([
+    import('../../../../access/web/src/research-workspace-rust.ts'),
+    import('../../../../access/web/src/observatory/human-form-rules.mjs'),
+    import('../../../../access/web/src/observatory/reading-resume-rust.mjs'),
+    import('../../../../access/web/src/observatory/claim-reference-rust.mjs'),
+    import('../../../../access/web/src/observatory/lens-conditions-rust.mjs'),
+    import('../../../../access/web/src/observatory/lens-draft-rust.mjs'),
+    import('../../../../access/web/src/observatory/interface-model-rust.mjs'),
+    import('../../../../access/web/src/observatory/view-state-rust.mjs'),
+    import('../../../../access/web/src/observatory/workspace-copy-rust.mjs'),
+    import('../../../../access/web/src/observatory/workspace-copy.mjs'),
+    import('../../../../access/web/src/observatory/place-model.mjs'),
+    import('../../../../access/web/src/observatory/interface-model.mjs'),
+    import('../../../../access/web/src/observatory/reading-resume.mjs'),
+  ]);
+  installBrowserWorkspaceMachine(binding.BrowserWorkspaceSession);
+  installHumanFormRules(binding);installReadingRules(binding);installClaimReferenceRules(binding);
+  installConditionRules(binding);installDraftRules(binding);installInterfaceRules(binding);installPoseRules(binding);
+  const descriptors=[];
+  const source={schema:'tos_lens_result_v1',source_revision:'a'.repeat(64),authority_boundary:{is_source:false,is_canon:false,writes_to_tree:false},
+    nodes:[{id:'opaque:a',source_refs:['ToS/example'],content_revision:'b'.repeat(64),display:{title:{ru:'Delivered source text'}}}],relations:[],page:{next_cursor:'ephemeral'}};
+  const place=id=>capturePlace(source,{lens:'constellations',yaw:0,pitch:0,zoom:1,pan:{x:0,y:0},selectedId:'opaque:'+id,
+    relationId:null,panelOpen:true,cardTab:'about',vertices:[]},{name:'Place '+id,id,route:'?focus=opaque%3Aa',savedAt:1});
+  const research=createResearchWorkspace({persistence:false});research.addNote({id:'note',body:'Personal note only'});
+  const value={schema:COPY_SCHEMA,v:1,exportedAt:'2026-09-07T20:00:00Z',history:{v:1,entries:[place('one'),place('two')],cursor:0},
+    places:[place('saved')],lenses:[{v:2,name:'My lens',scope:'all',sources:['knowledge'],nodeIds:[],focusId:null,query:'thought',kinds:[],predicates:[],
+      depth:0,direction:'either',profile:'all',limit:20,relations:true,conditions:{nodes:[],relations:[]}}],resume:place('one'),
+    preferences:structuredClone(DEFAULT_INTERFACE),reading:emptyReading(),research:JSON.parse(research.exportPacket())};
+  assert.throws(()=>validateWorkspaceCopy(value),/Файл не является полной копией/,'valid copy cannot bypass an uninstalled root guard');
+  installWorkspaceCopyRules({validate_workspace_copy_wasm_v1(bytes){
+    descriptors.push(JSON.parse(decode.decode(bytes)));return binding.validate_workspace_copy_wasm_v1(bytes);
+  }});
+  const expected={...structuredClone(value),exportedAt:'2026-09-07T20:00:00.000Z'};
+  assert.deepEqual(validateWorkspaceCopy(value),expected,'fixed full-copy fixture');
+  assert.deepEqual(descriptors.map(item=>item.phase),['envelope','places-size','places','lenses','normalized']);
+  assert.equal(JSON.stringify(descriptors).includes('Personal note only'),false,'no workspace body in root descriptors');
+  const store=()=>{const values=new Map();return {values,getItem:key=>values.get(key)??null,setItem:(key,text)=>values.set(key,text),removeItem:key=>values.delete(key)};};
+  const storage=store(),keys=copyStorageKeys('/copy');storage.setItem('unrelated','keep');
+  commitWorkspaceCopy(storage,'/copy',value,snapshotCopyStorage(storage,'/copy'));
+  assert.equal(descriptors.at(-1).phase,'storage');assert.deepEqual(descriptors.at(-1).flags,Array(7).fill({present:true,equal:true}));
+  assert.equal(storage.getItem('unrelated'),'keep');
+  for(const [index,section]of ['history','places','resume','preferences','reading','research','lenses'].entries())
+    assert.deepEqual(JSON.parse(storage.getItem(keys[index])),expected[section],'stored '+section);
+  const serialized=JSON.stringify(expected);for(const absent of ['Delivered source text','source_refs','ephemeral','authority_boundary'])assert.equal(serialized.includes(absent),false);
+  for(const mutate of [v=>v.schema='future',v=>v.v=2,v=>v.exportedAt='invalid date',v=>v.places=Array(13).fill(v.places[0]),
+    v=>v.places.push(v.places[0]),v=>v.lenses=null,v=>v.lenses.push({...v.lenses[0],name:' '+v.lenses[0].name+' '}),
+    v=>v.history.cursor=20,v=>v.preferences.dock='elsewhere',v=>v.reading.entries=[{}],
+    v=>v.research.hypotheses=[{id:'h',title:'title',body:'body',posture:{session_hypothesis:true,source:true,reviewed:true,canon:true}}]]){
+    const invalid=structuredClone(value),empty=store();mutate(invalid);
+    assert.throws(()=>commitWorkspaceCopy(empty,'/copy',invalid,snapshotCopyStorage(empty,'/copy')));assert.equal(empty.values.size,0);
+  }
+  const early=structuredClone(value);early.schema='future';early.places=[null,null];descriptors.length=0;
+  assert.throws(()=>validateWorkspaceCopy(early),/Файл не является полной копией/);assert.deepEqual(descriptors.map(item=>item.phase),['envelope']);
+  early.schema=COPY_SCHEMA;descriptors.length=0;
+  assert.throws(()=>validateWorkspaceCopy(early),/Сохранённое место не удалось прочитать/);
+  assert.deepEqual(descriptors.map(item=>item.phase),['envelope','places-size']);
+  const oversized=structuredClone(value);oversized.places[0].discarded='x'.repeat(800001);
+  assert.throws(()=>validateWorkspaceCopy(oversized),/Файл не является полной копией/);
+  assert.throws(()=>validateWorkspaceCopy('x'.repeat(4000001)));
+  const opaque=structuredClone(value);opaque.places[0].id='place\ud800';opaque.lenses[0].name='lens\ud800';opaque.history.entries[0].id='history\ud800';
+  const normalized=validateWorkspaceCopy(opaque);assert.equal(normalized.places[0].id,'place\ud800');
+  assert.equal(normalized.lenses[0].name,'lens\ud800');assert.equal(normalized.history.entries[0].id,'history\ud800');
+  for(const failAt of [4,7]){
+    const saved=store();for(const key of keys)saved.setItem(key,'old:'+key);const baseline=snapshotCopyStorage(saved,'/copy');let writes=0;
+    const quota={...saved,setItem(key,text){if(++writes===failAt)throw Error('quota');saved.setItem(key,text);}};
+    assert.throws(()=>commitWorkspaceCopy(quota,'/copy',value,baseline),/Прежнее исследование восстановлено/);
+    assert.deepEqual(snapshotCopyStorage(saved,'/copy'),baseline);
+  }
+  const baseline=snapshotCopyStorage(storage,'/copy');storage.setItem(keys[1],'other tab');const reads=[];
+  const concurrent={...storage,getItem(key){reads.push(key);if(key===keys[2])throw Error('later read must not happen');return storage.getItem(key);}};
+  assert.throws(()=>commitWorkspaceCopy(concurrent,'/copy',value,baseline),/изменилось/);assert.deepEqual(reads,keys.slice(0,2));
+  assert.equal(storage.getItem(keys[0]),baseline.get(keys[0]));
+  console.log(JSON.stringify({status:'pass',actual_binding:true,workspace_copy_only:true,old_host_cases_repeated:false,
+    boundary:'six fixed metadata phases; component values, native Date/JSON and storage/rollback remain with host'}));
+  process.exit(0);
+}
 if(process.argv.includes('--browser-session-only')){
   const {installBrowserWorkspaceMachine,createBrowserResearchWorkspace}=await import('../../../../access/web/src/research-workspace-rust.ts');
   installBrowserWorkspaceMachine(binding.BrowserWorkspaceSession);
