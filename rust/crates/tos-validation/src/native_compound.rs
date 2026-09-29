@@ -7507,6 +7507,7 @@ fn native_work_event(
         kind.receipt_file(),
         native_preparation_procedure(kind)?,
         native_preparation_purpose(kind)?,
+        native_preparation_warning(kind)?,
         deadline,
         cancelled,
         available,
@@ -7525,6 +7526,7 @@ fn native_compound_capture_event(
     receipt_file: &str,
     procedure: &str,
     purpose: &str,
+    warning: &str,
     deadline: Instant,
     cancelled: &AtomicBool,
     available: usize,
@@ -7764,7 +7766,7 @@ fn native_compound_capture_event(
         || event["activity"]["exit_code"] != 0
         || event["activity"]["warnings"]
             != json!([
-                native_preparation_warning(kind)?,
+                warning,
                 "The declared record link is not accepted bibliographic or textual truth."
             ])
         || !method["model_invocations"]
@@ -8272,6 +8274,7 @@ impl NativeCompoundReader<'_> {
                 OBJECT_LINK_RECEIPT,
                 "native-object-link-serialization",
                 "Serialize one declared Object/Link association and explicit source-copy forms without judging content.",
+                "Completed in-process Object/Link buffer serialization; atomic selected-metadata publication occurs afterward.",
                 self.limits.deadline,
                 self.cancelled,
                 self.limits
