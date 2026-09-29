@@ -671,8 +671,38 @@ fn selected_schema(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<CutWorkerSchemaExecutor> {
+    selected_schema_with_profile(
+        invocation,
+        cut,
+        "schema_worker",
+        FormatProfile::LegacyPythonObserved20260923,
+        deadline,
+        cancelled,
+    )
+}
+
+fn selected_schema_with_profile(
+    invocation: &Value,
+    cut: &tos_source_store::CorpusCutReader,
+    worker_field: &str,
+    profile: FormatProfile,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<CutWorkerSchemaExecutor> {
+    // Fixed family dispatch chooses these fields and profiles; request bytes
+    // never select a worker format or turn one family grant into another.
+    if !matches!(
+        (worker_field, profile),
+        ("schema_worker", FormatProfile::LegacyPythonObserved20260923)
+            | (
+                "assessment_schema_worker",
+                FormatProfile::AssertedSourceCandidateV1
+            )
+    ) {
+        return Err(SourceCommandError::Denied("native family worker profile"));
+    }
     let budgets = &invocation["budgets"];
-    let worker = &invocation["schema_worker"];
+    let worker = &invocation[worker_field];
     exact(worker, &["absolute_path", "sha256"])?;
     let mut worker_budget = ExecutorBudget::laboratory();
     worker_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
@@ -681,7 +711,7 @@ fn selected_schema(
         capped(budgets, "worker_address_space_bytes", 1_073_741_824)?;
     CutWorkerSchemaExecutor::from_cut(
         cut,
-        FormatProfile::LegacyPythonObserved20260923,
+        profile,
         ExactWorkerIdentity {
             absolute_path: absolute(text(worker, "absolute_path")?)?,
             sha256: digest(text(worker, "sha256")?)?,
