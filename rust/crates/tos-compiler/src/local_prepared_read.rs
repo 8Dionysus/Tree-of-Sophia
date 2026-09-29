@@ -251,6 +251,30 @@ impl<'a> PreparedReadTransaction<'a> {
         expected: &JsonValue,
         limits: PreparedReadLimits,
     ) -> Result<Self> {
+        Self::selected_snapshot(db, expected, limits, true)
+    }
+
+    /// Recheck the independent binding after a caller-controlled COMMIT/BEGIN
+    /// on the same retained connection and caller-verified file inode. The
+    /// caller must have already admitted its schema and must retain the shared
+    /// request VM meter across that transaction boundary. This skips schema
+    /// certification from scratch and does not observe path identity or select
+    /// current source authority. Its fresh counters cover the three snapshot
+    /// SELECTs and must be absorbed into the caller's cumulative request budget.
+    pub fn recheck_binding(
+        db: &'a Connection,
+        expected: &JsonValue,
+        limits: PreparedReadLimits,
+    ) -> Result<Self> {
+        Self::selected_snapshot(db, expected, limits, false)
+    }
+
+    fn selected_snapshot(
+        db: &'a Connection,
+        expected: &JsonValue,
+        limits: PreparedReadLimits,
+        check_schema: bool,
+    ) -> Result<Self> {
         if limits.max_row_bytes == 0
             || limits.max_response_bytes == 0
             || limits.max_rows == 0
@@ -276,7 +300,9 @@ impl<'a> PreparedReadTransaction<'a> {
             bytes: Cell::new(0),
             statements: Cell::new(0),
         };
-        view.check_schema()?;
+        if check_schema {
+            view.check_schema()?;
+        }
         view.top = view.snapshot()?;
         Ok(view)
     }
