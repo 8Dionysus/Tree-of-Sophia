@@ -570,3 +570,449 @@ print(json.dumps({'request':case.request(),'work_ref':case.work_ref,
         }
     }
 }
+
+fn cli37_image(path: &Path) -> (Digest256, (u64, u64, u64)) {
+    use std::io::Read;
+    use tos_foundation::Digest256Hasher;
+    assert!(path.is_absolute());
+    let metadata = fs::symlink_metadata(path).unwrap();
+    assert!(metadata.is_file() && metadata.permissions().mode() & 0o022 == 0);
+    assert!(metadata.len() <= 536_870_912);
+    let mut reader = fs::File::open(path).unwrap();
+    let mut hash = Digest256Hasher::new();
+    let mut buffer = [0u8; 65_536];
+    loop {
+        let count = reader.read(&mut buffer).unwrap();
+        if count == 0 {
+            break;
+        }
+        hash.update(&buffer[..count]);
+    }
+    (
+        hash.finalize(),
+        (metadata.dev(), metadata.ino(), metadata.len()),
+    )
+}
+
+fn cli37_observe(
+    repository: &Path,
+    owner: &Path,
+    invocation: &Path,
+    request: &serde_json::Value,
+    deadline: Instant,
+) -> (bool, serde_json::Value) {
+    use std::io::{Read, Seek, SeekFrom, Write};
+    let raw = serde_json::to_vec(request).unwrap();
+    assert!(raw.len() <= 1_048_576);
+    let mut input = tempfile::tempfile().unwrap();
+    input.write_all(&raw).unwrap();
+    input.seek(SeekFrom::Start(0)).unwrap();
+    let mut output = tempfile::tempfile().unwrap();
+    let mut errors = tempfile::tempfile().unwrap();
+    let mut child =
+        Command::new("/usr/bin/python3")
+            .arg(repository.join(
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+            ))
+            .arg("--owner-config")
+            .arg(owner)
+            .arg("--native-invocation")
+            .arg(invocation)
+            .env_remove("PYTHONPATH")
+            .env_remove("PYTHONHOME")
+            .env("PYTHONDONTWRITEBYTECODE", "1")
+            .stdin(Stdio::from(input))
+            .stdout(Stdio::from(output.try_clone().unwrap()))
+            .stderr(Stdio::from(errors.try_clone().unwrap()))
+            .spawn()
+            .unwrap();
+    let step = deadline.min(Instant::now() + Duration::from_secs(60));
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break status;
+        }
+        if Instant::now() >= step
+            || output.metadata().unwrap().len() > 1_048_576
+            || errors.metadata().unwrap().len() > 1_048_576
+        {
+            child.kill().unwrap();
+            child.wait().unwrap();
+            panic!("bounded Work37 actual native caller refused");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    assert!(Instant::now() < step);
+    assert!(
+        output.metadata().unwrap().len() <= 1_048_576
+            && errors.metadata().unwrap().len() <= 1_048_576
+    );
+    output.seek(SeekFrom::Start(0)).unwrap();
+    errors.seek(SeekFrom::Start(0)).unwrap();
+    let mut raw = Vec::new();
+    output.read_to_end(&mut raw).unwrap();
+    let mut diagnostic = Vec::new();
+    errors.read_to_end(&mut diagnostic).unwrap();
+    if !status.success() {
+        return (
+            false,
+            serde_json::json!({"diagnostic":String::from_utf8_lossy(&diagnostic)}),
+        );
+    }
+    let response: serde_json::Value = serde_json::from_slice(&raw).unwrap();
+    assert_eq!(
+        response["schema_version"],
+        "tos_local_native_source_result_v1"
+    );
+    assert_eq!(response["grants_admission"], false);
+    assert_eq!(response["result"]["grants_admission"], false);
+    (true, response["result"].clone())
+}
+
+#[test]
+fn native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending() {
+    let repository = repository();
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let cancelled = AtomicBool::new(false);
+    let native = PathBuf::from(
+        std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH")
+            .expect("OPS selects immutable Work37 CLI"),
+    );
+    let worker_path = PathBuf::from(
+        std::env::var_os("TOS_SCHEMA_WORKER_PATH").expect("OPS selects immutable Work37 worker"),
+    );
+    let native_guard = cli37_image(&native);
+    let worker_guard = cli37_image(&worker_path);
+    let consumer = std::env::current_exe().unwrap();
+    let consumer_guard = cli37_image(&consumer);
+    // Three sequential fixture roots bound coexistence to one whole Work packet.
+    // Cold below means a fresh actual caller process, retaining the same exact
+    // root/config bytes. It does not claim archive restoration or relocation.
+    for mode in 0..3 {
+        let temporary = tempfile::tempdir().unwrap();
+        let isolated =
+            IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
+        let fixture_script = r#"
+import json,sys
+from pathlib import Path
+repository,root=map(Path,sys.argv[1:])
+sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
+import test_source_expression_commands as fixture
+class ExistingRoot:
+    def __init__(self,*args,**kwargs): self.name=str(root)
+    def cleanup(self): pass
+original=fixture.tempfile.TemporaryDirectory
+fixture.tempfile.TemporaryDirectory=ExistingRoot
+try:
+    case=fixture.NativeExpressionTests(methodName='runTest')
+    case.setUp()
+finally:
+    fixture.tempfile.TemporaryDirectory=original
+print(json.dumps({'proposal':case.proposal(),'request':case.request(),'work_ref':case.work_ref,
+    'expression_ref':case.config['expression_source_path'],'untouched_ref':str(case.untouched.relative_to(root))},ensure_ascii=False,separators=(',',':')))
+"#;
+        let out = temporary.path().join("fixture.stdout");
+        let err = temporary.path().join("fixture.stderr");
+        bounded_child(
+            Command::new("/usr/bin/python3")
+                .args(["-c", fixture_script])
+                .arg(&repository)
+                .arg(isolated.path())
+                .env_remove("PYTHONPATH")
+                .env_remove("PYTHONHOME")
+                .env("PYTHONDONTWRITEBYTECODE", "1")
+                .stdout(Stdio::from(fs::File::create(&out).unwrap()))
+                .stderr(Stdio::from(fs::File::create(&err).unwrap()))
+                .spawn()
+                .unwrap(),
+            &out,
+            &err,
+            deadline,
+        );
+        let fixture: serde_json::Value = serde_json::from_slice(&fs::read(&out).unwrap()).unwrap();
+        let owner = isolated.path().join("compound-owner.json");
+        fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+        let owner_raw = fs::read(&owner).unwrap();
+        let initial = authored(isolated.path());
+        let mut files = initial.clone();
+        for name in IMPLEMENTATIONS {
+            let raw = fs::read(repository.join(name)).unwrap();
+            assert!(raw.len() <= 8_388_608);
+            let target = isolated.path().join(name);
+            fs::create_dir_all(target.parent().unwrap()).unwrap();
+            fs::write(target, &raw).unwrap();
+            assert!(files.insert((*name).to_owned(), raw).is_none());
+        }
+        let fixture_bytes = files
+            .values()
+            .try_fold(0u64, |sum, raw| sum.checked_add(raw.len() as u64))
+            .unwrap();
+        assert!(fixture_bytes <= 33_554_432 && files.len() <= 2048);
+        eprintln!(
+            "Work37 mode={mode} F={fixture_bytes} E={} C={} W={}",
+            native_guard.1.2, consumer_guard.1.2, worker_guard.1.2
+        );
+        let (software, components) =
+            software(&repository, &files, temporary.path(), deadline, &cancelled);
+        let store = temporary.path().join("cut");
+        let (original_revision, selected) = cut(&initial, &store, deadline, &cancelled);
+        let selection = software.selection();
+        let invocation_path = temporary.path().join("native-work37-invocation.json");
+        let mut invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1",
+            "owner_config":owner,"owner_context":null,"assessment_schema_worker":null,
+            "native_executable":native,"native_executable_sha256":native_guard.0.to_prefixed(),
+            "corpus_store":store,"source_revision":original_revision.0.to_prefixed(),"original_source_revision":original_revision.0.to_prefixed(),
+            "software_capture":temporary.path().join("capture"),"software_restored_root":temporary.path().join("restored"),
+            "software_selection":{"source_git_commit":selection.source_git_commit,"source_git_tree":selection.source_git_tree,
+                "capture_manifest_sha256":selection.capture_manifest_sha256.to_prefixed()},
+            "software_components":components.members().map(|m|m.path.as_str()).collect::<Vec<_>>(),
+            "schema_worker":{"absolute_path":worker_path,"sha256":worker_guard.0.to_prefixed()},
+            "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,
+                "max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
+        let freeze = |value: &serde_json::Value| {
+            let raw = serde_json::to_vec(value).unwrap();
+            assert!(raw.len() <= 1_048_576);
+            fs::write(&invocation_path, raw).unwrap();
+            fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+        };
+        freeze(&invocation);
+        if mode == 0 {
+            let (ok, describe) = cli37_observe(
+                &repository,
+                &owner,
+                &invocation_path,
+                &serde_json::json!({"schema_version":"tos_local_work_expression_command_v1","operation":"describe"}),
+                deadline,
+            );
+            assert!(ok, "{describe}");
+            assert!(describe["source_fields"].is_array());
+            assert!(describe["materializations"].is_null());
+        }
+        let (ok, preview) = cli37_observe(
+            &repository,
+            &owner,
+            &invocation_path,
+            &fixture["proposal"],
+            deadline,
+        );
+        assert!(ok, "{preview}");
+        assert!(preview["prepared_materializations"].is_object());
+        // The maintained Python fixture prepared these exact parent fields
+        // independently; native dependency/publication identities remain owned
+        // by the actual native preview and are never copied from its oracle.
+        assert_eq!(preview["prepared_fields"], fixture["request"]["fields"]);
+        assert_eq!(preview["source"], fixture["request"]["expected_source"]);
+        let mut request = fixture["request"].clone();
+        for (field, prepared) in [
+            ("fields", "prepared_fields"),
+            ("expected_source", "source"),
+            ("expected_revision", "revision"),
+            ("expected_configuration", "owner_configuration"),
+            ("expected_dependencies", "expected_dependencies"),
+            ("expected_publication", "expected_publication"),
+        ] {
+            request[field] = preview[prepared].clone();
+        }
+        if mode == 0 {
+            let (ok, created) =
+                cli37_observe(&repository, &owner, &invocation_path, &request, deadline);
+            assert!(ok, "{created}");
+            assert_eq!(created["replayed"], false);
+            assert!(!created["receipt"].is_null());
+            assert_eq!(
+                created["materializations"],
+                preview["prepared_materializations"]
+            );
+            let expression: serde_json::Value = serde_json::from_slice(
+                &fs::read(
+                    isolated
+                        .path()
+                        .join(fixture["expression_ref"].as_str().unwrap()),
+                )
+                .unwrap(),
+            )
+            .unwrap();
+            assert_eq!(expression, fixture["proposal"]["record"]);
+            let work: serde_json::Value = serde_json::from_slice(
+                &fs::read(isolated.path().join(fixture["work_ref"].as_str().unwrap())).unwrap(),
+            )
+            .unwrap();
+            let mut expected_work: serde_json::Value =
+                serde_json::from_slice(&initial[fixture["work_ref"].as_str().unwrap()]).unwrap();
+            expected_work["record_version"] =
+                serde_json::json!(preview["source"]["version"].as_u64().unwrap() + 1);
+            expected_work["expression_claim_refs"] =
+                serde_json::json!([fixture["proposal"]["claim"]["claim_id"]]);
+            assert_eq!(work, expected_work);
+            let untouched = fixture["untouched_ref"].as_str().unwrap();
+            assert_eq!(
+                fs::read(isolated.path().join(untouched)).unwrap(),
+                initial[untouched]
+            );
+            let after = authored(isolated.path());
+            let (current_revision, _) = cut(&after, &store, deadline, &cancelled);
+            invocation["source_revision"] = serde_json::json!(current_revision.0.to_prefixed());
+            freeze(&invocation);
+            let (ok, replay) =
+                cli37_observe(&repository, &owner, &invocation_path, &request, deadline);
+            assert!(ok, "{replay}");
+            assert_eq!(replay["replayed"], true);
+            assert_eq!(replay["receipt"], created["receipt"]);
+            assert_eq!(replay["materializations"], created["materializations"]);
+            assert_eq!(authored(isolated.path()), after);
+        } else {
+            let filesystem =
+                CreationFilesystem::select_isolated(&isolated, &owner, deadline, &cancelled)
+                    .unwrap();
+            let context = CommandContext {
+                base_revision: original_revision,
+                configuration_raw: owner_raw.clone(),
+                request_raw: serde_json::to_vec(&request).unwrap(),
+                recorded_at: "2026-01-01T12:34:56+00:00".into(),
+                effective_uid: fs::metadata(isolated.path()).unwrap().uid().into(),
+                files: files
+                    .iter()
+                    .map(|(path, raw)| SourceFile {
+                        path: RelativePath::parse(path).unwrap(),
+                        raw: raw.clone(),
+                    })
+                    .collect(),
+            };
+            let limits = ItemLimits {
+                max_member_bytes: 2_097_152,
+                max_total_bytes: 33_554_432,
+                max_state_bytes: 33_554_432,
+                max_issues: 256,
+                deadline,
+            };
+            let mut schema = worker(&selected, deadline, &cancelled);
+            let prepared = prepare_work_application(
+                &filesystem,
+                &context,
+                &selected,
+                &software,
+                &components,
+                &mut schema,
+                limits,
+                &cancelled,
+            )
+            .unwrap();
+            drop(schema);
+            let dependency = isolated
+                .path()
+                .join("ToS/contracts/corpus-record.schema.json");
+            let before_dependency = fs::read(&dependency).unwrap();
+            let changed = [before_dependency.as_slice(), b"\n"].concat();
+            let PreparedWorkApplication { plan, guard, .. } = prepared;
+            let witnesses = plan
+                .files
+                .iter()
+                .map(|file| SelectedWitness {
+                    path: file.path.as_str().into(),
+                    before: side(file.before.as_deref()),
+                    after: side(file.after.as_deref()),
+                })
+                .collect::<Vec<_>>();
+            let fence =
+                work_transaction::WorkCorpusFence::hold(&filesystem, deadline, &cancelled).unwrap();
+            let mut switched = false;
+            let failed = fence.apply(
+                plan,
+                &guard.snapshot,
+                |summary, extent| {
+                    if extent.pending_state.is_some()
+                        && !switched
+                        && mixed_selected(isolated.path(), &witnesses)
+                    {
+                        fs::write(&dependency, &changed).unwrap();
+                        switched = true;
+                    }
+                    guard.check(
+                        &filesystem,
+                        &context,
+                        &selected,
+                        summary,
+                        extent,
+                        limits,
+                        &cancelled,
+                    )
+                },
+                deadline,
+                &cancelled,
+            );
+            drop(fence);
+            assert!(switched && matches!(failed, Err(SourceCommandError::Conflict(_))));
+            let control = isolated
+                .path()
+                .join("ToS/source-witnesses/.metadata-publication.json");
+            let pending_raw = fs::read(&control).unwrap();
+            let pending: serde_json::Value = serde_json::from_slice(&pending_raw).unwrap();
+            let recovery = serde_json::json!({"schema_version":"tos_local_work_expression_command_v1",
+                "operation":"work.expression.recover","transaction_id":pending["transaction_id"],
+                "decision":if mode==1 {"resume"} else {"rollback"},"expected_configuration":preview["owner_configuration"]});
+            let refuse_unchanged = |request: &serde_json::Value| {
+                let before = witnesses
+                    .iter()
+                    .map(|file| current_side(isolated.path(), &file.path))
+                    .collect::<Vec<_>>();
+                assert!(!cli37_observe(&repository, &owner, &invocation_path, request, deadline).0);
+                assert_eq!(fs::read(&control).unwrap(), pending_raw);
+                let after = witnesses
+                    .iter()
+                    .map(|file| current_side(isolated.path(), &file.path))
+                    .collect::<Vec<_>>();
+                assert_eq!(
+                    after, before,
+                    "refused Work37 CLI changed selected pending bytes"
+                );
+            };
+            refuse_unchanged(&recovery);
+            fs::write(&dependency, &before_dependency).unwrap();
+            let mut wrong = recovery.clone();
+            wrong["transaction_id"] = serde_json::json!(format!("sha256:{}", "0".repeat(64)));
+            refuse_unchanged(&wrong);
+            let mut revoked: serde_json::Value = serde_json::from_slice(&owner_raw).unwrap();
+            revoked["allowed_operations"] = serde_json::json!([]);
+            fs::write(&owner, serde_json::to_vec(&revoked).unwrap()).unwrap();
+            refuse_unchanged(&recovery);
+            fs::write(&owner, &owner_raw).unwrap();
+            let source = isolated.path().join(fixture["work_ref"].as_str().unwrap());
+            let source_raw = fs::read(&source).unwrap();
+            fs::write(&source, [source_raw.as_slice(), b"\n"].concat()).unwrap();
+            refuse_unchanged(&recovery);
+            fs::write(&source, &source_raw).unwrap();
+            let (ok, recovered) =
+                cli37_observe(&repository, &owner, &invocation_path, &recovery, deadline);
+            assert!(ok, "{recovered}");
+            for file in &witnesses {
+                assert_eq!(
+                    current_side(isolated.path(), &file.path),
+                    if mode == 1 { file.after } else { file.before }
+                );
+            }
+            let terminal: serde_json::Value =
+                serde_json::from_slice(&fs::read(&control).unwrap()).unwrap();
+            assert_eq!(terminal["phase"], "ready");
+            assert_eq!(terminal["transaction_id"], pending["transaction_id"]);
+            assert_eq!(terminal["manifest_sha256"], pending["manifest_sha256"]);
+            assert_eq!(
+                terminal["outcome"],
+                if mode == 1 {
+                    "committed"
+                } else {
+                    "rolled-back"
+                }
+            );
+            if mode == 2 {
+                assert!(recovered["receipt"].is_null());
+            }
+        }
+        assert_eq!(cli37_image(&native), native_guard);
+        assert_eq!(cli37_image(&worker_path), worker_guard);
+        assert_eq!(cli37_image(&consumer), consumer_guard);
+        drop(selected);
+        drop(components);
+        drop(software);
+        drop(isolated);
+        temporary.close().unwrap();
+    }
+}
