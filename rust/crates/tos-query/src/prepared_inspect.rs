@@ -411,6 +411,9 @@ fn incident(
             }
         }
     }
+    if selected.len() != target {
+        return Err(corrupt());
+    }
     let rows = selected
         .into_iter()
         .map(|id| full_row(read, SearchKind::Relations, &id, field_cap))

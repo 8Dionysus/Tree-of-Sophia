@@ -613,6 +613,22 @@ fn prepared_inspect_alias_endpoints_counts_and_selected_corruption_use_shared_me
     let f = Fixture::publish(rows(), 1_048_576);
     let db = Connection::open(&f.path).unwrap();
     db.execute_batch("BEGIN").unwrap();
+    // Exact count sees the malformed empty relation ID; bounded seeks must
+    // refuse their incomplete selected prefix before fetching any row body.
+    let broken = Fixture::publish(rows(), 1_048_576);
+    let broken_db = Connection::open(&broken.path).unwrap();
+    broken_db
+        .execute_batch("UPDATE knowledge_relations SET id='';BEGIN")
+        .unwrap();
+    let mut broken_session = PreparedSearchSession::new(&broken_db, limits).unwrap();
+    assert_eq!(
+        broken_session
+            .inspect(&broken.binding, SearchKind::Nodes, "a", 1)
+            .unwrap_err()
+            .code,
+        SearchV2ErrorCode::CorruptSelectedCarrier
+    );
+    broken_db.execute_batch("ROLLBACK").unwrap();
     let mut session = PreparedSearchSession::new(
         &db,
         PreparedReadLimits {
