@@ -5935,3 +5935,262 @@ mod prepared_compressed {
         fs::remove_dir_all(dir).unwrap();
     }
 }
+
+mod local_reading {
+    use super::*;
+    use tos_query::reading_search::{READING_MANIFEST_REF, reading_fixture::ReadingFixture};
+
+    fn json(raw: &[u8]) -> JsonValue {
+        parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default())
+            .unwrap()
+            .into_root()
+    }
+    fn same_capability(a: &JsonValue, b: &JsonValue) {
+        assert!(semantic_eq(a, b), "whole reading capability differs");
+    }
+    #[test]
+    #[ignore = "requires OPS-protected reading consumer and finite admitted host profile"]
+    fn reading_search_original_cli_http_mcp_and_current_fence() {
+        use std::os::unix::fs::PermissionsExt;
+        let binary = PathBuf::from(
+            std::env::var_os("TOS_NATIVE_READING_CONSUMER_BIN")
+                .expect("OPS must provide the protected reading consumer ELF"),
+        );
+        assert!(binary.is_absolute());
+        let expected_sha = std::env::var("TOS_NATIVE_READING_CONSUMER_SHA256")
+            .expect("OPS must provide the exact reading consumer ELF sha256");
+        let fixture = ReadingFixture::new_shared_root();
+        let executor =
+            tos_access::reading::ReadingLocalExecutor::open(fixture.roots.source_root.clone())
+                .unwrap();
+        let profile = AccessProfile::new(65_536, 1_048_576, 65_536)
+            .with_mcp_frame_budget(
+                tos_access::mcp::tool_result_frame_byte_bound(1_048_576, 65_536).unwrap(),
+            )
+            .with_query_timeout(Duration::from_secs(5));
+        let args = [
+            "reading-search",
+            "--query",
+            "судьбы",
+            "--language",
+            "ru",
+            "--limit",
+            "1",
+            "--group-by",
+            "speaker,formula,speaker",
+        ]
+        .map(str::to_owned);
+        let (mut cli_body, mut stderr) = (Vec::new(), Vec::new());
+        assert_eq!(
+            cli::run_cli(&args, &executor, profile, &mut cli_body, &mut stderr),
+            0,
+            "{}",
+            String::from_utf8_lossy(&stderr)
+        );
+        let capability = json(&cli_body);
+        assert_eq!(
+            capability.object_get("available").unwrap().as_bool(),
+            Some(true)
+        );
+        assert_eq!(
+            capability.object_get("provider_ref").unwrap().as_str(),
+            Some(tos_query::reading_search::READING_PROVIDER_REF)
+        );
+        let raw = capability.object_get("result").unwrap();
+        let reference = fixture
+            .query(
+                &fixture.request(),
+                tos_query::reading_search::ReadingSearchBudget::local_default(),
+            )
+            .unwrap();
+        assert!(semantic_eq(raw, &json(&reference.body)));
+        drop(reference);
+        let response = handle_get(
+            &executor,
+            "GET",
+            "/api/zarathustra/reading?query=%20%D1%81%D1%83%D0%B4%D1%8C%D0%B1%D1%8B%20&language=%20RU%20&limit=1&group_by=speaker,formula,speaker",
+            profile,
+        );
+        assert_eq!(
+            response.status,
+            200,
+            "{}",
+            String::from_utf8_lossy(&response.body)
+        );
+        same_capability(&capability, &json(&response.body));
+        drop(response);
+        let input = concat!(
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\"}}\n",
+            "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n",
+            "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"tos_zarathustra_reading_search\",\"arguments\":{\"query\":\" судьбы \",\"language\":\" RU \",\"limit\":1,\"group_by\":[\"speaker\",\"formula\",\"speaker\"]}}}\n",
+        );
+        let mut output = Vec::new();
+        run_io(
+            Cursor::new(input.as_bytes()),
+            &mut output,
+            &executor,
+            profile,
+        )
+        .unwrap();
+        let lines = output
+            .split(|b| *b == b'\n')
+            .filter(|l| !l.is_empty())
+            .collect::<Vec<_>>();
+        assert_eq!(lines.len(), 2);
+        let rpc = json(lines[1]);
+        same_capability(
+            &capability,
+            rpc.object_get("result")
+                .unwrap()
+                .object_get("structuredContent")
+                .unwrap(),
+        );
+
+        // The real binary selects data only and cannot inherit software or a
+        // release owner from either selected data bytes or this irrelevant env.
+        let image_cap = 256 * 1024 * 1024;
+        let image = tos_fd_open::open_absolute_regular(&binary, image_cap).unwrap();
+        let retained = fixture.root.join("tos-reading");
+        let mut dest = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&retained)
+            .unwrap();
+        assert!(std::io::copy(&mut (&image).take(image_cap + 1), &mut dest).unwrap() <= image_cap);
+        dest.sync_all().unwrap();
+        drop(dest);
+        drop(image);
+        fs::set_permissions(&retained, fs::Permissions::from_mode(0o500)).unwrap();
+        assert_eq!(
+            crate::native_child::bounded_sha(&retained, image_cap).to_hex(),
+            expected_sha
+        );
+        let actual = crate::native_child::bounded_output_until(
+            std::process::Command::new(&retained)
+                .env(
+                    "TOS_RELEASE_ROOT",
+                    fixture.root.join("irrelevant-release-root"),
+                )
+                .arg("--root")
+                .arg(&fixture.roots.source_root)
+                .args(&args),
+            profile.max_response_bytes + 1,
+            Duration::from_secs(5),
+        );
+        assert!(
+            actual.status.success(),
+            "{}",
+            String::from_utf8_lossy(&actual.stderr)
+        );
+        same_capability(&capability, &json(&actual.stdout));
+        let missing = handle_get(
+            &tos_access::NoOwner,
+            "GET",
+            "/api/zarathustra/reading?query=x",
+            profile,
+        );
+        assert_eq!(missing.status, 200);
+        assert_eq!(
+            json(&missing.body)
+                .object_get("available")
+                .unwrap()
+                .as_bool(),
+            Some(false)
+        );
+        drop(missing);
+        let no_owner_input = concat!(
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\"}}\n",
+            "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n",
+            "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}\n",
+            "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"tos_zarathustra_reading_search\",\"arguments\":{\"query\":\"x\"}}}\n",
+        );
+        let mut no_owner_output = Vec::new();
+        run_io(
+            Cursor::new(no_owner_input.as_bytes()),
+            &mut no_owner_output,
+            &tos_access::NoOwner,
+            profile,
+        )
+        .unwrap();
+        let lines = no_owner_output
+            .split(|b| *b == b'\n')
+            .filter(|l| !l.is_empty())
+            .collect::<Vec<_>>();
+        assert_eq!(lines.len(), 3);
+        let discovery = json(lines[1]);
+        assert!(
+            discovery
+                .object_get("result")
+                .unwrap()
+                .object_get("tools")
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|tool| tool.object_get("name").and_then(JsonValue::as_str)
+                    == Some(tos_access::reading::MCP_TOOL))
+        );
+        let unavailable_rpc = json(lines[2]);
+        let unavailable_capability = unavailable_rpc
+            .object_get("result")
+            .unwrap()
+            .object_get("structuredContent")
+            .unwrap();
+        assert_eq!(
+            unavailable_capability
+                .object_get("available")
+                .unwrap()
+                .as_bool(),
+            Some(false)
+        );
+        assert!(matches!(
+            unavailable_capability.object_get("result"),
+            Some(JsonValue::Null)
+        ));
+        assert_eq!(
+            handle_get(
+                &executor,
+                "GET",
+                "/api/zarathustra/reading?query=x",
+                profile.with_query_timeout(Duration::ZERO)
+            )
+            .status,
+            408
+        );
+        assert_eq!(
+            handle_get(
+                &executor,
+                "GET",
+                "/api/zarathustra/reading?query=x&group_by=none,other",
+                profile
+            )
+            .status,
+            400
+        );
+        let mut packet = executor
+            .reading_search(fixture.request(), profile.deadline_probe())
+            .unwrap();
+        let manifest = fixture.roots.analysis_root.join(READING_MANIFEST_REF);
+        let moved = manifest.with_extension("held");
+        fs::rename(&manifest, &moved).unwrap();
+        assert!(packet.fence.recheck().is_err());
+        drop(packet);
+        let unavailable = handle_get(
+            &executor,
+            "GET",
+            "/api/zarathustra/reading?query=x",
+            profile,
+        );
+        assert_eq!(unavailable.status, 200);
+        assert_eq!(
+            json(&unavailable.body)
+                .object_get("available")
+                .unwrap()
+                .as_bool(),
+            Some(false)
+        );
+        drop(unavailable);
+        fs::rename(moved, manifest).unwrap();
+        drop(executor);
+    }
+}

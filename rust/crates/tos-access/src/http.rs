@@ -380,6 +380,72 @@ fn handle_get_with_probe(
         return HttpResponse::error_for_method(413, "request target too large", method);
     }
     let (path, query) = target.split_once('?').unwrap_or((target, ""));
+    if path == crate::reading::HTTP_PATH {
+        use tos_foundation::JsonString;
+        let string = |s: &str| JsonValue::String(JsonString::from_utf8(s));
+        let boolean =
+            query_value(query, "include_semantic_neighbors").unwrap_or_else(|| "false".into());
+        let boolean = tos_foundation::python_strip_unicode16_v1(&boolean, boolean.chars().count())
+            .expect("typed UTF-8 input fits its exact scalar-count strip budget");
+        let boolean = match boolean.to_ascii_lowercase().as_str() {
+            "1" | "true" | "yes" | "on" => true,
+            "0" | "false" | "no" | "off" => false,
+            _ => {
+                return packet_response(
+                    Err(AccessError::new(
+                        AccessErrorCode::InvalidRequest,
+                        "reading boolean invalid",
+                    )),
+                    method,
+                    profile,
+                );
+            }
+        };
+        let mut fields = vec![
+            (
+                "query",
+                string(&query_value(query, "query").unwrap_or_default()),
+            ),
+            (
+                "language",
+                string(&query_value(query, "language").unwrap_or_else(|| "ru".into())),
+            ),
+            (
+                "limit",
+                JsonValue::Number(JsonNumber {
+                    kind: JsonNumberKind::Int,
+                    lexeme: bounded_legacy_int(query_value(query, "limit").as_deref(), 20, 0, 100)
+                        .to_string(),
+                }),
+            ),
+            ("include_semantic_neighbors", JsonValue::Bool(boolean)),
+        ];
+        if let Some(groups) = query_value(query, "group_by") {
+            let groups = if groups == "none" {
+                Vec::new()
+            } else {
+                groups
+                    .split(',')
+                    .filter(|g| !g.is_empty())
+                    .map(string)
+                    .collect()
+            };
+            fields.push(("group_by", JsonValue::Array(groups)));
+        }
+        let args = JsonValue::Object(
+            fields
+                .into_iter()
+                .map(|(k, v)| (JsonString::from_utf8(k), v))
+                .collect(),
+        );
+        return packet_response(
+            crate::reading::from_arguments(&args).and_then(|request| {
+                checked_execute(abort_probe, |probe| executor.reading_search(request, probe))
+            }),
+            method,
+            profile,
+        );
+    }
     if path == "/" || path.starts_with("/static/") {
         let Some(site) = site else {
             return HttpResponse::error_for_method(

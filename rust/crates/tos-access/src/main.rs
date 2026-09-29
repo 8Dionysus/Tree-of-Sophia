@@ -7,7 +7,7 @@ use tos_access::{
 fn main() {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
     // Software help/version never opens a selected release or grants readiness.
-    let help = "usage: tos [--release-root ABSOLUTE_DIRECTORY | --prepared-read-model ABS --prepared-binding ABS [--root ABS]] COMMAND\n\nCommands:\n  serve [LOOPBACK:PORT]     local HTTP and installed software site\n  mcp                       MCP JSONL on stdin/stdout\n  knowledge | lens | source bounded read operations\n  doctor | verify           source-backed diagnostic report\n  software build|verify|extract|install OPTIONS\n  build-data --source-root ROOT --output DIST --runtime RUNTIME\n             [--max-build-seconds N]  disposable offline public D1 v9\n\nNative install: software install --archive ABS --prefix FRESH_ABS\nwith --max-total-bytes N --max-archive-bytes N --max-members N\nand --max-metadata-bytes N. Installation never selects data or edits PATH.\nData operations without a selected owner report unavailable.\nPublic build requires TOS_BUILD_MAX_SECONDS unless --max-build-seconds is supplied.\n";
+    let help = "usage: tos [--release-root ABSOLUTE_DIRECTORY | --root ABS | --prepared-read-model ABS --prepared-binding ABS [--root ABS]] COMMAND\n\nCommands:\n  serve [LOOPBACK:PORT]     local HTTP and installed software site\n  mcp                       MCP JSONL on stdin/stdout\n  knowledge | lens | source bounded read operations\n  reading-search --query Q   local Zarathustra reading data\n  doctor | verify           source-backed diagnostic report\n  software build|verify|extract|install OPTIONS\n  build-data --source-root ROOT --output DIST --runtime RUNTIME\n             [--max-build-seconds N]  disposable offline public D1 v9\n\nNative install: software install --archive ABS --prefix FRESH_ABS\nwith --max-total-bytes N --max-archive-bytes N --max-members N\nand --max-metadata-bytes N. Installation never selects data or edits PATH.\nData operations without a selected owner report unavailable.\nPublic build requires TOS_BUILD_MAX_SECONDS unless --max-build-seconds is supplied.\n";
     if args.len() == 1 && matches!(args[0].as_str(), "--version" | "-V") {
         println!("tos {}", env!("CARGO_PKG_VERSION"));
         return;
@@ -57,7 +57,8 @@ fn main() {
     let mut explicit_release = false;
     let mut prepared_model = None;
     let mut prepared_binding = None;
-    let mut prepared_root = None;
+    let mut prepared_root = std::env::var_os("TOS_DATA_ROOT");
+    let mut explicit_data_root = false;
     while args.first().is_some_and(|arg| {
         [
             "--release-root",
@@ -84,17 +85,20 @@ fn main() {
             }
             "--prepared-read-model" => &mut prepared_model,
             "--prepared-binding" => &mut prepared_binding,
-            "--root" => &mut prepared_root,
+            "--root" => {
+                explicit_data_root = true;
+                &mut prepared_root
+            }
             _ => unreachable!(),
         };
         *slot = Some(value.into());
     }
     if prepared_model.is_some() != prepared_binding.is_some()
         || (prepared_model.is_some() && explicit_release)
-        || (prepared_root.is_some() && prepared_model.is_none())
+        || (explicit_data_root && explicit_release)
     {
         eprintln!(
-            "invalid_request: paired prepared-read-model/prepared-binding selection required; --root belongs to this selection"
+            "invalid_request: prepared paths require a pair; explicit root and release-root selections conflict"
         );
         std::process::exit(2)
     }
@@ -108,7 +112,7 @@ fn main() {
     if args.first().is_none_or(|route| {
         !matches!(
             route.as_str(),
-            "mcp" | "serve" | "source" | "knowledge" | "lens"
+            "mcp" | "serve" | "source" | "knowledge" | "lens" | "reading-search"
         )
     }) || (args.first().is_some_and(|route| route == "mcp") && args.len() != 1)
     {
@@ -131,6 +135,11 @@ fn main() {
                 prepared_root.map(Into::into),
             )
             .map(|executor| Arc::new(executor) as Arc<dyn AccessExecutor>)
+        } else if explicit_data_root || (prepared_root.is_some() && release_root.is_none()) {
+            tos_access::reading::ReadingLocalExecutor::open(
+                prepared_root.expect("selected reading root").into(),
+            )
+            .map(|executor| Arc::new(executor) as Arc<dyn AccessExecutor>)
         } else {
             match release_root {
                 Some(root) => ManagedLocalExecutor::open(Path::new(&root), profile)
@@ -150,7 +159,7 @@ fn main() {
             cli::parse_serve_address(&options).map_err(|error| error.message.to_owned())
                 .and_then(|address| http::serve(&address,Arc::clone(&executor),profile).map_err(|error|error.to_string()))
         },
-        Some(route_name @ ("source"|"knowledge"|"lens"))=> {
+        Some(route_name @ ("source"|"knowledge"|"lens"|"reading-search"))=> {
             let mut route=vec![route_name.to_owned()];route.extend(args);
             let code=cli::run_cli(&route,executor.as_ref(),profile,&mut std::io::stdout(),&mut std::io::stderr());
             std::process::exit(code)

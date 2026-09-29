@@ -103,6 +103,7 @@ pub fn registered_operations() -> Result<&'static [RegisteredOperation], AccessE
                     .and_then(JsonValue::as_str);
                 let known = op.is_some_and(|id| {
                     id == OPERATION_ID
+                        || id == crate::reading::OPERATION_ID
                         || id == SEARCH_OPERATION_ID
                         || crate::knowledge::KnowledgeOperation::from_id(id).is_some()
                 });
@@ -156,6 +157,7 @@ pub(crate) fn mcp_tool_list(executor: &dyn AccessExecutor) -> Result<Vec<u8>, Ac
         .iter()
         .filter(|operation| match operation.operation_id.as_str() {
             OPERATION_ID => executor.source_descend_available(),
+            crate::reading::OPERATION_ID => executor.reading_search_available(),
             SEARCH_OPERATION_ID => {
                 executor.knowledge_search_indexed_available()
                     || executor.knowledge_search_legacy_available()
@@ -609,6 +611,18 @@ pub trait AccessExecutor: Send + Sync {
             AccessErrorCode::Unavailable,
             "compressed knowledge search unavailable",
         ))
+    }
+    fn reading_search_available(&self) -> bool {
+        // Compiled capability discovery is software-only. An absent local
+        // data selection still returns the maintained unavailable capability.
+        true
+    }
+    fn reading_search(
+        &self,
+        _: tos_query::reading_search::ReadingSearchRequest,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        crate::reading::unavailable_packet(probe)
     }
     fn knowledge_available(&self, _: crate::knowledge::KnowledgeOperation) -> bool {
         false

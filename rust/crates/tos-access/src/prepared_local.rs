@@ -148,7 +148,7 @@ struct Selection {
     path: PathBuf,
     binding: JsonValue,
     read: PreparedReadLimits,
-    _root: Option<fs::File>,
+    reading: Option<crate::reading::ReadingLocalExecutor>,
 }
 pub struct PreparedLocalExecutor {
     selected: Arc<Selection>,
@@ -186,8 +186,8 @@ impl PreparedLocalExecutor {
                 )
             })?
             .into_root();
-        let root = root
-            .map(|p| tos_fd_open::open_absolute_directory(&p).map_err(|_| unavailable()))
+        let reading = root
+            .map(crate::reading::ReadingLocalExecutor::open)
             .transpose()?;
         let read = PreparedReadLimits {
             max_response_bytes: PREPARED_RESPONSE_BYTES,
@@ -200,7 +200,7 @@ impl PreparedLocalExecutor {
                 path,
                 binding,
                 read,
-                _root: root,
+                reading,
             }),
         })
     }
@@ -352,6 +352,16 @@ impl AccessExecutor for PreparedLocalExecutor {
         probe: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket<'static>, AccessError> {
         self.read(Some(request), probe)
+    }
+    fn reading_search(
+        &self,
+        request: tos_query::reading_search::ReadingSearchRequest,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        match self.selected.reading.as_ref() {
+            Some(reading) => reading.reading_search(request, probe),
+            None => crate::reading::unavailable_packet(probe),
+        }
     }
     fn knowledge_available(&self, operation: KnowledgeOperation) -> bool {
         operation == KnowledgeOperation::SearchCapabilities

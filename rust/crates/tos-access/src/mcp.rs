@@ -157,6 +157,7 @@ impl McpSession {
                 });
                 let available = match name {
                     Some(MCP_TOOL) => executor.source_descend_available(),
+                    Some(crate::reading::MCP_TOOL) => executor.reading_search_available(),
                     Some(SEARCH_MCP_TOOL) => {
                         executor.knowledge_search_indexed_available()
                             || executor.knowledge_search_legacy_available()
@@ -195,6 +196,9 @@ impl McpSession {
                 let result = checked_execute(self.profile.deadline_probe(), |probe| match name {
                     Some(MCP_TOOL) => Params::from_json(arguments)
                         .and_then(|request| executor.source_descend(request, probe)),
+                    Some(crate::reading::MCP_TOOL) => crate::reading::from_arguments(arguments)
+                        .and_then(|request| executor.reading_search(request, probe)),
+
                     Some(SEARCH_MCP_TOOL) => {
                         crate::search::SearchRequest::from_arguments(arguments)
                             .and_then(|request| request.execute(executor, probe))

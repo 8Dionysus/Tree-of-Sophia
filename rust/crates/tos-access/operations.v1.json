@@ -1205,6 +1205,73 @@
           "additionalProperties": false
         }
       }
+    },
+    {
+      "operation_id": "tos_zarathustra_reading_search",
+      "execution_version": "tos_zarathustra_reading_search_result_v1",
+      "effect": "read-only",
+      "availability": "only_with_explicit_local_data_root_and_compiled_software_and_current_file_pins",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/zarathustra/reading"
+      },
+      "mcp": {
+        "tool": "tos_zarathustra_reading_search",
+        "description": "Read local occurrence-bound source candidates without accepting interpretation",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "1..256 code points after Unicode16 strip"
+            },
+            "language": {
+              "type": "string",
+              "default": "ru",
+              "description": "de, ru or en after Unicode16 strip/lower"
+            },
+            "limit": {
+              "type": "integer",
+              "default": 20,
+              "description": "Clamped to0..100"
+            },
+            "include_semantic_neighbors": {
+              "type": "boolean",
+              "default": false
+            },
+            "group_by": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "enum": [
+                  "speaker",
+                  "formula"
+                ]
+              },
+              "default": [
+                "speaker",
+                "formula"
+              ]
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "reading-search"
+      },
+      "request": {
+        "query": "1..256 codepoints after Unicode16 strip",
+        "language": "de|ru|en; default ru",
+        "limit": "0..100; default20",
+        "group_by": "speaker/formula; default both"
+      },
+      "result": "tos_zarathustra_reading_capability_v1 with candidate-only native reading result"
     }
   ]
 }

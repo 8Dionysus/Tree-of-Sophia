@@ -608,6 +608,21 @@ source operations remain unavailable; the maintained Python services below
 remain the comparison surface until their native replacements are verified.
 The native candidate rejects combining explicit prepared and release options.
 
+The native candidate's `reading-search` uses an explicit absolute `--root`
+for local Zarathustra reading data. The same selection serves HTTP
+`/api/zarathustra/reading` and MCP `tos_zarathustra_reading_search`; an optional
+`--root` alongside the paired prepared selectors enables this independent
+local reading operation. Explicit data selection takes precedence over an
+inherited `TOS_RELEASE_ROOT`; `TOS_DATA_ROOT` is used only when no release is
+selected. Provider and result-schema software bytes are compiled into the
+product. Selected roots provide data and cannot replace those software bytes.
+The reading capability retains its v1 result shape, candidate status and
+authority flags, while software provenance names the actual Rust provider and
+its embedded schema. Its 1 MiB logical response and 64 KiB request limits
+remain unchanged. Retained data and directory pins are observed through
+response flush; they do not grant source rights, review or publication authority.
+Without local reading data the capability reports `available: false`.
+
 Use `serve` instead of `mcp` to start local HTTP. Binding JSON is limited to
 64 KiB and loaded from the separately chosen file; it is never recovered from
 the selected database after mismatch. The optional checkpoint path is a distinct

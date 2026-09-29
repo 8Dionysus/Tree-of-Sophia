@@ -14,6 +14,7 @@ pub mod managed_local;
 pub mod prepared_publication;
 pub mod public_d1_build;
 pub mod prepared_local;
+pub mod reading;
 pub mod release_state;
 pub use knowledge::{KnowledgeOperation, KnowledgeRequest};
 mod common;
