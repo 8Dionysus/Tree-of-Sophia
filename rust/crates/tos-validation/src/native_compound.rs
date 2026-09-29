@@ -32,6 +32,24 @@ const WORK_GRAMMAR_EXTRA: [&str; 5] = [
     "ToS/contracts/human-form-template.schema.json",
     "ToS/contracts/provenance-event-v2.schema.json",
 ];
+const ITEM_GRAMMAR_EXTRA: [&str; 9] = [
+    "ToS/contracts/corpus-record.schema.json",
+    "ToS/contracts/human-form.schema.json",
+    "ToS/contracts/human-form-set.schema.json",
+    "ToS/contracts/human-form-template.schema.json",
+    "ToS/contracts/provenance-event-v2.schema.json",
+    "ToS/contracts/source-item-manifest.schema.json",
+    "ToS/contracts/source-resource-inventory.schema.json",
+    "ToS/contracts/rights-record.schema.json",
+    "ToS/contracts/provenance-event.schema.json",
+];
+fn preparation_grammar_extra(kind: CompoundKind) -> Result<&'static [&'static str], ItemRefusal> {
+    match kind {
+        CompoundKind::WorkExpression => Ok(&WORK_GRAMMAR_EXTRA),
+        CompoundKind::EditionItem => Ok(&ITEM_GRAMMAR_EXTRA),
+        _ => Err(bad("no native preparation grammar for compound family")),
+    }
+}
 const OBJECT_LINK_RECEIPT: &str = "object-link-creation-receipt.json";
 const OBJECT_LINK_CLAIM: &str = "tos_object_link_claim_v2";
 const OBJECT_LINK_OPERATION: &str = "object.link.create";
@@ -4592,11 +4610,13 @@ struct WorkGrammar {
     claim_sha256: Digest256,
     binding: CutExecutionBinding,
 }
-fn work_grammar_from_cut(
+fn preparation_grammar_from_cut(
+    kind: CompoundKind,
     reader: &mut NativeCompoundReader<'_>,
     schemas: &mut CutWorkerSchemaExecutor,
     claim_raw: &[u8],
 ) -> Result<WorkGrammar, ItemRefusal> {
+    let extra = preparation_grammar_extra(kind)?;
     let mut local_limits = reader.limits;
     local_limits.max_state_bytes = reader
         .limits
@@ -4637,8 +4657,9 @@ fn work_grammar_from_cut(
         .keys()
         .map(String::as_str)
         .chain(
-            WORK_GRAMMAR_EXTRA
-                .into_iter()
+            extra
+                .iter()
+                .copied()
                 .filter(|path| !dependencies.contains_key(*path)),
         )
         .try_fold(
@@ -4651,7 +4672,7 @@ fn work_grammar_from_cut(
         .iter()
         .map(|(path, sha)| (path.clone(), sha.to_hex()))
         .collect::<BTreeMap<_, _>>();
-    for path in WORK_GRAMMAR_EXTRA {
+    for &path in extra {
         if !digests.contains_key(path) {
             let raw = reader.required(path, MAX_FILE)?;
             digests.insert(path.into(), Digest256::of_bytes(&raw).to_hex());
@@ -4752,20 +4773,31 @@ impl WorkExpressionCore<'_> {
     /// Only path slots are copied; the actual source buffers remain borrowed.
     pub fn outputs(&self) -> Result<Vec<(String, &[u8])>, ItemRefusal> {
         let scope = &self.prepared.authority["scope"];
-        let parent_home = parent(text(scope, "work_source_path")?)?;
-        let child_home = parent(text(scope, "expression_source_path")?)?;
-        let mut rows =
-            Vec::with_capacity(self.prepared.parent_files.len() + self.prepared.child_files.len());
-        for (name, raw) in &self.prepared.parent_files {
-            rows.push((format!("{parent_home}/{name}"), raw.as_slice()));
-        }
-        for (name, raw) in &self.prepared.child_files {
-            rows.push((format!("{child_home}/{name}"), raw.as_slice()));
-        }
-        if rows.len() > 64 {
+        let parent_home = parent(text(scope, self.prepared.kind.parent_path())?)?;
+        let child_home = parent(text(scope, self.prepared.kind.child_path())?)?;
+        let count = self
+            .prepared
+            .parent_files
+            .len()
+            .checked_add(self.prepared.child_files.len())
+            .ok_or(ItemRefusal::Budget)?;
+        if count > 64 {
             return Err(ItemRefusal::Budget);
         }
-        let slots = slice_rows_state(&rows)?;
+        let mut slots = std::mem::size_of::<Vec<(String, &[u8])>>();
+        for (home, files) in [
+            (parent_home, &self.prepared.parent_files),
+            (child_home, &self.prepared.child_files),
+        ] {
+            for (name, _) in files {
+                slots = slots
+                    .checked_add(std::mem::size_of::<(String, &[u8])>())
+                    .and_then(|n| n.checked_add(home.len()))
+                    .and_then(|n| n.checked_add(1))
+                    .and_then(|n| n.checked_add(name.len()))
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+        }
         let used = self
             .reader
             .state
@@ -4778,6 +4810,15 @@ impl WorkExpressionCore<'_> {
                 limit: Some(self.reader.limits.max_state_bytes as u64),
             });
         }
+        let mut rows = Vec::with_capacity(count);
+        for (home, files) in [
+            (parent_home, &self.prepared.parent_files),
+            (child_home, &self.prepared.child_files),
+        ] {
+            for (name, raw) in files {
+                rows.push((format!("{home}/{name}"), raw.as_slice()));
+            }
+        }
         Ok(rows)
     }
     /// Consume only the prepared parent/child buffers for a descriptive
@@ -4787,14 +4828,15 @@ impl WorkExpressionCore<'_> {
             reader, prepared, ..
         } = self;
         let CompoundCore {
+            kind,
             authority,
             parent_files,
             child_files,
             ..
         } = prepared;
         let scope = &authority["scope"];
-        let parent_home = parent(text(scope, "work_source_path")?)?;
-        let child_home = parent(text(scope, "expression_source_path")?)?;
+        let parent_home = parent(text(scope, kind.parent_path())?)?;
+        let child_home = parent(text(scope, kind.child_path())?)?;
         let count = parent_files
             .len()
             .checked_add(child_files.len())
@@ -4859,6 +4901,7 @@ pub fn finish_work_expression_bytes(
     if environment_raw != expected_environment_raw {
         return Err(bad("native Work environment exact canonical bytes"));
     }
+    let kind = prepared.kind;
     let finished = reader.finish_compound_core(prepared, &environment, Some(event_raw), schemas)?;
     let FinishedCompound {
         kind: _,
@@ -4881,10 +4924,7 @@ pub fn finish_work_expression_bytes(
     {
         return Err(ItemRefusal::Budget);
     }
-    child_files.push((
-        CompoundKind::WorkExpression.receipt_file().into(),
-        receipt_raw,
-    ));
+    child_files.push((kind.receipt_file().into(), receipt_raw));
     let parent = parent_files.into_iter().collect::<BTreeMap<_, _>>();
     let child = child_files.into_iter().collect::<BTreeMap<_, _>>();
     Ok(WorkExpressionBytes {
@@ -4918,7 +4958,9 @@ pub fn prepare_work_expression_bytes<'a>(
     crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
         .map_err(|_| bad("Work recorded aware instant"))?;
     let reader = NativeCompoundReader::new(cut, limits, cancelled)?;
-    prepare_work_expression_with_reader(
+    prepare_native_with_reader(
+        CompoundKind::WorkExpression,
+        None,
         reader,
         schemas,
         scope,
@@ -4970,12 +5012,19 @@ pub fn prepare_work_expression_preview_bytes<'a>(
     let encoded_state = std::mem::size_of::<Vec<u8>>() + expected.len();
     drop(expected);
     reader.release_temporary(encoded_state);
-    let grammar = work_grammar_from_cut(&mut reader, schemas, proposed_claim_raw)?;
+    let grammar = preparation_grammar_from_cut(
+        CompoundKind::WorkExpression,
+        &mut reader,
+        schemas,
+        proposed_claim_raw,
+    )?;
     if grammar.binding != schemas.execution_binding() {
         return Err(bad("Work preview schema binding changed"));
     }
     let (request_raw, authority) = build_request_and_authorization(&grammar.digests)?;
-    prepare_work_expression_with_reader(
+    prepare_native_with_reader(
+        CompoundKind::WorkExpression,
+        None,
         reader,
         schemas,
         scope,
@@ -4987,7 +5036,272 @@ pub fn prepare_work_expression_preview_bytes<'a>(
     )
 }
 
-fn prepare_work_expression_with_reader<'a>(
+/// Prepared Edition/Item metadata only; private payload custody remains with CMD.
+pub struct EditionItemCore<'a> {
+    inner: WorkExpressionCore<'a>,
+    descriptive_preview: bool,
+}
+pub type EditionItemBytes = WorkExpressionBytes;
+enum ItemPreparationInput<'a> {
+    Observed {
+        receipt_raw: &'a [u8],
+        generator: &'a str,
+    },
+    Preview {
+        generator: &'a str,
+    },
+}
+impl EditionItemCore<'_> {
+    pub fn authorization(&self) -> &Value {
+        self.inner.authorization()
+    }
+    pub fn archive_path(&self) -> &str {
+        self.inner.archive_path()
+    }
+    pub fn transaction_id(&self) -> &str {
+        self.inner.transaction_id()
+    }
+    pub fn reads(&self) -> &[PredicateRead] {
+        self.inner.reads()
+    }
+    pub fn bytes_read(&self) -> u64 {
+        self.inner.bytes_read()
+    }
+    pub fn grammar_digests(&self) -> &BTreeMap<String, String> {
+        self.inner.grammar_digests()
+    }
+    pub fn outputs(&self) -> Result<Vec<(String, &[u8])>, ItemRefusal> {
+        self.inner.outputs()
+    }
+    pub fn into_prepared_outputs(self) -> Result<BTreeMap<String, Vec<u8>>, ItemRefusal> {
+        self.inner.into_prepared_outputs()
+    }
+    pub fn expects_request_capture(&self) -> bool {
+        true
+    }
+}
+/// Consume the genuine CMD deposit's source-safe public receipt. This verifies
+/// its metadata binding, never possession, payload fixity or publication rights.
+pub fn prepare_edition_item_bytes<'a>(
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    request_raw: &[u8],
+    owned_before: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+    byte_receipt_raw: &[u8],
+    inventory_generator: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+    authorize: impl FnOnce(&BTreeMap<String, String>) -> Result<Value, ItemRefusal>,
+) -> Result<EditionItemCore<'a>, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
+        .map_err(|_| bad("Item recorded aware instant"))?;
+    let reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    prepare_native_with_reader(
+        CompoundKind::EditionItem,
+        Some(ItemPreparationInput::Observed {
+            receipt_raw: byte_receipt_raw,
+            generator: inventory_generator,
+        }),
+        reader,
+        schemas,
+        scope,
+        Cow::Borrowed(request_raw),
+        owned_before,
+        recorded_at,
+        None,
+        authorize,
+    )
+    .map(|inner| EditionItemCore {
+        inner,
+        descriptive_preview: false,
+    })
+}
+/// Bind the actual native process capture to the prepared Item metadata.
+pub fn finish_edition_item_bytes(
+    core: EditionItemCore<'_>,
+    environment_raw: &[u8],
+    event_raw: &[u8],
+    schemas: &mut CutWorkerSchemaExecutor,
+) -> Result<EditionItemBytes, ItemRefusal> {
+    if core.descriptive_preview {
+        return Err(bad(
+            "descriptive Item preview cannot finish a publication capture",
+        ));
+    }
+    finish_work_expression_bytes(core.inner, environment_raw, event_raw, schemas)
+}
+fn preview_item_receipt(
+    reader: &mut NativeCompoundReader<'_>,
+    scope: &Value,
+    request: &Value,
+) -> Result<Vec<u8>, ItemRefusal> {
+    let stamp = text(request, "fixity_verified_at")?;
+    let identifier = transaction_id(request, CompoundKind::EditionItem)?;
+    // Exact maintained preview recipe and field order, distinct from the real
+    // constructor. Admit the small ordered-tree workspace before construction.
+    let strings = scope
+        .as_object()
+        .ok_or_else(|| bad("Item scope"))?
+        .values()
+        .filter_map(Value::as_str)
+        .try_fold(0usize, |n, v| n.checked_add(v.len()))
+        .and_then(|n| n.checked_add(stamp.len().checked_mul(4)?))
+        .and_then(|n| n.checked_add(identifier.len()))
+        .and_then(|n| n.checked_add(text(request, "expected_configuration").ok()?.len()))
+        .ok_or(ItemRefusal::Budget)?;
+    let workspace = strings
+        .checked_mul(4)
+        .and_then(|n| n.checked_add(8192))
+        .ok_or(ItemRefusal::Budget)?;
+    reader.temporary(workspace)?;
+    let payload = object(vec![
+        ("file_id", j(&scope["file_id"])?),
+        (
+            "relative_path",
+            string(&format!("payload/{}", text(scope, "payload_basename")?)),
+        ),
+        ("original_basename", j(&scope["original_basename"])?),
+        ("media_type", j(&scope["media_type"])?),
+        ("byte_size", j(&scope["byte_size"])?),
+        ("sha256", j(&scope["sha256"])?),
+    ]);
+    let receipt = object(vec![
+        ("schema_version", string("tos_item_deposit_receipt_v1")),
+        ("transaction_id", string(&identifier)),
+        (
+            "owner_configuration",
+            j(&request["expected_configuration"])?,
+        ),
+        (
+            "private_stage_digest",
+            string(&format!("sha256:{}", "0".repeat(64))),
+        ),
+        ("recovery_configuration", JsonValue::Null),
+        ("file", payload),
+        ("started_at", string(stamp)),
+        (
+            "observation_interval",
+            object(vec![
+                ("started_at", string(stamp)),
+                ("ended_at", string(stamp)),
+            ]),
+        ),
+        ("deposited_at", string(stamp)),
+        ("original_preserved", JsonValue::Bool(true)),
+        ("metadata_committed", JsonValue::Bool(false)),
+        ("grants_admission", JsonValue::Bool(false)),
+    ]);
+    let raw = reader.buffer(pretty(&receipt)?)?;
+    drop(receipt);
+    reader.release_temporary(workspace);
+    Ok(raw)
+}
+fn native_preparation_procedure(kind: CompoundKind) -> Result<&'static str, ItemRefusal> {
+    match kind {
+        CompoundKind::WorkExpression => Ok("native-work-expression-serialization"),
+        CompoundKind::EditionItem => Ok("native-item-adoption-serialization"),
+        _ => Err(bad("unknown actual native preparation family")),
+    }
+}
+fn native_preparation_purpose(kind: CompoundKind) -> Result<&'static str, ItemRefusal> {
+    match kind {
+        CompoundKind::WorkExpression => Ok(
+            "Serialize one declared Work/Expression link and explicit source-copy forms without judging content.",
+        ),
+        CompoundKind::EditionItem => Ok(
+            "Serialize one declared Edition/Item link and explicit source-copy forms without judging content.",
+        ),
+        _ => Err(bad("unknown actual native preparation family")),
+    }
+}
+fn native_preparation_warning(kind: CompoundKind) -> Result<&'static str, ItemRefusal> {
+    match kind {
+        CompoundKind::WorkExpression => Ok(
+            "Completed in-process Work/Expression buffer serialization; atomic selected-metadata publication occurs afterward.",
+        ),
+        CompoundKind::EditionItem => Ok(
+            "Completed in-process Edition/Item buffer serialization; atomic selected-metadata publication occurs afterward.",
+        ),
+        _ => Err(bad("unknown actual native preparation family")),
+    }
+}
+/// Produce a descriptive Item preview from one selected Claim grammar pass.
+/// The callback builds its request and authorization from those exact digests;
+/// the later create operation independently rereads the current cut.
+pub fn prepare_edition_item_preview_bytes<'a>(
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    proposed_claim_raw: &[u8],
+    owned_before: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+    inventory_generator: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+    build_request_and_authorization: impl FnOnce(
+        &BTreeMap<String, String>,
+    ) -> Result<(Vec<u8>, Value), ItemRefusal>,
+) -> Result<EditionItemCore<'a>, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    if schemas.source_revision() != cut.current().revision() || proposed_claim_raw.len() > MAX_FILE
+    {
+        return Err(bad("Item grammar source/schema or Claim size"));
+    }
+    crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
+        .map_err(|_| bad("Item recorded aware instant"))?;
+    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    // The caller's proposed Claim stays live during the callback and byte
+    // recipe, so its state shares the same operation envelope as the grammar.
+    reader.temporary(std::mem::size_of::<Vec<u8>>() + proposed_claim_raw.len())?;
+    let claim = reader.decoded(proposed_claim_raw)?;
+    let mut expected = canonical(&claim)?;
+    expected.push(b'\n');
+    let expected = reader.buffer(expected)?;
+    if proposed_claim_raw != expected {
+        return Err(bad("Item proposed Claim exact canonical bytes"));
+    }
+    let decoded_state = crate::record_biblio_cut::decoded_state(&claim)?;
+    drop(claim);
+    reader.release_temporary(decoded_state);
+    let encoded_state = std::mem::size_of::<Vec<u8>>() + expected.len();
+    drop(expected);
+    reader.release_temporary(encoded_state);
+    let grammar = preparation_grammar_from_cut(
+        CompoundKind::EditionItem,
+        &mut reader,
+        schemas,
+        proposed_claim_raw,
+    )?;
+    if grammar.binding != schemas.execution_binding() {
+        return Err(bad("Item preview schema binding changed"));
+    }
+    let (request_raw, authority) = build_request_and_authorization(&grammar.digests)?;
+    prepare_native_with_reader(
+        CompoundKind::EditionItem,
+        Some(ItemPreparationInput::Preview {
+            generator: inventory_generator,
+        }),
+        reader,
+        schemas,
+        scope,
+        Cow::Owned(request_raw),
+        owned_before,
+        recorded_at,
+        Some((proposed_claim_raw, grammar)),
+        |_| Ok(authority),
+    )
+    .map(|inner| EditionItemCore {
+        inner,
+        descriptive_preview: true,
+    })
+}
+
+fn prepare_native_with_reader<'a>(
+    kind: CompoundKind,
+    item_input: Option<ItemPreparationInput<'_>>,
     mut reader: NativeCompoundReader<'a>,
     schemas: &mut CutWorkerSchemaExecutor,
     scope: &Value,
@@ -5000,9 +5314,10 @@ fn prepare_work_expression_with_reader<'a>(
     check(reader.limits.deadline, reader.cancelled)?;
     if schemas.source_revision() != reader.cut.current().revision() || request_raw.len() > MAX_FILE
     {
-        return Err(bad("Work source/schema revision or request size"));
+        return Err(bad(
+            "native compound source/schema revision or request size",
+        ));
     }
-    let kind = CompoundKind::WorkExpression;
     reader.temporary(std::mem::size_of::<Vec<u8>>() + request_raw.len())?;
     let request_raw = request_raw.into_owned();
     let request = reader.decoded(&request_raw)?;
@@ -5013,7 +5328,7 @@ fn prepare_work_expression_with_reader<'a>(
     expected_raw.push(b'\n');
     let expected_raw = reader.buffer(expected_raw)?;
     if request_raw != expected_raw {
-        return Err(bad("Work request exact canonical bytes"));
+        return Err(bad("native compound request exact canonical bytes"));
     }
     let expected_len = expected_raw.len();
     drop(expected_raw);
@@ -5021,7 +5336,7 @@ fn prepare_work_expression_with_reader<'a>(
     let ordered_request = reader.ordered_value(&request_raw)?;
     let claim_ordered = ordered_request
         .object_get("claim")
-        .ok_or_else(|| bad("Work ordered Claim"))?;
+        .ok_or_else(|| bad("native compound ordered Claim"))?;
     let mut claim_raw = canonical_ordered(claim_ordered)?;
     claim_raw.push(b'\n');
     let claim_raw = reader.buffer(claim_raw)?;
@@ -5033,11 +5348,11 @@ fn prepare_work_expression_with_reader<'a>(
             || grammar.claim_sha256 != Digest256::of_bytes(&claim_raw)
             || grammar.binding != schemas.execution_binding()
         {
-            return Err(bad("Work preview request Claim/worker changed"));
+            return Err(bad("native compound preview request Claim/worker changed"));
         }
         grammar
     } else {
-        work_grammar_from_cut(&mut reader, schemas, &claim_raw)?
+        preparation_grammar_from_cut(kind, &mut reader, schemas, &claim_raw)?
     };
     let claim_len = claim_raw.len();
     drop(claim_raw);
@@ -5061,7 +5376,7 @@ fn prepare_work_expression_with_reader<'a>(
     if text(&authority, "schema_version")? != kind.authorization_schema()
         || authority["scope"] != *scope
     {
-        return Err(bad("Work authorization profile/scope"));
+        return Err(bad("native compound authorization profile/scope"));
     }
     keys(
         &authority["dependency_bindings"],
@@ -5074,22 +5389,24 @@ fn prepare_work_expression_with_reader<'a>(
     )?;
     if authority["dependency_bindings"]["contracts"] != json!(grammar.digests) {
         return Err(bad(
-            "Work authorization exact Claim/form/provenance contracts",
+            "native compound authorization exact Claim/form/provenance contracts",
         ));
     }
     scope_valid(scope, &request, &authority, kind)?;
     let work_path = text(scope, kind.parent_path())?;
     let before = reader.selected(work_path)?;
     if &before != owned_before {
-        return Err(bad("Work protected/current selected package mismatch"));
+        return Err(bad(
+            "native compound protected/current selected package mismatch",
+        ));
     }
     let old = reader.decoded(
         before
             .get(kind.parent_file())
-            .ok_or_else(|| bad("Work parent absent"))?,
+            .ok_or_else(|| bad("native compound parent absent"))?,
     )?;
-    if old["record_type"] != "work"
-        || old["record_id"] != scope["work_id"]
+    if old["record_type"] != kind.parent_kind()
+        || old["record_id"] != scope[kind.parent_key()]
         || !reader.reference_matches(
             &old,
             "record_id",
@@ -5105,7 +5422,36 @@ fn prepare_work_expression_with_reader<'a>(
             .0
             != text(&request, "expected_dependencies")?
     {
-        return Err(bad("Work authorization/request/current source binding"));
+        return Err(bad(
+            "native compound authorization/request/current source binding",
+        ));
+    }
+    let preview_receipt;
+    let item_companions_input = match item_input {
+        Some(ItemPreparationInput::Observed {
+            receipt_raw,
+            generator,
+        }) => {
+            if receipt_raw.len() > MAX_FILE {
+                return Err(ItemRefusal::Budget);
+            }
+            let receipt = reader.decoded(receipt_raw)?;
+            if receipt["private_stage_digest"] == format!("sha256:{}", "0".repeat(64)) {
+                return Err(bad("observed Item deposit cannot use preview stage marker"));
+            }
+            let retained = crate::record_biblio_cut::decoded_state(&receipt)?;
+            drop(receipt);
+            reader.release_temporary(retained);
+            Some((receipt_raw, generator))
+        }
+        Some(ItemPreparationInput::Preview { generator }) => {
+            preview_receipt = preview_item_receipt(&mut reader, scope, &request)?;
+            Some((preview_receipt.as_slice(), generator))
+        }
+        None => None,
+    };
+    if (kind == CompoundKind::EditionItem) != item_companions_input.is_some() {
+        return Err(bad("native preparation exact Item companion input"));
     }
     let prepared = reader.prepare_compound_core(
         kind,
@@ -5117,8 +5463,9 @@ fn prepare_work_expression_with_reader<'a>(
         old,
         recorded_at,
         schemas,
-        &|_| Err(bad("Work has no external companion inputs")),
+        &|_| Err(bad("native compound has no external companion inputs")),
         Some(grammar),
+        item_companions_input,
     )?;
     reader.release_raw_cache();
     Ok(WorkExpressionCore {
@@ -5212,6 +5559,7 @@ impl NativeCompoundReader<'_> {
         schemas: &mut CutWorkerSchemaExecutor,
         after: &impl Fn(&str) -> Result<Vec<u8>, ItemRefusal>,
         work_grammar: Option<WorkGrammar>,
+        item_input: Option<(&[u8], &str)>,
     ) -> Result<CompoundCore<'b>, ItemRefusal> {
         let scope = &authority["scope"];
         let work_path = text(scope, kind.parent_path())?;
@@ -5348,9 +5696,7 @@ impl NativeCompoundReader<'_> {
             .ok_or(ItemRefusal::Budget)?;
         let prechecked_grammar = work_grammar.is_some();
         let (dependency_digests, grammar_digests) = if let Some(grammar) = work_grammar {
-            if kind != CompoundKind::WorkExpression {
-                return Err(bad("prechecked grammar is Work-only"));
-            }
+            preparation_grammar_extra(kind)?;
             if grammar.claim_sha256 != Digest256::of_bytes(&claim_raw)
                 || grammar.binding != schemas.execution_binding()
             {
@@ -5385,7 +5731,7 @@ impl NativeCompoundReader<'_> {
         if prechecked_grammar {
             self.record_work_dependencies(dependency_digests, &grammar_digests)?;
             self.release_temporary(std::mem::size_of::<BTreeMap<String, Digest256>>());
-            for path in WORK_GRAMMAR_EXTRA {
+            for &path in preparation_grammar_extra(kind)? {
                 if !grammar_digests.contains_key(path) {
                     return Err(bad("Work grammar missing selected contract"));
                 }
@@ -5596,10 +5942,24 @@ impl NativeCompoundReader<'_> {
         self.temporary(rows_state(&parent_files, false)?)?;
         self.temporary(rows_state(&child_files, false)?)?;
         if kind == CompoundKind::EditionItem {
-            let byte_receipt_raw = self.buffer(after("item-deposit-receipt.json")?)?;
+            let byte_receipt_raw;
+            let inventory_raw;
+            let inventory;
+            let generator = if let Some((receipt_raw, generator)) = item_input {
+                if receipt_raw.len() > MAX_FILE {
+                    return Err(ItemRefusal::Budget);
+                }
+                // Admit the real public receipt before copying; no payload is read here.
+                self.temporary(std::mem::size_of::<Vec<u8>>() + receipt_raw.len())?;
+                byte_receipt_raw = receipt_raw.to_vec();
+                generator
+            } else {
+                byte_receipt_raw = self.buffer(after("item-deposit-receipt.json")?)?;
+                inventory_raw = self.buffer(after("resource-inventory.json")?)?;
+                inventory = self.decoded(&inventory_raw)?;
+                text(&inventory["generator"], "version")?
+            };
             let byte_receipt = self.decoded(&byte_receipt_raw)?;
-            let inventory_raw = self.buffer(after("resource-inventory.json")?)?;
-            let inventory = self.decoded(&inventory_raw)?;
             let mut companion_limits = self.limits;
             companion_limits.max_state_bytes = self
                 .limits
@@ -5610,17 +5970,19 @@ impl NativeCompoundReader<'_> {
                 scope,
                 &request,
                 &byte_receipt,
-                text(&inventory["generator"], "version")?,
+                generator,
                 schemas,
                 companion_limits,
                 self.cancelled,
             )?;
             self.temporary(rows_state(&companions, true)?)?;
             child_files.extend(companions);
-            child_files.push((
-                "item-deposit-receipt.json".into(),
-                pretty(&ordered(&byte_receipt_raw)?)?,
-            ));
+            let ordered_receipt = self.ordered_value(&byte_receipt_raw)?;
+            let receipt_raw = self.buffer(pretty(&ordered_receipt)?)?;
+            self.temporary(
+                std::mem::size_of::<(String, Vec<u8>)>() + "item-deposit-receipt.json".len(),
+            )?;
+            child_files.push(("item-deposit-receipt.json".into(), receipt_raw));
         }
         Ok(CompoundCore {
             kind,
@@ -5694,14 +6056,13 @@ impl NativeCompoundReader<'_> {
         self.temporary(slice_rows_state(&outputs)?)?;
         let mut captured_native = false;
         let event = if let Some(raw) = native_event_raw {
-            if kind != CompoundKind::WorkExpression {
-                return Err(bad("native capture is Work-only"));
-            }
+            preparation_grammar_extra(kind)?;
             let event = self.decoded(raw)?;
             let procedure = text(&event["method"]["procedure"], "name")?.to_owned();
             match procedure.as_str() {
-                "native-work-expression-serialization" => {
+                name if name == native_preparation_procedure(kind)? => {
                     native_work_event(
+                        kind,
                         &event,
                         scope,
                         &request,
@@ -5721,7 +6082,7 @@ impl NativeCompoundReader<'_> {
                     captured_native = true;
                     event
                 }
-                "native-work-expression-metadata-serialization" => {
+                name if name == kind.procedure() => {
                     let state = crate::record_biblio_cut::decoded_state(&event)?;
                     drop(event);
                     self.release_temporary(state);
@@ -6096,11 +6457,15 @@ impl NativeCompoundReader<'_> {
             schemas,
             &after,
             None,
+            None,
         )?;
         if core.id != tx.manifest["transaction_id"] {
             return Err(bad("compound transaction request identity"));
         }
-        let work_event = if kind == CompoundKind::WorkExpression {
+        let work_event = if matches!(
+            kind,
+            CompoundKind::WorkExpression | CompoundKind::EditionItem
+        ) {
             Some(
                 tx.files
                     .get(&format!("{home}/source-create-provenance.jsonl"))
@@ -6392,15 +6757,16 @@ fn compound_event_profile(
 }
 
 fn work_capture_entity(path: &str, raw: &[u8], role: &str) -> Value {
-    json!({"entity_ref":path,"role":role,"media_type":if path.ends_with(".jsonl") {"application/x-ndjson"} else {"application/json"},
+    json!({"entity_ref":path,"role":role,"media_type":if path.ends_with(".jsonl") {"application/x-ndjson"} else if path.ends_with("/forensic-report.md") || path.ends_with("/fixity.sha256") {"text/plain; charset=utf-8"} else {"application/json"},
         "size_bytes":raw.len(),"sha256":Digest256::of_bytes(raw).to_hex(),"availability":"owner_local",
         "content_disclosure":"public_metadata_only","fixity_verified":false,"fixity_verified_at":null})
 }
 
-/// Check a real, retained native capture against the exact Work buffers. The
+/// Check a real, retained native capture against the exact Work or Item buffers. The
 /// selected software and ELF observations are authenticated by the CMD owner;
 /// this mechanical check cannot infer who executed a program from its event.
 fn native_work_event(
+    kind: CompoundKind,
     event: &Value,
     scope: &Value,
     request: &Value,
@@ -6416,7 +6782,7 @@ fn native_work_event(
 ) -> Result<(), ItemRefusal> {
     check(deadline, cancelled)?;
     native_work_environment(environment)?;
-    let home = parent(text(scope, "expression_source_path")?)?;
+    let home = parent(text(scope, kind.child_path())?)?;
     let request_ref = format!("{home}/source-create-request.json");
     let environment_ref = format!("{home}/source-create-environment.json");
     let mut request_raw = canonical(request)?;
@@ -6620,7 +6986,7 @@ fn native_work_event(
         || event["event_version"] != 1
         || !event["supersedes_event_ref"].is_null()
         || event["record_binding"]
-            != json!({"manifest_ref":format!("{home}/work-expression-receipt.json"),
+            != json!({"manifest_ref":format!("{home}/{}",kind.receipt_file()),
             "digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"})
         || event["entities"]["inputs"] != json!(inputs)
         || event["entities"]["outputs"] != json!(output_entities)
@@ -6632,8 +6998,8 @@ fn native_work_event(
             )])
         || event["derivations"] != json!(derivations)
         || method["procedure"]
-            != json!({"name":"native-work-expression-serialization","version":"1",
-            "purpose":"Serialize one declared Work/Expression link and explicit source-copy forms without judging content."})
+            != json!({"name":native_preparation_procedure(kind)?,"version":"1",
+            "purpose":native_preparation_purpose(kind)?})
         || method["configuration_binding"]
             != json!({"ref":request_ref,"sha256":Digest256::of_bytes(&request_raw).to_hex()})
         || method["environment"] != method_environment
@@ -6650,7 +7016,7 @@ fn native_work_event(
         || event["activity"]["exit_code"] != 0
         || event["activity"]["warnings"]
             != json!([
-                "Completed in-process Work/Expression buffer serialization; atomic selected-metadata publication occurs afterward.",
+                native_preparation_warning(kind)?,
                 "The declared record link is not accepted bibliographic or textual truth."
             ])
         || !method["model_invocations"]
