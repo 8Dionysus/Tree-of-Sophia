@@ -54,13 +54,13 @@ class SourceClaimPublicationTests(unittest.TestCase):
             'allowed_subject_refs': [self.claim['subject_ref']], 'allowed_object_refs': [self.claim['object']],
             'allowed_predicates': [self.claim['predicate']], 'allowed_evidence_refs': [self.evidence]}
         self.owner.write_bytes(canonical_bytes(self.config))
-        preview = commands.run_local_command(self.owner, {'schema_version': 'tos_local_source_command_v1',
+        preview = commands.run_legacy_oracle_command(self.owner, {'schema_version': 'tos_local_source_command_v1',
             'operation': 'prepare-create', 'claims': [self.claim]})
         request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'claims.create',
             'command_id': 'synthetic-claim-publication', 'claims': [self.claim], 'expected_revision': None,
             'expected_configuration': preview['owner_configuration'],
             'expected_dependencies': preview['expected_dependencies'], 'expected_inputs': preview['source_bindings']}
-        created = commands.run_local_command(self.owner, request)
+        created = commands.run_legacy_oracle_command(self.owner, request)
         receipt_path = (self.root / self.relative).with_name('source-create-receipt.json')
         self.expected = {'expected_receipt_sha256': hashlib.sha256(receipt_path.read_bytes()).hexdigest(),
                          'expected_request_digest': created['receipt']['request_digest']}

@@ -56,7 +56,7 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
                         target = self.reserve_historical_form(root, reserved, retained_prior=retained_prior)
                         retained = target.read_bytes()
                         with self.assertRaisesRegex(source.JournalConflict, 'form identity'):
-                            source.run_local_command(owner, {'schema_version': contract_request,
+                            source.run_legacy_oracle_command(owner, {'schema_version': contract_request,
                                 'operation': 'prepare-create', **proposal})
                         self.assertFalse((root / config['source_path']).exists())
                         self.assertEqual(target.read_bytes(), retained)
@@ -64,7 +64,7 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
                         config['allowed_form_ids'][0] = fresh
                         proposal['forms'][0]['form_id'] = fresh
                         owner.write_text(json.dumps(config))
-                        preview = source.run_local_command(owner, {'schema_version': contract_request,
+                        preview = source.run_legacy_oracle_command(owner, {'schema_version': contract_request,
                             'operation': 'prepare-create', **proposal})
                         request = {'schema_version': contract_request,
                             'operation': 'source.create',
@@ -74,11 +74,11 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
                         # A noncolliding observed form still participates in CAS.
                         target.write_bytes(retained + b'\n')
                         with self.assertRaisesRegex(source.JournalConflict, 'dependencies'):
-                            source.run_local_command(owner, request)
+                            source.run_legacy_oracle_command(owner, request)
                         target.write_bytes(retained)
-                        result = source.run_local_command(owner, request)
+                        result = source.run_legacy_oracle_command(owner, request)
                         self.assertFalse(result['replayed'])
-                        self.assertTrue(source.run_local_command(owner, request)['replayed'])
+                        self.assertTrue(source.run_legacy_oracle_command(owner, request)['replayed'])
 
     def test_native_claim_correction_reserves_historical_ids_and_keeps_own_successors(self):
         import test_source_claim_commands as native_fixtures
@@ -89,10 +89,10 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
                 retained = target.read_bytes()
                 proposal = {key: request[key] for key in ('fields', 'forms', 'reason')}
                 with self.assertRaisesRegex(source.JournalConflict, 'form identity'):
-                    source.run_local_command(owner, {'schema_version': contract_request,
+                    source.run_legacy_oracle_command(owner, {'schema_version': contract_request,
                         'operation': 'prepare-revise', **proposal})
                 with self.assertRaisesRegex(source.JournalConflict, 'form identity'):
-                    source.run_local_command(owner, request)
+                    source.run_legacy_oracle_command(owner, request)
                 fresh = 'tos.form.synthetic-fresh-correction'
                 # An unused broader grant is not an attempt to take that ID.
                 config['allowed_form_ids'].append(fresh)
@@ -100,7 +100,7 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
                 owner.write_text(json.dumps(config))
                 for version in (2, 3):
                     proposal['fields']['qualifiers']['statement'] = f'Условная тестовая атрибуция, редакция {version}.'
-                    preview = source.run_local_command(owner, {'schema_version': contract_request,
+                    preview = source.run_legacy_oracle_command(owner, {'schema_version': contract_request,
                         'operation': 'prepare-revise', **proposal})
                     request = {'schema_version': contract_request, 'operation': 'claim.revise',
                         'command_id': f'test:finite-identity-correction-{version}',
@@ -110,11 +110,11 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
                         'expected_inputs': preview['source_bindings'], **proposal}
                     target.write_bytes(retained + b'\n')
                     with self.assertRaisesRegex(source.JournalConflict, 'dependencies|snapshot'):
-                        source.run_local_command(owner, request)
+                        source.run_legacy_oracle_command(owner, request)
                     target.write_bytes(retained)
-                    result = source.run_local_command(owner, request)
+                    result = source.run_legacy_oracle_command(owner, request)
                     self.assertEqual(result['source']['version'], version)
-                    self.assertTrue(source.run_local_command(owner, request)['replayed'])
+                    self.assertTrue(source.run_legacy_oracle_command(owner, request)['replayed'])
 
     @contextmanager
     def fixture(self):
@@ -134,11 +134,11 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
             owner.write_text(json.dumps(config))
             for claim in request['claims']:
                 claim['provenance_event_ref'] = config['provenance_event_id']
-            preview = source.run_local_command(owner, {'schema_version': contract_request,
+            preview = source.run_legacy_oracle_command(owner, {'schema_version': contract_request,
                 'operation': 'prepare-create', **{key: request[key] for key in ('record', 'claims', 'forms')}})
             request.update(expected_configuration=preview['owner_configuration'],
                            expected_dependencies=preview['expected_dependencies'])
-            result = source.run_local_command(owner, request)
+            result = source.run_legacy_oracle_command(owner, request)
             self.root, self.creation_owner, self.creation_config, self.creation_request = root, owner, config, request
             self.record_path = root / config['source_path']
             self.path = self.record_path.with_name(legacy.BASENAME)
@@ -175,7 +175,7 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
     def prepared(self, index, text='Синтетическое утверждение; не исторический факт.'):
         owner, config = self.grant(index)
         proposal = self.proposal(index, text)
-        preview = source.run_local_command(owner, {'schema_version': contract_request,
+        preview = source.run_legacy_oracle_command(owner, {'schema_version': contract_request,
             'operation': 'prepare-revise', **proposal})
         return owner, config, {'schema_version': contract_request, 'operation': 'claim.revise',
             'command_id': f'test:legacy-{index}-{preview["source"]["version"]}',
@@ -190,12 +190,12 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
             allowed_fields=['notes'], allowed_form_ids=self.creation_config['allowed_form_ids'])
         owner = self.root / 'event-owner.json'; owner.write_text(json.dumps(config))
         proposal = {'fields': {'notes': text}, 'forms': self.creation_request['forms'], 'reason': 'Synthetic record correction only.'}
-        preview = source.run_local_command(owner, {'schema_version': contract_request, 'operation': 'prepare-revise', **proposal})
+        preview = source.run_legacy_oracle_command(owner, {'schema_version': contract_request, 'operation': 'prepare-revise', **proposal})
         request = {'schema_version': contract_request, 'operation': 'record.revise',
             'command_id': f'test:event-{preview["source"]["version"]}', 'expected_source': preview['source'],
             'expected_revision': preview['revision'], 'expected_configuration': preview['owner_configuration'],
             'expected_dependencies': preview['expected_dependencies'], **proposal}
-        return source.run_local_command(owner, request)
+        return source.run_legacy_oracle_command(owner, request)
 
     def test_interleaved_record_and_claim_versions_preserve_origin_and_reach_exact_reader(self):
         with self.fixture():
@@ -203,24 +203,24 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
             event_v2 = self.record_path.read_bytes()
             first_owner, _, first = self.prepared(0)
             before = packages._package(self.path.parent)
-            first_result = source.run_local_command(first_owner, first)
+            first_result = source.run_legacy_oracle_command(first_owner, first)
             self.assertFalse(first_result['grants_admission'])
             self.assertEqual(self.record_path.read_bytes(), event_v2)
             sibling_lines = self.original[legacy.BASENAME].splitlines(keepends=True)[1:]
             self.assertEqual(self.path.read_bytes().splitlines(keepends=True)[1:], sibling_lines)
             self.assertEqual({view['state'] for view in first_result['materializations']}, {'ready'})
             owner, _, second = self.prepared(1)
-            source.run_local_command(owner, second)
+            source.run_legacy_oracle_command(owner, second)
             self.event_revision('Second independent event correction between Claims.')
             owner, _, third = self.prepared(0, 'Вторая синтетическая формулировка; не новое событие.')
-            result = source.run_local_command(owner, third)
+            result = source.run_legacy_oracle_command(owner, third)
             after = packages._package(self.path.parent)
             for name in legacy.CAPTURE:
                 self.assertEqual(after[name], self.original[name])
             self.assertEqual(json.loads(self.record_path.read_bytes())['record_version'], 3)
             self.assertEqual(len(json.loads(after[claims.HISTORY])['receipts']), 3)
-            self.assertTrue(source.run_local_command(first_owner, first)['replayed'])
-            self.assertTrue(source.run_local_command(self.creation_owner, self.creation_request)['replayed'])
+            self.assertTrue(source.run_legacy_oracle_command(first_owner, first)['replayed'])
+            self.assertTrue(source.run_legacy_oracle_command(self.creation_owner, self.creation_request)['replayed'])
             self.assertEqual(packages._package(self.path.parent), after)
             self.assertEqual(legacy.verify_creation(self.root, self.path.relative_to(self.root).as_posix())['status'],
                              'verified-captured-historical-origin')
@@ -246,20 +246,20 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
                 with self.subTest(field=field):
                     invalid = {**proposal, 'fields': {field: value}}
                     with self.assertRaises((PermissionError, ValueError)):
-                        source.run_local_command(owner, {'schema_version': contract_request,
+                        source.run_legacy_oracle_command(owner, {'schema_version': contract_request,
                             'operation': 'prepare-revise', **invalid})
             for qualifiers in ({'participation_role': 'different'}, {'primary_letter_inspected': True},
                                {'nested_uninterpreted_source_field': None}):
                 with self.subTest(qualifiers=qualifiers), self.assertRaises(PermissionError):
-                    source.run_local_command(owner, {'schema_version': contract_request, 'operation': 'prepare-revise',
+                    source.run_legacy_oracle_command(owner, {'schema_version': contract_request, 'operation': 'prepare-revise',
                         **{**proposal, 'fields': {'qualifiers': qualifiers}}})
             with self.assertRaises(PermissionError):
-                source.run_local_command(owner, {'schema_version': contract_request, 'operation': 'prepare-revise',
+                source.run_legacy_oracle_command(owner, {'schema_version': contract_request, 'operation': 'prepare-revise',
                     **{**proposal, 'fields': None}})
             missing = {key: value for key, value in config.items() if key != 'allowed_form_field_ids'}
             owner.write_text(json.dumps(missing))
             with self.assertRaises(ValueError):
-                source.run_local_command(owner, {'schema_version': contract_request, 'operation': 'describe'})
+                source.run_legacy_oracle_command(owner, {'schema_version': contract_request, 'operation': 'describe'})
             owner.write_text(json.dumps(config))
             for schema in (source.CLAIM_REVISION_CONFIG, source.CLAIM_VALUE_REVISION_CONFIG,
                            source.CLAIM_LAYER_REVISION_CONFIG):
@@ -268,27 +268,27 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
                     old['schema_version'] = schema
                     owner.write_text(json.dumps(old))
                     with self.assertRaises((PermissionError, ValueError)):
-                        source.run_local_command(owner, {'schema_version': contract_request, 'operation': 'describe'})
+                        source.run_legacy_oracle_command(owner, {'schema_version': contract_request, 'operation': 'describe'})
             for changed in ({'creation_receipt_sha256': 'sha256:' + '0' * 64},
                             {'historical_record_id': 'tos.historical-event.foreign'},
                             {'claim_id': 'tos.claim.foreign'}, {'expires_at': '2000-01-01T00:00:00Z'}):
                 with self.subTest(changed=changed):
                     owner.write_text(json.dumps({**config, **changed}))
                     with self.assertRaises((PermissionError, ValueError)):
-                        source.run_local_command(owner, {'schema_version': contract_request, 'operation': 'describe'})
+                        source.run_legacy_oracle_command(owner, {'schema_version': contract_request, 'operation': 'describe'})
             self.assertEqual(packages._package(self.path.parent), before)
 
     def test_separate_form_writer_replay_and_whole_context_preserve_historical_source(self):
         with self.fixture():
             owner, config, request = self.prepared(0)
-            source.run_local_command(owner, request)
+            source.run_legacy_oracle_command(owner, request)
             config = {key: value for key, value in config.items()
                       if key not in {'allowed_fields', 'allowed_qualifier_fields', 'allowed_evidence_refs'}}
             config.update(schema_version=legacy.FORM_CONFIG, allowed_operations=['form.create'],
                           allowed_form_ids=['tos.form.synthetic-historical-extra-name'], allowed_form_field_ids=['claim.name'])
             owner = self.root / 'form-owner.json'; owner.write_text(json.dumps(config))
             source_bytes = self.path.read_bytes()
-            preview = source.run_local_command(owner, {'schema_version': contract_request, 'operation': 'prepare',
+            preview = source.run_legacy_oracle_command(owner, {'schema_version': contract_request, 'operation': 'prepare',
                 'form_id': config['allowed_form_ids'][0], 'field_id': 'claim.name'})
             request = {'schema_version': contract_request, 'operation': 'apply', 'command_id': 'test:legacy-form',
                 'expected_source': preview['source'], 'expected_revision': preview['revision'],
@@ -296,17 +296,17 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
             bad = copy.deepcopy(request)
             bad['changes'][0]['form']['bindings'].pop('context-0')
             with self.assertRaises((ValueError, source.JournalConflict)):
-                source.run_local_command(owner, bad)
+                source.run_legacy_oracle_command(owner, bad)
             self.assertEqual(self.path.read_bytes(), source_bytes)
-            result = source.run_local_command(owner, request)
+            result = source.run_legacy_oracle_command(owner, request)
             view = next(view for view in result['materializations'] if view['role'] == 'name'
                         and view['form']['id'] == config['allowed_form_ids'][0])
             self.assertEqual(view['state'], 'ready')
             self.assertIsNone(view['admission'])
             self.assertEqual(self.path.read_bytes(), source_bytes)
             after = packages._package(self.path.parent)
-            self.assertTrue(source.run_local_command(owner, request)['replayed'])
-            self.assertTrue(source.run_local_command(self.creation_owner, self.creation_request)['replayed'])
+            self.assertTrue(source.run_legacy_oracle_command(owner, request)['replayed'])
+            self.assertTrue(source.run_legacy_oracle_command(self.creation_owner, self.creation_request)['replayed'])
             self.assertEqual(packages._package(self.path.parent), after)
             # Neither an old native form grant nor the new family can select a
             # narrower context, another field, or a foreign globally owned ID.
@@ -316,7 +316,7 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
                 with self.subTest(changed=changed):
                     owner.write_text(json.dumps({**config, **changed}))
                     with self.assertRaises((PermissionError, ValueError, source.JournalConflict)):
-                        source.run_local_command(owner, request)
+                        source.run_legacy_oracle_command(owner, request)
             self.assertEqual(self.path.read_bytes(), source_bytes)
 
     def test_stale_package_and_corrupt_retained_capture_fail_closed(self):
@@ -325,14 +325,14 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
             self.event_revision('Independent record change makes the entire prepared Claim package stale.')
             before = packages._package(self.path.parent)
             with self.assertRaises(source.JournalConflict):
-                source.run_local_command(owner, stale)
+                source.run_legacy_oracle_command(owner, stale)
             self.assertEqual(packages._package(self.path.parent), before)
             owner, _, request = self.prepared(0)
             with patch.object(packages, '_exchange', side_effect=OSError('synthetic prepublication loss')):
                 with self.assertRaises(OSError):
-                    source.run_local_command(owner, request)
+                    source.run_legacy_oracle_command(owner, request)
             self.assertEqual(packages._package(self.path.parent), before)
-            source.run_local_command(owner, request)
+            source.run_legacy_oracle_command(owner, request)
             current = packages._package(self.path.parent)
             history = json.loads(current[claims.HISTORY])
             archive = self.root / history['receipts'][0]['archive_path']
@@ -341,15 +341,15 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
             original_blob = blob.read_bytes()
             blob.write_bytes(original_blob + b' ')
             with self.assertRaises((source.JournalCorruption, ValueError)):
-                source.run_local_command(owner, request)
+                source.run_legacy_oracle_command(owner, request)
             with self.assertRaises((source.JournalCorruption, ValueError)):
-                source.run_local_command(self.creation_owner, self.creation_request)
+                source.run_legacy_oracle_command(self.creation_owner, self.creation_request)
             blob.write_bytes(original_blob)
-            self.assertTrue(source.run_local_command(owner, request)['replayed'])
+            self.assertTrue(source.run_legacy_oracle_command(owner, request)['replayed'])
             capture = self.path.parent / 'source-create-environment.json'
             capture.write_bytes(current[capture.name] + b' ')
             with self.assertRaises((source.JournalCorruption, ValueError)):
-                source.run_local_command(owner, request)
+                source.run_legacy_oracle_command(owner, request)
             capture.write_bytes(current[capture.name])
             self.assertEqual(packages._package(self.path.parent), current)
 
@@ -358,7 +358,7 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
             index = next(index for index, claim in enumerate(self.creation_request['claims'])
                          if claim['predicate'] == 'historical_dating')
             owner, _, request = self.prepared(index)
-            source.run_local_command(owner, request)
+            source.run_legacy_oracle_command(owner, request)
             self.rebuild()
             history_path = self.path.parent / claims.HISTORY
             original_history = history_path.read_bytes()
@@ -371,24 +371,24 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
             receipt['request_digest'] = source._digest(source._canonical(receipt['request']))
             history_path.write_bytes(packages._encode(history))
             with self.assertRaises((source.JournalCorruption, ValueError)):
-                source.run_local_command(owner, {'schema_version': contract_request, 'operation': 'describe'})
+                source.run_legacy_oracle_command(owner, {'schema_version': contract_request, 'operation': 'describe'})
             result = ClaimVersionReader(self.root).resolve(request['expected_source'])
             self.assertEqual(result['status'], 'corrupt', result)
             history_path.write_bytes(original_history)
             capture = self.path.parent / 'source-create-environment.json'
             capture_bytes = capture.read_bytes(); capture.unlink()
             with self.assertRaises((source.JournalCorruption, ValueError)):
-                source.run_local_command(owner, {'schema_version': contract_request, 'operation': 'describe'})
+                source.run_legacy_oracle_command(owner, {'schema_version': contract_request, 'operation': 'describe'})
             result = ClaimVersionReader(self.root).resolve(request['expected_source'])
             self.assertEqual(result['status'], 'corrupt', result)
             capture.write_bytes(capture_bytes)
-            self.assertTrue(source.run_local_command(owner, request)['replayed'])
+            self.assertTrue(source.run_legacy_oracle_command(owner, request)['replayed'])
 
     def test_exact_claim_reader_has_its_own_budget_and_does_not_certify_event_archives(self):
         with self.fixture():
             self.event_revision('A separate record history exists but is not the Claim reader subject.')
             owner, _, request = self.prepared(0)
-            source.run_local_command(owner, request)
+            source.run_legacy_oracle_command(owner, request)
             self.rebuild()
             with patch.object(version_reader, 'MAX_TOTAL_BYTES', 1):
                 result = ClaimVersionReader(self.root).resolve(request['expected_source'])
@@ -403,7 +403,7 @@ class HistoricalClaimAdapterTests(unittest.TestCase):
             self.assertEqual(result['status'], 'available', result)
             self.assertFalse(result['provenance']['history']['record_history_verified'])
             with self.assertRaises((source.JournalCorruption, ValueError)):
-                source.run_local_command(owner, {'schema_version': contract_request, 'operation': 'describe'})
+                source.run_legacy_oracle_command(owner, {'schema_version': contract_request, 'operation': 'describe'})
             blob.write_bytes(old)
 
 

@@ -221,9 +221,9 @@ class NativePageOCRAssessmentTests(unittest.TestCase):
         owner.write_bytes(encoded(config))
         owner.chmod(0o600)
         with patch.object(native_owner_ocr, 'verify_owner_ocr', return_value={}):
-            described = assessment_journal.run_local_command(owner, {'schema_version': 'tos_local_assessment_command_v1',
+            described = assessment_journal.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_assessment_command_v1',
                 'operation': 'describe', 'subject_id': fx.layer_id})
-            result = assessment_journal.run_local_command(owner, {'schema_version': 'tos_local_assessment_command_v1',
+            result = assessment_journal.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_assessment_command_v1',
                 'operation': 'read-layer-comparison', 'subject_id': fx.layer_id, 'expected_subject': fx.subjects[fx.layer_id]['record'],
                 'expected_snapshot': described['owner_snapshot']})
         self.assertTrue(result['result']['source_comparison']['payload']['source_image']['model_disclosure_authorized'])

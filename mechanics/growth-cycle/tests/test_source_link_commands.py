@@ -38,7 +38,7 @@ def replace(*args):
     count += 1
     if count == int(sys.argv[3]): os._exit(86)
 tx._replace_file = replace
-commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
+commands.run_legacy_oracle_command(Path(sys.argv[2]), json.load(sys.stdin))
 '''
 
 
@@ -118,7 +118,7 @@ class NativeObjectLinkTests(unittest.TestCase):
 
     def request(self):
         proposal = self.proposal()
-        prepared = commands.run_local_command(self.owner, proposal)
+        prepared = commands.run_legacy_oracle_command(self.owner, proposal)
         return {**proposal, 'operation': links.OPERATION, 'command_id': 'test:object-link',
             'expected_configuration': prepared['owner_configuration'],
             'expected_dependencies': prepared['expected_dependencies'], 'expected_publication': prepared['expected_publication']}
@@ -172,11 +172,11 @@ class NativeObjectLinkTests(unittest.TestCase):
             self.assertFalse(path.is_relative_to(self.untouched.parent))
             return original_read(path, limit)
         with patch.object(commands, '_read', selected_read):
-            result = commands.run_local_command(self.owner, request)
+            result = commands.run_legacy_oracle_command(self.owner, request)
         self.assertFalse(result['grants_admission'])
         self.assertEqual(self.subject_path.read_bytes(), before)
         self.assertTrue(all(view['state'] == 'ready' for group in result['materializations'].values() for view in group))
-        self.assertTrue(commands.run_local_command(self.owner, request)['replayed'])
+        self.assertTrue(commands.run_legacy_oracle_command(self.owner, request)['replayed'])
         verified = links.verify_compound(self.root, self.config['claim_source_path'], request['claim'])
         self.assertEqual(verified['receipt']['subject_source_sha256'], hashlib.sha256(before).hexdigest())
         self.rebuild()
@@ -204,7 +204,7 @@ class NativeObjectLinkTests(unittest.TestCase):
         self.rebuild()
         before = self.subject_path.read_bytes()
         request = self.request()
-        commands.run_local_command(self.owner, request)
+        commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(self.subject_path.read_bytes(), before)
         self.assertNotIn('record_id', self.subject)
         self.assertFalse(self.subject_path.with_name(revisions.HISTORY).exists())
@@ -225,11 +225,11 @@ class NativeObjectLinkTests(unittest.TestCase):
             proposal = self.proposal()
             mutate(proposal)
             with self.subTest(mutate=mutate), self.assertRaises((ValueError, PermissionError, KeyError)):
-                commands.run_local_command(self.owner, proposal)
+                commands.run_legacy_oracle_command(self.owner, proposal)
         self.config['allowed_operations'] = []
         self.save_config()
         with self.assertRaises(PermissionError):
-            commands.run_local_command(self.owner, self.proposal())
+            commands.run_legacy_oracle_command(self.owner, self.proposal())
         self.assertFalse((self.root / self.config['link_source_path']).parent.exists())
         import source_claim_commands
         with self.assertRaises(PermissionError):
@@ -270,8 +270,8 @@ class NativeObjectLinkTests(unittest.TestCase):
         self.config.update(principal_id='model:synthetic-recoverer', allowed_operations=[links.RECOVERY])
         self.save_config()
         with self.assertRaises(PermissionError):
-            commands.run_local_command(self.owner, request)
-        result = commands.run_local_command(self.owner, self.recovery(pending, 'resume'))
+            commands.run_legacy_oracle_command(self.owner, request)
+        result = commands.run_legacy_oracle_command(self.owner, self.recovery(pending, 'resume'))
         self.assertEqual(result['receipt']['principal_id'], 'model:synthetic')
         self.assertEqual(result['recovery']['publication']['recovery_authorization']['principal_id'], self.config['principal_id'])
 
@@ -284,10 +284,10 @@ class NativeObjectLinkTests(unittest.TestCase):
         path.write_bytes(b'Foreign writer state\n')
         for decision in ('resume', 'rollback'):
             with self.subTest(decision=decision), self.assertRaises(ValueError):
-                commands.run_local_command(self.owner, self.recovery(pending, decision))
+                commands.run_legacy_oracle_command(self.owner, self.recovery(pending, decision))
             self.assertEqual(path.read_bytes(), b'Foreign writer state\n')
         path.write_bytes(original)
-        commands.run_local_command(self.owner, self.recovery(pending, 'rollback'))
+        commands.run_legacy_oracle_command(self.owner, self.recovery(pending, 'rollback'))
         self.assertEqual(self.subject_path.read_bytes(), before)
         self.assertFalse((self.root / self.config['link_source_path']).parent.exists())
         self.assertFalse((self.root / self.config['claim_source_path']).parent.exists())
@@ -297,12 +297,12 @@ class NativeObjectLinkTests(unittest.TestCase):
         original = self.subject_path.read_bytes()
         self.subject_path.write_bytes(original + b'\n')
         with self.assertRaises(ValueError):
-            commands.run_local_command(self.owner, self.recovery(pending, 'resume'))
+            commands.run_legacy_oracle_command(self.owner, self.recovery(pending, 'resume'))
         self.subject_path.write_bytes(original)
-        commands.run_local_command(self.owner, self.recovery(pending, 'rollback'))
+        commands.run_legacy_oracle_command(self.owner, self.recovery(pending, 'rollback'))
         self.rebuild()
         request = self.request()
-        commands.run_local_command(self.owner, request)
+        commands.run_legacy_oracle_command(self.owner, request)
         capture = self.root / Path(self.config['claim_source_path']).with_name(links.PROVENANCE_FILE)
         capture.write_bytes(capture.read_bytes() + b'\n')
         with self.assertRaises(ValueError):
@@ -318,7 +318,7 @@ class NativeObjectLinkTests(unittest.TestCase):
         path = self.root / self.config['claim_source_path']
         path.unlink()
         path.parent.rmdir()
-        commands.run_local_command(self.owner, request)
+        commands.run_legacy_oracle_command(self.owner, request)
         issues = []
         self.assertEqual(len(_native_object_link_claims(self.root, issues)), 1, issues)
         self.assertEqual(issues, [])
@@ -336,12 +336,12 @@ class NativeObjectLinkTests(unittest.TestCase):
         proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
             'fields': fields or {'preferred_label': 'Corrected synthetic Link label'}, 'forms': self.proposal()['forms'],
             'reason': 'Synthetic native descriptive correction; URI remains unchanged.'}
-        prepared = commands.run_local_command(owner, proposal)
+        prepared = commands.run_legacy_oracle_command(owner, proposal)
         correction = {**proposal, 'operation': 'record.revise', 'command_id': 'test:link-revise',
             'expected_source': prepared['source'], 'expected_revision': prepared['revision'],
             'expected_configuration': prepared['owner_configuration'], 'expected_dependencies': prepared['expected_dependencies'],
             'expected_publication': prepared['expected_publication']}
-        return commands.run_local_command(owner, correction), correction
+        return commands.run_legacy_oracle_command(owner, correction), correction
 
     def revise_claim(self):
         config = {key: self.config[key] for key in ('uid', 'principal_id', 'source_root', 'authority_ref', 'expires_at')}
@@ -353,17 +353,17 @@ class NativeObjectLinkTests(unittest.TestCase):
         proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
             'fields': {'qualifiers': {'statement': 'Corrected qualified report of the same synthetic address.'}},
             'forms': self.proposal()['claim_forms'], 'reason': 'Synthetic qualified association correction.'}
-        prepared = commands.run_local_command(owner, proposal)
+        prepared = commands.run_legacy_oracle_command(owner, proposal)
         self.assertFalse(prepared['source_bindings']['evidence'][self.config['observation_ref']]['resolved'])
         correction = {**proposal, 'operation': 'claim.revise', 'command_id': 'test:link-claim-revise',
             'expected_source': prepared['source'], 'expected_revision': prepared['revision'],
             'expected_configuration': prepared['owner_configuration'], 'expected_dependencies': prepared['expected_dependencies'],
             'expected_inputs': prepared['source_bindings']}
-        return commands.run_local_command(owner, correction), owner, proposal
+        return commands.run_legacy_oracle_command(owner, correction), owner, proposal
 
     def test_independent_link_and_claim_corrections_retain_compound_origin_and_full_forms(self):
         request = self.request()
-        created = commands.run_local_command(self.owner, request)
+        created = commands.run_legacy_oracle_command(self.owner, request)
         self.rebuild()
         self.revise_link()
         self.rebuild()
@@ -371,13 +371,13 @@ class NativeObjectLinkTests(unittest.TestCase):
         claim = revised['materializations'][0]['context'][0]['value']
         self.assertEqual(claim['claim_version'], 2)
         self.assertEqual(claim['qualifiers']['unknown_context'], {'flag': False, 'missing': None})
-        self.assertTrue(commands.run_local_command(self.owner, request)['replayed'])
+        self.assertTrue(commands.run_legacy_oracle_command(self.owner, request)['replayed'])
         verified = links.verify_compound(self.root, self.config['claim_source_path'], claim)
         self.assertEqual(verified['receipt'], created['receipt'])
         for qualifier in ('statement_language', 'statement_script', 'link_role', 'availability_is_rights_conclusion'):
             bad = {**proposal, 'fields': {'qualifiers': {qualifier: None}}}
             with self.subTest(qualifier=qualifier), self.assertRaises(ValueError):
-                commands.run_local_command(owner, bad)
+                commands.run_legacy_oracle_command(owner, bad)
         self.rebuild()
         from metadata_version_reader import MetadataVersionReader
         from claim_version_reader import ClaimVersionReader
@@ -396,7 +396,7 @@ class NativeObjectLinkTests(unittest.TestCase):
 
     def test_native_link_replay_rejects_uncommitted_descriptive_transition(self):
         request = self.request()
-        commands.run_local_command(self.owner, request)
+        commands.run_legacy_oracle_command(self.owner, request)
         self.rebuild()
         _, correction = self.revise_link()
         inspected = links.transactions.inspect_transaction
@@ -409,7 +409,7 @@ class NativeObjectLinkTests(unittest.TestCase):
 
     def test_typed_graph_consumer_validates_native_link_and_shared_claim(self):
         request = self.request()
-        commands.run_local_command(self.owner, request)
+        commands.run_legacy_oracle_command(self.owner, request)
         from build_source_witness_catalog import render_outputs, write_outputs
         write_outputs(self.root, render_outputs(self.root))
         from source_witness_bibliographic_graph_common import (_load_object_catalog, _load_claim_catalog,
@@ -450,7 +450,7 @@ class NativeObjectLinkTests(unittest.TestCase):
             nonlocal fired
             if not fired:
                 fired = True
-                commands.run_local_command(self.owner, request)
+                commands.run_legacy_oracle_command(self.owner, request)
             return result(*args, **kwargs)
         with patch.object(links, '_result', side_effect=concurrent), self.assertRaises(PublicationChanged):
             self.request()

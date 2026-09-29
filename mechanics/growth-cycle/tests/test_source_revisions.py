@@ -63,7 +63,7 @@ class SourceRevisionTests(unittest.TestCase):
         return {path.name: path.read_bytes() for path in self.path.parent.iterdir() if path.is_file()}
 
     def run_command(self, operation, **fields):
-        return commands.run_local_command(self.owner, {'schema_version': 'tos_local_source_command_v1',
+        return commands.run_legacy_oracle_command(self.owner, {'schema_version': 'tos_local_source_command_v1',
                                                       'operation': operation, **fields})
 
     def request(self, command_id='synthetic:revision-1'):
@@ -79,7 +79,7 @@ class SourceRevisionTests(unittest.TestCase):
     def test_revision_keeps_exact_old_package_forms_and_unknown_fields_and_replays_in_cli(self):
         request = self.request()
         self.assertEqual(self.package(), self.original)  # Preparation is read-only.
-        result = commands.run_local_command(self.owner, request)
+        result = commands.run_legacy_oracle_command(self.owner, request)
         current = json.loads(self.path.read_bytes())
         self.assertEqual(current, {**self.record, **request['fields'], 'record_version': 2})
         self.assertFalse(result['grants_admission'])
@@ -113,14 +113,14 @@ class SourceRevisionTests(unittest.TestCase):
             invalid = copy.deepcopy(request)
             modify(invalid)
             with self.subTest(request=invalid), self.assertRaises((ValueError, PermissionError, commands.ValidationError)):
-                commands.run_local_command(self.owner, invalid)
+                commands.run_legacy_oracle_command(self.owner, invalid)
             self.assertEqual(self.package(), self.original)
 
     def test_interruption_before_commit_and_response_loss_after_commit_keep_one_history(self):
         request = self.request()
         with patch.object(revisions, '_exchange', side_effect=RuntimeError('interruption before commit')):
             with self.assertRaises(RuntimeError):
-                commands.run_local_command(self.owner, request)
+                commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(self.package(), self.original)
         # Archive was durable first, but an uncommitted copy is not revision history.
         with self.assertRaises(commands.JournalConflict):
@@ -131,9 +131,9 @@ class SourceRevisionTests(unittest.TestCase):
             raise RuntimeError('response lost after atomic commit')
         with patch.object(revisions, '_exchange', side_effect=response_loss):
             with self.assertRaises(RuntimeError):
-                commands.run_local_command(self.owner, request)
+                commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(json.loads(self.path.read_bytes())['record_version'], 2)
-        retry = commands.run_local_command(self.owner, request)
+        retry = commands.run_legacy_oracle_command(self.owner, request)
         self.assertTrue(retry['replayed'])
         self.assertEqual(len(json.loads((self.path.parent / revisions.HISTORY).read_bytes())['receipts']), 1)
         self.assertEqual(self.run_command('inspect-version', source=request['expected_source'])['record'], self.record)
@@ -145,7 +145,7 @@ class SourceRevisionTests(unittest.TestCase):
         second['fields']['notes'] = 'Competing synthetic wording.'
         def attempt(request):
             try:
-                return commands.run_local_command(self.owner, request)
+                return commands.run_legacy_oracle_command(self.owner, request)
             except commands.JournalConflict:
                 return None
         with ThreadPoolExecutor(max_workers=2) as pool:
@@ -158,12 +158,12 @@ class SourceRevisionTests(unittest.TestCase):
 
     def test_revocation_on_retry_and_corrupt_archive_fail_closed(self):
         request = self.request()
-        commands.run_local_command(self.owner, request)
+        commands.run_legacy_oracle_command(self.owner, request)
         after = self.package()
         self.config['allowed_operations'] = []
         self.owner.write_text(json.dumps(self.config))
         with self.assertRaises(PermissionError):
-            commands.run_local_command(self.owner, request)
+            commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(self.package(), after)
         self.config['allowed_operations'] = ['record.revise']
         self.owner.write_text(json.dumps(self.config))
@@ -171,17 +171,17 @@ class SourceRevisionTests(unittest.TestCase):
         archived = self.root / prior['files'][self.path.name]['archive_path']
         archived.write_bytes(b'corrupt synthetic archive')
         with self.assertRaises(commands.JournalCorruption):
-            commands.run_local_command(self.owner, request)
+            commands.run_legacy_oracle_command(self.owner, request)
         with self.assertRaises(commands.JournalCorruption):
             self.run_command('inspect-version', source=request['expected_source'])
         self.assertEqual(self.package(), after)
 
     def test_multiple_revisions_return_exact_versions_and_do_not_duplicate_source_catalog(self):
         first = self.request()
-        commands.run_local_command(self.owner, first)
+        commands.run_legacy_oracle_command(self.owner, first)
         second = self.request('synthetic:revision-2')
         second['fields']['notes'] = 'Third source version, still synthetic.'
-        commands.run_local_command(self.owner, second)
+        commands.run_legacy_oracle_command(self.owner, second)
         self.assertEqual(json.loads(self.path.read_bytes())['record_version'], 3)
         self.assertEqual(self.run_command('inspect-version', source=first['expected_source'])['record'], self.record)
         self.assertEqual(self.run_command('inspect-version', source=second['expected_source'])['record']['record_version'], 2)
@@ -192,7 +192,7 @@ class SourceRevisionTests(unittest.TestCase):
 
     def test_new_revision_requires_every_predecessor_archive_before_writing(self):
         first = self.request()
-        commands.run_local_command(self.owner, first)
+        commands.run_legacy_oracle_command(self.owner, first)
         second = self.request('synthetic:revision-after-archive-damage')
         second['fields']['notes'] = 'A new correction requires the retained source history.'
         prior = self.run_command('inspect-version', source=first['expected_source'])
@@ -206,17 +206,17 @@ class SourceRevisionTests(unittest.TestCase):
                 archives = set((self.root / 'ToS/source-witnesses/.record-revisions').iterdir())
                 try:
                     with self.assertRaises(commands.JournalCorruption):
-                        commands.run_local_command(self.owner, second)
+                        commands.run_legacy_oracle_command(self.owner, second)
                     self.assertEqual(self.package(), before)
                     self.assertEqual(set((self.root / 'ToS/source-witnesses/.record-revisions').iterdir()), archives)
                 finally:
                     blob.write_bytes(original)
-        result = commands.run_local_command(self.owner, second)
+        result = commands.run_legacy_oracle_command(self.owner, second)
         self.assertEqual(result['source']['version'], 3)
 
     def test_shortened_history_cannot_be_extended_as_a_later_baseline(self):
-        commands.run_local_command(self.owner, self.request())
-        commands.run_local_command(self.owner, self.request('synthetic:revision-2'))
+        commands.run_legacy_oracle_command(self.owner, self.request())
+        commands.run_legacy_oracle_command(self.owner, self.request('synthetic:revision-2'))
         path = self.path.with_name(revisions.HISTORY)
         history = json.loads(path.read_bytes())
         history['receipts'] = history['receipts'][1:]
@@ -224,12 +224,12 @@ class SourceRevisionTests(unittest.TestCase):
         request = self.request('synthetic:revision-after-ledger-truncation')
         before = self.package()
         with self.assertRaisesRegex(commands.JournalCorruption, 'archived predecessor prefix'):
-            commands.run_local_command(self.owner, request)
+            commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(self.package(), before)
 
     def test_empty_stored_history_cannot_be_extended_as_an_imported_baseline(self):
         first = self.request()
-        commands.run_local_command(self.owner, first)
+        commands.run_legacy_oracle_command(self.owner, first)
         path = self.path.with_name(revisions.HISTORY)
         history = json.loads(path.read_bytes())
         archives = set((self.root / 'ToS/source-witnesses/.record-revisions').iterdir())
@@ -240,7 +240,7 @@ class SourceRevisionTests(unittest.TestCase):
                 with self.assertRaises(commands.JournalCorruption):
                     self.request('synthetic:revision-after-empty-history')
                 with self.assertRaises(commands.JournalCorruption):
-                    commands.run_local_command(self.owner, first)
+                    commands.run_legacy_oracle_command(self.owner, first)
                 self.assertEqual(self.package(), before)
                 self.assertEqual(set((self.root / 'ToS/source-witnesses/.record-revisions').iterdir()), archives)
 
@@ -250,14 +250,14 @@ class SourceRevisionTests(unittest.TestCase):
         self.formpath.unlink()
         self.assertNotIn(revisions.HISTORY, self.package())
         request = self.request()
-        result = commands.run_local_command(self.owner, request)
+        result = commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(result['receipt']['previous_source']['version'], 7)
         self.assertEqual(result['source']['version'], 8)
         self.assertEqual(self.run_command('inspect-version', source=request['expected_source'])['record'], self.record)
 
     def test_archive_damage_during_staging_stops_before_directory_exchange(self):
         first = self.request()
-        commands.run_local_command(self.owner, first)
+        commands.run_legacy_oracle_command(self.owner, first)
         request = self.request('synthetic:revision-stage-drift')
         prior = self.run_command('inspect-version', source=first['expected_source'])
         blob = self.root / prior['files'][self.path.name]['archive_path']
@@ -270,7 +270,7 @@ class SourceRevisionTests(unittest.TestCase):
             return result
         with patch.object(revisions, '_stage', side_effect=damage_after_staging):
             with self.assertRaises(commands.JournalCorruption):
-                commands.run_local_command(self.owner, request)
+                commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(self.package(), before)
 
     def test_changed_companion_symlink_nested_package_and_budget_are_not_silently_discarded(self):
@@ -279,7 +279,7 @@ class SourceRevisionTests(unittest.TestCase):
         companion.write_bytes(b'{"new": "concurrent editor"}')
         changed = self.package()
         with self.assertRaises(commands.JournalConflict):
-            commands.run_local_command(self.owner, request)
+            commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(self.package(), changed)
         companion.unlink()
         companion.symlink_to(self.owner)
@@ -302,7 +302,7 @@ from pathlib import Path
 sys.path.insert(0, sys.argv[1])
 import source_commands, source_revisions
 source_revisions._exchange = lambda *args: os._exit(73)
-source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
+source_commands.run_legacy_oracle_command(Path(sys.argv[2]), json.load(sys.stdin))
 '''
         process = subprocess.run([sys.executable, '-c', program, str(MECHANIC), str(self.owner)],
                                  input=json.dumps(request), text=True, capture_output=True)
@@ -310,7 +310,7 @@ source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
         self.assertEqual(self.package(), self.original)
         abandoned = set((self.root / 'ToS').glob('.source-revision-*.pending'))
         self.assertEqual(len(abandoned), 1)
-        commands.run_local_command(self.owner, request)
+        commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(set((self.root / 'ToS').glob('.source-revision-*.pending')), abandoned)
         self.assertEqual(self.run_command('inspect-version', source=request['expected_source'])['record'], self.record)
 
@@ -325,7 +325,7 @@ def lose_response(*args):
     exchange(*args)
     os._exit(74)
 source_revisions._exchange = lose_response
-source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
+source_commands.run_legacy_oracle_command(Path(sys.argv[2]), json.load(sys.stdin))
 '''
         process = subprocess.run([sys.executable, '-c', program, str(MECHANIC), str(self.owner)],
                                  input=json.dumps(request), text=True, capture_output=True)
@@ -334,7 +334,7 @@ source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
         abandoned = list((self.root / 'ToS').glob('.source-revision-*.pending'))
         self.assertEqual(len(abandoned), 1)
         self.assertEqual({p.name: p.read_bytes() for p in abandoned[0].iterdir()}, self.original)
-        result = commands.run_local_command(self.owner, request)
+        result = commands.run_legacy_oracle_command(self.owner, request)
         self.assertTrue(result['replayed'])
         self.assertTrue(abandoned[0].exists())
         self.assertEqual(self.run_command('inspect-version', source=request['expected_source'])['record'], self.record)
@@ -345,7 +345,7 @@ source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
         form_config.update(schema_version='tos_local_source_command_owner_v1', allowed_operations=['form.revise'])
         form_owner = self.root / 'form-owner.json'
         form_owner.write_text(json.dumps(form_config))
-        form_context = commands.run_local_command(form_owner, {'schema_version': 'tos_local_source_command_v1',
+        form_context = commands.run_legacy_oracle_command(form_owner, {'schema_version': 'tos_local_source_command_v1',
             'operation': 'prepare', **self.selections[0]})
         form_request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'apply',
             'command_id': 'synthetic:form-writer', 'expected_source': form_context['source'],
@@ -354,7 +354,7 @@ source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
         def attempt(item):
             owner, request = item
             try:
-                return commands.run_local_command(owner, request)
+                return commands.run_legacy_oracle_command(owner, request)
             except commands.JournalConflict:
                 return None
         with ThreadPoolExecutor(max_workers=2) as pool:
@@ -366,7 +366,7 @@ source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
         from test_source_commands import HistoricalCreationTests
         fixture = HistoricalCreationTests()
         with fixture.creation() as (root, owner, config, initial, rebuild, _):
-            created = commands.run_local_command(owner, initial)
+            created = commands.run_legacy_oracle_command(owner, initial)
             path = root / config['source_path']
             original = {p.name: p.read_bytes() for p in path.parent.iterdir()}
             delegated = {key: value for key, value in config.items() if key not in {'maker_type', 'allowed_claim_ids'}}
@@ -376,9 +376,9 @@ source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
             proposal = {'fields': {'notes': 'Уточнение синтетической записи, не оценка истории.',
                 'field_languages': {'notes': {'language': 'ru', 'script': 'Cyrl'}}},
                 'forms': initial['forms'], 'reason': 'Synthetic end-to-end source correction.'}
-            preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+            preview = commands.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
                 'operation': 'prepare-revise', **proposal})
-            applied = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+            applied = commands.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
                 'operation': 'record.revise', 'command_id': 'synthetic:graph-source-correction',
                 'expected_source': preview['source'], 'expected_revision': preview['revision'],
                 'expected_configuration': preview['owner_configuration'],
@@ -393,7 +393,7 @@ source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
             views = matching[0]['properties']['human_forms']
             self.assertTrue(any(view['language'] == 'ru' and view['display_text'] == proposal['fields']['notes'] for view in views))
             owner.write_text(json.dumps(config))
-            retry = commands.run_local_command(owner, initial)
+            retry = commands.run_legacy_oracle_command(owner, initial)
             self.assertTrue(retry['replayed'])
             self.assertEqual(retry['receipt'], created['receipt'])
 
@@ -442,7 +442,7 @@ class NativeSourceRevisionTests(SourceRevisionTests):
         ):
             self.owner.write_text(json.dumps(config))
             with self.subTest(config=config), self.assertRaises((PermissionError, ValueError)):
-                commands.run_local_command(self.owner, request)
+                commands.run_legacy_oracle_command(self.owner, request)
             self.assertEqual(self.package(), self.original)
         self.owner.write_text(json.dumps(self.config))
         for field, value in (
@@ -455,12 +455,12 @@ class NativeSourceRevisionTests(SourceRevisionTests):
             invalid = copy.deepcopy(request)
             invalid['fields'][field] = value
             with self.subTest(field=field), self.assertRaises(PermissionError):
-                commands.run_local_command(self.owner, invalid)
+                commands.run_legacy_oracle_command(self.owner, invalid)
             self.assertEqual(self.package(), self.original)
         schema = self.root / 'ToS/contracts/corpus-record.schema.json'
         schema.write_bytes(schema.read_bytes() + b'\n')
         with self.assertRaises(commands.JournalConflict):
-            commands.run_local_command(self.owner, request)
+            commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(self.package(), self.original)
 
     def test_native_correction_refuses_foreign_schema_or_visibility_without_reinterpreting_it(self):
@@ -477,7 +477,7 @@ class NativeSourceRevisionTests(SourceRevisionTests):
         fixture = HistoricalCreationTests()
         for kind in ('agent', 'place', 'organization', 'work'):
             with self.subTest(kind=kind), fixture.native_creation(kind) as (root, owner, config, initial, rebuild, graph_fixture):
-                created = commands.run_local_command(owner, initial)
+                created = commands.run_legacy_oracle_command(owner, initial)
                 path = root / config['source_path']
                 original = {p.name: p.read_bytes() for p in path.parent.iterdir()}
                 old_graph, _, _ = graph_fixture.historical_knowledge(root, rebuild())
@@ -491,9 +491,9 @@ class NativeSourceRevisionTests(SourceRevisionTests):
                     'field_languages': {'preferred_label': {'language': 'ru', 'script': 'Cyrl'},
                                         'notes': {'language': 'ru', 'script': 'Cyrl'}}},
                     'forms': initial['forms'], 'reason': 'Synthetic native descriptive correction.'}
-                preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                preview = commands.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
                     'operation': 'prepare-revise', **proposal})
-                applied = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                applied = commands.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
                     'operation': 'record.revise', 'command_id': 'synthetic:native-' + kind,
                     'expected_source': preview['source'], 'expected_revision': preview['revision'],
                     'expected_configuration': preview['owner_configuration'],
@@ -515,7 +515,7 @@ class NativeSourceRevisionTests(SourceRevisionTests):
                     if name not in {path.name, path.stem + '.human-forms.json'}:
                         self.assertEqual((path.parent / name).read_bytes(), raw)
                 owner.write_text(json.dumps(config))
-                retry = commands.run_local_command(owner, initial)
+                retry = commands.run_legacy_oracle_command(owner, initial)
                 self.assertTrue(retry['replayed'])
                 self.assertEqual(retry['receipt'], created['receipt'])
 
@@ -544,9 +544,9 @@ class NativeSourceRevisionTests(SourceRevisionTests):
                 'field_languages': {**record.get('field_languages', {}),
                                     'preferred_label': {'language': 'ru', 'script': 'Cyrl'}}},
                 'forms': forms, 'reason': 'Only exercise copied-record identity; not a historical correction.'}
-            preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+            preview = commands.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
                 'operation': 'prepare-revise', **proposal})
-            commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+            commands.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
                 'operation': 'record.revise', 'command_id': 'synthetic:connected-agent-description',
                 'expected_source': preview['source'], 'expected_revision': preview['revision'],
                 'expected_configuration': preview['owner_configuration'],
@@ -567,7 +567,7 @@ class NativeSourceRevisionTests(SourceRevisionTests):
                                            if n.get('semantics', {}).get('claim')}
             self.assertEqual(source_claims(after), source_claims(before))
             self.assertTrue(source_claims(after))
-            archived = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+            archived = commands.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
                 'operation': 'inspect-version', 'source': preview['source']})
             self.assertEqual((root / archived['files']['agent.json']['archive_path']).read_bytes(), original)
 
@@ -603,7 +603,7 @@ class ProfileSourceRevisionTests(SourceRevisionTests):
         registry['registry_version'] += 1
         registry_path.write_text(json.dumps(registry))
         with self.assertRaises(commands.JournalConflict):
-            commands.run_local_command(self.owner, request)
+            commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(self.package(), self.original)
         self.config['profile_type_id'] = 'tos.entity.document'
         self.owner.write_text(json.dumps(self.config))
@@ -616,7 +616,7 @@ class ProfileSourceRevisionTests(SourceRevisionTests):
         schema = self.root / 'ToS/contracts/document-record.schema.json'
         schema.write_bytes(schema.read_bytes() + b'\n')
         with self.assertRaises(commands.JournalConflict):
-            commands.run_local_command(self.owner, request)
+            commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(self.package(), self.original)
 
     def test_legacy_revision_grant_does_not_gain_profile_authority(self):
@@ -635,7 +635,7 @@ class ProfileSourceRevisionTests(SourceRevisionTests):
             invalid = copy.deepcopy(request)
             invalid['fields'][field] = value
             with self.subTest(field=field), self.assertRaises(PermissionError):
-                commands.run_local_command(self.owner, invalid)
+                commands.run_legacy_oracle_command(self.owner, invalid)
             self.assertEqual(self.package(), self.original)
         # An existing unsupported record is refused, not silently rewritten
         # using the nearest schema version or a looser metadata envelope.

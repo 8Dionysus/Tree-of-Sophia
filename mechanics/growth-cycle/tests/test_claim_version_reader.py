@@ -119,7 +119,7 @@ class ClaimVersionReaderTests(unittest.TestCase):
     def test_current_exact_record_preserves_all_fields_but_not_sibling_prose_or_permissions(self):
         before = {path: path.read_bytes() for path in self.root.rglob('*') if path.is_file()}
         with (patch.object(source, '_configuration', side_effect=AssertionError('no owner config')),
-              patch.object(source, 'run_local_command', side_effect=AssertionError('no owner command'))):
+              patch.object(source, 'run_legacy_oracle_command', side_effect=AssertionError('no owner command'))):
             result = self.resolve()
         self.assertEqual(result['status'], 'available')
         self.assertEqual(result['version_status'], 'current')

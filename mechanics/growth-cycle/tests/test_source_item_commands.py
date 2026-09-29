@@ -45,7 +45,7 @@ class NativeItemTests(unittest.TestCase):
             ref = 'ToS/contracts/' + name + '.schema.json'
             self.write(ref, (ROOT / ref).read_bytes())
         self.edition_request = self.origin.request()
-        self.edition_result = commands.run_local_command(self.origin.owner, self.edition_request)
+        self.edition_result = commands.run_legacy_oracle_command(self.origin.owner, self.edition_request)
         self.edition_ref = self.origin.config['edition_source_path']
         self.edition_path = self.root / self.edition_ref
         self.edition = json.loads(self.edition_path.read_bytes())
@@ -108,7 +108,7 @@ class NativeItemTests(unittest.TestCase):
 
     def request(self):
         proposal = self.proposal()
-        result = commands.run_local_command(self.owner, proposal)
+        result = commands.run_legacy_oracle_command(self.owner, proposal)
         return {**proposal, 'operation': item.OPERATION, 'command_id': self.config['claim_id'],
             'fields': result['prepared_fields'], 'expected_source': result['source'],
             'expected_revision': result['revision'], 'expected_configuration': result['owner_configuration'],
@@ -150,7 +150,7 @@ class NativeItemTests(unittest.TestCase):
         request = self.request()
         self.assertEqual(self.edition_path.read_bytes(), original_edition)
         self.assertFalse(deposit.destination(self.config).exists())
-        result = commands.run_local_command(self.owner, request)
+        result = commands.run_legacy_oracle_command(self.owner, request)
         self.assertTrue(result['deposit']['metadata_committed'])
         self.assertEqual(self.input.read_bytes(), self.original_bytes)
         self.assertEqual(deposit.destination(self.config).read_bytes(), self.original_bytes)
@@ -169,7 +169,7 @@ class NativeItemTests(unittest.TestCase):
         self.origin.assert_origin()
         edition_fixture.edition.verify_compound(self.root, self.edition_path.with_name('source-claims.jsonl').relative_to(self.root).as_posix(), self.edition_request['claim'])
         self.assertFalse(item.verify_compound(self.root, item._claim_source_ref(self.config), request['claim'])['grants_admission'])
-        replay = commands.run_local_command(self.owner, request)
+        replay = commands.run_legacy_oracle_command(self.owner, request)
         self.assertTrue(replay['replayed'])
         # A separate payload root leaves this real Item metadata package flat,
         # so its topology Claim must not rely on a directory-layout rejection.
@@ -180,7 +180,7 @@ class NativeItemTests(unittest.TestCase):
             'schema_version': commands.CLAIM_REVISION_CONFIG, 'source_path': item._claim_source_ref(self.config),
             'claim_id': self.config['claim_id'], 'allowed_operations': ['claim.revise'], 'allowed_fields': ['qualifiers'],
             'allowed_evidence_refs': [], 'allowed_form_ids': self.config['allowed_claim_form_ids']}))
-        description = commands.run_local_command(generic_owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+        description = commands.run_legacy_oracle_command(generic_owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
         correction = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
             'fields': {'qualifiers': {'statement': 'A changed synthetic topology statement.'}},
             'forms': request['claim_forms'], 'reason': 'Synthetic attempted generic bypass.'}
@@ -191,7 +191,7 @@ class NativeItemTests(unittest.TestCase):
         package_before = {path.name: path.read_bytes() for path in item_home.iterdir()}
         for attempted in (correction, direct):
             with self.subTest(operation=attempted['operation']), self.assertRaisesRegex(PermissionError, 'compound bibliographic operation'):
-                commands.run_local_command(generic_owner, attempted)
+                commands.run_legacy_oracle_command(generic_owner, attempted)
         self.assertEqual({path.name: path.read_bytes() for path in item_home.iterdir()}, package_before)
         self.assertFalse(item.verify_compound(self.root, item._claim_source_ref(self.config), request['claim'])['grants_admission'])
         stage_before = deposit.read_stage(self.config, item._transaction_id(request))
@@ -200,7 +200,7 @@ class NativeItemTests(unittest.TestCase):
         recovery = {'schema_version': item.REQUEST, 'operation': item.RECOVERY, 'decision': 'rollback',
             'transaction_id': item._transaction_id(request), 'expected_configuration': request['expected_configuration']}
         with self.assertRaisesRegex(ValueError, 'already committed'):
-            commands.run_local_command(self.owner, recovery)
+            commands.run_legacy_oracle_command(self.owner, recovery)
         self.assertEqual(deposit.read_stage(self.config, item._transaction_id(request)), stage_before)
         self.assertEqual(PublicationSnapshot(self.root).token, publication_before)
         self.assertEqual(self.edition_path.read_bytes(), source_before)
@@ -218,7 +218,7 @@ class NativeItemTests(unittest.TestCase):
         before = self.edition_path.read_bytes()
         with patch.object(item, 'INVENTORY_GENERATOR_VERSION', '1'):
             request = self.request()
-            commands.run_local_command(self.owner, request)
+            commands.run_legacy_oracle_command(self.owner, request)
         self.rebuild()
         kept = item.verify_compound(self.root, item._claim_source_ref(self.config), request['claim'])
         self.assertFalse(kept['grants_admission'])
@@ -242,7 +242,7 @@ class NativeItemTests(unittest.TestCase):
         self.owner.write_text(json.dumps(self.config))
         before = self.edition_path.read_bytes()
         request = self.request()
-        result = commands.run_local_command(self.owner, request)
+        result = commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(result['deposit']['state'], 'deposited')
         self.assertFalse(result['deposit']['metadata_committed'])
         self.assertIsNone(result['receipt'])
@@ -250,7 +250,7 @@ class NativeItemTests(unittest.TestCase):
         self.assertEqual(self.edition_path.read_bytes(), before)
         recovery = {'schema_version': item.REQUEST, 'operation': item.RECOVERY, 'decision': 'rollback',
             'transaction_id': item._transaction_id(request), 'expected_configuration': request['expected_configuration']}
-        result = commands.run_local_command(self.owner, recovery)
+        result = commands.run_legacy_oracle_command(self.owner, recovery)
         self.assertEqual(result['deposit']['state'], 'rolled-back-retained')
         self.assertEqual(deposit.destination(self.config).read_bytes(), self.input.read_bytes())
 
@@ -262,7 +262,7 @@ class NativeItemTests(unittest.TestCase):
         self.owner.write_text(json.dumps(self.config))
         request = self.request()
         self.assertEqual(request['inventory']['profile'], 'plain_utf8_file_v1')
-        result = commands.run_local_command(self.owner, request)
+        result = commands.run_legacy_oracle_command(self.owner, request)
         self.assertTrue(result['deposit']['metadata_committed'])
         self.assertEqual(deposit.destination(self.config).read_bytes(), raw)
         self.assertEqual(self.input.read_bytes(), raw)
@@ -288,7 +288,7 @@ class NativeItemTests(unittest.TestCase):
         self.assertNotIn(home, pending['plan']['new_directories'])
         recovery = {'schema_version': item.REQUEST, 'operation': item.RECOVERY, 'decision': 'rollback',
             'transaction_id': item._transaction_id(request), 'expected_configuration': request['expected_configuration']}
-        commands.run_local_command(self.owner, recovery)
+        commands.run_legacy_oracle_command(self.owner, recovery)
         self.assertEqual(self.edition_path.read_bytes(), before)
         self.assertEqual(deposit.destination(self.config).read_bytes(), self.original_bytes)
         self.assertEqual(self.input.read_bytes(), self.original_bytes)
@@ -297,7 +297,7 @@ class NativeItemTests(unittest.TestCase):
         request = self.request()
         with patch.object(item.revisions, '_archive', side_effect=OSError('synthetic pre-metadata interruption')):
             with self.assertRaises(OSError):
-                commands.run_local_command(self.owner, request)
+                commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(deposit.read_stage(self.config, item._transaction_id(request))['state'], 'deposited')
         self.assertFalse((self.root / self.config['item_source_path']).exists())
         self.config.update(allowed_operations=[item.RECOVERY], authority_ref='test-only:exact-recovery-renewal',
@@ -306,7 +306,7 @@ class NativeItemTests(unittest.TestCase):
         current_digest = item.configuration(self.config)[1]
         recovery = {'schema_version': item.REQUEST, 'operation': item.RECOVERY, 'decision': 'resume',
             'transaction_id': item._transaction_id(request), 'expected_configuration': current_digest}
-        result = commands.run_local_command(self.owner, recovery)
+        result = commands.run_legacy_oracle_command(self.owner, recovery)
         self.assertTrue(result['deposit']['metadata_committed'])
         receipt = json.loads((self.root / self.config['item_source_path']).with_name(item.BYTE_RECEIPT_FILE).read_bytes())
         self.assertEqual(receipt['recovery_configuration'], current_digest)
@@ -315,15 +315,15 @@ class NativeItemTests(unittest.TestCase):
     def test_later_item_retains_old_item_and_edition_versions(self):
         first = self.request()
         first_config = copy.deepcopy(self.config)
-        first_result = commands.run_local_command(self.owner, first)
+        first_result = commands.run_legacy_oracle_command(self.owner, first)
         self.rebuild()
         self.select_item('second')
         second = self.request()
-        commands.run_local_command(self.owner, second)
+        commands.run_legacy_oracle_command(self.owner, second)
         self.rebuild()
         self.config = first_config
         self.owner.write_text(json.dumps(self.config))
-        self.assertTrue(commands.run_local_command(self.owner, first)['replayed'])
+        self.assertTrue(commands.run_legacy_oracle_command(self.owner, first)['replayed'])
         self.assertEqual(resolve_metadata_version(self.root, first_result['source'])['status'], 'available')
         self.assertEqual(json.loads(self.edition_path.read_bytes())['exemplar_claim_refs'],
                          [first['claim']['claim_id'], second['claim']['claim_id']])
@@ -336,7 +336,7 @@ class NativeItemTests(unittest.TestCase):
             altered = copy.deepcopy(proposal)
             altered['rights'][field] = value
             with self.subTest(field=field), self.assertRaises(PermissionError):
-                commands.run_local_command(self.owner, altered)
+                commands.run_legacy_oracle_command(self.owner, altered)
         for key in ('expires_at', 'payload_expires_at'):
             config = {**self.config, key: '2000-01-01T00:00:00Z'}
             with self.subTest(key=key), self.assertRaises(PermissionError):
@@ -344,7 +344,7 @@ class NativeItemTests(unittest.TestCase):
         request = self.request()
         altered = {**request, 'payload_root': str(self.payload_root)}
         with self.assertRaises(ValueError):
-            commands.run_local_command(self.owner, altered)
+            commands.run_legacy_oracle_command(self.owner, altered)
         self.assertFalse(deposit.destination(self.config).exists())
 
     def test_retained_metadata_before_pending_resumes_exact_original_plan(self):
@@ -356,7 +356,7 @@ class NativeItemTests(unittest.TestCase):
             return original(root, state, previous)
         with patch.object(item.transactions, '_publish_state', interrupted):
             with self.assertRaises(OSError):
-                commands.run_local_command(self.owner, request)
+                commands.run_legacy_oracle_command(self.owner, request)
         retained = item.transactions.inspect_transaction(self.root, item._transaction_id(request))
         self.assertEqual(retained['status'], 'orphan')
         self.assertFalse((self.root / self.config['item_source_path']).exists())
@@ -364,7 +364,7 @@ class NativeItemTests(unittest.TestCase):
         self.owner.write_text(json.dumps(self.config))
         recovery = {'schema_version': item.REQUEST, 'operation': item.RECOVERY, 'decision': 'resume',
             'transaction_id': item._transaction_id(request), 'expected_configuration': item.configuration(self.config)[1]}
-        result = commands.run_local_command(self.owner, recovery)
+        result = commands.run_legacy_oracle_command(self.owner, recovery)
         after = item.transactions.inspect_transaction(self.root, item._transaction_id(request))
         self.assertEqual(after['manifest_sha256'], retained['manifest_sha256'])
         self.assertEqual(after['status'], 'committed')

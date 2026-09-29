@@ -54,13 +54,13 @@ class AssessmentReadBatchTests(unittest.TestCase):
     def append(self, fx, index, *, name=None):
         form = fx.forms[index]
         fx.assessor.subject = Record.from_payload(form['form_id'], form['form_version'], form)
-        described = journal.run_local_command(fx.owner, fx.requests[index])
+        described = journal.run_legacy_oracle_command(fx.owner, fx.requests[index])
         request = {**fx.requests[index], 'operation': 'append', 'expected_subject': fx.assessor.subject.ref,
             'expected_snapshot': described['owner_snapshot'], 'expected_revision': described['result']['revision'],
             'command_id': name or f'synthetic-batch-review-{index}',
             'assessments': [fx.assessor.review(profile='interpretation',
                            name=name or f'tos.review.batch-fixture-{index}').assessment]}
-        return journal.run_local_command(fx.owner, request)
+        return journal.run_legacy_oracle_command(fx.owner, request)
 
     @staticmethod
     def materializations(descriptions):
@@ -74,9 +74,9 @@ class AssessmentReadBatchTests(unittest.TestCase):
         for count in (1, 6):
             with self.subTest(count=count):
                 fx = self.fixture(count, source_copy=count == 6)
-                expected = [journal.run_local_command(fx.owner, request) for request in fx.requests]
+                expected = [journal.run_legacy_oracle_command(fx.owner, request) for request in fx.requests]
                 requests = self.materializations(expected)
-                packets = [journal.run_local_command(fx.owner, request) for request in requests]
+                packets = [journal.run_legacy_oracle_command(fx.owner, request) for request in requests]
                 with patch.object(journal, '_source_records', wraps=journal._source_records) as source_reads, \
                      patch.object(journal.AssessmentJournal, '_locked', side_effect=AssertionError('read must not lock')), \
                      patch.object(journal.AssessmentJournal, '_write_blob', side_effect=AssertionError('read must not write')):
@@ -298,8 +298,8 @@ class AssessmentReadBatchTests(unittest.TestCase):
                     withdrawn = fx.assessor.review(profile='interpretation', decision='withdraw',
                                                    name='tos.review.batch-withdrawn').assessment
                     withdrawn['supersedes'] = [Record.from_payload(old['assessment_id'], 1, old).ref]
-                    described = journal.run_local_command(fx.owner, fx.requests[0])
-                    journal.run_local_command(fx.owner, {**fx.requests[0], 'operation': 'append',
+                    described = journal.run_legacy_oracle_command(fx.owner, fx.requests[0])
+                    journal.run_legacy_oracle_command(fx.owner, {**fx.requests[0], 'operation': 'append',
                         'expected_subject': fx.assessor.subject.ref, 'expected_snapshot': described['owner_snapshot'],
                         'expected_revision': revision, 'command_id': 'synthetic-batch-withdrawal',
                         'assessments': [withdrawn]})

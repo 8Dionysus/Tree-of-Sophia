@@ -131,7 +131,7 @@ class PublicNativeCommandTests(unittest.TestCase):
         self.owner.chmod(0o600)
 
     def invoke(self, operation, **fields):
-        return source.run_local_command(self.owner, {'schema_version': public.contract.REQUEST, 'operation': operation, **fields})
+        return source.run_legacy_oracle_command(self.owner, {'schema_version': public.contract.REQUEST, 'operation': operation, **fields})
 
     def prepare(self):
         prepared = self.invoke('prepare-create')
@@ -142,7 +142,7 @@ class PublicNativeCommandTests(unittest.TestCase):
 
     def create(self):
         self.prepare()
-        return source.run_local_command(self.owner, self.request)
+        return source.run_legacy_oracle_command(self.owner, self.request)
 
     def files(self):
         return {path.name: path.read_bytes() for path in self.path.parent.iterdir()}
@@ -165,7 +165,7 @@ class PublicNativeCommandTests(unittest.TestCase):
         self.assertEqual(event['method']['model_invocations'], [])
         self.assertEqual(event['rights_and_visibility']['content_visibility'], 'public_content')
         self.assertFalse(event['review_and_authority']['promotion_authorized'])
-        replay = source.run_local_command(self.owner, self.request)
+        replay = source.run_legacy_oracle_command(self.owner, self.request)
         self.assertEqual(replay['status'], 'replayed')
         self.assertEqual(replay['receipt_digest'], result['receipt_digest'])
         self.assertEqual(self.files(), files)
@@ -196,11 +196,11 @@ class PublicNativeCommandTests(unittest.TestCase):
         before = self.files()
         ref = self.fixture.native_home + '/later-provenance.jsonl'
         self.fixture.write_bytes(ref, encoded({'schema_version': 'tos_provenance_event_v1', 'event_id': 'tos.event.later-unrelated'}))
-        self.assertEqual(source.run_local_command(self.owner, self.request)['status'], 'replayed')
+        self.assertEqual(source.run_legacy_oracle_command(self.owner, self.request)['status'], 'replayed')
         self.assertEqual(self.files(), before)
         self.fixture.write_bytes(ref, encoded({'schema_version': 'tos_provenance_event_v1', 'event_id': self.ids['provenance_event_id']}))
         with self.assertRaises(source.JournalConflict):
-            source.run_local_command(self.owner, self.request)
+            source.run_legacy_oracle_command(self.owner, self.request)
 
     def test_rights_and_authority_fail_before_source_text_io(self):
         original_read = source._read
@@ -247,7 +247,7 @@ class PublicNativeCommandTests(unittest.TestCase):
         original = source_path.read_bytes()
         source_path.write_bytes(original + b'!')
         with self.assertRaises((ValueError, PermissionError)):
-            source.run_local_command(self.owner, self.request)
+            source.run_legacy_oracle_command(self.owner, self.request)
         source_path.write_bytes(original)
         self.fixture.write_bytes('LICENSE', b'Changed synthetic license evidence.')
         with self.assertRaises((ValueError, PermissionError)):
@@ -279,26 +279,26 @@ class PublicNativeCommandTests(unittest.TestCase):
                     raise OSError('synthetic interruption before third staged file')
             return original(path, raw)
         with patch.object(layers, '_write_new', side_effect=interrupted), self.assertRaises(OSError):
-            source.run_local_command(self.owner, self.request)
+            source.run_legacy_oracle_command(self.owner, self.request)
         state = self.invoke('inspect-recovery', command_id=self.request['command_id'])
         self.assertEqual(state['status'], 'retained_plan')
-        result = source.run_local_command(self.owner, self.request)
+        result = source.run_legacy_oracle_command(self.owner, self.request)
         self.assertEqual(result['status'], 'created')
         before = self.files()
         with self.assertRaises(source.JournalConflict):
-            source.run_local_command(self.owner, {**self.request, 'command_id': 'another-command'})
+            source.run_legacy_oracle_command(self.owner, {**self.request, 'command_id': 'another-command'})
         self.assertEqual(self.files(), before)
 
     def test_torn_or_foreign_staged_evidence_is_preserved_for_owner_review(self):
         self.prepare()
         with (patch.object(source, '_publish_new_directory', side_effect=OSError('synthetic before atomic publication')),
                 self.assertRaises(OSError)):
-            source.run_local_command(self.owner, self.request)
+            source.run_legacy_oracle_command(self.owner, self.request)
         control = public._Store(self.config).control(self.path.parent, self.request)
         content = control / 'output' / 'content.txt'
         content.write_bytes(b'torn')
         with self.assertRaises((source.JournalCorruption, source.JournalConflict)):
-            source.run_local_command(self.owner, self.request)
+            source.run_legacy_oracle_command(self.owner, self.request)
         self.assertEqual(content.read_bytes(), b'torn')
         self.assertFalse(self.path.parent.exists())
 
@@ -315,7 +315,7 @@ class PublicNativeCommandTests(unittest.TestCase):
                 self.fixture.write_json(self.output_rights_ref, self.output_rights)
             return result
         with patch.object(public._Store, 'plan', new=mutate), self.assertRaises((ValueError, PermissionError)):
-            source.run_local_command(self.owner, self.request)
+            source.run_legacy_oracle_command(self.owner, self.request)
         self.assertFalse(self.path.parent.exists())
         self.assertEqual((self.root / self.input_ref).read_bytes(), self.original.encode())
 

@@ -65,7 +65,7 @@ class SourceClaimCatalogTests(unittest.TestCase):
             'operation': 'prepare-create',
             'claims': [self.claim],
         }
-        preview = commands.run_local_command(self.owner, request)
+        preview = commands.run_legacy_oracle_command(self.owner, request)
         request.update(
             operation='claims.create',
             command_id='synthetic-expiry-catalog',
@@ -75,7 +75,7 @@ class SourceClaimCatalogTests(unittest.TestCase):
             expected_revision=None,
         )
         self.creation_request = copy.deepcopy(request)
-        created = commands.run_local_command(self.owner, request)
+        created = commands.run_legacy_oracle_command(self.owner, request)
         receipt = (self.root / self.relative).with_name('source-create-receipt.json')
         self.expected = {
             'expected_receipt_sha256': hashlib.sha256(receipt.read_bytes()).hexdigest(),
@@ -111,7 +111,7 @@ class SourceClaimCatalogTests(unittest.TestCase):
         with patch.object(claims, 'datetime') as command_clock:
             command_clock.now.return_value = future
             with self.assertRaisesRegex(PermissionError, 'invalid or expired'):
-                commands.run_local_command(self.owner, self.creation_request)
+                commands.run_legacy_oracle_command(self.owner, self.creation_request)
 
         self.assertEqual(self.owner.read_bytes(), owner_bytes)
         self.assertEqual(receipt_path.read_bytes(), receipt_bytes)

@@ -56,7 +56,7 @@ class SelectedSourceRevisionTests(unittest.TestCase):
         return request
 
     def run_request(self, request):
-        return source.run_local_command(self.fixture.owner, request)
+        return source.run_legacy_oracle_command(self.fixture.owner, request)
 
     def recover(self, request, decision):
         config, digest, _ = source._configuration(self.fixture.owner)
@@ -283,7 +283,7 @@ class SelectedSourceRevisionTests(unittest.TestCase):
         from test_source_commands import HistoricalCreationTests
         fixture = HistoricalCreationTests()
         with fixture.native_creation('work') as (root, owner, config, initial, _rebuild, _graph):
-            created = source.run_local_command(owner, initial)
+            created = source.run_legacy_oracle_command(owner, initial)
             path = root / config['source_path']
             # Original creation remains immutable outside the exact metadata unit.
             original_receipt = (path.parent / 'source-create-receipt.json').read_bytes()
@@ -298,9 +298,9 @@ class SelectedSourceRevisionTests(unittest.TestCase):
                 'field_languages': {**initial['record'].get('field_languages', {}),
                                     'notes': {'language': 'en', 'script': 'Latn'}}},
                 'forms': initial['forms'], 'reason': 'Test retained creation versus selected correction.'}
-            prepared = source.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+            prepared = source.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
                 'operation': 'prepare-revise', **proposal})
-            corrected = source.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+            corrected = source.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
                 'operation': 'record.revise', 'command_id': 'test:created-selected-work', **proposal,
                 'expected_source': prepared['source'], 'expected_revision': prepared['revision'],
                 'expected_configuration': prepared['owner_configuration'],
@@ -308,7 +308,7 @@ class SelectedSourceRevisionTests(unittest.TestCase):
                 'expected_publication': prepared['expected_publication']})
             self.assertEqual(corrected['source']['version'], 2)
             owner.write_bytes(revisions._encode(config))
-            retried = source.run_local_command(owner, initial)
+            retried = source.run_legacy_oracle_command(owner, initial)
             self.assertTrue(retried['replayed'])
             self.assertEqual(retried['receipt'], created['receipt'])
             self.assertEqual((path.parent / 'source-create-receipt.json').read_bytes(), original_receipt)
@@ -319,14 +319,14 @@ class SelectedSourceRevisionTests(unittest.TestCase):
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
         initial = fixture.request()
-        first = source.run_local_command(fixture.owner, initial)
+        first = source.run_legacy_oracle_command(fixture.owner, initial)
         fixture.config.update(schema_version=source.CORPUS_SELECTED_REVISION_CONFIG,
                               allowed_operations=['record.revise', 'record.recover'])
         fixture.owner.write_bytes(revisions._encode(fixture.config))
         (fixture.path.parent / 'new-descendant').mkdir()
         second = fixture.request('test:explicit-scope-migration')
         second['expected_publication'] = None
-        source.run_local_command(fixture.owner, second)
+        source.run_legacy_oracle_command(fixture.owner, second)
         history = json.loads((fixture.path.parent / revisions.HISTORY).read_bytes())
         self.assertEqual(history['schema_version'], 'tos_source_revision_history_v2')
         self.assertNotIn('publication', history['receipts'][0])
