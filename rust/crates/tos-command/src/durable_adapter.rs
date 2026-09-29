@@ -5,6 +5,11 @@ use std::fmt;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
+#[path = "cold_membership_spool.rs"]
+mod cold_membership_spool;
+pub use cold_membership_spool::{ColdWorkspaceLimits, PrivateGenerationWorkspace};
+use cold_membership_spool::{RunCollector, ScratchReader, ScratchRows};
+
 use postgres::fallible_iterator::FallibleIterator;
 use postgres::{Client, IsolationLevel, NoTls, Transaction};
 use tos_foundation::{Digest256, Digest256Hasher};
@@ -36,6 +41,69 @@ const CURRENT_KEY_CODEC: &[u8] =
     b"cmd2-current-key-v1:tag,u32be-domain-len,domain,u32be-subject-len,subject";
 const MAX_COLD_AUDIT_ELAPSED: Duration = Duration::from_secs(300);
 
+/// An explicit offline profile for the opt-in scratch-backed complete cut.
+/// Limits are resource ceilings, never proof that a larger corpus fits them.
+#[derive(Clone, Copy, Debug)]
+pub struct StreamedGenerationProfile {
+    pub max_commit_seq: u64,
+    pub max_members: u64,
+    pub max_pins: usize,
+    pub max_segment_bytes: u64,
+    pub max_membership_key_bytes: u64,
+    pub max_metadata_rows: usize,
+    pub max_metadata_bytes: usize,
+    pub max_elapsed: Duration,
+    pub max_pg_temp_bytes: u64,
+    pub max_sql_statement_ms: u64,
+    pub generation: GenerationReadLimits,
+    pub rows_per_leaf: usize,
+}
+
+impl StreamedGenerationProfile {
+    pub(crate) fn validate(self, workspace: &PrivateGenerationWorkspace) -> DurableResult<Self> {
+        if self.max_commit_seq == 0
+            || self.max_commit_seq > i64::MAX as u64
+            || self.max_members == 0
+            || self.max_members > workspace.limits().max_rows
+            || self.max_pins == 0
+            || self.max_segment_bytes == 0
+            || self.max_segment_bytes == u64::MAX
+            || self.max_membership_key_bytes == 0
+            || self.max_membership_key_bytes == u64::MAX
+            || self.max_metadata_rows == 0
+            || self.max_metadata_bytes == 0
+            || self.max_elapsed.is_zero()
+            || self.max_pg_temp_bytes < 1024
+            || self.max_pg_temp_bytes > i64::MAX as u64
+            || self.max_sql_statement_ms == 0
+            || self.max_sql_statement_ms > i32::MAX as u64
+            || self.rows_per_leaf == 0
+            || self.rows_per_leaf as u64 > self.generation.shape.max_rows_per_partition
+            || self.generation.max_descriptor_bytes < 256
+            || self.generation.max_descriptor_bytes == usize::MAX
+            || self.generation.max_stream_rows == 0
+            || self.generation.max_stream_rows == u64::MAX
+            || self.generation.max_stream_key_bytes == 0
+            || self.generation.max_stream_key_bytes == u64::MAX
+            || self.generation.shape.max_partitions == 0
+            || self.generation.shape.max_partitions > u32::MAX as usize
+            || self.generation.shape.max_rows_per_partition == u64::MAX
+            || self.generation.shape.max_key_bytes == 0
+            || self.generation.shape.max_key_bytes > u32::MAX as usize
+            || self.generation.shape.max_leaf_bytes == 0
+            || self.generation.shape.max_leaf_bytes == u64::MAX
+            || self.generation.shape.max_key_bytes > workspace.limits().max_key_bytes
+            || self.max_members > self.generation.max_stream_rows
+            || self.max_membership_key_bytes > self.generation.max_stream_key_bytes
+            || (self.rows_per_leaf as u128) * (self.generation.shape.max_key_bytes as u128 + 400)
+                > self.generation.shape.max_leaf_bytes as u128
+        {
+            return Err(DurableError::Refused("invalid streamed generation profile"));
+        }
+        Ok(self)
+    }
+}
+
 #[path = "source_cohort.rs"]
 pub mod source_cohort;
 
@@ -51,6 +119,25 @@ fn check_cold_deadline(
         Err(DurableError::Refused("cold audit deadline exceeded"))
     } else {
         Ok(())
+    }
+}
+
+fn check_cold_profile_deadline(
+    started: Instant,
+    requested: Option<(Instant, &AtomicBool)>,
+    profile: Option<StreamedGenerationProfile>,
+) -> DurableResult<()> {
+    if let Some(profile) = profile {
+        if started.elapsed() > profile.max_elapsed
+            || requested.is_some_and(|(deadline, cancelled)| {
+                cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline
+            })
+        {
+            return Err(DurableError::Refused("cold audit deadline exceeded"));
+        }
+        Ok(())
+    } else {
+        check_cold_deadline(started, requested)
     }
 }
 
@@ -108,6 +195,115 @@ fn logical_membership_root(tag: &[u8], rows: &[PlacementGenerationRowV1]) -> Dig
         part(&mut hasher, &row.logical_length.to_be_bytes());
     }
     hasher.finalize()
+}
+
+fn membership_root_start(tag: &[u8], count: u64) -> Digest256Hasher {
+    let mut hasher = Digest256Hasher::new();
+    part(&mut hasher, b"cmd2-logical-membership-root-v1");
+    part(&mut hasher, tag);
+    part(&mut hasher, &count.to_be_bytes());
+    hasher
+}
+
+fn membership_root_row(hasher: &mut Digest256Hasher, row: &PlacementGenerationRowV1) {
+    part(hasher, &row.key);
+    part(hasher, row.logical_digest.as_bytes());
+    part(hasher, &row.logical_length.to_be_bytes());
+}
+
+fn current_key_from_history(key: &[u8], domain: &str) -> DurableResult<Vec<u8>> {
+    let prefix = HISTORY_KEY_TAG.len();
+    if !key.starts_with(HISTORY_KEY_TAG) || key.len() < prefix + 4 + domain.len() + 4 + 1 + 8 {
+        return Err(DurableError::Corrupt("history membership key malformed"));
+    }
+    let domain_len =
+        u32::from_be_bytes(key[prefix..prefix + 4].try_into().expect("fixed")) as usize;
+    let subject_len_at = prefix + 4 + domain_len;
+    if domain_len != domain.len()
+        || key.get(prefix + 4..subject_len_at) != Some(domain.as_bytes())
+        || key.len() < subject_len_at + 4 + 1 + 8
+    {
+        return Err(DurableError::Corrupt("history membership domain differs"));
+    }
+    let subject_len = u32::from_be_bytes(
+        key[subject_len_at..subject_len_at + 4]
+            .try_into()
+            .expect("fixed"),
+    ) as usize;
+    if subject_len == 0
+        || key.len() != subject_len_at + 4 + subject_len + 8
+        || key[key.len() - 8..] == [0; 8]
+    {
+        return Err(DurableError::Corrupt(
+            "history membership subject/revision differs",
+        ));
+    }
+    let mut current = Vec::with_capacity(CURRENT_KEY_TAG.len() + key.len() - prefix - 8);
+    current.extend_from_slice(CURRENT_KEY_TAG);
+    current.extend_from_slice(&key[prefix..key.len() - 8]);
+    Ok(current)
+}
+
+/// Exact sorted spool comparison under the same audited snapshot. In addition
+/// to both EOF roots, every subject's final historical placement must be the
+/// one emitted by current; the SQL audit separately checks all metadata fields.
+fn streamed_membership_roots(
+    domain: &str,
+    history: &ScratchRows,
+    workspace: &PrivateGenerationWorkspace,
+    expected_current_count: u64,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<(ScratchRows, Digest256, Digest256)> {
+    let mut history_reader = history.reader();
+    let mut history_root = membership_root_start(HISTORY_KEY_TAG, history.count());
+    let mut current_root = membership_root_start(CURRENT_KEY_TAG, expected_current_count);
+    let mut current_rows = workspace.ordered_rows()?;
+    let mut previous_key = Vec::new();
+    let mut pending: Option<PlacementGenerationRowV1> = None;
+    let mut subjects = 0u64;
+    while let Some(row) = history_reader.next()? {
+        if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
+            return Err(DurableError::Refused("cold workspace deadline exceeded"));
+        }
+        if !previous_key.is_empty() && row.key <= previous_key {
+            return Err(DurableError::Corrupt("history workspace order differs"));
+        }
+        previous_key.clone_from(&row.key);
+        membership_root_row(&mut history_root, &row);
+        let expected_current_key = current_key_from_history(&row.key, domain)?;
+        if pending
+            .as_ref()
+            .is_some_and(|previous| previous.key != expected_current_key)
+        {
+            let expected = pending.take().expect("checked pending");
+            membership_root_row(&mut current_root, &expected);
+            current_rows.push(expected)?;
+            subjects += 1;
+        }
+        pending = Some(PlacementGenerationRowV1 {
+            key: expected_current_key,
+            logical_digest: row.logical_digest,
+            logical_length: row.logical_length,
+            placement: row.placement,
+        });
+    }
+    history_reader.finish()?;
+    if let Some(expected) = pending {
+        membership_root_row(&mut current_root, &expected);
+        current_rows.push(expected)?;
+        subjects += 1;
+    }
+    if subjects != expected_current_count {
+        return Err(DurableError::Corrupt(
+            "current membership subject count differs",
+        ));
+    }
+    let current = current_rows.finish()?;
+    if current.count() != subjects {
+        return Err(DurableError::Corrupt("current workspace count differs"));
+    }
+    Ok((current, history_root.finalize(), current_root.finalize()))
 }
 
 #[cfg(test)]
@@ -280,6 +476,9 @@ pub struct ColdCut {
     current_membership_root: Digest256,
     history_rows: Vec<PlacementGenerationRowV1>,
     current_rows: Vec<PlacementGenerationRowV1>,
+    history_spool: Option<ScratchRows>,
+    current_spool: Option<ScratchRows>,
+    streamed_profile: Option<StreamedGenerationProfile>,
 }
 
 // Two real proofs share installation facts, never proof construction.
@@ -326,6 +525,9 @@ impl SelectedSourceGeneration {
                 descriptor_cut: value.installed.descriptor().cut.clone(),
                 history_rows: &value.cut.history_rows,
                 current_rows: &value.cut.current_rows,
+                history_spool: value.cut.history_spool.as_ref(),
+                current_spool: value.cut.current_spool.as_ref(),
+                profile: value.cut.streamed_profile,
             },
             Self::Warm(value) => value.cut.installation(),
         }
@@ -338,6 +540,88 @@ struct MembershipInstallation<'a> {
     descriptor_cut: GenerationCutV1,
     history_rows: &'a [PlacementGenerationRowV1],
     current_rows: &'a [PlacementGenerationRowV1],
+    history_spool: Option<&'a ScratchRows>,
+    current_spool: Option<&'a ScratchRows>,
+    profile: Option<StreamedGenerationProfile>,
+}
+enum MembershipCursor<'a> {
+    Memory(std::slice::Iter<'a, PlacementGenerationRowV1>),
+    Scratch(ScratchReader),
+}
+impl MembershipCursor<'_> {
+    fn next_row(&mut self) -> DurableResult<Option<PlacementGenerationRowV1>> {
+        match self {
+            Self::Memory(rows) => Ok(rows.next().cloned()),
+            Self::Scratch(rows) => rows.next(),
+        }
+    }
+    fn finish(&mut self) -> DurableResult<()> {
+        match self {
+            Self::Memory(rows) if rows.len() != 0 => {
+                Err(DurableError::Corrupt("membership iterator lacks EOF"))
+            }
+            Self::Memory(_) => Ok(()),
+            Self::Scratch(rows) => rows.finish(),
+        }
+    }
+}
+impl<'a> MembershipInstallation<'a> {
+    fn cursor(&self, namespace: GenerationNamespaceV1) -> DurableResult<MembershipCursor<'a>> {
+        let (memory, scratch) = match namespace {
+            GenerationNamespaceV1::History => (self.history_rows, self.history_spool),
+            GenerationNamespaceV1::Current => (self.current_rows, self.current_spool),
+        };
+        match (scratch, self.profile) {
+            (Some(rows), Some(_)) if memory.is_empty() => {
+                Ok(MembershipCursor::Scratch(rows.reader()))
+            }
+            (None, None) => Ok(MembershipCursor::Memory(memory.iter())),
+            _ => Err(DurableError::Corrupt("mixed membership carrier")),
+        }
+    }
+    fn count(&self, namespace: GenerationNamespaceV1) -> u64 {
+        match namespace {
+            GenerationNamespaceV1::History => self
+                .history_spool
+                .map_or(self.history_rows.len() as u64, ScratchRows::count),
+            GenerationNamespaceV1::Current => self
+                .current_spool
+                .map_or(self.current_rows.len() as u64, ScratchRows::count),
+        }
+    }
+}
+
+fn root_from_cursor(
+    tag: &[u8],
+    count: u64,
+    mut cursor: MembershipCursor<'_>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<Digest256> {
+    let mut root = membership_root_start(tag, count);
+    let mut previous = Vec::new();
+    let mut observed = 0u64;
+    while let Some(row) = cursor.next_row()? {
+        if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
+            return Err(DurableError::Refused(
+                "membership verification deadline exceeded",
+            ));
+        }
+        if !previous.is_empty() && row.key <= previous {
+            return Err(DurableError::Corrupt("membership row order differs"));
+        }
+        previous = row.key.clone();
+        membership_root_row(&mut root, &row);
+        observed += 1;
+        if observed > count {
+            return Err(DurableError::Corrupt("membership row count exceeded"));
+        }
+    }
+    cursor.finish()?;
+    if observed != count {
+        return Err(DurableError::Corrupt("membership EOF count differs"));
+    }
+    Ok(root.finalize())
 }
 impl ColdCut {
     fn installation(&self, store: &SegmentStore) -> MembershipInstallation<'_> {
@@ -360,6 +644,9 @@ impl ColdCut {
             },
             history_rows: &self.history_rows,
             current_rows: &self.current_rows,
+            history_spool: self.history_spool.as_ref(),
+            current_spool: self.current_spool.as_ref(),
+            profile: self.streamed_profile,
         }
     }
 }
@@ -371,6 +658,9 @@ impl WarmSuccessorCut {
             descriptor_cut: self.descriptor_cut.clone(),
             history_rows: &self.history_rows,
             current_rows: &self.current_rows,
+            history_spool: None,
+            current_spool: None,
+            profile: None,
         }
     }
 }
@@ -413,7 +703,11 @@ impl VerifiedSelectedGeneration {
     /// caller must consume through EOF and inspect coverage; this is neither
     /// a current-rights lease nor a source validation attestation.
     pub fn stream(&self, namespace: GenerationNamespaceV1) -> DurableResult<GenerationRowStreamV1> {
-        Ok(self.installed.stream(namespace, generation_limits())?)
+        let limits = self
+            .cut
+            .streamed_profile
+            .map_or_else(generation_limits, |p| p.generation);
+        Ok(self.installed.stream(namespace, limits)?)
     }
 }
 
@@ -649,11 +943,12 @@ fn admit_private_metadata(
     domain: &str,
     started: Instant,
     requested: Option<(Instant, &AtomicBool)>,
+    profile: Option<StreamedGenerationProfile>,
 ) -> DurableResult<()> {
     let mut admitted_rows = 0u64;
     let mut admitted_bytes = 0u64;
     for (table, _) in METADATA_TABLES {
-        check_cold_deadline(started, requested)?;
+        check_cold_profile_deadline(started, requested, profile)?;
         let query = format!(
             "SELECT count(*),coalesce(max(octet_length(row_to_json(t)::text)),0),
                         coalesce(sum(octet_length(row_to_json(t)::text)),0)
@@ -666,9 +961,9 @@ fn admit_private_metadata(
         admitted_bytes = admitted_bytes
             .checked_add(as_u64(row.get::<_, i64>(2))?)
             .ok_or(DurableError::Refused("cold metadata byte count overflow"))?;
-        if admitted_rows > 100_000
+        if admitted_rows > profile.map_or(100_000, |p| p.max_metadata_rows) as u64
             || row.get::<_, i32>(1) > 1_048_576
-            || admitted_bytes > 64 * 1024 * 1024
+            || admitted_bytes > profile.map_or(64 * 1024 * 1024, |p| p.max_metadata_bytes) as u64
         {
             return Err(DurableError::Refused(
                 "cold metadata preadmission budget exceeded",
@@ -683,22 +978,23 @@ fn append_private_metadata(
     state_hasher: &mut Digest256Hasher,
     started: Instant,
     requested: Option<(Instant, &AtomicBool)>,
+    profile: Option<StreamedGenerationProfile>,
 ) -> DurableResult<()> {
     let mut audited_rows = 0usize;
     let mut audited_metadata_bytes = 0usize;
     for (table, order) in METADATA_TABLES {
-        check_cold_deadline(started, requested)?;
+        check_cold_profile_deadline(started, requested, profile)?;
         part(state_hasher, table.as_bytes());
         let query =
             format!("SELECT row_to_json(t)::text FROM {table} t WHERE domain=$1 ORDER BY {order}");
         let mut rows = tx.query_raw(&query, &[&domain])?;
         let mut table_rows = 0u64;
         while let Some(row) = rows.next()? {
-            check_cold_deadline(started, requested)?;
+            check_cold_profile_deadline(started, requested, profile)?;
             audited_rows = audited_rows
                 .checked_add(1)
                 .ok_or(DurableError::Refused("cold metadata row count overflow"))?;
-            if audited_rows > 100_000 {
+            if audited_rows > profile.map_or(100_000, |p| p.max_metadata_rows) {
                 return Err(DurableError::Refused("cold metadata row budget exceeded"));
             }
             table_rows += 1;
@@ -711,7 +1007,7 @@ fn append_private_metadata(
             audited_metadata_bytes = audited_metadata_bytes
                 .checked_add(encoded.len())
                 .ok_or(DurableError::Refused("cold metadata byte count overflow"))?;
-            if audited_metadata_bytes > 64 * 1024 * 1024 {
+            if audited_metadata_bytes > profile.map_or(64 * 1024 * 1024, |p| p.max_metadata_bytes) {
                 return Err(DurableError::Refused("cold metadata byte budget exceeded"));
             }
             part(state_hasher, encoded.as_bytes());
@@ -1754,19 +2050,73 @@ impl DurablePgCoordinator {
         domain: &str,
         requested: Option<(Instant, &AtomicBool)>,
     ) -> DurableResult<ColdCut> {
+        self.cold_verify_cut_inner(store, domain, requested, None)
+    }
+
+    /// Explicit disk-backed complete-cut profile. The caller owns workspace
+    /// admission and supplies its resource ceilings before any scratch write.
+    /// The former finite in-memory API stays unchanged for compatibility.
+    pub fn cold_verify_cut_streamed(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        workspace: &PrivateGenerationWorkspace,
+        profile: StreamedGenerationProfile,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<ColdCut> {
+        let profile = profile.validate(workspace)?;
+        self.cold_verify_cut_inner(
+            store,
+            domain,
+            Some((deadline, cancelled)),
+            Some((workspace, profile)),
+        )
+    }
+
+    fn cold_verify_cut_inner(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        requested: Option<(Instant, &AtomicBool)>,
+        streamed: Option<(&PrivateGenerationWorkspace, StreamedGenerationProfile)>,
+    ) -> DurableResult<ColdCut> {
+        let profile = streamed.map(|(_, profile)| profile);
         if store.custody_domain() != domain.as_bytes() {
             return Err(DurableError::Conflict("STO custody domain differs"));
         }
         let audited_root = store.hold_audit_root()?;
         let started = Instant::now();
-        check_cold_deadline(started, requested)?;
+        check_cold_profile_deadline(started, requested, profile)?;
         let mut tx = self
             .client
             .build_transaction()
             .isolation_level(IsolationLevel::RepeatableRead)
             .read_only(true)
             .start()?;
+        // PostgreSQL remains a bounded participant: its per-statement work
+        // memory and temp files are distinct from the explicit Rust workspace.
         tx.batch_execute("SET LOCAL statement_timeout = '60s'; SET LOCAL work_mem = '4MB'")?;
+        if let Some(profile) = profile {
+            if tx
+                .query_one("SHOW server_encoding", &[])?
+                .get::<_, String>(0)
+                != "UTF8"
+            {
+                return Err(DurableError::Refused(
+                    "streamed membership requires PostgreSQL UTF8",
+                ));
+            }
+            let temp_kb = profile.max_pg_temp_bytes / 1024;
+            tx.query_one(
+                "SELECT set_config('temp_file_limit',$1,true)",
+                &[&format!("{temp_kb}kB")],
+            )?;
+            tx.query_one(
+                "SELECT set_config('statement_timeout',$1,true)",
+                &[&format!("{}ms", profile.max_sql_statement_ms)],
+            )?;
+        }
         let domain_row = tx.query_one(
             "SELECT d.head_seq,d.schema_profile_digest,f.generation,f.maintenance_state
                  FROM cmd2_domain d JOIN cmd2_audit_fence f USING(domain)
@@ -1783,10 +2133,10 @@ impl DurablePgCoordinator {
         let head = as_u64(domain_row.get::<_, i64>(0))?;
         let audit_generation = as_u64(domain_row.get::<_, i64>(2))?;
         let database_oid = database_oid(&mut tx)?;
-        if head > MAX_CUT {
+        if head > profile.map_or(MAX_CUT, |p| p.max_commit_seq) {
             return Err(DurableError::Refused("cold cut exceeds laboratory budget"));
         }
-        admit_private_metadata(&mut tx, domain, started, requested)?;
+        admit_private_metadata(&mut tx, domain, started, requested, profile)?;
         let mut recovered_pins = 0usize;
         let mut segment_bytes = 0u64;
         let mut historical_members = 0u64;
@@ -1795,6 +2145,7 @@ impl DurablePgCoordinator {
         let mut latest_subject_bytes = 0usize;
         let mut membership_key_bytes = 0usize;
         let mut history_rows = Vec::new();
+        let mut history_run = streamed.map(|(workspace, _)| workspace.collector());
         let mut log_hasher = Digest256Hasher::new();
         part(&mut log_hasher, b"cmd2-cold-cut-v1");
         let mut state_hasher = Digest256Hasher::new();
@@ -1806,7 +2157,7 @@ impl DurablePgCoordinator {
         let mut command_events = 0u64;
         let mut next_log_seq = 1u64;
         loop {
-            check_cold_deadline(started, requested)?;
+            check_cold_profile_deadline(started, requested, profile)?;
             // Keyset pagination keeps the ordered log bounded in process
             // memory while the same REPEATABLE READ snapshot holds throughout
             // all linked history/receipt/outbox checks.
@@ -1820,7 +2171,7 @@ impl DurablePgCoordinator {
                 break;
             }
             for log in &log_rows {
-                check_cold_deadline(started, requested)?;
+                check_cold_profile_deadline(started, requested, profile)?;
                 let seq: i64 = log.get(0);
                 if seq != as_i64(next_log_seq)? {
                     return Err(DurableError::Corrupt("cold cut sequence gap"));
@@ -1893,7 +2244,7 @@ impl DurablePgCoordinator {
                 {
                     return Err(DurableError::Corrupt("cold cut member count differs"));
                 }
-                if recovered_pins >= 10_000 {
+                if recovered_pins >= profile.map_or(10_000, |p| p.max_pins) {
                     return Err(DurableError::Refused("cold pin budget exceeded"));
                 }
                 let attempt_fence = as_u64(attempt.get::<_, i64>("attempt_fence"))?;
@@ -1915,14 +2266,14 @@ impl DurablePgCoordinator {
                 segment_bytes = segment_bytes
                     .checked_add(first.segment_size())
                     .ok_or(DurableError::Refused("cold byte budget overflow"))?;
-                if segment_bytes > 256 * 1024 * 1024 {
+                if segment_bytes > profile.map_or(256 * 1024 * 1024, |p| p.max_segment_bytes) {
                     return Err(DurableError::Refused("cold byte budget exceeded"));
                 }
                 let mut member_hasher = Digest256Hasher::new();
                 part(&mut member_hasher, b"cmd2-member-root-v1");
                 part(&mut member_hasher, &(members.len() as u64).to_be_bytes());
                 for (member, historical) in members.iter().zip(history.iter()) {
-                    check_cold_deadline(started, requested)?;
+                    check_cold_profile_deadline(started, requested, profile)?;
                     let slot: i32 = member.get("member_slot");
                     if historical.get::<_, i32>("member_slot") != slot
                         || historical.get::<_, Vec<u8>>("prepare_id") != receipt.prepare_id
@@ -1986,36 +2337,46 @@ impl DurablePgCoordinator {
                     membership_key_bytes = membership_key_bytes
                         .checked_add(key.len())
                         .ok_or(DurableError::Refused("membership key byte count overflow"))?;
-                    if membership_key_bytes > MAX_TOTAL_MEMBERSHIP_KEY_BYTES
-                        || history_rows.len() >= MAX_CUT as usize
+                    if membership_key_bytes as u64
+                        > profile.map_or(MAX_TOTAL_MEMBERSHIP_KEY_BYTES as u64, |p| {
+                            p.max_membership_key_bytes
+                        })
+                        || historical_members >= profile.map_or(MAX_CUT, |p| p.max_members)
                     {
                         return Err(DurableError::Refused("history membership budget exceeded"));
                     }
-                    history_rows.push(PlacementGenerationRowV1 {
+                    let generation_row = PlacementGenerationRowV1 {
                         key,
                         logical_digest: coordinate.sha256,
                         logical_length: coordinate.size_bytes,
                         placement: selected.placement(),
-                    });
-                    if latest
-                        .get(&subject)
-                        .is_some_and(|(previous, _, _)| *previous >= revision)
-                    {
-                        return Err(DurableError::Corrupt(
-                            "historical revision is not monotonic",
-                        ));
-                    }
-                    if !latest.contains_key(&subject) {
-                        latest_subject_bytes = latest_subject_bytes
-                            .checked_add(subject.len())
-                            .ok_or(DurableError::Refused("subject byte count overflow"))?;
-                        if latest_subject_bytes > 16 * 1024 * 1024
-                            || latest.len() >= MAX_CUT as usize
+                    };
+                    if let Some(run) = &mut history_run {
+                        run.push(generation_row)?;
+                    } else {
+                        history_rows.push(generation_row);
+                        if latest
+                            .get(&subject)
+                            .is_some_and(|(previous, _, _)| *previous >= revision)
                         {
-                            return Err(DurableError::Refused("current identity budget exceeded"));
+                            return Err(DurableError::Corrupt(
+                                "historical revision is not monotonic",
+                            ));
                         }
+                        if !latest.contains_key(&subject) {
+                            latest_subject_bytes = latest_subject_bytes
+                                .checked_add(subject.len())
+                                .ok_or(DurableError::Refused("subject byte count overflow"))?;
+                            if latest_subject_bytes > 16 * 1024 * 1024
+                                || latest.len() >= MAX_CUT as usize
+                            {
+                                return Err(DurableError::Refused(
+                                    "current identity budget exceeded",
+                                ));
+                            }
+                        }
+                        latest.insert(subject, (revision, commitment, selected.placement()));
                     }
-                    latest.insert(subject, (revision, commitment, selected.placement()));
                     historical_members += 1;
                 }
                 if member_hasher.finalize() != receipt.member_root {
@@ -2037,57 +2398,153 @@ impl DurablePgCoordinator {
                 "history extends beyond committed head",
             ));
         }
-        let mut current = tx.query_raw("SELECT * FROM cmd2_current WHERE domain=$1", &[&domain])?;
-        let mut current_members = 0usize;
+        let mut current_members = 0u64;
         let mut current_rows = Vec::new();
-        while let Some(row) = current.next()? {
-            check_cold_deadline(started, requested)?;
-            current_members = current_members
-                .checked_add(1)
-                .ok_or(DurableError::Refused("current member count overflow"))?;
-            if current_members > MAX_CUT as usize {
-                return Err(DurableError::Refused("current member budget exceeded"));
-            }
-            let subject: String = row.get("subject");
-            let revision = as_u64(row.get("revision"))?;
-            let Some((latest_revision, latest_digest, placement)) = latest.get(&subject) else {
-                return Err(DurableError::Corrupt("current member has no history"));
+        let (history_spool, current_spool, history_membership_root, current_membership_root) =
+            if let Some((workspace, profile)) = streamed {
+                // Without the finite path's latest-subject map, re-read the
+                // complete history through its existing (domain, subject,
+                // revision) primary key. Commit order must advance for every
+                // subject before the largest revision can be called latest.
+                let mut ordered = tx.query_raw(
+                    "SELECT subject,revision,commit_seq FROM cmd2_history
+                     WHERE domain=$1 ORDER BY subject COLLATE \"C\",revision",
+                    &[&domain],
+                )?;
+                let mut previous_subject: Option<String> = None;
+                let mut previous_revision = 0u64;
+                let mut previous_seq = 0u64;
+                let mut ordered_count = 0u64;
+                while let Some(row) = ordered.next()? {
+                    check_cold_profile_deadline(started, requested, Some(profile))?;
+                    let subject: String = row.get(0);
+                    let revision = as_u64(row.get::<_, i64>(1))?;
+                    let seq = as_u64(row.get::<_, i64>(2))?;
+                    if previous_subject.as_deref() == Some(subject.as_str()) {
+                        if revision <= previous_revision || seq <= previous_seq {
+                            return Err(DurableError::Corrupt(
+                                "historical revision is not monotonic",
+                            ));
+                        }
+                    } else {
+                        previous_subject = Some(subject);
+                    }
+                    previous_revision = revision;
+                    previous_seq = seq;
+                    ordered_count += 1;
+                    if ordered_count > historical_members {
+                        return Err(DurableError::Corrupt("ordered history has extra member"));
+                    }
+                }
+                drop(ordered);
+                if ordered_count != historical_members {
+                    return Err(DurableError::Corrupt("ordered history membership differs"));
+                }
+                // The primary-key predecessor seek uses one index lookup per
+                // current subject. Composite JSON equality compares every
+                // current/history column, including source-owner metadata.
+                // The sorted physical stream below independently proves that
+                // every historical subject occurs exactly once in current.
+                if tx
+                    .query_opt(
+                        "SELECT 1 FROM cmd2_current c LEFT JOIN LATERAL
+                       (SELECT * FROM cmd2_history h
+                        WHERE h.domain=c.domain AND h.subject=c.subject
+                        ORDER BY h.revision DESC LIMIT 1) h ON true
+                     WHERE c.domain=$1 AND
+                       (h.subject IS NULL OR to_jsonb(c) IS DISTINCT FROM to_jsonb(h)) LIMIT 1",
+                        &[&domain],
+                    )?
+                    .is_some()
+                {
+                    return Err(DurableError::Corrupt(
+                        "current locator differs from latest history",
+                    ));
+                }
+                current_members = as_u64(
+                    tx.query_one(
+                        "SELECT count(*) FROM cmd2_current WHERE domain=$1",
+                        &[&domain],
+                    )?
+                    .get::<_, i64>(0),
+                )?;
+                if current_members > profile.max_members {
+                    return Err(DurableError::Refused("current member budget exceeded"));
+                }
+                let (deadline, cancelled) =
+                    requested.ok_or(DurableError::Refused("streamed cut requires deadline"))?;
+                let deadline = started
+                    .checked_add(profile.max_elapsed)
+                    .map_or(deadline, |limit| deadline.min(limit));
+                let history = history_run
+                    .take()
+                    .expect("streamed collector")
+                    .finish(deadline, cancelled)?;
+                if history.count() != historical_members {
+                    return Err(DurableError::Corrupt("history workspace count differs"));
+                }
+                let (current, history_root, current_root) = streamed_membership_roots(
+                    domain,
+                    &history,
+                    workspace,
+                    current_members,
+                    deadline,
+                    cancelled,
+                )?;
+                (Some(history), Some(current), history_root, current_root)
+            } else {
+                let mut current =
+                    tx.query_raw("SELECT * FROM cmd2_current WHERE domain=$1", &[&domain])?;
+                while let Some(row) = current.next()? {
+                    check_cold_profile_deadline(started, requested, profile)?;
+                    current_members = current_members
+                        .checked_add(1)
+                        .ok_or(DurableError::Refused("current member count overflow"))?;
+                    if current_members > MAX_CUT {
+                        return Err(DurableError::Refused("current member budget exceeded"));
+                    }
+                    let subject: String = row.get("subject");
+                    let revision = as_u64(row.get("revision"))?;
+                    let Some((latest_revision, latest_digest, placement)) = latest.get(&subject)
+                    else {
+                        return Err(DurableError::Corrupt("current member has no history"));
+                    };
+                    if *latest_revision != revision
+                        || *latest_digest != metadata_locator_digest(&row)
+                    {
+                        return Err(DurableError::Corrupt(
+                            "current locator differs from latest history",
+                        ));
+                    }
+                    let key = membership_key(CURRENT_KEY_TAG, domain, &subject, None)?;
+                    membership_key_bytes = membership_key_bytes
+                        .checked_add(key.len())
+                        .ok_or(DurableError::Refused("membership key byte count overflow"))?;
+                    if membership_key_bytes > MAX_TOTAL_MEMBERSHIP_KEY_BYTES {
+                        return Err(DurableError::Refused("current membership budget exceeded"));
+                    }
+                    current_rows.push(PlacementGenerationRowV1 {
+                        key,
+                        logical_digest: placement.coordinate().sha256,
+                        logical_length: placement.coordinate().size_bytes,
+                        placement: *placement,
+                    });
+                }
+                drop(current);
+                if current_members != latest.len() as u64
+                    || history_rows.len() as u64 != historical_members
+                    || current_rows.len() as u64 != current_members
+                {
+                    return Err(DurableError::Corrupt(
+                        "membership stream cardinality differs",
+                    ));
+                }
+                sort_complete_membership(&mut history_rows)?;
+                sort_complete_membership(&mut current_rows)?;
+                let history_root = logical_membership_root(HISTORY_KEY_TAG, &history_rows);
+                let current_root = logical_membership_root(CURRENT_KEY_TAG, &current_rows);
+                (None, None, history_root, current_root)
             };
-            if *latest_revision != revision || *latest_digest != metadata_locator_digest(&row) {
-                return Err(DurableError::Corrupt(
-                    "current locator differs from latest history",
-                ));
-            }
-            let key = membership_key(CURRENT_KEY_TAG, domain, &subject, None)?;
-            membership_key_bytes = membership_key_bytes
-                .checked_add(key.len())
-                .ok_or(DurableError::Refused("membership key byte count overflow"))?;
-            if membership_key_bytes > MAX_TOTAL_MEMBERSHIP_KEY_BYTES {
-                return Err(DurableError::Refused("current membership budget exceeded"));
-            }
-            current_rows.push(PlacementGenerationRowV1 {
-                key,
-                logical_digest: placement.coordinate().sha256,
-                logical_length: placement.coordinate().size_bytes,
-                placement: *placement,
-            });
-        }
-        drop(current);
-        if current_members != latest.len() {
-            return Err(DurableError::Corrupt(
-                "current membership differs from history",
-            ));
-        }
-        if history_rows.len() as u64 != historical_members || current_rows.len() != current_members
-        {
-            return Err(DurableError::Corrupt(
-                "membership stream cardinality differs",
-            ));
-        }
-        sort_complete_membership(&mut history_rows)?;
-        sort_complete_membership(&mut current_rows)?;
-        let history_membership_root = logical_membership_root(HISTORY_KEY_TAG, &history_rows);
-        let current_membership_root = logical_membership_root(CURRENT_KEY_TAG, &current_rows);
         let receipt_count: i64 = tx
             .query_one(
                 "SELECT count(*) FROM cmd2_receipt WHERE domain=$1",
@@ -2117,7 +2574,14 @@ impl DurablePgCoordinator {
         // no full scan or segment hashing occurs under the sequencer lock.
         // The row encoding is a PostgreSQL-16 laboratory profile, bound by
         // schema_profile_digest and database_oid, not a portable source codec.
-        append_private_metadata(&mut tx, domain, &mut state_hasher, started, requested)?;
+        append_private_metadata(
+            &mut tx,
+            domain,
+            &mut state_hasher,
+            started,
+            requested,
+            profile,
+        )?;
         let cut = ColdCut {
             audited_root,
             domain: domain.to_owned(),
@@ -2128,11 +2592,14 @@ impl DurablePgCoordinator {
             database_oid,
             audit_generation,
             historical_members,
-            current_members: current_members as u64,
+            current_members,
             history_membership_root,
             current_membership_root,
             history_rows,
             current_rows,
+            history_spool,
+            current_spool,
+            streamed_profile: profile,
         };
         tx.commit()?;
         Ok(cut)
@@ -2346,8 +2813,44 @@ impl DurablePgCoordinator {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<VerifiedSelectedGeneration> {
-        let cut = self.cold_verify_cut_with_budget(store, domain, Some((deadline, cancelled)))?;
-        check_cold_deadline(Instant::now(), Some((deadline, cancelled)))?;
+        self.cold_open_selected_generation_inner(store, domain, None, deadline, cancelled)
+    }
+
+    pub fn cold_open_selected_generation_streamed(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        workspace: &PrivateGenerationWorkspace,
+        profile: StreamedGenerationProfile,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<VerifiedSelectedGeneration> {
+        let profile = profile.validate(workspace)?;
+        self.cold_open_selected_generation_inner(
+            store,
+            domain,
+            Some((workspace, profile)),
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn cold_open_selected_generation_inner(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        streamed: Option<(&PrivateGenerationWorkspace, StreamedGenerationProfile)>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<VerifiedSelectedGeneration> {
+        let cut = match streamed {
+            Some((workspace, profile)) => self
+                .cold_verify_cut_streamed(store, domain, workspace, profile, deadline, cancelled)?,
+            None => self.cold_verify_cut_with_budget(store, domain, Some((deadline, cancelled)))?,
+        };
+        let profile = cut.streamed_profile;
+        let limits = profile.map_or_else(generation_limits, |p| p.generation);
+        check_cold_profile_deadline(Instant::now(), Some((deadline, cancelled)), profile)?;
         let row = self.client.query_one(
             "SELECT d.head_seq,d.published_seq,d.complete_cut_digest,
                     d.complete_cut_generation,d.selected_generation_digest,
@@ -2378,33 +2881,33 @@ impl DurablePgCoordinator {
         expected_cut.audit_generation = sealed_generation
             .checked_sub(1)
             .ok_or(DurableError::Corrupt("selected generation fence invalid"))?;
-        check_cold_deadline(Instant::now(), Some((deadline, cancelled)))?;
-        let installed = store.open_generation_candidate(
-            parse_hex(selected_digest)?,
-            &expected_cut,
-            generation_limits(),
-        )?;
+        check_cold_profile_deadline(Instant::now(), Some((deadline, cancelled)), profile)?;
+        let installed =
+            store.open_generation_candidate(parse_hex(selected_digest)?, &expected_cut, limits)?;
         cut.audited_root.require_installed(&installed)?;
-        check_cold_deadline(Instant::now(), Some((deadline, cancelled)))?;
+        check_cold_profile_deadline(Instant::now(), Some((deadline, cancelled)), profile)?;
         if installed.descriptor().history.key_codec_digest != Digest256::of_bytes(HISTORY_KEY_CODEC)
             || installed.descriptor().current.key_codec_digest
                 != Digest256::of_bytes(CURRENT_KEY_CODEC)
         {
             return Err(DurableError::Conflict("selected key codec differs"));
         }
+        let facts = cut.installation(store);
         let history_coverage = compare_installed_membership(
             &installed,
             GenerationNamespaceV1::History,
-            &cut.history_rows,
-            generation_limits(),
+            facts.cursor(GenerationNamespaceV1::History)?,
+            cut.historical_members,
+            limits,
             deadline,
             cancelled,
         )?;
         let current_coverage = compare_installed_membership(
             &installed,
             GenerationNamespaceV1::Current,
-            &cut.current_rows,
-            generation_limits(),
+            facts.cursor(GenerationNamespaceV1::Current)?,
+            cut.current_members,
+            limits,
             deadline,
             cancelled,
         )?;
@@ -2473,37 +2976,55 @@ fn install_verified_membership(
     check_cold_deadline(Instant::now(), Some((deadline, cancelled)))?;
     let cut = &facts.descriptor_cut;
     if cut.schema_profile_digest != schema_profile_digest()
-        || cut.historical_members != facts.history_rows.len() as u64
-        || cut.current_members != facts.current_rows.len() as u64
+        || cut.historical_members != facts.count(GenerationNamespaceV1::History)
+        || cut.current_members != facts.count(GenerationNamespaceV1::Current)
         || cut.history_membership_root
-            != logical_membership_root(HISTORY_KEY_TAG, facts.history_rows)
+            != root_from_cursor(
+                HISTORY_KEY_TAG,
+                cut.historical_members,
+                facts.cursor(GenerationNamespaceV1::History)?,
+                deadline,
+                cancelled,
+            )?
         || cut.current_membership_root
-            != logical_membership_root(CURRENT_KEY_TAG, facts.current_rows)
+            != root_from_cursor(
+                CURRENT_KEY_TAG,
+                cut.current_members,
+                facts.cursor(GenerationNamespaceV1::Current)?,
+                deadline,
+                cancelled,
+            )?
     {
         return Err(DurableError::Corrupt(
             "verified membership certificate differs",
         ));
     }
-    for rows in [facts.history_rows, facts.current_rows] {
-        if rows.windows(2).any(|pair| pair[0].key >= pair[1].key) {
-            return Err(DurableError::Corrupt("membership keys are not unique"));
-        }
-    }
-    let limits = generation_limits();
+    let limits = facts
+        .profile
+        .map_or_else(generation_limits, |p| p.generation);
+    let rows_per_leaf = facts.profile.map_or(MAX_CUT as usize, |p| p.rows_per_leaf);
     let history = install_membership_catalog(
         store,
         HISTORY_NAMESPACE,
         HISTORY_KEY_CODEC,
-        facts.history_rows,
+        facts.cursor(GenerationNamespaceV1::History)?,
+        cut.historical_members,
+        rows_per_leaf,
         limits,
+        deadline,
+        cancelled,
     )?;
     check_cold_deadline(Instant::now(), Some((deadline, cancelled)))?;
     let current = install_membership_catalog(
         store,
         CURRENT_NAMESPACE,
         CURRENT_KEY_CODEC,
-        facts.current_rows,
+        facts.cursor(GenerationNamespaceV1::Current)?,
+        cut.current_members,
+        rows_per_leaf,
         limits,
+        deadline,
+        cancelled,
     )?;
     let descriptor = GenerationDescriptorV1 {
         cut: facts.descriptor_cut.clone(),
@@ -2531,11 +3052,14 @@ fn verify_installed_membership(
     {
         return Err(DurableError::Conflict("generation candidate cut differs"));
     }
-    let limits = generation_limits();
+    let limits = facts
+        .profile
+        .map_or_else(generation_limits, |p| p.generation);
     let history = compare_installed_membership(
         installed,
         GenerationNamespaceV1::History,
-        facts.history_rows,
+        facts.cursor(GenerationNamespaceV1::History)?,
+        facts.count(GenerationNamespaceV1::History),
         limits,
         deadline,
         cancelled,
@@ -2543,7 +3067,8 @@ fn verify_installed_membership(
     let current = compare_installed_membership(
         installed,
         GenerationNamespaceV1::Current,
-        facts.current_rows,
+        facts.cursor(GenerationNamespaceV1::Current)?,
+        facts.count(GenerationNamespaceV1::Current),
         limits,
         deadline,
         cancelled,
@@ -2555,29 +3080,74 @@ fn install_membership_catalog(
     store: &SegmentStore,
     namespace: &[u8],
     codec: &[u8],
-    rows: &[PlacementGenerationRowV1],
+    mut rows: MembershipCursor<'_>,
+    expected_count: u64,
+    rows_per_leaf: usize,
     limits: GenerationReadLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
 ) -> DurableResult<GenerationCatalogV1> {
-    let bounds = PartitionBoundsV1 {
-        lower_inclusive: None,
-        upper_exclusive: None,
-    };
-    let leaf = PackedPlacementLeafV1 {
-        domain_digest: store.domain_digest(),
-        bounds: bounds.clone(),
-        rows: rows.to_vec(),
-    };
-    let content_digest = store.install_packed_leaf(&leaf, limits.shape)?;
-    let semantic = describe_placement_partition(
-        store.domain_digest(),
-        bounds,
-        rows.iter().cloned().map(Ok),
-        limits.shape,
-    )?;
-    let partitions = vec![PackedPartitionRefV1 {
-        semantic,
-        content_digest,
-    }];
+    if rows_per_leaf == 0 || rows_per_leaf as u64 > limits.shape.max_rows_per_partition {
+        return Err(DurableError::Refused("invalid generation leaf row budget"));
+    }
+    let needed = expected_count.saturating_add(rows_per_leaf as u64 - 1) / rows_per_leaf as u64;
+    if needed.max(1) > limits.shape.max_partitions as u64 {
+        return Err(DurableError::Refused(
+            "generation partition budget exceeded",
+        ));
+    }
+    let mut partitions = Vec::with_capacity(needed.max(1) as usize);
+    let mut lower = None;
+    let mut next = rows.next_row()?;
+    let mut observed = 0u64;
+    loop {
+        let mut chunk = Vec::new();
+        while chunk.len() < rows_per_leaf {
+            let Some(row) = next.take() else {
+                break;
+            };
+            if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
+                return Err(DurableError::Refused("generation build deadline exceeded"));
+            }
+            observed = observed
+                .checked_add(1)
+                .ok_or(DurableError::Refused("generation row count overflow"))?;
+            if observed > expected_count {
+                return Err(DurableError::Corrupt("generation has extra source row"));
+            }
+            chunk.push(row);
+            next = rows.next_row()?;
+        }
+        let upper = next.as_ref().map(|row| row.key.clone());
+        let bounds = PartitionBoundsV1 {
+            lower_inclusive: lower.clone(),
+            upper_exclusive: upper.clone(),
+        };
+        let leaf = PackedPlacementLeafV1 {
+            domain_digest: store.domain_digest(),
+            bounds: bounds.clone(),
+            rows: chunk,
+        };
+        let content_digest = store.install_packed_leaf(&leaf, limits.shape)?;
+        let semantic = describe_placement_partition(
+            store.domain_digest(),
+            bounds,
+            leaf.rows.iter().cloned().map(Ok),
+            limits.shape,
+        )?;
+        partitions.push(PackedPartitionRefV1 {
+            semantic,
+            content_digest,
+        });
+        lower = upper;
+        if next.is_none() {
+            break;
+        }
+    }
+    rows.finish()?;
+    if observed != expected_count {
+        return Err(DurableError::Corrupt("generation source EOF count differs"));
+    }
     let key_codec_digest = Digest256::of_bytes(codec);
     let catalog_root = store.verify_packed_catalog_shape(
         store.custody_domain(),
@@ -2598,24 +3168,36 @@ fn install_membership_catalog(
 fn compare_installed_membership(
     installed: &InstalledGenerationV1,
     namespace: GenerationNamespaceV1,
-    expected: &[PlacementGenerationRowV1],
+    mut expected: MembershipCursor<'_>,
+    expected_count: u64,
     limits: GenerationReadLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> DurableResult<GenerationCoverageV1> {
     let mut stream = installed.stream(namespace, limits)?;
-    for row in expected {
-        if stream.next_row(deadline, cancelled)? != Some(row.clone()) {
+    let mut observed = 0u64;
+    while let Some(row) = expected.next_row()? {
+        if stream.next_row(deadline, cancelled)? != Some(row) {
             return Err(DurableError::Corrupt("installed membership row differs"));
         }
+        observed += 1;
+        if observed > expected_count {
+            return Err(DurableError::Corrupt(
+                "installed membership row count exceeded",
+            ));
+        }
     }
+    expected.finish()?;
     if stream.next_row(deadline, cancelled)?.is_some() {
         return Err(DurableError::Corrupt("installed membership has extra row"));
     }
     let coverage = stream.coverage().ok_or(DurableError::Corrupt(
         "installed membership lacks EOF coverage",
     ))?;
-    if coverage.rows != expected.len() as u64 || coverage.descriptor_digest != installed.digest() {
+    if coverage.rows != expected_count
+        || observed != expected_count
+        || coverage.descriptor_digest != installed.digest()
+    {
         return Err(DurableError::Corrupt(
             "installed membership coverage differs",
         ));

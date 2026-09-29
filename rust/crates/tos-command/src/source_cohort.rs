@@ -3677,6 +3677,76 @@ impl DurablePgCoordinator {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<ReopenedSourceCohort> {
+        self.cold_reopen_source_cohort_inner(
+            store,
+            domain,
+            original,
+            initial_revision,
+            initial_membership,
+            context,
+            software,
+            components,
+            worker,
+            None,
+            deadline,
+            cancelled,
+        )
+    }
+
+    /// Opt-in external-sort custody at the real source-cohort generation
+    /// boundary. The upstream authored-file/owner-index validation remains
+    /// finite and is not a billion-record capacity claim.
+    pub fn cold_reopen_source_cohort_streamed(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        original: &CorpusCutReader,
+        initial_revision: SourceRevision,
+        initial_membership: SourceMembershipV1,
+        context: &CommandContext,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        worker: &mut CutWorkerSchemaExecutor,
+        workspace: &super::PrivateGenerationWorkspace,
+        profile: super::StreamedGenerationProfile,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<ReopenedSourceCohort> {
+        let profile = profile.validate(workspace)?;
+        self.cold_reopen_source_cohort_inner(
+            store,
+            domain,
+            original,
+            initial_revision,
+            initial_membership,
+            context,
+            software,
+            components,
+            worker,
+            Some((workspace, profile)),
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn cold_reopen_source_cohort_inner(
+        &mut self,
+        store: &SegmentStore,
+        domain: &str,
+        original: &CorpusCutReader,
+        initial_revision: SourceRevision,
+        initial_membership: SourceMembershipV1,
+        context: &CommandContext,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        worker: &mut CutWorkerSchemaExecutor,
+        streamed: Option<(
+            &super::PrivateGenerationWorkspace,
+            super::StreamedGenerationProfile,
+        )>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<ReopenedSourceCohort> {
         active(deadline, cancelled)?;
         if original.current().revision() != initial_revision
             || context.base_revision != initial_revision
@@ -3953,11 +4023,19 @@ impl DurablePgCoordinator {
             .map(|rows| projection_root(rows).to_hex());
         tx.execute("UPDATE cmd2_domain SET source_complete=true,source_generation=head_seq,source_projection_digest=$2,selected_generation_digest=NULL,complete_cut_digest=NULL,complete_cut_generation=NULL WHERE domain=$1", &[&domain,&projection_digest])?;
         tx.commit()?;
-        let verified =
-            self.cold_verify_cut_with_budget(store, domain, Some((deadline, cancelled)))?;
+        let verified = match streamed {
+            Some((workspace, profile)) => self
+                .cold_verify_cut_streamed(store, domain, workspace, profile, deadline, cancelled)?,
+            None => self.cold_verify_cut_with_budget(store, domain, Some((deadline, cancelled)))?,
+        };
         let generation = self.build_complete_generation(store, &verified, deadline, cancelled)?;
         self.select_complete_generation(&generation)?;
-        let selected = self.cold_open_selected_generation(store, domain, deadline, cancelled)?;
+        let selected = match streamed {
+            Some((workspace, profile)) => self.cold_open_selected_generation_streamed(
+                store, domain, workspace, profile, deadline, cancelled,
+            )?,
+            None => self.cold_open_selected_generation(store, domain, deadline, cancelled)?,
+        };
         Ok(ReopenedSourceCohort {
             cohort,
             files,

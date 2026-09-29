@@ -16,15 +16,16 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use postgres::{Client, NoTls};
 use tos_command::{
-    AttemptResolution, CancelOutcome, CommitShadowAttempt, DurableError, DurablePgCoordinator,
-    DurableShadowMember, RegisterShadowAttempt, ShadowWriteIdentity, durable_shadow_delta,
+    AttemptResolution, CancelOutcome, ColdWorkspaceLimits, CommitShadowAttempt, DurableError,
+    DurablePgCoordinator, DurableShadowMember, PrivateGenerationWorkspace, RegisterShadowAttempt,
+    ShadowWriteIdentity, StreamedGenerationProfile, durable_shadow_delta,
     durable_shadow_delta_prepared, lab_record_bytes,
 };
 use tos_foundation::Digest256;
 use tos_segment_store::{
-    AttemptRecovery, FrameInput, GenerationNamespaceV1, GenerationShapeLimits, KeyComparatorV1,
-    OwnerBinding, PackedPartitionRefV1, SegmentLimits, SegmentStore, VerificationBudget,
-    describe_placement_partition,
+    AttemptRecovery, FrameInput, GenerationNamespaceV1, GenerationReadLimits,
+    GenerationShapeLimits, KeyComparatorV1, OwnerBinding, PackedPartitionRefV1, SegmentLimits,
+    SegmentStore, VerificationBudget, describe_placement_partition,
 };
 
 static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
@@ -3761,6 +3762,134 @@ fn cold_audit_pages_log_and_preadmits_metadata_bytes() {
     assert!(matches!(
         lab.db.cold_verify_cut(&lab.store, &lab.domain),
         Err(DurableError::Refused(_))
+    ));
+}
+
+#[test]
+fn streamed_selected_generation_merges_private_runs_and_cold_restores() {
+    let url = database_url();
+    let mut lab = Lab::new(&url);
+    let first = lab.prepare(
+        b"streamed-first",
+        "streamed-first",
+        &[MemberSpec::first("streamed-A", b"retained bytes")],
+    );
+    lab.commit(b"streamed-first", &first, 0, 1).unwrap();
+    let second = lab.prepare(
+        b"streamed-second",
+        "streamed-second",
+        &[
+            MemberSpec {
+                subject: "streamed-A",
+                revision: 2,
+                predecessor: Some((1, Digest256::of_bytes(&first[0].exact_bytes))),
+                payload: b"current bytes",
+            },
+            MemberSpec::first("streamed-B", b"another current byte string"),
+        ],
+    );
+    lab.commit(b"streamed-second", &second, 1, 1).unwrap();
+    let scratch = ScratchRoot::new();
+    let workspace = PrivateGenerationWorkspace::open(
+        &scratch.0,
+        ColdWorkspaceLimits {
+            max_scratch_written_bytes: 64 * 1024,
+            max_run_bytes: 512,
+            max_runs: 8,
+            merge_fan_in: 2,
+            max_rows: 8,
+            max_key_bytes: 256,
+        },
+    )
+    .unwrap();
+    let profile = StreamedGenerationProfile {
+        max_commit_seq: 8,
+        max_members: 8,
+        max_pins: 8,
+        max_segment_bytes: 8 * 1024 * 1024,
+        max_membership_key_bytes: 4096,
+        max_metadata_rows: 200,
+        max_metadata_bytes: 1024 * 1024,
+        max_elapsed: Duration::from_secs(60),
+        max_pg_temp_bytes: 8 * 1024 * 1024,
+        max_sql_statement_ms: 30_000,
+        generation: GenerationReadLimits {
+            max_descriptor_bytes: 8192,
+            shape: GenerationShapeLimits {
+                max_partitions: 4,
+                max_rows_per_partition: 1,
+                max_key_bytes: 256,
+                max_leaf_bytes: 16 * 1024,
+            },
+            max_stream_rows: 8,
+            max_stream_key_bytes: 4096,
+        },
+        rows_per_leaf: 1,
+    };
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let cut = lab
+        .db
+        .cold_verify_cut_streamed(
+            &lab.store,
+            &lab.domain,
+            &workspace,
+            profile,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+    assert_eq!((cut.historical_members(), cut.current_members()), (3, 2));
+    let candidate = lab
+        .db
+        .build_complete_generation(&lab.store, &cut, deadline, &cancelled)
+        .unwrap();
+    assert_eq!(candidate.descriptor().history.partitions.len(), 3);
+    lab.db.select_complete_generation(&candidate).unwrap();
+
+    let copied_root = ScratchRoot::new();
+    copy_store_tree(&lab._root.0, &copied_root.0);
+    let copied_store = SegmentStore::open_existing(&copied_root.0, limits()).unwrap();
+    let mut restored = DurablePgCoordinator::connect(&url).unwrap();
+    let selected = restored
+        .cold_open_selected_generation_streamed(
+            &copied_store,
+            &lab.domain,
+            &workspace,
+            profile,
+            Instant::now() + Duration::from_secs(60),
+            &cancelled,
+        )
+        .unwrap();
+    assert_eq!(selected.digest(), candidate.digest());
+    let mut history = selected.stream(GenerationNamespaceV1::History).unwrap();
+    let mut observed = 0;
+    while history
+        .next_row(Instant::now() + Duration::from_secs(60), &cancelled)
+        .unwrap()
+        .is_some()
+    {
+        observed += 1;
+    }
+    assert_eq!(observed, 3);
+    assert_eq!(history.coverage().unwrap().rows, 3);
+    let mut observer = Client::connect(&url, NoTls).unwrap();
+    observer.execute(
+        "UPDATE cmd2_current SET durability_class='forged' WHERE domain=$1 AND subject='streamed-B'",
+        &[&lab.domain],
+    ).unwrap();
+    assert!(matches!(
+        lab.db.cold_verify_cut_streamed(
+            &lab.store,
+            &lab.domain,
+            &workspace,
+            profile,
+            Instant::now() + Duration::from_secs(60),
+            &cancelled,
+        ),
+        Err(DurableError::Corrupt(
+            "current locator differs from latest history"
+        ))
     ));
 }
 

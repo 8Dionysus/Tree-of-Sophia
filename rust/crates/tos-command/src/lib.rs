@@ -40,11 +40,12 @@ mod source_text_unit_proposal;
 use tos_foundation::Digest256;
 
 pub use durable_adapter::{
-    AttemptResolution, CancelOutcome, ColdCut, ColdRecoveredMember, CommitShadowAttempt,
-    CompleteGeneration, DurableCommitReceipt, DurableError, DurablePgCoordinator, DurableResult,
-    DurableShadowMember, DurableTiming, RegisterShadowAttempt, ShadowWriteIdentity,
-    VerifiedSelectedGeneration, durable_shadow_delta, durable_shadow_delta_prepared,
-    lab_record_bytes,
+    AttemptResolution, CancelOutcome, ColdCut, ColdRecoveredMember, ColdWorkspaceLimits,
+    CommitShadowAttempt, CompleteGeneration, DurableCommitReceipt, DurableError,
+    DurablePgCoordinator, DurableResult, DurableShadowMember, DurableTiming,
+    PrivateGenerationWorkspace, RegisterShadowAttempt, ShadowWriteIdentity,
+    StreamedGenerationProfile, VerifiedSelectedGeneration, durable_shadow_delta,
+    durable_shadow_delta_prepared, lab_record_bytes,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
