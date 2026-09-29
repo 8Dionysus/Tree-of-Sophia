@@ -1452,6 +1452,54 @@ pub struct ReviewedNormalizationTransition<'a> {
     pub review_ref: &'a str,
 }
 
+impl ReviewedNormalizationTransition<'_> {
+    pub(crate) fn validate(
+        &self,
+        before_normalization: &JsonValue,
+        after_normalization: &JsonValue,
+    ) -> Result<()> {
+        let hex = |value: &str| {
+            value.len() == 64
+                && value
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        };
+        if !hex(self.before_processor)
+            || !hex(self.after_processor)
+            || self.before_processor == self.after_processor
+            || self.review_ref.trim().is_empty()
+            || self.review_ref.len() > 4096
+            || required(before_normalization, "processor_digest")? != self.before_processor
+            || required(after_normalization, "processor_digest")? != self.after_processor
+        {
+            return Err(Error::Invalid(
+                "exact reviewed normalization transition required",
+            ));
+        }
+        let without_processor = |value: &JsonValue| -> Result<JsonValue> {
+            let fields = value
+                .as_object()
+                .ok_or(Error::Invalid("normalization object"))?;
+            Ok(JsonValue::Object(
+                fields
+                    .iter()
+                    .filter(|(key, _)| key.as_str() != Some("processor_digest"))
+                    .cloned()
+                    .collect(),
+            ))
+        };
+        if !same(
+            &without_processor(before_normalization)?,
+            &without_processor(after_normalization)?,
+        )? {
+            return Err(Error::Invalid(
+                "normalization transition changes algorithm inputs",
+            ));
+        }
+        Ok(())
+    }
+}
+
 pub(crate) fn transition_prepared_normalization_transaction(
     db: &Connection,
     expected: &JsonValue,
@@ -1500,44 +1548,7 @@ fn apply_prepared_delta_inner<I: IntoIterator<Item = Result<PreparedChange>>>(
     let before_normalization = field(&top, "normalization_binding")?;
     let after_normalization = field(header, "normalization_binding")?;
     if let Some(reviewed) = reviewed {
-        let hex = |value: &str| {
-            value.len() == 64
-                && value
-                    .bytes()
-                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-        };
-        if !hex(reviewed.before_processor)
-            || !hex(reviewed.after_processor)
-            || reviewed.before_processor == reviewed.after_processor
-            || reviewed.review_ref.trim().is_empty()
-            || reviewed.review_ref.len() > 4096
-            || required(before_normalization, "processor_digest")? != reviewed.before_processor
-            || required(after_normalization, "processor_digest")? != reviewed.after_processor
-        {
-            return Err(Error::Invalid(
-                "exact reviewed normalization transition required",
-            ));
-        }
-        let without_processor = |value: &JsonValue| -> Result<JsonValue> {
-            let fields = value
-                .as_object()
-                .ok_or(Error::Invalid("normalization object"))?;
-            Ok(JsonValue::Object(
-                fields
-                    .iter()
-                    .filter(|(key, _)| key.as_str() != Some("processor_digest"))
-                    .cloned()
-                    .collect(),
-            ))
-        };
-        if !same(
-            &without_processor(before_normalization)?,
-            &without_processor(after_normalization)?,
-        )? {
-            return Err(Error::Invalid(
-                "normalization transition changes algorithm inputs",
-            ));
-        }
+        reviewed.validate(before_normalization, after_normalization)?;
     } else if !same(after_normalization, before_normalization)? {
         return Err(Error::Invalid("prepared normalization bootstrap required"));
     }
