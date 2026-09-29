@@ -39,3 +39,6 @@ installKnowledgeSearchRules(runtime);
 
 import {installClientInspectionRules} from './client-inspection-rules.mjs';
 installClientInspectionRules(runtime);
+
+import {installSourceDossierRules} from './source-dossier-rules.mjs';
+installSourceDossierRules(runtime);

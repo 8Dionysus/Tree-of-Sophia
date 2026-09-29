@@ -1,3 +1,4 @@
+import {installSourceDossierRules} from './observatory/source-dossier-rules.mjs';
 import {installClientInspectionRules} from './observatory/client-inspection-rules.mjs';
 import {installKnowledgeSearchRules} from './knowledge-search.ts';
 import {installClaimReadingRules} from './observatory/claim-reading-rules.mjs';
@@ -30,6 +31,7 @@ installRecordContextRules(rules);
 installKnowledgeSearchRules(rules);
 installClaimReadingRules(rules);
 installClientInspectionRules(rules);
+installSourceDossierRules(rules);
 installConditionRules(rules);
 installDraftRules(rules);
 installReadingRules(rules);

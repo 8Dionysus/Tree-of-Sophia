@@ -1,3 +1,4 @@
+import {createSourceDossierSession,dossierTextUnits} from './source-dossier-rules.mjs';
 import {createClientInspectionSession,inspectionRevisionText,inspectionRevisionUnits} from './client-inspection-rules.mjs';
 import {t,uiLanguage} from './ui-i18n.mjs';
 import {relationLabel,fileLabel,sourceLinkLabel,languageName,readableTitleForm,isReadablePresentationTitle} from './human-presentation.mjs';
@@ -15,7 +16,6 @@ export const BUDGET = Object.freeze({nodes:40,relations:80});
 // owner-provided bibliographic route.  Keep the browser window narrower than
 // the backend contract; truncation remains an honest dossier field.
 export const SOURCE_DOSSIER_LIMIT = 64;
-const SOURCE_DOSSIER_KINDS=new Set(['work','expression','edition','item','file','link']);
 const SOURCE_DOSSIER_REF=/^tos\.[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 export const isSourceDossierRef=value=>typeof value==='string'&&value.length>0&&value.length<=2048&&SOURCE_DOSSIER_REF.test(value);
 // Transport bounds are not a license to draw or retain every delivered page.
@@ -202,32 +202,75 @@ export function checkRevision(packet,expected) {
   if(expected&&packet.source_revision!==expected)throw new RevisionError();
   return packet;
 }
-const boundedStrings=(value,limit)=>Array.isArray(value)&&value.length<=limit&&value.every(item=>typeof item==='string'&&item.length>0&&item.length<=2048);
-const record=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
-const boundedRecords=(value,limit)=>Array.isArray(value)&&value.length<=limit&&value.every(record);
-export function validateSourceDossier(packet,expected) {
-  const summary=packet?.agent_summary,object=packet?.object;
-  if(packet?.schema!=='tos_source_dossier_v1'||!isSourceDossierRef(expected)||packet.object_id!==expected
-    ||!record(object)||object.node_id!==expected
-    ||!SOURCE_DOSSIER_KINDS.has(object.node_kind)
-    ||!summary||typeof summary.technical_access!=='string'||!summary.technical_access
-    ||typeof summary.rights_posture!=='string'||!summary.rights_posture
-    ||typeof summary.human_review_required!=='boolean'||typeof summary.can_conclude_legal_openness!=='boolean'
-    ||summary.availability_is_license!==false
-    ||!boundedStrings(summary.rights_scope_refs,SOURCE_DOSSIER_LIMIT)
-    ||!boundedStrings(summary.gaps,SOURCE_DOSSIER_LIMIT)
-    ||!boundedRecords(packet.relations,SOURCE_DOSSIER_LIMIT)
-    ||!boundedRecords(packet.rights,SOURCE_DOSSIER_LIMIT)
-    ||!boundedRecords(packet.tree_paths,SOURCE_DOSSIER_LIMIT)
-    ||!boundedStrings(packet.source_refs,SOURCE_DOSSIER_LIMIT*16)
-    ||typeof packet.truncated!=='boolean'
-    ||!(typeof packet.authority_note==='string'&&packet.authority_note.length>0
-      ||record(packet.authority_note)))
-    throw new ContractError(t("Неподдерживаемое досье источника."));
-  if(!packet.chain||typeof packet.chain!=='object'||Array.isArray(packet.chain)
-    ||Object.values(packet.chain).some(value=>!boundedRecords(value,SOURCE_DOSSIER_LIMIT)))
-    throw new ContractError(t("Неполная цепочка источника."));
-  return packet;
+function dossierMethod(session,method,...values){
+  try{return session[method](...values);}catch(error){
+    const messages={request:'Неверная ссылка на досье источника.',dossier:'Неподдерживаемое досье источника.',chain:'Неполная цепочка источника.'};
+    if(typeof error==='string'&&Object.hasOwn(messages,error))throw new ContractError(t(messages[error]));
+    throw error;
+  }
+}
+function dossierReference(session,value){
+  dossierMethod(session,'reference_length',typeof value==='string',typeof value==='string'?value.length:0);
+  dossierMethod(session,'reference',dossierTextUnits(value));
+}
+function validateDossierRequest(objectId,limit){
+  const session=createSourceDossierSession(true);
+  try{dossierReference(session,objectId);dossierMethod(session,'request_limit',typeof limit==='number',typeof limit==='number'?limit:0);}
+  finally{session.free();}
+}
+export function validateSourceDossier(packet,expected){
+  const summary=packet?.agent_summary,object=packet?.object,session=createSourceDossierSession();
+  const run=(method,...values)=>dossierMethod(session,method,...values);
+  let array;
+  const recordObservation=value=>{
+    if(!run('record_type',value!==null,typeof value==='object'))return false;
+    return run('record_array',Array.isArray(value));
+  };
+  const text=value=>{run('text_length',typeof value==='string',typeof value==='string'?value.length:0);run('text',dossierTextUnits(value));};
+  try{
+    while(true){
+      switch(session.need()){
+        case 'schema':text(packet?.schema);break;
+        case 'expected-ref':dossierReference(session,expected);break;
+        case 'object-id':run('observe',packet.object_id===expected);break;
+        case 'object':recordObservation(object);break;
+        case 'node-id':run('observe',object.node_id===expected);break;
+        case 'kind':text(object.node_kind);break;
+        case 'summary':run('observe',Boolean(summary));break;
+        case 'technical-type':run('observe',typeof summary.technical_access==='string');break;
+        case 'technical-truthy':run('observe',Boolean(summary.technical_access));break;
+        case 'posture-type':run('observe',typeof summary.rights_posture==='string');break;
+        case 'posture-truthy':run('observe',Boolean(summary.rights_posture));break;
+        case 'review-type':run('observe',typeof summary.human_review_required==='boolean');break;
+        case 'legal-type':run('observe',typeof summary.can_conclude_legal_openness==='boolean');break;
+        case 'license-false':{const value=summary.availability_is_license;run('license',typeof value==='boolean',Boolean(value));break;}
+        case 'array-value':{
+          const field=session.array_field();array=session.array_location()==='summary'?summary[field]:packet[field];
+          run('array_type',Array.isArray(array));break;
+        }
+        case 'array-length':run('array_length',Number(array.length));break;
+        case 'array-every':{
+          const callback=session.element_kind()==='string'
+            ?value=>run('string_element',typeof value==='string',typeof value==='string'?value.length:0):recordObservation;
+          run('observe',Boolean(array.every(callback)));break;
+        }
+        case 'truncated':run('observe',typeof packet.truncated==='boolean');break;
+        case 'authority-type':run('observe',typeof packet.authority_note==='string');break;
+        case 'authority-length':run('authority_length',Number(packet.authority_note.length));break;
+        case 'authority-record':recordObservation(packet.authority_note);break;
+        case 'chain-truthy':run('observe',Boolean(packet.chain));break;
+        case 'chain-type':run('observe',typeof packet.chain==='object');break;
+        case 'chain-array':run('observe',Array.isArray(packet.chain));break;
+        case 'chain-values':run('observe',Boolean(Object.values(packet.chain).some(value=>{
+          if(!run('chain_array_type',Array.isArray(value)))return run('chain_result',false);
+          if(!run('chain_array_length',Number(value.length)))return run('chain_result',false);
+          return run('chain_result',Boolean(value.every(item=>recordObservation(item))));
+        })));break;
+        case 'done':return packet;
+        default:throw new Error('Invalid source dossier Rust need');
+      }
+    }
+  }finally{session.free();}
 }
 function checkItems(items,kind) {
   if(!Array.isArray(items))throw new ContractError(t("Неверный список объектов."));
@@ -489,8 +532,7 @@ export class KnowledgeClient {
     return {packet,match};
   }
   async sourceDossier(objectId,signal,{limit=SOURCE_DOSSIER_LIMIT}={}) {
-    if(!isSourceDossierRef(objectId)||!Number.isSafeInteger(limit)||limit<1||limit>SOURCE_DOSSIER_LIMIT)
-      throw new ContractError(t("Неверная ссылка на досье источника."));
+    validateDossierRequest(objectId,limit);
     // This is the fixed same-origin source-navigation route.  It is not a
     // configurable endpoint and never becomes an arbitrary filesystem URL.
     const packet=await this.request('/api/source/dossiers/'+encodeURIComponent(objectId)+'?'+new URLSearchParams({limit:String(limit)}),{signal});

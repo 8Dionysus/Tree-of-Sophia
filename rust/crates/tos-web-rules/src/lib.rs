@@ -29,6 +29,8 @@ mod record_context;
 mod research_shelf;
 mod search_mode;
 #[cfg(feature = "wasm")]
+mod source_dossier;
+#[cfg(feature = "wasm")]
 mod source_form_session;
 mod temporal_session;
 mod workspace_copy;
@@ -44,6 +46,8 @@ pub use record_context::RecordContextSession;
 
 #[cfg(feature = "wasm")]
 pub use client_inspection::ClientInspectionSession;
+#[cfg(feature = "wasm")]
+pub use source_dossier::SourceDossierSession;
 
 pub use claim_reading::validate_claim_reading_v1;
 pub use claim_reference::validate_claim_reference_v1;

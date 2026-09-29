@@ -2,7 +2,7 @@ import './human-forms-wasm-test-runtime.mjs';
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 
-import {validateLens,projectLens,focusSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError,displayTitle,displayTitleForm,sourceOriginalTitle,compileRouteCenter,isSourceDossierRef,SOURCE_DOSSIER_LIMIT} from './knowledge-client.mjs';
+import {validateLens,projectLens,focusSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError,displayTitle,displayTitleForm,sourceOriginalTitle,compileRouteCenter,isSourceDossierRef,SOURCE_DOSSIER_LIMIT,validateSourceDossier} from './knowledge-client.mjs';
 import {setUiLanguage} from './ui-i18n.mjs';
 
 const node=id=>({id,entity_id:'tos.work.friedrich-nietzsche.also-sprach-zarathustra',kind_id:'work',
@@ -365,4 +365,41 @@ test('inspection observes each original ID getter read and retains reference equ
   const client=new KnowledgeClient({fetcher:async()=>({ok:true,json:async()=>packet})});
   client.request=async()=>packet;
   assert.equal((await client.inspect('node',identity)).match,raw);assert.equal(reads,5);
+});
+
+
+test('source dossier preserves sparse metadata, native numeric coercion and authority rereads',()=>{
+  const packet=dossier(),hints=[];packet.agent_summary.rights_scope_refs=new Array(2);
+  packet.source_refs=new Proxy([],{get(target,key){
+    if(key==='length')return {[Symbol.toPrimitive](hint){hints.push(hint);return 64n;}};
+    if(key==='every')return ()=>({truthy:true});
+    return Reflect.get(target,key);
+  }});
+  let authorityReads=0;const authority={unknown:null};
+  Object.defineProperty(packet,'authority_note',{get(){
+    authorityReads++;if(authorityReads===1)return 'probe';
+    if(authorityReads===2)return {length:{[Symbol.toPrimitive](hint){hints.push(hint);return 0n;}}};
+    return authority;
+  }});
+  assert.equal(validateSourceDossier(packet,'tos.work.fixture'),packet);
+  assert.equal(authorityReads,3);assert.deepEqual(hints,['number','number']);
+});
+
+test('source dossier snapshots precede schema refusal and source exceptions keep their identity',()=>{
+  let reads=0;const malformed={schema:'wrong'};
+  Object.defineProperty(malformed,'agent_summary',{get(){reads++;return {};}});
+  Object.defineProperty(malformed,'object',{get(){reads++;return {};}});
+  assert.throws(()=>validateSourceDossier(malformed,'tos.work.fixture'),ContractError);assert.equal(reads,2);
+  const packet=dossier();Object.defineProperty(packet,'authority_note',{get(){throw 'dossier';}});
+  assert.throws(()=>validateSourceDossier(packet,'tos.work.fixture'),error=>error==='dossier');
+});
+
+test('source dossier callback predicates preserve revoked Proxy shortcircuits',()=>{
+  const object=Proxy.revocable({},{}),callable=Proxy.revocable(()=>{},{});object.revoke();callable.revoke();
+  const strings=dossier();strings.agent_summary.gaps=[object.proxy];
+  assert.throws(()=>validateSourceDossier(strings,'tos.work.fixture'),ContractError);
+  const records=dossier();records.relations=[callable.proxy];
+  assert.throws(()=>validateSourceDossier(records,'tos.work.fixture'),ContractError);
+  records.relations=[object.proxy];
+  assert.throws(()=>validateSourceDossier(records,'tos.work.fixture'),TypeError);
 });
