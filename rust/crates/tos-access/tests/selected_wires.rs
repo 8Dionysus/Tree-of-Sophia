@@ -6546,7 +6546,7 @@ mod prepared_inspect_lens {
     fn actual(binary: &Path, path: &Path, binding: &Path, args: &[String], expected: &JsonValue) {
         let out = crate::native_child::bounded_output_until(
             std::process::Command::new(binary)
-                .arg("--prepared-db")
+                .arg("--prepared-read-model")
                 .arg(path)
                 .arg("--prepared-binding")
                 .arg(binding)
