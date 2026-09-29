@@ -605,10 +605,20 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     let url = database_url();
     let mut lab = Lab::new(&url);
     let root = ScratchRoot::new();
-    let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../..")
-        .canonicalize()
-        .unwrap();
+    let repository = match std::env::var_os("TOS_CMD2_LAB_SOURCE_ROOT") {
+        Some(path) => {
+            let path = PathBuf::from(path);
+            assert!(
+                path.is_absolute(),
+                "selected lab source root must be absolute"
+            );
+            path.canonicalize().unwrap()
+        }
+        None => PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../..")
+            .canonicalize()
+            .unwrap(),
+    };
     let cancelled = AtomicBool::new(false);
     let deadline = Instant::now() + Duration::from_secs(240);
     let isolated = IsolatedCreationRoot::create(&root.0, deadline, &cancelled).unwrap();
