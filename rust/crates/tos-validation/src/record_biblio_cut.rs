@@ -894,11 +894,11 @@ pub(crate) fn ordered_emit_state(value:&tos_foundation::JsonValue)->Result<usize
 pub(crate) fn bounded_ordered(
     raw:&[u8],limits:tos_foundation::JsonLimits,available:usize,deadline:Instant,cancelled:&AtomicBool,
 )->Result<tos_foundation::JsonValue,ItemRefusal> {
-    bounded_ordered_mode(raw,limits,available,deadline,cancelled,tos_foundation::JsonMode::PublishedStrict)
+    bounded_ordered_mode(raw,limits,available,deadline,cancelled,tos_foundation::JsonMode::PublishedStrict,false)
 }
 fn bounded_ordered_mode(
     raw:&[u8], mut limits:tos_foundation::JsonLimits, available:usize,
-    deadline:Instant,cancelled:&AtomicBool,mode:tos_foundation::JsonMode,
+    deadline:Instant,cancelled:&AtomicBool,mode:tos_foundation::JsonMode,syntax_as_source:bool,
 )->Result<tos_foundation::JsonValue,ItemRefusal> {
     check(deadline,cancelled)?;
     // During Foundation parsing a decoded key may retain UTF16 both in the
@@ -917,6 +917,13 @@ fn bounded_ordered_mode(
     let result=tos_foundation::parse_json(raw,mode,limits)
         .map_err(|e|if e.code==tos_foundation::FoundationErrorCode::BudgetExceeded {
             ItemRefusal::BudgetCheck {check:"strict JSON codec bytes/depth/visits/integer",used:None,limit:None}
+        } else if syntax_as_source && matches!(e.code,
+            tos_foundation::FoundationErrorCode::InvalidUtf8
+            | tos_foundation::FoundationErrorCode::InvalidJson
+            | tos_foundation::FoundationErrorCode::InvalidUnicodeScalar
+            | tos_foundation::FoundationErrorCode::InvalidNumber
+            | tos_foundation::FoundationErrorCode::NonfiniteFloat
+        ) {ItemRefusal::Source("invalid finite native JSON".into())
         } else {ItemRefusal::Unsupported(format!("strict JSON: {e:?}"))})?.into_root();
     check(deadline,cancelled)?;
     let state=ordered_state(&result)?;
@@ -937,10 +944,7 @@ pub(crate) fn bounded_legacy_decoded_state_with_limits(raw:&[u8],limits:tos_foun
     bounded_legacy_decoded_state_inner(raw,limits,available,deadline,cancelled,true)
 }
 fn bounded_legacy_decoded_state_inner(raw:&[u8],limits:tos_foundation::JsonLimits,available:usize,deadline:Instant,cancelled:&AtomicBool,malformed_as_source:bool)->Result<(serde_json::Value,usize),ItemRefusal> {
-    drop(bounded_ordered_mode(raw,limits,available,deadline,cancelled,tos_foundation::JsonMode::RequestLastWins).map_err(|error|match error {
-        ItemRefusal::Unsupported(_) if malformed_as_source => ItemRefusal::Source("invalid finite native JSON".into()),
-        other => other,
-    })?);
+    drop(bounded_ordered_mode(raw,limits,available,deadline,cancelled,tos_foundation::JsonMode::RequestLastWins,malformed_as_source)?);
     let value=serde_json::from_slice(raw).map_err(|_|ItemRefusal::Unsupported("decoded JSON representation".into()))?;
     let state=decoded_state(&value)?;
     if state>available {return Err(ItemRefusal::BudgetCheck{check:"legacy JSON retained decoded state",used:Some(state as u64),limit:Some(available as u64)});}

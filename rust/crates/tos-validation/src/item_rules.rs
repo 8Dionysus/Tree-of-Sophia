@@ -73,7 +73,7 @@ pub trait ItemSource {
         deadline: Instant,
     ) -> Result<bool, ItemRefusal>;
     fn payload(&mut self, path: &str, deadline: Instant) -> Result<ItemPayload, ItemRefusal>;
-    fn record_kind(&mut self, id: &str, deadline: Instant) -> Result<Option<String>, ItemRefusal>;
+    fn record_kind(&mut self, id: &str, deadline: Instant) -> Result<Option<&str>, ItemRefusal>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -227,10 +227,9 @@ impl ItemRules {
 
     // Native Item Python loaders use ordinary json.loads. Keep that legacy
     // decoded-field profile here; do not silently substitute the strict
-    // declared-record parser. The bounded legacy codec can refuse a malformed
-    // or otherwise unsupported representation before serde can classify it;
-    // that is an explicit Unsupported result, not a source issue. Exact raw
-    // bytes still bind schema and fixity after successful decode.
+    // declared-record parser. The bounded legacy codec keeps syntax errors
+    // separate from unsupported representations. Exact raw bytes still bind
+    // schema and fixity after successful decode.
     fn object(
         &mut self,
         source: &mut impl ItemSource,
@@ -241,15 +240,21 @@ impl ItemRules {
             return Ok(None);
         };
         let available = self.available()?;
-        let decoded = crate::record_biblio_cut::bounded_legacy_decoded_state(
+        let decoded = crate::record_biblio_cut::bounded_legacy_decoded_state_with_limits(
             &raw,
-            self.limits.max_member_bytes,
+            item_json_limits(self.limits.max_member_bytes, available)?,
             available,
             self.limits.deadline,
             &AtomicBool::new(false),
         );
         let (value, decoded_bytes) = match decoded {
             Ok(result) => result,
+            Err(ItemRefusal::Source(reason)) if reason == "invalid finite native JSON" => {
+                self.release_raw(&raw);
+                drop(raw);
+                self.issue(path, "invalid-json")?;
+                return Ok(None);
+            }
             Err(error @ ItemRefusal::Unsupported(_)) => return Err(error),
             Err(error) => {
                 return Err(item_codec_refusal(
@@ -330,7 +335,7 @@ impl ItemRules {
         kind: &str,
     ) -> Result<(), ItemRefusal> {
         if let Some(id) = id.as_str() {
-            if source.record_kind(id, self.limits.deadline)?.as_deref() != Some(kind) {
+            if source.record_kind(id, self.limits.deadline)? != Some(kind) {
                 self.issue(path, "missing-or-wrong-record-kind")?;
             }
             self.check()?;
@@ -513,15 +518,21 @@ impl ItemRules {
                             return self.issue(&location, "blank-jsonl-line");
                         }
                         let available = self.available()?;
-                        let decoded = crate::record_biblio_cut::bounded_legacy_decoded_state(
-                            line.as_bytes(),
-                            self.limits.max_member_bytes,
-                            available,
-                            self.limits.deadline,
-                            &AtomicBool::new(false),
-                        );
+                        let decoded =
+                            crate::record_biblio_cut::bounded_legacy_decoded_state_with_limits(
+                                line.as_bytes(),
+                                item_json_limits(self.limits.max_member_bytes, available)?,
+                                available,
+                                self.limits.deadline,
+                                &AtomicBool::new(false),
+                            );
                         let (event, event_bytes) = match decoded {
                             Ok(result) => result,
+                            Err(ItemRefusal::Source(reason))
+                                if reason == "invalid finite native JSON" =>
+                            {
+                                return self.issue(&location, "invalid-jsonl");
+                            }
                             Err(error @ ItemRefusal::Unsupported(_)) => return Err(error),
                             Err(error) => {
                                 return Err(item_codec_refusal(
@@ -708,6 +719,19 @@ impl ItemRules {
     }
 
     /// Invoke for every current native Item record after manifest traversal.
+    pub(crate) fn item_record_read_limit(&self, path: &str) -> Result<usize, ItemRefusal> {
+        let header = std::mem::size_of::<Vec<u8>>()
+            .checked_add(std::mem::size_of::<String>())
+            .and_then(|n| n.checked_add(path.len()))
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(self.limits.max_member_bytes.min(
+            self.available()?
+                .checked_sub(header)
+                .ok_or(ItemRefusal::Budget)?,
+        ))
+    }
+
+    /// Invoke for every current native Item record after manifest traversal.
     pub fn inspect_item_record(
         &mut self,
         source: &mut impl ItemSource,
@@ -730,17 +754,24 @@ impl ItemRules {
         if raw.len() > self.limits.max_member_bytes {
             return Err(ItemRefusal::Budget);
         }
-        self.admit_live(raw.len())?;
+        let header = std::mem::size_of::<Vec<u8>>()
+            .checked_add(std::mem::size_of::<String>())
+            .and_then(|n| n.checked_add(path.len()))
+            .ok_or(ItemRefusal::Budget)?;
+        self.admit_live(header.checked_add(raw.len()).ok_or(ItemRefusal::Budget)?)?;
         let available = self.available()?;
-        let decoded = crate::record_biblio_cut::bounded_legacy_decoded_state(
+        let decoded = crate::record_biblio_cut::bounded_legacy_decoded_state_with_limits(
             raw,
-            self.limits.max_member_bytes,
+            item_json_limits(self.limits.max_member_bytes, available)?,
             available,
             self.limits.deadline,
             &AtomicBool::new(false),
         );
         let (item, item_bytes) = match decoded {
             Ok(result) => result,
+            Err(ItemRefusal::Source(reason)) if reason == "invalid finite native JSON" => {
+                return Err(ItemRefusal::Source("item-record-json".into()));
+            }
             Err(error @ ItemRefusal::Unsupported(_)) => return Err(error),
             Err(error) => {
                 return Err(item_codec_refusal(
@@ -798,6 +829,14 @@ impl ItemRules {
 
 fn array(value: &Value) -> impl Iterator<Item = &Value> {
     value.as_array().into_iter().flatten()
+}
+
+fn item_json_limits(
+    max_bytes: usize,
+    available: usize,
+) -> Result<tos_foundation::JsonLimits, ItemRefusal> {
+    tos_foundation::JsonLimits::new(max_bytes, 128, available.max(1), max_bytes.max(1))
+        .map_err(|_| ItemRefusal::Budget)
 }
 
 fn item_codec_visits(raw_len: usize, available: usize) -> Result<usize, ItemRefusal> {
@@ -972,8 +1011,8 @@ mod tests {
         fn payload(&mut self, _: &str, _: Instant) -> Result<ItemPayload, ItemRefusal> {
             Ok(ItemPayload::Unavailable)
         }
-        fn record_kind(&mut self, id: &str, _: Instant) -> Result<Option<String>, ItemRefusal> {
-            Ok(self.kinds.get(id).cloned())
+        fn record_kind(&mut self, id: &str, _: Instant) -> Result<Option<&str>, ItemRefusal> {
+            Ok(self.kinds.get(id).map(String::as_str))
         }
     }
 

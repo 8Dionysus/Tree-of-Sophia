@@ -948,7 +948,11 @@ pub fn inspect_items_from_cut(
     let mut kinds = BTreeMap::new();
     let mut manifests = Vec::new();
     let mut items = Vec::new();
-    let mut index_bytes = 0usize;
+    let mut index_bytes = 2 * std::mem::size_of::<Vec<String>>()
+        + std::mem::size_of::<BTreeMap<String, String>>();
+    if index_bytes > limits.max_state_bytes {
+        return Err(ItemRefusal::Budget);
+    }
     let mut total_bytes = 0u64;
     while let Some(member) = stream
         .next_member(limits.deadline, cancelled)
@@ -961,7 +965,11 @@ pub fn inspect_items_from_cut(
             .ok_or(ItemRefusal::Budget)?;
         let path = member.path.as_str();
         if path.starts_with("ToS/source-witnesses/") && path.ends_with("/item.manifest.json") {
-            reserve(&mut index_bytes, path.len(), limits.max_state_bytes)?;
+            reserve(
+                &mut index_bytes,
+                path.len() + std::mem::size_of::<String>(),
+                limits.max_state_bytes,
+            )?;
             manifests.push(member.path.clone());
         }
         // These are source-owned JSON record fields, never decoded manifest
@@ -980,14 +988,21 @@ pub fn inspect_items_from_cut(
                 let kind = carrier.kind.as_str();
                 reserve(
                     &mut index_bytes,
-                    id.len() + kind.len(),
+                    id.len()
+                        + kind.len()
+                        + std::mem::size_of::<(String, String)>()
+                        + 3 * std::mem::size_of::<usize>(),
                     limits.max_state_bytes,
                 )?;
                 if kinds.insert(id.to_owned(), kind.to_owned()).is_some() {
                     return Err(ItemRefusal::Source("duplicate current record ID".into()));
                 }
                 if kind == "item" {
-                    reserve(&mut index_bytes, path.len(), limits.max_state_bytes)?;
+                    reserve(
+                        &mut index_bytes,
+                        path.len() + std::mem::size_of::<String>(),
+                        limits.max_state_bytes,
+                    )?;
                     items.push(member.path.clone());
                 }
             }
@@ -1016,11 +1031,15 @@ pub fn inspect_items_from_cut(
     }
     for path in items {
         check(limits.deadline, cancelled)?;
+        // The selected member reader materializes its raw Vec and path before
+        // ItemRules can inspect it. Admit that live shape against the same
+        // remaining family state before the read, not after allocation.
+        let read_limit = rules.item_record_read_limit(path.as_str())?;
         let member = cut
             .read_member(
                 revision,
                 &path,
-                limits.max_member_bytes as u64,
+                read_limit as u64,
                 limits.deadline,
                 cancelled,
             )
@@ -1090,9 +1109,9 @@ impl<S: CutSchemaExecutor, P: CutPayloadReader> ItemSource for CutItemSource<'_,
         check(deadline, self.cancelled)?;
         self.payloads.inspect(path, deadline, self.cancelled)
     }
-    fn record_kind(&mut self, id: &str, deadline: Instant) -> Result<Option<String>, ItemRefusal> {
+    fn record_kind(&mut self, id: &str, deadline: Instant) -> Result<Option<&str>, ItemRefusal> {
         check(deadline, self.cancelled)?;
-        Ok(self.kinds.get(id).cloned())
+        Ok(self.kinds.get(id).map(String::as_str))
     }
 }
 
