@@ -254,6 +254,194 @@ fn validate_collection(value: &JsonValue) -> Result<JsonValue, &'static str> {
     }
     Ok(value.clone())
 }
+fn field_or(value: &JsonValue, key: &str, fallback: JsonValue) -> JsonValue {
+    match get(value, key) {
+        None | Some(JsonValue::Null) => fallback,
+        Some(item) => item.clone(),
+    }
+}
+fn create_record(value: &JsonValue) -> Result<JsonValue, &'static str> {
+    if !exact(value, &["input", "id", "now"], &[]) {
+        return invalid("invalid-input");
+    }
+    let input = get(value, "input").ok_or("invalid-input")?;
+    if !exact(
+        input,
+        &[],
+        &[
+            "id",
+            "title",
+            "type",
+            "target",
+            "collectionIds",
+            "createdAt",
+            "updatedAt",
+            "revision",
+        ],
+    ) || ["createdAt", "updatedAt", "revision"]
+        .iter()
+        .any(|key| get(input, key).is_some())
+    {
+        return invalid("invalid-input");
+    }
+    let id = string(value, "id")
+        .filter(|s| bounded(s, 1024))
+        .ok_or("invalid-target")?;
+    let at = string(value, "now")
+        .filter(|s| timestamp(s))
+        .ok_or("invalid-record")?;
+    if get(input, "id").is_some_and(|v| v.as_str() != Some(id)) {
+        return invalid("invalid-input");
+    }
+    Ok(obj(vec![
+        ("id", JsonValue::String(JsonString::from_utf8(id))),
+        (
+            "title",
+            get(input, "title").cloned().unwrap_or(JsonValue::Null),
+        ),
+        (
+            "type",
+            get(input, "type").cloned().unwrap_or(JsonValue::Null),
+        ),
+        (
+            "target",
+            get(input, "target").cloned().unwrap_or(JsonValue::Null),
+        ),
+        (
+            "collectionIds",
+            field_or(input, "collectionIds", JsonValue::Array(Vec::new())),
+        ),
+        ("createdAt", JsonValue::String(JsonString::from_utf8(at))),
+        ("updatedAt", JsonValue::String(JsonString::from_utf8(at))),
+        ("revision", num(1)),
+    ]))
+}
+fn update_record(value: &JsonValue) -> Result<JsonValue, &'static str> {
+    if !exact(value, &["old", "input", "now"], &[]) {
+        return invalid("invalid-input");
+    }
+    let old = get(value, "old").ok_or("invalid-record")?;
+    let input = get(value, "input").ok_or("invalid-input")?;
+    if !exact(
+        input,
+        &[],
+        &[
+            "id",
+            "title",
+            "type",
+            "target",
+            "collectionIds",
+            "createdAt",
+            "updatedAt",
+            "revision",
+        ],
+    ) {
+        return invalid("invalid-input");
+    }
+    let id = string(old, "id").ok_or("invalid-record")?;
+    let kind = string(old, "type").ok_or("invalid-record")?;
+    if get(input, "id").is_some_and(|v| v.as_str() != Some(id))
+        || get(input, "type").is_some_and(|v| v.as_str() != Some(kind))
+        || get(input, "target").is_some_and(|v| Some(v) != get(old, "target"))
+        || get(input, "createdAt").is_some_and(|v| Some(v) != get(old, "createdAt"))
+    {
+        return invalid("invalid-input");
+    }
+    let revision = number(old, "revision", 1)
+        .ok_or("invalid-record")?
+        .checked_add(1)
+        .filter(|n| *n <= MAX_SAFE)
+        .ok_or("invalid-input")?;
+    let at = string(value, "now")
+        .filter(|s| timestamp(s))
+        .ok_or("invalid-record")?;
+    Ok(obj(vec![
+        ("id", get(old, "id").unwrap().clone()),
+        (
+            "title",
+            field_or(input, "title", get(old, "title").unwrap().clone()),
+        ),
+        ("type", get(old, "type").unwrap().clone()),
+        ("target", get(old, "target").unwrap().clone()),
+        (
+            "collectionIds",
+            field_or(
+                input,
+                "collectionIds",
+                get(old, "collectionIds").unwrap().clone(),
+            ),
+        ),
+        ("createdAt", get(old, "createdAt").unwrap().clone()),
+        ("updatedAt", JsonValue::String(JsonString::from_utf8(at))),
+        ("revision", num(revision)),
+    ]))
+}
+fn create_collection(value: &JsonValue) -> Result<JsonValue, &'static str> {
+    if !exact(value, &["input", "id", "now"], &[]) {
+        return invalid("invalid-input");
+    }
+    let input = get(value, "input").ok_or("invalid-input")?;
+    if !exact(input, &[], &["id", "title"]) {
+        return invalid("invalid-input");
+    }
+    let id = string(value, "id")
+        .filter(|s| bounded(s, 256))
+        .ok_or("invalid-target")?;
+    if get(input, "id").is_some_and(|v| !v.is_null() && v.as_str() != Some(id)) {
+        return invalid("invalid-input");
+    }
+    let at = string(value, "now")
+        .filter(|s| timestamp(s))
+        .ok_or("invalid-record")?;
+    Ok(obj(vec![
+        ("id", JsonValue::String(JsonString::from_utf8(id))),
+        (
+            "title",
+            get(input, "title").cloned().unwrap_or(JsonValue::Null),
+        ),
+        ("createdAt", JsonValue::String(JsonString::from_utf8(at))),
+        ("updatedAt", JsonValue::String(JsonString::from_utf8(at))),
+        ("revision", num(1)),
+    ]))
+}
+fn update_collection(value: &JsonValue) -> Result<JsonValue, &'static str> {
+    if !exact(value, &["old", "input", "now"], &[]) {
+        return invalid("invalid-input");
+    }
+    let old = get(value, "old").ok_or("invalid-record")?;
+    let input = get(value, "input").ok_or("invalid-input")?;
+    if !exact(input, &[], &["id", "title"]) {
+        return invalid("invalid-input");
+    }
+    if get(input, "id").is_some_and(|v| Some(v) != get(old, "id")) {
+        return invalid("invalid-input");
+    }
+    let revision = number(old, "revision", 1)
+        .ok_or("invalid-record")?
+        .checked_add(1)
+        .filter(|n| *n <= MAX_SAFE)
+        .ok_or("invalid-input")?;
+    let at = string(value, "now")
+        .filter(|s| timestamp(s))
+        .ok_or("invalid-record")?;
+    Ok(obj(vec![
+        ("id", get(old, "id").ok_or("invalid-record")?.clone()),
+        (
+            "title",
+            field_or(
+                input,
+                "title",
+                get(old, "title").ok_or("invalid-record")?.clone(),
+            ),
+        ),
+        (
+            "createdAt",
+            get(old, "createdAt").ok_or("invalid-record")?.clone(),
+        ),
+        ("updatedAt", JsonValue::String(JsonString::from_utf8(at))),
+        ("revision", num(revision)),
+    ]))
+}
 fn transition(value: &JsonValue) -> Result<JsonValue, &'static str> {
     if !exact(
         value,
@@ -667,6 +855,10 @@ pub fn research_shelf_rule_v1(raw: &[u8]) -> Result<Vec<u8>, &'static str> {
         }
         "validate_record" => validate_record(value)?,
         "validate_collection" => validate_collection(value)?,
+        "create_record" => create_record(value)?,
+        "update_record" => update_record(value)?,
+        "create_collection" => create_collection(value)?,
+        "update_collection" => update_collection(value)?,
         "transition" => transition(value)?,
         "detach" => detach(value)?,
         "list_options" => list_options(value)?,

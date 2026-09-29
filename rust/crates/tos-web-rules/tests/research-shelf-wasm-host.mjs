@@ -35,13 +35,17 @@ async function exercise(){
   const created=await store.save(input('one'),{expectedRevision:null});
   await store.save(input('two'),{expectedRevision:null});
   const collection=await store.saveCollection({id:'group',title:'Group'});
+  await assert.rejects(store.save({...created.item,target:{...target,id:'other-node'}},
+    {expectedRevision:created.item.revision}),error=>error.code==='invalid-input','exact target is immutable');
+  const renamed=await store.saveCollection({id:'group',title:'Renamed'},
+    {expectedRevision:collection.item.revision});
   await store.save({...created.item,collectionIds:['group']},{expectedRevision:created.item.revision});
   const page=await store.list({limit:1});
   assert.ok(page.nextCursor);
   const packet=await store.export();
   const identical=await store.import(packet);
   assert.deepEqual(identical.counts,{records:0,collections:0});
-  await store.removeCollection('group',collection.item.revision);
+  await store.removeCollection('group',renamed.item.revision);
   const detached=await store.get('one');
   const after=await store.export();
   await store.close();
@@ -76,6 +80,6 @@ finally{duplicate.free();}
 assert.throws(()=>new binding.ResearchShelfPacketIndex(encode.encode(JSON.stringify({
   schema:'tos.research_shelf.export.v1',version:1,generation:0,recordCount:200_001,collectionCount:0,
 }))),/limit/u,'record bound without whole-record allocation');
-console.log(JSON.stringify({status:'pass',cases:9,host:`Node ${process.version} WebAssembly`,
+console.log(JSON.stringify({status:'pass',cases:11,host:`Node ${process.version} WebAssembly`,
   wasm_bytes:wasm.byteLength,glue_bytes:(await stat(bindingPath)).size,startup_ms:Number(startupMs.toFixed(3)),
   packet_index:'chunked ids',whole_packet_wasm_copy:false}));

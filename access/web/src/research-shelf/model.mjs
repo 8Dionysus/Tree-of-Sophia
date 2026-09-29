@@ -238,7 +238,7 @@ export function createShelfRecord(input,{id,now=canonicalTimestamp}={}){
     fail('invalid-input','Stored timestamps and revisions cannot be supplied for a new shelf record.');
   const createdAt=timestamp(now(),'createdAt');
   const base={id:recordId,title:input.title,type:input.type,target:input.target,collectionIds:input.collectionIds??[],createdAt,updatedAt:createdAt,revision:1};
-  return validateShelfRecord(base);
+  return validateShelfRecord(researchShelfRule('create_record',{input,id:recordId,now:createdAt})??base);
 }
 
 /** Normalize editable fields while preserving the stored address and creation time. */
@@ -248,12 +248,14 @@ export function updateShelfRecord(existing,input,{now=canonicalTimestamp}={}){
   if(Object.keys(input).some(key=>!INPUT_FIELDS.includes(key)))fail('invalid-input','The shelf input contains an unknown field.');
   if(input.id!==undefined&&input.id!==old.id)fail('invalid-input','A record update cannot change its id.');
   if(input.type!==undefined&&input.type!==old.type)fail('invalid-input','A record update cannot change its type.');
-  if(input.target!==undefined&&JSON.stringify(validateTarget(old.type,input.target))!==JSON.stringify(old.target))
+  const canonicalTarget=input.target===undefined?undefined:validateTarget(old.type,input.target);
+  if(canonicalTarget!==undefined&&JSON.stringify(canonicalTarget)!==JSON.stringify(old.target))
     fail('invalid-input','A record update cannot change its exact target.');
   if(input.createdAt!==undefined&&input.createdAt!==old.createdAt)fail('invalid-input','A record update cannot change createdAt.');
   const updatedAt=timestamp(now(),'updatedAt');
-  return validateShelfRecord({id:old.id,title:input.title??old.title,type:old.type,target:old.target,
-    collectionIds:input.collectionIds??old.collectionIds,createdAt:old.createdAt,updatedAt,revision:old.revision+1});
+  const base={id:old.id,title:input.title??old.title,type:old.type,target:old.target,
+    collectionIds:input.collectionIds??old.collectionIds,createdAt:old.createdAt,updatedAt,revision:old.revision+1};
+  return validateShelfRecord(researchShelfRule('update_record',{old,input:canonicalTarget===undefined?input:{...input,target:canonicalTarget},now:updatedAt})??base);
 }
 
 export function validateCollection(value){
@@ -273,7 +275,8 @@ export function createShelfCollection(input,{id,now=canonicalTimestamp}={}){
   const collectionId=input.id??(typeof id==='function'?id():`collection-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`);
   boundedString(collectionId??'generated id',256,'collection id');
   const at=timestamp(now(),'collection.createdAt');
-  return validateCollection({id:collectionId,title:input.title,createdAt:at,updatedAt:at,revision:1});
+  const base={id:collectionId,title:input.title,createdAt:at,updatedAt:at,revision:1};
+  return validateCollection(researchShelfRule('create_collection',{input,id:collectionId,now:at})??base);
 }
 
 export function updateShelfCollection(existing,input,{now=canonicalTimestamp}={}){
@@ -281,7 +284,8 @@ export function updateShelfCollection(existing,input,{now=canonicalTimestamp}={}
   if(!object(input)||Object.keys(input).some(key=>!['id','title'].includes(key)))fail('invalid-input','The collection input contains an unknown field.');
   if(input.id!==undefined&&input.id!==old.id)fail('invalid-input','A collection update cannot change its id.');
   const at=timestamp(now(),'collection.updatedAt');
-  return validateCollection({id:old.id,title:input.title??old.title,createdAt:old.createdAt,updatedAt:at,revision:old.revision+1});
+  const base={id:old.id,title:input.title??old.title,createdAt:old.createdAt,updatedAt:at,revision:old.revision+1};
+  return validateCollection(researchShelfRule('update_collection',{old,input,now:at})??base);
 }
 
 function stable(value){
