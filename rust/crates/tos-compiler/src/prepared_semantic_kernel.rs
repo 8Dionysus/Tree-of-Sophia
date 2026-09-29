@@ -119,7 +119,7 @@ fn objects(value: Option<&Value>) -> Vec<&Value> {
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
-        .filter(Value::is_object)
+        .filter(|value| value.is_object())
         .collect()
 }
 
@@ -1447,9 +1447,8 @@ fn property_applies_to(
     definition: &Value,
     entity_entries: &BTreeMap<String, &Value>,
 ) -> Result<bool> {
-    let applies = definition
-        .get("applies_to")
-        .unwrap_or(&Value::Array(Vec::new()));
+    let empty = Value::Array(Vec::new());
+    let applies = definition.get("applies_to").unwrap_or(&empty);
     if truthy(definition.get("inherited")) {
         let Some(type_id) = type_id else {
             return Ok(false);
@@ -1913,7 +1912,7 @@ fn validate_claim_navigation_template(registry: &Value) -> Vec<String> {
                 .and_then(Value::as_object)
                 .is_none_or(|values| {
                     values.len() != allowed.len()
-                        || allowed.iter().any(|value| !values.contains_key(**value))
+                        || allowed.iter().any(|value| !values.contains_key(*value))
                 })
         })
     {
@@ -2203,7 +2202,11 @@ pub(crate) fn validate_semantic_registries(
                 }
             }
             JsonValue::String(owners) => {
-                for owner in owners.chars() {
+                for owner in owners
+                    .as_str()
+                    .ok_or(Error::Invalid("semantic property owner string UTF-8"))?
+                    .chars()
+                {
                     let text = owner.to_string();
                     if !entity_entries.contains_key(&text) {
                         violations.push(format!(
@@ -2613,7 +2616,7 @@ fn native_metadata_identity(record: &Value) -> Result<Option<&'static str>> {
         if record.get("record_id").is_some()
             || !kind.is_some_and(|kind| kinds.contains(&kind))
             || !valid_id
-            || version.is_none()
+            || !version
         {
             return Err(Error::Invalid("native canonical identity"));
         }
@@ -2701,7 +2704,6 @@ fn metadata_history_refs(node: &Value) -> Result<Option<Vec<Value>>> {
             0,
             MAX_SAFE_INTEGER,
         )
-        .is_some()
         && python_optional_eq(
             history.get("record_id"),
             record.and_then(|record| record.get(identity_field)),
