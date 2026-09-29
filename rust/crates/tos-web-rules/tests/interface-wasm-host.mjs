@@ -25,6 +25,9 @@ const invalid=[
   {...DEFAULT_INTERFACE,positions:{settings:{x:1.5,y:0}}},
 ];
 const oracle=valid.map(value=>validateInterface(structuredClone(value)));
+// JSON storage has its own normalization (for example -0 becomes 0). Compare
+// each actual reader with the retained reader over those same stored bytes.
+const readerOracle=valid.map(value=>readInterface({getItem:key=>key===INTERFACE_KEY?JSON.stringify(value):null}));
 for(const value of invalid)assert.throws(()=>validateInterface(structuredClone(value)));
 
 const rules=await import(pathToFileURL(bindingPath).href);
@@ -35,7 +38,7 @@ for(let index=0;index<valid.length;index++){
   assert.deepEqual(validateInterface(input),oracle[index],`interface ${index}`);
   const saved=JSON.stringify(input);
   const storage={getItem:key=>key===INTERFACE_KEY?saved:null};
-  assert.deepEqual(readInterface(storage),oracle[index],`readInterface ${index}`);
+  assert.deepEqual(readInterface(storage),readerOracle[index],`readInterface ${index}`);
   assert.equal(storage.getItem(INTERFACE_KEY),saved,'read preserves source storage');
 }
 for(const value of invalid)assert.throws(()=>validateInterface(structuredClone(value)));
