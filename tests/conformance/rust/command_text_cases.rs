@@ -482,6 +482,12 @@ fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
     let original_config = config.clone();
     let mut proposal = fixture["proposal"].clone();
     let authored = authored_text_files(&public);
+    // The protected OPS runner uses umask 077. This synthetic public fixture
+    // must explicitly carry the portable authored-cut mode, while its private
+    // owner/context, excluded payload and owner-local files retain their modes.
+    for reference in authored.keys() {
+        fs::set_permissions(public.join(reference), fs::Permissions::from_mode(0o644)).unwrap();
+    }
     eprintln!(
         "Alignment fixture F_authored_cut={} G_grant_bytes={}",
         authored.len(),
