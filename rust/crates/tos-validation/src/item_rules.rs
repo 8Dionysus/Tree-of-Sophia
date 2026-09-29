@@ -671,6 +671,11 @@ impl ItemRules {
             }
             let payload_baseline = self.live_bytes;
             self.admit_live(std::mem::size_of::<String>() + directory.len() + 1 + relative.len())?;
+            // The selected payload adapter returns one SHA-256 hex String at
+            // most; keep its owned result live with the path and issue state.
+            self.admit_live(
+                std::mem::size_of::<ItemPayload>() + std::mem::size_of::<String>() + 64,
+            )?;
             let payload_path = format!("{directory}/{relative}");
             safe_path(&payload_path)?;
             match source.payload(&payload_path, self.limits.deadline)? {
