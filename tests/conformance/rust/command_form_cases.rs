@@ -1073,3 +1073,182 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
         ));
     }
 }
+
+// Link-v1 retains its own schema and record identity. The existing public
+// source-copy kernel already guards its URL/provider/observation context;
+// Forms publishes only the adjacent carrier and never revises Link bytes.
+#[test]
+fn retained_link_v1_forms_prepare_apply_and_cold_replay_through_native_owner() {
+    use std::os::unix::fs::PermissionsExt;
+    use tos_command::source_creation_store::IsolatedCreationRoot;
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let cancelled = AtomicBool::new(false);
+    let native = PathBuf::from(
+        std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH").expect("OPS immutable native owner CLI"),
+    );
+    assert!(native.is_absolute());
+    let worker = super::validation_cut_cases::selected_worker_path();
+    let native_digest = super::command_text_cases::alignment_image_digest(&native);
+    let worker_digest = super::command_text_cases::alignment_image_digest(&worker);
+    let temporary = tempfile::tempdir().unwrap();
+    let isolated = IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
+    let source_path =
+        "ToS/source-witnesses/links/internet-archive/onfoursongsconta00good/landing/link.json";
+    let target = source_path.strip_suffix(".json").unwrap().to_owned() + ".human-forms.json";
+    let source_raw = fs::read(repository.join(source_path)).unwrap();
+    let retained_raw = fs::read(repository.join(&target)).unwrap();
+    let source: Value = serde_json::from_slice(&source_raw).unwrap();
+    let retained: Value = serde_json::from_slice(&retained_raw).unwrap();
+    assert_eq!(
+        source["schema_version"],
+        serde_json::json!("tos_source_link_v1")
+    );
+    let selected_form = retained["forms"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|form| {
+            form["content"]["kind"] == "source-copy"
+                && form["bindings"]["wording"]["pointer"] == "/preferred_label"
+        })
+        .unwrap();
+    let form_id = selected_form["form_id"].as_str().unwrap();
+    let mut files = BTreeMap::from([
+        (source_path.to_owned(), source_raw.clone()),
+        (target.clone(), retained_raw.clone()),
+    ]);
+    for entry in fs::read_dir(repository.join("ToS/contracts")).unwrap() {
+        let entry = entry.unwrap();
+        let name = entry.file_name().into_string().unwrap();
+        if name.ends_with(".schema.json") {
+            files.insert(
+                format!("ToS/contracts/{name}"),
+                fs::read(entry.path()).unwrap(),
+            );
+        }
+    }
+    assert!(files.len() <= 2048 && files.values().map(Vec::len).sum::<usize>() <= 8 * 1024 * 1024);
+    for (path, raw) in &files {
+        let destination = isolated.path().join(path);
+        fs::create_dir_all(destination.parent().unwrap()).unwrap();
+        fs::write(&destination, raw).unwrap();
+        fs::set_permissions(destination, fs::Permissions::from_mode(0o644)).unwrap();
+    }
+    let component = "rust/crates/tos-command/src/source_forms.rs";
+    let component_raw = fs::read(repository.join(component)).unwrap();
+    let destination = isolated.path().join(component);
+    fs::create_dir_all(destination.parent().unwrap()).unwrap();
+    fs::write(&destination, &component_raw).unwrap();
+    fs::set_permissions(destination, fs::Permissions::from_mode(0o644)).unwrap();
+    let mut capture_inputs = files.clone();
+    capture_inputs.insert(component.into(), component_raw);
+    let (capture, _software, components) =
+        super::command_record_cases::captured_components(&capture_inputs, deadline, &cancelled);
+    let owner = temporary.path().join("link-form-owner.json");
+    let config = serde_json::json!({"schema_version":"tos_local_source_command_owner_v1","uid":rustix::process::getuid().as_raw(),
+        "principal_id":"model:retained-link-forms","source_root":isolated.path(),"source_path":source_path,
+        "authority_ref":"test-only:retained-link-form-revision","allowed_form_ids":[form_id],
+        "allowed_operations":["form.revise"],"expires_at":"2099-01-01T00:00:00Z"});
+    fs::write(&owner, serde_json::to_vec(&config).unwrap()).unwrap();
+    fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+    let store = temporary.path().join("link-form-cut");
+    let base = super::validation_cut_cases::write_cut_store(&files, &store);
+    let mut invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1","owner_config":owner,
+        "owner_context":null,"assessment_schema_worker":null,
+        "native_executable":native,"native_executable_sha256":native_digest.to_prefixed(),
+        "corpus_store":store,"source_revision":base.0.to_prefixed(),"original_source_revision":base.0.to_prefixed(),
+        "software_capture":capture.capture,"software_restored_root":capture.restored,
+        "software_selection":{"source_git_commit":capture.selection.source_git_commit,"source_git_tree":capture.selection.source_git_tree,"capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},
+        "software_components":components.members().map(|m|m.path.as_str()).collect::<Vec<_>>(),
+        "schema_worker":{"absolute_path":worker,"sha256":worker_digest.to_prefixed()},
+        "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
+    let invocation_path = temporary.path().join("link-form-invocation.json");
+    let freeze = |value: &Value| {
+        fs::write(&invocation_path, serde_json::to_vec(value).unwrap()).unwrap();
+        fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+    };
+    freeze(&invocation);
+    let invoke = |request: &Value| -> Value {
+        let (status, raw, errors) = super::command_text_cases::native_owner_cli_observation(
+            &repository,
+            &owner,
+            &invocation_path,
+            request,
+            deadline,
+        );
+        assert!(
+            status.success(),
+            "Link-v1 native Forms: {}",
+            String::from_utf8_lossy(&errors)
+        );
+        let result: Value = serde_json::from_slice(&raw).unwrap();
+        assert_eq!(result["grants_admission"], serde_json::json!(false));
+        result["result"].clone()
+    };
+    let preview = invoke(
+        &serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"prepare","form_id":form_id,"field_id":"metadata.preferred-name"}),
+    );
+    assert_eq!(preview["source"]["id"], source["record_id"]);
+    assert_eq!(preview["source"]["version"], source["record_version"]);
+    assert_eq!(
+        preview["prepared_materialization"]["state"],
+        serde_json::json!("ready")
+    );
+    let pointers = preview["prepared_change"]["form"]["bindings"]
+        .as_object()
+        .unwrap()
+        .values()
+        .map(|binding| binding["pointer"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    for pointer in [
+        "/uri",
+        "/provider_label",
+        "/link_kind",
+        "/access_status",
+        "/observed_at",
+        "/observation_ref",
+        "/association_claim_refs",
+        "/provenance_event_ref",
+    ] {
+        assert!(pointers.contains(&pointer));
+    }
+    assert_eq!(
+        fs::read(isolated.path().join(&target)).unwrap(),
+        retained_raw
+    );
+    let request = serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"apply","command_id":"retained-link-native-form-revise",
+        "expected_source":preview["source"],"expected_revision":preview["revision"],"expected_configuration":preview["owner_configuration"],"changes":[preview["prepared_change"]]});
+    let applied = invoke(&request);
+    assert_eq!(applied["replayed"], serde_json::json!(false));
+    let after_raw = fs::read(isolated.path().join(&target)).unwrap();
+    let after: Value = serde_json::from_slice(&after_raw).unwrap();
+    assert!(
+        after["prior_forms"]
+            .as_array()
+            .unwrap()
+            .contains(selected_form)
+    );
+    assert_eq!(
+        fs::read(isolated.path().join(source_path)).unwrap(),
+        source_raw
+    );
+    files.insert(target.clone(), after_raw.clone());
+    // The publication carrier is source transport, not a semantic revision.
+    let publication = "ToS/source-witnesses/.metadata-publication.json";
+    files.insert(
+        publication.into(),
+        fs::read(isolated.path().join(publication)).unwrap(),
+    );
+    let current = super::validation_cut_cases::write_cut_store_on_base(&files, &store, Some(base));
+    invocation["source_revision"] = serde_json::json!(current.0.to_prefixed());
+    freeze(&invocation);
+    assert_eq!(invoke(&request)["replayed"], serde_json::json!(true));
+    assert_eq!(fs::read(isolated.path().join(&target)).unwrap(), after_raw);
+    assert_eq!(
+        fs::read(isolated.path().join(source_path)).unwrap(),
+        source_raw
+    );
+}
