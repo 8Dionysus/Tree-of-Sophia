@@ -2361,3 +2361,232 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
     assert!(retried.changes.is_empty());
     assert_eq!(response(&retried)["receipt"], revised_result["receipt"]);
 }
+
+#[test]
+fn native_claim_cli_creates_revises_and_cold_replays_original_bytes() {
+    use super::command_text_cases::{
+        alignment_image_digest, alignment_native_cli, authored_text_files,
+    };
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    use tos_command::source_creation_store::IsolatedCreationRoot;
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let cancellation = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let (mut files, mut claim, mut revision_owner, source_path) = claim_fixture();
+    claim["claim_version"] = Value::from(1);
+    let mut software_names = CLAIM_GROUNDING_RULE_INPUTS
+        .iter()
+        .chain(CLAIM_REVISION_RULE_INPUTS)
+        .copied()
+        .filter(|name| !name.starts_with("ToS/"))
+        .collect::<Vec<_>>();
+    software_names.extend([
+        "rust/crates/tos-command/src/source_claims.rs",
+        "rust/crates/tos-command/src/source_serialization.rs",
+    ]);
+    software_names.sort_unstable();
+    software_names.dedup();
+    for name in software_names {
+        files.insert(name.into(), fs::read(repository.join(name)).unwrap());
+    }
+    // Cheap physical input bounds precede capture/corpus/publication writes.
+    let fixture_bytes = files
+        .values()
+        .try_fold(0u64, |sum, raw| sum.checked_add(raw.len() as u64))
+        .unwrap();
+    assert!(fixture_bytes <= 33_554_432 && files.len() <= 2048);
+    let native = PathBuf::from(
+        std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH")
+            .expect("OPS must select the protected native Claim image"),
+    );
+    assert!(native.is_absolute());
+    let worker_image = super::validation_cut_cases::selected_worker_path();
+    let native_bytes = fs::metadata(&native).unwrap().len();
+    let worker_bytes = fs::metadata(&worker_image).unwrap().len();
+    let consumer_bytes = fs::metadata(std::env::current_exe().unwrap())
+        .unwrap()
+        .len();
+    assert!(
+        native_bytes <= 536_870_912 && consumer_bytes <= 536_870_912 && worker_bytes <= 536_870_912
+    );
+    assert!(Instant::now() < deadline);
+    eprintln!(
+        "Claim CLI F_fixture={} E_native={} C_consumer={} W_worker={} processes=7 workers<=10",
+        fixture_bytes, native_bytes, consumer_bytes, worker_bytes
+    );
+    let (_capture, software, components) =
+        super::command_record_cases::captured_components(&files, deadline, &cancellation);
+    let temporary = tempfile::tempdir().unwrap();
+    let authored = files
+        .iter()
+        .filter(|(name, _)| name.starts_with("ToS/"))
+        .map(|(name, raw)| (name.clone(), raw.clone()))
+        .collect::<BTreeMap<_, _>>();
+    let store = temporary.path().join("selected-store");
+    let base = super::validation_cut_cases::write_cut_store(&authored, &store);
+    let cut = open_cut(&store, base, deadline, &cancellation);
+    drop(cut);
+    let isolated = IsolatedCreationRoot::create(temporary.path(), deadline, &cancellation).unwrap();
+    for (name, raw) in &files {
+        let target = isolated.path().join(name);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(&target, raw).unwrap();
+        fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
+    }
+    fs::create_dir_all(
+        isolated
+            .path()
+            .join(&source_path)
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap(),
+    )
+    .unwrap();
+    let uid = fs::metadata(isolated.path()).unwrap().uid();
+    let configuration = serde_json::json!({
+        "schema_version":"tos_local_claim_create_owner_v1", "uid":uid,
+        "principal_id":claim["maker"]["agent_ref"], "maker_type":claim["maker"]["maker_type"],
+        "source_root":isolated.path(), "source_path":source_path,
+        "authority_ref":"synthetic-test-only:claim-creation-not-assessment",
+        "expires_at":"2099-01-01T00:00:00Z", "provenance_event_id":claim["provenance_event_ref"],
+        "allowed_operations":["claims.create"], "allowed_claim_ids":[claim["claim_id"]],
+        "allowed_subject_refs":[claim["subject_ref"]], "allowed_object_refs":[claim["object"]],
+        "allowed_predicates":[claim["predicate"]], "allowed_evidence_refs":claim["evidence_refs"]
+    });
+    let config_raw = source_bytes(&source_value(&configuration));
+    let owner = isolated.path().join("owner.json");
+    fs::write(&owner, &config_raw).unwrap();
+    fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+
+    let invocation_path = temporary.path().join("native-claim-invocation.json");
+    let mut invocation = serde_json::json!({
+        "schema_version":"tos_local_native_claim_invocation_v1", "owner_config":owner,
+        "native_executable":native, "native_executable_sha256":alignment_image_digest(&native).to_prefixed(),
+        "corpus_store":store,"source_revision":base.0.to_prefixed(),"original_source_revision":base.0.to_prefixed(),
+        "software_capture":_capture.capture,"software_restored_root":_capture.restored,
+        "software_selection":{"source_git_commit":_capture.selection.source_git_commit,
+            "source_git_tree":_capture.selection.source_git_tree,
+            "capture_manifest_sha256":_capture.selection.capture_manifest_sha256.to_prefixed()},
+        "software_components":components.members().map(|member| member.path.as_str()).collect::<Vec<_>>(),
+        "schema_worker":{"absolute_path":worker_image,"sha256":alignment_image_digest(&worker_image).to_prefixed()},
+        "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,
+            "max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,
+            "worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}
+    });
+    let write_invocation = |value: &Value| {
+        fs::write(&invocation_path, serde_json::to_vec(value).unwrap()).unwrap();
+        fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+    };
+    write_invocation(&invocation);
+    let preview_request = serde_json::json!({"schema_version":"tos_local_source_command_v1",
+        "operation":"prepare-create","claims":[claim.clone()]});
+    let preview = alignment_native_cli(
+        &repository,
+        &owner,
+        &invocation_path,
+        &preview_request,
+        deadline,
+    );
+    assert_eq!(preview["grants_admission"], false);
+    let prepared = &preview["result"];
+    let mut request = preview_request;
+    request["operation"] = serde_json::json!("claims.create");
+    request["command_id"] = serde_json::json!("synthetic:whole-native-claim-cli");
+    request["expected_configuration"] = prepared["owner_configuration"].clone();
+    request["expected_revision"] = Value::Null;
+    request["expected_dependencies"] = prepared["expected_dependencies"].clone();
+    request["expected_inputs"] = prepared["source_bindings"].clone();
+    let created = alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
+    assert_eq!(created["result"]["replayed"], false);
+    assert_eq!(created["result"]["receipt"]["grants_admission"], false);
+    let home = Path::new(&source_path).parent().unwrap();
+    let original_files = fs::read_dir(isolated.path().join(home))
+        .unwrap()
+        .map(|entry| {
+            let entry = entry.unwrap();
+            (
+                entry.file_name().into_string().unwrap(),
+                fs::read(entry.path()).unwrap(),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    assert_eq!(original_files.len(), 5);
+    let mut current_files = authored_text_files(isolated.path());
+    current_files.remove("ToS/source-witnesses/.historical-create.writer.lock");
+    let current = successor(&current_files, &store, base);
+    invocation["source_revision"] = serde_json::json!(current.0.to_prefixed());
+    write_invocation(&invocation);
+    let cold = alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
+    assert_eq!(cold["result"]["replayed"], true);
+    for (name, raw) in &original_files {
+        assert_eq!(
+            &fs::read(isolated.path().join(home).join(name)).unwrap(),
+            raw
+        );
+    }
+    revision_owner["uid"] = serde_json::json!(uid);
+    revision_owner["source_root"] = serde_json::json!(isolated.path());
+    let revision_path = isolated.path().join("revision-owner.json");
+    fs::write(&revision_path, source_bytes(&source_value(&revision_owner))).unwrap();
+    fs::set_permissions(&revision_path, fs::Permissions::from_mode(0o600)).unwrap();
+    invocation["owner_config"] = serde_json::json!(revision_path);
+    write_invocation(&invocation);
+    let correction = serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"prepare-revise",
+        "fields":{"qualifiers":{"statement":format!("{} [native CLI retained correction; no assessment]", claim["qualifiers"]["statement"].as_str().unwrap())}},
+        "forms":[{"form_id":revision_owner["allowed_form_ids"][0],"field_id":"claim.statement"}],
+        "reason":"Actual native CLI correction in an isolated Claim corpus; no assessment."});
+    let prepared = alignment_native_cli(
+        &repository,
+        &revision_path,
+        &invocation_path,
+        &correction,
+        deadline,
+    );
+    let mut revision = correction;
+    revision["operation"] = serde_json::json!("claim.revise");
+    revision["command_id"] = serde_json::json!("synthetic:whole-native-claim-cli-revision");
+    for (field, result_field) in [
+        ("expected_configuration", "owner_configuration"),
+        ("expected_source", "source"),
+        ("expected_revision", "revision"),
+        ("expected_dependencies", "expected_dependencies"),
+        ("expected_inputs", "source_bindings"),
+    ] {
+        revision[field] = prepared["result"][result_field].clone();
+    }
+    let revised = alignment_native_cli(
+        &repository,
+        &revision_path,
+        &invocation_path,
+        &revision,
+        deadline,
+    );
+    assert_eq!(revised["result"]["replayed"], false);
+    assert_eq!(revised["result"]["source"]["version"], 2);
+    assert_eq!(revised["result"]["receipt"]["grants_admission"], false);
+    let mut successor_files = authored_text_files(isolated.path());
+    successor_files.remove("ToS/source-witnesses/.historical-create.writer.lock");
+    let revised_cut = successor(&successor_files, &store, current);
+    invocation["source_revision"] = serde_json::json!(revised_cut.0.to_prefixed());
+    write_invocation(&invocation);
+    let retry = alignment_native_cli(
+        &repository,
+        &revision_path,
+        &invocation_path,
+        &revision,
+        deadline,
+    );
+    assert_eq!(retry["result"]["replayed"], true);
+    assert_eq!(retry["result"]["receipt"], revised["result"]["receipt"]);
+    // Fresh process creation replay still reconstructs v1 after the real v2
+    // publication, using its retained predecessor archive and original cut.
+    invocation["owner_config"] = serde_json::json!(owner);
+    write_invocation(&invocation);
+    let old = alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
+    assert_eq!(old["result"]["replayed"], true);
+    assert_eq!(old["result"]["receipt"], created["result"]["receipt"]);
+    drop(software);
+}

@@ -284,7 +284,7 @@ pub fn advance_claim(
     set(&mut revised, "claim_version", number(version))?;
     Ok(revised)
 }
-fn family(schema: &str) -> SourceCommandResult<(String, bool, u8)> {
+pub(crate) fn family(schema: &str) -> SourceCommandResult<(String, bool, u8)> {
     for (prefix, create) in [
         ("tos_local_claim_create_owner_v", true),
         ("tos_local_claim_revision_owner_v", false),
@@ -1630,11 +1630,6 @@ pub fn execute_isolated_claim_creation_from_captures(
                 deadline,
                 cancelled,
             )?;
-            crate::source_creation_store::finish_creation_worker(
-                current_worker,
-                deadline,
-                cancelled,
-            )?;
         }
         let original = retained_claim_creation_files(
             &current_context,
@@ -1691,6 +1686,11 @@ pub fn execute_isolated_claim_creation_from_captures(
             cancelled,
         )?
     };
+    // Every supplied schema child must be finalized before publication locks,
+    // including a selected current worker not needed by this Claim profile.
+    if let Some(current_worker) = current_worker.as_deref_mut() {
+        crate::source_creation_store::finish_creation_worker(current_worker, deadline, cancelled)?;
+    }
     crate::source_creation_store::finish_creation_worker(worker, deadline, cancelled)?;
     if let Some(catalog) = &current_catalog {
         if let Some(budget) = &whole_call {

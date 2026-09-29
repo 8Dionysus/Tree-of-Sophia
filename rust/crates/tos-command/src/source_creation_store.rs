@@ -1301,6 +1301,61 @@ impl CreationFilesystem {
             uid: self.uid,
         })
     }
+    /// Cross-process Claim access keeps the existing protected typed grant.
+    /// The selected bytes grant neither canonical admission nor another owner.
+    pub(crate) fn select_claim_owner(
+        configuration_path: &Path,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<(Self, Vec<u8>)> {
+        active(deadline, cancelled)?;
+        let uid = rustix::process::geteuid().as_raw();
+        if rustix::process::getuid().as_raw() != uid {
+            return Err(SourceCommandError::Denied("Claim setuid owner selection"));
+        }
+        protected_configuration_parents(configuration_path, uid)?;
+        let mut file = tos_fd_open::open_absolute_regular(configuration_path, 1_048_576)
+            .map_err(|_| SourceCommandError::Denied("Claim protected owner selection"))?;
+        if owned(&file, uid, false)?.mode() & 0o7777 != 0o600 {
+            return Err(SourceCommandError::Denied("Claim owner must be mode0600"));
+        }
+        let configuration_raw = raw(&mut file, 1_048_576, deadline, cancelled)?;
+        let config = cmd::parse(&configuration_raw)?;
+        crate::source_claims::family(cmd::text(&config, "schema_version")?)?;
+        cmd::validate_expiry(
+            cmd::text(&config, "expires_at")?,
+            &crate::source_serialization::instant()?,
+        )?;
+        if cmd::integer(&config, "uid")? != u64::from(uid) {
+            return Err(SourceCommandError::Denied("Claim typed owner account"));
+        }
+        let root_path =
+            crate::source_text_owner::normalized_absolute(cmd::text(&config, "source_root")?)?;
+        if configuration_path.starts_with(root_path.join("ToS")) {
+            return Err(SourceCommandError::Denied(
+                "Claim authority cannot be authored content",
+            ));
+        }
+        protected_configuration_parents(&root_path.join("root-pin"), uid)?;
+        let root = tos_fd_open::open_absolute_directory(&root_path)
+            .map_err(|_| SourceCommandError::Denied("Claim exact source root"))?;
+        let root_metadata = owned(&root, uid, true)?;
+        if root_metadata.mode() & 0o7777 != 0o700 {
+            return Err(SourceCommandError::Denied(
+                "Claim CLI requires a private source root",
+            ));
+        }
+        let root_identity = inode(&root_metadata);
+        let selected = Self {
+            root_path,
+            root,
+            root_identity,
+            configuration_path: configuration_path.to_path_buf(),
+            configuration_raw: configuration_raw.clone(),
+            uid,
+        };
+        Ok((selected, configuration_raw))
+    }
     pub fn select_isolated(
         isolated: &IsolatedCreationRoot,
         configuration_path: &Path,

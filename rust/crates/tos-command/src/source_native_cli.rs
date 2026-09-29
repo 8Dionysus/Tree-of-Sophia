@@ -23,6 +23,9 @@ use tos_validation::FormatProfile;
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
 
+#[path = "source_native_claim_cli.rs"]
+mod claim;
+
 const MAX_INVOCATION: usize = 1_048_576;
 const MAX_REQUEST: usize = 1_048_576;
 
@@ -100,6 +103,8 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     let checked = cmd::parse(&raw)?;
     let invocation: Value = serde_json::from_slice(&cmd::canonical(&checked)?)
         .map_err(|_| SourceCommandError::Invalid("native invocation JSON"))?;
+    let claim_invocation =
+        text(&invocation, "schema_version")? == "tos_local_native_claim_invocation_v1";
     let item_invocation =
         text(&invocation, "schema_version")? == "tos_local_native_item_invocation_v1";
     let mut keys = vec![
@@ -116,13 +121,14 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
         "schema_worker",
         "budgets",
     ];
-    keys.push(if item_invocation {
+    keys.push(if item_invocation || claim_invocation {
         "original_source_revision"
     } else {
         "owner_context"
     });
     exact(&invocation, &keys)?;
     if !item_invocation
+        && !claim_invocation
         && text(&invocation, "schema_version")? != "tos_local_native_owner_invocation_v1"
     {
         return Err(SourceCommandError::Invalid("native invocation profile"));
@@ -136,7 +142,17 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     let request_raw = bounded_read(input, MAX_REQUEST)?;
     let request = cmd::parse(&request_raw)?;
     let operation = cmd::text(&request, "operation")?;
-    let implemented = if item_invocation {
+    let implemented = if claim_invocation {
+        matches!(
+            operation,
+            "describe"
+                | "prepare-create"
+                | "claims.create"
+                | "prepare-revise"
+                | "claim.revise"
+                | "inspect-version"
+        )
+    } else if item_invocation {
         matches!(
             operation,
             "describe" | "prepare-create" | "item.adopt" | "item.adoption.recover"
@@ -246,35 +262,19 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     let components = software
         .select_components(&component_paths)
         .map_err(|_| SourceCommandError::Conflict("selected software components"))?;
-    let worker = &invocation["schema_worker"];
-    exact(worker, &["absolute_path", "sha256"])?;
-    let mut worker_budget = ExecutorBudget::laboratory();
-    worker_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
-    worker_budget.cpu_seconds = capped(budgets, "worker_cpu_seconds", 3)?;
-    worker_budget.address_space_bytes =
-        capped(budgets, "worker_address_space_bytes", 1_073_741_824)?;
-    let mut schema = CutWorkerSchemaExecutor::from_cut(
-        &cut,
-        FormatProfile::LegacyPythonObserved20260923,
-        ExactWorkerIdentity {
-            absolute_path: absolute(text(worker, "absolute_path")?)?,
-            sha256: digest(text(worker, "sha256")?)?,
-        },
-        worker_budget,
-        CutWorkerLimits {
-            max_receipts: usize::try_from(capped(budgets, "max_schema_receipts", 128)?)
-                .map_err(|_| SourceCommandError::Invalid("schema receipt budget"))?,
-            max_receipt_bytes: usize::try_from(capped(
-                budgets,
-                "max_schema_receipt_bytes",
-                262_144,
-            )?)
-            .map_err(|_| SourceCommandError::Invalid("schema receipt budget"))?,
-        },
-        deadline,
-        &cancelled,
-    )
-    .map_err(|_| SourceCommandError::Denied("native schema worker"))?;
+    if claim_invocation {
+        return claim::run(
+            &invocation,
+            &request_raw,
+            &store,
+            &cut,
+            &software,
+            &components,
+            deadline,
+            &cancelled,
+        );
+    }
+    let mut schema = selected_schema(&invocation, &cut, deadline, &cancelled)?;
     if item_invocation {
         return run_item(
             &invocation,
@@ -663,4 +663,42 @@ fn run_item(
         object.insert("next_route".into(),json!("source inventory owner: add a bounded supported profile; explicit rollback retains these bytes"));
     }
     Ok(response)
+}
+
+fn selected_schema(
+    invocation: &Value,
+    cut: &tos_source_store::CorpusCutReader,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<CutWorkerSchemaExecutor> {
+    let budgets = &invocation["budgets"];
+    let worker = &invocation["schema_worker"];
+    exact(worker, &["absolute_path", "sha256"])?;
+    let mut worker_budget = ExecutorBudget::laboratory();
+    worker_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+    worker_budget.cpu_seconds = capped(budgets, "worker_cpu_seconds", 3)?;
+    worker_budget.address_space_bytes =
+        capped(budgets, "worker_address_space_bytes", 1_073_741_824)?;
+    CutWorkerSchemaExecutor::from_cut(
+        cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        ExactWorkerIdentity {
+            absolute_path: absolute(text(worker, "absolute_path")?)?,
+            sha256: digest(text(worker, "sha256")?)?,
+        },
+        worker_budget,
+        CutWorkerLimits {
+            max_receipts: usize::try_from(capped(budgets, "max_schema_receipts", 128)?)
+                .map_err(|_| SourceCommandError::Invalid("schema receipt budget"))?,
+            max_receipt_bytes: usize::try_from(capped(
+                budgets,
+                "max_schema_receipt_bytes",
+                262_144,
+            )?)
+            .map_err(|_| SourceCommandError::Invalid("schema receipt budget"))?,
+        },
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| SourceCommandError::Denied("native schema worker"))
 }

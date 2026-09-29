@@ -282,7 +282,7 @@ print(json.dumps({'owner':str(owner),'source_ref':config['source_path'],
     serde_json::from_slice(&fs::read(output).unwrap()).unwrap()
 }
 
-fn authored_text_files(root: &Path) -> BTreeMap<String, Vec<u8>> {
+pub(super) fn authored_text_files(root: &Path) -> BTreeMap<String, Vec<u8>> {
     let mut directories = vec![root.join("ToS")];
     let mut files = BTreeMap::new();
     let mut bytes = 0usize;
@@ -395,7 +395,7 @@ pub(super) fn alignment_image_digest(path: &Path) -> Digest256 {
     digest.finalize()
 }
 
-fn alignment_native_cli(
+pub(super) fn alignment_native_cli(
     repository: &Path,
     owner: &Path,
     invocation: &Path,

@@ -1587,13 +1587,16 @@ def _run_selected_native_owner(owner_config: Path, invocation_path: Path, reques
     if owner_config is None:
         raise PermissionError('native owner requires an owner configuration')
     config, _, _ = _configuration(owner_config)
+    handler = command_handler(config['schema_version'])
+    claim = handler.handler_id.startswith(('public-claim-create-', 'public-claim-revision-'))
     item = config['schema_version'] == 'tos_local_item_adoption_owner_v1'
-    if not item and config['schema_version'] != 'tos_local_native_alignment_owner_v1':
-        raise PermissionError('native invocation requires a maintained Alignment or Item owner')
+    if not item and not claim and config['schema_version'] != 'tos_local_native_alignment_owner_v1':
+        raise PermissionError('native invocation requires a maintained Alignment, Item or Claim owner')
     if len(_canonical(request)) > MAX_COMMAND_BYTES:
         raise ValueError('source command exceeds the 1 MiB input budget')
     command_handler(config['schema_version']).validate_request(request)
-    operations = (('describe', 'prepare-create', 'item.adopt', 'item.adoption.recover') if item else
+    operations = (('describe', 'prepare-create', 'claims.create', 'prepare-revise', 'claim.revise', 'inspect-version') if claim else
+                  ('describe', 'prepare-create', 'item.adopt', 'item.adoption.recover') if item else
                   ('describe', 'prepare-create', 'prepare-revise', 'alignment.create', 'alignment.revise',
                    'inspect', 'inspect-version', 'inspect-recovery'))
     if request['operation'] not in operations:
@@ -1607,8 +1610,9 @@ def _run_selected_native_owner(owner_config: Path, invocation_path: Path, reques
     keys = {'schema_version', 'owner_config', 'native_executable', 'native_executable_sha256',
             'corpus_store', 'source_revision', 'software_capture', 'software_restored_root',
             'software_selection', 'software_components', 'schema_worker', 'budgets'}
-    keys.add('original_source_revision' if item else 'owner_context')
-    profile = 'tos_local_native_item_invocation_v1' if item else 'tos_local_native_owner_invocation_v1'
+    keys.add('original_source_revision' if item or claim else 'owner_context')
+    profile = ('tos_local_native_claim_invocation_v1' if claim else
+               'tos_local_native_item_invocation_v1' if item else 'tos_local_native_owner_invocation_v1')
     if (invocation.get('schema_version') != profile or invocation.get('owner_config') != str(owner_config)
             or set(invocation) != keys):
         raise PermissionError('native invocation does not select this owner')
@@ -1646,7 +1650,7 @@ def _run_selected_native_owner(owner_config: Path, invocation_path: Path, reques
                 raise ValueError('native owner command refused' + (': ' + reason if reason else ''))
             output.seek(0)
             response = _json_object(output.read(MAX_COMMAND_BYTES + 1))
-            if response.get('schema_version') != ('tos_edition_item_result_v1' if item else 'tos_local_native_alignment_result_v1'):
+            if response.get('schema_version') != ('tos_local_native_claim_result_v1' if claim else 'tos_edition_item_result_v1' if item else 'tos_local_native_alignment_result_v1'):
                 raise ValueError('native owner result profile')
             return response
     finally:
