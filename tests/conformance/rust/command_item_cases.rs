@@ -34,6 +34,47 @@ for reference in implementations:
 print(json.dumps({'config':case.config,'proposal':case.proposal(),'implementations':implementations,
     'edition_ref':case.edition_ref,'owner':str(case.owner),'input':str(case.input)},ensure_ascii=False,separators=(',',':')))
 "#;
+// Cheap admission for this finite fixture's frozen runtime recipe, before any
+// Git capture or native CLI. These are setup bounds, not Item owner policy.
+fn fixture_preflight(root: &Path, recovery: &Path, fixture: &Value) {
+    let config = &fixture["config"];
+    for key in ["source_root", "payload_root", "input_path", "recovery_root"] {
+        assert!(config[key].as_str().unwrap().len() <= 512);
+    }
+    assert!(
+        fs::metadata(fixture["owner"].as_str().unwrap())
+            .unwrap()
+            .len()
+            <= 4096
+    );
+    assert_eq!(config["byte_size"], json!(928));
+    let mut directories = vec![root.to_path_buf(), recovery.to_path_buf()];
+    let mut bytes = 0u64;
+    let mut entries = 0usize;
+    while let Some(directory) = directories.pop() {
+        for entry in fs::read_dir(directory).unwrap() {
+            let entry = entry.unwrap();
+            let metadata = entry.path().symlink_metadata().unwrap();
+            assert!(!metadata.file_type().is_symlink());
+            entries += 1;
+            assert!(entries <= 4096);
+            if metadata.is_dir() {
+                directories.push(entry.path());
+            } else {
+                assert!(metadata.is_file());
+                bytes = bytes.checked_add(metadata.len()).unwrap();
+                assert!(bytes <= 8 * 1024 * 1024);
+            }
+        }
+    }
+    eprintln!(
+        "Item finite fixture setup_bytes={bytes} setup_entries={entries} grant_bytes={}",
+        fs::metadata(fixture["owner"].as_str().unwrap())
+            .unwrap()
+            .len()
+    );
+}
+
 fn python(
     repository: &Path,
     root: &Path,
@@ -162,6 +203,7 @@ fn native_item_cli_adopts_replays_and_retains_unavailable_inventory() {
         None,
         deadline,
     );
+    fixture_preflight(isolated.path(), &recovery, &fixture);
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
     let input = PathBuf::from(fixture["input"].as_str().unwrap());
     let original = fs::read(&input).unwrap();
@@ -453,6 +495,7 @@ print(json.dumps({'config':case.config,'proposal':p,'input':str(case.input)},ens
             None,
             deadline,
         );
+        fixture_preflight(selected_root.path(), &recovery, &fixture);
         let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
         let mut config = fixture["config"].clone();
         if decision == "rollback" {
