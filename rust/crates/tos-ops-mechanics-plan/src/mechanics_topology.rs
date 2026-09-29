@@ -381,7 +381,10 @@ fn context_budget(
     }) else {
         return push(issues, path, "always-on context surface is missing");
     };
-    let measured = text.split_whitespace().count() as u64;
+    let measured = text
+        .split(python_space)
+        .filter(|part| !part.is_empty())
+        .count() as u64;
     if measured > maximum {
         push(
             issues,
