@@ -857,6 +857,47 @@ fn exploration_software_contracts_survive_unselected_data_and_all_native_wires()
         String::from_utf8_lossy(&capability_output)
             .contains(&format!("Content-Length: {}", capability_bytes.len()))
     );
+    let socket_capability = |method: &str| {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = std::thread::spawn(move || {
+            let (stream, _) = listener.accept().unwrap();
+            serve_connection(stream, Arc::new(tos_access::NoOwner), profile);
+        });
+        let mut client = TcpStream::connect(address).unwrap();
+        client
+            .set_read_timeout(Some(std::time::Duration::from_secs(5)))
+            .unwrap();
+        client
+            .write_all(
+                format!("{method} {capability_route} HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
+                    .as_bytes(),
+            )
+            .unwrap();
+        let mut response = Vec::new();
+        client.read_to_end(&mut response).unwrap();
+        server.join().unwrap();
+        response
+    };
+    for method in ["GET", "HEAD"] {
+        let response = socket_capability(method);
+        let split = response
+            .windows(4)
+            .position(|part| part == b"\r\n\r\n")
+            .unwrap();
+        let headers = std::str::from_utf8(&response[..split]).unwrap();
+        assert!(headers.starts_with("HTTP/1.1 200 OK\r\n"));
+        assert!(headers.lines().any(|line| line.trim_end_matches('\r')
+            == format!("Content-Length: {}", capability_bytes.len())));
+        assert_eq!(
+            &response[split + 4..],
+            if method == "GET" {
+                capability_bytes.as_slice()
+            } else {
+                b""
+            },
+        );
+    }
     for (key, raw) in tos_access::exploration_contracts::CONTRACTS {
         let original = parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
         let canonical = |value| {
