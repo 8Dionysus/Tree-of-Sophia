@@ -5,8 +5,8 @@
 //! grant rights, authorize publication, or admit material to canon.
 
 use tos_foundation::{
-    emit_value_preserved_json, parse_json, JsonLimits, JsonMode, JsonNumber, JsonNumberKind,
-    JsonString, JsonValue,
+    JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue,
+    emit_value_preserved_json, parse_json,
 };
 
 const ROLES: [&str; 7] = [
@@ -696,7 +696,7 @@ fn validate_selection(
             }
             if str_eq(reason, "original")
                 && (selected_language != "original"
-                    && !str_eq(
+                    || !str_eq(
                         field(
                             field(field(packet, "language_context"), "value"),
                             "relation",
