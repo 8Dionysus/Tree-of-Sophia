@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import nullcontext
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -17,20 +19,30 @@ ROOT = Path(__file__).resolve().parents[1]
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--command-entries-only", action="store_true")
+    parser.add_argument("--installed-prefix", type=Path, help="consume an explicitly prepared native command prefix")
     args = parser.parse_args()
+    if args.installed_prefix is not None and (not args.command_entries_only or not args.installed_prefix.is_absolute()):
+        parser.error("--installed-prefix requires --command-entries-only and an absolute prefix")
     # Debug installation reuses the admitted debug profile. The fixture consumes
     # the installed artifact, so this checks installation without a second suite.
-    with tempfile.TemporaryDirectory(prefix="tos-mechanics-install-") as directory:
+    prefix_context = (nullcontext(str(args.installed_prefix)) if args.installed_prefix is not None
+                      else tempfile.TemporaryDirectory(prefix="tos-mechanics-install-"))
+    with prefix_context as directory:
         install = Path(directory)
         installation = ["cargo", "install", "--debug", "--locked", "--offline", "--path",
                         "rust/crates/tos-ops-mechanics-plan", "--root", str(install)]
         if args.command_entries_only:
-            # These three products do not use compiler-backed validators. Keep
-            # the normal full-package install unchanged for the lifecycle route.
+            # Preserve default full-package installation for the lifecycle route.
             installation.append("--no-default-features")
             for name in ("tos-validation-lanes", "tos-release-check", "tos-software-ci"):
                 installation.extend(["--bin", name])
-        subprocess.run(installation, cwd=ROOT, check=True)
+        if args.installed_prefix is None:
+            subprocess.run(installation, cwd=ROOT, check=True)
+        for name in ("tos-validation-lanes", "tos-release-check", "tos-software-ci"):
+            product = install / "bin" / name
+            with product.open("rb") as stream:
+                digest = hashlib.file_digest(stream, "sha256").hexdigest()
+            print(f"[installed] {name} bytes={product.stat().st_size} sha256={digest}", flush=True)
         environment = os.environ.copy()
         environment["TOS_MECHANICS_TEST_EXECUTABLE"] = str(install / "bin/tos-ops-mechanics-plan")
         if not args.command_entries_only:
