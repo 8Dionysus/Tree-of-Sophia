@@ -568,6 +568,17 @@ fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
             (entry.file_name(), fs::read(entry.path()).unwrap())
         })
         .collect();
+    let retained_inputs: Value = serde_json::from_slice(
+        saved
+            .get(&std::ffi::OsString::from("source-create-inputs.json"))
+            .unwrap(),
+    )
+    .unwrap();
+    let resolver_key_upper = retained_inputs["inputs"].as_array().unwrap().len();
+    eprintln!(
+        "Alignment first retained distinct (path,category) union F_resolver_upper={resolver_key_upper}"
+    );
+    assert!(resolver_key_upper <= 128);
     let replay = alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
     assert_eq!(replay["replayed"], true);
     assert_eq!(replay["receipt_sha256"], first["receipt_sha256"]);
