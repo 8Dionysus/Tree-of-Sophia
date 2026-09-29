@@ -116,7 +116,18 @@ in the caller's transaction, with predecessor checks, CAS and final readback.
 The ordinary delta APIs still reject a changed normalization binding.
 
 The source owner must pair its source-root, reverse-dependency and context
-selections before committing that same transaction. A returned maintenance
+selections before committing that same transaction. The source-pairing entry point is
+`prepared_source_binding::transition_prepared_source_profiles_transaction`.
+It preserves exact retained root bytes and namespaces, the source-publication
+token and the dependency key set. Its reviewed old/new digest map must name
+exactly the changed dependencies among `normalization`, `declaration-profile`,
+`agent-publication-profile` and `claim-publication-profile`; extra or unchanged
+names refuse. Each normalization dependency must match the corresponding
+header binding digest. The source revision advances, and the final source CAS
+and readback share the publication mutation allowance. Reverse-dependency and
+context pairing remain the calling composition's responsibility.
+
+A returned maintenance
 receipt alone is not permission to commit an unpaired source state. Every error
 requires rollback of the entire caller transaction. Naming a compatibility
 review does not prove unchanged algorithm semantics or admit source material.
