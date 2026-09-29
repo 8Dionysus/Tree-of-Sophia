@@ -621,6 +621,44 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
     for path in [ladder, crosswalk] {
         before.insert(path.into(), fs::read(owner.join(path)).unwrap());
     }
+    // Select the actual source-owned opening-sentence closure as one immutable
+    // metadata packet: the plan, four produced packets and nine exact current
+    // source bindings. Private text remains outside this authored carrier.
+    let opening_plan = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json";
+    let plan_raw = fs::read(owner.join(opening_plan)).unwrap();
+    let plan: Value = serde_json::from_slice(&plan_raw).unwrap();
+    let mut opening_selected = vec![(opening_plan.to_owned(), plan_raw)];
+    for field in [
+        "source_sentence_packet_ref",
+        "target_sentence_packet_ref",
+        "alignment_packet_ref",
+        "provenance_event_ref",
+    ] {
+        let path = required(&plan["outputs"], field);
+        opening_selected.push((path.to_owned(), fs::read(owner.join(path)).unwrap()));
+    }
+    for (side, reference, digest) in [
+        ("source", "text_layer_ref", "text_layer_record_sha256"),
+        ("source", "layout_packet_ref", "layout_packet_sha256"),
+        ("source", "edition_reading_admission_ref", "edition_reading_admission_sha256"),
+        ("source", "rights_ref", "rights_sha256"),
+        ("target", "text_layer_ref", "text_layer_record_sha256"),
+        ("target", "layout_packet_ref", "layout_packet_sha256"),
+        ("target", "expression_record_ref", "expression_record_sha256"),
+        ("target", "responsibility_claims_ref", "responsibility_claims_sha256"),
+        ("target", "rights_ref", "rights_sha256"),
+    ] {
+        let path = required(&plan[side], reference);
+        let raw = fs::read(owner.join(path)).unwrap();
+        assert_eq!(Digest256::of_bytes(&raw).to_hex(), required(&plan[side], digest));
+        opening_selected.push((path.to_owned(), raw));
+    }
+    for (path, raw) in opening_selected {
+        if let Some(existing) = before.get(&path) {
+            assert_eq!(existing, &raw, "selected opening-sentence source {path}");
+        }
+        before.insert(path, raw);
+    }
     let packet: Value = serde_json::from_slice(&before[crosswalk]).unwrap();
     for input in packet["inputs"].as_object().unwrap().values() {
         let path = required(input, "ref");
@@ -965,6 +1003,10 @@ finally:c.doCleanups()
             .any(|(path, predicate)| path == crosswalk
                 && predicate.starts_with("_transfer_candidate_crosswalk_issues/v1"))
     );
+    assert!(report.layers.layer_family.checked_predicates.iter().any(
+        |(path, predicate)| path == opening_plan
+            && predicate == "named-zarathustra-opening-sentence-tracked-closure-v1"
+    ));
     assert!(!report.operation().schema_receipts().is_empty());
     assert!(
         report
