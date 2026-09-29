@@ -260,7 +260,10 @@ struct DocumentState {
 
 /// File-owned donor. Dropping it rolls back only its private read transaction
 /// and closes only its donor connection. It never manages the target lifecycle.
+pub type ProgressCallback = Box<dyn FnMut(&JsonValue) -> Result<()>>;
+
 pub struct SearchDonor {
+    progress_callback: Option<ProgressCallback>,
     request: PreparedSearchReuse,
     limits: owner::PublicationLimits,
     db: Connection,
@@ -293,9 +296,17 @@ impl Drop for SearchDonor {
 }
 impl SearchDonor {
     pub fn open(
+        request: PreparedSearchReuse,
+        limits: owner::PublicationLimits,
+        deadline: Option<Instant>,
+    ) -> Result<Self> {
+        Self::open_with_progress(request, limits, deadline, None)
+    }
+    pub fn open_with_progress(
         mut request: PreparedSearchReuse,
         limits: owner::PublicationLimits,
         deadline: Option<Instant>,
+        progress_callback: Option<ProgressCallback>,
     ) -> Result<Self> {
         request.validate()?;
         limits.validate()?;
@@ -339,6 +350,7 @@ impl SearchDonor {
             rusqlite::ffi::sqlite3_limit(db.handle(), rusqlite::ffi::SQLITE_LIMIT_LENGTH, length);
         }
         let mut donor = Self {
+            progress_callback,
             request,
             limits,
             db,
@@ -376,6 +388,13 @@ impl SearchDonor {
         donor.execute("BEGIN")?;
         donor.validate_open()?;
         donor.check_path()?;
+        donor.emit_progress(
+            "donor_metadata_validated",
+            vec![
+                ("documents", number(donor.count)),
+                ("terms", number(donor.terms.len() as u64)),
+            ],
+        )?;
         Ok(donor)
     }
     fn execute(&self, sql: &str) -> Result<()> {
@@ -845,6 +864,15 @@ impl SearchDonor {
                 .insert((kind.to_owned(), identifier.to_owned()));
         }
         self.observed = address;
+        if address % 4096 == 0 {
+            self.emit_progress(
+                "donor_source_terms_progress",
+                vec![
+                    ("documents", number(address)),
+                    ("total_documents", number(self.count)),
+                ],
+            )?;
+        }
         Ok(())
     }
     fn verify_document(&mut self, document: search::PreparedSearchDocument) -> Result<()> {
@@ -1015,6 +1043,10 @@ impl SearchDonor {
             }
         }
         self.finished = true;
+        self.emit_progress(
+            "donor_source_terms_validated",
+            vec![("documents", number(count))],
+        )?;
         Ok(())
     }
     pub fn should_replace(&self, kind: &str, identifier: &str) -> bool {
@@ -1222,6 +1254,14 @@ impl SearchDonor {
                     self.meter.deadline,
                 )?;
             }
+            self.emit_progress(
+                "donor_table_copied",
+                vec![
+                    ("table", text(table)),
+                    ("copied_rows", number(self.report.copied_rows)),
+                    ("copied_bytes", number(self.report.copied_bytes)),
+                ],
+            )?;
         }
         if self
             .terms
@@ -1329,6 +1369,42 @@ impl SearchDonor {
             ));
         }
         Ok(())
+    }
+    pub fn successor_prepared(&mut self) -> Result<()> {
+        self.emit_progress(
+            "search_successor_prepared",
+            vec![
+                ("copied_rows", number(self.report.copied_rows)),
+                ("copied_bytes", number(self.report.copied_bytes)),
+                ("committed", JsonValue::Bool(false)),
+            ],
+        )
+    }
+    fn emit_progress(&mut self, phase: &str, mut details: Vec<(&str, JsonValue)>) -> Result<()> {
+        self.meter.check()?;
+        let report = self.report();
+        details.extend([
+            ("phase", text(phase)),
+            ("source_bytes", number(report.source_bytes)),
+            ("queries", number(report.queries)),
+            ("vm_steps", number(report.vm_steps_charged)),
+            (
+                "validation_state_bytes",
+                number(report.validation_state_bytes as u64),
+            ),
+            ("changed_documents", number(report.changed_documents as u64)),
+            ("changed_bytes", number(report.changed_bytes as u64)),
+        ]);
+        let value = JsonValue::Object(
+            details
+                .into_iter()
+                .map(|(key, value)| (JsonString::from_utf8(key), value))
+                .collect(),
+        );
+        if let Some(callback) = &mut self.progress_callback {
+            callback(&value)?;
+        }
+        self.meter.check()
     }
     pub fn report(&self) -> ReuseReport {
         let mut report = self.report.clone();

@@ -22,6 +22,7 @@ fn parse(raw: &[u8], cap: usize) -> Result<JsonValue, String> {
 // The real stdin adapter polls before each bounded read; checking only around
 // BufRead::fill_buf cannot interrupt a pipe whose writer remains open and idle.
 struct DeadlineStdin {
+    fd: i32,
     deadline: Instant,
 }
 impl Read for DeadlineStdin {
@@ -38,7 +39,7 @@ impl Read for DeadlineStdin {
                 ));
             }
             let mut input = libc::pollfd {
-                fd: libc::STDIN_FILENO,
+                fd: self.fd,
                 events: libc::POLLIN,
                 revents: 0,
             };
@@ -68,8 +69,7 @@ impl Read for DeadlineStdin {
                     "prepared stdin descriptor",
                 ));
             }
-            let count =
-                unsafe { libc::read(libc::STDIN_FILENO, output.as_mut_ptr().cast(), output.len()) };
+            let count = unsafe { libc::read(self.fd, output.as_mut_ptr().cast(), output.len()) };
             if count >= 0 {
                 return Ok(count as usize);
             }
@@ -290,6 +290,7 @@ fn run(
     stdout: &mut dyn Write,
     seconds: u64,
     deadline: Instant,
+    progress_fd: Option<i32>,
 ) -> Result<(), String> {
     let raw = line(input, 16_843_008, deadline)?;
     let frame = parse(&raw, 16_843_008)?;
@@ -353,12 +354,41 @@ fn run(
                 deadline,
                 row_cap: limits.max_row_bytes,
             };
-            local_prepared::publish_prepared_rows_with_search_until(
-                &path, header, catalog, &mut rows, limits, search, deadline,
+            let progress: Option<tos_compiler::local_prepared_reuse::ProgressCallback> =
+                progress_fd.map(|fd| {
+                    Box::new(move |value: &JsonValue| {
+                        let frame = JsonValue::Object(vec![(
+                            tos_foundation::JsonString::from_utf8("progress"),
+                            value.clone(),
+                        )]);
+                        let bytes = encoded(&frame, 4096).map_err(tos_compiler::Error::Source)?;
+                        let mut output = io::stdout().lock();
+                        output.write_all(&bytes)?;
+                        output.write_all(b"\n")?;
+                        output.flush()?;
+                        let mut ack = BufReader::with_capacity(128, DeadlineStdin { fd, deadline });
+                        let raw =
+                            line(&mut ack, 128, deadline).map_err(tos_compiler::Error::Source)?;
+                        if raw != b"{\"ack\":true}" {
+                            return Err(tos_compiler::Error::Invalid(
+                                "prepared progress acknowledgement",
+                            ));
+                        }
+                        Ok(())
+                    }) as tos_compiler::local_prepared_reuse::ProgressCallback
+                });
+            if progress.is_some() && !matches!(&search, BootstrapSearch::Reuse(_)) {
+                return Err("prepared progress requires donor reuse".into());
+            }
+            local_prepared::publish_prepared_rows_with_progress_until(
+                &path, header, catalog, &mut rows, limits, search, deadline, progress,
             )
             .map_err(|e| e.to_string())?
         }
         "delta" => {
+            if progress_fd.is_some() {
+                return Err("prepared progress requires donor reuse bootstrap".into());
+            }
             exact(
                 &frame,
                 &[
@@ -421,31 +451,51 @@ pub fn run_if_requested(
     if args.first().is_none_or(|a| a != "prepared-publication") {
         return None;
     }
-    Some(if args.len() != 3 || args[1] != "--max-seconds" {
-        let _ = writeln!(
-            stderr,
-            "prepared-publication --max-seconds N takes bounded framed stdin only"
-        );
-        2
-    } else {
-        match args[2]
-            .parse::<u64>()
-            .map_err(|_| "invalid prepared max-seconds".to_owned())
-            .and_then(|seconds| {
-                if seconds == 0 {
-                    return Err("prepared positive max-seconds required".into());
+    Some(
+        if !matches!(args.len(), 3 | 5)
+            || args[1] != "--max-seconds"
+            || (args.len() == 5 && args[3] != "--progress-ack-fd")
+        {
+            let _ = writeln!(
+                stderr,
+                "prepared-publication --max-seconds N takes bounded framed stdin only"
+            );
+            2
+        } else {
+            match args[2]
+                .parse::<u64>()
+                .map_err(|_| "invalid prepared max-seconds".to_owned())
+                .and_then(|seconds| {
+                    if seconds == 0 {
+                        return Err("prepared positive max-seconds required".into());
+                    }
+                    let deadline = Instant::now()
+                        .checked_add(Duration::from_secs(seconds))
+                        .ok_or("prepared deadline range")?;
+                    let progress_fd = if args.len() == 5 {
+                        let fd = args[4].parse::<i32>().map_err(|_| "prepared progress fd")?;
+                        if fd < 3 {
+                            return Err("prepared progress fd must be separate".into());
+                        }
+                        Some(fd)
+                    } else {
+                        None
+                    };
+                    let mut input = BufReader::with_capacity(
+                        8192,
+                        DeadlineStdin {
+                            fd: libc::STDIN_FILENO,
+                            deadline,
+                        },
+                    );
+                    run(&mut input, stdout, seconds, deadline, progress_fd)
+                }) {
+                Ok(()) => 0,
+                Err(error) => {
+                    let _ = writeln!(stderr, "prepared publication: {error}");
+                    2
                 }
-                let deadline = Instant::now()
-                    .checked_add(Duration::from_secs(seconds))
-                    .ok_or("prepared deadline range")?;
-                let mut input = BufReader::with_capacity(8192, DeadlineStdin { deadline });
-                run(&mut input, stdout, seconds, deadline)
-            }) {
-            Ok(()) => 0,
-            Err(error) => {
-                let _ = writeln!(stderr, "prepared publication: {error}");
-                2
             }
-        }
-    })
+        },
+    )
 }

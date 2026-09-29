@@ -900,6 +900,7 @@ pub fn publish_prepared_rows<R: PreparedRows>(
         limits,
         BootstrapSearch::Buffered,
         None,
+        None,
     )
 }
 /// Native adapter variant. One absolute deadline covers both row passes and SQL.
@@ -919,6 +920,7 @@ pub fn publish_prepared_rows_until<R: PreparedRows>(
         limits,
         BootstrapSearch::Buffered,
         Some(deadline),
+        None,
     )
 }
 pub fn publish_prepared_rows_with_search<R: PreparedRows>(
@@ -929,7 +931,7 @@ pub fn publish_prepared_rows_with_search<R: PreparedRows>(
     limits: PublicationLimits,
     search: BootstrapSearch,
 ) -> Result<JsonValue> {
-    publish_prepared_rows_with_deadline(path, header, catalog, rows, limits, search, None)
+    publish_prepared_rows_with_deadline(path, header, catalog, rows, limits, search, None, None)
 }
 pub fn publish_prepared_rows_with_search_until<R: PreparedRows>(
     path: &Path,
@@ -940,7 +942,37 @@ pub fn publish_prepared_rows_with_search_until<R: PreparedRows>(
     search: BootstrapSearch,
     deadline: Instant,
 ) -> Result<JsonValue> {
-    publish_prepared_rows_with_deadline(path, header, catalog, rows, limits, search, Some(deadline))
+    publish_prepared_rows_with_deadline(
+        path,
+        header,
+        catalog,
+        rows,
+        limits,
+        search,
+        Some(deadline),
+        None,
+    )
+}
+pub fn publish_prepared_rows_with_progress_until<R: PreparedRows>(
+    path: &Path,
+    header: &JsonValue,
+    catalog: &JsonValue,
+    rows: &mut R,
+    limits: PublicationLimits,
+    search: BootstrapSearch,
+    deadline: Instant,
+    progress: Option<crate::local_prepared_reuse::ProgressCallback>,
+) -> Result<JsonValue> {
+    publish_prepared_rows_with_deadline(
+        path,
+        header,
+        catalog,
+        rows,
+        limits,
+        search,
+        Some(deadline),
+        progress,
+    )
 }
 fn write_bootstrap_rows<R: PreparedRows>(
     db: &Connection,
@@ -991,6 +1023,7 @@ fn publish_prepared_rows_with_deadline<R: PreparedRows>(
     limits: PublicationLimits,
     search_mode: BootstrapSearch,
     deadline: Option<Instant>,
+    progress: Option<crate::local_prepared_reuse::ProgressCallback>,
 ) -> Result<JsonValue> {
     limits.validate()?;
     validate_header(header, catalog)?;
@@ -999,9 +1032,11 @@ fn publish_prepared_rows_with_deadline<R: PreparedRows>(
     let (mut donor, bulk) = match search_mode {
         BootstrapSearch::Buffered => (None, None),
         BootstrapSearch::Reuse(request) => (
-            Some(crate::local_prepared_reuse::SearchDonor::open(
-                request, limits, deadline,
-            )?),
+            Some(
+                crate::local_prepared_reuse::SearchDonor::open_with_progress(
+                    request, limits, deadline, progress,
+                )?,
+            ),
             None,
         ),
         BootstrapSearch::Bulk {
@@ -1172,6 +1207,7 @@ fn publish_prepared_rows_with_deadline<R: PreparedRows>(
                     remaining.min(20_000_000),
                 )?
             };
+            donor.successor_prepared()?;
             report.mutations = report
                 .mutations
                 .checked_add(copied.mutations)
