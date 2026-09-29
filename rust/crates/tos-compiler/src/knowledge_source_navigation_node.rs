@@ -1303,7 +1303,10 @@ impl<'a> NavigationNodeNormalizer<'a> {
         {
             return Err(Error::Invalid("navigation selected raw node"));
         }
-        self.normalize_supplied_node(raw)
+        let mut node = self.normalize_supplied_node(raw)?;
+        node.source_cut = prepared.source_cut.clone();
+        node.prepared_dependency_root_sha256 = prepared.dependency_root_sha256.clone();
+        Ok(node)
     }
     /// Normalize an explicitly supplied source-navigation carrier without
     /// asserting sealed-cut membership or complete dependency admission.
@@ -1338,7 +1341,7 @@ impl<'a> NavigationNodeNormalizer<'a> {
             owner_envelope(item)?;
             None
         };
-        let resolved = self.registry.entity(&prepared.source_graph, kind);
+        let resolved = self.registry.entity(&raw.source_graph, kind);
         let type_id = resolved.type_id.to_owned();
         let mapped = type_id != self.registry.fallback_entity_type_id();
         if record && type_id != "tos.entity.record-version" {
@@ -1351,7 +1354,7 @@ impl<'a> NavigationNodeNormalizer<'a> {
             .ok_or(Error::Invalid("navigation mapped type"))?;
         let labels = type_entry
             .mapping_labels
-            .get(&prepared.source_graph)
+            .get(&raw.source_graph)
             .and_then(|m| m.get(kind))
             .or(type_entry.labels.as_ref());
         let display = source_navigation_node_display(
@@ -1365,7 +1368,7 @@ impl<'a> NavigationNodeNormalizer<'a> {
         let refs = source.source_refs(&[]);
         let mut semantics = node_semantics(item, kind, &refs)?;
         semantics["type_ancestors"] = json!(ancestors);
-        let normalized_id = format!("{}:{native}", prepared.source_graph);
+        let normalized_id = format!("{}:{native}", raw.source_graph);
         let entity_id = [
             item.get("properties").and_then(|p| p.get("record_id")),
             item.get("record_id"),
@@ -1389,7 +1392,7 @@ impl<'a> NavigationNodeNormalizer<'a> {
         };
         let mut output = json!({
             "id":normalized_id,"entity_id":entity_id,"native_id":native,
-            "source_graph":prepared.source_graph,"kind_id":kind,"type_id":type_id,
+            "source_graph":raw.source_graph,"kind_id":kind,"type_id":type_id,
             "type_mapping":{"status":if mapped {"mapped"} else {"unmapped"},
                 "source_kind_id":kind,"registry_ref":self.entity_registry_ref},
             "display":display,"epistemic":epistemic(item),
@@ -1409,9 +1412,9 @@ impl<'a> NavigationNodeNormalizer<'a> {
             value: output,
             ordered_context_raw: raw.payload.clone(),
             native_id: native.to_owned(),
-            source_graph: prepared.source_graph.clone(),
-            source_cut: prepared.source_cut.clone(),
-            prepared_dependency_root_sha256: prepared.dependency_root_sha256.clone(),
+            source_graph: raw.source_graph.clone(),
+            source_cut: String::new(),
+            prepared_dependency_root_sha256: String::new(),
             raw_node_sha256: raw.payload_sha256.clone(),
             entity_registry_sha256: self.registry.entity_sha256.clone(),
             relation_registry_sha256: self.registry.relation_sha256.clone(),
