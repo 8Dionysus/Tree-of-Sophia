@@ -5137,9 +5137,15 @@ fn preview_item_receipt(
     reader: &mut NativeCompoundReader<'_>,
     scope: &Value,
     request: &Value,
+    request_digest: &str,
 ) -> Result<Vec<u8>, ItemRefusal> {
     let stamp = text(request, "fixity_verified_at")?;
-    let identifier = transaction_id(request, CompoundKind::EditionItem)?;
+    let identifier = transaction_id_with_digest(
+        request,
+        CompoundKind::EditionItem,
+        request_digest,
+        &mut |value| reader.canonical_observation(value),
+    )?;
     // Exact maintained preview recipe and field order, distinct from the real
     // constructor. Admit the small ordered-tree workspace before construction.
     let strings = scope
@@ -5445,7 +5451,7 @@ fn prepare_native_with_reader<'a>(
             Some((receipt_raw, generator))
         }
         Some(ItemPreparationInput::Preview { generator }) => {
-            preview_receipt = preview_item_receipt(&mut reader, scope, &request)?;
+            preview_receipt = preview_item_receipt(&mut reader, scope, &request, &observation.0)?;
             Some((preview_receipt.as_slice(), generator))
         }
         None => None,
