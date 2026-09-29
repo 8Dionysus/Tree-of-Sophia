@@ -838,6 +838,25 @@ fn exploration_software_contracts_survive_unselected_data_and_all_native_wires()
             .and_then(JsonValue::as_u64),
         Some(0)
     );
+    let capability_bytes = canonical_bytes_v1(
+        capabilities,
+        CanonicalProfile::SourceRecordDigestV1,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    let capability_route = "/api/knowledge/explore/capabilities";
+    let capability_get = handle_get(&executor, "GET", capability_route, profile);
+    assert_eq!(capability_get.status, 200);
+    assert_eq!(capability_get.body, capability_bytes);
+    let capability_head = handle_get(&executor, "HEAD", capability_route, profile);
+    assert_eq!(capability_head.status, 200);
+    let mut capability_output = vec![];
+    tos_access::http::write_response(&mut capability_output, capability_head).unwrap();
+    assert!(capability_output.ends_with(b"\r\n\r\n"));
+    assert!(
+        String::from_utf8_lossy(&capability_output)
+            .contains(&format!("Content-Length: {}", capability_bytes.len()))
+    );
     for (key, raw) in tos_access::exploration_contracts::CONTRACTS {
         let original = parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
         let canonical = |value| {

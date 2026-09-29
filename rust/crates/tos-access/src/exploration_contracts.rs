@@ -200,6 +200,32 @@ pub fn execute(
         fence: Box::new(SoftwareFence),
     })
 }
+
+/// The maintained HTTP discovery route emits the same selected capability
+/// value embedded in the software contracts packet.
+pub fn execute_capabilities(
+    executor: &dyn AccessExecutor,
+    max_bytes: usize,
+) -> Result<PreparedPacket<'static>, AccessError> {
+    let body = canonical_bytes_v1(
+        &executor.exploration_runtime_capabilities(),
+        CanonicalProfile::SourceRecordDigestV1,
+        JsonLimits {
+            max_bytes,
+            ..JsonLimits::default()
+        },
+    )
+    .map_err(|_| {
+        AccessError::new(
+            AccessErrorCode::BudgetExceeded,
+            "software capability packet byte budget exceeded",
+        )
+    })?;
+    Ok(PreparedPacket {
+        body,
+        fence: Box::new(SoftwareFence),
+    })
+}
 struct SoftwareFence;
 impl DisclosureFence for SoftwareFence {
     fn recheck(&mut self) -> Result<(), AccessError> {

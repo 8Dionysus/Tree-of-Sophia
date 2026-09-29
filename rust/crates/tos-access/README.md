@@ -110,6 +110,8 @@ managed execution while the named host fs-verity prerequisite remains unavailabl
 The maintained exploration-contracts GET/HEAD and MCP tool disclose the four
 packaged v1/v2 request/result schemas independently of source selection. Data
 roots and request parameters cannot override those compiled software bytes.
+The maintained `/api/knowledge/explore/capabilities` GET/HEAD returns the same
+current capability value without embedding the four schemas.
 Unselected `NoOwner` reports exploration unavailable with zero configured
 checkpoint/work/session limits. The managed selected executor reports its real
 process checkpoint and QRY budgets only while its current release is available;

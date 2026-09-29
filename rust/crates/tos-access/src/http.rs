@@ -362,6 +362,18 @@ fn handle_get_with_probe(
             profile,
         );
     }
+    if path == "/api/knowledge/explore/capabilities" {
+        return packet_response(
+            checked_execute(abort_probe, |_| {
+                crate::exploration_contracts::execute_capabilities(
+                    executor,
+                    profile.max_response_bytes,
+                )
+            }),
+            method,
+            profile,
+        );
+    }
     if path == SEARCH_HTTP_PATH {
         return handle_search(executor, method, query, profile, abort_probe);
     }
