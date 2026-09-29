@@ -384,9 +384,9 @@ fn read_doc(path: &Path, remaining: usize) -> io::Result<String> {
         return Err(invalid("CI Markdown must be a bounded regular file"));
     }
     let mut bytes = Vec::with_capacity(meta.len() as usize);
-    file.take(MAX_DOCUMENT_BYTES as u64 + 1)
-        .read_to_end(&mut bytes)?;
-    if bytes.len() > MAX_DOCUMENT_BYTES || bytes.len() as u64 != meta.len() {
+    let cap = MAX_DOCUMENT_BYTES.min(remaining);
+    file.take(cap as u64 + 1).read_to_end(&mut bytes)?;
+    if bytes.len() > cap || bytes.len() as u64 != meta.len() {
         return Err(invalid("CI Markdown changed or exceeded its byte budget"));
     }
     String::from_utf8(bytes).map_err(|e| invalid(e.to_string()))
