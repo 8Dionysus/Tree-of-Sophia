@@ -208,6 +208,17 @@ pub fn index_value(item: &JsonValue, key: &str) -> Result<String> {
         }
         _ => {}
     }
+    python_value_string(value)
+}
+/// Maintained Python `str(value)` for bounded owner JSON values. Semantic
+/// diagnostic text shares the same nested repr/Unicode law as index carriers.
+pub(crate) fn python_value_string(value: &JsonValue) -> Result<String> {
+    if let JsonValue::String(value) = value {
+        return value
+            .as_str()
+            .map(str::to_owned)
+            .ok_or(Error::Invalid("prepared string scalar"));
+    }
     let mut output = String::new();
     let mut visits = 0;
     index_repr(value, &mut output, 0, &mut visits)?;
