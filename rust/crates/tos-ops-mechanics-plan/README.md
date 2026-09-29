@@ -85,15 +85,15 @@ inventories, context budget and moved-path accounting. It bounds traversal to
 10,000 entries, retained input to 64 MiB (8 MiB per file), and diagnostics to
 4,096 issues of at most 8 KiB each; references have separate 100,000-entry
 and 64 MiB byte bounds, and retained anchor text has its own 64 MiB bound.
-The Python lane remains the independent
-blocking oracle until exact issue-order parity and the actual native consumer
-are accepted. This candidate does not inspect or change authored ToS meaning.
+The existing Python command entry now selects this native mode; the retained
+Python API remains an independent oracle. This validates mechanics topology
+and does not accept authored ToS meaning.
 
 `tos-validation-lanes` is a separate candidate for the current
 `scripts/validation_lanes.py` command plane. Its `--check`, `--sequence ID`,
 and `--run ID` modes read the existing
 `docs/validation/validation_lanes.json` in authored order. Selection and run
-require `--python PATH`, which the eventual compatibility entry must pass as
+require `--python PATH`, which the compatibility entry passes as
 its exact `sys.executable`; the native binary does not discover or install an
 interpreter. The read is bounded to 1 MiB. Run uses the existing dedicated
 Linux pidfd/subreaper executor with its default 300-second command wall,
@@ -101,8 +101,8 @@ Linux pidfd/subreaper executor with its default 300-second command wall,
 output per child. These finite execution limits are stricter than the Python
 runner's prior unbounded subprocess call. A child exit code is returned
 unchanged; a signalled child is printed with Python's negative signal status
-and returned as the corresponding Unix shell status. The Python loader and
-`release_check` import remain active until the owner admits route cutover.
+and returned as the corresponding Unix shell status. The imported Python loader and
+`release_check` API remain available; command execution selects the native consumer.
 As in the existing executor, an `execvp` refusal becomes child status 127;
 the Python runner previously raised an unhandled spawn exception instead.
 
@@ -115,8 +115,8 @@ maintained runner's `PYTEST_DISABLE_PLUGIN_AUTOLOAD` default, Windows-style
 The same native executor imposes the finite command, sequence, cleanup, and
 output limits above; this differs from Python's unbounded subprocess call.
 Its controlled fixture runs only a temporary three-step release-shaped
-sequence. The actual Python release entry, CI calls, and real release sequence
-remain active and unexecuted by this candidate until owner acceptance.
+sequence. The existing release command entry selects the native consumer. This source
+wiring does not claim an actual release or repository CI run.
 
 Install with `cargo install --locked --offline --path
 rust/crates/tos-ops-mechanics-plan --root <admitted isolated install root>`
@@ -131,8 +131,8 @@ reads the actual Git no-renames changed paths, validates only new local Markdown
 links and merge markers, and emits the same v2 selection and optional
 `GITHUB_OUTPUT` fields. `--full` and unknown/shared changes require all checks.
 `gate` reads `CI_NEEDS` and rejects missing, failed, cancelled and unexpectedly
-skipped jobs. It cannot run checks or accept a release; the Python entry and
-`.github` workflow stay active pending whole owner acceptance.
+skipped jobs. It cannot run checks or accept a release. The existing Python command entry
+selects this native consumer; the `.github` workflow retains its command route.
 
 Git capture uses the existing dedicated Linux pidfd/subreaper boundary, capped
 at 30 seconds per command and 120 seconds for the plan. Input is limited to
@@ -150,8 +150,9 @@ checking, token-first maximal runs, exact content-only domain/provenance
 exceptions, experience route scope and active fields of mechanics topology.
 Generated KAG carriers and retired history remain outside the active naming
 source. Python's optional external SQLite feedback-cache route stays intact;
-this native mode does not write or consume a cache and does not replace that
-optional consumer or switch the authored lane.
+this native mode does not write or consume a cache. The existing command entry
+selects native validation by default and retains the Python API for explicit
+`--feedback-cache` requests.
 
 This candidate refuses encountered active symlinks, bounds traversal to 10,000
 entries / 128 directory levels, each text file to 8 MiB and aggregate read input
@@ -204,6 +205,37 @@ validator CLI recount, plus an existing-output read for `--check`. Rendering
 and local writes need an outer wall guard. The disposable native/Python cases
 exercise those real callers; the Python scripts, route-docs lane and actual
 generated carriers remain active pending coordinated owner cutover.
+
+The accepted validation-lanes, release-check, software-CI, topology and default
+active-naming command entries replace themselves with selected installed tools.
+`TOS_VALIDATION_LANES_EXECUTOR`, `TOS_RELEASE_CHECK_EXECUTOR` and
+`TOS_SOFTWARE_CI_EXECUTOR` select their corresponding standalone binaries;
+`TOS_OPS_MECHANICS_EXECUTOR` selects topology and naming modes. Each entry uses
+its exact override or the corresponding PATH binary, without compile-on-call
+or fallback. Existing argparse spelling, interpreter adapter, environment and
+exit status are preserved. Imported Python APIs and the optional naming cache
+remain available. OPS owns installation and packaging availability independently
+from the prepared read-model fs-verity route; source wiring alone proves neither
+installed availability nor an actual release/CI execution.
+
+`--semantic-registry-transition` is an explicit native gate for the maintained
+semantic registry transition law. `--baseline-commit` supplies the immutable
+baseline; otherwise `TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT` applies. Initial
+introduction requires `--allow-initial-introduction` or the exact environment
+value `TOS_SEMANTIC_REGISTRY_ALLOW_INITIAL_INTRODUCTION=1`; the environment accepts
+only `0` or `1`. `--json` emits the maintained result shape. These flags require
+this mode and do not change the Python validation-lane route.
+
+The gate holds root/parent descriptors and reads four current regular nofollow
+files, each at most 1 MiB, plus four exact Git-baseline members. The Foundation
+JSON profile retains depth 64, 300,000 visits and 4,300 integer digits. The
+64 MiB logical decoded-state envelope includes current/baseline values,
+conservative rule indexes and issue storage, with 4,096 issues and a 1 MiB
+issue cap. Raw/canonical buffers and schema backend allocations are separate
+whole-process costs. Git output is capped at 16 MiB total, each query at most
+2 MiB combined, and the final report at 1 MiB. Command/whole walls are at most
+30/300 seconds; public limits only tighten them. It performs no fetch, executes
+no baseline code, and makes no source, rights or semantic admission.
 
 `--source-home` is an explicit native candidate for the maintained
 `validate_tos_source_home.py` law. It checks core source-branch membership, stable

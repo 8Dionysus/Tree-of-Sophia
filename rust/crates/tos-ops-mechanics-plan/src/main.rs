@@ -22,6 +22,14 @@ enum Action {
     MechanicsTopologyValidate,
     ActiveNamingValidate,
     SourceHome,
+    SemanticRegistryTransition,
+}
+
+#[derive(Default)]
+struct SemanticOptions {
+    baseline_commit: Option<String>,
+    allow_initial_introduction: bool,
+    json_output: bool,
 }
 
 #[cfg(target_os = "linux")]
@@ -29,7 +37,7 @@ extern "C" fn cancelled(signal: i32) {
     CANCEL.store(signal, Ordering::Relaxed);
 }
 
-fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
+fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), String> {
     let mut args = env::args().skip(1);
     let mut root = None;
     let mut python = "python".to_owned();
@@ -45,6 +53,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
     let mut mechanics_topology_validate = false;
     let mut active_naming_validate = false;
     let mut source_home = false;
+    let mut semantic_registry_transition = false;
+    let mut semantic = SemanticOptions::default();
     let mut check = false;
     let mut limits = Limits::default();
     while let Some(argument) = args.next() {
@@ -61,6 +71,16 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
             "--mechanics-topology-validate" => mechanics_topology_validate = true,
             "--active-naming-validate" => active_naming_validate = true,
             "--source-home" => source_home = true,
+            "--semantic-registry-transition" => semantic_registry_transition = true,
+            "--baseline-commit" => {
+                let baseline = args.next().ok_or("missing baseline commit")?;
+                if baseline.starts_with('-') || baseline.len() > 4096 {
+                    return Err("baseline commit must be a bounded Git ref, not an option".into());
+                }
+                semantic.baseline_commit = Some(baseline)
+            }
+            "--allow-initial-introduction" => semantic.allow_initial_introduction = true,
+            "--json" => semantic.json_output = true,
             "--check" => check = true,
             "--repo-root" => root = Some(PathBuf::from(args.next().ok_or("missing repo root")?)),
             "--python" => python = args.next().ok_or("missing Python adapter")?,
@@ -98,8 +118,13 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
         + usize::from(mechanics_topology_validate)
         + usize::from(active_naming_validate)
         + usize::from(source_home)
+        + usize::from(semantic_registry_transition)
         > 1
         || (check && !threshold_build)
+        || (!semantic_registry_transition
+            && (semantic.baseline_commit.is_some()
+                || semantic.allow_initial_introduction
+                || semantic.json_output))
     {
         return Err("incompatible mechanics modes".into());
     }
@@ -123,6 +148,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
         Action::DerivedKagGenerate
     } else if active_naming_validate {
         Action::ActiveNamingValidate
+    } else if semantic_registry_transition {
+        Action::SemanticRegistryTransition
     } else if source_home {
         Action::SourceHome
     } else if mechanics_topology_validate {
@@ -135,12 +162,13 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
         python,
         action,
         limits,
+        semantic,
     ))
 }
 
 fn main() {
-    let (root, python, action, limits) = arguments().unwrap_or_else(|error| {
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --source-home] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+    let (root, python, action, limits, semantic) = arguments().unwrap_or_else(|error| {
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --source-home | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     let result = match action {
@@ -161,6 +189,33 @@ fn main() {
                 .and_then(|root| tos_ops_mechanics_plan::source_home::run(&root, &CANCEL))
         }
 
+        Action::SemanticRegistryTransition => {
+            #[cfg(target_os = "linux")]
+            unsafe {
+                let mut handler: libc::sigaction = std::mem::zeroed();
+                handler.sa_sigaction = cancelled as *const () as usize;
+                libc::sigemptyset(&mut handler.sa_mask);
+                for signal in [libc::SIGINT, libc::SIGTERM] {
+                    if libc::sigaction(signal, &handler, std::ptr::null_mut()) != 0 {
+                        eprintln!(
+                            "[error] semantic registry transition: {}",
+                            std::io::Error::last_os_error()
+                        );
+                        std::process::exit(1);
+                    }
+                }
+            }
+            root.canonicalize().and_then(|root| {
+                tos_ops_mechanics_plan::semantic_registry_transition::run(
+                    &root,
+                    semantic.baseline_commit.as_deref(),
+                    semantic.allow_initial_introduction,
+                    semantic.json_output,
+                    limits,
+                    &CANCEL,
+                )
+            })
+        }
         Action::ThresholdBuild { check } => {
             tos_ops_mechanics_plan::threshold_registry::build(&root, check).map(|()| 0)
         }
@@ -302,8 +357,13 @@ fn main() {
                 Action::MechanicsTopologyValidate => "mechanics topology",
                 Action::ActiveNamingValidate => "active naming",
                 Action::SourceHome => "source home",
+                Action::SemanticRegistryTransition => "semantic registry transition",
             };
-            let diagnostic = format!("mechanics-local {route}: {error}\n",);
+            let diagnostic = if matches!(action, Action::SemanticRegistryTransition) {
+                format!("[error] semantic registry transition: {error}\n")
+            } else {
+                format!("mechanics-local {route}: {error}\n")
+            };
             #[cfg(target_os = "linux")]
             if matches!(action, Action::Execute) {
                 // A stalled diagnostic sink must not undo bounded execution.
