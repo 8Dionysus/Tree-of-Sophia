@@ -1373,8 +1373,9 @@ mod selected_knowledge {
     }
 
     #[test]
+    #[ignore = "requires OPS-retained binary and source checkout plus isolated fs-verity admission"]
     fn managed_local_installed_entrypoint_retains_real_release_and_kernel_custody() {
-        use std::process::Command;
+        use std::process::{Child, Command, Output, Stdio};
         use tos_access::release_state::{ManagedRelease, NATIVE_DATA_SCHEMA};
         use tos_compiler::knowledge_full_fixture::{
             NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS, build_native_fixture_with_navigation_inputs,
@@ -1383,7 +1384,345 @@ mod selected_knowledge {
             NATIVE_KNOWLEDGE_ADAPTER_PROFILES, NativeKnowledgeSelection, NativeSelectionPaths,
             NativeSelectionProducer, prepare_native_knowledge_artifact,
         };
-        use tos_foundation::{CanonicalProfile, JsonNumber, JsonNumberKind, canonical_bytes_v1};
+        use tos_foundation::{
+            CanonicalProfile, Digest256Hasher, JsonNumber, JsonNumberKind, canonical_bytes_v1,
+        };
+        // Reap every owned child even if a later packet/custody assertion unwinds.
+        // These programs do not spawn a service/process tree of their own.
+        struct OwnedChild(Child);
+        impl std::ops::Deref for OwnedChild {
+            type Target = Child;
+            fn deref(&self) -> &Child {
+                &self.0
+            }
+        }
+        impl std::ops::DerefMut for OwnedChild {
+            fn deref_mut(&mut self) -> &mut Child {
+                &mut self.0
+            }
+        }
+        impl Drop for OwnedChild {
+            fn drop(&mut self) {
+                let _ = self.0.kill();
+                let _ = self.0.wait();
+            }
+        }
+        fn bounded_child_output(mut child: OwnedChild, stdout_max: usize) -> Output {
+            use std::sync::mpsc;
+            use std::time::Instant;
+            const STDERR_MAX: usize = 16 * 1024;
+            const CHILD_SECONDS: u64 = 60;
+            let (tx, rx) = mpsc::channel();
+            for (kind, pipe, max) in [
+                (
+                    0,
+                    Box::new(child.stdout.take().unwrap()) as Box<dyn Read + Send>,
+                    stdout_max,
+                ),
+                (
+                    1,
+                    Box::new(child.stderr.take().unwrap()) as Box<dyn Read + Send>,
+                    STDERR_MAX,
+                ),
+            ] {
+                let tx = tx.clone();
+                std::thread::spawn(move || {
+                    let mut bytes = Vec::new();
+                    let result = pipe.take((max + 1) as u64).read_to_end(&mut bytes);
+                    let _ = tx.send((kind, result, bytes));
+                });
+            }
+            drop(tx);
+            let deadline = Instant::now() + Duration::from_secs(CHILD_SECONDS);
+            let mut stdout = None;
+            let mut stderr = None;
+            loop {
+                while let Ok((kind, result, bytes)) = rx.try_recv() {
+                    result.unwrap();
+                    let max = if kind == 0 { stdout_max } else { STDERR_MAX };
+                    if bytes.len() > max {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        panic!("native child exceeded {max}-byte output cap");
+                    }
+                    if kind == 0 {
+                        stdout = Some(bytes);
+                    } else {
+                        stderr = Some(bytes);
+                    }
+                }
+                if let Some(status) = child.try_wait().unwrap() {
+                    if stdout.is_some() && stderr.is_some() {
+                        return Output {
+                            status,
+                            stdout: stdout.take().unwrap(),
+                            stderr: stderr.take().unwrap(),
+                        };
+                    }
+                }
+                if Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    panic!("native child exceeded {CHILD_SECONDS}-second deadline");
+                }
+                std::thread::sleep(Duration::from_millis(10));
+            }
+        }
+        fn bounded_output(command: &mut Command, stdout_max: usize) -> Output {
+            let child = command
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .unwrap();
+            bounded_child_output(OwnedChild(child), stdout_max)
+        }
+        fn bounded_wait(child: &mut OwnedChild) -> std::process::ExitStatus {
+            let deadline = std::time::Instant::now() + Duration::from_secs(60);
+            loop {
+                if let Some(status) = child.try_wait().unwrap() {
+                    return status;
+                }
+                if std::time::Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    panic!("native interactive child exceeded 60-second deadline");
+                }
+                std::thread::sleep(Duration::from_millis(10));
+            }
+        }
+        fn bounded_line<R: BufRead>(reader: &mut R, max: usize) -> Result<Option<String>, String> {
+            let mut bytes = Vec::new();
+            loop {
+                let available = reader.fill_buf().map_err(|error| error.to_string())?;
+                if available.is_empty() {
+                    return if bytes.is_empty() {
+                        Ok(None)
+                    } else {
+                        Err("native MCP frame ended before newline".into())
+                    };
+                }
+                let take = available
+                    .iter()
+                    .position(|byte| *byte == b'\n')
+                    .map_or(available.len(), |index| index + 1);
+                if bytes.len().saturating_add(take) > max {
+                    return Err("native MCP frame exceeded byte cap".into());
+                }
+                bytes.extend_from_slice(&available[..take]);
+                reader.consume(take);
+                if bytes.last() == Some(&b'\n') {
+                    return String::from_utf8(bytes)
+                        .map(Some)
+                        .map_err(|_| "native MCP frame is not UTF-8".into());
+                }
+            }
+        }
+        fn next_mcp_frame(
+            frames: &std::sync::mpsc::Receiver<Result<Option<String>, String>>,
+            child: &mut OwnedChild,
+        ) -> String {
+            match frames.recv_timeout(Duration::from_secs(60)) {
+                Ok(Ok(Some(frame))) => frame,
+                other => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    panic!("native MCP frame unavailable within 60 seconds: {other:?}");
+                }
+            }
+        }
+        fn bounded_http(socket: &mut TcpStream) -> Vec<u8> {
+            const HTTP_MAX: usize = 1_048_576 + 8192;
+            let deadline = std::time::Instant::now() + Duration::from_secs(30);
+            let mut bytes = Vec::new();
+            let mut chunk = [0u8; 8192];
+            loop {
+                let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+                assert!(
+                    !remaining.is_zero(),
+                    "native HTTP response exceeded 30-second deadline"
+                );
+                socket.set_read_timeout(Some(remaining)).unwrap();
+                let read = socket.read(&mut chunk).unwrap();
+                if read == 0 {
+                    return bytes;
+                }
+                assert!(
+                    bytes.len().saturating_add(read) <= HTTP_MAX,
+                    "native HTTP response exceeded byte cap"
+                );
+                bytes.extend_from_slice(&chunk[..read]);
+            }
+        }
+        fn bounded_sha(path: &std::path::Path, max: u64) -> Digest256 {
+            use std::os::unix::fs::MetadataExt;
+            let file = tos_fd_open::open_absolute_regular(path, max).unwrap();
+            let before = file.metadata().unwrap();
+            let identity = |m: &fs::Metadata| {
+                (
+                    m.dev(),
+                    m.ino(),
+                    m.len(),
+                    m.mtime(),
+                    m.mtime_nsec(),
+                    m.ctime(),
+                    m.ctime_nsec(),
+                )
+            };
+            let mut reader = BufReader::new(file);
+            let mut consumed = 0u64;
+            let mut hasher = Digest256Hasher::new();
+            let mut bytes = [0u8; 64 * 1024];
+            loop {
+                let read = reader.read(&mut bytes).unwrap();
+                if read == 0 {
+                    break;
+                }
+                consumed = consumed.checked_add(read as u64).unwrap();
+                assert!(consumed <= max, "hash input grew beyond byte cap");
+                hasher.update(&bytes[..read]);
+            }
+            assert_eq!(consumed, before.len(), "hash input size changed");
+            assert_eq!(
+                identity(&before),
+                identity(&reader.get_ref().metadata().unwrap()),
+                "hash input changed while reading"
+            );
+            assert_eq!(
+                identity(&before),
+                identity(&fs::symlink_metadata(path).unwrap()),
+                "hash pathname changed while reading"
+            );
+            hasher.finalize()
+        }
+        fn source_guard(source_root: &std::path::Path, source_ref: &str, ledger_paths: &[String]) {
+            let head = bounded_output(
+                Command::new("git")
+                    .current_dir(source_root)
+                    .args(["rev-parse", "HEAD"]),
+                128,
+            );
+            assert!(head.status.success());
+            assert_eq!(String::from_utf8(head.stdout).unwrap().trim(), source_ref);
+            let clean = bounded_output(
+                Command::new("git")
+                    .current_dir(source_root)
+                    .args([
+                        "status",
+                        "--porcelain=v1",
+                        "--untracked-files=all",
+                        "--",
+                        "access",
+                        "rust",
+                        "ToS/doctrine/semantic-interchange",
+                    ])
+                    .args(ledger_paths),
+                4096,
+            );
+            assert!(
+                clean.status.success() && clean.stdout.is_empty(),
+                "retained selected source closure is dirty"
+            );
+        }
+        fn same_search_rows(left: &JsonValue, right: &JsonValue) {
+            for key in ["source_revision", "query", "filters", "nodes", "relations"] {
+                assert_eq!(
+                    left.object_get(key),
+                    right.object_get(key),
+                    "indexed page differs across wire/process for {key}"
+                );
+            }
+        }
+        fn advanced_search_rows(first: &JsonValue, second: &JsonValue) {
+            let mut advanced = false;
+            for key in ["nodes", "relations"] {
+                let first = first.object_get(key).unwrap().as_array().unwrap();
+                let second = second.object_get(key).unwrap().as_array().unwrap();
+                assert!(first.len() <= 1 && second.len() <= 1);
+                for row in second {
+                    assert!(
+                        !first.contains(row),
+                        "resumed indexed page repeated the first {key} carrier"
+                    );
+                }
+                advanced |= !second.is_empty();
+            }
+            assert!(
+                advanced,
+                "fixture must exercise real nonempty resumed search results"
+            );
+        }
+        fn bounded_source(path: &std::path::Path) -> Vec<u8> {
+            let mut file = tos_fd_open::open_absolute_regular(path, 1_048_576).unwrap();
+            let mut raw = Vec::new();
+            file.by_ref().take(1_048_577).read_to_end(&mut raw).unwrap();
+            assert!(
+                raw.len() <= 1_048_576,
+                "selected source grew beyond byte cap"
+            );
+            raw
+        }
+        let selected_binary = PathBuf::from(
+            std::env::var_os("TOS_NATIVE_INDEXED_CONSUMER_BIN")
+                .expect("OPS must provide the retained native indexed consumer ELF"),
+        )
+        .canonicalize()
+        .unwrap();
+        let expected_binary_sha = std::env::var("TOS_NATIVE_INDEXED_CONSUMER_SHA256")
+            .expect("OPS must provide the retained ELF sha256");
+        assert_eq!(
+            bounded_sha(&selected_binary, 256 * 1024 * 1024).to_hex(),
+            expected_binary_sha,
+            "selected ELF changed before fixture assembly"
+        );
+        let producer_binary = std::env::current_exe().unwrap();
+        let expected_producer_sha = std::env::var("TOS_NATIVE_INDEXED_PRODUCER_SHA256")
+            .expect("OPS must provide the retained test ELF sha256");
+        assert_eq!(
+            bounded_sha(&producer_binary, 512 * 1024 * 1024).to_hex(),
+            expected_producer_sha,
+            "selected producer ELF changed before fixture assembly"
+        );
+        let source_root = PathBuf::from(
+            std::env::var_os("TOS_NATIVE_INDEXED_SOURCE_ROOT")
+                .expect("OPS must provide a retained source checkout"),
+        )
+        .canonicalize()
+        .unwrap();
+        let compile_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .nth(3)
+            .expect("compiler crate path has a repository root");
+        assert_ne!(
+            source_root.as_path(),
+            compile_root,
+            "runtime fixture source must be retained separately from the shared compiler checkout"
+        );
+        // OPS sets this only for the frozen source before compiling this ELF.
+        // A runtime environment value cannot silently select different fixture,
+        // imported Python software or public-ledger source than that build.
+        let compiled_source_ref = option_env!("TOS_NATIVE_INDEXED_COMPILED_SOURCE_COMMIT")
+            .expect("OPS must bind this test ELF to its immutable source commit at compile time");
+        let source_ref = std::env::var("TOS_NATIVE_INDEXED_SOURCE_COMMIT")
+            .expect("OPS must provide the exact retained source commit");
+        assert!(source_ref.len() == 40 && source_ref.bytes().all(|byte| byte.is_ascii_hexdigit()));
+        assert_eq!(
+            source_ref, compiled_source_ref,
+            "runtime source differs from compiled source selection"
+        );
+        let ledger_paths = tos_access::release_state::public_source_gap_paths().unwrap();
+        source_guard(&source_root, &source_ref, &ledger_paths);
+        assert_eq!(
+            bounded_source(&source_root.join("access/tests/test_access_contract.py")),
+            include_bytes!("../../../../access/tests/test_access_contract.py").as_slice(),
+            "Python fixture source differs from compile-time input"
+        );
+        assert_eq!(
+            bounded_source(
+                &source_root.join(tos_access::release_state::RUNTIME_DATA_DECLARATION_PATH)
+            ),
+            tos_access::release_state::RUNTIME_DATA_DECLARATION,
+            "public-ledger selection differs from compile-time input"
+        );
         // Reuse the maintained software fixture, exporting only original inputs.
         // The existing independent QRY dossier case owns Python domain equality.
         let script = r#"
@@ -1396,15 +1735,13 @@ with tempfile.TemporaryDirectory() as d:
  nav=json.loads((root/'ToS/derived-exports/tos_corpus_index.min.json').read_text())['source_navigation']
  print(json.dumps(nav,ensure_ascii=False,separators=(',',':'),allow_nan=False))
 "#;
-        let output = Command::new("python3")
-            .arg("-c")
-            .arg(script)
-            .arg(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/../../../access/tests"
-            ))
-            .output()
-            .unwrap();
+        let output = bounded_output(
+            Command::new("python3")
+                .args(["-I", "-B", "-c"])
+                .arg(script)
+                .arg(source_root.join("access/tests")),
+            1_048_576,
+        );
         assert!(
             output.status.success(),
             "{}",
@@ -1457,13 +1794,19 @@ with tempfile.TemporaryDirectory() as d:
         let base = fixture.path.parent().unwrap().to_path_buf();
         let install = base.join("software/bin/tos-access");
         fs::create_dir_all(install.parent().unwrap()).unwrap();
-        fs::copy(env!("CARGO_BIN_EXE_tos-access"), &install).unwrap();
-        let software_sha = Digest256::of_bytes(&fs::read(&install).unwrap());
+        fs::copy(&selected_binary, &install).unwrap();
+        let software_sha = bounded_sha(&install, 256 * 1024 * 1024);
+        assert_eq!(software_sha.to_hex(), expected_binary_sha);
         // The producer ran in this existing test executable, not the consumer
         // executable. Keep its actual code fingerprint as a separate member.
         let producer_program = base.join("software/bin/native-producer-fixture");
-        fs::copy(std::env::current_exe().unwrap(), &producer_program).unwrap();
-        let producer_sha = Digest256::of_bytes(&fs::read(&producer_program).unwrap());
+        fs::copy(&producer_binary, &producer_program).unwrap();
+        let producer_sha = bounded_sha(&producer_program, 512 * 1024 * 1024);
+        assert_eq!(
+            producer_sha.to_hex(),
+            expected_producer_sha,
+            "copied producer ELF differs from retained running image"
+        );
         let data_root = base.join("native-snapshot");
         fs::create_dir_all(data_root.join("data")).unwrap();
         let paths = NativeSelectionPaths {
@@ -1480,12 +1823,11 @@ with tempfile.TemporaryDirectory() as d:
         fs::write(data_root.join("data/navigation-input.json"), &output.stdout).unwrap();
         // This public subset is declared by the existing software owner, never
         // discovered from a runtime checkout or current filename/count rule.
-        let ledger_paths = tos_access::release_state::public_source_gap_paths().unwrap();
-        let source_root = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../.."));
+        source_guard(&source_root, &source_ref, &ledger_paths);
         let ledger = ledger_paths
             .iter()
             .map(|source| {
-                let raw = fs::read(source_root.join(source)).unwrap();
+                let raw = bounded_source(&source_root.join(source));
                 let member = format!("data/{source}");
                 fs::create_dir_all(data_root.join(&member).parent().unwrap()).unwrap();
                 fs::write(data_root.join(&member), &raw).unwrap();
@@ -1554,11 +1896,12 @@ with tempfile.TemporaryDirectory() as d:
         let members = members
             .into_iter()
             .map(|path| {
-                let raw = fs::read(data_root.join(&path)).unwrap();
+                let member = data_root.join(&path);
+                let sha = bounded_sha(&member, cold_limits.max_file_bytes);
                 object(vec![
                     ("path", text(&path)),
-                    ("size_bytes", number(raw.len() as u64)),
-                    ("sha256", text(&Digest256::of_bytes(&raw).to_hex())),
+                    ("size_bytes", number(fs::metadata(&member).unwrap().len())),
+                    ("sha256", text(&sha.to_hex())),
                 ])
             })
             .collect();
@@ -1729,15 +2072,15 @@ with tempfile.TemporaryDirectory() as d:
                 .env_remove("TOS_RELEASE_ROOT");
             cmd
         };
-        let result = child().args(["knowledge", "catalog"]).output().unwrap();
+        let result = bounded_output(child().args(["knowledge", "catalog"]), 1_048_576);
         assert!(
             result.status.success(),
             "{}",
             String::from_utf8_lossy(&result.stderr)
         );
         assert_eq!(result.stdout, [catalog.as_slice(), b"\n"].concat());
-        let indexed_cli = child()
-            .args([
+        let indexed_cli = bounded_output(
+            child().args([
                 "knowledge",
                 "search",
                 "source",
@@ -1745,9 +2088,9 @@ with tempfile.TemporaryDirectory() as d:
                 "indexed",
                 "--limit",
                 "1",
-            ])
-            .output()
-            .unwrap();
+            ]),
+            1_048_576,
+        );
         assert!(
             indexed_cli.status.success(),
             "{}",
@@ -1773,8 +2116,8 @@ with tempfile.TemporaryDirectory() as d:
             .unwrap()
             .to_owned();
         assert!(cli_cursor.len() <= 16 * 1024);
-        let cli_resume = child()
-            .args([
+        let cli_resume = bounded_output(
+            child().args([
                 "knowledge",
                 "search",
                 "source",
@@ -1784,9 +2127,9 @@ with tempfile.TemporaryDirectory() as d:
                 "1",
                 "--cursor",
                 &cli_cursor,
-            ])
-            .output()
-            .unwrap();
+            ]),
+            1_048_576,
+        );
         assert!(
             cli_resume.status.success(),
             "{}",
@@ -1808,6 +2151,7 @@ with tempfile.TemporaryDirectory() as d:
                 .as_str(),
             Some(cli_cursor.as_str())
         );
+        advanced_search_rows(&cli_packet, &cli_resume);
         let descriptor = tos_access::registered_operations()
             .unwrap()
             .iter()
@@ -1817,15 +2161,17 @@ with tempfile.TemporaryDirectory() as d:
             &descriptor.mcp_tool,
             &object(vec![("object_id", text(&object_id))]),
         );
-        let mut rpc = child()
-            .arg("mcp")
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped())
-            .spawn()
-            .unwrap();
+        let mut rpc = OwnedChild(
+            child()
+                .arg("mcp")
+                .stdin(std::process::Stdio::piped())
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::piped())
+                .spawn()
+                .unwrap(),
+        );
         rpc.stdin.take().unwrap().write_all(&input).unwrap();
-        let result = rpc.wait_with_output().unwrap();
+        let result = bounded_child_output(rpc, 3 * 1024 * 1024);
         assert!(
             result.status.success(),
             "{}",
@@ -1835,19 +2181,30 @@ with tempfile.TemporaryDirectory() as d:
         check_mcp_packet(last_frame(&result.stdout), &dossier, frame_cap);
         // Actual MCP pages use the same unsigned paging request and reacquire
         // the selected release holder for every page.
-        let mut search_rpc = child()
-            .arg("mcp")
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped())
-            .spawn()
-            .unwrap();
+        let mut search_rpc = OwnedChild(
+            child()
+                .arg("mcp")
+                .stdin(std::process::Stdio::piped())
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::null())
+                .spawn()
+                .unwrap(),
+        );
         let mut search_input = search_rpc.stdin.take().unwrap();
         let mut search_output = BufReader::new(search_rpc.stdout.take().unwrap());
+        let (frames_tx, frames_rx) = std::sync::mpsc::sync_channel(1);
+        std::thread::spawn(move || {
+            loop {
+                let result = bounded_line(&mut search_output, frame_cap);
+                let done = !matches!(result, Ok(Some(_)));
+                if frames_tx.send(result).is_err() || done {
+                    break;
+                }
+            }
+        });
         writeln!(search_input, "{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{{\"protocolVersion\":\"2025-11-25\"}}}}")
             .unwrap();
-        let mut frame = String::new();
-        search_output.read_line(&mut frame).unwrap();
+        let mut frame = next_mcp_frame(&frames_rx, &mut search_rpc);
         assert!(frame.contains("\"protocolVersion\":\"2025-11-25\""));
         writeln!(
             search_input,
@@ -1856,8 +2213,7 @@ with tempfile.TemporaryDirectory() as d:
         .unwrap();
         writeln!(search_input, "{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"tos_knowledge_search\",\"arguments\":{{\"mode\":\"indexed\",\"query\":\"source\",\"limit\":1}}}}}}")
             .unwrap();
-        frame.clear();
-        search_output.read_line(&mut frame).unwrap();
+        frame = next_mcp_frame(&frames_rx, &mut search_rpc);
         let first = parse_json(
             frame.as_bytes(),
             JsonMode::PublishedStrict,
@@ -1874,6 +2230,7 @@ with tempfile.TemporaryDirectory() as d:
             first.object_get("schema").unwrap().as_str(),
             Some("tos_knowledge_search_indexed_v2")
         );
+        same_search_rows(&cli_packet, first);
         let search_cursor = first
             .object_get("page")
             .unwrap()
@@ -1885,8 +2242,7 @@ with tempfile.TemporaryDirectory() as d:
         assert!(search_cursor.len() <= 16 * 1024);
         writeln!(search_input, "{{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{{\"name\":\"tos_knowledge_search\",\"arguments\":{{\"mode\":\"indexed\",\"query\":\"source\",\"limit\":1,\"cursor\":\"{search_cursor}\"}}}}}}")
             .unwrap();
-        frame.clear();
-        search_output.read_line(&mut frame).unwrap();
+        frame = next_mcp_frame(&frames_rx, &mut search_rpc);
         let second = parse_json(
             frame.as_bytes(),
             JsonMode::PublishedStrict,
@@ -1908,24 +2264,26 @@ with tempfile.TemporaryDirectory() as d:
                 .as_str(),
             Some(search_cursor.as_str())
         );
+        same_search_rows(&cli_resume, second);
         drop(search_input);
-        drop(search_output);
-        let search_result = search_rpc.wait_with_output().unwrap();
+        drop(frames_rx);
+        let search_result = bounded_wait(&mut search_rpc);
         assert!(
-            search_result.status.success(),
-            "{}",
-            String::from_utf8_lossy(&search_result.stderr)
+            search_result.success(),
+            "native MCP child refused completion: {search_result}"
         );
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
         drop(listener);
-        let mut server = child()
-            .arg("serve")
-            .arg(address.to_string())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::piped())
-            .spawn()
-            .unwrap();
+        let mut server = OwnedChild(
+            child()
+                .arg("serve")
+                .arg(address.to_string())
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::piped())
+                .spawn()
+                .unwrap(),
+        );
         let deadline = std::time::Instant::now() + Duration::from_secs(60);
         let mut socket = loop {
             match TcpStream::connect(address) {
@@ -1936,7 +2294,7 @@ with tempfile.TemporaryDirectory() as d:
                         if !exited {
                             server.kill().unwrap();
                         }
-                        let output = server.wait_with_output().unwrap();
+                        let output = bounded_child_output(server, 16 * 1024);
                         panic!(
                             "managed native HTTP startup failed {error}: {}",
                             String::from_utf8_lossy(&output.stderr)
@@ -1949,15 +2307,17 @@ with tempfile.TemporaryDirectory() as d:
         let path = descriptor
             .http_path
             .replace("{object_id}", &path_id(&object_id));
-        let mut response = Vec::new();
-        let received = socket
-            .set_read_timeout(Some(Duration::from_secs(30)))
-            .and_then(|_| write!(socket, "GET {path} HTTP/1.1\r\nHost: localhost\r\n\r\n"))
-            .and_then(|_| socket.read_to_end(&mut response));
-        received.unwrap();
+        socket
+            .set_write_timeout(Some(Duration::from_secs(30)))
+            .unwrap();
+        write!(socket, "GET {path} HTTP/1.1\r\nHost: localhost\r\n\r\n").unwrap();
+        let response = bounded_http(&mut socket);
         assert_eq!(http_packet(&response), dossier);
         for method in ["GET", "HEAD"] {
             let mut socket = TcpStream::connect(address).unwrap();
+            socket
+                .set_write_timeout(Some(Duration::from_secs(30)))
+                .unwrap();
             socket
                 .set_read_timeout(Some(Duration::from_secs(30)))
                 .unwrap();
@@ -1966,8 +2326,7 @@ with tempfile.TemporaryDirectory() as d:
                 "{method} /api/source-gaps HTTP/1.1\r\nHost: localhost\r\n\r\n"
             )
             .unwrap();
-            let mut bytes = vec![];
-            socket.read_to_end(&mut bytes).unwrap();
+            let bytes = bounded_http(&mut socket);
             assert!(bytes.starts_with(b"HTTP/1.1 200 "));
             if method == "GET" {
                 assert_eq!(http_packet(&bytes), source_gap);
@@ -1982,12 +2341,13 @@ with tempfile.TemporaryDirectory() as d:
         let search_http = |target: &str| {
             let mut socket = TcpStream::connect(address).unwrap();
             socket
+                .set_write_timeout(Some(Duration::from_secs(30)))
+                .unwrap();
+            socket
                 .set_read_timeout(Some(Duration::from_secs(30)))
                 .unwrap();
             write!(socket, "GET {target} HTTP/1.1\r\nHost: localhost\r\n\r\n").unwrap();
-            let mut bytes = vec![];
-            socket.read_to_end(&mut bytes).unwrap();
-            bytes
+            bounded_http(&mut socket)
         };
         let first_http = search_http("/api/knowledge/search?mode=indexed&query=source&limit=1");
         let first_http_len = http_packet(&first_http).len();
@@ -1998,13 +2358,16 @@ with tempfile.TemporaryDirectory() as d:
         )
         .unwrap()
         .into_root();
+        same_search_rows(&cli_packet, &first_http);
         let mut head_socket = TcpStream::connect(address).unwrap();
+        head_socket
+            .set_write_timeout(Some(Duration::from_secs(30)))
+            .unwrap();
         head_socket
             .set_read_timeout(Some(Duration::from_secs(30)))
             .unwrap();
         write!(head_socket, "HEAD /api/knowledge/search?mode=indexed&query=source&limit=1 HTTP/1.1\r\nHost: localhost\r\n\r\n").unwrap();
-        let mut head_bytes = vec![];
-        head_socket.read_to_end(&mut head_bytes).unwrap();
+        let head_bytes = bounded_http(&mut head_socket);
         assert!(head_bytes.starts_with(b"HTTP/1.1 200 "));
         assert!(head_bytes.ends_with(b"\r\n\r\n"));
         assert!(
@@ -2039,6 +2402,7 @@ with tempfile.TemporaryDirectory() as d:
                 .as_str(),
             Some(cursor.as_str())
         );
+        same_search_rows(&cli_resume, &resumed);
         let stale = search_http(&format!(
             "/api/knowledge/search?mode=indexed&query=node&limit=1&cursor={cursor}"
         ));
@@ -2062,6 +2426,7 @@ with tempfile.TemporaryDirectory() as d:
                 .as_str(),
             Some(search_cursor.as_str())
         );
+        same_search_rows(&cli_resume, &cross_process);
         let withdrawn_path = root.join(format!("revocations/data/{revision}.json"));
         let withdrawn_record = object(vec![
             ("schema_version", text("tos_access_release_revocation_v1")),
@@ -2086,7 +2451,7 @@ with tempfile.TemporaryDirectory() as d:
         fs::remove_file(withdrawn_path).unwrap();
         withdrawal_lock.unlock().unwrap();
         server.kill().unwrap();
-        server.wait().unwrap();
+        let _ = bounded_child_output(server, 16 * 1024);
         let release = ManagedRelease::open(&root).unwrap();
         let ledger_packet = tos_access::managed_local::execute_selected_source_gap(
             &release,
@@ -2143,22 +2508,23 @@ with tempfile.TemporaryDirectory() as d:
         fs::rename(data_root.join(&paths.model), &retained).unwrap();
         fs::copy(&retained, data_root.join(&paths.model)).unwrap();
         lock.unlock().unwrap();
-        let result = child().args(["knowledge", "catalog"]).output().unwrap();
+        let result = bounded_output(child().args(["knowledge", "catalog"]), 1_048_576);
         assert_eq!(result.status.code(), Some(3));
         assert!(result.stdout.is_empty());
         lock.try_lock().unwrap();
         fs::remove_file(data_root.join(&paths.model)).unwrap();
         fs::rename(&retained, data_root.join(&paths.model)).unwrap();
         lock.unlock().unwrap();
-        let result = Command::new("prlimit")
-            .args(["--as=unlimited", "--fsize=unlimited", "--"])
-            .arg(&install)
-            .arg("--release-root")
-            .arg(&root)
-            .args(["knowledge", "catalog"])
-            .env_remove("TOS_RELEASE_ROOT")
-            .output()
-            .unwrap();
+        let result = bounded_output(
+            Command::new("prlimit")
+                .args(["--as=unlimited", "--fsize=unlimited", "--"])
+                .arg(&install)
+                .arg("--release-root")
+                .arg(&root)
+                .args(["knowledge", "catalog"])
+                .env_remove("TOS_RELEASE_ROOT"),
+            1_048_576,
+        );
         assert_eq!(result.status.code(), Some(3));
         assert!(result.stdout.is_empty());
         fs::rename(
@@ -2166,7 +2532,7 @@ with tempfile.TemporaryDirectory() as d:
             root.join("retained.release.lock"),
         )
         .unwrap();
-        let result = child().args(["knowledge", "catalog"]).output().unwrap();
+        let result = bounded_output(child().args(["knowledge", "catalog"]), 1_048_576);
         assert_eq!(result.status.code(), Some(3));
         assert!(result.stdout.is_empty());
         fs::rename(
@@ -2186,9 +2552,20 @@ with tempfile.TemporaryDirectory() as d:
             canonical(&revoked),
         )
         .unwrap();
-        let result = child().args(["knowledge", "catalog"]).output().unwrap();
+        let result = bounded_output(child().args(["knowledge", "catalog"]), 1_048_576);
         assert_eq!(result.status.code(), Some(3));
         assert!(result.stdout.is_empty());
+        source_guard(&source_root, &source_ref, &ledger_paths);
+        assert_eq!(
+            bounded_sha(&selected_binary, 256 * 1024 * 1024).to_hex(),
+            expected_binary_sha,
+            "retained consumer ELF changed during installed case"
+        );
+        assert_eq!(
+            bounded_sha(&producer_binary, 512 * 1024 * 1024).to_hex(),
+            expected_producer_sha,
+            "retained producer ELF changed during installed case"
+        );
     }
 
     fn json_bytes(value: &JsonValue) -> Vec<u8> {
