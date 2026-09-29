@@ -625,3 +625,89 @@ fn prepared_inspect_alias_endpoints_counts_and_selected_corruption_use_shared_me
     );
     db.execute_batch("ROLLBACK").unwrap();
 }
+
+#[test]
+fn prepared_lens_full_plan_preserves_selected_rows_and_refuses_corruption_and_abort() {
+    use std::sync::Arc;
+    use tos_query::search_v2::SearchV2ErrorCode;
+    let f = Fixture::publish(rows(), 1_048_576);
+    let db = Connection::open_with_flags(&f.path, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+    db.execute_batch("PRAGMA query_only=ON;BEGIN").unwrap();
+    let limits = PreparedReadLimits {
+        max_response_bytes: 4 * 1024 * 1024,
+        ..Default::default()
+    };
+    let spec = json(
+        r#"{"schema_version":"tos_lens_spec_v1","lens_id":"prepared-native","detail":"full","sources":["philosophy"]}"#,
+    );
+    let mut session = PreparedSearchSession::new(&db, limits).unwrap();
+    let packet = session.lens(&f.binding, &spec).unwrap();
+    assert_eq!(
+        packet
+            .object_get("nodes")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .len(),
+        4
+    );
+    assert_eq!(
+        packet
+            .object_get("relations")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    let nodes = packet.object_get("nodes").unwrap().as_array().unwrap();
+    let a = nodes
+        .iter()
+        .find(|v| v.object_get("id").and_then(JsonValue::as_str) == Some("a"))
+        .unwrap();
+    assert_eq!(
+        a.object_get("probe").unwrap().object_get("false"),
+        Some(&JsonValue::Bool(false))
+    );
+    assert_eq!(
+        a.object_get("probe").unwrap().object_get("zero"),
+        Some(&json("0"))
+    );
+    db.execute_batch("COMMIT;BEGIN").unwrap();
+    session.recheck_binding(&f.binding).unwrap();
+    db.execute_batch("COMMIT").unwrap();
+    drop(session);
+    drop(db);
+    for sql in [
+        "UPDATE edge_meta SET json_chunk='{}' WHERE key='knowledge_lens_top'",
+        "UPDATE knowledge_lens_order SET sort_key='wrong' WHERE kind='node' AND id='a'",
+        "UPDATE knowledge_nodes SET type_id='changed' WHERE id='a'",
+    ] {
+        let f = Fixture::publish(rows(), 1_048_576);
+        let db = Connection::open(&f.path).unwrap();
+        db.execute_batch(sql).unwrap();
+        db.execute_batch("BEGIN").unwrap();
+        let mut session = PreparedSearchSession::new(&db, limits).unwrap();
+        assert_eq!(
+            session.lens(&f.binding, &spec).unwrap_err().code,
+            SearchV2ErrorCode::CorruptSelectedCarrier
+        );
+        db.execute_batch("ROLLBACK").unwrap();
+    }
+    struct Cancel;
+    impl tos_query::AbortProbe for Cancel {
+        fn reason(&self) -> Option<tos_query::AbortReason> {
+            Some(tos_query::AbortReason::Cancelled)
+        }
+    }
+    let f = Fixture::publish(rows(), 1_048_576);
+    let db = Connection::open(&f.path).unwrap();
+    db.execute_batch("BEGIN").unwrap();
+    let mut session =
+        PreparedSearchSession::new_with_abort(&db, limits, Some(Arc::new(Cancel))).unwrap();
+    assert_eq!(
+        session.lens(&f.binding, &spec).unwrap_err().code,
+        SearchV2ErrorCode::Cancelled
+    );
+    db.execute_batch("ROLLBACK").unwrap();
+}

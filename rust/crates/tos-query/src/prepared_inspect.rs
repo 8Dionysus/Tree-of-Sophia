@@ -10,13 +10,13 @@ use tos_foundation::{
 };
 
 type Result<T> = std::result::Result<T, SearchV2Error>;
-fn corrupt() -> SearchV2Error {
+pub(crate) fn corrupt() -> SearchV2Error {
     SearchV2Error {
         code: SearchV2ErrorCode::CorruptSelectedCarrier,
         message: "prepared inspect carrier closure invalid",
     }
 }
-fn budget() -> SearchV2Error {
+pub(crate) fn budget() -> SearchV2Error {
     SearchV2Error {
         code: SearchV2ErrorCode::BudgetExceeded,
         message: "prepared inspect budget exceeded",
@@ -35,7 +35,7 @@ pub(crate) fn storage_error(error: CompressedSearchError) -> SearchV2Error {
         message: "prepared inspect read refused",
     }
 }
-fn codec(maximum: usize) -> JsonLimits {
+pub(crate) fn codec(maximum: usize) -> JsonLimits {
     JsonLimits {
         max_bytes: maximum,
         max_depth: 96,
@@ -43,7 +43,7 @@ fn codec(maximum: usize) -> JsonLimits {
         max_integer_digits: 4096,
     }
 }
-fn table(kind: SearchKind) -> &'static str {
+pub(crate) fn table(kind: SearchKind) -> &'static str {
     if kind == SearchKind::Nodes {
         "knowledge_nodes"
     } else {
@@ -160,7 +160,7 @@ pub(crate) fn inspect(
     Ok(packet)
 }
 
-fn lookup(
+pub(crate) fn lookup(
     read: &mut Read<'_>,
     kind: SearchKind,
     selector: &str,
@@ -176,7 +176,7 @@ fn lookup(
         _ => return Err(corrupt()),
     };
     let sql = format!(
-        "SELECT CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB)) BETWEEN 1 AND ?3 THEN id END FROM {}{index} WHERE {selector}=?1 ORDER BY id LIMIT ?2",
+        "SELECT CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB)) BETWEEN 1 AND ?3 THEN id END FROM {}{index} WHERE {selector}=?1 LIMIT ?2",
         table(kind)
     );
     let lookahead = limit
@@ -198,8 +198,13 @@ fn lookup(
             budget()
         });
     }
+    let mut ids = ids
+        .into_iter()
+        .map(|id| id.ok_or_else(budget))
+        .collect::<Result<Vec<_>>>()?;
+    ids.sort();
     ids.into_iter()
-        .map(|id| full_row(read, kind, &id.ok_or_else(budget)?, field_cap))
+        .map(|id| full_row(read, kind, &id, field_cap))
         .collect()
 }
 
@@ -209,6 +214,14 @@ fn full_row(
     identifier: &str,
     field_cap: usize,
 ) -> Result<JsonValue> {
+    full_row_with_size(read, kind, identifier, field_cap).map(|(item, _)| item)
+}
+pub(crate) fn full_row_with_size(
+    read: &mut Read<'_>,
+    kind: SearchKind,
+    identifier: &str,
+    field_cap: usize,
+) -> Result<(JsonValue, usize)> {
     let names = columns(kind);
     let sizes = names
         .iter()
@@ -244,6 +257,14 @@ fn full_row(
     // Admit the complete SQL record as well as its output body before fetching.
     // Each indexed scalar has its own cap; body bytes retain the caller payload cap.
     // The shared byte meter admits their complete sum before any SQL text copy.
+    if body
+        .checked_add(indexed)
+        .and_then(|n| n.checked_add(1024))
+        .ok_or_else(budget)?
+        > read.limits.max_row_bytes.max(131_072).saturating_add(4096)
+    {
+        return Err(budget());
+    }
     let digest_key = format!(
         "knowledge_{}_digest:{identifier}",
         if kind == SearchKind::Nodes {
@@ -330,7 +351,7 @@ fn full_row(
     {
         return Err(corrupt());
     }
-    Ok(item)
+    Ok((item, body))
 }
 
 fn incident(

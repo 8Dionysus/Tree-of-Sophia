@@ -2142,6 +2142,17 @@ impl LensPlan {
         publication: Option<&JsonValue>,
         budget: PublishedLensBudget,
     ) -> Result<Self, SearchV2Error> {
+        Self::published_with_abort(value, metadata, top, revision, publication, budget, None)
+    }
+    pub(crate) fn published_with_abort(
+        value: &JsonValue,
+        metadata: &JsonValue,
+        top: &JsonValue,
+        revision: &str,
+        publication: Option<&JsonValue>,
+        budget: PublishedLensBudget,
+        probe: Option<std::sync::Arc<dyn AbortProbe>>,
+    ) -> Result<Self, SearchV2Error> {
         let vocabulary = LensVocabulary::from_published_metadata(metadata)?;
         let public = normalize_lens_spec(value, &vocabulary)?;
         let spec = bind_plan_properties(&public, &vocabulary)?;
@@ -2184,7 +2195,7 @@ impl LensPlan {
                 budget.max_cache_bytes,
                 budget.max_cache_entries,
             )),
-            None,
+            probe,
         )
     }
     #[cfg(not(target_arch = "wasm32"))]

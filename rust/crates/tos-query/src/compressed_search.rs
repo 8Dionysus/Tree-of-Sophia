@@ -292,6 +292,30 @@ impl<'a> PreparedSearchSession<'a> {
         result
     }
 
+    pub fn lens(
+        &mut self,
+        binding: &JsonValue,
+        spec: &JsonValue,
+    ) -> std::result::Result<JsonValue, crate::search_v2::SearchV2Error> {
+        use crate::prepared_inspect::storage_error;
+        self.read.check_abort().map_err(storage_error)?;
+        let view = PreparedReadTransaction::admit(self.read.db, binding, self.read.limits)
+            .map_err(|e| {
+                storage_error(
+                    self.read
+                        .check_abort()
+                        .err()
+                        .unwrap_or_else(|| prepared_error(e)),
+                )
+            })?;
+        self.read.absorb_owner(&view).map_err(storage_error)?;
+        let result = crate::prepared_lens::lens(&mut self.read, &view, spec);
+        drop(view);
+        self.read.reset_owner();
+        self.read.check_abort().map_err(storage_error)?;
+        result
+    }
+
     pub fn catalog(&mut self, binding: &JsonValue) -> Result<JsonValue> {
         self.read.check_abort()?;
         let view = PreparedReadTransaction::admit(self.read.db, binding, self.read.limits)

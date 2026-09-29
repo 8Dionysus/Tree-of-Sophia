@@ -101,6 +101,9 @@ impl<'a> Read<'a> {
             None => Ok(()),
         }
     }
+    pub fn abort_handle(&self) -> Option<Arc<dyn crate::AbortProbe>> {
+        self.abort.clone()
+    }
     pub fn abort_probe(&self) -> Option<&dyn crate::AbortProbe> {
         self.abort.as_deref()
     }
