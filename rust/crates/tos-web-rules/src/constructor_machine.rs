@@ -171,10 +171,13 @@ fn pos(v: &JsonValue) -> RuleResult<JsonValue> {
     Ok(v.clone())
 }
 fn number(v: f64) -> JsonValue {
-    JsonValue::Number(JsonNumber {
-        kind: JsonNumberKind::Float,
-        lexeme: v.to_string(),
-    })
+    let lexeme = v.to_string();
+    let kind = if lexeme.contains(['.', 'e', 'E']) {
+        JsonNumberKind::Float
+    } else {
+        JsonNumberKind::Int
+    };
+    JsonValue::Number(JsonNumber { kind, lexeme })
 }
 fn float(v: &JsonValue) -> Option<f64> {
     if let JsonValue::Number(n) = v {
