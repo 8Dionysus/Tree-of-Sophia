@@ -596,6 +596,18 @@ tos --root /path/to/runtime-data --prepared-read-model /path/to/selected.sqlite 
   --exploration-checkpoints /path/to/local-continuations.sqlite mcp
 ```
 
+The Rust native candidate also accepts the paired prepared paths for
+`knowledge search QUERY --mode compressed`, `knowledge search capabilities`,
+HTTP `/api/knowledge/search?mode=compressed`, and MCP `tos_knowledge_search`.
+This explicit local projection reader uses a 4 MiB logical response profile,
+64 KiB request/binding limits, and a separately checked complete MCP frame
+allowance. It observes the pathname/WAL and rechecks the binding in a fresh
+snapshot before delivery; it does not acquire managed-release custody or
+source-rights authority. Its other prepared catalog, lens, exploration and
+source operations remain unavailable; the maintained Python services below
+remain the comparison surface until their native replacements are verified.
+The native candidate rejects combining explicit prepared and release options.
+
 Use `serve` instead of `mcp` to start local HTTP. Binding JSON is limited to
 64 KiB and loaded from the separately chosen file; it is never recovered from
 the selected database after mismatch. The optional checkpoint path is a distinct
