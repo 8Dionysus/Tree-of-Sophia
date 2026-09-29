@@ -178,14 +178,17 @@ impl<'a> Read<'a> {
         let mut rows = statement.query(args).map_err(|e| self.sql_error(e))?;
         let mut result = Vec::new();
         while let Some(row) = rows.next().map_err(|e| self.sql_error(e))? {
+            // Every returned SQL row consumes the shared request allowance.
+            // Search BLOB/chunk payload bytes are charged explicitly by their
+            // owner below; `tracked` affects only automatic TEXT byte charging.
+            self.rows = self
+                .rows
+                .checked_add(1)
+                .ok_or_else(|| budget("prepared row counter overflow"))?;
+            if self.rows > self.limits.max_rows {
+                return Err(budget("prepared inspection exceeds its row budget"));
+            }
             if tracked {
-                self.rows = self
-                    .rows
-                    .checked_add(1)
-                    .ok_or_else(|| budget("prepared row counter overflow"))?;
-                if self.rows > self.limits.max_rows {
-                    return Err(budget("prepared inspection exceeds its row budget"));
-                }
                 let mut size = 0usize;
                 for i in 0..row.as_ref().column_count() {
                     if let rusqlite::types::ValueRef::Text(v) = row.get_ref(i).map_err(sql_error)? {
