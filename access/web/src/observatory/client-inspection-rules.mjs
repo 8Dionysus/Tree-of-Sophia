@@ -3,9 +3,9 @@ export function installClientInspectionRules(runtime){
   if(typeof runtime?.ClientInspectionSession!=='function')throw new TypeError('Generated client inspection Rust rule is unavailable');
   installedRuntime=runtime;
 }
-export function createClientInspectionSession(){
+export function createClientInspectionSession(...observations){
   if(!installedRuntime)throw new Error('Client inspection Rust rules are not installed');
-  return new installedRuntime.ClientInspectionSession();
+  return new installedRuntime.ClientInspectionSession(...observations);
 }
 // RegExp.test applies ToString with string hint and refuses symbols.
 export function inspectionRevisionText(value){

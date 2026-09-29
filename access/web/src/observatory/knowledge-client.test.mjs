@@ -355,3 +355,11 @@ test('inspection never reclassifies exceptions from source getters as Rust refus
     await assert.rejects(client.inspect('node','opaque'),error=>error===marker);
   }
 });
+
+test('inspection observes each original ID getter read and retains reference equality',async()=>{
+  const raw=node('initial'),identity={opaque:true};let reads=0;
+  Object.defineProperty(raw,'id',{get(){reads++;return reads<=2?'initial':identity;}});
+  const packet={schema:'tos_knowledge_node_packet_v1',source_revision:fixture.source_revision,matches:[raw]};
+  const client=new KnowledgeClient({fetcher:async()=>({ok:true,json:async()=>packet})});
+  assert.equal((await client.inspect('node',identity)).match,raw);assert.equal(reads,5);
+});

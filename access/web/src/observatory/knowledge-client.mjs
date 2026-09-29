@@ -356,11 +356,10 @@ export class RequestSlots {
   }
 }
 function validateClientInspection(packet,kind,id,expected,contentRevision){
-  const session=createClientInspectionSession();
-  const run=(method,value)=>{
-    // Only a direct WASM refusal is translated. Source getters and coercions
-    // evaluate before this boundary and preserve their original exceptions.
-    try{return session[method](value);}catch(error){
+  const session=createClientInspectionSession(kind==='node',kind==='relation',Boolean(expected),Boolean(contentRevision));
+  const run=(method,...values)=>{
+    // Source arguments evaluate outside the direct WASM refusal boundary.
+    try{return session[method](...values);}catch(error){
       if(error==='revision')throw new RevisionError();
       const messages={missing_revision:'Ответ не содержит версию данных.',schema:'Неверная карточка.',
         items:'Неверный список объектов.',item:'Неполный или повторяющийся объект.',
@@ -369,31 +368,57 @@ function validateClientInspection(packet,kind,id,expected,contentRevision){
       throw error;
     }
   };
-  const items=(values,itemKind)=>{
-    run('items',Array.isArray(values));const ids=new Set();
-    for(const item of values){
-      run('identity',Boolean(item)&&typeof item.id==='string'&&Boolean(item.id)&&!ids.has(item.id));
-      run('display',Boolean(item.display)&&Boolean(localized(itemKind==='node'?item.display.title:item.display.label)));
-      const revision=inspectionRevisionText(item.content_revision||'');
-      run('content_revision_length',revision.length);run('content_revision',inspectionRevisionUnits(revision));
-      run('source_refs',Array.isArray(item.source_refs)&&Boolean(item.source_refs.length)
-        &&!item.source_refs.some(ref=>typeof ref!=='string'||!ref));
-      ids.add(item.id);
+  let item,match,ids;
+  const digest=value=>{
+    const text=inspectionRevisionText(value);run('text_length',text.length);run('text',inspectionRevisionUnits(text));
+  };
+  const observeItem=need=>{
+    switch(need){
+        case 'item-truthy':run('observe',Boolean(item));break;
+        case 'id-type':run('observe',typeof item.id==='string');break;
+        case 'id-truthy':run('observe',Boolean(item.id));break;
+        case 'id-duplicate':run('observe',ids.has(item.id));break;
+        case 'display':run('observe',Boolean(item.display));break;
+        case 'localized-title':run('observe',Boolean(localized(item.display.title)));break;
+        case 'localized-label':run('observe',Boolean(localized(item.display.label)));break;
+        case 'content-revision':digest(item.content_revision||'');break;
+        case 'refs-array':run('observe',Array.isArray(item.source_refs));break;
+        case 'refs-length':run('observe',Boolean(item.source_refs.length));break;
+        case 'refs':run('observe',Boolean(item.source_refs.some(ref=>{
+          return run('ref_invalid',typeof ref==='string',Boolean(ref));
+        })));break;
+        case 'add-id':ids.add(item.id);run('observe',true);break;
+      default:throw new Error('Invalid client inspection item need');
     }
-    return ids;
   };
   try{
-    const revision=inspectionRevisionText(packet?.source_revision||'');
-    run('revision_length',revision.length);run('revision',inspectionRevisionUnits(revision));
-    if(expected)run('expected_revision',packet.source_revision===expected);
-    run('schema',packet.schema===(kind==='node'?'tos_knowledge_node_packet_v1':'tos_knowledge_relation_packet_v1'));
-    items(packet.matches,kind);
-    const match=packet.matches.find(item=>item.id===id);run('exact_match',Boolean(match));
-    if(contentRevision)run('expected_revision',match.content_revision===contentRevision);
-    if(kind==='relation'){
-      const ids=items(packet.endpoints,'node');run('endpoints',ids.has(match.from_id)&&ids.has(match.to_id));
+    while(true){
+      const need=session.need();
+      switch(need){
+        case 'revision':digest(packet?.source_revision||'');break;
+        case 'expected':run('observe',packet.source_revision===expected);break;
+        case 'schema':{
+          const value=packet.schema;run('schema_length',typeof value==='string',typeof value==='string'?value.length:0);
+          run('text',inspectionRevisionUnits(value));break;
+        }
+        case 'matches':case 'endpoints':{
+          const values=need==='matches'?packet.matches:packet.endpoints;
+          run('observe',Array.isArray(values));ids=new Set();
+          // Native for-of owns IteratorClose and exception precedence.
+          for(const value of values){
+            item=value;run('observe',true);
+            while(session.need()!=='item-next')observeItem(session.need());
+          }
+          run('observe',false);break;
+        }
+        case 'exact':match=packet.matches.find(value=>value.id===id);run('observe',Boolean(match));break;
+        case 'content-expected':run('observe',match.content_revision===contentRevision);break;
+        case 'from-endpoint':run('observe',ids.has(match.from_id));break;
+        case 'to-endpoint':run('observe',ids.has(match.to_id));break;
+        case 'done':return match;
+        default:throw new Error('Invalid client inspection Rust need');
+      }
     }
-    return match;
   }finally{session.free();}
 }
 export class KnowledgeClient {
