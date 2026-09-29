@@ -81,7 +81,7 @@ pub(crate) fn line(value: &JsonValue) -> SourceCommandResult<Vec<u8>> {
     Ok(raw)
 }
 
-fn selected_contracts(
+pub(crate) fn selected_contracts(
     context: &OwnerTextContext,
     worker: &CutWorkerSchemaExecutor,
     deadline: Instant,
@@ -109,7 +109,7 @@ fn selected_ids(grant: &OwnerTextInitialLayerSelection) -> SourceCommandResult<V
         .collect()
 }
 
-fn selected_configuration(
+pub(crate) fn selected_configuration(
     context: &OwnerTextContext,
     grant: &OwnerTextInitialLayerSelection,
     contracts: &BTreeMap<String, Digest256>,

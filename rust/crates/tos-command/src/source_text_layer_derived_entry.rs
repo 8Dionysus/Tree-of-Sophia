@@ -125,7 +125,7 @@ fn select_owner(
     Ok((context, publication, grant))
 }
 
-fn contracts(
+pub(crate) fn contracts(
     context: &OwnerTextContext,
     worker: &CutWorkerSchemaExecutor,
     deadline: Instant,
@@ -145,7 +145,7 @@ fn contracts(
     Ok(selected)
 }
 
-fn selected_configuration(
+pub(crate) fn selected_configuration(
     context: &OwnerTextContext,
     grant: &OwnerTextDerivedSelection,
     contracts: &BTreeMap<String, Digest256>,
