@@ -569,6 +569,12 @@ pub fn inspect_records_from_cut(
             global_issues += 1;
         }
     }
+    // Current profile compilation is no longer needed during historical
+    // validation; release its resource and route caches before the next one.
+    let current_record_family = family.finish();
+    drop(schemas);
+    drop(registry);
+    drop(contract);
     let mut retained_memberships = Vec::new();
     let mut retained_record_profiles = Vec::new();
     let mut historical_state = sink.bytes;
@@ -613,6 +619,14 @@ pub fn inspect_records_from_cut(
             fact_budget,
             &evidence,
         ).map_err(record_error)?;
+        // RecordFamily has its own selected resource copies. Keep no second
+        // live copy of the retained registry/schema input during its stream.
+        drop(resources);
+        drop(root);
+        drop(evidence);
+        drop(historical_schemas);
+        drop(historical_registry);
+        drop(historical_contract);
         let mut historical_sink = BoundedSink {
             rows: Vec::new(),
             bytes: historical_state,
@@ -705,7 +719,7 @@ pub fn inspect_records_from_cut(
         });
     }
     check(limits.deadline, cancelled)?;
-    Ok(SourceCutRecordReport { source_revision: cut.current().revision(), current_membership, retained_memberships, retained_record_profiles, records, observations: sink.rows, record_family: family.finish(), global_issues, retained_profile_limits: vec!["retained native compound lineage needs owner verification".into()] })
+    Ok(SourceCutRecordReport { source_revision: cut.current().revision(), current_membership, retained_memberships, retained_record_profiles, records, observations: sink.rows, record_family: current_record_family, global_issues, retained_profile_limits: vec!["retained native compound lineage needs owner verification".into()] })
 }
 
 fn historical_required(
