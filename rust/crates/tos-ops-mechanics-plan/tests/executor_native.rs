@@ -216,3 +216,70 @@ esac
     }
     fs::remove_dir_all(root).unwrap();
 }
+
+// The manifest is the command authority. This one controlled child sequence
+// guards exact Python substitution, authored order, and first-failure stop.
+#[cfg(target_os = "linux")]
+#[test]
+fn validation_lane_selection_runs_in_order_and_stops_at_first_failure() {
+    use std::fs;
+    use std::os::unix::fs::PermissionsExt;
+    use std::process::Command;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let root = std::env::temp_dir().join(format!(
+        "tos-validation-lanes-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir_all(root.join("docs/validation")).unwrap();
+    fs::write(
+        root.join("docs/validation/validation_lanes.json"),
+        r#"{"command_sequences":{"sample":[{"label":"first","command":["python","first"]},{"label":"failing","command":["python","fail"]},{"label":"later","command":["python","later"]}]}}"#,
+    )
+    .unwrap();
+    let adapter = root.join("adapter");
+    fs::write(
+        &adapter,
+        "#!/bin/sh\nprintf '%s\\n' \"$1\" >> trace\n[ \"$1\" = fail ] && exit 17\nexit 0\n",
+    )
+    .unwrap();
+    fs::set_permissions(&adapter, fs::Permissions::from_mode(0o700)).unwrap();
+    let executable = env!("CARGO_BIN_EXE_tos-validation-lanes");
+    let output = Command::new(executable)
+        .args([
+            "--repo-root",
+            root.to_str().unwrap(),
+            "--python",
+            adapter.to_str().unwrap(),
+            "--sequence",
+            "sample",
+            "--run",
+            "sample",
+            "--command-timeout-ms",
+            "2000",
+            "--lane-timeout-ms",
+            "5000",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(17));
+    assert_eq!(
+        fs::read_to_string(root.join("trace")).unwrap(),
+        "first\nfail\n"
+    );
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains(&format!("first: {} first\n", adapter.display())));
+    assert!(stdout.contains("[ok] first\n"));
+    assert!(stdout.contains(&format!("[run] failing: {} fail\n", adapter.display())));
+    assert!(!stdout.contains("[run] later:"));
+    assert!(
+        String::from_utf8(output.stderr)
+            .unwrap()
+            .contains("[error] failing failed with exit code 17\n")
+    );
+    fs::remove_dir_all(root).unwrap();
+}
