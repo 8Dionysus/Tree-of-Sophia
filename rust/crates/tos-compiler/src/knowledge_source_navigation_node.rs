@@ -1303,6 +1303,18 @@ impl<'a> NavigationNodeNormalizer<'a> {
         {
             return Err(Error::Invalid("navigation selected raw node"));
         }
+        self.normalize_supplied_node(raw)
+    }
+    /// Normalize an explicitly supplied source-navigation carrier without
+    /// asserting sealed-cut membership or complete dependency admission.
+    pub fn normalize_supplied_node(&mut self, raw: &SeekRow) -> Result<NavigationBaseNode> {
+        if raw.source_graph != self.source_graph_id
+            || raw.source_order.is_some()
+            || raw.id.is_empty()
+            || raw.id.len() > 4096
+        {
+            return Err(Error::Invalid("navigation supplied raw node"));
+        }
         if raw.payload.len() > self.limits.max_raw_bytes {
             return Err(Error::Budget("navigation raw node bytes"));
         }

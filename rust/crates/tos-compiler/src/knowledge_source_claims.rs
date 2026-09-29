@@ -2,8 +2,8 @@
 //!
 //! Prepared bibliographic rows remain the authority for associations. This
 //! module writes private base rows and Claim semantics, never admits them.
-use crate::knowledge_global_titles::{endpoint_title, verify_global_titles, GlobalTitleReceipt};
-use crate::knowledge_normalization::{stable_digest, stamp_content_revision, SourceRow};
+use crate::knowledge_global_titles::{GlobalTitleReceipt, endpoint_title, verify_global_titles};
+use crate::knowledge_normalization::{SourceRow, stable_digest, stamp_content_revision};
 use crate::knowledge_philosophy_display::{
     ordinary_philosophy_relation_display, source_navigation_node_display,
 };
@@ -13,11 +13,11 @@ use crate::knowledge_source_navigation_node::{
 };
 use crate::knowledge_stage::{KnowledgeStage, NodeRow, RelationRow, SeekRow, WritePhase};
 use crate::{Error, KnowledgeRegistry, QueryVocabulary, Result};
-use rusqlite::{params, OptionalExtension};
-use serde_json::{json, Value};
+use rusqlite::{OptionalExtension, params};
+use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use tos_foundation::{
-    canonical_raw_bytes_v1, CanonicalProfile, Digest256, Digest256Hasher, JsonLimits,
+    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, canonical_raw_bytes_v1,
 };
 
 const PROFILE: &str = "reified-bibliographic-claims-v1";
@@ -25,8 +25,8 @@ const PROFILE: &str = "reified-bibliographic-claims-v1";
 /// Exact Python bibliography materialization adds its graph layer before
 /// normalization. Preserve the original member order for readable copies;
 /// this is a derived source carrier, not a replacement owner record.
-pub(crate) fn ordered_claim_node_material(raw: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
-    use tos_foundation::{parse_json, JsonMode, JsonValue};
+pub fn ordered_claim_node_material(raw: &[u8], max_bytes: usize) -> Result<Vec<u8>> {
+    use tos_foundation::{JsonMode, JsonValue, parse_json};
     let owner = SourceRow::parse(raw, max_bytes)?;
     let mut layers = unique(owner.value().get("graph_layers"));
     layers.push("bibliographic-claim".into());
@@ -69,12 +69,12 @@ pub(crate) fn ordered_claim_node_material(raw: &[u8], max_bytes: usize) -> Resul
 /// Preserve original object member order while applying the exact bounded
 /// bibliographic relation transform already produced by the normalizer.
 /// Only these four declared fields and the two role/form fields may change.
-fn ordered_claim_relation_material(
+pub fn ordered_claim_relation_material(
     raw: &[u8],
     material: &Value,
     max_bytes: usize,
 ) -> Result<Vec<u8>> {
-    use tos_foundation::{parse_json, JsonMode, JsonValue};
+    use tos_foundation::{JsonMode, JsonValue, parse_json};
     let original = SourceRow::parse(raw, max_bytes)?;
     let original_object = original
         .value()
@@ -376,6 +376,18 @@ impl<'a> ClaimNormalizer<'a> {
         }
         Ok(())
     }
+    fn verify_supplied(&self, raw: &SeekRow) -> Result<()> {
+        if raw.source_graph != self.source_graph
+            || raw.source_order.is_some()
+            || raw.id.is_empty()
+            || raw.id.len() > 4096
+            || raw.payload.len() > self.limits.max_raw_bytes
+            || Digest256::of_bytes(&raw.payload).to_hex() != raw.payload_sha256
+        {
+            return Err(Error::Invalid("Claim supplied raw binding"));
+        }
+        Ok(())
+    }
     fn profile(&self, predicate: &str) -> Result<Value> {
         let resolved = self
             .registry
@@ -416,6 +428,20 @@ impl<'a> ClaimNormalizer<'a> {
         dossier: Option<&str>,
     ) -> Result<Value> {
         self.verify(raw, prepared)?;
+        self.normalize_supplied_node(raw, predicate, dossier)
+    }
+    /// Normalize one explicitly supplied carrier. This verifies its bytes and
+    /// selected owner, but does not prove cut membership or closure admission.
+    pub fn normalize_supplied_node(
+        &self,
+        raw: &SeekRow,
+        predicate: Option<&str>,
+        dossier: Option<&str>,
+    ) -> Result<Value> {
+        self.verify_supplied(raw)?;
+        if dossier.is_some_and(|id| id.is_empty() || id.len() > 4096) {
+            return Err(Error::Invalid("Claim supplied dossier identifier"));
+        }
         let original = SourceRow::parse(&raw.payload, self.limits.max_raw_bytes)?;
         if required(original.value(), "node_id")? != raw.id {
             return Err(Error::Invalid("Claim node ID"));
@@ -601,17 +627,21 @@ impl<'a> ClaimNormalizer<'a> {
             ("object_entity_id", object["entity_id"].clone()),
             (
                 "normalized_identity_node_ids",
-                json!(strings(trace.get("normalized_identity_node_ids"))
-                    .iter()
-                    .map(|s| format!("{}:{s}", self.source_graph))
-                    .collect::<Vec<_>>()),
+                json!(
+                    strings(trace.get("normalized_identity_node_ids"))
+                        .iter()
+                        .map(|s| format!("{}:{s}", self.source_graph))
+                        .collect::<Vec<_>>()
+                ),
             ),
             (
                 "evidence_node_ids",
-                json!(strings(trace.get("evidence_node_ids"))
-                    .iter()
-                    .map(|s| format!("{}:{s}", self.source_graph))
-                    .collect::<Vec<_>>()),
+                json!(
+                    strings(trace.get("evidence_node_ids"))
+                        .iter()
+                        .map(|s| format!("{}:{s}", self.source_graph))
+                        .collect::<Vec<_>>()
+                ),
             ),
             ("review_status", trace["review_status"].clone()),
             ("epistemic_status", trace["epistemic_status"].clone()),
@@ -624,10 +654,12 @@ impl<'a> ClaimNormalizer<'a> {
         {
             contract.insert(
                 "value_member_node_ids".into(),
-                json!(strings(Some(members))
-                    .iter()
-                    .map(|s| format!("{}:{s}", self.source_graph))
-                    .collect::<Vec<_>>()),
+                json!(
+                    strings(Some(members))
+                        .iter()
+                        .map(|s| format!("{}:{s}", self.source_graph))
+                        .collect::<Vec<_>>()
+                ),
             );
         }
         if text(profile.get("reader")) == Some("document-catalogue-temporal-v1") {
@@ -646,8 +678,10 @@ impl<'a> ClaimNormalizer<'a> {
             contract.insert(
                 "source_canonical_json".into(),
                 if raw.len() <= 262144 {
-                    json!(String::from_utf8(raw)
-                        .map_err(|_| Error::Invalid("Claim canonical UTF8"))?)
+                    json!(
+                        String::from_utf8(raw)
+                            .map_err(|_| Error::Invalid("Claim canonical UTF8"))?
+                    )
                 } else {
                     Value::Null
                 },
@@ -672,6 +706,51 @@ impl<'a> ClaimNormalizer<'a> {
         contexts: &[Value],
     ) -> Result<Value> {
         self.verify(raw, prepared)?;
+        self.normalize_supplied_relation(
+            raw,
+            object,
+            target,
+            left_title,
+            right_title,
+            contexts,
+            None,
+        )
+    }
+    /// Pure supplied-carrier counterpart of the stage-bound relation kernel.
+    /// Endpoint and context completeness remain with the selecting caller.
+    pub fn normalize_supplied_relation(
+        &self,
+        raw: &SeekRow,
+        object: &Value,
+        target: &Value,
+        left_title: &Value,
+        right_title: &Value,
+        contexts: &[Value],
+        identity_id: Option<&str>,
+    ) -> Result<Value> {
+        self.verify_supplied(raw)?;
+        if identity_id.is_some_and(|id| id.is_empty() || id.len() > 4096) {
+            return Err(Error::Invalid("Claim supplied relation identity"));
+        }
+        let mut supplied_bytes = 0u64;
+        for value in [object, target, left_title, right_title] {
+            let bytes = encode(value, self.limits.max_output_bytes)?;
+            supplied_bytes = supplied_bytes
+                .checked_add(bytes.len() as u64)
+                .ok_or(Error::Budget("Claim supplied endpoint bytes"))?;
+        }
+        if contexts.len() > self.limits.max_contexts {
+            return Err(Error::Budget("Claim supplied context count"));
+        }
+        for context in contexts {
+            let bytes = encode(context, self.limits.max_output_bytes)?;
+            supplied_bytes = supplied_bytes
+                .checked_add(bytes.len() as u64)
+                .ok_or(Error::Budget("Claim supplied context bytes"))?;
+        }
+        if supplied_bytes > self.limits.max_work_bytes {
+            return Err(Error::Budget("Claim supplied dependency bytes"));
+        }
         let source = SourceRow::parse(&raw.payload, self.limits.max_raw_bytes)?;
         if required(source.value(), "edge_id")? != raw.id
             || contexts.len() > self.limits.max_contexts
@@ -683,8 +762,10 @@ impl<'a> ClaimNormalizer<'a> {
             .unwrap_or("related_to")
             .to_owned();
         item["predicate_id"] = json!(predicate);
-        item["source_ref"] = json!(text(item.get("source_claim_file_ref"))
-            .unwrap_or("ToS/source-witnesses/catalog/claims.jsonl"));
+        item["source_ref"] = json!(
+            text(item.get("source_claim_file_ref"))
+                .unwrap_or("ToS/source-witnesses/catalog/claims.jsonl")
+        );
         item["graph_layers"] = json!(["bibliographic-claim"]);
         let mut props = item
             .get("properties")
@@ -831,7 +912,7 @@ impl<'a> ClaimNormalizer<'a> {
         )?;
         let from_graph = text(item.get("from_source_graph")).unwrap_or(&self.source_graph);
         let to_graph = text(item.get("to_source_graph")).unwrap_or(&self.source_graph);
-        let mut output = json!({"id":format!("{}:{}",self.source_graph,raw.id),"native_id":raw.id,"source_graph":self.source_graph,
+        let mut output = json!({"id":format!("{}:{}",self.source_graph,identity_id.unwrap_or(&raw.id)),"native_id":raw.id,"source_graph":self.source_graph,
             "from_id":format!("{}:{}",from_graph,required(&item,"from_id")?),"to_id":format!("{}:{}",to_graph,required(&item,"to_id")?),
             "predicate_id":predicate,"relation_type_id":resolved.type_id,"predicate_mapping":{"status":if resolved.mapped{"mapped"}else{"unmapped"},"source_predicate_id":predicate,"registry_ref":self.relation_ref},
             "display":display,"epistemic":epistemic(&item),"graph_layers":["bibliographic-claim"],"view_ids":unique(item.get("view_ids")),
