@@ -72,7 +72,6 @@ impl PreparedSearchDocument {
                 .map_err(|_| Error::Invalid("search JSON UTF-8"))?,
         )?;
         let identifier = item.object_get("id").unwrap_or(&JsonValue::Null).clone();
-        let native = item.object_get("native_id").unwrap_or(&JsonValue::Null);
         let fields: &[&str] = if kind == "relation" {
             &["label", "inverse_label", "statement", "explanation"]
         } else {
@@ -80,8 +79,8 @@ impl PreparedSearchDocument {
         };
         let display = item.object_get("display");
         let mut identities = vec![
-            lower(&python_str_or_empty(&identifier)?)?,
-            lower(&python_str_or_empty(native)?)?,
+            lower(&crate::local_prepared::index_value(item, "id")?)?,
+            lower(&crate::local_prepared::index_value(item, "native_id")?)?,
         ];
         identities.extend(display_values(display, fields[0])?);
         let mut visible = Vec::new();
@@ -320,10 +319,17 @@ fn python_str_or_empty(value: &JsonValue) -> Result<String> {
             .map(str::to_owned)
             .ok_or(Error::Invalid("search lone surrogate identifier")),
         JsonValue::Bool(true) => Ok("True".to_owned()),
-        JsonValue::Number(_) => String::from_utf8(default_json(value, MAX_DOCUMENT_BYTES)?)
-            .map_err(|_| Error::Invalid("search numeric identifier")),
+        JsonValue::Number(_) => {
+            let raw = String::from_utf8(default_json(value, MAX_DOCUMENT_BYTES)?)
+                .map_err(|_| Error::Invalid("search numeric identifier"))?;
+            if raw.parse::<f64>().ok() == Some(0.0) {
+                Ok(String::new())
+            } else {
+                Ok(raw)
+            }
+        }
         JsonValue::Null | JsonValue::Bool(false) => Ok(String::new()),
-        JsonValue::Array(_) | JsonValue::Object(_) => Err(Error::Invalid(
+        JsonValue::Array(_) | JsonValue::Object(_) => Err(Error::PreparedUnsupported(
             "search normalized identifier must be scalar",
         )),
     }

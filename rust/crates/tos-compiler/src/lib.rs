@@ -20,6 +20,10 @@ mod d1_public_schema;
 mod d1_public_semantics;
 mod d1_public_sql;
 mod d1_public_static;
+pub mod local_prepared;
+pub mod local_prepared_aux;
+mod local_prepared_read;
+pub mod local_prepared_search;
 pub use d1_public_build::{
     PublicD1Build, PublicD1BuildLimits, build_public_d1, portable_public_d1_limits,
 };
@@ -244,6 +248,7 @@ pub enum Error {
         error: rusqlite::Error,
     },
     Invalid(&'static str),
+    PreparedUnsupported(&'static str),
     ManagedSourceUnsupported(&'static str),
     Source(String),
     Budget(&'static str),
@@ -260,6 +265,9 @@ impl fmt::Display for Error {
             Self::Sql(e) => write!(f, "SQLite: {e}"),
             Self::SqlitePhase { phase, error } => write!(f, "SQLite in {phase:?}: {error}"),
             Self::Invalid(s) => write!(f, "invalid compiler input: {s}"),
+            Self::PreparedUnsupported(s) => {
+                write!(f, "unsupported local prepared carrier/profile: {s}")
+            }
             Self::ManagedSourceUnsupported(s) => {
                 write!(f, "unsupported managed selected source: {s}")
             }

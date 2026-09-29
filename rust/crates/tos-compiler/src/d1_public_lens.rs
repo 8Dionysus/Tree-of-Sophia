@@ -13,7 +13,7 @@ use tos_foundation::{Digest256, JsonValue};
 const MAX_SEED_BYTES: usize = 1_048_576;
 const MAX_MEMBERS: usize = 256;
 
-fn compact_seed(item: &JsonValue) -> Result<JsonValue> {
+pub(crate) fn compact_seed(item: &JsonValue) -> Result<JsonValue> {
     let JsonValue::Object(fields) = item else {
         return Err(Error::Invalid("public compact lens row"));
     };

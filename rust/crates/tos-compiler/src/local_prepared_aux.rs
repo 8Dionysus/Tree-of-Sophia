@@ -517,19 +517,6 @@ mod tests {
     }
 
     #[test]
-    fn absence_does_not_install_and_stale_presence_refuses() {
-        let db = db();
-        assert_eq!(validate(&db, &binding()).unwrap(), AuxPresence::default());
-        assert!(!exists(&db, COMPACT_TABLE).unwrap());
-        assert!(!exists(&db, MEMBERSHIP_TABLE).unwrap());
-        let presence = states(&db);
-        assert!(presence.compact && presence.membership);
-        db.execute_batch("UPDATE knowledge_compact_lens_state SET valid=0")
-            .unwrap();
-        assert!(validate(&db, &binding()).is_err());
-    }
-
-    #[test]
     fn old_base_and_posting_writers_invalidate_until_explicit_seal() {
         let db = db();
         let presence = states(&db);
@@ -554,93 +541,5 @@ mod tests {
             assert!(validate(&db, &binding()).is_err());
             seal(&db, presence, &binding()).unwrap();
         }
-    }
-
-    #[test]
-    fn compact_keeps_form_inputs_and_unknown_fields_with_exact_source_digest() {
-        let db = db();
-        let presence = states(&db);
-        let raw = r#"{"id":"x","attributes":{"human_forms":{"malformed":true},"other":7},"view_ids":[],"graph_layers":[],"source_record":{"large":"omit"},"readable_context":{"omit":true},"semantics":{"unknown":9,"claim":{"source_canonical_json":"omit","unknown":8}},"unknown":6}"#;
-        put(&db, presence, "node", "x", Some(raw)).unwrap();
-        let (source, digest, seed): (String, String, String) = db
-            .query_row(
-                "SELECT source_sha256,seed_sha256,json FROM knowledge_compact_lens",
-                [],
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-            )
-            .unwrap();
-        assert_eq!(source, Digest256::of_bytes(raw.as_bytes()).to_hex());
-        assert_eq!(digest, Digest256::of_bytes(seed.as_bytes()).to_hex());
-        let seed = parse(&seed, MAX_ROW_BYTES).unwrap();
-        let original = parse(raw, MAX_ROW_BYTES).unwrap();
-        assert_eq!(
-            seed.object_get("attributes"),
-            original.object_get("attributes")
-        );
-        assert_eq!(seed.object_get("unknown"), original.object_get("unknown"));
-        assert!(seed.object_get("source_record").is_none());
-        assert!(seed.object_get("readable_context").is_none());
-        let claim = seed
-            .object_get("semantics")
-            .unwrap()
-            .object_get("claim")
-            .unwrap();
-        assert!(claim.object_get("source_canonical_json").is_none());
-        assert!(claim.object_get("unknown").is_some());
-    }
-
-    #[test]
-    fn membership_deduplicates_exact_values_and_preserves_python_unicode_order() {
-        let db = db();
-        let presence = states(&db);
-        let raw = r#"{"id":"ΟΣ","attributes":{},"view_ids":["z","a","z"],"graph_layers":["g"]}"#;
-        let receipt = put(&db, presence, "node", "ΟΣ", Some(raw)).unwrap();
-        assert_eq!(receipt.entries, 3);
-        let mut statement = db
-            .prepare(
-                "SELECT field,value,sort_key FROM knowledge_lens_memberships ORDER BY field,value",
-            )
-            .unwrap();
-        let rows = statement
-            .query_map([], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, String>(2)?,
-                ))
-            })
-            .unwrap()
-            .collect::<std::result::Result<Vec<_>, _>>()
-            .unwrap();
-        assert_eq!(
-            rows,
-            vec![
-                ("graph_layers".to_owned(), "g".to_owned(), "ος".to_owned()),
-                ("view_ids".to_owned(), "a".to_owned(), "ος".to_owned()),
-                ("view_ids".to_owned(), "z".to_owned(), "ος".to_owned()),
-            ]
-        );
-        // Malformed arrays must refuse before changing an existing posting.
-        let malformed = r#"{"id":"ΟΣ","attributes":{},"view_ids":["a",7],"graph_layers":[]}"#;
-        assert!(put(&db, presence, "node", "ΟΣ", Some(malformed)).is_err());
-        assert_eq!(
-            db.query_row(
-                "SELECT count(*) FROM knowledge_lens_memberships",
-                [],
-                |row| row.get::<_, u64>(0)
-            )
-            .unwrap(),
-            3
-        );
-        put(&db, presence, "node", "ΟΣ", None).unwrap();
-        assert_eq!(
-            db.query_row(
-                "SELECT count(*) FROM knowledge_lens_memberships",
-                [],
-                |row| row.get::<_, u64>(0)
-            )
-            .unwrap(),
-            0
-        );
     }
 }

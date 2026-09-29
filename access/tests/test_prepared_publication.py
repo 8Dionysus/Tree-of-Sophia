@@ -99,6 +99,78 @@ class PreparedPublicationTests(unittest.TestCase):
         with closing(sqlite3.connect(self.path)) as db:
             return list(db.iterdump())
 
+    @unittest.skipUnless(os.environ.get('TOS_NATIVE_PREPARED_EXECUTABLE'),
+                         'explicit protected native publication executable required')
+    def test_native_file_owner_matches_python_full_delta_and_atomic_auxiliary_rollback(self):
+        """One real opt-in caller protects publication identity and all-lane rollback."""
+        from tos_access.compact_lens_store import prepare_compact_lens_store_transaction
+        from tos_access.lens_membership_index import prepare_membership_index_transaction
+        from tos_access.published_search import PublishedSearchService
+        executable = os.environ['TOS_NATIVE_PREPARED_EXECUTABLE']
+        native = self.path.with_name('native.sqlite')
+        expected = publish_prepared(self.path, graph=self.graph, catalog=self.catalog)
+        actual = publish_prepared(native, graph=self.graph, catalog=self.catalog,
+                                  native_executable=executable, native_timeout=120)
+        self.assertEqual(actual, expected)
+        for selected in (self.path, native):
+            with closing(sqlite3.connect(selected, isolation_level=None)) as db:
+                db.execute('BEGIN IMMEDIATE')
+                prepare_compact_lens_store_transaction(db, expected_binding=expected)
+                prepare_membership_index_transaction(db, expected_binding=expected)
+                db.execute('COMMIT')
+        # A node deletion that leaves incidence must rollback full rows, search,
+        # auxiliary triggers/state, metadata, address map and the serving clock.
+        with closing(sqlite3.connect(native)) as db:
+            before = list(db.iterdump())
+        header, catalog = self.header()
+        with self.assertRaises(ValueError):
+            apply_prepared_delta(native, expected_binding=actual, source_header=header,
+                                 catalog=catalog, changes=[PreparedChange('delete', 'node', 'a')],
+                                 native_executable=executable, native_timeout=120)
+        with closing(sqlite3.connect(native)) as db:
+            self.assertEqual(list(db.iterdump()), before)
+        changed = copy.deepcopy(self.graph['nodes'][0])
+        changed['probe']['new'] = 'native prepared successor'
+        inserted = copy.deepcopy(self.graph['nodes'][2])
+        inserted.update(id='z', entity_id='z-entity', native_id='z-native')
+        changes = [PreparedChange('update', 'node', 'a', changed, 7),
+                   PreparedChange('insert', 'node', 'z', inserted, 3),
+                   PreparedChange('delete', 'relation', 'r'),
+                   PreparedChange('delete', 'node', 'b')]
+        new_expected = apply_prepared_delta(self.path, expected_binding=expected,
+                                           source_header=header, catalog=catalog, changes=changes)
+        new_actual = apply_prepared_delta(native, expected_binding=actual, source_header=header,
+                                         catalog=catalog, changes=changes,
+                                         native_executable=executable, native_timeout=120)
+        self.assertEqual(new_actual, new_expected)
+        for table in ('edge_meta', 'prepared_documents', 'prepared_state',
+                      'knowledge_nodes', 'knowledge_relations', 'knowledge_lens_order',
+                      'knowledge_exploration_clock', 'knowledge_compact_lens',
+                      'knowledge_compact_lens_state', 'knowledge_lens_memberships',
+                      'knowledge_lens_membership_state'):
+            with closing(sqlite3.connect(self.path)) as reference, closing(sqlite3.connect(native)) as candidate:
+                self.assertEqual(sorted(reference.execute(f'SELECT * FROM {table}').fetchall()),
+                                 sorted(candidate.execute(f'SELECT * FROM {table}').fetchall()), table)
+        for query in ('', 'native prepared successor', 'a', 'missing'):
+            packets = [PublishedSearchService(PublishedKnowledgeReadModel(selected, binding)).search(
+                query=query, limit=100) for selected, binding in
+                ((self.path, new_expected), (native, new_actual))]
+            for key in ('nodes', 'relations', 'ranks', 'counts', 'source_revision'):
+                self.assertEqual(packets[0][key], packets[1][key], (query, key))
+        with self.assertRaises(ValueError):
+            apply_prepared_delta(native, expected_binding=actual, source_header=header,
+                                 catalog=catalog, changes=[],
+                                 native_executable=executable, native_timeout=120)
+        # Metadata-only rollback to the earlier source revision still advances
+        # actual epoch/incarnation. It cannot resurrect the predecessor binding.
+        original_header = {key: value for key, value in self.graph.items()
+                           if key not in ('nodes', 'relations')}
+        restored = apply_prepared_delta(native, expected_binding=new_actual,
+                                        source_header=original_header, catalog=self.catalog,
+                                        changes=[], native_executable=executable, native_timeout=120)
+        self.assertGreater(restored['publication_epoch'], new_actual['publication_epoch'])
+        self.assertNotEqual(restored, actual)
+
     def test_new_file_normalization_bootstrap_reuses_search_without_changing_old_reader(self):
         old = self.publish()
         previous = self.state()

@@ -11,6 +11,7 @@ pub mod exploration_contracts;
 mod indexed_cursor;
 pub mod knowledge;
 pub mod managed_local;
+pub mod prepared_publication;
 pub mod public_d1_build;
 pub mod release_state;
 pub use knowledge::{KnowledgeOperation, KnowledgeRequest};

@@ -214,7 +214,9 @@ def _publish_header(db, header, catalog, lens, descriptor, epoch, limits):
 def publish_prepared(path: str | Path, *, graph: dict, catalog: dict,
                      limits: PublicationLimits | None = None,
                      search_scratch_path: str | Path | None = None,
-                     search_scratch_limits: BulkBootstrapLimits | None = None) -> dict:
+                     search_scratch_limits: BulkBootstrapLimits | None = None,
+                     native_executable: str | Path | None = None,
+                     native_timeout: int | None = None) -> dict:
     """Create one exclusive 0600 file; failure removes only that new inode.
 
     Explicit repeatable normalized row lists retain their native source order.
@@ -226,7 +228,9 @@ def publish_prepared(path: str | Path, *, graph: dict, catalog: dict,
                                  if key not in ("nodes", "relations")}, catalog=catalog,
                                  row_factory=lambda kind: iter(graph[kind + "s"]), limits=limits,
                                  search_scratch_path=search_scratch_path,
-                                 search_scratch_limits=search_scratch_limits)
+                                 search_scratch_limits=search_scratch_limits,
+                                 native_executable=native_executable,
+                                 native_timeout=native_timeout)
 
 
 def publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dict,
@@ -234,13 +238,26 @@ def publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dic
                           limits: PublicationLimits | None = None,
                           search_scratch_path: str | Path | None = None,
                           search_scratch_limits: BulkBootstrapLimits | None = None,
-                          search_reuse=None) -> dict:
+                          search_reuse=None,
+                          native_executable: str | Path | None = None,
+                          native_timeout: int | None = None) -> dict:
     """Explicit new-file bootstrap; optionally retain a selected search donor.
 
     Search reuse verifies every predecessor carrier/address in one read-only
     snapshot, preserves its complete population/order and bounds replacements.
     It is not an addressed normalization migration of the donor in place.
     """
+    if native_executable is not None or native_timeout is not None:
+        if search_reuse is not None or search_scratch_path is not None or search_scratch_limits is not None:
+            raise ValueError('native file publication requires its buffered full bootstrap; donor/bulk routes remain explicit Python APIs')
+        from .prepared_native import native_publication
+        selected = limits or PublicationLimits()
+        _header(source_header, catalog)
+        if not callable(row_factory):
+            raise ValueError('explicit repeatable normalized row factory required')
+        return native_publication(path, executable=native_executable, timeout=native_timeout,
+                                  operation='bootstrap', header=source_header, catalog=catalog,
+                                  limits=selected, row_factory=row_factory)
     options = dict(source_header=source_header, catalog=catalog, row_factory=row_factory,
                    limits=limits, search_scratch_path=search_scratch_path,
                    search_scratch_limits=search_scratch_limits)
@@ -541,6 +558,17 @@ def apply_prepared_delta_transaction(db: sqlite3.Connection, *, expected_binding
 
 def apply_prepared_delta(path: str | Path, **kwargs) -> dict:
     """Offline file owner wrapper; one transaction commits or rolls back all lanes."""
+    native_executable = kwargs.pop('native_executable', None)
+    native_timeout = kwargs.pop('native_timeout', None)
+    if native_executable is not None or native_timeout is not None:
+        from .prepared_native import native_publication
+        if set(kwargs) - {'expected_binding', 'source_header', 'catalog', 'changes', 'limits'}:
+            raise TypeError('unknown native prepared delta argument')
+        return native_publication(path, executable=native_executable, timeout=native_timeout,
+                                  operation='delta', header=kwargs['source_header'],
+                                  catalog=kwargs['catalog'], changes=kwargs['changes'],
+                                  expected_binding=kwargs['expected_binding'],
+                                  limits=kwargs.get('limits') or PublicationLimits())
     path = Path(path).absolute()
     if not stat.S_ISREG(path.lstat().st_mode):
         raise ValueError("prepared publication must be a regular non-symlink file")

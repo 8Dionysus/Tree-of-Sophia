@@ -141,6 +141,40 @@ binding = publish_prepared(new_path, graph=normalized_graph,
                            catalog=coherent_catalog)
 ```
 
+The same maintained file-owner calls can explicitly select the native
+`tos-access prepared-publication` implementation:
+
+```python
+binding = publish_prepared(new_path, graph=normalized_graph,
+                           catalog=coherent_catalog,
+                           native_executable=selected_absolute_tos_access,
+                           native_timeout=120)
+binding = apply_prepared_delta(existing_path, expected_binding=binding,
+    source_header=successor_header, catalog=successor_catalog, changes=changes,
+    native_executable=selected_absolute_tos_access, native_timeout=120)
+```
+
+The adapter streams both repeatable bootstrap row passes to one native process
+and one publication transaction. It bounds each input/output frame and supervises
+one absolute operation deadline; native SQL observes that same deadline.
+Delta input is bounded before taking the write lock, and the compiler retains
+only bounded addressed raw carriers while preparing search documents one at a
+time. A timeout may leave an unselected interrupted candidate requiring offline
+owner inspection; it never returns success or selects that file.
+
+This opt-in path does not transfer a live Python SQLite transaction to another
+process. The existing Python caller-owned transaction helper, search-donor reuse
+and explicit scratch-backed bulk bootstrap retain their original APIs. Native
+Rust callers can use `tos_compiler::local_prepared` directly inside their owned
+connection/transaction, including explicit optional-store installers. Truthy
+compound index dimensions outside the normalized scalar/string carrier profile
+return an explicit unsupported-carrier refusal; the Python compatibility path
+remains available. Database page caps do not reserve rollback journals, SQLite
+TEMP, input pipe buffers or aggregate process memory; the offline owner retains
+those resource obligations. The checked native read handle observes one retained
+snapshot, so its caller must reselect current file/publication state after that
+transaction to detect concurrent WAL successors, path replacement or ABA.
+
 Graph/catalog source revisions must agree and include the exact normalization
 binding and source authority boundary. The caller owns source assembly, path
 normalization, schema/semantic validation, rights and the final consumer choice.
