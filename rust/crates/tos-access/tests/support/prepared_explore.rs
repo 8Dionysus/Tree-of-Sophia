@@ -128,7 +128,19 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
             "{}",
             String::from_utf8_lossy(&response.body)
         );
-        serde_json::from_slice::<Value>(&response.body).unwrap()
+        let mut wire = Vec::new();
+        tos_access::http::write_response(&mut wire, response).unwrap();
+        assert!(
+            wire.starts_with(b"HTTP/1.1 200 "),
+            "{}",
+            String::from_utf8_lossy(&wire)
+        );
+        let split = wire
+            .windows(4)
+            .position(|part| part == b"\r\n\r\n")
+            .unwrap()
+            + 4;
+        serde_json::from_slice::<Value>(&wire[split..]).unwrap()
     };
     let mut packet = post(&request_raw);
     assert_eq!(packet["status"], "paused");
