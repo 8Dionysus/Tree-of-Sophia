@@ -164,6 +164,15 @@ CREATE TABLE IF NOT EXISTS cmd2_current (
     REFERENCES cmd2_member(domain, prepare_id, member_slot)
 );
 
+-- Exact byte-order cold source seeks. These support bounded keyset pages;
+-- the complete schema digest binds their physical access contract.
+CREATE INDEX IF NOT EXISTS cmd2_current_source_cold_seek
+  ON cmd2_current(domain,prepare_id,member_slot);
+CREATE INDEX IF NOT EXISTS cmd2_source_index_cold_seek
+  ON cmd2_source_index(domain,kind COLLATE "C",token COLLATE "C");
+CREATE INDEX IF NOT EXISTS cmd2_predicate_source_cold_seek
+  ON cmd2_predicate(domain,owner,kind COLLATE "C",scope COLLATE "C",token COLLATE "C");
+
 CREATE TABLE IF NOT EXISTS cmd2_history (
   domain text NOT NULL REFERENCES cmd2_domain(domain),
   subject text NOT NULL,

@@ -908,6 +908,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             &cancelled,
         )
         .unwrap();
+    drop(worker);
     assert_eq!(initial.current_membership, membership);
     for original_member in cut.current().members() {
         assert_eq!(
@@ -1284,6 +1285,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         )
         .unwrap();
     replay_attempt_worker.finish(deadline, &cancelled).unwrap();
+    drop(replay_attempt_worker);
     let (restored_replay, _) = reopened_db
         .commit_source_creation(
             &reopened_store,
@@ -1705,6 +1707,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             &cancelled,
         )
         .unwrap();
+    drop(current_worker);
     assert_eq!(second_receipt.commit_seq, a.commit_seq + 1);
     let addressed_members = current_package
         .reads()
@@ -2107,6 +2110,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         )
         .unwrap();
     assert_eq!(warm_receipt.commit_seq, second_receipt.commit_seq + 1);
+    drop(warm_worker);
     assert_eq!(warm_successor.commit_seq(), warm_receipt.commit_seq);
     assert_ne!(warm_successor.digest(), successor.digest());
     assert!(
@@ -2165,7 +2169,6 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     drop(warm_successor);
     drop(warm_input);
     drop(warm_preview);
-    drop(warm_worker);
     drop(warm_context);
     drop(warm_request);
     drop(warm_config);
@@ -2180,7 +2183,6 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     drop(current_package);
     drop(attempts);
     drop(second_receipt);
-    drop(current_worker);
     drop(input);
     drop(preview);
     drop(current_context);
@@ -2252,6 +2254,69 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         &cancelled,
     )
     .unwrap();
+    // Real consumed keyset queries must have a matching physical path.
+    // First record ordinary plans. Then disable sequential scan/sort only
+    // for an eligibility check: this is no runtime performance measurement.
+    let mut planner = Client::connect(&url, NoTls).unwrap();
+    let mut planner_tx = planner.transaction().unwrap();
+    let seek_queries = [
+        (
+            "cmd2_current_source_cold_seek",
+            "SELECT c.*,a.attempt_fence AS source_attempt_fence,
+                    h.inventory_projection AS retained_inventory_projection
+             FROM cmd2_current c JOIN cmd2_attempt a USING(domain,prepare_id)
+             LEFT JOIN cmd2_history h USING(domain,subject,revision)
+             WHERE c.domain=$1 AND
+               (c.prepare_id,c.member_slot) > (''::bytea,-1)
+             ORDER BY c.prepare_id,c.member_slot LIMIT 8",
+        ),
+        (
+            "cmd2_source_index_cold_seek",
+            "SELECT * FROM cmd2_source_index WHERE domain=$1 AND
+               (kind COLLATE \"C\",token COLLATE \"C\") >
+               ('' COLLATE \"C\",'' COLLATE \"C\")
+             ORDER BY kind COLLATE \"C\",token COLLATE \"C\" LIMIT 8",
+        ),
+        (
+            "cmd2_predicate_source_cold_seek",
+            "SELECT * FROM cmd2_predicate WHERE domain=$1 AND owner='native-corpus-create:agent' AND
+               (kind COLLATE \"C\",scope COLLATE \"C\",token COLLATE \"C\") >
+               ('' COLLATE \"C\",'' COLLATE \"C\",'' COLLATE \"C\")
+             ORDER BY kind COLLATE \"C\",scope COLLATE \"C\",token COLLATE \"C\" LIMIT 8",
+        ),
+    ];
+    for (index, query) in seek_queries {
+        let plan = planner_tx
+            .query(&format!("EXPLAIN (COSTS OFF) {query}"), &[&recovery_domain])
+            .unwrap()
+            .into_iter()
+            .map(|row| row.get::<_, String>(0))
+            .collect::<Vec<_>>()
+            .join("\n");
+        eprintln!("ordinary source seek plan {index}:\n{plan}");
+    }
+    planner_tx
+        .batch_execute("SET LOCAL enable_seqscan=off; SET LOCAL enable_sort=off")
+        .unwrap();
+    for (index, query) in seek_queries {
+        let plan = planner_tx
+            .query(&format!("EXPLAIN (COSTS OFF) {query}"), &[&recovery_domain])
+            .unwrap()
+            .into_iter()
+            .map(|row| row.get::<_, String>(0))
+            .collect::<Vec<_>>()
+            .join("\n");
+        eprintln!("eligible source seek plan {index}:\n{plan}");
+        assert!(
+            plan.contains(index),
+            "the exact source seek has no matching index: {plan}"
+        );
+        assert!(
+            !plan.lines().any(|line| line.contains("Sort")),
+            "the source seek needs a whole sort: {plan}"
+        );
+    }
+    planner_tx.commit().unwrap();
     let mut streamed_metadata = std::collections::BTreeMap::new();
     let metadata_coverage = current_reopened
         .visit_members(

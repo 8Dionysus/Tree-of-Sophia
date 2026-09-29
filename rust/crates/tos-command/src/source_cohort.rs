@@ -4475,7 +4475,7 @@ fn cold_source_current_rows(
     cancelled: &AtomicBool,
 ) -> DurableResult<Vec<postgres::Row>> {
     let mut rows = Vec::new();
-    let mut after = (Vec::<u8>::new(), -1i32, String::new());
+    let mut after = (Vec::<u8>::new(), -1i32);
     loop {
         active(deadline, cancelled)?;
         let page = tx.query(
@@ -4484,15 +4484,9 @@ fn cold_source_current_rows(
              FROM cmd2_current c JOIN cmd2_attempt a USING(domain,prepare_id)
              LEFT JOIN cmd2_history h USING(domain,subject,revision)
              WHERE c.domain=$1 AND
-               (c.prepare_id,c.member_slot,c.subject COLLATE \"C\") > ($2,$3,$4 COLLATE \"C\")
-             ORDER BY c.prepare_id,c.member_slot,c.subject COLLATE \"C\" LIMIT $5",
-            &[
-                &domain,
-                &after.0,
-                &after.1,
-                &after.2,
-                &COLD_SOURCE_PAGE_ROWS,
-            ],
+               (c.prepare_id,c.member_slot) > ($2,$3)
+             ORDER BY c.prepare_id,c.member_slot LIMIT $4",
+            &[&domain, &after.0, &after.1, &COLD_SOURCE_PAGE_ROWS],
         )?;
         if page.is_empty() {
             break;
@@ -4502,7 +4496,6 @@ fn cold_source_current_rows(
             let key = (
                 row.get::<_, Vec<u8>>("prepare_id"),
                 row.get::<_, i32>("member_slot"),
-                row.get::<_, String>("subject"),
             );
             if key <= after || rows.len() as u64 >= count {
                 return Err(DurableError::Corrupt(
@@ -4535,15 +4528,15 @@ fn cold_source_key_rows(
         let page = match (predicate, after.as_ref()) {
             (false, None) => tx.query(
                 "SELECT * FROM cmd2_source_index WHERE domain=$1
-                 ORDER BY kind COLLATE \"C\",token COLLATE \"C\",path COLLATE \"C\" LIMIT $2",
+                 ORDER BY kind COLLATE \"C\",token COLLATE \"C\" LIMIT $2",
                 &[&domain, &COLD_SOURCE_PAGE_ROWS],
             )?,
             (false, Some(key)) => tx.query(
                 "SELECT * FROM cmd2_source_index WHERE domain=$1 AND
-                   (kind COLLATE \"C\",token COLLATE \"C\",path COLLATE \"C\") >
-                   ($2 COLLATE \"C\",$3 COLLATE \"C\",$4 COLLATE \"C\")
-                 ORDER BY kind COLLATE \"C\",token COLLATE \"C\",path COLLATE \"C\" LIMIT $5",
-                &[&domain, &key.0, &key.1, &key.2, &COLD_SOURCE_PAGE_ROWS],
+                   (kind COLLATE \"C\",token COLLATE \"C\") >
+                   ($2 COLLATE \"C\",$3 COLLATE \"C\")
+                 ORDER BY kind COLLATE \"C\",token COLLATE \"C\" LIMIT $4",
+                &[&domain, &key.0, &key.1, &COLD_SOURCE_PAGE_ROWS],
             )?,
             (true, None) => tx.query(
                 "SELECT * FROM cmd2_predicate WHERE domain=$1 AND owner=$2
