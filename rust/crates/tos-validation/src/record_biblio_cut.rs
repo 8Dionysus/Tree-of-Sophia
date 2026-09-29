@@ -1,5 +1,6 @@
 //! Source-cut composition of existing record rules and bounded schema plans.
-//! Retained cuts are read to EOF but never enter current identity joins.
+//! Retained cuts retain their own registry and schema profile and never enter
+//! current identity joins.
 use crate::executor::{
     BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget, ExecutorFailure, ExecutorOutcome,
     VerifiedWorkerImage,
@@ -269,11 +270,22 @@ pub struct SourceCutRecordReport {
     pub source_revision: SourceRevision,
     pub current_membership: SourceMembershipV1,
     pub retained_memberships: Vec<(SourceRevision, SourceMembershipV1)>,
+    pub retained_record_profiles: Vec<RetainedRecordProfile>,
     pub records: BTreeMap<String, BiblioCurrentRecord>,
     pub observations: Vec<RecordObservation>,
     pub record_family: RecordFamilyReport,
     pub global_issues: u64,
     pub retained_profile_limits: Vec<String>,
+}
+
+/// A historical profile is tied to one exact source revision. Its observations
+/// cannot be interpreted as current ID owners or current reference targets.
+pub struct RetainedRecordProfile {
+    pub source_revision: SourceRevision,
+    pub membership: SourceMembershipV1,
+    pub observations: Vec<RecordObservation>,
+    pub record_family: RecordFamilyReport,
+    pub identity_version_issues: u64,
 }
 
 struct BoundedSink<'a> {
@@ -558,8 +570,59 @@ pub fn inspect_records_from_cut(
         }
     }
     let mut retained_memberships = Vec::new();
+    let mut retained_record_profiles = Vec::new();
+    let mut historical_state = sink.bytes;
+    let mut remaining_issues = limits.max_issues - sink.issues;
+    let mut versions = BTreeMap::<(String, u64), String>::new();
+    for row in &sink.rows {
+        if let RecordObservation::IdOwner { id, version, raw_sha256, .. } = row {
+            reserve(&mut historical_state, id.len() + raw_sha256.len() + 64, limits.max_state_bytes)?;
+            versions.insert((id.clone(), *version), raw_sha256.clone());
+        }
+    }
     for snapshot in cut.revisions().skip(1) {
         check(limits.deadline, cancelled)?;
+        let revision = snapshot.revision();
+        let historical_registry = historical_required(cut, revision, REGISTRY, limits, cancelled, &mut used)?;
+        let historical_contract = historical_required(cut, revision, REGISTRY_SCHEMA, limits, cancelled, &mut used)?;
+        reserve(&mut historical_state, historical_registry.len() + historical_contract.len(), limits.max_state_bytes)?;
+        let mut historical_schemas = Vec::new();
+        for metadata in snapshot.members() {
+            check(limits.deadline, cancelled)?;
+            let path = metadata.path.as_str();
+            if path.starts_with("ToS/contracts/")
+                && path.ends_with(".schema.json")
+                && path != REGISTRY_SCHEMA
+            {
+                let raw = historical_required(cut, revision, path, limits, cancelled, &mut used)?;
+                reserve(&mut historical_state, path.len() + raw.len(), limits.max_state_bytes)?;
+                historical_schemas.push((path.to_owned(), raw));
+            }
+        }
+        let (resources, root, set, _) = RecordFamily::registry_schema_plan(
+            &historical_contract, &historical_registry, executor.profile,
+        ).map_err(record_error)?;
+        let evidence = executor.evaluate(
+            &resources, &root, &historical_registry, set, limits, cancelled,
+        )?;
+        let mut historical_family = RecordFamily::new_with_bounded_registry(
+            &historical_registry,
+            &historical_contract,
+            historical_schemas.iter().map(|(path, raw)| RecordSchema { path, raw }),
+            executor.profile,
+            fact_budget,
+            &evidence,
+        ).map_err(record_error)?;
+        let mut historical_sink = BoundedSink {
+            rows: Vec::new(),
+            bytes: historical_state,
+            cap: limits.max_state_bytes,
+            issues: 0,
+            max_issues: remaining_issues,
+            deadline: limits.deadline,
+            cancelled,
+        };
+        historical_family.emit_registry_read(&mut historical_sink).map_err(record_error)?;
         let mut history = cut.stream(snapshot.revision()).map_err(store_error)?;
         while let Some(member) = history
             .next_member(limits.deadline, cancelled)
@@ -567,17 +630,106 @@ pub fn inspect_records_from_cut(
         {
             account(&mut used, member.raw.len(), limits.max_total_bytes)?;
             check(limits.deadline, cancelled)?;
+            if member.raw.len() > limits.max_member_bytes {
+                return Err(ItemRefusal::Budget);
+            }
+            let path = member.path.as_str();
+            if !path.starts_with("ToS/source-witnesses/") || !path.ends_with(".json") {
+                continue;
+            }
+            let basename = path.rsplit('/').next().unwrap_or("");
+            let semantic = basename.starts_with("semantic-annotation") && basename.ends_with(".json");
+            let carrier = historical_family.classify_current_member(path, &member.raw).map_err(record_error)?;
+            if carrier.is_none() && !semantic {
+                continue;
+            }
+            match historical_family.member_schema_plan(path, &member.raw) {
+                Ok(plan) => {
+                    let route = executor.evaluate(
+                        &plan.resources, &plan.route_uri, &member.raw,
+                        plan.schema_set_digest, limits, cancelled,
+                    )?;
+                    let common = executor.evaluate(
+                        &plan.resources, &plan.common_uri, &member.raw,
+                        plan.schema_set_digest, limits, cancelled,
+                    )?;
+                    historical_family.inspect_member_with_bounded_schema(
+                        path, &member.raw,
+                        &BoundedMemberSchemaEvidence { route, common },
+                        &mut historical_sink,
+                    ).map_err(record_error)?;
+                }
+                Err(RecordRuleError::Unsupported { code: "unrecognized_record_basename", .. }) => {
+                    let plan = historical_family.native_schema_plan(path, &member.raw).map_err(record_error)?;
+                    let verdict = executor.evaluate(
+                        &plan.resources, &plan.root_uri, &member.raw,
+                        plan.schema_set_digest, limits, cancelled,
+                    )?;
+                    historical_family.inspect_native_with_bounded_schema(
+                        path, &member.raw, &verdict, &mut historical_sink,
+                    ).map_err(record_error)?;
+                }
+                Err(error) => return Err(record_error(error)),
+            }
         }
-        reserve(&mut sink.bytes, 128, limits.max_state_bytes)?;
-        retained_memberships.push((
-            snapshot.revision(),
-            history
-                .coverage()
-                .ok_or_else(|| ItemRefusal::Source("retained record EOF missing".into()))?,
-        ));
+        let membership = history.coverage()
+            .ok_or_else(|| ItemRefusal::Source("retained record EOF missing".into()))?;
+        let mut identity_version_issues = 0;
+        for index in 0..historical_sink.rows.len() {
+            let RecordObservation::IdOwner { id, version, raw_sha256, path, .. } = &historical_sink.rows[index] else {
+                continue;
+            };
+            let key = (id.clone(), *version);
+            if let Some(previous) = versions.get(&key) {
+                if previous != raw_sha256 {
+                    historical_sink.emit(RecordObservation::Issue {
+                        path: path.clone(), code: "historical_identity_version_conflict",
+                    }).map_err(record_error)?;
+                    identity_version_issues += 1;
+                }
+            } else {
+                reserve(&mut historical_sink.bytes, id.len() + raw_sha256.len() + 64, limits.max_state_bytes)?;
+                versions.insert(key, raw_sha256.clone());
+            }
+        }
+        reserve(&mut historical_sink.bytes, 128, limits.max_state_bytes)?;
+        historical_state = historical_sink.bytes;
+        remaining_issues -= historical_sink.issues;
+        retained_memberships.push((revision, membership));
+        retained_record_profiles.push(RetainedRecordProfile {
+            source_revision: revision,
+            membership,
+            observations: historical_sink.rows,
+            record_family: historical_family.finish(),
+            identity_version_issues,
+        });
     }
     check(limits.deadline, cancelled)?;
-    Ok(SourceCutRecordReport { source_revision: cut.current().revision(), current_membership, retained_memberships, records, observations: sink.rows, record_family: family.finish(), global_issues, retained_profile_limits: vec!["retained EOF verifies carrier bytes only; frozen registry/profile and native compound lineage need owner verification".into()] })
+    Ok(SourceCutRecordReport { source_revision: cut.current().revision(), current_membership, retained_memberships, retained_record_profiles, records, observations: sink.rows, record_family: family.finish(), global_issues, retained_profile_limits: vec!["retained native compound lineage needs owner verification".into()] })
+}
+
+fn historical_required(
+    cut: &CorpusCutReader,
+    revision: SourceRevision,
+    path: &str,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+    used: &mut u64,
+) -> Result<Vec<u8>, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    let relative = RelativePath::parse(path)
+        .map_err(|_| ItemRefusal::Unsupported("historical profile source path".into()))?;
+    if cut.presence(revision, &relative) != Some(SourcePresenceV1::File) {
+        return Err(ItemRefusal::Unsupported(format!(
+            "historical profile requires exact {path} in revision {revision:?}"
+        )));
+    }
+    let member = cut.read_member(
+        revision, &relative, limits.max_member_bytes as u64,
+        limits.deadline, cancelled,
+    ).map_err(store_error)?;
+    account(used, member.raw.len(), limits.max_total_bytes)?;
+    Ok(member.raw)
 }
 
 pub(crate) fn check(deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
