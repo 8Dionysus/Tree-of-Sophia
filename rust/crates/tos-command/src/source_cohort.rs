@@ -2109,7 +2109,7 @@ impl DurablePgCoordinator {
                 "warm metadata chain lost; explicit cold reopen required",
             ));
         }
-        admit_private_metadata(&mut tx, domain, started, requested)?;
+        admit_private_metadata(&mut tx, domain, started, requested, None)?;
         let registered = tx.query_one(
             "SELECT * FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2",
             &[&domain, &attempt.prepare_id],
@@ -2338,7 +2338,7 @@ impl DurablePgCoordinator {
         if count != metadata.len() as u64 {
             return Err(DurableError::Corrupt("warm projection coverage differs"));
         }
-        append_private_metadata(&mut tx, domain, &mut state, started, requested)?;
+        append_private_metadata(&mut tx, domain, &mut state, started, requested, None)?;
         let cut = WarmSuccessorCut {
             audited_root: parent.audited_root.clone(),
             domain: domain.clone(),
