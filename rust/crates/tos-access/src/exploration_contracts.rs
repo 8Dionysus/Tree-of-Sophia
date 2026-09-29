@@ -54,6 +54,24 @@ pub fn runtime_capabilities(
         tos_query::knowledge_exploration::ExplorationBudget,
     )>,
 ) -> JsonValue {
+    runtime_capabilities_for_profile(
+        selected,
+        tos_query::exploration_plan::ExplorationProfile::NativeSelected,
+    )
+}
+
+pub(crate) fn runtime_capabilities_for_profile(
+    selected: Option<(
+        crate::exploration_checkpoints::CheckpointLimits,
+        tos_query::knowledge_exploration::ExplorationBudget,
+    )>,
+    profile: tos_query::exploration_plan::ExplorationProfile,
+) -> JsonValue {
+    use tos_query::{exploration_plan::ExplorationProfile, knowledge_exploration as rules};
+    let execution_version = match profile {
+        ExplorationProfile::NativeSelected => rules::EXPLORATION_EXECUTION_VERSION,
+        ExplorationProfile::PublishedD1 => rules::PUBLISHED_EXPLORATION_EXECUTION_VERSION,
+    };
     let available = selected.is_some();
     let (ttl, checkpoints, bytes, work, nodes, relations) = selected
         .map(|(store, query)| {
@@ -70,10 +88,7 @@ pub fn runtime_capabilities(
     object(vec![
         ("schema", text("tos_exploration_capabilities_v1")),
         ("available", JsonValue::Bool(available)),
-        (
-            "execution_version",
-            text(tos_query::knowledge_exploration::EXPLORATION_EXECUTION_VERSION),
-        ),
+        ("execution_version", text(execution_version)),
         (
             "http",
             object(vec![

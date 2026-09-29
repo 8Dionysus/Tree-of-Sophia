@@ -433,10 +433,13 @@ impl AccessExecutor for PreparedLocalExecutor {
     fn exploration_runtime_capabilities(&self) -> JsonValue {
         // Engine selection only: each request still admits the supplied binding
         // and checks current publication before disclosing data or a cursor.
-        crate::exploration_contracts::runtime_capabilities(Some((
-            self.selected.checkpoints.limits(),
-            tos_query::prepared_exploration::exploration_budget(self.selected.read),
-        )))
+        crate::exploration_contracts::runtime_capabilities_for_profile(
+            Some((
+                self.selected.checkpoints.limits(),
+                tos_query::prepared_exploration::exploration_budget(self.selected.read),
+            )),
+            tos_query::exploration_plan::ExplorationProfile::PublishedD1,
+        )
     }
     fn knowledge_available(&self, operation: KnowledgeOperation) -> bool {
         matches!(

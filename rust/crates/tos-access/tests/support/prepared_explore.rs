@@ -129,6 +129,10 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
     assert_eq!(capabilities.status, 200);
     let capabilities: Value = serde_json::from_slice(&capabilities.body).unwrap();
     assert_eq!(capabilities["available"], true);
+    assert_eq!(
+        capabilities["execution_version"],
+        tos_query::knowledge_exploration::PUBLISHED_EXPLORATION_EXECUTION_VERSION
+    );
     assert_eq!(capabilities["restart_survival"], false);
     assert_eq!(capabilities["limits"]["work_per_page"], 512);
     let post = |body: &[u8]| {
