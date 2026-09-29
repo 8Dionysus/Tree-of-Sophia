@@ -313,6 +313,7 @@ describe("WebMCP page-command binding", () => {
       research_workspace: workspaceSummary(),
     };
     const notes: Record<string, unknown>[] = [];
+    const proposals: Record<string, unknown>[] = [];
     const noop = vi.fn();
     const registry = createPageCommandRegistry(() => current, {
       "tos.page.open-view": noop,
@@ -327,6 +328,7 @@ describe("WebMCP page-command binding", () => {
       ...workspaceNoopHandlers,
       "tos.page.inspect-selection": () => current.selected,
       "tos.page.add-research-note": (input) => { notes.push(input); return { added: true }; },
+      "tos.page.stage-proposal": (input) => { proposals.push(input); return { changed: true }; },
     });
     const tools = new Map<string, RegisteredTool>();
     const modelContext = {
@@ -339,13 +341,20 @@ describe("WebMCP page-command binding", () => {
     await adapter.start();
     expect(tools.has("tos.page.inspect-selection")).toBe(true);
     expect(tools.has("tos.page.stage-proposal")).toBe(true);
+    expect([...tools.keys()].filter((name) => ["tos.page.inspect-selection", "tos.page.add-note-to-selection", "tos.page.stage-proposal"].includes(name)))
+      .toEqual(["tos.page.inspect-selection", "tos.page.add-note-to-selection", "tos.page.stage-proposal"]);
+    const inspected = await tools.get("tos.page.inspect-selection")!.execute({}, { signal: new AbortController().signal }) as { content: Array<{ text: string }> };
+    expect(JSON.parse(inspected.content[0].text).selection.id).toBe("work:a");
+    await tools.get("tos.page.stage-proposal")!.execute({ kind: "interpretation", statement: "Bound proposal" }, { signal: new AbortController().signal });
+    expect(proposals[0]).toMatchObject({ target_id: "work:a", actor_origin: "agent", context_revision: 0 });
+    await adapter.refresh();
     const noteForA = tools.get("tos.page.add-note-to-selection");
 
     await noteForA?.execute({ text: "Bound to A" }, { signal: new AbortController().signal });
-    expect(notes[0]).toMatchObject({ text: "Bound to A", target_id: "work:a", context_revision: 0 });
+    expect(notes[0]).toMatchObject({ text: "Bound to A", target_id: "work:a", context_revision: 1 });
     await adapter.refresh();
     const refreshedNoteForA = tools.get("tos.page.add-note-to-selection");
-    await registry.invoke("tos.page.select", { item_id: "work:b", context_revision: 1 });
+    await registry.invoke("tos.page.select", { item_id: "work:b", context_revision: 2 });
     await expect(refreshedNoteForA?.execute({ text: "Must not follow" }, { signal: new AbortController().signal })).rejects.toThrow("stale page context revision");
     expect(notes).toHaveLength(1);
     adapter.stop();

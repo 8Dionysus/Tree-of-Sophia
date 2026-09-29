@@ -534,7 +534,37 @@ function dynamicTools(registry:PageCommandRegistry,context:PageContext):WebMCPTo
   const session=new (webMcpRuntime().WebMcpToolSession)(Boolean(selected));
   const tools:WebMCPTool[]=[];
   try{while(session.need()!=='done'){switch(session.need()){
-      case 'base': {tools.push(...[]);session.emitted();break;}
+      case 'base': {tools.push(
+    commandTool(registry, "tos.page.inspect-selection", {
+      name: "tos.page.inspect-selection",
+      title: "Inspect this selected ToS object",
+      description: `Read the stable identity, semantic kind, provenance posture, and source references of the currently selected ${selected.semantic_kind || selected.kind} ${selected.id}.`,
+      inputSchema: emptySchema,
+      annotations: { readOnlyHint: true, untrustedContentHint: true },
+    }, context.revision, compactSelectionResult),
+    commandTool(registry, "tos.page.add-research-note", {
+      name: "tos.page.add-note-to-selection",
+      title: "Add a note to this selected object",
+      description: `Attach a local research note specifically to selected object ${selected.id}. The captured page revision prevents the note from following a later selection.`,
+      inputSchema: objectSchema({ text: { type: "string", minLength: 1, maxLength: 2000 } }, ["text"]),
+      annotations: { readOnlyHint: false, untrustedContentHint: true },
+    }, context.revision, compactWorkspaceMutation, (input) => ({ ...input, target_id: selected.id })),
+    commandTool(registry, "tos.page.stage-proposal", {
+      name: "tos.page.stage-proposal",
+      title: "Stage a traceable proposal from this selection",
+      description: `Stage a local, exportable proposal anchored to ${selected.id}. It remains pending scoped review by a competent authorized human or agent, never writes to source, and never changes canon.`,
+      inputSchema: objectSchema({
+        kind: { type: "string", enum: ["relation", "interpretation", "metadata_correction", "source_route", "concept_enrichment"] },
+        statement: { type: "string", minLength: 1, maxLength: 2000 },
+        from_id: { type: "string", maxLength: 256 },
+        to_id: { type: "string", maxLength: 256 },
+        source_refs: { type: "array", items: { type: "string", maxLength: 512 }, maxItems: 32 },
+        evidence_refs: { type: "array", items: { type: "string", maxLength: 512 }, maxItems: 32 },
+        confidence: { type: "string", enum: ["low", "medium", "high", "unknown"] },
+      }, ["kind", "statement"]),
+      annotations: { readOnlyHint: false, untrustedContentHint: true },
+    }, context.revision, compactWorkspaceMutation, (input) => ({ ...input, target_id: selected.id, actor_origin: "agent" })),
+    );session.emitted();break;}
       case 'evidence-tools': {tools.push(
       commandTool(registry, "tos.page.inspect-epistemic", {
         name: "tos.page.inspect-epistemic",
