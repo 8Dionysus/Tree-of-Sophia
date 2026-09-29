@@ -24,21 +24,27 @@ fn issue(issues: &mut Vec<Issue>, location: &str, detail: impl Into<String>) -> 
 
 fn read_manifest(root: &Path) -> io::Result<Option<Value>> {
     let path = root.join(MANIFEST);
-    let metadata = match fs::symlink_metadata(&path) {
-        Ok(metadata) => metadata,
+    let mut options = fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.custom_flags(libc::O_NOFOLLOW);
+    }
+    let file = match options.open(&path) {
+        Ok(file) => file,
         Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
         Err(error) => return Err(error),
     };
-    if !metadata.is_file() || metadata.file_type().is_symlink() {
+    let metadata = file.metadata()?;
+    if !metadata.is_file() {
         return Err(invalid("validation lane manifest must be a regular file"));
     }
     if metadata.len() > MAX_MANIFEST_BYTES {
         return Err(invalid("validation lane manifest byte budget exceeded"));
     }
     let mut bytes = Vec::with_capacity(metadata.len() as usize);
-    fs::File::open(path)?
-        .take(MAX_MANIFEST_BYTES + 1)
-        .read_to_end(&mut bytes)?;
+    file.take(MAX_MANIFEST_BYTES + 1).read_to_end(&mut bytes)?;
     if bytes.len() as u64 > MAX_MANIFEST_BYTES || bytes.len() as u64 != metadata.len() {
         return Err(invalid(
             "validation lane manifest changed or exceeded byte budget",
