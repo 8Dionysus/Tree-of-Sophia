@@ -4225,7 +4225,8 @@ fn item_companions(
     Ok(result)
 }
 
-fn claim_lines(raw: &[u8]) -> impl Iterator<Item = (&[u8], &[u8])> {
+/// Physical Python bytes.splitlines boundaries, retaining each line ending.
+pub fn claim_lines(raw: &[u8]) -> impl Iterator<Item = (&[u8], &[u8])> {
     let mut offset = 0usize;
     std::iter::from_fn(move || {
         if offset >= raw.len() {
