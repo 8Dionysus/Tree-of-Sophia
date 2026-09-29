@@ -54,8 +54,8 @@ pub(super) fn run(
             "Claim invocation owner operation",
         ));
     }
-    // Executors load authored bytes directly from their exact selected cut.
-    // Only separately selected software rules belong in the caller context.
+    // Select software separately; the existing creation executor also needs
+    // authenticated authored profile bytes before its internal package loader.
     components
         .members()
         .try_fold(0u64, |sum, member| sum.checked_add(member.size_bytes))
@@ -78,7 +78,7 @@ pub(super) fn run(
     } else {
         current
     };
-    let context = cmd::CommandContext {
+    let mut context = cmd::CommandContext {
         base_revision: selected.current().revision(),
         configuration_raw,
         request_raw: request_raw.to_vec(),
@@ -86,6 +86,9 @@ pub(super) fn run(
         effective_uid: u64::from(rustix::process::getuid().as_raw()),
         files,
     };
+    let mut authored = owner::complete_authored_inputs(&context, selected, deadline, cancelled)?;
+    authored.append(&mut context.files);
+    context.files = authored;
     filesystem.current_context(&context, deadline, cancelled)?;
     let mut worker = selected_schema(invocation, selected, deadline, cancelled)?;
     let response = match operation {
