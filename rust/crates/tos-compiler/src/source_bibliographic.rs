@@ -4,7 +4,82 @@
 use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_stage::{KnowledgeStage, WritePhase};
 use crate::source_bibliographic_render::{self as render, array, digest, encode, node_id, text};
+pub use crate::source_bibliographic_render::{
+    ClaimInputs as SuppliedBibliographicClaimInputs, Cohort as SuppliedBibliographicClaimCohort,
+};
 pub use crate::source_bibliographic_versions::BibliographicSourceCut;
+
+/// Pure bounded rendering only. The caller owns schema, source-slot, endpoint,
+/// profile and currentness verification; this function grants no admission.
+pub fn render_supplied_claim(
+    inputs: SuppliedBibliographicClaimInputs<'_>,
+    limits: BibliographicLimits,
+) -> Result<SuppliedBibliographicClaimCohort> {
+    limits.validate()?;
+    let result = render::project(inputs, limits.catalog.max_output_row_bytes)?;
+    if result
+        .nodes
+        .len()
+        .checked_add(result.edges.len())
+        .and_then(|n| n.checked_add(1))
+        .is_none_or(|n| n > limits.max_claim_cohort_rows)
+    {
+        return Err(Error::Budget("bibliographic Claim cohort rows"));
+    }
+    let mut bytes = 0usize;
+    for row in result
+        .nodes
+        .iter()
+        .chain(&result.edges)
+        .chain(std::iter::once(&result.trace))
+    {
+        bytes = bytes
+            .checked_add(encode(row, limits.catalog.max_output_row_bytes)?.len())
+            .filter(|n| *n <= limits.max_claim_cohort_bytes)
+            .ok_or(Error::Budget("bibliographic Claim cohort bytes"))?;
+    }
+    Ok(result)
+}
+
+/// Rebuild the existing descriptor syntax from explicitly supplied source
+/// Claim and endpoints. Source authentication remains with the caller.
+pub fn supplied_claim_navigation_descriptor(
+    claim: &Value,
+    subject: &Value,
+    object: &Value,
+    registry: &Value,
+    entities: &Value,
+    max_row_bytes: usize,
+) -> Result<Option<Value>> {
+    if max_row_bytes == 0 || max_row_bytes > 4 * 1024 * 1024 {
+        return Err(Error::Budget("bibliographic descriptor row cap"));
+    }
+    for value in [claim, subject, object, registry, entities] {
+        encode(value, max_row_bytes)?;
+    }
+    render::descriptor(claim, subject, object, registry, entities, max_row_bytes)
+}
+
+/// Project an already authenticated selected metadata identity.
+pub fn supplied_bibliographic_identity(
+    entry: &Value,
+    source: &Value,
+    forms: Option<(&str, &Value)>,
+    max_row_bytes: usize,
+) -> Result<Value> {
+    if max_row_bytes == 0 || max_row_bytes > 4 * 1024 * 1024 {
+        return Err(Error::Budget("bibliographic identity row cap"));
+    }
+    encode(entry, max_row_bytes)?;
+    encode(source, max_row_bytes)?;
+    if let Some((_, value)) = forms {
+        encode(value, max_row_bytes)?;
+    }
+    let result = render::identity(entry, source, forms)?;
+    encode(&result, max_row_bytes)?;
+    Ok(result)
+}
+
 use crate::source_witness_catalog::{
     self as catalog, BIBLIOGRAPHIC_FILES, CATALOG_SOURCE, CONTRACT_FILES, SOURCE_FILES,
     SourceCatalogLimits, SourceCatalogReceipt, SourceCatalogValidator,
@@ -326,7 +401,7 @@ fn event(
         "",
         &encode(&source, l.catalog.max_row_bytes)?,
     )?;
-    let (activity, agents) = if version == "tos_provenance_event_v2" {
+    let (_activity, _agents) = if version == "tos_provenance_event_v2" {
         if !matches!(
             source
                 .pointer("/rights_and_visibility/content_visibility")
@@ -353,6 +428,36 @@ fn event(
         (&source["activity"], json!(agents))
     } else {
         (&source, source["agent_refs"].clone())
+    };
+    supplied_bibliographic_event(&source, &location, l.catalog.max_output_row_bytes)
+}
+
+/// Pure existing event projection from an independently validated event slot.
+pub fn supplied_bibliographic_event(
+    source: &Value,
+    location: &Value,
+    max_row_bytes: usize,
+) -> Result<Value> {
+    if max_row_bytes == 0 || max_row_bytes > 4 * 1024 * 1024 {
+        return Err(Error::Budget("bibliographic event row cap"));
+    }
+    encode(source, max_row_bytes)?;
+    encode(location, max_row_bytes)?;
+    let id = text(source, "event_id")?;
+    let (activity, agents) = if source["schema_version"] == "tos_provenance_event_v2" {
+        let mut agents = Vec::new();
+        let mut seen = BTreeSet::new();
+        for responsibility in array(source, "responsibility")? {
+            let agent = text(responsibility, "agent_ref")?;
+            if seen.insert(agent) {
+                agents.push(json!(agent));
+            }
+        }
+        (&source["activity"], json!(agents))
+    } else if source["schema_version"] == "tos_provenance_event_v1" {
+        (source, source["agent_refs"].clone())
+    } else {
+        return Err(Error::Invalid("bibliographic provenance schema"));
     };
     let mut p = source
         .as_object()
@@ -428,6 +533,47 @@ fn evidence_display(
     };
     json!({"title":{"default":title},"summary":{"default":bounded(&summary,1024)},"summary_state":"metadata-synthesis","provenance":{"title":origin,"summary":"evidence-reference-navigation","source_title_available":supplied,"source_summary_available":false,"human_form_authority":"none","source_ref":source_ref}})
 }
+/// Pure repo-path evidence projection. The caller verifies the public path bytes.
+pub fn supplied_bibliographic_path_evidence(
+    reference: &str,
+    raw: &[u8],
+    max_row_bytes: usize,
+) -> Result<Value> {
+    if !reference.starts_with("ToS/")
+        || max_row_bytes == 0
+        || max_row_bytes > 4 * 1024 * 1024
+        || raw.len() > 16 * 1024 * 1024
+    {
+        return Err(Error::Budget("bibliographic path evidence bounds"));
+    }
+    let id = node_id("evidence", reference);
+    let family = reference.rsplit_once('/').map(|v| v.0).unwrap_or("");
+    let origin = match family {
+        "ToS/review-ledger" => Some("catalogued-review-note-h1"),
+        "ToS/research-packets/foundation-laboratory-2026-07" => Some("catalogued-research-lead-h1"),
+        _ => None,
+    };
+    let title = if origin.is_some() && reference.ends_with(".md") && raw.len() <= 1_048_576 {
+        let first = raw.split(|b| *b == b'\n').next().unwrap_or(&[]);
+        let first = first.strip_suffix(b"\r").unwrap_or(first);
+        std::str::from_utf8(first)
+            .ok()
+            .and_then(|s| s.strip_prefix("# "))
+            .filter(|s| {
+                !s.trim().is_empty()
+                    && s.chars().count() <= 240
+                    && !s
+                        .chars()
+                        .any(crate::source_bibliographic_unicode::is_category_c)
+            })
+    } else {
+        None
+    };
+    return Ok(
+        json!({"node_id":id,"node_kind":"evidence","source_ref":reference,"source_sha256":Digest256::of_bytes(&raw).to_hex(),"display":evidence_display(reference,"repo_path",reference,None,title,origin.unwrap_or("source-metadata-label")),"properties":{"evidence_ref":reference,"evidence_kind":"repo_path","resolved":true}}),
+    );
+}
+
 fn evidence(
     stage: &mut KnowledgeStage<'_>,
     reference: &str,
@@ -441,32 +587,10 @@ fn evidence(
     if reference.starts_with("ToS/") {
         let raw = raw_file(stage, reference, l)?
             .ok_or(Error::Invalid("bibliographic evidence file missing"))?;
-        let family = reference.rsplit_once('/').map(|v| v.0).unwrap_or("");
-        let origin = match family {
-            "ToS/review-ledger" => Some("catalogued-review-note-h1"),
-            "ToS/research-packets/foundation-laboratory-2026-07" => {
-                Some("catalogued-research-lead-h1")
-            }
-            _ => None,
-        };
-        let title = if origin.is_some() && reference.ends_with(".md") && raw.len() <= 1_048_576 {
-            let first = raw.split(|b| *b == b'\n').next().unwrap_or(&[]);
-            let first = first.strip_suffix(b"\r").unwrap_or(first);
-            std::str::from_utf8(first)
-                .ok()
-                .and_then(|s| s.strip_prefix("# "))
-                .filter(|s| {
-                    !s.trim().is_empty()
-                        && s.chars().count() <= 240
-                        && !s
-                            .chars()
-                            .any(crate::source_bibliographic_unicode::is_category_c)
-                })
-        } else {
-            None
-        };
-        return Ok(
-            json!({"node_id":id,"node_kind":"evidence","source_ref":reference,"source_sha256":Digest256::of_bytes(&raw).to_hex(),"display":evidence_display(reference,"repo_path",reference,None,title,origin.unwrap_or("source-metadata-label")),"properties":{"evidence_ref":reference,"evidence_kind":"repo_path","resolved":true}}),
+        return supplied_bibliographic_path_evidence(
+            reference,
+            &raw,
+            l.catalog.max_output_row_bytes,
         );
     }
     if let Some((anchor, location)) = slot(stage, "anchor", reference, l)? {
@@ -522,18 +646,34 @@ fn maker(
     let maker = &claim["maker"];
     let reference = text(maker, "agent_ref")?;
     let identity = identity(stage, reference, validator, materializer, l)?;
+    let digest = receipt
+        .file_sha256
+        .get(CLAIM_CATALOG)
+        .ok_or(Error::Invalid("bibliographic Claim catalog digest missing"))?;
+    supplied_bibliographic_maker(claim, identity, digest, l.catalog.max_output_row_bytes)
+}
+
+/// Pure maker carrier using its verified identity association or immutable
+/// predecessor Claim-catalog fallback, never a fabricated metadata identity.
+pub fn supplied_bibliographic_maker(
+    claim: &Value,
+    identity: Option<Value>,
+    claim_catalog_sha256: &str,
+    max_row_bytes: usize,
+) -> Result<(Value, Option<Value>)> {
+    if max_row_bytes == 0 || max_row_bytes > 4 * 1024 * 1024 {
+        return Err(Error::Budget("bibliographic maker row cap"));
+    }
+    encode(claim, max_row_bytes)?;
+    if let Some(value) = &identity {
+        encode(value, max_row_bytes)?;
+    }
+    let maker = &claim["maker"];
+    let reference = text(maker, "agent_ref")?;
     let (source_ref, sha) = if let Some(node) = &identity {
         (node["source_ref"].clone(), node["source_sha256"].clone())
     } else {
-        (
-            json!(CLAIM_CATALOG),
-            json!(
-                receipt
-                    .file_sha256
-                    .get(CLAIM_CATALOG)
-                    .ok_or(Error::Invalid("bibliographic Claim catalog digest missing"))?
-            ),
-        )
+        (json!(CLAIM_CATALOG), json!(claim_catalog_sha256))
     };
     Ok((
         json!({"node_id":node_id("maker",reference),"node_kind":"maker","source_ref":source_ref,"source_sha256":sha,
@@ -972,7 +1112,7 @@ fn claim_cohort(
         entities,
         l.catalog.max_output_row_bytes,
     )?;
-    let result = render::project(
+    let result = render_supplied_claim(
         render::ClaimInputs {
             entry,
             claim: &claim,
@@ -990,7 +1130,7 @@ fn claim_cohort(
             collection_order_basis,
             legacy_context,
         },
-        l.catalog.max_output_row_bytes,
+        l,
     )?;
     if result.nodes.len() + result.edges.len() + 1 > l.max_claim_cohort_rows {
         return Err(Error::Budget("bibliographic Claim cohort rows"));

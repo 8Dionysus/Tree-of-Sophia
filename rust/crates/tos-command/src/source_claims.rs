@@ -6086,6 +6086,52 @@ pub(crate) fn maintained_evidence(
     }
     Ok(result)
 }
+/// Read-only initial identity Claim validation over authenticated addressed proposal
+/// inputs. No source-cut proof, source write, clock grant or complete inventory
+/// is created. The publication observer separately authenticates receipt time.
+pub(crate) fn validate_initial_identity_publication_claim(
+    ctx: &CommandContext,
+    claim: &JsonValue,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<String> {
+    let (config, _, _, create, version) = config(ctx)?;
+    if !create
+        || version != 1
+        || text(&config, "schema_version")? != "tos_local_claim_create_owner_v1"
+    {
+        return Err(SourceCommandError::Denied(
+            "initial identity Claim publication owner",
+        ));
+    }
+    grammar(&parse(&ctx.request_raw)?, true, false)?;
+    claim_scope(&config, claim, true, 1)?;
+    let (_, profile) = profile(ctx, text(claim, "predicate")?)?;
+    if text(&profile, "reader")? != "identity-relation-v1" {
+        return Err(SourceCommandError::Unsupported(
+            "initial identity Claim publication profile",
+        ));
+    }
+    let route = array(&profile, "schemas")?
+        .iter()
+        .find(|route| route.object_get("schema_version") == claim.object_get("schema_version"))
+        .ok_or(SourceCommandError::Unsupported(
+            "initial identity Claim publication schema",
+        ))?;
+    let schema = text(route, "schema_ref")?.to_owned();
+    if validate_ground(
+        ctx, None, None, &config, claim, 1, executor, deadline, cancelled,
+    )?
+    .is_some()
+    {
+        return Err(SourceCommandError::Unsupported(
+            "initial identity Claim retained grounding",
+        ));
+    }
+    Ok(schema)
+}
+
 fn validate_ground(
     ctx: &CommandContext,
     cut: Option<&CorpusCutReader>,

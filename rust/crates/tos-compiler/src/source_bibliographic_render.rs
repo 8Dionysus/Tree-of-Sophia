@@ -464,12 +464,12 @@ pub(crate) fn descriptor(
     Ok(Some(d))
 }
 
-pub(crate) struct Cohort {
+pub struct Cohort {
     pub nodes: Vec<Value>,
     pub edges: Vec<Value>,
     pub trace: Value,
 }
-pub(crate) struct ClaimInputs<'a> {
+pub struct ClaimInputs<'a> {
     pub entry: &'a Value,
     pub claim: &'a Value,
     pub subject: Value,
