@@ -194,7 +194,36 @@ pub(super) fn run(
         worker
             .finish(deadline, cancelled)
             .map_err(|_| SourceCommandError::Denied("Text describe worker FINAL"))?;
-        context.snapshot(deadline, cancelled)?;
+        // FINAL does not freeze the protected delegation. Reselect it at the
+        // disclosure boundary and recompute the same owner configuration with
+        // the existing contract/current-context helpers, without private bytes.
+        let current_configuration = if is_unit {
+            let grant = OwnerTextUnitSelection::select(&context, &grant_path, deadline, cancelled)?;
+            let contracts = unit::selected_contracts(
+                &context,
+                &worker,
+                cmd::text(&grant.config, "schema_version")?
+                    == "tos_local_text_unit_create_owner_v1",
+                deadline,
+                cancelled,
+            )?;
+            unit::configuration(&context, &grant, &contracts, deadline, cancelled)?
+        } else if is_initial {
+            let grant =
+                OwnerTextInitialLayerSelection::select(&context, &grant_path, deadline, cancelled)?;
+            let contracts = initial::selected_contracts(&context, &worker, deadline, cancelled)?;
+            initial::selected_configuration(&context, &grant, &contracts, deadline, cancelled)?
+        } else {
+            let grant =
+                OwnerTextDerivedSelection::select(&context, &grant_path, deadline, cancelled)?;
+            let contracts = derived::contracts(&context, &worker, deadline, cancelled)?;
+            derived::selected_configuration(&context, &grant, &contracts, deadline, cancelled)?
+        };
+        if current_configuration != owner_configuration {
+            return Err(SourceCommandError::Conflict(
+                "Text describe owner changed before disclosure",
+            ));
+        }
     } else if operation == "prepare-create" {
         let (configuration, dependencies) = if is_unit {
             let prepared = unit::prepare_first_text_unit_from_captures(
