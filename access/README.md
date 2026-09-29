@@ -614,10 +614,30 @@ selected binding, request meter and final currentness fence through CLI
 `knowledge catalog`, HTTP `/api/knowledge/catalog` and MCP
 `tos_knowledge_catalog`. It returns the exact stored catalog, retaining source
 wording, field order and authority flags; catalogs exceeding the existing
-bounded carrier profile refuse explicitly. Its prepared lens, exploration and
-source operations remain unavailable; the maintained Python services below
-remain the comparison surface until their native replacements are verified.
-The native candidate rejects combining explicit prepared and release options.
+bounded carrier profile refuse explicitly. Native prepared node/relation inspection
+and lens compilation use that same selected snapshot and disclosure fence.
+Prepared exploration is wired to the shared Rust engine and metered SQLite
+producers; its composed build and functional acceptance are still pending.
+Source operations require their own selected source owner. The native candidate
+rejects combining explicit prepared and release options.
+
+For the native browser path, keep one HTTP process alive:
+
+```bash
+tos --prepared-read-model /path/to/selected.sqlite \
+  --prepared-binding /path/to/owner-selected-binding.json serve 127.0.0.1:44258
+```
+
+The installed software supplies browser assets. Open the service with
+`?focus=<URL-encoded node ID from the selected data>`; a representative snapshot
+need not contain the browser's default focus. Exploration discovery advertises
+the selected engine and its actual limits, not current data admission. Each
+page independently checks the supplied binding and final currentness fence.
+Native continuations are process-local: reuse the same server (or MCP process),
+restart exploration after process restart, and do not pass the Python-only
+`--exploration-checkpoints` option to the native executable. The checkpoint is
+committed only when the transport admits the response; it grants no source,
+rights, review or publication authority.
 
 The native candidate's `reading-search` uses an explicit absolute `--root`
 for local Zarathustra reading data. The same selection serves HTTP
