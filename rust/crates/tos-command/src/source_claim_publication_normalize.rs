@@ -253,7 +253,7 @@ fn validate_navigation_carriers(
     }
     Ok(())
 }
-fn declared_dossier(raw: &Value, graph: &str) -> Option<String> {
+pub(super) fn declared_dossier(raw: &Value, graph: &str) -> Option<String> {
     let props = &raw["properties"];
     let kind = raw.get("node_kind").and_then(Value::as_str)?;
     let kind = if kind == "identity" {

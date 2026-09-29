@@ -25,6 +25,10 @@ use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
+#[path = "source_claim_publication_owner.rs"]
+mod claim_publication_owner;
+pub(crate) use claim_publication_owner::CommittedClaimObservation;
+
 const CORPUS_LOCK: &str = ".historical-create.writer.lock";
 const CLAIM_CAPTURE_HOME: &str = ".claim-retained";
 const CLAIM_CAPTURE_INDEX: &str = "capture-index.json";
