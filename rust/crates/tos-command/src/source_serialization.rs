@@ -323,6 +323,52 @@ pub(crate) fn capture_first_text_unit(
     )
 }
 
+/// Capture only the source selection and serialization of a supplied mapping.
+/// Both-side rights/content checks belong to the alignment caller; this event
+/// does not claim an aligner run or assess the proposal.
+pub(crate) fn capture_owner_alignment(
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    source_path: &str,
+    rights: &JsonValue,
+    inputs: Vec<Value>,
+    files: &mut BTreeMap<String, Vec<u8>>,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    if inputs.is_empty()
+        || inputs.len() > 128
+        || !files.contains_key("native-translation-alignment.v1.json")
+    {
+        return Err(SourceCommandError::Invalid(
+            "native alignment capture source closure",
+        ));
+    }
+    capture_creation_with_procedure(
+        request,
+        event_id,
+        home,
+        files,
+        software,
+        components,
+        "native-supplied-alignment-proposal-capture",
+        Some(OwnerTextCapture {
+            rights,
+            inputs,
+            event_type: "annotation",
+            source_path,
+            warning: "Exact selected native inputs and both rights gates were checked; no aligner execution or translation assessment occurred.",
+            purpose: "Record an independently supplied alignment proposal against two exact native source closures without judging translation quality.",
+            replay_scope: "Exact retained mapping, owner grants, native inputs and selected software; no semantic truth or deterministic capture clocks.",
+        }),
+        deadline,
+        cancelled,
+    )
+}
+
 pub(crate) fn capture_derived_text_layer(
     operation: &str,
     request: &JsonValue,

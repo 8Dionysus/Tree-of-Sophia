@@ -59,6 +59,7 @@ pub struct NativeInput {
     pub kind: NativeReadKind,
     pub category: &'static str,
     pub raw_sha256: Digest256,
+    pub raw_size: usize,
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct ResolvedSignBinding {
@@ -99,6 +100,20 @@ pub(crate) struct ResolvedOwnerTextPacket {
     pub(crate) raw: Vec<u8>,
     pub(crate) inputs: Vec<NativeInput>,
     pub(crate) input_snapshot: String,
+}
+
+pub(crate) struct ResolvedOwnerAlignmentSide {
+    pub(crate) packet: JsonValue,
+    pub(crate) layer: JsonValue,
+    pub(crate) summaries: Vec<JsonValue>,
+}
+
+pub(crate) struct ResolvedOwnerAlignment {
+    pub(crate) source: ResolvedOwnerAlignmentSide,
+    pub(crate) target: ResolvedOwnerAlignmentSide,
+    pub(crate) inputs: Vec<NativeInput>,
+    pub(crate) input_snapshot: String,
+    pub(crate) schema_digests: BTreeMap<String, Digest256>,
 }
 
 pub(crate) struct ResolvedDerivedTextSource {
@@ -2144,6 +2159,81 @@ pub(crate) fn resolve_owner_text_packet(
     })
 }
 
+/// Resolve both selected alignment sides with one real owner-local source
+/// cache. Metadata, topology and rights on BOTH sides must succeed before
+/// the first representation byte is requested. Rechecking exact content then
+/// uses the same reader, worker and bounded cache for every selected unit.
+pub(crate) fn resolve_owner_alignment(
+    context: &mut crate::source_text_owner::OwnerTextContext,
+    worker: &mut CutWorkerSchemaExecutor,
+    source: &[JsonValue],
+    target: &[JsonValue],
+    verify_content: bool,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ResolvedOwnerAlignment> {
+    if !(1..=256).contains(&source.len()) || !(1..=256).contains(&target.len()) {
+        return Err(SourceCommandError::Unsupported(
+            "native alignment binding count",
+        ));
+    }
+    context.snapshot(deadline, cancelled)?;
+    let mut native = Native {
+        reader: context,
+        worker,
+        deadline,
+        cancelled,
+        cache: BTreeMap::new(),
+        schemas: BTreeMap::new(),
+        remaining_metadata: MAX_METADATA_BYTES,
+        remaining_content: MAX_CONTENT_BYTES,
+        route_profile: NativeRoute::OwnerText,
+    };
+    let mut sides = Vec::with_capacity(2);
+    for bindings in [source, target] {
+        let mut packet = None;
+        let mut layer = None;
+        let mut summaries = Vec::with_capacity(bindings.len());
+        for binding in bindings {
+            let (current_packet, current_layer, summary) =
+                native.resolve(binding, NativeReadScope::MetadataOnly)?;
+            if packet.is_none() {
+                packet = Some(current_packet);
+                layer = Some(current_layer);
+            }
+            summaries.push(summary);
+        }
+        sides.push(ResolvedOwnerAlignmentSide {
+            packet: packet.ok_or(SourceCommandError::Invalid("native alignment packet"))?,
+            layer: layer.ok_or(SourceCommandError::Invalid("native alignment layer"))?,
+            summaries,
+        });
+    }
+    if verify_content {
+        for bindings in [source, target] {
+            for binding in bindings {
+                native.resolve(binding, NativeReadScope::ExactOwnerLocal)?;
+            }
+        }
+    }
+    let input_snapshot = native.snapshot()?;
+    let inputs = selected_inputs(&native);
+    let schema_digests = native.schemas;
+    let target = sides
+        .pop()
+        .ok_or(SourceCommandError::Invalid("native alignment target"))?;
+    let source = sides
+        .pop()
+        .ok_or(SourceCommandError::Invalid("native alignment source"))?;
+    Ok(ResolvedOwnerAlignment {
+        source,
+        target,
+        inputs,
+        input_snapshot,
+        schema_digests,
+    })
+}
+
 /// The maintained SourceRecordProfiles owns one resolver closure across every
 /// loaded binding. Reuse the actual resolver cache, quotas and snapshot law.
 pub(crate) fn resolve_bindings<R: SignNativeRead + ?Sized>(
@@ -2183,6 +2273,7 @@ fn selected_inputs<R: SignNativeRead + ?Sized>(native: &Native<'_, R>) -> Vec<Na
             kind: input.kind,
             category: *category,
             raw_sha256: Digest256::of_bytes(&input.raw),
+            raw_size: input.raw.len(),
         })
         .collect()
 }

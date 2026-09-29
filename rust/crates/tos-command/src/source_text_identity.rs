@@ -26,7 +26,8 @@ const MAX_JSONL_LINE: usize = 1_048_576;
 fn is_candidate(name: &str) -> bool {
     (name.contains("source-text-unit")
         || name.contains("source-text-layer")
-        || name.contains("source-anchor"))
+        || name.contains("source-anchor")
+        || name.contains("translation-alignment"))
         && name.ends_with(".json")
         || name.contains("anchor") && name.ends_with(".jsonl")
         || name.contains("provenance") && name.ends_with(".jsonl")
@@ -206,6 +207,18 @@ fn record_ids(
             }
         }
         "tos_source_text_layer_v1" => add(cmd::field(record, "layer_id")?)?,
+        "tos_native_translation_alignment_record_v1" => {
+            add(cmd::field(record, "record_id")?)?;
+            add(cmd::field(record, "alignment_id")?)?;
+            add(cmd::field(cmd::field(record, "claim")?, "claim_id")?)?;
+        }
+        "tos_translation_alignment_packet_v1" => {
+            add(cmd::field(record, "packet_id")?)?;
+            for row in cmd::array(record, "alignments")? {
+                add(cmd::field(row, "alignment_id")?)?;
+                add(cmd::field(row, "claim_id")?)?;
+            }
+        }
         "tos_source_anchor_v2" | "tos_source_anchor_v1" => {
             add(cmd::field(record, "anchor_id")?)?;
             if let Some(value) = record.as_object().and_then(|entries| {
@@ -238,6 +251,39 @@ pub(crate) fn selected_identity_snapshot(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Digest256> {
+    selected_identity_snapshot_with_ancestry(context, delegated, exclude, None, deadline, cancelled)
+}
+
+/// A native descriptive successor may retain only IDs belonging to its exact
+/// immutable predecessor chain. The allow-list is constructed from verified
+/// path+bytes+identity+version references by the alignment caller; it does
+/// not grant a read or bypass the complete current membership walk.
+pub(crate) fn selected_alignment_identity_snapshot(
+    context: &OwnerTextContext,
+    delegated: &[&str],
+    exclude: Option<&Path>,
+    ancestry: &BTreeMap<String, Digest256>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Digest256> {
+    selected_identity_snapshot_with_ancestry(
+        context,
+        delegated,
+        exclude,
+        Some(ancestry),
+        deadline,
+        cancelled,
+    )
+}
+
+fn selected_identity_snapshot_with_ancestry(
+    context: &OwnerTextContext,
+    delegated: &[&str],
+    exclude: Option<&Path>,
+    ancestry: Option<&BTreeMap<String, Digest256>>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Digest256> {
     let selected = paths(context, exclude, deadline, cancelled)?;
     let mut remaining = MAX_BYTES;
     let mut inputs = BTreeMap::new();
@@ -263,7 +309,19 @@ pub(crate) fn selected_identity_snapshot(
                         "native Text identity record budget",
                     ));
                 }
-                record_ids(&parsed_record(line)?, reference, &mut owned)?;
+                let mut current = BTreeSet::new();
+                record_ids(&parsed_record(line)?, reference, &mut current)?;
+                if exclude.is_none()
+                    && delegated.iter().any(|id| current.contains(*id))
+                    && !ancestry.is_some_and(|chain| {
+                        chain.get(reference) == Some(&Digest256::of_bytes(&bytes))
+                    })
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "native Text identity occupied",
+                    ));
+                }
+                owned.extend(current);
             }
         } else {
             records += 1;
@@ -272,10 +330,21 @@ pub(crate) fn selected_identity_snapshot(
                     "native Text identity record budget",
                 ));
             }
-            record_ids(&parsed_record(&bytes)?, reference, &mut owned)?;
+            let mut current = BTreeSet::new();
+            record_ids(&parsed_record(&bytes)?, reference, &mut current)?;
+            if exclude.is_none()
+                && delegated.iter().any(|id| current.contains(*id))
+                && !ancestry
+                    .is_some_and(|chain| chain.get(reference) == Some(&Digest256::of_bytes(&bytes)))
+            {
+                return Err(SourceCommandError::Conflict(
+                    "native Text identity occupied",
+                ));
+            }
+            owned.extend(current);
         }
     }
-    if delegated.iter().any(|id| owned.contains(*id)) {
+    if ancestry.is_none() && delegated.iter().any(|id| owned.contains(*id)) {
         return Err(SourceCommandError::Conflict(
             "native Text delegated identity already owned",
         ));

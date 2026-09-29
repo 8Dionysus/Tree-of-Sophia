@@ -151,6 +151,195 @@ pub(crate) struct OwnerTextDerivedSelection {
     pub(crate) operation: String,
 }
 
+/// One exact owner-local alignment delegation. It selects the private
+/// destination and two independent grants; the native binding reader still
+/// proves source/rights closure before it opens either representation.
+pub(crate) struct OwnerTextAlignmentSelection {
+    pub(crate) config: JsonValue,
+    pub(crate) raw: Vec<u8>,
+    pub(crate) path: PathBuf,
+    pub(crate) operation: &'static str,
+}
+
+impl OwnerTextAlignmentSelection {
+    pub(crate) fn select(
+        context: &OwnerTextContext,
+        owner_config: &Path,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        let path = normalized_absolute(owner_config.to_str().ok_or(
+            SourceCommandError::Invalid("native alignment configuration path UTF-8"),
+        )?)?;
+        let raw = read_absolute(
+            &path,
+            context.uid,
+            true,
+            MAX_CONTEXT_BYTES,
+            deadline,
+            cancelled,
+        )?;
+        let config = cmd::parse(&raw)?;
+        cmd::exact_keys(
+            &config,
+            &[
+                "schema_version",
+                "uid",
+                "principal_id",
+                "authority_ref",
+                "expires_at",
+                "source_context_ref",
+                "source_path",
+                "allowed_operations",
+                "source_access",
+                "alignment_access",
+                "record_id",
+                "alignment_id",
+                "claim_id",
+                "provenance_event_id",
+                "change_kind",
+                "predecessor",
+                "competing_records",
+                "native_bindings",
+                "granularity",
+                "tokenization",
+                "maker",
+            ],
+        )?;
+        let change = cmd::text(&config, "change_kind")?;
+        let operation = match change {
+            "initial" | "competing" => "alignment.create",
+            "describe" | "remap" => "alignment.revise",
+            _ => return Err(SourceCommandError::Invalid("native alignment change kind")),
+        };
+        if cmd::text(&config, "schema_version")? != "tos_local_native_alignment_owner_v1"
+            || cmd::integer(&config, "uid")? != u64::from(context.uid)
+            || cmd::text(&config, "source_context_ref")?
+                != context
+                    .configuration_path
+                    .to_str()
+                    .ok_or(SourceCommandError::Invalid("native alignment context path"))?
+            || cmd::array(&config, "allowed_operations")? != [cmd::string(operation)]
+            || cmd::text(&config, "principal_id")?.trim().is_empty()
+            || cmd::text(&config, "authority_ref")?.trim().is_empty()
+        {
+            return Err(SourceCommandError::Denied("native alignment delegation"));
+        }
+        let now = crate::source_serialization::instant()?;
+        cmd::validate_expiry(cmd::text(&config, "expires_at")?, &now)?;
+        let source = cmd::field(&config, "source_access")?;
+        cmd::exact_keys(
+            source,
+            &[
+                "read_scope",
+                "access_allowed",
+                "authority_ref",
+                "expires_at",
+            ],
+        )?;
+        let alignment = cmd::field(&config, "alignment_access")?;
+        cmd::exact_keys(
+            alignment,
+            &["derivation_allowed", "authority_ref", "expires_at"],
+        )?;
+        if cmd::text(source, "read_scope")? != "exact_owner_local"
+            || cmd::field(source, "access_allowed")? != &JsonValue::Bool(true)
+            || cmd::field(alignment, "derivation_allowed")? != &JsonValue::Bool(true)
+            || cmd::text(source, "authority_ref")?.trim().is_empty()
+            || cmd::text(alignment, "authority_ref")?.trim().is_empty()
+        {
+            return Err(SourceCommandError::Denied(
+                "native alignment separate grants",
+            ));
+        }
+        cmd::validate_expiry(cmd::text(source, "expires_at")?, &now)?;
+        cmd::validate_expiry(cmd::text(alignment, "expires_at")?, &now)?;
+        let source_path = cmd::text(&config, "source_path")?;
+        let (target, private) = context.physical(source_path)?;
+        if !private
+            || target.file_name().and_then(|name| name.to_str())
+                != Some("native-translation-alignment.v1.json")
+            || source_path.split('/').count() < 7
+            || source_path.split('/').any(|part| {
+                part.starts_with('.') || matches!(part, "payload" | "local-content" | "catalog")
+            })
+        {
+            return Err(SourceCommandError::Denied(
+                "native alignment private destination",
+            ));
+        }
+        context.check_private_parents(
+            source_path
+                .rsplit_once('/')
+                .ok_or(SourceCommandError::Invalid("native alignment package home"))?
+                .0,
+        )?;
+        for (key, kind) in [
+            ("record_id", "translation-alignment-record"),
+            ("alignment_id", "translation-alignment"),
+            ("claim_id", "translation-alignment-claim"),
+        ] {
+            if !opaque_id(cmd::text(&config, key)?, kind) {
+                return Err(SourceCommandError::Invalid(
+                    "native alignment delegated identity",
+                ));
+            }
+        }
+        let event = cmd::text(&config, "provenance_event_id")?;
+        if !event.starts_with("tos.event.")
+            || event.len() > 256
+            || !event
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'.' | b'-'))
+        {
+            return Err(SourceCommandError::Invalid(
+                "native alignment event identity",
+            ));
+        }
+        let predecessor = cmd::field(&config, "predecessor")?;
+        if matches!(change, "initial" | "competing") != matches!(predecessor, JsonValue::Null) {
+            return Err(SourceCommandError::Invalid(
+                "native alignment predecessor selection",
+            ));
+        }
+        if cmd::array(&config, "competing_records")?.len() > 32 {
+            return Err(SourceCommandError::Unsupported(
+                "native alignment competition budget",
+            ));
+        }
+        for role in ["source", "target"] {
+            let bindings = cmd::array(cmd::field(&config, "native_bindings")?, role)?;
+            if !(1..=256).contains(&bindings.len())
+                || !matches!(
+                    cmd::field(cmd::field(&config, "tokenization")?, role)?,
+                    JsonValue::Bool(_)
+                )
+            {
+                return Err(SourceCommandError::Unsupported(
+                    "native alignment side selection",
+                ));
+            }
+        }
+        let maker = cmd::field(&config, "maker")?;
+        if cmd::text(maker, "maker_kind")? != "imported_source"
+            || cmd::field(maker, "agent_ref")? != cmd::field(&config, "principal_id")?
+            || cmd::field(maker, "provenance_event_ref")?
+                != cmd::field(&config, "provenance_event_id")?
+        {
+            return Err(SourceCommandError::Denied(
+                "native alignment supplied maker",
+            ));
+        }
+        active(deadline, cancelled)?;
+        Ok(Self {
+            config,
+            raw,
+            path,
+            operation,
+        })
+    }
+}
+
 impl OwnerTextDerivedSelection {
     pub(crate) fn select(
         context: &OwnerTextContext,

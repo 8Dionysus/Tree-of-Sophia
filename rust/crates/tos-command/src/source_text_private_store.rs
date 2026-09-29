@@ -508,6 +508,106 @@ pub(crate) fn observe_private_text(
     Ok(PrivateTextCustody::Pending(files))
 }
 
+/// Recover only the bounded request from an exact command's existing private
+/// control. The alignment inspector uses it to call `observe_private_text`
+/// again with the complete request and all staged-file checks. Reading this
+/// descriptive value neither resumes nor authorizes a pending publication.
+pub(crate) fn alignment_recovery_request(
+    context: &OwnerTextContext,
+    target_ref: &str,
+    command_id: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Option<JsonValue>> {
+    if command_id.is_empty() || command_id.len() > 256 {
+        return Err(bad_plan());
+    }
+    active(deadline, cancelled)?;
+    let target = context.private_new_package_target(target_ref)?;
+    let selected = cmd::object(vec![("command_id", cmd::string(command_id))]);
+    let name = control_name(&target, &selected)?;
+    let uid = context.account_uid();
+    let root = tos_fd_open::open_absolute_directory(context.private_root())
+        .map_err(|_| SourceCommandError::Denied("native Text private root"))?;
+    directory(&root, uid, true)?;
+    let control = match rustix::fs::openat(
+        &root,
+        name.as_str(),
+        OFlags::RDONLY | OFlags::DIRECTORY | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+        Mode::empty(),
+    ) {
+        Ok(fd) => File::from(fd),
+        Err(Errno::NOENT) => return Ok(None),
+        Err(_) => {
+            return Err(SourceCommandError::Denied(
+                "native alignment control unsafe",
+            ));
+        }
+    };
+    directory(&control, uid, true)?;
+    enumerate(
+        &control,
+        &["plan.json", "output"],
+        true,
+        deadline,
+        cancelled,
+    )?;
+    let raw = read_at(&control, "plan.json", uid, MAX_CONTROL, deadline, cancelled)?
+        .ok_or(SourceCommandError::Conflict("native alignment plan absent"))?;
+    let plan = parse_json(
+        &raw,
+        JsonMode::PublishedStrict,
+        JsonLimits {
+            max_bytes: MAX_CONTROL,
+            ..JsonLimits::default()
+        },
+    )
+    .map_err(|_| bad_plan())?
+    .into_root();
+    cmd::exact_keys(
+        &plan,
+        &["schema_version", "target_ref", "request_digest", "files"],
+    )?;
+    let target_rel = target
+        .strip_prefix(context.private_root())
+        .map_err(|_| bad_plan())?
+        .to_str()
+        .ok_or(bad_plan())?;
+    if cmd::text(&plan, "schema_version")? != "tos_native_construction_stage_v1"
+        || cmd::text(&plan, "target_ref")? != target_rel
+    {
+        return Err(SourceCommandError::Conflict("native alignment plan target"));
+    }
+    let encoded = cmd::field(&plan, "files")?
+        .object_get("source-create-request.json")
+        .and_then(JsonValue::as_str)
+        .ok_or(bad_plan())?;
+    if encoded.len() > MAX_CONTROL || encoded.len() / 4 * 3 > MAX_PACKAGE + 2 {
+        return Err(bad_plan());
+    }
+    let python_base64 = GeneralPurpose::new(
+        &BASE64_ALPHABET,
+        GeneralPurposeConfig::new().with_decode_allow_trailing_bits(true),
+    );
+    let request_raw = python_base64.decode(encoded).map_err(|_| bad_plan())?;
+    if request_raw.len() > MAX_FILE {
+        return Err(bad_plan());
+    }
+    let request = cmd::parse(&request_raw)?;
+    if cmd::text(&request, "command_id")? != command_id
+        || request_digest(&request)? != cmd::text(&plan, "request_digest")?
+        || decode_plan(&raw, target_rel, &request)?
+            .get("source-create-request.json")
+            .map(Vec::as_slice)
+            != Some(request_raw.as_slice())
+    {
+        return Err(SourceCommandError::Conflict(
+            "native alignment recovery request",
+        ));
+    }
+    Ok(Some(request))
+}
+
 impl PrivateTextLocks {
     pub(crate) fn acquire(
         context: &OwnerTextContext,
