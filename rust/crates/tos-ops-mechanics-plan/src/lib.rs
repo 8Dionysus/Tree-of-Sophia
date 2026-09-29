@@ -11,6 +11,7 @@ pub mod relation_pack;
 pub mod route_cards;
 pub mod route_harness;
 pub mod software_ci;
+pub mod source_home;
 pub mod threshold_registry;
 pub mod validation_lanes;
 

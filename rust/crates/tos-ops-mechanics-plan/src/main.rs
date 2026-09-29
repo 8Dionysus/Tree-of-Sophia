@@ -21,6 +21,7 @@ enum Action {
     DerivedKagGenerate,
     MechanicsTopologyValidate,
     ActiveNamingValidate,
+    SourceHome,
 }
 
 #[cfg(target_os = "linux")]
@@ -43,6 +44,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
     let mut derived_kag_generate = false;
     let mut mechanics_topology_validate = false;
     let mut active_naming_validate = false;
+    let mut source_home = false;
     let mut check = false;
     let mut limits = Limits::default();
     while let Some(argument) = args.next() {
@@ -58,6 +60,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
             "--derived-kag-generate" => derived_kag_generate = true,
             "--mechanics-topology-validate" => mechanics_topology_validate = true,
             "--active-naming-validate" => active_naming_validate = true,
+            "--source-home" => source_home = true,
             "--check" => check = true,
             "--repo-root" => root = Some(PathBuf::from(args.next().ok_or("missing repo root")?)),
             "--python" => python = args.next().ok_or("missing Python adapter")?,
@@ -94,6 +97,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
         + usize::from(derived_kag_generate)
         + usize::from(mechanics_topology_validate)
         + usize::from(active_naming_validate)
+        + usize::from(source_home)
         > 1
         || (check && !threshold_build)
     {
@@ -119,6 +123,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
         Action::DerivedKagGenerate
     } else if active_naming_validate {
         Action::ActiveNamingValidate
+    } else if source_home {
+        Action::SourceHome
     } else if mechanics_topology_validate {
         Action::MechanicsTopologyValidate
     } else {
@@ -134,10 +140,27 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
 
 fn main() {
     let (root, python, action, limits) = arguments().unwrap_or_else(|error| {
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --source-home] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     let result = match action {
+        Action::SourceHome => {
+            #[cfg(target_os = "linux")]
+            unsafe {
+                let mut handler: libc::sigaction = std::mem::zeroed();
+                handler.sa_sigaction = cancelled as *const () as usize;
+                libc::sigemptyset(&mut handler.sa_mask);
+                for signal in [libc::SIGINT, libc::SIGTERM] {
+                    if libc::sigaction(signal, &handler, std::ptr::null_mut()) != 0 {
+                        eprintln!("[error] {}", std::io::Error::last_os_error());
+                        std::process::exit(1);
+                    }
+                }
+            }
+            root.canonicalize()
+                .and_then(|root| tos_ops_mechanics_plan::source_home::run(&root, &CANCEL))
+        }
+
         Action::ThresholdBuild { check } => {
             tos_ops_mechanics_plan::threshold_registry::build(&root, check).map(|()| 0)
         }
@@ -263,7 +286,7 @@ fn main() {
         Err(error) => {
             if matches!(
                 action,
-                Action::QuestbookValidate | Action::DerivedKagValidate
+                Action::QuestbookValidate | Action::DerivedKagValidate | Action::SourceHome
             ) {
                 eprintln!("[error] {error}");
                 std::process::exit(1);
@@ -278,6 +301,7 @@ fn main() {
                 Action::DerivedKagValidate | Action::DerivedKagGenerate => "derived KAG",
                 Action::MechanicsTopologyValidate => "mechanics topology",
                 Action::ActiveNamingValidate => "active naming",
+                Action::SourceHome => "source home",
             };
             let diagnostic = format!("mechanics-local {route}: {error}\n",);
             #[cfg(target_os = "linux")]
@@ -296,7 +320,11 @@ fn main() {
             #[cfg(not(target_os = "linux"))]
             eprint!("{diagnostic}");
             let signal = CANCEL.load(Ordering::Relaxed);
-            if signal == 0 { 1 } else { 128 + signal }
+            if signal == 0 {
+                1
+            } else {
+                128 + signal
+            }
         }
     };
     std::process::exit(code);

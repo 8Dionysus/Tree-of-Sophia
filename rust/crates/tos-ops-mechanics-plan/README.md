@@ -204,3 +204,13 @@ validator CLI recount, plus an existing-output read for `--check`. Rendering
 and local writes need an outer wall guard. The disposable native/Python cases
 exercise those real callers; the Python scripts, route-docs lane and actual
 generated carriers remain active pending coordinated owner cutover.
+
+`--source-home` is an explicit native candidate for the maintained
+`validate_tos_source_home.py` law. It checks core source-branch membership, stable
+IDs, owner surfaces, lane references, source-home README fragments and absent
+legacy root surfaces using the retained route reader. It reads the source-home
+manifest, validation-lane manifest and README; JSON uses the bounded Foundation
+legacy last-wins profile. Existing reader limits apply: 8 MiB per text file,
+64 MiB raw and 64 MiB normalized caches, 10,000 entries, 100,000 operations and
+30-second snapshot wall. Diagnostics cap at 4,096 issues and 1 MiB rendered text.
+The Python lane and imported APIs remain active pending actual consumer acceptance.
