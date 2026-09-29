@@ -75,8 +75,11 @@ export function knowledgeScene(nodes:Item[],relations:Item[],focusNodeId:string|
       session.outgoing_record(key(String(relation.from_id)),handle);
     }
     session.index_incident();
-    const claimRecords=new Map(nodes.filter(n=>n.type_id===Rule.claim_entity()||strings(record(n.semantics).type_ancestors).includes(Rule.claim_entity()))
-      .map(n=>[String(n.id),n] as const));
+    const claimRecords=new Map(nodes.filter(n=>{
+      const direct=n.type_id===Rule.claim_entity();
+      const ancestor=Rule.claim_ancestor_needed(direct)&&strings(record(n.semantics).type_ancestors).includes(Rule.claim_entity());
+      return Rule.claim_classification(direct,ancestor);
+    }).map(n=>[String(n.id),n] as const));
     for(const [id,node] of claimRecords)session.claim(key(id),nodeHandles.push(node)-1);
     const claimIds=Array.from(session.claim_ids()).sort((a,b)=>compareSceneIds(string(a),string(b)));
     const candidates=new Map<number,{node:Item;claim:Item;legs:string[]}>();
@@ -86,15 +89,20 @@ export function knowledgeScene(nodes:Item[],relations:Item[],focusNodeId:string|
       const claim=record(record(node.semantics).claim),subject=claim.subject_node_id,object=claim.object_node_id;
       const subjectString=typeof subject==='string',objectString=typeof object==='string';
       if(!session.claim_contract(id,subjectString,objectString,subjectString?key(subject):ABSENT,objectString?key(object):ABSENT))continue;
-      const mapped=claim.predicate_mapping_status==='mapped';
-      if(!session.claim_mapping(id,mapped,mapped&&Boolean(claim.relation_type_id)))continue;
+      if(!session.claim_mapping_status(id,claim.predicate_mapping_status==='mapped'))continue;
+      if(!session.claim_mapping_predicate(id,Boolean(claim.relation_type_id)))continue;
       if(!session.claim_identity(id,key(subject as string),key(object as string)))continue;
       const legs=Rule.leg_types().split('\n').map(kind=>outgoing(id).filter(r=>r.relation_type_id===kind));
-      // Fresh endpoint reads are conditional on the two cardinalities.
-      const countValid=!legs.some(leg=>leg.length!==1);
-      const subjectMatches=countValid&&legs[0]![0]!.to_id===subject;
-      const objectMatches=subjectMatches&&legs[1]![0]!.to_id===object;
-      if(!session.claim_legs(id,legs[0]!.length,legs[1]!.length,subjectMatches,objectMatches))continue;
+      // Rust requests each fresh endpoint equality only after the previous
+      // cardinality/equality phase has succeeded.
+      if(!session.claim_leg_counts(id,legs[0]!.length,legs[1]!.length))continue;
+      let legNeed=session.claim_leg_need();
+      while(legNeed!=='complete'&&legNeed!=='refused') {
+        const matches=legNeed==='subject'?legs[0]![0]!.to_id===subject:legs[1]![0]!.to_id===object;
+        session.claim_leg_endpoint(id,matches);
+        legNeed=session.claim_leg_need();
+      }
+      if(legNeed==='refused')continue;
       const members=claim.value_member_node_ids;
       const memberEdges=outgoing(id).filter(r=>r.relation_type_id===Rule.member_type());
       if(Object.hasOwn(claim,'value_member_node_ids')||memberEdges.length) {
@@ -104,7 +112,11 @@ export function knowledgeScene(nodes:Item[],relations:Item[],focusNodeId:string|
         if(!session.member_shape(id,array,array&&Boolean(members.length)))continue;
         if(!session.member_strings(id,(members as unknown[]).some(member=>typeof member!=='string')))continue;
         if(!session.member_unique(id,new Set(members as unknown[]).size===(members as unknown[]).length))continue;
-        if(!session.member_presence(id,(members as unknown[]).some(member=>!presentNodes.has(member as string)||!targets.has(member as string))))continue;
+        if(!session.member_presence(id,(members as unknown[]).some(member=>{
+          const present=presentNodes.has(member as string);
+          const target=Rule.member_target_needed(present)&&targets.has(member as string);
+          return Rule.member_missing(present,target);
+        })))continue;
         if(!session.member_edges(id,memberEdges.length===(members as unknown[]).length))continue;
         if(!session.member_targets(id,targets.size===(members as unknown[]).length))continue;
       }

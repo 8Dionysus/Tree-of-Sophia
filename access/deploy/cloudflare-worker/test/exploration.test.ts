@@ -79,6 +79,52 @@ function valueMemberGraph() {
   return g;
 }
 
+test('scene Claim phases retain lazy classification, mapping and endpoint reads', () => {
+  for (const mode of ['unmapped', 'duplicate-subject', 'wrong-subject', 'complete']) {
+    const endpointReads: string[] = [];
+    const claim: Item = {subject_node_id: 'subject', object_node_id: 'object'};
+    Object.defineProperty(claim, 'predicate_mapping_status', {get: () => mode === 'unmapped' ? 'unmapped' : 'mapped'});
+    Object.defineProperty(claim, 'relation_type_id', {get() {
+      assert.notEqual(mode, 'unmapped', 'predicate is read only after mapped status admission');
+      return 'tos.relation.related';
+    }});
+    const semantics: Item = {claim};
+    Object.defineProperty(semantics, 'type_ancestors', {get() {
+      throw new Error('direct Claim classification must not read ancestors');
+    }});
+    const nodes: Item[] = [{id: 'subject'}, {id: 'object'}, {id: 'claim', type_id: 'tos.entity.claim', semantics}];
+    const relations: Item[] = [
+      ['a-subject', 'subject', 'tos.relation.has-subject'],
+      ['b-object', 'object', 'tos.relation.has-object'],
+      ...(mode === 'duplicate-subject' ? [['c-subject', 'subject', 'tos.relation.has-subject']] : []),
+    ].map(([id, target, relation_type_id]) => {
+      let reads = 0;
+      const relation: Item = {id, from_id: 'claim', relation_type_id};
+      Object.defineProperty(relation, 'to_id', {get() {
+        if (++reads === 1) return target; // Raw scene endpoint observation.
+        endpointReads.push(target!);
+        assert.notEqual(mode, 'duplicate-subject', 'ambiguous cardinality stops before endpoints');
+        assert.notEqual(mode, 'unmapped', 'mapping refusal stops before endpoints');
+        if (mode === 'wrong-subject') {
+          assert.equal(target, 'subject', 'failed subject stops before object equality');
+          return 'object';
+        }
+        return target;
+      }});
+      return relation;
+    });
+    const compact = knowledgeScene(nodes, relations).compact;
+    if (mode === 'complete') {
+      assert.equal(compact.claim_paths.length, 1);
+      assert.deepEqual(endpointReads, ['subject', 'object']);
+    } else {
+      assert.deepEqual(compact.retained_claims, [{node_id: 'claim', reason: mode === 'unmapped'
+        ? 'unmapped-claim-predicate' : 'incomplete-or-ambiguous-path'}]);
+      assert.deepEqual(endpointReads, mode === 'wrong-subject' ? ['subject'] : []);
+    }
+  }
+});
+
 test('scene member context preserves raw proxy length truthiness and strict comparisons', () => {
   for (const rawLength of [1, 1n, new Number(1), Symbol('length'), '1']) {
     const observed: string[] = [];

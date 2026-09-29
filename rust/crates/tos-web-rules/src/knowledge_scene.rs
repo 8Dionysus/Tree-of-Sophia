@@ -61,6 +61,7 @@ pub struct KnowledgeSceneSession {
     path_endpoints: BTreeSet<u32>,
     focus_vertex: u32,
     vertex_legs: BTreeMap<u32, BTreeSet<u32>>,
+    leg_need: &'static str,
 }
 #[wasm_bindgen]
 impl KnowledgeSceneSession {
@@ -85,6 +86,7 @@ impl KnowledgeSceneSession {
             path_endpoints: BTreeSet::new(),
             focus_vertex: ABSENT,
             vertex_legs: BTreeMap::new(),
+            leg_need: "complete",
         }
     }
     pub fn compare_ids(a: &[u16], b: &[u16]) -> i32 {
@@ -241,8 +243,16 @@ impl KnowledgeSceneSession {
             true
         }
     }
-    pub fn claim_mapping(&mut self, id: u32, mapped: bool, predicate: bool) -> bool {
-        if !mapped || !predicate {
+    pub fn claim_mapping_status(&mut self, id: u32, mapped: bool) -> bool {
+        if !mapped {
+            self.reasons.insert(id, "unmapped-claim-predicate".into());
+            false
+        } else {
+            true
+        }
+    }
+    pub fn claim_mapping_predicate(&mut self, id: u32, truthy: bool) -> bool {
+        if !truthy {
             self.reasons.insert(id, "unmapped-claim-predicate".into());
             false
         } else {
@@ -259,21 +269,48 @@ impl KnowledgeSceneSession {
             true
         }
     }
-    pub fn claim_legs(
-        &mut self,
-        id: u32,
-        subject_count: usize,
-        object_count: usize,
-        subject_matches: bool,
-        object_matches: bool,
-    ) -> bool {
-        if subject_count != 1 || object_count != 1 || !subject_matches || !object_matches {
+    pub fn claim_leg_counts(&mut self, id: u32, subject_count: usize, object_count: usize) -> bool {
+        if subject_count != 1 || object_count != 1 {
             self.reasons
                 .insert(id, "incomplete-or-ambiguous-path".into());
+            self.leg_need = "refused";
             false
         } else {
+            self.leg_need = "subject";
             true
         }
+    }
+    pub fn claim_leg_need(&self) -> String {
+        self.leg_need.into()
+    }
+    pub fn claim_leg_endpoint(&mut self, id: u32, matches: bool) -> bool {
+        if !matches {
+            self.reasons
+                .insert(id, "incomplete-or-ambiguous-path".into());
+            self.leg_need = "refused";
+            false
+        } else {
+            self.leg_need = if self.leg_need == "subject" {
+                "object"
+            } else {
+                "complete"
+            };
+            true
+        }
+    }
+    // Pure predicates remain valid for retained native callbacks after a
+    // presentation session has been freed.
+    pub fn claim_ancestor_needed(direct: bool) -> bool {
+        !direct
+    }
+    pub fn claim_classification(direct: bool, ancestor: bool) -> bool {
+        direct || ancestor
+    }
+    pub fn member_target_needed(node_present: bool) -> bool {
+        node_present
+    }
+    pub fn member_missing(node_present: bool, target_present: bool) -> bool {
+        !node_present || !target_present
     }
     pub fn member_shape(&mut self, id: u32, array: bool, length_truthy: bool) -> bool {
         if !array || !length_truthy {
