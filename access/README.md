@@ -1459,3 +1459,9 @@ Migration does not rewrite existing virtual environments or PATH. Reinstalling
 the legacy wheel updates its command name; deselect any old wheel-owned `tos`
 when choosing the native prefix. Preserve the previous prefix for rollback.
 Python reference APIs and unique integrity checks remain in the repository.
+
+The current native verifier rejects older native archives containing Python
+runtime or wheel metadata. To roll back, select the retained previous prefix;
+its executable retains its own archive contract. Restore an older archive with
+that matching retained verifier. The native archive change does not claim
+backward compatibility with the previous mixed Python/native layout.
