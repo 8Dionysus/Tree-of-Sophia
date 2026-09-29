@@ -5,7 +5,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
-use std::path::Path;
+use std::path::{Component, Path};
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::time::{Duration, Instant};
 
@@ -40,6 +40,7 @@ fn invalid(text: impl Into<String>) -> io::Error {
 }
 struct Gate<'a> {
     root: &'a Path,
+    root_dir: File,
     limits: Limits,
     deadline: Instant,
     cancel: &'a AtomicI32,
@@ -165,25 +166,7 @@ impl Gate<'_> {
             }
             self.git(&["cat-file", "blob", &object])?
         } else {
-            let path = self.root.join(reference);
-            for part in path.ancestors() {
-                if fs::symlink_metadata(part)?.file_type().is_symlink() {
-                    return Err(invalid(format!(
-                        "current {reference} must not use a symlink"
-                    )));
-                }
-            }
-            let metadata = fs::metadata(&path)?;
-            if !metadata.is_file() {
-                return Err(invalid(format!(
-                    "current {reference} must be a regular metadata file"
-                )));
-            }
-            let mut raw = Vec::new();
-            File::open(&path)?
-                .take(MEMBER_BYTES as u64 + 1)
-                .read_to_end(&mut raw)?;
-            raw
+            self.read_current(reference)?
         };
         if raw.len() > MEMBER_BYTES {
             return Err(invalid(format!(
@@ -199,6 +182,73 @@ impl Gate<'_> {
         }
         self.check()?;
         Ok(raw)
+    }
+    // The four fixed member names are walked from one retained root. Every
+    // parent and final inode is selected without following symlinks; nonblock
+    // prevents a final FIFO swap from hanging before the regular-file check.
+    #[cfg(target_os = "linux")]
+    fn read_current(&self, reference: &str) -> io::Result<Vec<u8>> {
+        use std::os::fd::{AsRawFd, FromRawFd};
+        if !REGISTRIES.contains(&reference) && !SCHEMAS.contains(&reference) {
+            return Err(invalid("unknown registry gate member"));
+        }
+        let mut directory = self.root_dir.try_clone()?;
+        let mut parts = reference.split('/').peekable();
+        while let Some(part) = parts.next() {
+            self.check()?;
+            let name = std::ffi::CString::new(part).map_err(|_| invalid("NUL registry member"))?;
+            let final_part = parts.peek().is_none();
+            let flags = libc::O_RDONLY
+                | libc::O_NOFOLLOW
+                | libc::O_CLOEXEC
+                | libc::O_NONBLOCK
+                | if final_part { 0 } else { libc::O_DIRECTORY };
+            let fd = unsafe { libc::openat(directory.as_raw_fd(), name.as_ptr(), flags) };
+            if fd < 0 {
+                return Err(invalid(format!(
+                    "current {reference}: {}",
+                    io::Error::last_os_error()
+                )));
+            }
+            let file = unsafe { File::from_raw_fd(fd) };
+            if !final_part {
+                directory = file;
+                continue;
+            }
+            let metadata = file.metadata()?;
+            if !metadata.is_file() {
+                return Err(invalid(format!(
+                    "current {reference} must be a regular metadata file"
+                )));
+            }
+            if metadata.len() > MEMBER_BYTES as u64 {
+                return Err(invalid(format!(
+                    "current {reference} exceeds the 1 MiB metadata limit"
+                )));
+            }
+            self.check()?;
+            // Size/regular admission precedes allocation. One fixed payload
+            // workspace also detects growth past the cap without Vec regrowth.
+            let mut raw = Vec::new();
+            raw.try_reserve_exact(MEMBER_BYTES + 1)
+                .map_err(|_| invalid("registry member buffer allocation refused"))?;
+            file.take(MEMBER_BYTES as u64 + 1).read_to_end(&mut raw)?;
+            if raw.len() > MEMBER_BYTES {
+                return Err(invalid(format!(
+                    "{reference} exceeds the 1 MiB metadata limit"
+                )));
+            }
+            self.check()?;
+            return Ok(raw);
+        }
+        Err(invalid("empty registry member"))
+    }
+    #[cfg(not(target_os = "linux"))]
+    fn read_current(&self, _reference: &str) -> io::Result<Vec<u8>> {
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "registry gate requires Linux descriptor custody",
+        ))
     }
     fn decode(&self, raw: &[u8], label: &str) -> io::Result<(Value, usize)> {
         self.check()?;
@@ -298,6 +348,43 @@ impl Gate<'_> {
             .map_err(|_| invalid("registry pair arity"))?;
         Ok((records, digests))
     }
+}
+
+// Same retained-parent descriptor pattern as the existing RouteSources
+// owner, specialized here to one gate root and its four fixed input members.
+#[cfg(target_os = "linux")]
+fn open_root(root: &Path) -> io::Result<File> {
+    use std::os::fd::{AsRawFd, FromRawFd};
+    use std::os::unix::ffi::OsStrExt;
+    if !root.is_absolute() || root.as_os_str().len() > 4096 || root.components().count() > 128 {
+        return Err(invalid("invalid registry gate root"));
+    }
+    let mut directory = File::open("/")?;
+    for part in root.components() {
+        if let Component::Normal(part) = part {
+            let name = std::ffi::CString::new(part.as_bytes())
+                .map_err(|_| invalid("NUL registry root"))?;
+            let fd = unsafe {
+                libc::openat(
+                    directory.as_raw_fd(),
+                    name.as_ptr(),
+                    libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                )
+            };
+            if fd < 0 {
+                return Err(io::Error::last_os_error());
+            }
+            directory = unsafe { File::from_raw_fd(fd) };
+        }
+    }
+    Ok(directory)
+}
+#[cfg(not(target_os = "linux"))]
+fn open_root(_root: &Path) -> io::Result<File> {
+    Err(io::Error::new(
+        io::ErrorKind::Unsupported,
+        "registry gate requires Linux descriptor custody",
+    ))
 }
 
 fn transition(gate: &mut Gate<'_>, commit: &str, allow: bool) -> io::Result<Value> {
@@ -531,6 +618,7 @@ pub fn run(
         let root = root.canonicalize()?;
         let mut gate = Gate {
             root: &root,
+            root_dir: open_root(&root)?,
             limits,
             deadline,
             cancel,
