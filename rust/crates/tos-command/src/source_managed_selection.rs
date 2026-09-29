@@ -379,9 +379,22 @@ pub fn prepare_managed_agent_selected_successor(
     let config = cmd::parse(&package.prepared.context().configuration_raw)
         .map_err(ManagedSelectionError::Source)?;
     let record_path = cmd::text(&config, "source_path").map_err(ManagedSelectionError::Source)?;
+    let (record_home, record_name) =
+        record_path
+            .rsplit_once('/')
+            .ok_or(ManagedSelectionError::Source(SourceCommandError::Invalid(
+                "managed committed source home",
+            )))?;
+    if record_home != package.prepared.home().as_str() || record_name.is_empty() {
+        return Err(ManagedSelectionError::Source(SourceCommandError::Conflict(
+            "managed committed source home differs",
+        )));
+    }
+    // The committed creation package owns home-relative file names. Full ToS
+    // paths remain the producer's input identity, not package lookup keys.
     let record_raw = package
         .files()
-        .get(record_path)
+        .get(record_name)
         .ok_or(ManagedSelectionError::Source(SourceCommandError::Conflict(
             "managed committed source buffer absent",
         )))?;
@@ -393,7 +406,8 @@ pub fn prepare_managed_agent_selected_successor(
                 "managed source filename"
             )))?
     );
-    let forms_raw = package.files().get(&forms_path).map(Vec::as_slice);
+    let forms_name = forms_path.rsplit('/').next().unwrap();
+    let forms_raw = package.files().get(forms_name).map(Vec::as_slice);
     let mut owner_failure = None;
     let mut observed_catalogue = None;
     let mut catalogue_called = false;
