@@ -426,6 +426,45 @@ pub fn verify_work_expression_from_cut(
     reader.verify(claim_path, claim, schemas)
 }
 
+/// Read the exact selected Expression/Edition compound and its retained/current lineage.
+/// The transport observation is descriptive; CMD still owns the physical
+/// publication, source/software and journal fences for any replay decision.
+pub fn verify_expression_edition_from_cut(
+    cut: &CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    claim_path: &str,
+    claim: &Value,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<NativeCompoundObservation, ItemRefusal> {
+    if claim["predicate"] != "embodied_by" || schemas.source_revision() != cut.current().revision()
+    {
+        return Err(bad("selected Expression/Edition compound type/cut"));
+    }
+    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    reader.verify(claim_path, claim, schemas)
+}
+
+/// Read the exact selected Edition/Item compound and its retained/current lineage.
+/// The transport observation is descriptive; CMD still owns the physical
+/// publication, source/software and journal fences for any replay decision.
+pub fn verify_edition_item_from_cut(
+    cut: &CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    claim_path: &str,
+    claim: &Value,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<NativeCompoundObservation, ItemRefusal> {
+    if claim["predicate"] != "exemplified_by"
+        || schemas.source_revision() != cut.current().revision()
+    {
+        return Err(bad("selected Edition/Item compound type/cut"));
+    }
+    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    reader.verify(claim_path, claim, schemas)
+}
+
 /// An exact Collection record version and the selected bytes that established
 /// it. A historical version remains historical; this is no writer grant.
 #[derive(Debug)]
