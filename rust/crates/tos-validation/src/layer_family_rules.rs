@@ -840,7 +840,7 @@ impl LayerFamilyRules {
                 label,
             )?;
         }
-        for anchor in [sentence, aligned.first().copied().unwrap_or(&Value::Null)] {
+        for anchor in [sentence, aligned.first().unwrap_or(&Value::Null)] {
             if anchor["anchor_ref"] != sentence_id
                 || !opening_selector_matches(
                     &anchor["selector"],
