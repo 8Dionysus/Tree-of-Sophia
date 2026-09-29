@@ -8,7 +8,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::io::{self, Read};
 use std::path::{Component, Path, PathBuf};
+use std::sync::Arc;
 use tos_foundation::python_casefold_unicode16_v1;
+use unicode_general_category::{GeneralCategory, get_general_category};
 
 pub type Issue = (String, String);
 
@@ -23,6 +25,47 @@ const MAX_ISSUE_BYTES: usize = 8 * 1_024;
 const MAX_REFERENCES: usize = 100_000;
 const MAX_REFERENCE_BYTES: usize = 64 * 1_024 * 1_024;
 const MAX_ANCHOR_BYTES: usize = 64 * 1_024 * 1_024;
+// Python 3.14 re `\s`, including U+001C..U+001F absent from Unicode
+// White_Space. Keep this aligned with FND's pinned Python Unicode 16 law.
+const PY_SPACE_REGEX: &str = r"\x09-\x0D\x1C-\x20\x{85}\x{A0}\x{1680}\x{2000}-\x{200A}\x{2028}\x{2029}\x{202F}\x{205F}\x{3000}";
+
+// These are the fixed patterns of the maintained Python validator. Compile
+// once for the complete operation, not once per document or heading.
+struct Patterns {
+    comments: Regex,
+    inline: Regex,
+    definition: Regex,
+    heading_explicit: Regex,
+    tag: Regex,
+    markdown_link: Regex,
+    attribute: Regex,
+    anchor_explicit: Regex,
+    heading: Regex,
+    use_ref: Regex,
+    script_ref: Regex,
+}
+
+impl Patterns {
+    fn new() -> io::Result<Self> {
+        fn pattern(text: &str) -> io::Result<Regex> {
+            Regex::new(&text.replace("@W@", PY_SPACE_REGEX))
+                .map_err(|error| invalid(error.to_string()))
+        }
+        Ok(Self {
+            comments: pattern(r"(?s)<!--.*?-->")?,
+            inline: pattern(r"\[([^\]]+)\]\(([^)@W@]+)")?,
+            definition: pattern(r"(?m)^[ \t]{0,3}\[([^\]]+)\]:[@W@]*(?:<([^>\n]+)>|([^@W@]+))")?,
+            heading_explicit: pattern(r"\{#([^}]+)\}")?,
+            tag: pattern(r"<[^>]+>")?,
+            markdown_link: pattern(r"\[([^\]]+)\]\([^)]+\)")?,
+            attribute: pattern(r#"(?:id|name)[@W@]*=[@W@]*["']([^"']+)["']"#)?,
+            anchor_explicit: pattern(r"\{#([A-Za-z0-9][A-Za-z0-9_-]*)\}")?,
+            heading: pattern(r"(?m)^[ \t]{0,3}#{1,6}[@W@]+(.+?)[@W@]*#*[@W@]*$")?,
+            use_ref: pattern(r"\[([^\]]+)\]\[([^\]]*)\]")?,
+            script_ref: pattern(r"((?:\.\./)*(?:scripts|mechanics)/[A-Za-z0-9_./-]+\.(?:py|sh))")?,
+        })
+    }
+}
 
 fn invalid(message: impl Into<String>) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, message.into())
@@ -32,7 +75,7 @@ struct Source<'a> {
     root: &'a Path,
     files: usize,
     bytes: u64,
-    cache: BTreeMap<String, String>,
+    cache: BTreeMap<String, Arc<str>>,
     references: usize,
     reference_bytes: usize,
     anchors: BTreeMap<PathBuf, BTreeSet<String>>,
@@ -68,7 +111,7 @@ impl<'a> Source<'a> {
         Ok(self.root.join(path))
     }
 
-    fn read(&mut self, relative: &str) -> io::Result<Option<String>> {
+    fn read(&mut self, relative: &str) -> io::Result<Option<Arc<str>>> {
         if let Some(text) = self.cache.get(relative) {
             return Ok(Some(text.clone()));
         }
@@ -109,7 +152,8 @@ impl<'a> Source<'a> {
         }
         let text = String::from_utf8(bytes)
             .map_err(|_| invalid(format!("non-UTF-8 mechanics input: {relative}")))?;
-        self.cache.insert(relative.to_owned(), text.clone());
+        let text: Arc<str> = text.into();
+        self.cache.insert(relative.to_owned(), Arc::clone(&text));
         Ok(Some(text))
     }
 
@@ -129,6 +173,13 @@ impl<'a> Source<'a> {
             return Err(invalid("mechanics reference byte budget exceeded"));
         }
         Ok(())
+    }
+
+    fn remaining_references(&self) -> (usize, usize) {
+        (
+            MAX_REFERENCES - self.references,
+            MAX_REFERENCE_BYTES - self.reference_bytes,
+        )
     }
 }
 
@@ -515,9 +566,8 @@ fn markdown_files(source: &Source<'_>) -> io::Result<Vec<PathBuf>> {
     Ok(files)
 }
 
-fn rendered_markdown(text: &str) -> io::Result<String> {
-    let comments = Regex::new(r"(?s)<!--.*?-->").map_err(|error| invalid(error.to_string()))?;
-    let without_comments = comments.replace_all(text, "");
+fn rendered_markdown(text: &str, patterns: &Patterns) -> io::Result<String> {
+    let without_comments = patterns.comments.replace_all(text, "");
     let mut rendered = String::new();
     let mut fence: Option<String> = None;
     let mut suppressed = String::new();
@@ -551,41 +601,66 @@ fn rendered_markdown(text: &str) -> io::Result<String> {
     Ok(rendered)
 }
 
-fn references(text: &str) -> io::Result<(Vec<String>, BTreeMap<String, String>)> {
-    let inline =
-        Regex::new(r"\[([^\]]+)\]\(([^)\s]+)").map_err(|error| invalid(error.to_string()))?;
-    let definition = Regex::new(r"(?m)^[ \t]{0,3}\[([^\]]+)\]:\s*(?:<([^>\n]+)>|(\S+))")
-        .map_err(|error| invalid(error.to_string()))?;
+fn push_reference(
+    refs: &mut Vec<String>,
+    bytes: &mut usize,
+    value: &str,
+    max_count: usize,
+    max_bytes: usize,
+) -> io::Result<()> {
+    if refs.len() >= max_count {
+        return Err(invalid("mechanics reference budget exceeded"));
+    }
+    *bytes = bytes
+        .checked_add(value.len())
+        .ok_or_else(|| invalid("mechanics reference byte overflow"))?;
+    if *bytes > max_bytes {
+        return Err(invalid("mechanics reference byte budget exceeded"));
+    }
+    refs.push(value.to_owned());
+    Ok(())
+}
+
+fn references(
+    text: &str,
+    patterns: &Patterns,
+    max_count: usize,
+    max_bytes: usize,
+) -> io::Result<(Vec<String>, BTreeMap<String, String>)> {
     let mut refs = Vec::new();
-    for capture in inline.captures_iter(text) {
+    let mut bytes = 0usize;
+    for capture in patterns.inline.captures_iter(text) {
         let whole = capture
             .get(0)
             .ok_or_else(|| invalid("markdown inline capture"))?;
         if !text[..whole.start()].ends_with('!') {
-            refs.push(capture[2].to_owned());
-            if refs.len() > MAX_REFERENCES {
-                return Err(invalid("mechanics reference budget exceeded"));
-            }
+            push_reference(&mut refs, &mut bytes, &capture[2], max_count, max_bytes)?;
         }
     }
     let mut definitions = BTreeMap::new();
-    for capture in definition.captures_iter(text) {
-        let label = capture[1].trim();
-        if label.starts_with('^') {
-            continue;
-        }
-        let key = casefold(&label.split_whitespace().collect::<Vec<_>>().join(" "))?;
+    let mut definition_order = Vec::new();
+    let mut visible_definitions = BTreeMap::new();
+    for capture in patterns.definition.captures_iter(text) {
+        let label = capture[1].trim_matches(python_space);
+        let key = reference_label(label)?;
         let target = capture
             .get(2)
             .or_else(|| capture.get(3))
             .ok_or_else(|| invalid("markdown definition capture"))?
-            .as_str()
-            .to_owned();
-        refs.push(target.clone());
-        if refs.len() > MAX_REFERENCES {
-            return Err(invalid("mechanics reference budget exceeded"));
+            .as_str();
+        if !label.starts_with('^') {
+            if !visible_definitions.contains_key(&key) {
+                definition_order.push(key.clone());
+            }
+            visible_definitions.insert(key.clone(), target.to_owned());
         }
-        definitions.insert(key, target);
+        definitions.insert(key, target.to_owned());
+    }
+    for key in definition_order {
+        let target = visible_definitions
+            .get(&key)
+            .ok_or_else(|| invalid("markdown definition disappeared"))?;
+        push_reference(&mut refs, &mut bytes, target, max_count, max_bytes)?;
     }
     Ok((refs, definitions))
 }
@@ -605,15 +680,21 @@ fn reference_parts(reference: &str) -> (&str, &str) {
 }
 
 fn decoded(value: &str) -> io::Result<String> {
+    fn hex(byte: u8) -> Option<u8> {
+        match byte {
+            b'0'..=b'9' => Some(byte - b'0'),
+            b'a'..=b'f' => Some(byte - b'a' + 10),
+            b'A'..=b'F' => Some(byte - b'A' + 10),
+            _ => None,
+        }
+    }
     let mut output = Vec::with_capacity(value.len());
     let bytes = value.as_bytes();
     let mut index = 0;
     while index < bytes.len() {
         if bytes[index] == b'%' && index + 2 < bytes.len() {
-            let digits = std::str::from_utf8(&bytes[index + 1..index + 3])
-                .map_err(|_| invalid("percent escape"))?;
-            if let Ok(number) = u8::from_str_radix(digits, 16) {
-                output.push(number);
+            if let (Some(high), Some(low)) = (hex(bytes[index + 1]), hex(bytes[index + 2])) {
+                output.push(high * 16 + low);
                 index += 3;
                 continue;
             }
@@ -621,35 +702,96 @@ fn decoded(value: &str) -> io::Result<String> {
         output.push(bytes[index]);
         index += 1;
     }
-    String::from_utf8(output).map_err(|_| invalid("non-UTF-8 documentation reference"))
+    // urllib.parse.unquote uses UTF-8 with replacement for malformed octets.
+    Ok(String::from_utf8_lossy(&output).into_owned())
 }
 
-fn heading_anchor(value: &str) -> io::Result<String> {
-    let explicit = Regex::new(r"\{#([^}]+)\}").map_err(|error| invalid(error.to_string()))?;
-    let tag = Regex::new(r"<[^>]+>").map_err(|error| invalid(error.to_string()))?;
-    let markdown_link =
-        Regex::new(r"\[([^\]]+)\]\([^)]+\)").map_err(|error| invalid(error.to_string()))?;
-    let without_explicit = explicit.replace_all(value, "");
-    let without_tags = tag.replace_all(&without_explicit, "");
-    let without_links = markdown_link.replace_all(&without_tags, "$1");
+fn python_word(ch: char) -> bool {
+    ch == '_'
+        || matches!(
+            get_general_category(ch),
+            GeneralCategory::UppercaseLetter
+                | GeneralCategory::LowercaseLetter
+                | GeneralCategory::TitlecaseLetter
+                | GeneralCategory::ModifierLetter
+                | GeneralCategory::OtherLetter
+                | GeneralCategory::DecimalNumber
+                | GeneralCategory::LetterNumber
+                | GeneralCategory::OtherNumber
+        )
+}
+
+fn python_space(ch: char) -> bool {
+    // Matches the owner-pinned Python Unicode 16 whitespace range in FND.
+    matches!(ch,
+        '\u{0009}'..='\u{000d}' | '\u{001c}'..='\u{0020}' | '\u{0085}' |
+        '\u{00a0}' | '\u{1680}' | '\u{2000}'..='\u{200a}' |
+        '\u{2028}' | '\u{2029}' | '\u{202f}' | '\u{205f}' | '\u{3000}')
+}
+
+fn reference_label(label: &str) -> io::Result<String> {
+    let collapsed = label
+        .trim_matches(python_space)
+        .split(python_space)
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ");
+    casefold(&collapsed)
+}
+
+fn heading_anchor(value: &str, patterns: &Patterns) -> io::Result<String> {
+    let without_explicit = patterns.heading_explicit.replace_all(value, "");
+    let without_tags = patterns.tag.replace_all(&without_explicit, "");
+    let without_links = patterns.markdown_link.replace_all(&without_tags, "$1");
     let folded = casefold(&without_links)?;
     let mut slug = String::new();
     let mut dash = false;
     for ch in folded.chars() {
-        if ch.is_alphanumeric() || ch == '_' {
+        if python_word(ch) {
             if dash && !slug.is_empty() {
                 slug.push('-');
             }
             dash = false;
             slug.push(ch);
-        } else if ch.is_whitespace() || ch == '-' {
+        } else if python_space(ch) || ch == '-' {
             dash = true;
         }
     }
     Ok(slug)
 }
 
-fn document_has_fragment(source: &mut Source<'_>, path: &Path, fragment: &str) -> io::Result<bool> {
+fn add_anchor(
+    anchors: &mut BTreeSet<String>,
+    local_bytes: &mut usize,
+    retained_bytes: usize,
+    anchor: String,
+) -> io::Result<()> {
+    if anchors.contains(&anchor) {
+        return Ok(());
+    }
+    anchor_capacity(*local_bytes, retained_bytes, anchor.len())?;
+    *local_bytes += anchor.len();
+    anchors.insert(anchor);
+    Ok(())
+}
+
+fn anchor_capacity(local_bytes: usize, retained_bytes: usize, additional: usize) -> io::Result<()> {
+    let projected = retained_bytes
+        .checked_add(local_bytes)
+        .and_then(|bytes| bytes.checked_add(additional))
+        .ok_or_else(|| invalid("mechanics anchor byte overflow"))?;
+    if projected > MAX_ANCHOR_BYTES {
+        return Err(invalid("mechanics anchor byte budget exceeded"));
+    }
+    Ok(())
+}
+
+fn document_has_fragment(
+    source: &mut Source<'_>,
+    path: &Path,
+    fragment: &str,
+    patterns: &Patterns,
+) -> io::Result<bool> {
     let fragment = casefold(&decoded(fragment)?)?;
     if let Some(anchors) = source.anchors.get(path) {
         return Ok(anchors.contains(&fragment));
@@ -662,48 +804,58 @@ fn document_has_fragment(source: &mut Source<'_>, path: &Path, fragment: &str) -
     let text = source
         .read(relative)?
         .ok_or_else(|| invalid("missing document anchor target"))?;
-    let attribute = Regex::new(r#"(?:id|name)\s*=\s*["']([^"']+)["']"#)
-        .map_err(|error| invalid(error.to_string()))?;
-    let explicit = Regex::new(r"\{#([A-Za-z0-9][A-Za-z0-9_-]*)\}")
-        .map_err(|error| invalid(error.to_string()))?;
-    let heading = Regex::new(r"(?m)^[ \t]{0,3}#{1,6}\s+(.+?)\s*#*\s*$")
-        .map_err(|error| invalid(error.to_string()))?;
     let mut anchors = BTreeSet::new();
-    for capture in attribute.captures_iter(&text) {
-        anchors.insert(casefold(&decoded(&capture[1])?)?);
+    let mut local_bytes = 0usize;
+    for capture in patterns.attribute.captures_iter(&text) {
+        add_anchor(
+            &mut anchors,
+            &mut local_bytes,
+            source.anchor_bytes,
+            casefold(&decoded(&capture[1])?)?,
+        )?;
     }
-    for capture in explicit.captures_iter(&text) {
-        anchors.insert(casefold(&capture[1])?);
+    for capture in patterns.anchor_explicit.captures_iter(&text) {
+        add_anchor(
+            &mut anchors,
+            &mut local_bytes,
+            source.anchor_bytes,
+            casefold(&capture[1])?,
+        )?;
     }
     let mut counts = BTreeMap::<String, usize>::new();
-    for capture in heading.captures_iter(&text) {
+    for capture in patterns.heading.captures_iter(&text) {
         let Some(title) = capture.get(1) else {
             continue;
         };
-        let anchor = heading_anchor(title.as_str())?;
+        let anchor = heading_anchor(title.as_str(), patterns)?;
         if anchor.is_empty() {
             continue;
         }
-        let count = counts.entry(anchor.clone()).or_default();
-        if *count == 0 {
-            anchors.insert(anchor);
+        let count = counts.get(&anchor).copied().unwrap_or_default();
+        if count == 0 {
+            if !anchors.contains(&anchor) {
+                anchor_capacity(local_bytes, source.anchor_bytes, anchor.len())?;
+            }
+            add_anchor(
+                &mut anchors,
+                &mut local_bytes,
+                source.anchor_bytes,
+                anchor.clone(),
+            )?;
         } else {
-            anchors.insert(format!("{anchor}-{count}"));
+            add_anchor(
+                &mut anchors,
+                &mut local_bytes,
+                source.anchor_bytes,
+                format!("{anchor}-{count}"),
+            )?;
         }
-        *count += 1;
+        counts.insert(anchor, count + 1);
     }
-    let bytes = anchors.iter().try_fold(0usize, |bytes, anchor| {
-        bytes
-            .checked_add(anchor.len())
-            .ok_or_else(|| invalid("mechanics anchor byte overflow"))
-    })?;
     source.anchor_bytes = source
         .anchor_bytes
-        .checked_add(bytes)
+        .checked_add(local_bytes)
         .ok_or_else(|| invalid("mechanics anchor byte overflow"))?;
-    if source.anchor_bytes > MAX_ANCHOR_BYTES {
-        return Err(invalid("mechanics anchor byte budget exceeded"));
-    }
     let found = anchors.contains(&fragment);
     source.anchors.insert(path.to_owned(), anchors);
     Ok(found)
@@ -779,6 +931,7 @@ fn inventory(
 fn route_map(
     source: &mut Source<'_>,
     issues: &mut Vec<Issue>,
+    patterns: &Patterns,
     order: &[String],
     packages: &BTreeMap<String, Value>,
     parts: &BTreeMap<String, BTreeSet<String>>,
@@ -820,7 +973,8 @@ fn route_map(
         let Some(text) = source.read(&path)? else {
             continue;
         };
-        let (links, _) = references(&rendered_markdown(&text)?)?;
+        let (count, bytes) = source.remaining_references();
+        let (links, _) = references(&rendered_markdown(&text, patterns)?, patterns, count, bytes)?;
         source.charge_references(links.len(), reference_bytes(&links)?)?;
         let links: BTreeSet<_> = links
             .iter()
@@ -839,7 +993,13 @@ fn route_map(
         let Some(parts_text) = source.read(&parts_path)? else {
             continue;
         };
-        let (links, _) = references(&rendered_markdown(&parts_text)?)?;
+        let (count, bytes) = source.remaining_references();
+        let (links, _) = references(
+            &rendered_markdown(&parts_text, patterns)?,
+            patterns,
+            count,
+            bytes,
+        )?;
         source.charge_references(links.len(), reference_bytes(&links)?)?;
         let links: BTreeSet<_> = links
             .iter()
@@ -859,7 +1019,11 @@ fn route_map(
     Ok(())
 }
 
-fn documentation_references(source: &mut Source<'_>, issues: &mut Vec<Issue>) -> io::Result<()> {
+fn documentation_references(
+    source: &mut Source<'_>,
+    issues: &mut Vec<Issue>,
+    patterns: &Patterns,
+) -> io::Result<()> {
     let scripts = inventory(
         source,
         issues,
@@ -868,10 +1032,6 @@ fn documentation_references(source: &mut Source<'_>, issues: &mut Vec<Issue>) ->
         "script",
     )?;
     let mut tests = None;
-    let use_ref =
-        Regex::new(r"\[([^\]]+)\]\[([^\]]*)\]").map_err(|error| invalid(error.to_string()))?;
-    let script_ref = Regex::new(r"((?:\.\./)*(?:scripts|mechanics)/[A-Za-z0-9_./-]+\.(?:py|sh))")
-        .map_err(|error| invalid(error.to_string()))?;
     for file in markdown_files(source)? {
         let relative = file
             .strip_prefix(source.root)
@@ -882,10 +1042,11 @@ fn documentation_references(source: &mut Source<'_>, issues: &mut Vec<Issue>) ->
         let text = source
             .read(&relative)?
             .ok_or_else(|| invalid("mechanics document disappeared"))?;
-        let rendered = rendered_markdown(&text)?;
-        let (mut references, definitions) = references(&rendered)?;
+        let rendered = rendered_markdown(&text, patterns)?;
+        let (count, bytes) = source.remaining_references();
+        let (mut references, definitions) = references(&rendered, patterns, count, bytes)?;
         source.charge_references(references.len(), reference_bytes(&references)?)?;
-        for capture in use_ref.captures_iter(&rendered) {
+        for capture in patterns.use_ref.captures_iter(&rendered) {
             let whole = capture
                 .get(0)
                 .ok_or_else(|| invalid("markdown use capture"))?;
@@ -898,13 +1059,7 @@ fn documentation_references(source: &mut Source<'_>, issues: &mut Vec<Issue>) ->
             } else {
                 &capture[2]
             };
-            let key = casefold(
-                &label
-                    .trim()
-                    .split_whitespace()
-                    .collect::<Vec<_>>()
-                    .join(" "),
-            )?;
+            let key = reference_label(label)?;
             if let Some(target) = definitions.get(&key) {
                 source.charge_references(0, target.len())?;
                 references.push(target.clone());
@@ -932,7 +1087,9 @@ fn documentation_references(source: &mut Source<'_>, issues: &mut Vec<Issue>) ->
                 continue;
             };
             let (_, fragment) = reference_parts(&reference);
-            if !fragment.is_empty() && !document_has_fragment(source, &resolved, fragment)? {
+            if !fragment.is_empty()
+                && !document_has_fragment(source, &resolved, fragment, patterns)?
+            {
                 push(
                     issues,
                     &relative,
@@ -940,7 +1097,7 @@ fn documentation_references(source: &mut Source<'_>, issues: &mut Vec<Issue>) ->
                 )?;
             }
         }
-        for capture in script_ref.captures_iter(&text) {
+        for capture in patterns.script_ref.captures_iter(&text) {
             let whole = capture
                 .get(1)
                 .ok_or_else(|| invalid("script reference capture"))?;
@@ -1002,6 +1159,7 @@ fn documentation_references(source: &mut Source<'_>, issues: &mut Vec<Issue>) ->
 /// native execution have been accepted by the owner.
 pub fn validate(root: &Path) -> io::Result<Vec<Issue>> {
     let mut source = Source::new(root)?;
+    let patterns = Patterns::new()?;
     let mut issues = Vec::new();
     required(&source, &mut issues, "mechanics/AGENTS.md")?;
     required(&source, &mut issues, "mechanics/README.md")?;
@@ -1116,8 +1274,15 @@ pub fn validate(root: &Path) -> io::Result<Vec<Issue>> {
         push(&mut issues, TOPOLOGY, "packages must be unique")?;
     }
     context_budget(&mut source, &mut issues, &topology)?;
-    route_map(&mut source, &mut issues, &order, &packages, &parts)?;
-    documentation_references(&mut source, &mut issues)?;
+    route_map(
+        &mut source,
+        &mut issues,
+        &patterns,
+        &order,
+        &packages,
+        &parts,
+    )?;
+    documentation_references(&mut source, &mut issues, &patterns)?;
     moved_targets(&source, &mut issues, &topology, &packages, &parts)?;
     Ok(issues)
 }
