@@ -43,6 +43,59 @@ class OfflineMaintenanceTests(unittest.TestCase):
         self.assertNotIn("catalog_state", self.tables())
         self.assertNotIn("semantic_state", self.tables())
 
+    def test_native_prepare_attaches_joined_indexes_and_source_ack_rolls_back(self):
+        executable = os.environ.get("TOS_NATIVE_PREPARED_EXECUTABLE")
+        if not executable:
+            self.skipTest("explicit protected native product required")
+        from tos_access import prepared_publication as publication
+        from tos_access import prepared_native_maintenance as native
+        options = {"maintenance": producer.MaintenanceAttachmentLimits(),
+                   "native_executable": executable, "native_timeout": 20}
+        reference_output = Path(self.tmp.name) / "reference"
+        def reference_attachment(path, **values):
+            values.pop("native_executable")
+            values.pop("native_timeout")
+            return producer.reference_attach_maintenance(path, **values)
+        def reference_rows(path, **values):
+            values.pop("native_executable")
+            values.pop("native_timeout")
+            return publication.reference_publish_prepared_rows(path, **values)
+        with (patch.object(producer, "publish_prepared_rows", side_effect=reference_rows),
+              patch.object(producer, "_attach_maintenance", side_effect=reference_attachment)):
+            reference = producer.prepare(self.root, reference_output, **options)
+        actual = producer.prepare(self.root, self.output, **options)
+        self.assertEqual(actual["binding"], reference["binding"])
+        self.assertEqual(actual["maintenance"]["catalog_digest"], reference["maintenance"]["catalog_digest"])
+        self.assertEqual(actual["maintenance"]["semantic_report_sha256"], reference["maintenance"]["semantic_report_sha256"])
+        self.assertTrue({"catalog_state", "semantic_state"} <= self.tables())
+        reader = PublishedKnowledgeReadModel(self.output / "snapshot.sqlite", actual["binding"])
+        reference_reader = PublishedKnowledgeReadModel(reference_output / "snapshot.sqlite", reference["binding"])
+        self.assertEqual(reader.catalog(), reference_reader.catalog())
+        with (closing(sqlite3.connect(self.output / "snapshot.sqlite")) as db,
+              closing(sqlite3.connect(reference_output / "snapshot.sqlite")) as oracle):
+            for table in ("knowledge_nodes", "knowledge_relations", "edge_meta"):
+                self.assertEqual(db.execute("SELECT * FROM " + table + " ORDER BY 1,2").fetchall(),
+                                 oracle.execute("SELECT * FROM " + table + " ORDER BY 1,2").fetchall())
+        # Refuse at the real native final ACK after both indexes were built.
+        self.output = Path(self.tmp.name) / "source-abort"
+        original = native.native_maintenance
+        def abort(path, **values):
+            check = values["check_source_current"]
+            checks = 0
+            def drift():
+                nonlocal checks
+                checks += 1
+                if checks == 2:
+                    source_path = self.root / source.INDEX_RELATIVE_PATH
+                    source_path.write_text(source_path.read_text() + " ")
+                check()
+            values["check_source_current"] = drift
+            return original(path, **values)
+        with (patch.object(native, "native_maintenance", side_effect=abort),
+              self.assertRaisesRegex(RuntimeError, "source changed")):
+            producer.prepare(self.root, self.output, **options)
+        self.assert_incomplete_rolled_back()
+
     def test_default_snapshot_and_prepare_packet_remain_unchanged(self):
         core = source.ToSAccessCore.discover(self.root)
         self.assertEqual(set(core.knowledge_snapshot_once()), {"graph", "catalog", "source_state"})
