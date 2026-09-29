@@ -49,7 +49,7 @@ pub fn python_space(c: char) -> bool {
 pub fn whitespace_tokens(text: &str) -> usize {
     text.split(python_space).filter(|s| !s.is_empty()).count()
 }
-fn splitlines(text: &str) -> Vec<&str> {
+pub fn splitlines(text: &str) -> Vec<&str> {
     let mut out = Vec::new();
     let mut start = 0;
     let mut chars = text.char_indices().peekable();
