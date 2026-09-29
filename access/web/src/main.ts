@@ -856,7 +856,7 @@ function readInitialRoute(): InitialRoute {
 
 const initialRoute = readInitialRoute();
 
-function createBrowserResearchWorkspace() {
+function createPageResearchWorkspace() {
   try {
     return createBrowserResearchWorkspace({
       sessionId: "tos-local-research",
@@ -867,7 +867,7 @@ function createBrowserResearchWorkspace() {
   }
 }
 
-const researchWorkspace = createBrowserResearchWorkspace();
+const researchWorkspace = createPageResearchWorkspace();
 window.addEventListener('pagehide',(event)=>{
   if(!event.persisted&&'dispose' in researchWorkspace)researchWorkspace.dispose();
 });
