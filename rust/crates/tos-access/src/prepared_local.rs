@@ -90,6 +90,7 @@ pub fn profile() -> AccessProfile {
     let frame = crate::mcp::tool_result_frame_byte_bound(p.max_response_bytes, p.max_request_bytes)
         .expect("fixed prepared frame arithmetic");
     p.with_mcp_frame_budget(frame)
+        .with_query_timeout(std::time::Duration::from_secs(5))
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct FileState {
