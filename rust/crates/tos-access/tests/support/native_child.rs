@@ -2,7 +2,7 @@ use std::{
     fs,
     io::{BufReader, Read},
     process::{Child, Command, Output, Stdio},
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tos_foundation::{Digest256, Digest256Hasher};
 // Reap every owned child even if a later packet/custody assertion unwinds.
@@ -28,10 +28,9 @@ impl Drop for OwnedChild {
 fn bounded_child_output_until(
     mut child: OwnedChild,
     stdout_max: usize,
-    timeout: Duration,
+    deadline: Instant,
 ) -> Output {
     use std::sync::mpsc;
-    use std::time::Instant;
     const STDERR_MAX: usize = 16 * 1024;
     let (tx, rx) = mpsc::channel();
     for (kind, pipe, max) in [
@@ -54,10 +53,14 @@ fn bounded_child_output_until(
         });
     }
     drop(tx);
-    let deadline = Instant::now() + timeout;
     let mut stdout = None;
     let mut stderr = None;
     loop {
+        if Instant::now() >= deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("native child exceeded its absolute deadline");
+        }
         while let Ok((kind, result, bytes)) = rx.try_recv() {
             result.unwrap();
             let max = if kind == 0 { stdout_max } else { STDERR_MAX };
@@ -81,16 +84,11 @@ fn bounded_child_output_until(
                 };
             }
         }
-        if Instant::now() >= deadline {
-            let _ = child.kill();
-            let _ = child.wait();
-            panic!("native child exceeded {timeout:?} deadline");
-        }
         std::thread::sleep(Duration::from_millis(10));
     }
 }
 pub(super) fn bounded_child_output(child: OwnedChild, stdout_max: usize) -> Output {
-    bounded_child_output_until(child, stdout_max, Duration::from_secs(60))
+    bounded_child_output_until(child, stdout_max, Instant::now() + Duration::from_secs(60))
 }
 pub(super) fn bounded_output(command: &mut Command, stdout_max: usize) -> Output {
     bounded_output_until(command, stdout_max, Duration::from_secs(60))
@@ -100,14 +98,38 @@ pub(super) fn bounded_output_until(
     stdout_max: usize,
     timeout: Duration,
 ) -> Output {
+    bounded_output_before(command, stdout_max, Instant::now() + timeout)
+}
+pub(super) fn bounded_output_before(
+    command: &mut Command,
+    stdout_max: usize,
+    deadline: Instant,
+) -> Output {
+    assert!(
+        Instant::now() < deadline,
+        "native child deadline already elapsed"
+    );
     let child = command
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
         .unwrap();
-    bounded_child_output_until(OwnedChild(child), stdout_max, timeout)
+    bounded_child_output_until(OwnedChild(child), stdout_max, deadline)
 }
 pub(super) fn bounded_sha(path: &std::path::Path, max: u64) -> Digest256 {
+    hash_before(path, max, None)
+}
+pub(super) fn bounded_sha_before(path: &std::path::Path, max: u64, deadline: Instant) -> Digest256 {
+    hash_before(path, max, Some(deadline))
+}
+fn hash_before(path: &std::path::Path, max: u64, deadline: Option<Instant>) -> Digest256 {
+    let check = || {
+        assert!(
+            deadline.is_none_or(|end| Instant::now() < end),
+            "native hash deadline elapsed"
+        )
+    };
+    check();
     use std::os::unix::fs::MetadataExt;
     let file = tos_fd_open::open_absolute_regular(path, max).unwrap();
     let before = file.metadata().unwrap();
@@ -127,6 +149,7 @@ pub(super) fn bounded_sha(path: &std::path::Path, max: u64) -> Digest256 {
     let mut hasher = Digest256Hasher::new();
     let mut bytes = [0u8; 64 * 1024];
     loop {
+        check();
         let read = reader.read(&mut bytes).unwrap();
         if read == 0 {
             break;
@@ -146,5 +169,6 @@ pub(super) fn bounded_sha(path: &std::path::Path, max: u64) -> Digest256 {
         identity(&fs::symlink_metadata(path).unwrap()),
         "hash pathname changed while reading"
     );
+    check();
     hasher.finalize()
 }

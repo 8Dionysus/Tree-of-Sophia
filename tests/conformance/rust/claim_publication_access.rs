@@ -1,7 +1,11 @@
 //! Read continuation of the actual Claim publication case. The caller supplies
 //! its committed database and receipt binding; this module never builds rows,
 //! copies a database, issues authority, or substitutes an independent fixture.
-use std::{io::Cursor, path::Path, time::Duration};
+use std::{
+    io::Cursor,
+    path::Path,
+    time::{Duration, Instant},
+};
 
 #[path = "../../../rust/crates/tos-access/tests/support/native_child.rs"]
 mod native_child;
@@ -22,28 +26,58 @@ fn segment(value: &str) -> String {
     out
 }
 
+fn remaining(deadline: Instant) -> Duration {
+    let left = deadline
+        .checked_duration_since(Instant::now())
+        .expect("whole Claim access deadline elapsed");
+    assert!(!left.is_zero(), "whole Claim access deadline elapsed");
+    left.min(Duration::from_secs(5))
+}
+fn profile_until(deadline: Instant) -> tos_access::AccessProfile {
+    prepared_local::profile().with_query_timeout(remaining(deadline))
+}
+
 fn read_three_wires(
     executor: &prepared_local::PreparedLocalExecutor,
     args: &[String],
     path: &str,
     tool: &str,
     arguments: Value,
+    deadline: Instant,
 ) -> Value {
-    let profile = prepared_local::profile();
     let (mut stdout, mut stderr) = (Vec::new(), Vec::new());
     assert_eq!(
-        cli::run_cli(args, executor, profile, &mut stdout, &mut stderr),
+        cli::run_cli(
+            args,
+            executor,
+            profile_until(deadline),
+            &mut stdout,
+            &mut stderr
+        ),
         0,
         "committed Claim CLI: {}",
         String::from_utf8_lossy(&stderr)
     );
     let expected: Value = serde_json::from_slice(&stdout).unwrap();
-    let http = handle_get(executor, "GET", path, profile);
+    let http = handle_get(executor, "GET", path, profile_until(deadline));
     assert_eq!(http.status, 200, "{}", String::from_utf8_lossy(&http.body));
+    let mut wire = Vec::new();
+    tos_access::http::write_response(&mut wire, http).unwrap();
+    assert!(
+        wire.starts_with(b"HTTP/1.1 200 "),
+        "{}",
+        String::from_utf8_lossy(&wire)
+    );
+    let body = wire
+        .windows(4)
+        .position(|bytes| bytes == b"\r\n\r\n")
+        .unwrap()
+        + 4;
     assert_eq!(
         expected,
-        serde_json::from_slice::<Value>(&http.body).unwrap()
+        serde_json::from_slice::<Value>(&wire[body..]).unwrap()
     );
+    remaining(deadline);
 
     let mut input = Vec::new();
     for message in [
@@ -57,7 +91,13 @@ fn read_three_wires(
         input.push(b'\n');
     }
     let mut output = Vec::new();
-    run_io(Cursor::new(input), &mut output, executor, profile).unwrap();
+    run_io(
+        Cursor::new(input),
+        &mut output,
+        executor,
+        profile_until(deadline),
+    )
+    .unwrap();
     let replies: Vec<Value> = output
         .split(|b| *b == b'\n')
         .filter(|line| !line.is_empty())
@@ -68,16 +108,19 @@ fn read_three_wires(
     assert!(replies[1].get("error").is_none(), "{}", replies[1]);
     assert_ne!(replies[1]["result"]["isError"], true);
     assert_eq!(expected, replies[1]["result"]["structuredContent"]);
+    remaining(deadline);
     expected
 }
 
 /// Invoke only after the native publication's guarded commit. Both identifiers
 /// must come from its normalized addition, not from the predecessor fixture.
-pub(super) fn verify_published_access(
+/// The same caller deadline covers setup, hashing and every transport/child.
+pub(super) fn verify_published_access_until(
     database: &Path,
     receipt_binding: &Path,
     expected_node_id: &str,
     expected_relation_id: &str,
+    deadline: Instant,
 ) {
     // OPS selects and protects the coherent access product (which may be an
     // installed prefix). No copy or separate data fixture is made here.
@@ -88,11 +131,12 @@ pub(super) fn verify_published_access(
     assert!(binary.is_absolute());
     let expected_sha = std::env::var("TOS_NATIVE_PREPARED_CONSUMER_SHA256").unwrap();
     assert_eq!(
-        native_child::bounded_sha(&binary, 512 * 1024 * 1024).to_hex(),
+        native_child::bounded_sha_before(&binary, 512 * 1024 * 1024, deadline).to_hex(),
         expected_sha
     );
     let actual = |args: &[String], expected: &Value| {
-        let output = native_child::bounded_output_until(
+        let child_deadline = Instant::now() + remaining(deadline);
+        let output = native_child::bounded_output_before(
             std::process::Command::new(&binary)
                 .arg("--prepared-read-model")
                 .arg(database)
@@ -100,7 +144,7 @@ pub(super) fn verify_published_access(
                 .arg(receipt_binding)
                 .args(args),
             prepared_local::PREPARED_RESPONSE_BYTES,
-            Duration::from_secs(5),
+            child_deadline.min(deadline),
         );
         assert!(
             output.status.success(),
@@ -113,6 +157,7 @@ pub(super) fn verify_published_access(
         );
     };
     {
+        remaining(deadline);
         let executor = prepared_local::PreparedLocalExecutor::open(
             database.to_owned(),
             receipt_binding.to_owned(),
@@ -135,6 +180,7 @@ pub(super) fn verify_published_access(
                 &format!("/api/knowledge/{kind}s/{}", segment(identifier)),
                 tool,
                 json!({argument: identifier}),
+                deadline,
             );
             assert!(
                 packet["matches"]
@@ -153,8 +199,10 @@ pub(super) fn verify_published_access(
             "/api/knowledge/catalog",
             "tos_knowledge_catalog",
             json!({}),
+            deadline,
         );
         drop(executor);
         actual(&args, &catalog);
+        remaining(deadline);
     }
 }
