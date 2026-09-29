@@ -1,3 +1,4 @@
+import {installRecordContextRules} from '../src/observatory/record-context.mjs';
 import './style.css';
 import {mountConstructorSky} from './sky.mjs';
 import {createConstructorModel,installConstructorRules} from './model.mjs';
@@ -27,6 +28,7 @@ await initRules(new URL('../../deploy/cloudflare-worker/generated/tos_web_rules_
 installBrowserWorkspaceMachine(rules.BrowserWorkspaceSession);
 installSourceFormRules(rules);
 installHumanFormRules(rules);
+installRecordContextRules(rules);
 installConditionRules(rules);
 installDraftRules(rules);
 installLiveResumeRules(rules);

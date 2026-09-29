@@ -1,3 +1,4 @@
+import {installRecordContextRules} from './observatory/record-context.mjs';
 import '../constructor/style.css';
 import {mountLiveResearch} from '../constructor/live-controller.mjs';
 import {installBrowserWorkspaceMachine} from './research-workspace-rust.ts';
@@ -22,6 +23,7 @@ installInterfaceRules(rules);
 installPoseRules(rules);
 installClaimReferenceRules(rules);
 installHumanFormRules(rules);
+installRecordContextRules(rules);
 installConditionRules(rules);
 installDraftRules(rules);
 installReadingRules(rules);

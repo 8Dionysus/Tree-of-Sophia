@@ -21,6 +21,8 @@ mod observatory_conditions;
 mod observatory_draft;
 mod observatory_pose;
 mod reading_resume;
+#[cfg(feature = "wasm")]
+mod record_context;
 mod research_shelf;
 mod search_mode;
 #[cfg(feature = "wasm")]
@@ -33,6 +35,9 @@ mod workspace_proposal;
 pub use temporal_session::{
     TemporalSession, TemporalSessionBudget, TemporalSessionStep, TemporalSessionWork,
 };
+
+#[cfg(feature = "wasm")]
+pub use record_context::RecordContextSession;
 
 pub use claim_reference::validate_claim_reference_v1;
 pub use interface_preferences::normalize_interface_preferences_v1;

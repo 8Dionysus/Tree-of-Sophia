@@ -27,3 +27,6 @@ installConditionRules(runtime);
 installDraftRules(runtime);
 import {installWorkspaceCopyRules} from './workspace-copy-rust.mjs';
 installWorkspaceCopyRules(runtime);
+
+import {installRecordContextRules} from './record-context.mjs';
+installRecordContextRules(runtime);
