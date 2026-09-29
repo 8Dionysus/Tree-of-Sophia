@@ -142,6 +142,19 @@ class PreparedPublicationTests(unittest.TestCase):
         donor_binding = publish_prepared(donor, graph=graph, catalog=self.catalog)
         predecessor_bytes = donor.read_bytes()
         donor_target = self.path.with_name('callback-native.sqlite')
+        complete = []
+        with patch.dict(os.environ, TOS_PREPARED_EXECUTOR=executable,
+                        TOS_PREPARED_MAX_SECONDS='20'):
+            successor = publication.publish_prepared_rows(donor_target,
+                source_header={key: value for key, value in graph.items()
+                               if key not in ('nodes', 'relations')}, catalog=self.catalog,
+                row_factory=lambda kind: iter(graph[kind + 's']),
+                search_reuse=PreparedSearchReuse(donor, donor_binding, progress=complete.append))
+        self.assertEqual(successor, donor_binding)
+        self.assertEqual(complete[-1]['phase'], 'search_successor_prepared')
+        self.assertIs(complete[-1]['committed'], False)
+        self.assertEqual(donor.read_bytes(), predecessor_bytes)
+        donor_target = self.path.with_name('callback-refused.sqlite')
         phases = []
         def stop_after_copy(report):
             phases.append(report['phase'])
