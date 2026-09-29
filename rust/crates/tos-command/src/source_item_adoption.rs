@@ -2940,7 +2940,7 @@ fn recover_item_selected(
             "Item pending native recipe identity differs",
         ));
     }
-    let finished = tos_validation::native_compound::finish_edition_item_bytes(
+    let finished = tos_validation::native_compound::restore_edition_item_bytes(
         core,
         selected_after("source-create-environment.json")?,
         selected_after("source-create-provenance.jsonl")?,
