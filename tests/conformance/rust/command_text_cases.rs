@@ -482,6 +482,11 @@ fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
     let original_config = config.clone();
     let mut proposal = fixture["proposal"].clone();
     let authored = authored_text_files(&public);
+    eprintln!(
+        "Alignment fixture F_authored_cut={} G_grant_bytes={}",
+        authored.len(),
+        fs::metadata(&owner).unwrap().len()
+    );
     let mut captured = authored.clone();
     for reference in fixture["implementations"].as_array().unwrap() {
         let reference = reference.as_str().unwrap();
