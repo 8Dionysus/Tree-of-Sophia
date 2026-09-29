@@ -153,6 +153,12 @@ pub(crate) fn explore(
         .object_get("authority_boundary")
         .cloned()
         .ok_or_else(corrupt)?;
+    struct Probe(Option<std::sync::Arc<dyn crate::AbortProbe>>);
+    impl crate::AbortProbe for Probe {
+        fn reason(&self) -> Option<crate::AbortReason> {
+            self.0.as_ref().and_then(|probe| probe.reason())
+        }
+    }
     let mut plan = ExplorationPlan::published(
         input,
         source,
@@ -164,7 +170,7 @@ pub(crate) fn explore(
             max_cache_bytes: (2 * 1024 * 1024).min(limits.max_bytes),
             max_cache_entries: 64.min(limits.max_rows),
         },
-        read.abort_handle(),
+        std::rc::Rc::new(Probe(read.abort_handle())),
     )?;
     loop {
         read.check_abort().map_err(storage_error)?;
