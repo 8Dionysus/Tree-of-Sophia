@@ -15,6 +15,7 @@ fn main() {
     match result {
         Ok(value) => println!("{}", value),
         Err(error) => {
+            eprintln!("selected native owner refused: {error:?}");
             println!(
                 "{{\"schema_version\":\"tos_local_source_command_error_v1\",\"error\":\"{}\"}}",
                 match error {

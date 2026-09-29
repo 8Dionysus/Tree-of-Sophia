@@ -1636,8 +1636,12 @@ def _run_selected_native_alignment(owner_config: Path, invocation_path: Path, re
                     os.killpg(child.pid, signal.SIGKILL)
                     child.wait()
             if (time.monotonic() >= deadline or output.tell() > MAX_COMMAND_BYTES
-                    or errors.tell() > MAX_COMMAND_BYTES or child.returncode != 0):
+                    or errors.tell() > MAX_COMMAND_BYTES):
                 raise ValueError('native alignment command refused')
+            if child.returncode != 0:
+                errors.seek(0)
+                reason = errors.read(4096).decode('utf-8', errors='replace').strip()
+                raise ValueError('native alignment command refused' + (': ' + reason if reason else ''))
             output.seek(0)
             response = _json_object(output.read(MAX_COMMAND_BYTES + 1))
             if response.get('schema_version') != 'tos_local_native_alignment_result_v1':
