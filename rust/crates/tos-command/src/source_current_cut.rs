@@ -53,21 +53,6 @@ impl ManagedCurrentSourceGeneration {
             .read_generation_source_metadata(store, self, path, deadline, cancel)
             .map_err(durable)
     }
-    /// Visits owned carrier metadata in selected-key order while the exact
-    /// generation/pin and current policy remain held. Successful EOF returns
-    /// independently checked count/root coverage; a partial visit proves none.
-    pub fn visit_members(
-        &self,
-        coordinator: &mut DurablePgCoordinator,
-        store: &SegmentStore,
-        deadline: Instant,
-        cancel: &AtomicBool,
-        visit: impl FnMut(MemberMetadata) -> Result<()>,
-    ) -> Result<tos_segment_store::GenerationCoverageV1> {
-        coordinator
-            .visit_generation_source_metadata(store, self, deadline, cancel, visit)
-            .map_err(durable)
-    }
     pub fn digest(&self) -> Digest256 {
         self.selected.digest()
     }

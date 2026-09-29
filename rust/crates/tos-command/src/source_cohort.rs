@@ -1427,26 +1427,6 @@ fn selected_source_metadata(
     expose_metadata(row, path).map(|(metadata, _)| metadata)
 }
 
-fn path_from_current_key(domain: &str, key: &[u8]) -> DurableResult<RelativePath> {
-    let start = CURRENT_KEY_TAG.len() + 4 + domain.len();
-    let length_bytes: [u8; 4] = key
-        .get(start..start + 4)
-        .and_then(|bytes| bytes.try_into().ok())
-        .ok_or(DurableError::Corrupt("selected source key length absent"))?;
-    let length = u32::from_be_bytes(length_bytes) as usize;
-    let name = key
-        .get(start + 4..)
-        .filter(|name| name.len() == length)
-        .and_then(|name| std::str::from_utf8(name).ok())
-        .ok_or(DurableError::Corrupt("selected source key path absent"))?;
-    let path = RelativePath::parse(name)
-        .map_err(|_| DurableError::Corrupt("selected source key path invalid"))?;
-    if key != membership_key(CURRENT_KEY_TAG, domain, name, None)? {
-        return Err(DurableError::Corrupt("selected source key domain differs"));
-    }
-    Ok(path)
-}
-
 impl DurablePgCoordinator {
     pub(crate) fn managed_model_delta_from_commit(
         &mut self,
@@ -1913,66 +1893,6 @@ impl DurablePgCoordinator {
         active(deadline, cancelled)?;
         tx.commit()?;
         Ok(result)
-    }
-
-    pub(crate) fn visit_generation_source_metadata(
-        &mut self,
-        store: &SegmentStore,
-        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
-        deadline: Instant,
-        cancelled: &AtomicBool,
-        mut visit: impl FnMut(MemberMetadata) -> cmd::SourceCommandResult<()>,
-    ) -> DurableResult<GenerationCoverageV1> {
-        active(deadline, cancelled)?;
-        let mut stream = generation.selected().current_stream()?;
-        let domain = generation.cohort().domain();
-        let count = generation.member_count();
-        let mut root = membership_root_start(CURRENT_KEY_TAG, count);
-        let mut observed = 0u64;
-        let mut tx = self.client.transaction()?;
-        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
-        held_generation_metadata(&mut tx, store, generation)?;
-        while let Some(selected) = stream.next_row(deadline, cancelled)? {
-            active(deadline, cancelled)?;
-            let path = path_from_current_key(domain, &selected.key)?;
-            let row = tx
-                .query_opt(
-                    "SELECT * FROM cmd2_current WHERE domain=$1 AND subject=$2",
-                    &[&domain, &path.as_str()],
-                )?
-                .ok_or(DurableError::Conflict(
-                    "selected metadata stream member absent",
-                ))?;
-            let metadata = selected_source_metadata(&row, &selected, domain, &path)?;
-            membership_root_row(&mut root, &selected);
-            observed += 1;
-            if observed > count {
-                return Err(DurableError::Corrupt(
-                    "selected metadata stream count exceeded",
-                ));
-            }
-            visit(metadata).map_err(source_error)?;
-        }
-        let coverage = stream
-            .coverage()
-            .ok_or(DurableError::Corrupt("selected metadata stream lacks EOF"))?;
-        if observed != count
-            || coverage.rows != count
-            || coverage.descriptor_digest != generation.digest()
-            || root.finalize()
-                != generation
-                    .selected()
-                    .view()
-                    .descriptor_cut
-                    .current_membership_root
-        {
-            return Err(DurableError::Corrupt(
-                "selected metadata EOF/count/root differs",
-            ));
-        }
-        active(deadline, cancelled)?;
-        tx.commit()?;
-        Ok(coverage)
     }
 
     pub(crate) fn read_generation_source_member(

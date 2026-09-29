@@ -551,12 +551,6 @@ impl SelectedSourceGeneration {
             cancelled,
         )?)
     }
-    pub(crate) fn current_stream(&self) -> DurableResult<GenerationRowStreamV1> {
-        Ok(self
-            .installed()
-            .stream(GenerationNamespaceV1::Current, self.read_limits())?)
-    }
-
     fn view(&self) -> MembershipInstallation<'_> {
         match self {
             Self::Cold(value) => MembershipInstallation {

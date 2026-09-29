@@ -2317,32 +2317,6 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         );
     }
     planner_tx.commit().unwrap();
-    let mut streamed_metadata = std::collections::BTreeMap::new();
-    let metadata_coverage = current_reopened
-        .visit_members(
-            &mut recovered_db,
-            &recovered_store,
-            deadline,
-            &cancelled,
-            |metadata| {
-                assert!(
-                    streamed_metadata
-                        .insert(metadata.path.as_str().to_owned(), metadata)
-                        .is_none()
-                );
-                Ok(())
-            },
-        )
-        .unwrap();
-    assert_eq!(metadata_coverage.rows, current_reopened.member_count());
-    assert_eq!(
-        metadata_coverage.descriptor_digest,
-        current_reopened.digest()
-    );
-    assert_eq!(
-        streamed_metadata.len() as u64,
-        current_reopened.member_count()
-    );
     let absent_path =
         RelativePath::parse("ToS/source-witnesses/agents/never-created/agent.json").unwrap();
     assert!(
@@ -2356,20 +2330,6 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             )
             .unwrap()
             .is_none()
-    );
-    assert!(
-        current_reopened
-            .visit_members(
-                &mut recovered_db,
-                &recovered_store,
-                deadline,
-                &cancelled,
-                |_| Err(tos_command::source_command::SourceCommandError::Denied(
-                    "test partial metadata visit"
-                )),
-            )
-            .is_err(),
-        "a partial metadata visitor cannot return complete coverage"
     );
     for (name, expected) in &expected_original_files {
         let path = RelativePath::parse(&format!(
@@ -2397,7 +2357,6 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             .unwrap()
             .unwrap();
         assert_eq!(owned_metadata, retained.metadata);
-        assert_eq!(streamed_metadata[path.as_str()], retained.metadata);
         assert_eq!(&retained.raw, expected, "process-cold original file {name}");
         assert_eq!(retained.current_generation, expected_current_head);
     }
