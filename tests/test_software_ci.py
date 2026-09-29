@@ -145,6 +145,7 @@ class SoftwareSelectionTests(unittest.TestCase):
         # The entry wrappers execute native products before Cargo lanes can run.
         plan_runs = [step.get('run', '') for step in jobs['plan']['steps']]
         prepare = next(i for i, run in enumerate(plan_runs) if '--bin tos-software-ci' in run)
+        self.assertIn('--no-default-features', plan_runs[prepare])
         selector = next(i for i, run in enumerate(plan_runs) if 'scripts/software_ci.py plan' in run)
         self.assertLess(prepare, selector)
         for job in ('software', 'rust', 'required_gate'):

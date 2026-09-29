@@ -48,7 +48,7 @@ jobs:
           manifest = {'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
                       'source_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
                       'lock_sha256': hashlib.sha256(Path('Cargo.lock').read_bytes()).hexdigest(),
-                      'toolchain': '1.98.1', 'target': 'x86_64-unknown-linux-gnu', 'profile': 'debug', 'binaries': binaries}
+                      'toolchain': '1.98.1', 'target': 'x86_64-unknown-linux-gnu', 'profile': 'debug', 'features': [], 'binaries': binaries}
           (root / 'manifest.json').write_text(json.dumps(manifest) + '\n')
           PY_OPS
           printf 'TOS_SOFTWARE_CI_EXECUTOR=%s\n' "$RUNNER_TEMP/tos-ci-executors/tos-software-ci" >> "$GITHUB_ENV"
@@ -150,7 +150,7 @@ jobs:
           expected = {'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
                       'source_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
                       'lock_sha256': hashlib.sha256(Path('Cargo.lock').read_bytes()).hexdigest(),
-                      'toolchain': '1.98.1', 'target': 'x86_64-unknown-linux-gnu', 'profile': 'debug'}
+                      'toolchain': '1.98.1', 'target': 'x86_64-unknown-linux-gnu', 'profile': 'debug', 'features': []}
           for key, value in expected.items():
               if manifest.get(key) != value:
                   raise SystemExit('native CI executor identity mismatch: ' + key)
@@ -379,7 +379,7 @@ jobs:
           expected = {'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
                       'source_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
                       'lock_sha256': hashlib.sha256(Path('Cargo.lock').read_bytes()).hexdigest(),
-                      'toolchain': '1.98.1', 'target': 'x86_64-unknown-linux-gnu', 'profile': 'debug'}
+                      'toolchain': '1.98.1', 'target': 'x86_64-unknown-linux-gnu', 'profile': 'debug', 'features': []}
           for key, value in expected.items():
               if manifest.get(key) != value:
                   raise SystemExit('native CI executor identity mismatch: ' + key)
@@ -464,7 +464,7 @@ jobs:
           expected = {'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
                       'source_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
                       'lock_sha256': hashlib.sha256(Path('Cargo.lock').read_bytes()).hexdigest(),
-                      'toolchain': '1.98.1', 'target': 'x86_64-unknown-linux-gnu', 'profile': 'debug'}
+                      'toolchain': '1.98.1', 'target': 'x86_64-unknown-linux-gnu', 'profile': 'debug', 'features': []}
           for key, value in expected.items():
               if manifest.get(key) != value:
                   raise SystemExit('native CI executor identity mismatch: ' + key)
