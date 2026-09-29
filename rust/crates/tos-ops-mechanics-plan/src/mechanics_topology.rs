@@ -523,11 +523,10 @@ fn rendered_markdown(text: &str) -> io::Result<String> {
     let mut suppressed = String::new();
     for line in without_comments.split_inclusive('\n') {
         let trimmed = line.trim_start_matches([' ', '\t']);
-        let indentation = line.len() - trimmed.len();
         let bytes = trimmed.as_bytes();
         let leader = bytes.first().copied().unwrap_or_default();
         let count = bytes.iter().take_while(|byte| **byte == leader).count();
-        let marker = if indentation <= 3 && matches!(leader, b'`' | b'~') && count >= 3 {
+        let marker = if matches!(leader, b'`' | b'~') && count >= 3 {
             Some(&trimmed[..count])
         } else {
             None
