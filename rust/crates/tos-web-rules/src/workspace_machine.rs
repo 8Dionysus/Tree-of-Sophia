@@ -128,6 +128,117 @@ fn bounded(value: &JsonValue, key: &str, max: usize) -> bool {
 fn optional_bounded(value: &JsonValue, key: &str, max: usize) -> bool {
     get(value, key).is_none() || bounded(value, key, max)
 }
+// The maintained browser importer applies String.trim() before checking every
+// packet string. Keep that normalization at the shared machine boundary so a
+// saved session has the same identity in native and browser consumers.
+fn trim_fields(value: &mut JsonValue, fields: &[&str], optional: &[&str], arrays: &[&str]) {
+    let JsonValue::Object(entries) = value else {
+        return;
+    };
+    for (key, item) in entries.iter_mut() {
+        let Some(name) = key.as_str() else { continue };
+        if fields.contains(&name) || optional.contains(&name) {
+            if let JsonValue::String(word) = item {
+                if let Some(raw) = word.as_str() {
+                    *item = text(raw.trim_matches(js_trim));
+                }
+            }
+        } else if arrays.contains(&name) {
+            if let JsonValue::Array(items) = item {
+                for item in items {
+                    if let JsonValue::String(word) = item {
+                        if let Some(raw) = word.as_str() {
+                            *item = text(raw.trim_matches(js_trim));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    entries.retain(|(key, item)| {
+        !key.as_str().is_some_and(|name| optional.contains(&name)) || item.as_str() != Some("")
+    });
+}
+fn trim_collection(
+    packet: &mut JsonValue,
+    name: &str,
+    fields: &[&str],
+    optional: &[&str],
+    arrays: &[&str],
+) {
+    let JsonValue::Object(entries) = packet else {
+        return;
+    };
+    let Some((_, JsonValue::Array(items))) = entries
+        .iter_mut()
+        .find(|(key, _)| key.as_str() == Some(name))
+    else {
+        return;
+    };
+    for item in items {
+        trim_fields(item, fields, optional, arrays);
+    }
+}
+fn normalize_import_packet(packet: &mut JsonValue) {
+    trim_fields(packet, &["session_id"], &[], &["excluded_edge_ids"]);
+    if let JsonValue::Object(entries) = packet {
+        if let Some((_, selection)) = entries
+            .iter_mut()
+            .find(|(key, _)| key.as_str() == Some("selected_lens"))
+        {
+            trim_fields(selection, &["id", "kind"], &["label"], &[]);
+        }
+    }
+    trim_collection(
+        packet,
+        "route_snapshots",
+        &["id", "label", "from_id", "to_id"],
+        &[],
+        &["node_ids", "edge_ids"],
+    );
+    trim_collection(
+        packet,
+        "hypotheses",
+        &["id", "title", "body"],
+        &["target_id", "from_id", "to_id", "predicate_label"],
+        &[],
+    );
+    trim_collection(packet, "notes", &["id", "body"], &["target_id"], &[]);
+    trim_collection(packet, "journal", &["action"], &["target_id"], &[]);
+    trim_collection(
+        packet,
+        "proposals",
+        &[
+            "id",
+            "kind",
+            "parent_hypothesis_id",
+            "statement",
+            "actor_origin",
+            "data_fingerprint",
+            "created_at",
+            "digest",
+        ],
+        &["target_id", "from_id", "to_id", "review_requirement"],
+        &["source_refs", "evidence_refs"],
+    );
+    if let JsonValue::Object(entries) = packet {
+        if let Some((_, JsonValue::Array(proposals))) = entries
+            .iter_mut()
+            .find(|(key, _)| key.as_str() == Some("proposals"))
+        {
+            for proposal in proposals {
+                if let JsonValue::Object(entries) = proposal {
+                    if let Some((_, posture)) = entries
+                        .iter_mut()
+                        .find(|(key, _)| key.as_str() == Some("confidence_posture"))
+                    {
+                        trim_fields(posture, &["value"], &[], &[]);
+                    }
+                }
+            }
+        }
+    }
+}
 fn unique_strings(value: &JsonValue, key: &str, max_items: usize, max_len: usize) -> bool {
     let Some(items) = get(value, key).and_then(JsonValue::as_array) else {
         return false;
@@ -234,9 +345,8 @@ fn validate_journal(value: &JsonValue, previous: u64) -> Option<u64> {
         if entries.len() > 32
             || entries.iter().any(|(key, item)| {
                 key.as_str().is_none_or(|name| {
-                    name.is_empty()
-                        || name.trim_matches(js_trim) != name
-                        || name.encode_utf16().count() > 256
+                    let normalized = name.trim_matches(js_trim);
+                    normalized.is_empty() || normalized.encode_utf16().count() > 256
                 }) || !matches!(
                     item,
                     JsonValue::Null
@@ -292,6 +402,7 @@ fn proposal_request(
     ])
 }
 fn validate_packet(mut packet: JsonValue) -> Result<JsonValue, WorkspaceMachineError> {
+    normalize_import_packet(&mut packet);
     let required = [
         "schema",
         "version",

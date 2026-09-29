@@ -1,3 +1,4 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {test,expect} from 'vitest';
 import {createResearchWorkspace} from '../research-workspace';
 import {capturePlace,pinHistoryPlace,readPlaces,savePlace} from './place-model.mjs';

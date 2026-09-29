@@ -1,6 +1,6 @@
 import './style.css';
 import {mountConstructorSky} from './sky.mjs';
-import {createConstructorModel} from './model.mjs';
+import {createConstructorModel,installConstructorRules} from './model.mjs';
 import {createAtlasLibrary} from './atlas-data.mjs';
 import {LENSES,RELATIONS,makeLensView,shortestPath} from './atlas-view.mjs';
 import {bindResearchRoutes,routeGraphInput,routePath,createJourneyNavigator} from './journey-state.mjs';
@@ -14,9 +14,14 @@ import {checkInquiryTextReferences,inquiryReadingContexts,routeGroundContext} fr
 import {sourceReference} from './source-references.mjs';
 import {carrySemanticWorkspace} from './semantic-workspace.mjs';
 import {installBrowserWorkspaceMachine} from '../src/research-workspace-rust.ts';
-import initRules,{BrowserWorkspaceSession} from '../../deploy/cloudflare-worker/generated/tos_web_rules.js';
+import {installSourceFormRules} from './source-form-session-rust.mjs';
+import {installHumanFormRules} from '../src/observatory/human-form-rules.mjs';
+import initRules,* as rules from '../../deploy/cloudflare-worker/generated/tos_web_rules.js';
 await initRules(new URL('../../deploy/cloudflare-worker/generated/tos_web_rules_bg.wasm',import.meta.url));
-installBrowserWorkspaceMachine(BrowserWorkspaceSession);
+installBrowserWorkspaceMachine(rules.BrowserWorkspaceSession);
+installSourceFormRules(rules);
+installHumanFormRules(rules);
+installConstructorRules(rules);
 
 const root=document.querySelector('#tree');
 let lang=new URL(location.href).searchParams.get('lang')==='en'?'en':'ru';
@@ -59,6 +64,7 @@ try{
  let storage;try{storage=localStorage;}catch{}
  const routes=bindResearchRoutes(atlas.routes,library),readingContexts=inquiryReadingContexts(library.nodes,routes),carried=await carrySemanticWorkspace(storage,library,routes);
  const key='tos-living-tree-v1:'+library.fingerprint,model=createConstructorModel(library,{storage,key});
+ window.addEventListener('pagehide',event=>{if(!event.persisted)model.dispose?.();});
  const journey=createJourneyNavigator(routes,{storage,key:'tos-reading-route-v1:'+library.fingerprint});
  let first=!model.getState().nodes.length;try{first=!storage?.getItem(key);}catch{}
  if(first&&!model.persistenceError()&&!carried.errors.some(item=>item.kind==='tree'))model.seedAtlas();

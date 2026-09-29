@@ -1,95 +1,59 @@
 import {t} from './ui-i18n.mjs';
 import {decodeHumanFormSelection,FORM_WIRE_BUDGET} from '../../../shared/human-form-selection-codec.ts';
 import {essentialContext} from './record-context.mjs';
+import {contentLanguage,exactFormRef,sameFormRef,validFormIdentity as rustValidFormIdentity,
+  createHumanFormRuleSession,inspectionIndex,inspectionSourcePointer,validateInspectedPacket} from './human-form-rules.mjs';
+export {contentLanguage,exactFormRef,sameFormRef};
 
 // Delivery validation only. ToS/contracts/human-form.schema.json owns the
 // materialization; access/contracts/knowledge-graph.v1.schema.json owns selection.
 export const FORM_ROLES=['name','caption','hover','statement','grounds','history','technical'];
 export const FORM_STATES=['ready','missing','unavailable','ambiguous','over-budget'];
-const reasons=['exact-language','less-specific-language','automatic','fallback','original','no-ready-form','multiple-forms','original-role-not-declared','inspect-exact-form'];
-const candidateStates=['ready','invalid','unavailable','stale','restricted','needs-assessment','over-budget'];
-const EXACT_FORM_BYTES=64*1024;
 const own=(value,key)=>Object.prototype.hasOwnProperty.call(value,key);
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
-const hash=value=>typeof value==='string'&&/^[a-f0-9]{64}$(?![\s\S])/.test(value);
-export const contentLanguage=value=>typeof value==='string'&&value.length<=128&&/^(?:auto|original|[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*|[iIxX](?:-[A-Za-z0-9]{1,8})+)$(?![\s\S])/.test(value);
-const language=value=>value===null||(contentLanguage(value)&&!['auto','original'].includes(value));
 const strings=value=>Array.isArray(value)&&value.every(item=>typeof item==='string');
-const pointer=value=>typeof value==='string'&&value.length<=2048&&/^(?:\/(?:[^~/]|~[01])*)*$/.test(value);
-export const exactFormRef=value=>object(value)&&Object.keys(value).length===3&&typeof value.id==='string'&&Boolean(value.id)
-  &&Number.isSafeInteger(value.version)&&value.version>=1&&typeof value.digest==='string'&&/^sha256:[a-f0-9]{64}$(?![\s\S])/.test(value.digest);
-export const sameFormRef=(a,b)=>exactFormRef(a)&&exactFormRef(b)&&a.id===b.id&&a.version===b.version&&a.digest===b.digest;
-const binding=value=>object(value)&&exactFormRef(value.record)&&pointer(value.pointer);
 export class FormContractError extends Error {constructor(){super(t('Пакет формы неполон или не соответствует версии материала.'));}}
 const requireForm=value=>{if(!value)throw new FormContractError();};
 function boundedJSON(value,limit){
-  let count=0;
+  let count=0,minimum=0;
   function visit(item,depth){
     requireForm(depth<=64&&++count<=30000);
-    if(item===null||typeof item==='string'||typeof item==='boolean')return;
+    if(typeof item==='string'){minimum+=item.length;requireForm(minimum<=limit);return;}
+    if(item===null||typeof item==='boolean')return;
     if(typeof item==='number'){requireForm(Number.isFinite(item));return;}
     requireForm(Array.isArray(item)||object(item));
-    for(const child of Object.values(item))visit(child,depth+1);
+    for(const key in item){
+      if(!Object.hasOwn(item,key))continue;
+      if(!Array.isArray(item))minimum+=key.length;
+      requireForm(minimum<=limit);visit(item[key],depth+1);
+    }
   }
   visit(value,0);requireForm(new TextEncoder().encode(JSON.stringify(value)).length<=limit);
 }
-function validatePacket(packet,role,ref,raw){
-  requireForm(object(packet)&&packet.schema_version==='tos_human_form_materialization_v1'&&packet.state==='ready'
-    &&packet.role===role&&sameFormRef(packet.form,ref)&&exactFormRef(packet.subject)
-    &&(!raw.entity_id||packet.subject.id===raw.entity_id)
-    &&typeof packet.display_text==='string'&&Boolean(packet.display_text.trim())
-    &&own(packet,'language')&&language(packet.language)&&own(packet,'script')
-    &&(packet.script===null||typeof packet.script==='string'&&/^[A-Za-z]{4}$(?![\s\S])/.test(packet.script))
-    &&['source-copy','template','freeform'].includes(packet.derivation)
-    &&Array.isArray(packet.dependencies)&&packet.dependencies.every(exactFormRef)
-    &&strings(packet.issues)&&packet.issues.length===0&&own(packet,'admission')&&(packet.admission===null||object(packet.admission))
-    &&packet.performs_semantic_assessment===false&&typeof packet.standalone_reading==='boolean'
-    &&Array.isArray(packet.context)&&packet.context.length<=256&&(!packet.context.length||packet.standalone_reading===false));
-  const subject=sourceSubject(raw);
-  if(subject)requireForm(sameFormRef(packet.subject,subject));
-  for(const entry of packet.context)requireForm(object(entry)&&typeof entry.slot==='string'&&binding(entry.binding)&&own(entry,'value'));
-  if(own(packet,'language_context')){
-    const context=packet.language_context,value=context?.value;
-    requireForm(object(context)&&binding(context.binding)&&object(value)&&language(value.language)&&value.language===packet.language
-      &&value.script===packet.script&&['unknown','original','translation','transliteration','adaptation'].includes(value.relation)
-      &&(['translation','transliteration','adaptation'].includes(value.relation)?binding(value.source):value.source===null));
-  }
-  if(own(packet,'assessment_snapshot')){
-    const state=packet.assessment_snapshot;
-    requireForm(object(state)&&typeof state.owner_snapshot==='string'&&/^sha256:[a-f0-9]{64}$(?![\s\S])/.test(state.owner_snapshot)
-      &&Number.isSafeInteger(state.journal_batches)&&state.journal_batches>=0
-      &&(state.journal_batches===0?state.journal_revision===null:hash(state.journal_revision))
-      &&state.publication_authorized===false&&state.current_runtime_grant===false);
-  }
-}
-
-function packetPointer(value){
-  const match=typeof value==='string'&&/^\/attributes\/human_forms\/(\d+)$/.exec(value);
-  return match?Number(match[1]):null;
-}
-
-function sourceSubject(raw){
-  const attributes=raw?.attributes;if(!object(attributes))return null;
-  const claim=object(attributes.source_claim)?attributes.source_claim:null;
-  const record=claim|| (object(attributes.source_record)?attributes.source_record:null);
-  if(!record)return null;
-  let id=claim?.claim_id??record.record_id??record.composite_id??record.artifact_id;
-  if(record.schema_version==='tos_canonical_node_v1'){
-    // Canon nodes have their own declared identity field. Never fall back to
-    // an outer graph ID, or silently skip subject verification for this layer.
-    const types=['source','concept','principle','lineage','event','state','support','context','analogy','synthesis'];
-    requireForm(types.includes(record.node_type)&&typeof record.node_id==='string'
-      &&/^tos\.(?:source|concept|principle|lineage|event|state|support|context|analogy|synthesis)\.[a-z0-9]+(?:[.-][a-z0-9]+)*$(?![\s\S])/.test(record.node_id)
-      &&record.node_id.startsWith('tos.'+record.node_type+'.')
-      &&!own(record,'record_id')
-      &&Number.isSafeInteger(record.record_version)&&record.record_version>=1);
-    id=record.node_id;
-  }
-  const version=claim?.claim_version??record.record_version;
-  const digest=attributes.source_sha256;
-  const subject={id,version,digest:typeof digest==='string'?'sha256:'+digest:null};
-  if(record.schema_version==='tos_canonical_node_v1')requireForm(exactFormRef(subject));
-  return exactFormRef(subject)?subject:null;
+function checkedHumanFormRules(raw,requested){
+  if(!own(raw,'human_form_selection'))return {selection:null,session:null};
+  const wire=raw.human_form_selection;let selection;
+  try{
+    requireForm(object(wire));
+    if(wire.schema_version==='tos_human_form_selection_v2')selection=decodeHumanFormSelection(wire);
+    else{
+      requireForm(wire.schema_version==='tos_human_form_selection_v1'&&!own(wire,'packet_base')&&!own(wire,'shared_limits'));
+      // Keep the legacy v1 byte boundary in the transport adapter.
+      boundedJSON(wire,FORM_WIRE_BUDGET);
+      selection=wire;
+    }
+    requireForm(requested===undefined||typeof requested==='string');
+  }catch{throw new FormContractError();}
+  let session;
+  try{
+    const forms=raw?.attributes?.human_forms;
+    session=createHumanFormRuleSession(raw,selection,requested,Array.isArray(forms)?forms.length:0);
+  }catch{throw new FormContractError();}
+  // This mandatory carrier-owner check is independent of the Rust selection
+  // rule and continues to fail closed when declared context is unavailable.
+  try{requireForm(['available','not-declared'].includes(essentialContext(raw).state));}
+  catch(error){session.free();throw error;}
+  return {selection,session};
 }
 
 // The ordinary selection is deliberately capped at the transport budget. A
@@ -97,94 +61,41 @@ function sourceSubject(raw){
 // represented there only by an exact ref. Keep this inspection separate from
 // the bounded reader copy and never manufacture a shortened wording.
 export function inspectExactHumanForm(raw,role){
-  return inspectSelectedHumanForm(raw,role,validateHumanForms(raw));
+  const {selection,session}=checkedHumanFormRules(raw);
+  try{return inspectSelectedHumanForm(raw,role,selection,session);}
+  finally{session?.free();}
 }
-function inspectSelectedHumanForm(raw,role,selection){
-  const selected=selection?.roles?.[role];
-  if(!selected||selected.state!=='over-budget'||selected.reason!=='inspect-exact-form'||!selected.form)return null;
-  const candidate=selection.candidates.find(value=>value.role===role&&value.state==='ready'&&sameFormRef(value.form,selected.form));
-  const index=packetPointer(candidate?.source_pointer);
+function inspectSelectedHumanForm(raw,role,selection,session){
+  if(!selection||!session)return null;
+  const index=inspectionIndex(session,role),source_pointer=inspectionSourcePointer(session,role);
   const forms=raw?.attributes?.human_forms;
-  if(!candidate||index===null||!Array.isArray(forms)||index>=forms.length)return null;
-  const packet=forms[index];requireForm(object(packet)&&sameFormRef(packet.form,selected.form));
-  boundedJSON(packet,EXACT_FORM_BYTES);validatePacket(packet,role,selected.form,raw);
-  const subject=sourceSubject(raw);requireForm(subject&&sameFormRef(packet.subject,subject));
-  return {form:structuredClone(selected.form),source_pointer:candidate.source_pointer,packet:structuredClone(packet)};
+  if(index===undefined||source_pointer===undefined||!Array.isArray(forms)||index>=forms.length)return null;
+  const packet=forms[index];
+  try{validateInspectedPacket(session,role,index,packet);}catch{throw new FormContractError();}
+  return {form:structuredClone(selection.roles[role].form),source_pointer,packet:structuredClone(packet)};
 }
 
 export function inspectExactHumanForms(raw){
-  const selection=validateHumanForms(raw);if(!selection)return null;
-  const inspected={};
-  for(const role of FORM_ROLES){
-    const value=inspectSelectedHumanForm(raw,role,selection);if(value)inspected[role]=value;
-  }
-  return Object.keys(inspected).length?inspected:null;
+  const {selection,session}=checkedHumanFormRules(raw);if(!selection)return null;
+  try{
+    const inspected={};
+    for(const role of FORM_ROLES){
+      const value=inspectSelectedHumanForm(raw,role,selection,session);if(value)inspected[role]=value;
+    }
+    return Object.keys(inspected).length?inspected:null;
+  }finally{session.free();}
 }
 
 export function validateHumanForms(raw,requested){
-  if(!own(raw,'human_form_selection'))return null;
-  // The received envelope owns the wire budget and transport pointers. A v2
-  // reconstruction is a separately bounded logical selection, never new v1
-  // wire data. Keep raw untouched for history, restoration and exact context.
-  const wire=raw.human_form_selection;let selection;
-  try{
-    requireForm(object(wire));
-    if(wire.schema_version==='tos_human_form_selection_v2')selection=decodeHumanFormSelection(wire);
-    else{
-      requireForm(wire.schema_version==='tos_human_form_selection_v1'&&!own(wire,'packet_base')&&!own(wire,'shared_limits'));
-      // Retain the existing v1 browser UTF-8 admission boundary. Tightening
-      // legacy wire acceptance is separate from the lossless v2 migration.
-      boundedJSON(wire,FORM_WIRE_BUDGET);
-      selection=wire;
-    }
-  }catch{throw new FormContractError();}
-  requireForm(object(selection)&&selection.schema_version==='tos_human_form_selection_v1'&&hash(selection.content_revision)
-    &&selection.content_revision===raw.content_revision&&contentLanguage(selection.requested_language)
-    &&(requested===undefined||selection.requested_language===requested)
-    &&['available','invalid','over-budget'].includes(selection.state)
-    &&own(selection,'source_ref')&&(selection.source_ref===null||typeof selection.source_ref==='string'&&selection.source_ref.length<=2048)
-    &&selection.performs_translation===false&&selection.performs_assessment===false&&strings(selection.issues)
-    &&object(selection.roles)&&Object.keys(selection.roles).length===FORM_ROLES.length
-    &&FORM_ROLES.every(role=>own(selection.roles,role))&&Array.isArray(selection.candidates)&&selection.candidates.length<=32);
-  const ids=new Set();
-  for(const candidate of selection.candidates){
-    requireForm(object(candidate)&&exactFormRef(candidate.form)&&!ids.has(candidate.form.id)
-      &&(candidate.role===null||FORM_ROLES.includes(candidate.role))&&language(candidate.language)
-      &&candidateStates.includes(candidate.state)&&typeof candidate.source_pointer==='string'&&/^\/attributes\/human_forms\/\d+$/.test(candidate.source_pointer));
-    ids.add(candidate.form.id);
-  }
-  for(const role of FORM_ROLES){
-    const selected=selection.roles[role];
-    requireForm(object(selected)&&FORM_STATES.includes(selected.state)&&reasons.includes(selected.reason)
-      &&(selected.form===null||exactFormRef(selected.form))&&own(selected,'packet'));
-    if(selected.state==='ready'){
-      requireForm(selection.state==='available');validatePacket(selected.packet,role,selected.form,raw);
-      requireForm(selection.candidates.some(candidate=>candidate.role===role&&candidate.state==='ready'
-        &&sameFormRef(candidate.form,selected.form)&&candidate.language===selected.packet.language));
-      if(selected.reason==='exact-language')requireForm(selected.packet.language?.toLowerCase()===selection.requested_language.toLowerCase());
-      if(selected.reason==='less-specific-language')requireForm(selected.packet.language&&selection.requested_language.toLowerCase().startsWith(selected.packet.language.toLowerCase()+'-'));
-      if(selected.reason==='original')requireForm(selection.requested_language==='original'&&selected.packet.language_context?.value?.relation==='original');
-      if(selected.reason==='automatic')requireForm(selection.requested_language==='auto');
-    }else requireForm(selected.packet===null&&(selected.state==='over-budget'?exactFormRef(selected.form):selected.form===null));
-  }
-  // Do not render ready wording next to a silently unavailable mandatory
-  // carrier context. Generic context resolution keeps exact raw pointers;
-  // only the explicit compact-Claim mode below decodes a v2 role reference.
-  requireForm(['available','not-declared'].includes(essentialContext(raw).state));
-  return selection;
+  const {selection,session}=checkedHumanFormRules(raw,requested);
+  try{return selection;}finally{session?.free();}
 }
 export function formIdentity(raw){
-  const selection=validateHumanForms(raw);
-  return selection?JSON.stringify([selection.requested_language,selection.state,...FORM_ROLES.map(role=>{
-    const value=selection.roles[role],ref=value.form;return [role,value.state,value.reason,ref?{id:ref.id,version:ref.version,digest:ref.digest}:null,value.packet?.language??null];
-  })]):null;
+  const {selection,session}=checkedHumanFormRules(raw);
+  try{return selection?session.identity():null;}finally{session?.free();}
 }
 export function validFormIdentity(value,requested){
-  if(typeof value!=='string'||value.length>16384)return false;
-  let parts;try{parts=JSON.parse(value);}catch{return false;}
-  return Array.isArray(parts)&&parts.length===9&&contentLanguage(parts[0])&&(requested===undefined||parts[0]===requested)&&['available','invalid','over-budget'].includes(parts[1])
-    &&FORM_ROLES.every((role,index)=>{const row=parts[index+2];return Array.isArray(row)&&row.length===5&&row[0]===role
-      &&FORM_STATES.includes(row[1])&&reasons.includes(row[2])&&(row[3]===null||exactFormRef(row[3]))&&language(row[4]);});
+  return rustValidFormIdentity(value,requested);
 }
 export function formLanguages(raw){
   const selection=validateHumanForms(raw);

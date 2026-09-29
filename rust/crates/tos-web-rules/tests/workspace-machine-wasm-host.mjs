@@ -25,7 +25,12 @@ if(process.argv.includes('--browser-session-only')){
   const compare=label=>{assert.equal(browser.exportPacket(),oracle.exportPacket(),label);
     assert.deepEqual(browser.summary(),oracle.summary(),`${label}/summary`);};
   compare('create');
-  browser.addNote({id:'note:one',body:'  First  '});oracle.addNote({id:'note:one',body:'  First  '});compare('note');
+  const unsubscribe=browser.subscribe(state=>{state.notes[0].body='listener edit';});
+  const returned=browser.addNote({id:'note:one',body:'  First  '});
+  assert.equal(returned.notes[0].body,'First','returned state is independent of listener snapshot');
+  unsubscribe();oracle.addNote({id:'note:one',body:'  First  '});compare('note');
+  const read=browser.getState();read.notes[0].body='caller edit';
+  assert.equal(browser.getState().notes[0].body,'First','cached Rust projection is copy-on-read');
   browser.addHypothesis({id:'hyp:one',title:'Reading',body:'Local reading.',targetId:'node:a'});
   oracle.addHypothesis({id:'hyp:one',title:'Reading',body:'Local reading.',targetId:'node:a'});compare('hypothesis');
   const proposal={id:'proposal:one',kind:'interpretation',parentHypothesisId:'hyp:one',targetId:'node:a',
@@ -41,9 +46,15 @@ if(process.argv.includes('--browser-session-only')){
   assert.equal(browser.exportPacket(),before,'failed import atomic');
   assert.equal(saved.at(-1),before,'persisted packet');
   assert.equal(browser.persistenceError(),null);
+  const padded=JSON.parse(before);
+  padded.session_id='  padded  ';
+  padded.hypotheses[0].id='  hyp:one  ';
+  padded.proposals[0].parent_hypothesis_id='  hyp:one  ';
+  padded.notes[0].id='  note:one  ';
+  browser.importPacket(JSON.stringify(padded));oracle.importPacket(JSON.stringify(padded));compare('normalized-import-ids');
   if('dispose' in browser)browser.dispose();
   console.log(JSON.stringify({status:'pass',host:`Node ${process.version} WebAssembly`,
-    browser_session_cases:6,independent_ts:true,old_host_cases_repeated:false,
+    browser_session_cases:7,independent_ts:true,old_host_cases_repeated:false,
     js_bytes:(await stat(bindingPath)).size,wasm_bytes:(await stat(wasmPath)).size,
     startup_ms:Number(startupMs.toFixed(3))}));
   process.exit(0);
@@ -109,12 +120,14 @@ machine = imported.value.machine;
 ts.importPacket(packet);
 parity('import');
 assert.equal(call('import', machine, { packet: '{"schema":"bad"}' }).error, 'invalid_packet');
-// Two known contract deltas are measured explicitly; they must not be counted as parity.
+// Saved packet strings follow the maintained importer normalization in Rust.
 const padded = JSON.parse(packet);
 padded.session_id = '  padded  ';
 const tsImport = createResearchWorkspace({ sessionId: 'padded', persistence: false });
 assert.equal(tsImport.importPacket(JSON.stringify(padded)), true);
-assert.equal(call('import', machine, { packet: JSON.stringify(padded) }).error, 'invalid_packet');
+const normalizedImport = call('import', machine, { packet: JSON.stringify(padded) });
+assert.ok(normalizedImport.value,`normalized import: ${normalizedImport.error}`);
+assert.equal(call('export', normalizedImport.value.machine).value.value,tsImport.exportPacket());
 const colliding = createResearchWorkspace({ sessionId: 'pair-collision', persistence: false });
 colliding.saveRouteSnapshot({ id: 'r1', label: 'a', fromId: 'a\u0000b', toId: 'c', nodeIds: [], edgeIds: [] });
 colliding.saveRouteSnapshot({ id: 'r2', label: 'b', fromId: 'a', toId: 'b\u0000c', nodeIds: [], edgeIds: [] });
@@ -141,6 +154,6 @@ assert.equal(call('export', staged.value.machine).value.value, stageTs.exportPac
 cases++;
 const after = process.memoryUsage();
 console.log(JSON.stringify({ status: 'pass', host: `Node ${process.version} WebAssembly`, packet_summary_cases: cases, independent_ts: true,
-  measured_nonparity_cases: 2,
+  measured_nonparity_cases: 1,
   js_bytes: (await stat(bindingPath)).size, wasm_bytes: (await stat(wasmPath)).size,
   startup_ms: Number(startupMs.toFixed(3)), rss_before_bytes: before.rss, rss_after_bytes: after.rss }));

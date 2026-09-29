@@ -5,15 +5,25 @@
 //! execute a query, interpret a cursor, grant source access or alter the
 //! direct knowledge API's legacy default.
 
+mod claim_reference;
+mod constructor_machine;
 #[cfg(feature = "wasm")]
 mod exploration_session;
+mod human_forms;
 #[cfg(feature = "wasm")]
 mod inspection_session;
+mod interface_preferences;
 mod knowledge_envelope;
 #[cfg(feature = "wasm")]
 mod lens_session;
+mod observatory_pose;
+mod reading_resume;
+mod research_shelf;
 mod search_mode;
+#[cfg(feature = "wasm")]
+mod source_form_session;
 mod temporal_session;
+mod workspace_copy;
 mod workspace_machine;
 mod workspace_proposal;
 
@@ -21,26 +31,77 @@ pub use temporal_session::{
     TemporalSession, TemporalSessionBudget, TemporalSessionStep, TemporalSessionWork,
 };
 
+pub use claim_reference::validate_claim_reference_v1;
+pub use interface_preferences::normalize_interface_preferences_v1;
 pub use knowledge_envelope::{
-    KnowledgeEnvelopeError, KnowledgeEnvelopeErrorCode, compact_knowledge_search_page_v1,
+    compact_knowledge_search_page_v1, KnowledgeEnvelopeError, KnowledgeEnvelopeErrorCode,
 };
+pub use observatory_pose::normalize_observatory_pose_v1;
+pub use reading_resume::normalize_reading_resume_v1;
+pub use research_shelf::{research_shelf_rule_v1, ShelfPacketIndex};
 pub use search_mode::{
-    SearchMode, SearchSelectionError, SearchSelectionErrorCode, select_knowledge_search_mode_v1,
+    select_knowledge_search_mode_v1, SearchMode, SearchSelectionError, SearchSelectionErrorCode,
 };
+pub use workspace_copy::validate_workspace_copy_v1;
 pub use workspace_machine::{
-    WorkspaceMachineError, WorkspaceMachineErrorCode, workspace_transition_v1,
+    workspace_transition_v1, WorkspaceMachineError, WorkspaceMachineErrorCode,
 };
 pub use workspace_proposal::{
-    WorkspaceProposalError, WorkspaceProposalErrorCode, workspace_proposal_digest_v1,
+    workspace_proposal_digest_v1, WorkspaceProposalError, WorkspaceProposalErrorCode,
 };
 
 #[cfg(feature = "wasm")]
 mod wasm {
     use super::{
-        compact_knowledge_search_page_v1, select_knowledge_search_mode_v1,
-        workspace_proposal_digest_v1, workspace_transition_v1,
+        compact_knowledge_search_page_v1, normalize_interface_preferences_v1,
+        normalize_observatory_pose_v1, normalize_reading_resume_v1, research_shelf_rule_v1,
+        select_knowledge_search_mode_v1, validate_claim_reference_v1, validate_workspace_copy_v1,
+        workspace_proposal_digest_v1, workspace_transition_v1, ShelfPacketIndex,
     };
     use wasm_bindgen::prelude::*;
+
+    #[wasm_bindgen]
+    pub fn validate_claim_reference_wasm_v1(request_json: &[u8]) -> Result<Vec<u8>, JsValue> {
+        validate_claim_reference_v1(request_json).map_err(JsValue::from_str)
+    }
+
+    #[wasm_bindgen]
+    pub fn normalize_reading_resume_wasm_v1(request_json: &[u8]) -> Result<Vec<u8>, JsValue> {
+        normalize_reading_resume_v1(request_json).map_err(JsValue::from_str)
+    }
+
+    #[wasm_bindgen]
+    pub fn research_shelf_rule_wasm_v1(request_json: &[u8]) -> Result<Vec<u8>, JsValue> {
+        research_shelf_rule_v1(request_json).map_err(JsValue::from_str)
+    }
+
+    #[wasm_bindgen]
+    pub struct ResearchShelfPacketIndex {
+        inner: ShelfPacketIndex,
+    }
+
+    #[wasm_bindgen]
+    impl ResearchShelfPacketIndex {
+        #[wasm_bindgen(constructor)]
+        pub fn new(header_json: &[u8]) -> Result<ResearchShelfPacketIndex, JsValue> {
+            Ok(Self {
+                inner: ShelfPacketIndex::new(header_json).map_err(JsValue::from_str)?,
+            })
+        }
+        pub fn accept_records(&mut self, ids_json: &[u8]) -> Result<(), JsValue> {
+            self.inner
+                .accept_records(ids_json)
+                .map_err(JsValue::from_str)
+        }
+        pub fn accept_collections(&mut self, ids_json: &[u8]) -> Result<(), JsValue> {
+            self.inner
+                .accept_collections(ids_json)
+                .map_err(JsValue::from_str)
+        }
+        pub fn finish(&self) -> Result<(), JsValue> {
+            self.inner.finish().map_err(JsValue::from_str)
+        }
+    }
 
     fn lens_json_limits(admission: &[u8]) -> Result<tos_foundation::JsonLimits, JsValue> {
         let document = tos_foundation::parse_json(
@@ -693,5 +754,94 @@ mod wasm {
                 error_code: Some(error.code.as_str().to_owned()),
             },
         }
+    }
+
+    #[wasm_bindgen]
+    pub fn validate_workspace_copy_wasm_v1(packet_json: &[u8]) -> Result<(), JsValue> {
+        validate_workspace_copy_v1(packet_json).map_err(JsValue::from_str)
+    }
+
+    #[wasm_bindgen]
+    pub fn normalize_interface_preferences_wasm_v1(raw: &[u8]) -> Result<Vec<u8>, JsValue> {
+        normalize_interface_preferences_v1(raw).map_err(JsValue::from_str)
+    }
+
+    #[wasm_bindgen]
+    pub fn normalize_observatory_pose_wasm_v1(raw: &[u8]) -> Result<Vec<u8>, JsValue> {
+        normalize_observatory_pose_v1(raw).map_err(JsValue::from_str)
+    }
+
+    /// Validate the actual Observatory human-form selection and its bounded
+    /// source identity projection. This remains delivery validation only.
+    #[wasm_bindgen]
+    pub struct HumanFormRuleSession {
+        inner: super::human_forms::HumanFormRuleSession,
+    }
+
+    #[wasm_bindgen]
+    impl HumanFormRuleSession {
+        #[wasm_bindgen(constructor)]
+        pub fn new(
+            selection_json: &[u8],
+            source_json: &[u8],
+            requested: Option<String>,
+            forms_count: u32,
+        ) -> Result<Self, JsValue> {
+            Ok(Self {
+                inner: super::human_forms::HumanFormRuleSession::new(
+                    selection_json,
+                    source_json,
+                    requested.as_deref(),
+                    forms_count as usize,
+                )
+                .map_err(JsValue::from_str)?,
+            })
+        }
+
+        pub fn identity(&self) -> Result<String, JsValue> {
+            self.inner.identity().map_err(JsValue::from_str)
+        }
+
+        #[wasm_bindgen(js_name = inspectionIndex)]
+        pub fn inspection_index(&self, role: &str) -> Option<u32> {
+            self.inner.inspection_index(role)
+        }
+
+        #[wasm_bindgen(js_name = inspectionSourcePointer)]
+        pub fn inspection_source_pointer(&self, role: &str) -> Option<String> {
+            self.inner.inspection_source_pointer(role)
+        }
+
+        #[wasm_bindgen(js_name = validateInspectedPacket)]
+        pub fn validate_inspected_packet(
+            &self,
+            role: &str,
+            index: u32,
+            packet_json: &[u8],
+        ) -> Result<(), JsValue> {
+            self.inner
+                .validate_inspected_packet(role, index, packet_json)
+                .map_err(JsValue::from_str)
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn human_form_content_language_wasm_v1(value: &str) -> bool {
+        super::human_forms::content_language_v1(value)
+    }
+
+    #[wasm_bindgen]
+    pub fn human_form_exact_ref_wasm_v1(value_json: &[u8]) -> bool {
+        super::human_forms::exact_ref_json_v1(value_json)
+    }
+
+    #[wasm_bindgen]
+    pub fn human_form_same_ref_wasm_v1(left_json: &[u8], right_json: &[u8]) -> bool {
+        super::human_forms::same_ref_json_v1(left_json, right_json)
+    }
+
+    #[wasm_bindgen]
+    pub fn human_form_valid_identity_wasm_v1(identity: &str, requested: Option<String>) -> bool {
+        super::human_forms::valid_identity_v1(identity, requested.as_deref())
     }
 }

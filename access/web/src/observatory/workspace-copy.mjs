@@ -5,6 +5,7 @@ import {compactHistory,HISTORY_KEY} from './travel-model.mjs';
 import {validateInterface,INTERFACE_KEY} from './interface-model.mjs';
 import {validateReading,READING_KEY} from './reading-resume.mjs';
 import {readSaved,SAVED_LENSES_KEY} from './lens-model.mjs';
+import {validateWorkspaceCopyPacket} from './workspace-copy-rust.mjs';
 
 export const COPY_SCHEMA='tos_observatory_workspace_v1',COPY_FILE_LIMIT=12000000;
 const bad=()=>{throw new Error(t("Файл не является полной копией исследования или содержит повреждённые данные."));};
@@ -19,8 +20,10 @@ export function validateWorkspaceCopy(input){
   const research=createBrowserResearchWorkspace({persistence:false});let researchPacket;
   try{research.importPacket(JSON.stringify(value.research));researchPacket=JSON.parse(research.exportPacket());}
   finally{if('dispose' in research)research.dispose();}
-  return {schema:COPY_SCHEMA,v:1,exportedAt:new Date(value.exportedAt).toISOString(),history:compactHistory(value.history),places,lenses,
+  const copy={schema:COPY_SCHEMA,v:1,exportedAt:new Date(value.exportedAt).toISOString(),history:compactHistory(value.history),places,lenses,
     resume:value.resume===null?null:validatePlace(value.resume),preferences:validateInterface(value.preferences),reading:validateReading(value.reading),research:researchPacket};
+  validateWorkspaceCopyPacket(copy);
+  return copy;
 }
 export function copyStorageKeys(pathname){return [HISTORY_KEY+':'+pathname,PLACES_KEY,RESUME_KEY,INTERFACE_KEY,READING_KEY+':'+pathname,'tos-research-workspace-v1',SAVED_LENSES_KEY];}
 export function snapshotCopyStorage(storage,pathname){

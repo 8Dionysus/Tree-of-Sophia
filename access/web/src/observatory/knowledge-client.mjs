@@ -3,6 +3,7 @@ import {relationLabel,fileLabel,sourceLinkLabel,languageName,readableTitleForm,i
 import {chooseKnowledgeSearchMode} from '../knowledge-search.ts';
 import {displayForm} from './display-language.mjs';
 import {contentLanguage,validateHumanForms,claimPathFor,claimPathClosure,FormContractError} from './human-forms.mjs';
+import {normalizeClaimReference} from './claim-reference-rust.mjs';
 import {verifyReadableContext} from './readable-context.mjs';
 import {knowledgeScene} from '../../../shared/knowledge-scene.ts';
 import {DEFAULT_RESPONSE_BYTES,validateResponseLimit,ResponseLimitError,withAbort,cancelResponseBody,readBoundedJSON} from './bounded-response.mjs';
@@ -50,6 +51,8 @@ export function explorationRequestMatches(normalized,requested){
 // Durable reading stores selectors only. The backend must supply and validate
 // the complete current path again; saved IDs never stand in for source text.
 export function validateClaimReference(value,claimId){
+  try{const normalized=normalizeClaimReference(value,claimId);if(normalized)return normalized;}
+  catch{throw new FormContractError();}
   const id=value=>typeof value==='string'&&value.length>0&&value.length<=2048;
   const ids=(value,limit)=>Array.isArray(value)&&value.length<=limit&&value.every(id);
   if(!value||value.claimId!==claimId||!id(claimId)||!id(value.pathId)||!id(value.relationType)

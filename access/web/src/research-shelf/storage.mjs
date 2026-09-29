@@ -5,6 +5,7 @@ import {
   updateShelfCollection,updateShelfRecord,validateCollection,validateListOptions,
   validateMigrationOptions,validateShelfExport,validateShelfRecord,
 } from './model.mjs';
+import {researchShelfRule} from './rules.mjs';
 
 export const RESEARCH_SHELF_DB_VERSION=1;
 export const RESEARCH_SHELF_STORES=Object.freeze({records:'records',collections:'collections',meta:'meta'});
@@ -28,9 +29,20 @@ const generatedId=(prefix)=>{
   if(typeof random==='function')return random.call(globalThis.crypto);
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 };
+const ruleTransition=(kind,operation,generation,old,expected,incoming,id)=>{
+  try{return researchShelfRule('transition',{kind,operation,generation,old:old??null,expected:expected??null,
+    ...(incoming===undefined?{}:{incoming})});}
+  catch(error){
+    if(error?.code==='conflict'||error?.code==='not-found')
+      fail(error.code,error.message,{id:id??incoming?.id??old?.id,expectedRevision:expected,actualRecordRevision:old?.revision??null,cause:error});
+    throw error;
+  }
+};
 
 function mapStorageError(error){
   if(error instanceof ResearchShelfError)return error;
+  if(error?.name==='ResearchShelfError'&&typeof error.code==='string')
+    return new ResearchShelfError(error.code,error.message,{cause:error});
   const name=error?.name;
   if(name==='QuotaExceededError')return new ResearchShelfError('quota','The research shelf storage quota was exceeded.',{cause:error});
   if(name==='VersionError'||name==='InvalidStateError'||name==='AbortError')return new ResearchShelfError('storage-unavailable','The research shelf storage is unavailable.',{cause:error});
@@ -85,6 +97,8 @@ function compareIncoming(state,packet){
 function detachCollection(record,id,at){
   // A membership change must invalidate stale editors, while a clock moving
   // backwards must not make an otherwise valid imported record invalid.
+  const ruled=researchShelfRule('detach',{record,collectionId:id,now:at});
+  if(ruled)return validateShelfRecord(ruled);
   return validateShelfRecord({...record,collectionIds:record.collectionIds.filter(value=>value!==id),
     revision:record.revision+1,updatedAt:Date.parse(at)<Date.parse(record.updatedAt)?record.updatedAt:at});
 }
@@ -106,6 +120,7 @@ export function createMemoryResearchShelfAdapter({memoryStore,state,now=timestam
       const value=validateShelfRecord(record);expectedRevision(expected);
       return mutate((draft,current)=>{
         const old=current.records.get(value.id),actual=old?.revision??null;
+        ruleTransition('record','save',current.generation,old,expected,value);
         if(expected===undefined){if(old)fail('conflict','A shelf record with this id already exists.',{id:value.id,expectedRevision:undefined,actualRecordRevision:actual});}
         else if(expected===null){if(old)fail('conflict','A shelf record with this id already exists.',{id:value.id,expectedRevision:null,actualRecordRevision:actual});}
         else if(!old||old.revision!==expected)fail('conflict','The shelf record changed in another context.',{id:value.id,expectedRevision:expected,actualRecordRevision:actual});
@@ -116,13 +131,14 @@ export function createMemoryResearchShelfAdapter({memoryStore,state,now=timestam
     },
     async deleteRecord(id,expected){
       expectedRevision(expected);if(expected===null||expected===undefined)fail('invalid-input','Deleting a shelf record requires its current revision.');
-      return mutate((draft,current)=>{const old=current.records.get(id);if(!old)fail('not-found','The shelf record was not found.',{id});if(old.revision!==expected)fail('conflict','The shelf record changed in another context.',{id,expectedRevision:expected,actualRecordRevision:old.revision});draft.records.delete(id);draft.generation=current.generation+1;return {id,generation:draft.generation};});
+      return mutate((draft,current)=>{const old=current.records.get(id);ruleTransition('record','delete',current.generation,old,expected,undefined,id);if(!old)fail('not-found','The shelf record was not found.',{id});if(old.revision!==expected)fail('conflict','The shelf record changed in another context.',{id,expectedRevision:expected,actualRecordRevision:old.revision});draft.records.delete(id);draft.generation=current.generation+1;return {id,generation:draft.generation};});
     },
     async getCollection(id){return read(stateValue=>stateValue.collections.has(id)?copy(stateValue.collections.get(id)):null);},
     async listCollections(){return read(stateValue=>({items:[...stateValue.collections.values()].sort(sortDesc).map(copy),generation:stateValue.generation}));},
     async saveCollection(collection,expected){
       const value=validateCollection(collection);expectedRevision(expected,'collection');
       return mutate((draft,current)=>{const old=current.collections.get(value.id),actual=old?.revision??null;
+        ruleTransition('collection','save',current.generation,old,expected,value);
         if(expected===undefined){if(old)fail('conflict','A collection with this id already exists.',{id:value.id,expectedRevision:undefined,actualRecordRevision:actual});}
         else if(expected===null){if(old)fail('conflict','A collection with this id already exists.',{id:value.id,expectedRevision:null,actualRecordRevision:actual});}
         else if(!old||old.revision!==expected)fail('conflict','The collection changed in another context.',{id:value.id,expectedRevision:expected,actualRecordRevision:actual});
@@ -133,6 +149,7 @@ export function createMemoryResearchShelfAdapter({memoryStore,state,now=timestam
       expectedRevision(expected,'collection');if(expected===null||expected===undefined)fail('invalid-input','Deleting a collection requires its current revision.');
       return mutate((draft,current)=>{
         const old=current.collections.get(id);
+        ruleTransition('collection','delete',current.generation,old,expected,undefined,id);
         if(!old)fail('not-found','The collection was not found.',{id});
         if(old.revision!==expected)fail('conflict','The collection changed in another context.',{id,expectedRevision:expected,actualRecordRevision:old.revision});
         const at=now();
@@ -146,12 +163,15 @@ export function createMemoryResearchShelfAdapter({memoryStore,state,now=timestam
       return mutate((draft,current)=>{if(expected!==undefined&&expected!==current.generation)fail('conflict','The research shelf changed in another context.',{expectedGeneration:expected,actualGeneration:current.generation});
         // Check against a pre-commit clone so a later collision can never leave
         // earlier imported records behind.
-        const plan=cloneState(current);const beforeRecords=plan.records.size,beforeCollections=plan.collections.size;compareIncoming(plan,parsed);checkImportCapacity(plan,parsed);
+        const plan=cloneState(current);const beforeRecords=plan.records.size,beforeCollections=plan.collections.size;compareIncoming(plan,parsed);
         for(const incoming of parsed.collections)if(!plan.collections.has(incoming.id))plan.collections.set(incoming.id,copy(incoming));
         for(const incoming of parsed.records)if(!plan.records.has(incoming.id))plan.records.set(incoming.id,copy(incoming));
-        const changed=plan.records.size!==beforeRecords||plan.collections.size!==beforeCollections;
-        plan.generation=changed?current.generation+1:current.generation;draft.generation=plan.generation;draft.records=plan.records;draft.collections=plan.collections;
-        return {generation:plan.generation,counts:{records:plan.records.size-beforeRecords,collections:plan.collections.size-beforeCollections},changed};});
+        const outcome=researchShelfRule('import_plan',{generation:current.generation,currentRecords:beforeRecords,currentCollections:beforeCollections,
+          recordAdditions:plan.records.size-beforeRecords,collectionAdditions:plan.collections.size-beforeCollections,expectedGeneration:expected??null});
+        if(!outcome)checkImportCapacity(current,parsed);
+        const changed=outcome?.changed??(plan.records.size!==beforeRecords||plan.collections.size!==beforeCollections);
+        plan.generation=outcome?.generation??(changed?current.generation+1:current.generation);draft.generation=plan.generation;draft.records=plan.records;draft.collections=plan.collections;
+        return outcome??{generation:plan.generation,counts:{records:plan.records.size-beforeRecords,collections:plan.collections.size-beforeCollections},changed};});
     },
     async close(){status.closed=true;},
   };
@@ -231,6 +251,7 @@ function idbSaveRecord(db,record,expected){
       if(meta===undefined||old===undefined)return;
       try{
         const generation=metaFrom(meta).generation,actual=old?.revision??null;
+        ruleTransition('record','save',generation,old,expected,record);
         if(expected===undefined){if(old)fail('conflict','A shelf record with this id already exists.',{id:record.id,expectedRevision:undefined,actualRecordRevision:actual});}
         else if(expected===null){if(old)fail('conflict','A shelf record with this id already exists.',{id:record.id,expectedRevision:null,actualRecordRevision:actual});}
         else if(!old||old.revision!==expected)fail('conflict','The shelf record changed in another context.',{id:record.id,expectedRevision:expected,actualRecordRevision:actual});
@@ -245,14 +266,14 @@ function idbSaveRecord(db,record,expected){
 function idbDeleteRecord(db,id,expected){
   return transactionPromise(db,[RESEARCH_SHELF_STORES.meta,RESEARCH_SHELF_STORES.records],'readwrite',(tx,set,abort)=>{
     const metaRequest=tx.objectStore(RESEARCH_SHELF_STORES.meta).get(META_KEY),recordRequest=tx.objectStore(RESEARCH_SHELF_STORES.records).get(id);let meta,old;
-    const finish=()=>{if(meta===undefined||old===undefined)return;try{const generation=metaFrom(meta).generation;if(!old)fail('not-found','The shelf record was not found.',{id});if(old.revision!==expected)fail('conflict','The shelf record changed in another context.',{id,expectedRevision:expected,actualRecordRevision:old.revision});tx.objectStore(RESEARCH_SHELF_STORES.records).delete(id);tx.objectStore(RESEARCH_SHELF_STORES.meta).put({key:META_KEY,generation:generation+1});set({id,generation:generation+1});}catch(error){abort(error);}};
+    const finish=()=>{if(meta===undefined||old===undefined)return;try{const generation=metaFrom(meta).generation;ruleTransition('record','delete',generation,old,expected,undefined,id);if(!old)fail('not-found','The shelf record was not found.',{id});if(old.revision!==expected)fail('conflict','The shelf record changed in another context.',{id,expectedRevision:expected,actualRecordRevision:old.revision});tx.objectStore(RESEARCH_SHELF_STORES.records).delete(id);tx.objectStore(RESEARCH_SHELF_STORES.meta).put({key:META_KEY,generation:generation+1});set({id,generation:generation+1});}catch(error){abort(error);}};
     metaRequest.onerror=()=>abort(mapStorageError(metaRequest.error));recordRequest.onerror=()=>abort(mapStorageError(recordRequest.error));metaRequest.onsuccess=()=>{meta=metaRequest.result;finish();};recordRequest.onsuccess=()=>{old=recordRequest.result===undefined?null:recordRequest.result;finish();};
   });
 }
 function idbSaveCollection(db,collection,expected){
   return transactionPromise(db,[RESEARCH_SHELF_STORES.meta,RESEARCH_SHELF_STORES.collections],'readwrite',(tx,set,abort)=>{
     const metaRequest=tx.objectStore(RESEARCH_SHELF_STORES.meta).get(META_KEY),collectionRequest=tx.objectStore(RESEARCH_SHELF_STORES.collections).get(collection.id);let meta,old;
-    const finish=()=>{if(meta===undefined||old===undefined)return;try{const generation=metaFrom(meta).generation,actual=old?.revision??null;if(expected===undefined){if(old)fail('conflict','A collection with this id already exists.',{id:collection.id,expectedRevision:undefined,actualRecordRevision:actual});}else if(expected===null){if(old)fail('conflict','A collection with this id already exists.',{id:collection.id,expectedRevision:null,actualRecordRevision:actual});}else if(!old||old.revision!==expected)fail('conflict','The collection changed in another context.',{id:collection.id,expectedRevision:expected,actualRecordRevision:actual});const required=old?old.revision+1:1;if(collection.revision!==required)fail('invalid-record','The collection revision does not match the CAS operation.');tx.objectStore(RESEARCH_SHELF_STORES.collections).put(copy(collection));tx.objectStore(RESEARCH_SHELF_STORES.meta).put({key:META_KEY,generation:generation+1});set({item:copy(collection),generation:generation+1});}catch(error){abort(error);}};
+    const finish=()=>{if(meta===undefined||old===undefined)return;try{const generation=metaFrom(meta).generation,actual=old?.revision??null;ruleTransition('collection','save',generation,old,expected,collection);if(expected===undefined){if(old)fail('conflict','A collection with this id already exists.',{id:collection.id,expectedRevision:undefined,actualRecordRevision:actual});}else if(expected===null){if(old)fail('conflict','A collection with this id already exists.',{id:collection.id,expectedRevision:null,actualRecordRevision:actual});}else if(!old||old.revision!==expected)fail('conflict','The collection changed in another context.',{id:collection.id,expectedRevision:expected,actualRecordRevision:actual});const required=old?old.revision+1:1;if(collection.revision!==required)fail('invalid-record','The collection revision does not match the CAS operation.');tx.objectStore(RESEARCH_SHELF_STORES.collections).put(copy(collection));tx.objectStore(RESEARCH_SHELF_STORES.meta).put({key:META_KEY,generation:generation+1});set({item:copy(collection),generation:generation+1});}catch(error){abort(error);}};
     metaRequest.onerror=()=>abort(mapStorageError(metaRequest.error));collectionRequest.onerror=()=>abort(mapStorageError(collectionRequest.error));metaRequest.onsuccess=()=>{meta=metaRequest.result;finish();};collectionRequest.onsuccess=()=>{old=collectionRequest.result===undefined?null:collectionRequest.result;finish();};
   });
 }
@@ -264,6 +285,7 @@ function idbDeleteCollection(db,id,expected,now){
       if(meta===undefined||old===undefined)return;
       try{
         const generation=metaFrom(meta).generation;
+        ruleTransition('collection','delete',generation,old,expected,undefined,id);
         if(!old)fail('not-found','The collection was not found.',{id});
         if(old.revision!==expected)fail('conflict','The collection changed in another context.',{id,expectedRevision:expected,actualRecordRevision:old.revision});
         const at=now(),members=records.index('byCollection').openCursor(IDBKeyRange.only(id));
@@ -302,14 +324,16 @@ function idbImport(db,packet,expected){
             // IndexedDB reads above are all in this transaction. No put is
             // issued until every incoming id has been checked, preserving
             // additive import atomicity when the final id conflicts.
-            if(recordTotal+additions.records.length>MAX_RECORDS||collectionTotal+additions.collections.length>MAX_COLLECTIONS)
+            const outcome=researchShelfRule('import_plan',{generation:current.generation,currentRecords:recordTotal,currentCollections:collectionTotal,
+              recordAdditions:additions.records.length,collectionAdditions:additions.collections.length,expectedGeneration:expected??null});
+            if(!outcome&&(recordTotal+additions.records.length>MAX_RECORDS||collectionTotal+additions.collections.length>MAX_COLLECTIONS))
               fail('limit','The research shelf import is outside its bounds.');
-            const generation=additions.records.length||additions.collections.length?current.generation+1:current.generation;
+            const generation=outcome?.generation??(additions.records.length||additions.collections.length?current.generation+1:current.generation);
             for(const item of additions.collections)tx.objectStore(RESEARCH_SHELF_STORES.collections).put(copy(item));
             for(const item of additions.records)tx.objectStore(RESEARCH_SHELF_STORES.records).put(copy(item));
             if(additions.records.length||additions.collections.length)
               tx.objectStore(RESEARCH_SHELF_STORES.meta).put({key:META_KEY,generation});
-            set({generation,counts:{records:additions.records.length,collections:additions.collections.length},changed:Boolean(additions.records.length||additions.collections.length)});
+            set(outcome??{generation,counts:{records:additions.records.length,collections:additions.collections.length},changed:Boolean(additions.records.length||additions.collections.length)});
           }catch(error){abort(error);}
         };
         const nextRecord=()=>{

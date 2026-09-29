@@ -60,19 +60,27 @@ export function createBrowserResearchWorkspace(options:ResearchWorkspaceOptions=
   if(!browserMachine)return createResearchWorkspace(options);
   const machine=new browserMachine(options.sessionId??'local',options.historyLimit??50);
   const persistence=options.persistence===false?null:options.persistence;
-  const listeners=new Set<WorkspaceListener>();let persistenceError:string|null=null;
-  const exportPacket=()=>decoder.decode(machine.export_packet());
-  const getState=():ResearchWorkspaceState=>fromPacket(JSON.parse(decoder.decode(machine.state_packet())));
+  const listeners=new Set<WorkspaceListener>();let persistenceError:string|null=null,disposed=false;
+  // Cache only the last Rust-emitted projection. Classic rendering asks for the
+  // same state repeatedly; it must not re-serialize the WASM machine each time.
+  let currentPacket=decoder.decode(machine.export_packet());
+  let currentState=fromPacket(JSON.parse(currentPacket));
+  const refresh=()=>{const nextPacket=decoder.decode(machine.export_packet());const nextState=fromPacket(JSON.parse(nextPacket));
+    currentPacket=nextPacket;currentState=nextState;};
+  const exportPacket=()=>currentPacket;
+  const getState=():ResearchWorkspaceState=>structuredClone(currentState);
   const summary=():ResearchWorkspaceSummary=>parse(machine.summary_packet());
   const persist=(text:string)=>{if(!persistence)return;try{persistence.save(text);persistenceError=null;}
     catch(error){persistenceError=error instanceof Error?error.message:String(error);}};
-  const changed=()=>{const text=exportPacket();persist(text);const state=fromPacket(JSON.parse(text));
-    for(const listener of listeners)listener(state);return state;};
+  const changed=()=>{refresh();persist(currentPacket);
+    // Maintained API returns a separate snapshot from the one sent to listeners.
+    const result=getState(),notified=listeners.size?getState():null;
+    if(notified)for(const listener of listeners)listener(notified);return result;};
   const apply=(kind:string,argument:string,value:unknown)=>{
     const result=parse<{changed:boolean;value:any}>(machine.apply(packet({kind,[argument]:value})));
     return {...result,state:result.changed?changed():getState()};
   };
-  if(persistence){try{const saved=persistence.load();if(saved)machine.import_packet(saved);}
+  if(persistence){try{const saved=persistence.load();if(saved){machine.import_packet(saved);refresh();}}
     catch(error){persistenceError=error instanceof Error?error.message:String(error);}}
   return {
     getState,summary,exportPacket,
@@ -117,6 +125,6 @@ export function createBrowserResearchWorkspace(options:ResearchWorkspaceOptions=
     redo:()=>{const result=machine.redo();if(result)changed();return result;},
     clearHistory:()=>machine.clear_history(),
     comparableRoutesReady:()=>machine.comparable_routes_ready(),
-    dispose:()=>machine.free(),
+    dispose:()=>{if(disposed)return;disposed=true;listeners.clear();machine.free();},
   };
 }

@@ -4,6 +4,37 @@
 DOM, Fetch, storage, platform I/O and WebMCP registration remain host duties.
 These private bindings are not source selection, rights, review or canon.
 
+## Constructor authoring session
+
+`BrowserConstructorSession` owns validation of the exact library fingerprint,
+workspace packet, local draft posture, atlas relations and hierarchy, atomic
+edits, bounded undo/redo, and the ordered research-export plan. The constructor
+host owns localStorage, listener copies, and execution of that plan through the
+existing research workspace. `installConstructorRules` binds the generated
+session before the live constructor creates its model. The previous JavaScript
+model is retained as a direct-source oracle until matched WASM execution is
+accepted; it is not the installed live route.
+
+Initial library JSON is encoded once by the host and admitted at 16 MB in WASM;
+the host library, transport bytes, parser tree and indexed material copies can
+coexist during construction. Child lists append in authored library order and
+ancestor chains are checked once across the immutable hierarchy, so index and
+cycle work is linear in the number of library nodes after parsing and material
+cloning. Atlas edge admission is linear in its listed relations. One edit sends
+a bounded command to WASM and receives a small result. A changed
+edit emits a whole workspace packet for storage and one fresh packet per
+listener. The session retains the library and at most 64 prior packets; the
+1 MB packet cap can therefore retain about 64 MB of serialized history before
+JSON tree and allocator overhead. The host checks raw packet byte/storage bounds
+and performs the former JSON.parse/stringify lexical normalization before Rust
+validates import semantics. Import may hold raw text, host parsed tree,
+normalized text, transport bytes, Rust decoded value, new state and a history
+copy concurrently. Research export holds a plan and a
+separate research workspace packet; each has a distinct 1 MB output boundary.
+These logical caps are not measured browser or WASM RSS. The narrowed actual
+binding control is `tests/constructor-machine-wasm-host.mjs` and requires the
+matched product from the shared OPS build.
+
 ## Private temporal continuation
 
 `TemporalSession` / WASM `TemporalReplaySession` run the same

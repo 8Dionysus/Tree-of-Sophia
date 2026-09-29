@@ -6,6 +6,7 @@ import {validateDraft} from '../observatory/lens-model.mjs';
 import {COPY_SCHEMA,validateWorkspaceCopy} from '../observatory/workspace-copy.mjs';
 import {RESEARCH_WORKSPACE_SCHEMA,RESEARCH_WORKSPACE_VERSION} from '../research-workspace.ts';
 import {createBrowserResearchWorkspace} from '../research-workspace-rust.ts';
+import {researchShelfRule,validateResearchShelfPacketIndex} from './rules.mjs';
 
 // The shelf is a local, user-owned index of exact addresses. It never owns a
 // source passage, an exploration page, or a command/runtime handle.
@@ -142,6 +143,7 @@ export function validateMaterialTarget(value){
     result.claimReference=clone(reading.entries[0].claimReference);
   }
   if(jsonBytes(result)>MAX_TARGET_BYTES)fail('limit','The material target is too large.');
+  researchShelfRule('validate_target',{type:'material',target:result});
   return result;
 }
 
@@ -152,7 +154,9 @@ export function validateFormTarget(value){
   if(!exactFormRef(value.form))fail('invalid-target','The form reference is not exact.');
   const form={id:boundedId(value.form.id,'form id'),version:safeInt(value.form.version,1,Number.MAX_SAFE_INTEGER,'form version'),digest:value.form.digest};
   if(typeof form.digest!=='string'||!/^sha256:[a-f0-9]{64}$/.test(form.digest))fail('invalid-target','The form digest is invalid.');
-  return {material,role:value.role,form};
+  const result={material,role:value.role,form};
+  researchShelfRule('validate_target',{type:'form',target:result});
+  return result;
 }
 
 export function validateTextTarget(value){
@@ -160,7 +164,9 @@ export function validateTextTarget(value){
   let reference;
   try{reference=validateReference(value.reference);}catch(error){fail('invalid-target','The exact text reference is invalid.',{cause:error});}
   if(jsonBytes(reference)>MAX_TARGET_BYTES)fail('limit','The text target is too large.');
-  return {reference:clone(reference)};
+  const result={reference:clone(reference)};
+  researchShelfRule('validate_target',{type:'text',target:result});
+  return result;
 }
 
 export function validateLensTarget(value){
@@ -170,7 +176,9 @@ export function validateLensTarget(value){
   let draft;
   try{draft=validateDraft(value.draft);}catch(error){fail('invalid-target','The lens draft is invalid.',{cause:error});}
   if(jsonBytes(draft)>MAX_TARGET_BYTES)fail('limit','The lens target is too large.');
-  return {draft:clone(draft)};
+  const result={draft:clone(draft)};
+  researchShelfRule('validate_target',{type:'lens',target:result});
+  return result;
 }
 
 export function validateRouteTarget(value){
@@ -182,7 +190,9 @@ export function validateRouteTarget(value){
   const max_depth=safeInt(value.options.max_depth,EXPLORATION_DEPTH.min,EXPLORATION_DEPTH.max,'route depth');
   const sources=uniqueStrings(value.options.sources,MAX_OPTION_LIST,'route sources');
   const predicate_ids=uniqueStrings(value.options.predicate_ids,MAX_OPTION_LIST,'route predicates',MAX_ID_LENGTH,{allowEmpty:true});
-  return {origin,options:{profile:value.options.profile,direction:value.options.direction,max_depth,sources,predicate_ids}};
+  const result={origin,options:{profile:value.options.profile,direction:value.options.direction,max_depth,sources,predicate_ids}};
+  researchShelfRule('validate_target',{type:'route',target:result});
+  return result;
 }
 
 export function validateTarget(type,value){
@@ -214,6 +224,7 @@ export function validateShelfRecord(value){
   const revision=safeInt(value.revision,1,Number.MAX_SAFE_INTEGER,'record revision');
   const result={id,title,type:value.type,target,collectionIds,createdAt,updatedAt,revision};
   if(jsonBytes(result)>MAX_TARGET_BYTES+8_192)fail('limit','The shelf record is too large.');
+  researchShelfRule('validate_record',result);
   return result;
 }
 
@@ -251,7 +262,9 @@ export function validateCollection(value){
   if(!title)fail('invalid-record','The collection title must not be blank.');
   const createdAt=timestamp(value.createdAt,'collection.createdAt'),updatedAt=timestamp(value.updatedAt,'collection.updatedAt');
   if(Date.parse(updatedAt)<Date.parse(createdAt))fail('invalid-record','collection.updatedAt must not precede createdAt.');
-  return {id,title,createdAt,updatedAt,revision:safeInt(value.revision,1,Number.MAX_SAFE_INTEGER,'collection revision')};
+  const result={id,title,createdAt,updatedAt,revision:safeInt(value.revision,1,Number.MAX_SAFE_INTEGER,'collection revision')};
+  researchShelfRule('validate_collection',result);
+  return result;
 }
 
 export function createShelfCollection(input,{id,now=canonicalTimestamp}={}){
@@ -276,7 +289,7 @@ function stable(value){
   if(object(value))return `{${Object.keys(value).sort().map(key=>`${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`;
   return JSON.stringify(value);
 }
-export const sameShelfValue=(left,right)=>stable(left)===stable(right);
+export const sameShelfValue=(left,right)=>researchShelfRule('same_value',{left,right})??stable(left)===stable(right);
 
 function encodeBase64(value){
   const text=JSON.stringify(value);
@@ -301,7 +314,9 @@ export function validateListOptions(options={}){
   if(type!==null&&!['material','form','text','lens','route'].includes(type))fail('invalid-input','The shelf type filter is unsupported.');
   const collectionId=options.collectionId===undefined||options.collectionId===null?null:boundedString(options.collectionId,256,'collection filter');
   const cursor=options.cursor===undefined||options.cursor===null?null:boundedString(options.cursor,16_384,'cursor');
-  return {limit,type,collectionId,cursor};
+  const result={limit,type,collectionId,cursor};
+  researchShelfRule('list_options',result);
+  return result;
 }
 
 export function encodeShelfCursor({generation,type=null,collectionId=null,updatedAt,id}){
@@ -320,6 +335,7 @@ export function decodeShelfCursor(cursor,{generation,type=null,collectionId=null
     ||(value.filter.type??null)!==(type??null)||(value.filter.collectionId??null)!==(collectionId??null)
     ||value.generation!==generation)fail('invalid-cursor','The shelf cursor belongs to another list generation or filter.');
   timestamp(value.updatedAt,'cursor timestamp');boundedId(value.id);
+  researchShelfRule('cursor',{decoded:{v:value.v,generation:value.generation,filter:{type:value.filter.type??null,collectionId:value.filter.collectionId??null},updatedAt:value.updatedAt,id:value.id},generation,type,collectionId});
   return {generation:value.generation,filter:{type:value.filter.type??null,collectionId:value.filter.collectionId??null},updatedAt:value.updatedAt,id:value.id};
 }
 
@@ -340,8 +356,10 @@ export function validateShelfExport(value){
     fail('limit','The shelf export is outside its record bounds.');
   if(packet.exportedAt!==undefined)timestamp(packet.exportedAt,'exportedAt');
   const records=packet.records.map(validateShelfRecord),collections=packet.collections.map(validateCollection);
-  if(new Set(records.map(item=>item.id)).size!==records.length)fail('invalid-packet','The shelf export contains duplicate record ids.');
-  if(new Set(collections.map(item=>item.id)).size!==collections.length)fail('invalid-packet','The shelf export contains duplicate collection ids.');
+  if(!validateResearchShelfPacketIndex({...packet,generation,records,collections})){
+    if(new Set(records.map(item=>item.id)).size!==records.length)fail('invalid-packet','The shelf export contains duplicate record ids.');
+    if(new Set(collections.map(item=>item.id)).size!==collections.length)fail('invalid-packet','The shelf export contains duplicate collection ids.');
+  }
   return {schema:SHELF_EXPORT_SCHEMA,version:SHELF_VERSION,generation,records:records.map(clone),collections:collections.map(clone),
     ...(packet.exportedAt===undefined?{}:{exportedAt:packet.exportedAt})};
 }
@@ -385,7 +403,8 @@ function migrationHash(value){
   for(const byte of new TextEncoder().encode(stable(value))){hash^=BigInt(byte);hash=BigInt.asUintN(64,hash*0x100000001b3n);}
   return hash.toString(16).padStart(16,'0');
 }
-function migrationRecordId(type,target){return `import:${type}:${migrationHash({target})}`;}
+function migrationRecordId(type,target){return researchShelfRule('migration_id',{type,target})??`import:${type}:${migrationHash({target})}`;}
+const migrationPolicy=(source,section)=>researchShelfRule('migration_policy',{source,section});
 
 function checkedReadingPacket(value){
   const packet=parseSuppliedPacket(value,'reading-resume');
@@ -430,6 +449,9 @@ function checkedLensList(value){
 }
 
 function addMaterial(records,retained,entry,source,index,at){
+  const policy=migrationPolicy(source,'entries');
+  if(policy!==null&&policy!=='retain-material')
+    fail('invalid-packet','The supplied material section is unsupported.');
   const target={kind:entry.kind,id:entry.id,sourceRevision:entry.sourceRevision,contentRevision:entry.contentRevision,
     ...(entry.claimReference===undefined?{}:{claimReference:entry.claimReference})};
   const record=createShelfRecord({id:migrationRecordId('material',target),title:'Материал',type:'material',target,collectionIds:[]},{now:()=>at});
@@ -437,12 +459,18 @@ function addMaterial(records,retained,entry,source,index,at){
 }
 
 function addLens(records,retained,draft,source,index,at){
+  const policy=migrationPolicy(source,'lenses');
+  if(policy!==null&&policy!=='retain-lens')
+    fail('invalid-packet','The supplied lens section is unsupported.');
   const target={draft};
   const record=createShelfRecord({id:migrationRecordId('lens',target),title:draft.name,type:'lens',target,collectionIds:[]},{now:()=>at});
   records.push(record);retained.push({source,section:'lenses',index,type:'lens',recordId:record.id});
 }
 
-function skip(skipped,source,section,index,reason){skipped.push({source,section,index,reason});}
+function skip(skipped,source,section,index,reason){
+  const policySection=section==='entries'&&reason==='non-portable-reading-position'?'entries.positions':section;
+  skipped.push({source,section,index,reason:migrationPolicy(source,policySection)??reason});
+}
 
 function carryReading(records,retained,skipped,reading,source,at){
   reading.entries.forEach((entry,index)=>{
