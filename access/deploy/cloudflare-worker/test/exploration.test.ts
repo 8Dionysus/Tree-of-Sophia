@@ -79,6 +79,42 @@ function valueMemberGraph() {
   return g;
 }
 
+test('scene member context preserves raw proxy length truthiness and strict comparisons', () => {
+  for (const rawLength of [1, 1n, new Number(1), Symbol('length'), '1']) {
+    const observed: string[] = [];
+    const members = new Proxy(['member'], {get(target, property, receiver) {
+      if (property === 'length') {observed.push('length'); return rawLength;}
+      if (property === 'some') {
+        observed.push('some');
+        return (predicate: (member: string) => unknown) => target.some(predicate);
+      }
+      if (property === Symbol.iterator) {
+        observed.push('iterator');
+        return () => target[Symbol.iterator]();
+      }
+      return Reflect.get(target, property, receiver);
+    }});
+    const nodes: Item[] = ['subject', 'object', 'member'].map(id => ({id}));
+    nodes.push({id: 'claim', type_id: 'tos.entity.claim', semantics: {claim: {
+      subject_node_id: 'subject', object_node_id: 'object', predicate_mapping_status: 'mapped',
+      relation_type_id: 'tos.relation.related', value_member_node_ids: members,
+    }}});
+    const relations: Item[] = [
+      ['subject-edge', 'subject', 'tos.relation.has-subject'],
+      ['object-edge', 'object', 'tos.relation.has-object'],
+      ['member-edge', 'member', 'tos.relation.claim-value-member'],
+    ].map(([id, to_id, relation_type_id]) => ({id, from_id: 'claim', to_id, relation_type_id}));
+    const compact = knowledgeScene(nodes, relations).compact;
+    if (rawLength === 1) {
+      assert.equal(compact.claim_paths.length, 1);
+      assert.deepEqual(observed, ['length', 'some', 'iterator', 'length', 'some', 'length', 'length']);
+    } else {
+      assert.deepEqual(compact.retained_claims, [{node_id: 'claim', reason: 'incomplete-value-member-context'}]);
+      assert.deepEqual(observed, ['length', 'some', 'iterator', 'length']);
+    }
+  }
+});
+
 test('compact value-member context requires the full set and preserves focused or shared details', () => {
   const original = valueMemberGraph();
   const cases: {name: string; graph: ReturnType<typeof valueMemberGraph>; focus: string | null; reason: string | null}[] = [

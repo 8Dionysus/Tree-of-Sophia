@@ -275,8 +275,8 @@ impl KnowledgeSceneSession {
             true
         }
     }
-    pub fn member_shape(&mut self, id: u32, array: bool, length: usize) -> bool {
-        if !array || length == 0 {
+    pub fn member_shape(&mut self, id: u32, array: bool, length_truthy: bool) -> bool {
+        if !array || !length_truthy {
             self.reasons
                 .insert(id, "incomplete-value-member-context".into());
             false
@@ -293,8 +293,8 @@ impl KnowledgeSceneSession {
             true
         }
     }
-    pub fn member_unique(&mut self, id: u32, unique: usize, length: usize) -> bool {
-        if unique != length {
+    pub fn member_unique(&mut self, id: u32, strict_length_match: bool) -> bool {
+        if !strict_length_match {
             self.reasons
                 .insert(id, "incomplete-value-member-context".into());
             false
@@ -311,8 +311,8 @@ impl KnowledgeSceneSession {
             true
         }
     }
-    pub fn member_edges(&mut self, id: u32, edges: usize, length: usize) -> bool {
-        if edges != length {
+    pub fn member_edges(&mut self, id: u32, strict_length_match: bool) -> bool {
+        if !strict_length_match {
             self.reasons
                 .insert(id, "incomplete-value-member-context".into());
             false
@@ -320,8 +320,8 @@ impl KnowledgeSceneSession {
             true
         }
     }
-    pub fn member_targets(&mut self, id: u32, targets: usize, length: usize) -> bool {
-        if targets != length {
+    pub fn member_targets(&mut self, id: u32, strict_length_match: bool) -> bool {
+        if !strict_length_match {
             self.reasons
                 .insert(id, "incomplete-value-member-context".into());
             false

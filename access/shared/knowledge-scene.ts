@@ -101,12 +101,12 @@ export function knowledgeScene(nodes:Item[],relations:Item[],focusNodeId:string|
         const targets=new Set(memberEdges.map(r=>String(r.to_id)));
         // Native Set/some preserve physical identity, sparse callbacks and refusal order.
         const array=Array.isArray(members);
-        if(!session.member_shape(id,array,array?members.length:0))continue;
+        if(!session.member_shape(id,array,array&&Boolean(members.length)))continue;
         if(!session.member_strings(id,(members as unknown[]).some(member=>typeof member!=='string')))continue;
-        if(!session.member_unique(id,new Set(members as unknown[]).size,(members as unknown[]).length))continue;
+        if(!session.member_unique(id,new Set(members as unknown[]).size===(members as unknown[]).length))continue;
         if(!session.member_presence(id,(members as unknown[]).some(member=>!presentNodes.has(member as string)||!targets.has(member as string))))continue;
-        if(!session.member_edges(id,memberEdges.length,(members as unknown[]).length))continue;
-        if(!session.member_targets(id,targets.size,(members as unknown[]).length))continue;
+        if(!session.member_edges(id,memberEdges.length===(members as unknown[]).length))continue;
+        if(!session.member_targets(id,targets.size===(members as unknown[]).length))continue;
       }
       const legIds=[String(legs[0]![0]!.id),String(legs[1]![0]!.id)];
       // Opaque source-owned claim fields are retained without JSON or clone.
