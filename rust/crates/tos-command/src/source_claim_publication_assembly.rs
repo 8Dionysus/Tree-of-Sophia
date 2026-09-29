@@ -10,6 +10,7 @@ use std::sync::atomic::AtomicBool;
 use tos_compiler::source_bibliographic::{self as bib, BibliographicLimits};
 use tos_compiler::{Error, Result};
 use tos_foundation::{Digest256, RelativePath, SourceRevision};
+use tos_validation::item_rules::ItemLimits;
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 const REGISTRY: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
 const ENTITIES: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
@@ -98,6 +99,7 @@ pub(super) struct AssembledAddition {
     pub edges: BTreeMap<(String, String), OrderedRow>,
     pub traces: Vec<OrderedRow>,
     pub declarations: Vec<OrderedRow>,
+    pub endpoint_versions: BTreeMap<String, Vec<AddressedEndpointVersion>>,
 }
 fn put(
     rows: &mut BTreeMap<(String, String), OrderedRow>,
@@ -136,16 +138,81 @@ fn slot(
         json!({"source_slot_key":key,"kind":kind,"identity":id,"source":{"source_ref":reference,"source_line":line,"byte_offset":offset,"row_bytes":row.len(),"raw_row_sha256":bytes::digest(row),"delimiter":delimiter,"file_sha256":bytes::digest(whole),"file_bytes":whole.len(),"canonical_sha256":bytes::digest(&source_canonical(&value)?)}}),
     )
 }
+/// Detached exact-version result from the existing cold owner resolver.
+/// It describes byte/version/lineage verification, never current-use authority.
+pub(super) struct AddressedEndpointVersion {
+    pub exact_ref: Value,
+    pub current_ref: Value,
+    pub record: Value,
+    pub source_path: String,
+    pub version_status: &'static str,
+    pub source: Value,
+    pub history: Value,
+    pub transition: Value,
+    pub route_profile: Value,
+}
+fn foundation_value(value: &tos_foundation::JsonValue) -> Result<Value> {
+    serde_json::from_slice(&owner(cmd::canonical(value))?)
+        .map_err(|_| Error::Invalid("Claim exact-version result codec"))
+}
+fn resolve_endpoint_version(
+    observation: &CommittedClaimObservation,
+    source_path: &str,
+    exact: &tos_foundation::JsonValue,
+    source_context_revision: SourceRevision,
+    worker: &mut CutWorkerSchemaExecutor,
+    l: BibliographicLimits,
+    cancelled: &AtomicBool,
+) -> Result<AddressedEndpointVersion> {
+    // `source_context_revision` is the actual authenticated source capture's
+    // revision, independently passed by the caller. It is not the prepared
+    // vector digest. The resolver's existing equality guard remains intact.
+    let context = owner(observation.command_context(source_context_revision))?;
+    let limits = ItemLimits {
+        max_member_bytes: l.catalog.max_file_bytes.min(2_097_152),
+        max_total_bytes: 33_554_432,
+        max_state_bytes: 33_554_432,
+        max_issues: 256,
+        deadline: l.deadline,
+    };
+    let resolved = owner(
+        crate::source_revisions::resolve_record_version_evidence_at_selected(
+            &context,
+            source_path,
+            limits,
+            exact,
+            worker,
+            l.deadline,
+            cancelled,
+        ),
+    )?;
+    if resolved.source_path != source_path {
+        return Err(Error::Invalid("Claim cold endpoint selected another owner"));
+    }
+    Ok(AddressedEndpointVersion {
+        exact_ref: foundation_value(exact)?,
+        current_ref: foundation_value(&resolved.current_ref)?,
+        record: foundation_value(&resolved.record)?,
+        source_path: resolved.source_path,
+        version_status: resolved.version_status,
+        source: foundation_value(&resolved.source)?,
+        history: foundation_value(&resolved.history)?,
+        transition: foundation_value(&resolved.transition)?,
+        route_profile: foundation_value(&resolved.route_profile)?,
+    })
+}
 struct Identity {
     entry: Value,
     source: Value,
     node: Value,
+    verified_versions: Vec<AddressedEndpointVersion>,
 }
 fn metadata(
     observation: &mut CommittedClaimObservation,
     roots: &mut roots::Roots,
     role: &str,
     id: &str,
+    source_context_revision: SourceRevision,
     l: BibliographicLimits,
     worker: &mut CutWorkerSchemaExecutor,
     cancelled: &AtomicBool,
@@ -178,32 +245,13 @@ fn metadata(
             "Claim endpoint exact current binding differs",
         ));
     }
-    // This initial addition adapter selects a current declared-profile record.
-    // Retained metadata history requires the owner archive reader, not a claim
-    // that a current row proves its earlier versions.
     let (home, name) = reference
         .rsplit_once('/')
         .ok_or(Error::Invalid("Claim metadata parent"))?;
-    let history = format!("{home}/source-revision-history.json");
-    if owner(observation.read_optional(
-        &path(&history)?,
-        l.catalog.max_file_bytes,
-        l.deadline,
-        cancelled,
-    ))?
-    .is_some()
-    {
-        return Err(Error::Invalid(
-            "Claim initial addition metadata history transport unsupported",
-        ));
-    }
+    let historical_refs =
+        owner(observation.retain_endpoint_history(&path(&reference)?, l.deadline, cancelled))?;
     if !["public", "public_metadata_only"].contains(&source["visibility"].as_str().unwrap_or("")) {
         return Err(Error::Invalid("Claim endpoint public metadata profile"));
-    }
-    if source["record_version"].as_u64() != Some(1) {
-        return Err(Error::Invalid(
-            "Claim initial addition requires verified initial endpoint version",
-        ));
     }
     let schema = bytes::text(&row["entry"], "source_schema_ref")?.to_owned();
     check_resource(observation, worker, &schema, l, cancelled)?;
@@ -253,6 +301,56 @@ fn metadata(
     } else {
         None
     };
+    let current = resolve_endpoint_version(
+        observation,
+        &reference,
+        &subject,
+        source_context_revision,
+        worker,
+        l,
+        cancelled,
+    )?;
+    if current.version_status != "current"
+        || current.current_ref != exact
+        || current.exact_ref != exact
+        || current.record != source
+    {
+        return Err(Error::Invalid(
+            "Claim current endpoint cold-reader binding differs",
+        ));
+    }
+    let mut versions = Vec::new();
+    let mut version_bytes = source_canonical(&current.record)?.len();
+    for historical in historical_refs {
+        let retained = resolve_endpoint_version(
+            observation,
+            &reference,
+            &historical,
+            source_context_revision,
+            worker,
+            l,
+            cancelled,
+        )?;
+        if retained.version_status != "historical"
+            || retained.current_ref != exact
+            || retained.record["schema_version"] != source["schema_version"]
+            || !["public", "public_metadata_only"]
+                .contains(&retained.record["visibility"].as_str().unwrap_or(""))
+        {
+            return Err(Error::Invalid(
+                "Claim retained endpoint public schema/version binding differs",
+            ));
+        }
+        let historical_raw = source_canonical(&retained.record)?;
+        check(worker, &reference, &historical_raw, &schema, l, cancelled)?;
+        version_bytes = version_bytes
+            .checked_add(historical_raw.len())
+            .filter(|n| *n <= 33_554_432)
+            .ok_or(Error::Budget("Claim endpoint version state budget"))?;
+        versions.push(retained);
+    }
+    versions.push(current);
+    owner(observation.verify_current(l.deadline, cancelled))?;
     let node = bib::supplied_bibliographic_identity(
         &entry,
         &source,
@@ -263,6 +361,7 @@ fn metadata(
         entry,
         source,
         node,
+        verified_versions: versions,
     }))
 }
 /// Existing dependency grammar's initial identity-only branch. All strings
@@ -453,7 +552,8 @@ fn dependencies(
     Ok(Value::Array(rows.into_iter().map(|((kind,reference),(fields,reasons))|json!({"kind":kind,"ref":reference,"field_paths":fields.into_iter().collect::<Vec<_>>(),"reasons":reasons.into_iter().collect::<Vec<_>>() })).collect()))
 }
 /// Real source execution occurs before the caller opens its SQLite transaction.
-/// `actual_revision` comes from its verified predecessor PreparedSourceInputs.
+/// `actual_revision` is the independently authenticated real source worker
+/// capture revision. The prepared vector identity remains a separate binding.
 #[allow(clippy::too_many_arguments)]
 pub(super) fn assemble(
     observation: &mut CommittedClaimObservation,
@@ -562,8 +662,17 @@ pub(super) fn assemble(
     }
     let mut identities = BTreeMap::new();
     for id in &identity_ids {
-        let identity = metadata(observation, roots, catalog_role, id, l, worker, cancelled)?
-            .ok_or(Error::Invalid("Claim initial endpoint not in predecessor"))?;
+        let identity = metadata(
+            observation,
+            roots,
+            catalog_role,
+            id,
+            actual_revision,
+            l,
+            worker,
+            cancelled,
+        )?
+        .ok_or(Error::Invalid("Claim initial endpoint not in predecessor"))?;
         let binding = &bindings["objects"][id];
         let reference = bytes::text(&identity.entry, "source_record_ref")?;
         let raw = read(observation, reference, l, cancelled)?;
@@ -608,6 +717,7 @@ pub(super) fn assemble(
                 roots,
                 catalog_role,
                 maker,
+                actual_revision,
                 l,
                 worker,
                 cancelled,
@@ -694,6 +804,7 @@ pub(super) fn assemble(
         edges: BTreeMap::new(),
         traces: Vec::new(),
         declarations: Vec::new(),
+        endpoint_versions: BTreeMap::new(),
     };
     let mut claim_ids = Vec::new();
     if roots
@@ -1042,6 +1153,11 @@ pub(super) fn assemble(
             .checked_add(row.raw.len())
             .filter(|n| *n <= l.max_output_bytes as usize)
             .ok_or(Error::Budget("Claim assembled whole output"))?;
+    }
+    for (id, identity) in identities {
+        output
+            .endpoint_versions
+            .insert(id, identity.verified_versions);
     }
     owner(observation.verify_current(l.deadline, cancelled))?;
     Ok((

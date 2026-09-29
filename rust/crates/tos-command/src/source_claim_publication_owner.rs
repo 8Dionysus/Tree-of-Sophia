@@ -82,6 +82,7 @@ pub(crate) struct CommittedClaimObservation {
     read_bytes: usize,
     publication: super::work_transaction::PublicationSnapshot,
     absences: BTreeMap<String, (File, (u64, u64))>,
+    archive_directories: BTreeMap<String, (File, (u64, u64), BTreeSet<String>)>,
 }
 impl CommittedClaimObservation {
     pub(crate) fn select(
@@ -220,6 +221,7 @@ impl CommittedClaimObservation {
             read_bytes: 0,
             publication,
             absences: BTreeMap::new(),
+            archive_directories: BTreeMap::new(),
         };
         for name in FILES {
             let path = RelativePath::parse(&format!("{}/{name}", this.home))
@@ -328,11 +330,21 @@ impl CommittedClaimObservation {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<Arc<[u8]>> {
+        self.read_selected_internal(path, cap, false, deadline, cancelled)
+    }
+    fn read_selected_internal(
+        &mut self,
+        path: &RelativePath,
+        cap: usize,
+        retained: bool,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Arc<[u8]>> {
         active(deadline, cancelled)?;
         let reference = path.as_str();
         if !reference.starts_with("ToS/")
             || reference.split('/').any(|p| {
-                p.starts_with('.')
+                (p.starts_with('.') && !(retained && p == ".record-revisions"))
                     || ["payload", "private", "owner-local", "local-content"].contains(&p)
             })
         {
@@ -370,6 +382,295 @@ impl CommittedClaimObservation {
             },
         );
         Ok(bytes)
+    }
+    /// Select only retained record packages named by this exact current
+    /// metadata history. No generic hidden-path reader is exposed. The cold
+    /// owner resolver subsequently authenticates lineage, package digests,
+    /// successor reconstruction and source schemas using these retained bytes.
+    pub(crate) fn retain_endpoint_history(
+        &mut self,
+        source_path: &RelativePath,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Vec<tos_foundation::JsonValue>> {
+        let source_ref = source_path.as_str();
+        if !source_ref.starts_with("ToS/source-witnesses/")
+            || !source_ref.ends_with(".json")
+            || source_ref.split('/').any(|p| {
+                p.starts_with('.')
+                    || [
+                        "payload",
+                        "private",
+                        "owner-local",
+                        "local-content",
+                        "catalog",
+                    ]
+                    .contains(&p)
+            })
+        {
+            return Err(Error::Denied("Claim history exact metadata owner path"));
+        }
+        let current = self.read_selected(source_path, 2_097_152, deadline, cancelled)?;
+        let record = cmd::parse(&current)?;
+        let subject = crate::source_forms::metadata_subject(&record)?;
+        let id = cmd::text(&subject, "id")?.to_owned();
+        let parent = source_ref
+            .rsplit_once('/')
+            .ok_or(Error::Invalid("Claim history owner parent"))?
+            .0;
+        let history_ref = RelativePath::parse(&format!("{parent}/source-revision-history.json"))
+            .map_err(|_| Error::Invalid("Claim history path"))?;
+        let Some(history_raw) = self.read_optional(&history_ref, 2_097_152, deadline, cancelled)?
+        else {
+            return Ok(vec![]);
+        };
+        let history = cmd::parse(&history_raw)?;
+        cmd::exact_keys(&history, &["schema_version", "record_id", "receipts"])?;
+        if ![
+            "tos_source_revision_history_v1",
+            "tos_source_revision_history_v2",
+        ]
+        .contains(&cmd::text(&history, "schema_version")?)
+            || cmd::text(&history, "record_id")? != id
+        {
+            return Err(Error::Conflict(
+                "Claim current metadata history identity differs",
+            ));
+        }
+        let receipts = cmd::array(&history, "receipts")?;
+        if receipts.is_empty() || receipts.len() > 128 {
+            return Err(Error::Unsupported("Claim metadata history count budget"));
+        }
+        let descriptor = cmd::object(vec![
+            ("record_id", cmd::string(&id)),
+            ("source_path", cmd::string(source_ref)),
+        ]);
+        let mut exact_refs = Vec::new();
+        for receipt in receipts {
+            active(deadline, cancelled)?;
+            // The maintained cold reader authenticates receipts and replay. Keep
+            // its accepted corrections within the same metadata field grammar
+            // used by MetadataVersionReader, rather than allowing arbitrary JSON.
+            let request = cmd::field(receipt, "request")?;
+            let mut request_keys = vec![
+                "schema_version",
+                "operation",
+                "fields",
+                "forms",
+                "reason",
+                "command_id",
+                "expected_configuration",
+                "expected_source",
+                "expected_revision",
+                "expected_dependencies",
+            ];
+            if receipt.object_get("publication").is_some() {
+                request_keys.push("expected_publication");
+            }
+            cmd::exact_keys(request, &request_keys)?;
+            if cmd::text(request, "schema_version")? != "tos_local_source_command_v1"
+                || cmd::text(request, "operation")? != "record.revise"
+            {
+                return Err(Error::Unsupported(
+                    "Claim retained operation requires its typed owner verifier",
+                ));
+            }
+            let allowed: &[&str] = match cmd::text(&record, "schema_version")? {
+                "tos_corpus_record_v1" => {
+                    &["preferred_label", "notes", "field_languages", "source_refs"]
+                }
+                "tos_artifact_source_witness_v1" | "tos_artifact_source_witness_v2" => &[
+                    "path_identity",
+                    "physical_description",
+                    "find_context",
+                    "bibliography",
+                ],
+                "tos_scholarly_composite_witness_v1" => &["preferred_label", "editorial_object"],
+                "tos_source_link_v1" => &[
+                    "preferred_label",
+                    "variant_labels",
+                    "notes",
+                    "source_refs",
+                    "provider_label",
+                ],
+                "tos_historical_record_v1" => &[
+                    "preferred_label",
+                    "variant_labels",
+                    "notes",
+                    "field_languages",
+                    "source_refs",
+                    "extensions",
+                    "semantic_content",
+                ],
+                _ => &[
+                    "preferred_label",
+                    "variant_labels",
+                    "notes",
+                    "field_languages",
+                    "source_refs",
+                    "extensions",
+                    "semantic_content",
+                    "semantic_scope",
+                ],
+            };
+            let fields = cmd::field(request, "fields")?
+                .as_object()
+                .ok_or(Error::Invalid("Claim retained correction fields"))?;
+            if fields.is_empty()
+                || fields
+                    .iter()
+                    .any(|(k, _)| k.as_str().is_none_or(|k| !allowed.contains(&k)))
+            {
+                return Err(Error::Denied(
+                    "Claim retained correction exceeds metadata fields",
+                ));
+            }
+            let previous = cmd::field(receipt, "previous_source")?;
+            cmd::exact_keys(previous, &["id", "version", "digest"])?;
+            if cmd::text(previous, "id")? != id {
+                return Err(Error::Conflict(
+                    "Claim retained metadata belongs to another identity",
+                ));
+            }
+            let revision = cmd::text(receipt, "previous_revision")?;
+            let suffix = revision
+                .strip_prefix("sha256:")
+                .ok_or(Error::Invalid("Claim historical package digest"))?;
+            if suffix.len() != 64
+                || !suffix
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            {
+                return Err(Error::Invalid("Claim historical package digest"));
+            }
+            let archive = crate::source_revisions::archive_path(&descriptor, revision)?;
+            if cmd::text(receipt, "archive_path")? != archive {
+                return Err(Error::Conflict("Claim history archive locator differs"));
+            }
+            let directory = walk(&self.filesystem.root, &archive, self.filesystem.uid)?;
+            let directory_identity = inode(&owned(&directory, self.filesystem.uid, true)?);
+            let manifest_ref = RelativePath::parse(&format!("{archive}/manifest.json"))
+                .map_err(|_| Error::Invalid("Claim history manifest path"))?;
+            let manifest_raw =
+                self.read_selected_internal(&manifest_ref, 2_097_152, true, deadline, cancelled)?;
+            let manifest = cmd::parse(&manifest_raw)?;
+            let selected =
+                cmd::text(&manifest, "schema_version")? == "tos_source_package_archive_v2";
+            let mut keys = vec![
+                "schema_version",
+                "source_path",
+                "source",
+                "revision",
+                "files",
+            ];
+            if selected {
+                keys.push("publication_protocol");
+            }
+            cmd::exact_keys(&manifest, &keys)?;
+            if (!selected
+                && cmd::text(&manifest, "schema_version")? != "tos_source_package_archive_v1")
+                || (selected
+                    && cmd::text(&manifest, "publication_protocol")?
+                        != "tos_selected_source_metadata_v1")
+                || cmd::text(&manifest, "source_path")? != source_ref
+                || !cmd::same(cmd::field(&manifest, "source")?, previous)?
+                || cmd::text(&manifest, "revision")? != revision
+            {
+                return Err(Error::Conflict("Claim retained manifest identity differs"));
+            }
+            let members = cmd::field(&manifest, "files")?
+                .as_object()
+                .ok_or(Error::Invalid("Claim history manifest members"))?;
+            if members.is_empty() || members.len() > 64 {
+                return Err(Error::Unsupported("Claim history package member count"));
+            }
+            let mut names = BTreeSet::from(["manifest.json".to_owned()]);
+            let mut package_bytes = 0usize;
+            for (name, binding) in members {
+                let name = name
+                    .as_str()
+                    .ok_or(Error::Invalid("Claim history package member name"))?;
+                if name.is_empty()
+                    || name.contains(['/', '\\', '\0'])
+                    || [".", ".."].contains(&name)
+                {
+                    return Err(Error::Invalid("Claim history exact package basename"));
+                }
+                cmd::exact_keys(binding, &["blob", "sha256", "bytes"])?;
+                let digest = cmd::text(binding, "sha256")?;
+                let suffix = digest
+                    .strip_prefix("sha256:")
+                    .ok_or(Error::Invalid("Claim history member digest"))?;
+                if suffix.len() != 64
+                    || !suffix
+                        .bytes()
+                        .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                {
+                    return Err(Error::Invalid("Claim history member digest"));
+                }
+                let blob = cmd::text(binding, "blob")?;
+                if blob != format!("{suffix}.blob") {
+                    return Err(Error::Conflict("Claim retained blob locator differs"));
+                }
+                let declared = cmd::integer(binding, "bytes")?;
+                if declared > 2_097_152 {
+                    return Err(Error::Unsupported("Claim history member bytes"));
+                }
+                let blob_ref = RelativePath::parse(&format!("{archive}/{blob}"))
+                    .map_err(|_| Error::Invalid("Claim history blob path"))?;
+                let raw = self.read_selected_internal(
+                    &blob_ref,
+                    declared as usize,
+                    true,
+                    deadline,
+                    cancelled,
+                )?;
+                if raw.len() as u64 != declared || Digest256::of_bytes(&raw).to_prefixed() != digest
+                {
+                    return Err(Error::Conflict("Claim retained blob bytes differ"));
+                }
+                package_bytes = package_bytes
+                    .checked_add(raw.len())
+                    .filter(|n| *n <= 8_388_608)
+                    .ok_or(Error::Unsupported("Claim history package byte budget"))?;
+                names.insert(blob.to_owned());
+            }
+            let actual = std::fs::read_dir(format!("/proc/self/fd/{}", directory.as_raw_fd()))
+                .map_err(|_| Error::Invalid("Claim retained package enumeration"))?;
+            let mut observed = BTreeSet::new();
+            for entry in actual {
+                active(deadline, cancelled)?;
+                let name = entry
+                    .map_err(|_| Error::Invalid("Claim retained package entry"))?
+                    .file_name()
+                    .into_string()
+                    .map_err(|_| Error::Invalid("Claim retained package UTF8"))?;
+                if observed.len() >= 65 || !observed.insert(name) {
+                    return Err(Error::Unsupported(
+                        "Claim retained package enumeration budget",
+                    ));
+                }
+            }
+            if observed != names {
+                return Err(Error::Conflict(
+                    "Claim retained package pathname closure differs",
+                ));
+            }
+            if let Some((retained, identity, closure)) = self.archive_directories.get(&archive) {
+                if *identity != directory_identity
+                    || inode(&owned(retained, self.filesystem.uid, true)?) != directory_identity
+                    || *closure != names
+                {
+                    return Err(Error::Conflict("Claim retained archive directory changed"));
+                }
+            } else {
+                self.archive_directories
+                    .insert(archive, (directory, directory_identity, names));
+            }
+            exact_refs.push(previous.clone());
+        }
+        self.verify_current(deadline, cancelled)?;
+        Ok(exact_refs)
     }
     fn verify_package(&self) -> Result<()> {
         let get = |name: &str| &*self.captured[&format!("{}/{name}", self.home)].bytes;
@@ -633,6 +934,34 @@ impl CommittedClaimObservation {
                     != capture.bytes.as_ref()
             {
                 return Err(Error::Conflict("Claim observer retained metadata changed"));
+            }
+        }
+        for (reference, (retained, identity, closure)) in &self.archive_directories {
+            active(deadline, cancelled)?;
+            let current = walk(&root, reference, fs.uid)?;
+            if inode(&owned(retained, fs.uid, true)?) != *identity
+                || inode(&owned(&current, fs.uid, true)?) != *identity
+            {
+                return Err(Error::Conflict("Claim retained archive pathname detached"));
+            }
+            let entries = std::fs::read_dir(format!("/proc/self/fd/{}", current.as_raw_fd()))
+                .map_err(|_| Error::Invalid("Claim current archive enumeration"))?;
+            let mut names = BTreeSet::new();
+            for entry in entries {
+                active(deadline, cancelled)?;
+                let name = entry
+                    .map_err(|_| Error::Invalid("Claim current archive entry"))?
+                    .file_name()
+                    .into_string()
+                    .map_err(|_| Error::Invalid("Claim current archive UTF8"))?;
+                if names.len() >= 65 || !names.insert(name) {
+                    return Err(Error::Unsupported("Claim current archive entry budget"));
+                }
+            }
+            if &names != closure {
+                return Err(Error::Conflict(
+                    "Claim retained archive member closure changed",
+                ));
             }
         }
         for (reference, (retained, identity)) in &self.absences {
