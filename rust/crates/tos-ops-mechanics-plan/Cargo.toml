@@ -23,3 +23,7 @@ libc = "0.2"
 [[bin]]
 name = "tos-ops-mechanics-plan"
 path = "src/main.rs"
+
+[[bin]]
+name = "tos-validation-lanes"
+path = "src/validation_lanes_main.rs"

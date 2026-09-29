@@ -89,6 +89,24 @@ The Python lane remains the independent
 blocking oracle until exact issue-order parity and the actual native consumer
 are accepted. This candidate does not inspect or change authored ToS meaning.
 
+`tos-validation-lanes` is a separate candidate for the current
+`scripts/validation_lanes.py` command plane. Its `--check`, `--sequence ID`,
+and `--run ID` modes read the existing
+`docs/validation/validation_lanes.json` in authored order. Selection and run
+require `--python PATH`, which the eventual compatibility entry must pass as
+its exact `sys.executable`; the native binary does not discover or install an
+interpreter. The read is bounded to 1 MiB. Run uses the existing dedicated
+Linux pidfd/subreaper executor with its default 300-second command wall,
+3600-second sequence wall, one-second cleanup grace, and 16 MiB combined
+output per child. These finite execution limits are stricter than the Python
+runner's prior unbounded subprocess call. A child exit code is returned
+unchanged; a signalled child is printed with Python's negative signal status
+and returned as the corresponding Unix shell status. The Python loader and
+`release_check` import remain active until ordered manifest, selection, and
+first-failure execution parity have been accepted by the owner.
+As in the existing executor, an `execvp` refusal becomes child status 127;
+the Python runner previously raised an unhandled spawn exception instead.
+
 Install with `cargo install --locked --offline --path
 rust/crates/tos-ops-mechanics-plan --root <admitted isolated install root>`
 from the integrated workspace. The existing native fixture may target that

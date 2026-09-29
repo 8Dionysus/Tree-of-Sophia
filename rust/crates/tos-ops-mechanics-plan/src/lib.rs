@@ -8,6 +8,7 @@ pub mod public_mirror;
 pub mod questbook;
 pub mod relation_pack;
 pub mod threshold_registry;
+pub mod validation_lanes;
 
 use serde::Serialize;
 use std::collections::BTreeSet;

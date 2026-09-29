@@ -37,7 +37,42 @@ impl Default for Limits {
 pub fn run(root: &Path, plan: &Plan, limits: Limits, cancel: &AtomicI32) -> io::Result<i32> {
     #[cfg(target_os = "linux")]
     {
-        native::run(root, plan, limits, cancel)
+        native::run(root, plan, limits, cancel, native::Style::Mechanics)
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (root, plan, limits, cancel);
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "execution requires Linux subreaper/pidfd custody",
+        ))
+    }
+}
+
+/// Execute selected manifest commands through the same dedicated Linux
+/// pidfd/subreaper boundary as mechanics-local. The labels and first failing
+/// child status belong to the validation-lane command contract.
+pub fn run_validation_sequence(
+    root: &Path,
+    steps: &[(String, Vec<String>)],
+    limits: Limits,
+    cancel: &AtomicI32,
+) -> io::Result<i32> {
+    let plan = Plan {
+        schema_version: "tos_validation_lanes_selected_v1",
+        test_file_count: 0,
+        commands: steps
+            .iter()
+            .map(|(label, argv)| crate::Command {
+                kind: "validation_lane_step",
+                home: label.clone(),
+                argv: argv.clone(),
+            })
+            .collect(),
+    };
+    #[cfg(target_os = "linux")]
+    {
+        native::run(root, &plan, limits, cancel, native::Style::Validation)
     }
     #[cfg(not(target_os = "linux"))]
     {
@@ -61,6 +96,12 @@ mod native {
     use std::process::ExitStatus;
     use std::thread;
     use std::time::Instant;
+
+    #[derive(Clone, Copy)]
+    pub(super) enum Style {
+        Mechanics,
+        Validation,
+    }
 
     fn error(message: impl Into<String>) -> io::Error {
         io::Error::other(message.into())
@@ -406,6 +447,7 @@ mod native {
         plan: &Plan,
         limits: Limits,
         cancel: &AtomicI32,
+        style: Style,
     ) -> io::Result<i32> {
         if limits.command_wall.is_zero()
             || limits.command_wall > Duration::from_secs(3600)
@@ -449,12 +491,13 @@ mod native {
         let lane_deadline = Instant::now() + limits.lane_wall;
         for command in &plan.commands {
             let deadline = lane_deadline.min(Instant::now() + limits.command_wall);
-            write(
-                1,
-                format!("[mechanics-local] {}\n", command.argv.join(" ")).as_bytes(),
-                deadline,
-                cancel,
-            )?;
+            let progress = match style {
+                Style::Mechanics => format!("[mechanics-local] {}\n", command.argv.join(" ")),
+                Style::Validation => {
+                    format!("[run] {}: {}\n", command.home, command.argv.join(" "))
+                }
+            };
+            write(1, progress.as_bytes(), deadline, cancel)?;
             let (mut custody, stdout, stderr) = spawn(root, &command.argv, limits.cleanup_grace)?;
             let _out_mode = Nonblocking::new(stdout.as_raw_fd())?;
             let _err_mode = Nonblocking::new(stderr.as_raw_fd())?;
@@ -516,21 +559,43 @@ mod native {
             custody.cleanup()?;
             execution?;
             if !status.unwrap().success() {
-                write(
-                    2,
-                    format!(
+                let failure = match style {
+                    Style::Mechanics => format!(
                         "[error] mechanics-local command failed: {} ({})\n",
                         command.argv.join(" "),
                         status.unwrap()
-                    )
-                    .as_bytes(),
-                    lane_deadline,
+                    ),
+                    Style::Validation => format!(
+                        "[error] {} failed with exit code {}\n",
+                        command.home,
+                        status
+                            .unwrap()
+                            .code()
+                            .unwrap_or(-status.unwrap().signal().unwrap_or(0))
+                    ),
+                };
+                write(2, failure.as_bytes(), lane_deadline, cancel)?;
+                return Ok(match style {
+                    Style::Mechanics => 1,
+                    Style::Validation => status.unwrap().code().unwrap_or_else(|| {
+                        // sys.exit(-signal) from the Python compatibility entry
+                        // is observed by its parent as 256-signal on Unix.
+                        256 - status.unwrap().signal().unwrap_or(0)
+                    }),
+                });
+            }
+            if matches!(style, Style::Validation) {
+                write(
+                    1,
+                    format!("[ok] {}\n", command.home).as_bytes(),
+                    deadline,
                     cancel,
                 )?;
-                return Ok(1);
             }
         }
-        write(1, format!("[ok] completed mechanics-local unittest, builder, and validator coverage across {} test files\n", plan.test_file_count).as_bytes(), lane_deadline, cancel)?;
+        if matches!(style, Style::Mechanics) {
+            write(1, format!("[ok] completed mechanics-local unittest, builder, and validator coverage across {} test files\n", plan.test_file_count).as_bytes(), lane_deadline, cancel)?;
+        }
         Ok(0)
     }
     #[cfg(test)]
