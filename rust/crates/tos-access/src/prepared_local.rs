@@ -34,7 +34,7 @@ enum LocalRequest {
     SearchCapabilities,
     Catalog,
     Inspect {
-        kind: tos_query::SearchKind,
+        kind: tos_query::search_v2::SearchKind,
         identifier: String,
         relation_limit: usize,
     },
@@ -413,7 +413,7 @@ impl AccessExecutor for PreparedLocalExecutor {
                 relation_limit,
             } => self.read(
                 LocalRequest::Inspect {
-                    kind: tos_query::SearchKind::Nodes,
+                    kind: tos_query::search_v2::SearchKind::Nodes,
                     identifier: node_id,
                     relation_limit,
                 },
@@ -421,7 +421,7 @@ impl AccessExecutor for PreparedLocalExecutor {
             ),
             KnowledgeRequest::Relation { relation_id } => self.read(
                 LocalRequest::Inspect {
-                    kind: tos_query::SearchKind::Relations,
+                    kind: tos_query::search_v2::SearchKind::Relations,
                     identifier: relation_id,
                     relation_limit: 0,
                 },
