@@ -6,7 +6,7 @@ use regex::Regex;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
-use std::io;
+use std::io::{self, Read};
 use std::path::{Component, Path, PathBuf};
 use tos_foundation::python_casefold_unicode16_v1;
 
@@ -90,7 +90,15 @@ impl<'a> Source<'a> {
         {
             return Err(invalid("mechanics topology input budget exceeded"));
         }
-        let bytes = fs::read(path)?;
+        let mut bytes = Vec::with_capacity(metadata.len() as usize);
+        fs::File::open(path)?
+            .take(MAX_FILE_BYTES + 1)
+            .read_to_end(&mut bytes)?;
+        if bytes.len() as u64 > MAX_FILE_BYTES {
+            return Err(invalid(format!(
+                "mechanics input grew beyond file budget: {relative}"
+            )));
+        }
         if bytes.len() as u64 != metadata.len() {
             return Err(invalid(format!(
                 "mechanics input changed during read: {relative}"
@@ -148,6 +156,17 @@ fn absent(
         push(issues, relative, message)?;
     }
     Ok(())
+}
+
+fn directory_entries(path: &Path, remaining: usize) -> io::Result<Vec<fs::DirEntry>> {
+    let mut entries = Vec::new();
+    for entry in fs::read_dir(path)? {
+        if entries.len() >= remaining {
+            return Err(invalid("mechanics traversal entry budget exceeded"));
+        }
+        entries.push(entry?);
+    }
+    Ok(entries)
 }
 
 fn strings(value: Option<&Value>) -> Option<Vec<&str>> {
@@ -318,10 +337,7 @@ fn discovered_packages(source: &Source<'_>) -> io::Result<BTreeSet<String>> {
     if !root.is_dir() {
         return Ok(names);
     }
-    let entries: Vec<_> = fs::read_dir(root)?.collect::<Result<_, _>>()?;
-    if entries.len() > MAX_FILES {
-        return Err(invalid("mechanics package scan budget exceeded"));
-    }
+    let entries = directory_entries(&root, MAX_FILES)?;
     for entry in entries {
         let name = entry
             .file_name()
@@ -450,7 +466,7 @@ fn markdown_files(source: &Source<'_>) -> io::Result<Vec<PathBuf>> {
     let mut files = Vec::new();
     let mut visited = 0;
     while let Some(directory) = pending.pop() {
-        let entries: Vec<_> = fs::read_dir(directory)?.collect::<Result<_, _>>()?;
+        let entries = directory_entries(&directory, MAX_FILES - visited)?;
         visited = visited
             .checked_add(entries.len())
             .ok_or_else(|| invalid("mechanics traversal overflow"))?;
