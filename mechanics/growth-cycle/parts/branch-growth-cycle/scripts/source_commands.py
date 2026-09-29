@@ -1937,6 +1937,10 @@ def main():
             response = (_run_selected_native_alignment(args.owner_config, args.native_invocation, request)
                         if args.native_invocation is not None else run_local_command(args.owner_config, request))
     except (ValueError, KeyError, TypeError, OSError, ValidationError, RuntimeError) as error:
+        if args.native_invocation is not None:
+            # This explicit local owner's stderr is diagnostic; the public
+            # response keeps its existing error envelope and withholds content.
+            print('selected native owner refused: ' + str(error), file=sys.stderr)
         print(json.dumps({'schema_version': 'tos_local_source_command_error_v1', 'error': type(error).__name__}))
         return 2
     print(json.dumps(response, ensure_ascii=False, allow_nan=False))
