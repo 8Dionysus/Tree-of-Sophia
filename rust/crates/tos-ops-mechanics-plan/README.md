@@ -83,8 +83,9 @@ the existing `mechanics_topology` lane. It checks package/part membership,
 route documents, local Markdown references and fragments, script/test
 inventories, context budget and moved-path accounting. It bounds traversal to
 10,000 entries, retained input to 64 MiB (8 MiB per file), and diagnostics to
-4,096 issues of at most 8 KiB each; references and retained anchor text have
-separate 100,000-reference and 64 MiB bounds. The Python lane remains the independent
+4,096 issues of at most 8 KiB each; references have separate 100,000-entry
+and 64 MiB byte bounds, and retained anchor text has its own 64 MiB bound.
+The Python lane remains the independent
 blocking oracle until exact issue-order parity and the actual native consumer
 are accepted. This candidate does not inspect or change authored ToS meaning.
 

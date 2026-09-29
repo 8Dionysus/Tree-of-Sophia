@@ -21,6 +21,7 @@ const MAX_TOTAL_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_ISSUES: usize = 4_096;
 const MAX_ISSUE_BYTES: usize = 8 * 1_024;
 const MAX_REFERENCES: usize = 100_000;
+const MAX_REFERENCE_BYTES: usize = 64 * 1_024 * 1_024;
 const MAX_ANCHOR_BYTES: usize = 64 * 1_024 * 1_024;
 
 fn invalid(message: impl Into<String>) -> io::Error {
@@ -33,6 +34,7 @@ struct Source<'a> {
     bytes: u64,
     cache: BTreeMap<String, String>,
     references: usize,
+    reference_bytes: usize,
     anchors: BTreeMap<PathBuf, BTreeSet<String>>,
     anchor_bytes: usize,
 }
@@ -48,6 +50,7 @@ impl<'a> Source<'a> {
             bytes: 0,
             cache: BTreeMap::new(),
             references: 0,
+            reference_bytes: 0,
             anchors: BTreeMap::new(),
             anchor_bytes: 0,
         })
@@ -110,13 +113,20 @@ impl<'a> Source<'a> {
         Ok(Some(text))
     }
 
-    fn charge_references(&mut self, count: usize) -> io::Result<()> {
+    fn charge_references(&mut self, count: usize, bytes: usize) -> io::Result<()> {
         self.references = self
             .references
             .checked_add(count)
             .ok_or_else(|| invalid("mechanics reference count overflow"))?;
         if self.references > MAX_REFERENCES {
             return Err(invalid("mechanics reference budget exceeded"));
+        }
+        self.reference_bytes = self
+            .reference_bytes
+            .checked_add(bytes)
+            .ok_or_else(|| invalid("mechanics reference byte overflow"))?;
+        if self.reference_bytes > MAX_REFERENCE_BYTES {
+            return Err(invalid("mechanics reference byte budget exceeded"));
         }
         Ok(())
     }
@@ -581,6 +591,14 @@ fn references(text: &str) -> io::Result<(Vec<String>, BTreeMap<String, String>)>
     Ok((refs, definitions))
 }
 
+fn reference_bytes(references: &[String]) -> io::Result<usize> {
+    references.iter().try_fold(0usize, |total, reference| {
+        total
+            .checked_add(reference.len())
+            .ok_or_else(|| invalid("mechanics reference byte overflow"))
+    })
+}
+
 fn reference_parts(reference: &str) -> (&str, &str) {
     let stripped = reference.trim_matches(['<', '>']);
     let (target, fragment) = stripped.split_once('#').unwrap_or((stripped, ""));
@@ -804,7 +822,7 @@ fn route_map(
             continue;
         };
         let (links, _) = references(&rendered_markdown(&text)?)?;
-        source.charge_references(links.len())?;
+        source.charge_references(links.len(), reference_bytes(&links)?)?;
         let links: BTreeSet<_> = links
             .iter()
             .map(|link| reference_parts(link).0.to_owned())
@@ -823,7 +841,7 @@ fn route_map(
             continue;
         };
         let (links, _) = references(&rendered_markdown(&parts_text)?)?;
-        source.charge_references(links.len())?;
+        source.charge_references(links.len(), reference_bytes(&links)?)?;
         let links: BTreeSet<_> = links
             .iter()
             .map(|link| reference_parts(link).0.to_owned())
@@ -867,12 +885,12 @@ fn documentation_references(source: &mut Source<'_>, issues: &mut Vec<Issue>) ->
             .ok_or_else(|| invalid("mechanics document disappeared"))?;
         let rendered = rendered_markdown(&text)?;
         let (mut references, definitions) = references(&rendered)?;
-        source.charge_references(references.len())?;
+        source.charge_references(references.len(), reference_bytes(&references)?)?;
         for capture in use_ref.captures_iter(&rendered) {
-            source.charge_references(1)?;
             let whole = capture
                 .get(0)
                 .ok_or_else(|| invalid("markdown use capture"))?;
+            source.charge_references(1, whole.len())?;
             if rendered[..whole.start()].ends_with('!') {
                 continue;
             }
@@ -889,6 +907,7 @@ fn documentation_references(source: &mut Source<'_>, issues: &mut Vec<Issue>) ->
                     .join(" "),
             )?;
             if let Some(target) = definitions.get(&key) {
+                source.charge_references(0, target.len())?;
                 references.push(target.clone());
             } else {
                 push(
@@ -923,10 +942,10 @@ fn documentation_references(source: &mut Source<'_>, issues: &mut Vec<Issue>) ->
             }
         }
         for capture in script_ref.captures_iter(&text) {
-            source.charge_references(1)?;
             let whole = capture
                 .get(1)
                 .ok_or_else(|| invalid("script reference capture"))?;
+            source.charge_references(1, whole.len())?;
             if whole.start() > 0
                 && matches!(text.as_bytes()[whole.start()-1], b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'_' | b'.' | b'-')
             {
