@@ -55,7 +55,12 @@ jobs:
             /mechanics/growth-cycle/parts/branch-growth-cycle/scripts/
             /mechanics/growth-cycle/tests/test_source_revisions.py
             /docs/validation/validation_lanes.json
-            /rust/README.md
+            /.gitignore
+            /Cargo.toml
+            /Cargo.lock
+            /rust-toolchain.toml
+            /rust/
+            /tests/conformance/rust/
             /tests/test_validation_lanes.py
             /tests/test_acquisition_batch.py
             /tests/test_acquisition_handoff_adapter.py
@@ -105,6 +110,40 @@ jobs:
           npm ci --prefer-offline --no-audit --no-fund --prefix access/web
           python -m playwright install --with-deps chromium
 
+      - name: Prepare pinned native software and browser rules
+        env:
+          CARGO_HOME: ${{ runner.temp }}/software-cargo-home
+          CARGO_TARGET_DIR: ${{ runner.temp }}/software-cargo-target
+          CARGO_BUILD_JOBS: "2"
+        run: |
+          rustup toolchain install 1.98.1 --profile minimal --target wasm32-unknown-unknown
+          rustup default 1.98.1
+          cargo build --locked -p tos-access --bin tos-access --target x86_64-unknown-linux-gnu
+          cargo build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown
+          archive="$RUNNER_TEMP/software-wasm-bindgen.tar.gz"
+          curl --fail --location --silent --show-error \
+            'https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.128/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl.tar.gz' \
+            --output "$archive"
+          printf '%s  %s\n' 'b51f0208fdff83515a787bd8ab9ac5865ed84dabb66d0c709957bb59793c645f' "$archive" | sha256sum --check --status
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl/wasm-bindgen" \
+            --target web --out-name tos_web_rules --out-dir access/deploy/cloudflare-worker/generated \
+            "$CARGO_TARGET_DIR/wasm32-unknown-unknown/release/tos_web_rules.wasm"
+          python - <<'PY_RECEIPT'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          binary = Path(os.environ['CARGO_TARGET_DIR']) / 'x86_64-unknown-linux-gnu/debug/tos-access'
+          with binary.open('rb') as stream:
+              digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+          receipt = {'schema_version': 'tos_native_access_build_v1', 'sha256': digest,
+                     'size_bytes': binary.stat().st_size, 'target': 'x86_64-unknown-linux-gnu',
+                     'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+                     'source_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
+                     'lock_sha256': hashlib.sha256(Path('Cargo.lock').read_bytes()).hexdigest(),
+                     'toolchain': '1.98.1', 'profile': 'debug'}
+          Path(os.environ['RUNNER_TEMP'], 'tos-native-build.json').write_text(json.dumps(receipt) + '\n')
+          PY_RECEIPT
+
       - name: Validate software contracts and build browser assets
         run: python scripts/release_check.py --phase checks
 
@@ -119,12 +158,28 @@ jobs:
       - name: Test browser behavior with bounded fixtures
         run: python scripts/validation_lanes.py --run software_browser
 
-      - name: Build and install the software artifact without corpus data
+      - name: Build and install the native software artifact without corpus data
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/software-cargo-target
+        run: |
+          native="$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-access"
+          root="$GITHUB_WORKSPACE"
+          archive="$root/dist/tree-of-sophia-software.zip"
+          limits=(--max-total-bytes 536870912 --max-archive-bytes 553648128 --max-members 1024 --max-metadata-bytes 4194304)
+          "$native" software build --root "$root" --source-ref "${{ github.sha }}" \
+            --web-dist "$root/access/web/dist" --output "$archive" \
+            --native-access-binary "$native" --native-access-receipt "$RUNNER_TEMP/tos-native-build.json" "${limits[@]}"
+          "$native" software verify --archive "$archive" "${limits[@]}"
+          "$native" software install --archive "$archive" --prefix "$RUNNER_TEMP/tos-native-install" "${limits[@]}"
+          env -i PATH= "$RUNNER_TEMP/tos-native-install/bin/tos" --help
+          env -i PATH= "$RUNNER_TEMP/tos-native-install/bin/tos" --version
+
+      - name: Retain unique legacy wheel and integrity reference checks
         run: |
           python access/packaging/build_software_bundle.py \
-            --output dist/tree-of-sophia-software.zip \
+            --output "$RUNNER_TEMP/tree-of-sophia-legacy-reference.zip" \
             --source-ref "${{ github.sha }}"
-          python access/packaging/validate_software_bundle.py --bundle dist/tree-of-sophia-software.zip
+          python access/packaging/validate_software_bundle.py --bundle "$RUNNER_TEMP/tree-of-sophia-legacy-reference.zip"
 
       - name: Preserve validated software candidate
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

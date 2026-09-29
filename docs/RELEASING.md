@@ -23,17 +23,35 @@ owner surfaces.
 4. For Worker code, run its locked dependency install, `npm run typecheck
    --prefix access/deploy/cloudflare-worker` and `npm test --prefix
    access/deploy/cloudflare-worker`. These checks run against local fixtures.
-5. Build and verify an installable candidate from the reviewed commit:
+5. Build and verify the native installable candidate from a clean reviewed
+   commit. Prepare the locked `tos-access` binary with the pinned toolchain and
+   its exact nine-field `tos_native_access_build_v1` build receipt. Prepare the
+   genuine frontend through locked Vite and the matching verified
+   `wasm-bindgen`/`tos-web-rules` product, then use that explicit dist handoff:
 
    ```sh
-   python access/packaging/build_software_bundle.py --source-ref HEAD_SHA --output dist/tree-of-sophia-software.zip
-   python access/packaging/validate_software_bundle.py --bundle dist/tree-of-sophia-software.zip
+   /path/to/tos-access software build --root /absolute/clean-source --source-ref HEAD_SHA \
+     --web-dist /absolute/current-web-dist --output /absolute/tos-software.zip \
+     --native-access-binary /path/to/tos-access --native-access-receipt /absolute/native-build.json \
+     --max-total-bytes EXPANDED_CAP --max-archive-bytes ZIP_CAP --max-members MEMBER_CAP --max-metadata-bytes METADATA_CAP
+   /path/to/tos-access software verify --archive /absolute/tos-software.zip \
+     --max-total-bytes EXPANDED_CAP --max-archive-bytes ZIP_CAP --max-members MEMBER_CAP --max-metadata-bytes METADATA_CAP
+   /path/to/tos-access software install --archive /absolute/tos-software.zip --prefix /absolute/fresh-prefix \
+     --max-total-bytes EXPANDED_CAP --max-archive-bytes ZIP_CAP --max-members MEMBER_CAP --max-metadata-bytes METADATA_CAP
+   /absolute/fresh-prefix/bin/tos --version
    ```
 
-   Replace `HEAD_SHA` with the exact Git commit; build the browser first.
-   Dirty development builds require `--allow-dirty` and record that posture.
-   The validator checks exact file digests and installs a wheel in an isolated
-   environment outside the checkout, without a corpus or AoA installation.
+   Replace `HEAD_SHA` with the exact clean commit and caps with explicitly
+   admitted finite package budgets. The native receipt binds source commit/tree,
+   lock, target, toolchain, profile and actual image size/hash; dirty source is
+   refused. Archive validation and fresh-prefix install check the exact native,
+   JSON and web closure without a Python runtime or corpus. Preserve the
+   previous prefix and its matching verifier for rollback. This new verifier
+   intentionally refuses older mixed Python/native archives.
+   CI uses this native route for its software candidate. Its separate legacy
+   Python wheel/integrity probe remains a reference check; that wheel exposes
+   `tos-legacy`, and is not the normal native artifact. Build-time Python test
+   tools do not become runtime dependencies of the native prefix.
 6. Complete the ordinary checkpoint review for the exact repo, commit and
    session; open a PR. Required **Repo Validation** selects checks from the
    exact changed paths using the table below. Failed, cancelled or unexpectedly

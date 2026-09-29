@@ -128,8 +128,17 @@ class SoftwareSelectionTests(unittest.TestCase):
         reader=[s for s in steps if s.get('run')=='python scripts/validation_lanes.py --run software_reader']
         self.assertEqual(len(reader),1)
         self.assertIn("== 'reader'",reader[0]['if'])
+        native_package = [s for s in steps if 'software install --archive' in s.get('run', '')]
+        self.assertEqual(len(native_package), 1)
+        for operation in ('software build --root', 'software verify --archive', 'software install --archive'):
+            self.assertIn(operation, native_package[0]['run'])
+        self.assertIn('env -i PATH=', native_package[0]['run'])
+        self.assertNotIn('pip install', native_package[0]['run'])
+        legacy_reference = [s for s in steps if 'tree-of-sophia-legacy-reference.zip' in s.get('run', '')]
+        self.assertEqual(len(legacy_reference), 1)
+        self.assertIn('validate_software_bundle.py', legacy_reference[0]['run'])
         command_lab = [s for s in jobs['rust']['steps']
-                       if s.get('run') == 'cargo test -p tos-command --test postgres_lab --locked -- --nocapture']
+                       if 'cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture' in s.get('run', '')]
         self.assertEqual(len(command_lab), 1)
         self.assertTrue(command_lab[0]['env']['TOS_CMD_POSTGRES_URL'])
         self.assertIn('postgres', jobs['rust']['services'])

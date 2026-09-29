@@ -55,9 +55,11 @@ SOURCE_STATUS_PATHS = (
     "ToS/contracts/semantic-relation-type-registry.schema.json",
     "ToS/contracts/epistemic-evidence-projection.schema.json",
 )
-README = """# Tree of Sophia software package
+README = """# Tree of Sophia legacy Python reference package
 
-Install the software from this archive:
+This archive preserves the Python reference and wheel integrity checks.
+The normal native `tos` installation uses the native software archive instead.
+Install this reference package:
 
 ```sh
 pip install ./access
@@ -70,7 +72,8 @@ export TOS_DATA_ROOT=/path/to/compatible-data
 ```
 
 The software package contains no corpus or other production data. Data is
-selected separately through `TOS_DATA_ROOT`.
+selected separately through `TOS_DATA_ROOT`. Its explicit command is
+`tos-legacy`; it does not install the normal native `tos` entrypoint.
 """
 
 
