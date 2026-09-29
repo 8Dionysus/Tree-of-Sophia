@@ -124,3 +124,22 @@ from the integrated workspace. The existing native fixture may target that
 installed executable via `TOS_MECHANICS_TEST_EXECUTABLE`; without the variable
 it targets Cargo's built CLI. This compares the installed candidate using the
 same lifecycle/ordering risks, without another test framework.
+
+`tos-software-ci` is the next explicit candidate for the maintained
+`scripts/software_ci.py` whole selector. `plan --repo-root PATH --base REF`
+reads the actual Git no-renames changed paths, validates only new local Markdown
+links and merge markers, and emits the same v2 selection and optional
+`GITHUB_OUTPUT` fields. `--full` and unknown/shared changes require all checks.
+`gate` reads `CI_NEEDS` and rejects missing, failed, cancelled and unexpectedly
+skipped jobs. It cannot run checks or accept a release; the Python entry and
+`.github` workflow stay active pending whole owner acceptance.
+
+Git capture uses the existing dedicated Linux pidfd/subreaper boundary, capped
+at 30 seconds per command and 120 seconds for the plan. Input is limited to
+4096 changed paths / 4 MiB, 8 MiB per Markdown or prior Git document, and
+64 MiB across changed paths, current documents and captured Git output. Current
+Markdown and `GITHUB_OUTPUT` must be regular files without a final symlink;
+`CI_NEEDS` and the existing append destination are capped at 1 MiB. These are
+explicit finite candidate limits. Git error text/exception tracebacks are not
+promised byte-identical; selection, successful output and document findings
+retain the maintained semantics within this profile. No remote fetch occurs.

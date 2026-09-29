@@ -103,6 +103,33 @@ pub fn run_release_sequence(
     }
 }
 
+/// Capture one trusted command for the software CI Git reader. Uses the same
+/// process custody and combined-output ceiling, without progress on stdout.
+/// Kept crate-private: it is not a second general command runner.
+pub(crate) fn capture_ci_git(
+    root: &Path,
+    argv: Vec<String>,
+    limits: Limits,
+    cancel: &AtomicI32,
+) -> io::Result<(i32, Vec<u8>, Vec<u8>)> {
+    #[cfg(target_os = "linux")]
+    {
+        let plan = selected_plan(&[(String::new(), argv)], "tos_ci_git_capture_v1", "ci_git");
+        let mut streams = [Vec::new(), Vec::new()];
+        let code = native::run_captured(root, &plan, limits, cancel, &mut streams)?;
+        let [stdout, stderr] = streams;
+        Ok((code, stdout, stderr))
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (root, argv, limits, cancel);
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "execution requires Linux subreaper/pidfd custody",
+        ))
+    }
+}
+
 fn selected_plan(
     steps: &[(String, Vec<String>)],
     schema_version: &'static str,
@@ -140,6 +167,7 @@ mod native {
         Mechanics,
         Validation,
         Release,
+        Capture,
     }
 
     // Python subprocess.list2cmdline, used only for release progress text.
@@ -533,6 +561,27 @@ mod native {
         cancel: &AtomicI32,
         style: Style,
     ) -> io::Result<i32> {
+        run_inner(root, plan, limits, cancel, style, None)
+    }
+
+    pub(super) fn run_captured(
+        root: &Path,
+        plan: &Plan,
+        limits: Limits,
+        cancel: &AtomicI32,
+        streams: &mut [Vec<u8>; 2],
+    ) -> io::Result<i32> {
+        run_inner(root, plan, limits, cancel, Style::Capture, Some(streams))
+    }
+
+    fn run_inner(
+        root: &Path,
+        plan: &Plan,
+        limits: Limits,
+        cancel: &AtomicI32,
+        style: Style,
+        mut streams: Option<&mut [Vec<u8>; 2]>,
+    ) -> io::Result<i32> {
         if limits.command_wall.is_zero()
             || limits.command_wall > Duration::from_secs(3600)
             || limits.lane_wall.is_zero()
@@ -576,6 +625,7 @@ mod native {
         for command in &plan.commands {
             let deadline = lane_deadline.min(Instant::now() + limits.command_wall);
             let progress = match style {
+                Style::Capture => String::new(),
                 Style::Mechanics => format!("[mechanics-local] {}\n", command.argv.join(" ")),
                 Style::Validation => {
                     format!("[run] {}: {}\n", command.home, command.argv.join(" "))
@@ -624,7 +674,11 @@ mod native {
                             if output_bytes > limits.output_bytes {
                                 return Err(error("combined child output byte limit exceeded"));
                             }
-                            write(sink, &buffer[..count as usize], deadline, cancel)?;
+                            if let Some(streams) = streams.as_deref_mut() {
+                                streams[index].extend_from_slice(&buffer[..count as usize]);
+                            } else {
+                                write(sink, &buffer[..count as usize], deadline, cancel)?;
+                            }
                         } else {
                             let err = io::Error::last_os_error();
                             if !matches!(
@@ -647,6 +701,7 @@ mod native {
             execution?;
             if !status.unwrap().success() {
                 let failure = match style {
+                    Style::Capture => String::new(),
                     Style::Mechanics => format!(
                         "[error] mechanics-local command failed: {} ({})\n",
                         command.argv.join(" "),
@@ -681,7 +736,7 @@ mod native {
                 )?;
                 return Ok(match style {
                     Style::Mechanics => 1,
-                    Style::Validation | Style::Release => {
+                    Style::Validation | Style::Release | Style::Capture => {
                         status.unwrap().code().unwrap_or_else(|| {
                             // sys.exit(-signal) from the Python compatibility entry
                             // is observed by its parent as 256-signal on Unix.

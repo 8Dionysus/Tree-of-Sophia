@@ -7,6 +7,7 @@ pub mod mechanics_topology;
 pub mod public_mirror;
 pub mod questbook;
 pub mod relation_pack;
+pub mod software_ci;
 pub mod threshold_registry;
 pub mod validation_lanes;
 

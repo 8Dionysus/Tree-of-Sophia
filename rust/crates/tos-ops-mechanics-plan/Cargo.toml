@@ -31,3 +31,7 @@ path = "src/validation_lanes_main.rs"
 [[bin]]
 name = "tos-release-check"
 path = "src/release_check_main.rs"
+
+[[bin]]
+name = "tos-software-ci"
+path = "src/software_ci_main.rs"
