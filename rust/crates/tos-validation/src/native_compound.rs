@@ -4989,6 +4989,15 @@ pub fn finish_work_expression_bytes(
     event_raw: &[u8],
     schemas: &mut CutWorkerSchemaExecutor,
 ) -> Result<WorkExpressionBytes, ItemRefusal> {
+    finish_prepared_compound_bytes(core, environment_raw, event_raw, schemas, true)
+}
+fn finish_prepared_compound_bytes(
+    core: WorkExpressionCore<'_>,
+    environment_raw: &[u8],
+    event_raw: &[u8],
+    schemas: &mut CutWorkerSchemaExecutor,
+    native_producer: bool,
+) -> Result<WorkExpressionBytes, ItemRefusal> {
     let WorkExpressionCore {
         mut reader,
         prepared,
@@ -5002,7 +5011,9 @@ pub fn finish_work_expression_bytes(
         return Err(bad("native Work capture worker/size binding"));
     }
     let environment = reader.decoded(environment_raw)?;
-    native_work_environment(&environment)?;
+    if native_producer {
+        native_work_environment(&environment)?;
+    }
     let mut expected_environment_raw = canonical(&environment)?;
     expected_environment_raw.push(b'\n');
     if environment_raw != expected_environment_raw {
@@ -5336,6 +5347,23 @@ pub fn finish_edition_item_bytes(
     }
     finish_work_expression_bytes(core.inner, environment_raw, event_raw, schemas)
 }
+/// Reconstruct exactly the retained Item capture, including maintained Python
+/// interrupted-producer events. The normal producer finish stays native-only;
+/// CMD owns retained journal/capture custody and physical recovery authority.
+pub fn restore_edition_item_bytes(
+    core: EditionItemCore<'_>,
+    environment_raw: &[u8],
+    event_raw: &[u8],
+    schemas: &mut CutWorkerSchemaExecutor,
+) -> Result<EditionItemBytes, ItemRefusal> {
+    if core.descriptive_preview {
+        return Err(bad(
+            "descriptive Item preview cannot restore retained capture",
+        ));
+    }
+    finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, false)
+}
+
 fn preview_item_receipt(
     reader: &mut NativeCompoundReader<'_>,
     scope: &Value,
