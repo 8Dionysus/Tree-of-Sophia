@@ -282,7 +282,7 @@ pub(super) fn normalize(
     }
     let order: Vec<String> = positions.into_values().collect();
     let before = normalization::normalize_claim_candidate(
-        ClaimCandidateInput {
+        &ClaimCandidateInput {
             nodes: candidate_nodes(&old_nodes, &dossiers),
             relations: candidate_relations(&prior_specs),
             retained_nodes: retained(&retained_nodes),
@@ -291,7 +291,7 @@ pub(super) fn normalize(
             context_node_order: order.clone(),
             normalization_binding: registries.expected_normalization_binding.clone(),
         },
-        registries,
+        *registries,
         limits,
     )?;
     if by_id(&before.nodes)? != previous_nodes || by_id(&before.relations)? != prior_relations {
@@ -312,7 +312,7 @@ pub(super) fn normalize(
     let mut all_traces = old_traces;
     all_traces.extend(new_traces);
     let after = normalization::normalize_claim_candidate(
-        ClaimCandidateInput {
+        &ClaimCandidateInput {
             nodes: candidate_nodes(&new_nodes, &dossiers),
             relations: candidate_relations(&specs),
             retained_nodes: retained(&retained_nodes),
@@ -321,7 +321,7 @@ pub(super) fn normalize(
             context_node_order: after_order,
             normalization_binding: registries.expected_normalization_binding.clone(),
         },
-        registries,
+        *registries,
         limits,
     )?;
     for row in &after.nodes {

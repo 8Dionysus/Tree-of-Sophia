@@ -35,8 +35,7 @@ use tos_compiler::{
     source_bibliographic::BibliographicLimits,
 };
 use tos_foundation::{
-    Digest256, JsonLimits, JsonMode, JsonValue, SourceRevision, emit_value_preserved_json,
-    parse_json,
+    Digest256, JsonLimits, JsonMode, JsonValue, emit_value_preserved_json, parse_json,
 };
 use tos_validation::source_cut::CutWorkerSchemaExecutor;
 const META: usize = 1_048_576;
@@ -451,10 +450,9 @@ impl ClaimAdditionPublication {
             &cancelled,
         )
         .map_err(|e| Error::Source(e.to_string()))?;
-        let revision = SourceRevision(
-            Digest256::from_hex(source.source_revision())
-                .map_err(|e| Error::Source(e.to_string()))?,
-        );
+        // This is the real selected schema/source-cut revision, independent
+        // of the derived prepared source vector; it is no invented Cut proof.
+        let revision = worker.source_revision();
         let (catalog_addition, raw) = assembly::assemble(
             &mut observer,
             &mut roots,

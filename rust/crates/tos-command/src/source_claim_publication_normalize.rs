@@ -1,5 +1,7 @@
 //! Explicit, bounded candidate closure. Selection, complete incidence, source
 //! admission and publication belong to the caller; no global cut is invented.
+#[path = "source_claim_reference_carriers.rs"]
+mod reference_carriers;
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
@@ -50,6 +52,7 @@ pub struct ClaimCandidateLimits {
     pub max_input_bytes: usize,
     pub max_output_bytes: usize,
 }
+#[derive(Clone, Copy)]
 pub struct ClaimCandidateRegistries<'a> {
     pub entity_bytes: &'a [u8],
     pub relation_bytes: &'a [u8],
@@ -711,62 +714,28 @@ pub fn normalize_claim_candidate(
         entity_registry.value(),
         limits.max_row_bytes,
     )?;
-    let policies: BTreeMap<_, _> = relation_registry
-        .value()
-        .get("relations")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(|entry| {
-            entry
-                .get("relation_type_id")
-                .and_then(Value::as_str)
-                .map(|id| (id, entry))
-        })
-        .collect();
-    for (native, raw) in &raw_claims {
-        if raw.get("node_kind").and_then(Value::as_str) == Some("claim")
-            && !output_ids
-                .iter()
-                .any(|id| id == &format!("source-claims:{native}"))
-        {
-            continue;
-        }
-        let predicates = [
-            raw.pointer("/properties/source_claim/predicate"),
-            raw.pointer("/properties/predicate"),
-        ]
-        .into_iter()
-        .flatten()
-        .filter_map(Value::as_str)
-        .chain(
-            traces
-                .iter()
-                .filter(|trace| {
-                    trace.get("claim_node_id").and_then(Value::as_str) == Some(native.as_str())
-                })
-                .filter_map(|trace| trace.get("predicate").and_then(Value::as_str)),
-        );
-        for predicate in predicates {
-            let mapped = registry.relation("source-claims", predicate, "claim-predicate");
-            let reader = policies
-                .get(mapped.type_id)
-                .and_then(|entry| entry.pointer("/source_claim_profile/reader"))
-                .and_then(Value::as_str);
-            if matches!(
-                reader,
-                Some(
-                    "structured-reference-value-v1"
-                        | "identity-transition-v1"
-                        | "identity-transition-v2"
-                )
-            ) {
-                return Err(Error::Invalid(
-                    "Claim candidate reference ABI guard unavailable; explicit capability refusal",
-                ));
-            }
-        }
+    // Parse and charge the complete supplied relation cohort once. The same
+    // admitted raw values drive fixed-slot guards and relation normalization.
+    let mut raw_edges = Vec::new();
+    for spec in &input.relations {
+        charge(
+            &mut input_bytes,
+            spec.raw.payload.len(),
+            limits.max_input_bytes,
+        )?;
+        raw_edges.push(parsed(&spec.raw, limits.max_row_bytes)?);
     }
+    reference_carriers::validate(
+        &raw_claims,
+        &output_ids,
+        &traces,
+        &raw_edges,
+        &nodes,
+        &registry,
+        entity_registry.value(),
+        relation_registry.value(),
+        limits.max_row_bytes,
+    )?;
     for trace in &traces {
         for field in ["claim_node_id", "subject_node_id", "object_node_id"] {
             if !nodes.contains_key(&format!("source-claims:{}", identifier(trace, field)?)) {
@@ -789,13 +758,7 @@ pub fn normalize_claim_candidate(
     let mut relation_owners = Vec::new();
     let mut relation_ids = BTreeSet::new();
     let mut inherited: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
-    for spec in &input.relations {
-        charge(
-            &mut input_bytes,
-            spec.raw.payload.len(),
-            limits.max_input_bytes,
-        )?;
-        let raw = parsed(&spec.raw, limits.max_row_bytes)?;
+    for (spec, raw) in input.relations.iter().zip(&raw_edges) {
         if identifier(&raw, "edge_id")? != spec.raw.id {
             return Err(Error::Invalid("Claim candidate edge identity"));
         }
