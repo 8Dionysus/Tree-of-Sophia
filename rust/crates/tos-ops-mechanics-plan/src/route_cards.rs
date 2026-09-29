@@ -296,6 +296,45 @@ impl RouteSources {
             .map(|v| v.raw.clone())
             .ok_or_else(|| invalid(format!("missing route file: {value}")))
     }
+    /// Byte-only read for an explicit consumer-owned operand profile. This
+    /// reuses descriptor custody without admitting bytes into the route text
+    /// cache. The caller owns the local aggregate budget and operand fixity.
+    pub fn bounded_bytes(
+        &mut self,
+        value: &str,
+        max_file_bytes: usize,
+        read_bytes: &mut usize,
+        max_total_bytes: usize,
+    ) -> io::Result<Vec<u8>> {
+        let remaining = max_total_bytes
+            .checked_sub(*read_bytes)
+            .ok_or_else(|| invalid("operand aggregate byte accounting exceeded"))?;
+        let cap = max_file_bytes.min(remaining);
+        let file = self
+            .open(value)?
+            .ok_or_else(|| invalid(format!("missing operand file: {value}")))?;
+        let meta = file.metadata()?;
+        if !meta.is_file() {
+            return Err(invalid("operand input is not a regular file"));
+        }
+        if meta.len() > cap as u64 {
+            return Err(invalid("operand input byte bound exceeded"));
+        }
+        let mut raw = Vec::with_capacity(meta.len() as usize);
+        let read_cap = u64::try_from(cap)
+            .map_err(|_| invalid("operand read limit overflow"))?
+            .checked_add(1)
+            .ok_or_else(|| invalid("operand read limit overflow"))?;
+        file.take(read_cap).read_to_end(&mut raw)?;
+        if raw.len() > cap || raw.len() as u64 != meta.len() {
+            return Err(invalid("operand input changed or exceeded byte bound"));
+        }
+        *read_bytes = read_bytes
+            .checked_add(raw.len())
+            .ok_or_else(|| invalid("operand aggregate byte accounting overflow"))?;
+        self.check()?;
+        Ok(raw)
+    }
     pub fn inventory(&mut self) -> io::Result<Value> {
         let source = self
             .source(INVENTORY)?
