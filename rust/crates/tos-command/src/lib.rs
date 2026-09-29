@@ -7,6 +7,7 @@ mod durable_adapter;
 pub mod source_claims;
 pub mod source_command;
 pub mod source_creation;
+pub mod source_artifact_native;
 pub mod source_creation_store;
 pub mod source_current_cut;
 mod source_managed_query;

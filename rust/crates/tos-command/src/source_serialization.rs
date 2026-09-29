@@ -185,7 +185,7 @@ pub(crate) fn capture_creation(
         files,
         software,
         components,
-        "native-source-metadata-serialization",
+        if request.object_get("record").and_then(|r| r.object_get("schema_version")).and_then(JsonValue::as_str) == Some("tos_artifact_source_witness_v2") { "native-artifact-metadata-serialization" } else { "native-source-metadata-serialization" },
         None,
         deadline,
         cancelled,
@@ -913,6 +913,10 @@ pub(crate) fn restore_creation_capture(
     let mut method_environment = environment.clone();
     method_environment["environment_profile_binding"] =
         binding("source-create-environment.json", environment_raw);
+    let artifact = request.object_get("record").and_then(|r| r.object_get("schema_version")).and_then(JsonValue::as_str) == Some("tos_artifact_source_witness_v2");
+    if artifact && event.pointer("/method/procedure/name") != Some(&json!("native-artifact-metadata-serialization")) {
+        return Err(SourceCommandError::Conflict("retained Artifact serialization procedure differs"));
+    }
     if event.get("event_id") != Some(&json!(event_id))
         || event.get("record_binding")
             != Some(

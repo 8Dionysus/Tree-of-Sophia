@@ -62,6 +62,7 @@ pub enum CreationFamily {
     CorpusV1,
     CorpusV2,
     Sign,
+    Artifact,
 }
 impl CreationFamily {
     pub(crate) fn parse(schema: &str) -> SourceCommandResult<Self> {
@@ -72,6 +73,7 @@ impl CreationFamily {
             "tos_local_corpus_create_owner_v1" => Self::CorpusV1,
             "tos_local_corpus_create_owner_v2" => Self::CorpusV2,
             "tos_local_sign_promote_owner_v1" => Self::Sign,
+            "tos_local_artifact_create_owner_v1" => Self::Artifact,
             _ => return Err(SourceCommandError::Denied("source create owner schema")),
         })
     }
@@ -81,6 +83,7 @@ impl CreationFamily {
             Self::PublicProfile => "public-profile-create",
             Self::CorpusV1 | Self::CorpusV2 => "native-corpus-create",
             Self::Sign => "sign-promotion",
+            Self::Artifact => "native-artifact-create",
         }
     }
     fn historical(self) -> bool {
@@ -836,6 +839,18 @@ fn creation_information(
             "claim_schema_ref",
             cmd::string("ToS/contracts/historical-claim.schema.json"),
         )?;
+    } else if family == CreationFamily::Artifact {
+        cmd::set(&mut result, "record_type", cmd::string("artifact"))?;
+        cmd::set(&mut result, "source_bindings", cmd::field(&config, "source_bindings")?.clone())?;
+        cmd::set(&mut result, "source_profile", cmd::object(vec![
+            ("record_type", cmd::string("artifact")),
+            ("identity_field", cmd::string("artifact_id")),
+            ("id_prefix", cmd::string("tos.artifact.")),
+            ("source_basename", cmd::string("artifact-witness.json")),
+            ("schema_ref", cmd::string(crate::source_artifact_native::SCHEMA)),
+            ("schema_version", cmd::string("tos_artifact_source_witness_v2")),
+            ("source_scope", cmd::string("public_metadata_only")),
+        ]))?;
     } else if family.corpus() {
         let kind = cmd::text(&config, "record_type")?;
         cmd::set(&mut result, "record_type", cmd::string(kind))?;
@@ -953,6 +968,8 @@ fn configuration(
         keys.push("allowed_claim_ids");
     } else if family.corpus() {
         keys.push("record_type");
+    } else if family == CreationFamily::Artifact {
+        keys.push("source_bindings");
     } else {
         keys.push("profile_type_id");
     }
@@ -1020,6 +1037,9 @@ fn configuration(
             "creation exact public source home",
         ));
     }
+    if family == CreationFamily::Artifact {
+        crate::source_artifact_native::configuration(&config)?;
+    }
     let home = relative(source.rsplit_once('/').unwrap().0)?;
     Ok((family, config, home))
 }
@@ -1034,6 +1054,9 @@ fn initial(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<String>> {
+    if family == CreationFamily::Artifact {
+        return crate::source_artifact_native::initial(ctx, config, record, worker, deadline, cancelled);
+    }
     let mut profile_resources = Vec::new();
     if cmd::text(record, "record_id")? != cmd::text(config, "record_id")?
         || cmd::integer(record, "record_version")? != 1
@@ -1655,6 +1678,12 @@ fn prepare_creation(
         ));
     }
     let mut keys = vec!["schema_version", "operation", "record", "forms"];
+    if family == CreationFamily::Artifact {
+        keys.push("source_bindings");
+        if !cmd::same(cmd::field(&request, "source_bindings")?, cmd::field(&config, "source_bindings")?)? {
+            return Err(SourceCommandError::Denied("Artifact request input bindings differ from grant"));
+        }
+    }
     if family.historical() {
         keys.push("claims");
     }
@@ -1743,7 +1772,7 @@ fn prepare_creation(
     if inventory.as_ref().is_some_and(|inventory| {
         inventory
             .objects
-            .contains_key(cmd::text(record, "record_id").unwrap_or(""))
+            .contains_key(cmd::text(record, if family == CreationFamily::Artifact { "artifact_id" } else { "record_id" }).unwrap_or(""))
     }) {
         return Err(SourceCommandError::Conflict(
             "source identity exists in authored inventory",
@@ -1938,7 +1967,7 @@ fn prepare_creation(
         let mut inventory = inventory.take().ok_or(SourceCommandError::Invalid(
             "creation inventory unavailable",
         ))?;
-        for name in profile_resources {
+        for name in profile_resources.into_iter().filter(|_| family != CreationFamily::Artifact) {
             cmd::set(
                 &mut inventory.record_inputs,
                 &name,
@@ -2005,6 +2034,35 @@ fn creation_dependency_snapshot(
     evidence: Vec<JsonValue>,
     form_inputs: JsonValue,
 ) -> SourceCommandResult<JsonValue> {
+    if family == CreationFamily::Artifact {
+        let config = cmd::parse(&ctx.configuration_raw)?;
+        let implementation = [
+            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_artifact_commands.py",
+            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
+            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
+            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
+            "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
+            "scripts/build_source_witness_catalog.py", "scripts/source_record_profiles.py",
+            "scripts/source_witness_human_forms.py", "scripts/source_witness_bibliographic_graph_common.py",
+            "ToS/contracts/human-form.schema.json", "ToS/contracts/human-form-set.schema.json",
+            "ToS/contracts/human-form-template.schema.json",
+        ];
+        return Ok(cmd::object(vec![
+            ("records", encoding.records), ("claims", encoding.claims), ("events", encoding.events),
+            ("source_profiles", encoding.source_profiles),
+            ("source_claim_profiles", encoding.claim_profile_inputs),
+            ("native_semantic_identity_snapshot", cmd::string(&encoding.native_identity_snapshot)),
+            ("native_text_binding_snapshot", encoding.native_text_snapshot.as_deref().map(cmd::string).unwrap_or(JsonValue::Null)),
+            ("inputs", cmd::object(vec![
+                ("bindings", cmd::field(&config, "source_bindings")?.clone()),
+                ("schemas", claims::raw_digests(ctx, &["ToS/contracts/rights-record.schema.json", "ToS/contracts/material-discovery-record.schema.json"], true)?),
+            ])),
+            ("forms", form_inputs),
+            ("contracts", claims::raw_digests(ctx, &[crate::source_artifact_native::SCHEMA, "ToS/contracts/provenance-event-v2.schema.json"], true)?),
+            ("implementation", claims::raw_digests(ctx, &implementation, true)?),
+        ]));
+    }
     let provenance_contract = if family == CreationFamily::HistoricalV1 {
         cmd::object(vec![])
     } else {
