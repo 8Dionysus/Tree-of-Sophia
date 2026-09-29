@@ -105,6 +105,7 @@ pub struct LayerFamilyReport {
     pub metadata_reports: Vec<TextMetadataReport>,
     pub metadata_bytes: u64,
 }
+<<<<<<< HEAD
 pub struct LayerFamilyRules {
     limits: ItemLimits,
     state_bytes: usize,
@@ -115,6 +116,10 @@ pub struct LayerFamilyRules {
     boundary_events: Option<BTreeMap<String, (String, Value, Vec<u8>)>>,
     require_local_payloads: bool,
 }
+=======
+pub struct LayerFamilyRules { limits: ItemLimits, state_bytes: usize, report: LayerFamilyReport, identities: BTreeMap<(String,String),String>, discovery_events:Option<BTreeMap<String,(String,Value,Vec<u8>)>>, boundary_events:Option<BTreeMap<String,(String,Value,Vec<u8>)>>, require_local_payloads:bool }
+
+>>>>>>> b6ccfae8b4 (Expose bounded supplied alignment mapping report)
 /// Apply only the decoded translation-alignment mapping law to an owner-supplied
 /// packet. The caller retains raw-byte admission, schema validation and source
 /// custody; this report grants none of those properties.
