@@ -8400,6 +8400,8 @@ impl NativeCompoundReader<'_> {
         if !array(&parent_history, "receipts")?.contains(&reconstructed.parent_receipt) {
             return Err(bad("compound transition missing in current parent lineage"));
         }
+        observation.work_parent_transition_sha256 =
+            Some(text(&reconstructed.receipt, "parent_transition_sha256")?.to_owned());
         if kind.relation_attachment() {
             let initial = self.attachment_claim_initial(path, claim)?;
             if initial != reconstructed.child["source-claims.jsonl"] {
@@ -8456,10 +8458,6 @@ impl NativeCompoundReader<'_> {
             return Err(bad(
                 "current compound child lacks committed initial lineage",
             ));
-        }
-        if kind == CompoundKind::WorkExpression {
-            observation.work_parent_transition_sha256 =
-                Some(text(&reconstructed.receipt, "parent_transition_sha256")?.to_owned());
         }
         check(self.limits.deadline, self.cancelled)?;
         Ok(observation)
