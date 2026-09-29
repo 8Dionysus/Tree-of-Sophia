@@ -7055,4 +7055,6 @@ mod prepared_inspect_lens {
         drop(fixture);
         fs::remove_dir_all(dir).unwrap();
     }
+    include!("support/prepared_explore.rs");
+
 }
