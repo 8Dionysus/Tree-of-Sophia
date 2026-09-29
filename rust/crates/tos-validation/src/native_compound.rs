@@ -426,6 +426,72 @@ pub fn verify_work_expression_from_cut(
     reader.verify(claim_path, claim, schemas)
 }
 
+/// Actual read cost returned to the Item owner for cumulative topology admission.
+#[derive(Debug)]
+pub struct NativeCompoundReadObservation {
+    pub claim_path: String,
+    pub claim_id: String,
+    pub transaction_id: String,
+    pub manifest_sha256: String,
+    pub transport: NativeTransportState,
+    pub work_parent_transition_sha256: Option<String>,
+    pub reads: Vec<PredicateRead>,
+    pub bytes_read: u64,
+    pub returned_state_bytes: usize,
+}
+fn measured_compound_observation(
+    reader: NativeCompoundReader<'_>,
+    observation: NativeCompoundObservation,
+) -> Result<NativeCompoundReadObservation, ItemRefusal> {
+    let NativeCompoundObservation {
+        claim_path,
+        claim_id,
+        transaction_id,
+        manifest_sha256,
+        transport,
+        work_parent_transition_sha256,
+    } = observation;
+    let identity = std::mem::size_of::<NativeCompoundReadObservation>()
+        .checked_add(claim_path.len())
+        .and_then(|n| n.checked_add(claim_id.len()))
+        .and_then(|n| n.checked_add(transaction_id.len()))
+        .and_then(|n| n.checked_add(manifest_sha256.len()))
+        .and_then(|n| {
+            n.checked_add(
+                work_parent_transition_sha256
+                    .as_ref()
+                    .map_or(0, String::len),
+            )
+        })
+        .ok_or(ItemRefusal::Budget)?;
+    let returned_state_bytes = reader
+        .reads
+        .iter()
+        .try_fold(identity, |n, read| {
+            n.checked_add(crate::record_biblio_cut::predicate_state(read).ok()?)
+        })
+        .ok_or(ItemRefusal::Budget)?;
+    if reader
+        .state
+        .checked_add(identity)
+        .is_none_or(|n| n > reader.limits.max_state_bytes)
+        || returned_state_bytes > reader.limits.max_state_bytes
+    {
+        return Err(ItemRefusal::Budget);
+    }
+    Ok(NativeCompoundReadObservation {
+        claim_path,
+        claim_id,
+        transaction_id,
+        manifest_sha256,
+        transport,
+        work_parent_transition_sha256,
+        reads: reader.reads,
+        bytes_read: reader.bytes,
+        returned_state_bytes,
+    })
+}
+
 /// Read the exact selected Expression/Edition compound and its retained/current lineage.
 /// The transport observation is descriptive; CMD still owns the physical
 /// publication, source/software and journal fences for any replay decision.
@@ -436,13 +502,14 @@ pub fn verify_expression_edition_from_cut(
     claim: &Value,
     limits: ItemLimits,
     cancelled: &AtomicBool,
-) -> Result<NativeCompoundObservation, ItemRefusal> {
+) -> Result<NativeCompoundReadObservation, ItemRefusal> {
     if claim["predicate"] != "embodied_by" || schemas.source_revision() != cut.current().revision()
     {
         return Err(bad("selected Expression/Edition compound type/cut"));
     }
     let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
-    reader.verify(claim_path, claim, schemas)
+    let observation = reader.verify(claim_path, claim, schemas)?;
+    measured_compound_observation(reader, observation)
 }
 
 /// Read the exact selected Edition/Item compound and its retained/current lineage.
@@ -455,14 +522,15 @@ pub fn verify_edition_item_from_cut(
     claim: &Value,
     limits: ItemLimits,
     cancelled: &AtomicBool,
-) -> Result<NativeCompoundObservation, ItemRefusal> {
+) -> Result<NativeCompoundReadObservation, ItemRefusal> {
     if claim["predicate"] != "exemplified_by"
         || schemas.source_revision() != cut.current().revision()
     {
         return Err(bad("selected Edition/Item compound type/cut"));
     }
     let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
-    reader.verify(claim_path, claim, schemas)
+    let observation = reader.verify(claim_path, claim, schemas)?;
+    measured_compound_observation(reader, observation)
 }
 
 /// An exact Collection record version and the selected bytes that established
