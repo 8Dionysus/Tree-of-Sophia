@@ -14,7 +14,7 @@ use std::{
 };
 use tos_foundation::{
     Digest256, Digest256Hasher, JsonNumber, JsonNumberKind, JsonString, JsonValue,
-    python_lower_unicode16_v1,
+    python_lower_unicode16_v1, python_printable_unicode16_v1,
 };
 
 pub const SCHEMA: &str = "tos_local_prepared_read_model_v1";
@@ -187,31 +187,98 @@ fn dimensions(kind: &str) -> Result<&'static [&'static str]> {
         _ => Err(Error::Invalid("prepared kind")),
     }
 }
-// Normalized index dimensions are strings. Missing/null/false/zero are the
-// maintained empty value; refuse malformed compound index values explicitly.
+// Match Python's str(item.get(key) or '') used by the prepared row/search owner.
+// Containers retain encounter order and nested Python literals, not JSON text.
 pub fn index_value(item: &JsonValue, key: &str) -> Result<String> {
-    match item.object_get(key) {
-        None | Some(JsonValue::Null) | Some(JsonValue::Bool(false)) => Ok(String::new()),
-        Some(JsonValue::Bool(true)) => Ok("True".into()),
-        Some(JsonValue::String(s)) => s
-            .as_str()
-            .map(str::to_owned)
-            .ok_or(Error::Invalid("prepared string scalar")),
-        Some(JsonValue::Number(n)) => {
-            let numeric = n.lexeme.parse::<f64>().ok();
-            if numeric == Some(0.0) {
-                Ok(String::new())
-            } else {
-                compact(item.object_get(key).unwrap(), 1_048_576)
-            }
+    let Some(value) = item.object_get(key) else {
+        return Ok(String::new());
+    };
+    match value {
+        JsonValue::Null | JsonValue::Bool(false) => return Ok(String::new()),
+        JsonValue::Array(v) if v.is_empty() => return Ok(String::new()),
+        JsonValue::Object(v) if v.is_empty() => return Ok(String::new()),
+        JsonValue::Number(n) if n.lexeme.parse::<f64>().ok() == Some(0.0) => {
+            return Ok(String::new());
         }
-        Some(JsonValue::Array(v)) if v.is_empty() => Ok(String::new()),
-        Some(JsonValue::Object(v)) if v.is_empty() => Ok(String::new()),
-        _ => Err(Error::PreparedUnsupported(
-            "prepared normalized index field must be scalar",
-        )),
+        JsonValue::String(s) => {
+            return s.as_str().map(str::to_owned)
+                .ok_or(Error::Invalid("prepared string scalar"));
+        }
+        _ => {}
+    }
+    let mut output = String::new();
+    let mut visits = 0;
+    index_repr(value, &mut output, 0, &mut visits)?;
+    Ok(output)
+}
+fn index_append(output: &mut String, text: &str) -> Result<()> {
+    if output.len().checked_add(text.len()).is_none_or(|n| n > 1_048_576) {
+        return Err(Error::Budget("prepared index representation"));
+    }
+    output.push_str(text);
+    Ok(())
+}
+fn index_string_repr(value: &JsonString, output: &mut String) -> Result<()> {
+    let quote = if value.units().contains(&(b'\'' as u16))
+        && !value.units().contains(&(b'"' as u16)) { '"' } else { '\'' };
+    index_append(output, &quote.to_string())?;
+    for scalar in char::decode_utf16(value.units().iter().copied()) {
+        let c = match scalar {
+            Ok(c) => c,
+            Err(e) => {
+                index_append(output, &format!("\\u{:04x}", e.unpaired_surrogate()))?;
+                continue;
+            }
+        };
+        let escaped = match c {
+            '\\' => "\\\\".to_owned(),
+            '\n' => "\\n".to_owned(),
+            '\r' => "\\r".to_owned(),
+            '\t' => "\\t".to_owned(),
+            c if c == quote => format!("\\{c}"),
+            c if !python_printable_unicode16_v1(c) => {
+                let cp = c as u32;
+                if cp <= 0xff { format!("\\x{cp:02x}") }
+                else if cp <= 0xffff { format!("\\u{cp:04x}") }
+                else { format!("\\U{cp:08x}") }
+            }
+            c => c.to_string(),
+        };
+        index_append(output, &escaped)?;
+    }
+    index_append(output, &quote.to_string())
+}
+fn index_repr(value: &JsonValue, output: &mut String, depth: usize, visits: &mut usize) -> Result<()> {
+    *visits += 1;
+    if depth > 96 || *visits > 1_000_000 {
+        return Err(Error::Budget("prepared index representation"));
+    }
+    match value {
+        JsonValue::Null => index_append(output, "None"),
+        JsonValue::Bool(v) => index_append(output, if *v { "True" } else { "False" }),
+        JsonValue::Number(_) => index_append(output, &compact(value, 1_048_576)?),
+        JsonValue::String(s) => index_string_repr(s, output),
+        JsonValue::Array(values) => {
+            index_append(output, "[")?;
+            for (i, value) in values.iter().enumerate() {
+                if i != 0 { index_append(output, ", ")?; }
+                index_repr(value, output, depth + 1, visits)?;
+            }
+            index_append(output, "]")
+        }
+        JsonValue::Object(values) => {
+            index_append(output, "{")?;
+            for (i, (key, value)) in values.iter().enumerate() {
+                if i != 0 { index_append(output, ", ")?; }
+                index_string_repr(key, output)?;
+                index_append(output, ": ")?;
+                index_repr(value, output, depth + 1, visits)?;
+            }
+            index_append(output, "}")
+        }
     }
 }
+
 fn indexed(item: &JsonValue, key: &str) -> Result<String> {
     index_value(item, key)
 }

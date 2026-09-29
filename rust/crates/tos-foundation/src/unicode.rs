@@ -166,3 +166,13 @@ fn is_python_whitespace(ch: char) -> bool {
         '\u{00a0}' | '\u{1680}' | '\u{2000}'..='\u{200a}' |
         '\u{2028}' | '\u{2029}' | '\u{202f}' | '\u{205f}' | '\u{3000}')
 }
+
+/// Python 3.14/Unicode 16 printable scalar predicate used by string repr.
+/// CPython excludes separator and other categories except ASCII space.
+pub fn python_printable_unicode16_v1(ch: char) -> bool {
+    use unicode_general_category::{GeneralCategory as Category, get_general_category};
+    ch == ' ' || !matches!(get_general_category(ch),
+        Category::Control | Category::Format | Category::Surrogate |
+        Category::PrivateUse | Category::Unassigned | Category::LineSeparator |
+        Category::ParagraphSeparator | Category::SpaceSeparator)
+}
