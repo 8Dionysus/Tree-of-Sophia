@@ -5087,10 +5087,12 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
             .expect("OPS must provide the exact admitted current native binary");
         let receipt = std::env::var_os("TOS_NATIVE_ACCESS_BUILD_RECEIPT")
             .expect("OPS must provide its exact build-owned receipt");
-        let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../..")
-            .canonicalize()
-            .unwrap();
+        let repository = PathBuf::from(
+            std::env::var_os("TOS_NATIVE_SOFTWARE_SOURCE_ROOT")
+                .expect("OPS must provide the exact clean software build source"),
+        )
+        .canonicalize()
+        .unwrap();
         let tick = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
