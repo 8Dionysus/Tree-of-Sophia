@@ -210,7 +210,7 @@ def native_publication(path, *, executable, timeout, operation, header, catalog,
         if process.stdin and not process.stdin.closed:
             process.stdin.close()
         try:
-            process.wait(timeout=min(1, max(0.001, deadline - time.monotonic())))
+            process.wait(timeout=max(0.001, deadline - time.monotonic()))
         except subprocess.TimeoutExpired:
             process.kill()
             process.wait()
