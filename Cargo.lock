@@ -1602,8 +1602,13 @@ version = "0.0.0"
 dependencies = [
  "regex",
  "rusqlite",
+ "serde_json",
  "tos-compiler",
+ "tos-fd-open",
  "tos-foundation",
+ "tos-validation",
+ "unicode-general-category",
+ "unicode-normalization",
 ]
 
 [[package]]
