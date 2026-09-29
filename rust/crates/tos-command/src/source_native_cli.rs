@@ -1,4 +1,4 @@
-//! Explicit local invocation of the native Alignment owner route. The selected
+//! Explicit local invocation of fixed native source owner families. The selected
 //! cut, software capture and worker image are byte evidence, never a grant.
 
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
@@ -25,6 +25,8 @@ use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSc
 
 #[path = "source_native_claim_cli.rs"]
 mod claim;
+#[path = "source_native_text_cli.rs"]
+mod text_owner;
 
 const MAX_INVOCATION: usize = 1_048_576;
 const MAX_REQUEST: usize = 1_048_576;
@@ -107,6 +109,8 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
         text(&invocation, "schema_version")? == "tos_local_native_claim_invocation_v1";
     let item_invocation =
         text(&invocation, "schema_version")? == "tos_local_native_item_invocation_v1";
+    let source_invocation =
+        text(&invocation, "schema_version")? == "tos_local_native_source_invocation_v1";
     let mut keys = vec![
         "schema_version",
         "owner_config",
@@ -126,9 +130,13 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     } else {
         "owner_context"
     });
+    if source_invocation {
+        keys.extend(["original_source_revision", "assessment_schema_worker"]);
+    }
     exact(&invocation, &keys)?;
     if !item_invocation
         && !claim_invocation
+        && !source_invocation
         && text(&invocation, "schema_version")? != "tos_local_native_owner_invocation_v1"
     {
         return Err(SourceCommandError::Invalid("native invocation profile"));
@@ -142,7 +150,10 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     let request_raw = bounded_read(input, MAX_REQUEST)?;
     let request = cmd::parse(&request_raw)?;
     let operation = cmd::text(&request, "operation")?;
-    let implemented = if claim_invocation {
+    let implemented = if source_invocation {
+        // The fixed typed family validates its own exact operation grammar.
+        true
+    } else if claim_invocation {
         matches!(
             operation,
             "describe"
@@ -262,6 +273,37 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     let components = software
         .select_components(&component_paths)
         .map_err(|_| SourceCommandError::Conflict("selected software components"))?;
+    if source_invocation {
+        let owner_path = absolute(text(&invocation, "owner_config")?)?;
+        let hint_raw = read_absolute(&owner_path, uid, true, MAX_REQUEST, deadline, &cancelled)?;
+        let hint = cmd::parse(&hint_raw)?;
+        // This protected hint routes code only. Each family independently
+        // reselects its full grant/current owner boundary before any use.
+        match cmd::text(&hint, "schema_version")? {
+            "tos_local_text_unit_create_owner_v1"
+            | "tos_local_text_unit_create_owner_v2"
+            | "tos_local_text_layer_create_owner_v1"
+            | "tos_local_text_layer_derive_owner_v1"
+            | "tos_local_text_layer_record_owner_ocr_v1"
+            | "tos_local_text_layer_record_owner_page_ocr_v1" => {
+                return text_owner::run(
+                    &invocation,
+                    &request_raw,
+                    &store,
+                    &cut,
+                    &software,
+                    &components,
+                    deadline,
+                    &cancelled,
+                );
+            }
+            _ => {
+                return Err(SourceCommandError::Unsupported(
+                    "native owner family awaits whole replacement; explicit legacy oracle retained",
+                ));
+            }
+        }
+    }
     if claim_invocation {
         return claim::run(
             &invocation,
