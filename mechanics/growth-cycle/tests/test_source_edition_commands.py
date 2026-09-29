@@ -79,6 +79,9 @@ class NativeEditionTests(unittest.TestCase):
             'expected_revision': result['revision'], 'expected_configuration': result['owner_configuration'],
             'expected_dependencies': result['expected_dependencies'], 'expected_publication': result['expected_publication']}
 
+    def write(self, ref, value):
+        self.origin.write(ref, value)
+
     def rebuild(self):
         """Only tiny fixture records/carriers, never the production builder."""
         records, claims = {'work': [], 'expression': [], 'edition': [], 'agent': []}, []
