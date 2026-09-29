@@ -174,7 +174,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
 
 fn main() {
     let (root, python, action, limits, semantic) = arguments().unwrap_or_else(|error| {
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --source-home | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --source-home | --philosophy-topology | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     let result = match action {
@@ -366,6 +366,7 @@ fn main() {
                 Action::MechanicsTopologyValidate => "mechanics topology",
                 Action::ActiveNamingValidate => "active naming",
                 Action::SourceHome => "source home",
+                Action::PhilosophyTopology => "philosophy topology",
                 Action::SemanticRegistryTransition => "semantic registry transition",
             };
             let diagnostic = if matches!(action, Action::SemanticRegistryTransition) {
