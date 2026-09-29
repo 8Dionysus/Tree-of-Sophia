@@ -303,10 +303,23 @@ impl<'a> Reader<'a> {
             let path = self.path(root, reference)?;
             let mut file = tos_fd_open::open_absolute_regular(&path, self.budget.max_file_bytes)
                 .map_err(|e| match e.code {
-                    tos_fd_open::OpenErrorCode::Io => error(
-                        ReadingSearchErrorCode::Unavailable,
-                        "selected reading artifact not installed",
-                    ),
+                    tos_fd_open::OpenErrorCode::Io => {
+                        let absent = e
+                            .source
+                            .as_ref()
+                            .is_some_and(|source| source.kind() == std::io::ErrorKind::NotFound);
+                        if absent
+                            && (private
+                                || (root == Root::Analysis && reference == READING_MANIFEST_REF))
+                        {
+                            error(
+                                ReadingSearchErrorCode::Unavailable,
+                                "source-bound reading artifact not installed",
+                            )
+                        } else {
+                            corrupt("selected reading artifact missing or unreadable")
+                        }
+                    }
                     tos_fd_open::OpenErrorCode::BudgetExceeded => budget_error(),
                     _ => corrupt("reading artifact path is unsafe"),
                 })?;
