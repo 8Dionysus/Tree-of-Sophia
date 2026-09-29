@@ -7015,7 +7015,7 @@ mod prepared_inspect_lens {
         assert!(semantic_eq(&temporal_packet, &json(&response.body)));
         drop(response);
         let rpc = format!(
-            "{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{{\"protocolVersion\":\"2025-11-25\"}}}}\n{{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}}\n{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"tos_knowledge_temporal_compare\",\"arguments\":{{\"request\":{}}}}}}\n",
+            "{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{{\"protocolVersion\":\"2025-11-25\"}}}}\n{{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}}\n{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"tos_knowledge_temporal_compare\",\"arguments\":{{\"request\":{}}}}}}}\n",
             String::from_utf8(encode(&temporal)).unwrap()
         );
         let mut output = Vec::new();
@@ -7149,7 +7149,8 @@ mod prepared_inspect_lens {
             &binding,
             &next_header,
             &next_catalog,
-            &[],
+            std::iter::empty::<tos_compiler::Result<tos_compiler::local_prepared::PreparedChange>>(
+            ),
             publication,
             std::time::Instant::now() + Duration::from_secs(10),
         )
