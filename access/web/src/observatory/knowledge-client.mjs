@@ -1,4 +1,4 @@
-import {createLensSortSession,createLensNodeSession,lensDegreeNext,lensSlotPosition} from './lens-projection-rules.mjs';
+import {createRouteCenterSession,routeRelationMember,createLensSortSession,createLensNodeSession,lensDegreeNext,lensSlotPosition} from './lens-projection-rules.mjs';
 import {browserFocusSpec,browserRelationSpec} from './lens-spec-rules.mjs';
 import {createClientPacketSession,createClientMaterialSession,packetKindUnits,packetMissing,createClientJsonSession,createClientSelectorSession,packetSetKey,packetString} from './client-packet-rules.mjs';
 import {createSourceDossierSession,dossierTextUnits,dossierPredicate} from './source-dossier-rules.mjs';
@@ -182,27 +182,37 @@ export function relationSpec(relation){return browserRelationSpec(relation);}
 // network, permission, revision, or contract failure must remain visible and
 // must never be mistaken for a node route.
 export async function compileRouteCenter(client,id,signal,expected=null,{depth=1}={}) {
-  if(typeof id!=='string'||!id.trim())throw new ContractError(t("Не указан центр области."));
-  let relationError=null;
-  try {
-    const identity=await client.inspect('relation',id,signal,expected);
-    const revision=identity.packet.source_revision;
-    const packet=await client.compile(relationSpec(identity.match),signal,revision);
-    if(!packet.relations.some(item=>item.id===id))throw new ContractError(t("Выбранное отношение отсутствует в области."));
-    return {packet,kind:'relation',relation:identity.match};
-  } catch(error) {
-    relationError=error;
-    if(!(error instanceof RequestError)||error.status!==404)throw error;
-  }
-  try {
-    const packet=await client.compile(focusSpec(id,{depth}),signal,expected);
-    return {packet,kind:'node'};
-  } catch(error) {
-    // Preserve the node error: it describes the requested route more
-    // accurately than the probing relation 404.
-    if(relationError&&error instanceof RequestError&&error.status===404)throw relationError;
-    throw error;
-  }
+  const session=createRouteCenterSession();let identity,packet,error,relationError=null;
+  const observe=value=>{try{session.observe(value);}catch(failure){
+    if(failure==='route-id')throw new ContractError(t("Не указан центр области."));
+    if(failure==='route-presence')throw new ContractError(t("Выбранное отношение отсутствует в области."));
+    throw failure;
+  }};
+  try{while(true){const phase=session.need();
+    try{switch(phase){
+      case 'id-type':observe(typeof id==='string');break;
+      case 'id-trim':observe(Boolean(id.trim()));break;
+      case 'relation-inspect':identity=await client.inspect('relation',id,signal,expected);observe(true);break;
+      case 'relation-compile':{const revision=identity.packet.source_revision;packet=await client.compile(relationSpec(identity.match),signal,revision);observe(true);break;}
+      case 'relation-presence':observe(Boolean(packet.relations.some(item=>routeRelationMember(item.id===id))));break;
+      case 'relation-return':return {packet,kind:'relation',relation:identity.match};
+      case 'relation-error-instance':observe(error instanceof RequestError);break;
+      case 'relation-error-status':observe(error.status===404);break;
+      case 'node-compile':packet=await client.compile(focusSpec(id,{depth}),signal,expected);observe(true);break;
+      case 'node-return':return {packet,kind:'node'};
+      case 'node-error-prior':observe(Boolean(relationError));break;
+      case 'node-error-instance':observe(error instanceof RequestError);break;
+      case 'node-error-status':observe(error.status===404);break;
+      case 'throw-current':throw error;
+      case 'throw-relation':throw relationError;
+      default:throw new Error('Invalid route center Rust need');
+    }}catch(failure){
+      if(phase==='relation-inspect'||phase==='relation-compile'||phase==='relation-presence'||phase==='relation-return'){
+        relationError=error=failure;session.failed();
+      }else if(phase==='node-compile'||phase==='node-return'){error=failure;session.failed();}
+      else throw failure;
+    }
+  }}finally{session.free();}
 }
 export function checkRevision(packet,expected){return validateClientPacket(packet,0,expected);}
 function dossierMethod(session,method,...values){

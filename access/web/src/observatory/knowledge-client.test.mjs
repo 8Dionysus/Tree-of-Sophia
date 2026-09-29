@@ -520,3 +520,19 @@ test('lens projection preserves opaque physical slots and native vector restorat
   let vectorReads=0;const bigintOld={id:packet.nodes[0].id,slot:0n,get p(){vectorReads++;return [];}};
   assert.throws(()=>projectLens(packet,[bigintOld]),TypeError);assert.equal(vectorReads,0);
 });
+
+test('route policy retains compile 404 fallback, lazy error access and relation callback lifetime',async()=>{
+  const prior=new RequestError(404,'relation'),current=new RequestError(404,'node');let calls=0;
+  const identity={packet:clone(),match:fixture.relations[0]};
+  const client={inspect:async()=>identity,compile:async()=>{throw ++calls===1?prior:current;}};
+  await assert.rejects(compileRouteCenter(client,identity.match.id),error=>error===prior);assert.equal(calls,2);
+  const marker={getter:true},statusError=new RequestError(404,'status');let statuses=0,compiles=0;
+  Object.defineProperty(statusError,'status',{get(){statuses++;throw marker;}});
+  await assert.rejects(compileRouteCenter({inspect:async()=>{throw statusError;},compile:async()=>{compiles++;}},'id'),error=>error===marker);
+  assert.equal(statuses,1);assert.equal(compiles,0);
+  const opaque={};Object.defineProperty(opaque,'status',{get(){throw new Error('unrequested status');}});
+  await assert.rejects(compileRouteCenter({inspect:async()=>{throw opaque;}},'id'),error=>error===opaque);
+  let retained;const packet=clone();packet.relations.some=callback=>{retained=callback;return {truthy:true};};
+  assert.equal((await compileRouteCenter({inspect:async()=>identity,compile:async()=>packet},identity.match.id)).kind,'relation');
+  assert.equal(retained({id:identity.match.id}),true);assert.equal(retained({id:'different'}),false);
+});

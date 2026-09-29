@@ -945,3 +945,8 @@ mod wasm {
         normalize_observatory_draft_v1(raw).map_err(JsValue::from_str)
     }
 }
+
+#[cfg(feature = "wasm")]
+mod route_center;
+#[cfg(feature = "wasm")]
+pub use route_center::RouteCenterSession;
