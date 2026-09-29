@@ -36,6 +36,16 @@ const CORPUS_LOCK: &str = ".historical-create.writer.lock";
 const CLAIM_CAPTURE_HOME: &str = ".claim-retained";
 const CLAIM_CAPTURE_INDEX: &str = "capture-index.json";
 const CLAIM_CAPTURE_INDEX_BYTES: usize = 524_288;
+#[path = "source_catalog_selection.rs"]
+mod catalog_selection;
+#[path = "source_object_link.rs"]
+mod object_link;
+pub(crate) use object_link::current_result_fields as object_link_result_fields;
+pub use object_link::{
+    ObjectLinkPreparation, ObjectLinkPublication, ObjectLinkRecoveryDecision,
+    execute_isolated_object_link_from_captures, prepare_isolated_object_link_from_proposal,
+    recover_isolated_object_link_from_captures, replay_isolated_object_link_from_captures,
+};
 #[path = "source_work_expression.rs"]
 mod work_expression;
 pub use work_expression::{
@@ -3684,3 +3694,26 @@ impl Drop for PendingCreation<'_> {
         }
     }
 }
+
+#[path = "source_expression_responsibility.rs"]
+mod expression_responsibility;
+pub(crate) use expression_responsibility::current_result_fields as responsibility_result_fields;
+pub use expression_responsibility::{
+    ExpressionResponsibilityPreparation, ExpressionResponsibilityPublication,
+    ExpressionResponsibilityRecoveryDecision, check_expression_responsibility_configuration,
+    execute_isolated_expression_responsibility_from_captures,
+    prepare_isolated_expression_responsibility_from_proposal,
+    recover_isolated_expression_responsibility_from_captures,
+    replay_isolated_expression_responsibility_from_captures,
+};
+
+#[path = "source_expression_edition.rs"]
+mod expression_edition;
+pub(crate) use expression_edition::current_result_fields as edition_result_fields;
+pub use expression_edition::{
+    ExpressionEditionPreparation, ExpressionEditionPublication, ExpressionEditionRecoveryDecision,
+    check_expression_edition_configuration, execute_isolated_expression_edition_from_captures,
+    prepare_isolated_expression_edition_from_proposal,
+    recover_isolated_expression_edition_from_captures,
+    replay_isolated_expression_edition_from_captures,
+};

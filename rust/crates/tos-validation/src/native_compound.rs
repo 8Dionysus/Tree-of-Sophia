@@ -77,7 +77,7 @@ fn object_link_predicate(predicate: &str) -> bool {
         "described_by" | "metadata_at" | "downloadable_at" | "rights_statement_at"
     )
 }
-fn object_link_scope(scope: &Value, request: &Value, authority: &Value) -> Result<(), ItemRefusal> {
+pub fn validate_object_link_scope(scope: &Value) -> Result<(), ItemRefusal> {
     keys(scope, &OBJECT_LINK_SCOPE)?;
     let kind = text(scope, "subject_record_type")?;
     if !matches!(
@@ -175,6 +175,20 @@ fn object_link_scope(scope: &Value, request: &Value, authority: &Value) -> Resul
             .ok_or_else(|| bad("object-Link evidence reference"))?;
     }
     object_link_address(text(scope, "uri")?)?;
+    Ok(())
+}
+/// Recheck a renewed exact scope against the retained request and original maker.
+pub fn validate_object_link_recovery_scope(
+    scope: &Value,
+    request: &Value,
+    original_authorization: &Value,
+) -> Result<(), ItemRefusal> {
+    object_link_scope(scope, request, original_authorization)
+}
+fn object_link_scope(scope: &Value, request: &Value, authority: &Value) -> Result<(), ItemRefusal> {
+    validate_object_link_scope(scope)?;
+    let kind = text(scope, "subject_record_type")?;
+    let evidence = array(scope, "allowed_evidence_refs")?;
     let subject_record = &request["subject"];
     let link_record = &request["link"];
     let claim_record = &request["claim"];
@@ -285,6 +299,10 @@ fn object_link_scope(scope: &Value, request: &Value, authority: &Value) -> Resul
         }
     }
     Ok(())
+}
+/// Validate the maintained ObjectLink external address grammar without fetching.
+pub fn validate_object_link_address(uri: &str) -> Result<(), ItemRefusal> {
+    object_link_address(uri)
 }
 fn object_link_address(uri: &str) -> Result<(), ItemRefusal> {
     use unicode_normalization::UnicodeNormalization;
@@ -490,6 +508,27 @@ fn measured_compound_observation(
         bytes_read: reader.bytes,
         returned_state_bytes,
     })
+}
+
+/// Read the exact selected Expression responsibility compound and its retained/current lineage.
+/// The transport observation is descriptive; CMD still owns the physical
+/// publication, source/software and journal fences for any replay decision.
+pub fn verify_expression_responsibility_from_cut(
+    cut: &CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    claim_path: &str,
+    claim: &Value,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<NativeCompoundReadObservation, ItemRefusal> {
+    if claim["predicate"] != "translated_by"
+        || schemas.source_revision() != cut.current().revision()
+    {
+        return Err(bad("selected Expression responsibility compound type/cut"));
+    }
+    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    let observation = reader.verify(claim_path, claim, schemas)?;
+    measured_compound_observation(reader, observation)
 }
 
 /// Read the exact selected Expression/Edition compound and its retained/current lineage.
@@ -4204,7 +4243,8 @@ fn item_companions(
     Ok(result)
 }
 
-fn claim_lines(raw: &[u8]) -> impl Iterator<Item = (&[u8], &[u8])> {
+/// Physical Python bytes.splitlines boundaries, retaining each line ending.
+pub fn claim_lines(raw: &[u8]) -> impl Iterator<Item = (&[u8], &[u8])> {
     let mut offset = 0usize;
     std::iter::from_fn(move || {
         if offset >= raw.len() {
@@ -4943,7 +4983,7 @@ impl WorkExpressionCore<'_> {
         } = prepared;
         let scope = &authority["scope"];
         let parent_home = parent(text(scope, kind.parent_path())?)?;
-        let child_home = parent(text(scope, kind.child_path())?)?;
+        let child_home = kind.publication_home(scope)?;
         let count = parent_files
             .len()
             .checked_add(child_files.len())
@@ -5106,6 +5146,34 @@ pub fn prepare_work_expression_preview_bytes<'a>(
         &BTreeMap<String, String>,
     ) -> Result<(Vec<u8>, Value), ItemRefusal>,
 ) -> Result<WorkExpressionCore<'a>, ItemRefusal> {
+    prepare_typed_compound_preview_bytes(
+        CompoundKind::WorkExpression,
+        cut,
+        schemas,
+        scope,
+        proposed_claim_raw,
+        owned_before,
+        recorded_at,
+        limits,
+        cancelled,
+        build_request_and_authorization,
+    )
+}
+
+fn prepare_typed_compound_preview_bytes<'a>(
+    kind: CompoundKind,
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    proposed_claim_raw: &[u8],
+    owned_before: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+    build_request_and_authorization: impl FnOnce(
+        &BTreeMap<String, String>,
+    ) -> Result<(Vec<u8>, Value), ItemRefusal>,
+) -> Result<WorkExpressionCore<'a>, ItemRefusal> {
     check(limits.deadline, cancelled)?;
     if schemas.source_revision() != cut.current().revision() || proposed_claim_raw.len() > MAX_FILE
     {
@@ -5130,18 +5198,13 @@ pub fn prepare_work_expression_preview_bytes<'a>(
     let encoded_state = std::mem::size_of::<Vec<u8>>() + expected.len();
     drop(expected);
     reader.release_temporary(encoded_state);
-    let grammar = preparation_grammar_from_cut(
-        CompoundKind::WorkExpression,
-        &mut reader,
-        schemas,
-        proposed_claim_raw,
-    )?;
+    let grammar = preparation_grammar_from_cut(kind, &mut reader, schemas, proposed_claim_raw)?;
     if grammar.binding != schemas.execution_binding() {
         return Err(bad("Work preview schema binding changed"));
     }
     let (request_raw, authority) = build_request_and_authorization(&grammar.digests)?;
     prepare_native_with_reader(
-        CompoundKind::WorkExpression,
+        kind,
         None,
         reader,
         schemas,
@@ -5154,6 +5217,224 @@ pub fn prepare_work_expression_preview_bytes<'a>(
     )
 }
 
+/// Typed maintained ExpressionResponsibility recipe over the existing bounded compound kernel.
+/// Its output is metadata transport, never semantic or publication admission.
+pub struct ExpressionResponsibilityCore<'a> {
+    inner: WorkExpressionCore<'a>,
+}
+pub type ExpressionResponsibilityBytes = WorkExpressionBytes;
+impl ExpressionResponsibilityCore<'_> {
+    pub fn authorization(&self) -> &Value {
+        self.inner.authorization()
+    }
+    pub fn archive_path(&self) -> &str {
+        self.inner.archive_path()
+    }
+    pub fn transaction_id(&self) -> &str {
+        self.inner.transaction_id()
+    }
+    pub fn reads(&self) -> &[PredicateRead] {
+        self.inner.reads()
+    }
+    pub fn bytes_read(&self) -> u64 {
+        self.inner.bytes_read()
+    }
+    pub fn grammar_digests(&self) -> &BTreeMap<String, String> {
+        self.inner.grammar_digests()
+    }
+    pub fn outputs(&self) -> Result<Vec<(String, &[u8])>, ItemRefusal> {
+        self.inner.outputs()
+    }
+    pub fn into_prepared_outputs(self) -> Result<BTreeMap<String, Vec<u8>>, ItemRefusal> {
+        self.inner.into_prepared_outputs()
+    }
+}
+pub fn prepare_expression_responsibility_bytes<'a>(
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    request_raw: &[u8],
+    owned_before: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+    authorize: impl FnOnce(&BTreeMap<String, String>) -> Result<Value, ItemRefusal>,
+) -> Result<ExpressionResponsibilityCore<'a>, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    if schemas.source_revision() != cut.current().revision() || request_raw.len() > MAX_FILE {
+        return Err(bad("compound source/schema revision or request size"));
+    }
+    crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
+        .map_err(|_| bad("compound recorded aware instant"))?;
+    let reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    prepare_native_with_reader(
+        CompoundKind::ExpressionResponsibility,
+        None,
+        reader,
+        schemas,
+        scope,
+        Cow::Borrowed(request_raw),
+        owned_before,
+        recorded_at,
+        None,
+        authorize,
+    )
+    .map(|inner| ExpressionResponsibilityCore { inner })
+}
+pub fn prepare_expression_responsibility_preview_bytes<'a>(
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    proposed_claim_raw: &[u8],
+    owned_before: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+    build_request_and_authorization: impl FnOnce(
+        &BTreeMap<String, String>,
+    ) -> Result<(Vec<u8>, Value), ItemRefusal>,
+) -> Result<ExpressionResponsibilityCore<'a>, ItemRefusal> {
+    prepare_typed_compound_preview_bytes(
+        CompoundKind::ExpressionResponsibility,
+        cut,
+        schemas,
+        scope,
+        proposed_claim_raw,
+        owned_before,
+        recorded_at,
+        limits,
+        cancelled,
+        build_request_and_authorization,
+    )
+    .map(|inner| ExpressionResponsibilityCore { inner })
+}
+/// Finish one actual native producer capture; its environment stays native-only.
+pub fn finish_expression_responsibility_bytes(
+    core: ExpressionResponsibilityCore<'_>,
+    environment_raw: &[u8],
+    event_raw: &[u8],
+    schemas: &mut CutWorkerSchemaExecutor,
+) -> Result<ExpressionResponsibilityBytes, ItemRefusal> {
+    finish_work_expression_bytes(core.inner, environment_raw, event_raw, schemas)
+}
+/// Reconstruct exact retained Python/native capture after CMD proved journal custody.
+pub fn restore_expression_responsibility_bytes(
+    core: ExpressionResponsibilityCore<'_>,
+    environment_raw: &[u8],
+    event_raw: &[u8],
+    schemas: &mut CutWorkerSchemaExecutor,
+) -> Result<ExpressionResponsibilityBytes, ItemRefusal> {
+    finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, false)
+}
+/// Typed maintained ExpressionEdition recipe over the existing bounded compound kernel.
+/// Its output is metadata transport, never semantic or publication admission.
+pub struct ExpressionEditionCore<'a> {
+    inner: WorkExpressionCore<'a>,
+}
+pub type ExpressionEditionBytes = WorkExpressionBytes;
+impl ExpressionEditionCore<'_> {
+    pub fn authorization(&self) -> &Value {
+        self.inner.authorization()
+    }
+    pub fn archive_path(&self) -> &str {
+        self.inner.archive_path()
+    }
+    pub fn transaction_id(&self) -> &str {
+        self.inner.transaction_id()
+    }
+    pub fn reads(&self) -> &[PredicateRead] {
+        self.inner.reads()
+    }
+    pub fn bytes_read(&self) -> u64 {
+        self.inner.bytes_read()
+    }
+    pub fn grammar_digests(&self) -> &BTreeMap<String, String> {
+        self.inner.grammar_digests()
+    }
+    pub fn outputs(&self) -> Result<Vec<(String, &[u8])>, ItemRefusal> {
+        self.inner.outputs()
+    }
+    pub fn into_prepared_outputs(self) -> Result<BTreeMap<String, Vec<u8>>, ItemRefusal> {
+        self.inner.into_prepared_outputs()
+    }
+}
+pub fn prepare_expression_edition_bytes<'a>(
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    request_raw: &[u8],
+    owned_before: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+    authorize: impl FnOnce(&BTreeMap<String, String>) -> Result<Value, ItemRefusal>,
+) -> Result<ExpressionEditionCore<'a>, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    if schemas.source_revision() != cut.current().revision() || request_raw.len() > MAX_FILE {
+        return Err(bad("compound source/schema revision or request size"));
+    }
+    crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
+        .map_err(|_| bad("compound recorded aware instant"))?;
+    let reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    prepare_native_with_reader(
+        CompoundKind::ExpressionEdition,
+        None,
+        reader,
+        schemas,
+        scope,
+        Cow::Borrowed(request_raw),
+        owned_before,
+        recorded_at,
+        None,
+        authorize,
+    )
+    .map(|inner| ExpressionEditionCore { inner })
+}
+pub fn prepare_expression_edition_preview_bytes<'a>(
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    proposed_claim_raw: &[u8],
+    owned_before: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+    build_request_and_authorization: impl FnOnce(
+        &BTreeMap<String, String>,
+    ) -> Result<(Vec<u8>, Value), ItemRefusal>,
+) -> Result<ExpressionEditionCore<'a>, ItemRefusal> {
+    prepare_typed_compound_preview_bytes(
+        CompoundKind::ExpressionEdition,
+        cut,
+        schemas,
+        scope,
+        proposed_claim_raw,
+        owned_before,
+        recorded_at,
+        limits,
+        cancelled,
+        build_request_and_authorization,
+    )
+    .map(|inner| ExpressionEditionCore { inner })
+}
+/// Finish one actual native producer capture; its environment stays native-only.
+pub fn finish_expression_edition_bytes(
+    core: ExpressionEditionCore<'_>,
+    environment_raw: &[u8],
+    event_raw: &[u8],
+    schemas: &mut CutWorkerSchemaExecutor,
+) -> Result<ExpressionEditionBytes, ItemRefusal> {
+    finish_work_expression_bytes(core.inner, environment_raw, event_raw, schemas)
+}
+/// Reconstruct exact retained Python/native capture after CMD proved journal custody.
+pub fn restore_expression_edition_bytes(
+    core: ExpressionEditionCore<'_>,
+    environment_raw: &[u8],
+    event_raw: &[u8],
+    schemas: &mut CutWorkerSchemaExecutor,
+) -> Result<ExpressionEditionBytes, ItemRefusal> {
+    finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, false)
+}
 /// Read-only grammar closure for the maintained byte-only Item route.
 /// It does not make acquired metadata, a receipt, or a publication grant.
 pub struct EditionItemGrammarObservation {
@@ -5440,6 +5721,10 @@ fn native_preparation_procedure(kind: CompoundKind) -> Result<&'static str, Item
     match kind {
         CompoundKind::WorkExpression => Ok("native-work-expression-serialization"),
         CompoundKind::EditionItem => Ok("native-item-adoption-serialization"),
+        CompoundKind::ExpressionEdition => Ok("native-expression-edition-serialization"),
+        CompoundKind::ExpressionResponsibility => {
+            Ok("native-expression-responsibility-serialization")
+        }
         _ => Err(bad("unknown actual native preparation family")),
     }
 }
@@ -5451,6 +5736,12 @@ fn native_preparation_purpose(kind: CompoundKind) -> Result<&'static str, ItemRe
         CompoundKind::EditionItem => Ok(
             "Serialize one declared Edition/Item link and explicit source-copy forms without judging content.",
         ),
+        CompoundKind::ExpressionEdition => Ok(
+            "Serialize one declared Expression/Edition link and explicit source-copy forms without judging content.",
+        ),
+        CompoundKind::ExpressionResponsibility => Ok(
+            "Serialize one qualified Expression responsibility Claim and explicit source-copy forms without judging attribution.",
+        ),
         _ => Err(bad("unknown actual native preparation family")),
     }
 }
@@ -5461,6 +5752,12 @@ fn native_preparation_warning(kind: CompoundKind) -> Result<&'static str, ItemRe
         ),
         CompoundKind::EditionItem => Ok(
             "Completed in-process Edition/Item buffer serialization; atomic selected-metadata publication occurs afterward.",
+        ),
+        CompoundKind::ExpressionEdition => Ok(
+            "Completed in-process Expression/Edition buffer serialization; atomic selected-metadata publication occurs afterward.",
+        ),
+        CompoundKind::ExpressionResponsibility => Ok(
+            "Completed in-process Expression responsibility buffer serialization; atomic selected-metadata publication occurs afterward.",
         ),
         _ => Err(bad("unknown actual native preparation family")),
     }
@@ -5711,6 +6008,186 @@ fn prepare_native_with_reader<'a>(
         schema_binding: schemas.execution_binding(),
     })
 }
+/// Mechanical ObjectLink package. No publication or admission authority is granted.
+pub struct ObjectLinkBytes {
+    pub scope: Value,
+    pub request: Value,
+    pub receipt: Value,
+    pub files: BTreeMap<String, Vec<u8>>,
+    pub transaction_id: String,
+    pub reads: Vec<PredicateRead>,
+    pub bytes_read: u64,
+}
+
+/// Compose exact new-only source buffers using the retained verifier's kernel.
+/// The caller owns current delegation, dependency currentness and publication.
+pub fn prepare_object_link_bytes<'a>(
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    authorization: &Value,
+    request_raw: &[u8],
+    environment_raw: &[u8],
+    recorded_at: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+) -> Result<ObjectLinkBytes, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    if schemas.source_revision() != cut.current().revision()
+        || request_raw.len() > MAX_FILE
+        || environment_raw.len() > MAX_FILE
+    {
+        return Err(bad("object-Link source/schema revision or input size"));
+    }
+    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    // Reserve the bounded output envelope before any package buffer allocation.
+    // Eight metadata files are produced by this exact kernel.
+    reader.temporary(
+        8usize
+            .checked_mul(MAX_FILE)
+            .and_then(|n| {
+                n.checked_add(crate::record_biblio_cut::decoded_state(authorization).ok()?)
+            })
+            .and_then(|n| {
+                n.checked_add(
+                    std::mem::size_of::<Package>() + 8 * std::mem::size_of::<(String, Vec<u8>)>(),
+                )
+            })
+            .ok_or(ItemRefusal::Budget)?,
+    )?;
+    let prepared = reader.compose_object_link(
+        scope,
+        authorization,
+        request_raw,
+        environment_raw,
+        recorded_at,
+        schemas,
+        None,
+        None,
+    )?;
+    let transaction_id = text(&prepared.receipt, "transaction_id")?.to_owned();
+    reader.release_raw_cache();
+    Ok(ObjectLinkBytes {
+        scope: prepared.scope,
+        request: prepared.request,
+        receipt: prepared.receipt,
+        files: prepared.files,
+        transaction_id,
+        reads: reader.reads,
+        bytes_read: reader.bytes,
+    })
+}
+
+/// Native producer extension of the same ObjectLink byte composer. Capture sees
+/// only prepared source/form bytes and supplies actual environment/event buffers.
+pub fn prepare_native_object_link_bytes<'a>(
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    authorization: &Value,
+    request_raw: &[u8],
+    recorded_at: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+    mut capture: impl FnMut(&[(String, &[u8])]) -> Result<(Vec<u8>, Vec<u8>), ItemRefusal>,
+) -> Result<ObjectLinkBytes, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    if schemas.source_revision() != cut.current().revision() || request_raw.len() > MAX_FILE {
+        return Err(bad("object-Link source/schema revision or request size"));
+    }
+    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    reader.temporary(8usize.checked_mul(MAX_FILE).ok_or(ItemRefusal::Budget)?)?;
+    let prepared = reader.compose_object_link(
+        scope,
+        authorization,
+        request_raw,
+        &[],
+        recorded_at,
+        schemas,
+        None,
+        Some(&mut capture),
+    )?;
+    let transaction_id = text(&prepared.receipt, "transaction_id")?.to_owned();
+    reader.release_raw_cache();
+    Ok(ObjectLinkBytes {
+        scope: prepared.scope,
+        request: prepared.request,
+        receipt: prepared.receipt,
+        files: prepared.files,
+        transaction_id,
+        reads: reader.reads,
+        bytes_read: reader.bytes,
+    })
+}
+
+/// Recompose retained ObjectLink bytes without synthesizing a transaction.
+/// The owner must compare this package with its actual retained journal plan.
+pub fn reconstruct_object_link_bytes<'a>(
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    authorization: &Value,
+    request_raw: &[u8],
+    environment_raw: &[u8],
+    event_raw: &[u8],
+    recorded_at: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+) -> Result<ObjectLinkBytes, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    if schemas.source_revision() != cut.current().revision()
+        || [request_raw.len(), environment_raw.len(), event_raw.len()]
+            .iter()
+            .any(|size| *size > MAX_FILE)
+    {
+        return Err(bad("ObjectLink retained input/cut binding"));
+    }
+    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    reader.temporary(8usize.checked_mul(MAX_FILE).ok_or(ItemRefusal::Budget)?)?;
+    let prepared = reader.compose_object_link(
+        scope,
+        authorization,
+        request_raw,
+        environment_raw,
+        recorded_at,
+        schemas,
+        Some(event_raw),
+        None,
+    )?;
+    let transaction_id = text(&prepared.receipt, "transaction_id")?.to_owned();
+    Ok(ObjectLinkBytes {
+        scope: prepared.scope,
+        request: prepared.request,
+        receipt: prepared.receipt,
+        files: prepared.files,
+        transaction_id,
+        reads: reader.reads,
+        bytes_read: reader.bytes,
+    })
+}
+/// Read exact ObjectLink creation and current correction lineage with its
+/// existing native verifier. This descriptive observation grants no authority.
+pub fn verify_object_link_from_cut(
+    cut: &CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    claim_path: &str,
+    claim: &Value,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<NativeCompoundReadObservation, ItemRefusal> {
+    if schemas.source_revision() != cut.current().revision()
+        || claim["schema_version"] != OBJECT_LINK_CLAIM
+        || !claim["predicate"]
+            .as_str()
+            .is_some_and(object_link_predicate)
+    {
+        return Err(bad("ObjectLink selected claim/cut profile"));
+    }
+    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    let observation = reader.verify(claim_path, claim, schemas)?;
+    measured_compound_observation(reader, observation)
+}
+
 struct ObjectLinkReconstructed {
     scope: Value,
     request: Value,
@@ -7017,9 +7494,43 @@ fn native_work_event(
     cancelled: &AtomicBool,
     available: usize,
 ) -> Result<(), ItemRefusal> {
+    native_compound_capture_event(
+        event,
+        scope,
+        request,
+        dependencies,
+        before,
+        outputs,
+        environment,
+        archive,
+        kind.publication_home(scope)?,
+        kind.receipt_file(),
+        native_preparation_procedure(kind)?,
+        native_preparation_purpose(kind)?,
+        deadline,
+        cancelled,
+        available,
+    )
+}
+fn native_compound_capture_event(
+    event: &Value,
+    scope: &Value,
+    request: &Value,
+    dependencies: &Value,
+    before: &Package,
+    outputs: &[(String, &[u8])],
+    environment: &Value,
+    archive: &str,
+    home: &str,
+    receipt_file: &str,
+    procedure: &str,
+    purpose: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    available: usize,
+) -> Result<(), ItemRefusal> {
     check(deadline, cancelled)?;
     native_work_environment(environment)?;
-    let home = parent(text(scope, kind.child_path())?)?;
     let request_ref = format!("{home}/source-create-request.json");
     let environment_ref = format!("{home}/source-create-environment.json");
     let mut request_raw = canonical(request)?;
@@ -7223,7 +7734,7 @@ fn native_work_event(
         || event["event_version"] != 1
         || !event["supersedes_event_ref"].is_null()
         || event["record_binding"]
-            != json!({"manifest_ref":format!("{home}/{}",kind.receipt_file()),
+            != json!({"manifest_ref":format!("{home}/{}",receipt_file),
             "digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"})
         || event["entities"]["inputs"] != json!(inputs)
         || event["entities"]["outputs"] != json!(output_entities)
@@ -7235,8 +7746,8 @@ fn native_work_event(
             )])
         || event["derivations"] != json!(derivations)
         || method["procedure"]
-            != json!({"name":native_preparation_procedure(kind)?,"version":"1",
-            "purpose":native_preparation_purpose(kind)?})
+            != json!({"name":procedure,"version":"1",
+            "purpose":purpose})
         || method["configuration_binding"]
             != json!({"ref":request_ref,"sha256":Digest256::of_bytes(&request_raw).to_hex()})
         || method["environment"] != method_environment
@@ -7303,30 +7814,9 @@ impl NativeCompoundReader<'_> {
         let plan = &tx.manifest["plan"];
         keys(plan, &["authorization", "new_directories", "files"])?;
         let authority = &plan["authorization"];
-        keys(
-            authority,
-            &[
-                "schema_version",
-                "scope",
-                "principal_id",
-                "maker_type",
-                "authority_ref",
-                "owner_configuration",
-                "command_id",
-                "request_digest",
-                "dependency_bindings",
-            ],
-        )?;
-        if authority["schema_version"] != "tos_object_link_authorization_v1" {
-            return Err(bad("object-Link exact adapter authorization"));
-        }
         let scope = &authority["scope"];
-        let link_path = text(scope, "link_source_path")?;
-        let claim_path = text(scope, "claim_source_path")?;
-        let claim_home = parent(claim_path)?;
-        let link_home = parent(link_path)?;
-        // The selected transaction already retains one copy of every blob.
-        // Reconstructed output buffers are a second, simultaneous copy.
+        let link_home = parent(text(scope, "link_source_path")?)?;
+        let claim_home = parent(text(scope, "claim_source_path")?)?;
         if tx
             .files
             .values()
@@ -7355,29 +7845,90 @@ impl NativeCompoundReader<'_> {
         {
             return Err(bad("object-Link new home plan"));
         }
+        let after = |path: &str| {
+            tx.files
+                .get(path)
+                .and_then(|(_, after)| after.as_ref())
+                .ok_or_else(|| bad("object-Link new-only exact plan"))
+        };
+        let receipt_raw = after(&format!("{claim_home}/{OBJECT_LINK_RECEIPT}"))?;
+        let actual_receipt = self.decoded(receipt_raw)?;
+        let event_raw = after(&format!("{claim_home}/source-create-provenance.jsonl"))?;
+        let _actual_event = self.decoded(event_raw)?;
+        let result = self.compose_object_link(
+            scope,
+            authority,
+            after(&format!("{claim_home}/source-create-request.json"))?,
+            after(&format!("{claim_home}/source-create-environment.json"))?,
+            text(&actual_receipt, "recorded_at")?,
+            schemas,
+            Some(event_raw),
+            None,
+        )?;
+        if tx.manifest["transaction_id"] != result.receipt["transaction_id"] {
+            return Err(bad("object-Link transaction identity"));
+        }
+        if result.files[&format!("{claim_home}/source-create-provenance.jsonl")] != *event_raw {
+            return Err(bad("object-Link exact source provenance event"));
+        }
+        if result.files[&format!("{claim_home}/{OBJECT_LINK_RECEIPT}")] != *receipt_raw
+            || result.receipt != actual_receipt
+        {
+            return Err(bad("object-Link exact reconstructed receipt bytes"));
+        }
+        if result.files.len() != tx.files.len()
+            || result.files.iter().any(|(path, raw)| {
+                tx.files
+                    .get(path)
+                    .is_none_or(|(before, after)| before.is_some() || after.as_ref() != Some(raw))
+            })
+        {
+            return Err(bad("object-Link complete before/after transaction plan"));
+        }
+        Ok(result)
+    }
+    fn compose_object_link(
+        &mut self,
+        scope: &Value,
+        authority: &Value,
+        request_raw: &[u8],
+        environment_raw: &[u8],
+        recorded_at: &str,
+        schemas: &mut CutWorkerSchemaExecutor,
+        retained_event: Option<&[u8]>,
+        mut capture: Option<
+            &mut dyn FnMut(&[(String, &[u8])]) -> Result<(Vec<u8>, Vec<u8>), ItemRefusal>,
+        >,
+    ) -> Result<ObjectLinkReconstructed, ItemRefusal> {
+        keys(
+            authority,
+            &[
+                "schema_version",
+                "scope",
+                "principal_id",
+                "maker_type",
+                "authority_ref",
+                "owner_configuration",
+                "command_id",
+                "request_digest",
+                "dependency_bindings",
+            ],
+        )?;
+        if authority["schema_version"] != "tos_object_link_authorization_v1" {
+            return Err(bad("object-Link exact adapter authorization"));
+        }
+        if scope != &authority["scope"] {
+            return Err(bad("object-Link exact scope binding"));
+        }
+        let link_path = text(scope, "link_source_path")?;
+        let claim_path = text(scope, "claim_source_path")?;
+        let claim_home = parent(claim_path)?;
+        let link_home = parent(link_path)?;
         let request_path = format!("{claim_home}/source-create-request.json");
         let receipt_path = format!("{claim_home}/{OBJECT_LINK_RECEIPT}");
         let environment_path = format!("{claim_home}/source-create-environment.json");
         let event_path = format!("{claim_home}/source-create-provenance.jsonl");
-        let after = |path: &str| {
-            tx.files
-                .get(path)
-                .and_then(|(before, after)| {
-                    if before.is_none() {
-                        after.as_ref()
-                    } else {
-                        None
-                    }
-                })
-                .ok_or_else(|| bad("object-Link new-only exact plan"))
-        };
-        let request_raw = after(&request_path)?;
         let request = self.decoded(request_raw)?;
-        let environment = self.decoded(after(&environment_path)?)?;
-        let receipt_raw = after(&receipt_path)?;
-        let actual_receipt = self.decoded(receipt_raw)?;
-        let event_raw = after(&event_path)?;
-        let actual_event = self.decoded(event_raw)?;
         keys(
             &request,
             &[
@@ -7420,9 +7971,6 @@ impl NativeCompoundReader<'_> {
         object_link_scope(scope, &request, authority)?;
         let request_digest = self.canonical_observation(&request)?.0;
         let transaction_id=self.canonical_observation(&json!({"operation":OBJECT_LINK_OPERATION,"command_id":request["command_id"],"owner_configuration":request["expected_configuration"],"request_digest":request_digest}))?.0;
-        if text(&tx.manifest, "transaction_id")? != transaction_id {
-            return Err(bad("object-Link transaction identity"));
-        }
         let dependencies = &authority["dependency_bindings"];
         keys(
             dependencies,
@@ -7478,9 +8026,7 @@ impl NativeCompoundReader<'_> {
             &dependencies["catalog_and_sources"],
             text(scope, "subject_source_path")?,
         )?;
-        if actual_receipt["subject_source_sha256"] != expected_sha
-            || Digest256::from_hex(expected_sha).is_err()
-        {
+        if Digest256::from_hex(expected_sha).is_err() {
             return Err(bad("object-Link exact subject raw dependency"));
         }
         let subject = &request["subject"];
@@ -7640,7 +8186,29 @@ impl NativeCompoundReader<'_> {
         files.insert(link_form_path.clone(), pretty(&link_forms)?);
         files.insert(claim_path.into(), canonical_claim);
         files.insert(claim_form_path.clone(), pretty(&claim_forms)?);
-        let recorded_at = text(&actual_receipt, "recorded_at")?;
+        let native_capture_requested = capture.is_some();
+        let captured;
+        let (environment_raw, retained_event) = if let Some(capture) = capture.as_mut() {
+            let outputs: Vec<_> = files
+                .iter()
+                .map(|(path, raw)| (path.clone(), raw.as_slice()))
+                .collect();
+            captured = capture(&outputs)?;
+            if captured.0.len() > MAX_FILE || captured.1.len() > MAX_FILE {
+                return Err(ItemRefusal::Budget);
+            }
+            self.temporary(
+                captured
+                    .0
+                    .len()
+                    .checked_add(captured.1.len())
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
+            (captured.0.as_slice(), Some(captured.1.as_slice()))
+        } else {
+            (environment_raw, retained_event)
+        };
+        let environment = self.decoded(environment_raw)?;
         crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
             .map_err(|_| bad("object-Link aware recorded instant"))?;
         keys(
@@ -7679,35 +8247,65 @@ impl NativeCompoundReader<'_> {
             .collect();
         let outputs_state = slice_rows_state(&outputs)?;
         self.temporary(outputs_state)?;
-        let event = object_link_event(
-            scope,
-            &request,
-            &outputs,
-            &environment,
-            dependencies,
-            recorded_at,
-            self.limits
-                .max_state_bytes
-                .checked_sub(self.state)
-                .ok_or(ItemRefusal::Budget)?,
-        )?;
+        let native_event = retained_event.map(|raw| self.decoded(raw)).transpose()?;
+        if native_capture_requested
+            && native_event.as_ref().is_none_or(|event| {
+                event["method"]["procedure"]["name"] != "native-object-link-serialization"
+            })
+        {
+            return Err(bad("ObjectLink native producer capture profile"));
+        }
+        let event = if native_event.as_ref().is_some_and(|event| {
+            event["method"]["procedure"]["name"] == "native-object-link-serialization"
+        }) {
+            let event = native_event.unwrap();
+            native_compound_capture_event(
+                &event,
+                scope,
+                &request,
+                dependencies,
+                &Package::new(),
+                &outputs,
+                &environment,
+                "",
+                claim_home,
+                OBJECT_LINK_RECEIPT,
+                "native-object-link-serialization",
+                "Serialize one declared Object/Link association and explicit source-copy forms without judging content.",
+                self.limits.deadline,
+                self.cancelled,
+                self.limits
+                    .max_state_bytes
+                    .checked_sub(self.state)
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
+            event
+        } else {
+            object_link_event(
+                scope,
+                &request,
+                &outputs,
+                &environment,
+                dependencies,
+                recorded_at,
+                self.limits
+                    .max_state_bytes
+                    .checked_sub(self.state)
+                    .ok_or(ItemRefusal::Budget)?,
+            )?
+        };
         drop(outputs);
         self.release_temporary(outputs_state);
         self.temporary(crate::record_biblio_cut::decoded_state(&event)?)?;
-        if event != actual_event {
-            return Err(bad("object-Link exact source provenance event"));
-        }
         let mut event_bytes = self.canonical_buffer(&event)?;
         event_bytes.push(b'\n');
-        if event_bytes != *event_raw
-            || !schemas.check_reusing_scalar(
-                &event_path,
-                &event_bytes,
-                "ToS/contracts/provenance-event-v2.schema.json",
-                self.limits.deadline,
-                self.cancelled,
-            )?
-        {
+        if !schemas.check_reusing_scalar(
+            &event_path,
+            &event_bytes,
+            "ToS/contracts/provenance-event-v2.schema.json",
+            self.limits.deadline,
+            self.cancelled,
+        )? {
             return Err(bad("object-Link event schema/exact bytes"));
         }
         let mut request_bytes = self.canonical_buffer(&request)?;
@@ -7784,23 +8382,8 @@ impl NativeCompoundReader<'_> {
         let receipt_bytes = pretty(&receipt_ordered)?;
         drop(receipt_ordered);
         self.release_temporary(receipt_tree_state);
-        if receipt_bytes != *receipt_raw {
-            return Err(bad("object-Link exact reconstructed receipt bytes"));
-        }
         let receipt = self.decoded(&receipt_bytes)?;
-        if receipt != actual_receipt {
-            return Err(bad("object-Link receipt logical binding"));
-        }
         files.insert(receipt_path, receipt_bytes);
-        if files.len() != tx.files.len()
-            || files.iter().any(|(path, raw)| {
-                tx.files
-                    .get(path)
-                    .is_none_or(|(before, after)| before.is_some() || after.as_ref() != Some(raw))
-            })
-        {
-            return Err(bad("object-Link complete before/after transaction plan"));
-        }
         if files.values().any(|raw| raw.len() > MAX_FILE) {
             return Err(ItemRefusal::BudgetCheck {
                 check: "object-Link prepared file bytes",
@@ -8122,6 +8705,8 @@ impl NativeCompoundReader<'_> {
         if !array(&parent_history, "receipts")?.contains(&reconstructed.parent_receipt) {
             return Err(bad("compound transition missing in current parent lineage"));
         }
+        observation.work_parent_transition_sha256 =
+            Some(text(&reconstructed.receipt, "parent_transition_sha256")?.to_owned());
         if kind.relation_attachment() {
             let initial = self.attachment_claim_initial(path, claim)?;
             if initial != reconstructed.child["source-claims.jsonl"] {
@@ -8178,10 +8763,6 @@ impl NativeCompoundReader<'_> {
             return Err(bad(
                 "current compound child lacks committed initial lineage",
             ));
-        }
-        if kind == CompoundKind::WorkExpression {
-            observation.work_parent_transition_sha256 =
-                Some(text(&reconstructed.receipt, "parent_transition_sha256")?.to_owned());
         }
         check(self.limits.deadline, self.cancelled)?;
         Ok(observation)

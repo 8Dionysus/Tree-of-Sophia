@@ -3042,7 +3042,7 @@ fn recover_item_selected(
             &selected,
             cmd::field(&authorization, "dependency_bindings")?,
             ready_snapshot.as_ref(),
-            &archive,
+            Some(&archive),
             prior_id.as_deref().zip(publication_token),
             &extent,
             limits.deadline,

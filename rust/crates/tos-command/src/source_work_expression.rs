@@ -2,7 +2,7 @@
 //! bytes; this module alone may construct its Work-specific authorization.
 
 use super::work_transaction::{self, PublicationSnapshot};
-use super::{CreationFilesystem, MAX_BYTES, MAX_FILES, active, member_mode_matches, scan, walk};
+use super::{active, member_mode_matches, scan, walk, CreationFilesystem, MAX_BYTES, MAX_FILES};
 use crate::source_command::{self as cmd, CommandContext, SourceCommandError, SourceCommandResult};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -10,10 +10,10 @@ use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::PredicateRead;
 use tos_validation::item_rules::ItemLimits;
 use tos_validation::item_rules::ItemRefusal;
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
+use tos_validation::PredicateRead;
 
 const CONFIG: &str = "tos_local_work_expression_owner_v1";
 const REQUEST: &str = "tos_local_work_expression_command_v1";
@@ -1028,183 +1028,46 @@ fn current_catalog(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<WorkCatalog> {
     check_publication()?;
-    let catalog = walk(&fs.root, "ToS/source-witnesses/catalog", fs.uid)?;
-    let manifest_raw = work_transaction::read_at(
-        &catalog,
-        "catalog.manifest.json",
-        fs.uid,
-        2_097_152,
-        deadline,
-        cancelled,
-    )?
-    .ok_or(SourceCommandError::Conflict("Work catalog manifest absent"))?;
-    let manifest = cmd::parse(&manifest_raw)?;
-    if cmd::text(&manifest, "schema_version")? != "tos_source_witness_catalog_v3"
-        || cmd::text(&manifest, "claim_file")? != "ToS/source-witnesses/catalog/claims.jsonl"
-    {
-        return Err(SourceCommandError::Unsupported(
-            "Work catalog route/version",
-        ));
-    }
-    let record_files = cmd::field(&manifest, "record_files")?
-        .as_object()
-        .ok_or(SourceCommandError::Invalid("Work catalog record routes"))?;
-    if record_files.is_empty() || record_files.len() > 128 {
-        return Err(SourceCommandError::Invalid("Work catalog route count"));
-    }
-    let mut routes = Vec::with_capacity(record_files.len() + 1);
-    for (kind, value) in record_files {
-        let kind = kind
-            .as_str()
-            .ok_or(SourceCommandError::Invalid("catalog kind"))?;
-        let reference = value
-            .as_str()
-            .ok_or(SourceCommandError::Invalid("catalog route"))?;
-        let prefix = "ToS/source-witnesses/catalog/";
-        if !reference.starts_with(prefix) || !known_catalog_kind(kind, &reference[prefix.len()..]) {
-            return Err(SourceCommandError::Unsupported(
-                "Work catalog undeclared profile route",
-            ));
-        }
-        routes.push((kind.to_owned(), reference.to_owned()));
-    }
-    routes.sort();
-    routes.push((
-        "claim".to_owned(),
-        "ToS/source-witnesses/catalog/claims.jsonl".to_owned(),
-    ));
-    let mut digests = BTreeMap::new();
-    let mut record_ids = BTreeSet::new();
-    let mut claim_ids = BTreeSet::new();
+    let selected_catalog =
+        super::catalog_selection::select_catalog(fs, publication_token, deadline, cancelled)?;
+    let mut digests = selected_catalog.digests;
+    let record_ids = selected_catalog.record_ids;
+    let claim_ids = selected_catalog.claim_ids;
     let mut expressions = BTreeMap::new();
     let mut claims = BTreeMap::new();
-    let mut total_bytes = manifest_raw.len();
-    let mut count = 0usize;
-    for (kind, reference) in routes {
-        active(deadline, cancelled)?;
-        let leaf = reference
-            .rsplit_once('/')
-            .ok_or(SourceCommandError::Invalid("catalog leaf"))?
-            .1;
-        let raw =
-            work_transaction::read_at(&catalog, leaf, fs.uid, 16_777_216, deadline, cancelled)?
-                .ok_or(SourceCommandError::Conflict("Work catalog route absent"))?;
-        total_bytes = total_bytes
-            .checked_add(raw.len())
-            .ok_or(SourceCommandError::Invalid(
-                "Work catalog aggregate overflow",
-            ))?;
-        if total_bytes > 16_777_216 {
-            return Err(SourceCommandError::Invalid(
-                "Work catalog aggregate byte budget",
-            ));
+    for (kind, entry) in selected_catalog.entries {
+        let id = if kind == "claim" {
+            cmd::text(&entry, "claim_id")?
+        } else {
+            cmd::text(&entry, "record_id")?
+        };
+        if kind == "work" && id == owner.work_id {
+            let raw_work = before
+                .get("work.json")
+                .ok_or(SourceCommandError::Conflict("Work selected record absent"))?;
+            let value = cmd::parse(raw_work)?;
+            if cmd::text(&entry, "source_record_ref")? != owner.work_path.as_str()
+                || cmd::text(&entry, "record_sha256")? != cmd::record_digest(&value)?.to_hex()
+            {
+                return Err(SourceCommandError::Conflict("Work catalog parent stale"));
+            }
         }
-        digests.insert(reference.clone(), raw_hex(&raw));
-        for line in catalog_lines(&raw) {
-            active(deadline, cancelled)?;
-            count += 1;
-            if count > 8192 {
-                return Err(SourceCommandError::Invalid("Work catalog row budget"));
-            }
-            let entry = cmd::parse(line)?;
-            let id = if kind == "claim" {
-                if cmd::text(&entry, "schema_version")?
-                    != "tos_source_witness_claim_catalog_entry_v1"
-                {
-                    return Err(SourceCommandError::Invalid("Work claim catalog schema"));
-                }
-                cmd::text(&entry, "claim_id")?
-            } else {
-                if cmd::text(&entry, "schema_version")? != "tos_source_witness_catalog_entry_v1"
-                    || cmd::text(&entry, "record_type")? != kind
-                {
-                    return Err(SourceCommandError::Invalid("Work record catalog schema"));
-                }
-                cmd::text(&entry, "record_id")?
-            };
-            if record_ids.contains(id)
-                || claim_ids.contains(id)
-                || !(if kind == "claim" {
-                    &mut claim_ids
-                } else {
-                    &mut record_ids
-                })
-                .insert(id.to_owned())
-            {
-                return Err(SourceCommandError::Conflict(
-                    "duplicate Work catalog identity",
-                ));
-            }
-            if kind == "work" && id == owner.work_id {
-                let raw_work = before
-                    .get("work.json")
-                    .ok_or(SourceCommandError::Conflict("Work selected record absent"))?;
-                let value = cmd::parse(raw_work)?;
-                if cmd::text(&entry, "source_record_ref")? != owner.work_path.as_str()
-                    || cmd::text(&entry, "record_sha256")? != cmd::record_digest(&value)?.to_hex()
-                {
-                    return Err(SourceCommandError::Conflict("Work catalog parent stale"));
-                }
-            }
-            if kind == "expression"
-                && cmd::field(&entry, "links")?
-                    .object_get("work_ref")
-                    .and_then(JsonValue::as_str)
-                    == Some(owner.work_id.as_str())
-            {
-                expressions.insert(id.to_owned(), entry.clone());
-            }
-            if kind == "claim"
-                && entry.object_get("predicate").and_then(JsonValue::as_str)
-                    == Some("has_expression")
-                && entry.object_get("subject_ref").and_then(JsonValue::as_str)
-                    == Some(owner.work_id.as_str())
-            {
-                claims.insert(id.to_owned(), entry);
-            }
+        if kind == "expression"
+            && cmd::field(&entry, "links")?
+                .object_get("work_ref")
+                .and_then(JsonValue::as_str)
+                == Some(owner.work_id.as_str())
+        {
+            expressions.insert(id.to_owned(), entry.clone());
+        }
+        if kind == "claim"
+            && entry.object_get("predicate").and_then(JsonValue::as_str) == Some("has_expression")
+            && entry.object_get("subject_ref").and_then(JsonValue::as_str)
+                == Some(owner.work_id.as_str())
+        {
+            claims.insert(id.to_owned(), entry);
         }
     }
-    let binding = manifest.object_get("selected_metadata_publication");
-    match (binding, publication_token) {
-        (None, None) => (),
-        (Some(binding), Some(token)) => {
-            cmd::exact_keys(binding, &["protocol", "token", "files"])?;
-            if cmd::text(binding, "protocol")? != "tos_selected_source_metadata_v1"
-                || cmd::text(binding, "token")? != token
-            {
-                return Err(SourceCommandError::Conflict(
-                    "Work catalog publication token",
-                ));
-            }
-            let rows =
-                cmd::field(binding, "files")?
-                    .as_object()
-                    .ok_or(SourceCommandError::Invalid(
-                        "Work catalog publication file map",
-                    ))?;
-            if rows.len() != digests.len()
-                || digests.iter().any(|(path, digest)| {
-                    rows.iter()
-                        .find(|(key, _)| key.as_str() == Some(path.as_str()))
-                        .and_then(|(_, value)| value.as_str())
-                        != Some(digest.as_str())
-                })
-            {
-                return Err(SourceCommandError::Conflict(
-                    "Work catalog publication file closure",
-                ));
-            }
-        }
-        _ => {
-            return Err(SourceCommandError::Conflict(
-                "Work catalog publication binding absent",
-            ));
-        }
-    }
-    digests.insert(
-        "ToS/source-witnesses/catalog/catalog.manifest.json".to_owned(),
-        raw_hex(&manifest_raw),
-    );
     if !record_ids.contains(&owner.work_id)
         || record_ids.contains(&owner.expression_id)
         || record_ids.contains(&owner.claim_id)
@@ -1713,7 +1576,7 @@ pub(super) fn physical_current(
     selected: &BTreeMap<String, SelectedSides>,
     bindings: &JsonValue,
     snapshot: Option<&PublicationSnapshot>,
-    archive: &work_transaction::WorkArchive,
+    archive: Option<&work_transaction::WorkArchive>,
     prior: Option<(&str, &str)>,
     guard: &work_transaction::WorkGuard<'_>,
     deadline: Instant,
@@ -1726,7 +1589,9 @@ pub(super) fn physical_current(
         ));
     }
     selected_current(fs, cut, selected, deadline, cancelled)?;
-    archive.verify_current(fs, deadline, cancelled)?;
+    if let Some(archive) = archive {
+        archive.verify_current(fs, deadline, cancelled)?;
+    }
     let prior_completion = if guard.prior_completion_ready {
         prior
             .map(|(id, token)| prior_completion_current(fs, id, token, deadline, cancelled))
@@ -1741,7 +1606,10 @@ pub(super) fn physical_current(
     }
     if guard.full_membership {
         let control = "ToS/source-witnesses/.metadata-publication.json".to_owned();
-        let mut auxiliary = archive.member_paths().collect::<BTreeSet<_>>();
+        let mut auxiliary = archive
+            .into_iter()
+            .flat_map(|archive| archive.member_paths())
+            .collect::<BTreeSet<_>>();
         auxiliary.extend(guard.journal_members.iter().cloned());
         auxiliary.insert(control.clone());
         if let Some(path) = prior_completion {
@@ -2194,7 +2062,7 @@ impl WorkApplicationGuard {
             &self.selected,
             cmd::field(&self.authorization, "dependency_bindings")?,
             Some(&self.snapshot),
-            &self.stored_archive,
+            Some(&self.stored_archive),
             self.prior_id.as_deref().zip(self.snapshot.token.as_deref()),
             &extent,
             limits.deadline,
@@ -2799,7 +2667,7 @@ pub fn recover_isolated_work_expression_from_captures(
             &selected,
             cmd::field(&authorization, "dependency_bindings")?,
             None,
-            &archive,
+            Some(&archive),
             prior_id.as_deref().zip(publication_token),
             &extent,
             limits.deadline,

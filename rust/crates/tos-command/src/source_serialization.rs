@@ -185,7 +185,16 @@ pub(crate) fn capture_creation(
         files,
         software,
         components,
-        if request.object_get("record").and_then(|r| r.object_get("schema_version")).and_then(JsonValue::as_str) == Some("tos_artifact_source_witness_v2") { "native-artifact-metadata-serialization" } else { "native-source-metadata-serialization" },
+        if request
+            .object_get("record")
+            .and_then(|r| r.object_get("schema_version"))
+            .and_then(JsonValue::as_str)
+            == Some("tos_artifact_source_witness_v2")
+        {
+            "native-artifact-metadata-serialization"
+        } else {
+            "native-source-metadata-serialization"
+        },
         None,
         deadline,
         cancelled,
@@ -772,10 +781,89 @@ pub(crate) fn capture_collection_membership(
         CompoundCapture::CollectionMembership,
     )
 }
+pub(crate) fn capture_expression_responsibility(
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    archive_path: &str,
+    before: &BTreeMap<String, Vec<u8>>,
+    outputs: &[(&str, &[u8])],
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<WorkNativeCapture> {
+    capture_compound(
+        request,
+        event_id,
+        home,
+        archive_path,
+        before,
+        outputs,
+        software,
+        components,
+        deadline,
+        cancelled,
+        CompoundCapture::ExpressionResponsibility,
+    )
+}
+pub(crate) fn capture_expression_edition(
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    archive_path: &str,
+    before: &BTreeMap<String, Vec<u8>>,
+    outputs: &[(&str, &[u8])],
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<WorkNativeCapture> {
+    capture_compound(
+        request,
+        event_id,
+        home,
+        archive_path,
+        before,
+        outputs,
+        software,
+        components,
+        deadline,
+        cancelled,
+        CompoundCapture::ExpressionEdition,
+    )
+}
+pub(crate) fn capture_object_link(
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    outputs: &[(&str, &[u8])],
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<WorkNativeCapture> {
+    capture_compound(
+        request,
+        event_id,
+        home,
+        "",
+        &BTreeMap::new(),
+        outputs,
+        software,
+        components,
+        deadline,
+        cancelled,
+        CompoundCapture::ObjectLink,
+    )
+}
 enum CompoundCapture {
+    ObjectLink,
     WorkExpression,
     EditionItem,
     CollectionMembership,
+    ExpressionResponsibility,
+    ExpressionEdition,
 }
 fn capture_compound(
     request: &JsonValue,
@@ -790,7 +878,14 @@ fn capture_compound(
     cancelled: &AtomicBool,
     profile: CompoundCapture,
 ) -> SourceCommandResult<WorkNativeCapture> {
+    let object_link = matches!(profile, CompoundCapture::ObjectLink);
     let (receipt_name, warning, procedure, purpose) = match profile {
+        CompoundCapture::ObjectLink => (
+            "object-link-creation-receipt.json",
+            "Completed in-process Object/Link buffer serialization; atomic selected-metadata publication occurs afterward.",
+            "native-object-link-serialization",
+            "Serialize one declared Object/Link association and explicit source-copy forms without judging content.",
+        ),
         CompoundCapture::WorkExpression => (
             "work-expression-receipt.json",
             "Completed in-process Work/Expression buffer serialization; atomic selected-metadata publication occurs afterward.",
@@ -809,9 +904,22 @@ fn capture_compound(
             "native-collection-membership-serialization",
             "Serialize one qualified Collection membership Claim and explicit source-copy forms without judging membership.",
         ),
+        CompoundCapture::ExpressionResponsibility => (
+            "responsibility-attachment-receipt.json",
+            "Completed in-process Expression responsibility buffer serialization; atomic selected-metadata publication occurs afterward.",
+            "native-expression-responsibility-serialization",
+            "Serialize one qualified Expression responsibility Claim and explicit source-copy forms without judging attribution.",
+        ),
+        CompoundCapture::ExpressionEdition => (
+            "expression-edition-receipt.json",
+            "Completed in-process Expression/Edition buffer serialization; atomic selected-metadata publication occurs afterward.",
+            "native-expression-edition-serialization",
+            "Serialize one declared Expression/Edition link and explicit source-copy forms without judging content.",
+        ),
     };
     active(deadline, cancelled)?;
-    if before.is_empty()
+    if (!object_link && before.is_empty())
+        || (object_link && (!before.is_empty() || !archive_path.is_empty()))
         || outputs.is_empty()
         || outputs.len() > 64
         || outputs.iter().any(|(_, raw)| raw.len() > 8_388_608)
@@ -1002,9 +1110,18 @@ pub(crate) fn restore_creation_capture(
     let mut method_environment = environment.clone();
     method_environment["environment_profile_binding"] =
         binding("source-create-environment.json", environment_raw);
-    let artifact = request.object_get("record").and_then(|r| r.object_get("schema_version")).and_then(JsonValue::as_str) == Some("tos_artifact_source_witness_v2");
-    if artifact && event.pointer("/method/procedure/name") != Some(&json!("native-artifact-metadata-serialization")) {
-        return Err(SourceCommandError::Conflict("retained Artifact serialization procedure differs"));
+    let artifact = request
+        .object_get("record")
+        .and_then(|r| r.object_get("schema_version"))
+        .and_then(JsonValue::as_str)
+        == Some("tos_artifact_source_witness_v2");
+    if artifact
+        && event.pointer("/method/procedure/name")
+            != Some(&json!("native-artifact-metadata-serialization"))
+    {
+        return Err(SourceCommandError::Conflict(
+            "retained Artifact serialization procedure differs",
+        ));
     }
     if event.get("event_id") != Some(&json!(event_id))
         || event.get("record_binding")
