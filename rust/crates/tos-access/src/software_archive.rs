@@ -25,17 +25,13 @@ const STATIC: &str = "access/src/tos_access/web_dist/";
 const TARGET: &str = "x86_64-unknown-linux-gnu";
 const NATIVE_SCHEMA: &str = "tos_native_access_build_v1";
 const SCHEMA: &str = "tos_software_bundle_manifest_v1";
-const SOURCE_FILES: [&str; 3] = [
-    "access/pyproject.toml",
-    "access/README.md",
-    "access/packaging/tos_build_backend.py",
-];
+const SOURCE_FILES: [&str; 1] = ["access/README.md"];
 const TOS_SCHEMAS: [&str; 3] = [
     "semantic-entity-type-registry.schema.json",
     "semantic-relation-type-registry.schema.json",
     "epistemic-evidence-projection.schema.json",
 ];
-const README: &str = "# Tree of Sophia software package\n\nNative Linux x86_64 software is the verified member\n`access/src/tos_access/tos-access`; it needs no Python runtime.\nRun that member with `--help`, or install this archive into a fresh user prefix\nwith `software install --archive ABSOLUTE_ARCHIVE --prefix ABSOLUTE_PREFIX`\nand the explicit total/archive/member/metadata budgets documented in access/README.md.\nThe installed entrypoint is PREFIX/bin/tos; select its PATH explicitly.\nSelect managed data separately with `--release-root ABSOLUTE_RELEASE`.\nNo selected data means truthful unavailable data capabilities.\n\nLEGACY Python compatibility remains available with `pip install ./access`.\nThat wheel installs the Python tos entrypoint, requires Python, and does not\ninclude the native ELF. Neither installation carries corpus data.\n";
+const README: &str = "# Tree of Sophia software package\n\nNative Linux x86_64 software is the verified member\n`access/src/tos_access/tos-access`; it needs no Python runtime.\nRun that member with `--help`, or install this archive into a fresh user prefix\nwith `software install --archive ABSOLUTE_ARCHIVE --prefix ABSOLUTE_PREFIX`\nand the explicit total/archive/member/metadata budgets documented in access/README.md.\nThe installed entrypoint is PREFIX/bin/tos; select its PATH explicitly.\nSelect managed data separately with `--release-root ABSOLUTE_RELEASE`.\nNo selected data means truthful unavailable data capabilities.\n\nThis native archive contains no Python runtime or wheel backend.\nThe repository retains explicit LEGACY Python reference compatibility with\n`pip install ./access`, whose command is `tos-legacy`; it is not installed\nfrom this archive. Neither installation carries corpus data.\n";
 type Result<T> = std::result::Result<T, String>;
 trait Checked<T> {
     fn checked(self) -> Result<T>;
@@ -203,8 +199,6 @@ fn allowed(name: &str) -> bool {
         "rust-toolchain.toml",
         "README.md",
         "access/README.md",
-        "access/pyproject.toml",
-        "access/packaging/tos_build_backend.py",
     ]
     .contains(&name)
     {
@@ -218,9 +212,6 @@ fn allowed(name: &str) -> bool {
                 .any(|s| rest == format!("ToS/contracts/{s}"));
     }
     name.starts_with(STATIC)
-        || (name.starts_with("access/src/tos_access/")
-            && name.ends_with(".py")
-            && !name.split('/').any(|p| p == "__pycache__"))
         || ((name.starts_with("access/contracts/") || name.starts_with("access/profiles/"))
             && name.ends_with(".json"))
 }
@@ -634,7 +625,6 @@ pub fn build(
         )?;
     }
     for (dir, extension, exclude) in [
-        ("access/src/tos_access", ".py", true),
         ("access/contracts", ".json", false),
         ("access/profiles", ".json", false),
     ] {
@@ -814,11 +804,7 @@ pub fn build(
         } else {
             inputs[&name].size
         };
-        let mode = if name.ends_with(".py") || name == PROGRAM {
-            0o755
-        } else {
-            0o644
-        };
+        let mode = if name == PROGRAM { 0o755 } else { 0o644 };
         let opts = SimpleFileOptions::default()
             .compression_method(CompressionMethod::Deflated)
             .compression_level(Some(9))
@@ -1052,11 +1038,7 @@ impl VerifiedArchive {
                 return Err("unsafe/non-software/duplicate ZIP member".into());
             }
             let mode = header.external_attributes() >> 16;
-            let expected_mode = if name.ends_with(".py") || name == PROGRAM {
-                0o755
-            } else {
-                0o644
-            };
+            let expected_mode = if name == PROGRAM { 0o755 } else { 0o644 };
             if ![0, 0o100000].contains(&(mode & 0o170000)) || mode & 0o7777 != expected_mode {
                 return Err("software member regular/executable mode differs".into());
             }

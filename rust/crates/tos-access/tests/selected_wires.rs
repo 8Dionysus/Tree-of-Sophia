@@ -5214,6 +5214,12 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
         );
         let program = installed.join("bin/tos");
         let image = installed.join("software/access/src/tos_access/tos-access");
+        // The native closure must not bring back the retired Python runtime.
+        let members = manifest.object_get("members").unwrap().as_array().unwrap();
+        assert!(members.iter().all(|member| {
+            let name = member.object_get("path").unwrap().as_str().unwrap();
+            !name.ends_with(".py") && name != "access/pyproject.toml"
+        }));
         assert_eq!(
             fs::read_link(&program).unwrap(),
             PathBuf::from("../software/access/src/tos_access/tos-access")
@@ -5496,6 +5502,45 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
         assert!(refused.starts_with(b"HTTP/1.1 503 "));
         assert!(!String::from_utf8_lossy(&refused).contains("window.__TOS_GRAPH_BOOT__"));
         drop(server);
+        // Restore from the retained verified package into another fresh prefix.
+        // The unavailable first prefix remains untouched and inspectable.
+        let restored = root.join("restored");
+        let restore = Command::new(&binary)
+            .args(["software", "install"])
+            .arg("--archive")
+            .arg(&package)
+            .arg("--prefix")
+            .arg(&restored)
+            .args(limits())
+            .output()
+            .unwrap();
+        assert!(
+            restore.status.success(),
+            "native restore: {}",
+            String::from_utf8_lossy(&restore.stderr)
+        );
+        let restored_program = restored.join("bin/tos");
+        let version = Command::new(&restored_program)
+            .arg("--version")
+            .current_dir(&outside)
+            .env_clear()
+            .env("PATH", "")
+            .output()
+            .unwrap();
+        assert!(version.status.success());
+        assert!(version.stderr.is_empty());
+        assert!(String::from_utf8_lossy(&version.stdout).starts_with("tos "));
+        assert_eq!(
+            crate::native_child::bounded_sha(
+                &restored.join("software/access/src/tos_access/tos-access"),
+                256 * 1024 * 1024
+            ),
+            crate::native_child::bounded_sha(&moved, 256 * 1024 * 1024)
+        );
+        assert!(
+            !image.exists(),
+            "restore must not overwrite the earlier prefix"
+        );
         // Keep admitted package/installation evidence in TMPDIR for OPS custody.
     }
 }

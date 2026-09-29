@@ -9,7 +9,13 @@ Authored meaning stays under `ToS/`. This package reads allowlisted derived
 exports and always returns their `source_ref` routes; it never promotes canon,
 changes review state, or writes to the corpus.
 
-## Development install
+## Native installation
+
+The normal `tos` command comes from [native fresh-prefix installation](#native-fresh-prefix-installation).
+It requires an explicitly verified native software archive and no Python runtime.
+Data selection is separate from software installation.
+
+## Legacy reference development install
 
 Create a local environment with `python -m venv .venv` and install with
 `.venv/bin/python -m pip install -e 'access[mcp,dev]'`. Install and build browser
@@ -17,9 +23,9 @@ assets with `npm ci --prefix access/web` and `npm run build --prefix access/web`
 Program development and tests need no production corpus or AbyssOS installation.
 
 To read production data, explicitly select an existing compatible snapshot:
-`export TOS_DATA_ROOT=/path/to/data`. Then run `.venv/bin/tos doctor`,
-`.venv/bin/tos serve`, or `.venv/bin/tos mcp`. The reader does not search parent
-directories for data. Software-owned contracts and browser assets do not come
+`export TOS_DATA_ROOT=/path/to/data`. Then run `.venv/bin/tos-legacy doctor`,
+`.venv/bin/tos-legacy serve`, or `.venv/bin/tos-legacy mcp`. The reader does not
+search parent directories for data. Software-owned contracts and browser assets do not come
 from the selected dataset. Compiling or admitting new data is a separate data
 operation; software edits do not trigger it.
 
@@ -1323,9 +1329,9 @@ Rust owner sources participate in dirty-source detection for this profile;
 checks the executable's exact 0755 mode without executing it. An extractor
 must retain that member's declared mode; the existing install probe restores
 only this verified member after Python zipfile extraction. The existing wheel
-backend does not include the ELF: `pip install ./access` remains the Python
-entrypoint, while the extracted archive's explicit native member is the
-transitional native entrypoint.
+backend does not include the ELF: `pip install ./access` provides the explicit
+`tos-legacy` reference entrypoint. The native archive excludes Python runtime modules and wheel
+metadata; its installed `bin/tos` is the normal entrypoint.
 
 Native `serve` uses the executable's installed software companion, never the
 selected data root, to serve `/` and `/static/…`. The manifest is bounded to
@@ -1379,7 +1385,7 @@ installation evidence and is not overwritten by another invocation.
 The existing Python software CLI, validator and unique unsafe/integrity checks
 remain available during this transition; the native route does not invoke
 Python packaging. The legacy wheel backend and `pip install ./access` still
-install the Python entrypoint and do not include the native ELF. Native archive
+install `tos-legacy` and do not include the native ELF. Native archive
 assembly and actual extracted startup require their own admitted product and
 runtime evidence; they do not establish wheel migration or managed data
 custody.
@@ -1441,9 +1447,15 @@ startup reads. No new image staging copy or decompressed buffer is introduced.
 These bounds describe operation I/O, not an aggregate RSS guarantee.
 
 **LEGACY compatibility:** `pip install ./access`, wheel/editable/sdist hooks,
-Python CLI and their existing isolated-install/streaming RECORD integrity checks
-remain unchanged. That wheel still requires Python, does not include the native
-ELF, and does not become the native installation path. Wheel/Python retirement
+Python reference CLI and existing isolated-install/streaming RECORD integrity
+checks remain available. The wheel command is explicitly `tos-legacy`; native
+fresh-prefix installation owns `tos`. That wheel still requires Python, does
+not include the native ELF, and does not become the native installation path. Wheel/Python retirement
 remains an open migration requirement until its consumers and unique checks
 have an accepted replacement. Native archive installation does not prove a
 wheel, installed managed data profile, or complete migration ready.
+
+Migration does not rewrite existing virtual environments or PATH. Reinstalling
+the legacy wheel updates its command name; deselect any old wheel-owned `tos`
+when choosing the native prefix. Preserve the previous prefix for rollback.
+Python reference APIs and unique integrity checks remain in the repository.
