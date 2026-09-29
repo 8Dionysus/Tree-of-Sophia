@@ -841,7 +841,7 @@ fn bounded_graph(nodes: Vec<Value>, edges: Vec<Value>, limit: usize) -> (Vec<Val
     )
 }
 
-fn bounded_clusters(clusters: Vec<Value>, nodes: &[Value], edges: &[Value]) -> Vec<Value> {
+fn bounded_clusters(clusters: Vec<Value>, nodes: &[Value], edges: &[Value]) -> Result<Vec<Value>> {
     let node_ids = nodes
         .iter()
         .map(|n| id(n, "node_id"))
@@ -870,9 +870,18 @@ fn bounded_clusters(clusters: Vec<Value>, nodes: &[Value], edges: &[Value]) -> V
             cluster["member_edge_ids"] = json!(matched_edges);
             cluster["available_member_node_count"] = json!(member_nodes.len());
             cluster["available_member_edge_count"] = json!(member_edges.len());
-            // Python's dict(item.get("properties") or {}) produces an empty
-            // object for both a missing field and an explicit null.
-            if !cluster.get("properties").is_some_and(Value::is_object) {
+            // Python's dict(value or {}) maps falsey values to an empty
+            // object. Truthy non-objects are outside the authored object
+            // shape; refuse them rather than discarding their content.
+            let empty_properties = match cluster.get("properties") {
+                None | Some(Value::Null | Value::Bool(false)) => true,
+                Some(Value::Number(value)) => value.as_f64() == Some(0.0),
+                Some(Value::String(value)) => value.is_empty(),
+                Some(Value::Array(value)) => value.is_empty(),
+                Some(Value::Object(_)) => false,
+                _ => return Some(Err(Error::Invalid("public D1 cluster properties shape"))),
+            };
+            if empty_properties {
                 cluster["properties"] = json!({});
             }
             if cluster["properties"].get("member_count").is_some() {
@@ -881,7 +890,7 @@ fn bounded_clusters(clusters: Vec<Value>, nodes: &[Value], edges: &[Value]) -> V
             if cluster["properties"].get("edge_count").is_some() {
                 cluster["properties"]["edge_count"] = json!(matched_edges.len());
             }
-            Some(cluster)
+            Some(Ok(cluster))
         })
         .collect()
 }
@@ -1006,7 +1015,7 @@ fn phi_view_packet(
             (nodes, edges, node_count, edge_count)
         };
     let (clusters, _, _) = phi_clusters(capture, view_id, root, 1000)?;
-    let clusters = bounded_clusters(clusters, &nodes, &edges)
+    let clusters = bounded_clusters(clusters, &nodes, &edges)?
         .into_iter()
         .take(limit)
         .collect::<Vec<_>>();
