@@ -3717,3 +3717,9 @@ pub use expression_edition::{
     recover_isolated_expression_edition_from_captures,
     replay_isolated_expression_edition_from_captures,
 };
+
+pub use work_expression::resume_isolated_work_expression_from_captures;
+pub(crate) use work_expression::{
+    published_work_materializations, retained_work_request, work_expression_materializations,
+    work_expression_owner_result,
+};
