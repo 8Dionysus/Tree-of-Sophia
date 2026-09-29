@@ -27,6 +27,7 @@ pub mod record_biblio_cut;
 pub mod record_rules;
 pub mod relation_rules;
 pub mod retirement_rules;
+pub mod semantic_registry_rules;
 pub mod rights_rules;
 pub mod source_copy;
 pub mod source_cut;
