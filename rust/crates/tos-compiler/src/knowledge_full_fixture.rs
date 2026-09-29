@@ -103,6 +103,19 @@ impl StageIsolation for FixtureQuota {
         Ok(())
     }
 }
+// The isolated installed case supplies an absolute engineering deadline.
+// Existing StageIsolation checks surround every stage operation; individual
+// SQL statements additionally retain the caller's cumulative VM limit. The
+// admitted outer runtime timeout still bounds filesystem/kernel operations.
+struct FixtureQuotaUntil(std::time::Instant);
+impl StageIsolation for FixtureQuotaUntil {
+    fn verify(&self, _: &Path, _: StageLimits, _: WritePhase) -> Result<()> {
+        if std::time::Instant::now() >= self.0 {
+            return Err(Error::Budget("finite native fixture producer deadline"));
+        }
+        Ok(())
+    }
+}
 // Synthetic fixture custody only. Production must hold a real immutable
 // generation and separately enforce cold temp/heap quotas.
 struct FixtureCustody;
@@ -696,12 +709,12 @@ fn finish_fixture_with_limits(
 /// Claim bytes and a bounded navigation owner carrier for its exact subject.
 /// No pre-normalized Claim, time envelope or final row is a test input.
 pub fn build_native_fixture() -> FullKnowledgeFixture {
-    build_native_fixture_inner(false, None, None, None)
+    build_native_fixture_inner(false, None, None, None, None)
 }
 /// Existing native raw fixture with one explicitly synthetic rights declaration
 /// retained through normal assembler/seal/cold-open. This grants no authority.
 pub fn build_native_fixture_with_navigation_original() -> FullKnowledgeFixture {
-    build_native_fixture_inner(true, None, None, None)
+    build_native_fixture_inner(true, None, None, None, None)
 }
 /// Caller supplies complete original owner fixture packets. They traverse the
 /// same raw ingestion, native normalization, catalog, seal and cold-open path.
@@ -712,7 +725,32 @@ pub fn build_native_fixture_with_navigation_inputs(
     edges: &[&[u8]],
     rights: &[&[u8]],
 ) -> FullKnowledgeFixture {
-    build_native_fixture_inner(true, Some((header, nodes, edges, rights)), None, None)
+    build_native_fixture_inner(true, Some((header, nodes, edges, rights)), None, None, None)
+}
+/// Same native navigation producer, with caller-selected finite stage caps and
+/// deadline from its already admitted installed-case profile. Family-specific
+/// normalization/catalog/Search limits remain explicit and unchanged; they
+/// are not an aggregate spill/RSS admission. Other fixture callers retain their
+/// original limits and behavior.
+pub fn build_native_fixture_with_navigation_inputs_bounded(
+    header: &[u8],
+    nodes: &[&[u8]],
+    edges: &[&[u8]],
+    rights: &[&[u8]],
+    stage_limits: StageLimits,
+    deadline: std::time::Instant,
+) -> FullKnowledgeFixture {
+    assert!(
+        std::time::Instant::now() < deadline,
+        "native fixture deadline already expired"
+    );
+    build_native_fixture_inner(
+        true,
+        Some((header, nodes, edges, rights)),
+        None,
+        None,
+        Some((stage_limits, deadline)),
+    )
 }
 use crate::knowledge_philosophy_prepare::{
     PHILOSOPHY_FIXTURE_0, PHILOSOPHY_FIXTURE_1, PHILOSOPHY_FIXTURE_2,
@@ -768,7 +806,7 @@ pub fn build_native_fixture_with_philosophy_inputs(
     nodes: &[&[u8]],
     edges: &[&[u8]],
 ) -> FullKnowledgeFixture {
-    build_native_fixture_inner(false, None, Some((header, nodes, edges)), None)
+    build_native_fixture_inner(false, None, Some((header, nodes, edges)), None, None)
 }
 /// Reuse a real existing software capture of unchanged public corpus inputs.
 /// Abbreviated compatibility rows are never passed off as native canon inputs.
@@ -806,6 +844,7 @@ pub fn build_native_fixture_with_captured_corpus(
         None,
         None,
         Some((&capture, &path, deadline, &cancelled)),
+        None,
     )
 }
 type PhilosophyFixtureInputs<'a> = (&'a [u8], &'a [&'a [u8]], &'a [&'a [u8]]);
@@ -820,6 +859,7 @@ fn build_native_fixture_inner(
         std::time::Instant,
         &std::sync::atomic::AtomicBool,
     )>,
+    bounded_stage: Option<(StageLimits, std::time::Instant)>,
 ) -> FullKnowledgeFixture {
     let entity_bytes =
         include_bytes!("../../../../ToS/doctrine/semantic-interchange/entity-types.v1.json");
@@ -979,19 +1019,22 @@ fn build_native_fixture_inner(
     let path = candidate();
     let owner = FixtureOwner;
     let quota = FixtureQuota;
-    let mut stage = KnowledgeStage::create(
-        &path,
+    let timed_quota = bounded_stage.map(|(_, deadline)| FixtureQuotaUntil(deadline));
+    let isolation: &dyn StageIsolation = timed_quota
+        .as_ref()
+        .map_or(&quota as &dyn StageIsolation, |quota| {
+            quota as &dyn StageIsolation
+        });
+    let stage_limits = bounded_stage.map_or(
         StageLimits {
             sqlite: Limits::default(),
             max_temp_bytes: 64 * 1024 * 1024,
             max_seek_rows: 2,
             max_seek_bytes: 1024 * 1024,
         },
-        exact,
-        &owner,
-        &quota,
-    )
-    .unwrap();
+        |(limits, _)| limits,
+    );
+    let mut stage = KnowledgeStage::create(&path, stage_limits, exact, &owner, isolation).unwrap();
     for (source, collection, id, payload) in &rows {
         stage
             .ingest_input(InputRow {
@@ -1099,7 +1142,7 @@ fn build_native_fixture_inner(
         "composition":{"endpoint_policy":"independent","group_by":["source_graph"]},
         "limits":{"nodes":200,"relations":400,"groups":100}
     })];
-    finish_fixture(
+    let fixture = finish_fixture(
         stage,
         path,
         registry,
@@ -1112,7 +1155,14 @@ fn build_native_fixture_inner(
         native.navigation_original,
         native.philosophy_original,
         native.corpus_original,
-    )
+    );
+    if let Some((_, deadline)) = bounded_stage {
+        assert!(
+            std::time::Instant::now() < deadline,
+            "native fixture producer deadline exhausted"
+        );
+    }
+    fixture
 }
 
 /// Existing software fixture engineering profile. Source composition uses its
