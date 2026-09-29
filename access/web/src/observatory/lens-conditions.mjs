@@ -21,25 +21,11 @@ const fields={
 };
 const typeOps={string:['eq','neq','in','contains','prefix','exists'],'string-array':['eq','neq','in','contains','exists'],number:['eq','neq','in','gt','gte','lt','lte','exists'],boolean:['eq','neq','exists']};
 export function validateConditions(value,{maxConditions=MAX_CONDITIONS}={}){
-  try{const fromRust=normalizeConditions(value,maxConditions);if(fromRust)return fromRust;}
+  try{return normalizeConditions(value,maxConditions);}
   catch(error){const code=String(error);
     if(code.includes('invalid_conditions_limit'))fail(t("Можно добавить до {0} условий в каждый раздел.",[maxConditions]));
     if(code.includes('invalid_conditions_rule'))fail(t("Условие неполно или имеет неподдерживаемое значение."));
     fail(t("Неверный набор условий."));}
-  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>!['nodes','relations'].includes(k)))fail(t("Неверный набор условий."));
-  const result={};
-  for(const kind of ['nodes','relations']){
-    const entries=value[kind];
-    if(!Number.isInteger(maxConditions)||maxConditions<0||!Array.isArray(entries)||entries.length>maxConditions)
-      fail(t("Можно добавить до {0} условий в каждый раздел.",[maxConditions]));
-    result[kind]=entries.map(rule=>{
-      if(!rule||!['field','property_id'].includes(rule.selector)||!id(rule.id)||!Object.hasOwn(operatorLabels,rule.op)
-        ||!(Array.isArray(rule.value)?rule.value.length<=100&&rule.value.every(scalar):scalar(rule.value))
-        ||kind==='relations'&&rule.selector==='property_id')fail(t("Условие неполно или имеет неподдерживаемое значение."));
-      return {selector:rule.selector,id:rule.id,op:rule.op,value:structuredClone(rule.value)};
-    });
-  }
-  return result;
 }
 const fieldEnum=(schema,kind)=>(schema.$defs?.[kind+'Field']?.anyOf||[]).flatMap(part=>part.enum||[]);
 export function conditionCatalog({catalog,schema},kind){

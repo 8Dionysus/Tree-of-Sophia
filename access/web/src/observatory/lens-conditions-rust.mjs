@@ -32,7 +32,7 @@ export function installConditionRules(runtime){
   normalize=runtime.normalize_observatory_conditions_wasm_v1;
 }
 export function normalizeConditions(value,maxConditions){
-  if(!normalize)return null;
+  if(!normalize)throw new TypeError('Observatory conditions WASM rule is unavailable');
   const encoded=encoder.encode(JSON.stringify(request(value,maxConditions)));
   const result=JSON.parse(decoder.decode(normalize(encoded)));
   // Copy each admitted value once, directly from its original JS carrier.

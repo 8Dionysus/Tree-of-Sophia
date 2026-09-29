@@ -56,6 +56,10 @@ const invalidDrafts=[
   ()=>({...legacy(),conditions:null}),()=>Object.assign(Object.create({paths:[{}]}),legacy()),
 ];
 for(const make of invalidDrafts)assert.throws(()=>validateDraftLegacyOracle(make()));
+// Product rules require the actual binding; only explicit test oracles run
+// before installation. Missing bindings cannot silently choose JS policy.
+assert.throws(()=>validateConditions({nodes:[],relations:[]}));
+assert.throws(()=>validateDraft(draft));
 
 const rules=await import(pathToFileURL(bindingPath).href);
 await rules.default({module_or_path:await readFile(wasmPath)});
