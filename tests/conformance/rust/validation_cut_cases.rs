@@ -685,6 +685,7 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
     let captured = opening_capture.path().join("captured");
     let restored = opening_capture.path().join("restored");
     let archive_tool = owner.join("scripts/corpus_archive.py");
+    let archive_deadline = Instant::now() + Duration::from_secs(120);
     let run_archive = |command: &mut std::process::Command, label: &str| {
         for (key, _) in std::env::vars_os() {
             if key.to_string_lossy().starts_with("GIT_")
@@ -694,17 +695,42 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
                 command.env_remove(key);
             }
         }
-        let output = command
+        let stdout = opening_capture.path().join(format!("{label}.stdout"));
+        let stderr = opening_capture.path().join(format!("{label}.stderr"));
+        let mut child = command
             .env("GIT_NO_REPLACE_OBJECTS", "1")
             .env("GIT_CONFIG_NOSYSTEM", "1")
             .env("GIT_CONFIG_GLOBAL", "/dev/null")
             .env("PYTHONDONTWRITEBYTECODE", "1")
-            .output()
+            .stdout(std::process::Stdio::from(
+                fs::File::create(&stdout).unwrap(),
+            ))
+            .stderr(std::process::Stdio::from(
+                fs::File::create(&stderr).unwrap(),
+            ))
+            .spawn()
             .unwrap();
+        let status = loop {
+            if let Some(status) = child.try_wait().unwrap() {
+                break status;
+            }
+            if Instant::now() >= archive_deadline
+                || fs::metadata(&stdout).unwrap().len() > 1_048_576
+                || fs::metadata(&stderr).unwrap().len() > 1_048_576
+            {
+                let _ = child.kill();
+                child.wait().unwrap();
+                panic!("bounded {label} refused");
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        };
+        assert!(fs::metadata(&stdout).unwrap().len() <= 1_048_576);
+        assert!(fs::metadata(&stderr).unwrap().len() <= 1_048_576);
+        assert!(Instant::now() < archive_deadline, "{label} deadline");
         assert!(
-            output.status.success(),
+            status.success(),
             "{label}: {}",
-            String::from_utf8_lossy(&output.stderr)
+            String::from_utf8_lossy(&fs::read(&stderr).unwrap())
         );
     };
     let mut capture = std::process::Command::new("python3");
