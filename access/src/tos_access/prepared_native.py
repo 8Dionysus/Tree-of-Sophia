@@ -16,12 +16,14 @@ HEADER_FRAME_BYTES = 16_843_008
 
 
 def select_publication_executor(executable=None, timeout=None):
-    selected = executable or os.environ.get('TOS_PREPARED_EXECUTOR')
+    selected = executable if executable is not None else os.environ.get('TOS_PREPARED_EXECUTOR')
     if selected is None:
         installed = shutil.which('tos-access')
         selected = Path(installed).resolve() if installed is not None else None
     if selected is None:
         raise ValueError('native prepared executable must be explicitly configured or installed')
+    if not isinstance(selected, (str, Path)):
+        raise ValueError('native prepared executable must be an absolute selected path')
     selected = Path(selected)
     if not selected.is_absolute() or not selected.is_file() or not os.access(selected, os.X_OK):
         raise ValueError('native prepared executable must be an absolute executable regular file')

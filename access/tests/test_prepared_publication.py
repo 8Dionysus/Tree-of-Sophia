@@ -175,6 +175,11 @@ class PreparedPublicationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 publication.publish_prepared(absent, graph=self.graph, catalog=self.catalog)
         self.assertFalse(absent.exists())
+        with patch.dict(os.environ, TOS_PREPARED_EXECUTOR=executable, TOS_PREPARED_MAX_SECONDS='20'):
+            with self.assertRaises(ValueError):
+                publication.publish_prepared(absent, graph=self.graph, catalog=self.catalog,
+                                             native_executable='')
+        self.assertFalse(absent.exists())
 
     @unittest.skipUnless(os.environ.get('TOS_NATIVE_PREPARED_EXECUTABLE'),
                          'explicit protected native publication executable required')
