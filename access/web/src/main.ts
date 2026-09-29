@@ -15,12 +15,12 @@ import {
 import { createToSQueryOperations } from "./query-operations";
 import {
   createLocalStoragePersistence,
-  createResearchWorkspace,
   type ResearchHypothesis,
   type ResearchProposal,
   type ResearchProposalKind,
   type RouteSnapshot,
 } from "./research-workspace";
+import {createBrowserResearchWorkspace} from './research-workspace-rust';
 import { agentSurfaceState, PRODUCT_DEMO_PROMPTS } from "./product-shell";
 import { createWebMCPAdapter, type WebMCPDocument } from "./webmcp";
 import { localizedContentPayload, localizedContentText } from "./content-i18n";
@@ -858,16 +858,19 @@ const initialRoute = readInitialRoute();
 
 function createBrowserResearchWorkspace() {
   try {
-    return createResearchWorkspace({
+    return createBrowserResearchWorkspace({
       sessionId: "tos-local-research",
       persistence: createLocalStoragePersistence(window.localStorage, "tos-research-workspace-v1"),
     });
   } catch {
-    return createResearchWorkspace({ sessionId: "tos-local-research", persistence: false });
+    return createBrowserResearchWorkspace({ sessionId: "tos-local-research", persistence: false });
   }
 }
 
 const researchWorkspace = createBrowserResearchWorkspace();
+window.addEventListener('pagehide',(event)=>{
+  if(!event.persisted&&'dispose' in researchWorkspace)researchWorkspace.dispose();
+});
 
 function initialLanguage(): Language {
   if (initialRoute.language) return initialRoute.language;

@@ -4,7 +4,8 @@ import {validateReading} from '../observatory/reading-resume.mjs';
 import {exactFormRef,FORM_ROLES} from '../observatory/human-forms.mjs';
 import {validateDraft} from '../observatory/lens-model.mjs';
 import {COPY_SCHEMA,validateWorkspaceCopy} from '../observatory/workspace-copy.mjs';
-import {RESEARCH_WORKSPACE_SCHEMA,RESEARCH_WORKSPACE_VERSION,createResearchWorkspace} from '../research-workspace.ts';
+import {RESEARCH_WORKSPACE_SCHEMA,RESEARCH_WORKSPACE_VERSION} from '../research-workspace.ts';
+import {createBrowserResearchWorkspace} from '../research-workspace-rust.ts';
 
 // The shelf is a local, user-owned index of exact addresses. It never owns a
 // source passage, an exploration page, or a command/runtime handle.
@@ -400,9 +401,9 @@ function checkedResearchWorkspacePacket(value){
     // The owner parser remains authoritative for exact field and posture
     // checks. Exporting immediately gives the importer a detached canonical
     // packet without touching the browser persistence namespace.
-    const workspace=createResearchWorkspace({persistence:false});
-    workspace.importPacket(JSON.stringify(packet));
-    return JSON.parse(workspace.exportPacket());
+    const workspace=createBrowserResearchWorkspace({persistence:false});
+    try{workspace.importPacket(JSON.stringify(packet));return JSON.parse(workspace.exportPacket());}
+    finally{if('dispose' in workspace)workspace.dispose();}
   }catch(error){fail('invalid-packet','The supplied research-workspace packet is invalid.',{cause:error});}
 }
 

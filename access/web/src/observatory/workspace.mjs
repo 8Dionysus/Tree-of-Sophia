@@ -1,6 +1,7 @@
 import {ui,uiAttribute,uiChildren,uiHTML,uiText} from './ui-i18n.mjs';
 import {createReadingMemory} from './reading-state.mjs';
-import {createResearchWorkspace,createLocalStoragePersistence} from '../research-workspace';
+import {createLocalStoragePersistence} from '../research-workspace';
+import {createBrowserResearchWorkspace} from '../research-workspace-rust';
 import {localized,displayTitle,RequestSlots} from './knowledge-client.mjs';
 import {refreshIcons} from './icons';
 import {stageObservation} from './research-actions';
@@ -36,7 +37,8 @@ const humanStatus=humanSourceStatus;
 export function createTools(root,scene,{data:{queries,client},selected,panels,onChange}){
   let persistence=false;
   try{persistence=createLocalStoragePersistence(localStorage,'tos-research-workspace-v1');}catch{/* Workspace remains usable in memory. */}
-  const workspace=createResearchWorkspace({sessionId:'tos-local-research',persistence});
+  const workspace=createBrowserResearchWorkspace({sessionId:'tos-local-research',persistence});
+  window.addEventListener('pagehide',event=>{if(!event.persisted&&'dispose' in workspace)workspace.dispose();});
   const requests=new RequestSlots(),gapHits=new Map();let gapSelection=null;
   const open=button('',()=>show('notes'));open.className='sc-control sc-workspace-open';uiAttribute(open, 'aria-label', ui("Исследование"));uiAttribute(open, 'aria-expanded', 'false');
   uiHTML(open, '<i data-lucide="notebook-pen" aria-hidden="true"></i><span>Исследование</span>');

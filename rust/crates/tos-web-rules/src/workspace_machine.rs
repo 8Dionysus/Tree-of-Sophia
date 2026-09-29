@@ -7,8 +7,8 @@
 
 use std::collections::HashSet;
 use tos_foundation::{
-    JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue,
-    emit_value_preserved_json, parse_json,
+    emit_value_preserved_json, parse_json, JsonLimits, JsonMode, JsonNumber, JsonNumberKind,
+    JsonString, JsonValue,
 };
 
 use crate::workspace_proposal::workspace_proposal_digest_v1;
@@ -823,6 +823,120 @@ pub fn workspace_transition_v1(raw: &[u8]) -> Result<Vec<u8>, WorkspaceMachineEr
         ("value", value),
     ]))
 }
+
+// The browser holds the machine inside WASM. The portable JSON transition above
+// remains useful for native parity, while a user action here serializes only its
+// command and current result, never the complete bounded undo/redo history.
+#[cfg(feature = "wasm")]
+mod browser {
+    use super::*;
+    use wasm_bindgen::prelude::*;
+
+    fn js_error(error: WorkspaceMachineError) -> JsValue {
+        JsValue::from_str(error.code.as_str())
+    }
+
+    #[wasm_bindgen]
+    pub struct BrowserWorkspaceSession {
+        machine: Machine,
+    }
+
+    #[wasm_bindgen]
+    impl BrowserWorkspaceSession {
+        #[wasm_bindgen(constructor)]
+        pub fn new(
+            session_id: &str,
+            history_limit: u32,
+        ) -> Result<BrowserWorkspaceSession, JsValue> {
+            let session_id = session_id.trim_matches(js_trim);
+            if session_id.is_empty()
+                || session_id.encode_utf16().count() > 256
+                || !(1..=100).contains(&history_limit)
+            {
+                return Err(JsValue::from_str("invalid_request"));
+            }
+            Ok(Self {
+                machine: Machine {
+                    state: empty_packet(session_id),
+                    undo: Vec::new(),
+                    redo: Vec::new(),
+                    history_limit: history_limit as usize,
+                },
+            })
+        }
+
+        pub fn import_packet(&mut self, packet: &str) -> Result<(), JsValue> {
+            if packet.encode_utf16().count() > MAX_PACKET_UNITS {
+                return Err(JsValue::from_str("invalid_packet"));
+            }
+            let parsed = parse_json(
+                packet.as_bytes(),
+                JsonMode::RequestLastWins,
+                JsonLimits {
+                    max_bytes: MAX_BYTES,
+                    ..JsonLimits::default()
+                },
+            )
+            .map_err(|_| JsValue::from_str("invalid_packet"))?;
+            let next = validate_packet(parsed.into_root()).map_err(js_error)?;
+            self.machine.state = next;
+            self.machine.undo.clear();
+            self.machine.redo.clear();
+            Ok(())
+        }
+
+        pub fn apply(&mut self, command: &[u8]) -> Result<Vec<u8>, JsValue> {
+            let parsed = parse_json(
+                command,
+                JsonMode::RequestLastWins,
+                JsonLimits {
+                    max_bytes: MAX_BYTES,
+                    ..JsonLimits::default()
+                },
+            )
+            .map_err(|_| JsValue::from_str("invalid_command"))?;
+            let value = command_apply(&mut self.machine, parsed.root()).map_err(js_error)?;
+            emit(&value).map_err(js_error)
+        }
+
+        pub fn state_packet(&self) -> Result<Vec<u8>, JsValue> {
+            emit(&self.machine.state).map_err(js_error)
+        }
+
+        pub fn summary_packet(&self) -> Result<Vec<u8>, JsValue> {
+            emit(&summary(&self.machine)).map_err(js_error)
+        }
+
+        pub fn export_packet(&self) -> Result<Vec<u8>, JsValue> {
+            emit(&self.machine.state).map_err(js_error)
+        }
+
+        pub fn comparable_routes_ready(&self) -> bool {
+            comparable_routes_ready(&self.machine)
+        }
+
+        pub fn can_undo(&self) -> bool {
+            !self.machine.undo.is_empty()
+        }
+        pub fn can_redo(&self) -> bool {
+            !self.machine.redo.is_empty()
+        }
+
+        pub fn undo(&mut self) -> Result<bool, JsValue> {
+            self.machine.transition(true).map_err(js_error)
+        }
+        pub fn redo(&mut self) -> Result<bool, JsValue> {
+            self.machine.transition(false).map_err(js_error)
+        }
+        pub fn clear_history(&mut self) {
+            self.machine.undo.clear();
+            self.machine.redo.clear();
+        }
+    }
+}
+
+#[cfg(feature = "wasm")]
+pub use browser::BrowserWorkspaceSession;
 
 #[cfg(test)]
 mod tests {

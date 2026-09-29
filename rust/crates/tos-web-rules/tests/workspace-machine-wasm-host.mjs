@@ -15,6 +15,39 @@ await binding.default({ module_or_path: wasm });
 const startupMs = performance.now() - start;
 const encode = new TextEncoder();
 const decode = new TextDecoder();
+if(process.argv.includes('--browser-session-only')){
+  const {installBrowserWorkspaceMachine,createBrowserResearchWorkspace}=await import('../../../../access/web/src/research-workspace-rust.ts');
+  installBrowserWorkspaceMachine(binding.BrowserWorkspaceSession);
+  const saved=[];
+  const browser=createBrowserResearchWorkspace({sessionId:'browser',historyLimit:3,
+    persistence:{load:()=>null,save:value=>saved.push(value)}});
+  const oracle=createResearchWorkspace({sessionId:'browser',historyLimit:3,persistence:false});
+  const compare=label=>{assert.equal(browser.exportPacket(),oracle.exportPacket(),label);
+    assert.deepEqual(browser.summary(),oracle.summary(),`${label}/summary`);};
+  compare('create');
+  browser.addNote({id:'note:one',body:'  First  '});oracle.addNote({id:'note:one',body:'  First  '});compare('note');
+  browser.addHypothesis({id:'hyp:one',title:'Reading',body:'Local reading.',targetId:'node:a'});
+  oracle.addHypothesis({id:'hyp:one',title:'Reading',body:'Local reading.',targetId:'node:a'});compare('hypothesis');
+  const proposal={id:'proposal:one',kind:'interpretation',parentHypothesisId:'hyp:one',targetId:'node:a',
+    statement:'Another reading.',sourceRefs:['source:one'],evidenceRefs:['evidence:one'],
+    confidencePosture:{value:'low',meaning:'maker_declared_uncertainty_not_truth_probability'},
+    actorOrigin:'human',basePageRevision:3,baseWorkspaceRevision:browser.summary().revision,
+    dataFingerprint:'sha256:fixture',createdAt:'2026-09-23T12:00:00.000Z'};
+  assert.deepEqual(browser.stageProposal(proposal),oracle.stageProposal(proposal));compare('proposal');
+  assert.equal(browser.undo(),oracle.undo());compare('undo');
+  assert.equal(browser.redo(),oracle.redo());compare('redo');
+  const before=browser.exportPacket();
+  assert.throws(()=>browser.importPacket('{"schema":"bad"}'));
+  assert.equal(browser.exportPacket(),before,'failed import atomic');
+  assert.equal(saved.at(-1),before,'persisted packet');
+  assert.equal(browser.persistenceError(),null);
+  if('dispose' in browser)browser.dispose();
+  console.log(JSON.stringify({status:'pass',host:`Node ${process.version} WebAssembly`,
+    browser_session_cases:6,independent_ts:true,old_host_cases_repeated:false,
+    js_bytes:(await stat(bindingPath)).size,wasm_bytes:(await stat(wasmPath)).size,
+    startup_ms:Number(startupMs.toFixed(3))}));
+  process.exit(0);
+}
 const schema = 'tos_research_workspace_transition_v1';
 function call(operation, machine, extra = {}) {
   const result = binding.workspace_transition_wasm_v1(encode.encode(JSON.stringify({ schema, operation, ...(machine && { machine }), ...extra })));

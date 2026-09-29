@@ -1,5 +1,5 @@
 /** Local construction state only. Library witnesses stay with their source owner. */
-import { createResearchWorkspace } from '../src/research-workspace.ts';
+import { createBrowserResearchWorkspace } from '../src/research-workspace-rust.ts';
 
 export const CONSTRUCTOR_SCHEMA = 'tos_constructor_workspace_v1';
 export const CONSTRUCTOR_LIMITS = Object.freeze({ nodes: 200, edges: 600, history: 64, bytes: 1_000_000 });
@@ -279,7 +279,8 @@ export function createConstructorModel(library, { storage, key = 'tos.constructo
     const drafts = state.nodes.filter((node) => !node.materialId || materials.get(node.materialId).demo === true);
     const relations = state.edges.filter((edge) => edge.origin === 'draft');
     if (drafts.length + relations.length > 256) throw new Error('research export supports at most 256 draft nodes and relations combined; use the constructor packet for this larger tree');
-    const workspace = createResearchWorkspace({ sessionId: 'constructor-local', persistence: false });
+    const workspace = createBrowserResearchWorkspace({ sessionId: 'constructor-local', persistence: false });
+    try {
     const sourceRefs = (id, visited = new Set()) => {
       if (visited.has(id)) return [];
       visited.add(id); const node = nodeOf(state, id);
@@ -314,6 +315,7 @@ export function createConstructorModel(library, { storage, key = 'tos.constructo
     const packet = workspace.exportPacket();
     if (packet.length > 1_000_000) throw new Error('research packet exceeds its 1 MB limit; use the constructor packet to retain this tree');
     return packet;
+    } finally { if ('dispose' in workspace) workspace.dispose(); }
   }
   return {
     getState: () => clone(state),

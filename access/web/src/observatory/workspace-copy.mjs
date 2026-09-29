@@ -1,5 +1,5 @@
 import {t} from './ui-i18n.mjs';
-import {createResearchWorkspace} from '../research-workspace';
+import {createBrowserResearchWorkspace} from '../research-workspace-rust';
 import {validatePlace,PLACES_KEY,RESUME_KEY} from './place-model.mjs';
 import {compactHistory,HISTORY_KEY} from './travel-model.mjs';
 import {validateInterface,INTERFACE_KEY} from './interface-model.mjs';
@@ -16,9 +16,11 @@ export function validateWorkspaceCopy(input){
   const places=value.places.map(validatePlace);if(new Set(places.map(place=>place.id)).size!==places.length)bad();
   if(!Array.isArray(value.lenses))bad();const lenses=readSaved({getItem:()=>JSON.stringify(value.lenses)});
   if(new Set(lenses.map(lens=>lens.name)).size!==lenses.length)bad();
-  const research=createResearchWorkspace({persistence:false});research.importPacket(JSON.stringify(value.research));
+  const research=createBrowserResearchWorkspace({persistence:false});let researchPacket;
+  try{research.importPacket(JSON.stringify(value.research));researchPacket=JSON.parse(research.exportPacket());}
+  finally{if('dispose' in research)research.dispose();}
   return {schema:COPY_SCHEMA,v:1,exportedAt:new Date(value.exportedAt).toISOString(),history:compactHistory(value.history),places,lenses,
-    resume:value.resume===null?null:validatePlace(value.resume),preferences:validateInterface(value.preferences),reading:validateReading(value.reading),research:JSON.parse(research.exportPacket())};
+    resume:value.resume===null?null:validatePlace(value.resume),preferences:validateInterface(value.preferences),reading:validateReading(value.reading),research:researchPacket};
 }
 export function copyStorageKeys(pathname){return [HISTORY_KEY+':'+pathname,PLACES_KEY,RESUME_KEY,INTERFACE_KEY,READING_KEY+':'+pathname,'tos-research-workspace-v1',SAVED_LENSES_KEY];}
 export function snapshotCopyStorage(storage,pathname){

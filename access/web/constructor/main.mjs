@@ -13,6 +13,10 @@ import {bindCloseReadingGuides} from './close-reading-guides.mjs';
 import {checkInquiryTextReferences,inquiryReadingContexts,routeGroundContext} from './inquiry-layer.mjs';
 import {sourceReference} from './source-references.mjs';
 import {carrySemanticWorkspace} from './semantic-workspace.mjs';
+import {installBrowserWorkspaceMachine} from '../src/research-workspace-rust.ts';
+import initRules,{BrowserWorkspaceSession} from '../../deploy/cloudflare-worker/generated/tos_web_rules.js';
+await initRules(new URL('../../deploy/cloudflare-worker/generated/tos_web_rules_bg.wasm',import.meta.url));
+installBrowserWorkspaceMachine(BrowserWorkspaceSession);
 
 const root=document.querySelector('#tree');
 let lang=new URL(location.href).searchParams.get('lang')==='en'?'en':'ru';
