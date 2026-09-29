@@ -329,10 +329,12 @@ test('generated claim headings distinguish declared predicates without parsing I
 });
 
 test('inspection preserves exact source objects and refuses before later field reads',async()=>{
-  const raw=node('opaque:\ud800'),content=new String('b'.repeat(64));raw.content_revision=content;
+  const raw=node('selected'),content=new String('b'.repeat(64));raw.content_revision=content;
   raw.source_refs=new Array(1);raw.unknown={explicit:null};
   const packet={schema:'tos_knowledge_node_packet_v1',source_revision:fixture.source_revision,matches:[raw]};
   const client=new KnowledgeClient({fetcher:async()=>({ok:true,json:async()=>packet})});
+  client.request=async()=>packet;
+  packet.matches.push(node('opaque:\ud800'));
   const result=await client.inspect('node',raw.id,undefined,fixture.source_revision,content);
   assert.equal(result.packet,packet);assert.equal(result.match,raw);assert.equal(result.match.unknown.explicit,null);
   let reads=0;const duplicate={id:raw.id};
@@ -361,5 +363,6 @@ test('inspection observes each original ID getter read and retains reference equ
   Object.defineProperty(raw,'id',{get(){reads++;return reads<=2?'initial':identity;}});
   const packet={schema:'tos_knowledge_node_packet_v1',source_revision:fixture.source_revision,matches:[raw]};
   const client=new KnowledgeClient({fetcher:async()=>({ok:true,json:async()=>packet})});
+  client.request=async()=>packet;
   assert.equal((await client.inspect('node',identity)).match,raw);assert.equal(reads,5);
 });
