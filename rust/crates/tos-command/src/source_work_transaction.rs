@@ -1966,9 +1966,40 @@ pub(crate) fn retained_item_orphan(
         cmd::field(&retained.manifest, "base_publication")?.clone(),
     )))
 }
+/// Exact auxiliary members for an already inspected committed plan.
+/// Refreezing reuses the selected journal path and manifest byte law.
+pub(crate) fn committed_member_paths(plan: &WorkPlan) -> SourceCommandResult<BTreeSet<String>> {
+    let frozen = freeze(plan.clone())?;
+    let mut members = journal_members(&plan.transaction_id, &frozen)?;
+    members.insert(format!(
+        "{HOME}/{TRANSACTIONS}/{}/completion.json",
+        &plan.transaction_id[7..]
+    ));
+    Ok(members)
+}
+
 pub(crate) fn inspect_committed(
     fs: &CreationFilesystem,
     id: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(String, WorkPlan, JsonValue, JsonValue)> {
+    inspect_terminal(fs, id, "committed", deadline, cancelled)
+}
+
+pub(crate) fn inspect_rolled_back(
+    fs: &CreationFilesystem,
+    id: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(String, WorkPlan, JsonValue, JsonValue)> {
+    inspect_terminal(fs, id, "rolled-back", deadline, cancelled)
+}
+
+fn inspect_terminal(
+    fs: &CreationFilesystem,
+    id: &str,
+    outcome: &str,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(String, WorkPlan, JsonValue, JsonValue)> {
@@ -2047,7 +2078,7 @@ pub(crate) fn inspect_committed(
         ))?;
     state(terminal)?;
     if cmd::text(terminal, "phase")? != "ready"
-        || cmd::text(terminal, "outcome")? != "committed"
+        || cmd::text(terminal, "outcome")? != outcome
         || cmd::text(terminal, "manifest_sha256")? != retained.digest
         || cmd::integer(terminal, "generation")?
             != cmd::integer(

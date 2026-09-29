@@ -316,10 +316,9 @@ impl WorkOwner {
         Self::select_request(fs, ctx, true, deadline, cancelled)
     }
 
-    fn select_request(
+    fn select_configuration(
         fs: &CreationFilesystem,
         ctx: &CommandContext,
-        proposal: bool,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
@@ -431,6 +430,47 @@ impl WorkOwner {
         {
             return Err(SourceCommandError::Denied("Work principal/maker/authority"));
         }
+        let configuration_digest = cmd::record_digest(&config)?.to_prefixed();
+        Ok(Self {
+            configuration: config,
+            request: JsonValue::Null,
+            work_path,
+            expression_path,
+            work_id,
+            expression_id,
+            claim_id,
+            event_id,
+            principal,
+            authority,
+            maker,
+            configuration_digest,
+        })
+    }
+
+    fn select_request(
+        fs: &CreationFilesystem,
+        ctx: &CommandContext,
+        proposal: bool,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        let Self {
+            configuration: config,
+            request: _,
+            work_path,
+            expression_path,
+            work_id,
+            expression_id,
+            claim_id,
+            event_id,
+            principal,
+            authority,
+            maker,
+            configuration_digest,
+        } = Self::select_configuration(fs, ctx, deadline, cancelled)?;
+        let work_forms = allowed_forms(&config, "allowed_work_form_ids")?;
+        let expression_forms = allowed_forms(&config, "allowed_expression_form_ids")?;
+        let claim_forms = allowed_forms(&config, "allowed_claim_form_ids")?;
         let request = cmd::parse(&ctx.request_raw)?;
         if proposal {
             cmd::exact_keys(
@@ -537,7 +577,6 @@ impl WorkOwner {
         selected_forms(&request, "forms", &work_forms)?;
         selected_forms(&request, "expression_forms", &expression_forms)?;
         selected_forms(&request, "claim_forms", &claim_forms)?;
-        let configuration_digest = cmd::record_digest(&config)?.to_prefixed();
         Ok(Self {
             configuration: config,
             request,
@@ -1868,6 +1907,552 @@ pub(super) fn work_dependencies_current(
     Ok(())
 }
 
+pub(crate) fn work_expression_materializations(
+    configuration: &JsonValue,
+    outputs: &BTreeMap<String, Vec<u8>>,
+) -> SourceCommandResult<JsonValue> {
+    let mut views = Vec::new();
+    for (kind, path_key, forms_name) in [
+        ("work", "work_source_path", "work.human-forms.json"),
+        (
+            "expression",
+            "expression_source_path",
+            "expression.human-forms.json",
+        ),
+        (
+            "claim",
+            "expression_source_path",
+            "source-claims.human-forms.json",
+        ),
+    ] {
+        let path = cmd::text(configuration, path_key)?;
+        let home = path
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid("Work materialization parent"))?
+            .0;
+        let record_path = if kind == "claim" {
+            format!("{home}/source-claims.jsonl")
+        } else {
+            path.to_owned()
+        };
+        let raw = outputs
+            .get(&record_path)
+            .ok_or(SourceCommandError::Conflict(
+                "Work materialization record absent",
+            ))?;
+        let record = cmd::parse(raw.strip_suffix(b"\n").unwrap_or(raw))?;
+        let forms_name = if kind == "claim" {
+            format!(
+                "source-claims.{}.human-forms.json",
+                Digest256::of_bytes(cmd::text(configuration, "claim_id")?.as_bytes()).to_hex()
+            )
+        } else {
+            forms_name.to_owned()
+        };
+        let forms = cmd::parse(outputs.get(&format!("{home}/{forms_name}")).ok_or(
+            SourceCommandError::Conflict("Work materialization forms absent"),
+        )?)?;
+        views.push((
+            kind,
+            JsonValue::Array(crate::source_forms::materialize_source_forms(
+                &record, &forms,
+            )?),
+        ));
+    }
+    Ok(cmd::object(views))
+}
+
+pub(crate) fn published_work_materializations(
+    fs: &CreationFilesystem,
+    ctx: &CommandContext,
+    publication: &WorkExpressionPublication,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    if cmd::text(publication.publication(), "outcome")? == "rolled-back" {
+        return Ok(JsonValue::Null);
+    }
+    let (digest, plan, _, _) =
+        work_transaction::inspect_committed(fs, publication.transaction_id(), deadline, cancelled)?;
+    if digest != publication.manifest_sha256() {
+        return Err(SourceCommandError::Conflict(
+            "Work materialization retained manifest differs",
+        ));
+    }
+    let outputs = plan
+        .files
+        .into_iter()
+        .filter_map(|file| file.after.map(|raw| (file.path.as_str().to_owned(), raw)))
+        .collect();
+    work_expression_materializations(&cmd::parse(&ctx.configuration_raw)?, &outputs)
+}
+
+pub(crate) struct RetainedWorkRequest {
+    pub(crate) request_raw: Vec<u8>,
+    pub(crate) recorded_at: String,
+    pub(crate) pending: bool,
+}
+
+pub(crate) fn retained_work_request(
+    fs: &CreationFilesystem,
+    ctx: &CommandContext,
+    current: &CorpusCutReader,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Option<RetainedWorkRequest>> {
+    let owner = WorkOwner::select_configuration(fs, ctx, deadline, cancelled)?;
+    let request = cmd::parse(&ctx.request_raw)?;
+    let operation = cmd::text(&request, "operation")?;
+    if !matches!(operation, OPERATION | RECOVERY) {
+        return Ok(None);
+    }
+    let recover = operation == RECOVERY;
+    if recover {
+        cmd::exact_keys(
+            &request,
+            &[
+                "schema_version",
+                "operation",
+                "transaction_id",
+                "decision",
+                "expected_configuration",
+            ],
+        )?;
+        if cmd::text(&request, "schema_version")? != REQUEST
+            || cmd::text(&request, "expected_configuration")? != owner.configuration_digest
+            || !matches!(cmd::text(&request, "decision")?, "resume" | "rollback")
+            || !cmd::array(&owner.configuration, "allowed_operations")?
+                .iter()
+                .any(|v| v.as_str() == Some(RECOVERY))
+        {
+            return Err(SourceCommandError::Denied(
+                "Work recovery exact delegation/request",
+            ));
+        }
+    }
+    let expression_home = owner
+        .expression_path
+        .as_str()
+        .rsplit_once('/')
+        .ok_or(SourceCommandError::Invalid("Work retained child parent"))?
+        .0;
+    let receipt_path = relative(&format!("{expression_home}/work-expression-receipt.json"))?;
+    let pending = work_transaction::read_pending(fs, deadline, cancelled)?;
+    let (plan, is_pending) = if let Some(pending) = pending {
+        (pending.plan, true)
+    } else if recover {
+        return Err(SourceCommandError::Conflict(
+            "Work recovery pending transaction absent",
+        ));
+    } else if current.current().member(&receipt_path).is_some() {
+        let receipt = cmd::parse(&checked_current_source(
+            fs,
+            current,
+            receipt_path.as_str(),
+            2_097_152,
+            deadline,
+            cancelled,
+        )?)?;
+        let (_, plan, _, _) = work_transaction::inspect_committed(
+            fs,
+            cmd::text(&receipt, "transaction_id")?,
+            deadline,
+            cancelled,
+        )?;
+        (plan, false)
+    } else {
+        return Ok(None);
+    };
+    if cmd::text(&plan.authorization, "schema_version")? != AUTHORIZATION
+        || !cmd::same(cmd::field(&plan.authorization, "scope")?, &owner.scope()?)?
+        || recover && cmd::text(&request, "transaction_id")? != plan.transaction_id
+    {
+        return Err(SourceCommandError::Conflict(
+            "Work retained request selected another owner/transaction",
+        ));
+    }
+    let retained = |name: &str| -> SourceCommandResult<&Vec<u8>> {
+        let path = format!("{expression_home}/{name}");
+        plan.files
+            .iter()
+            .find(|file| file.path.as_str() == path)
+            .and_then(|file| file.after.as_ref())
+            .ok_or(SourceCommandError::Conflict(
+                "Work retained child evidence absent",
+            ))
+    };
+    let original_raw = retained("source-create-request.json")?;
+    let original = cmd::parse(original_raw)?;
+    if !recover && !cmd::same(&original, &request)? {
+        return Err(SourceCommandError::Conflict(
+            "Work retry request differs from retained request",
+        ));
+    }
+    let receipt = cmd::parse(retained("work-expression-receipt.json")?)?;
+    let recorded_at = cmd::text(&receipt, "recorded_at")?.to_owned();
+    cmd::validate_instant(&recorded_at)?;
+    // This selection reads delegation/request fields only. The execution
+    // caller independently loads and authenticates the original source cut.
+    let original_ctx = CommandContext {
+        base_revision: ctx.base_revision,
+        configuration_raw: ctx.configuration_raw.clone(),
+        request_raw: original_raw.clone(),
+        recorded_at: recorded_at.clone(),
+        effective_uid: ctx.effective_uid,
+        files: Vec::new(),
+    };
+    let original_owner = WorkOwner::select(fs, &original_ctx, deadline, cancelled)?;
+    if original_owner.transaction_id()? != plan.transaction_id {
+        return Err(SourceCommandError::Conflict(
+            "Work retained transaction differs from exact request",
+        ));
+    }
+    Ok(Some(RetainedWorkRequest {
+        request_raw: original_raw.clone(),
+        recorded_at,
+        pending: is_pending,
+    }))
+}
+
+fn published_current_work(
+    fs: &CreationFilesystem,
+    owner: &WorkOwner,
+    cut: &CorpusCutReader,
+    snapshot: &PublicationSnapshot,
+    publication: &WorkExpressionPublication,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
+    let rollback = cmd::text(publication.publication(), "outcome")? == "rolled-back";
+    let inspect = if rollback {
+        work_transaction::inspect_rolled_back
+    } else {
+        work_transaction::inspect_committed
+    };
+    let (manifest, plan, base_publication, terminal) =
+        inspect(fs, publication.transaction_id(), deadline, cancelled)?;
+    if manifest != publication.manifest_sha256()
+        || !cmd::same(&terminal, publication.publication())?
+        || snapshot.token.as_deref() != Some(cmd::text(&terminal, "token")?)
+        || cmd::text(&plan.authorization, "schema_version")? != AUTHORIZATION
+        || !cmd::same(cmd::field(&plan.authorization, "scope")?, &owner.scope()?)?
+    {
+        return Err(SourceCommandError::Conflict(
+            "Work result retained publication differs",
+        ));
+    }
+    let home = owner
+        .work_path
+        .as_str()
+        .rsplit_once('/')
+        .ok_or(SourceCommandError::Invalid("Work result package parent"))?
+        .0;
+    let mut before = BTreeMap::new();
+    for name in [
+        "work.json",
+        "work.human-forms.json",
+        "source-revision-history.json",
+    ] {
+        let path = relative(&format!("{home}/{name}"))?;
+        if cut.current().member(&path).is_some() {
+            let member = cut
+                .read_member(
+                    cut.current().revision(),
+                    &path,
+                    2_097_152,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(|_| SourceCommandError::Conflict("Work result original package read"))?;
+            before.insert(name.to_owned(), member.raw);
+        }
+    }
+    let original = cmd::parse(before.get("work.json").ok_or(SourceCommandError::Conflict(
+        "Work result original record absent",
+    ))?)?;
+    let archive = work_transaction::work_archive(
+        fs,
+        owner.work_path.as_str(),
+        &original,
+        &before,
+        &crate::source_revisions::revision(&before)?,
+        deadline,
+        cancelled,
+        false,
+    )?;
+    archive.verify_current(fs, deadline, cancelled)?;
+    let mut auxiliary = archive.member_paths().collect::<BTreeSet<_>>();
+    auxiliary.extend(work_transaction::committed_member_paths(&plan)?);
+    let prior_token = cmd::field(&base_publication, "token")?.as_str();
+    if let Some(prior_id) = original_prior_publication(cut, prior_token, deadline, cancelled)? {
+        auxiliary.insert(prior_completion_current(
+            fs,
+            &prior_id,
+            prior_token.ok_or(SourceCommandError::Invalid(
+                "Work result prior token absent",
+            ))?,
+            deadline,
+            cancelled,
+        )?);
+    }
+    auxiliary.insert("ToS/source-witnesses/.metadata-publication.json".into());
+    let tos = walk(&fs.root, "ToS", fs.uid)?;
+    let mut observed = BTreeMap::new();
+    let mut total = 0usize;
+    let mut directories = 0usize;
+    scan(
+        &tos,
+        "ToS",
+        fs.uid,
+        None,
+        None,
+        Some(&auxiliary),
+        &mut observed,
+        &mut total,
+        &mut directories,
+        deadline,
+        cancelled,
+    )?;
+    for path in &auxiliary {
+        let (parent, name) = path
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid("Work result auxiliary path"))?;
+        let parent = walk(&fs.root, parent, fs.uid)?;
+        let (raw, mode) =
+            work_transaction::read_at_mode(&parent, name, fs.uid, 8_388_608, deadline, cancelled)?
+                .ok_or(SourceCommandError::Conflict("Work result auxiliary absent"))?;
+        total = total
+            .checked_add(raw.len())
+            .ok_or(SourceCommandError::Invalid("Work result byte overflow"))?;
+        if !matches!(mode, 0o600 | 0o644) || total > MAX_BYTES {
+            return Err(SourceCommandError::Denied(
+                "Work result auxiliary mode or budget",
+            ));
+        }
+    }
+    if observed
+        .len()
+        .checked_add(auxiliary.len())
+        .is_none_or(|n| n > MAX_FILES)
+    {
+        return Err(SourceCommandError::Invalid("Work result member budget"));
+    }
+    let changed = plan
+        .files
+        .iter()
+        .map(|file| (file.path.as_str(), file))
+        .collect::<BTreeMap<_, _>>();
+    for member in cut.current().members() {
+        if auxiliary.contains(member.path.as_str()) || changed.contains_key(member.path.as_str()) {
+            continue;
+        }
+        let (sha, size, mode) =
+            observed
+                .remove(member.path.as_str())
+                .ok_or(SourceCommandError::Conflict(
+                    "Work result unchanged member absent",
+                ))?;
+        if sha != member.sha256
+            || size != member.size_bytes
+            || !member_mode_matches(mode, member.mode, true)
+        {
+            return Err(SourceCommandError::Conflict(
+                "Work result unchanged cut member differs",
+            ));
+        }
+    }
+    for file in &plan.files {
+        let member = cut.current().member(&file.path);
+        match (member, &file.before) {
+            (Some(member), Some(raw))
+                if member.sha256 == Digest256::of_bytes(raw)
+                    && member.size_bytes == raw.len() as u64 =>
+            {
+                ()
+            }
+            (None, None) => (),
+            _ => {
+                return Err(SourceCommandError::Conflict(
+                    "Work result original journal side differs from cut",
+                ));
+            }
+        }
+        match (
+            if rollback { &file.before } else { &file.after },
+            observed.remove(file.path.as_str()),
+        ) {
+            (Some(raw), Some((sha, size, mode)))
+                if sha == Digest256::of_bytes(raw)
+                    && size == raw.len() as u64
+                    && matches!(mode, 0o600 | 0o644) =>
+            {
+                ()
+            }
+            (None, None) => (),
+            _ => {
+                return Err(SourceCommandError::Conflict(
+                    "Work result current journal side differs",
+                ));
+            }
+        }
+    }
+    if !observed.is_empty() {
+        return Err(SourceCommandError::Conflict(
+            "Work result unselected member appeared",
+        ));
+    }
+    let parent = walk(&fs.root, home, fs.uid)?;
+    let mut package = BTreeMap::new();
+    for name in [
+        "work.json",
+        "work.human-forms.json",
+        "source-revision-history.json",
+    ] {
+        if let Some(raw) =
+            work_transaction::read_at(&parent, name, fs.uid, 2_097_152, deadline, cancelled)?
+        {
+            let path = format!("{home}/{name}");
+            let expected = changed.get(path.as_str()).map_or_else(
+                || before.get(name),
+                |file| {
+                    if rollback {
+                        file.before.as_ref()
+                    } else {
+                        file.after.as_ref()
+                    }
+                },
+            );
+            if expected != Some(&raw) {
+                return Err(SourceCommandError::Conflict(
+                    "Work result selected package changed",
+                ));
+            }
+            package.insert(name.into(), raw);
+        }
+    }
+    archive.verify_current(fs, deadline, cancelled)?;
+    inspect(fs, publication.transaction_id(), deadline, cancelled)?;
+    snapshot.verify_current(fs, deadline, cancelled)?;
+    Ok(package)
+}
+
+/// Maintained owner response selected from the exact current Work package.
+/// The caller supplies descriptors from the shared Claim profile reader, and
+/// finishes its schema worker before disclosing this response.
+pub(crate) fn work_expression_owner_result(
+    fs: &CreationFilesystem,
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    source_profiles: JsonValue,
+    publication: Option<&WorkExpressionPublication>,
+    receipt: Option<JsonValue>,
+    replayed: bool,
+    recovery: Option<JsonValue>,
+    materializations: Option<JsonValue>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    ctx.check_from_selected_captures(cut, software, components, deadline, cancelled)?;
+    let owner = WorkOwner::select_configuration(fs, ctx, deadline, cancelled)?;
+    let snapshot = PublicationSnapshot::select(fs, deadline, cancelled)?;
+    let current_package = || match publication.filter(|value| !value.replayed()) {
+        Some(value) => {
+            published_current_work(fs, &owner, cut, &snapshot, value, deadline, cancelled)
+        }
+        None => {
+            complete_current_cut(fs, cut, &snapshot, deadline, cancelled)?;
+            selected_before(fs, &owner, cut, &snapshot, deadline, cancelled)
+        }
+    };
+    let before = current_package()?;
+    let work = cmd::parse(before.get("work.json").ok_or(SourceCommandError::Conflict(
+        "Work response selected record absent",
+    ))?)?;
+    if cmd::text(&work, "record_type")? != "work" || cmd::text(&work, "record_id")? != owner.work_id
+    {
+        return Err(SourceCommandError::Conflict(
+            "Work response identity differs from delegation",
+        ));
+    }
+    crate::source_revisions::history(&before, &work)?;
+    let result = cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string("tos_work_expression_result_v1"),
+        ),
+        ("authentication", cmd::string("local-unix-account")),
+        (
+            "owner_configuration",
+            cmd::string(&owner.configuration_digest),
+        ),
+        ("operation", cmd::string(OPERATION)),
+        (
+            "command_operations",
+            JsonValue::Array(
+                ["describe", "prepare-create", OPERATION, RECOVERY]
+                    .into_iter()
+                    .map(cmd::string)
+                    .collect(),
+            ),
+        ),
+        (
+            "allowed_operations",
+            cmd::field(&owner.configuration, "allowed_operations")?.clone(),
+        ),
+        ("work_source_path", cmd::string(owner.work_path.as_str())),
+        (
+            "expression_source_path",
+            cmd::string(owner.expression_path.as_str()),
+        ),
+        (
+            "source",
+            cmd::reference(&work, "record_id", "record_version")?,
+        ),
+        (
+            "revision",
+            cmd::string(&crate::source_revisions::revision(&before)?),
+        ),
+        (
+            "publication_snapshot",
+            snapshot
+                .token
+                .as_deref()
+                .map(cmd::string)
+                .unwrap_or(JsonValue::Null),
+        ),
+        ("source_profiles", source_profiles),
+        (
+            "source_fields",
+            JsonValue::Array(
+                crate::source_forms::metadata_fields(&work)?
+                    .iter()
+                    .map(|field| field.public())
+                    .collect(),
+            ),
+        ),
+        ("scope", owner.scope()?),
+        ("receipt", receipt.unwrap_or(JsonValue::Null)),
+        ("replayed", JsonValue::Bool(replayed)),
+        ("recovery", recovery.unwrap_or(JsonValue::Null)),
+        (
+            "materializations",
+            materializations.unwrap_or(JsonValue::Null),
+        ),
+        ("grants_admission", JsonValue::Bool(false)),
+    ]);
+    fs.current_context(ctx, deadline, cancelled)?;
+    software_current(fs, ctx, deadline, cancelled)?;
+    if current_package()? != before {
+        return Err(SourceCommandError::Conflict(
+            "Work response package changed before disclosure",
+        ));
+    }
+    snapshot.verify_current(fs, deadline, cancelled)?;
+    Ok(result)
+}
+
 /// Provisional Work preparation. This derives one request from current source
 /// and the shared byte recipe, but never stages a journal or grants publication.
 pub fn prepare_isolated_work_expression_from_proposal(
@@ -2485,6 +3070,56 @@ pub fn recover_isolated_work_expression_from_captures(
     limits: ItemLimits,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<WorkExpressionPublication> {
+    recover_work_expression(
+        fs,
+        original_ctx,
+        original_cut,
+        software,
+        components,
+        worker,
+        decision,
+        true,
+        limits,
+        cancelled,
+    )
+}
+
+pub fn resume_isolated_work_expression_from_captures(
+    fs: &CreationFilesystem,
+    original_ctx: &CommandContext,
+    original_cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<WorkExpressionPublication> {
+    recover_work_expression(
+        fs,
+        original_ctx,
+        original_cut,
+        software,
+        components,
+        worker,
+        WorkRecoveryDecision::Resume,
+        false,
+        limits,
+        cancelled,
+    )
+}
+
+fn recover_work_expression(
+    fs: &CreationFilesystem,
+    original_ctx: &CommandContext,
+    original_cut: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    decision: WorkRecoveryDecision,
+    explicit_recovery: bool,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<WorkExpressionPublication> {
     original_ctx.check_from_selected_captures(
         original_cut,
         software,
@@ -2493,9 +3128,10 @@ pub fn recover_isolated_work_expression_from_captures(
         cancelled,
     )?;
     let owner = WorkOwner::select(fs, original_ctx, limits.deadline, cancelled)?;
-    if !cmd::array(&owner.configuration, "allowed_operations")?
-        .iter()
-        .any(|value| value.as_str() == Some(RECOVERY))
+    if explicit_recovery
+        && !cmd::array(&owner.configuration, "allowed_operations")?
+            .iter()
+            .any(|value| value.as_str() == Some(RECOVERY))
     {
         return Err(SourceCommandError::Denied("Work recovery not delegated"));
     }
@@ -2709,7 +3345,7 @@ pub fn recover_isolated_work_expression_from_captures(
     let result = fence.recover(
         &held_pending,
         rollback,
-        Some(renewal),
+        explicit_recovery.then_some(renewal),
         guard,
         limits.deadline,
         cancelled,
