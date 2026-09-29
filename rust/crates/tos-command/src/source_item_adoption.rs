@@ -611,7 +611,6 @@ impl ItemOwner {
             ("agent_ref", cmd::string(&principal)),
         ]);
         if cmd::text(record, "record_id")? != item_id
-            || cmd::text(record, "embodiment_ref")? != edition_id
             || cmd::text(record, "item_manifest_ref")?
                 != format!(
                     "{}/item.manifest.json",
