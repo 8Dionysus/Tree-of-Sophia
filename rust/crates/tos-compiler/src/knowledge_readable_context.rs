@@ -278,11 +278,73 @@ pub fn ordered_readable_witness(
     referenced_sources: &[&[u8]],
     max_bytes: usize,
 ) -> Result<Vec<u8>> {
+    ordered_readable_witness_kernel(
+        normalized_raw,
+        owner_raw,
+        referenced_sources,
+        max_bytes,
+        MAX_CONTEXTS,
+        max_bytes.saturating_mul(MAX_CONTEXTS + 2),
+    )
+}
+
+/// Rehydrate source contexts under explicit caller work bounds. The number of
+/// source witnesses is independent of the readable presentation pointer limit.
+/// This retains the same canonical-equality checks and grants no admission.
+pub fn ordered_readable_witness_bounded(
+    normalized_raw: &[u8],
+    owner_raw: &[u8],
+    referenced_sources: &[&[u8]],
+    max_bytes: usize,
+    max_sources: usize,
+    max_work_bytes: usize,
+) -> Result<Vec<u8>> {
     if max_bytes == 0
         || max_bytes > MAX_INPUT_BYTES
         || normalized_raw.len() > max_bytes
         || owner_raw.len() > max_bytes
-        || referenced_sources.len() > MAX_CONTEXTS
+        || max_sources == 0
+        || max_sources > 4096
+        || referenced_sources.len() > max_sources
+    {
+        return Err(Error::Budget("readable source witness limits"));
+    }
+    let mut work = normalized_raw
+        .len()
+        .checked_add(owner_raw.len())
+        .filter(|n| *n <= max_work_bytes)
+        .ok_or(Error::Budget("readable witness source work"))?;
+    for raw in referenced_sources {
+        work = work
+            .checked_add(raw.len())
+            .filter(|n| raw.len() <= max_bytes && *n <= max_work_bytes)
+            .ok_or(Error::Budget("readable witness source work"))?;
+    }
+    ordered_readable_witness_kernel(
+        normalized_raw,
+        owner_raw,
+        referenced_sources,
+        max_bytes,
+        max_sources,
+        max_work_bytes,
+    )
+}
+
+fn ordered_readable_witness_kernel(
+    normalized_raw: &[u8],
+    owner_raw: &[u8],
+    referenced_sources: &[&[u8]],
+    max_bytes: usize,
+    max_sources: usize,
+    max_work_bytes: usize,
+) -> Result<Vec<u8>> {
+    if max_bytes == 0
+        || max_bytes > MAX_INPUT_BYTES
+        || normalized_raw.len() > max_bytes
+        || owner_raw.len() > max_bytes
+        || max_sources == 0
+        || max_sources > 4096
+        || referenced_sources.len() > max_sources
     {
         return Err(Error::Budget("readable source witness limits"));
     }
@@ -325,12 +387,19 @@ pub fn ordered_readable_witness(
     for raw in referenced_sources {
         work = work
             .checked_add(raw.len())
+            .filter(|n| raw.len() <= max_bytes && *n <= max_work_bytes)
             .ok_or(Error::Budget("readable witness source work"))?;
-        if raw.len() > max_bytes || work > max_bytes.saturating_mul(MAX_CONTEXTS + 2) {
-            return Err(Error::Budget("readable witness source work"));
-        }
         sources.push(parse(raw)?.into_root());
     }
+    // Index only the ordered prefix already visited. A later context can
+    // reuse its first match without visiting any previously unseen layer.
+    let source_pointers = [
+        "",
+        "/properties/source_claim",
+        "/properties/record_version_view/record",
+    ];
+    let mut source_prefix: BTreeMap<String, (usize, usize)> = BTreeMap::new();
+    let mut source_cursor = 0usize;
     if let Some(contexts) = normalized
         .pointer("/semantics/assertion_contexts")
         .and_then(Value::as_array)
@@ -341,31 +410,28 @@ pub fn ordered_readable_witness(
                 .ok_or(Error::Invalid("readable witness context digest"))?;
             // Normalizers can bind an embedded exact record (record-version
             // view), so inspect that declared source layer as well as its outer.
-            let mut matched = None;
-            for source in &sources {
-                for pointer in [
-                    "",
-                    "/properties/source_claim",
-                    "/properties/record_version_view/record",
-                ] {
-                    let Ok(candidate) = at_ordered(source, pointer) else {
-                        continue;
-                    };
-                    let mut raw = Vec::new();
-                    emit_ordered(candidate, &mut raw, max_bytes)?;
-                    let value: Value = serde_json::from_slice(&raw)
-                        .map_err(|_| Error::Invalid("readable witness context source"))?;
-                    if stable_digest(&value)? == digest {
-                        matched = Some(candidate);
-                        break;
-                    }
-                }
-                if matched.is_some() {
-                    break;
-                }
+            let mut selected = source_prefix.get(digest).copied();
+            while selected.is_none() && source_cursor < sources.len() * source_pointers.len() {
+                let source_index = source_cursor / source_pointers.len();
+                let pointer_index = source_cursor % source_pointers.len();
+                source_cursor += 1;
+                let Ok(candidate) =
+                    at_ordered(&sources[source_index], source_pointers[pointer_index])
+                else {
+                    continue;
+                };
+                let mut raw = Vec::new();
+                emit_ordered(candidate, &mut raw, max_bytes)?;
+                let value: Value = serde_json::from_slice(&raw)
+                    .map_err(|_| Error::Invalid("readable witness context source"))?;
+                source_prefix
+                    .entry(stable_digest(&value)?)
+                    .or_insert((source_index, pointer_index));
+                selected = source_prefix.get(digest).copied();
             }
-            let source =
-                matched.ok_or(Error::Invalid("readable referenced source order absent"))?;
+            let (source_index, pointer_index) =
+                selected.ok_or(Error::Invalid("readable referenced source order absent"))?;
+            let source = at_ordered(&sources[source_index], source_pointers[pointer_index])?;
             let fields = context
                 .get("fields")
                 .and_then(Value::as_object)

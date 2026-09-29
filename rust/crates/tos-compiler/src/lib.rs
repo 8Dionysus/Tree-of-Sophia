@@ -184,7 +184,7 @@ pub use knowledge_philosophy_prepare::{
 };
 pub use knowledge_readable_context::{
     ReadableContextCarrier, ReadableContextCompiler, ReadableContextLimits,
-    ordered_readable_witness,
+    ordered_readable_witness, ordered_readable_witness_bounded,
 };
 pub use knowledge_registry::{KnowledgeRegistry, ResolvedType};
 pub use knowledge_repository::{

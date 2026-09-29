@@ -14,7 +14,7 @@ use tos_compiler::knowledge_stage::SeekRow;
 use tos_compiler::{
     BaseNormalizationLimits, Error, KnowledgeBaseNormalizer, KnowledgeRegistry,
     NavigationNodeLimits, NavigationNodeNormalizer, QueryVocabulary, ReadableContextCarrier,
-    ReadableContextCompiler, ReadableContextLimits, Result, ordered_readable_witness,
+    ReadableContextCompiler, ReadableContextLimits, Result, ordered_readable_witness_bounded,
 };
 use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, canonical_raw_bytes_v1};
 
@@ -47,6 +47,7 @@ pub struct ClaimCandidateLimits {
     pub max_retained_nodes: usize,
     pub max_relations: usize,
     pub max_traces: usize,
+    /// Assertion-context/source cohort bound; readable presentation retains its own 64-pointer limit.
     pub max_contexts: usize,
     pub max_row_bytes: usize,
     pub max_input_bytes: usize,
@@ -439,7 +440,14 @@ fn readable(
         return Err(Error::Budget("Claim readable source count"));
     }
     let raw = encode(node, limits.max_row_bytes)?;
-    let witness = ordered_readable_witness(&raw, owner, &sources, limits.max_row_bytes)?;
+    let witness = ordered_readable_witness_bounded(
+        &raw,
+        owner,
+        &sources,
+        limits.max_row_bytes,
+        limits.max_contexts,
+        limits.max_input_bytes,
+    )?;
     match compiler.compile(&raw, Some(&witness))? {
         ReadableContextCarrier::Absent => {
             node.as_object_mut().unwrap().remove("readable_context");
@@ -464,7 +472,7 @@ pub fn normalize_claim_candidate(
         || limits.max_input_bytes == 0
         || limits.max_output_bytes == 0
         || limits.max_contexts == 0
-        || limits.max_contexts > 64
+        || limits.max_contexts > 4096
         || input.nodes.len() > limits.max_nodes
         || input.retained_nodes.len() > limits.max_retained_nodes
         || input.relations.len() > limits.max_relations

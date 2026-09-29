@@ -202,6 +202,7 @@ pub struct ClaimPublicationLimits {
     pub max_claims: usize,
     pub max_bytes: usize,
     pub max_row_bytes: usize,
+    /// Assertion-context/source cohort bound; readable presentation retains its own 64-pointer limit.
     pub max_contexts: usize,
     pub max_vm_steps: u64,
     pub cow_target_bytes: usize,
@@ -214,7 +215,7 @@ impl Default for ClaimPublicationLimits {
             max_claims: 512,
             max_bytes: 16_777_216,
             max_row_bytes: 8_388_608,
-            max_contexts: 64,
+            max_contexts: 4096,
             max_vm_steps: 100_000_000,
             cow_target_bytes: 262_144,
         }
@@ -233,7 +234,7 @@ impl ClaimPublicationLimits {
             || self.max_row_bytes == 0
             || self.max_row_bytes > 8_388_608
             || self.max_contexts == 0
-            || self.max_contexts > 64
+            || self.max_contexts > 4096
             || self.max_vm_steps < 100
             || self.max_vm_steps > 1_000_000_000
             || !(256..=8_388_608).contains(&self.cow_target_bytes)
