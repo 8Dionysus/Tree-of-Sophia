@@ -281,8 +281,8 @@ def prepare(source_root: str | Path, output_dir: str | Path, *,
             native_executable: str | Path | None = None,
             native_timeout: int | None = None) -> dict:
     """Explicit installed native bootstrap; reference source graph is not run."""
-    import subprocess
-    from .prepared_native import select_publication_executor
+    import time
+    from .prepared_native import select_publication_executor, _exchange
     if native_executable is None and "TOS_PREPARED_EXECUTOR" not in os.environ:
         import shutil
         installed = shutil.which("tos")
@@ -306,12 +306,9 @@ def prepare(source_root: str | Path, output_dir: str | Path, *,
         command += ["--search-scratch-limits", json.dumps(asdict(search_scratch_limits), separators=(",", ":"))]
     if maintenance is not None:
         command += ["--maintenance-limits", json.dumps(asdict(maintenance), separators=(",", ":"))]
-    child = subprocess.run(command, capture_output=True, check=False, timeout=seconds)
-    if child.returncode != 0:
-        raise RuntimeError("native prepare refused; incomplete attempt remains")
-    if len(child.stdout) > limits.max_metadata_bytes or child.stderr:
-        raise ValueError("native prepare receipt envelope")
-    receipt = json.loads(child.stdout)
+    receipt = _exchange(executable, seconds, time.monotonic() + seconds,
+        lambda: iter(()), command=command, output_cap=limits.max_metadata_bytes + 1,
+        refuse_success_stderr=True)
     if (not isinstance(receipt, dict) or receipt.get("schema") != SCHEMA
             or receipt.get("status") != "completed" or receipt.get("source_root") != root.as_posix()
             or receipt.get("output_dir") != output.as_posix()):

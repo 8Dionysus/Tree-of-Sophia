@@ -110,10 +110,11 @@ def native_publication(path, *, executable, timeout, operation, header, catalog,
 
 
 def _exchange(executable, timeout, deadline, frames, *, callback=None,
-              output_cap=65536, progress_phases=()):
+              output_cap=65536, progress_phases=(), command=None, refuse_success_stderr=False):
     """One bounded process transport shared by the two actual file owners."""
     ack_read, ack_write = os.pipe() if callback is not None else (None, None)
-    command = [str(executable), 'prepared-publication', '--max-seconds', str(timeout)]
+    command = (list(command) if command is not None else
+               [str(executable), 'prepared-publication', '--max-seconds', str(timeout)])
     if callback is not None:
         command.extend(['--progress-ack-fd', str(ack_read)])
     try:
@@ -206,6 +207,8 @@ def _exchange(executable, timeout, deadline, frames, *, callback=None,
         if status:
             raise ValueError(errors.decode('utf-8', 'replace').strip() or
                              f'native prepared publication exited {status}')
+        if refuse_success_stderr and errors:
+            raise ValueError('native prepared success returned stderr')
         value = json.loads(output)
         if not isinstance(value, dict):
             raise ValueError('native prepared operation returned a non-object result')
