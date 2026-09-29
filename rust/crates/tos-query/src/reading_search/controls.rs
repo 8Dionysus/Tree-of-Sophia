@@ -291,3 +291,104 @@ fn core_normalization_alias_negatives_and_finite_pin_cohort_limits() {
         ReadingSearchErrorCode::BudgetExceeded
     );
 }
+
+fn rebind_synthetic_reading_db(fixture: &Fixture) {
+    let manifest_path = fixture.roots.analysis_root.join(READING_MANIFEST_REF);
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    manifest["private_database"]["sha256"] = json!(
+        tos_foundation::Digest256::of_bytes(
+            &fs::read(fixture.roots.analysis_root.join("reading #db.sqlite3")).unwrap()
+        )
+        .to_hex()
+    );
+    fs::write(manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+}
+#[test]
+fn exact_anchor_stale_predecessor_alignment_authority_and_crossing_voice_controls() {
+    for sql in [
+        "UPDATE occurrence_spans SET exact_sha256='bad'",
+        "UPDATE occurrence_spans SET context_unit_ref='other'",
+        "UPDATE metadata SET value='stale' WHERE key='concept_workbench_sha256'",
+        "UPDATE translation_alignments SET human_acceptance=1",
+    ] {
+        let fixture = Fixture::new();
+        let db =
+            rusqlite::Connection::open(fixture.roots.analysis_root.join("reading #db.sqlite3"))
+                .unwrap();
+        db.execute_batch(sql).unwrap();
+        drop(db);
+        rebind_synthetic_reading_db(&fixture);
+        assert_eq!(
+            code(fixture.query(&fixture.request(), ReadingSearchBudget::local_default())),
+            ReadingSearchErrorCode::CorruptSelectedCarrier,
+            "{sql}"
+        );
+    }
+    let fixture = Fixture::new();
+    let db = rusqlite::Connection::open(fixture.roots.analysis_root.join("reading #db.sqlite3"))
+        .unwrap();
+    db.execute(
+        "DELETE FROM occurrence_spans WHERE existing_occurrence_ref='old-0'",
+        [],
+    )
+    .unwrap();
+    drop(db);
+    rebind_synthetic_reading_db(&fixture);
+    let p = fixture.packet(&fixture.request());
+    assert_eq!(p["results"][0]["speaker"]["role"], "unresolved");
+    assert_eq!(
+        p["results"][0]["source_occurrence_anchor_status"],
+        "deferred"
+    );
+    let fixture = Fixture::new();
+    let db = rusqlite::Connection::open(fixture.roots.analysis_root.join("reading #db.sqlite3"))
+        .unwrap();
+    let text: String = db
+        .query_row(
+            "SELECT exact_text FROM contexts WHERE context_unit_ref='ctx'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let cut = 6usize;
+    for (id, start, end) in [("quoted", 0, cut), ("narrated", cut, text.chars().count())] {
+        let exact = text
+            .chars()
+            .skip(start)
+            .take(end - start)
+            .collect::<String>();
+        db.execute("UPDATE discourse_segments SET start_offset=?,end_offset=?,exact_text=?,exact_sha256=? WHERE segment_id=?",rusqlite::params![start as i64,end as i64,&exact,hash(&exact),id]).unwrap();
+    }
+    drop(db);
+    rebind_synthetic_reading_db(&fixture);
+    let p = fixture.packet(&fixture.request());
+    assert_eq!(p["results"][0]["speaker"]["role"], "unresolved");
+    assert_eq!(p["results"][0]["speaker"]["status"], "ambiguous");
+    assert_eq!(
+        p["results"][0]["speaker"]["candidates"],
+        json!(["dwarf", "narrator"])
+    );
+}
+#[test]
+fn data_cannot_select_executable_and_unknown_schema_drift_refuses() {
+    let fixture = Fixture::new_shared_root();
+    let expected = fixture.packet(&fixture.request());
+    let poisoned = fixture
+        .roots
+        .source_root
+        .join("scripts/query_zarathustra_reading_workbench_v1.py");
+    fs::create_dir_all(poisoned.parent().unwrap()).unwrap();
+    fs::write(&poisoned, b"raise RuntimeError('data is not code')").unwrap();
+    assert_eq!(fixture.packet(&fixture.request()), expected);
+    let manifest_path = fixture
+        .roots
+        .source_root
+        .join("ToS/candidate-intake/zarathustra/concept-workbench-v1/manifest.v1.json");
+    let mut manifest: Value = serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    manifest["concept_search_result_schema_sha256"] = json!("0".repeat(64));
+    fs::write(&manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+    assert_eq!(
+        code(fixture.query(&fixture.request(), ReadingSearchBudget::local_default())),
+        ReadingSearchErrorCode::CorruptSelectedCarrier
+    );
+}
