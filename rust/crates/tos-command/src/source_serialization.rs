@@ -595,7 +595,7 @@ fn entity(home: &str, name: &str, raw: &[u8], role: &str) -> Value {
     entity_at(&format!("{home}/{name}"), raw, role)
 }
 fn entity_at(reference: &str, raw: &[u8], role: &str) -> Value {
-    json!({"entity_ref":reference,"role":role,"media_type":if reference.ends_with(".jsonl"){"application/x-ndjson"}else{"application/json"},"size_bytes":raw.len(),"sha256":Digest256::of_bytes(raw).to_hex(),"availability":"owner_local","content_disclosure":"public_metadata_only","fixity_verified":false,"fixity_verified_at":null})
+    json!({"entity_ref":reference,"role":role,"media_type":if reference.ends_with(".jsonl"){"application/x-ndjson"}else if reference.ends_with(".md") || reference.ends_with("/fixity.sha256") {"text/plain; charset=utf-8"}else{"application/json"},"size_bytes":raw.len(),"sha256":Digest256::of_bytes(raw).to_hex(),"availability":"owner_local","content_disclosure":"public_metadata_only","fixity_verified":false,"fixity_verified_at":null})
 }
 
 /// Exact process observation for the Work→Expression owner.  The returned
@@ -608,6 +608,58 @@ pub(crate) struct WorkNativeCapture {
 pub(crate) fn capture_work_expression(
     request: &JsonValue,
     event_id: &str,
+    home: &str,
+    archive_path: &str,
+    before: &BTreeMap<String, Vec<u8>>,
+    outputs: &[(&str, &[u8])],
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<WorkNativeCapture> {
+    capture_compound(
+        request,
+        event_id,
+        home,
+        archive_path,
+        before,
+        outputs,
+        software,
+        components,
+        deadline,
+        cancelled,
+        false,
+    )
+}
+pub(crate) fn capture_item_adoption(
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    archive_path: &str,
+    before: &BTreeMap<String, Vec<u8>>,
+    outputs: &[(&str, &[u8])],
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<WorkNativeCapture> {
+    capture_compound(
+        request,
+        event_id,
+        home,
+        archive_path,
+        before,
+        outputs,
+        software,
+        components,
+        deadline,
+        cancelled,
+        true,
+    )
+}
+fn capture_compound(
+    request: &JsonValue,
+    event_id: &str,
     expression_home: &str,
     archive_path: &str,
     before: &BTreeMap<String, Vec<u8>>,
@@ -616,6 +668,7 @@ pub(crate) fn capture_work_expression(
     components: &SoftwareComponentSelectionV1,
     deadline: Instant,
     cancelled: &AtomicBool,
+    item: bool,
 ) -> SourceCommandResult<WorkNativeCapture> {
     active(deadline, cancelled)?;
     if before.is_empty()
@@ -691,12 +744,12 @@ pub(crate) fn capture_work_expression(
         .remove("argv_sha256");
     let event = json!({
         "$schema":"https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json","schema_version":"tos_provenance_event_v2","event_id":event_id,"event_version":1,"supersedes_event_ref":null,
-        "record_binding":{"manifest_ref":format!("{expression_home}/work-expression-receipt.json"),"digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"},
-        "activity":{"event_type":"annotation","started_at":started_at,"ended_at":instant()?,"status":"completed_with_warnings","terminal_reason":null,"exit_code":0,"warnings":["Completed in-process Work/Expression buffer serialization; atomic selected-metadata publication occurs afterward.","The declared record link is not accepted bibliographic or textual truth."]},
+        "record_binding":{"manifest_ref":format!("{expression_home}/{}",if item {"edition-item-receipt.json"}else{"work-expression-receipt.json"}),"digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"},
+        "activity":{"event_type":"annotation","started_at":started_at,"ended_at":instant()?,"status":"completed_with_warnings","terminal_reason":null,"exit_code":0,"warnings":[if item {"Completed in-process Edition/Item buffer serialization; atomic selected-metadata publication occurs afterward."}else{"Completed in-process Work/Expression buffer serialization; atomic selected-metadata publication occurs afterward."},"The declared record link is not accepted bibliographic or textual truth."]},
         "entities":{"inputs":inputs,"outputs":prepared_outputs,"byproducts":[entity_at(&environment_ref,&environment_raw,"runtime-description")]},
         "derivations":derivations,
         "responsibility":[{"agent_ref":"software:tos-native-source-commands","agent_kind":"software","role":"executor","responsibility_posture":"performed","evidence_binding":null,"human_evidence_status":"not_applicable"}],
-        "method":{"procedure":{"name":"native-work-expression-serialization","version":"1","purpose":"Serialize one declared Work/Expression link and explicit source-copy forms without judging content."},"command_capture":{"disclosure":"withheld_digest_only","argv":null,"argv_sha256":argv_digest,"withholding_reason":"Observed process argv may contain private paths; the exact library request is captured separately."},"configuration_binding":{"ref":request_ref,"sha256":Digest256::of_bytes(&request_raw).to_hex()},"software_components":software_rows,"model_invocations":[],"environment":method_environment},
+        "method":{"procedure":{"name":if item {"native-item-adoption-serialization"}else{"native-work-expression-serialization"},"version":"1","purpose":if item {"Serialize one declared Edition/Item link and explicit source-copy forms without judging content."}else{"Serialize one declared Work/Expression link and explicit source-copy forms without judging content."}},"command_capture":{"disclosure":"withheld_digest_only","argv":null,"argv_sha256":argv_digest,"withholding_reason":"Observed process argv may contain private paths; the exact library request is captured separately."},"configuration_binding":{"ref":request_ref,"sha256":Digest256::of_bytes(&request_raw).to_hex()},"software_components":software_rows,"model_invocations":[],"environment":method_environment},
         "manual_changes":{"status":"none_declared","change_receipts":[],"statement":"Caller authorship precedes this operation; no manual edits occur inside serialization."},
         "measurements":[{"metric":"wall_duration_ms","status":"measured","value":started.elapsed().as_secs_f64()*1000.0,"unit":"ms","method":"Rust monotonic Instant from capture through native executable/source observation and buffer binding; excludes commit.","evidence_binding":null}],
         "evidence_authentication":{"capture_posture":"tool_captured","signature_status":"unsigned","signature_bindings":[],"verification_status":"unverified","producer_control_boundary":"The same unsigned native process serializes and observes; hashes do not authenticate execution truth."},

@@ -90,7 +90,7 @@ struct WorkOwner {
     configuration_digest: String,
 }
 
-fn slug(value: &str, prefix: &str) -> bool {
+pub(super) fn slug(value: &str, prefix: &str) -> bool {
     let Some(suffix) = value.strip_prefix(prefix) else {
         return false;
     };
@@ -102,7 +102,7 @@ fn slug(value: &str, prefix: &str) -> bool {
                     .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
         })
 }
-fn form_id(value: &str) -> bool {
+pub(super) fn form_id(value: &str) -> bool {
     let Some(suffix) = value.strip_prefix("tos.form.") else {
         return false;
     };
@@ -112,7 +112,7 @@ fn form_id(value: &str) -> bool {
             b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'.' | b'_' | b'-')
         })
 }
-fn selected_forms(
+pub(super) fn selected_forms(
     request: &JsonValue,
     field: &str,
     allowed: &BTreeSet<String>,
@@ -135,7 +135,10 @@ fn selected_forms(
     }
     Ok(())
 }
-fn allowed_forms(config: &JsonValue, field: &str) -> SourceCommandResult<BTreeSet<String>> {
+pub(super) fn allowed_forms(
+    config: &JsonValue,
+    field: &str,
+) -> SourceCommandResult<BTreeSet<String>> {
     let rows = cmd::array(config, field)?;
     if rows.is_empty() || rows.len() > 32 {
         return Err(SourceCommandError::Denied("bounded Work form grant"));
@@ -151,7 +154,7 @@ fn allowed_forms(config: &JsonValue, field: &str) -> SourceCommandResult<BTreeSe
     }
     Ok(result)
 }
-fn relative(value: &str) -> SourceCommandResult<RelativePath> {
+pub(super) fn relative(value: &str) -> SourceCommandResult<RelativePath> {
     RelativePath::parse(value).map_err(|_| SourceCommandError::Denied("Work source path"))
 }
 impl WorkOwner {
@@ -241,6 +244,7 @@ impl WorkOwner {
         Ok(work_transaction::WorkPlan {
             transaction_id: self.transaction_id()?,
             authorization,
+            item_path_profile: None,
             files,
             new_directories,
         })
@@ -698,7 +702,7 @@ fn original_before_from_cut(
     Ok(before)
 }
 
-fn original_prior_publication(
+pub(super) fn original_prior_publication(
     cut: &CorpusCutReader,
     expected_token: Option<&str>,
     deadline: Instant,
@@ -747,7 +751,7 @@ fn prior_completion_current(
     ))
 }
 
-fn complete_current_cut(
+pub(super) fn complete_current_cut(
     fs: &CreationFilesystem,
     cut: &CorpusCutReader,
     snapshot: &PublicationSnapshot,
@@ -853,7 +857,7 @@ impl WorkExpressionPublication {
     }
 }
 
-fn digest_map(values: &BTreeMap<String, String>) -> JsonValue {
+pub(super) fn digest_map(values: &BTreeMap<String, String>) -> JsonValue {
     JsonValue::Object(
         values
             .iter()
@@ -903,10 +907,10 @@ fn dependency_bindings(
         ),
     ]))
 }
-fn raw_hex(raw: &[u8]) -> String {
+pub(super) fn raw_hex(raw: &[u8]) -> String {
     Digest256::of_bytes(raw).to_hex()
 }
-fn checked_current_source(
+pub(super) fn checked_current_source(
     fs: &CreationFilesystem,
     cut: &CorpusCutReader,
     reference: &str,
@@ -952,13 +956,13 @@ fn checked_current_source(
     }
     Ok(raw)
 }
-fn catalog_lines(raw: &[u8]) -> impl Iterator<Item = &[u8]> {
+pub(super) fn catalog_lines(raw: &[u8]) -> impl Iterator<Item = &[u8]> {
     // Empty input has no physical line. A real blank line remains visible to
     // the caller, while a terminal LF does not create a further line.
     raw.split_inclusive(|b| *b == b'\n')
         .map(|line| line.strip_suffix(b"\n").unwrap_or(line))
 }
-fn known_catalog_kind(kind: &str, basename: &str) -> bool {
+pub(super) fn known_catalog_kind(kind: &str, basename: &str) -> bool {
     let expected = match kind {
         "agent" => "agents.jsonl",
         "place" => "places.jsonl",
@@ -1383,11 +1387,11 @@ fn current_catalog(
 }
 
 #[derive(Clone)]
-struct SelectedSides {
+pub(super) struct SelectedSides {
     before: Option<(Digest256, u64)>,
     after: Option<(Digest256, u64)>,
 }
-fn selected_sides(
+pub(super) fn selected_sides(
     plan: &work_transaction::WorkPlan,
 ) -> SourceCommandResult<BTreeMap<String, SelectedSides>> {
     let mut rows = BTreeMap::new();
@@ -1411,7 +1415,7 @@ fn selected_sides(
     Ok(rows)
 }
 
-fn same_selected_plan(
+pub(super) fn same_selected_plan(
     expected: &work_transaction::WorkPlan,
     retained: &work_transaction::WorkPlan,
 ) -> SourceCommandResult<bool> {
@@ -1421,6 +1425,7 @@ fn same_selected_plan(
     right.sort_by_key(|file| file.path.as_str());
     Ok(expected.transaction_id == retained.transaction_id
         && cmd::same(&expected.authorization, &retained.authorization)?
+        && expected.item_path_profile == retained.item_path_profile
         && expected.new_directories == retained.new_directories
         && left.len() == right.len()
         && left
@@ -1429,7 +1434,7 @@ fn same_selected_plan(
             .all(|(a, b)| a.path == b.path && a.before == b.before && a.after == b.after))
 }
 
-fn after_cut_budget(
+pub(super) fn after_cut_budget(
     cut: &CorpusCutReader,
     selected: &BTreeMap<String, SelectedSides>,
 ) -> SourceCommandResult<()> {
@@ -1483,7 +1488,7 @@ fn after_cut_budget(
     Ok(())
 }
 
-enum WorkControlRead<'a> {
+pub(super) enum WorkControlRead<'a> {
     Ready(&'a PublicationSnapshot),
     Pending(&'a JsonValue),
 }
@@ -1507,7 +1512,7 @@ impl WorkControlRead<'_> {
 /// those must match the prepared buffers rather than the predecessor cut.
 /// The original CONTROL read stays cut-bound while the live ready/pending
 /// state is checked through the protected publication owner.
-fn selected_reads_current(
+pub(super) fn selected_reads_current(
     fs: &CreationFilesystem,
     cut: &CorpusCutReader,
     reads: &[PredicateRead],
@@ -1636,7 +1641,7 @@ fn selected_current(
     Ok(())
 }
 
-fn software_current(
+pub(super) fn software_current(
     fs: &CreationFilesystem,
     ctx: &CommandContext,
     deadline: Instant,
@@ -1668,7 +1673,7 @@ fn software_current(
 /// edge. A complete authored traversal additionally runs before pending and
 /// after selected durability, before the ready publication. The generated
 /// catalog and software retain separate exact byte checks.
-fn physical_current(
+pub(super) fn physical_current(
     fs: &CreationFilesystem,
     ctx: &CommandContext,
     cut: &CorpusCutReader,
@@ -1878,7 +1883,7 @@ fn physical_current(
 
 /// Exact current catalog/grammar/software-source and retained transaction
 /// dependencies, shared by provisional preparation and every publication edge.
-fn work_dependencies_current(
+pub(super) fn work_dependencies_current(
     fs: &CreationFilesystem,
     bindings: &JsonValue,
     deadline: Instant,
@@ -2124,17 +2129,17 @@ struct PreparedWorkApplication {
     receipt: JsonValue,
 }
 
-struct WorkApplicationGuard {
-    snapshot: PublicationSnapshot,
-    prior_id: Option<String>,
-    selected: BTreeMap<String, SelectedSides>,
-    read_observations: Vec<PredicateRead>,
-    stored_archive: work_transaction::WorkArchive,
-    authorization: JsonValue,
+pub(super) struct WorkApplicationGuard {
+    pub(super) snapshot: PublicationSnapshot,
+    pub(super) prior_id: Option<String>,
+    pub(super) selected: BTreeMap<String, SelectedSides>,
+    pub(super) read_observations: Vec<PredicateRead>,
+    pub(super) stored_archive: work_transaction::WorkArchive,
+    pub(super) authorization: JsonValue,
 }
 
 impl WorkApplicationGuard {
-    fn check(
+    pub(super) fn check(
         &self,
         fs: &CreationFilesystem,
         ctx: &CommandContext,

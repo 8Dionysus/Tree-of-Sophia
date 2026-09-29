@@ -33,6 +33,14 @@ pub use work_expression::{
     execute_isolated_work_expression_from_captures, prepare_isolated_work_expression_from_proposal,
     recover_isolated_work_expression_from_captures, replay_isolated_work_expression_from_captures,
 };
+#[path = "source_item_adoption.rs"]
+mod item_adoption;
+pub(crate) use item_adoption::current_result_fields as item_result_fields;
+pub use item_adoption::{
+    ItemAdoptionPreparation, ItemAdoptionPublication, execute_isolated_item_adoption_from_captures,
+    prepare_isolated_item_adoption_from_proposal, recover_isolated_item_adoption_from_captures,
+    replay_isolated_item_adoption_from_captures,
+};
 #[path = "source_work_transaction.rs"]
 pub(crate) mod work_transaction;
 pub(crate) const MAX_FILES: usize = 4096;
@@ -718,6 +726,51 @@ impl IsolatedCreationRoot {
     }
 }
 impl CreationFilesystem {
+    /// Separate-process Item access reuses the existing independently protected
+    /// typed grant. This is crate-private and cannot construct other owners.
+    pub(crate) fn select_item_owner(
+        configuration_path: &Path,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        active(deadline, cancelled)?;
+        let uid = rustix::process::geteuid().as_raw();
+        if rustix::process::getuid().as_raw() != uid {
+            return Err(SourceCommandError::Denied("Item setuid owner selection"));
+        }
+        protected_configuration_parents(configuration_path, uid)?;
+        let mut file = tos_fd_open::open_absolute_regular(configuration_path, 1_048_576)
+            .map_err(|_| SourceCommandError::Denied("Item protected owner selection"))?;
+        if owned(&file, uid, false)?.mode() & 0o7777 != 0o600 {
+            return Err(SourceCommandError::Denied("Item owner must be mode0600"));
+        }
+        let configuration_raw = raw(&mut file, 1_048_576, deadline, cancelled)?;
+        let config = cmd::parse(&configuration_raw)?;
+        if cmd::text(&config, "schema_version")? != "tos_local_item_adoption_owner_v1"
+            || cmd::integer(&config, "uid")? != u64::from(uid)
+        {
+            return Err(SourceCommandError::Denied("Item typed owner account"));
+        }
+        let root_path =
+            crate::source_text_owner::normalized_absolute(cmd::text(&config, "source_root")?)?;
+        if configuration_path.starts_with(root_path.join("ToS")) {
+            return Err(SourceCommandError::Denied(
+                "Item authority cannot be authored content",
+            ));
+        }
+        protected_configuration_parents(&root_path.join("root-pin"), uid)?;
+        let root = tos_fd_open::open_absolute_directory(&root_path)
+            .map_err(|_| SourceCommandError::Denied("Item exact source root"))?;
+        let root_identity = inode(&owned(&root, uid, true)?);
+        Ok(Self {
+            root_path,
+            root,
+            root_identity,
+            configuration_path: configuration_path.to_path_buf(),
+            configuration_raw,
+            uid,
+        })
+    }
     fn claim_capture_home(&self, create: bool) -> SourceCommandResult<File> {
         let catalog = walk(&self.root, "ToS/source-witnesses/catalog", self.uid)?;
         if create {

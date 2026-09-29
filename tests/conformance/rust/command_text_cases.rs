@@ -352,7 +352,7 @@ fn alignment_owner_bytes(value: &Value) -> Vec<u8> {
     .unwrap()
 }
 
-fn alignment_image_digest(path: &Path) -> Digest256 {
+pub(super) fn alignment_image_digest(path: &Path) -> Digest256 {
     use std::io::Read;
     let mut image = fs::File::open(path).unwrap();
     let before = image.metadata().unwrap();
@@ -402,6 +402,24 @@ fn alignment_native_cli(
     request: &Value,
     deadline: Instant,
 ) -> Value {
+    let (status, output_bytes, error_bytes) =
+        native_owner_cli_observation(repository, owner, invocation, request, deadline);
+    assert!(
+        status.success(),
+        "native CLI output={} stderr={}",
+        String::from_utf8_lossy(&output_bytes),
+        String::from_utf8_lossy(&error_bytes)
+    );
+    serde_json::from_slice(&output_bytes).unwrap()
+}
+
+pub(super) fn native_owner_cli_observation(
+    repository: &Path,
+    owner: &Path,
+    invocation: &Path,
+    request: &Value,
+    deadline: Instant,
+) -> (std::process::ExitStatus, Vec<u8>, Vec<u8>) {
     use std::io::{Read, Seek, SeekFrom, Write};
     let mut input = tempfile::tempfile().unwrap();
     input.write_all(&alignment_owner_bytes(request)).unwrap();
@@ -449,13 +467,7 @@ fn alignment_native_cli(
     let mut error_bytes = Vec::new();
     output.read_to_end(&mut output_bytes).unwrap();
     errors.read_to_end(&mut error_bytes).unwrap();
-    assert!(
-        status.success(),
-        "native CLI output={} stderr={}",
-        String::from_utf8_lossy(&output_bytes),
-        String::from_utf8_lossy(&error_bytes)
-    );
-    serde_json::from_slice(&output_bytes).unwrap()
+    (status, output_bytes, error_bytes)
 }
 
 #[test]

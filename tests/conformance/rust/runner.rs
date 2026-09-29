@@ -826,6 +826,8 @@ mod command_record_cases;
 #[path = "command_claim_cases.rs"]
 mod command_claim_cases;
 
+#[path = "command_item_cases.rs"]
+mod command_item_cases;
 #[path = "command_work_cases.rs"]
 mod command_work_cases;
 

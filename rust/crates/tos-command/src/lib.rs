@@ -16,6 +16,8 @@ pub use durable_adapter::source_cohort;
 mod source_assessment_journal;
 pub mod source_forms;
 pub mod source_forms_compiler;
+mod source_item_deposit;
+mod source_item_inventory;
 pub mod source_operation;
 pub mod source_revisions;
 mod source_serialization;

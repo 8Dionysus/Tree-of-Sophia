@@ -100,25 +100,31 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     let checked = cmd::parse(&raw)?;
     let invocation: Value = serde_json::from_slice(&cmd::canonical(&checked)?)
         .map_err(|_| SourceCommandError::Invalid("native invocation JSON"))?;
-    exact(
-        &invocation,
-        &[
-            "schema_version",
-            "owner_context",
-            "owner_config",
-            "native_executable",
-            "native_executable_sha256",
-            "corpus_store",
-            "source_revision",
-            "software_capture",
-            "software_restored_root",
-            "software_selection",
-            "software_components",
-            "schema_worker",
-            "budgets",
-        ],
-    )?;
-    if text(&invocation, "schema_version")? != "tos_local_native_owner_invocation_v1" {
+    let item_invocation =
+        text(&invocation, "schema_version")? == "tos_local_native_item_invocation_v1";
+    let mut keys = vec![
+        "schema_version",
+        "owner_config",
+        "native_executable",
+        "native_executable_sha256",
+        "corpus_store",
+        "source_revision",
+        "software_capture",
+        "software_restored_root",
+        "software_selection",
+        "software_components",
+        "schema_worker",
+        "budgets",
+    ];
+    keys.push(if item_invocation {
+        "original_source_revision"
+    } else {
+        "owner_context"
+    });
+    exact(&invocation, &keys)?;
+    if !item_invocation
+        && text(&invocation, "schema_version")? != "tos_local_native_owner_invocation_v1"
+    {
         return Err(SourceCommandError::Invalid("native invocation profile"));
     }
     if executable(deadline, &cancelled)? != digest(text(&invocation, "native_executable_sha256")?)?
@@ -130,17 +136,25 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     let request_raw = bounded_read(input, MAX_REQUEST)?;
     let request = cmd::parse(&request_raw)?;
     let operation = cmd::text(&request, "operation")?;
-    if !matches!(
-        operation,
-        "describe"
-            | "prepare-create"
-            | "prepare-revise"
-            | "alignment.create"
-            | "alignment.revise"
-            | "inspect"
-            | "inspect-version"
-            | "inspect-recovery"
-    ) {
+    let implemented = if item_invocation {
+        matches!(
+            operation,
+            "describe" | "prepare-create" | "item.adopt" | "item.adoption.recover"
+        )
+    } else {
+        matches!(
+            operation,
+            "describe"
+                | "prepare-create"
+                | "prepare-revise"
+                | "alignment.create"
+                | "alignment.revise"
+                | "inspect"
+                | "inspect-version"
+                | "inspect-recovery"
+        )
+    };
+    if !implemented {
         return Err(SourceCommandError::Unsupported(
             "native owner command operation",
         ));
@@ -261,6 +275,19 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
         &cancelled,
     )
     .map_err(|_| SourceCommandError::Denied("native schema worker"))?;
+    if item_invocation {
+        return run_item(
+            &invocation,
+            &request_raw,
+            &cut,
+            &store,
+            &software,
+            &components,
+            &mut schema,
+            deadline,
+            &cancelled,
+        );
+    }
     let context = absolute(text(&invocation, "owner_context")?)?;
     let owner = absolute(text(&invocation, "owner_config")?)?;
     let result = match operation {
@@ -423,4 +450,218 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
         }
     };
     Ok(result)
+}
+
+fn run_item(
+    invocation: &Value,
+    request_raw: &[u8],
+    cut: &tos_source_store::CorpusCutReader,
+    store: &CorpusReader,
+    software: &SoftwareCaptureReader,
+    components: &tos_source_store::SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Value> {
+    use crate::source_creation_store::{self as owner, CreationFilesystem};
+    let path = absolute(text(invocation, "owner_config")?)?;
+    let fs = CreationFilesystem::select_item_owner(&path, deadline, cancelled)?;
+    let configuration_raw = read_absolute(
+        &path,
+        rustix::process::getuid().as_raw(),
+        true,
+        MAX_INVOCATION,
+        deadline,
+        cancelled,
+    )?;
+    let config = cmd::parse(&configuration_raw)?;
+    let request = cmd::parse(request_raw)?;
+    let operation = cmd::text(&request, "operation")?;
+    let mut files = Vec::with_capacity(components.members().count());
+    for member in components.members() {
+        let raw = software
+            .read_selected_component(components, &member.path, 2_097_152, deadline, cancelled)
+            .map_err(|_| SourceCommandError::Conflict("Item selected software component"))?
+            .raw;
+        files.push(cmd::SourceFile {
+            path: member.path.clone(),
+            raw,
+        });
+    }
+    let mut ctx = cmd::CommandContext {
+        base_revision: cut.current().revision(),
+        configuration_raw,
+        request_raw: request_raw.to_vec(),
+        recorded_at: crate::source_serialization::instant()?,
+        effective_uid: u64::from(rustix::process::getuid().as_raw()),
+        files,
+    };
+    let limits = tos_validation::item_rules::ItemLimits {
+        max_member_bytes: 2_097_152,
+        max_total_bytes: 134_217_728,
+        max_state_bytes: 134_217_728,
+        max_issues: 256,
+        deadline,
+    };
+    let original = invocation
+        .get("original_source_revision")
+        .ok_or(SourceCommandError::Invalid("Item original cut selection"))?;
+    let original_cut = if original.is_null() {
+        None
+    } else {
+        let revision = SourceRevision(digest(
+            original
+                .as_str()
+                .ok_or(SourceCommandError::Invalid("Item original revision"))?,
+        )?);
+        Some(
+            store
+                .open_source_cut(
+                    revision,
+                    CutReadLimits {
+                        max_revisions: 4,
+                        max_members: 2048,
+                        max_total_bytes: 33_554_432,
+                        max_member_bytes: 8_388_608,
+                    },
+                    deadline,
+                    cancelled,
+                )
+                .map_err(|_| SourceCommandError::Conflict("Item original source cut"))?,
+        )
+    };
+    let mut response = json!({"schema_version":"tos_edition_item_result_v1","authentication":"local-unix-account","owner_configuration":cmd::record_digest(&config)?.to_prefixed(),"operation":"item.adopt","command_operations":["describe","prepare-create","item.adopt","item.adoption.recover"],"allowed_operations":serde_json::from_slice::<Value>(&cmd::canonical(cmd::field(&config,"allowed_operations")?)?).map_err(|_|SourceCommandError::Invalid("Item result operations"))?,"edition_source_path":cmd::text(&config,"edition_source_path")?,"item_source_path":cmd::text(&config,"item_source_path")?,"receipt":null,"replayed":false,"grants_admission":false});
+    if operation == "prepare-create" {
+        if original_cut.is_some() {
+            return Err(SourceCommandError::Invalid(
+                "Item preview cannot select original replay cut",
+            ));
+        }
+        let prepared = owner::prepare_isolated_item_adoption_from_proposal(
+            &fs, &ctx, cut, software, components, worker, limits, cancelled,
+        )?;
+        let metadata = owner::item_result_fields(&fs, &ctx, cut, limits, cancelled)?;
+        let metadata: Value = serde_json::from_slice(&cmd::canonical(&metadata)?)
+            .map_err(|_| SourceCommandError::Invalid("Item metadata result"))?;
+        for (key, value) in metadata.as_object().unwrap() {
+            response
+                .as_object_mut()
+                .unwrap()
+                .insert(key.clone(), value.clone());
+        }
+        let request: Value = serde_json::from_slice(&cmd::canonical(prepared.request())?)
+            .map_err(|_| SourceCommandError::Invalid("Item preview result"))?;
+        let object = response.as_object_mut().unwrap();
+        for field in [
+            "expected_source",
+            "expected_revision",
+            "expected_dependencies",
+            "expected_publication",
+            "inventory",
+            "inventory_limitation",
+            "fixity_verified_at",
+        ] {
+            object.insert(field.into(), request[field].clone());
+        }
+        object.insert("prepared_fields".into(), request["fields"].clone());
+        let projection: Value =
+            serde_json::from_slice(&cmd::canonical(prepared.projected_result())?)
+                .map_err(|_| SourceCommandError::Invalid("Item projected result"))?;
+        for (key, value) in projection.as_object().unwrap() {
+            object.insert(key.clone(), value.clone());
+        }
+        object.insert("prepared_request".into(), request);
+        object.insert("target_exists".into(), json!(false));
+        return Ok(response);
+    }
+    if operation == "describe" {
+        cmd::exact_keys(&request, &["schema_version", "operation"])?;
+        if cmd::text(&request, "schema_version")? != "tos_local_item_adoption_command_v1" {
+            return Err(SourceCommandError::Invalid("Item describe request"));
+        }
+        fs.current_context(&ctx, deadline, cancelled)?;
+        cmd::validate_expiry(
+            cmd::text(&config, "expires_at")?,
+            &crate::source_serialization::instant()?,
+        )?;
+        worker.finish(deadline, cancelled).map_err(|reason| {
+            SourceCommandError::SchemaExecution {
+                path: "item.adopt".into(),
+                root: "native Item description".into(),
+                reason,
+            }
+        })?;
+        let metadata = owner::item_result_fields(&fs, &ctx, cut, limits, cancelled)?;
+        let metadata: Value = serde_json::from_slice(&cmd::canonical(&metadata)?)
+            .map_err(|_| SourceCommandError::Invalid("Item description result"))?;
+        for (key, value) in metadata.as_object().unwrap() {
+            response
+                .as_object_mut()
+                .unwrap()
+                .insert(key.clone(), value.clone());
+        }
+        return Ok(response);
+    }
+    let publication = if operation == "item.adoption.recover" {
+        let original = original_cut.as_ref().unwrap_or(cut);
+        ctx.base_revision = original.current().revision();
+        owner::recover_isolated_item_adoption_from_captures(
+            &fs, &ctx, original, software, components, worker, limits, cancelled,
+        )?
+    } else if let Some(original) = original_cut.as_ref() {
+        ctx.base_revision = original.current().revision();
+        owner::replay_isolated_item_adoption_from_captures(
+            &fs, &ctx, original, cut, software, components, worker, limits, cancelled,
+        )?
+    } else {
+        owner::execute_isolated_item_adoption_from_captures(
+            &fs, &ctx, cut, software, components, worker, limits, cancelled,
+        )?
+    };
+    let metadata = owner::item_result_fields(&fs, &ctx, cut, limits, cancelled)?;
+    let metadata: Value = serde_json::from_slice(&cmd::canonical(&metadata)?)
+        .map_err(|_| SourceCommandError::Invalid("Item current result"))?;
+    for (key, value) in metadata.as_object().unwrap() {
+        response
+            .as_object_mut()
+            .unwrap()
+            .insert(key.clone(), value.clone());
+    }
+    let object = response.as_object_mut().unwrap();
+    object.insert(
+        "materializations".into(),
+        publication
+            .materializations()
+            .map_or(Ok(Value::Null), |r| {
+                serde_json::from_slice(&cmd::canonical(r)?)
+                    .map_err(|_| SourceCommandError::Invalid("Item materialization result"))
+            })?,
+    );
+    object.insert(
+        "recovery".into(),
+        if operation == "item.adoption.recover" {
+            serde_json::from_slice(&cmd::canonical(publication.publication())?)
+                .map_err(|_| SourceCommandError::Invalid("Item recovery result"))?
+        } else {
+            Value::Null
+        },
+    );
+    object.insert("transaction_id".into(), json!(publication.transaction_id()));
+    object.insert(
+        "receipt".into(),
+        publication.receipt().map_or(Ok(Value::Null), |r| {
+            serde_json::from_slice(&cmd::canonical(r)?)
+                .map_err(|_| SourceCommandError::Invalid("Item receipt result"))
+        })?,
+    );
+    object.insert(
+        "deposit".into(),
+        serde_json::from_slice(&cmd::canonical(publication.deposit())?)
+            .map_err(|_| SourceCommandError::Invalid("Item deposit result"))?,
+    );
+    object.insert("replayed".into(), json!(publication.replayed()));
+    if !publication.metadata_committed() {
+        object.insert("next_route".into(),json!("source inventory owner: add a bounded supported profile; explicit rollback retains these bytes"));
+    }
+    Ok(response)
 }

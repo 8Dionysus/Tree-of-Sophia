@@ -30,6 +30,7 @@ const MAX_AUTHORIZATION: usize = 64 * 1024;
 const MAX_MANIFEST: usize = 512 * 1024;
 const TRANSACTIONS: &str = ".metadata-transactions";
 const MANIFEST_SCHEMA: &str = "tos_selected_metadata_transaction_v1";
+const PROFILED_MANIFEST_SCHEMA: &str = "tos_selected_metadata_transaction_v2";
 const COMPLETION_SCHEMA: &str = "tos_selected_metadata_completion_v1";
 
 #[derive(Clone)]
@@ -275,6 +276,7 @@ pub(crate) struct SelectedFile {
 pub(crate) struct WorkPlan {
     pub(crate) transaction_id: String,
     pub(crate) authorization: JsonValue,
+    pub(crate) item_path_profile: Option<RelativePath>,
     pub(crate) files: Vec<SelectedFile>,
     pub(crate) new_directories: Vec<RelativePath>,
 }
@@ -287,6 +289,13 @@ struct FrozenPlan {
     blobs: BTreeMap<String, Vec<u8>>,
 }
 fn path(value: &str, directory: bool) -> SourceCommandResult<RelativePath> {
+    profiled_path(value, directory, &BTreeSet::new())
+}
+fn profiled_path(
+    value: &str,
+    directory: bool,
+    companions: &BTreeSet<String>,
+) -> SourceCommandResult<RelativePath> {
     if value.len() > 1024 || value.contains('\\') || value.contains('\0') {
         return Err(SourceCommandError::Denied("selected metadata path grammar"));
     }
@@ -303,13 +312,61 @@ fn path(value: &str, directory: bool) -> SourceCommandResult<RelativePath> {
                 )
         })
         || !directory
-            && (parts.len() < 4 || !(value.ends_with(".json") || value.ends_with(".jsonl")))
+            && (parts.len() < 4
+                || !(value.ends_with(".json")
+                    || value.ends_with(".jsonl")
+                    || companions.contains(value)))
     {
         return Err(SourceCommandError::Denied(
             "selected metadata public path boundary",
         ));
     }
     Ok(parsed)
+}
+/// The maintained Item profile grants exactly two companions in one authorized
+/// Item home. It never widens the ordinary metadata suffix contract.
+fn item_companions(
+    authorization: &JsonValue,
+    item: Option<&RelativePath>,
+) -> SourceCommandResult<BTreeSet<String>> {
+    let Some(item) = item else {
+        return Ok(BTreeSet::new());
+    };
+    path(item.as_str(), false)?;
+    let parts: Vec<_> = item.as_str().split('/').collect();
+    if parts.len() < 5
+        || parts[parts.len() - 1] != "item.json"
+        || parts[parts.len() - 3] != "items"
+        || cmd::text(authorization, "schema_version")? != "tos_item_adoption_authorization_v1"
+        || cmd::text(cmd::field(authorization, "scope")?, "item_source_path")? != item.as_str()
+    {
+        return Err(SourceCommandError::Denied(
+            "Item metadata profile differs from adoption scope",
+        ));
+    }
+    let home = item
+        .as_str()
+        .rsplit_once('/')
+        .ok_or(SourceCommandError::Invalid("Item home"))?
+        .0;
+    Ok([
+        format!("{home}/fixity.sha256"),
+        format!("{home}/forensic-report.md"),
+    ]
+    .into_iter()
+    .collect())
+}
+fn selected_profile(summary: &JsonValue) -> SourceCommandResult<Option<RelativePath>> {
+    let Some(profile) = summary.object_get("path_profile") else {
+        return Ok(None);
+    };
+    cmd::exact_keys(profile, &["schema_version", "item_source_path"])?;
+    if cmd::text(profile, "schema_version")? != "tos_item_metadata_paths_v1" {
+        return Err(SourceCommandError::Invalid("Item metadata path profile"));
+    }
+    let item = path(cmd::text(profile, "item_source_path")?, false)?;
+    item_companions(cmd::field(summary, "authorization")?, Some(&item))?;
+    Ok(Some(item))
 }
 fn binding(bytes: Option<&[u8]>) -> JsonValue {
     match bytes {
@@ -335,6 +392,7 @@ fn freeze(plan: WorkPlan) -> SourceCommandResult<FrozenPlan> {
             "selected metadata plan budget/authorization",
         ));
     }
+    let companions = item_companions(&plan.authorization, plan.item_path_profile.as_ref())?;
     let mut files = plan.files;
     files.sort_by(|a, b| a.path.as_str().cmp(b.path.as_str()));
     let mut dirs = plan.new_directories;
@@ -351,7 +409,7 @@ fn freeze(plan: WorkPlan) -> SourceCommandResult<FrozenPlan> {
     let mut summaries = Vec::with_capacity(files.len());
     for item in &files {
         let name = item.path.as_str();
-        path(name, false)?;
+        profiled_path(name, false, &companions)?;
         if !seen.insert(name.to_owned()) || item.before.is_none() && item.after.is_none() {
             return Err(SourceCommandError::Invalid(
                 "duplicate/empty selected metadata member",
@@ -430,14 +488,24 @@ fn freeze(plan: WorkPlan) -> SourceCommandResult<FrozenPlan> {
             ));
         }
     }
-    let summary = cmd::object(vec![
+    let mut summary_members = vec![
         ("authorization", plan.authorization),
         (
             "new_directories",
             JsonValue::Array(dirs.iter().map(|d| cmd::string(d.as_str())).collect()),
         ),
         ("files", JsonValue::Array(summaries)),
-    ]);
+    ];
+    if let Some(item) = &plan.item_path_profile {
+        summary_members.push((
+            "path_profile",
+            cmd::object(vec![
+                ("schema_version", cmd::string("tos_item_metadata_paths_v1")),
+                ("item_source_path", cmd::string(item.as_str())),
+            ]),
+        ));
+    }
+    let summary = cmd::object(summary_members);
     Ok(FrozenPlan {
         summary,
         files,
@@ -564,7 +632,14 @@ fn manifest(
     parents: JsonValue,
 ) -> JsonValue {
     cmd::object(vec![
-        ("schema_version", cmd::string(MANIFEST_SCHEMA)),
+        (
+            "schema_version",
+            cmd::string(if plan.summary.object_get("path_profile").is_some() {
+                PROFILED_MANIFEST_SCHEMA
+            } else {
+                MANIFEST_SCHEMA
+            }),
+        ),
         ("transaction_id", cmd::string(id)),
         (
             "base_publication",
@@ -647,7 +722,7 @@ fn entropy_hex(bytes: usize) -> SourceCommandResult<String> {
         .map_err(|_| SourceCommandError::Invalid("selected metadata entropy"))?;
     Ok(random.iter().map(|byte| format!("{byte:02x}")).collect())
 }
-fn atomic_write(
+pub(crate) fn atomic_write(
     parent: &File,
     name: &str,
     bytes: &[u8],
@@ -796,11 +871,61 @@ pub(crate) fn work_archive(
     cancelled: &AtomicBool,
     create: bool,
 ) -> SourceCommandResult<WorkArchive> {
+    compound_archive(
+        fs,
+        work_path,
+        work,
+        before,
+        expected_revision,
+        deadline,
+        cancelled,
+        create,
+        "work.json",
+    )
+}
+pub(crate) fn item_archive(
+    fs: &CreationFilesystem,
+    edition_path: &str,
+    edition: &JsonValue,
+    before: &BTreeMap<String, Vec<u8>>,
+    expected_revision: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    create: bool,
+) -> SourceCommandResult<WorkArchive> {
+    if cmd::text(edition, "record_type")? != "edition" || !edition_path.ends_with("/edition.json") {
+        return Err(SourceCommandError::Denied(
+            "Item archive selected Edition profile",
+        ));
+    }
+    compound_archive(
+        fs,
+        edition_path,
+        edition,
+        before,
+        expected_revision,
+        deadline,
+        cancelled,
+        create,
+        "edition.json",
+    )
+}
+fn compound_archive(
+    fs: &CreationFilesystem,
+    work_path: &str,
+    work: &JsonValue,
+    before: &BTreeMap<String, Vec<u8>>,
+    expected_revision: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    create: bool,
+    basename: &str,
+) -> SourceCommandResult<WorkArchive> {
     let revision = crate::source_revisions::revision(before)?;
     if revision != expected_revision
         || before.is_empty()
         || before.len() > 3
-        || before.get("work.json").is_none()
+        || before.get(basename).is_none()
         || before.values().any(|raw| raw.len() > 2_097_152)
         || before
             .values()
@@ -1325,15 +1450,6 @@ fn load_retained(
         ));
     }
     let manifest = cmd::parse(&raw)?;
-    if manifest
-        .object_get("schema_version")
-        .and_then(JsonValue::as_str)
-        == Some("tos_selected_metadata_transaction_v2")
-    {
-        return Err(SourceCommandError::Unsupported(
-            "Work current predecessor uses a profiled selected-metadata transaction",
-        ));
-    }
     cmd::exact_keys(
         &manifest,
         &[
@@ -1344,8 +1460,10 @@ fn load_retained(
             "parents",
         ],
     )?;
-    if cmd::text(&manifest, "schema_version")? != MANIFEST_SCHEMA
-        || cmd::text(&manifest, "transaction_id")? != id
+    if !matches!(
+        cmd::text(&manifest, "schema_version")?,
+        MANIFEST_SCHEMA | PROFILED_MANIFEST_SCHEMA
+    ) || cmd::text(&manifest, "transaction_id")? != id
     {
         return Err(SourceCommandError::Conflict(
             "retained transaction manifest identity",
@@ -1364,7 +1482,26 @@ fn load_retained(
         ));
     }
     let summary = cmd::field(&manifest, "plan")?;
-    cmd::exact_keys(summary, &["authorization", "files", "new_directories"])?;
+    if summary.object_get("path_profile").is_some() {
+        cmd::exact_keys(
+            summary,
+            &["authorization", "files", "new_directories", "path_profile"],
+        )?;
+    } else {
+        cmd::exact_keys(summary, &["authorization", "files", "new_directories"])?;
+    }
+    let item_path_profile = selected_profile(summary)?;
+    if (cmd::text(&manifest, "schema_version")? == PROFILED_MANIFEST_SCHEMA)
+        != item_path_profile.is_some()
+    {
+        return Err(SourceCommandError::Conflict(
+            "retained Item manifest/profile version differs",
+        ));
+    }
+    let companions = item_companions(
+        cmd::field(summary, "authorization")?,
+        item_path_profile.as_ref(),
+    )?;
     // A repeated blob reference is legal, but its selected side still pays
     // for every file binding. Preflight both complete sides before any raw
     // retained blob is cloned into the expanded plan.
@@ -1379,7 +1516,7 @@ fn load_retained(
     for entry in entries {
         cmd::exact_keys(entry, &["path", "before", "after"])?;
         let name = cmd::text(entry, "path")?;
-        path(name, false)?;
+        profiled_path(name, false, &companions)?;
         if prior_path.is_some_and(|prior| prior >= name) {
             return Err(SourceCommandError::Conflict(
                 "retained selected path order or duplicate",
@@ -1462,7 +1599,7 @@ fn load_retained(
         cmd::exact_keys(entry, &["path", "before", "after"])?;
         let name = cmd::text(entry, "path")?;
         files.push(SelectedFile {
-            path: path(name, false)?,
+            path: profiled_path(name, false, &companions)?,
             before: read_side(cmd::field(entry, "before")?, &mut total, &mut cache)?,
             after: read_side(cmd::field(entry, "after")?, &mut total, &mut cache)?,
         });
@@ -1480,6 +1617,7 @@ fn load_retained(
     let raw_plan = WorkPlan {
         transaction_id: id.to_owned(),
         authorization: cmd::field(summary, "authorization")?.clone(),
+        item_path_profile,
         files,
         new_directories: directories,
     };
@@ -1613,6 +1751,50 @@ pub(crate) fn read_pending(
 /// Historical transport evidence for a previously linked native Expression.
 /// This validates a selected ready head or immutable completion, not current
 /// Work lineage, source bytes, permission to replay, or semantic admission.
+pub(crate) fn retained_item_orphan(
+    fs: &CreationFilesystem,
+    id: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Option<(WorkPlan, JsonValue)>> {
+    let Some(retained) = load_retained(fs, id, deadline, cancelled)? else {
+        return Ok(None);
+    };
+    if cmd::text(&retained.raw_plan.authorization, "schema_version")?
+        != "tos_item_adoption_authorization_v1"
+    {
+        return Err(SourceCommandError::Denied("retained Item authority family"));
+    }
+    let head = read_state(fs, deadline, cancelled)?;
+    if head
+        .as_ref()
+        .is_some_and(|v| cmd::text(v, "transaction_id").ok() == Some(id))
+    {
+        return Err(SourceCommandError::Conflict(
+            "Item transaction is head selected; orphan recovery refused",
+        ));
+    }
+    let journal = journal_dir(fs, id, false)?
+        .ok_or(SourceCommandError::Conflict("Item retained journal absent"))?;
+    if read_at(
+        &journal,
+        "completion.json",
+        fs.uid,
+        MAX_STATE,
+        deadline,
+        cancelled,
+    )?
+    .is_some()
+    {
+        return Err(SourceCommandError::Conflict(
+            "Item transaction already terminated",
+        ));
+    }
+    Ok(Some((
+        retained.raw_plan,
+        cmd::field(&retained.manifest, "base_publication")?.clone(),
+    )))
+}
 pub(crate) fn inspect_committed(
     fs: &CreationFilesystem,
     id: &str,
@@ -1929,6 +2111,40 @@ impl WorkCorpusFence<'_> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<WorkTransportResult> {
+        self.apply_selected(plan, snapshot, None, false, guard, deadline, cancelled)
+    }
+    pub(crate) fn apply_retained_item(
+        &self,
+        plan: WorkPlan,
+        snapshot: &PublicationSnapshot,
+        renewal: Option<JsonValue>,
+        guard: impl FnMut(&JsonValue, WorkGuard<'_>) -> SourceCommandResult<()>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<WorkTransportResult> {
+        if cmd::text(&plan.authorization, "schema_version")? != "tos_item_adoption_authorization_v1"
+            || renewal
+                .as_ref()
+                .map(cmd::canonical)
+                .transpose()?
+                .is_some_and(|raw| raw.len() > 4096)
+        {
+            return Err(SourceCommandError::Denied(
+                "retained Item selection differs",
+            ));
+        }
+        self.apply_selected(plan, snapshot, renewal, true, guard, deadline, cancelled)
+    }
+    fn apply_selected(
+        &self,
+        plan: WorkPlan,
+        snapshot: &PublicationSnapshot,
+        renewal: Option<JsonValue>,
+        item_retained: bool,
+        mut guard: impl FnMut(&JsonValue, WorkGuard<'_>) -> SourceCommandResult<()>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<WorkTransportResult> {
         self.verify(deadline, cancelled)?;
         snapshot.verify_current(self.fs, deadline, cancelled)?;
         let id = plan.transaction_id.clone();
@@ -1944,7 +2160,13 @@ impl WorkCorpusFence<'_> {
             },
         )?;
         let current = read_state(self.fs, deadline, cancelled)?;
-        if let Some(existing) = load_retained(self.fs, &id, deadline, cancelled)? {
+        let existing = load_retained(self.fs, &id, deadline, cancelled)?;
+        if item_retained && existing.is_none() {
+            return Err(SourceCommandError::Conflict(
+                "selected Item orphan vanished",
+            ));
+        }
+        if let Some(existing) = &existing {
             if !cmd::same(&existing.plan.summary, &frozen.summary)?
                 || existing
                     .plan
@@ -1960,9 +2182,38 @@ impl WorkCorpusFence<'_> {
             // A pending head is deliberately rejected by the publication
             // snapshot above. Only the Work owner's explicit selected
             // recovery path may resume or roll back it.
-            return Err(SourceCommandError::Conflict(
-                "retained transaction requires owner replay or selected recovery",
-            ));
+            if !item_retained {
+                return Err(SourceCommandError::Conflict(
+                    "retained transaction requires owner replay or selected recovery",
+                ));
+            }
+            if !cmd::same(
+                cmd::field(&existing.manifest, "base_publication")?,
+                &cmd::object(vec![
+                    (
+                        "token",
+                        snapshot
+                            .token
+                            .as_ref()
+                            .map_or(JsonValue::Null, |v| cmd::string(v)),
+                    ),
+                    ("generation", cmd::number(snapshot.generation)),
+                ]),
+            )? || read_at(
+                &journal_dir(self.fs, &id, false)?
+                    .ok_or(SourceCommandError::Conflict("Item retained journal absent"))?,
+                "completion.json",
+                self.fs.uid,
+                MAX_STATE,
+                deadline,
+                cancelled,
+            )?
+            .is_some()
+            {
+                return Err(SourceCommandError::Conflict(
+                    "retained Item is not an orphan on this exact snapshot",
+                ));
+            }
         }
         if let Some(previous) = &current {
             if cmd::text(previous, "phase")? != "ready" {
@@ -1987,8 +2238,11 @@ impl WorkCorpusFence<'_> {
             }
             record_completion(self.fs, previous, deadline, cancelled)?;
         }
-        let parents = capture_parents(self.fs, &frozen)?;
-        let manifest = manifest(&id, snapshot, &frozen, parents);
+        let manifest = if let Some(existing) = &existing {
+            existing.manifest.clone()
+        } else {
+            manifest(&id, snapshot, &frozen, capture_parents(self.fs, &frozen)?)
+        };
         let mut opened = Parents::new(self.fs, &manifest)?;
         opened.check_files(&frozen, Some(false), deadline, cancelled)?;
         let digest = retain(self.fs, &id, &manifest, &frozen, deadline, cancelled)?;
@@ -2017,12 +2271,13 @@ impl WorkCorpusFence<'_> {
             raw_plan: WorkPlan {
                 transaction_id: id,
                 authorization: cmd::field(&frozen.summary, "authorization")?.clone(),
+                item_path_profile: selected_profile(&frozen.summary)?,
                 files: frozen.files.clone(),
                 new_directories: frozen.directories.clone(),
             },
         };
         move_pending(
-            self, &retained, &pending, false, None, false, &mut guard, deadline, cancelled,
+            self, &retained, &pending, false, renewal, false, &mut guard, deadline, cancelled,
         )
     }
 

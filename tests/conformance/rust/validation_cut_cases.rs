@@ -66,7 +66,7 @@ pub(super) fn write_cut_store(files: &BTreeMap<String, Vec<u8>>, root: &Path) ->
     write_cut_store_on_base(files, root, None)
 }
 
-fn write_cut_store_on_base(
+pub(super) fn write_cut_store_on_base(
     files: &BTreeMap<String, Vec<u8>>,
     root: &Path,
     base: Option<SourceRevision>,

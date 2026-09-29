@@ -28,7 +28,7 @@ pub(crate) struct AcquiredMember {
     pub(crate) identity: PayloadIdentity,
 }
 
-fn file_identity(meta: &Metadata) -> (u64, u64, u32, u32, u64, i64, i64, i64, i64) {
+pub(crate) fn file_identity(meta: &Metadata) -> (u64, u64, u32, u32, u64, i64, i64, i64, i64) {
     (
         meta.dev(),
         meta.ino(),
@@ -46,7 +46,7 @@ fn parent_identity(meta: &Metadata) -> (u64, u64, u32, u32) {
     (meta.dev(), meta.ino(), meta.mode(), meta.uid())
 }
 
-fn parents(
+pub(crate) fn parents(
     path: &Path,
     uid: u32,
     deadline: Instant,
@@ -125,7 +125,7 @@ pub(crate) fn payload_root_pins_from_config(
     ))
 }
 
-fn owned_file(file: &File, uid: u32) -> SourceCommandResult<Metadata> {
+pub(crate) fn owned_file(file: &File, uid: u32) -> SourceCommandResult<Metadata> {
     let meta = file
         .metadata()
         .map_err(|_| SourceCommandError::Denied("native TextLayer payload metadata"))?;

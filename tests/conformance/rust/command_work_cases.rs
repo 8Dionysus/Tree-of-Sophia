@@ -16,7 +16,7 @@ use tos_validation::FormatProfile;
 use tos_validation::executor::ExecutorBudget;
 use tos_validation::item_rules::ItemLimits;
 
-fn authored_work_files(root: &Path) -> BTreeMap<String, Vec<u8>> {
+pub(super) fn authored_work_files(root: &Path) -> BTreeMap<String, Vec<u8>> {
     let mut directories = vec![root.join("ToS")];
     let mut files = BTreeMap::new();
     let mut bytes = 0usize;

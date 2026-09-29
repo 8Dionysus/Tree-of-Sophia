@@ -72,9 +72,31 @@ fn le32(bytes: &[u8], offset: usize) -> SourceCommandResult<u32> {
     ))
 }
 
-fn read_at(file: &mut File, offset: u64, buffer: &mut [u8]) -> SourceCommandResult<()> {
+fn read_at(
+    file: &mut File,
+    offset: u64,
+    buffer: &mut [u8],
+    authorize: &mut impl FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<()> {
     file.seek(SeekFrom::Start(offset)).map_err(|_| invalid())?;
-    file.read_exact(buffer).map_err(|_| invalid())
+    read_exact_authorized(file, buffer, authorize)
+}
+
+fn read_exact_authorized(
+    file: &mut File,
+    mut buffer: &mut [u8],
+    authorize: &mut impl FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<()> {
+    while !buffer.is_empty() {
+        authorize()?;
+        match file.read(buffer) {
+            Ok(0) => return Err(invalid()),
+            Ok(n) => buffer = &mut buffer[n..],
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(_) => return Err(invalid()),
+        }
+    }
+    Ok(())
 }
 
 fn decode_name(bytes: &[u8], flags: u16) -> SourceCommandResult<String> {
@@ -108,14 +130,14 @@ fn member_path(name: &str) -> bool {
 fn directory(
     file: &mut File,
     size: u64,
-    selected_path: &str,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<(Entry, u64, u64)> {
+    authorize: &mut impl FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<(Vec<Entry>, u64)> {
     active(deadline, cancelled)?;
     let tail_start = size.saturating_sub(TAIL_BYTES);
     let mut tail = vec![0; usize::try_from(size - tail_start).map_err(|_| invalid())?];
-    read_at(file, tail_start, &mut tail)?;
+    read_at(file, tail_start, &mut tail, authorize)?;
     let end = tail
         .windows(4)
         .rposition(|slice| slice == b"PK\x05\x06")
@@ -143,19 +165,18 @@ fn directory(
     }
     if directory_pos >= 20 {
         let mut marker = [0; 4];
-        read_at(file, directory_pos - 20, &mut marker)?;
+        read_at(file, directory_pos - 20, &mut marker, authorize)?;
         if marker == *b"PK\x06\x07" {
             return Err(SourceCommandError::Unsupported("native EPUB ZIP64"));
         }
     }
     let mut raw = vec![0; length];
-    read_at(file, offset, &mut raw)?;
+    read_at(file, offset, &mut raw, authorize)?;
     let mut cursor = 0usize;
     let mut count = 0usize;
     let mut total_expanded = 0u64;
     let mut names = BTreeSet::new();
-    let mut selected = None;
-    let mut next_offset = directory_pos;
+    let mut entries = Vec::with_capacity(declared);
     while cursor < raw.len() {
         if count % 64 == 0 {
             active(deadline, cancelled)?;
@@ -221,39 +242,13 @@ fn directory(
             method,
             name,
         };
-        if entry.name == selected_path {
-            if selected.is_some() {
-                return Err(invalid());
-            }
-            selected = Some(entry.clone());
-        }
-        if let Some(chosen) = &selected {
-            if entry.local_offset > chosen.local_offset {
-                next_offset = next_offset.min(entry.local_offset);
-            }
-        }
+        entries.push(entry);
         cursor = end;
     }
     if count != declared {
         return Err(invalid());
     }
-    let selected = selected.ok_or_else(invalid)?;
-    // Earlier central rows can follow the selected local header too.
-    // A second bounded pass over the already retained directory closes that
-    // ordering case without reading source bytes or allocating another index.
-    let mut cursor = 0usize;
-    while cursor < raw.len() {
-        let head = &raw[cursor..cursor + 46];
-        let local = u64::from(le32(head, 42)?);
-        if local > selected.local_offset {
-            next_offset = next_offset.min(local);
-        }
-        cursor += 46
-            + usize::from(le16(head, 28)?)
-            + usize::from(le16(head, 30)?)
-            + usize::from(le16(head, 32)?);
-    }
-    Ok((selected, directory_pos, next_offset))
+    Ok((entries, directory_pos))
 }
 
 pub(crate) fn read_selected_member(
@@ -276,10 +271,113 @@ pub(crate) fn read_selected_member(
             "native EPUB selected member binding",
         ));
     }
-    let (entry, directory_pos, next_offset) =
-        directory(file, size, selected_path, deadline, cancelled)?;
+    let raw = read_bounded_member(file, size, selected_path, deadline, cancelled, &mut || {
+        Ok(())
+    })?;
+    if Digest256::of_bytes(&raw).to_hex() != expected_sha256 {
+        return Err(SourceCommandError::Conflict(
+            "native EPUB selected member bytes differ",
+        ));
+    }
+    Ok(raw)
+}
+
+/// Metadata member read used by the Item owner before its complete resource
+/// enumeration. The separately granted descriptor/fixity stays with the caller.
+pub(crate) fn read_bounded_member(
+    file: &mut File,
+    size: u64,
+    selected_path: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    authorize: &mut impl FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<Vec<u8>> {
+    if size == 0 || size > 512 * 1024 * 1024 || !member_path(selected_path) {
+        return Err(invalid());
+    }
+    let (entries, directory_pos) = directory(file, size, deadline, cancelled, authorize)?;
+    let entry = entries
+        .iter()
+        .find(|entry| entry.name == selected_path)
+        .ok_or_else(invalid)?;
+    let next_offset = entries
+        .iter()
+        .filter(|other| other.local_offset > entry.local_offset)
+        .map(|other| other.local_offset)
+        .min()
+        .unwrap_or(directory_pos);
+    let raw = read_member(
+        file,
+        entry,
+        directory_pos.min(next_offset),
+        deadline,
+        cancelled,
+        authorize,
+    )?;
+    Ok(raw)
+}
+
+/// The Item inventory enumerates the actual bounded directory once and reads
+/// each member through the same CRC/expanded-size protected decoder. Payload
+/// bytes live only for the callback and never enter the tracked inventory.
+pub(crate) fn visit_members(
+    file: &mut File,
+    size: u64,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    authorize: &mut impl FnMut() -> SourceCommandResult<()>,
+    mut observe: impl FnMut(&str, &[u8]) -> SourceCommandResult<()>,
+) -> SourceCommandResult<()> {
+    if size == 0 || size > 512 * 1024 * 1024 {
+        return Err(invalid());
+    }
+    let (entries, directory_pos) = directory(file, size, deadline, cancelled, authorize)?;
+    let offsets: BTreeSet<_> = entries.iter().map(|entry| entry.local_offset).collect();
+    if offsets.len() != entries.len() {
+        return Err(invalid());
+    }
+    let mut expanded = 0u64;
+    for entry in &entries {
+        active(deadline, cancelled)?;
+        let next = offsets
+            .range((
+                std::ops::Bound::Excluded(entry.local_offset),
+                std::ops::Bound::Unbounded,
+            ))
+            .next()
+            .copied()
+            .unwrap_or(directory_pos);
+        let bytes = read_member(
+            file,
+            entry,
+            directory_pos.min(next),
+            deadline,
+            cancelled,
+            authorize,
+        )?;
+        expanded = expanded
+            .checked_add(bytes.len() as u64)
+            .ok_or_else(invalid)?;
+        if expanded > MAX_EXPANDED_BYTES {
+            return Err(invalid());
+        }
+        if !entry.name.ends_with('/') {
+            observe(&entry.name, &bytes)?;
+        }
+    }
+    Ok(())
+}
+
+fn read_member(
+    file: &mut File,
+    entry: &Entry,
+    boundary: u64,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    authorize: &mut impl FnMut() -> SourceCommandResult<()>,
+) -> SourceCommandResult<Vec<u8>> {
     let mut local = [0; 30];
-    read_at(file, entry.local_offset, &mut local)?;
+    read_at(file, entry.local_offset, &mut local, authorize)?;
     if &local[..4] != b"PK\x03\x04"
         || le16(&local, 6)? != entry.flags
         || le16(&local, 8)? != entry.method
@@ -293,7 +391,7 @@ pub(crate) fn read_selected_member(
     }
     let mut name = vec![0; name_len];
     let local_name = entry.local_offset.checked_add(30).ok_or_else(invalid)?;
-    read_at(file, local_name, &mut name)?;
+    read_at(file, local_name, &mut name, authorize)?;
     if decode_name(&name, entry.flags)? != entry.name {
         return Err(invalid());
     }
@@ -302,7 +400,7 @@ pub(crate) fn read_selected_member(
         .and_then(|n| n.checked_add(extra_len as u64))
         .ok_or_else(invalid)?;
     let end = content.checked_add(entry.compressed).ok_or_else(invalid)?;
-    if end > directory_pos.min(next_offset) {
+    if end > boundary {
         return Err(invalid());
     }
     file.seek(SeekFrom::Start(content)).map_err(|_| invalid())?;
@@ -316,7 +414,7 @@ pub(crate) fn read_selected_member(
     while remaining > 0 {
         active(deadline, cancelled)?;
         let take = usize::try_from(remaining.min(CHUNK_BYTES as u64)).map_err(|_| invalid())?;
-        file.read_exact(&mut input[..take]).map_err(|_| invalid())?;
+        read_exact_authorized(file, &mut input[..take], authorize)?;
         remaining -= take as u64;
         if let Some(decoder) = &mut decoder {
             let mut consumed = 0usize;
@@ -370,12 +468,12 @@ pub(crate) fn read_selected_member(
         || decoder
             .as_ref()
             .is_some_and(|d| d.total_out() != entry.expanded || d.total_in() != entry.compressed)
-        || Digest256::of_bytes(&result).to_hex() != expected_sha256
     {
         return Err(SourceCommandError::Conflict(
             "native EPUB selected member bytes differ",
         ));
     }
     active(deadline, cancelled)?;
+    authorize()?;
     Ok(result)
 }
