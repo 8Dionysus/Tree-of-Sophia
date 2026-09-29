@@ -772,10 +772,64 @@ pub(crate) fn capture_collection_membership(
         CompoundCapture::CollectionMembership,
     )
 }
+pub(crate) fn capture_expression_responsibility(
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    archive_path: &str,
+    before: &BTreeMap<String, Vec<u8>>,
+    outputs: &[(&str, &[u8])],
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<WorkNativeCapture> {
+    capture_compound(
+        request,
+        event_id,
+        home,
+        archive_path,
+        before,
+        outputs,
+        software,
+        components,
+        deadline,
+        cancelled,
+        CompoundCapture::ExpressionResponsibility,
+    )
+}
+pub(crate) fn capture_expression_edition(
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    archive_path: &str,
+    before: &BTreeMap<String, Vec<u8>>,
+    outputs: &[(&str, &[u8])],
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<WorkNativeCapture> {
+    capture_compound(
+        request,
+        event_id,
+        home,
+        archive_path,
+        before,
+        outputs,
+        software,
+        components,
+        deadline,
+        cancelled,
+        CompoundCapture::ExpressionEdition,
+    )
+}
 enum CompoundCapture {
     WorkExpression,
     EditionItem,
     CollectionMembership,
+    ExpressionResponsibility,
+    ExpressionEdition,
 }
 fn capture_compound(
     request: &JsonValue,
@@ -808,6 +862,18 @@ fn capture_compound(
             "Completed in-process Collection membership buffer serialization; atomic selected-metadata publication occurs afterward.",
             "native-collection-membership-serialization",
             "Serialize one qualified Collection membership Claim and explicit source-copy forms without judging membership.",
+        ),
+        CompoundCapture::ExpressionResponsibility => (
+            "responsibility-attachment-receipt.json",
+            "Completed in-process Expression responsibility buffer serialization; atomic selected-metadata publication occurs afterward.",
+            "native-expression-responsibility-serialization",
+            "Serialize one qualified Expression responsibility Claim and explicit source-copy forms without judging attribution.",
+        ),
+        CompoundCapture::ExpressionEdition => (
+            "expression-edition-receipt.json",
+            "Completed in-process Expression/Edition buffer serialization; atomic selected-metadata publication occurs afterward.",
+            "native-expression-edition-serialization",
+            "Serialize one declared Expression/Edition link and explicit source-copy forms without judging content.",
         ),
     };
     active(deadline, cancelled)?;
