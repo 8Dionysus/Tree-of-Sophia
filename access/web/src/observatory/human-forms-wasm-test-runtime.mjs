@@ -41,4 +41,6 @@ import {installClientInspectionRules} from './client-inspection-rules.mjs';
 installClientInspectionRules(runtime);
 
 import {installSourceDossierRules} from './source-dossier-rules.mjs';
+import {installClientPacketRules} from './client-packet-rules.mjs';
 installSourceDossierRules(runtime);
+installClientPacketRules(runtime);

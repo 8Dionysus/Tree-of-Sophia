@@ -7,6 +7,8 @@
 
 #[cfg(feature = "wasm")]
 mod client_inspection;
+#[cfg(feature = "wasm")]
+mod client_packet;
 mod claim_reading;
 mod claim_reference;
 mod constructor_machine;
@@ -17,6 +19,8 @@ mod human_forms;
 mod inspection_session;
 mod interface_preferences;
 mod knowledge_envelope;
+#[cfg(feature = "wasm")]
+mod knowledge_scene;
 #[cfg(feature = "wasm")]
 mod lens_session;
 mod live_resume;
@@ -46,6 +50,10 @@ pub use record_context::RecordContextSession;
 
 #[cfg(feature = "wasm")]
 pub use client_inspection::ClientInspectionSession;
+#[cfg(feature = "wasm")]
+pub use knowledge_scene::KnowledgeSceneSession;
+#[cfg(feature = "wasm")]
+pub use client_packet::{ClientPacketSession,ClientJsonSession,ClientSelectorSession,ClientMaterialSession};
 #[cfg(feature = "wasm")]
 pub use source_dossier::SourceDossierSession;
 

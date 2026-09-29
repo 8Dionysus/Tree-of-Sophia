@@ -16,3 +16,5 @@ export function inspectionRevisionText(value){
 export const inspectionRevisionUnits=text=>Uint16Array.from({length:text.length},(_,index)=>text.charCodeAt(index));
 
 export const inspectionRefInvalid=(string,truthy)=>installedRuntime.ClientInspectionSession.ref_invalid(string,truthy);
+
+export const createClientItemsSession=node=>installedRuntime.ClientInspectionSession.items(node);
