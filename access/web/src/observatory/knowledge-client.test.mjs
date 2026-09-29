@@ -2,7 +2,7 @@ import './human-forms-wasm-test-runtime.mjs';
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 
-import {validateLens,projectLens,focusSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError,displayTitle,displayTitleForm,sourceOriginalTitle,compileRouteCenter,isSourceDossierRef,SOURCE_DOSSIER_LIMIT,validateSourceDossier} from './knowledge-client.mjs';
+import {validateLens,projectLens,focusSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError,displayTitle,displayTitleForm,sourceOriginalTitle,compileRouteCenter,isSourceDossierRef,SOURCE_DOSSIER_LIMIT,validateSourceDossier,sameJson,explorationRequestMatches,validateExploration} from './knowledge-client.mjs';
 import {setUiLanguage} from './ui-i18n.mjs';
 
 const node=id=>({id,entity_id:'tos.work.friedrich-nietzsche.also-sprach-zarathustra',kind_id:'work',
@@ -419,4 +419,59 @@ test('retained native array callbacks outlive inspection and dossier sessions',a
   assert.equal(stringElement('text'),true);assert.equal(stringElement(''),false);
   assert.equal(recordElement({}),true);assert.equal(recordElement([]),false);
   assert.equal(chainElement({unknown:null}),true);assert.equal(chainElement(null),false);
+});
+
+
+test('exact JSON and normalized selector callbacks retain native opaque results and lifetime',()=>{
+  let retained;const marker={truthy:true},left=[1];left.every=callback=>{retained=callback;return marker;};
+  assert.equal(sameJson(left,[1]),marker);assert.equal(retained(1,0),true);assert.equal(retained(2,0),false);
+  const sparse=new Array(2);assert.equal(sameJson(sparse,[7,8]),true);
+  const selectors=['source'];selectors.every=()=>0;
+  const requested={sources:selectors};assert.equal(explorationRequestMatches({sources:['source']},requested),false);
+  assert.equal(explorationRequestMatches({sources:['source']},{sources:['source','source']}),true);
+  assert.equal(explorationRequestMatches({sources:['source','source']},{sources:['source']}),false);
+});
+
+test('whole packet gates preserve schema, field, iterator and host exception order',()=>{
+  const packet=clone();let arrays=0;
+  packet.schema='wrong';Object.defineProperty(packet,'nodes',{get(){arrays++;throw 'nodes';}});
+  assert.throws(()=>validateLens(packet),ContractError);assert.equal(arrays,0);
+  const host=clone();Object.defineProperty(host.authority_boundary,'is_source',{get(){throw 'area';}});
+  assert.throws(()=>validateLens(host),error=>error==='area');
+  let closed=0;const iterable=[];iterable[Symbol.iterator]=function*(){try{yield null;}finally{closed++;}};
+  const malformed=clone();malformed.nodes=iterable;
+  assert.throws(()=>validateLens(malformed),ContractError);assert.equal(closed,1);
+});
+
+test('exploration v1 repeats status observation before cursor selection',()=>{
+  const packet=clone();packet.schema='tos_exploration_result_v1';packet.writes_to_tree=false;
+  packet.snapshot_revision='d'.repeat(64);packet.page={number:1,scope:'resumable-neighborhood',returned_nodes:2,returned_relations:1,
+    primary_node_ids:packet.nodes.map(item=>item.id),context_node_ids:[],next_cursor:null};
+  packet.counts={scope:'cumulative-discovered-not-global-total'};packet.inclusion={authority:'query-execution-not-semantic-proof'};
+  let reads=0;Object.defineProperty(packet,'status',{get(){return ++reads===1?'paused':'complete';}});
+  assert.equal(validateExploration(packet),packet);assert.equal(reads,2);
+});
+
+test('search request refusal occurs before capabilities and late page reads stay ordered',async()=>{
+  let requests=0;const client=new KnowledgeClient();client.request=async()=>{requests++;throw new Error('unexpected transport');};
+  await assert.rejects(client.search('query',undefined,{cursor:'cursor',search_mode:'',limit:6}),ContractError);assert.equal(requests,0);
+  const packet=emptySearchPacket('indexed');let moreReads=0;
+  Object.defineProperty(packet.page,'has_more',{get(){return ++moreReads===1?false:true;}});packet.page.next_cursor='next';
+  client.request=async path=>path==='/search/capabilities'?{modes:{indexed:{available:true}}}:packet;
+  assert.equal((await client.search('query')).page,packet.page);assert.equal(moreReads,2);
+});
+
+test('retained area endpoint callback keeps its original identity index across exploration setup',()=>{
+  const packet=clone();packet.schema='tos_exploration_result_v1';packet.writes_to_tree=false;
+  packet.snapshot_revision='d'.repeat(64);packet.status='complete';
+  packet.page={number:1,scope:'resumable-neighborhood',returned_nodes:2,returned_relations:1,
+    primary_node_ids:['late-a','late-b'],context_node_ids:[],next_cursor:null};
+  packet.counts={scope:'cumulative-discovered-not-global-total'};packet.inclusion={authority:'query-execution-not-semantic-proof'};
+  for(const [index,raw] of packet.nodes.entries()){
+    const initial=raw.id;let reads=0;Object.defineProperty(raw,'id',{get(){return ++reads<=4?initial:index===0?'late-a':'late-b';}});
+  }
+  let retained;packet.relations.some=callback=>{retained=callback;return false;};
+  validateExploration(packet);
+  assert.equal(retained({from_id:'graph-a:work',to_id:'graph-b:work'}),false);
+  assert.equal(retained({from_id:'late-a',to_id:'late-b'}),true);
 });

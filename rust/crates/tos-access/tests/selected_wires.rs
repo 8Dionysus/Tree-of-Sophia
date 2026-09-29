@@ -6702,4 +6702,356 @@ mod prepared_inspect_lens {
         drop(executor);
         fs::remove_dir_all(dir).unwrap();
     }
+
+    #[test]
+    #[ignore = "requires OPS protected temporal/focus/stored-lens products and finite admission"]
+    fn prepared_temporal_focus_stored_lens_native_rows_cli_http_mcp_and_current_fence() {
+        use tos_access::KnowledgeRequest;
+        use tos_foundation::JsonString;
+        let selected = PathBuf::from(
+            std::env::var_os("TOS_NATIVE_PREPARED_CONSUMER_BIN")
+                .expect("exact native CLI required"),
+        );
+        let expected_sha = std::env::var("TOS_NATIVE_PREPARED_CONSUMER_SHA256")
+            .expect("exact native CLI SHA required");
+        assert_eq!(
+            crate::native_child::bounded_sha(&selected, 256 * 1024 * 1024).to_hex(),
+            expected_sha
+        );
+        let fixture = tos_compiler::knowledge_full_fixture::build_native_fixture_bounded(
+            tos_compiler::knowledge_stage::StageLimits {
+                sqlite: tos_compiler::Limits {
+                    max_rows: 1000,
+                    max_row_bytes: 1_048_576,
+                    max_output_bytes: 64 * 1024 * 1024,
+                    max_work_bytes: 128 * 1024 * 1024,
+                    sqlite_cache_kib: 8192,
+                    max_sql_vm_steps: 100_000_000,
+                },
+                max_temp_bytes: 64 * 1024 * 1024,
+                max_seek_rows: 2,
+                max_seek_bytes: 1_048_576,
+            },
+            std::time::Instant::now() + Duration::from_secs(30),
+        );
+        assert!(fixture.graph_input_bytes.len() <= 1_048_576);
+        let graph = json(&fixture.graph_input_bytes);
+        let nodes = graph
+            .object_get("nodes")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .to_vec();
+        let relations = graph
+            .object_get("relations")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .to_vec();
+        assert!(nodes.len() <= 200 && relations.len() <= 200);
+        let claim = nodes
+            .iter()
+            .find(|n| {
+                n.object_get("kind_id").and_then(JsonValue::as_str) == Some("claim")
+                    && n.object_get("source_graph").and_then(JsonValue::as_str)
+                        == Some("source-claims")
+            })
+            .unwrap();
+        let id = claim.object_get("id").unwrap().as_str().unwrap();
+        let operand = JsonValue::Object(vec![
+            (
+                JsonString::from_utf8("node_id"),
+                claim.object_get("id").unwrap().clone(),
+            ),
+            (
+                JsonString::from_utf8("content_revision"),
+                claim.object_get("content_revision").unwrap().clone(),
+            ),
+        ]);
+        let temporal = JsonValue::Object(vec![
+            (
+                JsonString::from_utf8("schema_version"),
+                JsonValue::String(JsonString::from_utf8("tos_temporal_comparison_request_v1")),
+            ),
+            (
+                JsonString::from_utf8("source_revision"),
+                graph.object_get("source_revision").unwrap().clone(),
+            ),
+            (JsonString::from_utf8("left"), operand.clone()),
+            (JsonString::from_utf8("right"), operand),
+        ]);
+        let mut header = graph.clone();
+        let JsonValue::Object(fields) = &mut header else {
+            panic!("graph header")
+        };
+        fields.retain(|(k, _)| !matches!(k.as_str(), Some("nodes" | "relations")));
+        let revision = header
+            .object_get("source_revision")
+            .unwrap()
+            .as_str()
+            .unwrap();
+        let spec=json(br#"{"schema_version":"tos_lens_spec_v1","lens_id":"prepared-stored","detail":"full","sources":["source-claims"],"limits":{"nodes":100,"relations":200,"groups":100}}"#);
+        let catalog=json(format!(r#"{{"schema":"tos_knowledge_catalog_v1","source_revision":"{revision}","lenses":[{}]}}"#,String::from_utf8(encode(&spec)).unwrap()).as_bytes());
+        let tick = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "tos-prepared-operations-{}-{tick}",
+            std::process::id()
+        ));
+        fs::create_dir(&dir).unwrap();
+        let path = dir.join("prepared.sqlite");
+        let binding_path = dir.join("binding.json");
+        let request_path = dir.join("temporal.json");
+        let publication = PublicationLimits {
+            max_bytes: 4 * 1024 * 1024,
+            max_mutations: 100_000,
+            max_row_bytes: 1_048_576,
+            max_metadata_bytes: 1_048_576,
+            max_changes: 16,
+            max_change_bytes: 65_536,
+        };
+        let binding = publish_prepared_rows_until(
+            &path,
+            &header,
+            &catalog,
+            &mut Rows {
+                nodes: nodes.clone(),
+                relations,
+            },
+            publication,
+            std::time::Instant::now() + Duration::from_secs(10),
+        )
+        .unwrap();
+        fs::write(&binding_path, encode(&binding)).unwrap();
+        fs::write(&request_path, encode(&temporal)).unwrap();
+        let executor = tos_access::prepared_local::PreparedLocalExecutor::open(
+            path.clone(),
+            binding_path.clone(),
+            None,
+        )
+        .unwrap();
+        let profile = tos_access::prepared_local::profile();
+        let args = vec![
+            "knowledge".into(),
+            "temporal-compare".into(),
+            request_path.to_str().unwrap().into(),
+        ];
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        assert_eq!(
+            cli::run_cli(&args, &executor, profile, &mut out, &mut err),
+            0,
+            "{}",
+            String::from_utf8_lossy(&err)
+        );
+        let temporal_packet = json(&out);
+        assert_eq!(
+            temporal_packet
+                .object_get("comparison")
+                .unwrap()
+                .object_get("status")
+                .unwrap()
+                .as_str(),
+            Some("comparable")
+        );
+        let response = tos_access::http::handle_post(
+            &executor,
+            "/api/knowledge/temporal/compare",
+            &encode(&temporal),
+            profile,
+        );
+        assert_eq!(response.status, 200);
+        assert!(semantic_eq(&temporal_packet, &json(&response.body)));
+        drop(response);
+        let rpc = format!(
+            "{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{{\"protocolVersion\":\"2025-11-25\"}}}}\n{{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}}\n{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"tos_knowledge_temporal_compare\",\"arguments\":{{\"request\":{}}}}}}\n",
+            String::from_utf8(encode(&temporal)).unwrap()
+        );
+        let mut output = Vec::new();
+        run_io(Cursor::new(rpc.as_bytes()), &mut output, &executor, profile).unwrap();
+        let rpc = json(
+            output
+                .split(|b| *b == b'\n')
+                .filter(|v| !v.is_empty())
+                .nth(1)
+                .unwrap(),
+        );
+        assert!(semantic_eq(
+            &temporal_packet,
+            rpc.object_get("result")
+                .unwrap()
+                .object_get("structuredContent")
+                .unwrap()
+        ));
+        actual(&selected, &path, &binding_path, &args, &temporal_packet);
+        let focus_args = vec![
+            "knowledge".into(),
+            "focus".into(),
+            id.to_owned(),
+            "--sources".into(),
+            "source-claims".into(),
+        ];
+        let focus = wires(
+            &executor,
+            profile,
+            &focus_args,
+            &format!("/api/knowledge/focus/{id}?sources=source-claims"),
+            "tos_knowledge_focus",
+            &format!(r#"{{"node_id":"{id}","sources":["source-claims"]}}"#),
+        );
+        assert!(
+            focus
+                .object_get("nodes")
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|n| n.object_get("id") == claim.object_get("id"))
+        );
+        actual(&selected, &path, &binding_path, &focus_args, &focus);
+        let stored_args = ["lens", "open", "prepared-stored"].map(str::to_owned);
+        let stored = wires(
+            &executor,
+            profile,
+            &stored_args,
+            "/api/knowledge/lenses/prepared-stored",
+            "tos_knowledge_lens_open",
+            r#"{"lens_id":"prepared-stored"}"#,
+        );
+        assert!(
+            stored
+                .object_get("nodes")
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|n| n.object_get("id") == claim.object_get("id"))
+        );
+        actual(&selected, &path, &binding_path, &stored_args, &stored);
+        assert_eq!(
+            handle_get(
+                &executor,
+                "GET",
+                "/api/knowledge/lenses/unknown-lens",
+                profile
+            )
+            .status,
+            404
+        );
+        let mut bad = temporal.clone();
+        let JsonValue::Object(fields) = bad.object_get("left").unwrap().clone() else {
+            panic!("operand")
+        };
+        let mut left = JsonValue::Object(fields);
+        let JsonValue::Object(fields) = &mut left else {
+            unreachable!()
+        };
+        fields
+            .iter_mut()
+            .find(|(k, _)| k.as_str() == Some("content_revision"))
+            .unwrap()
+            .1 = JsonValue::String(JsonString::from_utf8(&"f".repeat(64)));
+        let JsonValue::Object(fields) = &mut bad else {
+            unreachable!()
+        };
+        fields
+            .iter_mut()
+            .find(|(k, _)| k.as_str() == Some("left"))
+            .unwrap()
+            .1 = left;
+        assert_eq!(
+            tos_access::http::handle_post(
+                &executor,
+                "/api/knowledge/temporal/compare",
+                &encode(&bad),
+                profile
+            )
+            .status,
+            409
+        );
+        let mut held = executor
+            .knowledge(
+                KnowledgeRequest::Temporal(temporal.clone()),
+                profile.deadline_probe(),
+            )
+            .unwrap();
+        held.fence.recheck().unwrap();
+        let mut next_header = header.clone();
+        let JsonValue::Object(fields) = &mut next_header else {
+            unreachable!()
+        };
+        fields
+            .iter_mut()
+            .find(|(k, _)| k.as_str() == Some("source_revision"))
+            .unwrap()
+            .1 = JsonValue::String(JsonString::from_utf8(&"d".repeat(64)));
+        let next_catalog = json(
+            format!(
+                r#"{{"schema":"tos_knowledge_catalog_v1","source_revision":"{}","lenses":[{}]}}"#,
+                "d".repeat(64),
+                String::from_utf8(encode(&spec)).unwrap()
+            )
+            .as_bytes(),
+        );
+        let next = apply_prepared_delta_until(
+            &path,
+            &binding,
+            &next_header,
+            &next_catalog,
+            &[],
+            publication,
+            std::time::Instant::now() + Duration::from_secs(10),
+        )
+        .unwrap();
+        assert_eq!(
+            held.fence.recheck().unwrap_err().code,
+            tos_access::AccessErrorCode::StaleSelection
+        );
+        drop(held);
+        assert_eq!(
+            handle_get(
+                &executor,
+                "GET",
+                "/api/knowledge/lenses/prepared-stored",
+                profile
+            )
+            .status,
+            409
+        );
+        fs::write(&binding_path, encode(&next)).unwrap();
+        let successor =
+            tos_access::prepared_local::PreparedLocalExecutor::open(path, binding_path, None)
+                .unwrap();
+        let mut successor_request = temporal.clone();
+        let JsonValue::Object(fields) = &mut successor_request else {
+            unreachable!()
+        };
+        fields
+            .iter_mut()
+            .find(|(k, _)| k.as_str() == Some("source_revision"))
+            .unwrap()
+            .1 = JsonValue::String(JsonString::from_utf8(&"d".repeat(64)));
+        let response = tos_access::http::handle_post(
+            &successor,
+            "/api/knowledge/temporal/compare",
+            &encode(&successor_request),
+            profile,
+        );
+        assert_eq!(response.status, 200);
+        assert_eq!(
+            json(&response.body)
+                .object_get("comparison")
+                .unwrap()
+                .object_get("status")
+                .unwrap()
+                .as_str(),
+            Some("comparable")
+        );
+        drop(response);
+        drop(successor);
+        drop(executor);
+        drop(fixture);
+        fs::remove_dir_all(dir).unwrap();
+    }
 }

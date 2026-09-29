@@ -49,6 +49,12 @@ impl SourceDossierSession {
     pub fn need(&self) -> String {
         self.step.into()
     }
+    pub fn reference_size(string: bool, length: usize) -> bool {
+        string && length > 0 && length <= 2048
+    }
+    pub fn reference_value(units: &[u16]) -> bool {
+        reference(units)
+    }
     pub fn reference_length(&self, string: bool, length: usize) -> Result<(), JsValue> {
         if string && length > 0 && length <= 2048 {
             Ok(())

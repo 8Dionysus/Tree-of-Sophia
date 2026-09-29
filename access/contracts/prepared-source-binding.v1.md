@@ -96,6 +96,61 @@ authority or completeness guarantees of this storage-only pairing layer.
 
 ## Offline publication execution
 
+### Native normalization implementation transition
+
+The Rust joined owner exposes
+`prepared_maintenance::transition_prepared_normalization_transaction` for an
+explicitly reviewed compatible implementation change. Its
+`ReviewedNormalizationTransition` names the exact old/new processor digests
+and a nonempty review reference. The executing source owner independently
+verifies the current native artifact identity; an arbitrary request digest or
+the predecessor Python implementation digest is not that identity. Reuse an
+already verified held artifact digest, or account for its complete read before
+entering the transaction.
+
+This route supplies no normalized row changes. Registry bytes, configuration,
+lenses, source-order profile and header meaning remain unchanged; only the
+normalization processor and source revision may move. Catalog contribution
+state, prepared descriptor, search/lens selection and semantic state are paired
+in the caller's transaction, with predecessor checks, CAS and final readback.
+The ordinary delta APIs still reject a changed normalization binding.
+
+The source owner must pair its source-root, reverse-dependency and context
+selections before committing that same transaction. The source-pairing entry point is
+`prepared_source_binding::transition_prepared_source_profiles_transaction`.
+It preserves exact retained root bytes and namespaces, the source-publication
+token and the dependency key set. Its reviewed old/new digest map must name
+exactly the changed dependencies among `normalization`, `declaration-profile`,
+`agent-publication-profile` and `claim-publication-profile`; extra or unchanged
+names refuse. Each normalization dependency must match the corresponding
+header binding digest. The source revision advances, and the final source CAS
+and readback share the publication mutation allowance. Reverse-dependency and
+context pairing remain the calling composition's responsibility.
+
+A returned maintenance
+receipt alone is not permission to commit an unpaired source state. Every error
+requires rollback of the entire caller transaction. Naming a compatibility
+review does not prove unchanged algorithm semantics or admit source material.
+
+This implementation transition does not adopt an old auxiliary projector by
+rewriting its fingerprint. The catalog and semantic indexes must already have
+the current native projector identities, obtained through their actual native
+bootstrap or a separately implemented, reviewed migration. A changed registry,
+normalization rule or source contract requires the corresponding real data
+migration, not this compatibility route.
+
+Before a controlled cutover, retain the predecessor software/data pair and its
+immutable source parts. The new reader selects the returned new binding against
+the same committed database. An old binding against that advanced database must
+refuse; it is not a restore operation. Recovery selects the preserved compatible
+pair through the serving owner's existing restore/clock procedure. These APIs
+neither switch a running consumer nor authorize deletion of the predecessor.
+
+Cost includes bounded metadata parsing and copies, catalog aggregate rendering,
+semantic report/finalization work, search/lens resealing, source-owner finalizers
+and the SQLite rollback journal. The combined mutation allowance covers all
+lanes; “no row changes” does not mean zero work or a measured constant-time bound.
+
 The maintained file owners `publish_prepared`, `publish_prepared_rows`, and
 `apply_prepared_delta` select the installed Rust `tos-access` executor. Explicit
 `native_executable` overrides `TOS_PREPARED_EXECUTOR`, which overrides installed

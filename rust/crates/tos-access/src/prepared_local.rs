@@ -39,6 +39,9 @@ enum LocalRequest {
         relation_limit: usize,
     },
     Lens(JsonValue),
+    Temporal(JsonValue),
+    Focus(tos_query::knowledge_focus::KnowledgeFocusRequest),
+    StoredLens(String),
 }
 fn error(code: AccessErrorCode, message: &'static str) -> AccessError {
     AccessError::new(code, message)
@@ -280,6 +283,18 @@ impl PreparedLocalExecutor {
                 .map_err(AccessError::from)?
         } else if let LocalRequest::Lens(spec) = &request {
             session.lens(&s.binding, spec).map_err(AccessError::from)?
+        } else if let LocalRequest::Temporal(spec) = &request {
+            session
+                .temporal(&s.binding, spec)
+                .map_err(AccessError::from)?
+        } else if let LocalRequest::Focus(focus) = &request {
+            session
+                .focus(&s.binding, focus)
+                .map_err(AccessError::from)?
+        } else if let LocalRequest::StoredLens(identifier) = &request {
+            session
+                .stored_lens(&s.binding, identifier)
+                .map_err(AccessError::from)?
         } else if matches!(request, LocalRequest::Catalog) {
             session.catalog(&s.binding).map_err(query_error)?
         } else {
@@ -396,6 +411,9 @@ impl AccessExecutor for PreparedLocalExecutor {
                 | KnowledgeOperation::Node
                 | KnowledgeOperation::Relation
                 | KnowledgeOperation::Lens
+                | KnowledgeOperation::Temporal
+                | KnowledgeOperation::Focus
+                | KnowledgeOperation::StoredLens
         )
     }
     fn knowledge(
@@ -428,6 +446,11 @@ impl AccessExecutor for PreparedLocalExecutor {
                 probe,
             ),
             KnowledgeRequest::Lens(spec) => self.read(LocalRequest::Lens(spec), probe),
+            KnowledgeRequest::Temporal(spec) => self.read(LocalRequest::Temporal(spec), probe),
+            KnowledgeRequest::Focus(focus) => self.read(LocalRequest::Focus(focus), probe),
+            KnowledgeRequest::StoredLens { lens_id } => {
+                self.read(LocalRequest::StoredLens(lens_id), probe)
+            }
             _ => Err(unavailable()),
         }
     }

@@ -141,8 +141,11 @@ binding = publish_prepared(new_path, graph=normalized_graph,
                            catalog=coherent_catalog)
 ```
 
-The same maintained file-owner calls can explicitly select the native
-`tos-access prepared-publication` implementation:
+The maintained file-owner calls select the native
+`prepared-publication` implementation. Use the installed `PREFIX/bin/tos` or an
+explicit admitted absolute native image and positive whole timeout; alternatively
+supply `TOS_PREPARED_EXECUTOR` and `TOS_PREPARED_MAX_SECONDS`. There is no silent
+Python publication fallback:
 
 ```python
 binding = publish_prepared(new_path, graph=normalized_graph,

@@ -72,7 +72,9 @@ class KnowledgeSceneFocusTests(unittest.TestCase):
         script = ("import fs from 'node:fs';import {knowledgeScene} from " + json.dumps(shared.as_uri())
                   + ";const cases=JSON.parse(fs.readFileSync(0,'utf8'));"
                   + "process.stdout.write(JSON.stringify(cases.map(c=>knowledgeScene(c.graph.nodes,c.graph.relations,c.focus,c.relation))));")
-        completed = subprocess.run(['node', '--experimental-strip-types', '--input-type=module', '-e', script],
+        loader = ACCESS / 'web/src/observatory/human-forms-wasm-test-runtime.mjs'
+        completed = subprocess.run(['node', '--experimental-strip-types', '--import', loader.as_uri(),
+                                    '--input-type=module', '-e', script],
                                    input=json.dumps(cases), text=True, capture_output=True, check=True, timeout=15)
         actual = json.loads(completed.stdout)
         self.assertEqual(len(actual), len(cases))

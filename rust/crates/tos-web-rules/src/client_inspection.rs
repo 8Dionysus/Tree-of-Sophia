@@ -9,6 +9,7 @@ pub struct ClientInspectionSession {
     expected: bool,
     content_expected: bool,
     endpoint_items: bool,
+    items_only: bool,
 }
 #[wasm_bindgen]
 impl ClientInspectionSession {
@@ -21,7 +22,14 @@ impl ClientInspectionSession {
             expected,
             content_expected,
             endpoint_items: false,
+            items_only: false,
         }
+    }
+    pub fn items(node: bool) -> Self {
+        let mut session = Self::new(node, false, false, false);
+        session.step = "matches";
+        session.items_only = true;
+        session
     }
     pub fn need(&self) -> String {
         self.step.into()
@@ -89,6 +97,8 @@ impl ClientInspectionSession {
             "item-next" => {
                 self.step = if value {
                     "item-truthy"
+                } else if self.items_only {
+                    "done"
                 } else if self.endpoint_items {
                     "from-endpoint"
                 } else {
