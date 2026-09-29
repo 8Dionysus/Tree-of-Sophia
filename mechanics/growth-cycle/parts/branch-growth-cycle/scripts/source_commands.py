@@ -16,6 +16,8 @@ import hashlib
 import json
 import os
 import platform
+import signal
+import subprocess
 from pathlib import Path
 import re
 import stat
@@ -1579,6 +1581,72 @@ def run_local_command(owner_config: Path | None, request: dict):
     return result
 
 
+def _run_selected_native_alignment(owner_config: Path, invocation_path: Path, request: dict):
+    """Explicit local opt-in. The selected invocation is evidence, not a grant."""
+    deadline = time.monotonic() + 60
+    if owner_config is None:
+        raise PermissionError('native alignment requires an owner configuration')
+    config, _, _ = _configuration(owner_config)
+    if config['schema_version'] != 'tos_local_native_alignment_owner_v1':
+        raise PermissionError('native invocation is limited to the Alignment owner')
+    if len(_canonical(request)) > MAX_COMMAND_BYTES:
+        raise ValueError('source command exceeds the 1 MiB input budget')
+    command_handler(config['schema_version']).validate_request(request)
+    if request['operation'] not in ('describe', 'prepare-create', 'prepare-revise',
+                                    'alignment.create', 'alignment.revise', 'inspect',
+                                    'inspect-version', 'inspect-recovery'):
+        raise PermissionError('native invocation operation is not implemented')
+    with os.fdopen(_owned_path(invocation_path), 'rb') as selected:
+        info = os.fstat(selected.fileno())
+        if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600:
+            raise PermissionError('native invocation must be private owner bytes')
+    raw = _read(invocation_path, MAX_COMMAND_BYTES)
+    invocation = _json_object(raw)
+    if (invocation.get('schema_version') != 'tos_local_native_owner_invocation_v1'
+            or invocation.get('owner_config') != str(owner_config)
+            or set(invocation) != {'schema_version', 'owner_context', 'owner_config',
+                                   'native_executable', 'native_executable_sha256',
+                                   'corpus_store', 'source_revision', 'software_capture',
+                                   'software_restored_root', 'software_selection',
+                                   'software_components', 'schema_worker', 'budgets'}):
+        raise PermissionError('native invocation does not select this owner')
+    executable = Path(invocation['native_executable'])
+    descriptor = _owned_path(executable)
+    try:
+        info = os.fstat(descriptor)
+        if (not info.st_mode & stat.S_IXUSR or info.st_mode & 0o022
+                or info.st_mode & (stat.S_ISUID | stat.S_ISGID | stat.S_ISVTX)):
+            raise PermissionError('native executable owner/mode')
+        with tempfile.TemporaryFile() as source_input, tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as errors:
+            source_input.write(_canonical(request))
+            source_input.seek(0)
+            child = subprocess.Popen([f'/proc/self/fd/{descriptor}', '--invocation', str(invocation_path)],
+                                     pass_fds=(descriptor,), stdin=source_input,
+                                     stdout=output, stderr=errors, start_new_session=True)
+            try:
+                while child.poll() is None:
+                    if (time.monotonic() >= deadline or output.tell() > MAX_COMMAND_BYTES
+                            or errors.tell() > MAX_COMMAND_BYTES):
+                        os.killpg(child.pid, signal.SIGKILL)
+                        child.wait()
+                        raise ValueError('bounded native alignment command refused')
+                    time.sleep(0.01)
+            finally:
+                if child.poll() is None:
+                    os.killpg(child.pid, signal.SIGKILL)
+                    child.wait()
+            if (time.monotonic() >= deadline or output.tell() > MAX_COMMAND_BYTES
+                    or errors.tell() > MAX_COMMAND_BYTES or child.returncode != 0):
+                raise ValueError('native alignment command refused')
+            output.seek(0)
+            response = _json_object(output.read(MAX_COMMAND_BYTES + 1))
+            if response.get('schema_version') != 'tos_local_native_alignment_result_v1':
+                raise ValueError('native alignment result profile')
+            return response
+    finally:
+        os.close(descriptor)
+
+
 def _run_configured_command(owner_config, config, configuration, source_path, request):
     return command_handler(config['schema_version']).run(owner_config, config, configuration, source_path, request)
 
@@ -1850,10 +1918,13 @@ def main():
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument('--owner-config', type=Path)
     selection.add_argument('--discover', action='store_true', help='Emit handler-owned JSON capability grammar without reading stdin, owner configuration or source targets.')
+    parser.add_argument('--native-invocation', type=Path, help='Explicit protected local native Alignment selection; never used by HTTP or discovery.')
     parser.add_argument('--handler', help='With --discover, select one exact handler_id from the implementation catalogue.')
     args = parser.parse_args()
     if args.handler is not None and not args.discover:
         parser.error('--handler requires --discover')
+    if args.native_invocation is not None and (args.discover or args.owner_config is None):
+        parser.error('--native-invocation requires --owner-config and excludes --discover')
     try:
         if args.discover:
             response = discover_commands({'schema_version': DISCOVERY_REQUEST, 'operation': 'discover',
@@ -1862,7 +1933,9 @@ def main():
             raw = sys.stdin.buffer.read(MAX_COMMAND_BYTES + 1)
             if len(raw) > MAX_COMMAND_BYTES:
                 raise ValueError('source command exceeds the stdin budget')
-            response = run_local_command(args.owner_config, _json_object(raw))
+            request = _json_object(raw)
+            response = (_run_selected_native_alignment(args.owner_config, args.native_invocation, request)
+                        if args.native_invocation is not None else run_local_command(args.owner_config, request))
     except (ValueError, KeyError, TypeError, OSError, ValidationError, RuntimeError) as error:
         print(json.dumps({'schema_version': 'tos_local_source_command_error_v1', 'error': type(error).__name__}))
         return 2

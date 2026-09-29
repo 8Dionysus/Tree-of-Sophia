@@ -115,6 +115,58 @@ fn member_mode_matches(actual: u32, declared: u32, private_metadata_read: bool) 
         && (actual & 0o777 == declared
             || private_metadata_read && actual & 0o777 == 0o600 && declared == 0o644)
 }
+
+/// The owner-local native command uses the existing protected authored walker
+/// to bind an immutable source cut to its currently named public checkout.
+/// Portable/private mode exceptions belong to their specific writer routes;
+/// this public Text selection requires the exact declared mode.
+pub(crate) fn verify_owner_text_current_cut(
+    root: &File,
+    uid: u32,
+    cut: &CorpusCutReader,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    let mut observed = BTreeMap::new();
+    let mut total = 0usize;
+    let mut directories = 0usize;
+    let tos = walk(root, "ToS", uid)?;
+    scan(
+        &tos,
+        "ToS",
+        uid,
+        None,
+        None,
+        None,
+        &mut observed,
+        &mut total,
+        &mut directories,
+        deadline,
+        cancelled,
+    )?;
+    let selected = cut
+        .current()
+        .members()
+        .map(|member| {
+            (
+                member.path.as_str(),
+                (member.sha256, member.size_bytes, member.mode),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    if observed.len() != selected.len()
+        || observed.iter().any(|(path, actual)| {
+            selected
+                .get(path.as_str())
+                .is_none_or(|expected| actual != expected)
+        })
+    {
+        return Err(SourceCommandError::Conflict(
+            "owner-local selected cut differs from current authored checkout",
+        ));
+    }
+    Ok(())
+}
 pub(crate) fn inode(m: &Metadata) -> (u64, u64) {
     (m.dev(), m.ino())
 }

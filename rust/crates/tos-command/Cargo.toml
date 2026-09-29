@@ -35,6 +35,10 @@ tempfile = "3"
 name = "tos_command"
 path = "src/lib.rs"
 
+[[bin]]
+name = "tos-native-owner-command"
+path = "src/bin/tos-native-owner-command.rs"
+
 [[test]]
 name = "postgres_durable_lab"
 required-features = ["postgres-lab"]

@@ -7,9 +7,7 @@ use std::process::{Command, Stdio};
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_command::source_text_alignment_entry::{
-    NativeAlignmentRecovery, describe_owner_alignment_from_cut,
-    execute_owner_alignment_from_captures, inspect_owner_alignment_from_cut,
-    inspect_owner_alignment_recovery_from_cut, prepare_owner_alignment_from_captures,
+    execute_owner_alignment_from_captures, prepare_owner_alignment_from_captures,
 };
 use tos_command::source_text_layer_derived_entry::{
     execute_derived_text_layer_from_captures, prepare_derived_text_layer_from_captures,
@@ -354,6 +352,112 @@ fn alignment_owner_bytes(value: &Value) -> Vec<u8> {
     .unwrap()
 }
 
+fn alignment_image_digest(path: &Path) -> Digest256 {
+    use std::io::Read;
+    let mut image = fs::File::open(path).unwrap();
+    let before = image.metadata().unwrap();
+    assert!(before.is_file() && before.len() > 0);
+    let mut digest = tos_foundation::Digest256Hasher::new();
+    let mut buffer = [0u8; 65_536];
+    let mut total = 0u64;
+    loop {
+        let n = image.read(&mut buffer).unwrap();
+        if n == 0 {
+            break;
+        }
+        total = total.checked_add(n as u64).unwrap();
+        assert!(total <= before.len());
+        digest.update(&buffer[..n]);
+    }
+    let after = image.metadata().unwrap();
+    assert_eq!(
+        (
+            total,
+            before.dev(),
+            before.ino(),
+            before.len(),
+            before.mtime(),
+            before.mtime_nsec(),
+            before.ctime(),
+            before.ctime_nsec()
+        ),
+        (
+            after.len(),
+            after.dev(),
+            after.ino(),
+            after.len(),
+            after.mtime(),
+            after.mtime_nsec(),
+            after.ctime(),
+            after.ctime_nsec()
+        )
+    );
+    digest.finalize()
+}
+
+fn alignment_native_cli(
+    repository: &Path,
+    owner: &Path,
+    invocation: &Path,
+    request: &Value,
+    deadline: Instant,
+) -> Value {
+    use std::io::{Read, Seek, SeekFrom, Write};
+    let mut input = tempfile::tempfile().unwrap();
+    input.write_all(&alignment_owner_bytes(request)).unwrap();
+    input.seek(SeekFrom::Start(0)).unwrap();
+    let mut output = tempfile::tempfile().unwrap();
+    let mut errors = tempfile::tempfile().unwrap();
+    let mut child =
+        Command::new("/usr/bin/python3")
+            .arg(repository.join(
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+            ))
+            .arg("--owner-config")
+            .arg(owner)
+            .arg("--native-invocation")
+            .arg(invocation)
+            .env_remove("PYTHONPATH")
+            .env_remove("PYTHONHOME")
+            .env("PYTHONDONTWRITEBYTECODE", "1")
+            .stdin(Stdio::from(input))
+            .stdout(Stdio::from(output.try_clone().unwrap()))
+            .stderr(Stdio::from(errors.try_clone().unwrap()))
+            .spawn()
+            .unwrap();
+    let step_deadline = deadline.min(Instant::now() + Duration::from_secs(60));
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break status;
+        }
+        if Instant::now() >= step_deadline
+            || output.metadata().unwrap().len() > 1_048_576
+            || errors.metadata().unwrap().len() > 1_048_576
+        {
+            child.kill().unwrap();
+            child.wait().unwrap();
+            panic!("bounded native Alignment CLI refused");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    assert!(Instant::now() < step_deadline);
+    assert!(output.metadata().unwrap().len() <= 1_048_576);
+    assert!(errors.metadata().unwrap().len() <= 1_048_576);
+    output.seek(SeekFrom::Start(0)).unwrap();
+    errors.seek(SeekFrom::Start(0)).unwrap();
+    let mut output_bytes = Vec::new();
+    let mut error_bytes = Vec::new();
+    output.read_to_end(&mut output_bytes).unwrap();
+    errors.read_to_end(&mut error_bytes).unwrap();
+    assert!(
+        status.success(),
+        "native CLI output={} stderr={}",
+        String::from_utf8_lossy(&output_bytes),
+        String::from_utf8_lossy(&error_bytes)
+    );
+    serde_json::from_slice(&output_bytes).unwrap()
+}
+
 #[test]
 fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
     let repository = super::validation_cut_cases::repository()
@@ -390,49 +494,55 @@ fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
                 .is_none()
         );
     }
-    let (_capture, software, components) =
+    let (capture, software, components) =
         super::command_record_cases::captured_components(&captured, deadline, &cancelled);
     let store = temporary.path().join("alignment-cut");
     let selected = super::validation_cut_cases::write_cut_store(&authored, &store);
     let cut = super::command_form_cases::open_cut(&store, selected, deadline, &cancelled);
 
-    let mut worker = text_worker(&cut, deadline, &cancelled);
-    let preview = prepare_owner_alignment_from_captures(
-        &context,
-        &owner,
-        &source_value(&proposal),
-        &cut,
-        &software,
-        &components,
-        &mut worker,
-        deadline,
-        &cancelled,
-    )
-    .unwrap();
-    drop(worker);
-    assert_eq!(preview.source_path, original_path);
+    let native = PathBuf::from(env!("CARGO_BIN_EXE_tos-native-owner-command"));
+    let worker_image = super::validation_cut_cases::selected_worker_path();
+    let invocation_path = temporary.path().join("native-alignment-invocation.json");
+    fs::write(&invocation_path, serde_json::to_vec(&serde_json::json!({
+        "schema_version":"tos_local_native_owner_invocation_v1",
+        "owner_context":context,"owner_config":owner,
+        "native_executable":native,
+        "native_executable_sha256":alignment_image_digest(&native).to_prefixed(),
+        "corpus_store":store,"source_revision":selected.0.to_prefixed(),
+        "software_capture":capture.capture,"software_restored_root":capture.restored,
+        "software_selection":{
+            "source_git_commit":capture.selection.source_git_commit,
+            "source_git_tree":capture.selection.source_git_tree,
+            "capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed(),
+        },
+        "software_components":components.members().map(|member| member.path.as_str()).collect::<Vec<_>>(),
+        "schema_worker":{
+            "absolute_path":worker_image,
+            "sha256":alignment_image_digest(&worker_image).to_prefixed(),
+        },
+        "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,
+            "max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,
+            "worker_cpu_seconds":3,"worker_address_space_bytes":1073741824},
+    })).unwrap()).unwrap();
+    fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+
+    let preview = alignment_native_cli(&repository, &owner, &invocation_path, &proposal, deadline);
+    assert_eq!(preview["target_exists"], false);
+    assert_eq!(
+        preview["schema_version"],
+        "tos_local_native_alignment_result_v1"
+    );
     let mut request = proposal.clone();
     request["operation"] = config["allowed_operations"][0].clone();
     request["command_id"] = Value::String("synthetic-native-alignment-first".into());
-    request["expected_configuration"] = Value::String(preview.owner_configuration);
-    request["expected_dependencies"] = Value::String(preview.expected_dependencies);
+    request["expected_configuration"] = preview["owner_configuration"].clone();
+    request["expected_dependencies"] = preview["expected_dependencies"].clone();
     request["expected_source"] = Value::Null;
     request["expected_revision"] = Value::Null;
-    let mut worker = text_worker(&cut, deadline, &cancelled);
-    let first = execute_owner_alignment_from_captures(
-        &context,
-        &owner,
-        &source_value(&request),
-        &cut,
-        &software,
-        &components,
-        &mut worker,
-        deadline,
-        &cancelled,
-    )
-    .unwrap();
-    drop(worker);
-    assert!(!first.replayed && !first.grants_admission && !first.aligner_executed);
+    let first = alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
+    assert_eq!(first["replayed"], false);
+    assert_eq!(first["grants_admission"], false);
+    assert_eq!(first["aligner_executed"], false);
     let first_home = private.join(&original_path).parent().unwrap().to_path_buf();
     let first_raw = fs::read(first_home.join("native-translation-alignment.v1.json")).unwrap();
     let first_body: Value = serde_json::from_slice(&first_raw).unwrap();
@@ -446,22 +556,16 @@ fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
             (entry.file_name(), fs::read(entry.path()).unwrap())
         })
         .collect();
-    let mut worker = text_worker(&cut, deadline, &cancelled);
-    let replay = execute_owner_alignment_from_captures(
-        &context,
-        &owner,
-        &source_value(&request),
-        &cut,
-        &software,
-        &components,
-        &mut worker,
-        deadline,
-        &cancelled,
+    let replay = alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
+    assert_eq!(replay["replayed"], true);
+    assert_eq!(replay["receipt_sha256"], first["receipt_sha256"]);
+    let first_receipt = parse_json(
+        &fs::read(first_home.join("source-create-receipt.json")).unwrap(),
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
     )
-    .unwrap();
-    drop(worker);
-    assert!(replay.replayed);
-    assert_eq!(replay.receipt, first.receipt);
+    .unwrap()
+    .into_root();
     assert_eq!(
         saved,
         fs::read_dir(&first_home)
@@ -478,34 +582,25 @@ fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
         "record_version": 1,
         "sha256": Digest256::of_bytes(&first_raw).to_hex(),
     });
-    let mut worker = text_worker(&cut, deadline, &cancelled);
-    let inspection = inspect_owner_alignment_from_cut(
-        &context,
+    let inspection = alignment_native_cli(
+        &repository,
         &owner,
-        None,
-        &cut,
-        &mut worker,
+        &invocation_path,
+        &serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"inspect"}),
         deadline,
-        &cancelled,
-    )
-    .unwrap();
-    drop(worker);
-    assert!(inspection.metadata_verified && !inspection.content_verified);
-    assert_eq!(inspection.record_version, 1);
-    let mut worker = text_worker(&cut, deadline, &cancelled);
-    let recovery = inspect_owner_alignment_recovery_from_cut(
-        &context,
+    );
+    assert_eq!(inspection["metadata_verified"], true);
+    assert_eq!(inspection["content_verified"], false);
+    assert_eq!(inspection["record_version"], 1);
+    let recovery = alignment_native_cli(
+        &repository,
         &owner,
-        fixture["source_ref"].as_str().unwrap(),
-        "synthetic-native-alignment-first",
-        &cut,
-        &mut worker,
+        &invocation_path,
+        &serde_json::json!({"schema_version":"tos_local_source_command_v1",
+            "operation":"inspect-recovery","command_id":"synthetic-native-alignment-first"}),
         deadline,
-        &cancelled,
-    )
-    .unwrap();
-    drop(worker);
-    assert!(matches!(recovery, NativeAlignmentRecovery::Committed));
+    );
+    assert_eq!(recovery["recovery_state"], "committed");
 
     // The second package is a description of the same Alignment and a new
     // Claim version. The first seven private files remain byte-for-byte.
@@ -569,32 +664,26 @@ fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
         fs::read(first_home.join("native-translation-alignment.v1.json")).unwrap(),
         first_raw
     );
-    let mut worker = text_worker(&cut, deadline, &cancelled);
-    let historical = inspect_owner_alignment_from_cut(
-        &context,
+    let historical = alignment_native_cli(
+        &repository,
         &owner,
-        Some(&source_value(&first_ref)),
-        &cut,
-        &mut worker,
+        &invocation_path,
+        &serde_json::json!({"schema_version":"tos_local_source_command_v1",
+            "operation":"inspect-version","source":first_ref.clone()}),
         deadline,
-        &cancelled,
-    )
-    .unwrap();
-    drop(worker);
-    assert_eq!(historical.record_version, 1);
-    assert_eq!(historical.history_depth, 2);
-    let mut worker = text_worker(&cut, deadline, &cancelled);
-    let described = describe_owner_alignment_from_cut(
-        &context,
+    );
+    assert_eq!(historical["record_version"], 1);
+    assert_eq!(historical["history_depth"], 2);
+    let described = alignment_native_cli(
+        &repository,
         &owner,
-        &cut,
-        &mut worker,
+        &invocation_path,
+        &serde_json::json!({"schema_version":"tos_local_source_command_v1",
+            "operation":"describe"}),
         deadline,
-        &cancelled,
-    )
-    .unwrap();
-    drop(worker);
-    assert!(described.target_exists && !described.grants_admission);
+    );
+    assert_eq!(described["target_exists"], true);
+    assert_eq!(described["grants_admission"], false);
 
     // Remapping advances the Alignment but starts a different Claim.
     let second_ref = serde_json::json!({
@@ -754,7 +843,7 @@ fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
     .unwrap();
     drop(worker);
     assert!(original_again.replayed);
-    assert_eq!(original_again.receipt, first.receipt);
+    assert_eq!(original_again.receipt, first_receipt);
 }
 
 #[test]

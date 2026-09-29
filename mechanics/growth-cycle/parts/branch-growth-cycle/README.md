@@ -1071,6 +1071,17 @@ supplied mappings between two exact native source closures. It owns immutable
 descriptive and Claim succession without rekeying the Alignment subject,
 leaves legacy translation packet-v1 unchanged, and cannot assess translation.
 
+For an explicitly selected local native Alignment invocation, the same CLI
+accepts `--owner-config /absolute/owner.json --native-invocation /absolute/private/invocation.json`.
+The mode-0600 invocation names the exact corpus revision/store, software
+capture/restored components, schema worker image and native executable digest
+under finite budgets. It is selected separately from the request and from the
+owner's grant; Rust repeats current source, rights and publication checks.
+This opt-in covers the exact delegated `describe`, prepare, create/revise,
+inspect, inspect-version and inspect-recovery operations. The default CLI
+remains on the maintained Python route. Neither route admits a proposal or
+exposes confidential bytes through HTTP.
+
 ### Confidential owner-local source profiles
 
 `source_commands.py` selects `source_owner_profile_commands.py` only for the

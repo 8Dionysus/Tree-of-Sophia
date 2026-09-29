@@ -4,6 +4,7 @@
 //! never executes an aligner or grants textual, review or publication truth.
 
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
+use crate::source_creation_store::verify_owner_text_current_cut;
 use crate::source_creation_store::{active, finish_creation_worker};
 use crate::source_serialization::{
     capture_owner_alignment, executable, instant, selected_components,
@@ -54,6 +55,7 @@ pub struct NativeAlignmentPreview {
     pub owner_configuration: String,
     pub expected_dependencies: String,
     pub source_path: String,
+    pub target_exists: bool,
 }
 
 pub struct NativeAlignmentResult {
@@ -1286,6 +1288,7 @@ impl PreparedAlignment {
 
     fn verify_current(
         &self,
+        cut: &CorpusCutReader,
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
         exclude: Option<&Path>,
@@ -1389,6 +1392,13 @@ impl PreparedAlignment {
         }
         self.context
             .verify_publication(&self.publication, deadline, cancelled)?;
+        verify_owner_text_current_cut(
+            &self.context.public_root_handle()?,
+            self.context.account_uid(),
+            cut,
+            deadline,
+            cancelled,
+        )?;
         Ok(())
     }
 }
@@ -1454,11 +1464,35 @@ pub fn prepare_owner_alignment_from_captures(
         cancelled,
     )?;
     finish_creation_worker(worker, deadline, cancelled)?;
-    prepared.verify_current(software, components, None, deadline, cancelled)?;
+    prepared.verify_current(cut, software, components, None, deadline, cancelled)?;
+    let target = prepared
+        .context
+        .private_new_package_target(cmd::text(&prepared.grant.config, "source_path")?)?;
+    let target_exists = match target.symlink_metadata() {
+        Ok(metadata)
+            if metadata.is_dir()
+                && metadata.uid() == prepared.context.account_uid()
+                && metadata.mode() & 0o7777 == 0o700 =>
+        {
+            true
+        }
+        Ok(_) => {
+            return Err(SourceCommandError::Denied(
+                "native alignment preview target unsafe",
+            ));
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+        Err(_) => {
+            return Err(SourceCommandError::Denied(
+                "native alignment preview target",
+            ));
+        }
+    };
     Ok(NativeAlignmentPreview {
         owner_configuration: prepared.owner_configuration,
         expected_dependencies: prepared.dependencies,
         source_path: cmd::text(&prepared.grant.config, "source_path")?.to_owned(),
+        target_exists,
     })
 }
 
@@ -1854,7 +1888,14 @@ pub fn execute_owner_alignment_from_captures(
                     "native alignment replay package changed",
                 ));
             }
-            prepared.verify_current(software, components, Some(&target), deadline, cancelled)?;
+            prepared.verify_current(
+                cut,
+                software,
+                components,
+                Some(&target),
+                deadline,
+                cancelled,
+            )?;
             return Ok(NativeAlignmentResult {
                 receipt,
                 replayed: true,
@@ -1865,14 +1906,14 @@ pub fn execute_owner_alignment_from_captures(
         PrivateTextCustody::Pending(files) => {
             let receipt = verify_retained(&prepared, request, &files, worker, deadline, cancelled)?;
             finish_creation_worker(worker, deadline, cancelled)?;
-            prepared.verify_current(software, components, None, deadline, cancelled)?;
+            prepared.verify_current(cut, software, components, None, deadline, cancelled)?;
             publish_private_text(
                 &prepared.context,
                 &source_path,
                 request,
                 &files,
                 || prepared.verify_stage_current(deadline, cancelled),
-                || prepared.verify_current(software, components, None, deadline, cancelled),
+                || prepared.verify_current(cut, software, components, None, deadline, cancelled),
                 None,
                 deadline,
                 cancelled,
@@ -1965,14 +2006,14 @@ pub fn execute_owner_alignment_from_captures(
         ));
     }
     finish_creation_worker(worker, deadline, cancelled)?;
-    prepared.verify_current(software, components, None, deadline, cancelled)?;
+    prepared.verify_current(cut, software, components, None, deadline, cancelled)?;
     publish_private_text(
         &prepared.context,
         &source_path,
         request,
         &prepared.files,
         || prepared.verify_stage_current(deadline, cancelled),
-        || prepared.verify_current(software, components, None, deadline, cancelled),
+        || prepared.verify_current(cut, software, components, None, deadline, cancelled),
         None,
         deadline,
         cancelled,
@@ -2009,6 +2050,53 @@ fn selected_owner(
         OwnerTextContext::select(context_path, &selected.raw, worker, deadline, cancelled)?;
     let grant = OwnerTextAlignmentSelection::select(&context, grant_path, deadline, cancelled)?;
     Ok((context, grant))
+}
+
+pub(crate) struct NativeAlignmentCliProfile {
+    pub(crate) owner_configuration: String,
+    pub(crate) delegated_operation: &'static str,
+    pub(crate) source_path: String,
+    pub(crate) target_exists: bool,
+}
+
+/// Descriptive selected owner facts for the opt-in local CLI response. The
+/// actual read operation selects and verifies its owner again before output.
+pub(crate) fn selected_owner_cli_profile(
+    context_path: &Path,
+    grant_path: &Path,
+    cut: &CorpusCutReader,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<NativeAlignmentCliProfile> {
+    let (context, grant) =
+        selected_owner(context_path, grant_path, cut, worker, deadline, cancelled)?;
+    let contracts = selected_contracts(&context, worker, deadline, cancelled)?;
+    let owner_configuration = configuration(&context, &grant, &contracts, deadline, cancelled)?;
+    let source_path = cmd::text(&grant.config, "source_path")?.to_owned();
+    let target = context.private_new_package_target(&source_path)?;
+    let target_exists = match target.symlink_metadata() {
+        Ok(metadata)
+            if metadata.is_dir()
+                && metadata.uid() == context.account_uid()
+                && metadata.mode() & 0o7777 == 0o700 =>
+        {
+            true
+        }
+        Ok(_) => {
+            return Err(SourceCommandError::Denied(
+                "native alignment CLI target unsafe",
+            ));
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+        Err(_) => return Err(SourceCommandError::Denied("native alignment CLI target")),
+    };
+    Ok(NativeAlignmentCliProfile {
+        owner_configuration,
+        delegated_operation: grant.operation,
+        source_path,
+        target_exists,
+    })
 }
 
 /// Discovery of this one protected delegation never reads a representation.
