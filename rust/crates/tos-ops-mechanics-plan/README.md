@@ -258,3 +258,21 @@ legacy last-wins profile. Existing reader limits apply: 8 MiB per text file,
 64 MiB raw and 64 MiB normalized caches, 10,000 entries, 100,000 operations and
 30-second snapshot wall. Diagnostics cap at 4,096 issues and 1 MiB rendered text.
 The Python lane and imported APIs remain active pending actual consumer acceptance.
+
+`--philosophy-topology` selects only the native candidate for the maintained
+philosophy topology validator. The existing Python executable and registered
+lane remain unchanged. This candidate checks manifest/packet/branch boundaries,
+planting schema and exact atlas/backlog/Work/Collection membership, branch
+planting references/counts and metadata labels in all ToS descendant paths.
+It uses the existing retained route reader and its shared limits, including
+30-second operation deadline and 10,000 visited entries across the three
+overlapping enumerations. It may refuse a larger namespace; this is no full
+corpus or scaling claim. Cached source bytes are reused, but atlas JSONL rows
+are evaluated for each planting as in the maintained function.
+
+The schema format profile follows the existing LegacyPythonObserved optional
+format behavior: date-time, uri and uri-reference do not assert; other enabled
+formats retain their backend checks. Finite rule diagnostic parity does not
+claim arbitrary malformed JSON/schema exception wording equality. Root source
+review and actual four-state consumer evidence remain separate from source
+wiring or formatter success.

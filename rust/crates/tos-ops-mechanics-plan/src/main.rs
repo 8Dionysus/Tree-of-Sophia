@@ -22,6 +22,7 @@ enum Action {
     MechanicsTopologyValidate,
     ActiveNamingValidate,
     SourceHome,
+    PhilosophyTopology,
     SemanticRegistryTransition,
 }
 
@@ -53,6 +54,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     let mut mechanics_topology_validate = false;
     let mut active_naming_validate = false;
     let mut source_home = false;
+    let mut philosophy_topology = false;
     let mut semantic_registry_transition = false;
     let mut semantic = SemanticOptions::default();
     let mut check = false;
@@ -71,6 +73,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
             "--mechanics-topology-validate" => mechanics_topology_validate = true,
             "--active-naming-validate" => active_naming_validate = true,
             "--source-home" => source_home = true,
+            "--philosophy-topology" => philosophy_topology = true,
             "--semantic-registry-transition" => semantic_registry_transition = true,
             "--baseline-commit" => {
                 let baseline = args.next().ok_or("missing baseline commit")?;
@@ -118,6 +121,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
         + usize::from(mechanics_topology_validate)
         + usize::from(active_naming_validate)
         + usize::from(source_home)
+        + usize::from(philosophy_topology)
         + usize::from(semantic_registry_transition)
         > 1
         || (check && !threshold_build)
@@ -150,6 +154,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
         Action::ActiveNamingValidate
     } else if semantic_registry_transition {
         Action::SemanticRegistryTransition
+    } else if philosophy_topology {
+        Action::PhilosophyTopology
     } else if source_home {
         Action::SourceHome
     } else if mechanics_topology_validate {
@@ -300,6 +306,9 @@ fn main() {
                     1
                 }
             })
+        }
+        Action::PhilosophyTopology => {
+            tos_ops_mechanics_plan::philosophy_topology::run(&root, &CANCEL)
         }
         Action::MechanicsTopologyValidate => {
             tos_ops_mechanics_plan::mechanics_topology::validate(&root).map(|issues| {
