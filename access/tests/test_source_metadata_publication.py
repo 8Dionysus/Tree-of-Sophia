@@ -54,11 +54,11 @@ class SourceMetadataPublicationTests(unittest.TestCase):
         request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create',
             'record': self.record, 'forms': [{'field_id': 'metadata.preferred-name',
                 'form_id': self.config['allowed_form_ids'][0]}]}
-        preview = commands.run_local_command(self.owner, request)
+        preview = commands.run_legacy_oracle_command(self.owner, request)
         request.update(operation='source.create', command_id='synthetic-metadata-addition',
             expected_configuration=preview['owner_configuration'], expected_dependencies=preview['expected_dependencies'],
             expected_revision=None, expected_source=None)
-        created = commands.run_local_command(self.owner, request)
+        created = commands.run_legacy_oracle_command(self.owner, request)
         receipt = (self.root / self.relative).with_name('source-create-receipt.json')
         self.expected = {'expected_receipt_sha256': hashlib.sha256(receipt.read_bytes()).hexdigest(),
                          'expected_request_digest': created['receipt']['request_digest']}

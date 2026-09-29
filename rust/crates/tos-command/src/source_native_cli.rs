@@ -1,4 +1,4 @@
-//! Explicit local invocation of the native Alignment owner route. The selected
+//! Explicit local invocation of fixed native source owner families. The selected
 //! cut, software capture and worker image are byte evidence, never a grant.
 
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
@@ -25,6 +25,16 @@ use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSc
 
 #[path = "source_native_claim_cli.rs"]
 mod claim;
+#[path = "source_native_collection_cli.rs"]
+mod collection;
+#[path = "source_native_creation_cli.rs"]
+mod creation;
+#[path = "source_native_forms_cli.rs"]
+mod forms;
+#[path = "source_native_public_text_cli.rs"]
+mod public_text;
+#[path = "source_native_text_cli.rs"]
+mod text_owner;
 
 const MAX_INVOCATION: usize = 1_048_576;
 const MAX_REQUEST: usize = 1_048_576;
@@ -107,6 +117,10 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
         text(&invocation, "schema_version")? == "tos_local_native_claim_invocation_v1";
     let item_invocation =
         text(&invocation, "schema_version")? == "tos_local_native_item_invocation_v1";
+    let collection_invocation =
+        text(&invocation, "schema_version")? == "tos_local_native_collection_invocation_v1";
+    let source_invocation =
+        text(&invocation, "schema_version")? == "tos_local_native_source_invocation_v1";
     let mut keys = vec![
         "schema_version",
         "owner_config",
@@ -121,14 +135,21 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
         "schema_worker",
         "budgets",
     ];
-    keys.push(if item_invocation || claim_invocation {
-        "original_source_revision"
-    } else {
-        "owner_context"
-    });
+    keys.push(
+        if item_invocation || claim_invocation || collection_invocation {
+            "original_source_revision"
+        } else {
+            "owner_context"
+        },
+    );
+    if source_invocation {
+        keys.extend(["original_source_revision", "assessment_schema_worker"]);
+    }
     exact(&invocation, &keys)?;
     if !item_invocation
         && !claim_invocation
+        && !source_invocation
+        && !collection_invocation
         && text(&invocation, "schema_version")? != "tos_local_native_owner_invocation_v1"
     {
         return Err(SourceCommandError::Invalid("native invocation profile"));
@@ -142,7 +163,15 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     let request_raw = bounded_read(input, MAX_REQUEST)?;
     let request = cmd::parse(&request_raw)?;
     let operation = cmd::text(&request, "operation")?;
-    let implemented = if claim_invocation {
+    let implemented = if collection_invocation {
+        matches!(
+            operation,
+            "describe" | "prepare-attach" | "collection.work.attach" | "collection.work.recover"
+        )
+    } else if source_invocation {
+        // The fixed typed family validates its own exact operation grammar.
+        true
+    } else if claim_invocation {
         matches!(
             operation,
             "describe"
@@ -262,6 +291,94 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     let components = software
         .select_components(&component_paths)
         .map_err(|_| SourceCommandError::Conflict("selected software components"))?;
+    if collection_invocation {
+        return collection::run(
+            &invocation,
+            &request_raw,
+            &store,
+            &cut,
+            &software,
+            &components,
+            deadline,
+            &cancelled,
+        );
+    }
+    if source_invocation {
+        let owner_path = absolute(text(&invocation, "owner_config")?)?;
+        let hint_raw = read_absolute(&owner_path, uid, true, MAX_REQUEST, deadline, &cancelled)?;
+        let hint = cmd::parse(&hint_raw)?;
+        // This protected hint routes code only. Each family independently
+        // reselects its full grant/current owner boundary before any use.
+        match cmd::text(&hint, "schema_version")? {
+            "tos_local_text_unit_create_owner_v1"
+            | "tos_local_text_unit_create_owner_v2"
+            | "tos_local_text_layer_create_owner_v1"
+            | "tos_local_text_layer_derive_owner_v1"
+            | "tos_local_text_layer_record_owner_ocr_v1"
+            | "tos_local_text_layer_record_owner_page_ocr_v1" => {
+                return text_owner::run(
+                    &invocation,
+                    &request_raw,
+                    &store,
+                    &cut,
+                    &software,
+                    &components,
+                    deadline,
+                    &cancelled,
+                );
+            }
+            "tos_local_historical_create_owner_v1"
+            | "tos_local_historical_create_owner_v2"
+            | "tos_local_profile_create_owner_v1"
+            | "tos_local_corpus_create_owner_v1"
+            | "tos_local_corpus_create_owner_v2"
+            | "tos_local_artifact_create_owner_v1"
+            | "tos_local_sign_promote_owner_v1" => {
+                return creation::run(
+                    &invocation,
+                    &request_raw,
+                    &store,
+                    &cut,
+                    &software,
+                    &components,
+                    deadline,
+                    &cancelled,
+                );
+            }
+            "tos_local_source_command_owner_v1"
+            | "tos_local_canonical_form_owner_v1"
+            | "tos_local_claim_form_owner_v1"
+            | "tos_local_claim_form_owner_v2" => {
+                return forms::run(
+                    &invocation,
+                    &request_raw,
+                    &store,
+                    &cut,
+                    &software,
+                    &components,
+                    deadline,
+                    &cancelled,
+                );
+            }
+            "tos_public_native_text_create_owner_v1" => {
+                return public_text::run(
+                    &invocation,
+                    &request_raw,
+                    &store,
+                    &cut,
+                    &software,
+                    &components,
+                    deadline,
+                    &cancelled,
+                );
+            }
+            _ => {
+                return Err(SourceCommandError::Unsupported(
+                    "native owner family awaits whole replacement; explicit legacy oracle retained",
+                ));
+            }
+        }
+    }
     if claim_invocation {
         return claim::run(
             &invocation,
@@ -671,8 +788,38 @@ fn selected_schema(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<CutWorkerSchemaExecutor> {
+    selected_schema_with_profile(
+        invocation,
+        cut,
+        "schema_worker",
+        FormatProfile::LegacyPythonObserved20260923,
+        deadline,
+        cancelled,
+    )
+}
+
+fn selected_schema_with_profile(
+    invocation: &Value,
+    cut: &tos_source_store::CorpusCutReader,
+    worker_field: &str,
+    profile: FormatProfile,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<CutWorkerSchemaExecutor> {
+    // Fixed family dispatch chooses these fields and profiles; request bytes
+    // never select a worker format or turn one family grant into another.
+    if !matches!(
+        (worker_field, profile),
+        ("schema_worker", FormatProfile::LegacyPythonObserved20260923)
+            | (
+                "assessment_schema_worker",
+                FormatProfile::AssertedSourceCandidateV1
+            )
+    ) {
+        return Err(SourceCommandError::Denied("native family worker profile"));
+    }
     let budgets = &invocation["budgets"];
-    let worker = &invocation["schema_worker"];
+    let worker = &invocation[worker_field];
     exact(worker, &["absolute_path", "sha256"])?;
     let mut worker_budget = ExecutorBudget::laboratory();
     worker_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
@@ -681,7 +828,7 @@ fn selected_schema(
         capped(budgets, "worker_address_space_bytes", 1_073_741_824)?;
     CutWorkerSchemaExecutor::from_cut(
         cut,
-        FormatProfile::LegacyPythonObserved20260923,
+        profile,
         ExactWorkerIdentity {
             absolute_path: absolute(text(worker, "absolute_path")?)?,
             sha256: digest(text(worker, "sha256")?)?,

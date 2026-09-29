@@ -516,7 +516,7 @@ class RecordProjectorTests(unittest.TestCase):
         before = assemble()
         request = fixture.request(command_id='test:projector-native-revision')
         request['fields']['preferred_label'] = 'Новое имя только синтетической записи'
-        source.run_local_command(fixture.owner, request)
+        source.run_legacy_oracle_command(fixture.owner, request)
         after = assemble()
         self.assertEqual(len(before.nodes), 2)
         self.assertEqual(len(after.nodes), 3)

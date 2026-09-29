@@ -127,7 +127,7 @@ class NativeAlignmentCommandTests(unittest.TestCase):
         self.owner.chmod(0o600)
 
     def run_command(self, request):
-        return source.run_local_command(self.owner, request)
+        return source.run_legacy_oracle_command(self.owner, request)
 
     def prepare(self):
         prepared = self.run_command(self.proposal)

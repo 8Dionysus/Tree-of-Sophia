@@ -143,7 +143,7 @@ class PrivateClaimCommandTests(unittest.TestCase):
         self.owner.chmod(0o600)
 
     def run_command(self, request):
-        return source.run_local_command(self.owner, {'schema_version': 'tos_local_source_command_v1', **request})
+        return source.run_legacy_oracle_command(self.owner, {'schema_version': 'tos_local_source_command_v1', **request})
 
     def add_sibling(self):
         sibling = copy.deepcopy(self.claim)
@@ -440,7 +440,7 @@ def lose_process(staging, target):
         exchange(staging, target)
     os._exit(73)
 source_revisions._exchange = lose_process
-source_commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
+source_commands.run_legacy_oracle_command(Path(sys.argv[2]), json.load(sys.stdin))
 '''
         request = json.dumps({'schema_version': 'tos_local_source_command_v1', **self.revision})
         for stage, version in (('before', 1), ('after', 2)):

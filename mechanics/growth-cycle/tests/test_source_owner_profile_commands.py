@@ -71,7 +71,7 @@ class OwnerLocalProfileCommandTests(unittest.TestCase):
         self.owner.chmod(0o600)
 
     def run_command(self, request):
-        return source.run_local_command(self.owner, {'schema_version': 'tos_local_source_command_v1', **request})
+        return source.run_legacy_oracle_command(self.owner, {'schema_version': 'tos_local_source_command_v1', **request})
 
     def prepare_create(self):
         prepared = self.run_command({'operation': 'prepare-create', 'record': self.record, 'forms': self.forms})
@@ -513,7 +513,7 @@ from pathlib import Path
 sys.path.insert(0, sys.argv[1])
 import source_commands as source
 source._publish_new_directory = lambda *args: os._exit(79)
-source.run_local_command(Path(sys.argv[2]), json.loads(Path(sys.argv[3]).read_bytes()))
+source.run_legacy_oracle_command(Path(sys.argv[2]), json.loads(Path(sys.argv[3]).read_bytes()))
 """
         run = subprocess.run([sys.executable, '-c', code,
             str(ROOT / 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'), str(self.owner), str(request_path)],
@@ -736,13 +736,13 @@ source.run_local_command(Path(sys.argv[2]), json.loads(Path(sys.argv[3]).read_by
         proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create',
             'record': neighbor, 'forms': [{'form_id': neighbor_config['allowed_form_ids'][0],
                                          'field_id': 'metadata.preferred-name'}]}
-        prepared = source.run_local_command(neighbor_owner, proposal)
+        prepared = source.run_legacy_oracle_command(neighbor_owner, proposal)
         neighbor_request = {**proposal, 'operation': 'source.create', 'command_id': 'synthetic-neighbor-create',
             'expected_configuration': prepared['owner_configuration'],
             'expected_dependencies': prepared['expected_dependencies'],
             'expected_source': None, 'expected_revision': None}
-        neighbor_created = source.run_local_command(neighbor_owner, neighbor_request)
-        self.assertTrue(source.run_local_command(neighbor_owner, neighbor_request)['replayed'])
+        neighbor_created = source.run_legacy_oracle_command(neighbor_owner, neighbor_request)
+        self.assertTrue(source.run_legacy_oracle_command(neighbor_owner, neighbor_request)['replayed'])
         neighbor_path = self.store / neighbor_config['source_path']
         neighbor_files = {path.name: path.read_bytes() for path in neighbor_path.parent.iterdir()}
 

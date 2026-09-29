@@ -1431,6 +1431,57 @@ impl<'a> SignPromotionRead<'a> {
         )
     }
 
+    /// Diagnostic read preserves the same selected subject and current journal
+    /// fences, while an ineligible result grants no promotion or issuance.
+    pub(crate) fn describe_promotion(
+        &mut self,
+        base: &CommandContext,
+        local_worker: &mut CutWorkerSchemaExecutor,
+        assessment_worker: &mut CutWorkerSchemaExecutor,
+        limits: AssessmentLimits,
+        cancelled: &AtomicBool,
+    ) -> Result<JsonValue> {
+        require_assessment_profile(assessment_worker)?;
+        let subject = cmd::text(&self.configuration, "promotion_candidate_id")?.to_owned();
+        self.configuration_current(limits.deadline, cancelled)?;
+        self.prepare_sources(base, local_worker, limits, cancelled)?;
+        let assembly = self
+            .prepared_sources
+            .take()
+            .ok_or(Error::Invalid("Sign source preparation absent"))?;
+        let fence =
+            self.owner
+                .lock_subjects(std::slice::from_ref(&subject), limits.deadline, cancelled)?;
+        let history = fence.read(
+            &subject,
+            &self.reader.context(base),
+            assessment_worker,
+            limits.deadline,
+            cancelled,
+        )?;
+        let view = current_promotion(
+            &mut self.reader,
+            &self.owner,
+            &fence,
+            &self.configuration,
+            &assembly,
+            &history,
+            assessment_worker,
+            limits,
+            cancelled,
+            false,
+        )?;
+        finish_worker(assessment_worker, limits.deadline, cancelled)?;
+        self.configuration_current(limits.deadline, cancelled)?;
+        self.owner.verify_current(limits.deadline, cancelled)?;
+        self.reader.verify_current(limits.deadline, cancelled)?;
+        fence.verify_current(limits.deadline, cancelled)?;
+        if fence.head(&subject, limits.deadline, cancelled)? != history.head {
+            return Err(Error::Conflict("Sign diagnostic journal head changed"));
+        }
+        Ok(view)
+    }
+
     pub(crate) fn with_current_basis<T>(
         &mut self,
         base: &CommandContext,
@@ -1751,6 +1802,33 @@ fn current_basis(
     limits: AssessmentLimits,
     cancelled: &AtomicBool,
 ) -> Result<JsonValue> {
+    let view = current_promotion(
+        reader,
+        owner,
+        fence,
+        promotion,
+        assembly,
+        history,
+        assessment_worker,
+        limits,
+        cancelled,
+        true,
+    )?;
+    Ok(cmd::field(&view, "basis")?.clone())
+}
+
+fn current_promotion(
+    reader: &mut SignSourceReader<'_>,
+    owner: &ProtectedAssessmentJournal,
+    fence: &AssessmentJournalFence<'_>,
+    promotion: &JsonValue,
+    assembly: &SignSourceAssembly,
+    history: &crate::source_assessment_journal::AssessmentHistory,
+    assessment_worker: &mut CutWorkerSchemaExecutor,
+    limits: AssessmentLimits,
+    cancelled: &AtomicBool,
+    require_ready: bool,
+) -> Result<JsonValue> {
     owner.verify_current(limits.deadline, cancelled)?;
     reader.verify_current(limits.deadline, cancelled)?;
     fence.verify_current(limits.deadline, cancelled)?;
@@ -1802,7 +1880,7 @@ fn current_basis(
     if !cmd::same(cmd::field(&admission, "subject")?, candidate_ref)? {
         return Err(Error::Conflict("Sign evaluated subject differs"));
     }
-    if cmd::text(&admission, "use")? != "sign-promotion"
+    let ready = !(cmd::text(&admission, "use")? != "sign-promotion"
         || admission.object_get("can_use") != Some(&JsonValue::Bool(true))
         || !matches!(
             cmd::text(&admission, "status")?,
@@ -1812,8 +1890,8 @@ fn current_basis(
         || history.head.is_none()
         || report.required_sources().is_empty()
         || !report.source_read_required()
-        || !report.source_read_ready()
-    {
+        || !report.source_read_ready());
+    if require_ready && !ready {
         return Err(Error::Denied(
             "Sign current qualified assessment and exact native source reading required",
         ));
@@ -1824,35 +1902,45 @@ fn current_basis(
     if fence.head(subject, limits.deadline, cancelled)? != history.head {
         return Err(Error::Conflict("Sign held journal head changed"));
     }
-    Ok(cmd::object(vec![
-        ("schema_version", cmd::string("tos_sign_promotion_basis_v1")),
-        ("candidate", candidate_ref.clone()),
-        ("policy", cmd::field(&admission, "policy")?.clone()),
-        (
-            "required_sources",
-            JsonValue::Array(
-                report
-                    .required_sources()
-                    .iter()
-                    .map(decoded)
-                    .collect::<Result<_>>()?,
+    let basis = if ready {
+        cmd::object(vec![
+            ("schema_version", cmd::string("tos_sign_promotion_basis_v1")),
+            ("candidate", candidate_ref.clone()),
+            ("policy", cmd::field(&admission, "policy")?.clone()),
+            (
+                "required_sources",
+                JsonValue::Array(
+                    report
+                        .required_sources()
+                        .iter()
+                        .map(decoded)
+                        .collect::<Result<_>>()?,
+                ),
             ),
-        ),
-        (
-            "assessment_refs",
-            cmd::field(&admission, "assessment_refs")?.clone(),
-        ),
-        (
-            "owner_snapshot",
-            cmd::string(&assembly.owner_snapshot.to_prefixed()),
-        ),
-        (
-            "journal_revision",
-            cmd::string(history.head.as_ref().unwrap()),
-        ),
-        ("status", cmd::field(&admission, "status")?.clone()),
-        ("use", cmd::string("sign-promotion")),
-        ("limits", cmd::field(&admission, "limits")?.clone()),
-        ("grants_current_use", JsonValue::Bool(false)),
+            (
+                "assessment_refs",
+                cmd::field(&admission, "assessment_refs")?.clone(),
+            ),
+            (
+                "owner_snapshot",
+                cmd::string(&assembly.owner_snapshot.to_prefixed()),
+            ),
+            (
+                "journal_revision",
+                cmd::string(history.head.as_ref().unwrap()),
+            ),
+            ("status", cmd::field(&admission, "status")?.clone()),
+            ("use", cmd::string("sign-promotion")),
+            ("limits", cmd::field(&admission, "limits")?.clone()),
+            ("grants_current_use", JsonValue::Bool(false)),
+        ])
+    } else {
+        JsonValue::Null
+    };
+    Ok(cmd::object(vec![
+        ("eligible", JsonValue::Bool(ready)),
+        ("basis", basis),
+        ("current_admission", admission),
+        ("grants_issuance_authority", JsonValue::Bool(false)),
     ]))
 }

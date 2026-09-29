@@ -187,6 +187,7 @@ pub fn run_form_command(
             "tos_scholarly_composite_witness_v1" if !canonical => {
                 "ToS/contracts/scholarly-composite-witness.schema.json"
             }
+            "tos_source_link_v1" if !canonical => "ToS/contracts/source-link.schema.json",
             "tos_corpus_record_v1" if !canonical => "ToS/contracts/corpus-record.schema.json",
             "tos_historical_record_v1" if !canonical => {
                 "ToS/contracts/historical-record.schema.json"

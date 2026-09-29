@@ -826,6 +826,8 @@ mod command_record_cases;
 #[path = "command_claim_cases.rs"]
 mod command_claim_cases;
 
+#[path = "command_collection_cases.rs"]
+mod command_collection_cases;
 #[path = "command_item_cases.rs"]
 mod command_item_cases;
 #[path = "command_work_cases.rs"]
@@ -836,3 +838,6 @@ mod command_text_cases;
 
 #[path = "compiler_source_cases.rs"]
 mod compiler_source_cases;
+
+mod command_claim_publication_cases;
+mod command_public_text_cases;

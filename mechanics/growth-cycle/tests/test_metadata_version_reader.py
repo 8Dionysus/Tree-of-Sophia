@@ -57,7 +57,7 @@ class MetadataVersionReaderTests(unittest.TestCase):
                    'expected_source': prepared['source'], 'expected_revision': prepared['revision'],
                    'expected_configuration': prepared['owner_configuration'],
                    'expected_dependencies': prepared['expected_dependencies'], **proposal}
-        result = source.run_local_command(fixture.owner, request)
+        result = source.run_legacy_oracle_command(fixture.owner, request)
         self.sync_catalog(fixture)
         return result['receipt']
 
@@ -190,7 +190,7 @@ class MetadataVersionReaderTests(unittest.TestCase):
             return original_read(path, limit)
         with (patch.object(source, '_read', side_effect=selected_only),
               patch.object(source, '_configuration', side_effect=AssertionError('no current command authority')),
-              patch.object(source, 'run_local_command', side_effect=AssertionError('no command entrypoint')),
+              patch.object(source, 'run_legacy_oracle_command', side_effect=AssertionError('no command entrypoint')),
               patch.object(SourceRecordProfiles, 'validate', side_effect=AssertionError('no semantic/private validation')),
               patch.object(SourceRecordProfiles, 'native_semantic_identities', side_effect=AssertionError('no private inventory'))):
             result = self.resolve()
@@ -214,7 +214,7 @@ class MetadataVersionReaderTests(unittest.TestCase):
                 current = json.loads(fixture.path.read_bytes())
                 instance = reader.MetadataVersionReader(fixture.root)
                 with (patch.object(source, '_configuration', side_effect=AssertionError('no authority lookup')),
-                      patch.object(source, 'run_local_command', side_effect=AssertionError('no command lookup')),
+                      patch.object(source, 'run_legacy_oracle_command', side_effect=AssertionError('no command lookup')),
                       patch.object(SourceRecordProfiles, 'validate', side_effect=AssertionError('no private inventory route')),
                       patch.object(SourceRecordProfiles, 'validate_native_binding', side_effect=AssertionError('no native binding resolution'))):
                     self.assertTrue(instance.supports(kind, source_ref=fixture.relative))
@@ -271,7 +271,7 @@ class MetadataVersionReaderTests(unittest.TestCase):
         with (patch.object(corpus, 'REPO_ROOT', fixture.root),
               patch.object(corpus, 'TOS_ROOT', fixture.root / 'ToS'),
               patch.object(source, '_configuration', side_effect=AssertionError('no current command authority')),
-              patch.object(source, 'run_local_command', side_effect=AssertionError('no writer while projecting'))):
+              patch.object(source, 'run_legacy_oracle_command', side_effect=AssertionError('no writer while projecting'))):
             navigation = corpus.build_source_navigation(diagnostics)
         graph = build_knowledge_graph({'source_navigation': navigation}, {}, {},
             json.loads((fixture.root / reader.REGISTRY_REF).read_bytes()),
@@ -534,7 +534,7 @@ class MetadataVersionReaderTests(unittest.TestCase):
         request = self.fixture.request()
         with patch.object(revisions, '_exchange', side_effect=RuntimeError('before publish')):
             with self.assertRaises(RuntimeError):
-                source.run_local_command(self.fixture.owner, request)
+                source.run_legacy_oracle_command(self.fixture.owner, request)
         result = self.resolve()
         self.assertEqual(result['version_status'], 'current', result)
         self.assertEqual(result['provenance']['history']['receipt_count'], 0)

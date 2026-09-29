@@ -4826,9 +4826,54 @@ fn maintained_inventory_inner(
             ));
         }
         if ["artifact-witness.json", "composite-witness.json"].contains(&basename) {
-            return Err(SourceCommandError::Unsupported(
-                "maintained native artifact/composite catalog fingerprint adapter",
-            ));
+            // Native witnesses retain their own identity/schema; the compiler's
+            // pure renderer supplies the exact Python catalog shape.
+            if file.raw.len() > 1_048_576 {
+                return Err(SourceCommandError::Invalid("native witness metadata byte budget"));
+            }
+            let upper = file.raw.len().checked_mul(32).and_then(|n| n.checked_add(65_536))
+                .ok_or(SourceCommandError::Unsupported("native witness inventory state overflow"))?;
+            inventory_live_preflight(whole_call, retained_inventory_state, upper)?;
+            let record = parse(&file.raw)?;
+            let (kind, identity, schema_ref) = match (basename, text(&record, "schema_version")?) {
+                ("artifact-witness.json", "tos_artifact_source_witness_v1") => ("artifact", "artifact_id", "ToS/contracts/artifact-source-witness.schema.json"),
+                ("artifact-witness.json", "tos_artifact_source_witness_v2") => ("artifact", "artifact_id", "ToS/contracts/artifact-source-witness-v2.schema.json"),
+                ("composite-witness.json", "tos_scholarly_composite_witness_v1") => ("composite", "composite_id", "ToS/contracts/scholarly-composite-witness.schema.json"),
+                _ => return Err(SourceCommandError::Denied("native witness exact schema route")),
+            };
+            let subtree = if kind == "artifact" { "artifacts" } else { "scholarly-composites" };
+            if !location.starts_with(&format!("ToS/source-witnesses/{subtree}/")) {
+                return Err(SourceCommandError::Denied("native witness owner subtree"));
+            }
+            crate::source_revisions::schema(executor, deadline, cancelled, ctx, &[schema_ref.into()], schema_ref, &record)?;
+            let id = text(&record, identity)?.to_owned();
+            if id.is_empty() || native_identities.contains_key(&id) {
+                return Err(SourceCommandError::Conflict("native witness identity reserved or empty"));
+            }
+            let rendered_source: serde_json::Value = serde_json::from_slice(&canonical(&record)?)
+                .map_err(|_| SourceCommandError::Invalid("native witness renderer input"))?;
+            let rendered = tos_compiler::source_witness_catalog::render_catalog_record(
+                &rendered_source, location, Some(schema_ref), 8_388_608)
+                .map_err(|_| SourceCommandError::Invalid("native witness catalog rendering"))?;
+            let entry = parse(&serde_json::to_vec(&rendered).map_err(|_| SourceCommandError::Invalid("native witness renderer output"))?)?;
+            let added = retained_value_bytes(&record)?.checked_add(retained_value_bytes(&entry)?.checked_mul(3)
+                .ok_or(SourceCommandError::Unsupported("native witness inventory state overflow"))?)
+                .and_then(|n| n.checked_add(id.len().saturating_mul(2)))
+                .and_then(|n| n.checked_add(location.len().saturating_mul(2)))
+                .and_then(|n| n.checked_add(3 * std::mem::size_of::<(String, JsonValue)>()))
+                .ok_or(SourceCommandError::Unsupported("native witness inventory state overflow"))?;
+            inventory_live_preflight(whole_call, retained_inventory_state, added)?;
+            retained_inventory_state = retained_inventory_state.checked_add(added)
+                .ok_or(SourceCommandError::Unsupported("native witness inventory state overflow"))?;
+            if objects.insert(id.clone(), entry.clone()).is_some() {
+                return Err(SourceCommandError::Conflict("complete catalog has duplicate metadata identity"));
+            }
+            if capture_member_inputs {
+                record_member_inputs.insert(location.to_owned(), raw_digests(ctx, &[schema_ref], false)?);
+            }
+            source_records.insert(id, record);
+            records.entry(kind.into()).or_default().push(entry);
+            continue;
         }
         if let Some((kind, _)) = kinds.iter().find(|(_, name)| name.as_str() == basename) {
             inventory_live_preflight(whole_call, retained_inventory_state, file.raw.len())?;
@@ -6041,6 +6086,52 @@ pub(crate) fn maintained_evidence(
     }
     Ok(result)
 }
+/// Read-only initial identity Claim validation over authenticated addressed proposal
+/// inputs. No source-cut proof, source write, clock grant or complete inventory
+/// is created. The publication observer separately authenticates receipt time.
+pub(crate) fn validate_initial_identity_publication_claim(
+    ctx: &CommandContext,
+    claim: &JsonValue,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<String> {
+    let (config, _, _, create, version) = config(ctx)?;
+    if !create
+        || version != 1
+        || text(&config, "schema_version")? != "tos_local_claim_create_owner_v1"
+    {
+        return Err(SourceCommandError::Denied(
+            "initial identity Claim publication owner",
+        ));
+    }
+    grammar(&parse(&ctx.request_raw)?, true, false)?;
+    claim_scope(&config, claim, true, 1)?;
+    let (_, profile) = profile(ctx, text(claim, "predicate")?)?;
+    if text(&profile, "reader")? != "identity-relation-v1" {
+        return Err(SourceCommandError::Unsupported(
+            "initial identity Claim publication profile",
+        ));
+    }
+    let route = array(&profile, "schemas")?
+        .iter()
+        .find(|route| route.object_get("schema_version") == claim.object_get("schema_version"))
+        .ok_or(SourceCommandError::Unsupported(
+            "initial identity Claim publication schema",
+        ))?;
+    let schema = text(route, "schema_ref")?.to_owned();
+    if validate_ground(
+        ctx, None, None, &config, claim, 1, executor, deadline, cancelled,
+    )?
+    .is_some()
+    {
+        return Err(SourceCommandError::Unsupported(
+            "initial identity Claim retained grounding",
+        ));
+    }
+    Ok(schema)
+}
+
 fn validate_ground(
     ctx: &CommandContext,
     cut: Option<&CorpusCutReader>,

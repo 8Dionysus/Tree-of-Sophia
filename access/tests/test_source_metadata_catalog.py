@@ -67,7 +67,7 @@ class SourceMetadataCatalogTests(unittest.TestCase):
             'forms': [{'field_id': 'metadata.preferred-name',
                        'form_id': self.config['allowed_form_ids'][0]}],
         }
-        preview = commands.run_local_command(self.owner, request)
+        preview = commands.run_legacy_oracle_command(self.owner, request)
         request.update(
             operation='source.create',
             command_id='synthetic-metadata-catalog',
@@ -77,7 +77,7 @@ class SourceMetadataCatalogTests(unittest.TestCase):
             expected_source=None,
         )
         self.creation_request = copy.deepcopy(request)
-        created = commands.run_local_command(self.owner, request)
+        created = commands.run_legacy_oracle_command(self.owner, request)
         receipt = (self.root / self.relative).with_name('source-create-receipt.json')
         self.expected = {
             'expected_receipt_sha256': hashlib.sha256(receipt.read_bytes()).hexdigest(),
@@ -101,7 +101,7 @@ class SourceMetadataCatalogTests(unittest.TestCase):
         source_bytes = (self.root / self.relative).read_bytes()
         with patch.object(Path, 'rglob', side_effect=AssertionError('global source scan')), \
                 patch.object(ProjectionReader, 'iter_items', side_effect=AssertionError('catalog scan')), \
-                patch.object(commands, 'run_local_command', side_effect=AssertionError('source command')):
+                patch.object(commands, 'run_legacy_oracle_command', side_effect=AssertionError('source command')):
             with self.stage() as operation:
                 after = catalog.SourceCatalogSnapshot(
                     operation.candidate.snapshot(),
@@ -154,7 +154,7 @@ class SourceMetadataCatalogTests(unittest.TestCase):
         with patch.object(commands, 'datetime') as clock:
             clock.now.return_value = datetime(2100, 1, 1, tzinfo=timezone.utc)
             with self.assertRaisesRegex(PermissionError, 'expired'):
-                commands.run_local_command(self.owner, self.creation_request)
+                commands.run_legacy_oracle_command(self.owner, self.creation_request)
             with self.stage() as operation:
                 operation.verify_current()
         self.assertEqual(self.owner.read_bytes(), owner_bytes)

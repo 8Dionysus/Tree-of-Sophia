@@ -119,7 +119,7 @@ class NativeLayerCommandTests(unittest.TestCase):
         self.owner.chmod(0o600)
 
     def invoke(self, request):
-        return source.run_local_command(self.owner, request)
+        return source.run_legacy_oracle_command(self.owner, request)
 
     def prepare(self):
         response = self.invoke(self.proposal)
@@ -368,13 +368,13 @@ class NativeLayerCommandTests(unittest.TestCase):
         proposal = copy.deepcopy(self.seed.proposal)
         proposal['spans'] = [{**proposal['spans'][0], 'start': 0, 'end': cfg['allowed_text_scope']['end']}]
         proposal['excluded_gaps'] = []
-        prepared = source.run_local_command(unit_owner, proposal)
+        prepared = source.run_legacy_oracle_command(unit_owner, proposal)
         request = {**proposal, 'operation': units.OPERATION, 'command_id': 'synthetic-first-segmentation',
             'expected_configuration': prepared['owner_configuration'], 'expected_dependencies': prepared['expected_dependencies'],
             'expected_source': None, 'expected_revision': None}
-        result = source.run_local_command(unit_owner, request)
+        result = source.run_legacy_oracle_command(unit_owner, request)
         self.assertFalse(result['grants_admission'])
-        self.assertTrue(source.run_local_command(unit_owner, request)['replayed'])
+        self.assertTrue(source.run_legacy_oracle_command(unit_owner, request)['replayed'])
         unit_path = self.store / cfg['source_path']
         packet = json.loads(unit_path.read_bytes())
         segment, unit = packet['segmentations'][0], packet['units'][0]
@@ -416,14 +416,14 @@ class NativeLayerCommandTests(unittest.TestCase):
         occurrence_owner.chmod(0o600)
         occurrence_proposal = {'schema_version': contract_request(), 'operation': 'prepare-create',
             'record': record, 'forms': [{'form_id': occurrence_config['allowed_form_ids'][0], 'field_id': 'metadata.preferred-name'}]}
-        prepared = source.run_local_command(occurrence_owner, occurrence_proposal)
+        prepared = source.run_legacy_oracle_command(occurrence_owner, occurrence_proposal)
         occurrence_request = {**occurrence_proposal, 'operation': 'source.create', 'command_id': 'synthetic-layer-occurrence',
             'expected_configuration': prepared['owner_configuration'], 'expected_dependencies': prepared['expected_dependencies'],
             'expected_source': None, 'expected_revision': None}
-        created = source.run_local_command(occurrence_owner, occurrence_request)
+        created = source.run_legacy_oracle_command(occurrence_owner, occurrence_request)
         self.assertFalse(created['publication_authorized'])
         self.assertEqual(json.loads(occurrence_path.read_bytes()), record)
-        self.assertTrue(source.run_local_command(occurrence_owner, occurrence_request)['replayed'])
+        self.assertTrue(source.run_legacy_oracle_command(occurrence_owner, occurrence_request)['replayed'])
         self.assertEqual(self.path.read_bytes(), layer_raw)
         self.assertEqual(self.payload.read_bytes(), self.original)
 
@@ -485,7 +485,7 @@ class NativeLayerDerivationTests(unittest.TestCase):
             'source_record_refs': dict(self.seed.fixture.refs)}
 
     def invoke(self, request):
-        return source.run_local_command(self.owner, request)
+        return source.run_legacy_oracle_command(self.owner, request)
 
     def prepare(self):
         response = self.invoke({'schema_version': contract_request(), 'operation': 'prepare-create'})
@@ -874,7 +874,7 @@ class NativeLayerDerivationTests(unittest.TestCase):
 
     def test_original_extraction_grant_does_not_authorize_derivation(self):
         with self.assertRaises(ValueError):
-            source.run_local_command(self.seed.owner, {'schema_version': contract_request(),
+            source.run_legacy_oracle_command(self.seed.owner, {'schema_version': contract_request(),
                 'operation': 'text-layer.normalize', 'command_id': 'not-delegated',
                 'expected_configuration': None, 'expected_source': None,
                 'expected_revision': None, 'expected_dependencies': None})
@@ -919,11 +919,11 @@ class NativeLayerDerivationTests(unittest.TestCase):
         request = copy.deepcopy(self.seed.seed.proposal)
         request['spans'] = [{**request['spans'][0], 'start': 0, 'end': unit_config['allowed_text_scope']['end']}]
         request['excluded_gaps'] = []
-        prepared = source.run_local_command(unit_owner, request)
+        prepared = source.run_legacy_oracle_command(unit_owner, request)
         request.update(operation=units.OPERATION, command_id='synthetic-derived-first-segmentation',
             expected_configuration=prepared['owner_configuration'], expected_dependencies=prepared['expected_dependencies'],
             expected_source=None, expected_revision=None)
-        result = source.run_local_command(unit_owner, request)
+        result = source.run_legacy_oracle_command(unit_owner, request)
         self.assertFalse(result['grants_admission'])
         packet = json.loads((self.store / unit_config['source_path']).read_bytes())
         self.assertEqual(packet['source_layer']['unicode_form'], 'NFC')

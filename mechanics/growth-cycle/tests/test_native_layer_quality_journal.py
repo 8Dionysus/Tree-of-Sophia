@@ -203,8 +203,8 @@ class QualityJournalFixture:
         owner.chmod(0o600)
         request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create',
             'claims': [body], 'forms': [{'claim_id': body['claim_id'], 'form_id': form_id, 'field_id': 'claim.statement'}]}
-        prepared = source_commands.run_local_command(owner, request)
-        self.created = source_commands.run_local_command(owner, {**request, 'operation': 'claims.create',
+        prepared = source_commands.run_legacy_oracle_command(owner, request)
+        self.created = source_commands.run_legacy_oracle_command(owner, {**request, 'operation': 'claims.create',
             'command_id': 'synthetic-quality-claim-created', 'expected_source': None, 'expected_revision': None,
             'expected_configuration': prepared['owner_configuration'],
             'expected_dependencies': prepared['expected_dependencies'], 'expected_inputs': prepared['source_bindings']})

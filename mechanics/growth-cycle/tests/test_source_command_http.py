@@ -29,7 +29,7 @@ class SourceCommandHttpTests(unittest.TestCase):
         self.token_file.write_text(self.token)
         self.token_file.chmod(0o600)
         self.origin = 'http://127.0.0.1:44257'
-        self.server = transport.SourceCommandServer(
+        self.server = transport.SourceCommandServer(legacy_oracle=True,
             owner_config=self.fixture.owner, token_file=self.token_file,
             browser_origin=self.origin)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
@@ -84,7 +84,7 @@ class SourceCommandHttpTests(unittest.TestCase):
         self.assertEqual(self.request(value=describe)[0], 403)
 
     def test_auth_origin_host_and_credential_rotation_precede_dispatch(self):
-        with patch.object(transport.commands, 'run_local_command') as dispatch:
+        with patch.object(transport.commands, 'run_legacy_oracle_command') as dispatch:
             for headers in (
                 {'Authorization': ''}, {'Authorization': 'Bearer incorrect'},
                 {'Origin': 'null'}, {'Origin': 'http://evil.example'},
@@ -100,7 +100,7 @@ class SourceCommandHttpTests(unittest.TestCase):
             dispatch.assert_not_called()
 
     def test_framing_json_size_and_paths_fail_without_dispatch(self):
-        with patch.object(transport.commands, 'run_local_command') as dispatch:
+        with patch.object(transport.commands, 'run_legacy_oracle_command') as dispatch:
             for raw, headers, path, expected in (
                 (b'{"operation":"a","operation":"b"}', {}, '/commands', 400),
                 (b'[]', {}, '/commands', 400),
@@ -199,12 +199,12 @@ class SourceCommandHttpTests(unittest.TestCase):
     def test_owner_failures_and_oversized_receipts_do_not_claim_no_write(self):
         for error, expected in ((transport.JournalConflict('private details'), 409),
                                 (RuntimeError('private details'), 500)):
-            with patch.object(transport.commands, 'run_local_command', side_effect=error):
+            with patch.object(transport.commands, 'run_legacy_oracle_command', side_effect=error):
                 status, _, body = self.request(value={})
                 self.assertEqual(status, expected)
                 self.assertEqual(body['outcome'], 'unconfirmed')
                 self.assertNotIn('private details', json.dumps(body))
-        with patch.object(transport.commands, 'run_local_command', return_value={'large': 'x' * 200}), \
+        with patch.object(transport.commands, 'run_legacy_oracle_command', return_value={'large': 'x' * 200}), \
                 patch.object(transport, 'MAX_RESPONSE_BYTES', 128):
             status, _, body = self.request(value={})
             self.assertEqual(status, 502)
@@ -213,7 +213,7 @@ class SourceCommandHttpTests(unittest.TestCase):
     def test_startup_rejects_public_tokens_and_nonloopback_origin(self):
         self.token_file.chmod(0o644)
         with self.assertRaises(PermissionError):
-            transport.SourceCommandServer(owner_config=self.fixture.owner,
+            transport.SourceCommandServer(legacy_oracle=True, owner_config=self.fixture.owner,
                 token_file=self.token_file, browser_origin=self.origin)
         for origin in ('https://evil.example', 'http://127.0.0.1',
                        'http://127.0.0.1:44257/', 'http://user@localhost:44257'):
@@ -231,7 +231,7 @@ class SourceCommandHttpTests(unittest.TestCase):
             self.token, ['tos-response-v1', nonce, status, hashlib.sha256(body).hexdigest()]))
         self.assertNotIn(self.token, auth)
         self.assertEqual(self.request(raw=raw, headers={'Authorization': auth})[0], 409)
-        with patch.object(transport.commands, 'run_local_command') as dispatch:
+        with patch.object(transport.commands, 'run_legacy_oracle_command') as dispatch:
             self.assertEqual(self.request(raw=raw+b' ', headers={
                 'Authorization': self.authorization('POST', '/commands', raw)})[0], 401)
             self.assertEqual(self.request(raw=raw, headers={
@@ -250,8 +250,8 @@ class SourceCommandHttpTests(unittest.TestCase):
         describe = {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'}
         expected = self.fixture.describe()
         with patch.object(transport, 'REQUEST_READ_DEADLINE_SECONDS', 0.2), \
-                patch.object(transport.commands, 'run_local_command',
-                              wraps=transport.commands.run_local_command) as dispatch:
+                patch.object(transport.commands, 'run_legacy_oracle_command',
+                              wraps=transport.commands.run_legacy_oracle_command) as dispatch:
             slow_header = socket.create_connection(('127.0.0.1', self.server.server_port), timeout=2)
             try:
                 slow_header.sendall((f'POST /commands HTTP/1.1\r\n'

@@ -91,7 +91,7 @@ class SourceMetadataPublicationProfileTests(unittest.TestCase):
             "record": record,
             "forms": [{"field_id": "metadata.preferred-name", "form_id": form_id}],
         }
-        preview = commands.run_local_command(owner, request)
+        preview = commands.run_legacy_oracle_command(owner, request)
         request.update(
             operation="source.create",
             command_id=record["record_id"].replace(".", "-") + "-create",
@@ -100,7 +100,7 @@ class SourceMetadataPublicationProfileTests(unittest.TestCase):
             expected_revision=None,
             expected_source=None,
         )
-        created = commands.run_local_command(owner, request)
+        created = commands.run_legacy_oracle_command(owner, request)
         receipt = path.with_name("source-create-receipt.json")
         expected = {
             "expected_receipt_sha256": hashlib.sha256(receipt.read_bytes()).hexdigest(),
@@ -234,7 +234,7 @@ class SourceMetadataPublicationProfileTests(unittest.TestCase):
             "operation": "prepare-create",
             "claims": [claim],
         }
-        preview = commands.run_local_command(owner, request)
+        preview = commands.run_legacy_oracle_command(owner, request)
         request.update(
             operation="claims.create",
             command_id="synthetic-environment-claim-create",
@@ -243,7 +243,7 @@ class SourceMetadataPublicationProfileTests(unittest.TestCase):
             expected_inputs=preview["source_bindings"],
             expected_revision=None,
         )
-        created = commands.run_local_command(owner, request)
+        created = commands.run_legacy_oracle_command(owner, request)
         receipt = (self.root / relative).with_name("source-create-receipt.json")
         expected = {
             "expected_receipt_sha256": hashlib.sha256(receipt.read_bytes()).hexdigest(),

@@ -10,6 +10,7 @@ license.workspace = true
 postgres-lab = []
 
 [dependencies]
+rusqlite = { version = "0.37", features = ["bundled", "hooks"] }
 base64 = "=0.22.1"
 crc32fast = "=1.5.2"
 flate2 = "=1.1.10"

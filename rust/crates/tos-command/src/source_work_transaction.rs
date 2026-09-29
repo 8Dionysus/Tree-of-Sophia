@@ -31,6 +31,7 @@ const MAX_MANIFEST: usize = 512 * 1024;
 const TRANSACTIONS: &str = ".metadata-transactions";
 const MANIFEST_SCHEMA: &str = "tos_selected_metadata_transaction_v1";
 const PROFILED_MANIFEST_SCHEMA: &str = "tos_selected_metadata_transaction_v2";
+const CANONICAL_FORM_MANIFEST_SCHEMA: &str = "tos_selected_metadata_transaction_v3";
 const COMPLETION_SCHEMA: &str = "tos_selected_metadata_completion_v1";
 
 #[derive(Clone)]
@@ -289,18 +290,22 @@ struct FrozenPlan {
     blobs: BTreeMap<String, Vec<u8>>,
 }
 fn path(value: &str, directory: bool) -> SourceCommandResult<RelativePath> {
-    profiled_path(value, directory, &BTreeSet::new())
+    profiled_path(value, directory, &BTreeSet::new(), None)
 }
 fn profiled_path(
     value: &str,
     directory: bool,
     companions: &BTreeSet<String>,
+    canonical_form: Option<&CanonicalFormsPathProfile>,
 ) -> SourceCommandResult<RelativePath> {
     if value.len() > 1024 || value.contains('\\') || value.contains('\0') {
         return Err(SourceCommandError::Denied("selected metadata path grammar"));
     }
     let parsed = RelativePath::parse(value)
         .map_err(|_| SourceCommandError::Denied("selected metadata path grammar"))?;
+    if !directory && canonical_form.is_some_and(|profile| value == profile.target.as_str()) {
+        return Ok(parsed);
+    }
     let parts: Vec<_> = value.split('/').collect();
     if !(3..=24).contains(&parts.len())
         || parts[..2] != ["ToS", "source-witnesses"]
@@ -322,6 +327,73 @@ fn profiled_path(
         ));
     }
     Ok(parsed)
+}
+/// A concrete canonical-form mover profile. It permits one adjacent form set,
+/// never the canonical node itself. The family guard owns current source/schema,
+/// delegated form IDs and protected configuration; serialized profile is not a grant.
+struct CanonicalFormsPathProfile {
+    source: RelativePath,
+    target: RelativePath,
+}
+impl CanonicalFormsPathProfile {
+    fn from_authorization(value: &JsonValue) -> SourceCommandResult<Option<Self>> {
+        if value
+            .object_get("schema_version")
+            .and_then(JsonValue::as_str)
+            != Some("tos_canonical_forms_authorization_v1")
+        {
+            return Ok(None);
+        }
+        let source = cmd::text(value, "source_path")?;
+        let parts: Vec<_> = source.split('/').collect();
+        if source.len() > 1024
+            || !(5..=24).contains(&parts.len())
+            || parts[..2] != ["ToS", "canon"]
+            || parts.last() != Some(&"node.json")
+            || parts.iter().any(|p| {
+                p.is_empty()
+                    || p.starts_with('.')
+                    || matches!(
+                        *p,
+                        "payload" | "private" | "local-content" | "owner-local" | "catalog"
+                    )
+            })
+        {
+            return Err(SourceCommandError::Denied(
+                "canonical form exact source path",
+            ));
+        }
+        let source = RelativePath::parse(source)
+            .map_err(|_| SourceCommandError::Denied("canonical form source path"))?;
+        let parent = selected_parent(source.as_str())?;
+        let target = RelativePath::parse(&format!("{parent}/node.human-forms.json"))
+            .map_err(|_| SourceCommandError::Denied("canonical form target path"))?;
+        Ok(Some(Self { source, target }))
+    }
+    fn encoded(&self) -> JsonValue {
+        cmd::object(vec![
+            (
+                "schema_version",
+                cmd::string("tos_canonical_form_metadata_paths_v1"),
+            ),
+            ("source_path", cmd::string(self.source.as_str())),
+            ("target_path", cmd::string(self.target.as_str())),
+        ])
+    }
+}
+fn canonical_forms_profile(
+    summary: &JsonValue,
+) -> SourceCommandResult<Option<CanonicalFormsPathProfile>> {
+    let profile =
+        CanonicalFormsPathProfile::from_authorization(cmd::field(summary, "authorization")?)?;
+    if let Some(profile) = &profile {
+        if !cmd::same(cmd::field(summary, "path_profile")?, &profile.encoded())? {
+            return Err(SourceCommandError::Conflict(
+                "retained canonical form path profile differs",
+            ));
+        }
+    }
+    Ok(profile)
 }
 /// The maintained Item profile grants exactly two companions in one authorized
 /// Item home. It never widens the ordinary metadata suffix contract.
@@ -360,6 +432,12 @@ fn selected_profile(summary: &JsonValue) -> SourceCommandResult<Option<RelativeP
     let Some(profile) = summary.object_get("path_profile") else {
         return Ok(None);
     };
+    if cmd::text(profile, "schema_version")? == "tos_canonical_form_metadata_paths_v1" {
+        canonical_forms_profile(summary)?.ok_or(SourceCommandError::Denied(
+            "canonical form profile lacks family authorization",
+        ))?;
+        return Ok(None);
+    }
     cmd::exact_keys(profile, &["schema_version", "item_source_path"])?;
     if cmd::text(profile, "schema_version")? != "tos_item_metadata_paths_v1" {
         return Err(SourceCommandError::Invalid("Item metadata path profile"));
@@ -393,6 +471,18 @@ fn freeze(plan: WorkPlan) -> SourceCommandResult<FrozenPlan> {
         ));
     }
     let companions = item_companions(&plan.authorization, plan.item_path_profile.as_ref())?;
+    let canonical_form = CanonicalFormsPathProfile::from_authorization(&plan.authorization)?;
+    if let Some(profile) = &canonical_form {
+        if plan.item_path_profile.is_some()
+            || !plan.new_directories.is_empty()
+            || plan.files.len() != 1
+            || plan.files[0].path != profile.target
+        {
+            return Err(SourceCommandError::Denied(
+                "canonical form mover selects only adjacent form set",
+            ));
+        }
+    }
     let mut files = plan.files;
     files.sort_by(|a, b| a.path.as_str().cmp(b.path.as_str()));
     let mut dirs = plan.new_directories;
@@ -409,7 +499,7 @@ fn freeze(plan: WorkPlan) -> SourceCommandResult<FrozenPlan> {
     let mut summaries = Vec::with_capacity(files.len());
     for item in &files {
         let name = item.path.as_str();
-        profiled_path(name, false, &companions)?;
+        profiled_path(name, false, &companions, canonical_form.as_ref())?;
         if !seen.insert(name.to_owned()) || item.before.is_none() && item.after.is_none() {
             return Err(SourceCommandError::Invalid(
                 "duplicate/empty selected metadata member",
@@ -505,6 +595,9 @@ fn freeze(plan: WorkPlan) -> SourceCommandResult<FrozenPlan> {
             ]),
         ));
     }
+    if let Some(profile) = canonical_form {
+        summary_members.push(("path_profile", profile.encoded()));
+    }
     let summary = cmd::object(summary_members);
     Ok(FrozenPlan {
         summary,
@@ -533,6 +626,8 @@ fn selected_parent(path: &str) -> SourceCommandResult<&str> {
 fn parent_refs(plan: &FrozenPlan) -> SourceCommandResult<Vec<String>> {
     let mut result = BTreeSet::new();
     result.insert(HOME.to_owned());
+    let canonical = canonical_forms_profile(&plan.summary)?.is_some();
+    let boundary = if canonical { "ToS/canon" } else { HOME };
     for path in plan
         .files
         .iter()
@@ -541,13 +636,13 @@ fn parent_refs(plan: &FrozenPlan) -> SourceCommandResult<Vec<String>> {
     {
         let mut parent = selected_parent(path)?;
         loop {
-            if !parent.starts_with(HOME) {
+            if parent != boundary && !parent.starts_with(&format!("{boundary}/")) {
                 return Err(SourceCommandError::Denied(
                     "selected metadata parent outside source home",
                 ));
             }
             result.insert(parent.to_owned());
-            if parent == HOME {
+            if parent == boundary {
                 break;
             }
             parent = selected_parent(parent)?;
@@ -634,11 +729,21 @@ fn manifest(
     cmd::object(vec![
         (
             "schema_version",
-            cmd::string(if plan.summary.object_get("path_profile").is_some() {
-                PROFILED_MANIFEST_SCHEMA
-            } else {
-                MANIFEST_SCHEMA
-            }),
+            cmd::string(
+                if plan
+                    .summary
+                    .object_get("path_profile")
+                    .and_then(|p| p.object_get("schema_version"))
+                    .and_then(JsonValue::as_str)
+                    == Some("tos_canonical_form_metadata_paths_v1")
+                {
+                    CANONICAL_FORM_MANIFEST_SCHEMA
+                } else if plan.summary.object_get("path_profile").is_some() {
+                    PROFILED_MANIFEST_SCHEMA
+                } else {
+                    MANIFEST_SCHEMA
+                },
+            ),
         ),
         ("transaction_id", cmd::string(id)),
         (
@@ -883,6 +988,37 @@ pub(crate) fn work_archive(
         "work.json",
     )
 }
+/// Expression-owned compounds retain the exact three-file parent revision.
+/// Responsibility and Edition owners still authenticate their own selected path.
+pub(crate) fn expression_archive(
+    fs: &CreationFilesystem,
+    expression_path: &str,
+    expression: &JsonValue,
+    before: &BTreeMap<String, Vec<u8>>,
+    expected_revision: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    create: bool,
+) -> SourceCommandResult<WorkArchive> {
+    if cmd::text(expression, "record_type")? != "expression"
+        || !expression_path.ends_with("/expression.json")
+    {
+        return Err(SourceCommandError::Denied(
+            "Expression archive selected parent profile",
+        ));
+    }
+    compound_archive(
+        fs,
+        expression_path,
+        expression,
+        before,
+        expected_revision,
+        deadline,
+        cancelled,
+        create,
+        "expression.json",
+    )
+}
 pub(crate) fn item_archive(
     fs: &CreationFilesystem,
     edition_path: &str,
@@ -908,6 +1044,38 @@ pub(crate) fn item_archive(
         cancelled,
         create,
         "edition.json",
+    )
+}
+/// Archive storage for the exact Collection predecessor; this supplies no
+/// record.revise grant and cannot select a different record profile.
+pub(crate) fn collection_archive(
+    fs: &CreationFilesystem,
+    collection_path: &str,
+    collection: &JsonValue,
+    before: &BTreeMap<String, Vec<u8>>,
+    expected_revision: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    create: bool,
+) -> SourceCommandResult<WorkArchive> {
+    if cmd::text(collection, "record_type")? != "collection"
+        || !collection_path.starts_with("ToS/source-witnesses/collections/")
+        || !collection_path.ends_with("/collection.json")
+    {
+        return Err(SourceCommandError::Denied(
+            "Collection archive selected profile",
+        ));
+    }
+    compound_archive(
+        fs,
+        collection_path,
+        collection,
+        before,
+        expected_revision,
+        deadline,
+        cancelled,
+        create,
+        "collection.json",
     )
 }
 fn compound_archive(
@@ -1462,7 +1630,7 @@ fn load_retained(
     )?;
     if !matches!(
         cmd::text(&manifest, "schema_version")?,
-        MANIFEST_SCHEMA | PROFILED_MANIFEST_SCHEMA
+        MANIFEST_SCHEMA | PROFILED_MANIFEST_SCHEMA | CANONICAL_FORM_MANIFEST_SCHEMA
     ) || cmd::text(&manifest, "transaction_id")? != id
     {
         return Err(SourceCommandError::Conflict(
@@ -1491,8 +1659,11 @@ fn load_retained(
         cmd::exact_keys(summary, &["authorization", "files", "new_directories"])?;
     }
     let item_path_profile = selected_profile(summary)?;
+    let canonical_form = canonical_forms_profile(summary)?;
     if (cmd::text(&manifest, "schema_version")? == PROFILED_MANIFEST_SCHEMA)
         != item_path_profile.is_some()
+        || (cmd::text(&manifest, "schema_version")? == CANONICAL_FORM_MANIFEST_SCHEMA)
+            != canonical_form.is_some()
     {
         return Err(SourceCommandError::Conflict(
             "retained Item manifest/profile version differs",
@@ -1516,7 +1687,7 @@ fn load_retained(
     for entry in entries {
         cmd::exact_keys(entry, &["path", "before", "after"])?;
         let name = cmd::text(entry, "path")?;
-        profiled_path(name, false, &companions)?;
+        profiled_path(name, false, &companions, canonical_form.as_ref())?;
         if prior_path.is_some_and(|prior| prior >= name) {
             return Err(SourceCommandError::Conflict(
                 "retained selected path order or duplicate",
@@ -1599,7 +1770,7 @@ fn load_retained(
         cmd::exact_keys(entry, &["path", "before", "after"])?;
         let name = cmd::text(entry, "path")?;
         files.push(SelectedFile {
-            path: profiled_path(name, false, &companions)?,
+            path: profiled_path(name, false, &companions, canonical_form.as_ref())?,
             before: read_side(cmd::field(entry, "before")?, &mut total, &mut cache)?,
             after: read_side(cmd::field(entry, "after")?, &mut total, &mut cache)?,
         });

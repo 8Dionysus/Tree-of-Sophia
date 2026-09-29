@@ -39,7 +39,7 @@ def replace(*args):
     count += 1
     if count == int(sys.argv[3]): os._exit(86)
 tx._replace_file = replace
-commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
+commands.run_legacy_oracle_command(Path(sys.argv[2]), json.load(sys.stdin))
 '''
 
 
@@ -128,7 +128,7 @@ class NativeResponsibilityTests(unittest.TestCase):
 
     def request(self):
         proposal = self.proposal()
-        prepared = commands.run_local_command(self.owner, proposal)
+        prepared = commands.run_legacy_oracle_command(self.owner, proposal)
         return {**proposal, 'operation': attachment.OPERATION, 'command_id': self.config['claim_id'],
             'fields': prepared['prepared_fields'], 'expected_source': prepared['source'],
             'expected_revision': prepared['revision'], 'expected_configuration': prepared['owner_configuration'],
@@ -168,7 +168,7 @@ class NativeResponsibilityTests(unittest.TestCase):
         before, agent_before, untouched = self.expression_path.read_bytes(), self.agent_path.read_bytes(), self.untouched.read_bytes()
         request = self.request()
         self.assertEqual(self.expression_path.read_bytes(), before)
-        result = commands.run_local_command(self.owner, request)
+        result = commands.run_legacy_oracle_command(self.owner, request)
         self.assertFalse(result['grants_admission'])
         self.assertEqual(result['source_profiles']['translated_by']['relation_type_id'], 'tos.relation.translated-by')
         self.assertEqual(result['source_profiles']['agent']['type_id'], 'tos.entity.agent')
@@ -196,7 +196,7 @@ class NativeResponsibilityTests(unittest.TestCase):
     def test_competing_claims_keep_distinct_identity_and_exact_append_order(self):
         first = self.request()
         original_config = copy.deepcopy(self.config)
-        commands.run_local_command(self.owner, first)
+        commands.run_legacy_oracle_command(self.owner, first)
         self.rebuild()
         self.select_claim('second')
         second = self.request()
@@ -204,14 +204,14 @@ class NativeResponsibilityTests(unittest.TestCase):
         # Re-prepare changed wording/status, rather than reusing a stale digest.
         with patch.object(self, 'claim', return_value=second['claim']):
             second = self.request()
-        commands.run_local_command(self.owner, second)
+        commands.run_legacy_oracle_command(self.owner, second)
         self.rebuild()
         expression = json.loads(self.expression_path.read_bytes())
         self.assertEqual(expression['responsibility_claim_refs'], [first['claim']['claim_id'], second['claim']['claim_id']])
         validate_expression_responsibility_closure(expression, {self.agent['record_id']: self.agent}, [first['claim'], second['claim']])
         self.config = original_config
         self.owner.write_text(json.dumps(self.config))
-        self.assertTrue(commands.run_local_command(self.owner, first)['replayed'])
+        self.assertTrue(commands.run_legacy_oracle_command(self.owner, first)['replayed'])
         with self.assertRaises(ValueError):
             validate_expression_responsibility_closure(expression, {self.agent['record_id']: self.agent}, [first['claim']])
         with self.assertRaises(ValueError):
@@ -234,12 +234,12 @@ class NativeResponsibilityTests(unittest.TestCase):
             proposal = copy.deepcopy(self.proposal())
             alteration(proposal)
             with self.subTest(alteration=alteration), self.assertRaises((ValueError, OSError)):
-                commands.run_local_command(self.owner, proposal)
+                commands.run_legacy_oracle_command(self.owner, proposal)
             self.assertEqual(self.expression_path.read_bytes(), before)
         request = self.request()
         request['fields']['responsibility_claim_refs'].append('tos.claim.synthetic.extra')
         with self.assertRaises(ValueError):
-            commands.run_local_command(self.owner, request)
+            commands.run_legacy_oracle_command(self.owner, request)
         from source_claim_commands import _scope
         with self.assertRaises(PermissionError):
             _scope({'allowed_operations': ['claims.create'], 'source_root': str(self.root)}, [self.claim()])
@@ -265,12 +265,12 @@ class NativeResponsibilityTests(unittest.TestCase):
         request = self.request()
         pending = self.crash(request)
         with self.assertRaises(PublicationPending):
-            commands.run_local_command(self.owner, {'schema_version': attachment.REQUEST, 'operation': 'describe'})
+            commands.run_legacy_oracle_command(self.owner, {'schema_version': attachment.REQUEST, 'operation': 'describe'})
         self.config['allowed_operations'] = [attachment.RECOVERY]
         self.config['principal_id'] = 'model:synthetic-recoverer'
         self.owner.write_text(json.dumps(self.config))
         with self.assertRaises(PermissionError):
-            commands.run_local_command(self.owner, request)
+            commands.run_legacy_oracle_command(self.owner, request)
         process = subprocess.run([sys.executable, str(MECHANIC / 'source_commands.py'), '--owner-config', str(self.owner)],
             input=json.dumps(self.recovery(pending, 'resume')), text=True, capture_output=True)
         self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
@@ -282,7 +282,7 @@ class NativeResponsibilityTests(unittest.TestCase):
         before, untouched = revisions._selected_package(self.expression_path), self.untouched.read_bytes()
         # Six child files precede the parent paths; edge eight reaches the parent.
         pending = self.crash(self.request(), edge=8)
-        result = commands.run_local_command(self.owner, self.recovery(pending, 'rollback'))
+        result = commands.run_legacy_oracle_command(self.owner, self.recovery(pending, 'rollback'))
         self.assertIsNone(result['receipt'])
         self.assertEqual(revisions._selected_package(self.expression_path), before)
         self.assertEqual(self.untouched.read_bytes(), untouched)
@@ -294,17 +294,17 @@ class NativeResponsibilityTests(unittest.TestCase):
         self.config['allowed_operations'] = []
         self.owner.write_text(json.dumps(self.config))
         with self.assertRaises(PermissionError):
-            commands.run_local_command(self.owner, self.recovery(pending, 'resume'))
+            commands.run_legacy_oracle_command(self.owner, self.recovery(pending, 'resume'))
         self.config = {**copy.deepcopy(original), 'expires_at': '2000-01-01T00:00:00Z'}
         self.owner.write_text(json.dumps(self.config))
         with self.assertRaises(PermissionError):
-            commands.run_local_command(self.owner, {'schema_version': attachment.REQUEST, 'operation': 'describe'})
+            commands.run_legacy_oracle_command(self.owner, {'schema_version': attachment.REQUEST, 'operation': 'describe'})
         self.config = original
         self.owner.write_text(json.dumps(self.config))
         raw = self.agent_path.read_bytes()
         self.agent_path.write_bytes(raw + b'\n')
         with self.assertRaises((ValueError, OSError)):
-            commands.run_local_command(self.owner, self.recovery(pending, 'resume'))
+            commands.run_legacy_oracle_command(self.owner, self.recovery(pending, 'resume'))
         self.agent_path.write_bytes(raw)
         selected = next(item for item in pending['plan']['files'] if (self.root / item['path']).exists()
                         and item['before'] is None)
@@ -313,10 +313,10 @@ class NativeResponsibilityTests(unittest.TestCase):
         path.write_bytes(b'External third-state bytes.\n')
         for decision in ('resume', 'rollback'):
             with self.subTest(decision=decision), self.assertRaises((ValueError, OSError)):
-                commands.run_local_command(self.owner, self.recovery(pending, decision))
+                commands.run_legacy_oracle_command(self.owner, self.recovery(pending, decision))
             self.assertEqual(path.read_bytes(), b'External third-state bytes.\n')
         path.write_bytes(original_bytes)
-        commands.run_local_command(self.owner, self.recovery(pending, 'rollback'))
+        commands.run_legacy_oracle_command(self.owner, self.recovery(pending, 'rollback'))
 
     def test_native_responsibility_requires_exact_committed_capture(self):
         from validate_source_witness_foundation import _native_responsibility_claims
@@ -328,7 +328,7 @@ class NativeResponsibilityTests(unittest.TestCase):
         self.assertTrue(issues)
         carrier.unlink()
         carrier.parent.rmdir()
-        commands.run_local_command(self.owner, request)
+        commands.run_legacy_oracle_command(self.owner, request)
         issues = []
         self.assertEqual(len(_native_responsibility_claims(self.root, issues)), 1, issues)
         self.assertEqual(issues, [])
@@ -346,7 +346,7 @@ class NativeResponsibilityTests(unittest.TestCase):
             nonlocal fired
             if not fired:
                 fired = True
-                commands.run_local_command(self.owner, request)
+                commands.run_legacy_oracle_command(self.owner, request)
             return original_result(*args, **kwargs)
         with patch.object(attachment, '_result', side_effect=publish_during_result), self.assertRaises(PublicationChanged):
             self.request()
@@ -362,8 +362,8 @@ class NativeResponsibilityTests(unittest.TestCase):
             'fields': {'notes': 'Corrected synthetic Agent description; no change of identity.'},
             'forms': [{'form_id': 'tos.form.synthetic.agent.name', 'field_id': 'metadata.preferred-name'}],
             'reason': 'Synthetic descriptive Agent successor.'}
-        prepared = commands.run_local_command(owner, proposal)
-        return commands.run_local_command(owner, {**proposal, 'operation': 'record.revise', 'command_id': 'synthetic:agent-correction',
+        prepared = commands.run_legacy_oracle_command(owner, proposal)
+        return commands.run_legacy_oracle_command(owner, {**proposal, 'operation': 'record.revise', 'command_id': 'synthetic:agent-correction',
             'expected_source': prepared['source'], 'expected_revision': prepared['revision'],
             'expected_configuration': prepared['owner_configuration'], 'expected_dependencies': prepared['expected_dependencies'],
             'expected_publication': prepared['publication_snapshot']})
@@ -372,12 +372,12 @@ class NativeResponsibilityTests(unittest.TestCase):
         from metadata_version_reader import MetadataVersionReader
         agent_raw, expression_raw = self.agent_path.read_bytes(), self.expression_path.read_bytes()
         request = self.request()
-        commands.run_local_command(self.owner, request)
+        commands.run_legacy_oracle_command(self.owner, request)
         self.correct_agent()
         self.rebuild()
         verified = attachment.verify_compound(self.root, self.config['claim_source_path'], request['claim'])
         self.assertEqual(verified['receipt']['agent_source_binding']['source_sha256'], commands._digest(agent_raw))
-        self.assertTrue(commands.run_local_command(self.owner, request)['replayed'])
+        self.assertTrue(commands.run_legacy_oracle_command(self.owner, request)['replayed'])
         reader = MetadataVersionReader(self.root)
         old_expression = reader.resolve_source_bytes(self.expression_ref, hashlib.sha256(expression_raw).hexdigest())
         self.assertEqual(old_expression['status'], 'available', old_expression)
@@ -405,7 +405,7 @@ class NativeResponsibilityTests(unittest.TestCase):
 
     def test_claim_correction_uses_existing_continuous_history_not_a_same_id_substitution(self):
         request = self.request()
-        commands.run_local_command(self.owner, request)
+        commands.run_legacy_oracle_command(self.owner, request)
         self.rebuild()
         config = {key: self.config[key] for key in ('uid', 'principal_id', 'source_root', 'authority_ref', 'expires_at')}
         config.update(schema_version=commands.CLAIM_REVISION_CONFIG, source_path=self.config['claim_source_path'],
@@ -416,7 +416,7 @@ class NativeResponsibilityTests(unittest.TestCase):
         proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
             'fields': {'qualifiers': {'statement': 'Corrected wording of the same qualified provider attribution.'}},
             'forms': self.proposal()['claim_forms'], 'reason': 'Synthetic qualified statement correction.'}
-        prepared = commands.run_local_command(owner, proposal)
+        prepared = commands.run_legacy_oracle_command(owner, proposal)
         external = prepared['source_bindings']['evidence'][self.config['allowed_evidence_refs'][0]]
         self.assertEqual(external['citation_status'], 'candidate_claim')
         self.assertIsNone(external['remote_content_sha256'])
@@ -431,21 +431,21 @@ class NativeResponsibilityTests(unittest.TestCase):
             raw = original_read(path, *args, **kwargs)
             return raw + b'\n' if Path(path) == ROOT / 'scripts/source_bibliographic_responsibility.py' else raw
         with patch.object(commands, '_read', side_effect=changed_validation), self.assertRaises(commands.JournalConflict):
-            commands.run_local_command(owner, correction)
-        result = commands.run_local_command(owner, correction)
+            commands.run_legacy_oracle_command(owner, correction)
+        result = commands.run_legacy_oracle_command(owner, correction)
         claim = result['materializations'][0]['context'][0]['value']
         self.assertEqual(claim['claim_version'], 2)
         verified = attachment.verify_compound(self.root, self.config['claim_source_path'], claim)
         self.assertEqual(verified['claim'], claim)
         self.assertEqual(verified['receipt']['claim']['version'], 1)
-        self.assertTrue(commands.run_local_command(self.owner, request)['replayed'])
+        self.assertTrue(commands.run_legacy_oracle_command(self.owner, request)['replayed'])
         for value in ('', None, False):
             invalid = {**proposal, 'fields': {'qualifiers': {'attribution_scope': value}}}
             with self.subTest(attribution_scope=value), self.assertRaises(ValueError):
-                commands.run_local_command(owner, invalid)
+                commands.run_legacy_oracle_command(owner, invalid)
         self.rebuild()
         self.select_claim('second')
-        commands.run_local_command(self.owner, self.request())
+        commands.run_legacy_oracle_command(self.owner, self.request())
         first_path = self.root / config['source_path']
         history = first_path.with_name('claim-revision-history.json')
         history.unlink()

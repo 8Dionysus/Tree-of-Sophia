@@ -58,6 +58,7 @@ fn package_files(flat: bool) -> &'static [&'static str] {
 }
 
 pub struct NativeFirstTextUnitPreview {
+    pub prepared_files: JsonValue,
     pub owner_configuration: String,
     pub expected_dependencies: String,
     pub source_path: String,
@@ -84,7 +85,7 @@ struct PreparedUnit {
     dependencies: String,
 }
 
-fn selected_contracts(
+pub(crate) fn selected_contracts(
     context: &OwnerTextContext,
     worker: &CutWorkerSchemaExecutor,
     packet_mode: bool,
@@ -138,7 +139,7 @@ fn ids(grant: &OwnerTextUnitSelection) -> SourceCommandResult<Vec<String>> {
     Ok(ids)
 }
 
-fn configuration(
+pub(crate) fn configuration(
     context: &OwnerTextContext,
     grant: &OwnerTextUnitSelection,
     contracts: &BTreeMap<String, Digest256>,
@@ -581,6 +582,7 @@ pub fn prepare_first_text_unit_from_captures(
     finish_creation_worker(worker, deadline, cancelled)?;
     prepared.verify_current(software, components, None, deadline, cancelled)?;
     Ok(NativeFirstTextUnitPreview {
+        prepared_files: file_refs(prepared.files.iter()),
         owner_configuration: prepared.owner_configuration,
         expected_dependencies: prepared.dependencies,
         source_path: cmd::text(&prepared.grant.config, "source_path")?.to_owned(),

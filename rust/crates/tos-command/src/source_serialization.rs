@@ -185,7 +185,7 @@ pub(crate) fn capture_creation(
         files,
         software,
         components,
-        "native-source-metadata-serialization",
+        if request.object_get("record").and_then(|r| r.object_get("schema_version")).and_then(JsonValue::as_str) == Some("tos_artifact_source_witness_v2") { "native-artifact-metadata-serialization" } else { "native-source-metadata-serialization" },
         None,
         deadline,
         cancelled,
@@ -216,8 +216,9 @@ pub(crate) fn capture_claim_creation(
     )
 }
 
-struct OwnerTextCapture<'a> {
+struct TextCaptureProfile<'a> {
     rights: &'a JsonValue,
+    publication_authority: Option<&'a JsonValue>,
     inputs: Vec<Value>,
     event_type: &'static str,
     source_path: &'a str,
@@ -255,8 +256,9 @@ pub(crate) fn capture_initial_text_layer(
         software,
         components,
         "exact-native-text-layer-structural-extraction",
-        Some(OwnerTextCapture {
+        Some(TextCaptureProfile {
             rights,
+            publication_authority: None,
             inputs,
             event_type: "native_extraction",
             source_path,
@@ -301,8 +303,9 @@ pub(crate) fn capture_first_text_unit(
         } else {
             "exact-native-text-unit-construction"
         },
-        Some(OwnerTextCapture {
+        Some(TextCaptureProfile {
             rights,
+            publication_authority: None,
             inputs,
             event_type: "annotation",
             source_path,
@@ -355,8 +358,9 @@ pub(crate) fn capture_owner_alignment(
         software,
         components,
         "native-supplied-alignment-proposal-capture",
-        Some(OwnerTextCapture {
+        Some(TextCaptureProfile {
             rights,
+            publication_authority: None,
             inputs,
             event_type: "annotation",
             source_path,
@@ -414,8 +418,9 @@ pub(crate) fn capture_derived_text_layer(
         software,
         components,
         &procedure,
-        Some(OwnerTextCapture {
+        Some(TextCaptureProfile {
             rights,
+            publication_authority: None,
             inputs,
             event_type: if matches!(
                 operation,
@@ -454,6 +459,59 @@ pub(crate) fn capture_derived_text_layer(
     )
 }
 
+/// Observe the whole public project-text construction, including its first unit.
+/// Rights and publication scope are supplied owner evidence, not process assessment.
+pub(crate) fn capture_public_project_text(
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    source_path: &str,
+    rights: &JsonValue,
+    publication_authority: &JsonValue,
+    inputs: Vec<Value>,
+    files: &mut BTreeMap<String, Vec<u8>>,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    if inputs.is_empty()
+        || [
+            "content.txt",
+            "source-text-layer.v1.json",
+            "source-text-unit.v1.json",
+            "construction-plan.json",
+        ]
+        .iter()
+        .any(|name| !files.contains_key(*name))
+    {
+        return Err(SourceCommandError::Invalid(
+            "native public project-text capture closure",
+        ));
+    }
+    capture_creation_with_procedure(
+        request,
+        event_id,
+        home,
+        files,
+        software,
+        components,
+        "tos.project-authored.utf8-range.v1",
+        Some(TextCaptureProfile {
+            rights,
+            publication_authority: Some(publication_authority),
+            inputs,
+            event_type: "native_extraction",
+            source_path,
+            warning: "Exact project-authored UTF-8 range and explicit partition captured; atomic source publication follows. No textual, linguistic, semantic or rights assessment was performed.",
+            purpose: "Capture a literal UTF-8 source range and proposed segmentation under independently supplied project-text public authority; preserve original source bytes and separate native identities.",
+            replay_scope: "Exact source range and proposed partition with bound inputs, implementation and public plan; not content correctness or deterministic timestamps. Protected grant paths are not published.",
+        }),
+        deadline,
+        cancelled,
+    )
+}
+
 fn capture_creation_with_procedure(
     request: &JsonValue,
     event_id: &str,
@@ -462,7 +520,7 @@ fn capture_creation_with_procedure(
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     procedure_name: &str,
-    private_text: Option<OwnerTextCapture<'_>>,
+    text_capture: Option<TextCaptureProfile<'_>>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
@@ -537,7 +595,8 @@ fn capture_creation_with_procedure(
         "reproducibility":{"classification":"partially_specified","known_gaps":["Selected source capture is byte evidence only; compiler, dependencies, build and source-to-ELF relationship are not attested.","Upstream research/source reading/model invocation are outside this serialization.","Clock observations and durations are not deterministic; complete runtime environment is not archived."],"replay_scope":"Exact retained request and source-copy buffers only, not historical or semantic correctness."},
         "authority_boundary":{"validator_role":"mechanics_and_closure_only_not_truth","claims_not_established":["execution_truth","content_truth","source_fidelity","translation_quality","semantic_correctness","rights_clearance","human_review","publication_authority","canon_authority"]}
     });
-    if let Some(profile) = private_text {
+    if let Some(profile) = text_capture {
+        let public = profile.publication_authority.is_some();
         let rights: Value = serde_json::from_slice(&cmd::canonical(profile.rights)?)
             .map_err(|_| SourceCommandError::Invalid("native Text rights capture"))?;
         let input_count = profile.inputs.len();
@@ -552,7 +611,14 @@ fn capture_creation_with_procedure(
                 .as_array_mut()
                 .ok_or(SourceCommandError::Invalid("native Text event entities"))?
             {
-                row["content_disclosure"] = json!("private_content");
+                row["content_disclosure"] = json!(if public {
+                    "public_content"
+                } else {
+                    "private_content"
+                });
+                if public {
+                    row["availability"] = json!("tracked");
+                }
                 if row["entity_ref"]
                     .as_str()
                     .is_some_and(|reference| reference.ends_with("/content.txt"))
@@ -564,24 +630,47 @@ fn capture_creation_with_procedure(
         for index in 0..input_count {
             let source_ref = event["entities"]["inputs"][index + 1]["entity_ref"].clone();
             event["derivations"].as_array_mut().ok_or(SourceCommandError::Invalid("native Text event derivations"))?
-                .push(json!({"derivation_id":format!("{}.native-{index}",event_id.replacen("tos.event.","tos.derivation.",1)),
+                .push(json!({"derivation_id":format!("{}.{}-{index}",event_id.replacen("tos.event.","tos.derivation.",1), if public { "public-native" } else { "native" }),
                     "input_entity_ref":source_ref,"output_entity_ref":profile.source_path,
                     "relation":"selection_from","influence_asserted":true,
-                    "description":"Technical exact-source dependency for structural extraction, not source fidelity or textual truth."}));
+                    "description":if public { "Exact project-text construction dependency, not historical influence or assessment." } else { "Technical exact-source dependency for structural extraction, not source fidelity or textual truth." }}));
         }
+        let configuration_file = if public {
+            "construction-plan.json"
+        } else {
+            "source-create-owner-configuration.json"
+        };
         event["method"]["configuration_binding"] = binding(
-            "source-create-owner-configuration.json",
+            configuration_file,
             files
-                .get("source-create-owner-configuration.json")
-                .ok_or(SourceCommandError::Invalid("native Text retained grant"))?,
+                .get(configuration_file)
+                .ok_or(SourceCommandError::Invalid(
+                    "native Text retained configuration",
+                ))?,
         );
         event["method"]["procedure"]["purpose"] = json!(profile.purpose);
         event["rights_and_visibility"]["rights_record_bindings"] = rights;
-        event["rights_and_visibility"]["intended_uses"] = json!(["local_research"]);
-        event["rights_and_visibility"]["content_visibility"] = json!("local_only");
-        event["reproducibility"]["known_gaps"][0] = json!(
+        event["rights_and_visibility"]["intended_uses"] = if public {
+            json!(["public_metadata", "publication"])
+        } else {
+            json!(["local_research"])
+        };
+        event["rights_and_visibility"]["content_visibility"] = json!(if public {
+            "public_content"
+        } else {
+            "local_only"
+        });
+        if let Some(authority) = profile.publication_authority {
+            let authority: Value = serde_json::from_slice(&cmd::canonical(authority)?)
+                .map_err(|_| SourceCommandError::Invalid("native public authority capture"))?;
+            event["rights_and_visibility"]["publication_authorized"] = json!(true);
+            event["rights_and_visibility"]["publication_authority_bindings"] = json!([authority]);
+        }
+        event["reproducibility"]["known_gaps"][0] = json!(if public {
+            "Project authorship, licensing and delegated publication scope are supplied owner evidence, not granted or authenticated by this unsigned process; no model or human assessment is executed."
+        } else {
             "Source selection and rights decisions belong to the independent owner; this capture records bounded extraction mechanics without assessing source fidelity or content truth."
-        );
+        });
         event["reproducibility"]["replay_scope"] = json!(profile.replay_scope);
     }
     let event_raw = encoded(event)?;
@@ -628,7 +717,7 @@ pub(crate) fn capture_work_expression(
         components,
         deadline,
         cancelled,
-        false,
+        CompoundCapture::WorkExpression,
     )
 }
 pub(crate) fn capture_item_adoption(
@@ -654,8 +743,39 @@ pub(crate) fn capture_item_adoption(
         components,
         deadline,
         cancelled,
-        true,
+        CompoundCapture::EditionItem,
     )
+}
+pub(crate) fn capture_collection_membership(
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    archive_path: &str,
+    before: &BTreeMap<String, Vec<u8>>,
+    outputs: &[(&str, &[u8])],
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<WorkNativeCapture> {
+    capture_compound(
+        request,
+        event_id,
+        home,
+        archive_path,
+        before,
+        outputs,
+        software,
+        components,
+        deadline,
+        cancelled,
+        CompoundCapture::CollectionMembership,
+    )
+}
+enum CompoundCapture {
+    WorkExpression,
+    EditionItem,
+    CollectionMembership,
 }
 fn capture_compound(
     request: &JsonValue,
@@ -668,8 +788,28 @@ fn capture_compound(
     components: &SoftwareComponentSelectionV1,
     deadline: Instant,
     cancelled: &AtomicBool,
-    item: bool,
+    profile: CompoundCapture,
 ) -> SourceCommandResult<WorkNativeCapture> {
+    let (receipt_name, warning, procedure, purpose) = match profile {
+        CompoundCapture::WorkExpression => (
+            "work-expression-receipt.json",
+            "Completed in-process Work/Expression buffer serialization; atomic selected-metadata publication occurs afterward.",
+            "native-work-expression-serialization",
+            "Serialize one declared Work/Expression link and explicit source-copy forms without judging content.",
+        ),
+        CompoundCapture::EditionItem => (
+            "edition-item-receipt.json",
+            "Completed in-process Edition/Item buffer serialization; atomic selected-metadata publication occurs afterward.",
+            "native-item-adoption-serialization",
+            "Serialize one declared Edition/Item link and explicit source-copy forms without judging content.",
+        ),
+        CompoundCapture::CollectionMembership => (
+            "membership-attachment-receipt.json",
+            "Completed in-process Collection membership buffer serialization; atomic selected-metadata publication occurs afterward.",
+            "native-collection-membership-serialization",
+            "Serialize one qualified Collection membership Claim and explicit source-copy forms without judging membership.",
+        ),
+    };
     active(deadline, cancelled)?;
     if before.is_empty()
         || outputs.is_empty()
@@ -744,12 +884,12 @@ fn capture_compound(
         .remove("argv_sha256");
     let event = json!({
         "$schema":"https://tree-of-sophia.local/ToS/contracts/provenance-event-v2.schema.json","schema_version":"tos_provenance_event_v2","event_id":event_id,"event_version":1,"supersedes_event_ref":null,
-        "record_binding":{"manifest_ref":format!("{expression_home}/{}",if item {"edition-item-receipt.json"}else{"work-expression-receipt.json"}),"digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"},
-        "activity":{"event_type":"annotation","started_at":started_at,"ended_at":instant()?,"status":"completed_with_warnings","terminal_reason":null,"exit_code":0,"warnings":[if item {"Completed in-process Edition/Item buffer serialization; atomic selected-metadata publication occurs afterward."}else{"Completed in-process Work/Expression buffer serialization; atomic selected-metadata publication occurs afterward."},"The declared record link is not accepted bibliographic or textual truth."]},
+        "record_binding":{"manifest_ref":format!("{expression_home}/{}",receipt_name),"digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"},
+        "activity":{"event_type":"annotation","started_at":started_at,"ended_at":instant()?,"status":"completed_with_warnings","terminal_reason":null,"exit_code":0,"warnings":[warning,"The declared record link is not accepted bibliographic or textual truth."]},
         "entities":{"inputs":inputs,"outputs":prepared_outputs,"byproducts":[entity_at(&environment_ref,&environment_raw,"runtime-description")]},
         "derivations":derivations,
         "responsibility":[{"agent_ref":"software:tos-native-source-commands","agent_kind":"software","role":"executor","responsibility_posture":"performed","evidence_binding":null,"human_evidence_status":"not_applicable"}],
-        "method":{"procedure":{"name":if item {"native-item-adoption-serialization"}else{"native-work-expression-serialization"},"version":"1","purpose":if item {"Serialize one declared Edition/Item link and explicit source-copy forms without judging content."}else{"Serialize one declared Work/Expression link and explicit source-copy forms without judging content."}},"command_capture":{"disclosure":"withheld_digest_only","argv":null,"argv_sha256":argv_digest,"withholding_reason":"Observed process argv may contain private paths; the exact library request is captured separately."},"configuration_binding":{"ref":request_ref,"sha256":Digest256::of_bytes(&request_raw).to_hex()},"software_components":software_rows,"model_invocations":[],"environment":method_environment},
+        "method":{"procedure":{"name":procedure,"version":"1","purpose":purpose},"command_capture":{"disclosure":"withheld_digest_only","argv":null,"argv_sha256":argv_digest,"withholding_reason":"Observed process argv may contain private paths; the exact library request is captured separately."},"configuration_binding":{"ref":request_ref,"sha256":Digest256::of_bytes(&request_raw).to_hex()},"software_components":software_rows,"model_invocations":[],"environment":method_environment},
         "manual_changes":{"status":"none_declared","change_receipts":[],"statement":"Caller authorship precedes this operation; no manual edits occur inside serialization."},
         "measurements":[{"metric":"wall_duration_ms","status":"measured","value":started.elapsed().as_secs_f64()*1000.0,"unit":"ms","method":"Rust monotonic Instant from capture through native executable/source observation and buffer binding; excludes commit.","evidence_binding":null}],
         "evidence_authentication":{"capture_posture":"tool_captured","signature_status":"unsigned","signature_bindings":[],"verification_status":"unverified","producer_control_boundary":"The same unsigned native process serializes and observes; hashes do not authenticate execution truth."},
@@ -862,6 +1002,10 @@ pub(crate) fn restore_creation_capture(
     let mut method_environment = environment.clone();
     method_environment["environment_profile_binding"] =
         binding("source-create-environment.json", environment_raw);
+    let artifact = request.object_get("record").and_then(|r| r.object_get("schema_version")).and_then(JsonValue::as_str) == Some("tos_artifact_source_witness_v2");
+    if artifact && event.pointer("/method/procedure/name") != Some(&json!("native-artifact-metadata-serialization")) {
+        return Err(SourceCommandError::Conflict("retained Artifact serialization procedure differs"));
+    }
     if event.get("event_id") != Some(&json!(event_id))
         || event.get("record_binding")
             != Some(

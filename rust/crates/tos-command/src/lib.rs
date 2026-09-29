@@ -4,6 +4,16 @@
 //! semantic, rights, publication or canon admission.
 
 mod durable_adapter;
+pub mod source_artifact_native;
+pub mod source_claim_publication;
+mod source_claim_publication_assembly;
+mod source_claim_publication_bytes;
+mod source_claim_publication_closure;
+mod source_claim_publication_context;
+mod source_claim_publication_dependencies;
+mod source_claim_publication_graph;
+mod source_claim_publication_normalize;
+mod source_claim_publication_roots;
 pub mod source_claims;
 pub mod source_command;
 pub mod source_creation;
@@ -93,3 +103,7 @@ pub enum PredicateRead {
         observed_generation: u64,
     },
 }
+
+pub mod source_public_text_entry;
+pub mod source_public_text_owner;
+pub mod source_public_text_proposal;

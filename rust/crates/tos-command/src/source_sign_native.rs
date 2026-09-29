@@ -143,6 +143,7 @@ struct Cached {
 enum NativeRoute {
     Sign,
     OwnerText,
+    PublicText,
 }
 struct Native<'a, R: SignNativeRead + ?Sized> {
     reader: &'a mut R,
@@ -198,9 +199,13 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             NativeReadKind::Support => "ToS/",
             _ => "ToS/source-witnesses/",
         };
-        if !name.starts_with(home)
+        let public_support = matches!(self.route_profile, NativeRoute::PublicText)
+            && kind == NativeReadKind::Support;
+        if (!name.starts_with(home) && !public_support)
             || name.split('/').any(|part| {
                 part == "catalog"
+                    || matches!(self.route_profile, NativeRoute::PublicText)
+                        && (part == "owner-local" || part.starts_with('.'))
                     || kind != NativeReadKind::Content
                         && matches!(part, "payload" | "local-content")
             })
@@ -325,7 +330,28 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
                 "native grammar exact source identity",
             ));
         }
-        let allowed = if basename == ASSESSMENT_SCHEMA {
+        let allowed = if basename == "public-native-text-authority.schema.json" {
+            for dependency in [
+                "public-native-text-create-owner.schema.json",
+                "source-text-unit-packet-v1.schema.json",
+            ] {
+                let dependency_name = format!("ToS/contracts/{dependency}");
+                let raw = self.read(&dependency_name, None, false, true)?;
+                if self.worker.contract_digest(&dependency_name) != Some(Digest256::of_bytes(&raw))
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "native public authority dependency and schema worker differ",
+                    ));
+                }
+            }
+            vec![
+                "public-native-text-create-owner.schema.json#/$defs/sha256",
+                "public-native-text-create-owner.schema.json#/$defs/input",
+                "public-native-text-create-owner.schema.json#/$defs/binding",
+                "public-native-text-create-owner.schema.json#/$defs/sourceRef",
+                "source-text-unit-packet-v1.schema.json#/$defs/sourceScope",
+            ]
+        } else if basename == ASSESSMENT_SCHEMA {
             for dependency in [
                 "native-text-unit-binding.schema.json",
                 "source-text-unit-packet-v1.schema.json",
@@ -2315,6 +2341,224 @@ pub(crate) fn resolve_binding<R: SignNativeRead + ?Sized>(
         layer,
         summary,
         inputs,
+        input_snapshot,
+        schema_digests: native.schemas,
+    })
+}
+
+/// Source-owned public authority and rights observations, captured before text access.
+pub(crate) struct ResolvedPublicTextAuthority {
+    pub(crate) authority: JsonValue,
+    pub(crate) payload_entry: JsonValue,
+    pub(crate) inputs: Vec<NativeInput>,
+    pub(crate) input_snapshot: String,
+    pub(crate) schema_digests: BTreeMap<String, Digest256>,
+}
+
+/// Validate the exact retained delegation and every output-bearing rights record.
+/// The public creator supplies the genuine protected transport; this function
+/// opens metadata only and confers no publication or semantic authority.
+pub(crate) fn resolve_public_text_authority<R: SignNativeRead + ?Sized>(
+    reader: &mut R,
+    worker: &mut CutWorkerSchemaExecutor,
+    config: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ResolvedPublicTextAuthority> {
+    let mut native = selected_native(reader, worker, deadline, cancelled)?;
+    native.route_profile = NativeRoute::PublicText;
+    let binding = cmd::field(config, "publication_authority")?;
+    let authority_ref = cmd::text(binding, "ref")?;
+    let raw = native.read(
+        authority_ref,
+        Some(cmd::text(binding, "sha256")?),
+        true,
+        false,
+    )?;
+    let authority = cmd::parse(&raw)?;
+    native.validate(
+        &authority,
+        "public-native-text-authority.schema.json",
+        authority_ref,
+    )?;
+    let now = crate::source_serialization::instant()?;
+    let order = |left: &str, right: &str| {
+        tos_validation::retirement_rules::observed_instant_order(left, right).map_err(|_| {
+            SourceCommandError::Invalid("public authority instant requires valid timezone")
+        })
+    };
+    cmd::validate_expiry(cmd::text(&authority, "expires_at")?, &now)?;
+    cmd::validate_expiry(cmd::text(config, "expires_at")?, &now)?;
+    let output = cmd::field(&authority, "output_scope")?;
+    let identities = cmd::field(config, "identities")?;
+    let mut ids = Vec::new();
+    for key in [
+        "layer_id",
+        "anchor_id",
+        "passage_id",
+        "provenance_event_id",
+        "packet_id",
+        "scheme_id",
+        "segmentation_id",
+        "scope_anchor_ref",
+    ] {
+        ids.push(cmd::text(identities, key)?.to_owned());
+    }
+    for slot in cmd::array(identities, "unit_slots")? {
+        ids.push(cmd::text(slot, "unit_id")?.to_owned());
+        ids.push(cmd::text(slot, "anchor_ref")?.to_owned());
+    }
+    ids.extend(texts(identities, "gap_anchor_refs", 1024)?);
+    ids.sort();
+    let declared_ids = texts(output, "native_identities", 1024)?;
+    let package = split(cmd::text(config, "source_path")?)?.0;
+    if order(cmd::text(&authority, "issued_at")?, &now)? == std::cmp::Ordering::Greater
+        || order(
+            cmd::text(config, "expires_at")?,
+            cmd::text(&authority, "expires_at")?,
+        )? == std::cmp::Ordering::Greater
+        || cmd::field(&authority, "authority_id")? != cmd::field(config, "authority_ref")?
+        || cmd::field(&authority, "granted_to")? != cmd::field(config, "principal_id")?
+        || cmd::field(&authority, "source")? != cmd::field(config, "source")?
+        || cmd::field(&authority, "source_scope")? != cmd::field(config, "source_scope")?
+        || cmd::field(&authority, "license_bindings")? != cmd::field(config, "license_bindings")?
+        || cmd::text(output, "package_ref")? != package
+        || ids != declared_ids
+        || ids.windows(2).any(|pair| pair[0] == pair[1])
+        || cmd::text(output, "content_file_id")?
+            != format!("tos.file.sha256.{}", cmd::text(output, "content_sha256")?)
+    {
+        return Err(SourceCommandError::Denied(
+            "public authority does not cover exact source, maker, time and output",
+        ));
+    }
+    let mut licenses = BTreeSet::new();
+    for license in cmd::array(config, "license_bindings")? {
+        let name = cmd::text(license, "ref")?;
+        native.read(name, Some(cmd::text(license, "sha256")?), true, false)?;
+        licenses.insert(name.to_owned());
+    }
+    let scope = cmd::field(config, "source_scope")?;
+    let refs = cmd::field(config, "source_record_refs")?;
+    let digests = cmd::field(config, "source_record_sha256")?;
+    for kind in ["work", "expression", "edition", "item"] {
+        let name = cmd::text(refs, kind)?;
+        let (record, _) = native.record(name, Some(cmd::text(digests, kind)?))?;
+        native.validate(&record, "corpus-record.schema.json", name)?;
+        if cmd::text(&record, "record_type")? != kind
+            || cmd::field(&record, "record_id")? != cmd::field(scope, &format!("{kind}_ref"))?
+        {
+            return Err(SourceCommandError::Conflict(
+                "public source metadata identity differs",
+            ));
+        }
+    }
+    let mut layer_fields = ["work_ref", "expression_ref", "edition_ref", "item_ref"]
+        .iter()
+        .map(|key| Ok((*key, cmd::field(scope, key)?.clone())))
+        .collect::<SourceCommandResult<Vec<_>>>()?;
+    layer_fields.push(("source_file_ref", cmd::field(scope, "file_ref")?.clone()));
+    layer_fields.push((
+        "source_file_sha256",
+        cmd::field(scope, "file_sha256")?.clone(),
+    ));
+    let layer = cmd::object(layer_fields);
+    let manifest = native.source_scope(config, scope, &layer)?;
+    let (item, _) = native.record(cmd::text(refs, "item")?, None)?;
+    native.read(
+        cmd::text(&item, "item_manifest_ref")?,
+        Some(cmd::text(config, "manifest_sha256")?),
+        false,
+        false,
+    )?;
+    let entry = cmd::array(&manifest, "payload_files")?
+        .iter()
+        .find(|row| row.object_get("file_id") == scope.object_get("file_ref"))
+        .ok_or(SourceCommandError::Invalid(
+            "public source manifest File absent",
+        ))?
+        .clone();
+    let source = cmd::field(config, "source")?;
+    if cmd::field(&entry, "byte_size")? != cmd::field(source, "byte_size")?
+        || cmd::field(&entry, "media_type")? != cmd::field(source, "media_type")?
+    {
+        return Err(SourceCommandError::Conflict(
+            "public text acquired File metadata differs",
+        ));
+    }
+    let output_scope = BTreeSet::from([
+        cmd::text(identities, "layer_id")?.to_owned(),
+        cmd::text(output, "content_file_id")?.to_owned(),
+    ]);
+    let item_scope = BTreeSet::from([
+        cmd::text(scope, "item_ref")?.to_owned(),
+        cmd::text(scope, "file_ref")?.to_owned(),
+    ]);
+    let mut covered = BTreeSet::new();
+    let mut item_rights_seen = false;
+    for rights in cmd::array(config, "rights_record_refs")? {
+        let name = cmd::text(rights, "ref")?;
+        let (record, _) = native.record(name, Some(cmd::text(rights, "sha256")?))?;
+        native.validate(&record, "rights-record.schema.json", name)?;
+        let scopes = texts(&record, "scope_refs", 4096)?
+            .into_iter()
+            .collect::<BTreeSet<_>>();
+        if matches!(
+            cmd::text(&record, "assessment_status")?,
+            "permission_denied" | "conflicting_evidence"
+        ) || matches!(
+            cmd::text(&record, "review_status")?,
+            "superseded" | "legal_review_requested"
+        ) || scopes.is_disjoint(&output_scope) && scopes.is_disjoint(&item_scope)
+        {
+            return Err(SourceCommandError::Denied(
+                "public rights denied, inactive or scoped elsewhere",
+            ));
+        }
+        if name == cmd::text(&manifest, "rights_ref")? {
+            item_rights_seen = true;
+            if !item_scope.is_subset(&scopes) {
+                return Err(SourceCommandError::Denied(
+                    "public Item rights do not cover exact Item and File",
+                ));
+            }
+        }
+        if !scopes.is_disjoint(&output_scope) {
+            let evidence = texts(&record, "source_refs", 4096)?
+                .into_iter()
+                .collect::<BTreeSet<_>>();
+            if !matches!(
+                cmd::text(&record, "assessment_status")?,
+                "licensed" | "permission_granted" | "public_domain_reviewed"
+            ) || cmd::text(&record, "visibility")? != "public_payload"
+                || !matches!(
+                    cmd::text(&record, "redistribution_posture")?,
+                    "authorized" | "authorized_with_conditions"
+                )
+                || !matches!(
+                    cmd::text(&record, "derivative_posture")?,
+                    "allowed" | "allowed_with_conditions"
+                )
+                || !evidence.contains(authority_ref)
+                || !licenses.is_subset(&evidence)
+            {
+                return Err(SourceCommandError::Denied(
+                    "public output rights require affirmative scope and exact evidence",
+                ));
+            }
+            covered.extend(scopes.intersection(&output_scope).cloned());
+        }
+    }
+    if !item_rights_seen || covered != output_scope {
+        return Err(SourceCommandError::Denied(
+            "public Item rights closure and both output rights required",
+        ));
+    }
+    let input_snapshot = native.snapshot()?;
+    Ok(ResolvedPublicTextAuthority {
+        authority,
+        payload_entry: entry,
+        inputs: selected_inputs(&native),
         input_snapshot,
         schema_digests: native.schemas,
     })

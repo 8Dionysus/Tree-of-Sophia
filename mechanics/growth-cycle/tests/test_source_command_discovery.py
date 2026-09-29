@@ -85,7 +85,7 @@ class SourceCommandDiscoveryTests(unittest.TestCase):
                     (source_owner_context.OwnerLocalSourceContext, 'load'),
                     (source_metadata_snapshot, 'PublicationSnapshot'), (Path, 'read_bytes'), (Path, 'read_text')):
                 stack.enter_context(patch.object(owner, name, side_effect=AssertionError('discovery attempted data IO')))
-            result = source.run_local_command(None, {'schema_version': source.DISCOVERY_REQUEST, 'operation': 'discover'})
+            result = source.run_legacy_oracle_command(None, {'schema_version': source.DISCOVERY_REQUEST, 'operation': 'discover'})
             self.assertEqual(result, source.discover_commands())
             self.assertEqual(result['authorization_status'], 'not_evaluated')
             self.assertFalse(result['reads_owner_configuration'])
@@ -109,15 +109,15 @@ class SourceCommandDiscoveryTests(unittest.TestCase):
             ]
             for request in invalid:
                 with self.subTest(request=request), self.assertRaises(ValueError):
-                    source.run_local_command(None, request)
+                    source.run_legacy_oracle_command(None, request)
             with self.assertRaises(ValueError):
-                source.run_local_command(Path('/private/never-open-this-grant'),
+                source.run_legacy_oracle_command(Path('/private/never-open-this-grant'),
                     {'schema_version': source.DISCOVERY_REQUEST, 'operation': 'discover'})
             for handler in source.command_handlers():
                 with self.assertRaises(PermissionError):
-                    source.run_local_command(None, {'schema_version': handler.request_schema, 'operation': 'describe'})
+                    source.run_legacy_oracle_command(None, {'schema_version': handler.request_schema, 'operation': 'describe'})
             with self.assertRaises(PermissionError):
-                source.run_local_command(None, {'schema_version': 'unknown', 'operation': 'discover'})
+                source.run_legacy_oracle_command(None, {'schema_version': 'unknown', 'operation': 'discover'})
 
     def test_descriptor_is_used_for_configuration_dispatch_and_request_keys(self):
         parsed = {'schema_version': 'test-only:handler', 'source_root': '/not-read'}
@@ -130,16 +130,16 @@ class SourceCommandDiscoveryTests(unittest.TestCase):
         with patch.object(source, 'command_handlers', return_value=(handler,)), \
                 patch.object(source, '_read', return_value=json.dumps(parsed).encode()) as read:
             request = {'schema_version': contract.REQUEST, 'operation': 'test-only', 'handler_owned_key': None}
-            self.assertEqual(source.run_local_command(owner, request), {'sentinel': 'no mutation'})
+            self.assertEqual(source.run_legacy_oracle_command(owner, request), {'sentinel': 'no mutation'})
             configure.assert_called_once_with(parsed, owner_config=owner)
             run.assert_called_once_with(owner, parsed, 'unchanged-config-digest', Path('/not-read/target'), request)
             with self.assertRaises(ValueError):
-                source.run_local_command(owner, {**request, 'execute': 'untrusted'})
+                source.run_legacy_oracle_command(owner, {**request, 'execute': 'untrusted'})
             self.assertEqual(run.call_count, 1)
             changed = replace(handler, operations=(replace(operation, keys=frozenset({'different_key'})),))
             with patch.object(source, 'command_handlers', return_value=(changed,)):
                 with self.assertRaises(ValueError):
-                    source.run_local_command(owner, request)
+                    source.run_legacy_oracle_command(owner, request)
             with self.assertRaises(ValueError):
                 source.command_handler('unknown-extension')
 

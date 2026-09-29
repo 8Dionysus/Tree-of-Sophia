@@ -20,6 +20,11 @@ mod d1_public_schema;
 mod d1_public_semantics;
 mod d1_public_sql;
 mod d1_public_static;
+pub mod prepared_catalog_index;
+pub mod prepared_catalog_semantics;
+pub mod prepared_maintenance;
+pub mod prepared_semantic_index;
+mod prepared_semantic_kernel;
 pub mod local_prepared;
 pub mod local_prepared_aux;
 pub mod local_prepared_bulk;
@@ -32,6 +37,7 @@ pub mod prepared_maintenance;
 pub mod prepared_maintenance_file;
 pub mod prepared_semantic_index;
 mod prepared_semantic_kernel;
+pub mod prepared_source_binding;
 pub use d1_public_build::{
     PublicD1Build, PublicD1BuildLimits, build_public_d1, portable_public_d1_limits,
 };

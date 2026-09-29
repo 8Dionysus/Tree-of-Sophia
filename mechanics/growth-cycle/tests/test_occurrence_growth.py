@@ -209,18 +209,18 @@ class OccurrenceGrowthTests(unittest.TestCase):
             request.update(operation='source.create', record=body)
             prepare = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-create',
                        'record': body, 'forms': request['forms']}
-            preview = commands.run_local_command(owner, prepare)
+            preview = commands.run_legacy_oracle_command(owner, prepare)
             request.update(expected_configuration=preview['owner_configuration'],
                            expected_dependencies=preview['expected_dependencies'])
             original = (root / native.content_ref).read_bytes()
             (root / native.content_ref).write_bytes(original + b'corruption')
             with self.assertRaises(SourceProfileError):
-                commands.run_local_command(owner, request)
+                commands.run_legacy_oracle_command(owner, request)
             self.assertFalse((root / config['source_path']).exists())
             (root / native.content_ref).write_bytes(original)
-            result = commands.run_local_command(owner, request)
+            result = commands.run_legacy_oracle_command(owner, request)
             self.assertFalse(result['grants_admission'])
-            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            self.assertTrue(commands.run_legacy_oracle_command(owner, request)['replayed'])
             source_path = root / config['source_path']
             self.assertEqual(json.loads(source_path.read_bytes()), body)
             graph, _, _ = graph_fixture.historical_knowledge(root, rebuild())
@@ -248,22 +248,22 @@ class OccurrenceGrowthTests(unittest.TestCase):
             writer.write_text(json.dumps(revision))
             proposal = {'fields': {'notes': 'Corrected description of the same synthetic use; still proposed.'},
                         'forms': request['forms'], 'reason': 'Synthetic description correction only.'}
-            prepared = commands.run_local_command(writer, {'schema_version': 'tos_local_source_command_v1',
+            prepared = commands.run_legacy_oracle_command(writer, {'schema_version': 'tos_local_source_command_v1',
                                                           'operation': 'prepare-revise', **proposal})
             change = {'schema_version': 'tos_local_source_command_v1', 'operation': 'record.revise',
                 'command_id': 'synthetic:occurrence-description-correction',
                 'expected_configuration': prepared['owner_configuration'], 'expected_source': prepared['source'],
                 'expected_revision': prepared['revision'], 'expected_dependencies': prepared['expected_dependencies'],
                 **proposal}
-            changed = commands.run_local_command(writer, change)
+            changed = commands.run_legacy_oracle_command(writer, change)
             self.assertEqual(changed['source']['version'], 2)
             stored = json.loads(source_path.read_bytes())
             self.assertEqual(stored['native_text_binding'], body['native_text_binding'])
             self.assertEqual(stored['extensions'], body['extensions'])
-            self.assertEqual(commands.run_local_command(owner, request)['receipt'], result['receipt'])
+            self.assertEqual(commands.run_legacy_oracle_command(owner, request)['receipt'], result['receipt'])
             writer.write_text(json.dumps({**revision, 'allowed_fields': ['native_text_binding']}))
             with self.assertRaises((ValueError, PermissionError)):
-                commands.run_local_command(writer, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+                commands.run_legacy_oracle_command(writer, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
 
 
 if __name__ == '__main__':

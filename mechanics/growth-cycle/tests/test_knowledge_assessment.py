@@ -124,10 +124,10 @@ class AssessmentPolicyTests(unittest.TestCase):
 
     def run_local(self, path, request, *, now=NOW):
         from datetime import datetime
-        from assessment_journal import run_local_command
+        from assessment_journal import run_legacy_oracle_command
         with patch('assessment_journal.datetime') as clock:
             clock.now.return_value = datetime.fromisoformat(now.replace('Z', '+00:00'))
-            return run_local_command(path, request)
+            return run_legacy_oracle_command(path, request)
 
     def test_local_command_append_restart_replay_and_current_revocation(self):
         from assessment_journal import _digest
@@ -534,12 +534,12 @@ class AssessmentPolicyTests(unittest.TestCase):
                 self.assertFalse(list((path.parent / 'journal').iterdir()))
 
     def test_assessed_form_command_rejects_request_authority_and_reports_cli_contract(self):
-        from assessment_journal import JournalConflict, run_local_command
+        from assessment_journal import JournalConflict, run_legacy_oracle_command
         import subprocess
         path, config, _, _ = self.assessed_form_fixture()
         describe = {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe',
                     'subject_id': self.subject.id}
-        description = run_local_command(path, describe)
+        description = run_legacy_oracle_command(path, describe)
         request = {**describe, 'operation': 'materialize-form', 'expected_subject': self.subject.ref,
                    'expected_snapshot': description['owner_snapshot']}
         for key, value in (('authority', self.authorities[0].payload), ('form_language_context', None),
