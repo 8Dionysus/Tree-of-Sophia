@@ -817,6 +817,8 @@ pub fn inspect_general_operation(
     .map_err(|refusal|OperationRefusal::RetirementRefusal {stage:"retirement",refusal})?;
     if source_shapes.carrier_membership != binding.candidate_carrier
         || records.current_membership != binding.candidate_carrier
+        || records.retained_memberships.len() != records.retained_record_profiles.len()
+        || records.retained_memberships.iter().zip(&records.retained_record_profiles).any(|((revision,membership),profile)| *revision != profile.source_revision || *membership != profile.membership)
         || bibliography.carrier_membership != binding.candidate_carrier
         || layers.carrier_membership != binding.candidate_carrier
         || rights.carrier_membership != binding.candidate_carrier
@@ -845,6 +847,13 @@ pub fn inspect_general_operation(
     for observation in &records.observations {
         if let crate::record_rules::RecordObservation::Issue { path, code } = observation {
             add_issue(path, code)?;
+        }
+    }
+    for profile in &records.retained_record_profiles {
+        for observation in &profile.observations {
+            if let crate::record_rules::RecordObservation::Issue { path, code } = observation {
+                add_issue(path, code)?;
+            }
         }
     }
     for issue in &bibliography.shadow.issues {
