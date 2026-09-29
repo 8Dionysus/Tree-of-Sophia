@@ -7,7 +7,7 @@ use std::sync::{
     atomic::{AtomicU8, AtomicU64, Ordering},
 };
 use tos_compiler::local_prepared::{PreparedReadLimits, PreparedReadTransaction};
-use tos_foundation::{Digest256, JsonMode, JsonValue, parse_json};
+use tos_foundation::{Digest256, Digest256Hasher, JsonMode, JsonValue, parse_json};
 
 const MAX_ROW_BYTES: usize = 1_900_000;
 const MAX_DOCUMENT_BYTES: u64 = 8 * 1024 * 1024;
