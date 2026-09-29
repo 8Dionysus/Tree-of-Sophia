@@ -883,22 +883,33 @@ fn native_owner_alignment_preserves_versions_competition_and_cold_replay() {
         first_raw
     );
     fs::write(&owner, alignment_owner_bytes(&original_config)).unwrap();
-    let mut worker = text_worker(&cut, deadline, &cancelled);
-    let original_again = execute_owner_alignment_from_captures(
-        &context,
-        &owner,
-        &source_value(&request),
-        &cut,
-        &software,
-        &components,
-        &mut worker,
-        deadline,
-        &cancelled,
-    )
-    .unwrap();
-    drop(worker);
-    assert!(original_again.replayed);
-    assert_eq!(original_again.receipt, first_receipt);
+    // The original package binds the native CLI ELF in its retained input
+    // document. Replay through that same producer identity; the conformance
+    // process is a different ELF, even though it links the same command source.
+    let original_again =
+        alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
+    assert_eq!(original_again["replayed"], true);
+    assert_eq!(original_again["receipt_sha256"], first["receipt_sha256"]);
+    assert_eq!(
+        parse_json(
+            &fs::read(first_home.join("source-create-receipt.json")).unwrap(),
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap()
+        .into_root(),
+        first_receipt
+    );
+    assert_eq!(
+        saved,
+        fs::read_dir(&first_home)
+            .unwrap()
+            .map(|entry| {
+                let entry = entry.unwrap();
+                (entry.file_name(), fs::read(entry.path()).unwrap())
+            })
+            .collect()
+    );
 }
 
 #[test]
