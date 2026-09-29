@@ -229,12 +229,22 @@ fn provenance_v2(
         .checked_sub(state.state)
         .and_then(|n| n.checked_sub(state.transient))
         .ok_or(ItemRefusal::Budget)?;
-    crate::provenance_rules::semantic_workspace(event, state.limits.max_issues, available)?;
+    let workspace = crate::provenance_rules::semantic_workspace(
+        event,
+        state.limits.max_issues.saturating_sub(state.issues.len()),
+        available,
+    )?;
+    state.transient = state
+        .transient
+        .checked_add(workspace)
+        .ok_or(ItemRefusal::Budget)?;
+    state.reserve(0)?;
     let messages = crate::provenance_rules::semantic_issues(
         event,
         state.limits.max_issues.saturating_sub(state.issues.len()),
         state.limits.deadline,
     )?;
+    state.transient -= workspace;
     let message_state = std::mem::size_of::<Vec<&'static str>>()
         .checked_add(
             messages
@@ -396,6 +406,8 @@ pub fn inspect_source_shapes_from_cut(
             )
             .map_err(store_error)?;
         state.raw(member.raw.len())?;
+        state.transient = member.raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?;
+        state.reserve(0)?;
         let schema = crate::published_value(&member.raw, limits.max_member_bytes)
             .map_err(|error| ItemRefusal::Unsupported(format!("source schema route: {error:?}")))?;
         let uri = schema
@@ -421,7 +433,7 @@ pub fn inspect_source_shapes_from_cut(
             let digest = Digest256::of_bytes(&member.raw).to_hex();
             state.reserve(digest.len() + std::mem::size_of::<Option<String>>())?;
             state.read(PredicateRead::SchemaResource {
-                uri: path.into(),
+                uri: uri.into(),
                 digest: digest.clone(),
             })?;
             provenance_contract = Some(digest);
@@ -430,6 +442,7 @@ pub fn inspect_source_shapes_from_cut(
             state.reserve(version.len() + path.len() + 128)?;
             by_version.entry(version).or_default().insert(path.into());
         }
+        state.transient = 0;
     }
     let mut stream = cut.stream(revision).map_err(store_error)?;
     let mut checked_instances = 0u64;
@@ -445,16 +458,22 @@ pub fn inspect_source_shapes_from_cut(
         {
             continue;
         }
+        // Admit the live member and decoded tree before allocating the tree;
+        // the same transient remains charged through schema and ref checks.
+        state.transient = member.raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?;
+        state.reserve(0)?;
         let value = match crate::native_decoded_value(&member.raw, limits.max_member_bytes) {
             Ok(value) => value,
             Err(ItemRefusal::Source(_)) => {
                 state.issue(path, "invalid-json")?;
+                state.transient = 0;
                 continue;
             }
             Err(error) => return Err(error),
         };
         if !value.is_object() {
             state.gap(path, "non-object-source-owner-route")?;
+            state.transient = 0;
             continue;
         }
         state.read(PredicateRead::ExactPath {
@@ -499,10 +518,7 @@ pub fn inspect_source_shapes_from_cut(
             )?;
         }
         if version == Some(PROVENANCE_V2) {
-            state.transient = member.raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?;
-            state.reserve(0)?;
             provenance_v2(cut, revision, path, &value, &mut state, cancelled)?;
-            state.transient = 0;
         }
         let refs = ["source_refs", "source_record_refs", "receipt_refs"]
             .into_iter()
@@ -550,6 +566,7 @@ pub fn inspect_source_shapes_from_cut(
                 state.issue(path, "unresolved-source-ref")?;
             }
         }
+        state.transient = 0;
     }
     let carrier_membership = stream
         .coverage()
