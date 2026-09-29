@@ -621,6 +621,19 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     };
     let cancelled = AtomicBool::new(false);
     let deadline = Instant::now() + Duration::from_secs(240);
+    // Only the two selected-model candidates need the explicitly admitted
+    // fs-verity filesystem. Corpus, catalog staging, PG and generation spool
+    // paths keep their existing private /srv scratch route.
+    let model_root = match std::env::var_os("TOS_CMD2_LAB_NATIVE_MODEL_ROOT") {
+        Some(path) => {
+            let path = PathBuf::from(path);
+            assert!(path.is_absolute(), "native model root must be absolute");
+            let path = path.canonicalize().unwrap();
+            assert!(path.is_dir());
+            path
+        }
+        None => root.0.clone(),
+    };
     let isolated = IsolatedCreationRoot::create(&root.0, deadline, &cancelled).unwrap();
     // The same actual maintained resources as the existing native creation
     // scenario. No philosophical corpus or payload discovery is performed.
@@ -1585,7 +1598,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                     &navigation,
                     &validator,
                     proof,
-                    &root.0.join("initial-agent-selected.sqlite"),
+                    &model_root.join("initial-agent-selected.sqlite"),
                     binding,
                     selected_stage_limits,
                     &selected_owner,
@@ -1815,7 +1828,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                     &validator,
                     revision,
                     bibliographic_limits,
-                    &root.0.join("successor-agent-selected.sqlite"),
+                    &model_root.join("successor-agent-selected.sqlite"),
                     binding,
                     selected_stage_limits,
                     &selected_owner,
