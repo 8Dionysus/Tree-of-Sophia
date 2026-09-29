@@ -108,6 +108,7 @@ pub struct LayerFamilyReport {
 pub struct LayerFamilyRules {
     limits: ItemLimits,
     state_bytes: usize,
+    named_transient: usize,
     report: LayerFamilyReport,
     identities: BTreeMap<(String, String), String>,
     discovery_events: Option<BTreeMap<String, (String, Value, Vec<u8>)>>,
@@ -131,6 +132,7 @@ impl LayerFamilyRules {
         Self {
             limits,
             state_bytes: 0,
+            named_transient: 0,
             report: LayerFamilyReport::default(),
             identities: BTreeMap::new(),
             discovery_events: None,
@@ -148,7 +150,22 @@ impl LayerFamilyRules {
         self.state_bytes = self
             .state_bytes
             .checked_add(n)
-            .filter(|n| *n <= self.limits.max_state_bytes)
+            .filter(|n| {
+                n.checked_add(self.named_transient)
+                    .is_some_and(|total| total <= self.limits.max_state_bytes)
+            })
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+    fn reserve_named(&mut self, n: usize) -> Result<(), ItemRefusal> {
+        self.named_transient = self
+            .named_transient
+            .checked_add(n)
+            .filter(|total| {
+                self.state_bytes
+                    .checked_add(*total)
+                    .is_some_and(|used| used <= self.limits.max_state_bytes)
+            })
             .ok_or(ItemRefusal::Budget)?;
         Ok(())
     }
@@ -316,6 +333,60 @@ impl LayerFamilyRules {
         }
         Ok(Some((value, raw)))
     }
+    // Only the named bridge retains its decoded plan and all four outputs at
+    // once. The generic bytes() path has already charged the raw transport;
+    // this adds the simultaneously live decoded tree and output collection.
+    fn named_object(
+        &mut self,
+        source: &mut impl LayerFamilySource,
+        path: &str,
+        contract: Option<&str>,
+    ) -> Result<Option<(Value, Vec<u8>)>, ItemRefusal> {
+        let Some(raw) = self.bytes(source, path, None)? else {
+            return Ok(None);
+        };
+        let available = self
+            .limits
+            .max_state_bytes
+            .checked_sub(self.state_bytes)
+            .and_then(|n| n.checked_sub(self.named_transient))
+            .ok_or(ItemRefusal::Budget)?;
+        let (value, decoded_state) = match crate::record_biblio_cut::bounded_legacy_decoded_state(
+            &raw,
+            self.limits.max_member_bytes,
+            available,
+            self.limits.deadline,
+            source.cancellation(),
+        ) {
+            Ok(result) => result,
+            Err(ItemRefusal::Source(reason)) => {
+                self.issue(path, "invalid-json", reason)?;
+                return Ok(None);
+            }
+            Err(ItemRefusal::Unsupported(reason)) => {
+                self.gap(path, &reason)?;
+                return Ok(None);
+            }
+            Err(reason) => return Err(reason),
+        };
+        self.reserve_named(decoded_state)?;
+        if !value.is_object() {
+            self.issue(path, "object-required", path)?;
+            return Ok(None);
+        }
+        if let Some(contract) = contract {
+            if !self.schema(source, path, &raw, contract)? {
+                self.issue(path, "schema", contract)?;
+            }
+            self.checked(path, "Draft2020-12-owner-schema")?;
+        }
+        self.reserve_named(
+            path.len()
+                .checked_add(std::mem::size_of::<Vec<u8>>())
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
+        Ok(Some((value, raw)))
+    }
     fn identity(
         &mut self,
         source: &impl LayerFamilySource,
@@ -446,6 +517,17 @@ impl LayerFamilyRules {
         &mut self,
         source: &mut impl LayerFamilySource,
     ) -> Result<(), ItemRefusal> {
+        let prior = self.named_transient;
+        let result = self.inspect_zarathustra_opening_sentence_inner(source);
+        // The named plan and output trees leave scope together, including on
+        // an early refusal. Report and read state remain charged by reserve().
+        self.named_transient = prior;
+        result
+    }
+    fn inspect_zarathustra_opening_sentence_inner(
+        &mut self,
+        source: &mut impl LayerFamilySource,
+    ) -> Result<(), ItemRefusal> {
         source.checkpoint(self.limits.deadline)?;
         if !source.exists(
             OPENING_SENTENCE_PLAN,
@@ -457,7 +539,7 @@ impl LayerFamilyRules {
                 "named-opening-sentence-plan-not-selected",
             );
         }
-        let Some((plan, _)) = self.object(source, OPENING_SENTENCE_PLAN, None)? else {
+        let Some((plan, _)) = self.named_object(source, OPENING_SENTENCE_PLAN, None)? else {
             return Ok(());
         };
         if s(&plan, "schema_version") != "tos_zarathustra_opening_sentence_alignment_plan_v1" {
@@ -479,6 +561,15 @@ impl LayerFamilyRules {
             "ToS/contracts/translation-alignment-packet-v1.schema.json",
             "ToS/contracts/provenance-event-v2.schema.json",
         ];
+        self.reserve_named(
+            std::mem::size_of::<Vec<(String, Value, Vec<u8>)>>()
+                .checked_add(
+                    4usize
+                        .checked_mul(std::mem::size_of::<(String, Value, Vec<u8>)>())
+                        .ok_or(ItemRefusal::Budget)?,
+                )
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
         let mut outputs = Vec::with_capacity(4);
         for (field, contract) in output_fields.into_iter().zip(contracts) {
             source.checkpoint(self.limits.deadline)?;
@@ -490,7 +581,7 @@ impl LayerFamilyRules {
                 )?;
                 continue;
             };
-            if let Some((value, raw)) = self.object(source, path, Some(contract))? {
+            if let Some((value, raw)) = self.named_object(source, path, Some(contract))? {
                 outputs.push((path.to_owned(), value, raw));
             }
         }
@@ -524,6 +615,20 @@ impl LayerFamilyRules {
                 s(event, "schema_version"),
             )?;
         }
+        let available = self
+            .limits
+            .max_state_bytes
+            .checked_sub(self.state_bytes)
+            .and_then(|n| n.checked_sub(self.named_transient))
+            .ok_or(ItemRefusal::Budget)?;
+        let workspace = crate::provenance_rules::semantic_workspace(
+            event,
+            self.limits
+                .max_issues
+                .saturating_sub(self.report.issues.len()),
+            available,
+        )?;
+        self.reserve_named(workspace)?;
         for message in crate::provenance_rules::semantic_issues(
             event,
             self.limits
@@ -533,6 +638,7 @@ impl LayerFamilyRules {
         )? {
             self.issue(event_path, "opening-sentence-event-semantic", message)?;
         }
+        self.named_transient -= workspace;
         self.opening_sentence_side(
             &plan,
             "source",
@@ -553,30 +659,34 @@ impl LayerFamilyRules {
         )?;
         self.opening_sentence_authority(&plan, alignment_path, alignment, event_path, event)?;
         self.opening_sentence_bindings(source, &plan)?;
-        let actual_outputs: BTreeMap<_, _> = rows(&event["entities"], "outputs")
+        let output_rows = rows(&event["entities"], "outputs");
+        let output_slots = output_rows
             .iter()
-            .filter_map(|row| {
-                Some((
-                    row["entity_ref"].as_str()?.to_owned(),
-                    row["sha256"].as_str()?.to_owned(),
-                ))
-            })
+            .filter(|row| row["entity_ref"].as_str().is_some() && row["sha256"].as_str().is_some())
+            .count();
+        let map_state = std::mem::size_of::<BTreeMap<&str, &str>>()
+            .checked_add(
+                output_slots
+                    .checked_mul(std::mem::size_of::<(&str, &str)>())
+                    .ok_or(ItemRefusal::Budget)?,
+            )
+            .and_then(|n| n.checked_add(3 * (std::mem::size_of::<String>() + 64)))
+            .ok_or(ItemRefusal::Budget)?;
+        self.reserve_named(map_state)?;
+        // Last duplicate wins, as in the source owner's keyed entity view.
+        // Borrowed keys/values avoid cloning whole event strings.
+        let actual_outputs: BTreeMap<&str, &str> = output_rows
+            .iter()
+            .filter_map(|row| Some((row["entity_ref"].as_str()?, row["sha256"].as_str()?)))
             .collect();
-        let expected_outputs = BTreeMap::from([
-            (
-                source_path.to_owned(),
-                Digest256::of_bytes(source_raw).to_hex(),
-            ),
-            (
-                target_path.to_owned(),
-                Digest256::of_bytes(target_raw).to_hex(),
-            ),
-            (
-                alignment_path.to_owned(),
-                Digest256::of_bytes(alignment_raw).to_hex(),
-            ),
-        ]);
-        if actual_outputs != expected_outputs {
+        let source_digest = Digest256::of_bytes(source_raw).to_hex();
+        let target_digest = Digest256::of_bytes(target_raw).to_hex();
+        let alignment_digest = Digest256::of_bytes(alignment_raw).to_hex();
+        if actual_outputs.len() != 3
+            || actual_outputs.get(source_path.as_str()) != Some(&source_digest.as_str())
+            || actual_outputs.get(target_path.as_str()) != Some(&target_digest.as_str())
+            || actual_outputs.get(alignment_path.as_str()) != Some(&alignment_digest.as_str())
+        {
             self.issue(
                 event_path,
                 "opening-sentence-event-output-closure",
@@ -632,7 +742,9 @@ impl LayerFamilyRules {
             self.issue(packet_path, "opening-sentence-segmentation-posture", label)?;
         } else if !rows(&segmentations[0], "review_refs").is_empty()
             || s(&segmentations[0]["coverage"], "coverage_posture") != "declared_partial"
-            || !strs(&segmentations[0], "declared_uses").contains(&"translation_alignment")
+            || !rows(&segmentations[0], "declared_uses")
+                .iter()
+                .any(|value| value.as_str() == Some("translation_alignment"))
         {
             self.issue(packet_path, "opening-sentence-segmentation-coverage", label)?;
         }
@@ -676,7 +788,9 @@ impl LayerFamilyRules {
             self.issue(packet_path, "opening-sentence-excluded-remainder", label)?;
         }
         if segmentations.first().is_none_or(|row| {
-            !strs(&row["coverage"], "excluded_anchor_refs").contains(&remainder_id)
+            !rows(&row["coverage"], "excluded_anchor_refs")
+                .iter()
+                .any(|value| value.as_str() == Some(remainder_id))
         }) {
             self.issue(packet_path, "opening-sentence-remainder-coverage", label)?;
         }
@@ -819,7 +933,10 @@ impl LayerFamilyRules {
             let row = &proposed[0];
             if s(row, "status") != "proposed"
                 || s(row, "correspondence_shape") != "one_to_one"
-                || strs(row, "translation_techniques") != ["unresolved"]
+                || !rows(row, "translation_techniques")
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .eq(std::iter::once("unresolved"))
                 || s(row, "epistemic_status") != "inferred"
                 || !rows(row, "review_refs").is_empty()
                 || s(&row["maker"], "maker_kind") != "software"

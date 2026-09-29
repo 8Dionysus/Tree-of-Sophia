@@ -89,16 +89,15 @@ impl State {
     }
 }
 
-/// An event records original inputs, while this family can prove only bytes
-/// selected in the current source cut. A changed historical input is a gap;
-/// a selected, tracked output claiming its current digest is a defect.
+/// An event records execution-time bytes, while this family sees only the
+/// selected current cut. Even a tracked output may have a legitimate later
+/// successor; generic provenance alone cannot claim current-byte equality.
 fn provenance_ref(
     cut: &CorpusCutReader,
     revision: SourceRevision,
     owner: &str,
     reference: &str,
     digest: Option<&str>,
-    current_output: bool,
     state: &mut State,
     cancelled: &AtomicBool,
 ) -> Result<(), ItemRefusal> {
@@ -138,11 +137,7 @@ fn provenance_ref(
         digest: actual.clone(),
     })?;
     if digest.is_some_and(|expected| expected != actual) {
-        if current_output {
-            state.issue(owner, "current-provenance-output-fixity")?;
-        } else {
-            state.gap(owner, "provenance-recorded-input-differs-from-current")?;
-        }
+        state.gap(owner, "provenance-recorded-ref-differs-from-current")?;
     }
     Ok(())
 }
@@ -172,7 +167,6 @@ fn provenance_bindings(
                     owner,
                     reference,
                     Some(digest),
-                    false,
                     state,
                     cancelled,
                 )?;
@@ -187,7 +181,6 @@ fn provenance_bindings(
                     owner,
                     reference,
                     Some(digest),
-                    false,
                     state,
                     cancelled,
                 )?;
@@ -195,9 +188,7 @@ fn provenance_bindings(
             for field in ["agent_ref", "actor_ref"] {
                 if let Some(reference) = object.get(field).and_then(Value::as_str) {
                     if reference.starts_with("ToS/") || reference.starts_with("scripts/") {
-                        provenance_ref(
-                            cut, revision, owner, reference, None, false, state, cancelled,
-                        )?;
+                        provenance_ref(cut, revision, owner, reference, None, state, cancelled)?;
                     }
                 }
             }
@@ -266,9 +257,7 @@ fn provenance_v2(
         .pointer("/record_binding/manifest_ref")
         .and_then(Value::as_str)
     {
-        provenance_ref(
-            cut, revision, owner, reference, None, false, state, cancelled,
-        )?;
+        provenance_ref(cut, revision, owner, reference, None, state, cancelled)?;
     }
     for group in ["inputs", "outputs", "byproducts"] {
         if let Some(entities) = event
@@ -281,15 +270,12 @@ fn provenance_v2(
                     entity.get("entity_ref").and_then(Value::as_str),
                     entity.get("sha256").and_then(Value::as_str),
                 ) {
-                    let current_output = group != "inputs"
-                        && entity.get("availability").and_then(Value::as_str) == Some("tracked");
                     provenance_ref(
                         cut,
                         revision,
                         owner,
                         reference,
                         Some(digest),
-                        current_output,
                         state,
                         cancelled,
                     )?;
