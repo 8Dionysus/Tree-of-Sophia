@@ -263,7 +263,12 @@ impl<'a> PreparedSearchSession<'a> {
     pub fn catalog(&mut self, binding: &JsonValue) -> Result<JsonValue> {
         self.read.check_abort()?;
         let view = PreparedReadTransaction::admit(self.read.db, binding, self.read.limits)
-            .map_err(prepared_error)?;
+            .map_err(|e| {
+                self.read
+                    .check_abort()
+                    .err()
+                    .unwrap_or_else(|| prepared_error(e))
+            })?;
         self.read.absorb_owner(&view)?;
         let result = catalog_checked(&mut self.read, &view);
         drop(view);
