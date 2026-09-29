@@ -250,12 +250,22 @@ impl Gate<'_> {
             "registry gate requires Linux descriptor custody",
         ))
     }
-    fn decode(&self, raw: &[u8], label: &str) -> io::Result<(Value, usize)> {
+    fn decode(
+        &self,
+        raw: &[u8],
+        label: &str,
+        live_pair_state: usize,
+    ) -> io::Result<(Value, usize)> {
         self.check()?;
         // Decoder/rule boundaries carry the actual signal. Foundation parsing
         // and schema compilation/evaluation are finite in-process calls; the
         // outer strict runner owns the hard wall during those calls.
-        decode_snapshot_member(raw, self.item_limits(), self.cancel)
+        let mut limits = self.item_limits();
+        limits.max_state_bytes = limits
+            .max_state_bytes
+            .checked_sub(live_pair_state)
+            .ok_or_else(|| invalid("semantic registry live pair state exceeded"))?;
+        decode_snapshot_member(raw, limits, self.cancel)
             .map_err(|e| invalid(format!("{label}: {e:?}")))
     }
     fn validate_rules(
@@ -291,9 +301,9 @@ impl Gate<'_> {
         for (reference, schema_ref) in REGISTRIES.iter().zip(SCHEMAS) {
             let raw = self.read(reference, commit)?;
             let schema_raw = self.read(schema_ref, commit)?;
-            let (value, state) = self.decode(&raw, &format!("{label}:{reference}"))?;
+            let (value, state) = self.decode(&raw, &format!("{label}:{reference}"), 0)?;
             let (schema, schema_state) =
-                self.decode(&schema_raw, &format!("{label}:{schema_ref}"))?;
+                self.decode(&schema_raw, &format!("{label}:{schema_ref}"), state)?;
             if self
                 .retained
                 .checked_add(state)

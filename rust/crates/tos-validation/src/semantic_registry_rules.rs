@@ -70,6 +70,7 @@ struct Rules<'a> {
     visits: usize,
     issues: BTreeSet<String>,
     issue_bytes: usize,
+    state_base: usize,
 }
 impl Rules<'_> {
     fn visit(&mut self) -> Result<(), ItemRefusal> {
@@ -91,7 +92,11 @@ impl Rules<'_> {
             .checked_add(text.len() + std::mem::size_of::<String>())
             .ok_or(ItemRefusal::Budget)?;
         if self.issues.len() >= self.limits.max_issues
-            || self.issue_bytes > self.limits.max_state_bytes.min(1_048_576)
+            || self.issue_bytes > 1_048_576
+            || self
+                .state_base
+                .checked_add(self.issue_bytes)
+                .is_none_or(|n| n > self.limits.max_state_bytes)
         {
             return Err(ItemRefusal::Budget);
         }
@@ -944,18 +949,17 @@ pub fn validate_semantic_registries(
             .and_then(|n| decoded_state(q).ok().and_then(|q| n.checked_add(q)))
             .ok_or(ItemRefusal::Budget)?;
     }
-    if retained
+    let state_base = retained
         .checked_mul(4)
-        .is_none_or(|n| n > limits.max_state_bytes)
-    {
-        return Err(ItemRefusal::Budget);
-    }
+        .filter(|n| *n <= limits.max_state_bytes)
+        .ok_or(ItemRefusal::Budget)?;
     let mut r = Rules {
         limits,
         cancelled,
         visits: 0,
         issues: BTreeSet::new(),
         issue_bytes: 0,
+        state_base,
     };
     vocabulary(&mut r, entity, previous.map(|p| p.0))?;
     let entities = indexed(&mut r, entity, "types", "type_id", "entity")?;
