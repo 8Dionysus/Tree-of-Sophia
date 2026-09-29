@@ -7,9 +7,7 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicI32, Ordering};
 use tos_compiler::source_philosophy_views::{self, ViewLimits};
-use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonMode, canonical_bytes_v1, parse_json,
-};
+use tos_foundation::{CanonicalProfile, JsonLimits, JsonMode, canonical_bytes_v1, parse_json};
 const CATALOG: &str = "ToS/derived-exports/philosophy_graph_views.min.json";
 struct Sources<'a> {
     reader: RouteSources,
@@ -30,15 +28,13 @@ impl Sources<'_> {
         let raw = self.raw(path)?;
         decode_object(&raw, path, 8 * 1024 * 1024)
     }
-    fn derived_object(&mut self, path: &str, max: usize) -> io::Result<(Value, Digest256)> {
+    fn derived_object(&mut self, path: &str, max: usize) -> io::Result<Value> {
         self.check()?;
         // Each derived operand has its own explicit read profile. It never
         // enters the authored text cache or supplies source/canon authority.
         let mut read_bytes = 0;
         let raw = self.reader.bounded_bytes(path, max, &mut read_bytes, max)?;
-        let fixity = Digest256::of_bytes(&raw);
-        let value = decode_object(&raw, path, max)?;
-        Ok((value, fixity))
+        decode_object(&raw, path, max)
     }
     fn builder_read(&mut self, path: &str) -> tos_compiler::Result<Vec<u8>> {
         let raw = self
@@ -183,8 +179,7 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<()> {
     };
     // This function consumes the existing atlas projection, exactly like the
     // old build_payload. It does not rebuild atlas, graph or a fullphi stage.
-    let (atlas, _atlas_fixity) =
-        source.derived_object(source_philosophy_views::ATLAS_REF, 128 * 1024 * 1024)?;
+    let atlas = source.derived_object(source_philosophy_views::ATLAS_REF, 128 * 1024 * 1024)?;
     let empty = Vec::new();
     let nodes=match atlas.get("nodes"){None=>&empty,Some(v)=>v.as_array().ok_or_else(||io::Error::other("ToS/derived-exports/philosophy_atlas_projection.min.json must expose nodes and edges"))?};
     let edges=match atlas.get("edges"){None=>&empty,Some(v)=>v.as_array().ok_or_else(||io::Error::other("ToS/derived-exports/philosophy_atlas_projection.min.json must expose nodes and edges"))?};
@@ -207,8 +202,7 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<()> {
         .build(&schema)
         .map_err(io::Error::other)?;
     schema_check(&validator, &expected, &source)?;
-    let (current, _catalog_fixity) =
-        source.derived_object(CATALOG, ViewLimits::default().max_output_bytes)?;
+    let current = source.derived_object(CATALOG, ViewLimits::default().max_output_bytes)?;
     schema_check(&validator, &current, &source)?;
     source.check()?;
     let expected_bytes = render(&expected)?;
