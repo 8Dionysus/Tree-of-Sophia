@@ -2370,7 +2370,7 @@ fn recover_collection_selected(
             &selected,
             cmd::field(&authorization, "dependency_bindings")?,
             None,
-            &archive,
+            Some(&archive),
             prior_id.as_deref().zip(publication_token),
             &extent,
             limits.deadline,
