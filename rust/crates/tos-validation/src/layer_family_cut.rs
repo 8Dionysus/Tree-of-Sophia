@@ -336,6 +336,7 @@ pub fn inspect_layers_with_payloads_from_cut(
         check(limits.deadline, cancelled)?;
         rules.inspect(&mut source, &path)?;
     }
+    rules.inspect_zarathustra_opening_sentence(&mut source)?;
     check(limits.deadline, cancelled)?;
     Ok(SourceCutLayerFamilyReport {
         revision,

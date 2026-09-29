@@ -7,10 +7,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 static NO_METADATA_CANCELLATION: AtomicBool = AtomicBool::new(false);
+const OPENING_SENTENCE_PLAN: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json";
 use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::text_rules::{self, LayerResource, TextRuleReport, TextRuleState};
 use crate::{KeyState, PredicateRead};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use tos_foundation::{Digest256, RelativePath};
 
 pub trait LayerFamilySource {
@@ -113,6 +114,18 @@ pub struct LayerFamilyRules {
     boundary_events: Option<BTreeMap<String, (String, Value, Vec<u8>)>>,
     require_local_payloads: bool,
 }
+/// Apply only the decoded translation-alignment mapping law to an owner-supplied
+/// packet. The caller retains raw-byte admission, schema validation and source
+/// custody; this report grants none of those properties.
+pub fn inspect_supplied_translation_alignment(
+    packet: &Value,
+    limits: ItemLimits,
+) -> Result<LayerFamilyReport, ItemRefusal> {
+    let mut rules = LayerFamilyRules::new(limits);
+    rules.translation_alignment("<owner-local-native-alignment>", packet)?;
+    Ok(rules.finish())
+}
+
 impl LayerFamilyRules {
     pub fn new(limits: ItemLimits) -> Self {
         Self {
@@ -425,6 +438,487 @@ impl LayerFamilyRules {
             _ => {}
         }
         source.checkpoint(self.limits.deadline)
+    }
+    /// The source-owned real sentence bridge is a named, text-free closure.
+    /// It relates already inspected packets but does not replay private spans,
+    /// decide translation fidelity, or authorize publication.
+    pub fn inspect_zarathustra_opening_sentence(
+        &mut self,
+        source: &mut impl LayerFamilySource,
+    ) -> Result<(), ItemRefusal> {
+        source.checkpoint(self.limits.deadline)?;
+        if !source.exists(
+            OPENING_SENTENCE_PLAN,
+            self.limits.max_member_bytes,
+            self.limits.deadline,
+        )? {
+            return self.gap(
+                OPENING_SENTENCE_PLAN,
+                "named-opening-sentence-plan-not-selected",
+            );
+        }
+        let Some((plan, _)) = self.object(source, OPENING_SENTENCE_PLAN, None)? else {
+            return Ok(());
+        };
+        if s(&plan, "schema_version") != "tos_zarathustra_opening_sentence_alignment_plan_v1" {
+            self.issue(
+                OPENING_SENTENCE_PLAN,
+                "opening-sentence-plan-version",
+                s(&plan, "schema_version"),
+            )?;
+        }
+        let output_fields = [
+            "source_sentence_packet_ref",
+            "target_sentence_packet_ref",
+            "alignment_packet_ref",
+            "provenance_event_ref",
+        ];
+        let contracts = [
+            "ToS/contracts/source-text-unit-packet-v1.schema.json",
+            "ToS/contracts/source-text-unit-packet-v1.schema.json",
+            "ToS/contracts/translation-alignment-packet-v1.schema.json",
+            "ToS/contracts/provenance-event-v2.schema.json",
+        ];
+        let mut outputs = Vec::with_capacity(4);
+        for (field, contract) in output_fields.into_iter().zip(contracts) {
+            source.checkpoint(self.limits.deadline)?;
+            let Some(path) = plan["outputs"][field].as_str().filter(|p| !p.is_empty()) else {
+                self.issue(
+                    OPENING_SENTENCE_PLAN,
+                    "opening-sentence-output-ref-absent",
+                    field,
+                )?;
+                continue;
+            };
+            if let Some((value, raw)) = self.object(source, path, Some(contract))? {
+                outputs.push((path.to_owned(), value, raw));
+            }
+        }
+        if outputs.len() != 4 {
+            return Ok(());
+        }
+        let (source_path, source_packet, source_raw) =
+            (&outputs[0].0, &outputs[0].1, &outputs[0].2);
+        let (target_path, target_packet, target_raw) =
+            (&outputs[1].0, &outputs[1].1, &outputs[1].2);
+        let (alignment_path, alignment, alignment_raw) =
+            (&outputs[2].0, &outputs[2].1, &outputs[2].2);
+        let (event_path, event, _) = (&outputs[3].0, &outputs[3].1, &outputs[3].2);
+        for (path, packet, version) in [
+            (source_path, source_packet, text_rules::TEXT_UNIT_PROFILE),
+            (target_path, target_packet, text_rules::TEXT_UNIT_PROFILE),
+            (
+                alignment_path,
+                alignment,
+                "tos_translation_alignment_packet_v1",
+            ),
+        ] {
+            if s(packet, "schema_version") != version {
+                self.issue(path, "opening-sentence-output-profile", version)?;
+            }
+        }
+        if s(event, "schema_version") != "tos_provenance_event_v2" {
+            self.issue(
+                event_path,
+                "opening-sentence-event-profile",
+                s(event, "schema_version"),
+            )?;
+        }
+        for message in crate::provenance_rules::semantic_issues(
+            event,
+            self.limits
+                .max_issues
+                .saturating_sub(self.report.issues.len()),
+            self.limits.deadline,
+        )? {
+            self.issue(event_path, "opening-sentence-event-semantic", message)?;
+        }
+        self.opening_sentence_side(
+            &plan,
+            "source",
+            source_path,
+            source_packet,
+            source_raw,
+            alignment_path,
+            alignment,
+        )?;
+        self.opening_sentence_side(
+            &plan,
+            "target",
+            target_path,
+            target_packet,
+            target_raw,
+            alignment_path,
+            alignment,
+        )?;
+        self.opening_sentence_authority(&plan, alignment_path, alignment, event_path, event)?;
+        self.opening_sentence_bindings(source, &plan)?;
+        let actual_outputs: BTreeMap<_, _> = rows(&event["entities"], "outputs")
+            .iter()
+            .filter_map(|row| {
+                Some((
+                    row["entity_ref"].as_str()?.to_owned(),
+                    row["sha256"].as_str()?.to_owned(),
+                ))
+            })
+            .collect();
+        let expected_outputs = BTreeMap::from([
+            (
+                source_path.to_owned(),
+                Digest256::of_bytes(source_raw).to_hex(),
+            ),
+            (
+                target_path.to_owned(),
+                Digest256::of_bytes(target_raw).to_hex(),
+            ),
+            (
+                alignment_path.to_owned(),
+                Digest256::of_bytes(alignment_raw).to_hex(),
+            ),
+        ]);
+        if actual_outputs != expected_outputs {
+            self.issue(
+                event_path,
+                "opening-sentence-event-output-closure",
+                event_path,
+            )?;
+        }
+        self.checked(
+            OPENING_SENTENCE_PLAN,
+            "named-zarathustra-opening-sentence-tracked-closure-v1",
+        )?;
+        source.checkpoint(self.limits.deadline)
+    }
+    fn opening_sentence_side(
+        &mut self,
+        plan: &Value,
+        label: &str,
+        packet_path: &str,
+        packet: &Value,
+        packet_raw: &[u8],
+        alignment_path: &str,
+        alignment: &Value,
+    ) -> Result<(), ItemRefusal> {
+        self.reserve(0)?;
+        let side_plan = &plan[label];
+        let side = &alignment[if label == "source" {
+            "source_side"
+        } else {
+            "target_side"
+        }];
+        if !opening_scope_matches(&packet["source_scope"], side_plan) {
+            self.issue(packet_path, "opening-sentence-source-scope", label)?;
+        }
+        let source_layer = &packet["source_layer"];
+        if source_layer["text_layer_ref"] != side_plan["text_layer_ref"]
+            || source_layer["text_layer_sha256"] != side_plan["text_layer_sha256"]
+            || source_layer["language"] != side_plan["language"]
+            || source_layer["visibility"] != "local_only"
+            || source_layer["publication_authorized"] != false
+        {
+            self.issue(packet_path, "opening-sentence-frozen-layer", label)?;
+        }
+        if !rows(packet, "reviews").is_empty() || !rows(packet, "projections").is_empty() {
+            self.issue(
+                packet_path,
+                "opening-sentence-fabricated-review-projection",
+                label,
+            )?;
+        }
+        let segmentations = rows(packet, "segmentations");
+        let units = rows(packet, "units");
+        let anchors = rows(packet, "anchors");
+        if segmentations.len() != 1 || s(&segmentations[0], "status") != "proposed" {
+            self.issue(packet_path, "opening-sentence-segmentation-posture", label)?;
+        } else if !rows(&segmentations[0], "review_refs").is_empty()
+            || s(&segmentations[0]["coverage"], "coverage_posture") != "declared_partial"
+            || !strs(&segmentations[0], "declared_uses").contains(&"translation_alignment")
+        {
+            self.issue(packet_path, "opening-sentence-segmentation-coverage", label)?;
+        }
+        if units.len() != 1
+            || s(&units[0], "unit_kind") != "sentence"
+            || s(&units[0], "boundary_posture") != "method_proposed"
+            || units[0]["semantic_promotion"] != false
+        {
+            self.issue(packet_path, "opening-sentence-unit-posture", label)?;
+        }
+        let ids = &plan["opaque_ids"];
+        let sentence_id = s(ids, &format!("{label}_sentence_anchor_id"));
+        let remainder_id = s(ids, &format!("{label}_remainder_anchor_id"));
+        // Python's keyed anchor view keeps the final occurrence; schema and
+        // family checks still report duplicate identities independently.
+        let sentence = anchors
+            .iter()
+            .rev()
+            .find(|row| s(row, "anchor_ref") == sentence_id)
+            .unwrap_or(&Value::Null);
+        let remainder = anchors
+            .iter()
+            .rev()
+            .find(|row| s(row, "anchor_ref") == remainder_id)
+            .unwrap_or(&Value::Null);
+        if !opening_selector_matches(
+            &sentence["selector"],
+            &side_plan["sentence_start"],
+            &side_plan["sentence_end"],
+        ) || sentence["exact_sha256"] != side_plan["sentence_sha256"]
+            || sentence["source_return"]["locator_ref"] != side_plan["private_content_ref"]
+        {
+            self.issue(packet_path, "opening-sentence-anchor", label)?;
+        }
+        if !opening_selector_matches(
+            &remainder["selector"],
+            &side_plan["sentence_end"],
+            &side_plan["scope_end"],
+        ) || remainder["exact_sha256"] != side_plan["remainder_sha256"]
+        {
+            self.issue(packet_path, "opening-sentence-excluded-remainder", label)?;
+        }
+        if segmentations.first().is_none_or(|row| {
+            !strs(&row["coverage"], "excluded_anchor_refs").contains(&remainder_id)
+        }) {
+            self.issue(packet_path, "opening-sentence-remainder-coverage", label)?;
+        }
+        if !opening_scope_fields_match(side, side_plan)
+            || side["text_layer_ref"] != side_plan["text_layer_ref"]
+            || side["text_layer_sha256"] != side_plan["text_layer_sha256"]
+            || side["language"] != side_plan["language"]
+            || side["visibility"] != "local_only"
+            || side["publication_authorized"] != false
+        {
+            self.issue(alignment_path, "opening-sentence-alignment-side", label)?;
+        }
+        let binding = &side["segmentation"];
+        if binding["artifact_ref"] != packet_path
+            || binding["sha256"] != Digest256::of_bytes(packet_raw).to_hex()
+            || binding["state"] != "frozen"
+        {
+            self.issue(
+                alignment_path,
+                "opening-sentence-segmentation-binding",
+                label,
+            )?;
+        }
+        let aligned = rows(side, "anchors");
+        if aligned.len() != 1 {
+            self.issue(alignment_path, "opening-sentence-side-anchor-count", label)?;
+        } else if [
+            "anchor_ref",
+            "text_layer_ref",
+            "text_layer_sha256",
+            "selector",
+            "exact_sha256",
+            "source_return",
+        ]
+        .iter()
+        .any(|key| aligned[0][*key] != sentence[*key])
+        {
+            self.issue(alignment_path, "opening-sentence-side-anchor", label)?;
+        }
+        if !side["tokenization"].is_null() {
+            self.issue(
+                alignment_path,
+                "opening-sentence-fabricated-tokenization",
+                label,
+            )?;
+        }
+        for anchor in [sentence, aligned.first().copied().unwrap_or(&Value::Null)] {
+            if anchor["anchor_ref"] != sentence_id
+                || !opening_selector_matches(
+                    &anchor["selector"],
+                    &side_plan["sentence_start"],
+                    &side_plan["sentence_end"],
+                )
+                || anchor["exact_sha256"] != side_plan["sentence_sha256"]
+                || anchor["text_layer_ref"] != side_plan["text_layer_ref"]
+                || anchor["text_layer_sha256"] != side_plan["text_layer_sha256"]
+                || anchor["source_return"]["locator_ref"] != side_plan["private_content_ref"]
+            {
+                self.issue(
+                    alignment_path,
+                    "opening-sentence-plan-anchor-binding",
+                    label,
+                )?;
+            }
+        }
+        Ok(())
+    }
+    fn opening_sentence_authority(
+        &mut self,
+        plan: &Value,
+        alignment_path: &str,
+        alignment: &Value,
+        event_path: &str,
+        event: &Value,
+    ) -> Result<(), ItemRefusal> {
+        let boundary = &plan["authority_boundary"];
+        for key in [
+            "source_sentence_segmentation_status",
+            "target_sentence_segmentation_status",
+            "alignment_status",
+        ] {
+            if boundary[key] != "proposed" {
+                self.issue(
+                    OPENING_SENTENCE_PLAN,
+                    "opening-sentence-authority-boundary",
+                    key,
+                )?;
+            }
+        }
+        for key in [
+            "accepted_german",
+            "accepted_russian",
+            "accepted_translation",
+            "translation_fidelity_established",
+            "lexical_equivalence_established",
+            "etymology_or_semantics_established",
+            "human_task_created",
+            "projection_created",
+            "graph_or_canon_effect",
+        ] {
+            if boundary[key] != false {
+                self.issue(
+                    OPENING_SENTENCE_PLAN,
+                    "opening-sentence-authority-boundary",
+                    key,
+                )?;
+            }
+        }
+        if boundary.as_object().is_none_or(|map| map.len() != 12) {
+            self.issue(
+                OPENING_SENTENCE_PLAN,
+                "opening-sentence-authority-boundary-shape",
+                "authority_boundary",
+            )?;
+        }
+        for key in [
+            "dehyphenation",
+            "tokenization",
+            "model_invoked",
+            "translation_performed",
+            "recognized_translation_used_for_text_decision",
+            "human_review_performed",
+        ] {
+            if plan["method"][key] != false {
+                self.issue(
+                    OPENING_SENTENCE_PLAN,
+                    "opening-sentence-method-widened",
+                    key,
+                )?;
+            }
+        }
+        let proposed = rows(alignment, "alignments");
+        if proposed.len() != 1 {
+            self.issue(
+                alignment_path,
+                "opening-sentence-alignment-count",
+                "alignments",
+            )?;
+        } else {
+            let row = &proposed[0];
+            if s(row, "status") != "proposed"
+                || s(row, "correspondence_shape") != "one_to_one"
+                || strs(row, "translation_techniques") != ["unresolved"]
+                || s(row, "epistemic_status") != "inferred"
+                || !rows(row, "review_refs").is_empty()
+                || s(&row["maker"], "maker_kind") != "software"
+            {
+                self.issue(
+                    alignment_path,
+                    "opening-sentence-alignment-posture",
+                    "alignment",
+                )?;
+            }
+        }
+        if !rows(alignment, "reviews").is_empty() || !rows(alignment, "projections").is_empty() {
+            self.issue(
+                alignment_path,
+                "opening-sentence-alignment-review-projection",
+                "alignment",
+            )?;
+        }
+        let rights = &alignment["rights_and_visibility"];
+        let rights_refs = rows(rights, "rights_record_refs");
+        if rights.as_object().is_none_or(|map| map.len() != 8)
+            || rights["source_visibility"] != "local_only"
+            || rights["target_visibility"] != "local_only"
+            || rights["packet_visibility"] != "public_metadata_only"
+            || rights["effective_visibility"] != "local_only"
+            || rights_refs.len() != 2
+            || rights_refs[0] != plan["source"]["rights_ref"]
+            || rights_refs[1] != plan["target"]["rights_ref"]
+            || rights["private_source_used"] != true
+            || rights["publication_authorized"] != false
+            || rights["inheritance_policy"] != "most_restrictive_side_or_packet_wins"
+        {
+            self.issue(
+                alignment_path,
+                "opening-sentence-rights-visibility",
+                "alignment",
+            )?;
+        }
+        let review = &event["review_and_authority"];
+        if review["human_review_status"] != "not_performed"
+            || !rows(review, "accepted_uses").is_empty()
+            || review["promotion_authorized"] != false
+        {
+            self.issue(event_path, "opening-sentence-event-authority", "event")?;
+        }
+        Ok(())
+    }
+    fn opening_sentence_bindings(
+        &mut self,
+        source: &mut impl LayerFamilySource,
+        plan: &Value,
+    ) -> Result<(), ItemRefusal> {
+        let bindings = [
+            ("source", "text_layer_ref", "text_layer_record_sha256"),
+            ("source", "layout_packet_ref", "layout_packet_sha256"),
+            (
+                "source",
+                "edition_reading_admission_ref",
+                "edition_reading_admission_sha256",
+            ),
+            ("source", "rights_ref", "rights_sha256"),
+            ("target", "text_layer_ref", "text_layer_record_sha256"),
+            ("target", "layout_packet_ref", "layout_packet_sha256"),
+            (
+                "target",
+                "expression_record_ref",
+                "expression_record_sha256",
+            ),
+            (
+                "target",
+                "responsibility_claims_ref",
+                "responsibility_claims_sha256",
+            ),
+            ("target", "rights_ref", "rights_sha256"),
+        ];
+        for (side, ref_field, digest_field) in bindings {
+            source.checkpoint(self.limits.deadline)?;
+            let Some(path) = plan[side][ref_field]
+                .as_str()
+                .filter(|value| !value.is_empty())
+            else {
+                self.issue(
+                    OPENING_SENTENCE_PLAN,
+                    "opening-sentence-tracked-ref",
+                    format!("{side}/{ref_field}"),
+                )?;
+                continue;
+            };
+            let expected = s(&plan[side], digest_field);
+            match self.bytes(source, path, None)? {
+                Some(raw) if Digest256::of_bytes(&raw).to_hex() == expected => {}
+                _ => self.issue(
+                    OPENING_SENTENCE_PLAN,
+                    "opening-sentence-tracked-binding",
+                    format!("{side}/{ref_field}"),
+                )?,
+            }
+        }
+        Ok(())
     }
     /// Explicit anchor inputs avoid interpreting a source identity as a path.
     pub fn inspect_anchor(
@@ -2523,6 +3017,29 @@ fn safe(path: &str) -> Result<(), ItemRefusal> {
     RelativePath::parse(path)
         .map(|_| ())
         .map_err(|_| ItemRefusal::Unsupported("unsafe source-layer path".into()))
+}
+fn opening_scope_fields_match(scope: &Value, plan: &Value) -> bool {
+    [
+        "work_ref",
+        "expression_ref",
+        "edition_ref",
+        "item_ref",
+        "file_ref",
+        "file_sha256",
+    ]
+    .iter()
+    .all(|key| scope[*key] == plan[*key])
+}
+fn opening_scope_matches(scope: &Value, plan: &Value) -> bool {
+    scope.as_object().is_some_and(|map| map.len() == 6) && opening_scope_fields_match(scope, plan)
+}
+fn opening_selector_matches(selector: &Value, start: &Value, end: &Value) -> bool {
+    selector.as_object().is_some_and(|map| map.len() == 5)
+        && selector["type"] == "text_position"
+        && selector.get("start") == Some(start)
+        && selector.get("end") == Some(end)
+        && selector["position_unit"] == "unicode_code_point"
+        && selector["interval"] == "half_open"
 }
 
 fn accepted(status: &str) -> bool {
