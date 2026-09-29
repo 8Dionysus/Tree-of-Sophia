@@ -277,9 +277,11 @@ fn validation_lane_selection_runs_in_order_and_stops_at_first_failure() {
     assert!(stdout.contains("[ok] first\n"));
     assert!(stdout.contains(&format!("[run] failing: {} fail\n", adapter.display())));
     assert!(!stdout.contains("[run] later:"));
-    assert!(String::from_utf8(output.stderr)
-        .unwrap()
-        .contains("[error] failing failed with exit code 17\n"));
+    assert!(
+        String::from_utf8(output.stderr)
+            .unwrap()
+            .contains("[error] failing failed with exit code 17\n")
+    );
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -384,8 +386,10 @@ fn release_phase_selection_preserves_environment_and_first_failure() {
     let invalid = invoke("checks", false, None);
     assert_eq!(invalid.status.code(), Some(2));
     assert!(!root.join("trace").exists());
-    assert!(String::from_utf8(invalid.stdout)
-        .unwrap()
-        .contains("[error] selected sequence must contain exactly one final run tests step\n"));
+    assert!(
+        String::from_utf8(invalid.stdout)
+            .unwrap()
+            .contains("[error] selected sequence must contain exactly one final run tests step\n")
+    );
     fs::remove_dir_all(root).unwrap();
 }
