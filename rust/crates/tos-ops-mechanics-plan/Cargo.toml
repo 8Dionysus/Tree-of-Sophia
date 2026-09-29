@@ -35,3 +35,11 @@ path = "src/release_check_main.rs"
 [[bin]]
 name = "tos-software-ci"
 path = "src/software_ci_main.rs"
+
+[[bin]]
+name = "tos-route-cards"
+path = "src/route_cards_main.rs"
+
+[[bin]]
+name = "tos-agents-route-harness"
+path = "src/route_harness_main.rs"

@@ -165,3 +165,42 @@ controlled fixture compares the actual whole CLI/Python default consumer on
 failing, cleaned, and changed-current-target states of one small disposable tree.
 These are finite candidate limits and controls, not a whole repository run or
 optional-cache retirement result.
+
+`tos-route-cards --repo-root ABSOLUTE_PATH build [--check] [--output PATH]`
+and `validate` are explicit candidates for the maintained
+`build_agents_route_currentness.py` and `validate_nested_agents.py` consumers.
+`tos-agents-route-harness --repo-root ABSOLUTE_PATH [--check] [--output PATH]`
+retains the maintained declared-task harness, including `--source-ref` and
+`--volatile-timing`. Their shared snapshot reader preserves raw digests,
+Python16 text rules, target inheritance and a separate owner handoff. Native
+currentness keeps `generated_by="scripts/build_agents_route_currentness.py"`
+as a compatible format marker; this value does not prove that Python ran or
+identify the executable that produced those bytes. Authored cards and inventory
+retain their authority, and harness results make no model-behavior claim.
+
+One source snapshot bounds raw input to 64 MiB / 8 MiB per file, with at most
+another 64 MiB of normalized cached text, 10,000 entries/files, 100,000 lookups,
+128 path levels and 4096-byte relative paths. Cached metadata is computed once
+per unique source. Inventory punctuation is preflighted before JSON parsing;
+arrays/tasks are limited to 4096 and cards to 65,536 lines of at most 8192 bytes.
+The snapshot checks a cooperative 30-second deadline. Each build/validator Git
+capture uses the existing Linux pidfd/subreaper executor with a 10-second wall,
+one-second cleanup grace and 4 MiB combined output. Harness provenance uses at
+most two such captures. Supervisor or finite-bound refusals cannot become clean
+validation; ordinary unavailable Git retains the maintained conservative route.
+
+The shared conservative output budget limits amplified fields before copying
+to 16 MiB; rendering, output and currentness checks have the same byte ceiling.
+Explicit writes retain nofollow directory descriptors and refuse symlinks,
+FIFOs and shared hardlinks before truncation. Diagnostics are limited to 4096
+findings of at most 8192 bytes. Harness additionally charges repeated cached
+lower/search/token scans to a 512 MiB logical-work ceiling and limits route
+text and joined prompts to 8 MiB. These are finite candidate limits and can
+refuse inputs the Python scripts previously read without limits.
+
+Caller costs include a second inventory snapshot for default build output,
+a second discovery walk during currentness verification and successful
+validator CLI recount, plus an existing-output read for `--check`. Rendering
+and local writes need an outer wall guard. The disposable native/Python cases
+exercise those real callers; the Python scripts, route-docs lane and actual
+generated carriers remain active pending coordinated owner cutover.
