@@ -9,22 +9,35 @@ export const LIVE_RESUME_SCHEMA='tos.live.resume.v1';
 const clone=value=>structuredClone(value);
 const fail=()=>{throw new TypeError('The saved research view is incomplete or exceeds its bounds.');};
 const keys=(value,allowed)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).every(key=>allowed.includes(key));
+const encoder=new TextEncoder(),decoder=new TextDecoder('utf-8',{fatal:true});
+let validateRule,rebindRule;
+
+export function installLiveResumeRules(runtime){
+  if(typeof runtime?.validate_live_resume_wasm_v1!=='function'||typeof runtime?.rebind_live_resume_wasm_v1!=='function')
+    throw new TypeError('Live resume WASM rules are unavailable.');
+  validateRule=runtime.validate_live_resume_wasm_v1;
+  rebindRule=runtime.rebind_live_resume_wasm_v1;
+}
+const ruled=(rule,value)=>JSON.parse(decoder.decode(rule(encoder.encode(JSON.stringify(value)))));
 
 // Resume keeps one query, exact selection and geometry. It never persists a
 // source response, continuation token, text cache, note, or command receipt.
 export function validateLiveResume(value){
-  if(!keys(value,['schema','sourceRevision','area','selection','presentation'])||value.schema!==LIVE_RESUME_SCHEMA
-    ||!/^[a-f0-9]{64}$/.test(value.sourceRevision||'')||!keys(value.area,['type','target'])
-    ||!['route','lens'].includes(value.area.type)||!keys(value.presentation,['layout','pose','mode']))fail();
+  if(!keys(value,['schema','sourceRevision','area','selection','presentation'])
+    ||!keys(value.area,['type','target'])||!keys(value.presentation,['layout','pose','mode'])
+    ||(!validateRule&&(value.schema!==LIVE_RESUME_SCHEMA||!/^[a-f0-9]{64}$/.test(value.sourceRevision||'')
+      ||!['route','lens'].includes(value.area.type))))fail();
   const area={type:value.area.type,target:validateTarget(value.area.type,value.area.target)};
   const selection=validateMaterialTarget(value.selection);
-  if(selection.sourceRevision!==value.sourceRevision||(area.type==='route'&&area.target.origin.sourceRevision!==value.sourceRevision))fail();
-  const mode=value.presentation.mode;if(!['compact','grouped','raw'].includes(mode))fail();
+  if(!validateRule&&(selection.sourceRevision!==value.sourceRevision
+    ||(area.type==='route'&&area.target.origin.sourceRevision!==value.sourceRevision)))fail();
+  const mode=value.presentation.mode;if(!validateRule&&!['compact','grouped','raw'].includes(mode))fail();
   const layout=new StableExplorationLayout();layout.restore(value.presentation.layout);
-  const result={schema:LIVE_RESUME_SCHEMA,sourceRevision:value.sourceRevision,area,selection,
+  const result={schema:value.schema,sourceRevision:value.sourceRevision,area,selection,
     presentation:{layout:layout.capture(),pose:validateSkyPose(value.presentation.pose),mode}};
-  if(new TextEncoder().encode(JSON.stringify(result)).length>128*1024)fail();
-  return result;
+  const wire=encoder.encode(JSON.stringify(result));if(wire.length>128*1024)fail();
+  if(!validateRule)return result;
+  try{validateRule(wire);return result;}catch{fail();}
 }
 
 export function makeLiveResume(state,presentation){
@@ -54,9 +67,19 @@ export function makeLiveResume(state,presentation){
 // missing wording or turn a compound Claim reading into a plain node reading.
 export function resolveLiveResumeSelection(value,view){
   const saved=validateMaterialTarget(value);
-  if(!view||view.source_revision!==saved.sourceRevision)return null;
+  if(!view)return null;
   const raw=view[saved.kind==='node'?'nodes':'relations'].find(item=>item.id===saved.id);
-  if(!raw||raw.content_revision!==saved.contentRevision)return null;
+  if(!raw)return null;
+  if(rebindRule){
+    let currentClaimReference=null;
+    if(saved.claimReference&&view.source_revision===saved.sourceRevision&&raw.content_revision===saved.contentRevision){
+      const path=claimPathFor(view,saved.id);
+      if(path)currentClaimReference=claimMaterialReference(view,path);
+    }
+    try{return ruled(rebindRule,{saved,sourceRevision:view.source_revision??null,
+      contentRevision:raw.content_revision??null,currentClaimReference});}catch{fail();}
+  }
+  if(view.source_revision!==saved.sourceRevision||raw.content_revision!==saved.contentRevision)return null;
   if(!saved.claimReference)return {kind:saved.kind,id:saved.id};
   const path=claimPathFor(view,saved.id);if(!path)return null;
   const current=claimMaterialReference(view,path),expected=saved.claimReference;

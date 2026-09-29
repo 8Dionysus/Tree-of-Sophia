@@ -16,6 +16,7 @@ mod interface_preferences;
 mod knowledge_envelope;
 #[cfg(feature = "wasm")]
 mod lens_session;
+mod live_resume;
 mod observatory_pose;
 mod reading_resume;
 mod research_shelf;
@@ -36,6 +37,7 @@ pub use interface_preferences::normalize_interface_preferences_v1;
 pub use knowledge_envelope::{
     compact_knowledge_search_page_v1, KnowledgeEnvelopeError, KnowledgeEnvelopeErrorCode,
 };
+pub use live_resume::{rebind_live_resume_v1, validate_live_resume_v1};
 pub use observatory_pose::normalize_observatory_pose_v1;
 pub use reading_resume::normalize_reading_resume_v1;
 pub use research_shelf::{research_shelf_rule_v1, ShelfPacketIndex};
@@ -54,9 +56,10 @@ pub use workspace_proposal::{
 mod wasm {
     use super::{
         compact_knowledge_search_page_v1, normalize_interface_preferences_v1,
-        normalize_observatory_pose_v1, normalize_reading_resume_v1, research_shelf_rule_v1,
-        select_knowledge_search_mode_v1, validate_claim_reference_v1, validate_workspace_copy_v1,
-        workspace_proposal_digest_v1, workspace_transition_v1, ShelfPacketIndex,
+        normalize_observatory_pose_v1, normalize_reading_resume_v1, rebind_live_resume_v1,
+        research_shelf_rule_v1, select_knowledge_search_mode_v1, validate_claim_reference_v1,
+        validate_live_resume_v1, validate_workspace_copy_v1, workspace_proposal_digest_v1,
+        workspace_transition_v1, ShelfPacketIndex,
     };
     use wasm_bindgen::prelude::*;
 
@@ -68,6 +71,16 @@ mod wasm {
     #[wasm_bindgen]
     pub fn normalize_reading_resume_wasm_v1(request_json: &[u8]) -> Result<Vec<u8>, JsValue> {
         normalize_reading_resume_v1(request_json).map_err(JsValue::from_str)
+    }
+
+    #[wasm_bindgen]
+    pub fn validate_live_resume_wasm_v1(request_json: &[u8]) -> Result<(), JsValue> {
+        validate_live_resume_v1(request_json).map_err(JsValue::from_str)
+    }
+
+    #[wasm_bindgen]
+    pub fn rebind_live_resume_wasm_v1(request_json: &[u8]) -> Result<Vec<u8>, JsValue> {
+        rebind_live_resume_v1(request_json).map_err(JsValue::from_str)
     }
 
     #[wasm_bindgen]
