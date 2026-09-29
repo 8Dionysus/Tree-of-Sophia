@@ -18,29 +18,39 @@ export function installLiveResumeRules(runtime){
   validateRule=runtime.validate_live_resume_wasm_v1;
   rebindRule=runtime.rebind_live_resume_wasm_v1;
 }
-const ruled=(rule,value)=>JSON.parse(decoder.decode(rule(encoder.encode(JSON.stringify(value)))));
+const requireRules=()=>{
+  if(!validateRule||!rebindRule)throw new TypeError('Live resume WASM rules are unavailable.');
+};
+const ruled=(rule,value)=>{
+  const wire=JSON.stringify(value);if(wire.length>1_000_000)fail();
+  const bytes=encoder.encode(wire);if(bytes.length>1_000_000)fail();
+  return JSON.parse(decoder.decode(rule(bytes)));
+};
 
 // Resume keeps one query, exact selection and geometry. It never persists a
 // source response, continuation token, text cache, note, or command receipt.
 export function validateLiveResume(value){
+  requireRules();
+  // Cheap host shape/leaf preflight prevents unknown carriers and unbounded
+  // envelope strings reaching serialization. Rust owns schema/revision/mode.
   if(!keys(value,['schema','sourceRevision','area','selection','presentation'])
     ||!keys(value.area,['type','target'])||!keys(value.presentation,['layout','pose','mode'])
-    ||(!validateRule&&(value.schema!==LIVE_RESUME_SCHEMA||!/^[a-f0-9]{64}$/.test(value.sourceRevision||'')
-      ||!['route','lens'].includes(value.area.type))))fail();
+    ||typeof value.schema!=='string'||value.schema.length!==LIVE_RESUME_SCHEMA.length
+    ||typeof value.sourceRevision!=='string'||value.sourceRevision.length!==64
+    ||typeof value.presentation.mode!=='string'||value.presentation.mode.length>7)fail();
   const area={type:value.area.type,target:validateTarget(value.area.type,value.area.target)};
   const selection=validateMaterialTarget(value.selection);
-  if(!validateRule&&(selection.sourceRevision!==value.sourceRevision
-    ||(area.type==='route'&&area.target.origin.sourceRevision!==value.sourceRevision)))fail();
-  const mode=value.presentation.mode;if(!validateRule&&!['compact','grouped','raw'].includes(mode))fail();
+  const mode=value.presentation.mode;
   const layout=new StableExplorationLayout();layout.restore(value.presentation.layout);
   const result={schema:value.schema,sourceRevision:value.sourceRevision,area,selection,
     presentation:{layout:layout.capture(),pose:validateSkyPose(value.presentation.pose),mode}};
-  const wire=encoder.encode(JSON.stringify(result));if(wire.length>128*1024)fail();
-  if(!validateRule)return result;
-  try{validateRule(wire);return result;}catch{fail();}
+  const wire=JSON.stringify(result);if(wire.length>128*1024)fail();
+  const bytes=encoder.encode(wire);if(bytes.length>128*1024)fail();
+  try{validateRule(bytes);return result;}catch{fail();}
 }
 
 export function makeLiveResume(state,presentation){
+  requireRules();
   if(!state.view||!state.selection||!presentation.pose)return null;
   const kind=state.selection.kind==='relation'?'relation':'node';
   const id=state.selection.kind==='claim-path'?state.selection.claimId:state.selection.id;
@@ -66,30 +76,18 @@ export function makeLiveResume(state,presentation){
 // Requerying an area supplies the path again. Saved selectors cannot recreate
 // missing wording or turn a compound Claim reading into a plain node reading.
 export function resolveLiveResumeSelection(value,view){
+  requireRules();
   const saved=validateMaterialTarget(value);
   if(!view)return null;
   const raw=view[saved.kind==='node'?'nodes':'relations'].find(item=>item.id===saved.id);
   if(!raw)return null;
-  if(rebindRule){
-    let currentClaimReference=null;
-    if(saved.claimReference&&view.source_revision===saved.sourceRevision&&raw.content_revision===saved.contentRevision){
-      const path=claimPathFor(view,saved.id);
-      if(path)currentClaimReference=claimMaterialReference(view,path);
-    }
-    try{return ruled(rebindRule,{saved,sourceRevision:view.source_revision??null,
-      contentRevision:raw.content_revision??null,currentClaimReference});}catch{fail();}
+  let currentClaimReference=null;
+  if(saved.claimReference&&view.source_revision===saved.sourceRevision&&raw.content_revision===saved.contentRevision){
+    const path=claimPathFor(view,saved.id);
+    if(path)currentClaimReference=claimMaterialReference(view,path);
   }
-  if(view.source_revision!==saved.sourceRevision||raw.content_revision!==saved.contentRevision)return null;
-  if(!saved.claimReference)return {kind:saved.kind,id:saved.id};
-  const path=claimPathFor(view,saved.id);if(!path)return null;
-  const current=claimMaterialReference(view,path),expected=saved.claimReference;
-  const sameIds=(a,b)=>a.length===b.length&&a.every(id=>b.includes(id));
-  if(current.pathId!==expected.pathId||current.relationType!==expected.relationType
-    ||JSON.stringify(current.nodeIds)!==JSON.stringify(expected.nodeIds)
-    ||JSON.stringify(current.relationIds)!==JSON.stringify(expected.relationIds)
-    ||!sameIds(current.detailRelationIds,expected.detailRelationIds)
-    ||!sameIds(current.closureNodeIds,expected.closureNodeIds))return null;
-  return {kind:'claim-path',id:current.pathId,claimId:current.claimId};
+  try{return ruled(rebindRule,{saved,sourceRevision:view.source_revision??null,
+    contentRevision:raw.content_revision??null,currentClaimReference});}catch{fail();}
 }
 
 export function createLiveResumeStore({indexedDB=globalThis.indexedDB,dbName='tos-real-ui-view-v1',profile='constructor-live'}={}){

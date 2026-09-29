@@ -16,11 +16,13 @@ import {carrySemanticWorkspace} from './semantic-workspace.mjs';
 import {installBrowserWorkspaceMachine} from '../src/research-workspace-rust.ts';
 import {installSourceFormRules} from './source-form-session-rust.mjs';
 import {installHumanFormRules} from '../src/observatory/human-form-rules.mjs';
+import {installLiveResumeRules} from './live-resume.mjs';
 import initRules,* as rules from '../../deploy/cloudflare-worker/generated/tos_web_rules.js';
 await initRules(new URL('../../deploy/cloudflare-worker/generated/tos_web_rules_bg.wasm',import.meta.url));
 installBrowserWorkspaceMachine(rules.BrowserWorkspaceSession);
 installSourceFormRules(rules);
 installHumanFormRules(rules);
+installLiveResumeRules(rules);
 installConstructorRules(rules);
 
 const root=document.querySelector('#tree');
