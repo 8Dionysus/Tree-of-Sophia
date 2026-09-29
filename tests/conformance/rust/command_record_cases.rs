@@ -2381,3 +2381,282 @@ fn profile_native_binding_checks_metadata_closure_without_content_read() {
         Err(SourceCommandError::Conflict(_))
     ));
 }
+
+// The retained Python handler is the independent oracle; native tests do not
+// monkeypatch its engine or dispatch it through the native invocation.
+fn initial_creation_python_oracle(
+    repository: &Path,
+    owner: &Path,
+    request: &Value,
+    deadline: Instant,
+) -> Value {
+    use std::io::{Read, Seek, SeekFrom, Write};
+    use std::process::{Command, Stdio};
+    let mut input = tempfile::tempfile().unwrap();
+    let raw = canonical_json(request);
+    assert!(raw.len() <= 1_048_576);
+    input.write_all(&raw).unwrap();
+    input.seek(SeekFrom::Start(0)).unwrap();
+    let mut output = tempfile::tempfile().unwrap();
+    let mut errors = tempfile::tempfile().unwrap();
+    let mut child =
+        Command::new("/usr/bin/python3")
+            .args(["-c", "import json,sys;from pathlib import Path;repo=Path(sys.argv[1]);sys.path[:0]=[str(repo/'scripts'),str(repo/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts')];import source_commands as commands;request=commands._json_object(commands._canonical(json.load(sys.stdin)));print(json.dumps(commands.run_legacy_oracle_command(Path(sys.argv[2]),request),ensure_ascii=False,allow_nan=False))"])
+            .arg(repository)
+            .arg(owner)
+            .env_remove("PYTHONPATH")
+            .env_remove("PYTHONHOME")
+            .env("PYTHONDONTWRITEBYTECODE", "1")
+            .stdin(Stdio::from(input))
+            .stdout(Stdio::from(output.try_clone().unwrap()))
+            .stderr(Stdio::from(errors.try_clone().unwrap()))
+            .spawn()
+            .unwrap();
+    let step = deadline.min(Instant::now() + Duration::from_secs(60));
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break status;
+        }
+        if Instant::now() >= step
+            || output.metadata().unwrap().len() > 1_048_576
+            || errors.metadata().unwrap().len() > 1_048_576
+        {
+            child.kill().unwrap();
+            child.wait().unwrap();
+            panic!("creation oracle bounded refusal");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    assert!(Instant::now() < step);
+    assert!(
+        output.metadata().unwrap().len() <= 1_048_576
+            && errors.metadata().unwrap().len() <= 1_048_576
+    );
+    let mut raw = Vec::new();
+    let mut error = Vec::new();
+    output.seek(SeekFrom::Start(0)).unwrap();
+    output.read_to_end(&mut raw).unwrap();
+    errors.seek(SeekFrom::Start(0)).unwrap();
+    errors.read_to_end(&mut error).unwrap();
+    assert!(
+        status.success(),
+        "creation oracle: {}",
+        String::from_utf8_lossy(&error)
+    );
+    serde_json::from_slice(&raw).unwrap()
+}
+
+#[test]
+fn native_initial_creation_cli_preserves_oracle_and_cold_retained_receipt() {
+    use super::command_text_cases::{
+        alignment_image_digest, alignment_native_cli, authored_text_files,
+    };
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    use tos_command::source_creation_store::IsolatedCreationRoot;
+    let cancellation = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let inputs = [
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
+        "scripts/source_witness_human_forms.py",
+        "scripts/build_source_witness_catalog.py",
+        "scripts/source_record_profiles.py",
+        "scripts/native_text_binding.py",
+        "scripts/source_owner_context.py",
+        "scripts/source_witness_bibliographic_graph_common.py",
+        "rust/crates/tos-command/src/source_native_creation_cli.rs",
+        "rust/crates/tos-command/src/source_creation_cli_selection.rs",
+        "rust/crates/tos-command/src/source_native_cli.rs",
+        "rust/crates/tos-command/src/source_creation.rs",
+        "rust/crates/tos-command/src/source_creation_store.rs",
+        "rust/crates/tos-command/src/source_serialization.rs",
+        "ToS/contracts/historical-record.schema.json",
+        "ToS/contracts/corpus-record.schema.json",
+        "ToS/contracts/historical-claim.schema.json",
+        "ToS/contracts/claim-packet.schema.json",
+        "ToS/contracts/knowledge-assessment.schema.json",
+        "ToS/contracts/human-form.schema.json",
+        "ToS/contracts/human-form-set.schema.json",
+        "ToS/contracts/human-form-template.schema.json",
+        "ToS/contracts/semantic-entity-type-registry.schema.json",
+        "ToS/contracts/semantic-relation-type-registry.schema.json",
+        "ToS/contracts/provenance-event-v2.schema.json",
+        "ToS/contracts/source-metadata-record.schema.json",
+        "ToS/contracts/semantic-description-record.schema.json",
+        "ToS/contracts/research-corpus-record.schema.json",
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+    ];
+
+    let mut fixture_bytes = 0u64;
+    for name in inputs {
+        let size = fs::metadata(repository.join(name)).unwrap().len();
+        assert!(size <= 8_388_608);
+        fixture_bytes = fixture_bytes.checked_add(size).unwrap();
+        assert!(fixture_bytes <= 33_554_432);
+    }
+    let native = PathBuf::from(
+        std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH")
+            .expect("OPS must select protected native creation image"),
+    );
+    assert!(native.is_absolute());
+    let worker = super::validation_cut_cases::selected_worker_path();
+    let native_bytes = fs::metadata(&native).unwrap().len();
+    let worker_bytes = fs::metadata(&worker).unwrap().len();
+    let consumer_bytes = fs::metadata(std::env::current_exe().unwrap())
+        .unwrap()
+        .len();
+    assert!(
+        native_bytes <= 536_870_912 && worker_bytes <= 536_870_912 && consumer_bytes <= 536_870_912
+    );
+    assert!(Instant::now() < deadline);
+    eprintln!(
+        "creation CLI F={} E={} C={} W={} native_processes=6 oracle_processes=3 workers<=6",
+        fixture_bytes, native_bytes, consumer_bytes, worker_bytes
+    );
+    let files: BTreeMap<String, Vec<u8>> = inputs
+        .iter()
+        .map(|name| (name.to_string(), fs::read(repository.join(name)).unwrap()))
+        .collect();
+    assert_eq!(
+        files.values().map(|raw| raw.len() as u64).sum::<u64>(),
+        fixture_bytes
+    );
+    let (capture, software, components) = captured_components(&files, deadline, &cancellation);
+    let temporary = tempfile::tempdir().unwrap();
+    let authored = files
+        .iter()
+        .filter(|(name, _)| name.starts_with("ToS/"))
+        .map(|(name, raw)| (name.clone(), raw.clone()))
+        .collect::<BTreeMap<_, _>>();
+    let store = temporary.path().join("selected-store");
+    let base = super::validation_cut_cases::write_cut_store(&authored, &store);
+    let isolated = IsolatedCreationRoot::create(temporary.path(), deadline, &cancellation).unwrap();
+    for (name, raw) in &files {
+        let target = isolated.path().join(name);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(&target, raw).unwrap();
+        fs::set_permissions(&target, fs::Permissions::from_mode(0o644)).unwrap();
+    }
+    let source = "ToS/source-witnesses/history/cli-subject/historical-event.json";
+    let home = Path::new(source).parent().unwrap();
+    fs::create_dir_all(isolated.path().join(home.parent().unwrap())).unwrap();
+    let record = serde_json::json!({"schema_version":"tos_historical_record_v1", "record_type":"historical-event",
+        "record_id":"tos.historical-event.synthetic-native-create", "record_version":1,
+        "preferred_label":"Synthetic mechanics subject", "variant_labels":[], "identity_status":"provisional",
+        "source_refs":["synthetic-test-only:creation-not-assessment"], "external_identifiers":[],
+        "same_as_posture":"no_equivalence_claim", "visibility":"public_metadata_only", "supersedes_ref":null,
+        "notes":"Synthetic proposed source metadata only; no historical existence, textual judgment or admission asserted.",
+        "field_languages":{"preferred_label":{"language":"en","script":"Latn"},"notes":{"language":"en","script":"Latn"}}});
+    let config = serde_json::json!({"schema_version":"tos_local_historical_create_owner_v2",
+        "uid":fs::metadata(isolated.path()).unwrap().uid(), "principal_id":"software:test-fixture",
+        "maker_type":"software", "source_root":isolated.path(), "source_path":source,
+        "record_id":record["record_id"], "authority_ref":"synthetic-test-only:creation-not-assessment",
+        "allowed_form_ids":["tos.form.creation.fixture-name"], "allowed_claim_ids":[],
+        "allowed_operations":["historical.create"], "expires_at":"2099-01-01T00:00:00Z",
+        "provenance_event_id":"tos.event.synthetic-native-create"});
+    let owner = isolated.path().join("owner.json");
+    fs::write(&owner, canonical_json(&config)).unwrap();
+    fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
+    let invocation_path = temporary.path().join("native-creation-invocation.json");
+    let mut invocation = serde_json::json!({
+        "schema_version":"tos_local_native_source_invocation_v1", "owner_context":null, "owner_config":owner,
+        "native_executable":native, "native_executable_sha256":alignment_image_digest(&native).to_prefixed(),
+        "corpus_store":store,"source_revision":base.0.to_prefixed(),"original_source_revision":base.0.to_prefixed(),
+        "software_capture":capture.capture,"software_restored_root":capture.restored,
+        "software_selection":{"source_git_commit":capture.selection.source_git_commit,
+            "source_git_tree":capture.selection.source_git_tree,
+            "capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},
+        "software_components":components.members().map(|member| member.path.as_str()).collect::<Vec<_>>(),
+        "schema_worker":{"absolute_path":worker,"sha256":alignment_image_digest(&worker).to_prefixed()},
+        "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,
+            "max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,
+            "worker_address_space_bytes":1073741824}});
+    let write_invocation = |value: &Value| {
+        fs::write(&invocation_path, canonical_json(value)).unwrap();
+        fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+    };
+    write_invocation(&invocation);
+    let mut preview = Value::Null;
+    for request in [
+        serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"describe"}),
+        serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"prepare","record":record}),
+        serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"prepare-create","record":record,
+            "claims":[],"forms":[{"form_id":"tos.form.creation.fixture-name","field_id":"metadata.preferred-name"}]}),
+    ] {
+        let oracle = initial_creation_python_oracle(&repository, &owner, &request, deadline);
+        let actual =
+            alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
+        assert_eq!(
+            actual["schema_version"],
+            "tos_local_native_source_result_v1"
+        );
+        assert_eq!(
+            actual["result"], oracle,
+            "entire maintained {} result",
+            request["operation"]
+        );
+        assert_eq!(actual["grants_admission"], false);
+        if request["operation"] == "prepare-create" {
+            preview = actual["result"].clone();
+        }
+    }
+    let request = serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":"historical.create",
+        "record":record,"claims":[],"forms":[{"form_id":"tos.form.creation.fixture-name","field_id":"metadata.preferred-name"}],
+        "command_id":"synthetic:whole-native-creation-cli", "expected_configuration":preview["owner_configuration"],
+        "expected_dependencies":preview["expected_dependencies"],"expected_source":null,"expected_revision":null});
+    let created = alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
+    assert_eq!(created["result"]["replayed"], false);
+    let original = fs::read_dir(isolated.path().join(home))
+        .unwrap()
+        .map(|entry| {
+            let entry = entry.unwrap();
+            (
+                entry.file_name().into_string().unwrap(),
+                fs::read(entry.path()).unwrap(),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    for (name, reference) in preview["prepared_files"].as_object().unwrap() {
+        let raw = original.get(name).unwrap();
+        assert_eq!(reference["sha256"], Digest256::of_bytes(raw).to_prefixed());
+        assert_eq!(reference["bytes"], raw.len());
+    }
+    let cold = alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
+    assert_eq!(cold["result"]["replayed"], true);
+    assert_eq!(cold["result"]["receipt"], created["result"]["receipt"]);
+    let mut current_files = authored_text_files(isolated.path());
+    current_files.remove("ToS/source-witnesses/.historical-create.writer.lock");
+    assert!(current_files.values().map(Vec::len).sum::<usize>() <= 33_554_432);
+    let current =
+        super::validation_cut_cases::write_cut_store_on_base(&current_files, &store, Some(base));
+    invocation["source_revision"] = serde_json::json!(current.0.to_prefixed());
+    write_invocation(&invocation);
+    let successor_cold =
+        alignment_native_cli(&repository, &owner, &invocation_path, &request, deadline);
+    assert_eq!(successor_cold["result"]["replayed"], true);
+    assert_eq!(
+        successor_cold["result"]["receipt"],
+        created["result"]["receipt"]
+    );
+    assert_eq!(
+        fs::read_dir(isolated.path().join(home)).unwrap().count(),
+        original.len()
+    );
+    for (name, raw) in original {
+        assert_eq!(
+            fs::read(isolated.path().join(home).join(name)).unwrap(),
+            raw
+        );
+    }
+    assert!(Instant::now() < deadline);
+    drop(software);
+    drop(components);
+    temporary.close().unwrap();
+}
