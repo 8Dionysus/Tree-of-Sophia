@@ -3,6 +3,7 @@
 
 pub mod derived_kag;
 pub mod executor;
+pub mod mechanics_topology;
 pub mod public_mirror;
 pub mod questbook;
 pub mod relation_pack;

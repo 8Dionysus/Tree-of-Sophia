@@ -64,8 +64,12 @@ successful daemon cleanup, and syscall-unavailable refusal before tool start.
 A synthetic PID stream covers the prior count/byte cutoff without spawning
 thousands of live processes. No authored ToS meaning is admitted.
 
-`--execute` replaces only the runner mechanism. The discovered tools still
-invoke Python; this does not complete their Rust migration. The compatibility
+`--execute` replaces the runner mechanism. The current plan keeps four Python
+unittest homes as independent safety oracles and the release-support artifact
+bundle validator under its stronger owner. Agon threshold registry, relation
+pack, Questbook, public mirror and Derived KAG checks use the native executable;
+mirror and KAG generation remain explicit opt-in actions, never implicit lane
+writes. This does not make the entire mechanics lane Rust-only. The compatibility
 entrypoint `scripts/run_mechanics_local_tests.py` replaces
 itself with the installed executor from `TOS_OPS_MECHANICS_EXECUTOR` or PATH,
 passing `sys.executable` as the Python adapter and the explicit default limits.
@@ -73,6 +77,16 @@ It fails when that native binary is unavailable; it does not compile on demand
 or fall back to the old Python runner. The named lane can retain its existing
 entrypoint command. OPS owns installation and CI availability before cutover.
 The former discovery oracle remains at the pre-executor source commit.
+
+`--mechanics-topology-validate` is a separate read-only native candidate for
+the existing `mechanics_topology` lane. It checks package/part membership,
+route documents, local Markdown references and fragments, script/test
+inventories, context budget and moved-path accounting. It bounds traversal to
+10,000 entries, retained input to 64 MiB (8 MiB per file), and diagnostics to
+4,096 issues of at most 8 KiB each; references and retained anchor text have
+separate 100,000-reference and 64 MiB bounds. The Python lane remains the independent
+blocking oracle until exact issue-order parity and the actual native consumer
+are accepted. This candidate does not inspect or change authored ToS meaning.
 
 Install with `cargo install --locked --offline --path
 rust/crates/tos-ops-mechanics-plan --root <admitted isolated install root>`
