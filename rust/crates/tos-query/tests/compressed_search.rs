@@ -502,6 +502,11 @@ fn prepared_inspect_alias_endpoints_counts_and_selected_corruption_use_shared_me
     set(&mut input.nodes[1], "entity_id", text("ea"));
     set(&mut input.nodes[0], "native_id", text("shared-native"));
     set(&mut input.nodes[1], "native_id", text("shared-native"));
+    let mut loop_relation = input.relations[0].clone();
+    set(&mut loop_relation, "id", text("r2"));
+    set(&mut loop_relation, "native_id", text("r2-native"));
+    set(&mut loop_relation, "to_id", text("a"));
+    input.relations.push(loop_relation);
     let f = Fixture::publish(input, 1_048_576);
     let db = Connection::open_with_flags(&f.path, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
     db.execute_batch("PRAGMA query_only=ON;BEGIN").unwrap();
@@ -533,7 +538,7 @@ fn prepared_inspect_alias_endpoints_counts_and_selected_corruption_use_shared_me
         p.object_get("counts")
             .unwrap()
             .object_get("related_relations"),
-        Some(&json("1"))
+        Some(&json("2"))
     );
     let p = session
         .inspect(&f.binding, SearchKind::Nodes, "shared-native", 1)

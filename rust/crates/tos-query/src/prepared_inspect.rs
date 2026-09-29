@@ -381,18 +381,59 @@ fn incident(
         .map_err(storage_error)?
         .and_then(|n| u64::try_from(n).ok())
         .ok_or_else(corrupt)?;
-    let ids = read.query(&format!("SELECT CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB)) BETWEEN 1 AND ?3 THEN id END FROM ({incidence}) ORDER BY id LIMIT ?2"),
-        &[&encoded, &(limit as i64), &(field_cap as i64)], true, |r| r.get::<_, Option<String>>(0)).map_err(storage_error)?;
-    let rows = ids
+    // The exact total above traverses the complete incidence cohort. Selected
+    // rows use covering single-endpoint seeks and a bounded lexical merge,
+    // avoiding a second complete UNION/temp-sort before LIMIT.
+    let target = limit.min(usize::try_from(count).unwrap_or(usize::MAX));
+    let mut selected = Vec::new();
+    if target > 0 {
+        let streams = ids
+            .iter()
+            .flat_map(|id| [(id.as_str(), "from"), (id.as_str(), "to")])
+            .collect::<Vec<_>>();
+        let mut heads = std::collections::BTreeSet::new();
+        for (index, (id, side)) in streams.iter().enumerate() {
+            if let Some(next) = incident_next(read, side, id, "", field_cap)? {
+                heads.insert((next, index));
+            }
+        }
+        while let Some((id, index)) = heads.pop_first() {
+            read.check_abort().map_err(storage_error)?;
+            if selected.last() != Some(&id) {
+                selected.push(id.clone());
+                if selected.len() == target {
+                    break;
+                }
+            }
+            let (source, side) = streams[index];
+            if let Some(next) = incident_next(read, side, source, &id, field_cap)? {
+                heads.insert((next, index));
+            }
+        }
+    }
+    let rows = selected
         .into_iter()
-        .map(|id| {
-            full_row(
-                read,
-                SearchKind::Relations,
-                &id.ok_or_else(budget)?,
-                field_cap,
-            )
-        })
+        .map(|id| full_row(read, SearchKind::Relations, &id, field_cap))
         .collect::<Result<Vec<_>>>()?;
     Ok((count, rows))
+}
+fn incident_next(
+    read: &mut Read<'_>,
+    side: &str,
+    source: &str,
+    after: &str,
+    cap: usize,
+) -> Result<Option<String>> {
+    if !matches!(side, "from" | "to") {
+        return Err(corrupt());
+    }
+    let sql = format!(
+        "SELECT CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB)) BETWEEN 1 AND ?3 THEN id END FROM knowledge_relations INDEXED BY knowledge_relations_{side}_seek WHERE {side}_id=?1 AND id>?2 ORDER BY id LIMIT 1"
+    );
+    read.one(&sql, &[&source, &after, &(cap as i64)], true, |r| {
+        r.get::<_, Option<String>>(0)
+    })
+    .map_err(storage_error)?
+    .map(|id| id.ok_or_else(budget))
+    .transpose()
 }
