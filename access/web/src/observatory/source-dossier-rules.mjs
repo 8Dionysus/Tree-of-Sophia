@@ -8,3 +8,5 @@ export function createSourceDossierSession(request=false){
   return new runtime.SourceDossierSession(request);
 }
 export const dossierTextUnits=text=>Uint16Array.from({length:text.length},(_,index)=>text.charCodeAt(index));
+
+export const dossierPredicate=(method,...values)=>runtime.SourceDossierSession[method](...values);

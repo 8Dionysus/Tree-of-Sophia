@@ -143,10 +143,7 @@ impl ClientInspectionSession {
         self.step = next;
         Ok(())
     }
-    pub fn ref_invalid(&self, string: bool, truthy: bool) -> Result<bool, JsValue> {
-        if self.step != "refs" {
-            return Err(JsValue::from_str("invalid_inspection_progress"));
-        }
-        Ok(!string || !truthy)
+    pub fn ref_invalid(string: bool, truthy: bool) -> bool {
+        !string || !truthy
     }
 }

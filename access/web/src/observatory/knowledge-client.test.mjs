@@ -403,3 +403,20 @@ test('source dossier callback predicates preserve revoked Proxy shortcircuits',(
   records.relations=[object.proxy];
   assert.throws(()=>validateSourceDossier(records,'tos.work.fixture'),TypeError);
 });
+
+test('retained native array callbacks outlive inspection and dossier sessions',async()=>{
+  let inspectRef,stringElement,recordElement,chainElement;
+  const raw=node('selected');raw.source_refs.some=callback=>{inspectRef=callback;return false;};
+  const packet={schema:'tos_knowledge_node_packet_v1',source_revision:fixture.source_revision,matches:[raw]};
+  const client=new KnowledgeClient();client.request=async()=>packet;
+  await client.inspect('node','selected');
+  assert.equal(inspectRef('source'),false);assert.equal(inspectRef(''),true);
+  const metadata=dossier();
+  metadata.agent_summary.gaps.every=callback=>{stringElement=callback;return true;};
+  metadata.relations.every=callback=>{recordElement=callback;return true;};
+  const chain=[];chain.every=callback=>{chainElement=callback;return true;};metadata.chain={route:chain};
+  validateSourceDossier(metadata,'tos.work.fixture');
+  assert.equal(stringElement('text'),true);assert.equal(stringElement(''),false);
+  assert.equal(recordElement({}),true);assert.equal(recordElement([]),false);
+  assert.equal(chainElement({unknown:null}),true);assert.equal(chainElement(null),false);
+});

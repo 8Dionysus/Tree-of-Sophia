@@ -228,16 +228,22 @@ impl SourceDossierSession {
         }
         .into()
     }
-    pub fn string_element(&self, string: bool, length: usize) -> bool {
+    pub fn record_element_type(nonnull: bool, object: bool) -> bool {
+        nonnull && object
+    }
+    pub fn record_element_array(array: bool) -> bool {
+        !array
+    }
+    pub fn string_element(string: bool, length: usize) -> bool {
         string && length > 0 && length <= 2048
     }
-    pub fn chain_array_type(&self, array: bool) -> bool {
+    pub fn chain_array_type(array: bool) -> bool {
         array
     }
-    pub fn chain_array_length(&self, length: f64) -> bool {
+    pub fn chain_array_length(length: f64) -> bool {
         length <= 64.0
     }
-    pub fn chain_result(&self, every: bool) -> bool {
+    pub fn chain_result(every: bool) -> bool {
         !every
     }
 }

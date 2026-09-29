@@ -1,5 +1,5 @@
-import {createSourceDossierSession,dossierTextUnits} from './source-dossier-rules.mjs';
-import {createClientInspectionSession,inspectionRevisionText,inspectionRevisionUnits} from './client-inspection-rules.mjs';
+import {createSourceDossierSession,dossierTextUnits,dossierPredicate} from './source-dossier-rules.mjs';
+import {createClientInspectionSession,inspectionRefInvalid,inspectionRevisionText,inspectionRevisionUnits} from './client-inspection-rules.mjs';
 import {t,uiLanguage} from './ui-i18n.mjs';
 import {relationLabel,fileLabel,sourceLinkLabel,languageName,readableTitleForm,isReadablePresentationTitle} from './human-presentation.mjs';
 import {chooseKnowledgeSearchMode} from '../knowledge-search.ts';
@@ -226,6 +226,10 @@ export function validateSourceDossier(packet,expected){
     if(!run('record_type',value!==null,typeof value==='object'))return false;
     return run('record_array',Array.isArray(value));
   };
+  const recordElement=value=>{
+    if(!dossierPredicate('record_element_type',value!==null,typeof value==='object'))return false;
+    return dossierPredicate('record_element_array',Array.isArray(value));
+  };
   const text=value=>{run('text_length',typeof value==='string',typeof value==='string'?value.length:0);run('text',dossierTextUnits(value));};
   try{
     while(true){
@@ -251,7 +255,7 @@ export function validateSourceDossier(packet,expected){
         case 'array-length':run('array_length',Number(array.length));break;
         case 'array-every':{
           const callback=session.element_kind()==='string'
-            ?value=>run('string_element',typeof value==='string',typeof value==='string'?value.length:0):recordObservation;
+            ?value=>dossierPredicate('string_element',typeof value==='string',typeof value==='string'?value.length:0):recordElement;
           run('observe',Boolean(array.every(callback)));break;
         }
         case 'truncated':run('observe',typeof packet.truncated==='boolean');break;
@@ -262,9 +266,9 @@ export function validateSourceDossier(packet,expected){
         case 'chain-type':run('observe',typeof packet.chain==='object');break;
         case 'chain-array':run('observe',Array.isArray(packet.chain));break;
         case 'chain-values':run('observe',Boolean(Object.values(packet.chain).some(value=>{
-          if(!run('chain_array_type',Array.isArray(value)))return run('chain_result',false);
-          if(!run('chain_array_length',Number(value.length)))return run('chain_result',false);
-          return run('chain_result',Boolean(value.every(item=>recordObservation(item))));
+          if(!dossierPredicate('chain_array_type',Array.isArray(value)))return dossierPredicate('chain_result',false);
+          if(!dossierPredicate('chain_array_length',Number(value.length)))return dossierPredicate('chain_result',false);
+          return dossierPredicate('chain_result',Boolean(value.every(recordElement)));
         })));break;
         case 'done':return packet;
         default:throw new Error('Invalid source dossier Rust need');
@@ -428,7 +432,7 @@ function validateClientInspection(packet,kind,id,expected,contentRevision){
         case 'refs-array':run('observe',Array.isArray(item.source_refs));break;
         case 'refs-length':run('observe',Boolean(item.source_refs.length));break;
         case 'refs':run('observe',Boolean(item.source_refs.some(ref=>{
-          return run('ref_invalid',typeof ref==='string',Boolean(ref));
+          return inspectionRefInvalid(typeof ref==='string',Boolean(ref));
         })));break;
         case 'add-id':ids.add(item.id);run('observe',true);break;
       default:throw new Error('Invalid client inspection item need');
