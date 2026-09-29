@@ -1439,6 +1439,47 @@ pub fn apply_prepared_delta_transaction_fallible<I: IntoIterator<Item = Result<P
     changes: I,
     limits: PublicationLimits,
 ) -> Result<JsonValue> {
+    apply_prepared_delta_inner(db, expected, header, catalog, changes, limits, None)
+}
+
+/// Exact implementation-only migration, consumed by the joined source owner.
+/// No row changes are admitted here. The caller must pair all dependent states
+/// and roll back the entire transaction on any refusal. Naming a review does
+/// not establish semantic compatibility: that is the caller's owner evidence.
+pub struct ReviewedNormalizationTransition<'a> {
+    pub before_processor: &'a str,
+    pub after_processor: &'a str,
+    pub review_ref: &'a str,
+}
+
+pub(crate) fn transition_prepared_normalization_transaction(
+    db: &Connection,
+    expected: &JsonValue,
+    header: &JsonValue,
+    catalog: &JsonValue,
+    limits: PublicationLimits,
+    reviewed: &ReviewedNormalizationTransition<'_>,
+) -> Result<JsonValue> {
+    apply_prepared_delta_inner(
+        db,
+        expected,
+        header,
+        catalog,
+        std::iter::empty(),
+        limits,
+        Some(reviewed),
+    )
+}
+
+fn apply_prepared_delta_inner<I: IntoIterator<Item = Result<PreparedChange>>>(
+    db: &Connection,
+    expected: &JsonValue,
+    header: &JsonValue,
+    catalog: &JsonValue,
+    changes: I,
+    limits: PublicationLimits,
+    reviewed: Option<&ReviewedNormalizationTransition<'_>>,
+) -> Result<JsonValue> {
     if db.is_autocommit() {
         return Err(Error::Invalid("prepared caller transaction required"));
     }
@@ -1456,10 +1497,48 @@ pub fn apply_prepared_delta_transaction_fallible<I: IntoIterator<Item = Result<P
     {
         return Err(Error::Invalid("prepared data revision"));
     }
-    if !same(
-        field(header, "normalization_binding")?,
-        field(&top, "normalization_binding")?,
-    )? {
+    let before_normalization = field(&top, "normalization_binding")?;
+    let after_normalization = field(header, "normalization_binding")?;
+    if let Some(reviewed) = reviewed {
+        let hex = |value: &str| {
+            value.len() == 64
+                && value
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        };
+        if !hex(reviewed.before_processor)
+            || !hex(reviewed.after_processor)
+            || reviewed.before_processor == reviewed.after_processor
+            || reviewed.review_ref.trim().is_empty()
+            || reviewed.review_ref.len() > 4096
+            || required(before_normalization, "processor_digest")? != reviewed.before_processor
+            || required(after_normalization, "processor_digest")? != reviewed.after_processor
+        {
+            return Err(Error::Invalid(
+                "exact reviewed normalization transition required",
+            ));
+        }
+        let without_processor = |value: &JsonValue| -> Result<JsonValue> {
+            let fields = value
+                .as_object()
+                .ok_or(Error::Invalid("normalization object"))?;
+            Ok(JsonValue::Object(
+                fields
+                    .iter()
+                    .filter(|(key, _)| key.as_str() != Some("processor_digest"))
+                    .cloned()
+                    .collect(),
+            ))
+        };
+        if !same(
+            &without_processor(before_normalization)?,
+            &without_processor(after_normalization)?,
+        )? {
+            return Err(Error::Invalid(
+                "normalization transition changes algorithm inputs",
+            ));
+        }
+    } else if !same(after_normalization, before_normalization)? {
         return Err(Error::Invalid("prepared normalization bootstrap required"));
     }
     let epoch = integer(field(&actual, "publication_epoch")?)?;
