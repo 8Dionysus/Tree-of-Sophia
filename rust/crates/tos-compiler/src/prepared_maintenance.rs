@@ -408,6 +408,27 @@ fn apply_catalogued_retained(
     limits: prepared::PublicationLimits,
     catalog_limits: CatalogMaintenanceLimits,
 ) -> Result<MaintenanceReceipt> {
+    apply_catalogued_retained_with_transition(
+        tx,
+        expected,
+        before,
+        after,
+        retained,
+        limits,
+        catalog_limits,
+        None,
+    )
+}
+fn apply_catalogued_retained_with_transition(
+    tx: &Transaction<'_>,
+    expected: &JsonValue,
+    before: &CatalogInputs,
+    after: &CatalogInputs,
+    retained: &[prepared::PreparedChange],
+    limits: prepared::PublicationLimits,
+    catalog_limits: CatalogMaintenanceLimits,
+    reviewed: Option<&prepared::ReviewedNormalizationTransition<'_>>,
+) -> Result<MaintenanceReceipt> {
     let start = tx.total_changes();
     let old_catalog = selected(tx, expected, before, limits)?;
     after.validate()?;
@@ -477,14 +498,28 @@ fn apply_catalogued_retained(
     let catalog_json = output.clone();
     let mut remaining_limits = limits;
     remaining_limits.max_mutations = remaining(tx, start, limits)?;
-    let binding = prepared::apply_prepared_delta_transaction(
-        tx,
-        expected,
-        &header,
-        &catalog_json,
-        retained.iter().cloned(),
-        remaining_limits,
-    )?;
+    let binding = if let Some(reviewed) = reviewed {
+        if !retained.is_empty() {
+            return Err(Error::Invalid("normalization migration cannot change rows"));
+        }
+        prepared::transition_prepared_normalization_transaction(
+            tx,
+            expected,
+            &header,
+            &catalog_json,
+            remaining_limits,
+            reviewed,
+        )?
+    } else {
+        prepared::apply_prepared_delta_transaction(
+            tx,
+            expected,
+            &header,
+            &catalog_json,
+            retained.iter().cloned(),
+            remaining_limits,
+        )?
+    };
     if tx.total_changes() - start > limits.max_mutations {
         return Err(Error::Budget("joined catalog mutations"));
     }
@@ -629,5 +664,131 @@ pub fn apply_semantic_prepared_delta_transaction<
         Some(required(&verification, "semantic_report_sha256")?.to_owned());
     receipt.semantic_report = Some(report);
     receipt.sql_mutations = tx.total_changes() - start;
+    Ok(receipt)
+}
+
+/// Pair an owner-reviewed implementation-only normalization migration. This
+/// changes no normalized rows or registry/configuration inputs. Source owners
+/// must pair their own dependency/context state before committing this same
+/// transaction; any error requires whole-transaction rollback.
+pub fn transition_prepared_normalization_transaction(
+    tx: &Transaction<'_>,
+    expected: &JsonValue,
+    before: &CatalogInputs,
+    after: &CatalogInputs,
+    reviewed: &prepared::ReviewedNormalizationTransition<'_>,
+    limits: prepared::PublicationLimits,
+    catalog_limits: CatalogMaintenanceLimits,
+    semantic_cap: SemanticMaintenanceLimits,
+) -> Result<MaintenanceReceipt> {
+    before.validate()?;
+    after.validate()?;
+    limits.validate()?;
+    let start = tx.total_changes();
+    selected(tx, expected, before, limits)?;
+    // Preserve actual registry/lens/order identities, not merely their claimed
+    // normalization digests. Only implementation and source revision move.
+    if !same(
+        &before.entity_registry,
+        &after.entity_registry,
+        limits.max_metadata_bytes,
+    )? || !same(
+        &before.relation_registry,
+        &after.relation_registry,
+        limits.max_metadata_bytes,
+    )? || !same(
+        &JsonValue::Array(before.lenses.clone()),
+        &JsonValue::Array(after.lenses.clone()),
+        limits.max_metadata_bytes,
+    )? || before.source_order_profile != after.source_order_profile
+    {
+        return Err(Error::Invalid(
+            "normalization migration changes catalog inputs",
+        ));
+    }
+    let stable_header = |header: &JsonValue| -> Result<JsonValue> {
+        let fields = header
+            .as_object()
+            .ok_or(Error::Invalid("normalization migration header"))?;
+        Ok(JsonValue::Object(
+            fields
+                .iter()
+                .filter(|(key, _)| {
+                    !matches!(
+                        key.as_str(),
+                        Some("normalization_binding" | "source_revision")
+                    )
+                })
+                .cloned()
+                .collect(),
+        ))
+    };
+    if !same(
+        &stable_header(&before.header)?,
+        &stable_header(&after.header)?,
+        limits.max_metadata_bytes,
+    )? {
+        return Err(Error::Invalid(
+            "normalization migration changes header contract",
+        ));
+    }
+    let report = semantic::apply_semantic_delta_transaction(
+        tx,
+        expected,
+        required(&after.header, "source_revision")?,
+        &[],
+        &before.entity_registry,
+        &before.relation_registry,
+        reviewed.before_processor,
+        semantic_limits(tx, start, limits, semantic_cap)?,
+    )?;
+    let mut successor = after.clone();
+    let mut counts = successor
+        .header
+        .object_get("counts")
+        .cloned()
+        .unwrap_or(JsonValue::Object(Vec::new()));
+    replace_field(&mut counts, "semantic_validation", report.clone())?;
+    replace_field(&mut successor.header, "counts", counts)?;
+    let mut remaining_limits = limits;
+    remaining_limits.max_mutations = remaining(tx, start, limits)?;
+    let mut receipt = apply_catalogued_retained_with_transition(
+        tx,
+        expected,
+        before,
+        &successor,
+        &[],
+        remaining_limits,
+        catalog_limits,
+        Some(reviewed),
+    )?;
+    semantic::transition_pending_normalization_transaction(
+        tx,
+        expected,
+        &receipt.binding,
+        reviewed,
+        semantic_limits(tx, start, limits, semantic_cap)?,
+    )?;
+    let verification = semantic::verify_semantic_index_binding_transaction(
+        tx,
+        &receipt.binding,
+        reviewed.after_processor,
+        semantic_limits(tx, start, limits, semantic_cap)?,
+    )?;
+    successor.header = receipt
+        .source_header
+        .clone()
+        .ok_or(Error::Invalid("normalization migration finalized header"))?;
+    selected(tx, &receipt.binding, &successor, limits)?;
+    receipt.semantic_report_sha256 =
+        Some(required(&verification, "semantic_report_sha256")?.to_owned());
+    receipt.semantic_report = Some(report);
+    receipt.sql_mutations = tx
+        .total_changes()
+        .checked_sub(start)
+        .ok_or(Error::Invalid("normalization migration mutation counter"))?;
+    if receipt.sql_mutations > limits.max_mutations {
+        return Err(Error::Budget("normalization migration combined mutations"));
+    }
     Ok(receipt)
 }

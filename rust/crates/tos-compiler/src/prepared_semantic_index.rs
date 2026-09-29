@@ -1794,3 +1794,38 @@ fn semantic_string(v: &Value) -> Result<Option<&str>> {
     let s = canonical(s)?;
     Ok((!s.is_empty()).then_some(s))
 }
+
+/// Internal finalizer after the prepared owner has verified the exact reviewed
+/// processor pair and published an empty delta. Ordinary finalization remains
+/// strict; callers cannot use this entry to migrate a changed semantic overlay.
+pub(crate) fn transition_pending_normalization_transaction(
+    tx: &Transaction<'_>,
+    expected: &JsonValue,
+    successor: &JsonValue,
+    reviewed: &crate::local_prepared::ReviewedNormalizationTransition<'_>,
+    limits: SemanticMaintenanceLimits,
+) -> Result<()> {
+    let mut b = Budget::new(tx, limits)?;
+    b.input_json(expected)?;
+    b.input_json(successor)?;
+    let expected = view(expected, limits.max_input_bytes)?;
+    let successor = view(successor, limits.max_input_bytes)?;
+    let actual = b.binding(&successor)?;
+    let mut state = b.state()?;
+    if state["pending"] != true
+        || !python_eq(&state["binding"], &expected)?
+        || state["dependencies"]["normalization"] != expected["normalization_binding"]
+        || expected["normalization_binding"]["processor_digest"] != reviewed.before_processor
+        || actual["normalization_binding"]["processor_digest"] != reviewed.after_processor
+        || state["changes_digest"] != sha(&compact(&json!([]), limits.max_input_bytes)?)
+        || b.one("SELECT 1 FROM semantic_pending LIMIT 1", &[])?
+            .is_some()
+    {
+        return Err(Error::Invalid(
+            "normalization migration semantic predecessor differs",
+        ));
+    }
+    state["dependencies"]["normalization"] = actual["normalization_binding"].clone();
+    state["binding"]["normalization_binding"] = actual["normalization_binding"].clone();
+    b.put_state(&state)
+}
