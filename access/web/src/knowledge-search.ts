@@ -1,6 +1,6 @@
 export type KnowledgeSearchMode = "indexed" | "compressed";
 type SearchSession = {
-  phase(): number; current(): KnowledgeSearchMode; mode(): KnowledgeSearchMode | undefined;
+  phase(): number; current(): string; mode(): string | undefined;
   error_code(): string | undefined; query(present: boolean, units: Uint16Array): void;
   availability(value: boolean): void; minimum(nullish: boolean, numeric: boolean, value: number): void;
   free(): void;
@@ -27,15 +27,15 @@ export function chooseKnowledgeSearchMode(capabilities: unknown, requested?: unk
     if (query !== undefined && typeof query !== "string") (query as string).replace(/$/u, "");
     session.query(query !== undefined, query === undefined ? new Uint16Array() : Uint16Array.from({length:query.length}, (_, index) => query.charCodeAt(index)));
     while (session.phase() !== 4) {
-      const mode = session.current();
+      const mode = session.current() as KnowledgeSearchMode;
       if (session.phase() === 1 || session.phase() === 3) session.availability(descriptor(mode)?.available === true);
       else {
         const value = descriptor(mode)?.min_normalized_query_code_points;
         session.minimum(value === null || value === undefined, typeof value === "number", typeof value === "number" ? value : 0);
       }
     }
-    const mode = session.mode(); if (mode) return mode;
-    const current = session.current();
+    const mode = session.mode(); if (mode) return mode as KnowledgeSearchMode;
+    const current = session.current() as KnowledgeSearchMode;
     switch (session.error_code()) {
       case "invalid_capability": throw new Error(`invalid knowledge search query capability: ${current}`);
       case "mode_unavailable": throw new Error(`knowledge search mode unavailable: ${String(requested)}`);
