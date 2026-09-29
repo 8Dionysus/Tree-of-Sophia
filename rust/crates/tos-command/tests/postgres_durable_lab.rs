@@ -1976,16 +1976,13 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             if schema == "tos_knowledge_node_packet_v2" {
                 assert_eq!(packet["matches"].as_array().unwrap().len(), 1);
                 let attributes = &packet["matches"][0]["attributes"];
+                let record_name = second_path.as_str().rsplit('/').next().unwrap();
                 let body: serde_json::Value =
-                    serde_json::from_slice(&current_package.files()[second_path.as_str()]).unwrap();
-                let form_path = second_path
-                    .as_str()
-                    .strip_suffix(".json")
-                    .unwrap()
-                    .to_owned()
-                    + ".human-forms.json";
+                    serde_json::from_slice(&current_package.files()[record_name]).unwrap();
+                let form_name =
+                    record_name.strip_suffix(".json").unwrap().to_owned() + ".human-forms.json";
                 let set: serde_json::Value =
-                    serde_json::from_slice(&current_package.files()[&form_path]).unwrap();
+                    serde_json::from_slice(&current_package.files()[&form_name]).unwrap();
                 assert_eq!(attributes["source_record"], body);
                 assert_eq!(
                     attributes["human_forms"],
