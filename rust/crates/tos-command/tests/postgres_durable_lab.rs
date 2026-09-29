@@ -600,7 +600,15 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         }
         command
             .env("PYTHONDONTWRITEBYTECODE", "1")
-            .env("GIT_NO_REPLACE_OBJECTS", "1");
+            .env("GIT_NO_REPLACE_OBJECTS", "1")
+            // The real capture/restore Git children share this fixture's 1GiB
+            // AS envelope. Keep their pack mmap windows bounded after scrubbing
+            // inherited Git configuration; source/object semantics stay exact.
+            .env("GIT_CONFIG_COUNT", "2")
+            .env("GIT_CONFIG_KEY_0", "core.packedGitWindowSize")
+            .env("GIT_CONFIG_VALUE_0", "16m")
+            .env("GIT_CONFIG_KEY_1", "core.packedGitLimit")
+            .env("GIT_CONFIG_VALUE_1", "64m");
     }
     let url = database_url();
     let mut lab = Lab::new(&url);
