@@ -99,7 +99,19 @@ def native_publication(path, *, executable, timeout, operation, header, catalog,
                 yield raw
             yield b'{"end":true}\n'
 
-    callback = search_reuse.progress if search_reuse is not None else None
+    phases = {'donor_metadata_validated', 'donor_source_terms_progress',
+              'donor_source_terms_validated', 'donor_table_copied', 'search_successor_prepared'}
+    value = _exchange(executable, timeout, deadline, frames,
+                      callback=search_reuse.progress if search_reuse is not None else None,
+                      progress_phases=phases)
+    if value.get('schema') != 'tos_published_knowledge_snapshot_v1':
+        raise ValueError('native prepared publication returned an invalid binding')
+    return value
+
+
+def _exchange(executable, timeout, deadline, frames, *, callback=None,
+              output_cap=65536, progress_phases=()):
+    """One bounded process transport shared by the two actual file owners."""
     ack_read, ack_write = os.pipe() if callback is not None else (None, None)
     command = [str(executable), 'prepared-publication', '--max-seconds', str(timeout)]
     if callback is not None:
@@ -158,12 +170,12 @@ def native_publication(path, *, executable, timeout, operation, header, catalog,
                             selector.unregister(stream)
                             stream.close()
                             continue
-                        target, cap = (output, 65536) if key.data == 'output' else (errors, 8192)
+                        target, cap = (output, output_cap) if key.data == 'output' else (errors, 8192)
                         if len(target) + len(chunk) > cap:
                             raise ValueError('native prepared output/error byte budget exceeded')
                         if key.data == 'output' and callback is not None:
                             progress_buffer.extend(chunk)
-                            if len(progress_buffer) > 65536:
+                            if len(progress_buffer) > max(output_cap, 4096):
                                 raise ValueError('native prepared output frame budget exceeded')
                             while b'\n' in progress_buffer:
                                 raw, _, tail = progress_buffer.partition(b'\n')
@@ -174,10 +186,7 @@ def native_publication(path, *, executable, timeout, operation, header, catalog,
                                     if len(raw) > 4096 or progress_bytes > 1024 * 1024:
                                         raise ValueError('native prepared progress byte budget exceeded')
                                     report = value['progress']
-                                    phases = {'donor_metadata_validated', 'donor_source_terms_progress',
-                                              'donor_source_terms_validated', 'donor_table_copied',
-                                              'search_successor_prepared'}
-                                    if not isinstance(report, dict) or report.get('phase') not in phases:
+                                    if not isinstance(report, dict) or report.get('phase') not in progress_phases:
                                         raise ValueError('native prepared invalid progress report')
                                     # Callbacks are cooperative synchronous user code.
                                     # Native still bounds its ack wait by the absolute
@@ -198,8 +207,8 @@ def native_publication(path, *, executable, timeout, operation, header, catalog,
             raise ValueError(errors.decode('utf-8', 'replace').strip() or
                              f'native prepared publication exited {status}')
         value = json.loads(output)
-        if not isinstance(value, dict) or value.get('schema') != 'tos_published_knowledge_snapshot_v1':
-            raise ValueError('native prepared publication returned an invalid binding')
+        if not isinstance(value, dict):
+            raise ValueError('native prepared operation returned a non-object result')
         return value
     except BaseException:
         if ack_write is not None:

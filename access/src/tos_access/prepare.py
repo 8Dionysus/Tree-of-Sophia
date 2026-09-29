@@ -57,7 +57,7 @@ def _selected_binding(db):
     return published_snapshot_binding(top, clock[0])
 
 
-def _attach_maintenance(path, *, core, state, binding, inputs, row_factory, publication, maintenance):
+def reference_attach_maintenance(path, *, core, state, binding, inputs, row_factory, publication, maintenance):
     limits, catalog_limits, semantic_limits = _maintenance_caps(publication, maintenance)
     # mode=rw never creates a replacement when the just-published file is gone.
     db = sqlite3.connect(path.as_uri() + "?mode=rw", uri=True, isolation_level=None)
@@ -99,6 +99,43 @@ def _attach_maintenance(path, *, core, state, binding, inputs, row_factory, publ
         raise
     finally:
         db.close()
+
+
+def _attach_maintenance(path, *, core, state, binding, inputs, row_factory, publication, maintenance,
+                        native_executable, native_timeout):
+    """Attach indexes through a native file owner and actual source-check ACK."""
+    from . import knowledge
+    from .prepared_native_maintenance import native_maintenance
+    limits, catalog_limits, semantic_limits = _maintenance_caps(publication, maintenance)
+
+    def check_source_current():
+        if core._knowledge_input_state() != state:
+            raise RuntimeError("source changed during maintenance attachment")
+
+    check_source_current()
+    processor = knowledge.normalization_processor_digest(Path(knowledge.__file__).resolve())
+    result = native_maintenance(path, operation="maintenance-bootstrap", expected_binding=binding,
+        inputs=inputs, ordered_rows=row_factory, limits=limits, catalog_limits=catalog_limits,
+        semantic_limits=semantic_limits, normalization_processor_sha256=processor,
+        check_source_current=check_source_current, native_executable=native_executable,
+        native_timeout=native_timeout)
+    mutations = result["sql_mutations"]
+    if (result["binding"] != binding or result.get("publication_changed") is not False
+            or mutations > limits.max_mutations):
+        raise ValueError("maintenance changed selected publication or exceeded write budget")
+    check_source_current()
+    return {
+        "schema": "tos_prepared_maintenance_attachment_receipt_v1",
+        "status": "attached", "mode": "catalog_semantic_indexes",
+        "binding": binding.copy(), "catalog_digest": result["catalog_digest"],
+        "semantic_report_sha256": emitted_row_digest(_compact(result["semantic_report"]))["sha256"],
+        "sql_mutations": mutations, "declared_limits": asdict(maintenance),
+        "effective_limits": {"publication": asdict(limits), "catalog": asdict(catalog_limits),
+                             "semantic": asdict(semantic_limits)},
+        "mutation_budget_upper_bound": publication.max_mutations + maintenance.max_mutations,
+        "publication_changed": False, "consumer_switched": False,
+        "source_transition_verified": False, "semantic_acceptance": False,
+    }
 
 
 def _sync_directory(path: Path) -> None:
@@ -212,7 +249,8 @@ def prepare(source_root: str | Path, output_dir: str | Path, *,
     attached = None
     if maintenance is not None:
         attached = _attach_maintenance(path, core=core, state=state, binding=binding, inputs=inputs,
-            row_factory=row_factory, publication=limits, maintenance=maintenance)
+            row_factory=row_factory, publication=limits, maintenance=maintenance,
+            native_executable=native_executable, native_timeout=native_timeout)
         if core._knowledge_input_state() != state:
             raise RuntimeError("source changed after maintenance attachment")
     receipt = {

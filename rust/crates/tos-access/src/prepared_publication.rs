@@ -13,7 +13,7 @@ use tos_compiler::{
 };
 use tos_foundation::{JsonLimits, JsonMode, JsonValue, emit_python_compact_json, parse_json};
 
-fn parse(raw: &[u8], cap: usize) -> Result<JsonValue, String> {
+pub(crate) fn parse(raw: &[u8], cap: usize) -> Result<JsonValue, String> {
     let limits = JsonLimits::new(cap, 96, 1_000_000, 4096).map_err(|e| e.to_string())?;
     Ok(parse_json(raw, JsonMode::PublishedStrict, limits)
         .map_err(|e| e.to_string())?
@@ -81,7 +81,11 @@ impl Read for DeadlineStdin {
     }
 }
 
-fn line(input: &mut dyn BufRead, cap: usize, deadline: Instant) -> Result<Vec<u8>, String> {
+pub(crate) fn line(
+    input: &mut dyn BufRead,
+    cap: usize,
+    deadline: Instant,
+) -> Result<Vec<u8>, String> {
     let mut output = Vec::new();
     loop {
         if Instant::now() >= deadline {
@@ -103,17 +107,17 @@ fn line(input: &mut dyn BufRead, cap: usize, deadline: Instant) -> Result<Vec<u8
         }
     }
 }
-fn field<'a>(value: &'a JsonValue, key: &str) -> Result<&'a JsonValue, String> {
+pub(crate) fn field<'a>(value: &'a JsonValue, key: &str) -> Result<&'a JsonValue, String> {
     value
         .object_get(key)
         .ok_or_else(|| format!("prepared input missing {key}"))
 }
-fn text<'a>(value: &'a JsonValue, key: &str) -> Result<&'a str, String> {
+pub(crate) fn text<'a>(value: &'a JsonValue, key: &str) -> Result<&'a str, String> {
     field(value, key)?
         .as_str()
         .ok_or_else(|| format!("prepared input {key} must be a string"))
 }
-fn uint(value: &JsonValue) -> Result<u64, String> {
+pub(crate) fn uint(value: &JsonValue) -> Result<u64, String> {
     match value {
         JsonValue::Number(n) if n.kind == tos_foundation::JsonNumberKind::Int => n
             .lexeme
@@ -122,7 +126,7 @@ fn uint(value: &JsonValue) -> Result<u64, String> {
         _ => Err("prepared input unsigned integer".into()),
     }
 }
-fn exact(value: &JsonValue, keys: &[&str]) -> Result<(), String> {
+pub(crate) fn exact(value: &JsonValue, keys: &[&str]) -> Result<(), String> {
     let fields = value.as_object().ok_or("prepared object required")?;
     if fields.len() != keys.len()
         || fields
@@ -133,14 +137,14 @@ fn exact(value: &JsonValue, keys: &[&str]) -> Result<(), String> {
     }
     Ok(())
 }
-fn encoded(value: &JsonValue, cap: usize) -> Result<Vec<u8>, String> {
+pub(crate) fn encoded(value: &JsonValue, cap: usize) -> Result<Vec<u8>, String> {
     emit_python_compact_json(
         value,
         JsonLimits::new(cap, 96, 1_000_000, 4096).map_err(|e| e.to_string())?,
     )
     .map_err(|e| e.to_string())
 }
-fn path(raw: &str) -> Result<PathBuf, String> {
+pub(crate) fn path(raw: &str) -> Result<PathBuf, String> {
     let p = Path::new(raw);
     if !p.is_absolute() || p.file_name().is_none() {
         return Err("prepared absolute file path required".into());
@@ -181,7 +185,7 @@ impl PreparedRows for StreamRows<'_> {
         }
     }
 }
-fn decode_change(raw: &[u8], cap: usize) -> Result<PreparedChange, String> {
+pub(crate) fn decode_change(raw: &[u8], cap: usize) -> Result<PreparedChange, String> {
     let value = parse(raw, cap)?;
     exact(
         &value,
@@ -326,6 +330,19 @@ fn run(
     limits.validate().map_err(|e| e.to_string())?;
     let operation = text(&frame, "operation")?;
     let path = path(text(&frame, "path")?)?;
+    if matches!(
+        operation,
+        "maintenance-bootstrap" | "catalogued-delta" | "semantic-delta"
+    ) {
+        let (result, cap) =
+            crate::prepared_maintenance::run(&frame, input, limits, deadline, progress_fd)?;
+        let output = encoded(&result, cap)?;
+        stdout
+            .write_all(&output)
+            .and_then(|()| stdout.write_all(b"\n"))
+            .map_err(|e| e.to_string())?;
+        return Ok(());
+    }
     let header = field(&frame, "header")?;
     let catalog = field(&frame, "catalog")?;
     let binding = match operation {
@@ -356,26 +373,8 @@ fn run(
             };
             let progress: Option<tos_compiler::local_prepared_reuse::ProgressCallback> =
                 progress_fd.map(|fd| {
-                    Box::new(move |value: &JsonValue| {
-                        let frame = JsonValue::Object(vec![(
-                            tos_foundation::JsonString::from_utf8("progress"),
-                            value.clone(),
-                        )]);
-                        let bytes = encoded(&frame, 4096).map_err(tos_compiler::Error::Source)?;
-                        let mut output = io::stdout().lock();
-                        output.write_all(&bytes)?;
-                        output.write_all(b"\n")?;
-                        output.flush()?;
-                        let mut ack = BufReader::with_capacity(128, DeadlineStdin { fd, deadline });
-                        let raw =
-                            line(&mut ack, 128, deadline).map_err(tos_compiler::Error::Source)?;
-                        if raw != b"{\"ack\":true}" {
-                            return Err(tos_compiler::Error::Invalid(
-                                "prepared progress acknowledgement",
-                            ));
-                        }
-                        Ok(())
-                    }) as tos_compiler::local_prepared_reuse::ProgressCallback
+                    Box::new(move |value: &JsonValue| acknowledge(value, fd, deadline))
+                        as tos_compiler::local_prepared_reuse::ProgressCallback
                 });
             if progress.is_some() && !matches!(&search, BootstrapSearch::Reuse(_)) {
                 return Err("prepared progress requires donor reuse".into());
@@ -498,4 +497,28 @@ pub fn run_if_requested(
             }
         },
     )
+}
+
+pub(crate) fn acknowledge(
+    value: &JsonValue,
+    fd: i32,
+    deadline: Instant,
+) -> tos_compiler::Result<()> {
+    let frame = JsonValue::Object(vec![(
+        tos_foundation::JsonString::from_utf8("progress"),
+        value.clone(),
+    )]);
+    let bytes = encoded(&frame, 4096).map_err(tos_compiler::Error::Source)?;
+    let mut output = io::stdout().lock();
+    output.write_all(&bytes)?;
+    output.write_all(b"\n")?;
+    output.flush()?;
+    let mut ack = BufReader::with_capacity(128, DeadlineStdin { fd, deadline });
+    let raw = line(&mut ack, 128, deadline).map_err(tos_compiler::Error::Source)?;
+    if raw != b"{\"ack\":true}" {
+        return Err(tos_compiler::Error::Invalid(
+            "prepared progress acknowledgement",
+        ));
+    }
+    Ok(())
 }

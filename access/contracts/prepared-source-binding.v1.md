@@ -123,3 +123,27 @@ cooperate with the caller deadline; an arbitrary blocking user callback is not a
 bounded Python supervisor. Compound index carriers use Python-compatible nested
 representation with the maintained foundation number codec and pinned Unicode16
 printable categories; they do not become JSON strings or silently disappear.
+
+## Joined offline maintenance ownership
+
+`prepare` attaches catalog and semantic maintenance through one native file-owned
+transaction after publication. It supplies the exact selected owner inputs and
+normalization processor identity, checks its source state before the call, and
+acknowledges the actual source check before native commit. Publication and attachment
+retain separate named mutation budgets. The native projector records its own exact
+implementation digest; a Python source digest remains normalization provenance,
+never an identity for native code. Existing Python auxiliary projector state requires
+explicit offline bootstrap/rebuild before native delta, with no hidden full rebuild.
+
+Native transaction functions accept a real Rust `rusqlite::Transaction` and join
+catalog contributor facts, semantic diagnostics and prepared publication. Whole
+source pairing must include `prepared_source_state` in that same transaction.
+Generic Python Connection APIs remain reference paths until their complete native
+successor owns the operation; an individual inner call cannot cross a subprocess
+boundary while leaving its outer Python transaction open. `reference_attach_maintenance`
+retains the independent Python attachment oracle.
+
+A prepared public binding requires an exact integer publication epoch within the
+safe integer bound. Incidental Python dictionary equality between malformed boolean
+or float epochs and integers does not expand this typed reader ABI. Independent
+Python reference behavior is retained.
