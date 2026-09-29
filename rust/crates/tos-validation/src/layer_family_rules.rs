@@ -351,12 +351,15 @@ impl LayerFamilyRules {
             .checked_sub(self.state_bytes)
             .and_then(|n| n.checked_sub(self.named_transient))
             .ok_or(ItemRefusal::Budget)?;
-        let (value, decoded_state) = match crate::record_biblio_cut::bounded_legacy_decoded_state(
-            &raw,
+        let codec = tos_foundation::JsonLimits::new(
             self.limits.max_member_bytes,
-            available,
-            self.limits.deadline,
-            source.cancellation(),
+            64,
+            300_000,
+            4_300,
+        )
+        .map_err(|_| ItemRefusal::Budget)?;
+        let (value, decoded_state) = match crate::record_biblio_cut::bounded_legacy_decoded_state_with_limits(
+            &raw, codec, available, self.limits.deadline, source.cancellation(),
         ) {
             Ok(result) => result,
             Err(ItemRefusal::Source(reason)) => {

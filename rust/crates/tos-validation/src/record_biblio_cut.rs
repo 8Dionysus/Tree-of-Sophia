@@ -928,7 +928,19 @@ fn bounded_ordered_mode(
 // Integer text was bounded only by the member bytes in that serde route.
 pub(crate) fn bounded_legacy_decoded_state(raw:&[u8],max_bytes:usize,available:usize,deadline:Instant,cancelled:&AtomicBool)->Result<(serde_json::Value,usize),ItemRefusal> {
     let limits=tos_foundation::JsonLimits::new(max_bytes,128,available.max(1),max_bytes.max(1)).map_err(|_|ItemRefusal::Budget)?;
-    drop(bounded_ordered_mode(raw,limits,available,deadline,cancelled,tos_foundation::JsonMode::RequestLastWins)?);
+    bounded_legacy_decoded_state_inner(raw,limits,available,deadline,cancelled,false)
+}
+// The named source-layer caller has the original native decoded-field JSON
+// profile: malformed finite JSON is an issue, while a valid value outside
+// serde's representable scalar strings remains explicitly unsupported.
+pub(crate) fn bounded_legacy_decoded_state_with_limits(raw:&[u8],limits:tos_foundation::JsonLimits,available:usize,deadline:Instant,cancelled:&AtomicBool)->Result<(serde_json::Value,usize),ItemRefusal> {
+    bounded_legacy_decoded_state_inner(raw,limits,available,deadline,cancelled,true)
+}
+fn bounded_legacy_decoded_state_inner(raw:&[u8],limits:tos_foundation::JsonLimits,available:usize,deadline:Instant,cancelled:&AtomicBool,malformed_as_source:bool)->Result<(serde_json::Value,usize),ItemRefusal> {
+    drop(bounded_ordered_mode(raw,limits,available,deadline,cancelled,tos_foundation::JsonMode::RequestLastWins).map_err(|error|match error {
+        ItemRefusal::Unsupported(_) if malformed_as_source => ItemRefusal::Source("invalid finite native JSON".into()),
+        other => other,
+    })?);
     let value=serde_json::from_slice(raw).map_err(|_|ItemRefusal::Unsupported("decoded JSON representation".into()))?;
     let state=decoded_state(&value)?;
     if state>available {return Err(ItemRefusal::BudgetCheck{check:"legacy JSON retained decoded state",used:Some(state as u64),limit:Some(available as u64)});}
