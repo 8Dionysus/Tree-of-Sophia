@@ -1597,16 +1597,27 @@ def _run_selected_native_owner(owner_config: Path, invocation_path: Path, reques
     deadline = time.monotonic() + 60
     if owner_config is None:
         raise PermissionError('native owner requires an owner configuration')
-    config, _, _ = _configuration(owner_config)
-    handler = command_handler(config['schema_version'])
-    claim = handler.handler_id.startswith(('public-claim-create-', 'public-claim-revision-'))
-    item = config['schema_version'] == 'tos_local_item_adoption_owner_v1'
+    # The compatibility transport reads a protected family hint only. The
+    # native typed owner performs configuration, grammar and source checks.
+    with os.fdopen(_owned_path(owner_config), 'rb') as selected:
+        info = os.fstat(selected.fileno())
+        if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600:
+            raise PermissionError('native owner configuration must be private owner bytes')
+        config_raw = selected.read(MAX_COMMAND_BYTES + 1)
+    if len(config_raw) > MAX_COMMAND_BYTES:
+        raise ValueError('native owner configuration exceeds the input budget')
+    config = _json_object(config_raw)
+    schema = config.get('schema_version')
+    if not isinstance(schema, str):
+        raise ValueError('native owner configuration has no schema discriminator')
+    claim = schema.startswith(('tos_local_claim_create_owner_v', 'tos_local_claim_revision_owner_v',
+                               'tos_local_document_catalogue_date_', 'tos_local_identity_proposal_')) or schema == 'tos_local_claim_layer_revision_owner_v1'
+    item = schema == 'tos_local_item_adoption_owner_v1'
     collection = config['schema_version'] == 'tos_local_collection_membership_owner_v1'
     alignment = config['schema_version'] == 'tos_local_native_alignment_owner_v1'
     source = not item and not claim and not alignment and not collection
     if len(_canonical(request)) > MAX_COMMAND_BYTES:
         raise ValueError('source command exceeds the 1 MiB input budget')
-    command_handler(config['schema_version']).validate_request(request)
     operations = (('describe', 'prepare-attach', 'collection.work.attach', 'collection.work.recover') if collection else
                   ('describe', 'prepare-create', 'claims.create', 'prepare-revise', 'claim.revise', 'inspect-version') if claim else
                   ('describe', 'prepare-create', 'item.adopt', 'item.adoption.recover') if item else
