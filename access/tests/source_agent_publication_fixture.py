@@ -40,7 +40,7 @@ from source_assembly_fixture import SourceAssemblyFixture
 from source_metadata_snapshot import PublicationSnapshot
 from tos_access import knowledge as knowledge_graph
 from tos_access.catalog_semantics import CANONICAL_ORDER, CatalogInputs, memory_catalog
-from tos_access.prepared_publication import publish_prepared
+from tos_access.prepared_publication import (reference_publish_prepared as publish_prepared)
 from tos_access.prepared_semantics import bootstrap_prepared_maintenance_transaction
 from tos_access.prepared_source_binding import bootstrap_prepared_source_inputs_transaction
 from tos_access.prepared_source_dependencies import (

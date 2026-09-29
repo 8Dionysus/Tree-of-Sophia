@@ -14,7 +14,10 @@ from unittest.mock import patch
 from tos_access import knowledge as k
 from tos_access import semantic_index as s
 from tos_access.prepared_publication import (
-    PreparedChange, SOURCE_ORDER_STRIDE, apply_prepared_delta_transaction, publish_prepared,
+    PreparedChange,
+    SOURCE_ORDER_STRIDE,
+    apply_prepared_delta_transaction,
+    reference_publish_prepared as publish_prepared,
 )
 from tos_access.published_read_metadata import _compact, emitted_row_digest, published_row_digest_key
 from test_prepared_publication import fixture

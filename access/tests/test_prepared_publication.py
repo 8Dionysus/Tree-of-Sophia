@@ -13,8 +13,13 @@ import unittest
 from unittest.mock import patch
 
 from tos_access.prepared_publication import (
-    PreparedChange, PublicationLimits, SCHEMA, apply_prepared_delta,
-    apply_prepared_delta_transaction, publish_prepared, publish_prepared_rows,
+    PreparedChange,
+    PublicationLimits,
+    SCHEMA,
+    reference_apply_prepared_delta as apply_prepared_delta,
+    apply_prepared_delta_transaction,
+    reference_publish_prepared as publish_prepared,
+    reference_publish_prepared_rows as publish_prepared_rows,
 )
 from tos_access.compressed_search_store import SearchStore, STORAGE_VERSION, decode_postings, encode_postings
 from tos_access.prepared_search_reuse import PreparedSearchReuse
@@ -103,6 +108,62 @@ class PreparedPublicationTests(unittest.TestCase):
             return list(db.iterdump())
 
     @unittest.skipUnless(os.environ.get('TOS_NATIVE_PREPARED_EXECUTABLE'),
+                         'explicit protected installed publication executor required')
+    def test_default_file_owner_uses_selected_native_and_keeps_python_reference(self):
+        """The maintained default selects code once and never falls back to Python."""
+        graph = copy.deepcopy(self.graph)
+        graph['nodes'][0]['type_id'] = [True, None, {'quoted': "a'b\\c", 'unicode': '\u00a0'}]
+        expected = publish_prepared(self.path, graph=graph, catalog=self.catalog)
+        target = self.path.with_name('default-native.sqlite')
+        executable = os.environ['TOS_NATIVE_PREPARED_EXECUTABLE']
+        with patch.dict(os.environ, TOS_PREPARED_EXECUTOR=executable,
+                        TOS_PREPARED_MAX_SECONDS='20'):
+            with patch.object(publication, '_publish_prepared_rows',
+                              side_effect=AssertionError('Python fallback')):
+                actual = publication.publish_prepared(target, graph=graph, catalog=self.catalog)
+            header, catalog = self.header()
+            updated = copy.deepcopy(graph['nodes'][0])
+            updated['probe']['default-native'] = 'changed by selected executor'
+            changes = [PreparedChange('update', 'node', 'a', updated)]
+            expected = apply_prepared_delta(self.path, expected_binding=expected,
+                source_header=header, catalog=catalog, changes=changes)
+            with patch.object(publication, 'reference_apply_prepared_delta',
+                              side_effect=AssertionError('Python fallback')):
+                actual = publication.apply_prepared_delta(target, expected_binding=actual,
+                    source_header=header, catalog=catalog, changes=changes)
+        self.assertEqual(actual, expected)
+        with closing(sqlite3.connect(self.path)) as reference, closing(sqlite3.connect(target)) as native:
+            for table in ('edge_meta', 'prepared_documents', 'prepared_state',
+                          'knowledge_nodes', 'knowledge_relations', 'knowledge_exploration_clock'):
+                self.assertEqual(reference.execute(f'SELECT * FROM {table}').fetchall(),
+                                 native.execute(f'SELECT * FROM {table}').fetchall(), table)
+        # Callback refusal must happen before commit, after actual donor copy.
+        donor = self.path.with_name('callback-donor.sqlite')
+        donor_binding = publish_prepared(donor, graph=graph, catalog=self.catalog)
+        predecessor_bytes = donor.read_bytes()
+        donor_target = self.path.with_name('callback-native.sqlite')
+        phases = []
+        def stop_after_copy(report):
+            phases.append(report['phase'])
+            if report['phase'] == 'donor_table_copied':
+                raise RuntimeError('intentional callback cancellation')
+        with patch.dict(os.environ, TOS_PREPARED_EXECUTOR=executable,
+                        TOS_PREPARED_MAX_SECONDS='20'):
+            with self.assertRaisesRegex(RuntimeError, 'intentional callback cancellation'):
+                publication.publish_prepared_rows(donor_target, source_header={key: value for key, value in graph.items() if key not in ('nodes', 'relations')}, catalog=self.catalog,
+                    row_factory=lambda kind: iter(graph[kind + 's']),
+                    search_reuse=PreparedSearchReuse(donor, donor_binding, progress=stop_after_copy))
+        self.assertIn('donor_table_copied', phases)
+        self.assertFalse(donor_target.exists())
+        self.assertEqual(donor.read_bytes(), predecessor_bytes)
+        absent = self.path.with_name('missing-executor.sqlite')
+        with patch.dict(os.environ, TOS_PREPARED_EXECUTOR=str(self.path.with_name('missing-native')),
+                        TOS_PREPARED_MAX_SECONDS='20'):
+            with self.assertRaises(ValueError):
+                publication.publish_prepared(absent, graph=self.graph, catalog=self.catalog)
+        self.assertFalse(absent.exists())
+
+    @unittest.skipUnless(os.environ.get('TOS_NATIVE_PREPARED_EXECUTABLE'),
                          'explicit protected native publication executable required')
     def test_native_framed_input_deadline_rolls_back_stalled_second_pass(self):
         """A live idle stdin pipe cannot outlive CLI deadline or leave its new DB."""
@@ -153,7 +214,7 @@ class PreparedPublicationTests(unittest.TestCase):
         executable = os.environ['TOS_NATIVE_PREPARED_EXECUTABLE']
         native = self.path.with_name('native.sqlite')
         expected = publish_prepared(self.path, graph=self.graph, catalog=self.catalog)
-        actual = publish_prepared(native, graph=self.graph, catalog=self.catalog,
+        actual = publication.publish_prepared(native, graph=self.graph, catalog=self.catalog,
                                   native_executable=executable, native_timeout=20)
         self.assertEqual(actual, expected)
         for selected in (self.path, native):
@@ -168,7 +229,7 @@ class PreparedPublicationTests(unittest.TestCase):
             before = list(db.iterdump())
         header, catalog = self.header()
         with self.assertRaises(ValueError):
-            apply_prepared_delta(native, expected_binding=actual, source_header=header,
+            publication.apply_prepared_delta(native, expected_binding=actual, source_header=header,
                                  catalog=catalog, changes=[PreparedChange('delete', 'node', 'a')],
                                  native_executable=executable, native_timeout=20)
         with closing(sqlite3.connect(native)) as db:
@@ -183,7 +244,7 @@ class PreparedPublicationTests(unittest.TestCase):
                    PreparedChange('delete', 'node', 'b')]
         new_expected = apply_prepared_delta(self.path, expected_binding=expected,
                                            source_header=header, catalog=catalog, changes=changes)
-        new_actual = apply_prepared_delta(native, expected_binding=actual, source_header=header,
+        new_actual = publication.apply_prepared_delta(native, expected_binding=actual, source_header=header,
                                          catalog=catalog, changes=changes,
                                          native_executable=executable, native_timeout=20)
         self.assertEqual(new_actual, new_expected)
@@ -202,14 +263,14 @@ class PreparedPublicationTests(unittest.TestCase):
             for key in ('nodes', 'relations', 'ranks', 'counts', 'source_revision'):
                 self.assertEqual(packets[0][key], packets[1][key], (query, key))
         with self.assertRaises(ValueError):
-            apply_prepared_delta(native, expected_binding=actual, source_header=header,
+            publication.apply_prepared_delta(native, expected_binding=actual, source_header=header,
                                  catalog=catalog, changes=[],
                                  native_executable=executable, native_timeout=20)
         # Metadata-only rollback to the earlier source revision still advances
         # actual epoch/incarnation. It cannot resurrect the predecessor binding.
         original_header = {key: value for key, value in self.graph.items()
                            if key not in ('nodes', 'relations')}
-        restored = apply_prepared_delta(native, expected_binding=new_actual,
+        restored = publication.apply_prepared_delta(native, expected_binding=new_actual,
                                         source_header=original_header, catalog=self.catalog,
                                         changes=[], native_executable=executable, native_timeout=20)
         self.assertGreater(restored['publication_epoch'], new_actual['publication_epoch'])
@@ -230,7 +291,7 @@ class PreparedPublicationTests(unittest.TestCase):
         reference = self.path.with_name('donor-reference.sqlite')
         target = self.path.with_name('donor-native.sqlite')
         expected = publish_prepared(reference, graph=graph, catalog=catalog)
-        actual = publish_prepared_rows(target, source_header=header, catalog=catalog,
+        actual = publication.publish_prepared_rows(target, source_header=header, catalog=catalog,
             row_factory=lambda kind: iter(graph[kind + 's']),
             search_reuse=PreparedSearchReuse(self.path, self.binding),
             native_executable=os.environ['TOS_NATIVE_PREPARED_EXECUTABLE'], native_timeout=20)
@@ -250,7 +311,7 @@ class PreparedPublicationTests(unittest.TestCase):
         self.assertEqual(PublishedLensService(old).execute(lens()), execute_knowledge_lens(self.graph, lens()))
         refused = self.path.with_name('donor-refused.sqlite')
         with self.assertRaises(ValueError):
-            publish_prepared_rows(refused, source_header=header, catalog=catalog,
+            publication.publish_prepared_rows(refused, source_header=header, catalog=catalog,
                 row_factory=lambda kind: iter(graph[kind + 's']),
                 search_reuse=PreparedSearchReuse(self.path, self.binding, max_queries=1),
                 native_executable=os.environ['TOS_NATIVE_PREPARED_EXECUTABLE'], native_timeout=20)
@@ -265,7 +326,7 @@ class PreparedPublicationTests(unittest.TestCase):
         target = self.path.with_name('bulk-native.sqlite')
         scratch = self.path.with_name('bulk-scratch.sqlite')
         expected = publish_prepared(reference, graph=self.graph, catalog=self.catalog)
-        actual = publish_prepared(target, graph=self.graph, catalog=self.catalog,
+        actual = publication.publish_prepared(target, graph=self.graph, catalog=self.catalog,
             search_scratch_path=scratch,
             search_scratch_limits=BulkBootstrapLimits(max_bytes=1_048_576, max_mutations=200_000,
                 max_cached_terms=2, max_cached_bytes=1024, batch_size=16,

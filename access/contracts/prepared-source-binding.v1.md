@@ -92,3 +92,34 @@ The separate [selected Agent composition](source-agent-publication.v1.md) now
 connects those primitives to real source readers and selected-command evidence
 for one explicitly bootstrapped descriptive profile. It does not expand the
 authority or completeness guarantees of this storage-only pairing layer.
+
+
+## Offline publication execution
+
+The maintained file owners `publish_prepared`, `publish_prepared_rows`, and
+`apply_prepared_delta` select the installed Rust `tos-access` executor. Explicit
+`native_executable` overrides `TOS_PREPARED_EXECUTOR`, which overrides installed
+PATH discovery; a selected override must be absolute. Data/source selection never
+selects executable code. Missing or unusable code refuses before target creation;
+there is no build on call or Python fallback. A positive whole deadline is supplied
+as `native_timeout` or `TOS_PREPARED_MAX_SECONDS`. The offline `prepare` consumer
+also exposes `--native-executable` and `--max-seconds` and resolves both before
+creating its output directory. This deadline covers the native publication, not
+source assembly or the separate maintenance attachment.
+
+Explicit `reference_publish_prepared`, `reference_publish_prepared_rows`, and
+`reference_apply_prepared_delta` retain the independent Python implementations as
+oracles. Live `sqlite3.Connection` transaction APIs remain distinct until their
+complete catalog/semantic/prepared operation has a Rust-owned transaction; a
+subprocess never receives ownership of a Python connection.
+
+Donor progress uses the existing five report phases. The framed native command
+emits bounded progress reports and waits for acknowledgement on a separate private
+pipe before proceeding. Callback refusal returns through whole transaction
+rollback and owned-new-file removal; the read-only donor is retained unchanged.
+The final successor report says `committed:false`. Native acknowledgement waiting
+uses the same absolute deadline. Python callbacks execute synchronously and must
+cooperate with the caller deadline; an arbitrary blocking user callback is not a
+bounded Python supervisor. Compound index carriers use Python-compatible nested
+representation with the maintained foundation number codec and pinned Unicode16
+printable categories; they do not become JSON strings or silently disappear.

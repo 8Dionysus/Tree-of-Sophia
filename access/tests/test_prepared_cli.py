@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 
 from tos_access.cli import main
 from tos_access.core import ToSAccessCore
-from tos_access.prepared_publication import publish_prepared
+from tos_access.prepared_publication import (reference_publish_prepared as publish_prepared)
 from tos_access.published_read_model import PublishedSnapshotConflict
 from test_prepared_publication import fixture
 

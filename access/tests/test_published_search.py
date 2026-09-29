@@ -16,7 +16,10 @@ from tos_access.compressed_search_store import (
     SearchCursorExpired, SearchUnavailable, SearchBudgetExceeded,
 )
 from tos_access.prepared_publication import (
-    publish_prepared, apply_prepared_delta, PublicationLimits, PreparedChange,
+    reference_publish_prepared as publish_prepared,
+    reference_apply_prepared_delta as apply_prepared_delta,
+    PublicationLimits,
+    PreparedChange,
 )
 from tos_access.published_read_metadata import _compact, published_row_digest_key
 from tos_access.published_read_model import PublishedKnowledgeReadModel, PublishedReadLimits

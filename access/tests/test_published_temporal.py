@@ -19,7 +19,7 @@ from tos_access.core import ToSAccessCore
 from tos_access.http_server import build_handler
 from tos_access.lens_pagination import KnowledgeRevisionConflict
 from tos_access.mcp_server import build_server
-from tos_access.prepared_publication import publish_prepared
+from tos_access.prepared_publication import (reference_publish_prepared as publish_prepared)
 from tos_access.published_read_metadata import _compact, emitted_row_digest, published_row_digest_key
 from tos_access.published_read_model import (
     PublishedKnowledgeReadModel, PublishedReadLimits, PublishedReadModelError,

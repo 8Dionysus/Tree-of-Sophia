@@ -10,7 +10,11 @@ import unittest
 from tos_access import knowledge as k
 from tos_access.lens_membership_index import prepare_membership_index_transaction, compile_plan
 from tos_access.compact_lens_store import prepare_compact_lens_store_transaction
-from tos_access.prepared_publication import publish_prepared, apply_prepared_delta_transaction, PreparedChange
+from tos_access.prepared_publication import (
+    reference_publish_prepared as publish_prepared,
+    apply_prepared_delta_transaction,
+    PreparedChange,
+)
 from tos_access.published_lens import PublishedLensService, PublishedLensLimits
 from tos_access.published_read_model import PublishedKnowledgeReadModel, PublishedReadBudgetExceeded, PublishedReadModelError
 from test_prepared_publication import fixture

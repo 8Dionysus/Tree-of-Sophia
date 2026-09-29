@@ -140,7 +140,9 @@ def _exclusive_json(path: Path, value: dict) -> None:
 def prepare(source_root: str | Path, output_dir: str | Path, *,
             limits: PublicationLimits | None = None,
             search_scratch_limits: BulkBootstrapLimits | None = None,
-            maintenance: MaintenanceAttachmentLimits | None = None) -> dict:
+            maintenance: MaintenanceAttachmentLimits | None = None,
+            native_executable: str | Path | None = None,
+            native_timeout: int | None = None) -> dict:
     """Create a fresh private output directory; retain incomplete attempts.
 
     The completed marker is the sole success signal for this directory ABI.
@@ -159,6 +161,9 @@ def prepare(source_root: str | Path, output_dir: str | Path, *,
         if not isinstance(search_scratch_limits, BulkBootstrapLimits):
             raise ValueError("explicit BulkBootstrapLimits required")
         search_scratch_limits.validate()
+    # Resolve code/deadline before creating any candidate output.
+    from .prepared_native import select_publication_executor
+    native_executable, native_timeout = select_publication_executor(native_executable, native_timeout)
     # No parents=True: the caller must select an existing output parent.
     output.mkdir(mode=0o700)
     _sync_directory(output.parent)
@@ -200,7 +205,8 @@ def prepare(source_root: str | Path, output_dir: str | Path, *,
     binding = publish_prepared_rows(path, source_header=header, catalog=catalog,
         row_factory=row_factory, limits=limits,
         search_scratch_path=output / ".search-sort.sqlite" if search_scratch_limits is not None else None,
-        search_scratch_limits=search_scratch_limits)
+        search_scratch_limits=search_scratch_limits,
+        native_executable=native_executable, native_timeout=native_timeout)
     if core._knowledge_input_state() != state:
         raise RuntimeError("source changed during offline publication")
     attached = None
@@ -252,6 +258,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="explicit bulk search scratch byte cap; requires scratch mutation cap and host reservation")
     parser.add_argument("--bulk-search-scratch-mutations", type=positive_integer,
                         help="explicit bulk search scratch mutation cap; also charged to --max-mutations")
+    parser.add_argument("--native-executable", help="absolute installed tos-access executor; otherwise TOS_PREPARED_EXECUTOR or PATH")
+    parser.add_argument("--max-seconds", type=positive_integer, help="positive whole publication deadline; otherwise TOS_PREPARED_MAX_SECONDS")
     parser.add_argument("--attach-maintenance", action="store_true",
                         help="explicitly attach catalog and semantic maintenance indexes before completion")
     parser.add_argument("--maintenance-max-mutations", type=positive_integer,
@@ -269,7 +277,7 @@ def main(argv: list[str] | None = None) -> int:
                        if args.attach_maintenance else None)
         receipt = prepare(args.source_root, args.output_dir, limits=PublicationLimits(
             max_bytes=args.max_bytes, max_mutations=args.max_mutations), search_scratch_limits=scratch_limits,
-            maintenance=maintenance)
+            maintenance=maintenance, native_executable=args.native_executable, native_timeout=args.max_seconds)
     except Exception as error:
         # Exception text may contain source payloads/paths: report a bounded
         # class only, with explicit non-success; leave partial output untouched.

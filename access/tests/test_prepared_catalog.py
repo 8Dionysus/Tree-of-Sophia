@@ -13,7 +13,12 @@ from tos_access.catalog_index import CatalogIndex
 from tos_access.catalog_semantics import CatalogInputs, CANONICAL_ORDER, SEQUENCE_ORDER
 from tos_access.prepared_catalog import (bootstrap_prepared_catalog_transaction,
     apply_catalogued_prepared_delta_transaction)
-from tos_access.prepared_publication import PreparedChange, PublicationLimits, publish_prepared, SOURCE_ORDER_STRIDE
+from tos_access.prepared_publication import (
+    PreparedChange,
+    PublicationLimits,
+    reference_publish_prepared as publish_prepared,
+    SOURCE_ORDER_STRIDE,
+)
 from tos_access.published_read_model import PublishedKnowledgeReadModel, PublishedSnapshotConflict
 from tos_access.published_lens import PublishedLensService
 from tos_access.published_search import PublishedSearchService
