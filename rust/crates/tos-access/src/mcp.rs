@@ -160,6 +160,7 @@ impl McpSession {
                     Some(SEARCH_MCP_TOOL) => {
                         executor.knowledge_search_indexed_available()
                             || executor.knowledge_search_legacy_available()
+                            || executor.knowledge_search_compressed_available()
                     }
                     Some(name) => registered_operations()
                         .ok()

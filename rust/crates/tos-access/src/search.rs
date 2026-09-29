@@ -8,7 +8,7 @@ use tos_query::knowledge_legacy_search::LegacySearchRequest;
 pub enum SearchRequest {
     Legacy(LegacySearchRequest),
     Indexed(IndexedSearchParams),
-    Compressed,
+    Compressed(tos_query::compressed_search::CompressedSearchRequest),
 }
 impl SearchRequest {
     pub fn from_arguments(args: &JsonValue) -> Result<Self, AccessError> {
@@ -68,7 +68,18 @@ impl SearchRequest {
                     "compressed search uses cursor, not offset",
                 ));
             }
-            return Ok(Self::Compressed);
+            let args = JsonValue::Object(
+                clean
+                    .as_object()
+                    .ok_or_else(invalid)?
+                    .iter()
+                    .filter(|(key, _)| !matches!(key.as_str(), Some("mode" | "offset")))
+                    .cloned()
+                    .collect(),
+            );
+            return tos_query::compressed_search::CompressedSearchRequest::from_json(&args)
+                .map(Self::Compressed)
+                .map_err(|_| invalid());
         }
         let strings = |key| -> Result<Option<Vec<String>>, AccessError> {
             clean
@@ -108,6 +119,9 @@ impl SearchRequest {
             }
             Self::Indexed(request) if executor.knowledge_search_indexed_available() => {
                 executor.knowledge_search_indexed(request, probe)
+            }
+            Self::Compressed(request) if executor.knowledge_search_compressed_available() => {
+                executor.knowledge_search_compressed(request, probe)
             }
             _ => Err(AccessError::new(
                 AccessErrorCode::Unavailable,

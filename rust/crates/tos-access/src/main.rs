@@ -7,7 +7,7 @@ use tos_access::{
 fn main() {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
     // Software help/version never opens a selected release or grants readiness.
-    let help = "usage: tos [--release-root ABSOLUTE_DIRECTORY] COMMAND\n\nCommands:\n  serve [LOOPBACK:PORT]     local HTTP and installed software site\n  mcp                       MCP JSONL on stdin/stdout\n  knowledge | lens | source bounded read operations\n  doctor | verify           source-backed diagnostic report\n  software build|verify|extract|install OPTIONS\n  build-data --source-root ROOT --output DIST --runtime RUNTIME\n             [--max-build-seconds N]  disposable offline public D1 v9\n\nNative install: software install --archive ABS --prefix FRESH_ABS\nwith --max-total-bytes N --max-archive-bytes N --max-members N\nand --max-metadata-bytes N. Installation never selects data or edits PATH.\nData operations without a selected owner report unavailable.\nPublic build requires TOS_BUILD_MAX_SECONDS unless --max-build-seconds is supplied.\n";
+    let help = "usage: tos [--release-root ABSOLUTE_DIRECTORY | --prepared-read-model ABS --prepared-binding ABS [--root ABS]] COMMAND\n\nCommands:\n  serve [LOOPBACK:PORT]     local HTTP and installed software site\n  mcp                       MCP JSONL on stdin/stdout\n  knowledge | lens | source bounded read operations\n  doctor | verify           source-backed diagnostic report\n  software build|verify|extract|install OPTIONS\n  build-data --source-root ROOT --output DIST --runtime RUNTIME\n             [--max-build-seconds N]  disposable offline public D1 v9\n\nNative install: software install --archive ABS --prefix FRESH_ABS\nwith --max-total-bytes N --max-archive-bytes N --max-members N\nand --max-metadata-bytes N. Installation never selects data or edits PATH.\nData operations without a selected owner report unavailable.\nPublic build requires TOS_BUILD_MAX_SECONDS unless --max-build-seconds is supplied.\n";
     if args.len() == 1 && matches!(args[0].as_str(), "--version" | "-V") {
         println!("tos {}", env!("CARGO_PKG_VERSION"));
         return;
@@ -55,21 +55,57 @@ fn main() {
             .expect("fixed native profile frame arithmetic");
     let profile = profile.with_mcp_frame_budget(frame);
     let mut release_root = std::env::var_os("TOS_RELEASE_ROOT");
-    while args
-        .first()
-        .is_some_and(|arg| arg == "--release-root" || arg.starts_with("--release-root="))
-    {
+    let mut explicit_release = false;
+    let mut prepared_model = None;
+    let mut prepared_binding = None;
+    let mut prepared_root = None;
+    while args.first().is_some_and(|arg| {
+        [
+            "--release-root",
+            "--prepared-read-model",
+            "--prepared-binding",
+            "--root",
+        ]
+        .iter()
+        .any(|key| arg == key || arg.starts_with(&format!("{key}=")))
+    }) {
         let option = args.remove(0);
-        let value = if let Some((_, value)) = option.split_once('=') {
-            value.to_owned()
-        } else if !args.is_empty() {
-            args.remove(0)
+        let (key, value) = if let Some((key, value)) = option.split_once('=') {
+            (key.to_owned(), value.to_owned())
+        } else if args.first().is_some_and(|value| !value.starts_with("--")) {
+            (option, args.remove(0))
         } else {
-            eprintln!("invalid_request: --release-root requires a directory");
+            eprintln!("invalid_request: selection option requires an absolute path");
             std::process::exit(2)
         };
-        release_root = Some(value.into());
+        let slot = match key.as_str() {
+            "--release-root" => {
+                explicit_release = true;
+                &mut release_root
+            }
+            "--prepared-read-model" => &mut prepared_model,
+            "--prepared-binding" => &mut prepared_binding,
+            "--root" => &mut prepared_root,
+            _ => unreachable!(),
+        };
+        *slot = Some(value.into());
     }
+    if prepared_model.is_some() != prepared_binding.is_some()
+        || (prepared_model.is_some() && explicit_release)
+        || (prepared_root.is_some() && prepared_model.is_none())
+    {
+        eprintln!(
+            "invalid_request: paired prepared-read-model/prepared-binding selection required; --root belongs to this selection"
+        );
+        std::process::exit(2)
+    }
+    // The scoped logical profile retains the maintained checked duplicated MCP
+    // frame allowance. Explicit prepared selection takes precedence over env.
+    let profile = if prepared_model.is_some() {
+        tos_access::prepared_local::profile()
+    } else {
+        profile
+    };
     if args.first().is_none_or(|route| {
         !matches!(
             route.as_str(),
@@ -88,16 +124,25 @@ fn main() {
             std::process::exit(2);
         }
     }
-    let executor: Arc<dyn AccessExecutor> = match release_root {
-        Some(root) => match ManagedLocalExecutor::open(Path::new(&root), profile) {
-            Ok(executor) => Arc::new(executor),
-            Err(error) => {
-                eprintln!("{}: {}", error.code_str(), error.message);
-                std::process::exit(3)
+    let selected: Result<Arc<dyn AccessExecutor>, tos_access::AccessError> =
+        if let (Some(model), Some(binding)) = (prepared_model, prepared_binding) {
+            tos_access::prepared_local::PreparedLocalExecutor::open(
+                model.into(),
+                binding.into(),
+                prepared_root.map(Into::into),
+            )
+            .map(|executor| Arc::new(executor) as Arc<dyn AccessExecutor>)
+        } else {
+            match release_root {
+                Some(root) => ManagedLocalExecutor::open(Path::new(&root), profile)
+                    .map(|executor| Arc::new(executor) as Arc<dyn AccessExecutor>),
+                None => Ok(Arc::new(NoOwner)),
             }
-        },
-        None => Arc::new(NoOwner),
-    };
+        };
+    let executor = selected.unwrap_or_else(|error| {
+        eprintln!("{}: {}", error.code_str(), error.message);
+        std::process::exit(3)
+    });
     let mut args = args.into_iter();
     let result=match args.next().as_deref() {
         Some("mcp") if args.next().is_none()=>mcp::run_stdio(executor.as_ref(),profile).map_err(|error| error.to_string()),

@@ -200,8 +200,8 @@ fn handle_search(
         use tos_foundation::JsonString;
         let string = |value: String| JsonValue::String(JsonString::from_utf8(&value));
         let list = |key| JsonValue::Array(query_list(query, key).into_iter().map(string).collect());
-        let fields = vec![
-            ("mode", string(mode)),
+        let mut fields = vec![
+            ("mode", string(mode.clone())),
             (
                 "query",
                 string(query_value(query, "query").unwrap_or_default()),
@@ -231,6 +231,37 @@ fn handle_search(
                 }),
             ),
         ];
+        if mode == "compressed" {
+            // Reuse the strict cursor decoder: duplicates and malformed escapes
+            // must refuse rather than silently start a new search.
+            match indexed_cursor(query) {
+                Ok(Some(cursor)) => fields.push(("cursor", string(cursor))),
+                Ok(None) => {}
+                Err(error) => return packet_response(Err(error), method, profile),
+            }
+            for key in ["offset", "limit"] {
+                if let Some(raw) = query_value(query, key) {
+                    let Ok(value) = raw.parse::<usize>() else {
+                        return packet_response(
+                            Err(AccessError::new(
+                                AccessErrorCode::InvalidRequest,
+                                "invalid compressed search integer",
+                            )),
+                            method,
+                            profile,
+                        );
+                    };
+                    fields.retain(|(name, _)| *name != key);
+                    fields.push((
+                        key,
+                        JsonValue::Number(JsonNumber {
+                            kind: JsonNumberKind::Int,
+                            lexeme: value.to_string(),
+                        }),
+                    ));
+                }
+            }
+        }
         let args = JsonValue::Object(
             fields
                 .into_iter()

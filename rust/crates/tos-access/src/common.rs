@@ -159,6 +159,7 @@ pub(crate) fn mcp_tool_list(executor: &dyn AccessExecutor) -> Result<Vec<u8>, Ac
             SEARCH_OPERATION_ID => {
                 executor.knowledge_search_indexed_available()
                     || executor.knowledge_search_legacy_available()
+                    || executor.knowledge_search_compressed_available()
             }
             id => crate::knowledge::KnowledgeOperation::from_id(id).is_some_and(|op| {
                 op == crate::KnowledgeOperation::ExplorationContracts
@@ -593,6 +594,20 @@ pub trait AccessExecutor: Send + Sync {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "indexed knowledge search unavailable",
+        ))
+    }
+    /// Explicit prepared-read-model binding; this is a local projection reader.
+    fn knowledge_search_compressed_available(&self) -> bool {
+        false
+    }
+    fn knowledge_search_compressed(
+        &self,
+        _: tos_query::compressed_search::CompressedSearchRequest,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        Err(AccessError::new(
+            AccessErrorCode::Unavailable,
+            "compressed knowledge search unavailable",
         ))
     }
     fn knowledge_available(&self, _: crate::knowledge::KnowledgeOperation) -> bool {

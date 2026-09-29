@@ -5627,3 +5627,224 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
         // Keep admitted package/installation evidence in TMPDIR for OPS custody.
     }
 }
+
+// Actual local prepared publisher and the existing transport harness; QRY owns
+// compressed ranking, verification and cursor semantics in its focused tests.
+mod prepared_compressed {
+    use super::*;
+    use tos_compiler::local_prepared::{
+        PreparedRows, PublicationLimits, publish_prepared_rows_until,
+    };
+    use tos_foundation::emit_python_compact_json;
+
+    fn json(raw: &[u8]) -> JsonValue {
+        parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default())
+            .unwrap()
+            .into_root()
+    }
+    struct Rows(Vec<JsonValue>);
+    impl PreparedRows for Rows {
+        fn visit(
+            &mut self,
+            kind: &str,
+            sink: &mut dyn FnMut(&JsonValue) -> tos_compiler::Result<()>,
+        ) -> tos_compiler::Result<()> {
+            if kind == "node" {
+                for row in &self.0 {
+                    sink(row)?;
+                }
+            }
+            Ok(())
+        }
+    }
+    fn same_rows(a: &JsonValue, b: &JsonValue) {
+        for field in ["schema", "nodes", "relations"] {
+            assert!(
+                semantic_eq(a.object_get(field).unwrap(), b.object_get(field).unwrap()),
+                "{field}"
+            );
+        }
+    }
+    #[test]
+    fn prepared_compressed_native_publisher_cli_http_mcp_and_current_fence() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir =
+            std::env::temp_dir().join(format!("tos-api-prepared-{}-{nonce}", std::process::id()));
+        fs::create_dir(&dir).unwrap();
+        let path = dir.join("prepared.sqlite");
+        let binding_path = dir.join("binding.json");
+        let header=json(format!(r#"{{"schema":"tos_knowledge_graph_v1","source_revision":"{}","normalization_binding":{{"schema":"tos_knowledge_graph_normalization_binding_v1","processor_digest":"{}","entity_registry_digest":"{}","relation_registry_digest":"{}","configuration_digest":"{}"}},"authority_boundary":{{"source_owner":"Tree-of-Sophia","is_source":false,"is_canon":false,"writes_to_tree":false}},"query_properties":[]}}"#,"a".repeat(64),"b".repeat(64),"b".repeat(64),"b".repeat(64),"b".repeat(64)).as_bytes());
+        let catalog = json(
+            format!(
+                r#"{{"schema":"tos_knowledge_catalog_v1","source_revision":"{}","lenses":[]}}"#,
+                "a".repeat(64)
+            )
+            .as_bytes(),
+        );
+        let mut rows=Rows(vec![
+            json(br#"{"id":"a","entity_id":"ea","native_id":"a-native","source_graph":"philosophy","kind_id":"concept","type_id":"concept","display":{"title":{"en":"common"}}}"#),
+            json(br#"{"id":"b","entity_id":"eb","native_id":"b-native","source_graph":"philosophy","kind_id":"concept","type_id":"concept","display":{"title":{"en":"common"}}}"#),
+        ]);
+        let binding = publish_prepared_rows_until(
+            &path,
+            &header,
+            &catalog,
+            &mut rows,
+            PublicationLimits {
+                max_bytes: 4 * 1024 * 1024,
+                max_mutations: 100_000,
+                max_row_bytes: 4096,
+                max_metadata_bytes: 65_536,
+                max_changes: 16,
+                max_change_bytes: 65_536,
+            },
+            std::time::Instant::now() + Duration::from_secs(10),
+        )
+        .unwrap();
+        fs::write(
+            &binding_path,
+            emit_python_compact_json(&binding, JsonLimits::default()).unwrap(),
+        )
+        .unwrap();
+        let executor = tos_access::prepared_local::PreparedLocalExecutor::open(
+            path.clone(),
+            binding_path,
+            None,
+        )
+        .unwrap();
+        let profile =
+            tos_access::prepared_local::profile().with_query_timeout(Duration::from_secs(5));
+        assert_eq!(profile.max_request_bytes, 65_536);
+        assert_eq!(profile.max_response_bytes, 4 * 1024 * 1024);
+        let cli_page = |cursor: Option<&str>| {
+            let mut args = vec![
+                "knowledge".into(),
+                "search".into(),
+                "".into(),
+                "--mode".into(),
+                "compressed".into(),
+                "--limit".into(),
+                "1".into(),
+                "--sources".into(),
+                "philosophy".into(),
+                "--kind".into(),
+                "concept".into(),
+            ];
+            if let Some(cursor) = cursor {
+                args.extend(["--cursor".into(), cursor.into()]);
+            }
+            let (mut out, mut err) = (Vec::new(), Vec::new());
+            assert_eq!(
+                cli::run_cli(&args, &executor, profile, &mut out, &mut err),
+                0,
+                "{}",
+                String::from_utf8_lossy(&err)
+            );
+            json(&out)
+        };
+        let first = cli_page(None);
+        assert_eq!(
+            first.object_get("nodes").unwrap().as_array().unwrap()[0]
+                .object_get("id")
+                .unwrap()
+                .as_str(),
+            Some("a")
+        );
+        let cursor = first
+            .object_get("page")
+            .unwrap()
+            .object_get("next_cursor")
+            .unwrap()
+            .as_str()
+            .unwrap();
+        let second = cli_page(Some(cursor));
+        assert_eq!(
+            second.object_get("nodes").unwrap().as_array().unwrap()[0]
+                .object_get("id")
+                .unwrap()
+                .as_str(),
+            Some("b")
+        );
+        let response = handle_get(
+            &executor,
+            "GET",
+            &format!(
+                "/api/knowledge/search?mode=compressed&query=&sources=philosophy&kind_ids=concept&limit=1&cursor={cursor}"
+            ),
+            profile,
+        );
+        assert_eq!(
+            response.status,
+            200,
+            "{}",
+            String::from_utf8_lossy(&response.body)
+        );
+        same_rows(&second, &json(&response.body));
+        drop(response);
+        let input = format!(
+            "{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{{\"protocolVersion\":\"2025-11-25\"}}}}\n{{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}}\n{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"tos_knowledge_search\",\"arguments\":{{\"mode\":\"compressed\",\"query\":\"\",\"sources\":[\"philosophy\"],\"kind_ids\":[\"concept\"],\"limit\":1,\"cursor\":\"{cursor}\"}}}}}}\n"
+        );
+        let mut output = Vec::new();
+        run_io(
+            Cursor::new(input.as_bytes()),
+            &mut output,
+            &executor,
+            profile,
+        )
+        .unwrap();
+        let lines = output
+            .split(|b| *b == b'\n')
+            .filter(|l| !l.is_empty())
+            .collect::<Vec<_>>();
+        assert_eq!(lines.len(), 2);
+        let rpc = json(lines[1]);
+        same_rows(
+            &second,
+            rpc.object_get("result")
+                .unwrap()
+                .object_get("structuredContent")
+                .unwrap(),
+        );
+        assert_eq!(
+            handle_get(
+                &executor,
+                "GET",
+                "/api/knowledge/search?mode=compressed&cursor=a&cursor=b",
+                profile
+            )
+            .status,
+            400
+        );
+        assert_eq!(
+            handle_get(
+                &executor,
+                "GET",
+                "/api/knowledge/search?mode=compressed&query=",
+                profile.with_query_timeout(Duration::ZERO)
+            )
+            .status,
+            408
+        );
+        let request = tos_query::compressed_search::CompressedSearchRequest {
+            query: "".into(),
+            limit: 1,
+            ..Default::default()
+        };
+        let mut packet = executor
+            .knowledge_search_compressed(request, profile.deadline_probe())
+            .unwrap();
+        let db = rusqlite::Connection::open(&path).unwrap();
+        db.execute_batch("PRAGMA user_version=77").unwrap();
+        drop(db);
+        assert_eq!(
+            packet.fence.recheck().unwrap_err().code,
+            tos_access::AccessErrorCode::StaleSelection
+        );
+        drop(packet);
+        drop(executor);
+        fs::remove_dir_all(dir).unwrap();
+    }
+}
