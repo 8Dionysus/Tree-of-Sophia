@@ -224,7 +224,19 @@ baseline; otherwise `TOS_SEMANTIC_REGISTRY_BASELINE_COMMIT` applies. Initial
 introduction requires `--allow-initial-introduction` or the exact environment
 value `TOS_SEMANTIC_REGISTRY_ALLOW_INITIAL_INTRODUCTION=1`; the environment accepts
 only `0` or `1`. `--json` emits the maintained result shape. These flags require
-this mode and do not change the Python validation-lane route.
+this mode. The existing Python executable entrypoint selects
+`TOS_OPS_MECHANICS_EXECUTOR` or installed `tos-ops-mechanics-plan` on PATH and
+replaces itself with this mode; no build or Python fallback occurs. Imported
+`validate_transition` and `main` remain available as reference APIs.
+
+The existing 13-case `tests/test_semantic_registry_transition.py` suite selects
+an explicitly retained native image with `TOS_SEMANTIC_REGISTRY_TEST_EXECUTABLE`.
+Without that test selector it preserves its Python reference route. The native
+route keeps baseline, replacement, ancestry, profile/version and historical
+schema assertions, using actual shallow Git metadata rather than a Python mock.
+Its three CLI assertions traverse the Python executable wrapper and native exec.
+Strict duplicate-key refusal accepts the backend's declared diagnostic wording;
+this does not assert general malformed-JSON diagnostic equality.
 
 The gate holds root/parent descriptors and reads four current regular nofollow
 files, each at most 1 MiB, plus four exact Git-baseline members. The Foundation

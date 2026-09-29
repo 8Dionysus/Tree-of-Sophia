@@ -174,14 +174,18 @@ def validate_transition(root: Path, baseline_commit: str | None, *, allow_initia
     }
 
 
-def main(argv: list[str] | None = None) -> int:
+def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__, epilog=BASELINE_HELP)
     parser.add_argument("--baseline-commit", help=f"exact full commit OID; otherwise explicitly set {BASELINE_ENV}")
     parser.add_argument("--allow-initial-introduction", action="store_true",
                         help=f"allow first-ever registry introduction only; alternatively set {INTRODUCTION_ENV}=1")
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT, help="exact Git worktree root")
     parser.add_argument("--json", action="store_true", help="print compared source digests and mechanical result")
-    args = parser.parse_args(argv)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parser().parse_args(argv)
     try:
         introduction_env = os.environ.get(INTRODUCTION_ENV, "0")
         if introduction_env not in ("0", "1"):
@@ -202,5 +206,29 @@ def main(argv: list[str] | None = None) -> int:
     return 0 if result["valid"] else 1
 
 
+def native_main(argv: list[str] | None = None) -> int:
+    """Installed executable route; imported reference API remains available."""
+    import shutil
+
+    args = _parser().parse_args(argv)
+    selected = os.environ.get("TOS_OPS_MECHANICS_EXECUTOR")
+    executable = selected or shutil.which("tos-ops-mechanics-plan")
+    if not executable:
+        print("[error] install tos-ops-mechanics-plan or set TOS_OPS_MECHANICS_EXECUTOR", file=sys.stderr)
+        return 1
+    arguments = ["--repo-root", str(args.repo_root), "--semantic-registry-transition"]
+    if args.baseline_commit is not None:
+        arguments.extend(["--baseline-commit", args.baseline_commit])
+    if args.allow_initial_introduction:
+        arguments.append("--allow-initial-introduction")
+    if args.json:
+        arguments.append("--json")
+    try:
+        os.execv(executable, [executable, *arguments])
+    except OSError as error:
+        print(f"[error] cannot execute native semantic registry transition: {error}", file=sys.stderr)
+        return 1
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(native_main())
