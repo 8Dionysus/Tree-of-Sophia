@@ -21,7 +21,7 @@ use tos_source_store::{
 };
 use tos_validation::FormatProfile;
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
-use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor};
+use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
 
 const MAX_INVOCATION: usize = 1_048_576;
 const MAX_REQUEST: usize = 1_048_576;
@@ -481,8 +481,7 @@ fn run_item(
     for member in components.members() {
         let raw = software
             .read_selected_component(components, &member.path, 2_097_152, deadline, cancelled)
-            .map_err(|_| SourceCommandError::Conflict("Item selected software component"))?
-            .raw;
+            .map_err(|_| SourceCommandError::Conflict("Item selected software component"))?;
         files.push(cmd::SourceFile {
             path: member.path.clone(),
             raw,

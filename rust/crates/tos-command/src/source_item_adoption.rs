@@ -2751,7 +2751,7 @@ fn recover_item_selected(
     } else {
         recovery_owner(fs, ctx, &stage, pending.is_some(), limits, cancelled)?
     };
-    if owner.transaction_id() != transaction_id {
+    if owner.transaction_id()? != transaction_id {
         return Err(SourceCommandError::Conflict(
             "Item recovery original identity differs",
         ));
