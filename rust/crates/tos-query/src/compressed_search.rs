@@ -260,6 +260,38 @@ impl<'a> PreparedSearchSession<'a> {
     /// Return the exact stored catalog under the same request meter and
     /// caller-held snapshot used by search. External currentness stays owned
     /// by the caller's fresh-snapshot recheck and disclosure fence.
+    pub fn inspect(
+        &mut self,
+        binding: &JsonValue,
+        kind: crate::search_v2::SearchKind,
+        identifier: &str,
+        relation_limit: usize,
+    ) -> std::result::Result<JsonValue, crate::search_v2::SearchV2Error> {
+        use crate::prepared_inspect::storage_error;
+        self.read.check_abort().map_err(storage_error)?;
+        let view = PreparedReadTransaction::admit(self.read.db, binding, self.read.limits)
+            .map_err(|e| {
+                storage_error(
+                    self.read
+                        .check_abort()
+                        .err()
+                        .unwrap_or_else(|| prepared_error(e)),
+                )
+            })?;
+        self.read.absorb_owner(&view).map_err(storage_error)?;
+        let result = crate::prepared_inspect::inspect(
+            &mut self.read,
+            &view,
+            kind,
+            identifier,
+            relation_limit,
+        );
+        drop(view);
+        self.read.reset_owner();
+        self.read.check_abort().map_err(storage_error)?;
+        result
+    }
+
     pub fn catalog(&mut self, binding: &JsonValue) -> Result<JsonValue> {
         self.read.check_abort()?;
         let view = PreparedReadTransaction::admit(self.read.db, binding, self.read.limits)

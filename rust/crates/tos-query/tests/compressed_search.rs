@@ -494,3 +494,134 @@ fn cursor_restart_query_expiry_and_same_binding_aba() {
         CompressedSearchErrorCode::CursorInvalid
     );
 }
+
+#[test]
+fn prepared_inspect_alias_endpoints_counts_and_selected_corruption_use_shared_meter() {
+    use tos_query::search_v2::{SearchKind, SearchV2ErrorCode};
+    let mut input = rows();
+    set(&mut input.nodes[1], "entity_id", text("ea"));
+    set(&mut input.nodes[0], "native_id", text("shared-native"));
+    set(&mut input.nodes[1], "native_id", text("shared-native"));
+    let f = Fixture::publish(input, 1_048_576);
+    let db = Connection::open_with_flags(&f.path, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
+    db.execute_batch("PRAGMA query_only=ON;BEGIN").unwrap();
+    let limits = PreparedReadLimits {
+        max_response_bytes: 4 * 1024 * 1024,
+        ..Default::default()
+    };
+    let mut session = PreparedSearchSession::new(&db, limits).unwrap();
+    let p = session
+        .inspect(&f.binding, SearchKind::Nodes, "ea", 0)
+        .unwrap();
+    assert_eq!(
+        p.object_get("shared_entity_id"),
+        Some(&JsonValue::Bool(true))
+    );
+    assert_eq!(
+        p.object_get("matches").unwrap().as_array().unwrap().len(),
+        2
+    );
+    assert_eq!(
+        p.object_get("related_relations")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .len(),
+        0
+    );
+    assert_eq!(
+        p.object_get("counts")
+            .unwrap()
+            .object_get("related_relations"),
+        Some(&json("1"))
+    );
+    let p = session
+        .inspect(&f.binding, SearchKind::Nodes, "shared-native", 1)
+        .unwrap();
+    assert_eq!(
+        p.object_get("ambiguous_native_id"),
+        Some(&JsonValue::Bool(true))
+    );
+    assert_eq!(
+        p.object_get("related_relations")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    let p = session
+        .inspect(&f.binding, SearchKind::Relations, "r-native", 1)
+        .unwrap();
+    let endpoints = p.object_get("endpoints").unwrap().as_array().unwrap();
+    assert_eq!(
+        endpoints
+            .iter()
+            .map(|v| v.object_get("id").unwrap().as_str().unwrap())
+            .collect::<Vec<_>>(),
+        vec!["a", "b"]
+    );
+    assert_eq!(
+        endpoints[0]
+            .object_get("probe")
+            .unwrap()
+            .object_get("false"),
+        Some(&JsonValue::Bool(false))
+    );
+    assert_eq!(
+        endpoints[0].object_get("probe").unwrap().object_get("zero"),
+        Some(&json("0"))
+    );
+    assert_eq!(
+        session
+            .inspect(&f.binding, SearchKind::Nodes, "absent", 1)
+            .unwrap_err()
+            .code,
+        SearchV2ErrorCode::UnknownIdentifier
+    );
+    db.execute_batch("COMMIT;BEGIN").unwrap();
+    session.recheck_binding(&f.binding).unwrap();
+    db.execute_batch("COMMIT").unwrap();
+    drop(session);
+    drop(db);
+
+    // The exact selected row digest and indexed projection must both close.
+    for sql in [
+        "UPDATE edge_meta SET json_chunk='{\"sha256\":\"bad\"}' WHERE key='knowledge_node_digest:a'",
+        "UPDATE knowledge_nodes SET kind_id='changed' WHERE id='a'",
+        "DELETE FROM knowledge_nodes WHERE id='b'",
+    ] {
+        let f = Fixture::publish(rows(), 1_048_576);
+        let db = Connection::open(&f.path).unwrap();
+        db.execute_batch(sql).unwrap();
+        db.execute_batch("BEGIN").unwrap();
+        let mut session = PreparedSearchSession::new(&db, limits).unwrap();
+        assert_eq!(
+            session
+                .inspect(&f.binding, SearchKind::Relations, "r", 1)
+                .unwrap_err()
+                .code,
+            SearchV2ErrorCode::CorruptSelectedCarrier
+        );
+        db.execute_batch("ROLLBACK").unwrap();
+    }
+    let f = Fixture::publish(rows(), 1_048_576);
+    let db = Connection::open(&f.path).unwrap();
+    db.execute_batch("BEGIN").unwrap();
+    let mut session = PreparedSearchSession::new(
+        &db,
+        PreparedReadLimits {
+            max_bytes: 1,
+            ..limits
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        session
+            .inspect(&f.binding, SearchKind::Nodes, "a", 1)
+            .unwrap_err()
+            .code,
+        SearchV2ErrorCode::BudgetExceeded
+    );
+    db.execute_batch("ROLLBACK").unwrap();
+}

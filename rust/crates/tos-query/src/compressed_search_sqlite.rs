@@ -101,6 +101,9 @@ impl<'a> Read<'a> {
             None => Ok(()),
         }
     }
+    pub fn abort_probe(&self) -> Option<&dyn crate::AbortProbe> {
+        self.abort.as_deref()
+    }
     pub fn reset_owner(&mut self) {
         self.owner_rows = 0;
         self.owner_bytes = 0;

@@ -37,6 +37,8 @@ pub mod compressed_search;
 mod compressed_search_state;
 #[cfg(not(target_arch = "wasm32"))]
 mod compressed_search_sqlite;
+#[cfg(not(target_arch = "wasm32"))]
+mod prepared_inspect;
 mod source_descend;
 mod source_read_projection;
 #[cfg(not(target_arch = "wasm32"))]
