@@ -97,9 +97,9 @@ count, rather than sending the full workspace copy. Export identity checks pass
 sorted IDs in 256-ID chunks, retaining only the final ID in Rust. Export record
 bodies and all migrated result arrays remain in JS.
 
-Memory operations run through the shared promise queue. Each mutation still
-clones the existing state before commit, and failed operations never publish
-that draft. Additive import reuses this one draft, checks all collisions and
+Memory operations run through the shared promise queue. Each mutation copies Map membership before commit, borrows unchanged packet
+values read-only and copies only inserted/replaced packets. Failed operations
+never publish that draft; public input and result packets remain detached. Additive import reuses this one draft, checks all collisions and
 capacity before copying additions, and increments generation only when changed.
 Export validation creates detached canonical records once; it does not clone
 those finished records a second time. These are source-level cost boundaries,

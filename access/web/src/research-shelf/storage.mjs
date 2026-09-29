@@ -76,7 +76,10 @@ function sharedState(value){
   if(value instanceof Object&&value.records instanceof Map&&value.collections instanceof Map)return {state:value,queue:Promise.resolve()};
   fail('invalid-input','The memory research shelf state is invalid.');
 }
-function cloneState(state){return {generation:state.generation,records:new Map([...state.records].map(([id,v])=>[id,copy(v)])),collections:new Map([...state.collections].map(([id,v])=>[id,copy(v)]))};}
+// Snapshot Map membership and generation for rollback. Existing packet values
+// are borrowed read-only: every mutation replaces/deletes an entry, and all
+// inserted values and public reads/results are detached at their boundaries.
+function cloneState(state){return {generation:state.generation,records:new Map(state.records),collections:new Map(state.collections)};}
 function enqueue(shared,task){
   const next=shared.queue.then(task);
   shared.queue=next.catch(()=>{});

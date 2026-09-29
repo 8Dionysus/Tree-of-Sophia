@@ -32,7 +32,14 @@ const target={kind:'node',id:'tos.node.shelf-wasm',sourceRevision:revision,conte
 const input=id=>({id,title:`  Shelf ${id} `,type:'material',target,collectionIds:[]});
 async function exercise(){
   const store=createMemoryResearchShelfStore({now:()=>at});
-  const created=await store.save(input('one'),{expectedRevision:null});
+  const supplied={...input('one'),target:{...target},collectionIds:[]};
+  const created=await store.save(supplied,{expectedRevision:null});
+  supplied.target.id='changed-input';supplied.collectionIds.push('changed-input');
+  assert.deepEqual(await store.get('one'),created.item,'save detaches public input');
+  const read=await store.get('one');read.target.id='changed-read';read.collectionIds.push('changed-read');
+  const list=await store.list();list.items[0].target.id='changed-list';
+  const exported=await store.export();exported.records[0].target.id='changed-export';
+  assert.deepEqual(await store.get('one'),created.item,'get/list/export remain detached');
   await store.save(input('two'),{expectedRevision:null});
   const collection=await store.saveCollection({id:'group',title:' Group '});
   await assert.rejects(store.save({...created.item,target:{...target,id:'other-node'}},
@@ -97,6 +104,18 @@ await atomic.import(actual.packet);
 await assert.rejects(atomic.import(lateCollision),error=>error.code==='conflict');
 assert.equal(await atomic.get('new-first'),null,'late collision leaves no early import');
 await atomic.close();
-console.log(JSON.stringify({status:'pass',cases:15,host:`Node ${process.version} WebAssembly`,
+const members=createMemoryResearchShelfStore({now:()=>at});
+await members.saveCollection({id:'group',title:'Group'});
+await members.save({...input('a-first'),collectionIds:['group']});
+await members.save({...input('z-last'),collectionIds:['group']});
+const memberPacket=await members.export();memberPacket.records.find(item=>item.id==='z-last').revision=Number.MAX_SAFE_INTEGER;
+const rollback=createMemoryResearchShelfStore({now:()=>at});await rollback.import(memberPacket);
+const before=await rollback.export();
+await assert.rejects(rollback.removeCollection('group',1),error=>error.code==='invalid-input');
+const after=await rollback.export();
+assert.deepEqual(after.records,before.records,'late detach failure preserves prior records');
+assert.deepEqual(after.collections,before.collections);assert.equal(after.generation,before.generation);
+await members.close();await rollback.close();
+console.log(JSON.stringify({status:'pass',cases:18,host:`Node ${process.version} WebAssembly`,
   wasm_bytes:wasm.byteLength,glue_bytes:(await stat(bindingPath)).size,startup_ms:Number(startupMs.toFixed(3)),
   packet_index:'chunked ids',whole_packet_wasm_copy:false}));
