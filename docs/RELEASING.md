@@ -146,8 +146,14 @@ owner config, with absolute `native_executable` and `schema_worker.absolute_path
 from this prefix and their exact SHA digests. The existing invocation also binds
 owned corpus store/source revision, software capture/restored root and selection,
 software components and finite budgets. Claim/Item profiles retain explicit
-`original_source_revision`; Alignment retains `owner_context`. Family-specific
-profiles and authorized operations belong to the command owner.
+`original_source_revision`; Alignment retains `owner_context`. These existing
+profiles remain supported. The prepared common dispatcher profile
+`tos_local_native_source_invocation_v1` binds both `original_source_revision` and
+`owner_context` (null only for an unused field), plus `assessment_schema_worker`
+(null unless the selected signing operation requires that worker). Required
+worker bindings retain exact executable custody; request content cannot select
+a worker, owner config or invocation path. Family-specific profiles and
+authorized operations belong to the command owner.
 
 The current explicit local invocation path is runnable with the selected owner
 request on stdin:
@@ -163,7 +169,12 @@ Both routes must retain the same selected owner/source/rights/recovery and worke
 custody checks. Installing products does not construct an invocation, authorize a
 mutation, select a production corpus or switch a running cohort. Retain Python
 reference APIs while the remaining native handler successors are completed;
-normal default dispatcher cutover is coordinated with the command owner.
+the prepared normal mutation dispatcher uses the protected native invocation
+and fails closed when it is missing; it never silently runs a Python handler.
+The explicit `--legacy-oracle` / `run_legacy_oracle_command` route preserves the
+old independent reference behavior until the whole native handler consumer is
+accepted. Source preparation is distinct from composition, installed default
+availability and the final cohort switch.
 
 ## Registry source-contract changes
 
