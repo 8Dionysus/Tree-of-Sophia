@@ -1272,6 +1272,19 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         binding: &JsonValue,
         scope: NativeReadScope,
     ) -> SourceCommandResult<(JsonValue, JsonValue, JsonValue)> {
+        self.resolve_member(binding, scope, true)
+    }
+
+    // Only the Alignment owner batches this final current-input reread. Its
+    // complete metadata snapshot precedes any representation read, and its
+    // complete content snapshot follows every selected unit. Distinct nested
+    // predecessor-before-disclosure checks inside this body remain unchanged.
+    fn resolve_member(
+        &mut self,
+        binding: &JsonValue,
+        scope: NativeReadScope,
+        final_snapshot: bool,
+    ) -> SourceCommandResult<(JsonValue, JsonValue, JsonValue)> {
         self.validate(
             binding,
             "native-text-unit-binding.schema.json",
@@ -1478,7 +1491,9 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             }
             self.derived_content(&layer, text)?;
         }
-        self.snapshot()?;
+        if final_snapshot {
+            self.snapshot()?;
+        }
         let summary = cmd::object(vec![
             ("metadata_verified", JsonValue::Bool(true)),
             ("content_verified", JsonValue::Bool(verified)),
@@ -2196,7 +2211,7 @@ pub(crate) fn resolve_owner_alignment<R: SignNativeRead + ?Sized>(
         let mut summaries = Vec::with_capacity(bindings.len());
         for binding in bindings {
             let (current_packet, current_layer, summary) =
-                native.resolve(binding, NativeReadScope::MetadataOnly)?;
+                native.resolve_member(binding, NativeReadScope::MetadataOnly, false)?;
             if packet.is_none() {
                 packet = Some(current_packet);
                 layer = Some(current_layer);
@@ -2209,14 +2224,17 @@ pub(crate) fn resolve_owner_alignment<R: SignNativeRead + ?Sized>(
             summaries,
         });
     }
+    // Both sides' exact metadata and rights are current before either side's
+    // first representation byte. Per-read grant fences remain in the reader.
+    let mut input_snapshot = native.snapshot()?;
     if verify_content {
         for bindings in [source, target] {
             for binding in bindings {
-                native.resolve(binding, NativeReadScope::ExactOwnerLocal)?;
+                native.resolve_member(binding, NativeReadScope::ExactOwnerLocal, false)?;
             }
         }
+        input_snapshot = native.snapshot()?;
     }
-    let input_snapshot = native.snapshot()?;
     let inputs = selected_inputs(&native);
     let schema_digests = native.schemas;
     let target = sides
