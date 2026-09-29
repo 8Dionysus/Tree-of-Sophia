@@ -2,6 +2,7 @@ import {t} from './ui-i18n.mjs';
 import {BUDGET,ContractError,checkRevision,validateLens} from './knowledge-client.mjs';
 import {validateConditions,compileConditions} from './lens-conditions.mjs';
 import {compilePathQuery,compileValidatedPathQuery,validatePathDraft,pathDraftFromSpec} from './lens-path-editor.mjs';
+import {normalizeDraft} from './lens-draft-rust.mjs';
 
 export {compilePathQuery,validatePathDraft,pathDraftFromSpec};
 
@@ -20,28 +21,21 @@ const freezeDeep=value=>{
 export const draftForPacket=packet=>drafts.get(packet)||null;
 
 export function validateDraft(value){
-  if(!value||![1,2].includes(value.v)||typeof value.name!=='string'||!value.name.trim()||value.name.length>64
-    ||!['area','focus','all'].includes(value.scope)||!strings(value.sources,7)||!value.sources.length
-    ||!strings(value.nodeIds,BUDGET.nodes)||!strings(value.kinds,100)||!strings(value.predicates,100)
-    ||typeof value.query!=='string'||value.query.length>256
-    ||!(value.focusId===null||typeof value.focusId==='string'&&value.focusId.length>0&&value.focusId.length<=1024)
-    ||!Number.isInteger(value.depth)||value.depth<0||value.depth>3
-    ||!['either','outgoing','incoming'].includes(value.direction)||!['overview','all'].includes(value.profile)
-    ||!Number.isInteger(value.limit)||value.limit<1||value.limit>BUDGET.nodes||typeof value.relations!=='boolean')bad(t("Настройки линзы неполны или превышают допустимый размер."));
-  if(value.scope==='area'&&!value.nodeIds.length)bad(t("Исходная область пуста. Выберите поиск по древу."));
-  if(value.scope==='focus'&&!value.focusId)bad(t("Сначала выберите звезду."));
-  // Keep only owned fields when reading an untrusted link or local definition.
-  // A v2 carrier prevents older clients from silently dropping new conditions.
-  // v1 definitions migrate only when they contain no unrecognized conditions.
-  if(value.v===1&&(value.conditions!==undefined||value.paths!==undefined&&(!Array.isArray(value.paths)||value.paths.length)))bad(t("Версия сохранённой линзы не соответствует её условиям."));
-  const conditions=validateConditions(value.v===1?{nodes:[],relations:[]}:value.conditions);
-  const paths=validatePathDraft(value.v===1?[]:value.paths);
-  const result={v:2,name:value.name.trim(),scope:value.scope,sources:[...value.sources],nodeIds:[...value.nodeIds],focusId:value.focusId,
+  let policy;
+  try{policy=normalizeDraft(value,BUDGET.nodes);}
+  catch(error){const code=String(error);
+    if(code.includes('empty_draft_area'))bad(t("Исходная область пуста. Выберите поиск по древу."));
+    if(code.includes('empty_draft_focus'))bad(t("Сначала выберите звезду."));
+    if(code.includes('invalid_draft_version'))bad(t("Версия сохранённой линзы не соответствует её условиям."));
+    bad(t("Настройки линзы неполны или превышают допустимый размер."));}
+  const conditions=validateConditions(policy.legacy?{nodes:[],relations:[]}:value.conditions);
+  const paths=validatePathDraft(policy.legacy?[]:value.paths);
+  const result={v:policy.v,name:value.name.trim(),scope:value.scope,sources:[...value.sources],nodeIds:[...value.nodeIds],focusId:value.focusId,
     query:value.query,kinds:[...value.kinds],predicates:[...value.predicates],depth:value.depth,direction:value.direction,
     profile:value.profile,limit:value.limit,relations:value.relations,conditions};
   // Preserve the old compact carrier byte-for-byte when it predates paths;
   // new drafts and explicit empty path lists still carry the field.
-  if(Object.hasOwn(value,'paths'))result.paths=paths;
+  if(policy.retain_paths)result.paths=paths;
   return result;
 }
 export function encodeDraft(draft){const text=JSON.stringify(validateDraft(draft));if(text.length>12000||new URLSearchParams({lens:text}).toString().length>40000)bad(t("Описание линзы слишком велико для ссылки. Сузьте исходную область или сократите значения условий."));return text;}

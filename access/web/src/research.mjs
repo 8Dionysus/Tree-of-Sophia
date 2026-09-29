@@ -11,6 +11,7 @@ import {installReadingRules} from './observatory/reading-resume-rust.mjs';
 import {installLiveResumeRules} from '../constructor/live-resume.mjs';
 import {installSourceFormRules} from '../constructor/source-form-session-rust.mjs';
 import {installConditionRules} from './observatory/lens-conditions-rust.mjs';
+import {installDraftRules} from './observatory/lens-draft-rust.mjs';
 import initRules,* as rules from '../../deploy/cloudflare-worker/generated/tos_web_rules.js';
 
 await initRules(new URL('../../deploy/cloudflare-worker/generated/tos_web_rules_bg.wasm',import.meta.url));
@@ -22,6 +23,7 @@ installPoseRules(rules);
 installClaimReferenceRules(rules);
 installHumanFormRules(rules);
 installConditionRules(rules);
+installDraftRules(rules);
 installReadingRules(rules);
 installSourceFormRules(rules);
 installLiveResumeRules(rules);

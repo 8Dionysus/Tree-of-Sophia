@@ -9,6 +9,7 @@ import {installHumanFormRules} from './observatory/human-form-rules.mjs';
 import {installReadingRules} from './observatory/reading-resume-rust.mjs';
 import {installResearchShelfRules} from './research-shelf/rules.mjs';
 import {installConditionRules} from './observatory/lens-conditions-rust.mjs';
+import {installDraftRules} from './observatory/lens-draft-rust.mjs';
 import initRules,* as rules from '../../deploy/cloudflare-worker/generated/tos_web_rules.js';
 await initRules(new URL('../../deploy/cloudflare-worker/generated/tos_web_rules_bg.wasm',import.meta.url));
 installBrowserWorkspaceMachine(rules.BrowserWorkspaceSession);
@@ -18,6 +19,7 @@ installPoseRules(rules);
 installClaimReferenceRules(rules);
 installHumanFormRules(rules);
 installConditionRules(rules);
+installDraftRules(rules);
 installReadingRules(rules);
 installResearchShelfRules(rules);
 

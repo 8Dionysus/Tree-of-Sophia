@@ -17,9 +17,11 @@ import {installSourceFormRules} from '../../constructor/source-form-session-rust
 import {installResearchShelfRules} from '../research-shelf/rules.mjs';
 import {installClaimReferenceRules} from './claim-reference-rust.mjs';
 import {installConditionRules} from './lens-conditions-rust.mjs';
+import {installDraftRules} from './lens-draft-rust.mjs';
 installBrowserWorkspaceMachine(runtime.BrowserWorkspaceSession);
 installConstructorRules(runtime);
 installSourceFormRules(runtime);
 installResearchShelfRules(runtime);
 installClaimReferenceRules(runtime);
 installConditionRules(runtime);
+installDraftRules(runtime);
