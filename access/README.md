@@ -597,7 +597,7 @@ tos --root /path/to/runtime-data --prepared-read-model /path/to/selected.sqlite 
 ```
 
 The Rust native candidate also accepts the paired prepared paths for
-`knowledge search QUERY --mode compressed`, `knowledge search capabilities`,
+`knowledge search QUERY --mode compressed`, `knowledge search-capabilities`,
 HTTP `/api/knowledge/search?mode=compressed`, and MCP `tos_knowledge_search`.
 This explicit local projection reader uses a 4 MiB logical response profile,
 64 KiB request/binding limits, and a separately checked complete MCP frame
