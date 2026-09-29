@@ -3,7 +3,7 @@
 //! Selected source components prove bytes, not their relationship to this ELF.
 
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::Read;

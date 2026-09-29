@@ -29,10 +29,16 @@ mod claim;
 mod collection;
 #[path = "source_native_creation_cli.rs"]
 mod creation;
+#[path = "source_native_edition_cli.rs"]
+mod edition;
 #[path = "source_native_forms_cli.rs"]
 mod forms;
+#[path = "source_native_object_link_cli.rs"]
+mod object_link;
 #[path = "source_native_public_text_cli.rs"]
 mod public_text;
+#[path = "source_native_responsibility_cli.rs"]
+mod responsibility;
 #[path = "source_native_text_cli.rs"]
 mod text_owner;
 
@@ -362,6 +368,42 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
             }
             "tos_public_native_text_create_owner_v1" => {
                 return public_text::run(
+                    &invocation,
+                    &request_raw,
+                    &store,
+                    &cut,
+                    &software,
+                    &components,
+                    deadline,
+                    &cancelled,
+                );
+            }
+            "tos_local_object_link_create_owner_v1" => {
+                return object_link::run(
+                    &invocation,
+                    &request_raw,
+                    &store,
+                    &cut,
+                    &software,
+                    &components,
+                    deadline,
+                    &cancelled,
+                );
+            }
+            "tos_local_expression_responsibility_owner_v1" => {
+                return responsibility::run(
+                    &invocation,
+                    &request_raw,
+                    &store,
+                    &cut,
+                    &software,
+                    &components,
+                    deadline,
+                    &cancelled,
+                );
+            }
+            "tos_local_expression_edition_owner_v1" => {
+                return edition::run(
                     &invocation,
                     &request_raw,
                     &store,

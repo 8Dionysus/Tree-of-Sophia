@@ -1,17 +1,17 @@
 //! Read-only reconstruction of maintained native bibliographic publications.
 //! Historical transport evidence never grants a current writer or admission.
+use crate::PredicateRead;
 use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::record_biblio_cut::{account, check, current, reserve};
 use crate::source_cut::{CutExecutionBinding, CutSchemaExecutor, CutWorkerSchemaExecutor};
-use crate::PredicateRead;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{
-    canonical_bytes_v1, canonical_count_v1, emit_json_profile, parse_json, CanonicalProfile,
-    Digest256, JsonEmissionProfile, JsonLimits, JsonMode, JsonValue, RelativePath,
+    CanonicalProfile, Digest256, JsonEmissionProfile, JsonLimits, JsonMode, JsonValue,
+    RelativePath, canonical_bytes_v1, canonical_count_v1, emit_json_profile, parse_json,
 };
 use tos_source_store::CorpusCutReader;
 
@@ -2209,9 +2209,11 @@ impl<'a> NativeCompoundReader<'a> {
             }
             object.insert(
                 "record_version".into(),
-                json!(integer(&old, "record_version")?
-                    .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?),
+                json!(
+                    integer(&old, "record_version")?
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?
+                ),
             );
             self.temporary(
                 crate::record_biblio_cut::decoded_state(&revised)?
@@ -3309,9 +3311,11 @@ impl NativeCompoundReader<'_> {
             }
             map.insert(
                 "record_version".into(),
-                json!(integer(&old, "record_version")?
-                    .checked_add(1)
-                    .ok_or(ItemRefusal::Budget)?),
+                json!(
+                    integer(&old, "record_version")?
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?
+                ),
             );
             if fields.keys().any(|key| {
                 ![
@@ -4341,9 +4345,11 @@ fn advance_membership_claim(previous: &Value, request: &Value) -> Result<Value, 
     }
     result.as_object_mut().unwrap().insert(
         "claim_version".into(),
-        json!(integer(previous, "claim_version")?
-            .checked_add(1)
-            .ok_or(ItemRefusal::Budget)?),
+        json!(
+            integer(previous, "claim_version")?
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?
+        ),
     );
     Ok(result)
 }
@@ -6291,9 +6297,11 @@ impl NativeCompoundReader<'_> {
         }
         map.insert(
             "record_version".into(),
-            json!(integer(&old, "record_version")?
-                .checked_add(1)
-                .ok_or(ItemRefusal::Budget)?),
+            json!(
+                integer(&old, "record_version")?
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?
+            ),
         );
         // Inserts replace old subtrees; charge only positive growth of the
         // retained revised tree, not another full cloned profile.
@@ -7827,11 +7835,13 @@ impl NativeCompoundReader<'_> {
             .ok_or(ItemRefusal::Budget)?;
         self.temporary(output_state)?;
         if plan["new_directories"]
-            != json!([link_home, claim_home]
-                .into_iter()
-                .collect::<BTreeSet<_>>()
-                .into_iter()
-                .collect::<Vec<_>>())
+            != json!(
+                [link_home, claim_home]
+                    .into_iter()
+                    .collect::<BTreeSet<_>>()
+                    .into_iter()
+                    .collect::<Vec<_>>()
+            )
         {
             return Err(bad("object-Link new home plan"));
         }
@@ -8249,12 +8259,26 @@ impl NativeCompoundReader<'_> {
             event["method"]["procedure"]["name"] == "native-object-link-serialization"
         }) {
             let event = native_event.unwrap();
-            native_compound_capture_event(&event, scope, &request, dependencies,
-                &Package::new(), &outputs, &environment, "", claim_home,
-                OBJECT_LINK_RECEIPT, "native-object-link-serialization",
+            native_compound_capture_event(
+                &event,
+                scope,
+                &request,
+                dependencies,
+                &Package::new(),
+                &outputs,
+                &environment,
+                "",
+                claim_home,
+                OBJECT_LINK_RECEIPT,
+                "native-object-link-serialization",
                 "Serialize one declared Object/Link association and explicit source-copy forms without judging content.",
-                self.limits.deadline, self.cancelled,
-                self.limits.max_state_bytes.checked_sub(self.state).ok_or(ItemRefusal::Budget)?)?;
+                self.limits.deadline,
+                self.cancelled,
+                self.limits
+                    .max_state_bytes
+                    .checked_sub(self.state)
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
             event
         } else {
             object_link_event(
