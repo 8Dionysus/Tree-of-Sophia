@@ -345,3 +345,13 @@ test('inspection preserves exact source objects and refuses before later field r
   await assert.rejects(client.inspect('node',raw.id,undefined,fixture.source_revision),ContractError);
   assert.equal(reads,0);
 });
+
+
+test('inspection never reclassifies exceptions from source getters as Rust refusals',async()=>{
+  for(const marker of ['item','revision','schema']){
+    const packet={schema:'tos_knowledge_node_packet_v1',source_revision:fixture.source_revision};
+    Object.defineProperty(packet,'matches',{get(){throw marker;}});
+    const client=new KnowledgeClient({fetcher:async()=>({ok:true,json:async()=>packet})});
+    await assert.rejects(client.inspect('node','opaque'),error=>error===marker);
+  }
+});

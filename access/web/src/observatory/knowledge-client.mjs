@@ -357,14 +357,26 @@ export class RequestSlots {
 }
 function validateClientInspection(packet,kind,id,expected,contentRevision){
   const session=createClientInspectionSession();
+  const run=(method,value)=>{
+    // Only a direct WASM refusal is translated. Source getters and coercions
+    // evaluate before this boundary and preserve their original exceptions.
+    try{return session[method](value);}catch(error){
+      if(error==='revision')throw new RevisionError();
+      const messages={missing_revision:'Ответ не содержит версию данных.',schema:'Неверная карточка.',
+        items:'Неверный список объектов.',item:'Неполный или повторяющийся объект.',
+        match:'Не найден точный идентификатор карточки.',endpoints:'Неполные концы связи.'};
+      if(typeof error==='string'&&Object.hasOwn(messages,error))throw new ContractError(t(messages[error]));
+      throw error;
+    }
+  };
   const items=(values,itemKind)=>{
-    session.items(Array.isArray(values));const ids=new Set();
+    run('items',Array.isArray(values));const ids=new Set();
     for(const item of values){
-      session.identity(Boolean(item)&&typeof item.id==='string'&&Boolean(item.id)&&!ids.has(item.id));
-      session.display(Boolean(item.display)&&Boolean(localized(itemKind==='node'?item.display.title:item.display.label)));
+      run('identity',Boolean(item)&&typeof item.id==='string'&&Boolean(item.id)&&!ids.has(item.id));
+      run('display',Boolean(item.display)&&Boolean(localized(itemKind==='node'?item.display.title:item.display.label)));
       const revision=inspectionRevisionText(item.content_revision||'');
-      session.content_revision_length(revision.length);session.content_revision(inspectionRevisionUnits(revision));
-      session.source_refs(Array.isArray(item.source_refs)&&Boolean(item.source_refs.length)
+      run('content_revision_length',revision.length);run('content_revision',inspectionRevisionUnits(revision));
+      run('source_refs',Array.isArray(item.source_refs)&&Boolean(item.source_refs.length)
         &&!item.source_refs.some(ref=>typeof ref!=='string'||!ref));
       ids.add(item.id);
     }
@@ -372,23 +384,16 @@ function validateClientInspection(packet,kind,id,expected,contentRevision){
   };
   try{
     const revision=inspectionRevisionText(packet?.source_revision||'');
-    session.revision_length(revision.length);session.revision(inspectionRevisionUnits(revision));
-    if(expected)session.expected_revision(packet.source_revision===expected);
-    session.schema(packet.schema===(kind==='node'?'tos_knowledge_node_packet_v1':'tos_knowledge_relation_packet_v1'));
+    run('revision_length',revision.length);run('revision',inspectionRevisionUnits(revision));
+    if(expected)run('expected_revision',packet.source_revision===expected);
+    run('schema',packet.schema===(kind==='node'?'tos_knowledge_node_packet_v1':'tos_knowledge_relation_packet_v1'));
     items(packet.matches,kind);
-    const match=packet.matches.find(item=>item.id===id);session.exact_match(Boolean(match));
-    if(contentRevision)session.expected_revision(match.content_revision===contentRevision);
+    const match=packet.matches.find(item=>item.id===id);run('exact_match',Boolean(match));
+    if(contentRevision)run('expected_revision',match.content_revision===contentRevision);
     if(kind==='relation'){
-      const ids=items(packet.endpoints,'node');session.endpoints(ids.has(match.from_id)&&ids.has(match.to_id));
+      const ids=items(packet.endpoints,'node');run('endpoints',ids.has(match.from_id)&&ids.has(match.to_id));
     }
     return match;
-  }catch(error){
-    if(error==='revision')throw new RevisionError();
-    const messages={missing_revision:'Ответ не содержит версию данных.',schema:'Неверная карточка.',
-      items:'Неверный список объектов.',item:'Неполный или повторяющийся объект.',
-      match:'Не найден точный идентификатор карточки.',endpoints:'Неполные концы связи.'};
-    if(typeof error==='string'&&Object.hasOwn(messages,error))throw new ContractError(t(messages[error]));
-    throw error;
   }finally{session.free();}
 }
 export class KnowledgeClient {
