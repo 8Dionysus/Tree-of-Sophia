@@ -736,16 +736,18 @@ impl ConstructorMachine {
             ]));
         }
         let parent = parent.map(str::to_owned).or_else(|| {
-            array(draft, "nodes")
-                .unwrap()
-                .iter()
-                .find(|n| word(n, "materialId") == library_parent.as_deref())
-                .and_then(|n| word(n, "id"))
-                .map(str::to_owned)
+            library_parent.as_deref().and_then(|library_parent| {
+                array(draft, "nodes")
+                    .unwrap()
+                    .iter()
+                    .find(|n| word(n, "materialId") == Some(library_parent))
+                    .and_then(|n| word(n, "id"))
+                    .map(str::to_owned)
+            })
         });
         if let Some(parent) = parent {
-            let structural =
-                word(Self::node(draft, &parent)?, "materialId") == library_parent.as_deref();
+            let structural = library_parent.is_some()
+                && word(Self::node(draft, &parent)?, "materialId") == library_parent.as_deref();
             self.add_edge(
                 draft,
                 &parent,
