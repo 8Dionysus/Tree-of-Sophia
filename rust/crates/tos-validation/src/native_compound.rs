@@ -492,6 +492,27 @@ fn measured_compound_observation(
     })
 }
 
+/// Read the exact selected Expression responsibility compound and its retained/current lineage.
+/// The transport observation is descriptive; CMD still owns the physical
+/// publication, source/software and journal fences for any replay decision.
+pub fn verify_expression_responsibility_from_cut(
+    cut: &CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    claim_path: &str,
+    claim: &Value,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<NativeCompoundReadObservation, ItemRefusal> {
+    if claim["predicate"] != "translated_by"
+        || schemas.source_revision() != cut.current().revision()
+    {
+        return Err(bad("selected Expression responsibility compound type/cut"));
+    }
+    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    let observation = reader.verify(claim_path, claim, schemas)?;
+    measured_compound_observation(reader, observation)
+}
+
 /// Read the exact selected Expression/Edition compound and its retained/current lineage.
 /// The transport observation is descriptive; CMD still owns the physical
 /// publication, source/software and journal fences for any replay decision.
@@ -4943,7 +4964,7 @@ impl WorkExpressionCore<'_> {
         } = prepared;
         let scope = &authority["scope"];
         let parent_home = parent(text(scope, kind.parent_path())?)?;
-        let child_home = parent(text(scope, kind.child_path())?)?;
+        let child_home = kind.publication_home(scope)?;
         let count = parent_files
             .len()
             .checked_add(child_files.len())
@@ -5106,6 +5127,34 @@ pub fn prepare_work_expression_preview_bytes<'a>(
         &BTreeMap<String, String>,
     ) -> Result<(Vec<u8>, Value), ItemRefusal>,
 ) -> Result<WorkExpressionCore<'a>, ItemRefusal> {
+    prepare_typed_compound_preview_bytes(
+        CompoundKind::WorkExpression,
+        cut,
+        schemas,
+        scope,
+        proposed_claim_raw,
+        owned_before,
+        recorded_at,
+        limits,
+        cancelled,
+        build_request_and_authorization,
+    )
+}
+
+fn prepare_typed_compound_preview_bytes<'a>(
+    kind: CompoundKind,
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    proposed_claim_raw: &[u8],
+    owned_before: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+    build_request_and_authorization: impl FnOnce(
+        &BTreeMap<String, String>,
+    ) -> Result<(Vec<u8>, Value), ItemRefusal>,
+) -> Result<WorkExpressionCore<'a>, ItemRefusal> {
     check(limits.deadline, cancelled)?;
     if schemas.source_revision() != cut.current().revision() || proposed_claim_raw.len() > MAX_FILE
     {
@@ -5130,18 +5179,13 @@ pub fn prepare_work_expression_preview_bytes<'a>(
     let encoded_state = std::mem::size_of::<Vec<u8>>() + expected.len();
     drop(expected);
     reader.release_temporary(encoded_state);
-    let grammar = preparation_grammar_from_cut(
-        CompoundKind::WorkExpression,
-        &mut reader,
-        schemas,
-        proposed_claim_raw,
-    )?;
+    let grammar = preparation_grammar_from_cut(kind, &mut reader, schemas, proposed_claim_raw)?;
     if grammar.binding != schemas.execution_binding() {
         return Err(bad("Work preview schema binding changed"));
     }
     let (request_raw, authority) = build_request_and_authorization(&grammar.digests)?;
     prepare_native_with_reader(
-        CompoundKind::WorkExpression,
+        kind,
         None,
         reader,
         schemas,
@@ -5154,6 +5198,224 @@ pub fn prepare_work_expression_preview_bytes<'a>(
     )
 }
 
+/// Typed maintained ExpressionResponsibility recipe over the existing bounded compound kernel.
+/// Its output is metadata transport, never semantic or publication admission.
+pub struct ExpressionResponsibilityCore<'a> {
+    inner: WorkExpressionCore<'a>,
+}
+pub type ExpressionResponsibilityBytes = WorkExpressionBytes;
+impl ExpressionResponsibilityCore<'_> {
+    pub fn authorization(&self) -> &Value {
+        self.inner.authorization()
+    }
+    pub fn archive_path(&self) -> &str {
+        self.inner.archive_path()
+    }
+    pub fn transaction_id(&self) -> &str {
+        self.inner.transaction_id()
+    }
+    pub fn reads(&self) -> &[PredicateRead] {
+        self.inner.reads()
+    }
+    pub fn bytes_read(&self) -> u64 {
+        self.inner.bytes_read()
+    }
+    pub fn grammar_digests(&self) -> &BTreeMap<String, String> {
+        self.inner.grammar_digests()
+    }
+    pub fn outputs(&self) -> Result<Vec<(String, &[u8])>, ItemRefusal> {
+        self.inner.outputs()
+    }
+    pub fn into_prepared_outputs(self) -> Result<BTreeMap<String, Vec<u8>>, ItemRefusal> {
+        self.inner.into_prepared_outputs()
+    }
+}
+pub fn prepare_expression_responsibility_bytes<'a>(
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    request_raw: &[u8],
+    owned_before: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+    authorize: impl FnOnce(&BTreeMap<String, String>) -> Result<Value, ItemRefusal>,
+) -> Result<ExpressionResponsibilityCore<'a>, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    if schemas.source_revision() != cut.current().revision() || request_raw.len() > MAX_FILE {
+        return Err(bad("compound source/schema revision or request size"));
+    }
+    crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
+        .map_err(|_| bad("compound recorded aware instant"))?;
+    let reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    prepare_native_with_reader(
+        CompoundKind::ExpressionResponsibility,
+        None,
+        reader,
+        schemas,
+        scope,
+        Cow::Borrowed(request_raw),
+        owned_before,
+        recorded_at,
+        None,
+        authorize,
+    )
+    .map(|inner| ExpressionResponsibilityCore { inner })
+}
+pub fn prepare_expression_responsibility_preview_bytes<'a>(
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    proposed_claim_raw: &[u8],
+    owned_before: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+    build_request_and_authorization: impl FnOnce(
+        &BTreeMap<String, String>,
+    ) -> Result<(Vec<u8>, Value), ItemRefusal>,
+) -> Result<ExpressionResponsibilityCore<'a>, ItemRefusal> {
+    prepare_typed_compound_preview_bytes(
+        CompoundKind::ExpressionResponsibility,
+        cut,
+        schemas,
+        scope,
+        proposed_claim_raw,
+        owned_before,
+        recorded_at,
+        limits,
+        cancelled,
+        build_request_and_authorization,
+    )
+    .map(|inner| ExpressionResponsibilityCore { inner })
+}
+/// Finish one actual native producer capture; its environment stays native-only.
+pub fn finish_expression_responsibility_bytes(
+    core: ExpressionResponsibilityCore<'_>,
+    environment_raw: &[u8],
+    event_raw: &[u8],
+    schemas: &mut CutWorkerSchemaExecutor,
+) -> Result<ExpressionResponsibilityBytes, ItemRefusal> {
+    finish_work_expression_bytes(core.inner, environment_raw, event_raw, schemas)
+}
+/// Reconstruct exact retained Python/native capture after CMD proved journal custody.
+pub fn restore_expression_responsibility_bytes(
+    core: ExpressionResponsibilityCore<'_>,
+    environment_raw: &[u8],
+    event_raw: &[u8],
+    schemas: &mut CutWorkerSchemaExecutor,
+) -> Result<ExpressionResponsibilityBytes, ItemRefusal> {
+    finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, false)
+}
+/// Typed maintained ExpressionEdition recipe over the existing bounded compound kernel.
+/// Its output is metadata transport, never semantic or publication admission.
+pub struct ExpressionEditionCore<'a> {
+    inner: WorkExpressionCore<'a>,
+}
+pub type ExpressionEditionBytes = WorkExpressionBytes;
+impl ExpressionEditionCore<'_> {
+    pub fn authorization(&self) -> &Value {
+        self.inner.authorization()
+    }
+    pub fn archive_path(&self) -> &str {
+        self.inner.archive_path()
+    }
+    pub fn transaction_id(&self) -> &str {
+        self.inner.transaction_id()
+    }
+    pub fn reads(&self) -> &[PredicateRead] {
+        self.inner.reads()
+    }
+    pub fn bytes_read(&self) -> u64 {
+        self.inner.bytes_read()
+    }
+    pub fn grammar_digests(&self) -> &BTreeMap<String, String> {
+        self.inner.grammar_digests()
+    }
+    pub fn outputs(&self) -> Result<Vec<(String, &[u8])>, ItemRefusal> {
+        self.inner.outputs()
+    }
+    pub fn into_prepared_outputs(self) -> Result<BTreeMap<String, Vec<u8>>, ItemRefusal> {
+        self.inner.into_prepared_outputs()
+    }
+}
+pub fn prepare_expression_edition_bytes<'a>(
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    request_raw: &[u8],
+    owned_before: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+    authorize: impl FnOnce(&BTreeMap<String, String>) -> Result<Value, ItemRefusal>,
+) -> Result<ExpressionEditionCore<'a>, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    if schemas.source_revision() != cut.current().revision() || request_raw.len() > MAX_FILE {
+        return Err(bad("compound source/schema revision or request size"));
+    }
+    crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
+        .map_err(|_| bad("compound recorded aware instant"))?;
+    let reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    prepare_native_with_reader(
+        CompoundKind::ExpressionEdition,
+        None,
+        reader,
+        schemas,
+        scope,
+        Cow::Borrowed(request_raw),
+        owned_before,
+        recorded_at,
+        None,
+        authorize,
+    )
+    .map(|inner| ExpressionEditionCore { inner })
+}
+pub fn prepare_expression_edition_preview_bytes<'a>(
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    proposed_claim_raw: &[u8],
+    owned_before: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+    build_request_and_authorization: impl FnOnce(
+        &BTreeMap<String, String>,
+    ) -> Result<(Vec<u8>, Value), ItemRefusal>,
+) -> Result<ExpressionEditionCore<'a>, ItemRefusal> {
+    prepare_typed_compound_preview_bytes(
+        CompoundKind::ExpressionEdition,
+        cut,
+        schemas,
+        scope,
+        proposed_claim_raw,
+        owned_before,
+        recorded_at,
+        limits,
+        cancelled,
+        build_request_and_authorization,
+    )
+    .map(|inner| ExpressionEditionCore { inner })
+}
+/// Finish one actual native producer capture; its environment stays native-only.
+pub fn finish_expression_edition_bytes(
+    core: ExpressionEditionCore<'_>,
+    environment_raw: &[u8],
+    event_raw: &[u8],
+    schemas: &mut CutWorkerSchemaExecutor,
+) -> Result<ExpressionEditionBytes, ItemRefusal> {
+    finish_work_expression_bytes(core.inner, environment_raw, event_raw, schemas)
+}
+/// Reconstruct exact retained Python/native capture after CMD proved journal custody.
+pub fn restore_expression_edition_bytes(
+    core: ExpressionEditionCore<'_>,
+    environment_raw: &[u8],
+    event_raw: &[u8],
+    schemas: &mut CutWorkerSchemaExecutor,
+) -> Result<ExpressionEditionBytes, ItemRefusal> {
+    finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, false)
+}
 /// Read-only grammar closure for the maintained byte-only Item route.
 /// It does not make acquired metadata, a receipt, or a publication grant.
 pub struct EditionItemGrammarObservation {
@@ -5440,6 +5702,10 @@ fn native_preparation_procedure(kind: CompoundKind) -> Result<&'static str, Item
     match kind {
         CompoundKind::WorkExpression => Ok("native-work-expression-serialization"),
         CompoundKind::EditionItem => Ok("native-item-adoption-serialization"),
+        CompoundKind::ExpressionEdition => Ok("native-expression-edition-serialization"),
+        CompoundKind::ExpressionResponsibility => {
+            Ok("native-expression-responsibility-serialization")
+        }
         _ => Err(bad("unknown actual native preparation family")),
     }
 }
@@ -5451,6 +5717,12 @@ fn native_preparation_purpose(kind: CompoundKind) -> Result<&'static str, ItemRe
         CompoundKind::EditionItem => Ok(
             "Serialize one declared Edition/Item link and explicit source-copy forms without judging content.",
         ),
+        CompoundKind::ExpressionEdition => Ok(
+            "Serialize one declared Expression/Edition link and explicit source-copy forms without judging content.",
+        ),
+        CompoundKind::ExpressionResponsibility => Ok(
+            "Serialize one qualified Expression responsibility Claim and explicit source-copy forms without judging attribution.",
+        ),
         _ => Err(bad("unknown actual native preparation family")),
     }
 }
@@ -5461,6 +5733,12 @@ fn native_preparation_warning(kind: CompoundKind) -> Result<&'static str, ItemRe
         ),
         CompoundKind::EditionItem => Ok(
             "Completed in-process Edition/Item buffer serialization; atomic selected-metadata publication occurs afterward.",
+        ),
+        CompoundKind::ExpressionEdition => Ok(
+            "Completed in-process Expression/Edition buffer serialization; atomic selected-metadata publication occurs afterward.",
+        ),
+        CompoundKind::ExpressionResponsibility => Ok(
+            "Completed in-process Expression responsibility buffer serialization; atomic selected-metadata publication occurs afterward.",
         ),
         _ => Err(bad("unknown actual native preparation family")),
     }
@@ -7019,7 +7297,7 @@ fn native_work_event(
 ) -> Result<(), ItemRefusal> {
     check(deadline, cancelled)?;
     native_work_environment(environment)?;
-    let home = parent(text(scope, kind.child_path())?)?;
+    let home = kind.publication_home(scope)?;
     let request_ref = format!("{home}/source-create-request.json");
     let environment_ref = format!("{home}/source-create-environment.json");
     let mut request_raw = canonical(request)?;
