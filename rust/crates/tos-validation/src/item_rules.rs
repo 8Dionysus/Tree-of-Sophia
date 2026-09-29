@@ -240,7 +240,7 @@ impl ItemRules {
             return Ok(None);
         };
         let available = self.available()?;
-        let decoded = crate::record_biblio_cut::bounded_legacy_decoded_state_with_limits(
+        let decoded = crate::record_biblio_cut::bounded_legacy_item_decoded_state(
             &raw,
             item_json_limits(self.limits.max_member_bytes, available)?,
             available,
@@ -536,14 +536,13 @@ impl ItemRules {
                             return self.issue(&location, "blank-jsonl-line");
                         }
                         let available = self.available()?;
-                        let decoded =
-                            crate::record_biblio_cut::bounded_legacy_decoded_state_with_limits(
-                                line.as_bytes(),
-                                item_json_limits(self.limits.max_member_bytes, available)?,
-                                available,
-                                self.limits.deadline,
-                                &AtomicBool::new(false),
-                            );
+                        let decoded = crate::record_biblio_cut::bounded_legacy_item_decoded_state(
+                            line.as_bytes(),
+                            item_json_limits(self.limits.max_member_bytes, available)?,
+                            available,
+                            self.limits.deadline,
+                            &AtomicBool::new(false),
+                        );
                         let (event, event_bytes) = match decoded {
                             Ok(result) => result,
                             Err(ItemRefusal::Source(reason))
@@ -783,7 +782,7 @@ impl ItemRules {
             .ok_or(ItemRefusal::Budget)?;
         self.admit_live(header.checked_add(raw.len()).ok_or(ItemRefusal::Budget)?)?;
         let available = self.available()?;
-        let decoded = crate::record_biblio_cut::bounded_legacy_decoded_state_with_limits(
+        let decoded = crate::record_biblio_cut::bounded_legacy_item_decoded_state(
             raw,
             item_json_limits(self.limits.max_member_bytes, available)?,
             available,

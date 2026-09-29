@@ -894,11 +894,11 @@ pub(crate) fn ordered_emit_state(value:&tos_foundation::JsonValue)->Result<usize
 pub(crate) fn bounded_ordered(
     raw:&[u8],limits:tos_foundation::JsonLimits,available:usize,deadline:Instant,cancelled:&AtomicBool,
 )->Result<tos_foundation::JsonValue,ItemRefusal> {
-    bounded_ordered_mode(raw,limits,available,deadline,cancelled,tos_foundation::JsonMode::PublishedStrict,false)
+    bounded_ordered_mode(raw,limits,available,deadline,cancelled,tos_foundation::JsonMode::PublishedStrict,false,false)
 }
 fn bounded_ordered_mode(
     raw:&[u8], mut limits:tos_foundation::JsonLimits, available:usize,
-    deadline:Instant,cancelled:&AtomicBool,mode:tos_foundation::JsonMode,syntax_as_source:bool,
+    deadline:Instant,cancelled:&AtomicBool,mode:tos_foundation::JsonMode,syntax_as_source:bool,incremental_state:bool,
 )->Result<tos_foundation::JsonValue,ItemRefusal> {
     check(deadline,cancelled)?;
     // During Foundation parsing a decoded key may retain UTF16 both in the
@@ -906,6 +906,7 @@ fn bounded_ordered_mode(
     // total lengths cannot exceed two UTF16 copies and one UTF8 copy of input.
     // Each value visit can own one value slot, one key, one index entry and one
     // object index header. These are logical slots, not hash bucket/RSS bounds.
+    if !incremental_state {
     let strings=raw.len().checked_mul(2*std::mem::size_of::<u16>()+std::mem::size_of::<u8>()).ok_or(ItemRefusal::Budget)?;
     let slot=std::mem::size_of::<tos_foundation::JsonValue>()
         +std::mem::size_of::<tos_foundation::JsonString>()
@@ -914,9 +915,15 @@ fn bounded_ordered_mode(
     let remaining=available.checked_sub(strings).ok_or(ItemRefusal::BudgetCheck {check:"strict JSON logical string workspace",used:Some(strings as u64),limit:Some(available as u64)})?;
     limits.max_visits=limits.max_visits.min(remaining/slot);
     if limits.max_visits==0 {return Err(ItemRefusal::BudgetCheck {check:"strict JSON logical node workspace",used:Some(slot as u64),limit:Some(remaining as u64)});}
-    let result=tos_foundation::parse_json(raw,mode,limits)
+    }
+    let parsed = if incremental_state {
+        tos_foundation::parse_json_with_state_budget(raw,mode,limits,available)
+    } else { tos_foundation::parse_json(raw,mode,limits) };
+    let result=parsed
         .map_err(|e|if e.code==tos_foundation::FoundationErrorCode::BudgetExceeded {
-            ItemRefusal::BudgetCheck {check:"strict JSON codec bytes/depth/visits/integer",used:None,limit:None}
+            if incremental_state && e.detail == "JSON parser state budget exceeded" {
+                ItemRefusal::BudgetCheck {check:"Item JSON parser workspace",used:None,limit:Some(available as u64)}
+            } else { ItemRefusal::BudgetCheck {check:"strict JSON codec bytes/depth/visits/integer",used:None,limit:None} }
         } else if syntax_as_source && matches!(e.code,
             tos_foundation::FoundationErrorCode::InvalidUtf8
             | tos_foundation::FoundationErrorCode::InvalidJson
@@ -935,16 +942,21 @@ fn bounded_ordered_mode(
 // Integer text was bounded only by the member bytes in that serde route.
 pub(crate) fn bounded_legacy_decoded_state(raw:&[u8],max_bytes:usize,available:usize,deadline:Instant,cancelled:&AtomicBool)->Result<(serde_json::Value,usize),ItemRefusal> {
     let limits=tos_foundation::JsonLimits::new(max_bytes,128,available.max(1),max_bytes.max(1)).map_err(|_|ItemRefusal::Budget)?;
-    bounded_legacy_decoded_state_inner(raw,limits,available,deadline,cancelled,false)
+    bounded_legacy_decoded_state_inner(raw,limits,available,deadline,cancelled,false,false)
 }
 // The named source-layer caller has the original native decoded-field JSON
 // profile: malformed finite JSON is an issue, while a valid value outside
 // serde's representable scalar strings remains explicitly unsupported.
 pub(crate) fn bounded_legacy_decoded_state_with_limits(raw:&[u8],limits:tos_foundation::JsonLimits,available:usize,deadline:Instant,cancelled:&AtomicBool)->Result<(serde_json::Value,usize),ItemRefusal> {
-    bounded_legacy_decoded_state_inner(raw,limits,available,deadline,cancelled,true)
+    bounded_legacy_decoded_state_inner(raw,limits,available,deadline,cancelled,true,false)
 }
-fn bounded_legacy_decoded_state_inner(raw:&[u8],limits:tos_foundation::JsonLimits,available:usize,deadline:Instant,cancelled:&AtomicBool,malformed_as_source:bool)->Result<(serde_json::Value,usize),ItemRefusal> {
-    drop(bounded_ordered_mode(raw,limits,available,deadline,cancelled,tos_foundation::JsonMode::RequestLastWins,malformed_as_source)?);
+// Only the actual Item legacy route uses incremental parser workspace.
+// Other native/selected-layer profiles preserve their existing admission.
+pub(crate) fn bounded_legacy_item_decoded_state(raw:&[u8],limits:tos_foundation::JsonLimits,available:usize,deadline:Instant,cancelled:&AtomicBool)->Result<(serde_json::Value,usize),ItemRefusal> {
+    bounded_legacy_decoded_state_inner(raw,limits,available,deadline,cancelled,true,true)
+}
+fn bounded_legacy_decoded_state_inner(raw:&[u8],limits:tos_foundation::JsonLimits,available:usize,deadline:Instant,cancelled:&AtomicBool,malformed_as_source:bool,incremental_state:bool)->Result<(serde_json::Value,usize),ItemRefusal> {
+    drop(bounded_ordered_mode(raw,limits,available,deadline,cancelled,tos_foundation::JsonMode::RequestLastWins,malformed_as_source,incremental_state)?);
     let value=serde_json::from_slice(raw).map_err(|_|ItemRefusal::Unsupported("decoded JSON representation".into()))?;
     let state=decoded_state(&value)?;
     if state>available {return Err(ItemRefusal::BudgetCheck{check:"legacy JSON retained decoded state",used:Some(state as u64),limit:Some(available as u64)});}

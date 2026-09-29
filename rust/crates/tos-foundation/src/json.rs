@@ -238,6 +238,26 @@ impl JsonDocument {
 }
 
 pub fn parse_json(raw: &[u8], mode: JsonMode, limits: JsonLimits) -> Result<JsonDocument> {
+    parse_json_inner(raw, mode, limits, None)
+}
+
+/// The legacy Item decoder supplies its remaining logical parser workspace.
+/// This uses the same grammar; allocator overhead and RSS remain separate.
+pub fn parse_json_with_state_budget(
+    raw: &[u8],
+    mode: JsonMode,
+    limits: JsonLimits,
+    available: usize,
+) -> Result<JsonDocument> {
+    parse_json_inner(raw, mode, limits, Some((0, available)))
+}
+
+fn parse_json_inner(
+    raw: &[u8],
+    mode: JsonMode,
+    limits: JsonLimits,
+    state: Option<(usize, usize)>,
+) -> Result<JsonDocument> {
     limits.validate()?;
     if raw.len() > limits.max_bytes {
         return Err(FoundationError::new(
@@ -255,7 +275,22 @@ pub fn parse_json(raw: &[u8], mode: JsonMode, limits: JsonLimits) -> Result<Json
         visits: 0,
         mode,
         limits,
+        state,
     };
+    // Recursive keys and values temporarily coexist with container indexes.
+    // Their fixed stack slots are priced once, independently of node count.
+    parser.charge(
+        (limits.max_depth + 1)
+            .checked_mul(
+                std::mem::size_of::<JsonValue>()
+                    + std::mem::size_of::<JsonString>()
+                    + std::mem::size_of::<HashMap<Vec<u16>, usize>>()
+                    + 2 * std::mem::size_of::<Vec<JsonValue>>(),
+            )
+            .ok_or_else(|| {
+                parser.error(Code::BudgetExceeded, "JSON parser state budget exceeded")
+            })?,
+    )?;
     let root = parser.value(0)?;
     parser.spaces();
     if parser.at != raw.len() {
@@ -273,11 +308,77 @@ struct Parser<'a> {
     raw: &'a [u8],
     at: usize,
     visits: usize,
+    state: Option<(usize, usize)>,
     mode: JsonMode,
     limits: JsonLimits,
 }
 
 impl Parser<'_> {
+    fn charge(&mut self, amount: usize) -> Result<()> {
+        if let Some((used, available)) = &mut self.state {
+            *used = used
+                .checked_add(amount)
+                .filter(|n| *n <= *available)
+                .ok_or_else(|| {
+                    FoundationError::new(Code::BudgetExceeded, "JSON parser state budget exceeded")
+                })?;
+        }
+        Ok(())
+    }
+    fn reserve<T>(&mut self, values: &mut Vec<T>, additional: usize) -> Result<()> {
+        if self.state.is_none() {
+            return Ok(());
+        }
+        let needed = values
+            .len()
+            .checked_add(additional)
+            .ok_or_else(|| self.error(Code::BudgetExceeded, "JSON parser state budget exceeded"))?;
+        if needed > values.capacity() {
+            let capacity = needed.max(values.capacity().saturating_mul(2)).max(4);
+            self.charge(
+                capacity
+                    .checked_sub(values.capacity())
+                    .and_then(|n| n.checked_mul(std::mem::size_of::<T>()))
+                    .ok_or_else(|| {
+                        self.error(Code::BudgetExceeded, "JSON parser state budget exceeded")
+                    })?,
+            )?;
+            values
+                .try_reserve_exact(capacity - values.len())
+                .map_err(|_| {
+                    self.error(Code::BudgetExceeded, "JSON parser state budget exceeded")
+                })?;
+        }
+        Ok(())
+    }
+    fn units_push(&mut self, units: &mut Vec<u16>, unit: u16) -> Result<()> {
+        self.reserve(units, 1)?;
+        units.push(unit);
+        Ok(())
+    }
+    fn finish_string(&mut self, units: Vec<u16>) -> Result<JsonString> {
+        if self.state.is_none() {
+            return Ok(JsonString::from_units(units));
+        }
+        let length = char::decode_utf16(units.iter().copied())
+            .try_fold(0usize, |n, c| n.checked_add(c.ok()?.len_utf8()));
+        let utf8 = if let Some(length) = length {
+            self.charge(length)?;
+            let mut text = String::new();
+            text.try_reserve_exact(length).map_err(|_| {
+                self.error(Code::BudgetExceeded, "JSON parser state budget exceeded")
+            })?;
+            for c in char::decode_utf16(units.iter().copied()) {
+                text.push(c.map_err(|_| {
+                    self.error(Code::InvalidUnicodeScalar, "decoded string changed")
+                })?);
+            }
+            Some(text)
+        } else {
+            None
+        };
+        Ok(JsonString { units, utf8 })
+    }
     fn error(&self, code: Code, detail: &'static str) -> FoundationError {
         FoundationError::new(code, detail).at(self.at)
     }
@@ -337,7 +438,7 @@ impl Parser<'_> {
             match byte {
                 b'"' => {
                     self.at += 1;
-                    return Ok(JsonString::from_units(units));
+                    return self.finish_string(units);
                 }
                 b'\\' => {
                     self.at += 1;
@@ -347,12 +448,12 @@ impl Parser<'_> {
                         .ok_or_else(|| self.error(Code::InvalidJson, "incomplete JSON escape"))?;
                     self.at += 1;
                     match escaped {
-                        b'"' | b'\\' | b'/' => units.push(escaped as u16),
-                        b'b' => units.push(8),
-                        b'f' => units.push(12),
-                        b'n' => units.push(10),
-                        b'r' => units.push(13),
-                        b't' => units.push(9),
+                        b'"' | b'\\' | b'/' => self.units_push(&mut units, escaped as u16)?,
+                        b'b' => self.units_push(&mut units, 8)?,
+                        b'f' => self.units_push(&mut units, 12)?,
+                        b'n' => self.units_push(&mut units, 10)?,
+                        b'r' => self.units_push(&mut units, 13)?,
+                        b't' => self.units_push(&mut units, 9)?,
                         b'u' => {
                             let hex = self.raw.get(self.at..self.at + 4).ok_or_else(|| {
                                 self.error(Code::InvalidJson, "short Unicode escape")
@@ -373,7 +474,7 @@ impl Parser<'_> {
                                     };
                             }
                             self.at += 4;
-                            units.push(unit);
+                            self.units_push(&mut units, unit)?;
                         }
                         _ => return Err(self.error(Code::InvalidJson, "invalid JSON escape")),
                     }
@@ -386,7 +487,9 @@ impl Parser<'_> {
                         .chars()
                         .next()
                         .ok_or_else(|| self.error(Code::InvalidJson, "invalid JSON string"))?;
-                    units.extend(ch.encode_utf16(&mut [0u16; 2]).iter().copied());
+                    for &unit in ch.encode_utf16(&mut [0u16; 2]).iter() {
+                        self.units_push(&mut units, unit)?;
+                    }
                     self.at += ch.len_utf8();
                 }
             }
@@ -397,6 +500,7 @@ impl Parser<'_> {
         self.spaces();
         let mut entries = Vec::new();
         let mut positions: HashMap<Vec<u16>, usize> = HashMap::new();
+        let mut index_capacity_charge = 0usize;
         if self.raw.get(self.at) == Some(&b'}') {
             self.at += 1;
             return Ok(JsonValue::Object(entries));
@@ -416,6 +520,50 @@ impl Parser<'_> {
                 }
                 entries[position].1 = value;
             } else {
+                if self.state.is_some() {
+                    if positions.len() == positions.capacity() {
+                        // Pinned std HashMap grows in power-of-two buckets;
+                        // admit a conservative bucket-slot ceiling before it.
+                        let slots = positions
+                            .len()
+                            .checked_add(1)
+                            .and_then(|n| n.max(4).checked_next_power_of_two())
+                            .and_then(|n| n.checked_mul(2))
+                            .ok_or_else(|| {
+                                self.error(
+                                    Code::BudgetExceeded,
+                                    "JSON parser state budget exceeded",
+                                )
+                            })?;
+                        self.charge(
+                            slots
+                                .saturating_sub(index_capacity_charge)
+                                .checked_mul(std::mem::size_of::<(Vec<u16>, usize)>() + 1)
+                                .ok_or_else(|| {
+                                    self.error(
+                                        Code::BudgetExceeded,
+                                        "JSON parser state budget exceeded",
+                                    )
+                                })?,
+                        )?;
+                        index_capacity_charge = slots;
+                        positions.try_reserve(1).map_err(|_| {
+                            self.error(Code::BudgetExceeded, "JSON parser state budget exceeded")
+                        })?;
+                    }
+                    self.charge(
+                        key.units
+                            .len()
+                            .checked_mul(std::mem::size_of::<u16>())
+                            .ok_or_else(|| {
+                                self.error(
+                                    Code::BudgetExceeded,
+                                    "JSON parser state budget exceeded",
+                                )
+                            })?,
+                    )?;
+                }
+                self.reserve(&mut entries, 1)?;
                 positions.insert(key.units.clone(), entries.len());
                 entries.push((key, value));
             }
@@ -441,7 +589,9 @@ impl Parser<'_> {
             return Ok(JsonValue::Array(items));
         }
         loop {
-            items.push(self.value(depth + 1)?);
+            let value = self.value(depth + 1)?;
+            self.reserve(&mut items, 1)?;
+            items.push(value);
             self.spaces();
             match self.raw.get(self.at) {
                 Some(b',') => {
@@ -502,6 +652,7 @@ impl Parser<'_> {
                 return Err(self.error(Code::InvalidNumber, "missing exponent digits"));
             }
         }
+        self.charge(self.at - start)?;
         let lexeme = self.source[start..self.at].to_owned();
         if kind == JsonNumberKind::Int && integer_digits > self.limits.max_integer_digits {
             return Err(self.error(Code::BudgetExceeded, "integer digit budget exceeded"));
