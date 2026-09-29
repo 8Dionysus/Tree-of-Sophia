@@ -11,6 +11,9 @@ use std::time::Instant;
 use tos_foundation::{Digest256, RelativePath, SourceRevision};
 use tos_source_store::{CorpusCutReader, SourceMembershipV1};
 
+const PROVENANCE_V2: &str = "tos_provenance_event_v2";
+const PROVENANCE_V2_CONTRACT: &str = "ToS/contracts/provenance-event-v2.schema.json";
+
 #[derive(Debug, Clone)]
 pub struct SourceShapeReport {
     pub revision: SourceRevision,
@@ -24,6 +27,7 @@ struct State {
     limits: ItemLimits,
     bytes: u64,
     state: usize,
+    transient: usize,
     issues: Vec<(String, String)>,
     gaps: Vec<(String, String)>,
     reads: Vec<PredicateRead>,
@@ -33,7 +37,10 @@ impl State {
         self.state = self
             .state
             .checked_add(n)
-            .filter(|n| *n <= self.limits.max_state_bytes)
+            .filter(|n| {
+                n.checked_add(self.transient)
+                    .is_some_and(|total| total <= self.limits.max_state_bytes)
+            })
             .ok_or(ItemRefusal::Budget)?;
         Ok(())
     }
@@ -65,6 +72,8 @@ impl State {
     fn read(&mut self, read: PredicateRead) -> Result<(), ItemRefusal> {
         let bytes = match &read {
             PredicateRead::ExactPath { path, digest } => path.len() + digest.len(),
+            PredicateRead::ExactBytes { locator, digest } => locator.len() + digest.len(),
+            PredicateRead::SchemaResource { uri, digest } => uri.len() + digest.len(),
             PredicateRead::RefEndpoint {
                 endpoint_type, id, ..
             } => endpoint_type.len() + id.len(),
@@ -78,6 +87,207 @@ impl State {
         self.reads.push(read);
         Ok(())
     }
+}
+
+/// An event records original inputs, while this family can prove only bytes
+/// selected in the current source cut. A changed historical input is a gap;
+/// a selected, tracked output claiming its current digest is a defect.
+fn provenance_ref(
+    cut: &CorpusCutReader,
+    revision: SourceRevision,
+    owner: &str,
+    reference: &str,
+    digest: Option<&str>,
+    current_output: bool,
+    state: &mut State,
+    cancelled: &AtomicBool,
+) -> Result<(), ItemRefusal> {
+    check(state.limits, cancelled)?;
+    if cut.current().revision() != revision {
+        return Err(ItemRefusal::Source(
+            "provenance reference belongs to another source cut".into(),
+        ));
+    }
+    if !(reference.starts_with("ToS/") || reference.starts_with("scripts/")) {
+        state.gap(owner, "provenance-ref-outside-selected-source")?;
+        return Ok(());
+    }
+    let Ok(relative) = RelativePath::parse(reference) else {
+        state.issue(owner, "unsafe-provenance-source-ref")?;
+        return Ok(());
+    };
+    let metadata = cut.current().member(&relative);
+    state.read(PredicateRead::RefEndpoint {
+        endpoint_type: "provenance-source-path".into(),
+        id: reference.into(),
+        observed: if metadata.is_some() {
+            KeyState::Present
+        } else {
+            KeyState::Absent
+        },
+    })?;
+    let Some(metadata) = metadata else {
+        // The selected cut need not contain every local/private output.
+        // Absence cannot establish that the owner's original bytes vanished.
+        state.gap(owner, "provenance-recorded-ref-unavailable")?;
+        return Ok(());
+    };
+    let actual = metadata.sha256.to_hex();
+    state.read(PredicateRead::ExactBytes {
+        locator: reference.into(),
+        digest: actual.clone(),
+    })?;
+    if digest.is_some_and(|expected| expected != actual) {
+        if current_output {
+            state.issue(owner, "current-provenance-output-fixity")?;
+        } else {
+            state.gap(owner, "provenance-recorded-input-differs-from-current")?;
+        }
+    }
+    Ok(())
+}
+
+fn provenance_bindings(
+    cut: &CorpusCutReader,
+    revision: SourceRevision,
+    owner: &str,
+    node: &Value,
+    depth: usize,
+    state: &mut State,
+    cancelled: &AtomicBool,
+) -> Result<(), ItemRefusal> {
+    if depth > 128 {
+        return Err(ItemRefusal::Unsupported("provenance binding depth".into()));
+    }
+    check(state.limits, cancelled)?;
+    match node {
+        Value::Object(object) => {
+            if let (Some(reference), Some(digest)) = (
+                object.get("ref").and_then(Value::as_str),
+                object.get("sha256").and_then(Value::as_str),
+            ) {
+                provenance_ref(
+                    cut,
+                    revision,
+                    owner,
+                    reference,
+                    Some(digest),
+                    false,
+                    state,
+                    cancelled,
+                )?;
+            }
+            if let (Some(reference), Some(digest)) = (
+                object.get("artifact_ref").and_then(Value::as_str),
+                object.get("artifact_sha256").and_then(Value::as_str),
+            ) {
+                provenance_ref(
+                    cut,
+                    revision,
+                    owner,
+                    reference,
+                    Some(digest),
+                    false,
+                    state,
+                    cancelled,
+                )?;
+            }
+            for field in ["agent_ref", "actor_ref"] {
+                if let Some(reference) = object.get(field).and_then(Value::as_str) {
+                    if reference.starts_with("ToS/") || reference.starts_with("scripts/") {
+                        provenance_ref(
+                            cut, revision, owner, reference, None, false, state, cancelled,
+                        )?;
+                    }
+                }
+            }
+            for value in object.values() {
+                provenance_bindings(cut, revision, owner, value, depth + 1, state, cancelled)?;
+            }
+        }
+        Value::Array(values) => {
+            for value in values {
+                provenance_bindings(cut, revision, owner, value, depth + 1, state, cancelled)?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+fn provenance_v2(
+    cut: &CorpusCutReader,
+    revision: SourceRevision,
+    owner: &str,
+    event: &Value,
+    state: &mut State,
+    cancelled: &AtomicBool,
+) -> Result<(), ItemRefusal> {
+    let available = state
+        .limits
+        .max_state_bytes
+        .checked_sub(state.state)
+        .and_then(|n| n.checked_sub(state.transient))
+        .ok_or(ItemRefusal::Budget)?;
+    crate::provenance_rules::semantic_workspace(event, state.limits.max_issues, available)?;
+    let messages = crate::provenance_rules::semantic_issues(
+        event,
+        state.limits.max_issues.saturating_sub(state.issues.len()),
+        state.limits.deadline,
+    )?;
+    let message_state = std::mem::size_of::<Vec<&'static str>>()
+        .checked_add(
+            messages
+                .len()
+                .checked_mul(std::mem::size_of::<&'static str>())
+                .ok_or(ItemRefusal::Budget)?,
+        )
+        .ok_or(ItemRefusal::Budget)?;
+    state.transient = state
+        .transient
+        .checked_add(message_state)
+        .ok_or(ItemRefusal::Budget)?;
+    for message in messages {
+        state.issue(owner, message)?;
+    }
+    state.transient -= message_state;
+
+    if let Some(reference) = event
+        .pointer("/record_binding/manifest_ref")
+        .and_then(Value::as_str)
+    {
+        provenance_ref(
+            cut, revision, owner, reference, None, false, state, cancelled,
+        )?;
+    }
+    for group in ["inputs", "outputs", "byproducts"] {
+        if let Some(entities) = event
+            .pointer(&format!("/entities/{group}"))
+            .and_then(Value::as_array)
+        {
+            for entity in entities {
+                check(state.limits, cancelled)?;
+                if let (Some(reference), Some(digest)) = (
+                    entity.get("entity_ref").and_then(Value::as_str),
+                    entity.get("sha256").and_then(Value::as_str),
+                ) {
+                    let current_output = group != "inputs"
+                        && entity.get("availability").and_then(Value::as_str) == Some("tracked");
+                    provenance_ref(
+                        cut,
+                        revision,
+                        owner,
+                        reference,
+                        Some(digest),
+                        current_output,
+                        state,
+                        cancelled,
+                    )?;
+                }
+            }
+        }
+    }
+    provenance_bindings(cut, revision, owner, event, 0, state, cancelled)
 }
 fn check(limits: ItemLimits, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
     if cancelled.load(Ordering::Relaxed) || Instant::now() >= limits.deadline {
@@ -162,12 +372,14 @@ pub fn inspect_source_shapes_from_cut(
         limits,
         bytes: 0,
         state: 0,
+        transient: 0,
         issues: Vec::new(),
         gaps: Vec::new(),
         reads: Vec::new(),
     };
     let mut by_version: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     let mut by_uri = BTreeMap::new();
+    let mut provenance_contract = None;
     for metadata in cut.current().members() {
         check(limits, cancelled)?;
         let path = metadata.path.as_str();
@@ -198,6 +410,22 @@ pub fn inspect_source_shapes_from_cut(
         }
         let mut versions = BTreeSet::new();
         root_versions(&schema, &schema, &mut BTreeSet::new(), &mut versions, 0)?;
+        if path == PROVENANCE_V2_CONTRACT {
+            if uri != format!("https://tree-of-sophia.local/{PROVENANCE_V2_CONTRACT}")
+                || !versions.contains(PROVENANCE_V2)
+            {
+                return Err(ItemRefusal::Unsupported(
+                    "current provenance-v2 contract identity".into(),
+                ));
+            }
+            let digest = Digest256::of_bytes(&member.raw).to_hex();
+            state.reserve(digest.len() + std::mem::size_of::<Option<String>>())?;
+            state.read(PredicateRead::SchemaResource {
+                uri: path.into(),
+                digest: digest.clone(),
+            })?;
+            provenance_contract = Some(digest);
+        }
         for version in versions {
             state.reserve(version.len() + path.len() + 128)?;
             by_version.entry(version).or_default().insert(path.into());
@@ -238,12 +466,21 @@ pub fn inspect_source_shapes_from_cut(
             .get("$schema")
             .and_then(Value::as_str)
             .and_then(|uri| by_uri.get(uri));
-        let route = explicit.cloned().or_else(|| {
-            version
-                .and_then(|version| by_version.get(version))
-                .filter(|routes| routes.len() == 1)
-                .and_then(|routes| routes.first().cloned())
-        });
+        let route = if version == Some(PROVENANCE_V2) {
+            provenance_contract.as_ref().ok_or_else(|| {
+                ItemRefusal::Unsupported(
+                    "current provenance-v2 contract absent from selected cut".into(),
+                )
+            })?;
+            Some(PROVENANCE_V2_CONTRACT.to_owned())
+        } else {
+            explicit.cloned().or_else(|| {
+                version
+                    .and_then(|version| by_version.get(version))
+                    .filter(|routes| routes.len() == 1)
+                    .and_then(|routes| routes.first().cloned())
+            })
+        };
         if let Some(contract) = route {
             if !schemas.check(path, &member.raw, &contract, limits.deadline, cancelled)? {
                 state.issue(path, "source-owner-schema")?;
@@ -260,6 +497,12 @@ pub fn inspect_source_shapes_from_cut(
                     "source-owner-without-root-schema-version"
                 },
             )?;
+        }
+        if version == Some(PROVENANCE_V2) {
+            state.transient = member.raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?;
+            state.reserve(0)?;
+            provenance_v2(cut, revision, path, &value, &mut state, cancelled)?;
+            state.transient = 0;
         }
         let refs = ["source_refs", "source_record_refs", "receipt_refs"]
             .into_iter()
