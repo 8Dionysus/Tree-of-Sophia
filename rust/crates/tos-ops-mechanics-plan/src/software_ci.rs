@@ -72,6 +72,7 @@ pub fn select(paths: Vec<String>, force_full: bool) -> io::Result<Selection> {
             || path.starts_with("tests/conformance/rust/")
         {
             rust = true;
+            mode = mode.max(1);
         } else if path.starts_with("access/deploy/cloudflare-worker/") {
             worker = true;
         } else if path.starts_with("access/web/") || path.starts_with("access/e2e/") {

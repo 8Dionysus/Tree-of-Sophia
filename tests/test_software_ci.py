@@ -26,9 +26,9 @@ class SoftwareSelectionTests(unittest.TestCase):
             (['access/deploy/cloudflare-worker/src/index.ts'], 'none', True),
             (['access/web/package-lock.json', 'access/deploy/cloudflare-worker/package.json'], 'browser', True),
             (['docs/RELEASING.md', 'access/src/tos_access/core.py'], 'reader', True),
-            (['rust/crates/tos-foundation/src/lib.rs'], 'none', False),
-            (['tests/conformance/rust/source-profile.json'], 'none', False),
-            (['Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml'], 'none', False),
+            (['rust/crates/tos-foundation/src/lib.rs'], 'browser', False),
+            (['tests/conformance/rust/source-profile.json'], 'browser', False),
+            (['Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml'], 'browser', False),
         ]
         for paths, mode, worker in cases:
             with self.subTest(paths=paths):
@@ -142,6 +142,19 @@ class SoftwareSelectionTests(unittest.TestCase):
         self.assertEqual(len(command_lab), 1)
         self.assertTrue(command_lab[0]['env']['TOS_CMD_POSTGRES_URL'])
         self.assertIn('postgres', jobs['rust']['services'])
+        # The entry wrappers execute native products before Cargo lanes can run.
+        plan_runs = [step.get('run', '') for step in jobs['plan']['steps']]
+        prepare = next(i for i, run in enumerate(plan_runs) if '--bin tos-software-ci' in run)
+        selector = next(i for i, run in enumerate(plan_runs) if 'scripts/software_ci.py plan' in run)
+        self.assertLess(prepare, selector)
+        for job in ('software', 'rust', 'required_gate'):
+            steps = jobs[job]['steps']
+            bind = next(i for i, step in enumerate(steps) if step.get('name') == 'Verify and bind exact native CI executors')
+            caller = next(i for i, step in enumerate(steps) if any(command in step.get('run', '') for command in
+                          ('python scripts/release_check.py', 'python scripts/validation_lanes.py', 'python scripts/software_ci.py gate')))
+            self.assertLess(bind, caller)
+            self.assertIn("manifest['binaries'][name]", steps[bind]['run'])
+            self.assertIn('lock_sha256', steps[bind]['run'])
         gate_steps=jobs['required_gate']['steps']
         self.assertEqual(gate_steps[-1]['run'],'python scripts/software_ci.py gate')
         self.assertEqual(gate_steps[-1]['env']['CI_NEEDS'],'${{ toJSON(needs) }}')

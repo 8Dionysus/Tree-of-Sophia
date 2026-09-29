@@ -38,6 +38,7 @@ def select(paths: list[str], force_full: bool = False) -> dict:
             continue
         if path in ('Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml') or path.startswith(('rust/', 'tests/conformance/rust/')):
             rust = True
+            mode = max(mode, 'browser', key=MODES.index)
         elif path.startswith('access/deploy/cloudflare-worker/'):
             worker = True
         elif path.startswith(('access/web/', 'access/e2e/')):

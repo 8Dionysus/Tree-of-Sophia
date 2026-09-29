@@ -23,6 +23,42 @@ jobs:
       rust: ${{ steps.select.outputs.rust }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Prepare exact native CI executors
+        env:
+          CARGO_HOME: ${{ runner.temp }}/plan-cargo-home
+          CARGO_TARGET_DIR: ${{ runner.temp }}/plan-cargo-target
+          CARGO_BUILD_JOBS: "2"
+        run: |
+          rustup toolchain install 1.98.1 --profile minimal
+          cargo +1.98.1 build --locked -p tos-ops-mechanics-plan \
+            --bin tos-release-check --bin tos-validation-lanes --bin tos-software-ci \
+            --target x86_64-unknown-linux-gnu
+          mkdir "$RUNNER_TEMP/tos-ci-executors"
+          cp "$CARGO_TARGET_DIR"/x86_64-unknown-linux-gnu/debug/tos-{release-check,validation-lanes,software-ci} "$RUNNER_TEMP/tos-ci-executors/"
+          python - <<'PY_OPS'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'tos-ci-executors'
+          binaries = {}
+          for name in ('tos-release-check', 'tos-validation-lanes', 'tos-software-ci'):
+              path = root / name
+              with path.open('rb') as stream:
+                  digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+              binaries[name] = {'sha256': digest, 'size_bytes': path.stat().st_size}
+          manifest = {'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+                      'source_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
+                      'lock_sha256': hashlib.sha256(Path('Cargo.lock').read_bytes()).hexdigest(),
+                      'toolchain': '1.98.1', 'target': 'x86_64-unknown-linux-gnu', 'profile': 'debug', 'binaries': binaries}
+          (root / 'manifest.json').write_text(json.dumps(manifest) + '\n')
+          PY_OPS
+          printf 'TOS_SOFTWARE_CI_EXECUTOR=%s\n' "$RUNNER_TEMP/tos-ci-executors/tos-software-ci" >> "$GITHUB_ENV"
+      - name: Preserve same-run native CI executors
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tos-ci-executors-${{ github.sha }}
+          path: ${{ runner.temp }}/tos-ci-executors/
+          if-no-files-found: error
+          retention-days: 1
       - name: Select checks from both sides of the exact change
         id: select
         env:
@@ -98,6 +134,43 @@ jobs:
             /requirements-dev.txt
             /pytest.ini
             /.github/workflows/repo-validation.yml
+
+      - name: Fetch same-run native CI executors
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: tos-ci-executors-${{ github.sha }}
+          path: ${{ runner.temp }}/tos-ci-executors
+      - name: Verify and bind exact native CI executors
+        run: |
+          python - <<'PY_OPS'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'tos-ci-executors'
+          manifest = json.loads((root / 'manifest.json').read_text())
+          expected = {'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+                      'source_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
+                      'lock_sha256': hashlib.sha256(Path('Cargo.lock').read_bytes()).hexdigest(),
+                      'toolchain': '1.98.1', 'target': 'x86_64-unknown-linux-gnu', 'profile': 'debug'}
+          for key, value in expected.items():
+              if manifest.get(key) != value:
+                  raise SystemExit('native CI executor identity mismatch: ' + key)
+          names = ('tos-release-check', 'tos-validation-lanes', 'tos-software-ci')
+          if set(manifest['binaries']) != set(names):
+              raise SystemExit('native CI executor set mismatch')
+          with open(os.environ['GITHUB_ENV'], 'a') as env:
+              for name in names:
+                  path = root / name
+                  if path.is_symlink() or not path.is_file():
+                      raise SystemExit('native CI executor is not a regular file: ' + name)
+                  with path.open('rb') as stream:
+                      digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+                  if manifest['binaries'][name] != {'sha256': digest, 'size_bytes': path.stat().st_size}:
+                      raise SystemExit('native CI executor bytes mismatch: ' + name)
+                  path.chmod(0o500)
+                  env.write(name.upper().replace('-', '_') + '_EXECUTOR=' + str(path) + '\n')
+          with open(os.environ['GITHUB_PATH'], 'a') as path_env:
+              path_env.write(str(root) + '\n')
+          PY_OPS
 
       - name: Setup Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
@@ -291,6 +364,42 @@ jobs:
             /ToS/research-packets/retained-builder-inputs/build_provenance_event_v2_lab/
             /scripts/verify_rust_web_host.py
             /docs/validation/validation_lanes.json
+      - name: Fetch same-run native CI executors
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: tos-ci-executors-${{ github.sha }}
+          path: ${{ runner.temp }}/tos-ci-executors
+      - name: Verify and bind exact native CI executors
+        run: |
+          python - <<'PY_OPS'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'tos-ci-executors'
+          manifest = json.loads((root / 'manifest.json').read_text())
+          expected = {'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+                      'source_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
+                      'lock_sha256': hashlib.sha256(Path('Cargo.lock').read_bytes()).hexdigest(),
+                      'toolchain': '1.98.1', 'target': 'x86_64-unknown-linux-gnu', 'profile': 'debug'}
+          for key, value in expected.items():
+              if manifest.get(key) != value:
+                  raise SystemExit('native CI executor identity mismatch: ' + key)
+          names = ('tos-release-check', 'tos-validation-lanes', 'tos-software-ci')
+          if set(manifest['binaries']) != set(names):
+              raise SystemExit('native CI executor set mismatch')
+          with open(os.environ['GITHUB_ENV'], 'a') as env:
+              for name in names:
+                  path = root / name
+                  if path.is_symlink() or not path.is_file():
+                      raise SystemExit('native CI executor is not a regular file: ' + name)
+                  with path.open('rb') as stream:
+                      digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+                  if manifest['binaries'][name] != {'sha256': digest, 'size_bytes': path.stat().st_size}:
+                      raise SystemExit('native CI executor bytes mismatch: ' + name)
+                  path.chmod(0o500)
+                  env.write(name.upper().replace('-', '_') + '_EXECUTOR=' + str(path) + '\n')
+          with open(os.environ['GITHUB_PATH'], 'a') as path_env:
+              path_env.write(str(root) + '\n')
+          PY_OPS
       - name: Setup Python for Unicode 16 differential oracles
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
@@ -336,7 +445,46 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
-          sparse-checkout: scripts
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /scripts/
+            /Cargo.lock
+      - name: Fetch same-run native CI executors
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: tos-ci-executors-${{ github.sha }}
+          path: ${{ runner.temp }}/tos-ci-executors
+      - name: Verify and bind exact native CI executors
+        run: |
+          python - <<'PY_OPS'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'tos-ci-executors'
+          manifest = json.loads((root / 'manifest.json').read_text())
+          expected = {'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+                      'source_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
+                      'lock_sha256': hashlib.sha256(Path('Cargo.lock').read_bytes()).hexdigest(),
+                      'toolchain': '1.98.1', 'target': 'x86_64-unknown-linux-gnu', 'profile': 'debug'}
+          for key, value in expected.items():
+              if manifest.get(key) != value:
+                  raise SystemExit('native CI executor identity mismatch: ' + key)
+          names = ('tos-release-check', 'tos-validation-lanes', 'tos-software-ci')
+          if set(manifest['binaries']) != set(names):
+              raise SystemExit('native CI executor set mismatch')
+          with open(os.environ['GITHUB_ENV'], 'a') as env:
+              for name in names:
+                  path = root / name
+                  if path.is_symlink() or not path.is_file():
+                      raise SystemExit('native CI executor is not a regular file: ' + name)
+                  with path.open('rb') as stream:
+                      digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+                  if manifest['binaries'][name] != {'sha256': digest, 'size_bytes': path.stat().st_size}:
+                      raise SystemExit('native CI executor bytes mismatch: ' + name)
+                  path.chmod(0o500)
+                  env.write(name.upper().replace('-', '_') + '_EXECUTOR=' + str(path) + '\n')
+          with open(os.environ['GITHUB_PATH'], 'a') as path_env:
+              path_env.write(str(root) + '\n')
+          PY_OPS
       - name: Require every selected check to pass
         env:
           CI_NEEDS: ${{ toJSON(needs) }}

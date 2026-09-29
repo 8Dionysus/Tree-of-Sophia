@@ -12,7 +12,20 @@ KAG indexes, stats projections or documentation currentness carriers.
 owner surfaces.
 2. Install Python test dependencies from `requirements-dev.txt`, the MCP extra,
    and locked browser dependencies with `npm ci --prefix access/web`. Review the
-   changed behavior and source contracts. Run `python scripts/release_check.py`
+   changed behavior and source contracts. Before calling the command wrappers,
+   build their native executors from this exact checkout and bind absolute paths:
+
+   ```sh
+   cargo +1.98.1 build --locked -p tos-ops-mechanics-plan \
+     --bin tos-release-check --bin tos-validation-lanes --bin tos-software-ci
+   executor_dir="$(pwd)/target/debug"
+   export TOS_RELEASE_CHECK_EXECUTOR="$executor_dir/tos-release-check"
+   export TOS_VALIDATION_LANES_EXECUTOR="$executor_dir/tos-validation-lanes"
+   export TOS_SOFTWARE_CI_EXECUTOR="$executor_dir/tos-software-ci"
+   ```
+
+   If `CARGO_TARGET_DIR` is set, use its absolute `debug` directory instead.
+   Run `python scripts/release_check.py`
    to check contracts, build browser assets and run program fixture tests.
    This command uses program fixtures and repository-owned dependencies.
 3. For browser changes, install the locked dependencies with
@@ -75,8 +88,16 @@ use the full suite; a missing or failed selector fails the required gate.
 | `access/web/` or `access/e2e/` code/configuration | Software contracts, browser build/unit/types/behavior, isolated software package install |
 | `access/src/` or `access/tests/` | The browser/package checks, reader/API fixture tests, and Worker cross-adapter tests |
 | `access/deploy/cloudflare-worker/` code/configuration | Worker type and behavior tests, including cross-adapter fixtures |
-| `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `rust/` or `tests/conformance/rust/` | Pinned Rust workspace formatting, native tests, FND/VAL WASM target checks, isolated exact reader install, and generated WEB.1 codec checks in Node WebAssembly |
+| `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `rust/` or `tests/conformance/rust/` | Software contracts, browser assets and native package install, plus pinned Rust workspace formatting, native tests, FND/VAL WASM target checks, isolated exact reader install, and generated WEB.1 codec checks in Node WebAssembly |
 | Shared contracts/profiles, packaging, dependencies, scripts, workflow, owner cards, source surfaces or any other path | Full software release suite, Worker tests and Rust workspace |
+
+Every run first prepares the three native CI executors with the pinned Rust
+compiler. The plan job records their source commit/tree, lock digest, toolchain
+and binary sizes/digests; software, Rust and the required gate reuse that same
+run's artifact and verify its identity before binding the Python entry wrappers.
+Missing products or a failed plan fail closed. Documentation-only changes skip
+the software package and browser/Worker jobs, but still need this native selector
+prerequisite. Cargo cache reuse is an optimization, not evidence of identity.
 
 A combined change takes all needed checks. Human Markdown is identified before
 its surrounding implementation directory; `ToS/` source Markdown does not use

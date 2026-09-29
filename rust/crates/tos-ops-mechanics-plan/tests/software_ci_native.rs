@@ -158,3 +158,20 @@ fn software_ci_actual_history_and_required_gate_match_maintained_python() {
     }
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn rust_product_changes_require_the_native_package_consumer() {
+    for path in [
+        "Cargo.toml",
+        "Cargo.lock",
+        "rust-toolchain.toml",
+        "rust/crates/tos-access/src/software_archive.rs",
+        "tests/conformance/rust/source-profile.json",
+    ] {
+        let selected =
+            tos_ops_mechanics_plan::software_ci::select(vec![path.to_owned()], false).unwrap();
+        assert_eq!(selected.software_mode, "browser", "{path}");
+        assert!(selected.rust, "{path}");
+        assert!(!selected.worker, "{path}");
+    }
+}
