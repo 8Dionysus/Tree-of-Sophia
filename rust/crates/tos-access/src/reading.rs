@@ -306,7 +306,7 @@ pub(crate) fn run_cli(
     while at < args.len() {
         let option = args[at].as_str();
         if option == "--include-semantic-neighbors" {
-            fields.retain(|(k, _)| k != "include_semantic_neighbors");
+            fields.retain(|(k, _)| *k != "include_semantic_neighbors");
             fields.push(("include_semantic_neighbors", JsonValue::Bool(true)));
             at += 1;
             continue;
