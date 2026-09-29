@@ -22,11 +22,15 @@ def main() -> None:
     # the installed artifact, so this checks installation without a second suite.
     with tempfile.TemporaryDirectory(prefix="tos-mechanics-install-") as directory:
         install = Path(directory)
-        subprocess.run(
-            ["cargo", "install", "--debug", "--locked", "--offline", "--path",
-             "rust/crates/tos-ops-mechanics-plan", "--root", str(install)],
-            cwd=ROOT, check=True,
-        )
+        installation = ["cargo", "install", "--debug", "--locked", "--offline", "--path",
+                        "rust/crates/tos-ops-mechanics-plan", "--root", str(install)]
+        if args.command_entries_only:
+            # These three products do not use compiler-backed validators. Keep
+            # the normal full-package install unchanged for the lifecycle route.
+            installation.append("--no-default-features")
+            for name in ("tos-validation-lanes", "tos-release-check", "tos-software-ci"):
+                installation.extend(["--bin", name])
+        subprocess.run(installation, cwd=ROOT, check=True)
         environment = os.environ.copy()
         environment["TOS_MECHANICS_TEST_EXECUTABLE"] = str(install / "bin/tos-ops-mechanics-plan")
         if not args.command_entries_only:
