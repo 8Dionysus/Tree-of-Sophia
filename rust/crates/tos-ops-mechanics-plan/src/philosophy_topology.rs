@@ -400,7 +400,7 @@ fn witness(c: &mut Context<'_>, plant: &Value, p: &str) -> io::Result<()> {
         if w.get(key).is_some() {
             if let Some(record) = string(w, "record_ref").filter(|s| s.starts_with(root)) {
                 if let Some(r) = c.json(record)? {
-                    if r.get(key) != w.get(key) {
+                    if !py_equal(r.get(key), w.get(key))? {
                         c.issue(
                             p,
                             format!("source-witness {key} differs from its exact record"),
@@ -431,7 +431,9 @@ fn witness(c: &mut Context<'_>, plant: &Value, p: &str) -> io::Result<()> {
         string(w, "record_ref").filter(|s| s.starts_with("ToS/source-witnesses/works/"))
     {
         if let Some(r) = c.json(record)? {
-            if string(&r, "record_type") != Some("work") || r.get("record_id") != w.get("work_id") {
+            if string(&r, "record_type") != Some("work")
+                || !py_equal(r.get("record_id"), w.get("work_id"))?
+            {
                 c.issue(
                     p,
                     "source-witness work_id differs from its exact Work record",
@@ -459,7 +461,7 @@ fn witness(c: &mut Context<'_>, plant: &Value, p: &str) -> io::Result<()> {
         {
             if let Some(r) = c.json(record)? {
                 if string(&r, "record_type") != Some("collection")
-                    || r.get("record_id") != w.get("container_id")
+                    || !py_equal(r.get("record_id"), w.get("container_id"))?
                 {
                     c.issue(
                         p,
@@ -979,7 +981,11 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>>
                                 .collect::<BTreeSet<_>>()
                         })
                         .unwrap_or_default();
-                    if refs != actual {
+                    if refs != actual
+                        || !v.get(key).map_or(true, |v| {
+                            v.as_array().is_some_and(|a| a.iter().all(Value::is_string))
+                        })
+                    {
                         c.issue(
                             &format!("{branch}/{label}"),
                             format!("{key} differs from exact planting files"),
