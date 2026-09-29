@@ -1,3 +1,4 @@
+import {installLensProjectionRules} from './lens-projection-rules.mjs';
 import {installLensSpecRules} from './lens-spec-rules.mjs';
 import {installKnowledgeSceneRules} from '../../../shared/knowledge-scene.ts';
 let runtime;
@@ -6,6 +7,7 @@ export function installClientPacketRules(value){
   runtime=value;
   installKnowledgeSceneRules(value);
   installLensSpecRules(value);
+  installLensProjectionRules(value);
 }
 export function createClientPacketSession(...args){
   if(!runtime)throw new Error('Client packet Rust rules are not installed');

@@ -1,3 +1,4 @@
+import {createLensSortSession,createLensNodeSession,lensDegreeNext,lensSlotPosition} from './lens-projection-rules.mjs';
 import {browserFocusSpec,browserRelationSpec} from './lens-spec-rules.mjs';
 import {createClientPacketSession,createClientMaterialSession,packetKindUnits,packetMissing,createClientJsonSession,createClientSelectorSession,packetSetKey,packetString} from './client-packet-rules.mjs';
 import {createSourceDossierSession,dossierTextUnits,dossierPredicate} from './source-dossier-rules.mjs';
@@ -746,26 +747,65 @@ export class KnowledgeClient {
 
 // Pure presentation mapping. Opaque IDs never merge through entity_id or title.
 // Existing positions survive replacement; they express UI layout, not meaning.
-const slots=[[0,5,70],[-124,-134,-190],[143,-97,210],[151,91,-45],[-106,135,185],[-230,-47,95],[-54,-70,300],[63,157,245],[-29,74,-225],[-403,100,-460],[-474,-2,-335],[-309,184,-350],[-506,141,-560],[-365,-18,-420],[346,17,-140],[412,-98,-315],[490,65,-275],[344,157,120],[470,202,-410]];
-function hash(id){let value=2166136261;for(const c of id)value=Math.imul(value^c.codePointAt(0),16777619);return value>>>0;}
+function compareLensNodes(a,b,focus,degree){
+  const session=createLensSortSession();
+  try{while(true){switch(session.need()){
+    case 'b-focus':session.focus(b.id===focus);break;
+    case 'a-focus':session.focus(a.id===focus);break;
+    case 'b-degree':{const value=degree.get(b.id);session.degree(Boolean(value),typeof value==='number'?value:0);break;}
+    case 'a-degree':{const value=degree.get(a.id);session.degree(Boolean(value),typeof value==='number'?value:0);break;}
+    case 'locale':return a.id.localeCompare(b.id,'en');
+    case 'done':return session.result();
+    default:throw new Error('Invalid lens sort Rust need');
+  }}}finally{session.free();}
+}
 export function projectLens(packet,previous=[]) {
   if(packet.schema==='tos_exploration_result_v1')validateExploration(packet);else validateLens(packet);
-  const existing=new Map(previous.map(n=>[n.id,n])),degree=new Map();
-  for(const r of packet.relations){degree.set(r.from_id,(degree.get(r.from_id)||0)+1);degree.set(r.to_id,(degree.get(r.to_id)||0)+1);}
+  const existing=new Map(previous.map(node=>[node.id,node])),degree=new Map();
+  for(const relation of packet.relations){
+    const from=relation.from_id,fromCount=degree.get(relation.from_id);degree.set(from,lensDegreeNext(fromCount));
+    const to=relation.to_id,toCount=degree.get(relation.to_id);degree.set(to,lensDegreeNext(toCount));
+  }
   const focus=packet.focus?.node_id;
-  const ordered=packet.nodes.slice().sort((a,b)=>(b.id===focus)-(a.id===focus)
-    ||(degree.get(b.id)||0)-(degree.get(a.id)||0)||a.id.localeCompare(b.id,'en'));
-  const currentIds=new Set(packet.nodes.map(n=>n.id));
-  const occupied=new Set(previous.filter(n=>currentIds.has(n.id)).map(n=>n.slot));
+  const ordered=packet.nodes.slice().sort((a,b)=>compareLensNodes(a,b,focus,degree));
+  const currentIds=new Set(packet.nodes.map(node=>node.id));
+  const occupied=new Set(previous.filter(node=>currentIds.has(node.id)).map(node=>node.slot));
   let nextSlot=0;
   return ordered.map((raw,index)=>{
-    const old=existing.get(raw.id);while(occupied.has(nextSlot))nextSlot++;
-    const slot=old?.slot??nextSlot++;occupied.add(slot);
-    const h=hash(raw.id),angle=slot*2.399963229728653;
-    const p=slots[slot]?.slice()||[Math.cos(angle)*(260+(slot%4)*58),Math.sin(angle)*(160+(slot%3)*47),-480+(h%740)];
-    return {id:raw.id,raw,...nodeLabels(raw),
-      main:index<8,above:index%3===1,group:raw.id===focus?1:raw.kind_id==='agent'?0:raw.kind_id==='expression'?2:1,
-      slot,p:old?.p?.slice()||p,sourcePosition:old?.sourcePosition?.slice()||p.slice(),volumeZ:old?.volumeZ??p[2],
-      pos:old?.pos?.slice()||p.slice(),target:old?.target?.slice()||p.slice()};
+    const old=existing.get(raw.id),session=createLensNodeSession(nextSlot);
+    let slot,angle,position,x,y,prefix,main,above,pValue,sourcePosition,volumeZ,pos,target;
+    try{while(true){switch(session.need()){
+      case 'scan-slot':session.scan_slot(occupied.has(session.next_slot()));nextSlot=session.next_slot();break;
+      case 'old-slot':{
+        const value=old?.slot,allocated=session.old_slot(value===null,value===undefined);
+        nextSlot=session.next_slot();slot=allocated?session.allocated_slot():value;break;
+      }
+      case 'occupied-add':occupied.add(slot);session.advance();break;
+      case 'hash':for(const char of raw.id)session.hash_word(session.hash_value()^char.codePointAt(0));session.hash_done();break;
+      case 'angle':angle=slot*session.angle_multiplier();session.advance();break;
+      case 'table':position=lensSlotPosition(slot);session.table_candidate(Boolean(position));break;
+      case 'fallback-x':x=Math.cos(angle)*(session.x_base()+(slot%session.x_cycle())*session.x_spacing());session.advance();break;
+      case 'fallback-y':y=Math.sin(angle)*(session.y_base()+(slot%session.y_cycle())*session.y_spacing());session.advance();break;
+      case 'fallback-z':position=[x,y,session.fallback_z()];session.advance();break;
+      case 'prefix':prefix={id:raw.id,raw,...nodeLabels(raw)};session.advance();break;
+      case 'main':main=session.main_flag(Number(index));break;
+      case 'above':above=session.above_flag(index%session.above_cycle());break;
+      case 'group-id':session.group_focus(raw.id===focus);break;
+      case 'kind-agent':case 'kind-expression':{
+        const value=raw.kind_id;
+        if(session.kind_length(typeof value==='string',typeof value==='string'?value.length:0))session.kind(inspectionRevisionUnits(value));
+        else session.kind_mismatch();break;
+      }
+      case 'restore-p':{const value=old?.p?.slice();pValue=session.restore_candidate(Boolean(value))===0?value:position;break;}
+      case 'restore-source':{const value=old?.sourcePosition?.slice();if(session.restore_candidate(Boolean(value))===0)sourcePosition=value;break;}
+      case 'clone-source':sourcePosition=position.slice();session.advance();break;
+      case 'volume':{const value=old?.volumeZ;volumeZ=session.volume_candidate(value===null,value===undefined)?value:position[2];break;}
+      case 'restore-pos':{const value=old?.pos?.slice();if(session.restore_candidate(Boolean(value))===0)pos=value;break;}
+      case 'clone-pos':pos=position.slice();session.advance();break;
+      case 'restore-target':{const value=old?.target?.slice();if(session.restore_candidate(Boolean(value))===0)target=value;break;}
+      case 'clone-target':target=position.slice();session.advance();break;
+      case 'done':return {...prefix,main,above,group:session.group(),slot,p:pValue,sourcePosition,volumeZ,pos,target};
+      default:throw new Error('Invalid lens projection Rust need');
+    }}}finally{session.free();}
   });
 }

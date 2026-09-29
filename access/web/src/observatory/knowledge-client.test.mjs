@@ -491,3 +491,32 @@ test('Rust lens recipes retain opaque slots, own-property order and repeated rel
   assert.equal(spec.node_query.filters[0].value[1],target);assert.equal(spec.relation_query.filters[0].value,identity);
   assert.equal(Object.keys(spec).at(-1),'relation_query');assert.deepEqual(spec.limits,{nodes:2,relations:1,groups:2});
 });
+
+test('lens projection retained sort and map callbacks outlive each Rust invocation',()=>{
+  const packet=clone();let compare,project;
+  packet.nodes.slice=function(){const values=Array.prototype.slice.call(this);
+    values.sort=callback=>{compare=callback;return values;};
+    values.map=callback=>{project=callback;return Array.prototype.map.call(values,callback);};return values;};
+  assert.deepEqual(projectLens(packet).map(value=>value.slot),[0,1]);
+  assert.equal(compare(packet.nodes[0],packet.nodes[1]),-1);
+  assert.equal(project(node('later'),2).slot,2);
+  const marker={host:true},bad=node('bad');let reads=0;
+  Object.defineProperty(bad,'id',{get(){if(++reads===2)throw marker;return 'bad';}});
+  assert.throws(()=>project(bad,3),error=>error===marker);
+  assert.equal(project(node('after-error'),4).slot,4);
+});
+
+test('lens projection preserves opaque physical slots and native vector restoration',()=>{
+  const packet=clone(),hints=[],reads=[],opaque={},target=Symbol('target');
+  const slot={[Symbol.toPrimitive](hint){hints.push(hint);return hint==='number'?19:'0';}};
+  const old={id:packet.nodes[0].id,get slot(){reads.push('slot');return slot;},
+    get p(){reads.push('p');return {slice:()=>opaque};},get sourcePosition(){reads.push('source');return 'raw';},
+    get volumeZ(){reads.push('volume');return NaN;},get pos(){reads.push('pos');return {slice:()=>0};},
+    get target(){reads.push('target');return {slice:()=>target};}};
+  const projected=projectLens(packet,[old])[0];
+  assert.equal(projected.slot,slot);assert.equal(projected.p,opaque);assert.equal(projected.sourcePosition,'raw');
+  assert.equal(Number.isNaN(projected.volumeZ),true);assert.deepEqual(projected.pos,[0,5,70]);assert.equal(projected.target,target);
+  assert.deepEqual(hints,['number','string']);assert.deepEqual(reads,['slot','slot','p','source','volume','pos','target']);
+  let vectorReads=0;const bigintOld={id:packet.nodes[0].id,slot:0n,get p(){vectorReads++;return [];}};
+  assert.throws(()=>projectLens(packet,[bigintOld]),TypeError);assert.equal(vectorReads,0);
+});
