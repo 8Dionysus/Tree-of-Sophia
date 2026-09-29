@@ -171,8 +171,16 @@ fn is_python_whitespace(ch: char) -> bool {
 /// CPython excludes separator and other categories except ASCII space.
 pub fn python_printable_unicode16_v1(ch: char) -> bool {
     use unicode_general_category::{GeneralCategory as Category, get_general_category};
-    ch == ' ' || !matches!(get_general_category(ch),
-        Category::Control | Category::Format | Category::Surrogate |
-        Category::PrivateUse | Category::Unassigned | Category::LineSeparator |
-        Category::ParagraphSeparator | Category::SpaceSeparator)
+    ch == ' '
+        || !matches!(
+            get_general_category(ch),
+            Category::Control
+                | Category::Format
+                | Category::Surrogate
+                | Category::PrivateUse
+                | Category::Unassigned
+                | Category::LineSeparator
+                | Category::ParagraphSeparator
+                | Category::SpaceSeparator
+        )
 }

@@ -201,7 +201,9 @@ pub fn index_value(item: &JsonValue, key: &str) -> Result<String> {
             return Ok(String::new());
         }
         JsonValue::String(s) => {
-            return s.as_str().map(str::to_owned)
+            return s
+                .as_str()
+                .map(str::to_owned)
                 .ok_or(Error::Invalid("prepared string scalar"));
         }
         _ => {}
@@ -212,15 +214,23 @@ pub fn index_value(item: &JsonValue, key: &str) -> Result<String> {
     Ok(output)
 }
 fn index_append(output: &mut String, text: &str) -> Result<()> {
-    if output.len().checked_add(text.len()).is_none_or(|n| n > 1_048_576) {
+    if output
+        .len()
+        .checked_add(text.len())
+        .is_none_or(|n| n > 1_048_576)
+    {
         return Err(Error::Budget("prepared index representation"));
     }
     output.push_str(text);
     Ok(())
 }
 fn index_string_repr(value: &JsonString, output: &mut String) -> Result<()> {
-    let quote = if value.units().contains(&(b'\'' as u16))
-        && !value.units().contains(&(b'"' as u16)) { '"' } else { '\'' };
+    let quote =
+        if value.units().contains(&(b'\'' as u16)) && !value.units().contains(&(b'"' as u16)) {
+            '"'
+        } else {
+            '\''
+        };
     index_append(output, &quote.to_string())?;
     for scalar in char::decode_utf16(value.units().iter().copied()) {
         let c = match scalar {
@@ -238,9 +248,13 @@ fn index_string_repr(value: &JsonString, output: &mut String) -> Result<()> {
             c if c == quote => format!("\\{c}"),
             c if !python_printable_unicode16_v1(c) => {
                 let cp = c as u32;
-                if cp <= 0xff { format!("\\x{cp:02x}") }
-                else if cp <= 0xffff { format!("\\u{cp:04x}") }
-                else { format!("\\U{cp:08x}") }
+                if cp <= 0xff {
+                    format!("\\x{cp:02x}")
+                } else if cp <= 0xffff {
+                    format!("\\u{cp:04x}")
+                } else {
+                    format!("\\U{cp:08x}")
+                }
             }
             c => c.to_string(),
         };
@@ -248,7 +262,12 @@ fn index_string_repr(value: &JsonString, output: &mut String) -> Result<()> {
     }
     index_append(output, &quote.to_string())
 }
-fn index_repr(value: &JsonValue, output: &mut String, depth: usize, visits: &mut usize) -> Result<()> {
+fn index_repr(
+    value: &JsonValue,
+    output: &mut String,
+    depth: usize,
+    visits: &mut usize,
+) -> Result<()> {
     *visits += 1;
     if depth > 96 || *visits > 1_000_000 {
         return Err(Error::Budget("prepared index representation"));
@@ -261,7 +280,9 @@ fn index_repr(value: &JsonValue, output: &mut String, depth: usize, visits: &mut
         JsonValue::Array(values) => {
             index_append(output, "[")?;
             for (i, value) in values.iter().enumerate() {
-                if i != 0 { index_append(output, ", ")?; }
+                if i != 0 {
+                    index_append(output, ", ")?;
+                }
                 index_repr(value, output, depth + 1, visits)?;
             }
             index_append(output, "]")
@@ -269,7 +290,9 @@ fn index_repr(value: &JsonValue, output: &mut String, depth: usize, visits: &mut
         JsonValue::Object(values) => {
             index_append(output, "{")?;
             for (i, (key, value)) in values.iter().enumerate() {
-                if i != 0 { index_append(output, ", ")?; }
+                if i != 0 {
+                    index_append(output, ", ")?;
+                }
                 index_string_repr(key, output)?;
                 index_append(output, ": ")?;
                 index_repr(value, output, depth + 1, visits)?;
