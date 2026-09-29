@@ -2,10 +2,10 @@
 //! separately scoped File custody remains with the actual deposit owner.
 use super::work_expression::{
     WorkApplicationGuard, WorkControlRead, after_cut_budget, allowed_forms, catalog_lines,
-    checked_current_source, complete_current_cut, digest_map, known_catalog_kind,
-    original_prior_publication, physical_current, raw_hex, relative, same_selected_plan,
-    selected_forms, selected_reads_current, selected_sides, slug, software_current,
-    work_dependencies_current,
+    checked_current_descriptor, checked_current_source, complete_current_cut, digest_map,
+    known_catalog_kind, original_prior_publication, physical_current, raw_hex, relative,
+    same_selected_plan, selected_forms, selected_reads_current, selected_sides, slug,
+    software_current, work_dependencies_current,
 };
 use super::work_transaction::{self, PublicationSnapshot};
 use super::{CreationFilesystem, active, walk};
@@ -3214,7 +3214,7 @@ pub(crate) fn current_result_fields(
             .collect(),
     );
     let mut profiles = Vec::new();
-    let entity = serde_value(&cmd::parse(&checked_current_source(
+    let entity = serde_value(&cmd::parse(&checked_current_descriptor(
         fs,
         cut,
         "ToS/doctrine/semantic-interchange/entity-types.v1.json",
@@ -3222,7 +3222,7 @@ pub(crate) fn current_result_fields(
         limits.deadline,
         cancelled,
     )?)?)?;
-    let relation = serde_value(&cmd::parse(&checked_current_source(
+    let relation = serde_value(&cmd::parse(&checked_current_descriptor(
         fs,
         cut,
         "ToS/doctrine/semantic-interchange/relation-types.v1.json",
@@ -3230,7 +3230,7 @@ pub(crate) fn current_result_fields(
         limits.deadline,
         cancelled,
     )?)?)?;
-    let corpus = serde_value(&cmd::parse(&checked_current_source(
+    let corpus = serde_value(&cmd::parse(&checked_current_descriptor(
         fs,
         cut,
         "ToS/contracts/corpus-record.schema.json",

@@ -918,10 +918,43 @@ pub(super) fn checked_current_source(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<u8>> {
-    let path = relative(reference)?;
     if !reference.starts_with("ToS/source-witnesses/") {
         return Err(SourceCommandError::Denied("Work catalog source locator"));
     }
+    checked_current_member(fs, cut, reference, cap, deadline, cancelled)
+}
+
+/// Only the three current source descriptors used by owner result adapters.
+pub(super) fn checked_current_descriptor(
+    fs: &CreationFilesystem,
+    cut: &CorpusCutReader,
+    reference: &str,
+    cap: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<u8>> {
+    if !matches!(
+        reference,
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json"
+            | "ToS/doctrine/semantic-interchange/relation-types.v1.json"
+            | "ToS/contracts/corpus-record.schema.json"
+    ) {
+        return Err(SourceCommandError::Denied(
+            "owner descriptor source locator",
+        ));
+    }
+    checked_current_member(fs, cut, reference, cap, deadline, cancelled)
+}
+
+fn checked_current_member(
+    fs: &CreationFilesystem,
+    cut: &CorpusCutReader,
+    reference: &str,
+    cap: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<u8>> {
+    let path = relative(reference)?;
     let (parent_ref, name) = reference
         .rsplit_once('/')
         .ok_or(SourceCommandError::Invalid("Work catalog source parent"))?;
