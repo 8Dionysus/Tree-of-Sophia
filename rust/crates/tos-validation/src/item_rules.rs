@@ -414,11 +414,29 @@ impl ItemRules {
                 self.check()?;
                 let resources = &entry["resources"];
                 let baseline = self.live_bytes;
-                self.admit_live(std::mem::size_of::<BTreeSet<String>>())?;
+                self.admit_live(
+                    std::mem::size_of::<BTreeSet<&str>>()
+                        + std::mem::size_of::<BTreeSet<String>>(),
+                )?;
                 let mut ids = BTreeSet::new();
+                let mut invalid_ids = BTreeSet::new();
                 for resource in array(resources).filter(|v| v.is_object()) {
                     self.check()?;
                     let id = &resource["resource_id"];
+                    if let Some(id) = id.as_str() {
+                        if ids.contains(id) {
+                            self.issue(inventory_path, "duplicate-resource-id")?;
+                        } else {
+                            self.admit_live(
+                                std::mem::size_of::<&str>() + 3 * std::mem::size_of::<usize>(),
+                            )?;
+                            ids.insert(id);
+                        }
+                        continue;
+                    }
+                    // The contract requires a string. Preserve the native
+                    // malformed-value duplicate diagnostic after schema
+                    // rejection without copying valid resource IDs.
                     let header = std::mem::size_of::<String>() + 3 * std::mem::size_of::<usize>();
                     let wire = crate::record_biblio_cut::decoded_wire_size(
                         id,
@@ -428,7 +446,7 @@ impl ItemRules {
                     )?;
                     let cost = header.checked_add(wire).ok_or(ItemRefusal::Budget)?;
                     self.admit_live(cost)?;
-                    if !ids.insert(id.to_string()) {
+                    if !invalid_ids.insert(id.to_string()) {
                         self.live_bytes -= cost;
                         self.issue(inventory_path, "duplicate-resource-id")?;
                     }
@@ -440,6 +458,7 @@ impl ItemRules {
                     self.issue(inventory_path, "resource-count")?;
                 }
                 drop(ids);
+                drop(invalid_ids);
                 self.live_bytes = baseline;
             }
         }
