@@ -1,7 +1,10 @@
 //! Read continuation of the actual Claim publication case. The caller supplies
 //! its committed database and receipt binding; this module never builds rows,
 //! copies a database, issues authority, or substitutes an independent fixture.
-use std::{io::Cursor, path::Path};
+use std::{io::Cursor, path::Path, time::Duration};
+
+#[path = "../../../rust/crates/tos-access/tests/support/native_child.rs"]
+mod native_child;
 
 use serde_json::{Value, json};
 use tos_access::{cli, http::handle_get, mcp::run_io, prepared_local};
@@ -76,10 +79,40 @@ pub(super) fn verify_published_access(
     expected_node_id: &str,
     expected_relation_id: &str,
 ) {
-    // Two independent opens prove that no writer-owned in-memory state is
-    // needed to consume the committed publication. This is adapter execution,
-    // not an installed-binary or network-server assertion.
-    for _ in 0..2 {
+    // OPS selects and protects the coherent access product (which may be an
+    // installed prefix). No copy or separate data fixture is made here.
+    let binary = std::path::PathBuf::from(
+        std::env::var_os("TOS_NATIVE_PREPARED_CONSUMER_BIN")
+            .expect("exact protected access executable required"),
+    );
+    assert!(binary.is_absolute());
+    let expected_sha = std::env::var("TOS_NATIVE_PREPARED_CONSUMER_SHA256").unwrap();
+    assert_eq!(
+        native_child::bounded_sha(&binary, 512 * 1024 * 1024).to_hex(),
+        expected_sha
+    );
+    let actual = |args: &[String], expected: &Value| {
+        let output = native_child::bounded_output_until(
+            std::process::Command::new(&binary)
+                .arg("--prepared-read-model")
+                .arg(database)
+                .arg("--prepared-binding")
+                .arg(receipt_binding)
+                .args(args),
+            prepared_local::PREPARED_RESPONSE_BYTES,
+            Duration::from_secs(5),
+        );
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(
+            *expected,
+            serde_json::from_slice::<Value>(&output.stdout).unwrap()
+        );
+    };
+    {
         let executor = prepared_local::PreparedLocalExecutor::open(
             database.to_owned(),
             receipt_binding.to_owned(),
@@ -95,9 +128,10 @@ pub(super) fn verify_published_access(
                 "tos_knowledge_relation",
             ),
         ] {
+            let args = ["knowledge".into(), kind.into(), identifier.into()];
             let packet = read_three_wires(
                 &executor,
-                &["knowledge".into(), kind.into(), identifier.into()],
+                &args,
                 &format!("/api/knowledge/{kind}s/{}", segment(identifier)),
                 tool,
                 json!({argument: identifier}),
@@ -110,13 +144,17 @@ pub(super) fn verify_published_access(
                     .any(|row| row["id"] == identifier),
                 "newly published {kind} {identifier} absent: {packet}"
             );
+            actual(&args, &packet);
         }
-        read_three_wires(
+        let args = ["knowledge".into(), "catalog".into()];
+        let catalog = read_three_wires(
             &executor,
-            &["knowledge".into(), "catalog".into()],
+            &args,
             "/api/knowledge/catalog",
             "tos_knowledge_catalog",
             json!({}),
         );
+        drop(executor);
+        actual(&args, &catalog);
     }
 }
