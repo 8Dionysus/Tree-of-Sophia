@@ -1007,6 +1007,16 @@ finally:c.doCleanups()
         |(path, predicate)| path == opening_plan
             && predicate == "named-zarathustra-opening-sentence-tracked-closure-v1"
     ));
+    assert!(
+        !report
+            .layers
+            .layer_family
+            .issues
+            .iter()
+            .any(|issue| issue.code.starts_with("opening-sentence-")),
+        "named opening-sentence source closure: {:?}",
+        report.layers.layer_family.issues
+    );
     assert!(!report.operation().schema_receipts().is_empty());
     assert!(
         report
