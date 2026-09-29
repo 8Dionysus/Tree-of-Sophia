@@ -206,7 +206,7 @@ fn root_profile(raw: &str, path: &str) -> Result<Value> {
     )
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SourceProjectionRoot {
     pub namespace_path: String,
     pub root_bytes: Vec<u8>,
@@ -424,6 +424,25 @@ pub fn apply_source_bound_prepared_delta_transaction<
         semantic_limits,
         normalization_processor_sha256,
     )?;
+    finish_pair(
+        tx,
+        &predecessor,
+        &successor,
+        after,
+        publication,
+        limits,
+        start,
+    )
+}
+fn finish_pair(
+    tx: &Transaction<'_>,
+    predecessor: &PreparedSourceInputs,
+    successor: &PreparedSourceInputs,
+    after: &CatalogInputs,
+    publication: MaintenanceReceipt,
+    limits: prepared::PublicationLimits,
+    start: u64,
+) -> Result<SourceMaintenanceReceipt> {
     let cap = MAX_STATE_BYTES.min(limits.max_metadata_bytes);
     let binding = String::from_utf8(canonical(&publication.binding, cap)?)
         .map_err(|_| Error::Invalid("source binding UTF8"))?;
@@ -452,4 +471,129 @@ pub fn apply_source_bound_prepared_delta_transaction<
         semantic_acceptance: false,
         consumer_switched: false,
     })
+}
+
+/// Explicit implementation-profile transition before any source command writes.
+/// Naming a review does not prove algorithm compatibility or source admission;
+/// the whole caller owns that evidence and rolls back every paired state.
+pub fn transition_prepared_source_profiles_transaction(
+    tx: &Transaction<'_>,
+    expected: &JsonValue,
+    before_source: &PreparedSourceInputs,
+    after_source: &PreparedSourceInputs,
+    before: &CatalogInputs,
+    after: &CatalogInputs,
+    reviewed: &prepared::ReviewedNormalizationTransition<'_>,
+    reviewed_dependencies: &std::collections::BTreeMap<String, (String, String)>,
+    limits: prepared::PublicationLimits,
+    catalog_limits: CatalogMaintenanceLimits,
+    semantic_limits: SemanticMaintenanceLimits,
+) -> Result<SourceMaintenanceReceipt> {
+    limits.validate()?;
+    if limits.max_mutations < 2 {
+        return Err(Error::Budget("source profile transition mutations"));
+    }
+    let predecessor = read_prepared_source_inputs_transaction(tx, expected, before, limits)?;
+    if predecessor.raw() != before_source.raw() {
+        return Err(Error::Invalid("source profile predecessor CAS"));
+    }
+    let successor = PreparedSourceInputs::parse(after_source.raw(), limits)?;
+    let (_, old) = strict(predecessor.raw(), MAX_STATE_BYTES)?;
+    let (_, new) = strict(successor.raw(), MAX_STATE_BYTES)?;
+    if predecessor.retained_roots != successor.retained_roots
+        || old["source_publication"] != new["source_publication"]
+        || predecessor.source_revision() == successor.source_revision()
+        || after
+            .header
+            .object_get("source_revision")
+            .and_then(JsonValue::as_str)
+            != Some(successor.source_revision())
+    {
+        return Err(Error::Invalid(
+            "source profile transition must preserve roots/publication",
+        ));
+    }
+    let old_dependencies = old["dependencies"]
+        .as_object()
+        .ok_or(Error::Invalid("source old dependencies"))?;
+    let new_dependencies = new["dependencies"]
+        .as_object()
+        .ok_or(Error::Invalid("source new dependencies"))?;
+    if old_dependencies.keys().ne(new_dependencies.keys())
+        || reviewed_dependencies.is_empty()
+        || reviewed_dependencies.len() > 4
+    {
+        return Err(Error::Invalid(
+            "named source dependency transition required",
+        ));
+    }
+    let mut changed = 0usize;
+    for (key, previous) in old_dependencies {
+        let next = &new_dependencies[key];
+        if previous != next {
+            changed += 1;
+            if !matches!(
+                key.as_str(),
+                "normalization"
+                    | "declaration-profile"
+                    | "agent-publication-profile"
+                    | "claim-publication-profile"
+            ) {
+                return Err(Error::Invalid(
+                    "source dependency outside reviewed profile transition",
+                ));
+            }
+            let (reviewed_before, reviewed_after) = reviewed_dependencies
+                .get(key)
+                .ok_or(Error::Invalid("source dependency transition not named"))?;
+            if previous.as_str() != Some(reviewed_before.as_str())
+                || next.as_str() != Some(reviewed_after.as_str())
+            {
+                return Err(Error::Invalid(
+                    "source dependency transition exact digests differ",
+                ));
+            }
+        }
+    }
+    if changed != reviewed_dependencies.len() {
+        return Err(Error::Invalid(
+            "source dependency transition has extra or unchanged names",
+        ));
+    }
+    for (inputs, dependencies) in [(before, old_dependencies), (after, new_dependencies)] {
+        let binding = inputs
+            .header
+            .object_get("normalization_binding")
+            .ok_or(Error::Invalid("source normalization binding"))?;
+        let (_, binding) = strict(&canonical(binding, MAX_STATE_BYTES)?, MAX_STATE_BYTES)?;
+        if dependencies.get("normalization").and_then(Value::as_str)
+            != Some(crate::knowledge_normalization::stable_digest(&binding)?.as_str())
+        {
+            return Err(Error::Invalid(
+                "source normalization dependency differs from selected header",
+            ));
+        }
+    }
+    let start = tx.total_changes();
+    let mut engine_limits = limits;
+    engine_limits.max_mutations -= 1;
+    let publication = prepared_maintenance::transition_prepared_normalization_transaction(
+        tx,
+        expected,
+        before,
+        after,
+        reviewed,
+        engine_limits,
+        catalog_limits,
+        semantic_limits,
+    )?;
+    finish_pair(
+        tx,
+        &predecessor,
+        &successor,
+        after,
+        publication,
+        limits,
+        start,
+    )
 }
