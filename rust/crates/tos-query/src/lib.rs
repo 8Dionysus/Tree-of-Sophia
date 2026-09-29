@@ -41,6 +41,8 @@ mod compressed_search_sqlite;
 mod prepared_inspect;
 #[cfg(not(target_arch = "wasm32"))]
 mod prepared_lens;
+#[cfg(not(target_arch = "wasm32"))]
+mod prepared_operations;
 mod source_descend;
 mod source_read_projection;
 #[cfg(not(target_arch = "wasm32"))]
