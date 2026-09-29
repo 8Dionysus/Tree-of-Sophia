@@ -7,7 +7,7 @@ const id=value=>typeof value==='string'&&value.length>1024?value.slice(0,1025):v
 const vector=value=>Array.isArray(value)?value.slice(0,4):value;
 const vertex=value=>value&&typeof value==='object'?{id:id(value.id),slot:value.slot,p:vector(value.p),
   sourcePosition:vector(value.sourcePosition),target:vector(value.target),volumeZ:value.volumeZ}:value;
-const projection=value=>value&&typeof value==='object'?{lens:value.lens,yaw:value.y,pitch:value.pitch,zoom:value.zoom,
+const projection=value=>value&&typeof value==='object'?{lens:value.lens,yaw:value.yaw,pitch:value.pitch,zoom:value.zoom,
   pan:value.pan&&typeof value.pan==='object'?{x:value.pan.x,y:value.pan.y}:value.pan,
   selectedId:id(value.selectedId),relationId:id(value.relationId),panelOpen:value.panelOpen,cardTab:value.cardTab,
   vertices:Array.isArray(value.vertices)?value.vertices.slice(0,41).map(vertex):value.vertices}:value;
