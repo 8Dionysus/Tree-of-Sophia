@@ -25,6 +25,8 @@ use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSc
 
 #[path = "source_native_claim_cli.rs"]
 mod claim;
+#[path = "source_native_collection_cli.rs"]
+mod collection;
 #[path = "source_native_creation_cli.rs"]
 mod creation;
 #[path = "source_native_text_cli.rs"]
@@ -111,6 +113,8 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
         text(&invocation, "schema_version")? == "tos_local_native_claim_invocation_v1";
     let item_invocation =
         text(&invocation, "schema_version")? == "tos_local_native_item_invocation_v1";
+    let collection_invocation =
+        text(&invocation, "schema_version")? == "tos_local_native_collection_invocation_v1";
     let source_invocation =
         text(&invocation, "schema_version")? == "tos_local_native_source_invocation_v1";
     let mut keys = vec![
@@ -127,11 +131,13 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
         "schema_worker",
         "budgets",
     ];
-    keys.push(if item_invocation || claim_invocation {
-        "original_source_revision"
-    } else {
-        "owner_context"
-    });
+    keys.push(
+        if item_invocation || claim_invocation || collection_invocation {
+            "original_source_revision"
+        } else {
+            "owner_context"
+        },
+    );
     if source_invocation {
         keys.extend(["original_source_revision", "assessment_schema_worker"]);
     }
@@ -139,6 +145,7 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     if !item_invocation
         && !claim_invocation
         && !source_invocation
+        && !collection_invocation
         && text(&invocation, "schema_version")? != "tos_local_native_owner_invocation_v1"
     {
         return Err(SourceCommandError::Invalid("native invocation profile"));
@@ -152,7 +159,12 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     let request_raw = bounded_read(input, MAX_REQUEST)?;
     let request = cmd::parse(&request_raw)?;
     let operation = cmd::text(&request, "operation")?;
-    let implemented = if source_invocation {
+    let implemented = if collection_invocation {
+        matches!(
+            operation,
+            "describe" | "prepare-attach" | "collection.work.attach" | "collection.work.recover"
+        )
+    } else if source_invocation {
         // The fixed typed family validates its own exact operation grammar.
         true
     } else if claim_invocation {
@@ -275,6 +287,18 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     let components = software
         .select_components(&component_paths)
         .map_err(|_| SourceCommandError::Conflict("selected software components"))?;
+    if collection_invocation {
+        return collection::run(
+            &invocation,
+            &request_raw,
+            &store,
+            &cut,
+            &software,
+            &components,
+            deadline,
+            &cancelled,
+        );
+    }
     if source_invocation {
         let owner_path = absolute(text(&invocation, "owner_config")?)?;
         let hint_raw = read_absolute(&owner_path, uid, true, MAX_REQUEST, deadline, &cancelled)?;

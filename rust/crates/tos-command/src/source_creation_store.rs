@@ -44,6 +44,16 @@ pub use item_adoption::{
     prepare_isolated_item_adoption_from_proposal, recover_isolated_item_adoption_from_captures,
     replay_isolated_item_adoption_from_captures,
 };
+#[path = "source_collection_membership.rs"]
+mod collection_membership;
+pub(crate) use collection_membership::current_result_fields as collection_result_fields;
+pub use collection_membership::{
+    CollectionMembershipPreparation, CollectionMembershipPublication, CollectionRecoveryDecision,
+    execute_isolated_collection_membership_from_captures,
+    prepare_isolated_collection_membership_from_proposal,
+    recover_isolated_collection_membership_from_captures,
+    replay_isolated_collection_membership_from_captures,
+};
 #[path = "source_work_transaction.rs"]
 pub(crate) mod work_transaction;
 pub(crate) const MAX_FILES: usize = 4096;
@@ -773,6 +783,58 @@ impl CreationFilesystem {
             configuration_raw,
             uid,
         })
+    }
+    /// Select only the explicitly protected Collection membership owner.
+    pub(crate) fn select_collection_owner(
+        configuration_path: &Path,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<(Self, Vec<u8>)> {
+        active(deadline, cancelled)?;
+        let uid = rustix::process::geteuid().as_raw();
+        if rustix::process::getuid().as_raw() != uid {
+            return Err(SourceCommandError::Denied(
+                "Collection setuid owner selection",
+            ));
+        }
+        protected_configuration_parents(configuration_path, uid)?;
+        let mut file = tos_fd_open::open_absolute_regular(configuration_path, 1_048_576)
+            .map_err(|_| SourceCommandError::Denied("Collection protected owner selection"))?;
+        if owned(&file, uid, false)?.mode() & 0o7777 != 0o600 {
+            return Err(SourceCommandError::Denied(
+                "Collection owner must be mode0600",
+            ));
+        }
+        let configuration_raw = raw(&mut file, 1_048_576, deadline, cancelled)?;
+        let config = cmd::parse(&configuration_raw)?;
+        if cmd::text(&config, "schema_version")? != "tos_local_collection_membership_owner_v1"
+            || cmd::integer(&config, "uid")? != u64::from(uid)
+        {
+            return Err(SourceCommandError::Denied("Collection typed owner account"));
+        }
+        let root_path =
+            crate::source_text_owner::normalized_absolute(cmd::text(&config, "source_root")?)?;
+        if configuration_path.starts_with(root_path.join("ToS")) {
+            return Err(SourceCommandError::Denied(
+                "Collection authority cannot be authored content",
+            ));
+        }
+        protected_configuration_parents(&root_path.join("root-pin"), uid)?;
+        let root = tos_fd_open::open_absolute_directory(&root_path)
+            .map_err(|_| SourceCommandError::Denied("Collection exact source root"))?;
+        let root_identity = inode(&owned(&root, uid, true)?);
+        let selected_raw = configuration_raw.clone();
+        Ok((
+            Self {
+                root_path,
+                root,
+                root_identity,
+                configuration_path: configuration_path.to_path_buf(),
+                configuration_raw,
+                uid,
+            },
+            selected_raw,
+        ))
     }
     fn claim_capture_home(&self, create: bool) -> SourceCommandResult<File> {
         let catalog = walk(&self.root, "ToS/source-witnesses/catalog", self.uid)?;

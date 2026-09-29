@@ -910,6 +910,38 @@ pub(crate) fn item_archive(
         "edition.json",
     )
 }
+/// Archive storage for the exact Collection predecessor; this supplies no
+/// record.revise grant and cannot select a different record profile.
+pub(crate) fn collection_archive(
+    fs: &CreationFilesystem,
+    collection_path: &str,
+    collection: &JsonValue,
+    before: &BTreeMap<String, Vec<u8>>,
+    expected_revision: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    create: bool,
+) -> SourceCommandResult<WorkArchive> {
+    if cmd::text(collection, "record_type")? != "collection"
+        || !collection_path.starts_with("ToS/source-witnesses/collections/")
+        || !collection_path.ends_with("/collection.json")
+    {
+        return Err(SourceCommandError::Denied(
+            "Collection archive selected profile",
+        ));
+    }
+    compound_archive(
+        fs,
+        collection_path,
+        collection,
+        before,
+        expected_revision,
+        deadline,
+        cancelled,
+        create,
+        "collection.json",
+    )
+}
 fn compound_archive(
     fs: &CreationFilesystem,
     work_path: &str,
