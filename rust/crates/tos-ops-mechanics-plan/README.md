@@ -260,8 +260,12 @@ legacy last-wins profile. Existing reader limits apply: 8 MiB per text file,
 The Python lane and imported APIs remain active pending actual consumer acceptance.
 
 `--philosophy-topology` selects only the native candidate for the maintained
-philosophy topology validator. The existing Python executable and registered
-lane remain unchanged. This candidate checks manifest/packet/branch boundaries,
+philosophy topology validator. The registered lane retains its command path;
+the existing executable now selects this native mode through
+`TOS_OPS_MECHANICS_EXECUTOR` or installed `tos-ops-mechanics-plan` on PATH,
+with no build on call or Python fallback. An empty explicit selector refuses.
+Imported `main` and `run_validation` remain reference APIs until final retirement.
+This candidate checks manifest/packet/branch boundaries,
 planting schema and exact atlas/backlog/Work/Collection membership, branch
 planting references/counts and metadata labels in all ToS descendant paths.
 It uses the existing retained route reader and its shared limits, including
