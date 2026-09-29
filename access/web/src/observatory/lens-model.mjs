@@ -1,7 +1,7 @@
 import {t} from './ui-i18n.mjs';
 import {BUDGET,ContractError,checkRevision,validateLens} from './knowledge-client.mjs';
 import {validateConditions,compileConditions} from './lens-conditions.mjs';
-import {compilePathQuery,validatePathDraft,pathDraftFromSpec} from './lens-path-editor.mjs';
+import {compilePathQuery,compileValidatedPathQuery,validatePathDraft,pathDraftFromSpec} from './lens-path-editor.mjs';
 
 export {compilePathQuery,validatePathDraft,pathDraftFromSpec};
 
@@ -132,7 +132,7 @@ export function compileDraft(value,{catalog,schema}){
     ||!listed(draft.predicates,catalog.predicates.map(p=>p.predicate_id)))bad(t("Словарь данных изменился. Обновите каталог и проверьте выбранные условия."));
   const limit=Math.min(BUDGET.nodes,caps.maximums.nodes,schema.properties.limits.properties.nodes.maximum);
   if(draft.limit>limit||draft.depth>Math.min(caps.maximums.traversal_depth,schema.properties.traversal.properties.depth.maximum))bad(t("Сервер не поддерживает выбранный размер области."));
-  const pathQuery=compilePathQuery(draft.paths,{catalog,schema});
+  const pathQuery=compileValidatedPathQuery(draft.paths||[],{catalog,schema});
   const spec={schema_version:'tos_lens_spec_v1',lens_id:CUSTOM_LENS,title:draft.name,language:'ru',detail:'compact',explain:true,
     sources:draft.sources,seed:draft.scope==='focus'?{focus_node_id:draft.focusId}:{text_query:draft.query,...(draft.scope==='area'?{node_ids:draft.nodeIds}:{})},
     node_query:{enabled:draft.scope!=='focus',filters:draft.kinds.length?[{field:'kind_id',op:'in',value:draft.kinds}]:[]},
