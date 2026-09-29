@@ -5075,6 +5075,102 @@ pub fn prepare_work_expression_preview_bytes<'a>(
     )
 }
 
+/// Read-only grammar closure for the maintained byte-only Item route.
+/// It does not make acquired metadata, a receipt, or a publication grant.
+pub struct EditionItemGrammarObservation {
+    pub grammar_digests: BTreeMap<String, String>,
+    pub reads: Vec<PredicateRead>,
+    pub bytes_read: u64,
+    pub returned_state_bytes: usize,
+}
+pub fn inspect_edition_item_grammar(
+    cut: &CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    edition_raw: &[u8],
+    item_raw: &[u8],
+    claim_raw: &[u8],
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<EditionItemGrammarObservation, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    if schemas.source_revision() != cut.current().revision() {
+        return Err(bad("Item grammar selected worker/cut"));
+    }
+    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    for raw in [edition_raw, item_raw, claim_raw] {
+        if raw.len() > limits.max_member_bytes.min(MAX_FILE) {
+            return Err(ItemRefusal::Budget);
+        }
+        reader.temporary(std::mem::size_of::<Vec<u8>>() + raw.len())?;
+        account(&mut reader.bytes, raw.len(), limits.max_total_bytes)?;
+    }
+    let edition = reader.decoded(edition_raw)?;
+    let item = reader.decoded(item_raw)?;
+    let claim = reader.decoded(claim_raw)?;
+    if edition["record_type"] != "edition"
+        || item["record_type"] != "item"
+        || !typed_id(text(&edition, "record_id")?, "edition")
+        || !typed_id(text(&item, "record_id")?, "item")
+        || claim["predicate"] != "exemplified_by"
+        || claim["subject_ref"] != edition["record_id"]
+        || claim["object"] != item["record_id"]
+    {
+        return Err(bad("Item grammar supplied records/exemplar endpoints"));
+    }
+    for (label, raw) in [
+        ("item-adoption-supplied-edition", edition_raw),
+        ("item-adoption-supplied-item", item_raw),
+    ] {
+        if !schemas.check_reusing_scalar(
+            label,
+            raw,
+            "ToS/contracts/corpus-record.schema.json",
+            limits.deadline,
+            cancelled,
+        )? {
+            return Err(bad("Item grammar supplied corpus record schema"));
+        }
+    }
+    let trees = crate::record_biblio_cut::decoded_state(&edition)?
+        .checked_add(crate::record_biblio_cut::decoded_state(&item)?)
+        .and_then(|n| n.checked_add(crate::record_biblio_cut::decoded_state(&claim).ok()?))
+        .ok_or(ItemRefusal::Budget)?;
+    drop(edition);
+    drop(item);
+    drop(claim);
+    reader.release_temporary(trees);
+    let grammar =
+        preparation_grammar_from_cut(CompoundKind::EditionItem, &mut reader, schemas, claim_raw)?;
+    reader.record_work_dependencies(grammar.dependencies, &grammar.digests)?;
+    reader.release_temporary(std::mem::size_of::<BTreeMap<String, Digest256>>());
+    let returned_state_bytes = grammar
+        .digests
+        .iter()
+        .try_fold(
+            std::mem::size_of::<EditionItemGrammarObservation>(),
+            |n, (path, sha)| {
+                n.checked_add(std::mem::size_of::<(String, String)>())?
+                    .checked_add(path.len())?
+                    .checked_add(sha.len())
+            },
+        )
+        .and_then(|n| {
+            reader.reads.iter().try_fold(n, |n, read| {
+                n.checked_add(crate::record_biblio_cut::predicate_state(read).ok()?)
+            })
+        })
+        .ok_or(ItemRefusal::Budget)?;
+    if returned_state_bytes > limits.max_state_bytes {
+        return Err(ItemRefusal::Budget);
+    }
+    Ok(EditionItemGrammarObservation {
+        grammar_digests: grammar.digests,
+        reads: reader.reads,
+        bytes_read: reader.bytes,
+        returned_state_bytes,
+    })
+}
+
 /// Prepared Edition/Item metadata only; private payload custody remains with CMD.
 pub struct EditionItemCore<'a> {
     inner: WorkExpressionCore<'a>,
