@@ -1592,6 +1592,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tos-foundation",
+ "tos-validation",
  "unicode-general-category",
  "yaml-rust2",
 ]
@@ -1644,6 +1645,7 @@ version = "0.1.0"
 dependencies = [
  "jsonschema",
  "libc",
+ "num-bigint",
  "serde_json",
  "tos-foundation",
  "tos-source-store",
