@@ -5739,6 +5739,155 @@ mod prepared_compressed {
         }
     }
     #[test]
+    fn prepared_catalog_full_delta_cli_http_mcp_and_current_fence() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "tos-api-prepared-catalog-{}-{nonce}",
+            std::process::id()
+        ));
+        fs::create_dir(&dir).unwrap();
+        let path = dir.join("prepared.sqlite");
+        let binding_path = dir.join("binding.json");
+        let header = json(format!(r#"{{"schema":"tos_knowledge_graph_v1","source_revision":"{}","normalization_binding":{{"schema":"tos_knowledge_graph_normalization_binding_v1","processor_digest":"{}","entity_registry_digest":"{}","relation_registry_digest":"{}","configuration_digest":"{}"}},"authority_boundary":{{"source_owner":"Tree-of-Sophia","is_source":false,"is_canon":false,"writes_to_tree":false}},"query_properties":[]}}"#, "a".repeat(64), "b".repeat(64), "b".repeat(64), "b".repeat(64), "b".repeat(64)).as_bytes());
+        let catalog = json(format!(r#"{{"schema":"tos_knowledge_catalog_v1","source_revision":"{}","lenses":[],"source_wording":"Schicksal","unknown":{{"z":false,"a":0}}}}"#, "a".repeat(64)).as_bytes());
+        let publication = PublicationLimits {
+            max_bytes: 4 * 1024 * 1024,
+            max_mutations: 100_000,
+            max_row_bytes: 4096,
+            max_metadata_bytes: 65_536,
+            max_changes: 16,
+            max_change_bytes: 65_536,
+        };
+        let binding = publish_prepared_rows_until(
+            &path,
+            &header,
+            &catalog,
+            &mut Rows(vec![]),
+            publication,
+            std::time::Instant::now() + Duration::from_secs(10),
+        )
+        .unwrap();
+        fs::write(
+            &binding_path,
+            emit_python_compact_json(&binding, JsonLimits::default()).unwrap(),
+        )
+        .unwrap();
+        let executor = tos_access::prepared_local::PreparedLocalExecutor::open(
+            path.clone(),
+            binding_path.clone(),
+            None,
+        )
+        .unwrap();
+        let profile = tos_access::prepared_local::profile();
+        let expected = emit_python_compact_json(&catalog, JsonLimits::default()).unwrap();
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        assert_eq!(
+            cli::run_cli(
+                &["knowledge".into(), "catalog".into()],
+                &executor,
+                profile,
+                &mut out,
+                &mut err
+            ),
+            0,
+            "{}",
+            String::from_utf8_lossy(&err)
+        );
+        assert_eq!(out.strip_suffix(b"\n").unwrap_or(&out), expected);
+        let response = handle_get(&executor, "GET", "/api/knowledge/catalog", profile);
+        assert_eq!(response.status, 200);
+        assert_eq!(response.body, expected);
+        drop(response);
+        let input = concat!(
+            "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\"}}\n",
+            "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n",
+            "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"tos_knowledge_catalog\",\"arguments\":{}}}\n"
+        );
+        let mut output = Vec::new();
+        run_io(
+            Cursor::new(input.as_bytes()),
+            &mut output,
+            &executor,
+            profile,
+        )
+        .unwrap();
+        let lines = output
+            .split(|b| *b == b'\n')
+            .filter(|line| !line.is_empty())
+            .collect::<Vec<_>>();
+        let rpc = json(lines[1]);
+        let structured = rpc
+            .object_get("result")
+            .unwrap()
+            .object_get("structuredContent")
+            .unwrap();
+        assert_eq!(
+            emit_python_compact_json(structured, JsonLimits::default()).unwrap(),
+            expected
+        );
+        let mut held = executor
+            .knowledge(
+                tos_access::KnowledgeRequest::Catalog,
+                profile.deadline_probe(),
+            )
+            .unwrap();
+        let next_catalog = json(format!(r#"{{"schema":"tos_knowledge_catalog_v1","source_revision":"{}","lenses":[],"source_wording":"Schicksal successor","unknown":{{"z":false,"a":0}}}}"#, "a".repeat(64)).as_bytes());
+        let next = tos_compiler::local_prepared::apply_prepared_delta_until(
+            &path,
+            &binding,
+            &header,
+            &next_catalog,
+            std::iter::empty(),
+            publication,
+            std::time::Instant::now() + Duration::from_secs(10),
+        )
+        .unwrap();
+        assert_eq!(
+            held.fence.recheck().unwrap_err().code,
+            tos_access::AccessErrorCode::StaleSelection
+        );
+        drop(held);
+        assert_eq!(
+            handle_get(&executor, "GET", "/api/knowledge/catalog", profile).status,
+            409
+        );
+        fs::write(
+            &binding_path,
+            emit_python_compact_json(&next, JsonLimits::default()).unwrap(),
+        )
+        .unwrap();
+        let successor = tos_access::prepared_local::PreparedLocalExecutor::open(
+            path.clone(),
+            binding_path,
+            None,
+        )
+        .unwrap();
+        let response = handle_get(&successor, "GET", "/api/knowledge/catalog", profile);
+        assert_eq!(response.status, 200);
+        assert_eq!(
+            response.body,
+            emit_python_compact_json(&next_catalog, JsonLimits::default()).unwrap()
+        );
+        drop(response);
+        let db = rusqlite::Connection::open(&path).unwrap();
+        db.execute(
+            "UPDATE edge_meta SET json_chunk='{}' WHERE key='knowledge_catalog'",
+            [],
+        )
+        .unwrap();
+        drop(db);
+        assert_ne!(
+            handle_get(&successor, "GET", "/api/knowledge/catalog", profile).status,
+            200
+        );
+        drop(successor);
+        drop(executor);
+        fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
     #[ignore = "requires OPS-protected native prepared consumer and finite admitted host profile"]
     fn prepared_compressed_native_publisher_cli_http_mcp_and_current_fence() {
         let selected_binary = PathBuf::from(

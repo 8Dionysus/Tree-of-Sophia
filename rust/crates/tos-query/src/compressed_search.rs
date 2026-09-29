@@ -256,6 +256,91 @@ impl<'a> PreparedSearchSession<'a> {
         self.read.reset_owner();
         result
     }
+
+    /// Return the exact stored catalog under the same request meter and
+    /// caller-held snapshot used by search. External currentness stays owned
+    /// by the caller's fresh-snapshot recheck and disclosure fence.
+    pub fn catalog(&mut self, binding: &JsonValue) -> Result<JsonValue> {
+        self.read.check_abort()?;
+        let view = PreparedReadTransaction::admit(self.read.db, binding, self.read.limits)
+            .map_err(prepared_error)?;
+        self.read.absorb_owner(&view)?;
+        let result = catalog_checked(&mut self.read, &view);
+        drop(view);
+        self.read.reset_owner();
+        self.read.check_abort()?;
+        result
+    }
+}
+
+fn catalog_checked(read: &mut Read<'_>, view: &PreparedReadTransaction<'_>) -> Result<JsonValue> {
+    let key = "knowledge_catalog";
+    let probes = read.query(
+        "SELECT part,typeof(json_chunk),length(CAST(json_chunk AS BLOB)) FROM edge_meta WHERE key=?1 ORDER BY part LIMIT 257",
+        &[&key], false,
+        |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, Option<i64>>(2)?)),
+    )?;
+    if probes.is_empty() || probes.len() > 256 {
+        return Err(unavailable("prepared catalog chunk count invalid"));
+    }
+    let mut bytes = 0usize;
+    for (index, (part, kind, length)) in probes.iter().enumerate() {
+        if *part != index as i64 || kind != "text" {
+            return Err(unavailable("prepared catalog chunks incomplete or invalid"));
+        }
+        let length = length
+            .and_then(|n| usize::try_from(n).ok())
+            .ok_or_else(|| unavailable("prepared catalog chunk length invalid"))?;
+        if length > 131_072 {
+            return Err(budget("prepared catalog chunk byte budget exceeded"));
+        }
+        bytes = bytes
+            .checked_add(length)
+            .ok_or_else(|| budget("prepared catalog byte overflow"))?;
+        if bytes
+            > read
+                .limits
+                .max_row_bytes
+                .min(read.limits.max_response_bytes)
+        {
+            return Err(budget("prepared catalog byte budget exceeded"));
+        }
+    }
+    read.charge_bytes(bytes)?;
+    let chunks = read.query(
+        "SELECT part,json_chunk FROM edge_meta WHERE key=?1 ORDER BY part LIMIT 257",
+        &[&key],
+        false,
+        |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)),
+    )?;
+    if chunks.len() != probes.len() {
+        return Err(unavailable("prepared catalog chunk closure changed"));
+    }
+    let mut raw = Vec::with_capacity(bytes);
+    for (index, (part, chunk)) in chunks.into_iter().enumerate() {
+        if part != index as i64 || Some(chunk.len() as i64) != probes[index].2 {
+            return Err(unavailable("prepared catalog chunk closure changed"));
+        }
+        raw.extend_from_slice(chunk.as_bytes());
+    }
+    let value = parse_json(&raw, JsonMode::PublishedStrict, json_limits(bytes))
+        .map_err(|_| unavailable("prepared catalog JSON invalid"))?
+        .into_root();
+    if value.object_get("schema").and_then(JsonValue::as_str) != Some("tos_knowledge_catalog_v1")
+        || value.object_get("source_revision") != view.top().object_get("source_revision")
+        || view
+            .top()
+            .object_get("catalog_sha256")
+            .and_then(JsonValue::as_str)
+            != Some(Digest256::of_bytes(&raw).to_hex().as_str())
+    {
+        return Err(unavailable(
+            "prepared catalog differs from selected snapshot",
+        ));
+    }
+    view.check_current().map_err(prepared_error)?;
+    read.absorb_owner(view)?;
+    Ok(value)
 }
 fn search_checked(
     read: &mut Read<'_>,

@@ -609,7 +609,12 @@ This explicit local projection reader uses a 4 MiB logical response profile,
 64 KiB request/binding limits, and a separately checked complete MCP frame
 allowance. It observes the pathname/WAL and rechecks the binding in a fresh
 snapshot before delivery; it does not acquire managed-release custody or
-source-rights authority. Its other prepared catalog, lens, exploration and
+source-rights authority. The native prepared catalog route uses the same
+selected binding, request meter and final currentness fence through CLI
+`knowledge catalog`, HTTP `/api/knowledge/catalog` and MCP
+`tos_knowledge_catalog`. It returns the exact stored catalog, retaining source
+wording, field order and authority flags; catalogs exceeding the existing
+bounded carrier profile refuse explicitly. Its prepared lens, exploration and
 source operations remain unavailable; the maintained Python services below
 remain the comparison surface until their native replacements are verified.
 The native candidate rejects combining explicit prepared and release options.

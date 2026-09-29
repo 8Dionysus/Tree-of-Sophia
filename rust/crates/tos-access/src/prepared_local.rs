@@ -29,6 +29,11 @@ use tos_query::{
 
 pub const PREPARED_RESPONSE_BYTES: usize = 4 * 1024 * 1024;
 const REQUEST_BYTES: usize = 65_536;
+enum LocalRequest {
+    Search(CompressedSearchRequest),
+    SearchCapabilities,
+    Catalog,
+}
 fn error(code: AccessErrorCode, message: &'static str) -> AccessError {
     AccessError::new(code, message)
 }
@@ -207,7 +212,7 @@ impl PreparedLocalExecutor {
     }
     fn read(
         &self,
-        request: Option<CompressedSearchRequest>,
+        request: LocalRequest,
         probe: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket<'static>, AccessError> {
         crate::knowledge::check_abort(&probe)?;
@@ -245,7 +250,7 @@ impl PreparedLocalExecutor {
         let mut session =
             PreparedSearchSession::new_with_abort(&db, s.read, Some(Arc::clone(&probe)))
                 .map_err(query_error)?;
-        let result = if let Some(request) = request.as_ref() {
+        let result = if let LocalRequest::Search(request) = &request {
             let now = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .map_err(|_| unavailable())?
@@ -258,6 +263,8 @@ impl PreparedLocalExecutor {
                     now,
                 )
                 .map_err(query_error)?
+        } else if matches!(request, LocalRequest::Catalog) {
+            session.catalog(&s.binding).map_err(query_error)?
         } else {
             let compressed = session
                 .capability(&s.binding, PublishedSearchLimits::default())
@@ -295,7 +302,7 @@ impl PreparedLocalExecutor {
             ])
         };
         crate::knowledge::check_abort(&probe)?;
-        if let Some(request) = &request {
+        if let LocalRequest::Search(request) = &request {
             continuation_fits(request, &result)?;
         }
         let body = compact(&result, PREPARED_RESPONSE_BYTES)?;
@@ -352,7 +359,7 @@ impl AccessExecutor for PreparedLocalExecutor {
         request: CompressedSearchRequest,
         probe: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket<'static>, AccessError> {
-        self.read(Some(request), probe)
+        self.read(LocalRequest::Search(request), probe)
     }
     fn reading_search(
         &self,
@@ -365,17 +372,22 @@ impl AccessExecutor for PreparedLocalExecutor {
         }
     }
     fn knowledge_available(&self, operation: KnowledgeOperation) -> bool {
-        operation == KnowledgeOperation::SearchCapabilities
+        matches!(
+            operation,
+            KnowledgeOperation::SearchCapabilities | KnowledgeOperation::Catalog
+        )
     }
     fn knowledge(
         &self,
         request: KnowledgeRequest,
         probe: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket<'static>, AccessError> {
-        if matches!(request, KnowledgeRequest::SearchCapabilities) {
-            self.read(None, probe)
-        } else {
-            Err(unavailable())
+        match request {
+            KnowledgeRequest::SearchCapabilities => {
+                self.read(LocalRequest::SearchCapabilities, probe)
+            }
+            KnowledgeRequest::Catalog => self.read(LocalRequest::Catalog, probe),
+            _ => Err(unavailable()),
         }
     }
 }
