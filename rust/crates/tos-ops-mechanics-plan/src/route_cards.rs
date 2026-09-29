@@ -229,6 +229,12 @@ impl RouteSources {
             None => Ok(false),
         }
     }
+    pub fn is_dir(&mut self, value: &str) -> io::Result<bool> {
+        match self.open(value)? {
+            Some(file) => Ok(file.metadata()?.is_dir()),
+            None => Ok(false),
+        }
+    }
     fn source(&mut self, value: &str) -> io::Result<Option<Arc<SourceFile>>> {
         self.charge(value)?;
         if let Some(file) = self.files.get(value) {
