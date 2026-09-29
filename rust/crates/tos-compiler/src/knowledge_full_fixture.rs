@@ -711,6 +711,14 @@ fn finish_fixture_with_limits(
 pub fn build_native_fixture() -> FullKnowledgeFixture {
     build_native_fixture_inner(false, None, None, None, None)
 }
+/// Existing raw producer fixture with the finite consumer's stage envelope.
+pub fn build_native_fixture_bounded(
+    stage_limits: StageLimits,
+    deadline: std::time::Instant,
+) -> FullKnowledgeFixture {
+    assert!(std::time::Instant::now() < deadline);
+    build_native_fixture_inner(false, None, None, None, Some((stage_limits, deadline)))
+}
 /// Existing native raw fixture with one explicitly synthetic rights declaration
 /// retained through normal assembler/seal/cold-open. This grants no authority.
 pub fn build_native_fixture_with_navigation_original() -> FullKnowledgeFixture {
