@@ -17,7 +17,7 @@
     "typecheck": "tsc --noEmit",
     "load:local": "node scripts/deploy_edge.mjs --local --data-only",
     "dev": "npm run build && npm run load:local && wrangler dev",
-    "test": "node --experimental-strip-types --test test/*.test.ts test/*.test.mjs",
+    "test": "node --experimental-strip-types --import ../../web/src/observatory/human-forms-wasm-test-runtime.mjs --test test/*.test.ts test/*.test.mjs",
     "verify:local": "python scripts/verify_local_runtime.py",
     "deploy:edge": "node scripts/deploy_edge.mjs",
     "deploy:edge:plan": "node scripts/deploy_edge.mjs --plan",
