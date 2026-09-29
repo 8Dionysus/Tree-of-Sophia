@@ -323,6 +323,10 @@ impl PreparedSourceInputs {
     pub fn source_revision(&self) -> &str {
         &self.source_revision
     }
+    /// A detached typed copy for the whole assembler's successor construction.
+    pub fn value(&self) -> Result<JsonValue> {
+        Ok(strict(&self.raw, MAX_STATE_BYTES)?.0)
+    }
     pub fn roots(&self) -> &std::collections::BTreeMap<String, SourceProjectionRoot> {
         &self.retained_roots
     }
