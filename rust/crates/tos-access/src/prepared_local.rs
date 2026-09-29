@@ -42,6 +42,7 @@ enum LocalRequest {
     Temporal(JsonValue),
     Focus(tos_query::knowledge_focus::KnowledgeFocusRequest),
     StoredLens(String),
+    Explore(JsonValue),
 }
 fn error(code: AccessErrorCode, message: &'static str) -> AccessError {
     AccessError::new(code, message)
@@ -140,6 +141,7 @@ fn wal_path(path: &Path) -> PathBuf {
     PathBuf::from(p)
 }
 struct CurrentFence {
+    checkpoint: Option<Box<dyn tos_query::knowledge_exploration::PreparedExplorationCheckpoint>>,
     path: PathBuf,
     main: FileState,
     wal: Option<FileState>,
@@ -156,10 +158,15 @@ impl DisclosureFence for CurrentFence {
         }
         // A pathname/WAL observation is weaker than a release-owner held lock.
         // This explicit local profile does not manufacture such a holder.
-        crate::knowledge::check_abort(&self.probe)
+        crate::knowledge::check_abort(&self.probe)?;
+        if let Some(mut checkpoint) = self.checkpoint.take() {
+            checkpoint.commit().map_err(AccessError::from)?;
+        }
+        Ok(())
     }
 }
 struct Selection {
+    checkpoints: crate::exploration_checkpoints::ProcessExplorationCheckpoints,
     path: PathBuf,
     binding: JsonValue,
     read: PreparedReadLimits,
@@ -216,6 +223,14 @@ impl PreparedLocalExecutor {
                 binding,
                 read,
                 reading,
+                checkpoints: crate::exploration_checkpoints::ProcessExplorationCheckpoints::new(
+                    crate::exploration_checkpoints::CheckpointLimits {
+                        ttl: Duration::from_secs(900),
+                        max_entries: 128,
+                        max_encoded_bytes: 32 * 1024 * 1024,
+                    },
+                )
+                .map_err(AccessError::from)?,
             }),
         })
     }
@@ -259,6 +274,7 @@ impl PreparedLocalExecutor {
         let mut session =
             PreparedSearchSession::new_with_abort(&db, s.read, Some(Arc::clone(&probe)))
                 .map_err(query_error)?;
+        let mut checkpoint = None;
         let result = if let LocalRequest::Search(request) = &request {
             let now = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -281,6 +297,13 @@ impl PreparedLocalExecutor {
             session
                 .inspect(&s.binding, *kind, identifier, *relation_limit)
                 .map_err(AccessError::from)?
+        } else if let LocalRequest::Explore(request) = &request {
+            let mut checkpoints = s.checkpoints.clone();
+            let result = session
+                .explore(&s.binding, request, &mut checkpoints)
+                .map_err(AccessError::from)?;
+            checkpoint = result.checkpoint;
+            result.packet
         } else if let LocalRequest::Lens(spec) = &request {
             session.lens(&s.binding, spec).map_err(AccessError::from)?
         } else if let LocalRequest::Temporal(spec) = &request {
@@ -338,6 +361,9 @@ impl PreparedLocalExecutor {
             continuation_fits(request, &result)?;
         }
         let body = compact(&result, PREPARED_RESPONSE_BYTES)?;
+        if let Some(staged) = checkpoint.as_mut() {
+            staged.stage_response(&body).map_err(AccessError::from)?;
+        }
         // End the operation snapshot; a new BEGIN sees a concurrent WAL commit
         // or epoch ABA. The same session meters both observations cumulatively.
         let observed_wal = optional_state(&wal_path(&s.path))?;
@@ -359,6 +385,7 @@ impl PreparedLocalExecutor {
             ));
         }
         let fence = CurrentFence {
+            checkpoint,
             path: s.path.clone(),
             main: before,
             wal: observed_wal,
@@ -414,6 +441,7 @@ impl AccessExecutor for PreparedLocalExecutor {
                 | KnowledgeOperation::Temporal
                 | KnowledgeOperation::Focus
                 | KnowledgeOperation::StoredLens
+                | KnowledgeOperation::Explore
         )
     }
     fn knowledge(
@@ -451,6 +479,7 @@ impl AccessExecutor for PreparedLocalExecutor {
             KnowledgeRequest::StoredLens { lens_id } => {
                 self.read(LocalRequest::StoredLens(lens_id), probe)
             }
+            KnowledgeRequest::Explore(request) => self.read(LocalRequest::Explore(request), probe),
             _ => Err(unavailable()),
         }
     }

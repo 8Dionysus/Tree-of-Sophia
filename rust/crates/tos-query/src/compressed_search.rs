@@ -377,6 +377,35 @@ impl<'a> PreparedSearchSession<'a> {
         result
     }
 
+    pub fn explore(
+        &mut self,
+        binding: &JsonValue,
+        request: &JsonValue,
+        checkpoints: &mut dyn crate::knowledge_exploration::ExplorationCheckpoints,
+    ) -> std::result::Result<
+        crate::prepared_exploration::PreparedExploration,
+        crate::search_v2::SearchV2Error,
+    > {
+        use crate::prepared_inspect::storage_error;
+        self.read.check_abort().map_err(storage_error)?;
+        let view = PreparedReadTransaction::admit(self.read.db, binding, self.read.limits)
+            .map_err(|e| {
+                storage_error(
+                    self.read
+                        .check_abort()
+                        .err()
+                        .unwrap_or_else(|| prepared_error(e)),
+                )
+            })?;
+        self.read.absorb_owner(&view).map_err(storage_error)?;
+        let result =
+            crate::prepared_exploration::explore(&mut self.read, &view, request, checkpoints);
+        drop(view);
+        self.read.reset_owner();
+        self.read.check_abort().map_err(storage_error)?;
+        result
+    }
+
     pub fn catalog(&mut self, binding: &JsonValue) -> Result<JsonValue> {
         self.read.check_abort()?;
         let view = PreparedReadTransaction::admit(self.read.db, binding, self.read.limits)
