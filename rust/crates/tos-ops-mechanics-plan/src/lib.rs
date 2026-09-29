@@ -1,6 +1,7 @@
 //! Bounded discovery and dedicated native execution for mechanics-local validation.
 //! Lane selection and the planned tools retain their own authority.
 
+pub mod active_naming;
 pub mod derived_kag;
 pub mod executor;
 pub mod mechanics_topology;

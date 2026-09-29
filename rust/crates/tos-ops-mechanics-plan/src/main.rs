@@ -20,6 +20,7 @@ enum Action {
     DerivedKagValidate,
     DerivedKagGenerate,
     MechanicsTopologyValidate,
+    ActiveNamingValidate,
 }
 
 #[cfg(target_os = "linux")]
@@ -41,6 +42,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
     let mut derived_kag_validate = false;
     let mut derived_kag_generate = false;
     let mut mechanics_topology_validate = false;
+    let mut active_naming_validate = false;
     let mut check = false;
     let mut limits = Limits::default();
     while let Some(argument) = args.next() {
@@ -55,6 +57,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
             "--derived-kag-validate" => derived_kag_validate = true,
             "--derived-kag-generate" => derived_kag_generate = true,
             "--mechanics-topology-validate" => mechanics_topology_validate = true,
+            "--active-naming-validate" => active_naming_validate = true,
             "--check" => check = true,
             "--repo-root" => root = Some(PathBuf::from(args.next().ok_or("missing repo root")?)),
             "--python" => python = args.next().ok_or("missing Python adapter")?,
@@ -90,6 +93,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
         + usize::from(derived_kag_validate)
         + usize::from(derived_kag_generate)
         + usize::from(mechanics_topology_validate)
+        + usize::from(active_naming_validate)
         > 1
         || (check && !threshold_build)
     {
@@ -113,6 +117,8 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
         Action::DerivedKagValidate
     } else if derived_kag_generate {
         Action::DerivedKagGenerate
+    } else if active_naming_validate {
+        Action::ActiveNamingValidate
     } else if mechanics_topology_validate {
         Action::MechanicsTopologyValidate
     } else {
@@ -128,7 +134,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits), String> {
 
 fn main() {
     let (root, python, action, limits) = arguments().unwrap_or_else(|error| {
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     let result = match action {
@@ -203,6 +209,20 @@ fn main() {
                 }
                 0
             }),
+        Action::ActiveNamingValidate => {
+            tos_ops_mechanics_plan::active_naming::validate(&root).map(|issues| {
+                if issues.is_empty() {
+                    println!("[ok] validated active naming");
+                    0
+                } else {
+                    eprintln!("Active naming validation failed.");
+                    for issue in issues {
+                        eprintln!("- {issue}");
+                    }
+                    1
+                }
+            })
+        }
         Action::MechanicsTopologyValidate => {
             tos_ops_mechanics_plan::mechanics_topology::validate(&root).map(|issues| {
                 if issues.is_empty() {
@@ -257,6 +277,7 @@ fn main() {
                 Action::PublicMirrorValidate | Action::PublicMirrorSync => "public mirror",
                 Action::DerivedKagValidate | Action::DerivedKagGenerate => "derived KAG",
                 Action::MechanicsTopologyValidate => "mechanics topology",
+                Action::ActiveNamingValidate => "active naming",
             };
             let diagnostic = format!("mechanics-local {route}: {error}\n",);
             #[cfg(target_os = "linux")]

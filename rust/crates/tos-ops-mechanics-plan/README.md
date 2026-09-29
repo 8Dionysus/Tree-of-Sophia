@@ -143,3 +143,25 @@ Markdown and `GITHUB_OUTPUT` must be regular files without a final symlink;
 explicit finite candidate limits. Git error text/exception tracebacks are not
 promised byte-identical; selection, successful output and document findings
 retain the maintained semantics within this profile. No remote fetch occurs.
+
+`--active-naming-validate` is the read-only default-route candidate for
+`scripts/validate_active_naming.py`. It preserves pruned top-down/sorted path
+checking, token-first maximal runs, exact content-only domain/provenance
+exceptions, experience route scope and active fields of mechanics topology.
+Generated KAG carriers and retired history remain outside the active naming
+source. Python's optional external SQLite feedback-cache route stays intact;
+this native mode does not write or consume a cache and does not replace that
+optional consumer or switch the authored lane.
+
+This candidate refuses encountered active symlinks, bounds traversal to 10,000
+entries / 128 directory levels, each text file to 8 MiB and aggregate read input
+to 64 MiB, and issues to 4096 of at most 8 KiB each. Invalid UTF-8 text is skipped
+as in Python; ordinary newline decoding is preserved. JSON topology is bounded
+by the existing serde parser depth and cannot use a depth refusal as clean
+validation. Whole validation has a 300-second wall. One fixed bounded pass over
+Unicode scalars prepares the digit grammar from the existing Unicode16 category
+primitive, while lowercasing uses FND's pinned Python16 implementation. The
+controlled fixture compares the actual whole CLI/Python default consumer on
+failing, cleaned, and changed-current-target states of one small disposable tree.
+These are finite candidate limits and controls, not a whole repository run or
+optional-cache retirement result.
