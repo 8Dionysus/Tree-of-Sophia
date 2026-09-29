@@ -17,6 +17,7 @@ mod knowledge_envelope;
 #[cfg(feature = "wasm")]
 mod lens_session;
 mod live_resume;
+mod observatory_conditions;
 mod observatory_pose;
 mod reading_resume;
 mod research_shelf;
@@ -35,31 +36,32 @@ pub use temporal_session::{
 pub use claim_reference::validate_claim_reference_v1;
 pub use interface_preferences::normalize_interface_preferences_v1;
 pub use knowledge_envelope::{
-    compact_knowledge_search_page_v1, KnowledgeEnvelopeError, KnowledgeEnvelopeErrorCode,
+    KnowledgeEnvelopeError, KnowledgeEnvelopeErrorCode, compact_knowledge_search_page_v1,
 };
 pub use live_resume::{rebind_live_resume_v1, validate_live_resume_v1};
+pub use observatory_conditions::normalize_observatory_conditions_v1;
 pub use observatory_pose::normalize_observatory_pose_v1;
 pub use reading_resume::normalize_reading_resume_v1;
-pub use research_shelf::{research_shelf_rule_v1, ShelfPacketIndex};
+pub use research_shelf::{ShelfPacketIndex, research_shelf_rule_v1};
 pub use search_mode::{
-    select_knowledge_search_mode_v1, SearchMode, SearchSelectionError, SearchSelectionErrorCode,
+    SearchMode, SearchSelectionError, SearchSelectionErrorCode, select_knowledge_search_mode_v1,
 };
 pub use workspace_copy::validate_workspace_copy_v1;
 pub use workspace_machine::{
-    workspace_transition_v1, WorkspaceMachineError, WorkspaceMachineErrorCode,
+    WorkspaceMachineError, WorkspaceMachineErrorCode, workspace_transition_v1,
 };
 pub use workspace_proposal::{
-    workspace_proposal_digest_v1, WorkspaceProposalError, WorkspaceProposalErrorCode,
+    WorkspaceProposalError, WorkspaceProposalErrorCode, workspace_proposal_digest_v1,
 };
 
 #[cfg(feature = "wasm")]
 mod wasm {
     use super::{
-        compact_knowledge_search_page_v1, normalize_interface_preferences_v1,
-        normalize_observatory_pose_v1, normalize_reading_resume_v1, rebind_live_resume_v1,
-        research_shelf_rule_v1, select_knowledge_search_mode_v1, validate_claim_reference_v1,
-        validate_live_resume_v1, validate_workspace_copy_v1, workspace_proposal_digest_v1,
-        workspace_transition_v1, ShelfPacketIndex,
+        ShelfPacketIndex, compact_knowledge_search_page_v1, normalize_interface_preferences_v1,
+        normalize_observatory_conditions_v1, normalize_observatory_pose_v1,
+        normalize_reading_resume_v1, rebind_live_resume_v1, research_shelf_rule_v1,
+        select_knowledge_search_mode_v1, validate_claim_reference_v1, validate_live_resume_v1,
+        validate_workspace_copy_v1, workspace_proposal_digest_v1, workspace_transition_v1,
     };
     use wasm_bindgen::prelude::*;
 
@@ -856,5 +858,9 @@ mod wasm {
     #[wasm_bindgen]
     pub fn human_form_valid_identity_wasm_v1(identity: &str, requested: Option<String>) -> bool {
         super::human_forms::valid_identity_v1(identity, requested.as_deref())
+    }
+    #[wasm_bindgen]
+    pub fn normalize_observatory_conditions_wasm_v1(raw: &[u8]) -> Result<Vec<u8>, JsValue> {
+        normalize_observatory_conditions_v1(raw).map_err(JsValue::from_str)
     }
 }

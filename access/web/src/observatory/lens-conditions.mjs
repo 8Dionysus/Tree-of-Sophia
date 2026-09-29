@@ -1,5 +1,6 @@
 import {t} from './ui-i18n.mjs';
 import {ContractError,localized} from './knowledge-client.mjs';
+import {normalizeConditions} from './lens-conditions-rust.mjs';
 
 export const MAX_CONDITIONS=12;
 const fail=message=>{throw new ContractError(message);};
@@ -20,6 +21,11 @@ const fields={
 };
 const typeOps={string:['eq','neq','in','contains','prefix','exists'],'string-array':['eq','neq','in','contains','exists'],number:['eq','neq','in','gt','gte','lt','lte','exists'],boolean:['eq','neq','exists']};
 export function validateConditions(value,{maxConditions=MAX_CONDITIONS}={}){
+  try{const fromRust=normalizeConditions(value,maxConditions);if(fromRust)return fromRust;}
+  catch(error){const code=String(error);
+    if(code.includes('invalid_conditions_limit'))fail(t("Можно добавить до {0} условий в каждый раздел.",[maxConditions]));
+    if(code.includes('invalid_conditions_rule'))fail(t("Условие неполно или имеет неподдерживаемое значение."));
+    fail(t("Неверный набор условий."));}
   if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>!['nodes','relations'].includes(k)))fail(t("Неверный набор условий."));
   const result={};
   for(const kind of ['nodes','relations']){
