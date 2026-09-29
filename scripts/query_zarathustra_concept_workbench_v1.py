@@ -226,7 +226,13 @@ def build_result(query: str, language: str, request_path: Path,
     # Build-time query identity remains provenance. Compatible v1 readers may
     # evolve independently of immutable corpus data; installed code is selected
     # by the software release, never by an executable stored with this manifest.
-    if manifest.get("concept_search_result_schema_sha256") != sha_file(RESULT_SCHEMA):
+    # Exact reviewed historical v1 schema differs only in software-adapter
+    # provenance allowance; immutable source snapshot fixity is unchanged.
+    compatible_schema_hashes = {
+        sha_file(RESULT_SCHEMA),
+        "5f67d5b3abf88ecd88dcdb94f70eee0cb685b7ac81b7abbd41bc2b14542c3cc3",
+    }
+    if manifest.get("concept_search_result_schema_sha256") not in compatible_schema_hashes:
         raise SearchError("concept-search result schema drift from workbench manifest")
     tracked_fixity = {data_path(root, row["ref"]): row["sha256"] for row in manifest["artifacts"]}
     private_fixity = {data_path(root, row["ref"]): row["sha256"] for row in manifest["private_artifacts"]}

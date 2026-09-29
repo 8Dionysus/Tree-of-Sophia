@@ -95,3 +95,6 @@ pub use sqlite::{
 pub use temporal_comparison::{
     TEMPORAL_INTENDED_USE, TEMPORAL_OPERATION, compare_temporal_operands, validate_temporal_request,
 };
+
+#[cfg(not(target_arch = "wasm32"))]
+pub mod reading_search;
