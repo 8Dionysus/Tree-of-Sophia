@@ -5,6 +5,7 @@
 //! execute a query, interpret a cursor, grant source access or alter the
 //! direct knowledge API's legacy default.
 
+mod claim_reading;
 mod claim_reference;
 mod constructor_machine;
 #[cfg(feature = "wasm")]
@@ -39,6 +40,7 @@ pub use temporal_session::{
 #[cfg(feature = "wasm")]
 pub use record_context::RecordContextSession;
 
+pub use claim_reading::validate_claim_reading_v1;
 pub use claim_reference::validate_claim_reference_v1;
 pub use interface_preferences::normalize_interface_preferences_v1;
 pub use knowledge_envelope::{
@@ -67,11 +69,16 @@ mod wasm {
         ShelfPacketIndex, compact_knowledge_search_page_v1, normalize_interface_preferences_v1,
         normalize_observatory_conditions_v1, normalize_observatory_draft_v1,
         normalize_observatory_pose_v1, normalize_reading_resume_v1, rebind_live_resume_v1,
-        research_shelf_rule_v1, select_knowledge_search_mode_v1, validate_claim_reference_v1,
+        research_shelf_rule_v1, select_knowledge_search_mode_v1, validate_claim_reading_v1, validate_claim_reference_v1,
         validate_live_resume_v1, validate_workspace_copy_v1, workspace_proposal_digest_v1,
         workspace_transition_v1,
     };
     use wasm_bindgen::prelude::*;
+
+    #[wasm_bindgen]
+    pub fn validate_claim_reading_wasm_v1(request_json: &[u8]) -> Result<Vec<u8>, JsValue> {
+        validate_claim_reading_v1(request_json).map_err(JsValue::from_str)
+    }
 
     #[wasm_bindgen]
     pub fn validate_claim_reference_wasm_v1(request_json: &[u8]) -> Result<Vec<u8>, JsValue> {

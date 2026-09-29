@@ -1,3 +1,4 @@
+import {installClaimReadingRules} from '../src/observatory/claim-reading-rules.mjs';
 import {installRecordContextRules} from '../src/observatory/record-context.mjs';
 import './style.css';
 import {mountConstructorSky} from './sky.mjs';
@@ -29,6 +30,7 @@ installBrowserWorkspaceMachine(rules.BrowserWorkspaceSession);
 installSourceFormRules(rules);
 installHumanFormRules(rules);
 installRecordContextRules(rules);
+installClaimReadingRules(rules);
 installConditionRules(rules);
 installDraftRules(rules);
 installLiveResumeRules(rules);

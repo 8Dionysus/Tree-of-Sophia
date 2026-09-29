@@ -30,3 +30,6 @@ installWorkspaceCopyRules(runtime);
 
 import {installRecordContextRules} from './record-context.mjs';
 installRecordContextRules(runtime);
+
+import {installClaimReadingRules} from './claim-reading-rules.mjs';
+installClaimReadingRules(runtime);

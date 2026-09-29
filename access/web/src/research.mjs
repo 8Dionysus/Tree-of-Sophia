@@ -1,3 +1,4 @@
+import {installClaimReadingRules} from './observatory/claim-reading-rules.mjs';
 import {installRecordContextRules} from './observatory/record-context.mjs';
 import '../constructor/style.css';
 import {mountLiveResearch} from '../constructor/live-controller.mjs';
@@ -24,6 +25,7 @@ installPoseRules(rules);
 installClaimReferenceRules(rules);
 installHumanFormRules(rules);
 installRecordContextRules(rules);
+installClaimReadingRules(rules);
 installConditionRules(rules);
 installDraftRules(rules);
 installReadingRules(rules);
