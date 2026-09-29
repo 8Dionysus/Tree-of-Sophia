@@ -102,10 +102,21 @@ output per child. These finite execution limits are stricter than the Python
 runner's prior unbounded subprocess call. A child exit code is returned
 unchanged; a signalled child is printed with Python's negative signal status
 and returned as the corresponding Unix shell status. The Python loader and
-`release_check` import remain active until ordered manifest, selection, and
-first-failure execution parity have been accepted by the owner.
+`release_check` import remain active until the owner admits route cutover.
 As in the existing executor, an `execvp` refusal becomes child status 127;
 the Python runner previously raised an unhandled spawn exception instead.
+
+`tos-release-check` is a distinct explicit consumer of the same manifest's
+`release_check` sequence. `--phase all` keeps authored order; `checks` and
+`tests` require exactly one final `run tests` step and select before or at that
+step respectively. It takes an exact `--python PATH` adapter and preserves the
+maintained runner's `PYTEST_DISABLE_PLUGIN_AUTOLOAD` default, Windows-style
+`list2cmdline` progress text, first failure line on stdout, and child status.
+The same native executor imposes the finite command, sequence, cleanup, and
+output limits above; this differs from Python's unbounded subprocess call.
+Its controlled fixture runs only a temporary three-step release-shaped
+sequence. The actual Python release entry, CI calls, and real release sequence
+remain active and unexecuted by this candidate until owner acceptance.
 
 Install with `cargo install --locked --offline --path
 rust/crates/tos-ops-mechanics-plan --root <admitted isolated install root>`

@@ -10,6 +10,13 @@ use std::path::Path;
 pub type Issue = (String, String);
 pub type CommandStep = (String, Vec<String>);
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ReleasePhase {
+    All,
+    Checks,
+    Tests,
+}
+
 const MANIFEST: &str = "docs/validation/validation_lanes.json";
 const MAX_MANIFEST_BYTES: u64 = 1024 * 1024;
 
@@ -300,4 +307,36 @@ pub fn command_sequence(
         resolved.push((label.to_owned(), parts));
     }
     Ok(resolved)
+}
+
+/// Preserve the maintained release_check phase split. Only the split phases
+/// require exactly one final `run tests` step; `all` executes authored order.
+pub fn release_steps(
+    root: &Path,
+    python: &str,
+    phase: ReleasePhase,
+) -> io::Result<Vec<CommandStep>> {
+    let mut steps = command_sequence(root, "release_check", python)?;
+    if phase == ReleasePhase::All {
+        return Ok(steps);
+    }
+    let mut run_tests = None;
+    for (index, (label, _)) in steps.iter().enumerate() {
+        if label == "run tests" && run_tests.replace(index).is_some() {
+            return Err(invalid(
+                "selected sequence must contain exactly one final run tests step",
+            ));
+        }
+    }
+    if run_tests != steps.len().checked_sub(1) {
+        return Err(invalid(
+            "selected sequence must contain exactly one final run tests step",
+        ));
+    }
+    if phase == ReleasePhase::Tests {
+        Ok(steps.split_off(steps.len() - 1))
+    } else {
+        steps.pop();
+        Ok(steps)
+    }
 }

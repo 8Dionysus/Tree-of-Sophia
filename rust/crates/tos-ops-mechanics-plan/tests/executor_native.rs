@@ -282,3 +282,110 @@ fn validation_lane_selection_runs_in_order_and_stops_at_first_failure() {
         .contains("[error] failing failed with exit code 17\n"));
     fs::remove_dir_all(root).unwrap();
 }
+
+// Release uses the same authored sequence and process custody, but preserves
+// its own phase, environment, Windows command-display, and failure contract.
+#[cfg(target_os = "linux")]
+#[test]
+fn release_phase_selection_preserves_environment_and_first_failure() {
+    use std::fs;
+    use std::os::unix::fs::PermissionsExt;
+    use std::process::{Command, Output};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let root = std::env::temp_dir().join(format!(
+        "tos-release-check-{}-{}",
+        std::process::id(),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir_all(root.join("docs/validation")).unwrap();
+    let manifest = root.join("docs/validation/validation_lanes.json");
+    fs::write(
+        &manifest,
+        r#"{"command_sequences":{"release_check":[{"label":"software contracts","command":["python","quoted \"tail\\"]},{"label":"build software browser assets","command":["python","fail"]},{"label":"run tests","command":["python","tests"]}]}}"#,
+    )
+    .unwrap();
+    let adapter = root.join("adapter");
+    fs::write(
+        &adapter,
+        "#!/bin/sh\nprintf '%s|%s\\n' \"$1\" \"${PYTEST_DISABLE_PLUGIN_AUTOLOAD-<unset>}\" >> trace\n[ \"$1\" = fail ] && [ \"$FAIL_SECOND\" = 1 ] && exit 17\nexit 0\n",
+    )
+    .unwrap();
+    fs::set_permissions(&adapter, fs::Permissions::from_mode(0o700)).unwrap();
+    let executable = std::env::var_os("TOS_RELEASE_CHECK_TEST_EXECUTABLE")
+        .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-release-check").into());
+    let invoke = |phase: &str, fail: bool, inherited: Option<&str>| -> Output {
+        let mut command = Command::new(&executable);
+        command.args([
+            "--repo-root",
+            root.to_str().unwrap(),
+            "--python",
+            adapter.to_str().unwrap(),
+            "--phase",
+            phase,
+            "--command-timeout-ms",
+            "2000",
+            "--lane-timeout-ms",
+            "5000",
+        ]);
+        command.env("FAIL_SECOND", if fail { "1" } else { "0" });
+        if let Some(inherited) = inherited {
+            command.env("PYTEST_DISABLE_PLUGIN_AUTOLOAD", inherited);
+        } else {
+            command.env_remove("PYTEST_DISABLE_PLUGIN_AUTOLOAD");
+        }
+        command.output().unwrap()
+    };
+    let checks = invoke("checks", false, None);
+    assert_eq!(checks.status.code(), Some(0));
+    assert_eq!(
+        fs::read_to_string(root.join("trace")).unwrap(),
+        "quoted \"tail\\|1\nfail|1\n"
+    );
+    let checks_out = String::from_utf8(checks.stdout).unwrap();
+    let expected_display = format!(
+        r#"[run] software contracts: {} "quoted \"tail\\""#,
+        adapter.display()
+    );
+    assert!(checks_out.contains(&expected_display));
+    assert!(!checks_out.contains("[run] run tests:"));
+    assert!(!checks_out.contains("[ok]"));
+
+    fs::remove_file(root.join("trace")).unwrap();
+    let tests = invoke("tests", false, Some("0"));
+    assert_eq!(tests.status.code(), Some(0));
+    assert_eq!(fs::read_to_string(root.join("trace")).unwrap(), "tests|0\n");
+    assert_eq!(
+        String::from_utf8(tests.stdout).unwrap(),
+        format!("[run] run tests: {} tests\n", adapter.display())
+    );
+
+    fs::remove_file(root.join("trace")).unwrap();
+    let all = invoke("all", true, None);
+    assert_eq!(all.status.code(), Some(17));
+    assert_eq!(
+        fs::read_to_string(root.join("trace")).unwrap(),
+        "quoted \"tail\\|1\nfail|1\n"
+    );
+    let all_out = String::from_utf8(all.stdout).unwrap();
+    assert!(all_out.contains("[error] build software browser assets failed with exit code 17\n"));
+    assert!(!all_out.contains("[run] run tests:"));
+    assert!(all.stderr.is_empty());
+
+    fs::remove_file(root.join("trace")).unwrap();
+    fs::write(
+        &manifest,
+        r#"{"command_sequences":{"release_check":[{"label":"run tests","command":["python","early"]},{"label":"run tests","command":["python","late"]}]}}"#,
+    )
+    .unwrap();
+    let invalid = invoke("checks", false, None);
+    assert_eq!(invalid.status.code(), Some(2));
+    assert!(!root.join("trace").exists());
+    assert!(String::from_utf8(invalid.stdout)
+        .unwrap()
+        .contains("[error] selected sequence must contain exactly one final run tests step\n"));
+    fs::remove_dir_all(root).unwrap();
+}

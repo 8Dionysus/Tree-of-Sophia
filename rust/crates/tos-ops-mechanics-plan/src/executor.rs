@@ -58,18 +58,11 @@ pub fn run_validation_sequence(
     limits: Limits,
     cancel: &AtomicI32,
 ) -> io::Result<i32> {
-    let plan = Plan {
-        schema_version: "tos_validation_lanes_selected_v1",
-        test_file_count: 0,
-        commands: steps
-            .iter()
-            .map(|(label, argv)| crate::Command {
-                kind: "validation_lane_step",
-                home: label.clone(),
-                argv: argv.clone(),
-            })
-            .collect(),
-    };
+    let plan = selected_plan(
+        steps,
+        "tos_validation_lanes_selected_v1",
+        "validation_lane_step",
+    );
     #[cfg(target_os = "linux")]
     {
         native::run(root, &plan, limits, cancel, native::Style::Validation)
@@ -81,6 +74,51 @@ pub fn run_validation_sequence(
             io::ErrorKind::Unsupported,
             "execution requires Linux subreaper/pidfd custody",
         ))
+    }
+}
+
+/// Run an already-selected release phase through the same dedicated process
+/// custody. An empty `checks` phase is a successful no-op, as in Python.
+pub fn run_release_sequence(
+    root: &Path,
+    steps: &[(String, Vec<String>)],
+    limits: Limits,
+    cancel: &AtomicI32,
+) -> io::Result<i32> {
+    if steps.is_empty() {
+        return Ok(0);
+    }
+    let plan = selected_plan(steps, "tos_release_check_selected_v1", "release_check_step");
+    #[cfg(target_os = "linux")]
+    {
+        native::run(root, &plan, limits, cancel, native::Style::Release)
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (root, plan, limits, cancel);
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "execution requires Linux subreaper/pidfd custody",
+        ))
+    }
+}
+
+fn selected_plan(
+    steps: &[(String, Vec<String>)],
+    schema_version: &'static str,
+    kind: &'static str,
+) -> Plan {
+    Plan {
+        schema_version,
+        test_file_count: 0,
+        commands: steps
+            .iter()
+            .map(|(label, argv)| crate::Command {
+                kind,
+                home: label.clone(),
+                argv: argv.clone(),
+            })
+            .collect(),
     }
 }
 
@@ -101,6 +139,52 @@ mod native {
     pub(super) enum Style {
         Mechanics,
         Validation,
+        Release,
+    }
+
+    // Python subprocess.list2cmdline, used only for release progress text.
+    // The argv passed to execvp remains the original selected manifest argv.
+    fn list2cmdline(argv: &[String]) -> String {
+        let mut result = String::new();
+        for (index, argument) in argv.iter().enumerate() {
+            if index != 0 {
+                result.push(' ');
+            }
+            let quote = argument.is_empty() || argument.contains(' ') || argument.contains('\t');
+            if quote {
+                result.push('"');
+            }
+            let mut backslashes = 0usize;
+            for character in argument.chars() {
+                match character {
+                    '\\' => backslashes += 1,
+                    '"' => {
+                        for _ in 0..backslashes * 2 + 1 {
+                            result.push('\\');
+                        }
+                        backslashes = 0;
+                        result.push('"');
+                    }
+                    _ => {
+                        for _ in 0..backslashes {
+                            result.push('\\');
+                        }
+                        backslashes = 0;
+                        result.push(character);
+                    }
+                }
+            }
+            for _ in 0..backslashes {
+                result.push('\\');
+            }
+            if quote {
+                for _ in 0..backslashes {
+                    result.push('\\');
+                }
+                result.push('"');
+            }
+        }
+        result
     }
 
     fn error(message: impl Into<String>) -> io::Error {
@@ -496,6 +580,9 @@ mod native {
                 Style::Validation => {
                     format!("[run] {}: {}\n", command.home, command.argv.join(" "))
                 }
+                Style::Release => {
+                    format!("[run] {}: {}\n", command.home, list2cmdline(&command.argv))
+                }
             };
             write(1, progress.as_bytes(), deadline, cancel)?;
             let (mut custody, stdout, stderr) = spawn(root, &command.argv, limits.cleanup_grace)?;
@@ -573,15 +660,34 @@ mod native {
                             .code()
                             .unwrap_or(-status.unwrap().signal().unwrap_or(0))
                     ),
+                    Style::Release => format!(
+                        "[error] {} failed with exit code {}\n",
+                        command.home,
+                        status
+                            .unwrap()
+                            .code()
+                            .unwrap_or(-status.unwrap().signal().unwrap_or(0))
+                    ),
                 };
-                write(2, failure.as_bytes(), lane_deadline, cancel)?;
+                write(
+                    if matches!(style, Style::Release) {
+                        1
+                    } else {
+                        2
+                    },
+                    failure.as_bytes(),
+                    lane_deadline,
+                    cancel,
+                )?;
                 return Ok(match style {
                     Style::Mechanics => 1,
-                    Style::Validation => status.unwrap().code().unwrap_or_else(|| {
-                        // sys.exit(-signal) from the Python compatibility entry
-                        // is observed by its parent as 256-signal on Unix.
-                        256 - status.unwrap().signal().unwrap_or(0)
-                    }),
+                    Style::Validation | Style::Release => {
+                        status.unwrap().code().unwrap_or_else(|| {
+                            // sys.exit(-signal) from the Python compatibility entry
+                            // is observed by its parent as 256-signal on Unix.
+                            256 - status.unwrap().signal().unwrap_or(0)
+                        })
+                    }
                 });
             }
             if matches!(style, Style::Validation) {
