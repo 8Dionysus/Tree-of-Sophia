@@ -77,7 +77,7 @@ impl RevisionFamily {
             Self::NativeSelected => "native-witness-link-selected-revision",
         }
     }
-    fn selected(self) -> bool {
+    pub(crate) fn selected(self) -> bool {
         matches!(
             self,
             Self::CorpusSelectedV2 | Self::CorpusSelectedV3 | Self::NativeSelected
@@ -158,7 +158,7 @@ fn split(name: &str) -> SourceCommandResult<(&str, &str)> {
         "source path has no owner parent",
     ))
 }
-fn names(source_path: &str) -> SourceCommandResult<[String; 3]> {
+pub(crate) fn names(source_path: &str) -> SourceCommandResult<[String; 3]> {
     let (_, base) = split(source_path)?;
     let stem = base
         .strip_suffix(".json")
@@ -229,7 +229,9 @@ fn digest_text(value: &JsonValue) -> SourceCommandResult<&str> {
     }
     Ok(text)
 }
-fn configuration(ctx: &CommandContext) -> SourceCommandResult<(JsonValue, RevisionFamily)> {
+pub(crate) fn configuration(
+    ctx: &CommandContext,
+) -> SourceCommandResult<(JsonValue, RevisionFamily)> {
     ctx.check()?;
     let config = cmd::parse(&ctx.configuration_raw)?;
     let family = RevisionFamily::parse(cmd::text(&config, "schema_version")?)?;

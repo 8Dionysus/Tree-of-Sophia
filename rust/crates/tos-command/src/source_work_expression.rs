@@ -2114,76 +2114,23 @@ pub(crate) fn retained_work_request(
     }))
 }
 
-fn published_current_work(
+/// Byte-only terminal delta fence. Family authority and exact terminal identity
+/// remain checked by each fixed owner before entering this shared traversal.
+pub(super) fn terminal_cut_current(
     fs: &CreationFilesystem,
-    owner: &WorkOwner,
     cut: &CorpusCutReader,
     snapshot: &PublicationSnapshot,
-    publication: &WorkExpressionPublication,
+    plan: &work_transaction::WorkPlan,
+    base_publication: &JsonValue,
+    archive: &work_transaction::WorkArchive,
+    rollback: bool,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
-    let rollback = cmd::text(publication.publication(), "outcome")? == "rolled-back";
-    let inspect = if rollback {
-        work_transaction::inspect_rolled_back
-    } else {
-        work_transaction::inspect_committed
-    };
-    let (manifest, plan, base_publication, terminal) =
-        inspect(fs, publication.transaction_id(), deadline, cancelled)?;
-    if manifest != publication.manifest_sha256()
-        || !cmd::same(&terminal, publication.publication())?
-        || snapshot.token.as_deref() != Some(cmd::text(&terminal, "token")?)
-        || cmd::text(&plan.authorization, "schema_version")? != AUTHORIZATION
-        || !cmd::same(cmd::field(&plan.authorization, "scope")?, &owner.scope()?)?
-    {
-        return Err(SourceCommandError::Conflict(
-            "Work result retained publication differs",
-        ));
-    }
-    let home = owner
-        .work_path
-        .as_str()
-        .rsplit_once('/')
-        .ok_or(SourceCommandError::Invalid("Work result package parent"))?
-        .0;
-    let mut before = BTreeMap::new();
-    for name in [
-        "work.json",
-        "work.human-forms.json",
-        "source-revision-history.json",
-    ] {
-        let path = relative(&format!("{home}/{name}"))?;
-        if cut.current().member(&path).is_some() {
-            let member = cut
-                .read_member(
-                    cut.current().revision(),
-                    &path,
-                    2_097_152,
-                    deadline,
-                    cancelled,
-                )
-                .map_err(|_| SourceCommandError::Conflict("Work result original package read"))?;
-            before.insert(name.to_owned(), member.raw);
-        }
-    }
-    let original = cmd::parse(before.get("work.json").ok_or(SourceCommandError::Conflict(
-        "Work result original record absent",
-    ))?)?;
-    let archive = work_transaction::work_archive(
-        fs,
-        owner.work_path.as_str(),
-        &original,
-        &before,
-        &crate::source_revisions::revision(&before)?,
-        deadline,
-        cancelled,
-        false,
-    )?;
+) -> SourceCommandResult<()> {
     archive.verify_current(fs, deadline, cancelled)?;
     let mut auxiliary = archive.member_paths().collect::<BTreeSet<_>>();
-    auxiliary.extend(work_transaction::committed_member_paths(&plan)?);
-    let prior_token = cmd::field(&base_publication, "token")?.as_str();
+    auxiliary.extend(work_transaction::committed_member_paths(plan)?);
+    let prior_token = cmd::field(base_publication, "token")?.as_str();
     if let Some(prior_id) = original_prior_publication(cut, prior_token, deadline, cancelled)? {
         auxiliary.insert(prior_completion_current(
             fs,
@@ -2301,6 +2248,93 @@ fn published_current_work(
             "Work result unselected member appeared",
         ));
     }
+    archive.verify_current(fs, deadline, cancelled)?;
+    snapshot.verify_current(fs, deadline, cancelled)?;
+    Ok(())
+}
+
+fn published_current_work(
+    fs: &CreationFilesystem,
+    owner: &WorkOwner,
+    cut: &CorpusCutReader,
+    snapshot: &PublicationSnapshot,
+    publication: &WorkExpressionPublication,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
+    let rollback = cmd::text(publication.publication(), "outcome")? == "rolled-back";
+    let inspect = if rollback {
+        work_transaction::inspect_rolled_back
+    } else {
+        work_transaction::inspect_committed
+    };
+    let (manifest, plan, base_publication, terminal) =
+        inspect(fs, publication.transaction_id(), deadline, cancelled)?;
+    if manifest != publication.manifest_sha256()
+        || !cmd::same(&terminal, publication.publication())?
+        || snapshot.token.as_deref() != Some(cmd::text(&terminal, "token")?)
+        || cmd::text(&plan.authorization, "schema_version")? != AUTHORIZATION
+        || !cmd::same(cmd::field(&plan.authorization, "scope")?, &owner.scope()?)?
+    {
+        return Err(SourceCommandError::Conflict(
+            "Work result retained publication differs",
+        ));
+    }
+    let home = owner
+        .work_path
+        .as_str()
+        .rsplit_once('/')
+        .ok_or(SourceCommandError::Invalid("Work result package parent"))?
+        .0;
+    let mut before = BTreeMap::new();
+    for name in [
+        "work.json",
+        "work.human-forms.json",
+        "source-revision-history.json",
+    ] {
+        let path = relative(&format!("{home}/{name}"))?;
+        if cut.current().member(&path).is_some() {
+            let member = cut
+                .read_member(
+                    cut.current().revision(),
+                    &path,
+                    2_097_152,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(|_| SourceCommandError::Conflict("Work result original package read"))?;
+            before.insert(name.to_owned(), member.raw);
+        }
+    }
+    let original = cmd::parse(before.get("work.json").ok_or(SourceCommandError::Conflict(
+        "Work result original record absent",
+    ))?)?;
+    let archive = work_transaction::work_archive(
+        fs,
+        owner.work_path.as_str(),
+        &original,
+        &before,
+        &crate::source_revisions::revision(&before)?,
+        deadline,
+        cancelled,
+        false,
+    )?;
+    terminal_cut_current(
+        fs,
+        cut,
+        snapshot,
+        &plan,
+        &base_publication,
+        &archive,
+        rollback,
+        deadline,
+        cancelled,
+    )?;
+    let changed = plan
+        .files
+        .iter()
+        .map(|file| (file.path.as_str(), file))
+        .collect::<BTreeMap<_, _>>();
     let parent = walk(&fs.root, home, fs.uid)?;
     let mut package = BTreeMap::new();
     for name in [

@@ -986,6 +986,7 @@ pub(crate) fn work_archive(
         cancelled,
         create,
         "work.json",
+        true,
     )
 }
 /// Expression-owned compounds retain the exact three-file parent revision.
@@ -1017,6 +1018,7 @@ pub(crate) fn expression_archive(
         cancelled,
         create,
         "expression.json",
+        true,
     )
 }
 pub(crate) fn item_archive(
@@ -1044,6 +1046,45 @@ pub(crate) fn item_archive(
         cancelled,
         create,
         "edition.json",
+        true,
+    )
+}
+/// Record revision archives use the exact validated owner family protocol.
+/// Existing compound owners continue to select the version-two protocol.
+pub(crate) fn record_revision_archive(
+    fs: &CreationFilesystem,
+    ctx: &crate::source_command::CommandContext,
+    record: &JsonValue,
+    before: &BTreeMap<String, Vec<u8>>,
+    expected_revision: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    create: bool,
+) -> SourceCommandResult<WorkArchive> {
+    let (config, family) = crate::source_revisions::configuration(ctx)?;
+    let source_path = cmd::text(&config, "source_path")?;
+    if cmd::text(record, "record_id")? != cmd::text(&config, "record_id")? {
+        return Err(SourceCommandError::Denied(
+            "record revision archive selected identity",
+        ));
+    }
+    let names = crate::source_revisions::names(source_path)?;
+    if before.keys().any(|name| !names.contains(name)) {
+        return Err(SourceCommandError::Denied(
+            "record revision archive selected package",
+        ));
+    }
+    compound_archive(
+        fs,
+        source_path,
+        record,
+        before,
+        expected_revision,
+        deadline,
+        cancelled,
+        create,
+        &names[0],
+        family.selected(),
     )
 }
 /// Archive storage for the exact Collection predecessor; this supplies no
@@ -1088,6 +1129,7 @@ fn compound_archive(
     cancelled: &AtomicBool,
     create: bool,
     basename: &str,
+    selected_protocol: bool,
 ) -> SourceCommandResult<WorkArchive> {
     let revision = crate::source_revisions::revision(before)?;
     if revision != expected_revision
@@ -1118,10 +1160,14 @@ fn compound_archive(
             raw.as_slice(),
         );
     }
-    let manifest = cmd::object(vec![
+    let mut manifest = cmd::object(vec![
         (
             "schema_version",
-            cmd::string("tos_source_package_archive_v2"),
+            cmd::string(if selected_protocol {
+                "tos_source_package_archive_v2"
+            } else {
+                "tos_source_package_archive_v1"
+            }),
         ),
         ("source_path", cmd::string(work_path)),
         (
@@ -1130,11 +1176,14 @@ fn compound_archive(
         ),
         ("revision", cmd::string(&revision)),
         ("files", crate::source_revisions::file_refs(before, true)),
-        (
+    ]);
+    if selected_protocol {
+        cmd::set(
+            &mut manifest,
             "publication_protocol",
             cmd::string("tos_selected_source_metadata_v1"),
-        ),
-    ]);
+        )?;
+    }
     let manifest_raw = cmd::published(&manifest)?;
     expected.insert("manifest.json".to_owned(), manifest_raw.as_slice());
     let observation = WorkArchive {
