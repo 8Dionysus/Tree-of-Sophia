@@ -137,6 +137,17 @@ fn freeze_invocation(path: &Path, value: &Value) {
     fs::write(path, serde_json::to_vec(value).unwrap()).unwrap();
     fs::set_permissions(path, fs::Permissions::from_mode(0o600)).unwrap();
 }
+fn fixture_bounds(files: &std::collections::BTreeMap<String, Vec<u8>>) {
+    let total = files.values().map(Vec::len).sum::<usize>();
+    let maximum = files.values().map(Vec::len).max().unwrap_or(0);
+    assert!(files.len() <= 2048 && total <= 8 * 1024 * 1024 && maximum <= 2 * 1024 * 1024);
+    eprintln!(
+        "responsibility fixture preflight: members={} bytes={} max={}",
+        files.len(),
+        total,
+        maximum
+    );
+}
 fn prepared_request(preview: &Value, id: &str) -> Value {
     let mut request = preview["prepared_request"].clone();
     request["command_id"] = json!(id);
@@ -179,6 +190,7 @@ fn native_responsibility_cli_preserves_qualified_union_cold_replay_and_retained_
         let origin_before = fs::read(&origin).unwrap();
         let note_before = fs::read(&note).unwrap();
         let authored = super::command_work_cases::authored_work_files(isolated.path());
+        fixture_bounds(&authored);
         assert!(
             authored.len() <= 2048
                 && authored.values().map(Vec::len).sum::<usize>() <= 8 * 1024 * 1024
@@ -308,6 +320,7 @@ fn native_responsibility_cli_preserves_qualified_union_cold_replay_and_retained_
                 deadline,
             );
             let after = super::command_work_cases::authored_work_files(isolated.path());
+            fixture_bounds(&after);
             let current = super::validation_cut_cases::write_cut_store_on_base(
                 &after,
                 &store,
@@ -370,6 +383,7 @@ fn native_responsibility_cli_preserves_qualified_union_cold_replay_and_retained_
                 deadline,
             );
             let final_files = super::command_work_cases::authored_work_files(isolated.path());
+            fixture_bounds(&final_files);
             let final_revision = super::validation_cut_cases::write_cut_store_on_base(
                 &final_files,
                 &store,
