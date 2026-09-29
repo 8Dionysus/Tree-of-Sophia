@@ -394,6 +394,7 @@ fn main() {
                 Action::ActiveNamingValidate => "active naming",
                 Action::SourceHome => "source home",
                 Action::PhilosophyTopology => "philosophy topology",
+                #[cfg(feature = "compiler-backed-validators")]
                 Action::PhilosophyGraphViews => "philosophy graph views",
                 Action::SemanticRegistryTransition => "semantic registry transition",
             };
