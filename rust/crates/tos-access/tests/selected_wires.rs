@@ -1378,7 +1378,8 @@ mod selected_knowledge {
         use std::process::{Child, Command, Output, Stdio};
         use tos_access::release_state::{ManagedRelease, NATIVE_DATA_SCHEMA};
         use tos_compiler::knowledge_full_fixture::{
-            NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS, build_native_fixture_with_navigation_inputs,
+            NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS,
+            build_native_fixture_with_navigation_inputs_bounded,
         };
         use tos_compiler::{
             NATIVE_KNOWLEDGE_ADAPTER_PROFILES, NativeKnowledgeSelection, NativeSelectionPaths,
@@ -1387,6 +1388,9 @@ mod selected_knowledge {
         use tos_foundation::{
             CanonicalProfile, Digest256Hasher, JsonNumber, JsonNumberKind, canonical_bytes_v1,
         };
+        // Absolute setup deadline belongs to the existing 240-second finite
+        // isolated case. The enclosing admitted runner remains the hard wall.
+        let producer_deadline = std::time::Instant::now() + Duration::from_secs(240);
         // Reap every owned child even if a later packet/custody assertion unwinds.
         // These programs do not spawn a service/process tree of their own.
         struct OwnedChild(Child);
@@ -1770,11 +1774,29 @@ with tempfile.TemporaryDirectory() as d:
         let nodes = original("nodes");
         let edges = original("edges");
         let rights = original("rights");
-        let fixture = build_native_fixture_with_navigation_inputs(
+        // Same declared selected-cold envelope for the existing producer stage.
+        // Per-family normalization, Search and temp caps remain distinct; the
+        // admitted recipe accounts for their coexisting physical products.
+        let stage_limits = tos_compiler::knowledge_stage::StageLimits {
+            sqlite: tos_compiler::Limits {
+                max_rows: 100_000,
+                max_row_bytes: 1_048_576,
+                max_output_bytes: 64 * 1024 * 1024,
+                max_work_bytes: 100 * 1024 * 1024,
+                sqlite_cache_kib: 8192,
+                max_sql_vm_steps: 100_000_000,
+            },
+            max_temp_bytes: 64 * 1024 * 1024,
+            max_seek_rows: 2,
+            max_seek_bytes: 1_048_576,
+        };
+        let fixture = build_native_fixture_with_navigation_inputs_bounded(
             &json_bytes(&header),
             &nodes.iter().map(Vec::as_slice).collect::<Vec<_>>(),
             &edges.iter().map(Vec::as_slice).collect::<Vec<_>>(),
             &rights.iter().map(Vec::as_slice).collect::<Vec<_>>(),
+            stage_limits,
+            producer_deadline,
         );
         let object_id = nav
             .object_get("nodes")
@@ -1790,6 +1812,27 @@ with tempfile.TemporaryDirectory() as d:
             .unwrap()
             .to_owned();
         let cold_limits = fixture.cold_limits();
+        assert_eq!(
+            stage_limits.sqlite.max_output_bytes,
+            cold_limits.max_file_bytes
+        );
+        assert_eq!(
+            stage_limits.sqlite.max_work_bytes,
+            cold_limits.max_work_bytes
+        );
+        assert_eq!(
+            stage_limits.sqlite.max_sql_vm_steps,
+            cold_limits.max_vm_steps
+        );
+        assert_eq!(stage_limits.sqlite.max_rows, cold_limits.max_rows);
+        assert_eq!(
+            stage_limits.sqlite.max_row_bytes as usize,
+            cold_limits.max_row_bytes
+        );
+        assert_eq!(
+            stage_limits.sqlite.sqlite_cache_kib,
+            cold_limits.sqlite_cache_kib
+        );
         let process = NATIVE_SOFTWARE_FIXTURE_PROCESS_LIMITS;
         let base = fixture.path.parent().unwrap().to_path_buf();
         let install = base.join("software/bin/tos-access");
