@@ -106,6 +106,8 @@ fn main() {
     // frame allowance. Explicit prepared selection takes precedence over env.
     let profile = if prepared_model.is_some() {
         tos_access::prepared_local::profile()
+    } else if explicit_data_root || (prepared_root.is_some() && release_root.is_none()) {
+        profile.with_query_timeout(std::time::Duration::from_secs(5))
     } else {
         profile
     };
