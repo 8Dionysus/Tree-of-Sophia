@@ -1172,7 +1172,8 @@ local provider and exact text, so the call returns an explicit
 
 After extraction, install from any location with
 `python -m pip install '/path/to/extracted/access[mcp]'`. Select data explicitly,
-then run `tos verify --profile standalone`, `tos serve`, or `tos mcp`.
+then run `tos-legacy verify --profile standalone`, `tos-legacy serve`, or
+`tos-legacy mcp`.
 
 ## Contracts
 
