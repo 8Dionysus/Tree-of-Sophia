@@ -33,6 +33,12 @@ enum LocalRequest {
     Search(CompressedSearchRequest),
     SearchCapabilities,
     Catalog,
+    Inspect {
+        kind: tos_query::SearchKind,
+        identifier: String,
+        relation_limit: usize,
+    },
+    Lens(JsonValue),
 }
 fn error(code: AccessErrorCode, message: &'static str) -> AccessError {
     AccessError::new(code, message)
@@ -263,6 +269,17 @@ impl PreparedLocalExecutor {
                     now,
                 )
                 .map_err(query_error)?
+        } else if let LocalRequest::Inspect {
+            kind,
+            identifier,
+            relation_limit,
+        } = &request
+        {
+            session
+                .inspect(&s.binding, *kind, identifier, *relation_limit)
+                .map_err(AccessError::from)?
+        } else if let LocalRequest::Lens(spec) = &request {
+            session.lens(&s.binding, spec).map_err(AccessError::from)?
         } else if matches!(request, LocalRequest::Catalog) {
             session.catalog(&s.binding).map_err(query_error)?
         } else {
@@ -374,7 +391,11 @@ impl AccessExecutor for PreparedLocalExecutor {
     fn knowledge_available(&self, operation: KnowledgeOperation) -> bool {
         matches!(
             operation,
-            KnowledgeOperation::SearchCapabilities | KnowledgeOperation::Catalog
+            KnowledgeOperation::SearchCapabilities
+                | KnowledgeOperation::Catalog
+                | KnowledgeOperation::Node
+                | KnowledgeOperation::Relation
+                | KnowledgeOperation::Lens
         )
     }
     fn knowledge(
@@ -387,6 +408,26 @@ impl AccessExecutor for PreparedLocalExecutor {
                 self.read(LocalRequest::SearchCapabilities, probe)
             }
             KnowledgeRequest::Catalog => self.read(LocalRequest::Catalog, probe),
+            KnowledgeRequest::Node {
+                node_id,
+                relation_limit,
+            } => self.read(
+                LocalRequest::Inspect {
+                    kind: tos_query::SearchKind::Nodes,
+                    identifier: node_id,
+                    relation_limit,
+                },
+                probe,
+            ),
+            KnowledgeRequest::Relation { relation_id } => self.read(
+                LocalRequest::Inspect {
+                    kind: tos_query::SearchKind::Relations,
+                    identifier: relation_id,
+                    relation_limit: 0,
+                },
+                probe,
+            ),
+            KnowledgeRequest::Lens(spec) => self.read(LocalRequest::Lens(spec), probe),
             _ => Err(unavailable()),
         }
     }

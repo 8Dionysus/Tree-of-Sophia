@@ -6392,3 +6392,463 @@ mod local_reading {
         drop(executor);
     }
 }
+
+// Prepared inspect/lens transport coverage is separate from catalog/search cases.
+mod prepared_inspect_lens {
+    use super::*;
+    use tos_compiler::local_prepared::{
+        PreparedChange, PreparedRows, PublicationLimits, apply_prepared_delta_until,
+        publish_prepared_rows_until,
+    };
+    use tos_foundation::emit_python_compact_json;
+    fn json(raw: &[u8]) -> JsonValue {
+        parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default())
+            .unwrap()
+            .into_root()
+    }
+    fn encode(v: &JsonValue) -> Vec<u8> {
+        emit_python_compact_json(v, JsonLimits::default()).unwrap()
+    }
+    struct Rows {
+        nodes: Vec<JsonValue>,
+        relations: Vec<JsonValue>,
+    }
+    impl PreparedRows for Rows {
+        fn visit(
+            &mut self,
+            kind: &str,
+            sink: &mut dyn FnMut(&JsonValue) -> tos_compiler::Result<()>,
+        ) -> tos_compiler::Result<()> {
+            for row in if kind == "node" {
+                &self.nodes
+            } else {
+                &self.relations
+            } {
+                sink(row)?;
+            }
+            Ok(())
+        }
+    }
+    fn node(id: &str, entity: &str, wording: &str) -> JsonValue {
+        json(format!(r#"{{"id":"{id}","entity_id":"{entity}","native_id":"{id}-native","source_graph":"philosophy","kind_id":"concept","type_id":"concept","display":{{"title":{{"de":"{wording}"}}}},"properties":{{"zero":0,"false":false}},"source_refs":["ToS/philosophy/{id}.md"],"source_record":{{"payload":{{"properties":{{"source_record":{{"record_type":"node","record_id":"tos.node.{id}","record_version":1,"wording":"{wording}","zero":0,"false":false}}}}}},"digest":"{}","transform_version":"tos-knowledge-normalization-v2","field_map":{{}}}}}}"#, "c".repeat(64)).as_bytes())
+    }
+    fn wires(
+        executor: &tos_access::prepared_local::PreparedLocalExecutor,
+        profile: AccessProfile,
+        args: &[String],
+        path: &str,
+        tool: &str,
+        arguments: &str,
+    ) -> JsonValue {
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        assert_eq!(
+            cli::run_cli(args, executor, profile, &mut out, &mut err),
+            0,
+            "{}",
+            String::from_utf8_lossy(&err)
+        );
+        let expected = json(&out);
+        let response = handle_get(executor, "GET", path, profile);
+        assert_eq!(
+            response.status,
+            200,
+            "{}",
+            String::from_utf8_lossy(&response.body)
+        );
+        assert!(semantic_eq(&expected, &json(&response.body)));
+        drop(response);
+        let input = format!(
+            "{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{{\"protocolVersion\":\"2025-11-25\"}}}}\n{{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}}\n{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"{tool}\",\"arguments\":{arguments}}}}}\n"
+        );
+        let mut output = Vec::new();
+        run_io(
+            Cursor::new(input.as_bytes()),
+            &mut output,
+            executor,
+            profile,
+        )
+        .unwrap();
+        let lines = output
+            .split(|b| *b == b'\n')
+            .filter(|l| !l.is_empty())
+            .collect::<Vec<_>>();
+        assert_eq!(lines.len(), 2);
+        let rpc = json(lines[1]);
+        assert!(semantic_eq(
+            &expected,
+            rpc.object_get("result")
+                .unwrap()
+                .object_get("structuredContent")
+                .unwrap()
+        ));
+        expected
+    }
+    fn lens_wires(
+        executor: &tos_access::prepared_local::PreparedLocalExecutor,
+        profile: AccessProfile,
+        spec_path: &Path,
+        spec: &JsonValue,
+    ) -> JsonValue {
+        let args = vec![
+            "lens".into(),
+            "compile".into(),
+            spec_path.to_str().unwrap().into(),
+        ];
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        assert_eq!(
+            cli::run_cli(&args, executor, profile, &mut out, &mut err),
+            0,
+            "{}",
+            String::from_utf8_lossy(&err)
+        );
+        let expected = json(&out);
+        let response = tos_access::http::handle_post(
+            executor,
+            "/api/knowledge/lenses/compile",
+            &encode(spec),
+            profile,
+        );
+        assert_eq!(
+            response.status,
+            200,
+            "{}",
+            String::from_utf8_lossy(&response.body)
+        );
+        assert!(semantic_eq(&expected, &json(&response.body)));
+        drop(response);
+        let input = format!(
+            "{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{{\"protocolVersion\":\"2025-11-25\"}}}}\n{{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}}\n{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"tos_knowledge_lens_compile\",\"arguments\":{{\"spec\":{}}}}}}}\n",
+            String::from_utf8(encode(spec)).unwrap()
+        );
+        let mut output = Vec::new();
+        run_io(
+            Cursor::new(input.as_bytes()),
+            &mut output,
+            executor,
+            profile,
+        )
+        .unwrap();
+        let lines = output
+            .split(|b| *b == b'\n')
+            .filter(|l| !l.is_empty())
+            .collect::<Vec<_>>();
+        assert_eq!(lines.len(), 2);
+        let rpc = json(lines[1]);
+        assert!(semantic_eq(
+            &expected,
+            rpc.object_get("result")
+                .unwrap()
+                .object_get("structuredContent")
+                .unwrap()
+        ));
+        expected
+    }
+    fn actual(binary: &Path, path: &Path, binding: &Path, args: &[String], expected: &JsonValue) {
+        let out = crate::native_child::bounded_output_until(
+            std::process::Command::new(binary)
+                .arg("--prepared-db")
+                .arg(path)
+                .arg("--prepared-binding")
+                .arg(binding)
+                .args(args),
+            4 * 1024 * 1024 + 1,
+            Duration::from_secs(5),
+        );
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        assert!(semantic_eq(expected, &json(&out.stdout)));
+    }
+    #[test]
+    #[ignore = "requires OPS-protected inspect/lens consumer and finite admitted host profile"]
+    fn prepared_inspect_lens_full_delta_cli_http_mcp_and_current_fence() {
+        use std::os::unix::fs::PermissionsExt;
+        let selected = PathBuf::from(
+            std::env::var_os("TOS_NATIVE_PREPARED_CONSUMER_BIN")
+                .expect("OPS protected native consumer required"),
+        );
+        assert!(selected.is_absolute());
+        let sha =
+            std::env::var("TOS_NATIVE_PREPARED_CONSUMER_SHA256").expect("OPS exact SHA required");
+        let tick = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "tos-prepared-inspect-lens-{}-{tick}",
+            std::process::id()
+        ));
+        fs::create_dir(&dir).unwrap();
+        let image_cap = 256 * 1024 * 1024;
+        let image = tos_fd_open::open_absolute_regular(&selected, image_cap).unwrap();
+        let binary = dir.join("tos-access");
+        let mut dest = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&binary)
+            .unwrap();
+        assert!(std::io::copy(&mut (&image).take(image_cap + 1), &mut dest).unwrap() <= image_cap);
+        dest.sync_all().unwrap();
+        drop(dest);
+        drop(image);
+        fs::set_permissions(&binary, fs::Permissions::from_mode(0o500)).unwrap();
+        assert_eq!(
+            crate::native_child::bounded_sha(&binary, image_cap).to_hex(),
+            sha
+        );
+        let path = dir.join("prepared.sqlite");
+        let binding_path = dir.join("binding.json");
+        let header=json(format!(r#"{{"schema":"tos_knowledge_graph_v1","source_revision":"{}","normalization_binding":{{"schema":"tos_knowledge_graph_normalization_binding_v1","processor_digest":"{}","entity_registry_digest":"{}","relation_registry_digest":"{}","configuration_digest":"{}"}},"authority_boundary":{{"source_owner":"Tree-of-Sophia","is_source":false,"is_canon":false,"writes_to_tree":false}},"query_properties":[]}}"#,"a".repeat(64),"b".repeat(64),"b".repeat(64),"b".repeat(64),"b".repeat(64)).as_bytes());
+        let catalog = json(
+            format!(
+                r#"{{"schema":"tos_knowledge_catalog_v1","source_revision":"{}","lenses":[]}}"#,
+                "a".repeat(64)
+            )
+            .as_bytes(),
+        );
+        let a = node("a", "shared", "Schicksal");
+        let a2 = node("a2", "shared", "Schicksal zweite");
+        let b = node("b", "eb", "Wiederkehr");
+        let relation=json(br#"{"id":"r","native_id":"r-native","source_graph":"philosophy","from_id":"a","to_id":"b","predicate_id":"related","relation_type_id":"related","properties":{"zero":0,"false":false}}"#);
+        let publication = PublicationLimits {
+            max_bytes: 4 * 1024 * 1024,
+            max_mutations: 100_000,
+            max_row_bytes: 4096,
+            max_metadata_bytes: 65_536,
+            max_changes: 16,
+            max_change_bytes: 65_536,
+        };
+        let binding = publish_prepared_rows_until(
+            &path,
+            &header,
+            &catalog,
+            &mut Rows {
+                nodes: vec![a.clone(), a2.clone(), b.clone()],
+                relations: vec![relation],
+            },
+            publication,
+            std::time::Instant::now() + Duration::from_secs(10),
+        )
+        .unwrap();
+        fs::write(&binding_path, encode(&binding)).unwrap();
+        let executor = tos_access::prepared_local::PreparedLocalExecutor::open(
+            path.clone(),
+            binding_path.clone(),
+            None,
+        )
+        .unwrap();
+        let profile = tos_access::prepared_local::profile();
+        let node_args = ["knowledge", "node", "shared", "--relation-limit", "1"].map(str::to_owned);
+        let relation_args = ["knowledge", "relation", "r-native"].map(str::to_owned);
+        let inspect = |exec: &tos_access::prepared_local::PreparedLocalExecutor| {
+            let n = wires(
+                exec,
+                profile,
+                &node_args,
+                "/api/knowledge/nodes/shared?relation_limit=1",
+                "tos_knowledge_node",
+                r#"{"node_id":"shared","relation_limit":1}"#,
+            );
+            assert_eq!(
+                n.object_get("shared_entity_id").unwrap().as_bool(),
+                Some(true)
+            );
+            assert_eq!(
+                n.object_get("matches").unwrap().as_array().unwrap().len(),
+                2
+            );
+            assert_eq!(
+                n.object_get("related_relations")
+                    .unwrap()
+                    .as_array()
+                    .unwrap()
+                    .len(),
+                1
+            );
+            assert!(
+                !n.object_get("source_read_targets")
+                    .unwrap()
+                    .as_object()
+                    .unwrap()
+                    .is_empty()
+            );
+            let targets = n.object_get("source_read_targets").unwrap();
+            for id in ["a", "a2"] {
+                let target = targets.object_get(id).unwrap();
+                assert_eq!(
+                    target.object_get("source_revision").unwrap().as_str(),
+                    Some("a".repeat(64).as_str())
+                );
+                assert_eq!(
+                    target
+                        .object_get("target")
+                        .unwrap()
+                        .object_get("record_ref")
+                        .unwrap()
+                        .object_get("id")
+                        .unwrap()
+                        .as_str(),
+                    Some(format!("tos.node.{id}").as_str())
+                );
+            }
+            let r = wires(
+                exec,
+                profile,
+                &relation_args,
+                "/api/knowledge/relations/r-native",
+                "tos_knowledge_relation",
+                r#"{"relation_id":"r-native"}"#,
+            );
+            assert_eq!(
+                r.object_get("endpoints").unwrap().as_array().unwrap().len(),
+                2
+            );
+            let endpoints = r.object_get("endpoints").unwrap().as_array().unwrap();
+            assert!(
+                endpoints
+                    .iter()
+                    .any(|v| v.object_get("id").and_then(JsonValue::as_str) == Some("a"))
+            );
+            assert!(
+                endpoints
+                    .iter()
+                    .any(|v| v.object_get("id").and_then(JsonValue::as_str) == Some("b"))
+            );
+            (n, r)
+        };
+        let spec=json(br#"{"schema_version":"tos_lens_spec_v1","lens_id":"prepared-transport","sources":["philosophy"]}"#);
+        let spec_path = dir.join("lens.json");
+        fs::write(&spec_path, encode(&spec)).unwrap();
+        let lens_args = vec![
+            "lens".into(),
+            "compile".into(),
+            spec_path.to_str().unwrap().into(),
+        ];
+        let first_lens = lens_wires(&executor, profile, &spec_path, &spec);
+        actual(&binary, &path, &binding_path, &lens_args, &first_lens);
+        let mut held_lens = executor
+            .knowledge(
+                tos_access::KnowledgeRequest::Lens(spec.clone()),
+                profile.deadline_probe(),
+            )
+            .unwrap();
+        let (first, relation_packet) = inspect(&executor);
+        assert!(semantic_eq(
+            &first.object_get("matches").unwrap().as_array().unwrap()[0],
+            &a
+        ));
+        assert!(semantic_eq(
+            &first.object_get("matches").unwrap().as_array().unwrap()[1],
+            &a2
+        ));
+        actual(&binary, &path, &binding_path, &node_args, &first);
+        actual(
+            &binary,
+            &path,
+            &binding_path,
+            &relation_args,
+            &relation_packet,
+        );
+        let zero = handle_get(
+            &executor,
+            "GET",
+            "/api/knowledge/nodes/shared?relation_limit=0",
+            profile,
+        );
+        assert_eq!(zero.status, 200);
+        assert!(
+            json(&zero.body)
+                .object_get("related_relations")
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+        drop(zero);
+        let mut held = executor
+            .knowledge(
+                tos_access::KnowledgeRequest::Node {
+                    node_id: "shared".into(),
+                    relation_limit: 1,
+                },
+                profile.deadline_probe(),
+            )
+            .unwrap();
+        let next_a = node("a", "shared", "Schicksal weiter");
+        let next = apply_prepared_delta_until(
+            &path,
+            &binding,
+            &header,
+            &catalog,
+            [Ok(PreparedChange {
+                operation: "update".into(),
+                kind: "node".into(),
+                identifier: "a".into(),
+                item: Some(next_a.clone()),
+                source_order: Some(0),
+            })],
+            publication,
+            std::time::Instant::now() + Duration::from_secs(10),
+        )
+        .unwrap();
+        assert_eq!(
+            held.fence.recheck().unwrap_err().code,
+            tos_access::AccessErrorCode::StaleSelection
+        );
+        drop(held);
+        assert_eq!(
+            held_lens.fence.recheck().unwrap_err().code,
+            tos_access::AccessErrorCode::StaleSelection
+        );
+        drop(held_lens);
+        assert_eq!(
+            handle_get(&executor, "GET", "/api/knowledge/nodes/shared", profile).status,
+            409
+        );
+        fs::write(&binding_path, encode(&next)).unwrap();
+        let successor = tos_access::prepared_local::PreparedLocalExecutor::open(
+            path.clone(),
+            binding_path.clone(),
+            None,
+        )
+        .unwrap();
+        let second_lens = lens_wires(&successor, profile, &spec_path, &spec);
+        actual(&binary, &path, &binding_path, &lens_args, &second_lens);
+        assert!(
+            !semantic_eq(&first_lens, &second_lens),
+            "delta must change lens body/fingerprint"
+        );
+        let (second, second_relation) = inspect(&successor);
+        assert!(semantic_eq(
+            &second.object_get("matches").unwrap().as_array().unwrap()[0],
+            &next_a
+        ));
+        actual(&binary, &path, &binding_path, &node_args, &second);
+        actual(
+            &binary,
+            &path,
+            &binding_path,
+            &relation_args,
+            &second_relation,
+        );
+        assert_eq!(
+            handle_get(&successor, "GET", "/api/knowledge/nodes/missing", profile).status,
+            404
+        );
+        assert_eq!(
+            handle_get(
+                &successor,
+                "GET",
+                "/api/knowledge/nodes/shared",
+                profile.with_query_timeout(Duration::ZERO)
+            )
+            .status,
+            408
+        );
+        drop(successor);
+        drop(executor);
+        fs::remove_dir_all(dir).unwrap();
+    }
+}
