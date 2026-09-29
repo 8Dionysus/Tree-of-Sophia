@@ -248,7 +248,8 @@ fn validation_lane_selection_runs_in_order_and_stops_at_first_failure() {
     )
     .unwrap();
     fs::set_permissions(&adapter, fs::Permissions::from_mode(0o700)).unwrap();
-    let executable = env!("CARGO_BIN_EXE_tos-validation-lanes");
+    let executable = std::env::var_os("TOS_VALIDATION_LANES_TEST_EXECUTABLE")
+        .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-validation-lanes").into());
     let output = Command::new(executable)
         .args([
             "--repo-root",
@@ -276,10 +277,8 @@ fn validation_lane_selection_runs_in_order_and_stops_at_first_failure() {
     assert!(stdout.contains("[ok] first\n"));
     assert!(stdout.contains(&format!("[run] failing: {} fail\n", adapter.display())));
     assert!(!stdout.contains("[run] later:"));
-    assert!(
-        String::from_utf8(output.stderr)
-            .unwrap()
-            .contains("[error] failing failed with exit code 17\n")
-    );
+    assert!(String::from_utf8(output.stderr)
+        .unwrap()
+        .contains("[error] failing failed with exit code 17\n"));
     fs::remove_dir_all(root).unwrap();
 }
