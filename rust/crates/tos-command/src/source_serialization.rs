@@ -216,8 +216,9 @@ pub(crate) fn capture_claim_creation(
     )
 }
 
-struct OwnerTextCapture<'a> {
+struct TextCaptureProfile<'a> {
     rights: &'a JsonValue,
+    publication_authority: Option<&'a JsonValue>,
     inputs: Vec<Value>,
     event_type: &'static str,
     source_path: &'a str,
@@ -255,8 +256,9 @@ pub(crate) fn capture_initial_text_layer(
         software,
         components,
         "exact-native-text-layer-structural-extraction",
-        Some(OwnerTextCapture {
+        Some(TextCaptureProfile {
             rights,
+            publication_authority: None,
             inputs,
             event_type: "native_extraction",
             source_path,
@@ -301,8 +303,9 @@ pub(crate) fn capture_first_text_unit(
         } else {
             "exact-native-text-unit-construction"
         },
-        Some(OwnerTextCapture {
+        Some(TextCaptureProfile {
             rights,
+            publication_authority: None,
             inputs,
             event_type: "annotation",
             source_path,
@@ -355,8 +358,9 @@ pub(crate) fn capture_owner_alignment(
         software,
         components,
         "native-supplied-alignment-proposal-capture",
-        Some(OwnerTextCapture {
+        Some(TextCaptureProfile {
             rights,
+            publication_authority: None,
             inputs,
             event_type: "annotation",
             source_path,
@@ -414,8 +418,9 @@ pub(crate) fn capture_derived_text_layer(
         software,
         components,
         &procedure,
-        Some(OwnerTextCapture {
+        Some(TextCaptureProfile {
             rights,
+            publication_authority: None,
             inputs,
             event_type: if matches!(
                 operation,
@@ -454,6 +459,59 @@ pub(crate) fn capture_derived_text_layer(
     )
 }
 
+/// Observe the whole public project-text construction, including its first unit.
+/// Rights and publication scope are supplied owner evidence, not process assessment.
+pub(crate) fn capture_public_project_text(
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    source_path: &str,
+    rights: &JsonValue,
+    publication_authority: &JsonValue,
+    inputs: Vec<Value>,
+    files: &mut BTreeMap<String, Vec<u8>>,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    if inputs.is_empty()
+        || [
+            "content.txt",
+            "source-text-layer.v1.json",
+            "source-text-unit.v1.json",
+            "construction-plan.json",
+        ]
+        .iter()
+        .any(|name| !files.contains_key(*name))
+    {
+        return Err(SourceCommandError::Invalid(
+            "native public project-text capture closure",
+        ));
+    }
+    capture_creation_with_procedure(
+        request,
+        event_id,
+        home,
+        files,
+        software,
+        components,
+        "tos.project-authored.utf8-range.v1",
+        Some(TextCaptureProfile {
+            rights,
+            publication_authority: Some(publication_authority),
+            inputs,
+            event_type: "native_extraction",
+            source_path,
+            warning: "Exact project-authored UTF-8 range and explicit partition captured; atomic source publication follows. No textual, linguistic, semantic or rights assessment was performed.",
+            purpose: "Capture a literal UTF-8 source range and proposed segmentation under independently supplied project-text public authority; preserve original source bytes and separate native identities.",
+            replay_scope: "Exact source range and proposed partition with bound inputs, implementation and public plan; not content correctness or deterministic timestamps. Protected grant paths are not published.",
+        }),
+        deadline,
+        cancelled,
+    )
+}
+
 fn capture_creation_with_procedure(
     request: &JsonValue,
     event_id: &str,
@@ -462,7 +520,7 @@ fn capture_creation_with_procedure(
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     procedure_name: &str,
-    private_text: Option<OwnerTextCapture<'_>>,
+    text_capture: Option<TextCaptureProfile<'_>>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
@@ -537,7 +595,8 @@ fn capture_creation_with_procedure(
         "reproducibility":{"classification":"partially_specified","known_gaps":["Selected source capture is byte evidence only; compiler, dependencies, build and source-to-ELF relationship are not attested.","Upstream research/source reading/model invocation are outside this serialization.","Clock observations and durations are not deterministic; complete runtime environment is not archived."],"replay_scope":"Exact retained request and source-copy buffers only, not historical or semantic correctness."},
         "authority_boundary":{"validator_role":"mechanics_and_closure_only_not_truth","claims_not_established":["execution_truth","content_truth","source_fidelity","translation_quality","semantic_correctness","rights_clearance","human_review","publication_authority","canon_authority"]}
     });
-    if let Some(profile) = private_text {
+    if let Some(profile) = text_capture {
+        let public = profile.publication_authority.is_some();
         let rights: Value = serde_json::from_slice(&cmd::canonical(profile.rights)?)
             .map_err(|_| SourceCommandError::Invalid("native Text rights capture"))?;
         let input_count = profile.inputs.len();
@@ -552,7 +611,14 @@ fn capture_creation_with_procedure(
                 .as_array_mut()
                 .ok_or(SourceCommandError::Invalid("native Text event entities"))?
             {
-                row["content_disclosure"] = json!("private_content");
+                row["content_disclosure"] = json!(if public {
+                    "public_content"
+                } else {
+                    "private_content"
+                });
+                if public {
+                    row["availability"] = json!("tracked");
+                }
                 if row["entity_ref"]
                     .as_str()
                     .is_some_and(|reference| reference.ends_with("/content.txt"))
@@ -564,24 +630,47 @@ fn capture_creation_with_procedure(
         for index in 0..input_count {
             let source_ref = event["entities"]["inputs"][index + 1]["entity_ref"].clone();
             event["derivations"].as_array_mut().ok_or(SourceCommandError::Invalid("native Text event derivations"))?
-                .push(json!({"derivation_id":format!("{}.native-{index}",event_id.replacen("tos.event.","tos.derivation.",1)),
+                .push(json!({"derivation_id":format!("{}.{}-{index}",event_id.replacen("tos.event.","tos.derivation.",1), if public { "public-native" } else { "native" }),
                     "input_entity_ref":source_ref,"output_entity_ref":profile.source_path,
                     "relation":"selection_from","influence_asserted":true,
-                    "description":"Technical exact-source dependency for structural extraction, not source fidelity or textual truth."}));
+                    "description":if public { "Exact project-text construction dependency, not historical influence or assessment." } else { "Technical exact-source dependency for structural extraction, not source fidelity or textual truth." }}));
         }
+        let configuration_file = if public {
+            "construction-plan.json"
+        } else {
+            "source-create-owner-configuration.json"
+        };
         event["method"]["configuration_binding"] = binding(
-            "source-create-owner-configuration.json",
+            configuration_file,
             files
-                .get("source-create-owner-configuration.json")
-                .ok_or(SourceCommandError::Invalid("native Text retained grant"))?,
+                .get(configuration_file)
+                .ok_or(SourceCommandError::Invalid(
+                    "native Text retained configuration",
+                ))?,
         );
         event["method"]["procedure"]["purpose"] = json!(profile.purpose);
         event["rights_and_visibility"]["rights_record_bindings"] = rights;
-        event["rights_and_visibility"]["intended_uses"] = json!(["local_research"]);
-        event["rights_and_visibility"]["content_visibility"] = json!("local_only");
-        event["reproducibility"]["known_gaps"][0] = json!(
+        event["rights_and_visibility"]["intended_uses"] = if public {
+            json!(["public_metadata", "publication"])
+        } else {
+            json!(["local_research"])
+        };
+        event["rights_and_visibility"]["content_visibility"] = json!(if public {
+            "public_content"
+        } else {
+            "local_only"
+        });
+        if let Some(authority) = profile.publication_authority {
+            let authority: Value = serde_json::from_slice(&cmd::canonical(authority)?)
+                .map_err(|_| SourceCommandError::Invalid("native public authority capture"))?;
+            event["rights_and_visibility"]["publication_authorized"] = json!(true);
+            event["rights_and_visibility"]["publication_authority_bindings"] = json!([authority]);
+        }
+        event["reproducibility"]["known_gaps"][0] = json!(if public {
+            "Project authorship, licensing and delegated publication scope are supplied owner evidence, not granted or authenticated by this unsigned process; no model or human assessment is executed."
+        } else {
             "Source selection and rights decisions belong to the independent owner; this capture records bounded extraction mechanics without assessing source fidelity or content truth."
-        );
+        });
         event["reproducibility"]["replay_scope"] = json!(profile.replay_scope);
     }
     let event_raw = encoded(event)?;

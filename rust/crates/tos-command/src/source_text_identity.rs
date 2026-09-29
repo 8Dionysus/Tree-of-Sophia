@@ -4,7 +4,9 @@
 
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::active;
+use crate::source_public_text_owner::PublicNativeTextSelection;
 use crate::source_text_owner::OwnerTextContext;
+use crate::source_text_private_store::TextPackageOwner;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::Metadata;
 use std::os::fd::AsRawFd;
@@ -64,23 +66,12 @@ fn directory(path: &Path, uid: u32, private: bool) -> SourceCommandResult<std::f
 }
 
 fn paths(
-    context: &OwnerTextContext,
+    context: &impl TextPackageOwner,
     exclude: Option<&Path>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Vec<String>> {
-    let roots = [
-        (
-            context.public_root(),
-            context.public_root().join("ToS/source-witnesses"),
-            false,
-        ),
-        (
-            context.private_root(),
-            context.private_identity_home(),
-            true,
-        ),
-    ];
+    let roots = context.identity_roots();
     let mut pending: Vec<(&Path, PathBuf, bool)> = roots
         .iter()
         .map(|(root, start, private)| (*root, start.clone(), *private))
@@ -277,7 +268,7 @@ pub(crate) fn selected_alignment_identity_snapshot(
 }
 
 fn selected_identity_snapshot_with_ancestry(
-    context: &OwnerTextContext,
+    context: &impl TextPackageOwner,
     delegated: &[&str],
     exclude: Option<&Path>,
     ancestry: Option<&BTreeMap<String, Digest256>>,
@@ -291,7 +282,8 @@ fn selected_identity_snapshot_with_ancestry(
     let mut records = 0usize;
     for reference in &selected {
         active(deadline, cancelled)?;
-        let bytes = context.read(reference, remaining.min(MAX_FILE), deadline, cancelled)?;
+        let bytes =
+            context.identity_read(reference, remaining.min(MAX_FILE), deadline, cancelled)?;
         remaining -= bytes.len();
         inputs.insert(
             reference.as_str(),
@@ -365,4 +357,14 @@ fn selected_identity_snapshot_with_ancestry(
     )
     .map_err(|_| SourceCommandError::Unsupported("native Text identity snapshot byte budget"))?;
     Ok(Digest256::of_bytes(&raw))
+}
+
+pub(crate) fn selected_public_identity_snapshot(
+    context: &PublicNativeTextSelection,
+    delegated: &[&str],
+    exclude: Option<&Path>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Digest256> {
+    selected_identity_snapshot_with_ancestry(context, delegated, exclude, None, deadline, cancelled)
 }

@@ -4,6 +4,7 @@
 
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::{active, raw};
+use crate::source_public_text_owner::PublicNativeTextSelection;
 use crate::source_text_owner::OwnerTextContext;
 use base64::Engine;
 use base64::alphabet::STANDARD as BASE64_ALPHABET;
@@ -15,7 +16,7 @@ use std::fs::{File, Metadata};
 use std::io::Write;
 use std::os::fd::AsRawFd;
 use std::os::unix::fs::MetadataExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -28,6 +29,164 @@ const MAX_FILES: usize = 12;
 const MAX_PACKAGE: usize = 12 * 1024 * 1024;
 const MAX_CONTROL: usize = 18 * 1024 * 1024;
 const MAX_FILE: usize = 8 * 1024 * 1024;
+
+mod sealed {
+    pub trait Sealed {}
+    impl Sealed for super::OwnerTextContext {}
+    impl Sealed for super::PublicNativeTextSelection {}
+}
+
+/// Internal custody boundary: exactly the private and public native owners.
+pub(crate) trait TextPackageOwner: sealed::Sealed {
+    fn account_uid(&self) -> u32;
+    fn public_root(&self) -> &Path;
+    fn target_root(&self) -> &Path;
+    fn recovery_root(&self) -> &Path;
+    fn target_is_private(&self) -> bool;
+    fn new_package_target(&self, reference: &str) -> SourceCommandResult<PathBuf>;
+    fn package(
+        &self,
+        reference: &str,
+        expected: &[&str],
+        state: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<BTreeMap<String, Vec<u8>>>;
+    fn identity_roots(&self) -> Vec<(&Path, PathBuf, bool)>;
+    fn identity_read(
+        &self,
+        reference: &str,
+        limit: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Vec<u8>>;
+    fn package_limit(&self) -> usize {
+        if self.target_is_private() {
+            MAX_PACKAGE
+        } else {
+            2 * 1024 * 1024
+        }
+    }
+    fn control_limit(&self) -> usize {
+        MAX_CONTROL
+    }
+    fn file_limit(&self, name: &str) -> usize {
+        if !self.target_is_private() && name == "content.txt" {
+            128 * 1024
+        } else {
+            MAX_FILE
+        }
+    }
+    fn control_prefix(&self) -> &'static str {
+        if self.target_is_private() {
+            ".native-construction-"
+        } else {
+            ".public-native-construction-"
+        }
+    }
+    fn lock_name(&self) -> &'static str {
+        if self.target_is_private() {
+            ".native-create.writer.lock"
+        } else {
+            ".public-native-create.writer.lock"
+        }
+    }
+}
+impl TextPackageOwner for OwnerTextContext {
+    fn account_uid(&self) -> u32 {
+        self.account_uid()
+    }
+    fn public_root(&self) -> &Path {
+        self.public_root()
+    }
+    fn target_root(&self) -> &Path {
+        self.private_root()
+    }
+    fn recovery_root(&self) -> &Path {
+        self.private_root()
+    }
+    fn target_is_private(&self) -> bool {
+        true
+    }
+    fn new_package_target(&self, r: &str) -> SourceCommandResult<PathBuf> {
+        self.private_new_package_target(r)
+    }
+    fn package(
+        &self,
+        r: &str,
+        e: &[&str],
+        s: usize,
+        d: Instant,
+        c: &AtomicBool,
+    ) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
+        self.private_package(r, e, s, d, c)
+    }
+    fn identity_roots(&self) -> Vec<(&Path, PathBuf, bool)> {
+        vec![
+            (
+                self.public_root(),
+                self.public_root().join("ToS/source-witnesses"),
+                false,
+            ),
+            (self.private_root(), self.private_identity_home(), true),
+        ]
+    }
+    fn identity_read(
+        &self,
+        r: &str,
+        l: usize,
+        d: Instant,
+        c: &AtomicBool,
+    ) -> SourceCommandResult<Vec<u8>> {
+        self.read(r, l, d, c)
+    }
+}
+impl TextPackageOwner for PublicNativeTextSelection {
+    fn account_uid(&self) -> u32 {
+        self.account_uid()
+    }
+    fn public_root(&self) -> &Path {
+        self.public_root()
+    }
+    fn target_root(&self) -> &Path {
+        self.target_root()
+    }
+    fn recovery_root(&self) -> &Path {
+        self.recovery_root()
+    }
+    fn target_is_private(&self) -> bool {
+        false
+    }
+    fn new_package_target(&self, r: &str) -> SourceCommandResult<PathBuf> {
+        self.new_package_target(r)
+    }
+    fn package(
+        &self,
+        r: &str,
+        e: &[&str],
+        s: usize,
+        d: Instant,
+        c: &AtomicBool,
+    ) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
+        self.package(r, e, s, d, c)
+    }
+    fn identity_roots(&self) -> Vec<(&Path, PathBuf, bool)> {
+        vec![(
+            self.public_root(),
+            self.public_root().join("ToS/source-witnesses"),
+            false,
+        )]
+    }
+    fn identity_read(
+        &self,
+        r: &str,
+        l: usize,
+        d: Instant,
+        c: &AtomicBool,
+    ) -> SourceCommandResult<Vec<u8>> {
+        self.read(r, l, d, c)
+    }
+}
 
 fn bad_plan() -> SourceCommandError {
     SourceCommandError::Invalid("native private construction control")
@@ -48,8 +207,11 @@ fn request_digest(request: &JsonValue) -> SourceCommandResult<String> {
 
 /// Exact maintained `tos_native_construction_stage_v1` plan. The package
 /// bytes and encoded control are both admitted before base64 allocation.
-pub(crate) fn encode_plan(
+fn encode_plan_bounded(
     target_ref: &str,
+    package_limit: usize,
+    control_limit: usize,
+    file_limit: impl Fn(&str) -> usize,
     request: &JsonValue,
     files: &BTreeMap<String, Vec<u8>>,
 ) -> SourceCommandResult<Vec<u8>> {
@@ -72,7 +234,8 @@ pub(crate) fn encode_plan(
             .checked_add(name.len())
             .and_then(|n| n.checked_add(len))
             .ok_or(bad_plan())?;
-        if bytes.len() > MAX_FILE || total > MAX_PACKAGE || encoded_total > MAX_CONTROL {
+        if bytes.len() > file_limit(name) || total > package_limit || encoded_total > control_limit
+        {
             return Err(SourceCommandError::Unsupported(
                 "native private plan byte budget",
             ));
@@ -82,7 +245,7 @@ pub(crate) fn encode_plan(
     // expansion. Reserve the actual fixed fields, target, punctuation and LF
     // before allocating the encoded copies.
     let limits = JsonLimits {
-        max_bytes: MAX_CONTROL,
+        max_bytes: control_limit,
         ..JsonLimits::default()
     };
     let target_len = canonical_count_v1(
@@ -95,7 +258,7 @@ pub(crate) fn encode_plan(
         .checked_add(target_len)
         .and_then(|n| n.checked_add(512 + MAX_FILES * 8))
         .ok_or(bad_plan())?;
-    if control_upper > MAX_CONTROL {
+    if control_upper > control_limit {
         return Err(SourceCommandError::Unsupported(
             "native private control byte budget",
         ));
@@ -115,7 +278,11 @@ pub(crate) fn encode_plan(
     ]);
     let mut raw = canonical_bytes_v1(&plan, CanonicalProfile::SourceCommandInputV1, limits)
         .map_err(|_| bad_plan())?;
-    if raw.len().checked_add(1).is_none_or(|len| len > MAX_CONTROL) {
+    if raw
+        .len()
+        .checked_add(1)
+        .is_none_or(|len| len > control_limit)
+    {
         return Err(SourceCommandError::Unsupported(
             "native private control byte budget",
         ));
@@ -127,19 +294,22 @@ pub(crate) fn encode_plan(
 /// Existing Python plans use `b64decode(validate=True)`. Its trailing-bit
 /// behavior is deliberately selected here; Rust's default decoder refuses
 /// nonzero unused bits although the maintained reader accepts them.
-pub(crate) fn decode_plan(
+fn decode_plan_bounded(
     raw: &[u8],
     target_ref: &str,
+    package_limit: usize,
+    control_limit: usize,
+    file_limit: impl Fn(&str) -> usize,
     request: &JsonValue,
 ) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
-    if raw.len() > MAX_CONTROL {
+    if raw.len() > control_limit {
         return Err(bad_plan());
     }
     let plan = parse_json(
         raw,
         JsonMode::PublishedStrict,
         JsonLimits {
-            max_bytes: MAX_CONTROL,
+            max_bytes: control_limit,
             ..JsonLimits::default()
         },
     )
@@ -165,12 +335,12 @@ pub(crate) fn decode_plan(
         &BASE64_ALPHABET,
         GeneralPurposeConfig::new().with_decode_allow_trailing_bits(true),
     );
-    let mut remaining = MAX_PACKAGE;
+    let mut remaining = package_limit;
     let mut files = BTreeMap::new();
     for (name, value) in entries {
         let name = name.as_str().ok_or(bad_plan())?;
         let encoded = value.as_str().ok_or(bad_plan())?;
-        if !leaf(name) || encoded.len() > MAX_CONTROL {
+        if !leaf(name) || encoded.len() > control_limit {
             return Err(bad_plan());
         }
         let upper = encoded
@@ -182,7 +352,7 @@ pub(crate) fn decode_plan(
             return Err(bad_plan());
         }
         let bytes = python_base64.decode(encoded).map_err(|_| bad_plan())?;
-        if bytes.len() > MAX_FILE || bytes.len() > remaining {
+        if bytes.len() > file_limit(name) || bytes.len() > remaining {
             return Err(bad_plan());
         }
         remaining -= bytes.len();
@@ -191,6 +361,21 @@ pub(crate) fn decode_plan(
         }
     }
     Ok(files)
+}
+
+pub(crate) fn encode_plan(
+    t: &str,
+    r: &JsonValue,
+    f: &BTreeMap<String, Vec<u8>>,
+) -> SourceCommandResult<Vec<u8>> {
+    encode_plan_bounded(t, MAX_PACKAGE, MAX_CONTROL, |_| MAX_FILE, r, f)
+}
+pub(crate) fn decode_plan(
+    b: &[u8],
+    t: &str,
+    r: &JsonValue,
+) -> SourceCommandResult<BTreeMap<String, Vec<u8>>> {
+    decode_plan_bounded(b, t, MAX_PACKAGE, MAX_CONTROL, |_| MAX_FILE, r)
 }
 
 fn stamp(meta: &Metadata) -> (u64, u64, u64, i64, i64, i64, i64) {
@@ -411,8 +596,8 @@ fn control_name(target: &Path, request: &JsonValue) -> SourceCommandResult<Strin
 
 /// Exact target/command bytes only. The owning Text caller still verifies
 /// their original receipt and current source, rights and publication state.
-pub(crate) fn observe_private_text(
-    context: &OwnerTextContext,
+pub(crate) fn observe_owned_text(
+    context: &impl TextPackageOwner,
     target_ref: &str,
     request: &JsonValue,
     expected: &[&str],
@@ -420,28 +605,34 @@ pub(crate) fn observe_private_text(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<PrivateTextCustody> {
     active(deadline, cancelled)?;
-    let target = context.private_new_package_target(target_ref)?;
+    let target = context.new_package_target(target_ref)?;
     match target.symlink_metadata() {
         Ok(_) => {
             let package_ref = target_ref.rsplit_once('/').ok_or(bad_plan())?.0;
-            let state = expected.iter().try_fold(MAX_PACKAGE, |total, name| {
-                total
-                    .checked_add(name.len())
-                    .and_then(|n| n.checked_add(128))
-                    .ok_or(bad_plan())
-            })?;
+            let state = expected
+                .iter()
+                .try_fold(context.package_limit(), |total, name| {
+                    total
+                        .checked_add(name.len())
+                        .and_then(|n| n.checked_add(128))
+                        .ok_or(bad_plan())
+                })?;
             return context
-                .private_package(package_ref, expected, state, deadline, cancelled)
+                .package(package_ref, expected, state, deadline, cancelled)
                 .map(PrivateTextCustody::Published);
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
         Err(_) => return Err(SourceCommandError::Denied("native Text target observation")),
     }
     let uid = context.account_uid();
-    let root = tos_fd_open::open_absolute_directory(context.private_root())
+    let root = tos_fd_open::open_absolute_directory(context.recovery_root())
         .map_err(|_| SourceCommandError::Denied("native Text private root"))?;
     directory(&root, uid, true)?;
-    let name = control_name(&target, request)?;
+    let name = control_name(&target, request)?.replacen(
+        ".native-construction-",
+        context.control_prefix(),
+        1,
+    );
     let control = match rustix::fs::openat(
         &root,
         name.as_str(),
@@ -460,15 +651,30 @@ pub(crate) fn observe_private_text(
         deadline,
         cancelled,
     )?;
-    let raw = read_at(&control, "plan.json", uid, MAX_CONTROL, deadline, cancelled)?.ok_or(
-        SourceCommandError::Conflict("native Text control lacks plan"),
-    )?;
+    let raw = read_at(
+        &control,
+        "plan.json",
+        uid,
+        context.control_limit(),
+        deadline,
+        cancelled,
+    )?
+    .ok_or(SourceCommandError::Conflict(
+        "native Text control lacks plan",
+    ))?;
     let target_rel = target
-        .strip_prefix(context.private_root())
+        .strip_prefix(context.target_root())
         .map_err(|_| bad_plan())?
         .to_str()
         .ok_or(bad_plan())?;
-    let files = decode_plan(&raw, target_rel, request)?;
+    let files = decode_plan_bounded(
+        &raw,
+        target_rel,
+        context.package_limit(),
+        context.control_limit(),
+        |name| context.file_limit(name),
+        request,
+    )?;
     if files.len() != expected.len() || files.keys().any(|name| !expected.contains(&name.as_str()))
     {
         return Err(SourceCommandError::Conflict(
@@ -498,7 +704,15 @@ pub(crate) fn observe_private_text(
         Err(Errno::NOENT) => (),
         Err(_) => return Err(SourceCommandError::Denied("native Text stage unsafe")),
     }
-    if read_at(&control, "plan.json", uid, MAX_CONTROL, deadline, cancelled)?.as_deref()
+    if read_at(
+        &control,
+        "plan.json",
+        uid,
+        context.control_limit(),
+        deadline,
+        cancelled,
+    )?
+    .as_deref()
         != Some(raw.as_slice())
     {
         return Err(SourceCommandError::Conflict(
@@ -512,8 +726,8 @@ pub(crate) fn observe_private_text(
 /// control. The alignment inspector uses it to call `observe_private_text`
 /// again with the complete request and all staged-file checks. Reading this
 /// descriptive value neither resumes nor authorizes a pending publication.
-pub(crate) fn alignment_recovery_request(
-    context: &OwnerTextContext,
+fn owned_recovery_request(
+    context: &impl TextPackageOwner,
     target_ref: &str,
     command_id: &str,
     deadline: Instant,
@@ -523,11 +737,15 @@ pub(crate) fn alignment_recovery_request(
         return Err(bad_plan());
     }
     active(deadline, cancelled)?;
-    let target = context.private_new_package_target(target_ref)?;
+    let target = context.new_package_target(target_ref)?;
     let selected = cmd::object(vec![("command_id", cmd::string(command_id))]);
-    let name = control_name(&target, &selected)?;
+    let name = control_name(&target, &selected)?.replacen(
+        ".native-construction-",
+        context.control_prefix(),
+        1,
+    );
     let uid = context.account_uid();
-    let root = tos_fd_open::open_absolute_directory(context.private_root())
+    let root = tos_fd_open::open_absolute_directory(context.recovery_root())
         .map_err(|_| SourceCommandError::Denied("native Text private root"))?;
     directory(&root, uid, true)?;
     let control = match rustix::fs::openat(
@@ -552,13 +770,20 @@ pub(crate) fn alignment_recovery_request(
         deadline,
         cancelled,
     )?;
-    let raw = read_at(&control, "plan.json", uid, MAX_CONTROL, deadline, cancelled)?
-        .ok_or(SourceCommandError::Conflict("native alignment plan absent"))?;
+    let raw = read_at(
+        &control,
+        "plan.json",
+        uid,
+        context.control_limit(),
+        deadline,
+        cancelled,
+    )?
+    .ok_or(SourceCommandError::Conflict("native alignment plan absent"))?;
     let plan = parse_json(
         &raw,
         JsonMode::PublishedStrict,
         JsonLimits {
-            max_bytes: MAX_CONTROL,
+            max_bytes: context.control_limit(),
             ..JsonLimits::default()
         },
     )
@@ -569,7 +794,7 @@ pub(crate) fn alignment_recovery_request(
         &["schema_version", "target_ref", "request_digest", "files"],
     )?;
     let target_rel = target
-        .strip_prefix(context.private_root())
+        .strip_prefix(context.target_root())
         .map_err(|_| bad_plan())?
         .to_str()
         .ok_or(bad_plan())?;
@@ -582,7 +807,9 @@ pub(crate) fn alignment_recovery_request(
         .object_get("source-create-request.json")
         .and_then(JsonValue::as_str)
         .ok_or(bad_plan())?;
-    if encoded.len() > MAX_CONTROL || encoded.len() / 4 * 3 > MAX_PACKAGE + 2 {
+    if encoded.len() > context.control_limit()
+        || encoded.len() / 4 * 3 > context.package_limit() + 2
+    {
         return Err(bad_plan());
     }
     let python_base64 = GeneralPurpose::new(
@@ -590,11 +817,18 @@ pub(crate) fn alignment_recovery_request(
         GeneralPurposeConfig::new().with_decode_allow_trailing_bits(true),
     );
     let request_raw = python_base64.decode(encoded).map_err(|_| bad_plan())?;
-    if request_raw.len() > MAX_FILE {
+    if request_raw.len() > context.file_limit("source-create-request.json") {
         return Err(bad_plan());
     }
     let request = cmd::parse(&request_raw)?;
-    let files = decode_plan(&raw, target_rel, &request)?;
+    let files = decode_plan_bounded(
+        &raw,
+        target_rel,
+        context.package_limit(),
+        context.control_limit(),
+        |name| context.file_limit(name),
+        &request,
+    )?;
     if cmd::text(&request, "command_id")? != command_id
         || request_digest(&request)? != cmd::text(&plan, "request_digest")?
         || files.get("source-create-request.json").map(Vec::as_slice)
@@ -609,7 +843,7 @@ pub(crate) fn alignment_recovery_request(
 
 impl PrivateTextLocks {
     pub(crate) fn acquire(
-        context: &OwnerTextContext,
+        context: &impl TextPackageOwner,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Self> {
@@ -626,16 +860,10 @@ impl PrivateTextLocks {
             deadline,
             cancelled,
         )?;
-        let private = tos_fd_open::open_absolute_directory(context.private_root())
+        let private = tos_fd_open::open_absolute_directory(context.recovery_root())
             .map_err(|_| SourceCommandError::Denied("native Text private home"))?;
         directory(&private, uid, true)?;
-        let owner = lock_at(
-            &private,
-            ".native-create.writer.lock",
-            uid,
-            deadline,
-            cancelled,
-        )?;
+        let owner = lock_at(&private, context.lock_name(), uid, deadline, cancelled)?;
         Ok(Self {
             _historical: historical,
             _private: owner,
@@ -646,8 +874,8 @@ impl PrivateTextLocks {
 /// The caller holds the selected Text grant and supplies its real current
 /// source/rights/identity guard. The durable plan precedes all output; failed
 /// or foreign stages remain visible to the owner and are never auto-cleaned.
-pub(crate) fn publish_private_text(
-    context: &OwnerTextContext,
+pub(crate) fn publish_owned_text(
+    context: &impl TextPackageOwner,
     target_ref: &str,
     request: &JsonValue,
     files: &BTreeMap<String, Vec<u8>>,
@@ -660,7 +888,7 @@ pub(crate) fn publish_private_text(
     // Serialize the complete bounded plan before taking either publication
     // lock. The locked checks below still authenticate current inputs and the
     // exact retained plan before any selected destination mutation.
-    let target = context.private_new_package_target(target_ref)?;
+    let target = context.new_package_target(target_ref)?;
     let parent_path = target.parent().ok_or(bad_plan())?;
     let target_name = target
         .file_name()
@@ -670,15 +898,26 @@ pub(crate) fn publish_private_text(
         return Err(bad_plan());
     }
     let target_rel = target
-        .strip_prefix(context.private_root())
+        .strip_prefix(context.target_root())
         .map_err(|_| bad_plan())?
         .to_str()
         .ok_or(bad_plan())?;
-    let plan = encode_plan(target_rel, request, files)?;
-    let control_name = control_name(&target, request)?;
+    let plan = encode_plan_bounded(
+        target_rel,
+        context.package_limit(),
+        context.control_limit(),
+        |name| context.file_limit(name),
+        request,
+        files,
+    )?;
+    let control_name = control_name(&target, request)?.replacen(
+        ".native-construction-",
+        context.control_prefix(),
+        1,
+    );
     let mut held = Some(PrivateTextLocks::acquire(context, deadline, cancelled)?);
     stage_guard()?;
-    if context.private_new_package_target(target_ref)? != target {
+    if context.new_package_target(target_ref)? != target {
         return Err(SourceCommandError::Conflict(
             "native Text destination changed before staging",
         ));
@@ -686,8 +925,8 @@ pub(crate) fn publish_private_text(
     let uid = context.account_uid();
     let parent = tos_fd_open::open_absolute_directory(parent_path)
         .map_err(|_| SourceCommandError::Denied("native Text destination parent"))?;
-    let parent_before = directory(&parent, uid, true)?;
-    let root = tos_fd_open::open_absolute_directory(context.private_root())
+    let parent_before = directory(&parent, uid, context.target_is_private())?;
+    let root = tos_fd_open::open_absolute_directory(context.recovery_root())
         .map_err(|_| SourceCommandError::Denied("native Text private root"))?;
     directory(&root, uid, true)?;
     match rustix::fs::mkdirat(&root, control_name.as_str(), Mode::from_raw_mode(0o700)) {
@@ -707,18 +946,40 @@ pub(crate) fn publish_private_text(
         deadline,
         cancelled,
     )?;
-    let retained_raw = read_at(&control, "plan.json", uid, MAX_CONTROL, deadline, cancelled)?
-        .ok_or(SourceCommandError::Conflict(
-            "native Text control lacks plan",
-        ))?;
-    let retained = decode_plan(&retained_raw, target_rel, request)?;
+    let retained_raw = read_at(
+        &control,
+        "plan.json",
+        uid,
+        context.control_limit(),
+        deadline,
+        cancelled,
+    )?
+    .ok_or(SourceCommandError::Conflict(
+        "native Text control lacks plan",
+    ))?;
+    let retained = decode_plan_bounded(
+        &retained_raw,
+        target_rel,
+        context.package_limit(),
+        context.control_limit(),
+        |name| context.file_limit(name),
+        request,
+    )?;
     if retained != *files {
         return Err(SourceCommandError::Conflict(
             "native Text retained plan differs",
         ));
     }
     stage_guard()?;
-    if read_at(&control, "plan.json", uid, MAX_CONTROL, deadline, cancelled)?.as_deref()
+    if read_at(
+        &control,
+        "plan.json",
+        uid,
+        context.control_limit(),
+        deadline,
+        cancelled,
+    )?
+    .as_deref()
         != Some(retained_raw.as_slice())
     {
         return Err(SourceCommandError::Conflict("native Text plan changed"));
@@ -754,10 +1015,10 @@ pub(crate) fn publish_private_text(
         // The stronger owner may run Git and signature verification. It must
         // never hold either corpus publication lock while doing that work.
         held = None;
-        let output_path = context.private_root().join(&control_name).join("output");
+        let output_path = context.recovery_root().join(&control_name).join("output");
         verify_staged(&output_path)?;
         held = Some(PrivateTextLocks::acquire(context, deadline, cancelled)?);
-        let current_root = tos_fd_open::open_absolute_directory(context.private_root())
+        let current_root = tos_fd_open::open_absolute_directory(context.recovery_root())
             .map_err(|_| SourceCommandError::Conflict("native Text private root changed"))?;
         let current_control = child(&root, &control_name, uid)?;
         let current_output = child(&current_control, "output", uid)?;
@@ -786,7 +1047,15 @@ pub(crate) fn publish_private_text(
     // A fresh complete check is required after owner verification reacquires
     // the locks; without that release this is the sole complete lock check.
     final_guard()?;
-    if read_at(&control, "plan.json", uid, MAX_CONTROL, deadline, cancelled)?.as_deref()
+    if read_at(
+        &control,
+        "plan.json",
+        uid,
+        context.control_limit(),
+        deadline,
+        cancelled,
+    )?
+    .as_deref()
         != Some(retained_raw.as_slice())
     {
         return Err(SourceCommandError::Conflict(
@@ -795,8 +1064,13 @@ pub(crate) fn publish_private_text(
     }
     let current_parent = tos_fd_open::open_absolute_directory(parent_path)
         .map_err(|_| SourceCommandError::Conflict("native Text destination parent changed"))?;
-    if stamp(&parent_before) != stamp(&directory(&parent, uid, true)?)
-        || stamp(&parent_before) != stamp(&directory(&current_parent, uid, true)?)
+    if stamp(&parent_before) != stamp(&directory(&parent, uid, context.target_is_private())?)
+        || stamp(&parent_before)
+            != stamp(&directory(
+                &current_parent,
+                uid,
+                context.target_is_private(),
+            )?)
     {
         return Err(SourceCommandError::Conflict(
             "native Text destination parent changed",
@@ -819,14 +1093,14 @@ pub(crate) fn publish_private_text(
         .sync_all()
         .map_err(|_| SourceCommandError::Conflict("native Text control fsync uncertain"))?;
     let package_ref = target_ref.rsplit_once('/').ok_or(bad_plan())?.0;
-    let selected_state = expected.iter().try_fold(MAX_PACKAGE, |n, name| {
-        n.checked_add(name.len())
-            .and_then(|n| n.checked_add(128))
-            .ok_or(bad_plan())
-    })?;
-    if context.private_package(package_ref, &expected, selected_state, deadline, cancelled)?
-        != retained
-    {
+    let selected_state = expected
+        .iter()
+        .try_fold(context.package_limit(), |n, name| {
+            n.checked_add(name.len())
+                .and_then(|n| n.checked_add(128))
+                .ok_or(bad_plan())
+        })?;
+    if context.package(package_ref, &expected, selected_state, deadline, cancelled)? != retained {
         return Err(SourceCommandError::Conflict(
             "native Text published bytes differ",
         ));
@@ -959,4 +1233,70 @@ pub(crate) fn publish_flat_text(
         }
     }
     staged
+}
+
+pub(crate) fn observe_private_text(
+    c: &OwnerTextContext,
+    t: &str,
+    r: &JsonValue,
+    e: &[&str],
+    d: Instant,
+    a: &AtomicBool,
+) -> SourceCommandResult<PrivateTextCustody> {
+    observe_owned_text(c, t, r, e, d, a)
+}
+pub(crate) fn observe_public_text(
+    c: &PublicNativeTextSelection,
+    t: &str,
+    r: &JsonValue,
+    e: &[&str],
+    d: Instant,
+    a: &AtomicBool,
+) -> SourceCommandResult<PrivateTextCustody> {
+    observe_owned_text(c, t, r, e, d, a)
+}
+pub(crate) fn publish_private_text(
+    c: &OwnerTextContext,
+    t: &str,
+    r: &JsonValue,
+    f: &BTreeMap<String, Vec<u8>>,
+    s: impl FnMut() -> SourceCommandResult<()>,
+    g: impl FnMut() -> SourceCommandResult<()>,
+    v: Option<&mut dyn FnMut(&Path) -> SourceCommandResult<()>>,
+    d: Instant,
+    a: &AtomicBool,
+) -> SourceCommandResult<()> {
+    publish_owned_text(c, t, r, f, s, g, v, d, a)
+}
+pub(crate) fn publish_public_text(
+    c: &PublicNativeTextSelection,
+    t: &str,
+    r: &JsonValue,
+    f: &BTreeMap<String, Vec<u8>>,
+    s: impl FnMut() -> SourceCommandResult<()>,
+    g: impl FnMut() -> SourceCommandResult<()>,
+    v: Option<&mut dyn FnMut(&Path) -> SourceCommandResult<()>>,
+    d: Instant,
+    a: &AtomicBool,
+) -> SourceCommandResult<()> {
+    publish_owned_text(c, t, r, f, s, g, v, d, a)
+}
+
+pub(crate) fn alignment_recovery_request(
+    c: &OwnerTextContext,
+    t: &str,
+    id: &str,
+    d: Instant,
+    a: &AtomicBool,
+) -> SourceCommandResult<Option<(JsonValue, BTreeMap<String, Vec<u8>>)>> {
+    owned_recovery_request(c, t, id, d, a)
+}
+pub(crate) fn public_recovery_request(
+    c: &PublicNativeTextSelection,
+    t: &str,
+    id: &str,
+    d: Instant,
+    a: &AtomicBool,
+) -> SourceCommandResult<Option<(JsonValue, BTreeMap<String, Vec<u8>>)>> {
+    owned_recovery_request(c, t, id, d, a)
 }
