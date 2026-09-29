@@ -65,7 +65,7 @@ pub use knowledge_inspect::{
 pub use knowledge_packet::{
     DisclosableIndexedSearch, IndexedDisclosureLease, IndexedDisclosureScope,
     IndexedKnowledgeAuthority, IndexedPageBudget, IndexedWireCursorCodec,
-    execute_indexed_search_page,
+    INDEXED_SEARCH_INTENDED_USE, INDEXED_SEARCH_OPERATION_ID, execute_indexed_search_page,
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_temporal::execute_selected_temporal;
