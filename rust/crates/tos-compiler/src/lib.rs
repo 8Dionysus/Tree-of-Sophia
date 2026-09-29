@@ -37,6 +37,7 @@ pub mod prepared_maintenance;
 pub mod prepared_maintenance_file;
 pub mod prepared_semantic_index;
 mod prepared_semantic_kernel;
+pub mod prepared_source_binding;
 pub use d1_public_build::{
     PublicD1Build, PublicD1BuildLimits, build_public_d1, portable_public_d1_limits,
 };
