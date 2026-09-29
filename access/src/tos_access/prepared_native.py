@@ -45,6 +45,7 @@ def native_publication(path, *, executable, timeout, operation, header, catalog,
         raise ValueError('native prepared publication requires an absolute selected executable')
     if type(timeout) is not int or not 1 <= timeout <= (1 << 64) - 1:
         raise ValueError('native prepared publication requires explicit positive whole seconds')
+    deadline = time.monotonic() + timeout
     frame = {'operation': operation, 'path': str(Path(path).absolute()),
              'header': header, 'catalog': catalog, 'limits': dataclasses.asdict(limits),
              'max_seconds': timeout}
@@ -63,6 +64,8 @@ def native_publication(path, *, executable, timeout, operation, header, catalog,
         raw = _compact(value).encode('utf-8')
         if len(raw) > cap:
             raise ValueError('native prepared input frame byte budget exceeded')
+        if time.monotonic() >= deadline:
+            raise TimeoutError('native prepared whole-operation deadline exceeded')
         return raw + b'\n'
 
     first = encoded(frame, HEADER_FRAME_BYTES)
@@ -96,8 +99,6 @@ def native_publication(path, *, executable, timeout, operation, header, catalog,
                 yield raw
             yield b'{"end":true}\n'
 
-    started = time.monotonic()
-    deadline = started + timeout
     callback = search_reuse.progress if search_reuse is not None else None
     ack_read, ack_write = os.pipe() if callback is not None else (None, None)
     command = [str(executable), 'prepared-publication', '--max-seconds', str(timeout)]
