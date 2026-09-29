@@ -31,6 +31,12 @@ mod search_document;
 mod search_execute;
 pub mod search_index;
 pub mod search_v2;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod compressed_search;
+#[cfg(not(target_arch = "wasm32"))]
+mod compressed_search_state;
+#[cfg(not(target_arch = "wasm32"))]
+mod compressed_search_sqlite;
 mod source_descend;
 mod source_read_projection;
 #[cfg(not(target_arch = "wasm32"))]
