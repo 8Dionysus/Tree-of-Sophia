@@ -30,7 +30,7 @@ jobs:
           CARGO_BUILD_JOBS: "2"
         run: |
           rustup toolchain install 1.98.1 --profile minimal
-          cargo +1.98.1 build --locked -p tos-ops-mechanics-plan \
+          cargo +1.98.1 build --locked --no-default-features -p tos-ops-mechanics-plan \
             --bin tos-release-check --bin tos-validation-lanes --bin tos-software-ci \
             --target x86_64-unknown-linux-gnu
           mkdir "$RUNNER_TEMP/tos-ci-executors"

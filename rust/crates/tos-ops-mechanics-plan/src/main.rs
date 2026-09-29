@@ -11,7 +11,9 @@ static CANCEL: AtomicI32 = AtomicI32::new(0);
 enum Action {
     Plan,
     Execute,
-    ThresholdBuild { check: bool },
+    ThresholdBuild {
+        check: bool,
+    },
     ThresholdValidate,
     RelationPackValidate,
     QuestbookValidate,
@@ -24,6 +26,7 @@ enum Action {
     SourceHome,
     PhilosophyTopology,
     SemanticRegistryTransition,
+    #[cfg(feature = "compiler-backed-validators")]
     PhilosophyGraphViews,
 }
 
@@ -57,7 +60,10 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     let mut source_home = false;
     let mut philosophy_topology = false;
     let mut semantic_registry_transition = false;
+    #[cfg(feature = "compiler-backed-validators")]
     let mut philosophy_graph_views = false;
+    #[cfg(not(feature = "compiler-backed-validators"))]
+    let philosophy_graph_views = false;
     let mut semantic = SemanticOptions::default();
     let mut check = false;
     let mut limits = Limits::default();
@@ -77,6 +83,7 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
             "--source-home" => source_home = true,
             "--philosophy-topology" => philosophy_topology = true,
             "--semantic-registry-transition" => semantic_registry_transition = true,
+            #[cfg(feature = "compiler-backed-validators")]
             "--philosophy-graph-views-validate" => philosophy_graph_views = true,
             "--baseline-commit" => {
                 let baseline = args.next().ok_or("missing baseline commit")?;
@@ -159,7 +166,14 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
     } else if semantic_registry_transition {
         Action::SemanticRegistryTransition
     } else if philosophy_graph_views {
-        Action::PhilosophyGraphViews
+        #[cfg(feature = "compiler-backed-validators")]
+        {
+            Action::PhilosophyGraphViews
+        }
+        #[cfg(not(feature = "compiler-backed-validators"))]
+        {
+            return Err("compiler-backed validators are unavailable in this build".into());
+        }
     } else if philosophy_topology {
         Action::PhilosophyTopology
     } else if source_home {
@@ -180,7 +194,10 @@ fn arguments() -> Result<(PathBuf, String, Action, Limits, SemanticOptions), Str
 
 fn main() {
     let (root, python, action, limits, semantic) = arguments().unwrap_or_else(|error| {
-        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --source-home | --philosophy-topology | --philosophy-graph-views-validate | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
+        let compiler_flag = if cfg!(feature = "compiler-backed-validators") {
+            " | --philosophy-graph-views-validate"
+        } else { "" };
+        eprintln!("{error}\nusage: tos-ops-mechanics-plan --repo-root PATH [--python COMMAND] [--execute | --threshold-registry-build [--check] | --threshold-registry-validate | --relation-pack-validate | --questbook-validate | --public-mirror-validate | --public-mirror-sync | --derived-kag-validate | --derived-kag-generate | --mechanics-topology-validate | --active-naming-validate | --source-home | --philosophy-topology{compiler_flag} | --semantic-registry-transition [--baseline-commit REF] [--allow-initial-introduction] [--json]] [--command-timeout-ms N] [--lane-timeout-ms N] [--cleanup-grace-ms N] [--max-output-bytes N]");
         std::process::exit(2);
     });
     let result = match action {
@@ -313,6 +330,7 @@ fn main() {
                 }
             })
         }
+        #[cfg(feature = "compiler-backed-validators")]
         Action::PhilosophyGraphViews => {
             tos_ops_mechanics_plan::philosophy_graph_views::run(&root, &CANCEL)
         }

@@ -301,3 +301,12 @@ bytes, Foundation parse state, canonical bytes and serde DOM coexist during
 normalization; atlas DOM then coexists with builder indexes/source DOM/output.
 The separate limits preserve the whole input contract, without asserting RAM
 fit or full corpus capacity from a small controlled consumer.
+
+The default `compiler-backed-validators` feature includes the philosophy graph
+view validator and its compiler-backed rebuild. Normal package installation
+keeps that feature enabled. The three CI prerequisite executors
+`tos-software-ci`, `tos-validation-lanes` and `tos-release-check` use
+`--no-default-features`: their selector, command manifest and process executor
+paths do not depend on `tos-compiler`. Such a build does not provide the
+compiler-backed validator flag. This is a dependency boundary, not a measured
+performance or whole-validator acceptance claim.

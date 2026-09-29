@@ -5,6 +5,7 @@ pub mod active_naming;
 pub mod derived_kag;
 pub mod executor;
 pub mod mechanics_topology;
+#[cfg(feature = "compiler-backed-validators")]
 pub mod philosophy_graph_views;
 pub mod philosophy_topology;
 pub mod public_mirror;
