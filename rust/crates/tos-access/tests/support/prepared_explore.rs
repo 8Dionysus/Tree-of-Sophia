@@ -120,6 +120,17 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
     )
     .unwrap();
     let profile = tos_access::prepared_local::profile();
+    let capabilities = tos_access::http::handle_get(
+        &executor,
+        "GET",
+        "/api/knowledge/explore/capabilities",
+        profile,
+    );
+    assert_eq!(capabilities.status, 200);
+    let capabilities: Value = serde_json::from_slice(&capabilities.body).unwrap();
+    assert_eq!(capabilities["available"], true);
+    assert_eq!(capabilities["restart_survival"], false);
+    assert_eq!(capabilities["limits"]["work_per_page"], 512);
     let post = |body: &[u8]| {
         let response = handle_post(&executor, "/api/knowledge/explore", body, profile);
         assert_eq!(

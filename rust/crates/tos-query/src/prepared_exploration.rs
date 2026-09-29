@@ -35,6 +35,31 @@ fn field<'a>(value: &'a JsonValue, key: &str) -> Result<&'a str> {
 fn encode(value: &JsonValue, max: usize) -> Result<Vec<u8>> {
     emit_python_compact_json(value, codec(max)).map_err(|_| budget())
 }
+/// Actual prepared exploration limits, shared with software capability discovery.
+pub fn exploration_budget(
+    limits: tos_compiler::local_prepared::PreparedReadLimits,
+) -> ExplorationBudget {
+    let inspect = InspectBudget {
+        max_open_vm_steps: limits.max_vm_steps,
+        max_read_vm_steps: limits.max_vm_steps,
+        max_matches: 128,
+        max_rows: limits.max_rows as u64,
+        max_field_bytes: 65_536.min(limits.max_row_bytes),
+        max_payload_bytes: limits.max_row_bytes,
+        max_decoded_bytes: limits.max_bytes as u64,
+        max_response_bytes: limits.max_response_bytes,
+        json: codec(limits.max_row_bytes),
+    };
+    ExplorationBudget {
+        read: inspect,
+        max_work_units: 512,
+        max_session_nodes: 10_000,
+        max_session_relations: 20_000,
+        max_state_bytes: 1_000_000,
+        max_checkpoint_bytes: 32 * 1024 * 1024,
+        max_checkpoints: 128,
+    }
+}
 pub(crate) fn explore(
     read: &mut Read<'_>,
     view: &PreparedReadTransaction<'_>,
@@ -60,26 +85,8 @@ pub(crate) fn explore(
             }
         })
         .ok_or_else(corrupt)?;
-    let inspect = InspectBudget {
-        max_open_vm_steps: limits.max_vm_steps,
-        max_read_vm_steps: limits.max_vm_steps,
-        max_matches: 128,
-        max_rows: limits.max_rows as u64,
-        max_field_bytes: 65_536.min(limits.max_row_bytes),
-        max_payload_bytes: limits.max_row_bytes,
-        max_decoded_bytes: limits.max_bytes as u64,
-        max_response_bytes: limits.max_response_bytes,
-        json: codec(limits.max_row_bytes),
-    };
-    let exploration = ExplorationBudget {
-        read: inspect,
-        max_work_units: 512,
-        max_session_nodes: 10_000,
-        max_session_relations: 20_000,
-        max_state_bytes: 1_000_000,
-        max_checkpoint_bytes: 32 * 1024 * 1024,
-        max_checkpoints: 128,
-    };
+    let exploration = exploration_budget(limits);
+    let inspect = exploration.read;
     let snapshot = rules::published_exploration_snapshot(data, epoch, inspect.json)?;
     read.check_abort().map_err(storage_error)?;
     let checkpoint = cursor
