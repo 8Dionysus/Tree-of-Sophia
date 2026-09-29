@@ -174,7 +174,7 @@ impl ReadingFixture {
                     "ctx",
                     format!("surface-{i}"),
                     *start as i64,
-                    (*start + 8) as i64,
+                    (*start + "Schicksal".chars().count()) as i64,
                     "Schicksal",
                     hash("Schicksal"),
                     "proposed"
