@@ -5,6 +5,8 @@
 //! execute a query, interpret a cursor, grant source access or alter the
 //! direct knowledge API's legacy default.
 
+#[cfg(feature = "wasm")]
+mod client_inspection;
 mod claim_reading;
 mod claim_reference;
 mod constructor_machine;
@@ -39,6 +41,9 @@ pub use temporal_session::{
 
 #[cfg(feature = "wasm")]
 pub use record_context::RecordContextSession;
+
+#[cfg(feature = "wasm")]
+pub use client_inspection::ClientInspectionSession;
 
 pub use claim_reading::validate_claim_reading_v1;
 pub use claim_reference::validate_claim_reference_v1;

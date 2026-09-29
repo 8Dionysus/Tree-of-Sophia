@@ -1,3 +1,4 @@
+import {createClientInspectionSession,inspectionRevisionText,inspectionRevisionUnits} from './client-inspection-rules.mjs';
 import {t,uiLanguage} from './ui-i18n.mjs';
 import {relationLabel,fileLabel,sourceLinkLabel,languageName,readableTitleForm,isReadablePresentationTitle} from './human-presentation.mjs';
 import {chooseKnowledgeSearchMode} from '../knowledge-search.ts';
@@ -354,6 +355,42 @@ export class RequestSlots {
     } finally {if(this.slots.get(name)===controller)this.slots.delete(name);}
   }
 }
+function validateClientInspection(packet,kind,id,expected,contentRevision){
+  const session=createClientInspectionSession();
+  const items=(values,itemKind)=>{
+    session.items(Array.isArray(values));const ids=new Set();
+    for(const item of values){
+      session.identity(Boolean(item)&&typeof item.id==='string'&&Boolean(item.id)&&!ids.has(item.id));
+      session.display(Boolean(item.display)&&Boolean(localized(itemKind==='node'?item.display.title:item.display.label)));
+      const revision=inspectionRevisionText(item.content_revision||'');
+      session.content_revision_length(revision.length);session.content_revision(inspectionRevisionUnits(revision));
+      session.source_refs(Array.isArray(item.source_refs)&&Boolean(item.source_refs.length)
+        &&!item.source_refs.some(ref=>typeof ref!=='string'||!ref));
+      ids.add(item.id);
+    }
+    return ids;
+  };
+  try{
+    const revision=inspectionRevisionText(packet?.source_revision||'');
+    session.revision_length(revision.length);session.revision(inspectionRevisionUnits(revision));
+    if(expected)session.expected_revision(packet.source_revision===expected);
+    session.schema(packet.schema===(kind==='node'?'tos_knowledge_node_packet_v1':'tos_knowledge_relation_packet_v1'));
+    items(packet.matches,kind);
+    const match=packet.matches.find(item=>item.id===id);session.exact_match(Boolean(match));
+    if(contentRevision)session.expected_revision(match.content_revision===contentRevision);
+    if(kind==='relation'){
+      const ids=items(packet.endpoints,'node');session.endpoints(ids.has(match.from_id)&&ids.has(match.to_id));
+    }
+    return match;
+  }catch(error){
+    if(error==='revision')throw new RevisionError();
+    const messages={missing_revision:'Ответ не содержит версию данных.',schema:'Неверная карточка.',
+      items:'Неверный список объектов.',item:'Неполный или повторяющийся объект.',
+      match:'Не найден точный идентификатор карточки.',endpoints:'Неполные концы связи.'};
+    if(typeof error==='string'&&Object.hasOwn(messages,error))throw new ContractError(t(messages[error]));
+    throw error;
+  }finally{session.free();}
+}
 export class KnowledgeClient {
   constructor({fetcher=globalThis.fetch.bind(globalThis),base='/api/knowledge',timeoutMs=60000,maxResponseBytes=DEFAULT_RESPONSE_BYTES}={}){
     validateResponseLimit(maxResponseBytes);
@@ -417,13 +454,8 @@ export class KnowledgeClient {
     return packet;
   }
   async inspect(kind,id,signal,expected,contentRevision) {
-    const packet=checkRevision(await this.request('/'+(kind==='node'?'nodes/':'relations/')+encodeURIComponent(id)+(kind==='node'?'?relation_limit=0':''),{signal}),expected);
-    if(packet.schema!==(kind==='node'?'tos_knowledge_node_packet_v1':'tos_knowledge_relation_packet_v1'))throw new ContractError(t("Неверная карточка."));
-    checkItems(packet.matches,kind);
-    const match=packet.matches.find(item=>item.id===id);
-    if(!match)throw new ContractError(t("Не найден точный идентификатор карточки."));
-    if(contentRevision&&match.content_revision!==contentRevision)throw new RevisionError();
-    if(kind==='relation'){const ids=checkItems(packet.endpoints,'node');if(!ids.has(match.from_id)||!ids.has(match.to_id))throw new ContractError(t("Неполные концы связи."));}
+    const packet=await this.request('/'+(kind==='node'?'nodes/':'relations/')+encodeURIComponent(id)+(kind==='node'?'?relation_limit=0':''),{signal});
+    const match=validateClientInspection(packet,kind,id,expected,contentRevision);
     return {packet,match};
   }
   async sourceDossier(objectId,signal,{limit=SOURCE_DOSSIER_LIMIT}={}) {

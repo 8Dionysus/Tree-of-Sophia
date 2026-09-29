@@ -1,3 +1,4 @@
+import {installClientInspectionRules} from '../src/observatory/client-inspection-rules.mjs';
 import {installKnowledgeSearchRules} from '../src/knowledge-search.ts';
 import {installClaimReadingRules} from '../src/observatory/claim-reading-rules.mjs';
 import {installRecordContextRules} from '../src/observatory/record-context.mjs';
@@ -33,6 +34,7 @@ installHumanFormRules(rules);
 installRecordContextRules(rules);
 installKnowledgeSearchRules(rules);
 installClaimReadingRules(rules);
+installClientInspectionRules(rules);
 installConditionRules(rules);
 installDraftRules(rules);
 installLiveResumeRules(rules);

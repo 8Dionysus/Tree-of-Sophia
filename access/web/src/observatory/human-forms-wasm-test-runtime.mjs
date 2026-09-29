@@ -36,3 +36,6 @@ installClaimReadingRules(runtime);
 
 import {installKnowledgeSearchRules} from '../knowledge-search.ts';
 installKnowledgeSearchRules(runtime);
+
+import {installClientInspectionRules} from './client-inspection-rules.mjs';
+installClientInspectionRules(runtime);

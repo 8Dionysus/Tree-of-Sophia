@@ -327,3 +327,21 @@ test('generated claim headings distinguish declared predicates without parsing I
   raw.display.provenance={title:'source-title',source_title_available:true};raw.display.title.ru='Слова автора';
   assert.equal(displayTitle(raw,'','ru'),'Слова автора');
 });
+
+test('inspection preserves exact source objects and refuses before later field reads',async()=>{
+  const raw=node('opaque:\ud800'),content=new String('b'.repeat(64));raw.content_revision=content;
+  raw.source_refs=new Array(1);raw.unknown={explicit:null};
+  const packet={schema:'tos_knowledge_node_packet_v1',source_revision:fixture.source_revision,matches:[raw]};
+  const client=new KnowledgeClient({fetcher:async()=>({ok:true,json:async()=>packet})});
+  const result=await client.inspect('node',raw.id,undefined,fixture.source_revision,content);
+  assert.equal(result.packet,packet);assert.equal(result.match,raw);assert.equal(result.match.unknown.explicit,null);
+  let reads=0;const duplicate={id:raw.id};
+  Object.defineProperty(duplicate,'display',{get(){reads++;throw new Error('late display access');}});
+  packet.matches=[raw,duplicate];
+  await assert.rejects(client.inspect('node',raw.id,undefined,fixture.source_revision),ContractError);
+  assert.equal(reads,0);
+  Object.defineProperty(packet,'matches',{get(){reads++;throw new Error('late matches access');}});
+  packet.schema='wrong';
+  await assert.rejects(client.inspect('node',raw.id,undefined,fixture.source_revision),ContractError);
+  assert.equal(reads,0);
+});
