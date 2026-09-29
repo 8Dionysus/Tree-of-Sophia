@@ -118,16 +118,148 @@ fn minimum(capabilities: &JsonValue, mode: SearchMode) -> Result<u64, SearchSele
     }
 }
 
-fn eligible(
-    capabilities: &JsonValue,
-    mode: SearchMode,
+// Browser demand-driven observations preserve repeated/lazy JS property reads.
+// Phases: 0 query, 1 availability, 2 minimum, 3 tail availability, 4 done.
+pub struct BrowserSearchMode {
+    requested: Option<SearchMode>,
+    current: SearchMode,
+    phase: u8,
     query_points: Option<usize>,
-) -> Result<bool, SearchSelectionError> {
-    if !available(capabilities, mode) {
-        return Ok(false);
+    selected: Option<SearchMode>,
+    error: Option<SearchSelectionError>,
+}
+impl BrowserSearchMode {
+    pub fn new(requested: u8) -> Self {
+        let mode = match requested {
+            1 => Some(SearchMode::Indexed),
+            2 => Some(SearchMode::Compressed),
+            _ => None,
+        };
+        let mut result = Self {
+            requested: mode,
+            current: mode.unwrap_or(SearchMode::Indexed),
+            phase: 0,
+            query_points: None,
+            selected: None,
+            error: None,
+        };
+        if requested > 2 {
+            result.fail(SearchSelectionErrorCode::InvalidMode);
+        }
+        result
     }
-    let floor = minimum(capabilities, mode)?;
-    Ok(query_points.is_none_or(|length| u64::try_from(length).is_ok_and(|length| length >= floor)))
+    fn fail(&mut self, code: SearchSelectionErrorCode) {
+        self.error = Some(SearchSelectionError::new(code));
+        self.phase = 4;
+    }
+    pub fn phase(&self) -> u8 {
+        self.phase
+    }
+    pub fn current(&self) -> SearchMode {
+        self.current
+    }
+    pub fn selected(&self) -> Option<SearchMode> {
+        self.selected
+    }
+    pub fn error(&self) -> Option<SearchSelectionError> {
+        self.error
+    }
+    pub fn query(&mut self, present: bool, units: &[u16]) {
+        if self.phase != 0 {
+            return;
+        }
+        if present {
+            // A lone surrogate has exactly the same strip/lower/count classes
+            // as U+FFFD: one uncased, non-ignorable, non-whitespace code point.
+            // This internal count carrier is never returned or sent as query.
+            let text: String = char::decode_utf16(units.iter().copied())
+                .map(|item| item.unwrap_or('\u{fffd}'))
+                .collect();
+            let input = units.len();
+            let count = python_strip_unicode16_v1(&text, input)
+                .and_then(|stripped| {
+                    python_lower_unicode16_v1(
+                        stripped,
+                        input,
+                        input.saturating_mul(2),
+                        input.saturating_mul(6),
+                    )
+                })
+                .map(|lowered| lowered.chars().count());
+            match count {
+                Ok(value) => self.query_points = Some(value),
+                Err(_) => {
+                    self.fail(SearchSelectionErrorCode::UnicodeBudgetExceeded);
+                    return;
+                }
+            }
+        }
+        self.phase = 1;
+    }
+    fn query_count(&mut self, count: Option<usize>) {
+        self.query_points = count;
+        self.phase = 1;
+    }
+    fn next(&mut self) {
+        if self.current == SearchMode::Indexed {
+            self.current = SearchMode::Compressed;
+            self.phase = 1;
+        } else {
+            self.current = SearchMode::Indexed;
+            self.phase = 3;
+        }
+    }
+    pub fn availability(&mut self, available: bool) {
+        if self.phase == 3 {
+            if available {
+                self.fail(SearchSelectionErrorCode::NoEligibleMode);
+            } else if self.current == SearchMode::Indexed {
+                self.current = SearchMode::Compressed;
+            } else {
+                self.fail(SearchSelectionErrorCode::EnginesUnavailable);
+            }
+        } else if self.phase == 1 {
+            if available {
+                self.phase = 2;
+            } else if self.requested.is_some() {
+                self.fail(SearchSelectionErrorCode::ModeUnavailable);
+            } else {
+                self.next();
+            }
+        }
+    }
+    pub fn minimum(&mut self, nullish: bool, numeric: bool, value: f64) {
+        if self.phase != 2 {
+            return;
+        }
+        let floor = if nullish { 1.0 } else { value };
+        if !nullish
+            && (!numeric
+                || !floor.is_finite()
+                || floor.fract() != 0.0
+                || floor < 1.0
+                || floor > MAX_SAFE_JS_INTEGER as f64)
+        {
+            self.fail(SearchSelectionErrorCode::InvalidCapability);
+            return;
+        }
+        let floor = floor as u64;
+        if self
+            .query_points
+            .is_none_or(|points| u64::try_from(points).is_ok_and(|points| points >= floor))
+        {
+            self.selected = Some(self.current);
+            self.phase = 4;
+        } else if self.requested.is_some() {
+            self.error = Some(SearchSelectionError::with_minimum(
+                SearchSelectionErrorCode::QueryTooShort,
+                floor,
+            ));
+            self.phase = 4;
+        } else {
+            self.next();
+        }
+    }
 }
 
 /// Select only the page adapter's advertised bounded mode. Input is a JSON
@@ -164,7 +296,7 @@ pub fn select_knowledge_search_mode_v1(raw: &[u8]) -> Result<SearchMode, SearchS
             }
         },
     };
-    let query_points = match field(request, "query") {
+    let query = match field(request, "query") {
         None => None,
         Some(value) => {
             let query = value
@@ -173,6 +305,7 @@ pub fn select_knowledge_search_mode_v1(raw: &[u8]) -> Result<SearchMode, SearchS
             let stripped = python_strip_unicode16_v1(query, MAX_QUERY_POINTS).map_err(|_| {
                 SearchSelectionError::new(SearchSelectionErrorCode::UnicodeBudgetExceeded)
             })?;
+            // Preserve the portable JSON ABI's existing bounded Unicode work.
             let lowered = python_lower_unicode16_v1(
                 stripped,
                 MAX_QUERY_POINTS,
@@ -185,36 +318,31 @@ pub fn select_knowledge_search_mode_v1(raw: &[u8]) -> Result<SearchMode, SearchS
             Some(lowered.chars().count())
         }
     };
-    if let Some(mode) = requested {
-        if !available(capabilities, mode) {
-            return Err(SearchSelectionError::new(
-                SearchSelectionErrorCode::ModeUnavailable,
-            ));
+    let mut session = BrowserSearchMode::new(match requested {
+        None => 0,
+        Some(SearchMode::Indexed) => 1,
+        Some(SearchMode::Compressed) => 2,
+    });
+    session.query_count(query);
+    while session.phase() != 4 {
+        match session.phase() {
+            1 | 3 => session.availability(available(capabilities, session.current())),
+            2 => {
+                let floor = minimum(capabilities, session.current())?;
+                session.minimum(false, true, floor as f64);
+            }
+            _ => {
+                return Err(SearchSelectionError::new(
+                    SearchSelectionErrorCode::InvalidInput,
+                ));
+            }
         }
-        if !eligible(capabilities, mode, query_points)? {
-            return Err(SearchSelectionError::with_minimum(
-                SearchSelectionErrorCode::QueryTooShort,
-                minimum(capabilities, mode)?,
-            ));
-        }
-        return Ok(mode);
     }
-    for mode in [SearchMode::Indexed, SearchMode::Compressed] {
-        if eligible(capabilities, mode, query_points)? {
-            return Ok(mode);
-        }
-    }
-    if available(capabilities, SearchMode::Indexed)
-        || available(capabilities, SearchMode::Compressed)
-    {
-        Err(SearchSelectionError::new(
-            SearchSelectionErrorCode::NoEligibleMode,
+    session.selected().ok_or_else(|| {
+        session.error().unwrap_or(SearchSelectionError::new(
+            SearchSelectionErrorCode::InvalidInput,
         ))
-    } else {
-        Err(SearchSelectionError::new(
-            SearchSelectionErrorCode::EnginesUnavailable,
-        ))
-    }
+    })
 }
 
 #[cfg(test)]

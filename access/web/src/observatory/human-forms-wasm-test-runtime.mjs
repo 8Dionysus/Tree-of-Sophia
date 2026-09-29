@@ -33,3 +33,6 @@ installRecordContextRules(runtime);
 
 import {installClaimReadingRules} from './claim-reading-rules.mjs';
 installClaimReadingRules(runtime);
+
+import {installKnowledgeSearchRules} from '../knowledge-search.ts';
+installKnowledgeSearchRules(runtime);

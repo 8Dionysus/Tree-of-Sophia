@@ -1,4 +1,6 @@
+import './observatory/human-forms-wasm-test-runtime.mjs';
 import { describe, expect, it } from "vitest";
+import {chooseKnowledgeSearchMode} from "./knowledge-search";
 import { createToSQueryOperations } from "./query-operations";
 
 const searchCapabilities = (indexed: boolean, compressed: boolean, indexedMinimum = 1, compressedMinimum = 1) => ({
@@ -354,4 +356,24 @@ describe("ToS query operations", () => {
     await expect(operations.invoke("tos.knowledge.search", { query: "fate" })).rejects.toBe(backendError);
     expect(requested).toEqual(["/api/knowledge/search/capabilities", "/api/knowledge/search?mode=indexed&query=fate&limit=40"]);
   });
+});
+
+// The public selector observes inherited descriptors and accessors lazily;
+// transport must not snapshot them or reinterpret opaque UTF-16 query units.
+it("preserves demand-driven capability reads and opaque UTF16 query counting", () => {
+  const reads: string[] = [];
+  let indexReads = 0;
+  const capabilities = { get modes() {
+    reads.push("modes");
+    return {get indexed() {
+      reads.push("indexed"); indexReads++;
+      return Object.create({available:true,min_normalized_query_code_points:indexReads===3?4:3});
+    },get compressed() { throw new Error("compressed must remain unread"); }};
+  }};
+  expect(() => chooseKnowledgeSearchMode(capabilities,"indexed","a")).toThrow("requires at least 4 normalized query characters");
+  expect(reads).toEqual(["modes","indexed","indexed","indexed"]);
+  const scalarCaps = {modes:{indexed:{available:true,min_normalized_query_code_points:3}}};
+  expect(chooseKnowledgeSearchMode(scalarCaps,undefined,"\ud800İ")).toBe("indexed");
+  expect(() => chooseKnowledgeSearchMode(scalarCaps,undefined,"\ud800😀")).toThrow("shorter than the minimum");
+  expect(() => chooseKnowledgeSearchMode({get modes(){throw new Error("not read");}},"invalid","a")).toThrow("must be indexed or compressed");
 });

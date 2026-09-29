@@ -1,3 +1,4 @@
+import {installKnowledgeSearchRules} from '../src/knowledge-search.ts';
 import {installClaimReadingRules} from '../src/observatory/claim-reading-rules.mjs';
 import {installRecordContextRules} from '../src/observatory/record-context.mjs';
 import './style.css';
@@ -30,6 +31,7 @@ installBrowserWorkspaceMachine(rules.BrowserWorkspaceSession);
 installSourceFormRules(rules);
 installHumanFormRules(rules);
 installRecordContextRules(rules);
+installKnowledgeSearchRules(rules);
 installClaimReadingRules(rules);
 installConditionRules(rules);
 installDraftRules(rules);

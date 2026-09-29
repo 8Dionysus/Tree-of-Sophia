@@ -1,3 +1,4 @@
+import {installKnowledgeSearchRules} from './knowledge-search';
 import {installClaimReadingRules} from './observatory/claim-reading-rules.mjs';
 import {installRecordContextRules} from './observatory/record-context.mjs';
 // Both browser presentations use the same initialized Rust workspace machine.
@@ -21,6 +22,7 @@ installPoseRules(rules);
 installClaimReferenceRules(rules);
 installHumanFormRules(rules);
 installRecordContextRules(rules);
+installKnowledgeSearchRules(rules);
 installClaimReadingRules(rules);
 installConditionRules(rules);
 installDraftRules(rules);

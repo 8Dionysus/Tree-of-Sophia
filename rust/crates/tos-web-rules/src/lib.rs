@@ -671,6 +671,42 @@ mod wasm {
         }
     }
 
+    #[wasm_bindgen]
+    pub struct BrowserSearchModeSession {
+        inner: super::search_mode::BrowserSearchMode,
+    }
+    #[wasm_bindgen]
+    impl BrowserSearchModeSession {
+        #[wasm_bindgen(constructor)]
+        pub fn new(requested: u8) -> Self {
+            Self {
+                inner: super::search_mode::BrowserSearchMode::new(requested),
+            }
+        }
+        pub fn phase(&self) -> u8 {
+            self.inner.phase()
+        }
+        pub fn current(&self) -> String {
+            self.inner.current().as_str().to_owned()
+        }
+        pub fn mode(&self) -> Option<String> {
+            self.inner.selected().map(|mode| mode.as_str().to_owned())
+        }
+        pub fn error_code(&self) -> Option<String> {
+            self.inner
+                .error()
+                .map(|error| error.code.as_str().to_owned())
+        }
+        pub fn query(&mut self, present: bool, units: &[u16]) {
+            self.inner.query(present, units);
+        }
+        pub fn availability(&mut self, value: bool) {
+            self.inner.availability(value);
+        }
+        pub fn minimum(&mut self, nullish: bool, numeric: bool, value: f64) {
+            self.inner.minimum(nullish, numeric, value);
+        }
+    }
     /// Raw request JSON is parsed by the same Rust rule in native and WASM.
     /// Fixed error codes keep host wording and localization outside this core.
     #[wasm_bindgen]

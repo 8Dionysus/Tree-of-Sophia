@@ -1,3 +1,4 @@
+import {installKnowledgeSearchRules} from './knowledge-search.ts';
 import {installClaimReadingRules} from './observatory/claim-reading-rules.mjs';
 import {installRecordContextRules} from './observatory/record-context.mjs';
 import '../constructor/style.css';
@@ -25,6 +26,7 @@ installPoseRules(rules);
 installClaimReferenceRules(rules);
 installHumanFormRules(rules);
 installRecordContextRules(rules);
+installKnowledgeSearchRules(rules);
 installClaimReadingRules(rules);
 installConditionRules(rules);
 installDraftRules(rules);
