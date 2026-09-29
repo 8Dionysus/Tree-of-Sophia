@@ -710,10 +710,10 @@ impl ConstructorMachine {
         let material_kind = word(material, "kind").unwrap().to_owned();
         let library_parent = word(material, "parentId").map(str::to_owned);
         if let Some(p) = &position {
-            pos(p)?
+            pos(p)?;
         }
         if let Some(p) = parent {
-            Self::node(draft, p)?
+            Self::node(draft, p)?;
         }
         let node_id = format!("material:{id}");
         if !array(draft, "nodes")
