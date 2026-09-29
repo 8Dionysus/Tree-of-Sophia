@@ -8,9 +8,18 @@ deployment, service startup or automatic consumer switch.
 
 ```bash
 PYTHONPATH=access/src python -m tos_access.prepare \
+  --native-executable /absolute/native-prefix/bin/tos --max-seconds ADMITTED_SECONDS \
   --source-root /absolute/source/Tree-of-Sophia \
   --output-dir /absolute/existing-parent/new-publication
 ```
+
+Both source/output paths are required. The native executable and positive whole
+seconds must be explicitly selected, or supplied by `TOS_PREPARED_EXECUTOR` and
+`TOS_PREPARED_MAX_SECONDS`. The native archive's installed entry is `PREFIX/bin/tos`;
+do not assume an ambient `tos-access` executable exists. Python remains the
+source graph/catalog caller, while the selected native executable owns file
+publication; missing selection refuses without a Python publication fallback.
+`ADMITTED_SECONDS` denotes the caller's finite approved whole budget.
 
 Both paths are required. The parent output directory must already exist; the
 output path itself must not exist, including an empty directory or symlink.
@@ -92,6 +101,7 @@ ABI are unchanged, and no maintenance indexes are constructed.
 
 ```bash
 PYTHONPATH=access/src python -m tos_access.prepare \
+  --native-executable /absolute/native-prefix/bin/tos --max-seconds ADMITTED_SECONDS \
   --source-root /absolute/source/Tree-of-Sophia \
   --output-dir /absolute/existing-parent/new-maintainable-publication \
   --attach-maintenance --maintenance-max-mutations 2000000
