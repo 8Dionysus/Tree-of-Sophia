@@ -25,6 +25,8 @@ use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSc
 
 #[path = "source_native_claim_cli.rs"]
 mod claim;
+#[path = "source_native_creation_cli.rs"]
+mod creation;
 #[path = "source_native_text_cli.rs"]
 mod text_owner;
 
@@ -287,6 +289,23 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
             | "tos_local_text_layer_record_owner_ocr_v1"
             | "tos_local_text_layer_record_owner_page_ocr_v1" => {
                 return text_owner::run(
+                    &invocation,
+                    &request_raw,
+                    &store,
+                    &cut,
+                    &software,
+                    &components,
+                    deadline,
+                    &cancelled,
+                );
+            }
+            "tos_local_historical_create_owner_v1"
+            | "tos_local_historical_create_owner_v2"
+            | "tos_local_profile_create_owner_v1"
+            | "tos_local_corpus_create_owner_v1"
+            | "tos_local_corpus_create_owner_v2"
+            | "tos_local_sign_promote_owner_v1" => {
+                return creation::run(
                     &invocation,
                     &request_raw,
                     &store,

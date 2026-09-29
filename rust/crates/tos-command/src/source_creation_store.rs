@@ -1311,41 +1311,54 @@ impl CreationFilesystem {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<(Self, Vec<u8>)> {
+        let selected =
+            Self::select_protected_native_owner(configuration_path, deadline, cancelled)?;
+        let config = cmd::parse(&selected.1)?;
+        crate::source_claims::family(cmd::text(&config, "schema_version")?)?;
+        Ok(selected)
+    }
+
+    /// Protected transport only: the fixed typed caller must validate its
+    /// exact family and scope before this filesystem can authorize an operation.
+    pub(crate) fn select_protected_native_owner(
+        configuration_path: &Path,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<(Self, Vec<u8>)> {
         active(deadline, cancelled)?;
         let uid = rustix::process::geteuid().as_raw();
         if rustix::process::getuid().as_raw() != uid {
-            return Err(SourceCommandError::Denied("Claim setuid owner selection"));
+            return Err(SourceCommandError::Denied("native owner setuid selection"));
         }
         protected_configuration_parents(configuration_path, uid)?;
         let mut file = tos_fd_open::open_absolute_regular(configuration_path, 1_048_576)
-            .map_err(|_| SourceCommandError::Denied("Claim protected owner selection"))?;
+            .map_err(|_| SourceCommandError::Denied("native protected owner selection"))?;
         if owned(&file, uid, false)?.mode() & 0o7777 != 0o600 {
-            return Err(SourceCommandError::Denied("Claim owner must be mode0600"));
+            return Err(SourceCommandError::Denied("native owner must be mode0600"));
         }
         let configuration_raw = raw(&mut file, 1_048_576, deadline, cancelled)?;
         let config = cmd::parse(&configuration_raw)?;
-        crate::source_claims::family(cmd::text(&config, "schema_version")?)?;
         cmd::validate_expiry(
             cmd::text(&config, "expires_at")?,
             &crate::source_serialization::instant()?,
         )?;
         if cmd::integer(&config, "uid")? != u64::from(uid) {
-            return Err(SourceCommandError::Denied("Claim typed owner account"));
+            return Err(SourceCommandError::Denied("native typed owner account"));
         }
         let root_path =
             crate::source_text_owner::normalized_absolute(cmd::text(&config, "source_root")?)?;
         if configuration_path.starts_with(root_path.join("ToS")) {
             return Err(SourceCommandError::Denied(
-                "Claim authority cannot be authored content",
+                "native owner authority cannot be authored content",
             ));
         }
         protected_configuration_parents(&root_path.join("root-pin"), uid)?;
         let root = tos_fd_open::open_absolute_directory(&root_path)
-            .map_err(|_| SourceCommandError::Denied("Claim exact source root"))?;
+            .map_err(|_| SourceCommandError::Denied("native owner exact source root"))?;
         let root_metadata = owned(&root, uid, true)?;
         if root_metadata.mode() & 0o7777 != 0o700 {
             return Err(SourceCommandError::Denied(
-                "Claim CLI requires a private source root",
+                "native owner CLI requires a private source root",
             ));
         }
         let root_identity = inode(&root_metadata);
