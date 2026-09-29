@@ -1254,6 +1254,8 @@ impl SearchDonor {
                     self.meter.deadline,
                 )?;
             }
+            drop(rows);
+            drop(statement);
             self.emit_progress(
                 "donor_table_copied",
                 vec![
