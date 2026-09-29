@@ -539,6 +539,10 @@ impl Parser<'_> {
                             slots
                                 .saturating_sub(index_capacity_charge)
                                 .checked_mul(std::mem::size_of::<(Vec<u16>, usize)>() + 1)
+                                // The pinned table also retains a trailing SIMD control group.
+                                .and_then(|n| {
+                                    n.checked_add(if index_capacity_charge == 0 { 16 } else { 0 })
+                                })
                                 .ok_or_else(|| {
                                     self.error(
                                         Code::BudgetExceeded,
