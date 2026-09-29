@@ -344,6 +344,11 @@ pub struct IndexedSearchParams {
 }
 
 impl IndexedSearchParams {
+    // Preserve room for a maximum native continuation in every maintained
+    // 64 KiB request/line wire. JSON control escaping can cost six bytes per
+    // input byte; HTTP percent encoding costs at most three.
+    const MAX_FIELDS_BYTES: usize = 6 * 1024;
+
     pub fn new(
         query: String,
         sources: Vec<String>,
@@ -356,7 +361,15 @@ impl IndexedSearchParams {
         // check belong to QRY's pinned text profile, not host Rust casing.
         if query.chars().count() > 256
             || !(1..=100).contains(&limit)
-            || cursor.as_ref().is_some_and(|value| value.len() > 65_536)
+            || [&sources, &kind_ids, &predicate_ids]
+                .iter()
+                .flat_map(|values| values.iter())
+                .fold(0usize, |bytes, value| bytes.saturating_add(value.len()))
+                .saturating_add(query.len())
+                > Self::MAX_FIELDS_BYTES
+            || cursor
+                .as_ref()
+                .is_some_and(|value| value.len() > crate::indexed_cursor::MAX_CURSOR_BYTES)
             || [&sources, &kind_ids, &predicate_ids].iter().any(|values| {
                 values.len() > 256
                     || values

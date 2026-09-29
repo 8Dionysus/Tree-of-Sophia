@@ -9,7 +9,8 @@
 use std::collections::BTreeSet;
 
 use tos_foundation::{
-    Digest256, KNOWLEDGE_POSTINGS_MODEL_ABIS, python_lower_unicode16_v1, python_strip_unicode16_v1,
+    Digest256, Digest256Hasher, KNOWLEDGE_POSTINGS_MODEL_ABIS, python_lower_unicode16_v1,
+    python_strip_unicode16_v1,
 };
 
 pub const INDEXED_SEARCH_V2_OPERATION: &str = "tos_knowledge_search_indexed_v2";
@@ -440,6 +441,15 @@ pub enum SearchKind {
     Relations,
 }
 
+/// Untrusted adapter paging input. It can skip public results, but cannot
+/// authorize a candidate or bypass the selected/current checks on a page.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SearchContinuationProgress {
+    Fresh,
+    Exhausted,
+    After(SearchOrderKey),
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct KindContinuation {
     after: Option<SearchOrderKey>,
@@ -503,6 +513,121 @@ impl SearchContinuationState {
 
     pub fn is_exhausted(&self, kind: SearchKind) -> bool {
         self.progress(kind).exhausted
+    }
+
+    pub fn wire_progress(&self, kind: SearchKind) -> SearchContinuationProgress {
+        let progress = self.progress(kind);
+        if progress.exhausted {
+            SearchContinuationProgress::Exhausted
+        } else if let Some(key) = &progress.after {
+            SearchContinuationProgress::After(key.clone())
+        } else {
+            SearchContinuationProgress::Fresh
+        }
+    }
+
+    /// Reconstruct only from a fresh QRY-normalized and current-bound base.
+    /// The adapter parses wire bytes; existing `advance` rules own structural
+    /// progress validation. The executor still checks every selected carrier.
+    pub fn from_untrusted_progress(
+        &self,
+        nodes: SearchContinuationProgress,
+        relations: SearchContinuationProgress,
+    ) -> Result<Self, SearchV2Error> {
+        if self.wire_progress(SearchKind::Nodes) != SearchContinuationProgress::Fresh
+            || self.wire_progress(SearchKind::Relations) != SearchContinuationProgress::Fresh
+        {
+            return Err(SearchV2Error::new(
+                SearchV2ErrorCode::StaleContinuation,
+                "indexed cursor base is not a first-page state",
+            ));
+        }
+        let mut state = self.clone();
+        for (kind, progress) in [
+            (SearchKind::Nodes, nodes),
+            (SearchKind::Relations, relations),
+        ] {
+            match progress {
+                SearchContinuationProgress::Fresh => {}
+                SearchContinuationProgress::Exhausted => state.advance(kind, None, true)?,
+                SearchContinuationProgress::After(key) => state.advance(kind, Some(key), false)?,
+            }
+        }
+        Ok(state)
+    }
+
+    /// Stable, domain-separated binding digests for the native unsigned wire
+    /// token. They identify exact QRY selection/request/current policy, not an
+    /// authenticity proof or disclosure grant. The adapter checks all three
+    /// against fresh current values before QRY validates and executes a page.
+    pub fn cursor_bindings_v1(&self) -> [Digest256; 3] {
+        let s = &self.selection;
+        let mut selected = Digest256Hasher::new();
+        selected.update(b"tos-indexed-selection-binding-v1\0");
+        hash_text(&mut selected, &s.model_abi);
+        selected.update(s.vocabulary.descriptor_sha256.as_bytes());
+        hash_u64(&mut selected, s.vocabulary.descriptor_version);
+        hash_text(&mut selected, &s.semantic_primitive_profile);
+        hash_text(&mut selected, &s.search_unicode_profile);
+        hash_text(&mut selected, &s.source_cut);
+        hash_u64(&mut selected, s.through_commit_seq);
+        selected.update(s.source_membership_root.as_bytes());
+        match s.history_root_sha256 {
+            Some(digest) => {
+                selected.update(&[1]);
+                selected.update(digest.as_bytes());
+            }
+            None => selected.update(&[0]),
+        }
+        hash_text(&mut selected, &s.entity_registry_id);
+        hash_text(&mut selected, &s.entity_registry_version);
+        selected.update(s.entity_registry_sha256.as_bytes());
+        hash_text(&mut selected, &s.relation_registry_id);
+        hash_text(&mut selected, &s.relation_registry_version);
+        selected.update(s.relation_registry_sha256.as_bytes());
+        for digest in [
+            s.graph_root_sha256,
+            s.catalog_packet_sha256,
+            s.catalog_index_root_sha256,
+            s.source_scope_root_sha256,
+            s.search_index_root_sha256,
+            s.index_root_sha256,
+        ] {
+            selected.update(digest.as_bytes());
+        }
+        hash_text(&mut selected, &s.index_generation);
+        hash_text(&mut selected, &s.route_map_version);
+        hash_text(&mut selected, &s.reader_abi);
+        selected.update(&[u8::from(s.complete)]);
+
+        let r = &self.request;
+        let mut request = Digest256Hasher::new();
+        request.update(b"tos-indexed-normalized-request-v1\0");
+        hash_text(&mut request, &r.query);
+        match &r.sources {
+            Some(sources) => {
+                request.update(&[1]);
+                hash_texts(&mut request, sources);
+            }
+            None => request.update(&[0]),
+        }
+        hash_texts(&mut request, &r.kind_ids);
+        hash_texts(&mut request, &r.predicate_ids);
+        hash_u64(&mut request, r.limit as u64);
+
+        let p = &self.current_policy;
+        let mut policy = Digest256Hasher::new();
+        policy.update(b"tos-indexed-current-policy-v1\0");
+        for value in [
+            &p.scope,
+            &p.issuer_ref,
+            &p.authorization_receipt_id,
+            &p.policy_epoch,
+            &p.withdrawal_generation,
+        ] {
+            hash_text(&mut policy, value);
+        }
+        [selected.finalize(), request.finalize(), policy.finalize()]
     }
 
     /// Commit a completely verified per-kind ranked page. For a nonterminal
@@ -597,5 +722,19 @@ impl SearchContinuationState {
             SearchKind::Nodes => &mut self.nodes,
             SearchKind::Relations => &mut self.relations,
         }
+    }
+}
+
+fn hash_u64(hasher: &mut Digest256Hasher, value: u64) {
+    hasher.update(&value.to_be_bytes());
+}
+fn hash_text(hasher: &mut Digest256Hasher, value: &str) {
+    hash_u64(hasher, value.len() as u64);
+    hasher.update(value.as_bytes());
+}
+fn hash_texts(hasher: &mut Digest256Hasher, values: &[String]) {
+    hash_u64(hasher, values.len() as u64);
+    for value in values {
+        hash_text(hasher, value);
     }
 }

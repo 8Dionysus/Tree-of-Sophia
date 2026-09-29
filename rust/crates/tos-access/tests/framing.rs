@@ -230,6 +230,13 @@ fn indexed_search_requires_explicit_mode_and_routes_all_three_wires() {
         profile(),
     );
     assert_eq!(http.status, 200);
+    for invalid in [
+        "/api/knowledge/search?mode=indexed&query=abc&cursor=",
+        "/api/knowledge/search?mode=indexed&query=abc&cursor=%ZZ",
+        "/api/knowledge/search?mode=indexed&query=abc&cursor=one&cursor=two",
+    ] {
+        assert_eq!(handle_get(&executor, "GET", invalid, profile()).status, 400);
+    }
     assert_eq!(
         executor.calls.lock().unwrap()[0].sources,
         vec!["source.a", "source.b"]

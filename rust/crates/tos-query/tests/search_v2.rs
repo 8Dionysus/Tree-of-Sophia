@@ -16,8 +16,8 @@ use tos_query::search_index::{
 use tos_query::search_v2::{
     CurrentPolicyBinding, INDEXED_SEARCH_V2_OPERATION, IndexedSearchV2Request,
     NormalizedIndexedSearchV2Request, QUERY_PRIMITIVE_PROFILE, QueryVocabularyBinding,
-    SEARCH_UNICODE_PROFILE, SearchContinuationState, SearchKind, SearchOrderKey, SearchRank,
-    SearchSelectionBinding, SearchV2ErrorCode, SelectedQueryVocabulary,
+    SEARCH_UNICODE_PROFILE, SearchContinuationProgress, SearchContinuationState, SearchKind,
+    SearchOrderKey, SearchRank, SearchSelectionBinding, SearchV2ErrorCode, SelectedQueryVocabulary,
 };
 
 struct FixtureVocabulary {
@@ -764,6 +764,72 @@ fn continuation_requires_strict_progress_and_tracks_exhaustion() {
             .unwrap_err()
             .code,
         SearchV2ErrorCode::StaleContinuation
+    );
+}
+
+#[test]
+fn untrusted_progress_reconstructs_through_qry_rules_and_binds_all_three_contexts() {
+    let vocabulary = FixtureVocabulary::selected();
+    let selected = selection(&vocabulary);
+    let normalized = request("query").normalize(&selected, &vocabulary).unwrap();
+    let policy = current_policy();
+    let base = SearchContinuationState::new(
+        selected.clone(),
+        normalized.clone(),
+        policy.clone(),
+        &vocabulary,
+    )
+    .unwrap();
+    let key = SearchOrderKey::new(SearchRank::IdentityPrefix, "alpha".into(), 4).unwrap();
+    let resumed = base
+        .from_untrusted_progress(
+            SearchContinuationProgress::After(key.clone()),
+            SearchContinuationProgress::Exhausted,
+        )
+        .unwrap();
+    assert_eq!(resumed.after(SearchKind::Nodes), Some(&key));
+    assert!(resumed.is_exhausted(SearchKind::Relations));
+    assert_eq!(
+        resumed.wire_progress(SearchKind::Nodes),
+        SearchContinuationProgress::After(key)
+    );
+    assert_eq!(resumed.cursor_bindings_v1(), base.cursor_bindings_v1());
+    resumed
+        .validate_resume(&normalized, &selected, &policy, &vocabulary)
+        .unwrap();
+
+    let mut changed_selected = selected.clone();
+    changed_selected.search_index_root_sha256 = Digest256::of_bytes(b"changed index");
+    let selected_state = SearchContinuationState::new(
+        changed_selected,
+        normalized.clone(),
+        policy.clone(),
+        &vocabulary,
+    )
+    .unwrap();
+    assert_ne!(
+        base.cursor_bindings_v1()[0],
+        selected_state.cursor_bindings_v1()[0]
+    );
+    let changed_request = request("other").normalize(&selected, &vocabulary).unwrap();
+    let request_state = SearchContinuationState::new(
+        selected.clone(),
+        changed_request,
+        policy.clone(),
+        &vocabulary,
+    )
+    .unwrap();
+    assert_ne!(
+        base.cursor_bindings_v1()[1],
+        request_state.cursor_bindings_v1()[1]
+    );
+    let mut changed_policy = policy;
+    changed_policy.withdrawal_generation.push('x');
+    let policy_state =
+        SearchContinuationState::new(selected, normalized, changed_policy, &vocabulary).unwrap();
+    assert_ne!(
+        base.cursor_bindings_v1()[2],
+        policy_state.cursor_bindings_v1()[2]
     );
 }
 

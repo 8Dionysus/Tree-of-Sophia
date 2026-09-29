@@ -3,7 +3,7 @@
 use std::{
     fs,
     fs::File,
-    io::{Cursor, Read, Write},
+    io::{BufRead, BufReader, Cursor, Read, Write},
     net::{TcpListener, TcpStream},
     path::PathBuf,
     sync::{Arc, Mutex},
@@ -1736,6 +1736,78 @@ with tempfile.TemporaryDirectory() as d:
             String::from_utf8_lossy(&result.stderr)
         );
         assert_eq!(result.stdout, [catalog.as_slice(), b"\n"].concat());
+        let indexed_cli = child()
+            .args([
+                "knowledge",
+                "search",
+                "source",
+                "--mode",
+                "indexed",
+                "--limit",
+                "1",
+            ])
+            .output()
+            .unwrap();
+        assert!(
+            indexed_cli.status.success(),
+            "{}",
+            String::from_utf8_lossy(&indexed_cli.stderr)
+        );
+        let cli_packet = parse_json(
+            &indexed_cli.stdout,
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap()
+        .into_root();
+        assert_eq!(
+            cli_packet.object_get("schema").unwrap().as_str(),
+            Some("tos_knowledge_search_indexed_v2")
+        );
+        let cli_cursor = cli_packet
+            .object_get("page")
+            .unwrap()
+            .object_get("next_cursor")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_owned();
+        assert!(cli_cursor.len() <= 16 * 1024);
+        let cli_resume = child()
+            .args([
+                "knowledge",
+                "search",
+                "source",
+                "--mode",
+                "indexed",
+                "--limit",
+                "1",
+                "--cursor",
+                &cli_cursor,
+            ])
+            .output()
+            .unwrap();
+        assert!(
+            cli_resume.status.success(),
+            "{}",
+            String::from_utf8_lossy(&cli_resume.stderr)
+        );
+        let cli_resume = parse_json(
+            &cli_resume.stdout,
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap()
+        .into_root();
+        assert_eq!(
+            cli_resume
+                .object_get("page")
+                .unwrap()
+                .object_get("cursor")
+                .unwrap()
+                .as_str(),
+            Some(cli_cursor.as_str())
+        );
         let descriptor = tos_access::registered_operations()
             .unwrap()
             .iter()
@@ -1761,6 +1833,89 @@ with tempfile.TemporaryDirectory() as d:
         );
         let frame_cap = tos_access::mcp::tool_result_frame_byte_bound(1_048_576, 65_536).unwrap();
         check_mcp_packet(last_frame(&result.stdout), &dossier, frame_cap);
+        // Actual MCP pages use the same unsigned paging request and reacquire
+        // the selected release holder for every page.
+        let mut search_rpc = child()
+            .arg("mcp")
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap();
+        let mut search_input = search_rpc.stdin.take().unwrap();
+        let mut search_output = BufReader::new(search_rpc.stdout.take().unwrap());
+        writeln!(search_input, "{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{{\"protocolVersion\":\"2025-11-25\"}}}}")
+            .unwrap();
+        let mut frame = String::new();
+        search_output.read_line(&mut frame).unwrap();
+        assert!(frame.contains("\"protocolVersion\":\"2025-11-25\""));
+        writeln!(
+            search_input,
+            "{{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}}"
+        )
+        .unwrap();
+        writeln!(search_input, "{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"tos_knowledge_search\",\"arguments\":{{\"mode\":\"indexed\",\"query\":\"source\",\"limit\":1}}}}}}")
+            .unwrap();
+        frame.clear();
+        search_output.read_line(&mut frame).unwrap();
+        let first = parse_json(
+            frame.as_bytes(),
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap()
+        .into_root();
+        let first = first
+            .object_get("result")
+            .unwrap()
+            .object_get("structuredContent")
+            .unwrap();
+        assert_eq!(
+            first.object_get("schema").unwrap().as_str(),
+            Some("tos_knowledge_search_indexed_v2")
+        );
+        let search_cursor = first
+            .object_get("page")
+            .unwrap()
+            .object_get("next_cursor")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_owned();
+        assert!(search_cursor.len() <= 16 * 1024);
+        writeln!(search_input, "{{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{{\"name\":\"tos_knowledge_search\",\"arguments\":{{\"mode\":\"indexed\",\"query\":\"source\",\"limit\":1,\"cursor\":\"{search_cursor}\"}}}}}}")
+            .unwrap();
+        frame.clear();
+        search_output.read_line(&mut frame).unwrap();
+        let second = parse_json(
+            frame.as_bytes(),
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap()
+        .into_root();
+        let second = second
+            .object_get("result")
+            .unwrap()
+            .object_get("structuredContent")
+            .unwrap();
+        assert_eq!(
+            second
+                .object_get("page")
+                .unwrap()
+                .object_get("cursor")
+                .unwrap()
+                .as_str(),
+            Some(search_cursor.as_str())
+        );
+        drop(search_input);
+        drop(search_output);
+        let search_result = search_rpc.wait_with_output().unwrap();
+        assert!(
+            search_result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&search_result.stderr)
+        );
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
         drop(listener);
@@ -1824,6 +1979,112 @@ with tempfile.TemporaryDirectory() as d:
                 );
             }
         }
+        let search_http = |target: &str| {
+            let mut socket = TcpStream::connect(address).unwrap();
+            socket
+                .set_read_timeout(Some(Duration::from_secs(30)))
+                .unwrap();
+            write!(socket, "GET {target} HTTP/1.1\r\nHost: localhost\r\n\r\n").unwrap();
+            let mut bytes = vec![];
+            socket.read_to_end(&mut bytes).unwrap();
+            bytes
+        };
+        let first_http = search_http("/api/knowledge/search?mode=indexed&query=source&limit=1");
+        let first_http_len = http_packet(&first_http).len();
+        let first_http = parse_json(
+            http_packet(&first_http),
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap()
+        .into_root();
+        let mut head_socket = TcpStream::connect(address).unwrap();
+        head_socket
+            .set_read_timeout(Some(Duration::from_secs(30)))
+            .unwrap();
+        write!(head_socket, "HEAD /api/knowledge/search?mode=indexed&query=source&limit=1 HTTP/1.1\r\nHost: localhost\r\n\r\n").unwrap();
+        let mut head_bytes = vec![];
+        head_socket.read_to_end(&mut head_bytes).unwrap();
+        assert!(head_bytes.starts_with(b"HTTP/1.1 200 "));
+        assert!(head_bytes.ends_with(b"\r\n\r\n"));
+        assert!(
+            String::from_utf8_lossy(&head_bytes)
+                .contains(&format!("Content-Length: {first_http_len}"))
+        );
+        let cursor = first_http
+            .object_get("page")
+            .unwrap()
+            .object_get("next_cursor")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_owned();
+        assert!(cursor.len() <= 16 * 1024);
+        let resumed = search_http(&format!(
+            "/api/knowledge/search?mode=indexed&query=source&limit=1&cursor={cursor}"
+        ));
+        let resumed = parse_json(
+            http_packet(&resumed),
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap()
+        .into_root();
+        assert_eq!(
+            resumed
+                .object_get("page")
+                .unwrap()
+                .object_get("cursor")
+                .unwrap()
+                .as_str(),
+            Some(cursor.as_str())
+        );
+        let stale = search_http(&format!(
+            "/api/knowledge/search?mode=indexed&query=node&limit=1&cursor={cursor}"
+        ));
+        assert!(stale.starts_with(b"HTTP/1.1 409 "));
+        let cross_process = search_http(&format!(
+            "/api/knowledge/search?mode=indexed&query=source&limit=1&cursor={search_cursor}"
+        ));
+        let cross_process = parse_json(
+            http_packet(&cross_process),
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap()
+        .into_root();
+        assert_eq!(
+            cross_process
+                .object_get("page")
+                .unwrap()
+                .object_get("cursor")
+                .unwrap()
+                .as_str(),
+            Some(search_cursor.as_str())
+        );
+        let withdrawn_path = root.join(format!("revocations/data/{revision}.json"));
+        let withdrawn_record = object(vec![
+            ("schema_version", text("tos_access_release_revocation_v1")),
+            ("kind", text("data")),
+            ("digest", text(&revision)),
+            ("reason", text("indexed fixture withdrawal")),
+            ("owner_ref", text("maintained native release case")),
+        ]);
+        let withdrawal_lock = fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(root.join(".release.lock"))
+            .unwrap();
+        withdrawal_lock.try_lock().unwrap();
+        fs::write(&withdrawn_path, canonical(&withdrawn_record)).unwrap();
+        withdrawal_lock.unlock().unwrap();
+        let refused = search_http(&format!(
+            "/api/knowledge/search?mode=indexed&query=source&limit=1&cursor={cursor}"
+        ));
+        assert!(refused.starts_with(b"HTTP/1.1 503 "));
+        withdrawal_lock.try_lock().unwrap();
+        fs::remove_file(withdrawn_path).unwrap();
+        withdrawal_lock.unlock().unwrap();
         server.kill().unwrap();
         server.wait().unwrap();
         let release = ManagedRelease::open(&root).unwrap();

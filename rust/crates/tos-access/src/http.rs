@@ -164,6 +164,30 @@ fn query_list(query: &str, name: &str) -> Vec<String> {
         .collect()
 }
 
+fn indexed_cursor(query: &str) -> Result<Option<String>, AccessError> {
+    let mut cursor = None;
+    for pair in query.split('&') {
+        let (key, value) = pair.split_once('=').unwrap_or((pair, ""));
+        if percent_decode(key, true)? == "cursor" {
+            if cursor.is_some() {
+                return Err(AccessError::new(
+                    AccessErrorCode::InvalidRequest,
+                    "indexed cursor appears more than once",
+                ));
+            }
+            let value = percent_decode(value, true)?;
+            if value.is_empty() {
+                return Err(AccessError::new(
+                    AccessErrorCode::InvalidRequest,
+                    "indexed cursor is empty",
+                ));
+            }
+            cursor = Some(value);
+        }
+    }
+    Ok(cursor)
+}
+
 fn handle_search(
     executor: &dyn AccessExecutor,
     method: &str,
@@ -230,29 +254,32 @@ fn handle_search(
         );
     }
     let limit = bounded_legacy_int(query_value(query, "limit").as_deref(), 40, 1, 100) as usize;
-    let result = IndexedSearchParams::new(
-        query_value(query, "query").unwrap_or_default(),
-        query_list(query, "sources"),
-        query_list(query, "kind_ids"),
-        query_list(query, "predicate_ids"),
-        query_value(query, "cursor").filter(|value| !value.is_empty()),
-        limit,
-    )
-    .and_then(|params| {
-        checked_execute(abort_probe, |probe| {
-            executor.knowledge_search_indexed(params, probe)
+    let result = indexed_cursor(query)
+        .and_then(|cursor| {
+            IndexedSearchParams::new(
+                query_value(query, "query").unwrap_or_default(),
+                query_list(query, "sources"),
+                query_list(query, "kind_ids"),
+                query_list(query, "predicate_ids"),
+                cursor,
+                limit,
+            )
         })
-    })
-    .and_then(|packet| {
-        if packet.body.len() > profile.max_response_bytes {
-            return Err(AccessError::new(
-                AccessErrorCode::BudgetExceeded,
-                "indexed search response budget exceeded",
-            ));
-        }
-        validate_packet(&packet.body, profile.max_response_bytes)?;
-        Ok(packet)
-    });
+        .and_then(|params| {
+            checked_execute(abort_probe, |probe| {
+                executor.knowledge_search_indexed(params, probe)
+            })
+        })
+        .and_then(|packet| {
+            if packet.body.len() > profile.max_response_bytes {
+                return Err(AccessError::new(
+                    AccessErrorCode::BudgetExceeded,
+                    "indexed search response budget exceeded",
+                ));
+            }
+            validate_packet(&packet.body, profile.max_response_bytes)?;
+            Ok(packet)
+        });
     match result {
         Ok(packet) => HttpResponse {
             status: 200,

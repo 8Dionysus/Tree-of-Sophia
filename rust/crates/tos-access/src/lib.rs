@@ -8,6 +8,7 @@ pub mod cli;
 pub mod doctor;
 pub mod exploration_checkpoints;
 pub mod exploration_contracts;
+mod indexed_cursor;
 pub mod knowledge;
 pub mod managed_local;
 pub mod public_d1_build;

@@ -1,6 +1,7 @@
 //! Explicit managed-local projection composition. ReleaseStore is the holder;
 //! neither CMP custody nor these callbacks grant raw source/payload access.
 use crate::exploration_checkpoints::{CheckpointLimits, ProcessExplorationCheckpoints};
+use crate::indexed_cursor::{MAX_CURSOR_BYTES, NativeIndexedCursorCodec};
 use crate::release_state::{ManagedRelease, ReleaseLease};
 use crate::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, KnowledgeOperation as O,
@@ -17,11 +18,15 @@ use tos_compiler::{
     PhilosophyOriginalReceipt, QueryVocabulary, VerifiedKnowledgeModel,
 };
 use tos_foundation::{Digest256, JsonLimits};
-use tos_query::search_v2::{CurrentPolicyBinding, SearchV2Error, SearchV2ErrorCode};
+use tos_query::search_v2::{
+    CurrentPolicyBinding, IndexedSearchV2Request, SearchContinuationState, SearchV2Error,
+    SearchV2ErrorCode,
+};
 use tos_query::{
-    AbortProbe, BoundCmpKnowledge, CatalogCurrentAuthority, CatalogDisclosureLease,
-    CatalogDisclosureScope, CatalogError, CatalogErrorCode, IndexedDisclosureScope,
-    InspectCurrentAuthority, InspectDisclosureLease, InspectedCarrier, ObservedInspectCarrier,
+    AbortProbe, AbortReason, BoundCmpKnowledge, CatalogCurrentAuthority, CatalogDisclosureLease,
+    CatalogDisclosureScope, CatalogError, CatalogErrorCode, IndexedDisclosureLease,
+    IndexedDisclosureScope, IndexedKnowledgeAuthority, InspectCurrentAuthority,
+    InspectDisclosureLease, InspectedCarrier, ObservedInspectCarrier, ObservedSearchCandidate,
 };
 
 pub struct ManagedLocalExecutor {
@@ -247,6 +252,75 @@ impl ManagedLocalExecutor {
             },
         }
     }
+    fn indexed_budget(&self) -> tos_query::IndexedPageBudget {
+        use tos_query::search_candidate::{CandidateReadBudget, CandidateVerifyBudget};
+        use tos_query::search_index::{GramSeekBudget, PostingSeekBudget};
+        let rows = self.cold.max_rows;
+        // Two kinds each own bounded gram, posting, candidate and verification
+        // counters. Split the selected work envelope across those eight costs;
+        // startup and final packet/transport have their own declared caps.
+        let work = self.cold.max_work_bytes / 8;
+        let vm = self.cold.max_vm_steps / 8;
+        let row_bytes = usize::try_from(self.cold.max_row_bytes)
+            .unwrap_or(usize::MAX)
+            .min(usize::try_from(work).unwrap_or(usize::MAX));
+        let field_bytes = row_bytes.min(8_192);
+        let work_bytes = usize::try_from(work).unwrap_or(usize::MAX);
+        let kind = tos_query::SearchKindBudget {
+            grams: GramSeekBudget {
+                max_lookups: 256,
+                max_candidates: rows,
+                max_vm_steps: vm,
+                max_rows: self.cold.max_rows.min(256),
+                max_decoded_bytes: work,
+            },
+            postings: PostingSeekBudget {
+                max_probes: rows.saturating_add(1),
+                max_rows: self.cold.max_rows.min(rows.saturating_add(1)),
+                max_decoded_bytes: work,
+                max_vm_steps: vm,
+                page_rows: usize::try_from(rows.min(128)).unwrap_or(128),
+            },
+            candidate: CandidateReadBudget {
+                max_vm_steps: vm,
+                max_decoded_bytes: work,
+                max_payload_bytes: row_bytes,
+                max_field_bytes: field_bytes,
+                max_document_chars: work,
+            },
+            verify: CandidateVerifyBudget {
+                document: tos_query::SearchDocumentBudget {
+                    max_carrier_bytes: row_bytes,
+                    max_document_bytes: work_bytes,
+                    max_document_code_points: work_bytes,
+                    json: JsonLimits {
+                        max_bytes: row_bytes,
+                        ..JsonLimits::default()
+                    },
+                },
+                max_rank_field_bytes: field_bytes,
+                max_rank_values: 64,
+            },
+            max_candidate_vm_steps: vm,
+            max_candidate_decoded_bytes: work,
+            max_verified_chars: work,
+            max_verified_bytes: work,
+            max_observed_candidates: usize::try_from(rows).unwrap_or(usize::MAX),
+            max_observed_bytes: work,
+            max_selected_result_bytes: self.profile.max_response_bytes.min(work_bytes),
+        };
+        tos_query::IndexedPageBudget {
+            nodes: kind,
+            relations: kind,
+            max_open_vm_steps: self.cold.max_vm_steps,
+            max_response_bytes: self.profile.max_response_bytes,
+            max_cursor_bytes: MAX_CURSOR_BYTES,
+            json: JsonLimits {
+                max_bytes: self.profile.max_response_bytes,
+                ..JsonLimits::default()
+            },
+        }
+    }
 }
 fn intended(operation: O) -> &'static str {
     if operation.is_corpus() {
@@ -330,6 +404,63 @@ impl AccessExecutor for ManagedLocalExecutor {
     }
     fn knowledge_search_legacy_available(&self) -> bool {
         true
+    }
+    fn knowledge_search_indexed_available(&self) -> bool {
+        self.release.acquire().is_ok()
+    }
+    fn knowledge_search_indexed(
+        &self,
+        request: crate::IndexedSearchParams,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        crate::knowledge::check_abort(&probe)?;
+        let cold = self
+            .model
+            .lock()
+            .map_err(|_| unavailable("selected native model lock poisoned"))?;
+        let mut model = cold
+            .fork_reader_with_vm_budget(self.cold.max_vm_steps)
+            .map_err(|_| unavailable("selected native reader unavailable"))?;
+        drop(cold);
+        let bound = tos_query::bind_verified_knowledge(&model, &self.vocabulary, &self.descriptor)?;
+        let authority = Authority::new(
+            self,
+            &bound,
+            tos_query::INDEXED_SEARCH_OPERATION_ID,
+            tos_query::INDEXED_SEARCH_INTENDED_USE,
+        )?;
+        let mut authority = IndexedAuthority {
+            authority,
+            probe: Arc::clone(&probe),
+        };
+        let indexed_request = IndexedSearchV2Request {
+            query: request.query,
+            sources: request.sources,
+            kind_ids: request.kind_ids,
+            predicate_ids: request.predicate_ids,
+            limit: request.limit,
+        };
+        let normalized = indexed_request
+            .clone()
+            .normalize(bound.selection(), &bound)?;
+        let initial = SearchContinuationState::new(
+            bound.selection().clone(),
+            normalized,
+            authority.authority.policy.clone(),
+            &bound,
+        )?;
+        let mut cursor_codec = NativeIndexedCursorCodec::new(initial, bound.owner_receipt_id());
+        let packet = tos_query::execute_indexed_search_page(
+            &mut model,
+            &bound,
+            &mut authority,
+            &mut cursor_codec,
+            indexed_request,
+            request.cursor.as_deref(),
+            self.indexed_budget(),
+        )?;
+        crate::knowledge::check_abort(&probe)?;
+        Ok(crate::knowledge::from_indexed_search(packet))
     }
     fn knowledge_search_legacy(
         &self,
@@ -576,10 +707,64 @@ impl InspectDisclosureLease for ReleaseLease {
             .map_err(|_| query_error("selected local release changed or revoked"))
     }
 }
+impl IndexedDisclosureLease for ReleaseLease {
+    fn recheck(&mut self) -> Result<(), SearchV2Error> {
+        ReleaseLease::recheck(self)
+            .map_err(|_| query_error("selected local release changed or revoked"))
+    }
+}
 impl CatalogDisclosureLease for ReleaseLease {
     fn recheck(&mut self) -> Result<(), CatalogError> {
         ReleaseLease::recheck(self)
             .map_err(|_| catalog_error("selected local release changed or revoked"))
+    }
+}
+struct IndexedAuthority {
+    authority: Authority,
+    probe: Arc<dyn AbortProbe>,
+}
+impl IndexedAuthority {
+    fn check(&mut self) -> Result<(), SearchV2Error> {
+        if let Some(reason) = self.probe.reason() {
+            return Err(SearchV2Error {
+                code: match reason {
+                    AbortReason::Cancelled => SearchV2ErrorCode::Cancelled,
+                    AbortReason::DeadlineExceeded => SearchV2ErrorCode::DeadlineExceeded,
+                },
+                message: "indexed search interrupted",
+            });
+        }
+        self.authority.check()
+    }
+}
+impl IndexedKnowledgeAuthority for IndexedAuthority {
+    fn policy_binding(&self) -> CurrentPolicyBinding {
+        self.authority.policy.clone()
+    }
+    fn disclosure_scope(&self) -> IndexedDisclosureScope {
+        self.authority.inspect.clone()
+    }
+    fn check_selected(&mut self) -> Result<(), SearchV2Error> {
+        self.check()
+    }
+    fn authorize_current(
+        &mut self,
+        _: &tos_query::search_candidate::SelectedSearchCandidate,
+    ) -> Result<(), SearchV2Error> {
+        // The held release admits this whole public projection, including
+        // consulted filtered and gram-false-positive selected carriers.
+        self.check()
+    }
+    fn acquire_disclosure(
+        &mut self,
+        scope: &IndexedDisclosureScope,
+        _: &[ObservedSearchCandidate],
+    ) -> Result<Box<dyn IndexedDisclosureLease>, SearchV2Error> {
+        if scope != &self.authority.inspect {
+            return Err(query_error("selected indexed disclosure scope changed"));
+        }
+        self.check()?;
+        Ok(Box::new(self.authority.take()?))
     }
 }
 impl<'hold> InspectCurrentAuthority<'hold> for Authority {

@@ -70,7 +70,11 @@ including the optional empty query, offset, filters and explicit legacy mode.
 Indexed mode retains its own cursor validation and QRY engine; compressed mode
 refuses without an explicitly prepared publication. The transport does not
 translate offsets into cursors or choose a fallback engine. The selected search
-capabilities packet is available through CLI, GET/HEAD and MCP under its own
+cursor is a bounded, unsigned native paging request and can resume in a later
+CLI invocation or across HTTP/MCP processes while the same release remains
+current. It has a 900-second advisory expiry; every page reacquires the actual
+release disclosure hold. Native cursors are not Python or Worker cursor tokens.
+The selected search capabilities packet is available through CLI, GET/HEAD and MCP under its own
 held operation scope. Its engine-selection-only readiness does not issue a
 public grant. CLI arguments are bounded before option expansion; structured
 files, HTTP targets, MCP input and output retain their separate declared caps.
