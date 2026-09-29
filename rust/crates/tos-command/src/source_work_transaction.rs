@@ -988,6 +988,37 @@ pub(crate) fn work_archive(
         "work.json",
     )
 }
+/// Expression-owned compounds retain the exact three-file parent revision.
+/// Responsibility and Edition owners still authenticate their own selected path.
+pub(crate) fn expression_archive(
+    fs: &CreationFilesystem,
+    expression_path: &str,
+    expression: &JsonValue,
+    before: &BTreeMap<String, Vec<u8>>,
+    expected_revision: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    create: bool,
+) -> SourceCommandResult<WorkArchive> {
+    if cmd::text(expression, "record_type")? != "expression"
+        || !expression_path.ends_with("/expression.json")
+    {
+        return Err(SourceCommandError::Denied(
+            "Expression archive selected parent profile",
+        ));
+    }
+    compound_archive(
+        fs,
+        expression_path,
+        expression,
+        before,
+        expected_revision,
+        deadline,
+        cancelled,
+        create,
+        "expression.json",
+    )
+}
 pub(crate) fn item_archive(
     fs: &CreationFilesystem,
     edition_path: &str,
