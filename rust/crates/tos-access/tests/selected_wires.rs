@@ -5997,12 +5997,14 @@ mod local_reading {
             Some(tos_query::reading_search::READING_PROVIDER_REF)
         );
         let raw = capability.object_get("result").unwrap();
-        let reference = fixture
-            .query(
-                &fixture.request(),
-                tos_query::reading_search::ReadingSearchBudget::local_default(),
-            )
-            .unwrap();
+        let reference = tos_query::reading_search::execute_reading_search(
+            &fixture.roots,
+            &tos_query::reading_search::ReadingSoftware::embedded(),
+            &fixture.request(),
+            tos_query::reading_search::ReadingSearchBudget::local_default(),
+            profile.deadline_probe(),
+        )
+        .unwrap();
         assert!(semantic_eq(raw, &json(&reference.body)));
         drop(reference);
         let response = handle_get(
