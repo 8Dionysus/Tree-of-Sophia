@@ -415,8 +415,7 @@ impl ItemRules {
                 let resources = &entry["resources"];
                 let baseline = self.live_bytes;
                 self.admit_live(
-                    std::mem::size_of::<BTreeSet<&str>>()
-                        + std::mem::size_of::<BTreeSet<String>>(),
+                    std::mem::size_of::<BTreeSet<&str>>() + std::mem::size_of::<BTreeSet<String>>(),
                 )?;
                 let mut ids = BTreeSet::new();
                 let mut invalid_ids = BTreeSet::new();
