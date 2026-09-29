@@ -1,3 +1,4 @@
+import {browserFocusSpec,browserRelationSpec} from './lens-spec-rules.mjs';
 import {createClientPacketSession,createClientMaterialSession,packetKindUnits,packetMissing,createClientJsonSession,createClientSelectorSession,packetSetKey,packetString} from './client-packet-rules.mjs';
 import {createSourceDossierSession,dossierTextUnits,dossierPredicate} from './source-dossier-rules.mjs';
 import {createClientInspectionSession,createClientItemsSession,inspectionRefInvalid,inspectionRevisionText,inspectionRevisionUnits} from './client-inspection-rules.mjs';
@@ -81,21 +82,8 @@ function validateRequestSelectorSet(value,actual){
 // Durable reading stores selectors only. The backend must supply and validate
 // the complete current path again; saved IDs never stand in for source text.
 export function validateClaimReference(value,claimId){
-  try{const normalized=normalizeClaimReference(value,claimId);if(normalized)return normalized;}
+  try{return normalizeClaimReference(value,claimId);}
   catch{throw new FormContractError();}
-  const id=value=>typeof value==='string'&&value.length>0&&value.length<=2048;
-  const ids=(value,limit)=>Array.isArray(value)&&value.length<=limit&&value.every(id);
-  if(!value||value.claimId!==claimId||!id(claimId)||!id(value.pathId)||!id(value.relationType)
-    ||!ids(value.nodeIds,3)||value.nodeIds.length!==3||value.nodeIds[1]!==claimId
-    ||!ids(value.relationIds,2)||value.relationIds.length!==2
-    ||!ids(value.detailRelationIds,BUDGET.relations-2)
-    ||!ids(value.closureNodeIds,BUDGET.nodes)||!value.closureNodeIds.length
-    ||new Set(value.closureNodeIds).size!==value.closureNodeIds.length
-    ||!value.nodeIds.every(nodeId=>value.closureNodeIds.includes(nodeId))
-    ||new Set([...value.relationIds,...value.detailRelationIds]).size!==value.relationIds.length+value.detailRelationIds.length)
-    throw new FormContractError();
-  return Object.fromEntries(['claimId','pathId','relationType','nodeIds','relationIds','detailRelationIds','closureNodeIds']
-    .map(key=>[key,structuredClone(value[key])]));
 }
 export function claimMaterialReference(packet,path){
   const closure=claimPathClosure(packet,path);
@@ -184,19 +172,8 @@ export function nodeLabels(raw,preferred=uiLanguage()){
     fullName,original:sourceOriginalTitle(raw),labelLanguage:form?.lang||null,
     kind:localized(raw.display.kind_label,raw.kind_id,preferred),description:localized(raw.display.summary,'',preferred)};
 }
-export function focusSpec(id,{depth=1}={}) {
-  return {schema_version:'tos_lens_spec_v1',lens_id:'sophia-observatory-focus',language:'ru',detail:'compact',explain:true,
-    seed:{focus_node_id:id},node_query:{enabled:false},
-    traversal:{depth,direction:'either',profile:'overview'},limits:{...BUDGET,groups:8}};
-}
-export function relationSpec(relation){
-  const spec=focusSpec(relation.from_id,{depth:0});
-  spec.node_query={enabled:true,filters:[{field:'id',op:'in',value:[relation.from_id,relation.to_id]}]};
-  // An explicitly selected relation is not subject to overview omissions.
-  spec.traversal.profile='all';
-  spec.relation_query={filters:[{field:'id',op:'eq',value:relation.id}]};
-  spec.limits={nodes:2,relations:1,groups:2};return spec;
-}
+export function focusSpec(id,{depth=1}={}){return browserFocusSpec(id,depth);}
+export function relationSpec(relation){return browserRelationSpec(relation);}
 
 // A public route may name either a node or a relation.  Relation identities
 // are intentionally opaque, so the route resolver asks the owner relation

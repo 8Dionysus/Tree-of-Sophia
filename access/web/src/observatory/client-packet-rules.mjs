@@ -1,9 +1,11 @@
+import {installLensSpecRules} from './lens-spec-rules.mjs';
 import {installKnowledgeSceneRules} from '../../../shared/knowledge-scene.ts';
 let runtime;
 export function installClientPacketRules(value){
   if(['ClientPacketSession','ClientJsonSession','ClientSelectorSession','ClientMaterialSession'].some(name=>typeof value?.[name]!=='function'))throw new TypeError('Generated client packet Rust rules are unavailable');
   runtime=value;
   installKnowledgeSceneRules(value);
+  installLensSpecRules(value);
 }
 export function createClientPacketSession(...args){
   if(!runtime)throw new Error('Client packet Rust rules are not installed');

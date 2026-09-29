@@ -2,7 +2,7 @@ import './human-forms-wasm-test-runtime.mjs';
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 
-import {validateLens,projectLens,focusSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError,displayTitle,displayTitleForm,sourceOriginalTitle,compileRouteCenter,isSourceDossierRef,SOURCE_DOSSIER_LIMIT,validateSourceDossier,sameJson,explorationRequestMatches,validateExploration} from './knowledge-client.mjs';
+import {validateLens,projectLens,focusSpec,relationSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError,displayTitle,displayTitleForm,sourceOriginalTitle,compileRouteCenter,isSourceDossierRef,SOURCE_DOSSIER_LIMIT,validateSourceDossier,sameJson,explorationRequestMatches,validateExploration} from './knowledge-client.mjs';
 import {setUiLanguage} from './ui-i18n.mjs';
 
 const node=id=>({id,entity_id:'tos.work.friedrich-nietzsche.also-sprach-zarathustra',kind_id:'work',
@@ -474,4 +474,20 @@ test('retained area endpoint callback keeps its original identity index across e
   validateExploration(packet);
   assert.equal(retained({from_id:'graph-a:work',to_id:'graph-b:work'}),false);
   assert.equal(retained({from_id:'late-a',to_id:'late-b'}),true);
+});
+
+
+test('Rust lens recipes retain opaque slots, own-property order and repeated relation reads',()=>{
+  const depth={};depth.self=depth;const focus=focusSpec(undefined,{depth});
+  assert.equal(Object.hasOwn(focus.seed,'focus_node_id'),true);assert.equal(focus.seed.focus_node_id,undefined);
+  assert.equal(focus.traversal.depth,depth);assert.equal(focusSpec('id',{depth:undefined}).traversal.depth,1);
+  assert.deepEqual(Object.keys(focus),['schema_version','lens_id','language','detail','explain','seed','node_query','traversal','limits']);
+  assert.deepEqual(Object.keys(focus.limits),['nodes','relations','groups']);assert.equal(Object.getPrototypeOf(focus),Object.prototype);
+  const first={},second=Symbol('second'),target=3n,identity={};identity.self=identity;let fromReads=0;const reads=[];
+  const relation={get from_id(){reads.push('from');return ++fromReads===1?first:second;},
+    get to_id(){reads.push('to');return target;},get id(){reads.push('id');return identity;}};
+  const spec=relationSpec(relation);assert.deepEqual(reads,['from','from','to','id']);
+  assert.equal(spec.seed.focus_node_id,first);assert.equal(spec.node_query.filters[0].value[0],second);
+  assert.equal(spec.node_query.filters[0].value[1],target);assert.equal(spec.relation_query.filters[0].value,identity);
+  assert.equal(Object.keys(spec).at(-1),'relation_query');assert.deepEqual(spec.limits,{nodes:2,relations:1,groups:2});
 });

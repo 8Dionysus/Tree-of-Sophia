@@ -9,6 +9,8 @@
 mod client_inspection;
 #[cfg(feature = "wasm")]
 mod client_packet;
+#[cfg(feature = "wasm")]
+mod browser_lens_spec;
 mod claim_reading;
 mod claim_reference;
 mod constructor_machine;
@@ -56,6 +58,8 @@ pub use knowledge_scene::KnowledgeSceneSession;
 pub use client_packet::{ClientPacketSession,ClientJsonSession,ClientSelectorSession,ClientMaterialSession};
 #[cfg(feature = "wasm")]
 pub use source_dossier::SourceDossierSession;
+#[cfg(feature = "wasm")]
+pub use browser_lens_spec::{focus_spec_descriptor_wasm_v1,relation_spec_descriptor_wasm_v1};
 
 pub use claim_reading::validate_claim_reading_v1;
 pub use claim_reference::validate_claim_reference_v1;

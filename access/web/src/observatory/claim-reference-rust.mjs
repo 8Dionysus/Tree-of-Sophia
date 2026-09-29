@@ -10,7 +10,7 @@ export function installClaimReferenceRules(runtime){
 }
 
 export function normalizeClaimReference(reference,claimId){
-  if(!validate)return null;
+  if(!validate)throw new Error('Claim reference Rust rules are not installed');
   const projected=Object.fromEntries(fields.map(field=>[field,reference?.[field]]));
   const wire=JSON.stringify({claim_id:claimId,reference:projected});
   if(typeof wire!=='string'||wire.length>2_000_000)throw new Error('invalid_claim_reference');
