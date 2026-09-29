@@ -122,6 +122,14 @@ impl KnowledgeSceneSession {
         self.by_node.insert(id, group);
         self.groups[group as usize].nodes.push(handle);
     }
+    pub fn vertex_prefix(entity: bool) -> String {
+        if entity {
+            "tos-scene:entity:"
+        } else {
+            "tos-scene:carrier:"
+        }
+        .into()
+    }
     pub fn entity_prefix() -> String {
         "tos.".into()
     }

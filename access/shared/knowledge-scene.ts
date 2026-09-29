@@ -33,7 +33,7 @@ export function knowledgeScene(nodes:Item[],relations:Item[],focusNodeId:string|
   try {
     for(const node of nodes) {
       const entity=typeof node.entity_id==='string'&&node.entity_id.startsWith(Rule.entity_prefix())?node.entity_id:null;
-      const id=entity?'tos-scene:entity:'+entity:'tos-scene:carrier:'+String(node.id);
+      const id=Rule.vertex_prefix(Boolean(entity))+(entity?entity:String(node.id));
       // Preserve the second, fresh ID coercion used for the packet index.
       const nodeId=key(String(node.id));
       const handle=nodeHandles.push(node)-1;
