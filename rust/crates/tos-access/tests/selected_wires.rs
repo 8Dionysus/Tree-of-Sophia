@@ -6396,6 +6396,7 @@ mod local_reading {
 // Prepared inspect/lens transport coverage is separate from catalog/search cases.
 mod prepared_inspect_lens {
     use super::*;
+    use std::path::Path;
     use tos_compiler::local_prepared::{
         PreparedChange, PreparedRows, PublicationLimits, apply_prepared_delta_until,
         publish_prepared_rows_until,
