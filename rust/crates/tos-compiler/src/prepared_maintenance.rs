@@ -686,6 +686,16 @@ pub fn transition_prepared_normalization_transaction(
     before.validate()?;
     after.validate()?;
     limits.validate()?;
+    reviewed.validate(
+        before
+            .header
+            .object_get("normalization_binding")
+            .ok_or(Error::Invalid("normalization predecessor absent"))?,
+        after
+            .header
+            .object_get("normalization_binding")
+            .ok_or(Error::Invalid("normalization successor absent"))?,
+    )?;
     let start = tx.total_changes();
     selected(tx, expected, before, limits)?;
     // Preserve actual registry/lens/order identities, not merely their claimed
