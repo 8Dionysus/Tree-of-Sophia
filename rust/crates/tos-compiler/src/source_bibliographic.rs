@@ -646,10 +646,15 @@ fn maker(
     let maker = &claim["maker"];
     let reference = text(maker, "agent_ref")?;
     let identity = identity(stage, reference, validator, materializer, l)?;
-    let digest = receipt
-        .file_sha256
-        .get(CLAIM_CATALOG)
-        .ok_or(Error::Invalid("bibliographic Claim catalog digest missing"))?;
+    let digest = if identity.is_none() {
+        receipt
+            .file_sha256
+            .get(CLAIM_CATALOG)
+            .ok_or(Error::Invalid("bibliographic Claim catalog digest missing"))?
+            .as_str()
+    } else {
+        ""
+    };
     supplied_bibliographic_maker(claim, identity, digest, l.catalog.max_output_row_bytes)
 }
 
