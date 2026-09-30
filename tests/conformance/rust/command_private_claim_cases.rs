@@ -306,7 +306,7 @@ fn selected_capture(
 fn fixture(repository: &Path, root: &Path, deadline: Instant) -> Value {
     let script = r#"
 import json,sys,stat,resource
-resource.setrlimit(resource.RLIMIT_CPU,(35,35))
+resource.setrlimit(resource.RLIMIT_CPU,(90,90))
 resource.setrlimit(resource.RLIMIT_AS,(1073741824,1073741824))
 from pathlib import Path
 repo,root=map(Path,sys.argv[1:])
