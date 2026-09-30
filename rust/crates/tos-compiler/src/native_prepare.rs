@@ -399,7 +399,25 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
         deadline,
     )?;
     ingest_family_rows(&mut stage, &capture, limits.max_stage_transfer_work_bytes)?;
-    let navigation = capture.header_object("corpus", "source_navigation", 1024 * 1024)?;
+    // Maintained prepare consumes navigation collections without requiring a
+    // detached owner header. Adapt their captured counts to the native
+    // computational claim; do not relabel or modify captured source metadata.
+    let navigation_counts = {
+        let db = capture.read_db()?;
+        let mut count =
+            db.prepare("SELECT count(*) FROM capture_rows WHERE role='corpus' AND collection=?1")?;
+        let mut counts = serde_json::Map::new();
+        for name in ["nodes", "edges", "rights"] {
+            let n: u64 = count.query_row([format!("source_navigation/{name}")], |r| r.get(0))?;
+            counts.insert(name.to_owned(), Value::from(n));
+        }
+        counts
+    };
+    let navigation = packet!({
+        "schema_version": "tos_source_navigation_v1",
+        "authority_boundary": "captured prepare collections; computational normalization only",
+        "counts": navigation_counts,
+    });
     let nav_raw = serde_json::to_vec(&navigation).map_err(|e| Error::Source(e.to_string()))?;
     let nav = NavigationHeaderClaim {
         expected_sha256: Digest256::of_bytes(&nav_raw).to_hex(),
