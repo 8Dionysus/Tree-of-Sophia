@@ -698,19 +698,27 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
     let deadline = Instant::now() + Duration::from_secs(600);
     let cancel = Arc::new(AtomicBool::new(false));
     let repository = super::validation_cut_cases::repository();
-    let consumer = PathBuf::from(
-        std::env::var_os("TOS_NATIVE_PREPARED_CONSUMER_BIN").expect("exact native CLI required"),
+    let owner_command = PathBuf::from(
+        std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH").expect("exact native owner CLI required"),
+    );
+    let prepared_consumer = PathBuf::from(
+        std::env::var_os("TOS_NATIVE_PREPARED_CONSUMER_BIN")
+            .expect("exact native prepared-access CLI required"),
     );
     let worker_path = super::validation_cut_cases::selected_worker_path();
-    assert!(fs::metadata(&worker_path).unwrap().len() <= 128 * 1024 * 1024);
     let image_paths = [
-        PathBuf::from("/proc/self/exe"),
-        consumer.clone(),
-        worker_path.clone(),
+        (PathBuf::from("/proc/self/exe"), 512 * 1024 * 1024),
+        (owner_command.clone(), 512 * 1024 * 1024),
+        (worker_path.clone(), 128 * 1024 * 1024),
+        (prepared_consumer, 512 * 1024 * 1024),
     ];
+    for (path, maximum) in &image_paths {
+        assert!(path.is_absolute());
+        assert!(fs::metadata(path).unwrap().len() <= *maximum as u64);
+    }
     let images = image_paths
         .iter()
-        .map(|p| native_child::bounded_sha_before(p, 512 * 1024 * 1024, deadline))
+        .map(|(p, maximum)| native_child::bounded_sha_before(p, *maximum, deadline))
         .collect::<Vec<_>>();
     let workspace = tempfile::tempdir().unwrap();
     let packet_path = workspace.path().join("agent-fixture.json");
@@ -979,7 +987,7 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         .collect::<Vec<_>>();
     let components = software.select_components(&component_paths).unwrap();
     let invocation_path = workspace.path().join("agent-native-invocation.json");
-    let invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1","owner_config":owner,"owner_context":null,"assessment_schema_worker":null,"native_executable":consumer,"native_executable_sha256":images[1].to_prefixed(),"corpus_store":original_store,"source_revision":original_revision.0.to_prefixed(),"original_source_revision":original_revision.0.to_prefixed(),"software_capture":capture,"software_restored_root":restored,"software_selection":{"source_git_commit":selection.source_git_commit,"source_git_tree":selection.source_git_tree,"capture_manifest_sha256":selection.capture_manifest_sha256.to_prefixed()},"software_components":AGENT_RECORD_COMPONENTS,"schema_worker":{"absolute_path":worker_path,"sha256":images[2].to_prefixed()},"budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
+    let invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1","owner_config":owner,"owner_context":null,"assessment_schema_worker":null,"native_executable":owner_command,"native_executable_sha256":images[1].to_prefixed(),"corpus_store":original_store,"source_revision":original_revision.0.to_prefixed(),"original_source_revision":original_revision.0.to_prefixed(),"software_capture":capture,"software_restored_root":restored,"software_selection":{"source_git_commit":selection.source_git_commit,"source_git_tree":selection.source_git_tree,"capture_manifest_sha256":selection.capture_manifest_sha256.to_prefixed()},"software_components":AGENT_RECORD_COMPONENTS,"schema_worker":{"absolute_path":worker_path,"sha256":images[2].to_prefixed()},"budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
     fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();
     fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
     let preview = agent_native_call(
@@ -1204,9 +1212,9 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         deadline,
     );
     agent_physical(workspace.path(), deadline);
-    for (path, expected) in image_paths.iter().zip(images) {
+    for ((path, maximum), expected) in image_paths.iter().zip(images) {
         assert_eq!(
-            native_child::bounded_sha_before(path, 512 * 1024 * 1024, deadline),
+            native_child::bounded_sha_before(path, *maximum, deadline),
             expected
         );
     }
