@@ -1184,6 +1184,42 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
     let binding_path = workspace.path().join("Agent-binding.json");
     fs::write(&binding_path, canonical_lf(&result["binding"])).unwrap();
     drop(connection);
+    if std::env::var_os("TOS_NATIVE_INSTALLED_SOFTWARE_SITE").as_deref()
+        == Some(std::ffi::OsStr::new("1"))
+    {
+        let installed_access = &image_paths[3].0;
+        assert_eq!(
+            native_child::bounded_sha_before(installed_access, 512 * 1024 * 1024, deadline),
+            images[3]
+        );
+        let stale = native_child::bounded_output_before(
+            Command::new(installed_access)
+                .arg("--prepared-read-model")
+                .arg(&db_path)
+                .arg("--prepared-binding")
+                .arg(&predecessor_binding)
+                .args(["knowledge", "catalog"]),
+            tos_access::prepared_local::PREPARED_RESPONSE_BYTES,
+            deadline.min(Instant::now() + Duration::from_secs(5)),
+        );
+        assert!(
+            !stale.status.success(),
+            "installed access accepted stale Agent predecessor"
+        );
+        assert!(
+            stale.stdout.is_empty(),
+            "stale installed query disclosed rows"
+        );
+        assert!(
+            String::from_utf8_lossy(&stale.stderr).contains("stale_selection"),
+            "unexpected installed stale refusal: {}",
+            String::from_utf8_lossy(&stale.stderr)
+        );
+        assert_eq!(
+            native_child::bounded_sha_before(installed_access, 512 * 1024 * 1024, deadline),
+            images[3]
+        );
+    }
     let old = tos_access::prepared_local::PreparedLocalExecutor::open(
         db_path.clone(),
         predecessor_binding,
