@@ -544,7 +544,11 @@ pub(crate) fn publish_committed_initial_metadata_with_precommit(
         max_relations: operation.max_relations,
         max_traces: operation.max_claims,
         max_contexts: operation.max_contexts,
-        max_row_bytes: bibliographic.catalog.max_row_bytes,
+        max_row_bytes: bibliographic
+            .catalog
+            .max_row_bytes
+            .min(operation.max_row_bytes)
+            .min(publication.max_row_bytes),
         max_input_bytes: operation.max_bytes,
         max_output_bytes: operation.max_bytes,
     };

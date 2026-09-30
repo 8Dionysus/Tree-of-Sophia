@@ -181,7 +181,7 @@ pub(super) fn run(
             max_file_bytes: 16_777_216,
             max_row_bytes: 1_048_576,
             max_contract_bytes: 4_194_304,
-            max_output_row_bytes: 32_768,
+            max_output_row_bytes: 1_048_576,
         },
         max_claim_cohort_rows: capped(bib, "max_claim_cohort_rows", 512)? as usize,
         max_claim_cohort_bytes: capped(bib, "max_claim_cohort_bytes", 16_777_216)? as usize,
