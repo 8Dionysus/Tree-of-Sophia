@@ -14,6 +14,8 @@ use tos_foundation::{
     SourceRevision, canonical_bytes_v1, parse_json,
 };
 
+use tos_validation::FormatProfile;
+
 /// Profiles keep independent plans/receipts/child state while one sealed image
 /// owns executable custody for this bounded record scenario.
 fn profile_workers(
@@ -82,7 +84,6 @@ fn sign_uses_current_native_content_assessment_and_replays_its_original_package(
     use tos_command::source_creation_store::{
         CreationDurability, CreationFilesystem, IsolatedCreationRoot,
     };
-    use tos_validation::FormatProfile;
     use tos_validation::assessment::AssessmentLimits;
     use tos_validation::executor::BatchBudget;
     use tos_validation::source_cut::CutSchemaExecutor;
