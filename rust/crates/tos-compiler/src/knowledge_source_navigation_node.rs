@@ -168,12 +168,17 @@ fn owner_envelope(item: &Value) -> Result<()> {
     let object = item
         .as_object()
         .ok_or(Error::Invalid("navigation native owner object"))?;
-    if object.len() != 6
+    // File originals may declare the complete Item-manifest membership set.
+    // Preserve that exact optional value for the maintained dossier reader,
+    // which owns type/completeness checks and fails closed on malformed sets.
+    let file_sources = item.get("node_kind").and_then(Value::as_str) == Some("file")
+        && object.contains_key("source_refs");
+    if object.len() != 6 + usize::from(file_sources)
         || object.keys().any(|key| {
             !matches!(
                 key.as_str(),
                 "node_id" | "node_kind" | "label" | "source_ref" | "identity_status" | "properties"
-            )
+            ) && !(file_sources && key == "source_refs")
         })
         || item.get("properties").and_then(Value::as_object).is_none()
         || item.get("label").and_then(Value::as_str).is_none()
