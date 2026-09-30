@@ -11,16 +11,16 @@ use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::rc::Rc;
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{
-    canonical_count_v1, python_strip_unicode16_v1, CanonicalProfile, Digest256, JsonLimits,
-    JsonString, JsonValue, RelativePath,
+    CanonicalProfile, Digest256, JsonLimits, JsonString, JsonValue, RelativePath,
+    canonical_count_v1, python_strip_unicode16_v1,
 };
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 use tos_validation::PredicateRead;
+use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 pub const CLAIM_STREAM: &str = "source-claims.jsonl";
 pub const CLAIM_HISTORY: &str = "claim-revision-history.json";
@@ -8424,6 +8424,27 @@ fn validate_member_order(claim: &JsonValue) -> SourceCommandResult<()> {
         return Err(SourceCommandError::Invalid("cyclic scoped member order"));
     }
     Ok(())
+}
+
+/// Read-only exact Collection/membership grounding for the addressed producer.
+/// The independently selected cut and matching real worker retain custody;
+/// this obtains no author configuration, write grant or current-use admission.
+pub(crate) fn ground_addressed_collection_membership(
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    claim: &JsonValue,
+    executor: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    if ctx.base_revision != cut.current().revision()
+        || executor.source_revision() != ctx.base_revision
+    {
+        return Err(SourceCommandError::Conflict(
+            "addressed Collection grounding cut/worker",
+        ));
+    }
+    ground_collection_membership(ctx, Some(cut), None, claim, executor, deadline, cancelled)
 }
 
 fn ground_collection_membership(

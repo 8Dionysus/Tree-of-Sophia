@@ -14,7 +14,7 @@ use std::collections::BTreeSet;
 
 /// Borrowed inputs are not a source receipt. Pure rendering retains the exact
 /// ordered history resolution set supplied by the checked caller.
-pub(crate) struct NavigationRecordInput<'a> {
+pub struct NavigationRecordInput<'a> {
     pub entry: &'a Value,
     pub source_record: &'a Value,
     pub forms: Option<(&'a str, &'a Value)>,
@@ -22,7 +22,7 @@ pub(crate) struct NavigationRecordInput<'a> {
     pub versions: &'a [(Value, Value)],
     pub native_composite: bool,
 }
-pub(crate) struct NavigationRecordProjection {
+pub struct NavigationRecordProjection {
     pub nodes: Vec<Value>,
     pub edges: Vec<Value>,
     pub diagnostics: Vec<Value>,

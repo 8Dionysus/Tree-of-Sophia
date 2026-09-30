@@ -1326,6 +1326,14 @@ impl<'a, 'b> Versions<'a, 'b> {
 }
 /// Owner descriptors selected from the already sealed registry and catalog.
 /// This is the maintained MetadataVersionReader dispatch, not an admission API.
+pub(crate) fn supplied_metadata_descriptor(
+    entry: &Value,
+    record: &Value,
+    entities: &Value,
+) -> Result<Value> {
+    let route = RecordRoute::derive(entry, record, entities)?;
+    Ok(route.descriptor(&record["schema_version"]))
+}
 struct RecordRoute {
     kind: String,
     adapter: &'static str,

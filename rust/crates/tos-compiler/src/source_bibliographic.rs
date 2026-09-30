@@ -3,11 +3,73 @@
 //! Receipts are private candidates: no rights, publication or semantic grant.
 use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_stage::{KnowledgeStage, WritePhase};
+pub use crate::source_bibliographic_navigation::{
+    NavigationRecordInput as SuppliedNavigationRecordInput,
+    NavigationRecordProjection as SuppliedNavigationRecordProjection,
+};
 use crate::source_bibliographic_render::{self as render, array, digest, encode, node_id, text};
 pub use crate::source_bibliographic_render::{
     ClaimInputs as SuppliedBibliographicClaimInputs, Cohort as SuppliedBibliographicClaimCohort,
 };
 pub use crate::source_bibliographic_versions::BibliographicSourceCut;
+
+/// Render authenticated ordered metadata/history supplied by the source owner.
+/// This is the existing per-record kernel; inputs are not a source receipt,
+/// selected-cut proof, assessment, or grant of current use.
+pub fn render_supplied_navigation_record(
+    input: SuppliedNavigationRecordInput<'_>,
+    limits: BibliographicLimits,
+) -> Result<SuppliedNavigationRecordProjection> {
+    crate::source_bibliographic_navigation::project_source_navigation_record(input, limits)
+}
+
+/// Existing metadata route descriptor over source-authenticated inputs.
+pub fn supplied_metadata_descriptor(
+    entry: &Value,
+    record: &Value,
+    entities: &Value,
+    max_row_bytes: usize,
+) -> Result<Value> {
+    for value in [entry, record, entities] {
+        encode(value, max_row_bytes)?;
+    }
+    crate::source_bibliographic_versions::supplied_metadata_descriptor(entry, record, entities)
+}
+
+/// The same literal renderer used by the maintained full Claim producer.
+pub fn supplied_bibliographic_literal(
+    entry: &Value,
+    claim: &Value,
+    max_row_bytes: usize,
+) -> Result<Value> {
+    encode(entry, max_row_bytes)?;
+    encode(claim, max_row_bytes)?;
+    render::literal(entry, claim, max_row_bytes)
+}
+
+/// Existing fixed reference/proposal grammar, with original member order.
+pub fn supplied_claim_reference_members<'a>(
+    claim: &'a Value,
+    profile: &Value,
+    max_row_bytes: usize,
+) -> Result<Vec<&'a str>> {
+    encode(claim, max_row_bytes)?;
+    encode(profile, max_row_bytes)?;
+    crate::source_bibliographic_values::members(claim, profile)
+}
+
+/// Same registry inheritance/domain predicate; no source lookup is performed.
+pub fn supplied_bibliographic_endpoint_matches(
+    node: &Value,
+    allowed: &Value,
+    entities: &Value,
+    max_row_bytes: usize,
+) -> Result<bool> {
+    for value in [node, allowed, entities] {
+        encode(value, max_row_bytes)?;
+    }
+    typed_endpoint(node, allowed, entities)
+}
 
 /// Pure bounded rendering only. The caller owns schema, source-slot, endpoint,
 /// profile and currentness verification; this function grants no admission.
@@ -574,6 +636,99 @@ pub fn supplied_bibliographic_path_evidence(
     );
 }
 
+/// Pure evidence rendering after the owner has resolved the exact source.
+/// Variant selection is not a lookup or a source admission proof.
+pub enum SuppliedEvidenceResolution<'a> {
+    Anchor {
+        anchor: &'a Value,
+        location: &'a Value,
+    },
+    Identity(&'a Value),
+    ProvenanceEvent(&'a Value),
+    ExternalCitation,
+}
+pub fn supplied_bibliographic_evidence(
+    reference: &str,
+    claim: &Value,
+    entry: &Value,
+    resolution: SuppliedEvidenceResolution<'_>,
+    max_row_bytes: usize,
+) -> Result<Value> {
+    if max_row_bytes == 0 || max_row_bytes > 4 * 1024 * 1024 {
+        return Err(Error::Budget("bibliographic evidence row cap"));
+    }
+    encode(claim, max_row_bytes)?;
+    encode(entry, max_row_bytes)?;
+    match &resolution {
+        SuppliedEvidenceResolution::Anchor { anchor, location } => {
+            encode(anchor, max_row_bytes)?;
+            encode(location, max_row_bytes)?;
+        }
+        SuppliedEvidenceResolution::Identity(identity) => {
+            encode(identity, max_row_bytes)?;
+        }
+        SuppliedEvidenceResolution::ProvenanceEvent(location) => {
+            encode(location, max_row_bytes)?;
+        }
+        SuppliedEvidenceResolution::ExternalCitation => {}
+    }
+    let result = render_bibliographic_evidence(reference, claim, entry, resolution, max_row_bytes)?;
+    encode(&result, max_row_bytes)?;
+    Ok(result)
+}
+
+fn render_bibliographic_evidence(
+    reference: &str,
+    claim: &Value,
+    entry: &Value,
+    resolution: SuppliedEvidenceResolution<'_>,
+    max_row_bytes: usize,
+) -> Result<Value> {
+    let id = node_id("evidence", reference);
+    match resolution {
+        SuppliedEvidenceResolution::Anchor { anchor, location } => {
+            let mut p = anchor
+                .as_object()
+                .ok_or(Error::Invalid("bibliographic anchor object"))?
+                .clone();
+            for (field, value) in [
+                ("evidence_ref", json!(reference)),
+                ("evidence_kind", json!("anchor")),
+                ("resolved", json!(true)),
+                ("anchor_status", anchor["status"].clone()),
+                ("item_ref", anchor["item_id"].clone()),
+                ("file_ref", anchor["file_id"].clone()),
+                ("source_anchor", anchor.clone()),
+            ] {
+                p.insert(field.into(), value);
+            }
+            return Ok(
+                json!({"node_id":id,"node_kind":"evidence","source_ref":location["source_ref"],"source_line":location["source_line"],"source_sha256":location["canonical_sha256"],"display":evidence_display(reference,"anchor",text(&location,"source_ref")?,location["source_line"].as_u64(),None,"source-metadata-label"),"properties":p}),
+            );
+        }
+        SuppliedEvidenceResolution::Identity(identity) => {
+            return Ok(
+                json!({"node_id":id,"node_kind":"evidence","source_ref":identity["source_ref"],"source_sha256":identity["source_sha256"],"display":evidence_display(reference,"identity",text(&identity,"source_ref")?,None,identity.pointer("/properties/preferred_label").and_then(Value::as_str),"source-metadata-label"),"properties":{"evidence_ref":reference,"evidence_kind":"identity","resolved":true,"identity_node_id":identity["node_id"]}}),
+            );
+        }
+        SuppliedEvidenceResolution::ProvenanceEvent(location) => {
+            return Ok(
+                json!({"node_id":id,"node_kind":"evidence","source_ref":location["source_ref"],"source_line":location["source_line"],"source_sha256":location["canonical_sha256"],"display":evidence_display(reference,"provenance_event",text(&location,"source_ref")?,location["source_line"].as_u64(),None,"source-metadata-label"),"properties":{"evidence_ref":reference,"evidence_kind":"provenance_event","resolved":true,"provenance_event_node_id":node_id("provenance_event",reference)}}),
+            );
+        }
+        SuppliedEvidenceResolution::ExternalCitation => {}
+    }
+    // External addresses are preserved as citing-Claim declarations, never fetched.
+    let address = reference;
+    crate::source_bibliographic_unicode::validate_external_citation_address(address)?;
+    let occurrence =
+        String::from_utf8(encode(&json!([claim["claim_id"], address]), max_row_bytes)?)
+            .map_err(|_| Error::Invalid("bibliographic citation occurrence"))?;
+    Ok(
+        json!({"node_id":node_id("evidence",&occurrence),"node_kind":"evidence","source_ref":entry["source_claim_file_ref"],"source_line":entry["source_claim_line"],"source_sha256":entry["claim_sha256"],"display":evidence_display(address,"external_citation",text(entry,"source_claim_file_ref")?,None,None,"source-metadata-label"),"properties":{"evidence_ref":address,"evidence_kind":"external_citation","citing_claim_ref":claim["claim_id"],"citation_status":"tracked_claim","resolved":false,"remote_content_sha256":null,"observation_posture":"address_only_not_observed","source_hash_scope":"citing_claim_declaration_not_remote_content"}}),
+    )
+}
+
 fn evidence(
     stage: &mut KnowledgeStage<'_>,
     reference: &str,
@@ -583,7 +738,6 @@ fn evidence(
     materializer: &mut dyn BibliographicForms,
     l: BibliographicLimits,
 ) -> Result<Value> {
-    let id = node_id("evidence", reference);
     if reference.starts_with("ToS/") {
         let raw = raw_file(stage, reference, l)?
             .ok_or(Error::Invalid("bibliographic evidence file missing"))?;
@@ -594,47 +748,44 @@ fn evidence(
         );
     }
     if let Some((anchor, location)) = slot(stage, "anchor", reference, l)? {
-        let mut p = anchor
-            .as_object()
-            .ok_or(Error::Invalid("bibliographic anchor object"))?
-            .clone();
-        for (field, value) in [
-            ("evidence_ref", json!(reference)),
-            ("evidence_kind", json!("anchor")),
-            ("resolved", json!(true)),
-            ("anchor_status", anchor["status"].clone()),
-            ("item_ref", anchor["item_id"].clone()),
-            ("file_ref", anchor["file_id"].clone()),
-            ("source_anchor", anchor.clone()),
-        ] {
-            p.insert(field.into(), value);
-        }
-        return Ok(
-            json!({"node_id":id,"node_kind":"evidence","source_ref":location["source_ref"],"source_line":location["source_line"],"source_sha256":location["canonical_sha256"],"display":evidence_display(reference,"anchor",text(&location,"source_ref")?,location["source_line"].as_u64(),None,"source-metadata-label"),"properties":p}),
+        return render_bibliographic_evidence(
+            reference,
+            claim,
+            entry,
+            SuppliedEvidenceResolution::Anchor {
+                anchor: &anchor,
+                location: &location,
+            },
+            l.catalog.max_output_row_bytes,
         );
     }
     if let Some(identity) = identity(stage, reference, validator, materializer, l)? {
-        return Ok(
-            json!({"node_id":id,"node_kind":"evidence","source_ref":identity["source_ref"],"source_sha256":identity["source_sha256"],"display":evidence_display(reference,"identity",text(&identity,"source_ref")?,None,identity.pointer("/properties/preferred_label").and_then(Value::as_str),"source-metadata-label"),"properties":{"evidence_ref":reference,"evidence_kind":"identity","resolved":true,"identity_node_id":identity["node_id"]}}),
+        return render_bibliographic_evidence(
+            reference,
+            claim,
+            entry,
+            SuppliedEvidenceResolution::Identity(&identity),
+            l.catalog.max_output_row_bytes,
         );
     }
     if let Some((_, location)) = slot(stage, "provenance_event", reference, l)? {
-        return Ok(
-            json!({"node_id":id,"node_kind":"evidence","source_ref":location["source_ref"],"source_line":location["source_line"],"source_sha256":location["canonical_sha256"],"display":evidence_display(reference,"provenance_event",text(&location,"source_ref")?,location["source_line"].as_u64(),None,"source-metadata-label"),"properties":{"evidence_ref":reference,"evidence_kind":"provenance_event","resolved":true,"provenance_event_node_id":node_id("provenance_event",reference)}}),
+        return render_bibliographic_evidence(
+            reference,
+            claim,
+            entry,
+            SuppliedEvidenceResolution::ProvenanceEvent(&location),
+            l.catalog.max_output_row_bytes,
         );
     }
-    // External addresses are preserved as citing-Claim declarations, never fetched.
-    let address = reference;
-    crate::source_bibliographic_unicode::validate_external_citation_address(address)?;
-    let occurrence = String::from_utf8(encode(
-        &json!([claim["claim_id"], address]),
+    render_bibliographic_evidence(
+        reference,
+        claim,
+        entry,
+        SuppliedEvidenceResolution::ExternalCitation,
         l.catalog.max_output_row_bytes,
-    )?)
-    .map_err(|_| Error::Invalid("bibliographic citation occurrence"))?;
-    Ok(
-        json!({"node_id":node_id("evidence",&occurrence),"node_kind":"evidence","source_ref":entry["source_claim_file_ref"],"source_line":entry["source_claim_line"],"source_sha256":entry["claim_sha256"],"display":evidence_display(address,"external_citation",text(entry,"source_claim_file_ref")?,None,None,"source-metadata-label"),"properties":{"evidence_ref":address,"evidence_kind":"external_citation","citing_claim_ref":claim["claim_id"],"citation_status":"tracked_claim","resolved":false,"remote_content_sha256":null,"observation_posture":"address_only_not_observed","source_hash_scope":"citing_claim_declaration_not_remote_content"}}),
     )
 }
+
 fn maker(
     stage: &mut KnowledgeStage<'_>,
     claim: &Value,
@@ -753,6 +904,32 @@ fn relation<'a>(registry: &'a Value, predicate: &str) -> Result<&'a Value> {
     }
     Ok(candidates[0])
 }
+/// Same exact catalogue field attribution calculation as the full producer.
+pub fn validate_supplied_catalogue_attribution(claim: &Value) -> Result<()> {
+    let predicate = text(claim, "predicate")?;
+    if matches!(
+        predicate,
+        "document_catalogue_date" | "document_catalogue_origin" | "document_catalogue_destination"
+    ) {
+        let expected = match predicate {
+            "document_catalogue_date" => "assigned-date",
+            "document_catalogue_origin" => "origin",
+            _ => "destination",
+        };
+        let attribution = &claim["qualifiers"]["catalogue_attribution"];
+        if attribution["field_role"] != expected
+            || !array(&claim, "evidence_refs")?.contains(&attribution["evidence_ref"])
+            || predicate == "document_catalogue_date"
+                && attribution["source_wording"] != claim["object"]["source_wording"]
+        {
+            return Err(Error::Invalid(
+                "bibliographic Document catalogue field attribution",
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn claim_cohort(
     stage: &mut KnowledgeStage<'_>,
     id: &str,
@@ -966,26 +1143,7 @@ fn claim_cohort(
             members.push(node);
         }
     }
-    if matches!(
-        predicate,
-        "document_catalogue_date" | "document_catalogue_origin" | "document_catalogue_destination"
-    ) {
-        let expected = match predicate {
-            "document_catalogue_date" => "assigned-date",
-            "document_catalogue_origin" => "origin",
-            _ => "destination",
-        };
-        let attribution = &claim["qualifiers"]["catalogue_attribution"];
-        if attribution["field_role"] != expected
-            || !array(&claim, "evidence_refs")?.contains(&attribution["evidence_ref"])
-            || predicate == "document_catalogue_date"
-                && attribution["source_wording"] != claim["object"]["source_wording"]
-        {
-            return Err(Error::Invalid(
-                "bibliographic Document catalogue field attribution",
-            ));
-        }
-    }
+    validate_supplied_catalogue_attribution(&claim)?;
     let event = event(stage, text(&claim, "provenance_event_ref")?, validator, l)?;
     let (maker, maker_identity) = maker(stage, &claim, receipt, validator, materializer, l)?;
     let mut evidence_nodes = Vec::new();
