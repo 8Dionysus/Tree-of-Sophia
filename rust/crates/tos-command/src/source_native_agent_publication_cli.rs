@@ -32,6 +32,22 @@ use tos_source_store::{
 };
 use tos_validation::source_cut::CutSchemaExecutor;
 const META: usize = 1_048_576;
+// Bootstrap diagnostics retain only static kernel reasons or fixed categories.
+// Dynamic source, IO and SQLite messages may contain selected source material.
+fn bootstrap_failure(error: tos_compiler::Error) -> SourceCommandError {
+    use tos_compiler::Error;
+    let reason = match error {
+        Error::Invalid(reason)
+        | Error::PreparedUnsupported(reason)
+        | Error::ManagedSourceUnsupported(reason)
+        | Error::Budget(reason) => reason,
+        Error::Io(_) => "Agent bootstrap IO",
+        Error::Sql(_) | Error::SqlitePhase { .. } => "Agent bootstrap SQLite",
+        Error::Source(_) => "Agent bootstrap source validation",
+        Error::SqliteVmBudget { .. } => "Agent bootstrap SQLite VM budget",
+    };
+    SourceCommandError::Conflict(reason)
+}
 pub(super) fn run(
     invocation: &Value,
     request_raw: &[u8],
@@ -294,7 +310,7 @@ pub(super) fn run(
             catalog_limits,
             semantic_limits,
         )
-        .map_err(failure)?;
+        .map_err(bootstrap_failure)?;
         let (_, configuration_now) =
             CreationFilesystem::select_protected_native_owner(&owner_path, deadline, cancelled)?;
         if configuration_now != configuration_raw {
