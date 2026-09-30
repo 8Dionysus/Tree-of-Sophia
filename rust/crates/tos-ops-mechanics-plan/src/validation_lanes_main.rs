@@ -145,13 +145,18 @@ fn main() {
                 }
             }
         }
-        let code =
-            executor::run_validation_sequence(&options.root, &steps, options.limits, &CANCEL)
-                .unwrap_or_else(|error| {
-                    eprintln!("error: validation sequence: {error}");
-                    let signal = CANCEL.load(Ordering::Relaxed);
-                    std::process::exit(if signal == 0 { 1 } else { 128 + signal });
-                });
+        let code = executor::run_validation_sequence(
+            &options.root,
+            options.python.as_deref().unwrap_or(""),
+            &steps,
+            options.limits,
+            &CANCEL,
+        )
+        .unwrap_or_else(|error| {
+            eprintln!("error: validation sequence: {error}");
+            let signal = CANCEL.load(Ordering::Relaxed);
+            std::process::exit(if signal == 0 { 1 } else { 128 + signal });
+        });
         std::process::exit(code);
     }
 }

@@ -54,6 +54,7 @@ pub fn run(root: &Path, plan: &Plan, limits: Limits, cancel: &AtomicI32) -> io::
 /// child status belong to the validation-lane command contract.
 pub fn run_validation_sequence(
     root: &Path,
+    python: &str,
     steps: &[(String, Vec<String>)],
     limits: Limits,
     cancel: &AtomicI32,
@@ -65,7 +66,13 @@ pub fn run_validation_sequence(
     );
     #[cfg(target_os = "linux")]
     {
-        native::run(root, &plan, limits, cancel, native::Style::Validation)
+        native::run(
+            root,
+            &plan,
+            limits,
+            cancel,
+            native::Style::Validation(python),
+        )
     }
     #[cfg(not(target_os = "linux"))]
     {
@@ -163,9 +170,9 @@ mod native {
     use std::time::Instant;
 
     #[derive(Clone, Copy)]
-    pub(super) enum Style {
+    pub(super) enum Style<'a> {
         Mechanics,
-        Validation,
+        Validation(&'a str),
         Release,
         Capture,
     }
@@ -578,7 +585,7 @@ mod native {
         plan: &Plan,
         limits: Limits,
         cancel: &AtomicI32,
-        style: Style,
+        style: Style<'_>,
     ) -> io::Result<i32> {
         run_inner(root, plan, limits, cancel, style, None)
     }
@@ -598,7 +605,7 @@ mod native {
         plan: &Plan,
         limits: Limits,
         cancel: &AtomicI32,
-        style: Style,
+        style: Style<'_>,
         mut streams: Option<&mut [Vec<u8>; 2]>,
     ) -> io::Result<i32> {
         if limits.command_wall.is_zero()
@@ -647,7 +654,7 @@ mod native {
             let progress = match style {
                 Style::Capture => String::new(),
                 Style::Mechanics => format!("[mechanics-local] {}\n", command.argv.join(" ")),
-                Style::Validation => {
+                Style::Validation(_) => {
                     format!("[run] {}: {}\n", command.home, command.argv.join(" "))
                 }
                 Style::Release => {
@@ -655,15 +662,24 @@ mod native {
                 }
             };
             write(1, progress.as_bytes(), deadline, cancel)?;
-            let preparing = matches!(style, Style::Validation)
+            let preparing = matches!(style, Style::Validation(_))
                 && crate::conformance_products::preparation(&command.argv);
-            let overrides = if matches!(style, Style::Validation)
+            let overrides = if matches!(style, Style::Validation(_))
                 && crate::conformance_products::execution(&command.argv)
             {
                 products.as_ref().ok_or_else(|| error("workspace conformance requires successful current-lane Cargo artifact preparation"))?.environment(deadline, cancel)?
             } else {
                 Vec::new()
             };
+            let mut overrides = overrides;
+            if let Style::Validation(python) = style {
+                if crate::conformance_products::execution(&command.argv) {
+                    if python.is_empty() || python.contains('\0') {
+                        return Err(error("explicit maintained Python interpreter required"));
+                    }
+                    overrides.push(("TOS_MAINTAINED_PYTHON".into(), python.into()));
+                }
+            }
             let mut cargo_stdout = Vec::new();
             let (mut custody, stdout, stderr) =
                 spawn(root, &command.argv, limits.cleanup_grace, &overrides)?;
@@ -748,7 +764,7 @@ mod native {
                         command.argv.join(" "),
                         status.unwrap()
                     ),
-                    Style::Validation => format!(
+                    Style::Validation(_) => format!(
                         "[error] {} failed with exit code {}\n",
                         command.home,
                         status
@@ -777,7 +793,7 @@ mod native {
                 )?;
                 return Ok(match style {
                     Style::Mechanics => 1,
-                    Style::Validation | Style::Release | Style::Capture => {
+                    Style::Validation(_) | Style::Release | Style::Capture => {
                         status.unwrap().code().unwrap_or_else(|| {
                             // sys.exit(-signal) from the Python compatibility entry
                             // is observed by its parent as 256-signal on Unix.
@@ -786,7 +802,7 @@ mod native {
                     }
                 });
             }
-            if matches!(style, Style::Validation) {
+            if matches!(style, Style::Validation(_)) {
                 write(
                     1,
                     format!("[ok] {}\n", command.home).as_bytes(),

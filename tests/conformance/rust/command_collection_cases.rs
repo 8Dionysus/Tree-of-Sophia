@@ -69,7 +69,9 @@ fn python(
     stdin.seek(SeekFrom::Start(0)).unwrap();
     let mut stdout = tempfile::tempfile().unwrap();
     let mut stderr = tempfile::tempfile().unwrap();
-    let mut child = Command::new("/usr/bin/python3")
+    let python = std::env::var_os("TOS_MAINTAINED_PYTHON")
+        .expect("explicit maintained fixture interpreter");
+    let mut child = Command::new(python)
         .args(["-c", script])
         .arg(repository)
         .arg(root)
