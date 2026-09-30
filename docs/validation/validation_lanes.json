@@ -402,7 +402,11 @@
           "--nocapture",
           "--skip", "source_creation_store::revision_publication::tests::native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery",
           "--skip", "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
-          "--skip", "source_creation_store::work_expression::tests::real_pending_refuses_changed_dependency_then_resumes_or_rolls_back"
+          "--skip", "source_creation_store::work_expression::tests::real_pending_refuses_changed_dependency_then_resumes_or_rolls_back",
+          "--skip", "command_artifact_cases::native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes",
+          "--skip", "command_claim_cases::claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admission",
+          "--skip", "command_claim_cases::initial_claim_creation_publishes_five_native_files_and_cold_replays",
+          "--skip", "command_claim_cases::initial_collection_order_binds_retained_version_and_cold_replays"
         ]
       },
       {
@@ -427,6 +431,38 @@
           "cargo", "test", "--locked", "-p", "tos-command", "--lib",
           "source_creation_store::work_expression::tests::real_pending_refuses_changed_dependency_then_resumes_or_rolls_back",
           "--", "--exact"
+        ]
+      },
+      {
+        "label": "test isolated conformance Artifact fixture",
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance",
+          "command_artifact_cases::native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes",
+          "--", "--exact", "--nocapture"
+        ]
+      },
+      {
+        "label": "test isolated conformance Claim successor fixture",
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance",
+          "command_claim_cases::claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admission",
+          "--", "--exact", "--nocapture"
+        ]
+      },
+      {
+        "label": "test isolated conformance initial Claim fixture",
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance",
+          "command_claim_cases::initial_claim_creation_publishes_five_native_files_and_cold_replays",
+          "--", "--exact", "--nocapture"
+        ]
+      },
+      {
+        "label": "test isolated conformance Collection order fixture",
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance",
+          "command_claim_cases::initial_collection_order_binds_retained_version_and_cold_replays",
+          "--", "--exact", "--nocapture"
         ]
       },
       {

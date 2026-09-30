@@ -112,7 +112,7 @@ class ValidationLaneTests(unittest.TestCase):
         self.assertEqual(set(selected), set(access_files + software_support_files))
         self.assertEqual(release_check.select_steps(sequence, 'checks') + test_steps, sequence)
 
-    def test_rust_workspace_timeout_partition_covers_each_process_cold_case_once(self):
+    def test_rust_workspace_timeout_partition_covers_each_isolated_case_once(self):
         cases = [
             ('source_creation_store::revision_publication::tests::native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery',
              'rust/crates/tos-command/src/source_record_revision_tests.rs',
@@ -124,7 +124,22 @@ class ValidationLaneTests(unittest.TestCase):
              'rust/crates/tos-command/src/source_work_expression_tests.rs',
              'real_pending_refuses_changed_dependency_then_resumes_or_rolls_back'),
         ]
+        conformance_cases = [
+            ('command_artifact_cases::native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes',
+             'tests/conformance/rust/command_artifact_cases.rs',
+             'native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes'),
+            ('command_claim_cases::claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admission',
+             'tests/conformance/rust/command_claim_cases.rs',
+             'claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admission'),
+            ('command_claim_cases::initial_claim_creation_publishes_five_native_files_and_cold_replays',
+             'tests/conformance/rust/command_claim_cases.rs',
+             'initial_claim_creation_publishes_five_native_files_and_cold_replays'),
+            ('command_claim_cases::initial_collection_order_binds_retained_version_and_cold_replays',
+             'tests/conformance/rust/command_claim_cases.rs',
+             'initial_collection_order_binds_retained_version_and_cold_replays'),
+        ]
         names = [name for name, _, _ in cases]
+        conformance_names = [name for name, _, _ in conformance_cases]
         sequence = validation_lanes.command_sequence('rust_workspace', ROOT)
         by_label = dict(sequence)
         self.assertEqual(
@@ -150,7 +165,7 @@ class ValidationLaneTests(unittest.TestCase):
         self.assertEqual(workspace[:6], ['cargo', 'test', '--workspace', '--locked', '--', '--nocapture'])
         self.assertEqual(
             [workspace[index + 1] for index, value in enumerate(workspace) if value == '--skip'],
-            names,
+            names + conformance_names,
         )
 
         singleton_labels = [
@@ -175,7 +190,27 @@ class ValidationLaneTests(unittest.TestCase):
             singleton_labels,
         )
 
-        for (_, source_path, function_name) in cases:
+        conformance_labels = [
+            'test isolated conformance Artifact fixture',
+            'test isolated conformance Claim successor fixture',
+            'test isolated conformance initial Claim fixture',
+            'test isolated conformance Collection order fixture',
+        ]
+        self.assertEqual(
+            [label for label, _ in sequence if label.startswith('test isolated conformance ')],
+            conformance_labels,
+        )
+        self.assertEqual(
+            [by_label[label] for label in conformance_labels],
+            [
+                ['cargo', 'test', '--workspace', '--locked', '--test', 'conformance', name,
+                 '--', '--exact', '--nocapture']
+                for name in conformance_names
+            ],
+        )
+        self.assertEqual(len(names + conformance_names), len(set(names + conformance_names)))
+
+        for (_, source_path, function_name) in cases + conformance_cases:
             source = (ROOT / source_path).read_text(encoding='utf-8')
             self.assertEqual(source.count(f'#[test]\nfn {function_name}('), 1)
 
