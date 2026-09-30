@@ -10,6 +10,8 @@ use tos_segment_store::SegmentLimits;
 
 pub const HELP: &str = "usage: tos-native-owner-command backup|restore OPTIONS
 Connection: private environment TOS_BACKUP_PG_URL (PostgreSQL 16).
+Local NoTls only: one numeric loopback host, explicit user/database, one port.
+Required TLS, hostaddr, sockets/multiple hosts and session selection are refused.
 Required options:
   --domain DOMAIN --store-root ABS --backup-root ABS
   --pg-tool ABS --pg-tool-sha256 HEX64
@@ -18,7 +20,13 @@ Required options:
 Backup: --confirm-quiescent-owner yes
 Restore: --confirm-fresh-target-owner yes --receipt-sha256 HEX64
 Confirmations declare owner preconditions; they do not stop concurrent writers.
-Restore requires independent fresh targets and does not activate restored data.
+Restore requires a fresh database (existing public tables are refused), a different
+database name and an empty
+independent store; it does not initialize schema or activate restored data.
+Roots must be private owned mode 0700; select exact PG16 tool or pinned wrapper.
+Transport cap: store 64MiB/dump 64MiB, 256 files/512 entries; soft+hard FSIZE<=64MiB.
+Tools use stdout/stdin, each <=60s within remaining max-seconds.
+Use an admitted hard whole supervisor and owned container cleanup if applicable.
 A failed operation may leave partial output; do not consume it as a restore.
 ";
 
