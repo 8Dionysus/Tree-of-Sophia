@@ -594,7 +594,7 @@ impl ExplorationCheckpoints for PersistentExplorationCheckpoints {
         budget: ExplorationBudget,
     ) -> Result<Box<dyn PreparedExplorationCheckpoint>, SearchV2Error> {
         let operation_probe = self.probe.clone();
-        let result: Result<Box<dyn PreparedExplorationCheckpoint>, SearchV2Error> = (|| {
+        let result = (|| -> Result<Box<dyn PreparedExplorationCheckpoint>, SearchV2Error> {
             check(self.probe.as_deref())?;
             if format!("{budget:?}") != format!("{:?}", self.config.budget)
                 || revision.is_empty()
@@ -668,8 +668,8 @@ impl ExplorationCheckpoints for PersistentExplorationCheckpoints {
         &mut self,
     ) -> Result<Option<Box<dyn PreparedExplorationCheckpoint>>, SearchV2Error> {
         let operation_probe = self.probe.clone();
-        let result: Result<Option<Box<dyn PreparedExplorationCheckpoint>>, SearchV2Error> =
-            (|| {
+        let result =
+            (|| -> Result<Option<Box<dyn PreparedExplorationCheckpoint>>, SearchV2Error> {
                 check(self.probe.as_deref())?;
                 let held = self.take()?.ok_or_else(expired)?;
                 if !held.loaded.as_ref().is_some_and(|(_, _, kind)| *kind == 1) {
