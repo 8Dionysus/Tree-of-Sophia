@@ -1033,7 +1033,12 @@ fn report(b: &mut Budget<'_, '_>, counts: [i64; 6], registry: &[Value]) -> Resul
     compact(&result, b.l.max_output_bytes)?;
     Ok(result)
 }
-fn descriptor(b: &mut Budget<'_, '_>, binding: &Value, digest: &str) -> Result<Value> {
+fn descriptor(
+    b: &mut Budget<'_, '_>,
+    binding: &Value,
+    digest: &str,
+    computed: Option<&Value>,
+) -> Result<Value> {
     let raw = b
         .text(
             "prepared_state",
@@ -1048,16 +1053,63 @@ fn descriptor(b: &mut Budget<'_, '_>, binding: &Value, digest: &str) -> Result<V
     }
     let d = decode(&raw)?;
     let header = &d["header"];
-    if header["source_revision"] != binding["source_revision"]
-        || header["normalization_binding"] != binding["normalization_binding"]
-        || sha(&encode(
-            jfield(
-                &parse(&raw, b.l.max_input_bytes)?,
-                &["header", "counts", "semantic_validation"],
-            )?,
-            b.l.max_output_bytes,
-        )?) != digest
+    if header["source_revision"] != binding["source_revision"] {
+        return Err(Error::Invalid(
+            "semantic descriptor source_revision differs from binding",
+        ));
+    }
+    if header["normalization_binding"] != binding["normalization_binding"] {
+        return Err(Error::Invalid(
+            "semantic descriptor normalization_binding differs from binding",
+        ));
+    }
+    if sha(&encode(
+        jfield(
+            &parse(&raw, b.l.max_input_bytes)?,
+            &["header", "counts", "semantic_validation"],
+        )?,
+        b.l.max_output_bytes,
+    )?) != digest
     {
+        // Identify only the failed contract; never expose source values.
+        if let Some(report) = computed {
+            for (field, message) in [
+                ("valid", "semantic final header differs: valid"),
+                ("violations", "semantic final header differs: violations"),
+                (
+                    "registered_node_count",
+                    "semantic final header differs: registered_node_count",
+                ),
+                (
+                    "unmapped_node_count",
+                    "semantic final header differs: unmapped_node_count",
+                ),
+                (
+                    "registered_relation_count",
+                    "semantic final header differs: registered_relation_count",
+                ),
+                (
+                    "unmapped_relation_count",
+                    "semantic final header differs: unmapped_relation_count",
+                ),
+                (
+                    "claim_contract_count",
+                    "semantic final header differs: claim_contract_count",
+                ),
+                (
+                    "cross_layer_relation_count",
+                    "semantic final header differs: cross_layer_relation_count",
+                ),
+                ("gaps", "semantic final header differs: gaps"),
+            ] {
+                if report[field] != header["counts"]["semantic_validation"][field] {
+                    return Err(Error::Invalid(message));
+                }
+            }
+            return Err(Error::Invalid(
+                "semantic final header differs: report serialization",
+            ));
+        }
         return Err(Error::Invalid(
             "semantic computed report differs from final header",
         ));
@@ -1189,7 +1241,7 @@ pub fn bootstrap_semantic_index_transaction(
     }
     let report = report(&mut c.b, counts, &registry)?;
     let digest = sha(&compact(&report, c.b.l.max_output_bytes)?);
-    descriptor(&mut c.b, &binding, &digest)?;
+    descriptor(&mut c.b, &binding, &digest, Some(&report))?;
     c.b.put_state(&json!({"dependencies":dep,"binding":binding,"pending":false,"counts":counts,"registry_violations":registry,"report_digest":digest}))?;
     parse(
         &compact(&report, limits.max_output_bytes)?,
@@ -1541,7 +1593,7 @@ pub fn verify_semantic_index_binding_transaction(
         .as_str()
         .ok_or(Error::Invalid("semantic report digest"))?
         .to_owned();
-    let desc = descriptor(&mut b, &binding, &digest)?;
+    let desc = descriptor(&mut b, &binding, &digest, None)?;
     if pending {
         let frames = desc["changes"]
             .as_array()
