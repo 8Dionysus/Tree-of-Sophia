@@ -436,13 +436,32 @@ mod native {
         Ok(unsafe { (File::from_raw_fd(fds[0]), File::from_raw_fd(fds[1])) })
     }
 
-    fn spawn(root: &Path, argv: &[String], grace: Duration) -> io::Result<(Custody, File, File)> {
+    fn spawn(
+        root: &Path,
+        argv: &[String],
+        grace: Duration,
+        overrides: &[(String, String)],
+    ) -> io::Result<(Custody, File, File)> {
         let root = CString::new(root.as_os_str().as_bytes()).map_err(|_| error("NUL root"))?;
         let args: Result<Vec<CString>, _> =
             argv.iter().map(|a| CString::new(a.as_bytes())).collect();
         let args = args.map_err(|_| error("NUL argv"))?;
         let mut pointers: Vec<*const libc::c_char> = args.iter().map(|a| a.as_ptr()).collect();
         pointers.push(std::ptr::null());
+        let environment: Vec<CString> = std::env::vars_os()
+            .filter(|(key, _)| !overrides.iter().any(|(name, _)| key == name.as_str()))
+            .map(|(key, value)| {
+                let mut entry = key.as_bytes().to_vec();
+                entry.push(b'=');
+                entry.extend_from_slice(value.as_bytes());
+                CString::new(entry).map_err(|_| error("NUL environment"))
+            })
+            .chain(overrides.iter().map(|(key, value)| {
+                CString::new(format!("{key}={value}")).map_err(|_| error("NUL environment"))
+            }))
+            .collect::<io::Result<_>>()?;
+        let mut envp: Vec<*const libc::c_char> = environment.iter().map(|s| s.as_ptr()).collect();
+        envp.push(std::ptr::null());
         let (stdout, out_child) = pipe()?;
         let (stderr, err_child) = pipe()?;
         let parent = std::process::id() as i32;
@@ -464,7 +483,7 @@ mod native {
                 {
                     libc::_exit(126);
                 }
-                libc::execvp(pointers[0], pointers.as_ptr());
+                libc::execvpe(pointers[0], pointers.as_ptr(), envp.as_ptr());
                 libc::_exit(127);
             }
         }
@@ -622,6 +641,7 @@ mod native {
         let _stdout_mode = Nonblocking::new(1)?;
         let _stderr_mode = Nonblocking::new(2)?;
         let lane_deadline = Instant::now() + limits.lane_wall;
+        let mut products: Option<crate::conformance_products::Products> = None;
         for command in &plan.commands {
             let deadline = lane_deadline.min(Instant::now() + limits.command_wall);
             let progress = match style {
@@ -635,7 +655,18 @@ mod native {
                 }
             };
             write(1, progress.as_bytes(), deadline, cancel)?;
-            let (mut custody, stdout, stderr) = spawn(root, &command.argv, limits.cleanup_grace)?;
+            let preparing = matches!(style, Style::Validation)
+                && crate::conformance_products::preparation(&command.argv);
+            let overrides = if matches!(style, Style::Validation)
+                && crate::conformance_products::execution(&command.argv)
+            {
+                products.as_ref().ok_or_else(|| error("workspace conformance requires successful current-lane Cargo artifact preparation"))?.environment(deadline, cancel)?
+            } else {
+                Vec::new()
+            };
+            let mut cargo_stdout = Vec::new();
+            let (mut custody, stdout, stderr) =
+                spawn(root, &command.argv, limits.cleanup_grace, &overrides)?;
             let _out_mode = Nonblocking::new(stdout.as_raw_fd())?;
             let _err_mode = Nonblocking::new(stderr.as_raw_fd())?;
             let mut eof = [false, false];
@@ -674,6 +705,9 @@ mod native {
                             if output_bytes > limits.output_bytes {
                                 return Err(error("combined child output byte limit exceeded"));
                             }
+                            if preparing && index == 0 {
+                                cargo_stdout.extend_from_slice(&buffer[..count as usize]);
+                            }
                             if let Some(streams) = streams.as_deref_mut() {
                                 streams[index].extend_from_slice(&buffer[..count as usize]);
                             } else {
@@ -699,6 +733,13 @@ mod native {
             // never reported as successful lane completion.
             custody.cleanup()?;
             execution?;
+            if status.unwrap().success() && preparing {
+                products = Some(crate::conformance_products::Products::select(
+                    &cargo_stdout,
+                    deadline,
+                    cancel,
+                )?);
+            }
             if !status.unwrap().success() {
                 let failure = match style {
                     Style::Capture => String::new(),
