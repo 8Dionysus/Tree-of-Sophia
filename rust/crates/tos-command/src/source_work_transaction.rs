@@ -1063,21 +1063,31 @@ pub(crate) fn record_revision_archive(
 ) -> SourceCommandResult<WorkArchive> {
     let (config, family) = crate::source_revisions::configuration(ctx)?;
     let source_path = cmd::text(&config, "source_path")?;
-    if cmd::text(record, "record_id")? != cmd::text(&config, "record_id")? {
+    let subject = crate::source_forms::metadata_subject(record)?;
+    if cmd::text(&subject, "id")? != cmd::text(&config, "record_id")? {
         return Err(SourceCommandError::Denied(
             "record revision archive selected identity",
         ));
     }
     let names = crate::source_revisions::names(source_path)?;
-    if before.keys().any(|name| !names.contains(name)) {
+    let selected_record = cmd::parse(before.get(&names[0]).ok_or(
+        SourceCommandError::Conflict("record revision archive source absent"),
+    )?)?;
+    if !cmd::same(&selected_record, record)?
+        || crate::source_revisions::package(ctx, source_path, family.selected(), None)? != *before
+    {
         return Err(SourceCommandError::Denied(
             "record revision archive selected package",
         ));
     }
+    let archive_identity = cmd::object(vec![
+        ("record_id", cmd::field(&subject, "id")?.clone()),
+        ("record_version", cmd::field(&subject, "version")?.clone()),
+    ]);
     compound_archive(
         fs,
         source_path,
-        record,
+        &archive_identity,
         before,
         expected_revision,
         deadline,
@@ -1134,7 +1144,7 @@ fn compound_archive(
     let revision = crate::source_revisions::revision(before)?;
     if revision != expected_revision
         || before.is_empty()
-        || before.len() > 3
+        || before.len() > if selected_protocol { 3 } else { 64 }
         || before.get(basename).is_none()
         || before.values().any(|raw| raw.len() > 2_097_152)
         || before

@@ -480,7 +480,7 @@ pub(crate) fn history(files: &Package, record: &JsonValue) -> SourceCommandResul
     Ok(value)
 }
 
-fn read_archive(
+pub(crate) fn read_archive(
     ctx: &CommandContext,
     config: &JsonValue,
     receipt: &JsonValue,
@@ -1120,7 +1120,7 @@ fn result(
     Ok(value)
 }
 
-fn transaction_id(request: &JsonValue) -> SourceCommandResult<String> {
+pub(crate) fn transaction_id(request: &JsonValue) -> SourceCommandResult<String> {
     let binding = cmd::object(vec![
         ("command_id", cmd::field(request, "command_id")?.clone()),
         (
@@ -1608,7 +1608,7 @@ pub fn prepare_record_revision_from_captures(
     prepare_record_revision_inner(ctx, publication, Some(cut), worker, deadline, cancelled)
 }
 
-fn prepare_record_revision_inner(
+pub(crate) fn prepare_record_revision_inner(
     ctx: &CommandContext,
     publication: Option<&RevisionPublication>,
     cut: Option<&CorpusCutReader>,
@@ -2457,7 +2457,7 @@ fn scope(config: &JsonValue, request: &JsonValue, operation: &str) -> SourceComm
     }
     Ok(())
 }
-fn package(
+pub(crate) fn package(
     ctx: &CommandContext,
     source_path: &str,
     selected: bool,

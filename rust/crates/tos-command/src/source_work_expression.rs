@@ -778,7 +778,10 @@ fn prior_completion_current(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<String> {
-    let (_, _, _, terminal) = work_transaction::inspect_committed(fs, id, deadline, cancelled)?;
+    // A cooperating publication epoch may retain either terminal outcome.
+    // Each fixed owner still validates its own semantic predecessor separately.
+    let (_, _, _, terminal) = work_transaction::inspect_committed(fs, id, deadline, cancelled)
+        .or_else(|_| work_transaction::inspect_rolled_back(fs, id, deadline, cancelled))?;
     if cmd::text(&terminal, "token")? != expected_token {
         return Err(SourceCommandError::Conflict(
             "Work prior completion token changed",
