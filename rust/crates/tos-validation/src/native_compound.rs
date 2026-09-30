@@ -45,7 +45,12 @@ const ITEM_GRAMMAR_EXTRA: [&str; 9] = [
 ];
 fn preparation_grammar_extra(kind: CompoundKind) -> Result<&'static [&'static str], ItemRefusal> {
     match kind {
-        CompoundKind::WorkExpression => Ok(&WORK_GRAMMAR_EXTRA),
+        // These metadata families require the same five exact contract files;
+        // their scope, Claim predicate and output recipes remain kind-specific.
+        CompoundKind::WorkExpression
+        | CompoundKind::ExpressionEdition
+        | CompoundKind::ExpressionResponsibility
+        | CompoundKind::CollectionWork => Ok(&WORK_GRAMMAR_EXTRA),
         CompoundKind::EditionItem => Ok(&ITEM_GRAMMAR_EXTRA),
         _ => Err(bad("no native preparation grammar for compound family")),
     }
@@ -7350,7 +7355,11 @@ impl NativeCompoundReader<'_> {
         }
         let work_event = if matches!(
             kind,
-            CompoundKind::WorkExpression | CompoundKind::EditionItem
+            CompoundKind::WorkExpression
+                | CompoundKind::EditionItem
+                | CompoundKind::ExpressionEdition
+                | CompoundKind::ExpressionResponsibility
+                | CompoundKind::CollectionWork
         ) {
             Some(
                 tx.files
