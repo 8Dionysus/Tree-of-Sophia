@@ -3235,6 +3235,12 @@ impl DurablePgCoordinator {
                 "original managed observation/read closure differs",
             ));
         }
+        // A changed live delegation cannot be repaired by reconstructing the
+        // retained original package. This is refusal-only and takes no owner
+        // mutex; the final current-owner/commit fence remains mandatory.
+        filesystem
+            .current_context(&input.context, deadline, cancelled)
+            .map_err(source_error)?;
         let paths = input.observations.keys().collect::<Vec<_>>();
         let revisions = input
             .observations

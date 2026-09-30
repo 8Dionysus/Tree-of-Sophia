@@ -2434,9 +2434,9 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     );
     drop(recovery_worker);
     eprintln!("STO tail committed replay/head PASS; prepare refusal worker");
-    // Pending, corrupt binding and revoked rights refuse before successful
-    // worker completion. Changed-owner recovery is last and finishes the
-    // worker before its actual current-owner commit fence refuses.
+    // Pending, corrupt binding, revoked rights and changed live owner refuse
+    // before original-byte reconstruction or successful worker completion.
+    // The unchanged positive recovery retains its independent final fence.
     let mut recovery_worker = new_worker(&cut);
     eprintln!("STO tail refusal worker ready; pending refusal begin");
     assert!(
@@ -2578,8 +2578,8 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         CreationFilesystem::select_isolated(&isolated, &current_owner, deadline, &cancelled)
             .unwrap();
     assert!(
-        recovered_db
-            .recover_committed_managed_agent_creation(
+        matches!(
+            recovered_db.recover_committed_managed_agent_creation(
                 &recovered_store,
                 current_reopened.cohort(),
                 b"agent-current-second",
@@ -2595,8 +2595,13 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                 1,
                 deadline,
                 &cancelled,
-            )
-            .is_err(),
+            ),
+            Err(DurableError::Source(
+                tos_command::source_command::SourceCommandError::Conflict(
+                    "creation delegation changed before publication"
+                )
+            ))
+        ),
         "original capture cannot override changed current protected owner"
     );
     fs::write(&current_owner, &original_owner_raw).unwrap();
@@ -2604,7 +2609,8 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         recovered_db.head_seq(&recovery_domain).unwrap(),
         expected_current_head
     );
-    eprintln!("STO tail changed owner/head PASS; drop finished refusal worker");
+    eprintln!("STO tail changed owner/head PASS; finish unused refusal worker");
+    recovery_worker.finish(deadline, &cancelled).unwrap();
     drop(recovery_worker);
     eprintln!("STO tail independent cold missing-index refusal begin");
     // Corruption must not be relabelled complete by a cold/open SQL marker.
