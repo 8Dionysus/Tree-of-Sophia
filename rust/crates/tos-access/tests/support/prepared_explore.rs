@@ -75,6 +75,27 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
         panic!("header")
     };
     fields.retain(|(k, _)| !matches!(k.as_str(), Some("nodes" | "relations")));
+    // The selected-model fixture omits public delivery's owner label. Adapt
+    // that boundary as the real public header does; do not alter native rows,
+    // normalization identity or the three false authority flags.
+    let boundary = fields
+        .iter_mut()
+        .find(|(key, _)| key.as_str() == Some("authority_boundary"))
+        .unwrap();
+    let JsonValue::Object(boundary) = &mut boundary.1 else {
+        panic!("authority boundary")
+    };
+    if let Some((_, owner)) = boundary
+        .iter()
+        .find(|(key, _)| key.as_str() == Some("source_owner"))
+    {
+        assert_eq!(owner.as_str(), Some("Tree-of-Sophia"));
+    } else {
+        boundary.push((
+            tos_foundation::JsonString::from_utf8("source_owner"),
+            json(b"\"Tree-of-Sophia\""),
+        ));
+    }
     let catalog = json(
         format!(
             r#"{{"schema":"tos_knowledge_catalog_v1","source_revision":"{revision}","lenses":[]}}"#
