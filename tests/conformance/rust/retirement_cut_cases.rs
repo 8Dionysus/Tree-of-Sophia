@@ -196,8 +196,14 @@ fn worker(
 ) -> (CutWorkerSchemaExecutor, Digest256) {
     let path = super::validation_cut_cases::selected_worker_path();
     assert!(path.is_absolute());
-    let digest = Digest256::of_bytes(&fs::read(&path).unwrap());
-    let schemas = CutWorkerSchemaExecutor::from_cut(
+    let hash_started = Instant::now();
+    let worker_raw = fs::read(&path).unwrap();
+    let worker_bytes = worker_raw.len();
+    let digest = Digest256::of_bytes(&worker_raw);
+    drop(worker_raw);
+    let hash_elapsed = hash_started.elapsed();
+    let preparation_started = Instant::now();
+    let prepared = CutWorkerSchemaExecutor::from_cut(
         cut,
         FormatProfile::LegacyPythonObserved20260923,
         ExactWorkerIdentity {
@@ -211,9 +217,16 @@ fn worker(
         },
         deadline,
         cancelled,
-    )
-    .unwrap();
-    (schemas, digest)
+    );
+    eprintln!(
+        "schema worker fixture phase=prepare family=retirement image_bytes={} expected_hash_ms={} preparation_ms={} wall_ms={} result={:?}",
+        worker_bytes,
+        hash_elapsed.as_millis(),
+        preparation_started.elapsed().as_millis(),
+        ExecutorBudget::laboratory().execution_wall.as_millis(),
+        prepared.as_ref().map(|_| ())
+    );
+    (prepared.unwrap(), digest)
 }
 fn inspect(
     fixture: &Fixture,

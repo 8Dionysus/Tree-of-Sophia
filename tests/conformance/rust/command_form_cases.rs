@@ -157,8 +157,14 @@ pub(super) fn schemas_for_profile_with_budget(
     cancel: &AtomicBool,
 ) -> CutWorkerSchemaExecutor {
     let absolute_path = super::validation_cut_cases::selected_worker_path();
-    let sha256 = Digest256::of_bytes(&fs::read(&absolute_path).unwrap());
-    CutWorkerSchemaExecutor::from_cut(
+    let hash_started = Instant::now();
+    let worker_raw = fs::read(&absolute_path).unwrap();
+    let worker_bytes = worker_raw.len();
+    let sha256 = Digest256::of_bytes(&worker_raw);
+    drop(worker_raw);
+    let hash_elapsed = hash_started.elapsed();
+    let preparation_started = Instant::now();
+    let prepared = CutWorkerSchemaExecutor::from_cut(
         cut,
         profile,
         ExactWorkerIdentity {
@@ -172,8 +178,16 @@ pub(super) fn schemas_for_profile_with_budget(
         },
         deadline,
         cancel,
-    )
-    .unwrap()
+    );
+    eprintln!(
+        "schema worker fixture phase=prepare family=forms-records image_bytes={} expected_hash_ms={} preparation_ms={} wall_ms={} result={:?}",
+        worker_bytes,
+        hash_elapsed.as_millis(),
+        preparation_started.elapsed().as_millis(),
+        budget.execution_wall.as_millis(),
+        prepared.as_ref().map(|_| ())
+    );
+    prepared.unwrap()
 }
 pub(super) fn context(
     files: &BTreeMap<String, Vec<u8>>,
