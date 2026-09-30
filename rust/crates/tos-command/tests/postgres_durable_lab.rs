@@ -4553,18 +4553,72 @@ fn cold_cut_rejects_locator_and_outbox_tampering() {
     ));
 }
 
+// Lab-only knobs for the existing restore consumer, not corpus/product laws.
+// The absence of both knobs preserves the accepted three-member fixture bytes.
+#[derive(Clone, Copy)]
+struct RestoreFixtureProfile {
+    revisions: u64,
+    payload_bytes: Option<usize>,
+}
+impl RestoreFixtureProfile {
+    fn selected() -> Self {
+        let revisions = std::env::var("TOS_CMD2_RESTORE_REVISIONS")
+            .map(|s| s.parse::<u64>().expect("lab revision count is an integer"))
+            .unwrap_or(2);
+        let payload_bytes = std::env::var("TOS_CMD2_RESTORE_PAYLOAD_BYTES")
+            .ok()
+            .map(|s| s.parse::<usize>().expect("lab payload bytes is an integer"));
+        // Small finite lab selection; transport's existing guards remain laws.
+        assert!(
+            (2..=64).contains(&revisions),
+            "lab profile supports 2..64 A revisions"
+        );
+        assert!(
+            payload_bytes.is_none_or(|n| (1..=65536).contains(&n)),
+            "lab profile supports 1..65536 payload bytes"
+        );
+        assert!(3 * revisions + 6 <= 256);
+        Self {
+            revisions,
+            payload_bytes,
+        }
+    }
+    fn payload(self, revision: u64) -> Vec<u8> {
+        if let Some(size) = self.payload_bytes {
+            // Exact revision-dependent bytes; generated one revision at a time.
+            return (0..size)
+                .map(|i| (i as u8).wrapping_add(revision as u8))
+                .collect();
+        }
+        match revision {
+            1 => b"retained predecessor".to_vec(),
+            2 => b"new selected version".to_vec(),
+            _ => format!("retained revision {revision}").into_bytes(),
+        }
+    }
+    fn read_cap(self) -> u64 {
+        self.payload_bytes
+            .map(|n| n as u64 + 18 + "restore-A".len() as u64)
+            .unwrap_or(1024)
+    }
+}
+
 /// Run this exact ignored test alone, then copy its reported sealed store and
 /// pg_dump the quiescent synthetic PostgreSQL database. The intentional leak
 /// keeps this one fixture on disk after the test process exits for restore.
 #[test]
 #[ignore = "manual owner-managed PostgreSQL dump and independent STO copy drill"]
 fn export_cold_restore_fixture() {
+    let started = Instant::now();
+    let profile = RestoreFixtureProfile::selected();
+    let first_payload = profile.payload(1);
+    let second_payload = profile.payload(2);
     let url = database_url();
     let mut lab = Lab::new(&url);
     let first = lab.prepare(
         b"restore-prepare-a1",
         "restore-command-a1",
-        &[MemberSpec::first("restore-A", b"retained predecessor")],
+        &[MemberSpec::first("restore-A", &first_payload)],
     );
     lab.commit(b"restore-prepare-a1", &first, 0, 1).unwrap();
     let predecessor = Digest256::of_bytes(&first[0].exact_bytes);
@@ -4576,13 +4630,39 @@ fn export_cold_restore_fixture() {
                 subject: "restore-A",
                 revision: 2,
                 predecessor: Some((1, predecessor)),
-                payload: b"new selected version",
+                payload: &second_payload,
             },
             MemberSpec::first("restore-B", b"second compound member"),
         ],
     );
     lab.commit(b"restore-prepare-compound", &second, 1, 1)
         .unwrap();
+    let mut previous = Digest256::of_bytes(&second[0].exact_bytes);
+    let mut historical_frame_bytes =
+        first[0].exact_bytes.len() + second.iter().map(|m| m.exact_bytes.len()).sum::<usize>();
+    for revision in 3..=profile.revisions {
+        let prepare = format!("restore-prepare-a{revision}");
+        let command = format!("restore-command-a{revision}");
+        let payload = profile.payload(revision);
+        let members = lab.prepare(
+            prepare.as_bytes(),
+            &command,
+            &[MemberSpec {
+                subject: "restore-A",
+                revision,
+                predecessor: Some((revision - 1, previous)),
+                payload: &payload,
+            }],
+        );
+        assert_eq!(
+            lab.commit(prepare.as_bytes(), &members, revision - 1, 1)
+                .unwrap()
+                .commit_seq,
+            revision
+        );
+        historical_frame_bytes += members[0].exact_bytes.len();
+        previous = Digest256::of_bytes(&members[0].exact_bytes);
+    }
     // Sealed-before-attach is discoverable only through the synced STO
     // prepare intent. A backup must copy attempts/ with pins/ and segments/.
     let orphan_bytes = lab_record_bytes("restore-unattached", 1, b"orphan forensic bytes");
@@ -4614,15 +4694,30 @@ fn export_cold_restore_fixture() {
             .unwrap(),
         Some(AttemptRecovery::Sealed { .. })
     ));
+    assert_eq!(lab.count("current"), 2);
+    assert_eq!(lab.count("history"), (profile.revisions + 1) as i64);
+    assert_eq!(lab.count("receipt"), profile.revisions as i64);
+    assert_eq!(lab.count("log"), profile.revisions as i64);
+    assert_eq!(lab.count("attempt"), (profile.revisions + 1) as i64);
     let original_cut = lab.db.cold_verify_cut(&lab.store, &lab.domain).unwrap();
-    assert_eq!(original_cut.through_commit_seq(), 2);
-    assert_eq!(original_cut.historical_members(), 3);
+    assert_eq!(original_cut.through_commit_seq(), profile.revisions);
+    assert_eq!(original_cut.historical_members(), profile.revisions + 1);
     println!(
         "CMD2_RESTORE_FIXTURE domain={} store={} cut={} historical_members={}",
         lab.domain,
         lab._root.0.display(),
         original_cut.log_digest().to_hex(),
         original_cut.historical_members()
+    );
+    println!(
+        "CMD2_RESTORE_PROFILE {}",
+        serde_json::json!({
+            "revisions": profile.revisions, "payload_bytes": profile.payload_bytes,
+            "committed_attempts": profile.revisions, "sealed_attempts": profile.revisions + 1,
+            "current_subjects": 2, "historical_members": profile.revisions + 1,
+            "historical_frame_bytes": historical_frame_bytes,
+            "export_elapsed_ms": started.elapsed().as_millis(), "source_admission": false,
+        })
     );
     if let Some(backup) = std::env::var_os("TOS_CMD2_BACKUP_ROOT") {
         use tos_command::backup_recovery::{BackupSelection, PgTool, backup_quiescent};
@@ -4660,6 +4755,8 @@ fn export_cold_restore_fixture() {
 #[test]
 #[ignore = "manual owner-managed PostgreSQL dump and independent STO copy drill"]
 fn verify_cold_restored_fixture() {
+    let started = Instant::now();
+    let profile = RestoreFixtureProfile::selected();
     let url = database_url();
     let domain = std::env::var("TOS_CMD2_RESTORE_DOMAIN").expect("exported domain required");
     let store_path =
@@ -4731,31 +4828,58 @@ fn verify_cold_restored_fixture() {
             .unwrap(),
         Some(AttemptRecovery::Aborted { .. })
     ));
-    let expected = [
-        ("restore-A", 1, b"retained predecessor".as_slice()),
-        ("restore-A", 2, b"new selected version".as_slice()),
-        ("restore-B", 1, b"second compound member".as_slice()),
-    ];
-    for (subject, revision, payload) in expected {
+    for revision in 1..=profile.revisions {
+        let payload = profile.payload(revision);
         let selected = db
-            .cold_recover_exact(&store, &domain, subject, revision)
-            .expect("restored metadata selects exact sealed bytes");
-        let bytes = db.warm_read_selected(&store, &selected, 1024).unwrap();
-        assert_eq!(bytes, lab_record_bytes(subject, revision, payload));
+            .cold_recover_exact(&store, &domain, "restore-A", revision)
+            .expect("restored metadata selects every exact retained revision");
+        let bytes = db
+            .warm_read_selected(&store, &selected, profile.read_cap())
+            .unwrap();
+        assert_eq!(bytes, lab_record_bytes("restore-A", revision, &payload));
     }
+    let companion = db
+        .cold_recover_exact(&store, &domain, "restore-B", 1)
+        .unwrap();
+    assert_eq!(
+        db.warm_read_selected(&store, &companion, 1024).unwrap(),
+        lab_record_bytes("restore-B", 1, b"second compound member")
+    );
+    for revision in 3..=profile.revisions {
+        let prepare = format!("restore-prepare-a{revision}");
+        let fence = registered_fence(&url, &domain, prepare.as_bytes());
+        assert!(
+            matches!(
+                store
+                    .recover_attempt_fenced(prepare.as_bytes(), fence, 0)
+                    .unwrap(),
+                Some(AttemptRecovery::Sealed { .. })
+            ),
+            "each extra durable prepare intent survives restore"
+        );
+    }
+    assert_eq!(scalar_count(&url, "current", &domain), 2);
+    assert_eq!(
+        scalar_count(&url, "history", &domain),
+        (profile.revisions + 1) as i64
+    );
     let cut = db.cold_verify_cut(&store, &domain).unwrap();
-    assert_eq!(cut.through_commit_seq(), 2);
-    assert_eq!(cut.historical_members(), 3);
+    assert_eq!(cut.through_commit_seq(), profile.revisions);
+    assert_eq!(cut.historical_members(), profile.revisions + 1);
     db.seal_shadow_cut(&cut).unwrap();
-    assert_eq!(db.published_seq(&domain).unwrap(), 2);
+    assert_eq!(db.published_seq(&domain).unwrap(), profile.revisions);
     let predecessor = db
         .cold_recover_exact(&store, &domain, "restore-A", 1)
         .unwrap();
     db.revoke_local(&domain).unwrap();
     assert!(matches!(
-        db.warm_read_selected(&store, &predecessor, 1024),
+        db.warm_read_selected(&store, &predecessor, profile.read_cap()),
         Err(DurableError::Refused(_))
     ));
+    println!(
+        "CMD2_RESTORE_VERIFY_PROFILE {}",
+        serde_json::json!({"revisions": profile.revisions,"payload_bytes": profile.payload_bytes,"verified_historical_members": profile.revisions + 1,"verify_elapsed_ms": started.elapsed().as_millis()})
+    );
     println!(
         "CMD2_RESTORED domain={} cut={} historical_members={}",
         domain,

@@ -111,3 +111,17 @@ currently selected source or target database. Those fixture limits are an
 example, not an arbitrary-data capacity guarantee. A completed
 `backup_complete` receipt and `restore_verified` cut do not activate a reader,
 change source admission or grant current-use rights.
+
+The same ignored export/verify pair also accepts lab-only
+`TOS_CMD2_RESTORE_REVISIONS` (2..64 A revisions) and optional
+`TOS_CMD2_RESTORE_PAYLOAD_BYTES` (1..65536 bytes per A revision). Select identical
+values for export and verify. With both unset, the original two-commit,
+three-history-member bytes remain unchanged. Extra revisions use real commits
+with immediate predecessors, and the verifier checks every historical address,
+retained prepare intent, original orphan and current rights fence. The profile
+lines report actual commit/history counts, framed bytes and elapsed phase times.
+These parameter ceilings bound fixture preparation; they do not change the
+transport guards or establish corpus capacity. A larger whole operation needs
+its own complete disk/time admission, including export, PostgreSQL/WAL, dump,
+three store copies, restore and cold verification. It is independent of the
+Agent source/archive restore and prepared graph's N/E/history measurement.
