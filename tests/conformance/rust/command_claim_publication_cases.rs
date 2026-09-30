@@ -191,6 +191,9 @@ fn maintained_claim_addition_whole_transaction_and_access() {
     let progress =
         ClaimPublicationProgress::install(&connection, cancel.clone(), deadline, 100_000_000)
             .unwrap();
+    connection
+        .execute_batch("PRAGMA temp_store=MEMORY; PRAGMA cache_size=-8192")
+        .unwrap();
     // Finite maintained consumer envelope; library defaults remain portable.
     let publication_limits = PublicationLimits {
         max_mutations: 100_000,
@@ -420,7 +423,10 @@ fn maintained_claim_addition_whole_transaction_and_access() {
             .iter()
             .map(|r| (required(r, "id").to_owned(), r.clone()))
             .collect();
-        assert_eq!(actual, expected, "maintained full union {kind} oracle");
+        assert!(
+            actual == expected,
+            "maintained full union {kind} oracle mismatch"
+        );
     }
     assert_eq!(
         result["semantic_report"],
