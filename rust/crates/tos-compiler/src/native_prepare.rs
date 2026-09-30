@@ -463,7 +463,32 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
     for lens in &mut lenses {
         portable_serde(lens, root_text, publication.max_metadata_bytes)?;
     }
-    let header_owner = value(&header, publication.max_metadata_bytes)?;
+    let mut header_owner = value(&header, publication.max_metadata_bytes)?;
+    // The maintained semantic attachment hashes compact report bytes in
+    // Python insertion order. Preserve that existing renderer at the
+    // foundation boundary instead of serde's alphabetical object ordering.
+    let semantic_raw = crate::prepared_semantic_index::report_raw(
+        &header["counts"]["semantic_validation"],
+        publication.max_metadata_bytes,
+    )?;
+    let semantic_owner = json(semantic_raw.as_bytes(), publication.max_metadata_bytes)?;
+    let JsonValue::Object(fields) = &mut header_owner else {
+        return Err(Error::Invalid("prepare header object"));
+    };
+    let counts = fields
+        .iter_mut()
+        .find(|(k, _)| k.as_str() == Some("counts"))
+        .map(|(_, v)| v)
+        .ok_or(Error::Invalid("prepare header counts"))?;
+    let JsonValue::Object(counts) = counts else {
+        return Err(Error::Invalid("prepare header counts object"));
+    };
+    let report = counts
+        .iter_mut()
+        .find(|(k, _)| k.as_str() == Some("semantic_validation"))
+        .map(|(_, v)| v)
+        .ok_or(Error::Invalid("prepare header semantic report"))?;
+    *report = semantic_owner;
     let lenses_owner = lenses
         .iter()
         .map(|v| value(v, publication.max_metadata_bytes))

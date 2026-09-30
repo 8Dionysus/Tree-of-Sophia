@@ -1598,7 +1598,7 @@ fn jfield<'a>(v: &'a JsonValue, path: &[&str]) -> Result<&'a JsonValue> {
     }
     Ok(current)
 }
-fn report_raw(v: &Value, cap: usize) -> Result<String> {
+pub(crate) fn report_raw(v: &Value, cap: usize) -> Result<String> {
     let keys = [
         "valid",
         "violations",
