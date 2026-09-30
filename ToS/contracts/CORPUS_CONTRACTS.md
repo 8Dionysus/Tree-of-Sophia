@@ -328,10 +328,12 @@ A schema validator can establish that:
 - an access-request record cannot label a draft as sent or granted without
   real-human send approval and the corresponding private/redacted evidence
   boundary;
-- a server-import plan resolves exact manifest, file, and rights digests,
-  blocks payload transfer for deny/metadata-only access, and requires verified
-  bytes, reviewed rights, real-human operator approval, and a receipt before
-  `imported`;
+- a server-import plan, when present for a proposed transfer, resolves exact
+  manifest, file, and rights digests, blocks payload transfer for
+  deny/metadata-only access, and requires verified bytes, reviewed rights,
+  real-human operator approval, and a receipt before `imported`. Local-only
+  corpus admission does not require a plan, and plan absence grants no transfer
+  authority;
 - a private-evidence handoff freezes its audience, exact destination,
   aggregation threshold, prohibited disclosure classes, raw-preservation law,
   and publication gate before private evidence is opened;
