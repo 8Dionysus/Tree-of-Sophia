@@ -434,6 +434,109 @@ pub fn apply_source_bound_prepared_delta_transaction<
         start,
     )
 }
+/// Add one independent addressing root without changing existing roots, source
+/// publication, normalized rows or execution profiles. The stronger source
+/// owner proves membership; this helper does not confer admission or commit.
+pub fn bootstrap_prepared_source_root_extension_transaction(
+    tx: &Transaction<'_>,
+    expected: &JsonValue,
+    before_source: &PreparedSourceInputs,
+    after_source: &PreparedSourceInputs,
+    added_root: &str,
+    before: &CatalogInputs,
+    after: &CatalogInputs,
+    limits: prepared::PublicationLimits,
+    catalog_limits: CatalogMaintenanceLimits,
+    semantic_limits: SemanticMaintenanceLimits,
+    normalization_processor_sha256: &str,
+) -> Result<SourceMaintenanceReceipt> {
+    limits.validate()?;
+    if limits.max_mutations < 2 {
+        return Err(Error::Budget("source extension pairing mutations"));
+    }
+    let predecessor = read_prepared_source_inputs_transaction(tx, expected, before, limits)?;
+    if predecessor.raw() != before_source.raw() {
+        return Err(Error::Invalid("source extension predecessor CAS"));
+    }
+    let successor = PreparedSourceInputs::parse(after_source.raw(), limits)?;
+    let (_, old) = strict(predecessor.raw(), MAX_STATE_BYTES)?;
+    let (_, new) = strict(successor.raw(), MAX_STATE_BYTES)?;
+    if !name(added_root, true)
+        || predecessor.retained_roots.contains_key(added_root)
+        || successor.retained_roots.len() != predecessor.retained_roots.len() + 1
+        || !successor.retained_roots.contains_key(added_root)
+        || predecessor
+            .retained_roots
+            .iter()
+            .any(|(key, root)| successor.retained_roots.get(key) != Some(root))
+        || old["source_publication"] != new["source_publication"]
+        || old["dependencies"] != new["dependencies"]
+        || predecessor.source_revision() == successor.source_revision()
+    {
+        return Err(Error::Invalid(
+            "source extension changes predecessor profile",
+        ));
+    }
+    let namespace = &successor.retained_roots[added_root].namespace_path;
+    if predecessor
+        .retained_roots
+        .values()
+        .any(|root| &root.namespace_path == namespace)
+    {
+        return Err(Error::Invalid(
+            "source extension namespace already retained",
+        ));
+    }
+    let (_, mut old_header) = strict(
+        &canonical(&before.header, limits.max_metadata_bytes)?,
+        limits.max_metadata_bytes,
+    )?;
+    let (_, mut new_header) = strict(
+        &canonical(&after.header, limits.max_metadata_bytes)?,
+        limits.max_metadata_bytes,
+    )?;
+    if before.binding()? != after.binding()?
+        || old_header["source_revision"].as_str() != Some(predecessor.source_revision())
+        || new_header["source_revision"].as_str() != Some(successor.source_revision())
+    {
+        return Err(Error::Invalid("source extension catalog profile/revision"));
+    }
+    old_header
+        .as_object_mut()
+        .ok_or(Error::Invalid("source extension old header"))?
+        .remove("source_revision");
+    new_header
+        .as_object_mut()
+        .ok_or(Error::Invalid("source extension new header"))?
+        .remove("source_revision");
+    if old_header != new_header {
+        return Err(Error::Invalid("source extension changes reader semantics"));
+    }
+    let start = tx.total_changes();
+    let mut engine_limits = limits;
+    engine_limits.max_mutations -= 1;
+    let publication = prepared_maintenance::apply_semantic_prepared_delta_transaction(
+        tx,
+        expected,
+        before,
+        after,
+        std::iter::empty::<Result<prepared::PreparedChange>>(),
+        engine_limits,
+        catalog_limits,
+        semantic_limits,
+        normalization_processor_sha256,
+    )?;
+    finish_pair(
+        tx,
+        &predecessor,
+        &successor,
+        after,
+        publication,
+        limits,
+        start,
+    )
+}
+
 fn finish_pair(
     tx: &Transaction<'_>,
     predecessor: &PreparedSourceInputs,

@@ -4,6 +4,7 @@
 //! semantic, rights, publication or canon admission.
 
 mod durable_adapter;
+pub mod source_agent_publication;
 pub mod source_artifact_native;
 pub mod source_claim_publication;
 mod source_claim_publication_assembly;

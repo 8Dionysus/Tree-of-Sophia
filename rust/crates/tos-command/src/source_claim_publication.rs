@@ -282,7 +282,7 @@ impl<'a> ClaimPublicationProgress<'a> {
             maximum: max_vm_steps,
         })
     }
-    fn verify(&self, tx: &Transaction<'_>) -> Result<()> {
+    pub(crate) fn verify(&self, tx: &Transaction<'_>) -> Result<()> {
         if !std::ptr::eq(self.connection, &**tx)
             || self.cancelled.load(Ordering::Relaxed)
             || Instant::now() >= self.deadline
