@@ -299,6 +299,129 @@ impl<'a> PrivateOwnerStore<'a> {
             visited_entries: visited,
         })
     }
+    /// Claim inventory uses the maintained combined public/private census.
+    /// Public bytes remain selected cut evidence; they do not grant private writes.
+    pub(crate) fn read_claim_identity_inputs(
+        &self,
+        basenames: &BTreeSet<String>,
+        exclude_package: Option<&str>,
+        include_provenance: bool,
+        cut: &tos_source_store::CorpusCutReader,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<PrivateIdentityInputs> {
+        let mut inputs = self.read_identity_inputs(
+            basenames,
+            exclude_package,
+            include_provenance,
+            deadline,
+            cancelled,
+        )?;
+        let mut selected_files = inputs.files.len();
+        let private_bytes = inputs
+            .files
+            .values()
+            .try_fold(0usize, |n, raw| n.checked_add(raw.len()).ok_or(bad_plan()))?;
+        let mut remaining = 67_108_864usize
+            .checked_sub(private_bytes)
+            .ok_or(bad_plan())?;
+        let root_path = self.context.public_root().to_path_buf();
+        let root = tos_fd_open::open_absolute_directory(&root_path).map_err(|_| bad_plan())?;
+        let root_identity = stamp(&directory(&root, self.uid, false)?);
+        let mut pending = vec![root_path.join("ToS/source-witnesses")];
+        let mut observations = Vec::new();
+        while let Some(path) = pending.pop() {
+            active(deadline, cancelled)?;
+            let fd = tos_fd_open::open_absolute_directory(&path).map_err(|_| bad_plan())?;
+            let before = stamp(&directory(&fd, self.uid, false)?);
+            for entry in std::fs::read_dir(format!("/proc/self/fd/{}", fd.as_raw_fd()))
+                .map_err(|_| bad_plan())?
+            {
+                active(deadline, cancelled)?;
+                inputs.visited_entries = inputs.visited_entries.checked_add(1).ok_or(bad_plan())?;
+                if inputs.visited_entries > 32_768 {
+                    return Err(SourceCommandError::Invalid("Claim identity entry budget"));
+                }
+                let entry = entry.map_err(|_| bad_plan())?;
+                let name = entry.file_name().into_string().map_err(|_| bad_plan())?;
+                if name.starts_with('.')
+                    || matches!(name.as_str(), "payload" | "local-content" | "catalog")
+                {
+                    continue;
+                }
+                let kind = entry.file_type().map_err(|_| bad_plan())?;
+                if kind.is_symlink() {
+                    return Err(SourceCommandError::Denied("Claim public identity alias"));
+                }
+                let member = path.join(&name);
+                if kind.is_dir() {
+                    pending.push(member);
+                    continue;
+                }
+                if !(basenames.contains(&name)
+                    || name.ends_with(".human-forms.json")
+                    || name.starts_with("semantic-annotation") && name.ends_with(".json")
+                    || include_provenance
+                        && name.contains("provenance")
+                        && name.ends_with(".jsonl"))
+                {
+                    continue;
+                }
+                selected_files = selected_files.checked_add(1).ok_or(bad_plan())?;
+                if !kind.is_file() || selected_files > 2048 {
+                    return Err(SourceCommandError::Invalid("Claim identity file budget"));
+                }
+                let reference = member
+                    .strip_prefix(&root_path)
+                    .map_err(|_| bad_plan())?
+                    .to_str()
+                    .ok_or(bad_plan())?;
+                let selected_path =
+                    tos_foundation::RelativePath::parse(reference).map_err(|_| bad_plan())?;
+                let selected =
+                    cut.current()
+                        .member(&selected_path)
+                        .ok_or(SourceCommandError::Denied(
+                            "Claim public identity outside selected cut",
+                        ))?;
+                let raw =
+                    self.context
+                        .read(reference, remaining.min(33_554_432), deadline, cancelled)?;
+                if raw.len() as u64 != selected.size_bytes
+                    || Digest256::of_bytes(&raw) != selected.sha256
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "Claim public identity differs from cut",
+                    ));
+                }
+                remaining = remaining.checked_sub(raw.len()).ok_or(bad_plan())?;
+            }
+            if stamp(&directory(&fd, self.uid, false)?) != before {
+                return Err(SourceCommandError::Conflict(
+                    "Claim public identity directory changed",
+                ));
+            }
+            observations.push((path, before));
+        }
+        for (path, before) in observations {
+            let fd = tos_fd_open::open_absolute_directory(&path).map_err(|_| bad_plan())?;
+            if stamp(&directory(&fd, self.uid, false)?) != before {
+                return Err(SourceCommandError::Conflict(
+                    "Claim public identity namespace changed",
+                ));
+            }
+        }
+        let current_root =
+            tos_fd_open::open_absolute_directory(&root_path).map_err(|_| bad_plan())?;
+        if stamp(&directory(&current_root, self.uid, false)?) != root_identity {
+            return Err(SourceCommandError::Conflict(
+                "Claim public owner root changed",
+            ));
+        }
+        self.current_target(deadline, cancelled)?;
+        Ok(inputs)
+    }
+
     pub(crate) fn select(
         context: &'a OwnerTextContext,
         source_ref: &str,

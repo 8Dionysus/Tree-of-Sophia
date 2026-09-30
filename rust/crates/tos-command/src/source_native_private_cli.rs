@@ -48,6 +48,9 @@ fn verify_selected_software(
 #[path = "source_private_profile.rs"]
 pub(crate) mod profile;
 
+#[path = "source_private_claim.rs"]
+mod claim;
+
 struct SelectedPrivateInvocation {
     owner: OwnerTextContext,
     context_config: JsonValue,
@@ -78,45 +81,97 @@ pub(super) fn run(
     let config = cmd::parse(&selected.context.configuration_raw)?;
     let request = cmd::parse(request_raw)?;
     let operation = cmd::text(&request, "operation")?;
+    let is_claim = matches!(
+        cmd::text(&config, "schema_version")?,
+        claim::CONFIG_V1 | claim::CONFIG_V2
+    );
     let mut owner_store =
         PrivateOwnerStore::select(&selected.owner, cmd::text(&config, "source_path")?)?;
     let before = owner_store.read_package(deadline, cancelled)?;
-    let basenames = profile::identity_basenames(
-        &selected.context,
-        current,
-        &mut selected.worker,
-        deadline,
-        cancelled,
-    )?;
-    let creating = matches!(operation, "source.create" | "prepare-create");
-    let inputs = owner_store.read_identity_inputs(
-        &basenames,
-        Some(cmd::text(&config, "source_path")?),
-        creating,
-        deadline,
-        cancelled,
-    )?;
-    let plan = profile::prepare(
-        &selected.context,
-        current,
-        software,
-        components,
-        &selected.owner,
-        &selected.context_config,
-        before.as_ref(),
-        &inputs,
-        &mut owner_store,
-        &mut selected.worker,
-        deadline,
-        cancelled,
-    )?;
-    let (before_write, after, response, archive, reads) = (
-        plan.before,
-        plan.after,
-        plan.response,
-        plan.archive,
-        plan.reads,
+    let basenames = if is_claim {
+        claim::identity_basenames(
+            &selected.context,
+            current,
+            &mut selected.worker,
+            deadline,
+            cancelled,
+        )?
+    } else {
+        profile::identity_basenames(
+            &selected.context,
+            current,
+            &mut selected.worker,
+            deadline,
+            cancelled,
+        )?
+    };
+    let creating = matches!(
+        operation,
+        "source.create" | "claims.create" | "prepare-create"
     );
+    let inputs = if is_claim {
+        owner_store.read_claim_identity_inputs(
+            &basenames,
+            Some(cmd::text(&config, "source_path")?),
+            creating,
+            current,
+            deadline,
+            cancelled,
+        )?
+    } else {
+        owner_store.read_identity_inputs(
+            &basenames,
+            Some(cmd::text(&config, "source_path")?),
+            creating,
+            deadline,
+            cancelled,
+        )?
+    };
+    let (before_write, after, response, archive, reads) = if is_claim {
+        let plan = claim::prepare(
+            &selected.context,
+            current,
+            software,
+            components,
+            &selected.owner,
+            &selected.context_config,
+            before.as_ref(),
+            &inputs,
+            &mut owner_store,
+            &mut selected.worker,
+            deadline,
+            cancelled,
+        )?;
+        (
+            plan.before,
+            plan.files,
+            plan.response,
+            plan.archive,
+            plan.reads,
+        )
+    } else {
+        let plan = profile::prepare(
+            &selected.context,
+            current,
+            software,
+            components,
+            &selected.owner,
+            &selected.context_config,
+            before.as_ref(),
+            &inputs,
+            &mut owner_store,
+            &mut selected.worker,
+            deadline,
+            cancelled,
+        )?;
+        (
+            plan.before,
+            plan.after,
+            plan.response,
+            plan.archive,
+            plan.reads,
+        )
+    };
     selected
         .worker
         .finish(deadline, cancelled)
@@ -149,13 +204,24 @@ pub(super) fn run(
             deadline,
             cancelled,
         )?;
-        let fresh = owner_store.read_identity_inputs(
-            &basenames,
-            Some(cmd::text(&config, "source_path")?),
-            creating,
-            deadline,
-            cancelled,
-        )?;
+        let fresh = if is_claim {
+            owner_store.read_claim_identity_inputs(
+                &basenames,
+                Some(cmd::text(&config, "source_path")?),
+                creating,
+                current,
+                deadline,
+                cancelled,
+            )?
+        } else {
+            owner_store.read_identity_inputs(
+                &basenames,
+                Some(cmd::text(&config, "source_path")?),
+                creating,
+                deadline,
+                cancelled,
+            )?
+        };
         if fresh.files != inputs.files {
             return Err(SourceCommandError::Conflict(
                 "private identity inputs changed",
@@ -258,7 +324,10 @@ fn select(
     let uid = rustix::process::getuid().as_raw();
     let configuration_raw = read_absolute(&grant_path, uid, true, 1_048_576, deadline, cancelled)?;
     let config = cmd::parse(&configuration_raw)?;
-    if cmd::text(&config, "schema_version")? != "tos_local_owner_profile_command_v1" {
+    if !matches!(
+        cmd::text(&config, "schema_version")?,
+        profile::CONFIG | claim::CONFIG_V1 | claim::CONFIG_V2
+    ) {
         return Err(SourceCommandError::Denied(
             "private metadata exact owner family",
         ));
