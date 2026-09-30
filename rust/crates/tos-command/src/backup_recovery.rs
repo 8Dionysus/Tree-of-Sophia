@@ -312,8 +312,18 @@ fn tool(
     if let Some(options) = selected.get_options() {
         command.env("PGOPTIONS", options);
     }
+    command.args(args);
+    if input.is_some() {
+        // pg_restore needs a database option to execute rather than emit SQL.
+        // Only the decoded database name goes in argv, never the connection URL.
+        require(
+            !database.contains('=')
+                && !database.starts_with("postgres://")
+                && !database.starts_with("postgresql://"),
+        )?;
+        command.arg("--dbname").arg(database);
+    }
     let spawned = command
-        .args(args)
         .stdin(input.map(Stdio::from).unwrap_or_else(Stdio::null))
         .stdout(output.map(Stdio::from).unwrap_or_else(Stdio::null))
         .stderr(Stdio::null())
