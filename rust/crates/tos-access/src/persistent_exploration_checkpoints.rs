@@ -221,12 +221,12 @@ impl Config {
             }),
         );
         sql(db.busy_timeout(Duration::from_millis(100)))?;
-        db.set_limit(
+        sql(db.set_limit(
             Limit::SQLITE_LIMIT_LENGTH,
             (self.limits.max_encoded_bytes + 65536) as i32,
-        );
-        db.set_limit(Limit::SQLITE_LIMIT_SQL_LENGTH, 16384);
-        db.set_limit(Limit::SQLITE_LIMIT_COLUMN, 32);
+        ))?;
+        sql(db.set_limit(Limit::SQLITE_LIMIT_SQL_LENGTH, 16384))?;
+        sql(db.set_limit(Limit::SQLITE_LIMIT_COLUMN, 32))?;
         sql(db.execute_batch("PRAGMA trusted_schema=OFF; PRAGMA synchronous=FULL; PRAGMA cache_size=-512; PRAGMA temp_store=MEMORY; PRAGMA mmap_size=0"))?;
         let mode: String = sql(db.query_row("PRAGMA journal_mode", [], |r| r.get(0)))?;
         let page: u64 = sql(db.query_row("PRAGMA page_size", [], |r| r.get(0)))?;
