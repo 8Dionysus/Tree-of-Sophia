@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -141,14 +143,141 @@ def command_sequence(sequence_id: str, repo_root: Path | None = None) -> list[Co
     return resolved
 
 
+def _cargo_test_artifacts(
+    messages: list[dict[str, object]], package_name: str, target_name: str
+) -> set[Path]:
+    """Select the executable emitted for one exact Cargo package test target."""
+    artifacts: set[Path] = set()
+    for message in messages:
+        if message.get("reason") != "compiler-artifact":
+            continue
+        target = message.get("target")
+        executable = message.get("executable")
+        package_id = message.get("package_id")
+        if not isinstance(target, dict) or not isinstance(package_id, str):
+            continue
+        kinds = target.get("kind")
+        if not isinstance(kinds, list):
+            continue
+        package_id_name = package_id.rsplit("#", 1)[-1].split("@", 1)[0]
+        if (
+            package_id_name == package_name
+            and target.get("name") == target_name
+            and "test" in kinds
+            and isinstance(executable, str)
+        ):
+            artifacts.add(Path(executable))
+    return artifacts
+
+
+def _sha256_executable(
+    raw_path: str | Path, description: str, cargo_target: Path, root: Path
+) -> tuple[Path, str]:
+    """Hash one executable produced in this lane's Cargo target directory."""
+    path = Path(raw_path)
+    if not path.is_absolute():
+        raise ValueError(f"{description} path must be absolute")
+    try:
+        metadata = path.lstat()
+        resolved = path.resolve(strict=True)
+    except OSError as exc:
+        raise ValueError(f"{description} is unavailable: {path}") from exc
+    if not stat.S_ISREG(metadata.st_mode) or not metadata.st_mode & 0o111:
+        raise ValueError(f"{description} must be a regular executable: {path}")
+    if metadata.st_size > 512 * 1024 * 1024:
+        raise ValueError(f"{description} exceeds the 512 MiB image bound: {path}")
+    target_root = cargo_target if cargo_target.is_absolute() else root / cargo_target
+    try:
+        resolved.relative_to(target_root.resolve())
+    except ValueError as exc:
+        raise ValueError(f"{description} must be produced inside Cargo target {target_root}: {path}") from exc
+    with resolved.open("rb") as stream:
+        return resolved, hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def _run_cargo_json_build(
+    command: list[str], root: Path, env: dict[str, str], package_name: str, target_name: str
+) -> tuple[int, set[Path]]:
+    """Stream Cargo diagnostics and retain one exact compiler-artifact test image."""
+    process = subprocess.Popen(
+        command,
+        cwd=root,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=None,
+        text=True,
+    )
+    artifacts: set[Path] = set()
+    assert process.stdout is not None
+    with process.stdout:
+        for line in process.stdout:
+            try:
+                message = json.loads(line)
+            except json.JSONDecodeError:
+                print(line, end="", flush=True)
+                continue
+            if not isinstance(message, dict):
+                continue
+            artifacts.update(_cargo_test_artifacts([message], package_name, target_name))
+            if message.get("reason") == "compiler-message":
+                detail = message.get("message")
+                rendered = detail.get("rendered") if isinstance(detail, dict) else None
+                if isinstance(rendered, str):
+                    print(rendered, end="", file=sys.stderr, flush=True)
+    return process.wait(), artifacts
+
+
 def run_sequence(sequence_id: str, repo_root: Path | None = None) -> int:
     root = repo_root or REPO_ROOT
+    env = os.environ.copy()
     for label, command in command_sequence(sequence_id, root):
         print(f"[run] {label}: {' '.join(command)}", flush=True)
+        if sequence_id == "rust_workspace" and label == "compile exact Rust conformance test image":
+            return_code, artifacts = _run_cargo_json_build(
+                command, root, env, "tos-conformance", "conformance"
+            )
+            if return_code != 0:
+                print(
+                    f"[error] {label} failed with exit code {return_code}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                return return_code
+            if len(artifacts) != 1:
+                print(
+                    f"[error] expected one exact tos-conformance test image; found {len(artifacts)}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                return 1
+            target_dir = Path(env.get("CARGO_TARGET_DIR", root / "target"))
+            consumer = env.get("TOS_NATIVE_PREPARED_CONSUMER_BIN")
+            if not consumer:
+                print(
+                    "[error] Rust conformance requires TOS_NATIVE_PREPARED_CONSUMER_BIN",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                return 1
+            try:
+                _, consumer_sha = _sha256_executable(consumer, "prepared consumer", target_dir, root)
+                case_path, case_sha = _sha256_executable(
+                    next(iter(artifacts)), "Claim publication conformance test image", target_dir, root
+                )
+            except ValueError as exc:
+                print(f"[error] {exc}", file=sys.stderr, flush=True)
+                return 1
+            env["TOS_NATIVE_PREPARED_CONSUMER_SHA256"] = consumer_sha
+            env["TOS_NATIVE_CLAIM_PUBLICATION_CASE_SHA256"] = case_sha
+            print(f"[artifact] prepared consumer SHA256: {consumer_sha}", flush=True)
+            print(f"[artifact] exact Claim publication test image: {case_path}", flush=True)
+            print(f"[artifact] Claim publication test image SHA256: {case_sha}", flush=True)
+            print(f"[ok] {label}", flush=True)
+            continue
         completed = subprocess.run(
             command,
             cwd=root,
-            env=os.environ.copy(),
+            env=env,
             check=False,
         )
         if completed.returncode != 0:

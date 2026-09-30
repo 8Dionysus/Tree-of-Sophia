@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import ast
+import hashlib
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -125,10 +127,27 @@ class ValidationLaneTests(unittest.TestCase):
         names = [name for name, _, _ in cases]
         sequence = validation_lanes.command_sequence('rust_workspace', ROOT)
         by_label = dict(sequence)
+        self.assertEqual(
+            [label for label, _ in sequence[:5]],
+            [
+                'check Rust formatting',
+                'build exact native schema worker for source-cut fixtures',
+                'build exact native owner CLI for process-cold fixtures',
+                'build exact native prepared consumer for conformance fixtures',
+                'compile exact Rust conformance test image',
+            ],
+        )
+        self.assertEqual(
+            by_label['build exact native prepared consumer for conformance fixtures'],
+            ['cargo', 'build', '--locked', '-p', 'tos-access', '--bin', 'tos-access'],
+        )
+        self.assertEqual(
+            by_label['compile exact Rust conformance test image'],
+            ['cargo', 'test', '--no-run', '--workspace', '--locked', '--message-format=json'],
+        )
         workspace_label = 'test Rust workspace excluding isolated process-cold fixtures'
         workspace = by_label[workspace_label]
-        self.assertEqual(workspace[:4], ['cargo', 'test', '--workspace', '--locked'])
-        self.assertEqual(workspace[4], '--')
+        self.assertEqual(workspace[:6], ['cargo', 'test', '--workspace', '--locked', '--', '--nocapture'])
         self.assertEqual(
             [workspace[index + 1] for index, value in enumerate(workspace) if value == '--skip'],
             names,
@@ -159,6 +178,102 @@ class ValidationLaneTests(unittest.TestCase):
         for (_, source_path, function_name) in cases:
             source = (ROOT / source_path).read_text(encoding='utf-8')
             self.assertEqual(source.count(f'#[test]\nfn {function_name}('), 1)
+
+    def test_rust_conformance_artifact_selection_uses_exact_test_package_and_target(self):
+        selected = Path('/runner/cargo-target/debug/deps/conformance-deadbeef')
+        messages = [
+            {
+                'reason': 'compiler-artifact',
+                'package_id': 'path+file:///workspace/tests/conformance/rust#tos-conformance@1.0.0',
+                'target': {'name': 'conformance', 'kind': ['test']},
+                'executable': str(selected),
+            },
+            {
+                'reason': 'compiler-artifact',
+                'package_id': 'path+file:///workspace/rust/crates/tos-access#tos-access@1.0.0',
+                'target': {'name': 'conformance', 'kind': ['test']},
+                'executable': '/runner/cargo-target/debug/deps/not-the-case',
+            },
+            {
+                'reason': 'compiler-artifact',
+                'package_id': 'path+file:///workspace/tests/conformance/rust#tos-conformance@1.0.0',
+                'target': {'name': 'conformance', 'kind': ['bin']},
+                'executable': '/runner/cargo-target/debug/conformance',
+            },
+        ]
+        self.assertEqual(
+            validation_lanes._cargo_test_artifacts(messages, 'tos-conformance', 'conformance'),
+            {selected},
+        )
+
+    def test_cargo_json_runner_streams_diagnostics_and_returns_exact_case_image(self):
+        selected = Path('/runner/cargo-target/debug/deps/conformance-deadbeef')
+        artifact = {
+            'reason': 'compiler-artifact',
+            'package_id': 'path+file:///workspace/tests/conformance/rust#tos-conformance@1.0.0',
+            'target': {'name': 'conformance', 'kind': ['test']},
+            'executable': str(selected),
+        }
+        process = mock.Mock(stdout=io.StringIO(json.dumps(artifact) + '\n'), wait=mock.Mock(return_value=0))
+        root = Path('/workspace')
+        env = {'CARGO_TARGET_DIR': '/runner/cargo-target'}
+        with mock.patch.object(validation_lanes.subprocess, 'Popen', return_value=process) as popen:
+            result = validation_lanes._run_cargo_json_build(
+                ['cargo', 'test', '--no-run'], root, env, 'tos-conformance', 'conformance'
+            )
+        self.assertEqual(result, (0, {selected}))
+        popen.assert_called_once_with(
+            ['cargo', 'test', '--no-run'], cwd=root, env=env,
+            stdout=subprocess.PIPE, stderr=None, text=True,
+        )
+
+    def test_rust_workspace_hashes_lane_products_and_forwards_exact_evidence(self):
+        with tempfile.TemporaryDirectory() as raw:
+            target = Path(raw) / 'cargo-target'
+            consumer = target / 'debug' / 'tos-access'
+            conformance = target / 'debug' / 'deps' / 'conformance-deadbeef'
+            consumer.parent.mkdir(parents=True)
+            conformance.parent.mkdir(parents=True)
+            consumer.write_bytes(b'prepared access consumer')
+            conformance.write_bytes(b'Claim publication conformance image')
+            consumer.chmod(0o700)
+            conformance.chmod(0o700)
+            steps = [
+                ('compile exact Rust conformance test image', ['cargo', 'test', '--no-run']),
+                ('test Rust workspace fixtures', ['cargo', 'test', '--workspace']),
+            ]
+            with mock.patch.object(validation_lanes, 'command_sequence', return_value=steps), \
+                 mock.patch.dict(validation_lanes.os.environ, {
+                     'CARGO_TARGET_DIR': str(target),
+                     'TOS_NATIVE_PREPARED_CONSUMER_BIN': str(consumer),
+                 }), \
+                 mock.patch.object(validation_lanes, '_run_cargo_json_build', return_value=(0, {conformance})), \
+                 mock.patch.object(validation_lanes.subprocess, 'run',
+                                   return_value=subprocess.CompletedProcess(['cargo'], 0)) as run:
+                self.assertEqual(validation_lanes.run_sequence('rust_workspace', Path(raw)), 0)
+
+            run.assert_called_once()
+            executed_env = run.call_args.kwargs['env']
+            self.assertEqual(
+                executed_env['TOS_NATIVE_PREPARED_CONSUMER_SHA256'],
+                hashlib.sha256(b'prepared access consumer').hexdigest(),
+            )
+            self.assertEqual(
+                executed_env['TOS_NATIVE_CLAIM_PUBLICATION_CASE_SHA256'],
+                hashlib.sha256(b'Claim publication conformance image').hexdigest(),
+            )
+            self.assertEqual(executed_env['TOS_NATIVE_PREPARED_CONSUMER_BIN'], str(consumer))
+
+    def test_rust_artifact_hash_fails_closed_outside_current_cargo_target(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            target = root / 'target'
+            target.mkdir()
+            outside = root / 'outside'
+            outside.write_bytes(b'not a lane artifact')
+            outside.chmod(0o700)
+            with self.assertRaisesRegex(ValueError, 'inside Cargo target'):
+                validation_lanes._sha256_executable(outside, 'consumer', target, root)
 
     def test_browser_behavior_groups_cover_the_exact_e2e_function_inventory(self):
         sequence = validation_lanes.command_sequence('software_browser', ROOT)

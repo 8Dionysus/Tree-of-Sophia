@@ -342,7 +342,7 @@
       "layer": "software-foundation",
       "mode": "blocking",
       "owner_surface": "rust/README.md",
-      "purpose": "Check pinned native and WASM builds, formatting, independent fixture tests, isolated native install, and generated WEB.1 bindings in a real Node host for Rust source changes.",
+      "purpose": "Check pinned native and WASM builds, formatting, exact conformance product provenance, complete fixture tests, isolated native install, and generated WEB.1 bindings in a real Node host for Rust source changes.",
       "command_sequence": "rust_workspace",
       "failure_route": "rust/README.md",
       "does_not_own": [
@@ -388,9 +388,18 @@
         "command": ["cargo", "build", "--locked", "-p", "tos-command", "--bin", "tos-native-owner-command"]
       },
       {
+        "label": "build exact native prepared consumer for conformance fixtures",
+        "command": ["cargo", "build", "--locked", "-p", "tos-access", "--bin", "tos-access"]
+      },
+      {
+        "label": "compile exact Rust conformance test image",
+        "command": ["cargo", "test", "--no-run", "--workspace", "--locked", "--message-format=json"]
+      },
+      {
         "label": "test Rust workspace excluding isolated process-cold fixtures",
         "command": [
           "cargo", "test", "--workspace", "--locked", "--",
+          "--nocapture",
           "--skip", "source_creation_store::revision_publication::tests::native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery",
           "--skip", "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
           "--skip", "source_creation_store::work_expression::tests::real_pending_refuses_changed_dependency_then_resumes_or_rolls_back"
