@@ -10,6 +10,7 @@ mod source_agent_publication_assembly;
 mod source_agent_publication_closure;
 mod source_agent_publication_commit;
 mod source_agent_publication_profile;
+mod source_agent_publication_recovery;
 pub mod source_artifact_native;
 pub mod source_claim_publication;
 mod source_claim_publication_assembly;
