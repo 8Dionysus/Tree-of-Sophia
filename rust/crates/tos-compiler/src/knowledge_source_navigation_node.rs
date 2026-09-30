@@ -743,8 +743,12 @@ fn node_semantics(item: &Value, kind: &str, refs: &[String]) -> Result<Value> {
     Ok(Value::Object(semantics))
 }
 fn record_ref_digest(value: &Value) -> Result<String> {
-    let raw =
-        serde_json::to_vec(value).map_err(|_| Error::Invalid("record version reference JSON"))?;
+    // Source-owner identity sorts every object, including nested record fields.
+    // Workspace feature unification may enable serde_json `preserve_order`.
+    let mut canonical = value.clone();
+    canonical.sort_all_objects();
+    let raw = serde_json::to_vec(&canonical)
+        .map_err(|_| Error::Invalid("record version reference JSON"))?;
     Ok(Digest256::of_bytes(&raw).to_hex())
 }
 pub(crate) fn native_metadata_identity(record: &Value) -> Result<&str> {
@@ -1608,6 +1612,18 @@ mod tests {
     use super::*;
     use crate::knowledge_normalization::stable_digest;
 
+    #[test]
+    fn exact_record_digest_is_independent_of_object_insertion_order() {
+        let first: Value =
+            serde_json::from_str(r#"{"z":{"b":2,"a":1},"a":[{"y":false,"x":null}]}"#).unwrap();
+        let reordered: Value =
+            serde_json::from_str(r#"{"a":[{"x":null,"y":false}],"z":{"a":1,"b":2}}"#).unwrap();
+        assert_eq!(
+            record_ref_digest(&first).unwrap(),
+            record_ref_digest(&reordered).unwrap()
+        );
+    }
+
     // One independent frozen CPython `_normalize_node` oracle fixture spans
     // the owner's base node variants. None exercises a global finalization.
     #[test]
@@ -1761,9 +1777,9 @@ mod tests {
             ),
             (
                 version,
-                "4099bbcd8dc5d0e59ed2d99070cbf686ac4ade6fb4434fdd25db7894f04fef3d",
-                "e86b9cdc82b9117171e2a8dac0ecb1ef045dbf14ad0b051e03e70ecef1f7be98",
-                "f7b6c4adcf5980125b1b8e22089cce2bdbd20bfb40616dc7658f7300764da661",
+                "5ca3e9f591034ff718159812884cab1aa7c10564bce639c70649e4cc80e2badb",
+                "eb70e6b8b12305ae502194559c2eec555db5cadcea9271968ab904f07a17dfdb",
+                "6de9384fe8f9e5611e534d744a22ef22d9be29b151d450449e61d28091dc0f31",
             ),
             (
                 region,
