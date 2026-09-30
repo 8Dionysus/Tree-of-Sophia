@@ -6536,6 +6536,25 @@ impl NativeCompoundReader<'_> {
         self.temporary(delta_reads_state)?;
         for read in delta.reads {
             self.release_temporary(crate::record_biblio_cut::predicate_state(&read)?);
+            // Delta validates these three supplied reconstruction buffers. Their
+            // destination paths do not assert that historical bytes are current.
+            // Actual selected reads and retained archive/plan custody stay paths.
+            let read = match read {
+                PredicateRead::ExactPath { path, digest }
+                    if (path == work_path
+                        && digest == Digest256::of_bytes(&parent_raw).to_prefixed())
+                        || (path == expression_path
+                            && digest == Digest256::of_bytes(&expression_raw).to_prefixed())
+                        || (path == format!("{home}/source-claims.jsonl")
+                            && digest == Digest256::of_bytes(&claim_raw).to_prefixed()) =>
+                {
+                    PredicateRead::ExactBytes {
+                        locator: format!("reconstructed-compound-delta:{path}"),
+                        digest,
+                    }
+                }
+                other => other,
+            };
             self.record_read(read)?;
         }
         if kind == CompoundKind::WorkExpression
