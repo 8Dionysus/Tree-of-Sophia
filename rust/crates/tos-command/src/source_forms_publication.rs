@@ -184,7 +184,10 @@ fn read(
     let (parent, leaf) = path
         .rsplit_once('/')
         .ok_or(SourceCommandError::Invalid("Forms dependency parent"))?;
-    let Some(directory) = tx::read_existing_parent(fs, parent, deadline, cancelled)? else {
+    cmd::check(deadline, cancelled)?;
+    let directory = tx::read_existing_parent(fs, parent)?;
+    cmd::check(deadline, cancelled)?;
+    let Some(directory) = directory else {
         return Ok(None);
     };
     tx::read_at(&directory, leaf, fs.uid, 8_388_608, deadline, cancelled)
