@@ -2,7 +2,7 @@
 //! cut, software capture and worker image are byte evidence, never a grant.
 
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
-use crate::source_serialization::executable;
+use crate::source_serialization::observe_executable;
 use crate::source_text_alignment_entry::{
     NativeAlignmentRecovery, describe_owner_alignment_selected,
     execute_owner_alignment_from_captures, inspect_owner_alignment_recovery_selected,
@@ -202,7 +202,9 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     {
         return Err(SourceCommandError::Invalid("native invocation profile"));
     }
-    if executable(deadline, &cancelled)? != digest(text(&invocation, "native_executable_sha256")?)?
+    let runtime_observation = observe_executable(deadline, &cancelled)?;
+    if runtime_observation.current_digest(deadline, &cancelled)?
+        != digest(text(&invocation, "native_executable_sha256")?)?
     {
         return Err(SourceCommandError::Conflict(
             "native command executable identity",
@@ -507,6 +509,7 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
                     &cut,
                     &software,
                     &components,
+                    &runtime_observation,
                     deadline,
                     &cancelled,
                 );

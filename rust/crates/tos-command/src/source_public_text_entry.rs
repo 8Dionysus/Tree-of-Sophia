@@ -120,7 +120,7 @@ fn assemble(
 use crate::source_command as cmd;
 use crate::source_public_text_owner::{PublicNativeTextSelection, PublicTextInputCache};
 use crate::source_serialization::{
-    capture_public_project_text, executable, instant, selected_components,
+    ExecutableObservation, capture_public_project_text, instant, selected_components,
 };
 use crate::source_sign_native::{
     NativeReadKind, NativeReadScope, SignNativeRead, resolve_bindings,
@@ -255,6 +255,7 @@ fn prepare(
     worker: &mut CutWorkerSchemaExecutor,
     exclude: Option<&Path>,
     retained_inventory: Option<Digest256>,
+    runtime_observation: &ExecutableObservation,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Prepared> {
@@ -325,7 +326,7 @@ fn prepare(
         ));
     }
     let software_rows = selected_components(software, components, deadline, cancelled)?;
-    let runtime = executable(deadline, cancelled)?;
+    let runtime = runtime_observation.current_digest(deadline, cancelled)?;
     let input_digests = cache
         .files
         .iter()
@@ -357,13 +358,14 @@ impl Prepared {
         software: &SoftwareCaptureReader,
         components: &SoftwareComponentSelectionV1,
         exclude: Option<&Path>,
+        runtime_observation: &ExecutableObservation,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
         self.cache.verify_current(selection, deadline, cancelled)?;
         if inventory(selection, exclude, deadline, cancelled)? != self.inventory
             || selected_components(software, components, deadline, cancelled)? != self.software_rows
-            || executable(deadline, cancelled)? != self.runtime
+            || runtime_observation.current_digest(deadline, cancelled)? != self.runtime
         {
             return Err(SourceCommandError::Conflict(
                 "public Text current identity or implementation",
@@ -418,6 +420,7 @@ fn verify_retained(
     components: &SoftwareComponentSelectionV1,
     worker: &mut CutWorkerSchemaExecutor,
     exclude: Option<&Path>,
+    runtime_observation: &ExecutableObservation,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(JsonValue, JsonValue)> {
@@ -454,6 +457,7 @@ fn verify_retained(
         worker,
         exclude,
         Some(retained),
+        runtime_observation,
         deadline,
         cancelled,
     )?;
@@ -562,6 +566,7 @@ pub(crate) fn run(
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
     worker: &mut CutWorkerSchemaExecutor,
+    runtime_observation: &ExecutableObservation,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -585,7 +590,15 @@ pub(crate) fn run(
     }
     if operation == "prepare-create" {
         let p = prepare(
-            selection, software, components, worker, None, None, deadline, cancelled,
+            selection,
+            software,
+            components,
+            worker,
+            None,
+            None,
+            runtime_observation,
+            deadline,
+            cancelled,
         )?;
         return foundation(
             &json!({"configuration":configuration,"dependencies":p.dependencies,"source":value(&cmd::reference(&p.assembly.packet,"packet_id","packet_version")?)?,"expected_source":null,"expected_revision":null,"native_bindings":value(cmd::field(&p.assembly.bindings,"bindings")?)?,"grants_admission":false}),
@@ -632,6 +645,7 @@ pub(crate) fn run(
             } else {
                 None
             },
+            runtime_observation,
             deadline,
             cancelled,
         )?;
@@ -661,6 +675,7 @@ pub(crate) fn run(
                 components,
                 worker,
                 Some(&target),
+                runtime_observation,
                 deadline,
                 cancelled,
             )?;
@@ -668,10 +683,27 @@ pub(crate) fn run(
         }
         PrivateTextCustody::Pending(files) => {
             let (receipt, bindings) = verify_retained(
-                selection, request, &files, software, components, worker, None, deadline, cancelled,
+                selection,
+                request,
+                &files,
+                software,
+                components,
+                worker,
+                None,
+                runtime_observation,
+                deadline,
+                cancelled,
             )?;
             let p = prepare(
-                selection, software, components, worker, None, None, deadline, cancelled,
+                selection,
+                software,
+                components,
+                worker,
+                None,
+                None,
+                runtime_observation,
+                deadline,
+                cancelled,
             )?;
             drop(locks);
             publish_public_text(
@@ -680,7 +712,17 @@ pub(crate) fn run(
                 request,
                 &files,
                 || selection.verify_current(deadline, cancelled),
-                || p.current(selection, software, components, None, deadline, cancelled),
+                || {
+                    p.current(
+                        selection,
+                        software,
+                        components,
+                        None,
+                        runtime_observation,
+                        deadline,
+                        cancelled,
+                    )
+                },
                 None,
                 deadline,
                 cancelled,
@@ -690,7 +732,15 @@ pub(crate) fn run(
         PrivateTextCustody::Absent => (),
     }
     let mut p = prepare(
-        selection, software, components, worker, None, None, deadline, cancelled,
+        selection,
+        software,
+        components,
+        worker,
+        None,
+        None,
+        runtime_observation,
+        deadline,
+        cancelled,
     )?;
     check_request(selection, request, &p.dependencies)?;
     let home = source_path
@@ -713,6 +763,7 @@ pub(crate) fn run(
         &mut p.assembly.files,
         software,
         components,
+        runtime_observation,
         deadline,
         cancelled,
     )?;
@@ -741,7 +792,15 @@ pub(crate) fn run(
             "public Text complete package cap",
         ));
     }
-    p.current(selection, software, components, None, deadline, cancelled)?;
+    p.current(
+        selection,
+        software,
+        components,
+        None,
+        runtime_observation,
+        deadline,
+        cancelled,
+    )?;
     drop(locks);
     publish_public_text(
         selection,
@@ -749,7 +808,17 @@ pub(crate) fn run(
         request,
         &p.assembly.files,
         || selection.verify_current(deadline, cancelled),
-        || p.current(selection, software, components, None, deadline, cancelled),
+        || {
+            p.current(
+                selection,
+                software,
+                components,
+                None,
+                runtime_observation,
+                deadline,
+                cancelled,
+            )
+        },
         None,
         deadline,
         cancelled,

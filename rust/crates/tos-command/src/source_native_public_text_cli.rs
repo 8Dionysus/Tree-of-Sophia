@@ -21,6 +21,7 @@ pub(super) fn run(
     current: &CorpusCutReader,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
+    runtime: &crate::source_serialization::ExecutableObservation,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Value> {
@@ -109,6 +110,7 @@ pub(super) fn run(
         software,
         components,
         &mut worker,
+        runtime,
         deadline,
         cancelled,
     )?;

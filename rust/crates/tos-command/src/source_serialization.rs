@@ -58,10 +58,65 @@ pub(crate) fn instant() -> SourceCommandResult<String> {
     ))
 }
 
+// One invocation owns this kernel descriptor and its measured digest.
+// Private fields prevent callers or retained records from manufacturing it.
+pub(crate) struct ExecutableObservation {
+    file: File,
+    identity: (u64, u64, u64, i64, i64, i64, i64),
+    digest: Digest256,
+}
+fn executable_identity(m: &std::fs::Metadata) -> (u64, u64, u64, i64, i64, i64, i64) {
+    (
+        m.dev(),
+        m.ino(),
+        m.len(),
+        m.mtime(),
+        m.mtime_nsec(),
+        m.ctime(),
+        m.ctime_nsec(),
+    )
+}
+impl ExecutableObservation {
+    pub(crate) fn current_digest(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Digest256> {
+        active(deadline, cancelled)?;
+        let current = File::open("/proc/self/exe").map_err(|_| {
+            SourceCommandError::Unsupported("running native executable unavailable")
+        })?;
+        let current = current
+            .metadata()
+            .map_err(|_| SourceCommandError::Invalid("native executable metadata"))?;
+        let held = self
+            .file
+            .metadata()
+            .map_err(|_| SourceCommandError::Invalid("native executable readback metadata"))?;
+        if !current.is_file()
+            || !held.is_file()
+            || executable_identity(&current) != self.identity
+            || executable_identity(&held) != self.identity
+        {
+            return Err(SourceCommandError::Conflict(
+                "running executable changed during capture",
+            ));
+        }
+        active(deadline, cancelled)?;
+        Ok(self.digest)
+    }
+}
 pub(crate) fn executable(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<Digest256> {
+    observe_executable(deadline, cancelled)?.current_digest(deadline, cancelled)
+}
+
+pub(crate) fn observe_executable(
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ExecutableObservation> {
     // Kernel-owned /proc/self/exe deliberately addresses the running image,
     // including a deleted inode. Never open a request-selected runtime path.
     let mut file = File::open("/proc/self/exe")
@@ -128,7 +183,11 @@ pub(crate) fn executable(
         ));
     }
     active(deadline, cancelled)?;
-    Ok(hasher.finalize())
+    Ok(ExecutableObservation {
+        file,
+        identity: executable_identity(&after),
+        digest: hasher.finalize(),
+    })
 }
 
 fn encoded(value: Value) -> SourceCommandResult<Vec<u8>> {
@@ -200,6 +259,7 @@ pub(crate) fn capture_creation(
             "native-source-metadata-serialization"
         },
         None,
+        None,
         deadline,
         cancelled,
     )
@@ -223,6 +283,7 @@ pub(crate) fn capture_claim_creation(
         software,
         components,
         "native-claim-serialization",
+        None,
         None,
         deadline,
         cancelled,
@@ -279,6 +340,7 @@ pub(crate) fn capture_initial_text_layer(
             purpose: "Extract a separately granted exact EPUB member/selector into an immutable unreviewed private TextLayer; no OCR, silent Unicode rewrite or segmentation.",
             replay_scope: "Exact retained source/configuration/implementation and bounded extraction output; not textual correctness or deterministic provenance timestamps.",
         }),
+        None,
         deadline,
         cancelled,
     )
@@ -334,6 +396,7 @@ pub(crate) fn capture_first_text_unit(
             },
             replay_scope: "Exact retained layer/configuration/implementation and proposed boundaries; not historical source truth or deterministic provenance timestamps.",
         }),
+        None,
         deadline,
         cancelled,
     )
@@ -381,6 +444,7 @@ pub(crate) fn capture_owner_alignment(
             purpose: "Record an independently supplied alignment proposal against two exact native source closures without judging translation quality.",
             replay_scope: "Exact retained mapping, owner grants, native inputs and selected software; no semantic truth or deterministic capture clocks.",
         }),
+        None,
         deadline,
         cancelled,
     )
@@ -467,6 +531,7 @@ pub(crate) fn capture_derived_text_layer(
             },
             replay_scope: "Exact retained owner configuration, source and implementation with bounded derived bytes; not source fidelity or deterministic capture clocks.",
         }),
+        None,
         deadline,
         cancelled,
     )
@@ -485,6 +550,7 @@ pub(crate) fn capture_public_project_text(
     files: &mut BTreeMap<String, Vec<u8>>,
     software: &SoftwareCaptureReader,
     components: &SoftwareComponentSelectionV1,
+    runtime: &ExecutableObservation,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
@@ -520,6 +586,7 @@ pub(crate) fn capture_public_project_text(
             purpose: "Capture a literal UTF-8 source range and proposed segmentation under independently supplied project-text public authority; preserve original source bytes and separate native identities.",
             replay_scope: "Exact source range and proposed partition with bound inputs, implementation and public plan; not content correctness or deterministic timestamps. Protected grant paths are not published.",
         }),
+        Some(runtime),
         deadline,
         cancelled,
     )
@@ -534,6 +601,7 @@ fn capture_creation_with_procedure(
     components: &SoftwareComponentSelectionV1,
     procedure_name: &str,
     text_capture: Option<TextCaptureProfile<'_>>,
+    runtime_observation: Option<&ExecutableObservation>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<()> {
@@ -565,7 +633,11 @@ fn capture_creation_with_procedure(
     }
     let started_at = instant()?;
     let started = Instant::now();
-    let runtime = executable(deadline, cancelled)?.to_hex();
+    let runtime = match runtime_observation {
+        Some(observation) => observation.current_digest(deadline, cancelled)?,
+        None => executable(deadline, cancelled)?,
+    }
+    .to_hex();
     let argv: Vec<String> = std::env::args_os()
         .map(|arg| {
             arg.into_string()
