@@ -1402,6 +1402,7 @@ fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
             &preview_request,
             base,
         );
+        context.configuration_raw = fs::read(&owner).unwrap();
         context.effective_uid = u64::from(uid);
         let mut budget = ExecutorBudget::laboratory();
         budget.execution_wall = deadline.saturating_duration_since(Instant::now());
@@ -1566,6 +1567,7 @@ fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
             &correction,
             current,
         );
+        revision_context.configuration_raw = fs::read(&revision_owner_path).unwrap();
         revision_context.effective_uid = u64::from(uid);
         let mut preview_budget = ExecutorBudget::laboratory();
         preview_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
@@ -1720,6 +1722,7 @@ fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
             &revision_request,
             corrected,
         );
+        retry_context.configuration_raw = fs::read(&revision_owner_path).unwrap();
         retry_context.effective_uid = u64::from(uid);
         let mut retry_budget = ExecutorBudget::laboratory();
         retry_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
