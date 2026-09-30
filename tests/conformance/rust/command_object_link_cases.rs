@@ -122,6 +122,13 @@ fn cli(
     success: bool,
     deadline: Instant,
 ) -> Value {
+    eprintln!(
+        "ObjectLink actual operation={} expected_success={} owner={} invocation={}",
+        request["operation"].as_str().unwrap_or("<absent>"),
+        success,
+        owner.display(),
+        invocation.display()
+    );
     let (status, raw, errors) = super::command_text_cases::native_owner_cli_observation(
         repository, owner, invocation, request, deadline,
     );
@@ -222,6 +229,78 @@ fn physical_fixture_budget(files: &BTreeMap<String, Vec<u8>>) -> u64 {
     total
 }
 
+// Keep only the already bounded active fixture on failure; no copy is made.
+// Successful iterations retain TempDir's ordinary cleanup.
+struct FailureFixture {
+    directory: Option<tempfile::TempDir>,
+    physically_bounded: bool,
+}
+impl FailureFixture {
+    fn path(&self) -> &Path {
+        self.directory.as_ref().unwrap().path()
+    }
+}
+impl Drop for FailureFixture {
+    fn drop(&mut self) {
+        if std::thread::panicking() && self.physically_bounded {
+            let path = self.directory.take().unwrap().keep();
+            eprintln!(
+                "ObjectLink bounded failed fixture retained={} (same allocation; no copy)",
+                path.display()
+            );
+        }
+    }
+}
+
+// Current snapshots own the complete current membership; retained ancestry
+// does not supply missing current contracts. Account both full snapshots.
+fn bounded_successor(
+    base_files: &BTreeMap<String, Vec<u8>>,
+    current_files: &BTreeMap<String, Vec<u8>>,
+    store: &Path,
+    base: tos_foundation::SourceRevision,
+    stage: &str,
+) -> tos_foundation::SourceRevision {
+    assert!(
+        base_files
+            .keys()
+            .all(|path| current_files.contains_key(path)),
+        "ObjectLink {stage} unexpectedly retires a base path"
+    );
+    let unchanged = base_files == current_files;
+    let members = if unchanged {
+        base_files.len()
+    } else {
+        base_files.len().checked_add(current_files.len()).unwrap()
+    };
+    let base_bytes = base_files
+        .values()
+        .try_fold(0u64, |total, raw| total.checked_add(raw.len() as u64))
+        .unwrap();
+    let bytes = if unchanged {
+        base_bytes
+    } else {
+        current_files
+            .values()
+            .try_fold(base_bytes, |total, raw| total.checked_add(raw.len() as u64))
+            .unwrap()
+    };
+    assert!(
+        members <= 256 && bytes <= 8_388_608,
+        "ObjectLink {stage} exact lineage exceeds existing cut budget: members={members} bytes={bytes}"
+    );
+    eprintln!(
+        "ObjectLink {stage} cut base_members={} current_members={} unchanged={unchanged} aggregate_members={members} aggregate_bytes={bytes}",
+        base_files.len(),
+        current_files.len()
+    );
+    if unchanged {
+        base
+    } else {
+        super::validation_cut_cases::write_cut_store_on_base(current_files, store, Some(base))
+    }
+}
+
 #[test]
 fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
     use super::command_text_cases::{alignment_image_digest, authored_text_files};
@@ -249,7 +328,15 @@ fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
         "ObjectLink whole case: 3 source roots + oracle; 7 native CLI children (each Python-to-native exec), 8 Python fixture children plus 2 retained crash writers, 3 captured_components calls (6 direct Git +6 capture/restore Python children plus archive-tool internal Git); 360s whole deadline, 60s child, 1MiB stdout/stderr; each cut<=256 members/8MiB, native/worker<=512MiB; no native kill race"
     );
     for decision in [None, Some("resume"), Some("rollback")] {
-        let temporary = tempfile::tempdir().unwrap();
+        let mut temporary = FailureFixture {
+            directory: Some(tempfile::tempdir().unwrap()),
+            physically_bounded: false,
+        };
+        eprintln!(
+            "ObjectLink actual iteration={:?} fixture={}",
+            decision,
+            temporary.path().display()
+        );
         let isolated =
             IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
         let fixture = python(
@@ -279,13 +366,32 @@ fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
                 .unwrap(),
         );
         let scratch_bound = physical_fixture_budget(&files);
+        temporary.physically_bounded = true;
+        // The publication guard rechecks authenticated software at this root.
+        // FACTORY copies the Python implementation cohort; include the native
+        // serialization source already selected into the same capture below.
+        let serialization_ref = "rust/crates/tos-command/src/source_serialization.rs";
+        let serialization_path = isolated.path().join(serialization_ref);
+        fs::create_dir_all(serialization_path.parent().unwrap()).unwrap();
+        fs::write(&serialization_path, &files[serialization_ref]).unwrap();
+        fs::set_permissions(&serialization_path, fs::Permissions::from_mode(0o644)).unwrap();
+        for (reference, raw) in files
+            .iter()
+            .filter(|(reference, _)| !reference.starts_with("ToS/"))
+        {
+            assert_eq!(
+                fs::read(isolated.path().join(reference)).unwrap(),
+                *raw,
+                "ObjectLink selected software physical copy: {reference}"
+            );
+        }
         eprintln!(
             "ObjectLink physical scratch <={} B including 256MiB headroom; F<=8MiB entries<=256 path<=512B depth<=16; images supplied outside scratch",
             scratch_bound
         );
         let (capture, _software, components) =
             super::command_record_cases::captured_components(&files, deadline, &cancelled);
-        let authored = files
+        let authored: BTreeMap<String, Vec<u8>> = files
             .iter()
             .filter(|(name, _)| name.starts_with("ToS/"))
             .map(|(name, raw)| (name.clone(), raw.clone()))
@@ -313,11 +419,8 @@ fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
             );
             let pending_files = authored_text_files(isolated.path());
             physical_fixture_budget(&pending_files);
-            let pending_revision = super::validation_cut_cases::write_cut_store_on_base(
-                &pending_files,
-                &store,
-                Some(base),
-            );
+            let pending_revision =
+                bounded_successor(&authored, &pending_files, &store, base, "pending-recovery");
             invocation["source_revision"] = json!(pending_revision.0.to_prefixed());
             freeze_invocation(&invocation_path, &invocation);
             let result = cli(
@@ -459,10 +562,12 @@ fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
             );
             let current_files = authored_text_files(isolated.path());
             physical_fixture_budget(&current_files);
-            let current = super::validation_cut_cases::write_cut_store_on_base(
+            let current = bounded_successor(
+                &authored,
                 &current_files,
                 &store,
-                Some(base),
+                base,
+                "committed-cold-replay",
             );
             invocation["source_revision"] = json!(current.0.to_prefixed());
             invocation["original_source_revision"] = json!(base.0.to_prefixed());
