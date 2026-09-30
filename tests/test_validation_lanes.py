@@ -1,6 +1,7 @@
 """Command selection and failure propagation, independent of production data."""
 from __future__ import annotations
 
+import ast
 import json
 from pathlib import Path
 import subprocess
@@ -158,6 +159,33 @@ class ValidationLaneTests(unittest.TestCase):
         for (_, source_path, function_name) in cases:
             source = (ROOT / source_path).read_text(encoding='utf-8')
             self.assertEqual(source.count(f'#[test]\nfn {function_name}('), 1)
+
+    def test_browser_behavior_groups_cover_the_exact_e2e_function_inventory(self):
+        sequence = validation_lanes.command_sequence('software_browser', ROOT)
+        groups = [
+            (label, command)
+            for label, command in sequence
+            if label.startswith('browser behavior: ')
+        ]
+        self.assertEqual(len(groups), 5)
+        self.assertEqual(len({label for label, _ in groups}), len(groups))
+
+        module = ast.parse((ROOT / 'access/e2e/test_webmcp.py').read_text(encoding='utf-8'))
+        expected = [
+            f'access/e2e/test_webmcp.py::{node.name}'
+            for node in module.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name.startswith('test_')
+        ]
+        selected = []
+        for label, command in groups:
+            with self.subTest(label=label):
+                self.assertEqual(command[1:3], ['-m', 'pytest'])
+                self.assertEqual(command[3], '-q')
+                self.assertTrue(command[4:])
+                selected.extend(command[4:])
+        self.assertEqual(selected, expected)
+        self.assertEqual(len(selected), len(set(selected)))
 
     def test_native_release_forwards_only_explicit_executor_limits(self):
         executable = '/tmp/tos-release-check-test-executor'
