@@ -99,7 +99,8 @@ fn maintained_claim_addition_whole_transaction_and_access() {
     let deadline = Instant::now() + Duration::from_secs(240);
     // Observe exact products before fixture or material writes. These reads
     // do not copy binaries into the disposable workspace.
-    let executable = Path::new("/proc/self/exe");
+    let executable_path = std::env::current_exe().expect("actual protected conformance ELF path");
+    let executable = executable_path.as_path();
     let consumer = PathBuf::from(std::env::var_os("TOS_NATIVE_PREPARED_CONSUMER_BIN").unwrap());
     assert!(consumer.is_absolute());
     let worker_path = super::validation_cut_cases::selected_worker_path();
@@ -722,7 +723,10 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
     );
     let worker_path = super::validation_cut_cases::selected_worker_path();
     let image_paths = [
-        (PathBuf::from("/proc/self/exe"), 512 * 1024 * 1024),
+        (
+            std::env::current_exe().expect("actual protected conformance ELF path"),
+            512 * 1024 * 1024,
+        ),
         (owner_command.clone(), 512 * 1024 * 1024),
         (worker_path.clone(), 128 * 1024 * 1024),
         (prepared_consumer, 512 * 1024 * 1024),
