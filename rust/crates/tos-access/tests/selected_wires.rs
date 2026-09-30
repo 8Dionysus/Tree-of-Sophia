@@ -4735,6 +4735,9 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
         ] {
             assert!(wire.contains(header), "{header}");
         }
+        let headers = wire.split("\r\n\r\n").next().unwrap();
+        assert!(headers.contains("'wasm-unsafe-eval'"));
+        assert!(!headers.contains("'unsafe-eval'"));
         let head = handle_get_with_software(&boot, "HEAD", "/", profile, &site);
         let mut writer = TwoHolds {
             bytes: vec![],
