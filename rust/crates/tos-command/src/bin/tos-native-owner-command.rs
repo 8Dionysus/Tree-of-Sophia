@@ -1,6 +1,17 @@
 use std::path::Path;
 
 fn main() {
+    if std::env::args_os().len() == 2
+        && std::env::args_os()
+            .nth(1)
+            .is_some_and(|arg| arg == "--help" || arg == "-h")
+    {
+        println!(
+            "usage: tos-native-owner-command --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command backup|restore --help\n\nSource commands read their request from stdin and require the selected invocation.\nBackup and restore require explicit owner-selected database, store and tool inputs."
+        );
+        return;
+    }
+
     if std::env::args_os()
         .nth(1)
         .is_some_and(|a| a == "backup" || a == "restore")
