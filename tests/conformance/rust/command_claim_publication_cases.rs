@@ -341,6 +341,15 @@ fn maintained_claim_addition_whole_transaction_and_access() {
         files.insert(path.clone(), raw);
     }
     assert!(files.len() <= 2048);
+    // Existing helper emits one fixed record per member. Bound its exact
+    // escaped path contribution plus conservative256-byte framing BEFORE write.
+    let manifest_upper = files
+        .keys()
+        .try_fold(512usize, |total, path| {
+            total.checked_add(serde_json::to_vec(path).unwrap().len() + 256)
+        })
+        .unwrap();
+    assert!(manifest_upper <= 4_194_304);
     let cut_root = workspace.path().join("schema-cut");
     let revision = super::validation_cut_cases::write_cut_store(&files, &cut_root);
     drop(files);
