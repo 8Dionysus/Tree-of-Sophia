@@ -281,7 +281,7 @@ def _selected_tree_entries(
     exclude_path_parts = [] if exclude_path_parts is None else exclude_path_parts
     try:
         process = subprocess.Popen(
-            ["git", "ls-tree", "-r", "-l", "-z", commit],
+            ["git", "ls-tree", "-r", "-z", commit],
             cwd=repo_root,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
@@ -295,7 +295,7 @@ def _selected_tree_entries(
         for record in _iter_nul_records(process.stdout):
             try:
                 left, path_raw = record.split(b"\t", 1)
-                mode_raw, type_raw, oid_raw, size_raw = left.split()
+                mode_raw, type_raw, oid_raw = left.split()
                 path = path_raw.decode("utf-8", errors="surrogateescape")
             except (ValueError, UnicodeError) as exc:
                 raise _error("git ls-tree returned a malformed tree entry") from exc
@@ -311,18 +311,13 @@ def _selected_tree_entries(
                 oid = oid_raw.decode("ascii")
             except UnicodeError as exc:
                 raise _error(f"selected Git tree entry has an invalid object id: {path}") from exc
-            try:
-                size = int(size_raw)
-            except ValueError as exc:
-                raise _error(f"selected Git tree entry has an invalid size: {path}") from exc
-            if _HEX40.fullmatch(oid) is None or size < 0:
+            if _HEX40.fullmatch(oid) is None:
                 raise _error(f"selected Git tree entry is malformed: {path}")
             if path in selected:
                 raise _error(f"duplicate selected Git path: {path}")
             selected[path] = {
                 "path": path,
                 "git_blob_oid": oid,
-                "size_bytes": size,
                 "mode": int(mode_raw, 8) & 0o777,
             }
     except BaseException:
@@ -341,7 +336,37 @@ def _selected_tree_entries(
     if return_code != 0:
         detail = stderr.decode("utf-8", errors="replace").strip()
         raise _error(f"git ls-tree failed: {detail or f'exit {return_code}'}")
-    return [selected[path] for path in sorted(selected)]
+    entries = [selected[path] for path in sorted(selected)]
+    if entries:
+        # ls-tree -l materializes missing blob sizes in a partial clone. Select
+        # exact include/exclude paths first, so unrelated blobs need no fetch.
+        try:
+            sizes = subprocess.run(
+                ["git", "cat-file", "--batch-check"],
+                cwd=repo_root,
+                input="".join(entry["git_blob_oid"] + "\n" for entry in entries).encode("ascii"),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+        except OSError as exc:
+            raise _error(f"selected Git blob sizes failed: {exc}") from exc
+        if sizes.returncode != 0:
+            detail = sizes.stderr.decode("utf-8", errors="replace").strip()
+            raise _error(f"selected Git blob sizes failed: {detail or f'exit {sizes.returncode}'}")
+        records = sizes.stdout.splitlines()
+        if len(records) != len(entries):
+            raise _error("selected Git blob size response count differs")
+        for entry, record in zip(entries, records):
+            try:
+                oid, kind, size_raw = record.decode("ascii").split()
+                size = int(size_raw)
+            except (ValueError, UnicodeError) as exc:
+                raise _error("selected Git blob size response is malformed") from exc
+            if oid != entry["git_blob_oid"] or kind != "blob" or size < 0:
+                raise _error("selected Git blob size response differs from selection")
+            entry["size_bytes"] = size
+    return entries
 
 
 class _BlobReader:

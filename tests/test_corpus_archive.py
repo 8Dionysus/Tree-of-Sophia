@@ -182,6 +182,31 @@ class CorpusArchiveTests(unittest.TestCase):
             self.assertEqual(archive.getnames(), [member["path"] for member in members])
             self.assertEqual(archive.extractfile("src/nested/keep.txt").read(), b"kept\n")
 
+    def test_partial_clone_capture_needs_only_selected_blobs(self) -> None:
+        self._commit_files({
+            "src/payload/secret.txt": b"excluded prefix sentinel\n",
+            "src/.owner-local/private.txt": b"excluded part sentinel\n",
+        })
+        expected = self._capture(
+            "full", exclude_prefixes=["src/payload"], exclude_path_parts=[".owner-local"]
+        )
+        _git(self.repo, "config", "uploadpack.allowFilter", "true")
+        partial = self.root / "partial"
+        subprocess.run(
+            ["git", "clone", "--quiet", "--filter=blob:none", "--no-checkout",
+             self.repo.as_uri(), str(partial)], check=True, capture_output=True,
+        )
+        _git(partial, "checkout", "HEAD", "--", "src/a.txt", "src/nested/b.txt", "src/run.sh")
+        # No remote is available to fetch either excluded or unrelated blobs.
+        # A selected-size capture still succeeds with exact bytes and modes.
+        self.repo.rename(self.root / "unavailable-origin")
+        actual = self.root / "partial-capture"
+        capture_git(partial, self.commit, ["src"], actual,
+                    exclude_prefixes=["src/payload"], exclude_path_parts=[".owner-local"])
+        verify_capture(actual)
+        for name in ("source.tar.gz", "members.jsonl", "capture.json"):
+            self.assertEqual((actual / name).read_bytes(), (expected / name).read_bytes())
+
     def test_v2_verifier_rejects_forged_excluded_members_after_outer_rehash(self) -> None:
         self._commit_files(
             {
