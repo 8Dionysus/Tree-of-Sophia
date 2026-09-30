@@ -1904,7 +1904,7 @@ CREATE TABLE philosophy_review_packets(view_id TEXT,json TEXT);
       db.prepare("INSERT INTO philosophy_review_packets VALUES ('tiny',?)").bind(JSON.stringify({view_id:"tiny",review_status:"fixture-only"})));
     for(let index=0;index<corpusNodes.length;index+=1){const node=corpusNodes[index]!;statements.push(db.prepare("INSERT INTO corpus_items VALUES ('nodes',?,?,?,?)").bind(node.node_id,index,JSON.stringify(node),index===0?"alpha":"other"));}
     statements.push(db.prepare("INSERT INTO corpus_items VALUES ('branches','ToS/canon',0,?,'other')").bind(JSON.stringify({id:"ToS/canon",owner_surface:"fixture/canon"})));
-    for(const id of ["corpus-topology","route-graph","promotion-flow"])statements.push(db.prepare("INSERT INTO corpus_items VALUES ('graph_views',?,0,?,'other')").bind(id,JSON.stringify({view_id:id,title:id,entry_surface:"fixture/corpus"})));
+    for(const id of ["corpus-topology","route-graph","promotion-flow"])statements.push(db.prepare("INSERT INTO corpus_items VALUES ('graph_views',?,0,?,'other')").bind(id,JSON.stringify({view_id:id,title:id,entry_surface:id==="corpus-topology"?undefined:"fixture/corpus"})));
     for(let index=0;index<corpusEdges.length;index+=1){const edge=corpusEdges[index]!,pack=index===0?"canon-pack":"candidate-pack";statements.push(
       db.prepare("INSERT INTO corpus_packs VALUES (?,?,?)").bind(pack,index,JSON.stringify({pack_id:pack,owner_branch:edge.owner_branch})),
       db.prepare("INSERT INTO corpus_edges VALUES (?,?,?,?,?,?,?)").bind(edge.edge_id,index,edge.from_id,edge.to_id,pack,edge.owner_branch,JSON.stringify(edge)));
@@ -1927,6 +1927,7 @@ CREATE TABLE philosophy_review_packets(view_id TEXT,json TEXT);
     assert.deepEqual(ids((await get("/api/corpus/relation-packs/canon-pack")).edges,"edge_id"),["ce"]);
     const topology=await get("/api/corpus/graph-views/corpus-topology?limit=2");
     assert.deepEqual(ids(topology.nodes,"node_id"),["view:corpus-topology","ToS/canon"]);
+    assert.equal(Object.hasOwn(topology.nodes[0],"source_ref"),true);assert.equal(topology.nodes[0].source_ref,null);
     assert.deepEqual(ids((await get("/api/corpus/graph-views/route-graph?limit=2")).nodes,"node_id"),["ca","cb"]);
     const promotion=await get("/api/corpus/graph-views/promotion-flow?limit=2");
     assert.deepEqual(ids(promotion.nodes,"node_id"),["cb","cx"]);assert.equal(promotion.nodes[1].authority_layer,"candidate_intake");assert.deepEqual(promotion.nodes[1].source_refs,["fixture/pe"]);

@@ -180,7 +180,9 @@ export async function corpusGraphView(db: D1Database, viewId: string, limit: num
       node_id: rootId,
       label: view.title || viewId,
       node_type: "corpus-root",
-      source_ref: view.entry_surface,
+      // Common packet format keeps the missing entry slot explicit; present
+      // source values retain their original value, including null/false/empty.
+      source_ref: view.entry_surface === undefined ? null : view.entry_surface,
     }];
     for (const branch of items) {
       const branchId = stringValue(branch.id);
