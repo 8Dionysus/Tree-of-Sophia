@@ -188,6 +188,50 @@ class SoftwareSelectionTests(unittest.TestCase):
         sparse_paths=set(checkout['with']['sparse-checkout'].splitlines())
         self.assertTrue({f'/{path}' for path in required_tests | required_fixtures} <= sparse_paths)
 
+    def test_rust_sparse_checkout_includes_exact_native_conformance_sources(self):
+        required_sources = {
+            'tests/test_bibliographic_claim_assembler.py',
+            'tests/test_source_agent_publication.py',
+            'tests/test_source_catalog_projection.py',
+            'tests/test_source_catalog_slots.py',
+            'tests/test_source_claim_publication.py',
+            'tests/test_source_witness_bibliographic_graph.py',
+            'ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/artifact-witness.json',
+            'ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/rights.json',
+            'ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-cbs7771.2026-08-22.v1.json',
+            'ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/collection.json',
+            'ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/collection.human-forms.json',
+            'ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/membership-claims.jsonl',
+            'ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/responsibility-claims.jsonl',
+            'ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/source-revision-history.json',
+            'ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json',
+            'ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/anchors.jsonl',
+            'ToS/source-witnesses/.record-revisions/20d58ef2b14655526fac62cc34f8d84c72126453d2f171317ed6c4114dfd107a-fafe3ef84b65b29968511c6a06ff018e46571d11c604ec14fc5ef5018f70c1b2/',
+            'ToS/source-witnesses/.record-revisions/20d58ef2b14655526fac62cc34f8d84c72126453d2f171317ed6c4114dfd107a-d34e996729a4bb5b04a3a6cc486f2e1ef7e020747fc18afcf10e5ab7628feb73/',
+            'ToS/source-witnesses/.metadata-transactions/64289eef67ba46afc5338aff9422484b17707f15796a402a947117d7f0eb7583/',
+            'ToS/source-witnesses/.metadata-transactions/ea6aab06fd43ea735791de0ae5e973950f67900dfd9b70a6af1fee853673705c/',
+            'ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/work.json',
+            'ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json',
+            'ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/work.json',
+            'ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/work.json',
+            'ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/work.json',
+            'ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/work.json',
+            'ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/work.json',
+            'ToS/source-witnesses/relations/mysl-1996-volume-2-member-order/source-claims.jsonl',
+            'ToS/review-ledger/2026-09-10-mysl-collection-order-source-reading.md',
+        }
+        workflow = yaml.safe_load((ROOT / '.github/workflows/repo-validation.yml').read_text())
+        checkouts = [
+            step for step in workflow['jobs']['rust']['steps']
+            if step.get('name') == 'Checkout Rust sources and validation route'
+        ]
+        self.assertEqual(len(checkouts), 1)
+        sparse_paths = set(checkouts[0]['with']['sparse-checkout'].splitlines())
+        self.assertTrue({f'/{path}' for path in required_sources} <= sparse_paths)
+        self.assertIn('!/ToS/source-witnesses/**/payload/', sparse_paths)
+        self.assertNotIn('/ToS/source-witnesses/', sparse_paths)
+        self.assertNotIn('/ToS/', sparse_paths)
+
 
 if __name__ == '__main__':
     unittest.main()
