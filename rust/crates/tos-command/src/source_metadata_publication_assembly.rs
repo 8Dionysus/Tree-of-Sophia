@@ -251,10 +251,10 @@ pub(super) fn assemble(
             o.context(),
             o.cut(),
             &reference,
-            crate::source_items::ItemLimits {
-                max_input_bytes: 33_554_432,
-                max_output_bytes: 33_554_432,
-                max_members: 2048,
+            tos_validation::item_rules::ItemLimits {
+                max_member_bytes: l.catalog.max_file_bytes.min(8_388_608),
+                max_total_bytes: 33_554_432,
+                max_state_bytes: 33_554_432,
                 max_issues: 256,
                 deadline: l.deadline,
             },
