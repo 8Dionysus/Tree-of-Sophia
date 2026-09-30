@@ -1,6 +1,26 @@
 use std::path::Path;
 
 fn main() {
+    if std::env::args_os()
+        .nth(1)
+        .is_some_and(|a| a == "backup" || a == "restore")
+    {
+        let args = std::env::args_os()
+            .skip(1)
+            .map(|v| v.into_string())
+            .collect::<Result<Vec<_>, _>>();
+        let result = args
+            .map_err(|_| "arguments must be UTF-8")
+            .and_then(|args| tos_command::backup_recovery_cli::run(&args));
+        match result {
+            Ok(value) => println!("{value}"),
+            Err(reason) => {
+                eprintln!("native recovery refused: {reason}");
+                std::process::exit(2);
+            }
+        }
+        return;
+    }
     let mut args = std::env::args_os();
     let _program = args.next();
     let input = std::io::stdin();

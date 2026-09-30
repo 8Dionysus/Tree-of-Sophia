@@ -3,6 +3,8 @@
 //! Mechanical preparation and private execution do not grant ToS source,
 //! semantic, rights, publication or canon admission.
 
+pub mod backup_recovery;
+pub mod backup_recovery_cli;
 mod durable_adapter;
 pub mod source_agent_publication;
 mod source_agent_publication_apply;
