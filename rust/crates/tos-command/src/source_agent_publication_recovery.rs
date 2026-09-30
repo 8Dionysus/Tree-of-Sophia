@@ -19,7 +19,7 @@ use tos_compiler::{
     prepared_catalog_semantics::CatalogInputs,
     prepared_source_binding::{PreparedSourceInputs, read_prepared_source_inputs_transaction},
 };
-use tos_foundation::{JsonLimits, JsonValue, emit_value_preserved_json};
+use tos_foundation::{JsonLimits, JsonMode, JsonValue, emit_value_preserved_json, parse_json};
 
 fn view(value: &JsonValue) -> Result<Value> {
     let limits = JsonLimits::new(1_048_576, 128, 1_000_000, 4300)
@@ -130,4 +130,31 @@ pub(crate) fn reconcile(
         "binding":binding,"source_inputs_sha256":source.digest(),
         "transaction":transition,"prepared_committed":true,
         "reconciled":true,"replayed":false,"is_semantic_acceptance":false}))
+}
+
+/// Recover only a candidate header from the existing prepared descriptor.
+/// This is not admission: the caller must pass it through `reconcile`, which
+/// checks the descriptor digest and complete selected source/catalog pairing.
+pub(crate) fn candidate_header(tx: &Transaction<'_>, cap: usize) -> Result<JsonValue> {
+    let cap = cap.min(1_048_576);
+    let mut statement = tx.prepare("SELECT CASE WHEN typeof(descriptor)='text' AND length(CAST(descriptor AS BLOB))<=? THEN descriptor END FROM prepared_state WHERE singleton=1 LIMIT 2")?;
+    let mut rows = statement.query([cap])?;
+    let raw: Option<String> = rows
+        .next()?
+        .ok_or(Error::Invalid("Agent recovery descriptor absent"))?
+        .get(0)?;
+    let raw = raw.ok_or(Error::Budget("Agent recovery descriptor bytes"))?;
+    if rows.next()?.is_some() {
+        return Err(Error::Invalid("Agent recovery descriptor cardinality"));
+    }
+    let limits = JsonLimits::new(cap, 128, 1_000_000, 4300)
+        .map_err(|_| Error::Budget("Agent recovery descriptor limits"))?;
+    let document = parse_json(raw.as_bytes(), JsonMode::PublishedStrict, limits)
+        .map_err(|e| Error::Source(e.to_string()))?;
+    document
+        .root()
+        .object_get("header")
+        .filter(|value| value.as_object().is_some())
+        .cloned()
+        .ok_or(Error::Invalid("Agent recovery descriptor header"))
 }
