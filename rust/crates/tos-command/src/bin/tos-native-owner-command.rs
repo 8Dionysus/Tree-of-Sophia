@@ -5,6 +5,14 @@ fn main() {
         .nth(1)
         .is_some_and(|a| a == "backup" || a == "restore")
     {
+        if std::env::args_os().len() == 3
+            && std::env::args_os()
+                .nth(2)
+                .is_some_and(|a| a == "--help" || a == "-h")
+        {
+            print!("{}", tos_command::backup_recovery_cli::HELP);
+            return;
+        }
         let args = std::env::args_os()
             .skip(1)
             .map(|v| v.into_string())

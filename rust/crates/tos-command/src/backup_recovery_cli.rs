@@ -8,6 +8,20 @@ use std::{
 };
 use tos_segment_store::SegmentLimits;
 
+pub const HELP: &str = "usage: tos-native-owner-command backup|restore OPTIONS
+Connection: private environment TOS_BACKUP_PG_URL (PostgreSQL 16).
+Required options:
+  --domain DOMAIN --store-root ABS --backup-root ABS
+  --pg-tool ABS --pg-tool-sha256 HEX64
+  --max-segment-bytes N --max-frame-bytes N --max-frames N
+  --max-journal-bytes N --max-seconds N
+Backup: --confirm-quiescent-owner yes
+Restore: --confirm-fresh-target-owner yes --receipt-sha256 HEX64
+Confirmations declare owner preconditions; they do not stop concurrent writers.
+Restore requires independent fresh targets and does not activate restored data.
+A failed operation may leave partial output; do not consume it as a restore.
+";
+
 pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
     let started = Instant::now();
     let operation = args
