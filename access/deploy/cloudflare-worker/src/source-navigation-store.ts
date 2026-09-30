@@ -358,7 +358,7 @@ async function readSourceDossierD1(db: D1Database, objectId: string, limit: numb
     for(let index=0;index<rules.path_count();index++)treePaths.push({node_ids:keys.strings(rules.path_nodes(index)),
       edge_ids:Array.from(rules.path_edges(index),row=>stringValue(walked.edges[row]!.edge_id))});
     for(const id of componentIds)rightsRules.component(keys.key(id),stringValue(nodes.get(id)?.node_kind));
-    const rights=(await sourceRights(db,keys.strings(rules.node_ids()),limit)).filter(record=>rightsRules.intersects_component(keys.observe(stringArray(record.scope_refs))));
+    const rights=(await sourceRights(db,keys.strings(rules.node_ids()),limit)).filter(record=>rightsRules!.intersects_component(keys.observe(stringArray(record.scope_refs))));
     observeRights(rightsRules,keys,rights);observeMemberships(rightsRules,keys,componentEdges);
     for(const edge of componentEdges){const properties=parsedObject(edge.properties),contexts=properties.item_file_contexts;
       let valid=0;if(Array.isArray(contexts))for(const value of contexts){const record=Boolean(value)&&typeof value==='object'&&!Array.isArray(value);
