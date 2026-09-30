@@ -310,7 +310,7 @@ pub fn command_sequence(
 }
 
 /// Preserve the maintained release_check phase split. Only the split phases
-/// require exactly one final `run tests` step; `all` executes authored order.
+/// require a final test-step suffix; `all` executes authored order.
 pub fn release_steps(
     root: &Path,
     python: &str,
@@ -320,23 +320,42 @@ pub fn release_steps(
     if phase == ReleasePhase::All {
         return Ok(steps);
     }
-    let mut run_tests = None;
-    for (index, (label, _)) in steps.iter().enumerate() {
-        if label == "run tests" && run_tests.replace(index).is_some() {
-            return Err(invalid(
-                "selected sequence must contain exactly one final run tests step",
-            ));
-        }
-    }
-    if run_tests != steps.len().checked_sub(1) {
+    let positions: Vec<usize> = steps
+        .iter()
+        .enumerate()
+        .filter_map(|(index, (label, _))| {
+            (label == "run tests" || label.starts_with("run tests: ")).then_some(index)
+        })
+        .collect();
+    let labels: Vec<&str> = positions
+        .iter()
+        .map(|index| steps[*index].0.as_str())
+        .collect();
+    let complete_suffix = positions
+        .first()
+        .is_some_and(|first| positions == (*first..steps.len()).collect::<Vec<_>>());
+    let unique_labels = labels
+        .iter()
+        .enumerate()
+        .all(|(index, label)| !labels[..index].contains(label));
+    let named_groups = labels.iter().all(|label| {
+        *label == "run tests"
+            || label
+                .strip_prefix("run tests: ")
+                .is_some_and(|name| !name.trim().is_empty())
+    });
+    let legacy_is_single =
+        !labels.contains(&"run tests") || (labels.len() == 1 && labels[0] == "run tests");
+    if !complete_suffix || !unique_labels || !named_groups || !legacy_is_single {
         return Err(invalid(
-            "selected sequence must contain exactly one final run tests step",
+            "selected sequence must end with one legacy run tests step or a complete run tests: group suffix",
         ));
     }
+    let test_start = positions[0];
     if phase == ReleasePhase::Tests {
-        Ok(steps.split_off(steps.len() - 1))
+        Ok(steps.split_off(test_start))
     } else {
-        steps.pop();
+        steps.truncate(test_start);
         Ok(steps)
     }
 }

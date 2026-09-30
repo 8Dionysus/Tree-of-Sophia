@@ -454,11 +454,9 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
     assert!(stdout.contains("[ok] first\n"));
     assert!(stdout.contains("[run] failing: /usr/bin/python3 -B adapter.py fail\n"));
     assert!(!stdout.contains("[run] later:"));
-    assert!(
-        String::from_utf8(output.stderr)
-            .unwrap()
-            .contains("[error] failing failed with exit code 17\n")
-    );
+    assert!(String::from_utf8(output.stderr)
+        .unwrap()
+        .contains("[error] failing failed with exit code 17\n"));
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -484,7 +482,7 @@ fn release_phase_selection_preserves_environment_and_first_failure() {
     let manifest = root.join("docs/validation/validation_lanes.json");
     fs::write(
         &manifest,
-        r#"{"command_sequences":{"release_check":[{"label":"software contracts","command":["python","quoted \"tail\\"]},{"label":"build software browser assets","command":["python","fail"]},{"label":"run tests","command":["python","tests"]}]}}"#,
+        r#"{"command_sequences":{"release_check":[{"label":"software contracts","command":["python","quoted \"tail\\"]},{"label":"build software browser assets","command":["python","fail"]},{"label":"run tests: access","command":["python","first"]},{"label":"run tests: source","command":["python","second"]}]}}"#,
     )
     .unwrap();
     let adapter = root.join("adapter");
@@ -536,10 +534,17 @@ fn release_phase_selection_preserves_environment_and_first_failure() {
     fs::remove_file(root.join("trace")).unwrap();
     let tests = invoke("tests", false, Some("0"));
     assert_eq!(tests.status.code(), Some(0));
-    assert_eq!(fs::read_to_string(root.join("trace")).unwrap(), "tests|0\n");
+    assert_eq!(
+        fs::read_to_string(root.join("trace")).unwrap(),
+        "first|0\nsecond|0\n"
+    );
     assert_eq!(
         String::from_utf8(tests.stdout).unwrap(),
-        format!("[run] run tests: {} tests\n", adapter.display())
+        format!(
+            "[run] run tests: access: {} first\n[run] run tests: source: {} second\n",
+            adapter.display(),
+            adapter.display()
+        )
     );
 
     fs::remove_file(root.join("trace")).unwrap();
@@ -557,7 +562,7 @@ fn release_phase_selection_preserves_environment_and_first_failure() {
     fs::remove_file(root.join("trace")).unwrap();
     fs::write(
         &manifest,
-        r#"{"command_sequences":{"release_check":[{"label":"run tests","command":["python","early"]},{"label":"run tests","command":["python","late"]}]}}"#,
+        r#"{"command_sequences":{"release_check":[{"label":"run tests: ","command":["python","early"]}]}}"#,
     )
     .unwrap();
     let invalid = invoke("checks", false, None);
@@ -566,7 +571,7 @@ fn release_phase_selection_preserves_environment_and_first_failure() {
     assert!(
         String::from_utf8(invalid.stdout)
             .unwrap()
-            .contains("[error] selected sequence must contain exactly one final run tests step\n")
+            .contains("[error] selected sequence must end with one legacy run tests step or a complete run tests: group suffix\n")
     );
     fs::remove_dir_all(root).unwrap();
 }

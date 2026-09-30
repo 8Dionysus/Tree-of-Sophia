@@ -12,18 +12,36 @@ from validation_lanes import command_sequence
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RELEASE_SEQUENCE = 'release_check'
 REPOSITORY_TEST_LABEL = 'run tests'
+REPOSITORY_TEST_GROUP_PREFIX = f'{REPOSITORY_TEST_LABEL}: '
+
+
+def _test_phase_start(steps: list[tuple[str, list[str]]]) -> int:
+    positions = [
+        i for i, (label, _) in enumerate(steps)
+        if label == REPOSITORY_TEST_LABEL or label.startswith(REPOSITORY_TEST_GROUP_PREFIX)
+    ]
+    labels = [steps[i][0] for i in positions]
+    if (not positions
+            or positions != list(range(positions[0], len(steps)))
+            or len(labels) != len(set(labels))
+            or any(label.startswith(REPOSITORY_TEST_GROUP_PREFIX)
+                   and not label[len(REPOSITORY_TEST_GROUP_PREFIX):].strip()
+                   for label in labels)
+            or (REPOSITORY_TEST_LABEL in labels and labels != [REPOSITORY_TEST_LABEL])):
+        raise ValueError(
+            'selected sequence must end with one legacy run tests step or a complete run tests: group suffix'
+        )
+    return positions[0]
 
 
 def select_steps(steps: list[tuple[str, list[str]]], phase: str) -> list[tuple[str, list[str]]]:
     if phase == 'all':
         return steps
-    positions = [i for i, (label, _) in enumerate(steps) if label == REPOSITORY_TEST_LABEL]
-    if positions != [len(steps) - 1]:
-        raise ValueError('selected sequence must contain exactly one final run tests step')
+    test_start = _test_phase_start(steps)
     if phase == 'checks':
-        return steps[:-1]
+        return steps[:test_start]
     if phase == 'tests':
-        return steps[-1:]
+        return steps[test_start:]
     raise ValueError(f'unknown phase: {phase}')
 
 

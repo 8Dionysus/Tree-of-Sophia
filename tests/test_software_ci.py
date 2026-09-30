@@ -173,11 +173,12 @@ class SoftwareSelectionTests(unittest.TestCase):
             'ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/provenance.jsonl',
         }
         lanes=json.loads((ROOT/'docs/validation/validation_lanes.json').read_text())
-        test_step=next(
+        test_steps=[
             step for step in lanes['command_sequences']['release_check']
-            if step.get('label')=='run tests'
-        )
-        self.assertTrue(required_tests <= set(test_step['command']))
+            if step.get('label')=='run tests' or step.get('label', '').startswith('run tests: ')
+        ]
+        selected_tests=set().union(*(set(step['command']) for step in test_steps))
+        self.assertTrue(required_tests <= selected_tests)
 
         workflow=yaml.safe_load((ROOT/'.github/workflows/repo-validation.yml').read_text())
         checkout=next(

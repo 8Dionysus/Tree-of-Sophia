@@ -32,7 +32,10 @@ owner surfaces.
    `--cleanup-grace-ms` and `--max-output-bytes` to the native executor.
    Omitted limits retain its defaults. Select a phase with `--phase checks`
    or `--phase tests` when the preceding phase already succeeded on the same
-   candidate. Set a longer command deadline only from the selected workload
+   candidate. The tests phase executes the final authored `run tests` suffix;
+   that suffix may contain several named test-group commands, all of which run
+   in order and retain the same bounded command and lane deadlines. Set a
+   longer command deadline only from the selected workload
    cost; a timeout is incomplete validation, not a passing test result. These
    flags do not change host resource admission or skip checks in that phase.
 3. For browser changes, install the locked dependencies with

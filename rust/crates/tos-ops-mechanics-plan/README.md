@@ -108,13 +108,14 @@ the Python runner previously raised an unhandled spawn exception instead.
 
 `tos-release-check` is a distinct explicit consumer of the same manifest's
 `release_check` sequence. `--phase all` keeps authored order; `checks` and
-`tests` require exactly one final `run tests` step and select before or at that
-step respectively. It takes an exact `--python PATH` adapter and preserves the
+`tests` select before or at the complete final suffix of named `run tests: `
+steps, while retaining support for one legacy final `run tests` step. It takes
+an exact `--python PATH` adapter and preserves the
 maintained runner's `PYTEST_DISABLE_PLUGIN_AUTOLOAD` default, Windows-style
 `list2cmdline` progress text, first failure line on stdout, and child status.
 The same native executor imposes the finite command, sequence, cleanup, and
 output limits above; this differs from Python's unbounded subprocess call.
-Its controlled fixture runs only a temporary three-step release-shaped
+Its controlled fixture runs only a temporary four-step release-shaped
 sequence. The existing release command entry selects the native consumer. This source
 wiring does not claim an actual release or repository CI run.
 
