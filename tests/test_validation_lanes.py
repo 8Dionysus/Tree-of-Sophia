@@ -67,6 +67,30 @@ class ValidationLaneTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 release_check.select_steps(invalid,'tests')
 
+    def test_native_release_forwards_only_explicit_executor_limits(self):
+        executable = '/tmp/tos-release-check-test-executor'
+        with mock.patch.dict(release_check.os.environ,
+                             {'TOS_RELEASE_CHECK_EXECUTOR': executable}), \
+             mock.patch.object(release_check.os, 'execv') as execv:
+            self.assertIsNone(release_check.native_main(['--phase', 'tests']))
+            execv.assert_called_once_with(executable, [
+                executable, '--repo-root', str(ROOT), '--python', sys.executable,
+                '--phase', 'tests',
+            ])
+            execv.reset_mock()
+
+            self.assertIsNone(release_check.native_main([
+                '--phase', 'tests', '--command-timeout-ms', '900000',
+                '--lane-timeout-ms', '3600000', '--cleanup-grace-ms', '2000',
+                '--max-output-bytes', '8388608',
+            ]))
+            execv.assert_called_once_with(executable, [
+                executable, '--repo-root', str(ROOT), '--python', sys.executable,
+                '--phase', 'tests', '--command-timeout-ms', '900000',
+                '--lane-timeout-ms', '3600000', '--cleanup-grace-ms', '2000',
+                '--max-output-bytes', '8388608',
+            ])
+
 
 if __name__ == '__main__':
     unittest.main()

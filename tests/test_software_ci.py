@@ -122,8 +122,9 @@ class SoftwareSelectionTests(unittest.TestCase):
         self.assertIn("== 'true'",jobs['rust']['if'])
         self.assertEqual(jobs['software']['needs'],'plan')
         steps=jobs['software']['steps']
-        full=[s for s in steps if s.get('run')=='python scripts/release_check.py --phase tests']
+        full=[s for s in steps if s.get('run','').startswith('python scripts/release_check.py --phase tests')]
         self.assertEqual(len(full),1)
+        self.assertIn('--command-timeout-ms 900000', full[0]['run'])
         self.assertIn("== 'full'",full[0]['if'])
         reader=[s for s in steps if s.get('run')=='python scripts/validation_lanes.py --run software_reader']
         self.assertEqual(len(reader),1)

@@ -253,7 +253,7 @@ jobs:
 
       - name: Test shared software and data-operation code on fixtures
         if: ${{ needs.plan.outputs.software_mode == 'full' }}
-        run: python scripts/release_check.py --phase tests
+        run: python scripts/release_check.py --phase tests --command-timeout-ms 900000
 
       - name: Test reader and API behavior on fixtures
         if: ${{ needs.plan.outputs.software_mode == 'reader' }}
