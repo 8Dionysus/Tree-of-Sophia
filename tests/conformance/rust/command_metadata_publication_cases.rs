@@ -59,7 +59,7 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
         std::env::var_os("TOS_NATIVE_PREPARED_CONSUMER_BIN").expect("protected native owner C"),
     );
     let worker_path = super::validation_cut_cases::selected_worker_path();
-    let e = PathBuf::from("/proc/self/exe");
+    let e = std::env::current_exe().expect("current conformance executable E");
     for (path, cap) in [
         (&e, 512u64 * 1024 * 1024),
         (&consumer, 512 * 1024 * 1024),
