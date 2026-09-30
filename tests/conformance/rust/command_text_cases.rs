@@ -302,7 +302,10 @@ pub(super) fn authored_text_files(root: &Path) -> BTreeMap<String, Vec<u8>> {
                     .to_str()
                     .unwrap()
                     .to_owned();
-                if tos_source_store::is_authored_source_path_v1(&reference) {
+                // Exact maintained mutex is live control, not authored source.
+                if reference != "ToS/source-witnesses/.historical-create.writer.lock"
+                    && tos_source_store::is_authored_source_path_v1(&reference)
+                {
                     let raw = fs::read(entry.path()).unwrap();
                     assert!(raw.len() <= 8_388_608);
                     bytes = bytes.checked_add(raw.len()).unwrap();

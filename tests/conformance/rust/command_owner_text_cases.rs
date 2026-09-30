@@ -7,6 +7,22 @@ use std::process::{Command, Stdio};
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 
+fn assert_authored_text_unchanged(root: &Path, expected: &BTreeMap<String, Vec<u8>>) {
+    let actual = super::command_text_cases::authored_text_files(root);
+    let paths = actual
+        .keys()
+        .chain(expected.keys())
+        .collect::<std::collections::BTreeSet<_>>();
+    let changed = paths
+        .into_iter()
+        .filter(|path| actual.get(*path) != expected.get(*path))
+        .collect::<Vec<_>>();
+    assert!(
+        changed.is_empty(),
+        "authored Text bytes changed at: {changed:?}"
+    );
+}
+
 fn text_fixture(
     repository: &Path,
     root: &Path,
@@ -249,10 +265,7 @@ fn native_owner_text_cli_extracts_replays_and_recovers_completed_stage() {
         .to_prefixed()
     );
     assert!(!public.join(source_ref).exists());
-    assert_eq!(
-        super::command_text_cases::authored_text_files(&public),
-        authored
-    );
+    assert_authored_text_unchanged(&public, &authored);
     // Fresh CLI process, same absolute protected root/config and same producer.
     let replay = invoke(&request);
     assert_eq!(replay["replayed"], true);
@@ -299,10 +312,7 @@ fn native_owner_text_cli_extracts_replays_and_recovers_completed_stage() {
     assert_eq!(package_files(&output), retained);
     assert_eq!(fs::read(control.join("plan.json")).unwrap(), plan);
     assert!(!package.exists());
-    assert_eq!(
-        super::command_text_cases::authored_text_files(&public),
-        authored
-    );
+    assert_authored_text_unchanged(&public, &authored);
     assert_eq!(fs::read(&context).unwrap(), context_raw);
     assert_eq!(fs::read(&payload).unwrap(), payload_raw);
     fs::write(&owner, &owner_raw).unwrap();
@@ -312,10 +322,7 @@ fn native_owner_text_cli_extracts_replays_and_recovers_completed_stage() {
     assert_eq!(package_files(&output), changed);
     assert_eq!(fs::read(control.join("plan.json")).unwrap(), plan);
     assert!(!package.exists());
-    assert_eq!(
-        super::command_text_cases::authored_text_files(&public),
-        authored
-    );
+    assert_authored_text_unchanged(&public, &authored);
     assert_eq!(fs::read(&context).unwrap(), context_raw);
     assert_eq!(fs::read(&payload).unwrap(), payload_raw);
     fs::write(output.join("content.txt"), content).unwrap();
@@ -325,10 +332,7 @@ fn native_owner_text_cli_extracts_replays_and_recovers_completed_stage() {
     assert_eq!(package_files(&package), retained);
     assert!(!output.exists());
     assert_eq!(fs::read(control.join("plan.json")).unwrap(), plan);
-    assert_eq!(
-        super::command_text_cases::authored_text_files(&public),
-        authored
-    );
+    assert_authored_text_unchanged(&public, &authored);
     assert_eq!(fs::read(&owner).unwrap(), owner_raw);
     assert_eq!(fs::read(&context).unwrap(), context_raw);
     assert_eq!(fs::read(&payload).unwrap(), payload_raw);
