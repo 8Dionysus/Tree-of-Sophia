@@ -1601,6 +1601,7 @@ sys.stdout.write(owner.render_payload(payload))
     let rights_refs = rights.iter().map(Vec::as_slice).collect::<Vec<_>>();
     let rights_root = tos_compiler::navigation_original_rights_root(&rights_refs);
     let additional = tos_compiler::NativeFamilyInputs {
+        prepared_philosophy_projection: false,
         repository_root: Some(repository_plan.root_input()),
         navigation_original: Some(tos_compiler::NavigationOriginalInput {
             rights: &rights_refs,
