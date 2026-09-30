@@ -5132,6 +5132,14 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
             ]
         };
         let command_products = std::env::var_os("TOS_NATIVE_SOFTWARE_COMMAND_PRODUCTS");
+        let owner_fixture_source = command_products.as_ref().map(|_| {
+            let path = PathBuf::from(
+                std::env::var_os("TOS_NATIVE_SOFTWARE_OWNER_FIXTURE_SOURCE_ROOT")
+                    .expect("cohort requires its separately admitted owner fixture source"),
+            );
+            assert!(path.is_absolute());
+            path.canonicalize().unwrap()
+        });
         // The owner launcher has one outer budget including guards/assembly.
         // All cohort descendants consume this same remaining case budget.
         let cohort_deadline = command_products.as_ref().map(|_| {
@@ -5317,7 +5325,10 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
                 let owner = crate::native_child::bounded_output_until(
                     Command::new(&owner_consumer)
                         .current_dir(&outside)
-                        .env("TOS_NATIVE_SOFTWARE_SOURCE_ROOT", &repository)
+                        .env(
+                            "TOS_NATIVE_SOFTWARE_SOURCE_ROOT",
+                            owner_fixture_source.as_ref().unwrap(),
+                        )
                         .arg(case)
                         .args(["--exact", "--test-threads=1", "--nocapture"])
                         .env("TOS_NATIVE_INSTALLED_SOFTWARE_SITE", "1")
