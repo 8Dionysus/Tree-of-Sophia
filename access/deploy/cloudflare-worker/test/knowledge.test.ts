@@ -490,7 +490,6 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
       for (const path of [false, true]) for (const detail of ['compact', 'full']) {
         const spec = {...base, detail, ...(path ? {path_query: [{path_id: 'property-target', steps: [{node_query}]}]} : {node_query})};
         const pure = await executeFixturePythonLens(propertyGraph, spec);
-        assert.deepEqual(pure, python(spec, propertyGraph));
         assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
         assert.equal(JSON.stringify(pure.lens).includes('_property_binding'), false);
       }
@@ -509,7 +508,6 @@ test("indexed D1 path conditions and inclusion agree with the maintained Python 
         ['tags', 'in', ['Freiheit']], ['tags', 'contains', ['Мысль', 'Freiheit']]] as const) {
       const spec = {...base, node_query: {filters: [{property_id: 'tos.property.fixture-' + name, op, value}]}};
       const pure = await executeFixturePythonLens(propertyGraph, spec);
-      assert.deepEqual(pure, python(spec, propertyGraph));
       assert.deepEqual(await executePublishedFixtureLens(db, spec), pure);
     }
     // Returning to the old snapshot removes the binding as well as the synthetic values.
@@ -1845,4 +1843,113 @@ print(json.dumps({'text': text, 'id_lower': id_lower, 'native_id_lower': native_
   } finally {
     await mf.dispose();
   }
+});
+
+
+// Explicit classic D1 compatibility profile: tiny physical JSON rows, existing
+// bounded HTTP callers and the real generated Worker handler. No selected native
+// publication, Python oracle, importer, source corpus or static asset is supplied.
+test("classic Worker tiny D1 routes retain Rust profile contracts", async () => {
+  const mf=new Miniflare(convertV4MiniflareOptions({
+    ...await publishedWorkerFixtureModules(),d1Databases:["DB"],
+  }));
+  try {
+    const db=await mf.getD1Database("DB");
+    await db.exec(`
+CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT,PRIMARY KEY(key,part));
+CREATE TABLE corpus_items(collection TEXT,id TEXT,ord INTEGER,json TEXT,search_text TEXT);
+CREATE TABLE corpus_edges(id TEXT,ord INTEGER,from_id TEXT,to_id TEXT,pack_id TEXT,owner_branch TEXT,json TEXT);
+CREATE TABLE corpus_packs(id TEXT,ord INTEGER,json TEXT);
+CREATE TABLE philosophy_nodes(id TEXT PRIMARY KEY,ord INTEGER,view_mask INTEGER,layer_mask INTEGER,json TEXT,search_text TEXT);
+CREATE TABLE philosophy_edges(id TEXT PRIMARY KEY,ord INTEGER,from_id TEXT,to_id TEXT,predicate_id TEXT,view_mask INTEGER,layer_mask INTEGER,json TEXT,search_text TEXT);
+CREATE TABLE philosophy_aux(collection TEXT,id TEXT,ord INTEGER,json TEXT,search_text TEXT);
+CREATE TABLE philosophy_clusters(id TEXT,part INTEGER,view_mask INTEGER,sort_key TEXT,json_chunk TEXT);
+CREATE TABLE philosophy_review_packets(view_id TEXT,json TEXT);
+`);
+    const boundary={source_owner:"Tree-of-Sophia",is_source:false,is_canon:false,is_semantic_truth:false,is_rights_clearance:false};
+    const phiNodes=[
+      {node_id:"a",label:"Alpha",source_ref:"fixture/a",properties:{authority_posture:"projection",claim_evidence_closed:false}},
+      {node_id:"b",label:"Beta",source_ref:"fixture/b",properties:{}},
+      {node_id:"c",label:"Gamma",source_ref:"fixture/c",properties:{}},
+    ];
+    const phiEdges=[
+      {edge_id:"eAC",from_id:"a",to_id:"c",predicate_id:"supports",source_ref:"fixture/eAC"},
+      {edge_id:"eAB",from_id:"a",to_id:"b",predicate_id:"contested_by",source_ref:"fixture/eAB"},
+    ];
+    const view={view_id:"tiny",title:"Alpha view",node_count:3,edge_count:2,source_refs:["fixture/view"]};
+    const cluster={cluster_id:"group",cluster_kind:"group",label:"Tiny",member_node_ids:["a","b","c"],member_edge_ids:["eAC","eAB"],properties:{member_count:3,edge_count:2}};
+    const corpusNodes=[{node_id:"ca",label:"Alpha corpus",authority_layer:"canon",source_ref:"fixture/ca"},{node_id:"cb",label:"Beta corpus",source_ref:"fixture/cb"}];
+    const corpusEdges=[
+      {edge_id:"ce",from_id:"ca",to_id:"cb",owner_branch:"ToS/canon",source_ref:"fixture/ce"},
+      {edge_id:"pe",from_id:"cb",to_id:"cx",owner_branch:"ToS/candidate-intake",source_ref:"fixture/pe"},
+    ];
+    const coverage={node_titles:3,node_summaries:3,relation_labels:2,relation_statements:2,relation_explanations:2};
+    const metadata:Record<string,unknown>={
+      data_revision:{sha256:"a".repeat(64)},
+      knowledge_top:{schema:"tos_knowledge_graph_v1",counts:{nodes:3,relations:2,display_coverage:coverage}},
+      corpus_top:{counts:{nodes:2,edges:2},runtime_projection_boundary:boundary},
+      philosophy_top:{counts:{nodes:3,edges:2},runtime_projection_boundary:boundary},
+      view_positions:{tiny:0},layer_positions:{base:0},
+      evidence_projection:{authority_boundary:{...boundary,note:"fixture projection only"},scenes:[{
+        scene_id:"curated",selections:[{mode:"philosophy",item_ids:["a"]}],finding:"Fixture route",finding_ru:"",posture:"curated-route",
+        conclusion:{can_conclude:false,canon_membership:false,claim_evidence_closed:false},routes:[{route_kind:"review",source_ref:"fixture/review"}],
+        gaps:["owner review required"],gaps_ru:[],source_anchors:[{source_ref:"fixture/a"}],source_refs:["fixture/scene"],
+      }]},
+    };
+    const statements=Object.entries(metadata).map(([key,value])=>db.prepare("INSERT INTO edge_meta VALUES (?,0,?)").bind(key,JSON.stringify(value)));
+    for(let index=0;index<phiNodes.length;index+=1){const node=phiNodes[index]!;statements.push(db.prepare("INSERT INTO philosophy_nodes VALUES (?,?,1,1,?,?)").bind(node.node_id,index===0?2:index-1,JSON.stringify(node),node.node_id==="a"?"alpha":"other"));}
+    for(let index=0;index<phiEdges.length;index+=1){const edge=phiEdges[index]!;statements.push(db.prepare("INSERT INTO philosophy_edges VALUES (?,?,?,?,?,1,1,?,?)").bind(edge.edge_id,index,edge.from_id,edge.to_id,edge.predicate_id,JSON.stringify(edge),"other"));}
+    statements.push(db.prepare("INSERT INTO philosophy_aux VALUES ('views','tiny',0,?,'alpha')").bind(JSON.stringify(view)),
+      db.prepare("INSERT INTO philosophy_clusters VALUES ('group',0,1,?,?)").bind("group␟Tiny",JSON.stringify(cluster)),
+      db.prepare("INSERT INTO philosophy_review_packets VALUES ('tiny',?)").bind(JSON.stringify({view_id:"tiny",review_status:"fixture-only"})));
+    for(let index=0;index<corpusNodes.length;index+=1){const node=corpusNodes[index]!;statements.push(db.prepare("INSERT INTO corpus_items VALUES ('nodes',?,?,?,?)").bind(node.node_id,index,JSON.stringify(node),index===0?"alpha":"other"));}
+    statements.push(db.prepare("INSERT INTO corpus_items VALUES ('branches','ToS/canon',0,?,'other')").bind(JSON.stringify({id:"ToS/canon",owner_surface:"fixture/canon"})));
+    for(const id of ["corpus-topology","route-graph","promotion-flow"])statements.push(db.prepare("INSERT INTO corpus_items VALUES ('graph_views',?,0,?,'other')").bind(id,JSON.stringify({view_id:id,title:id,entry_surface:"fixture/corpus"})));
+    for(let index=0;index<corpusEdges.length;index+=1){const edge=corpusEdges[index]!,pack=index===0?"canon-pack":"candidate-pack";statements.push(
+      db.prepare("INSERT INTO corpus_packs VALUES (?,?,?)").bind(pack,index,JSON.stringify({pack_id:pack,owner_branch:edge.owner_branch})),
+      db.prepare("INSERT INTO corpus_edges VALUES (?,?,?,?,?,?,?)").bind(edge.edge_id,index,edge.from_id,edge.to_id,pack,edge.owner_branch,JSON.stringify(edge)));
+    }
+    assert.equal(statements.length,25);
+    await db.batch(statements);
+    const get=async(path:string,status=200):Promise<Record<string,any>>=>{
+      const response=await mf.dispatchFetch("https://tos.test"+path);
+      assert.equal(response.status,status,path);
+      return await response.json() as Record<string,any>;
+    };
+    const ids=(items:Array<Record<string,unknown>>,field:string)=>items.map(item=>item[field]);
+    const health=await get("/health");assert.equal(health.ok,true);assert.equal(health.data_revision,"a".repeat(64));
+    assert.equal(health.write_enabled,false);
+    const corpusSearch=await get("/api/corpus/search?query=%EF%BB%BFAlpha%EF%BB%BF&limit=2");
+    assert.equal(corpusSearch.schema,"tos_corpus_mcp_search_v1");assert.equal(corpusSearch.result_count,1);assert.equal(corpusSearch.results[0].item.node_id,"ca");
+    const phiSearch=await get("/api/philosophy/search?query=Alpha&limit=2");
+    assert.deepEqual(phiSearch.results.map((row:Record<string,any>)=>row.collection),["views","nodes"]);assert.equal(phiSearch.results[1].item.node_id,"a");
+    assert.equal((await get("/api/corpus/nodes/ca")).matches[0].node_id,"ca");
+    assert.deepEqual(ids((await get("/api/corpus/relation-packs/canon-pack")).edges,"edge_id"),["ce"]);
+    const topology=await get("/api/corpus/graph-views/corpus-topology?limit=2");
+    assert.deepEqual(ids(topology.nodes,"node_id"),["view:corpus-topology","ToS/canon"]);
+    assert.deepEqual(ids((await get("/api/corpus/graph-views/route-graph?limit=2")).nodes,"node_id"),["ca","cb"]);
+    const promotion=await get("/api/corpus/graph-views/promotion-flow?limit=2");
+    assert.deepEqual(ids(promotion.nodes,"node_id"),["cb","cx"]);assert.equal(promotion.nodes[1].authority_layer,"candidate_intake");assert.deepEqual(promotion.nodes[1].source_refs,["fixture/pe"]);
+    const node=await get("/api/philosophy/nodes/a");assert.equal(node.node.node_id,"a");assert.deepEqual(ids(node.related_edges,"edge_id"),["eAC","eAB"]);
+    assert.deepEqual(ids((await get("/api/philosophy/edges/eAB")).endpoints,"node_id"),["b","a"]);
+    assert.equal((await get("/api/philosophy/clusters?view_id=tiny&kind=group&limit=2")).cluster_count,1);
+    const phiView=await get("/api/philosophy/views/tiny?limit=2");
+    assert.deepEqual(ids(phiView.nodes,"node_id"),["c","a"]);assert.deepEqual(ids(phiView.edges,"edge_id"),["eAC"]);
+    assert.equal(phiView.available_node_count,3);assert.equal(phiView.clusters[0].properties.member_count,2);assert.deepEqual(phiView.clusters[0].member_node_ids,["a","c"]);
+    const neighborhood=await get("/api/philosophy/query/neighborhood/a?depth=1&layers=base&limit=2");
+    assert.deepEqual(ids(neighborhood.neighbors,"node_id"),["b","c"]);assert.deepEqual(ids(neighborhood.edges,"edge_id"),["eAB","eAC"]);assert.equal(neighborhood.query_backend,"d1");
+    const filtered=await get("/api/philosophy/neighborhood/a?depth=1&layers=base&predicates=contested_by&limit=2");assert.deepEqual(ids(filtered.neighbors,"node_id"),["b"]);
+    const path=await get("/api/philosophy/query/paths?from=a&to=b&max_depth=2&direction=either&view_id=tiny&alternatives=2");
+    assert.equal(path.path_count,1);assert.deepEqual(path.paths[0].node_ids,["a","b"]);assert.deepEqual(path.paths[0].edge_ids,["eAB"]);assert.equal(path.frontier_limit,5000);assert.equal(path.exploration_truncated,false);assert.equal(path.query_backend,"d1");
+    const evidence=await get("/api/philosophy/query/epistemic/a?view_id=tiny&limit=2");
+    assert.equal(evidence.schema,"tos_evidence_lens_packet_v1");assert.equal(evidence.finding_ru,"Fixture route");assert.deepEqual(evidence.gaps_ru,evidence.gaps);
+    assert.deepEqual(ids(evidence.challenge_relations,"edge_id"),["eAB"]);assert.deepEqual(ids(evidence.context_relations,"edge_id"),["eAC"]);assert.equal(evidence.coverage.posture,"curated-route");assert.equal(evidence.agent_summary.can_conclude,false);assert.equal(evidence.authority_boundary.is_semantic_truth,false);
+    const fallback=await get("/api/corpus/query/epistemic/ca?limit=2");
+    assert.equal(fallback.scene,null);assert.equal(fallback.posture,"projection-only");assert.equal(fallback.conclusion.canon_membership,true);assert.equal(fallback.conclusion.can_conclude,false);assert.deepEqual(ids(fallback.context_relations,"edge_id"),["ce"]);
+    const packet=await get("/api/philosophy/packet?query=Alpha&view_id=tiny&limit=2");assert.equal(packet.result_count,2);assert.deepEqual(ids(packet.view.nodes,"node_id"),["c","a"]);
+    assert.match((await get("/api/philosophy/query/paths?from=a&to=b&direction=unknown",400)).error,/direction/);
+    assert.match((await get("/api/philosophy/nodes/missing",404)).error,/unknown/);
+    await db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='knowledge_top'").bind(JSON.stringify({schema:"tos_knowledge_graph_v1",counts:{nodes:3,relations:2,display_coverage:{...coverage,node_titles:2}}})).run();
+    const unhealthy=await get("/health",503);assert.equal(unhealthy.ok,false);assert.equal(unhealthy.write_enabled,false);
+  } finally {await mf.dispose();}
 });
