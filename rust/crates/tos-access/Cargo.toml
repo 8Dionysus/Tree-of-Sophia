@@ -10,6 +10,7 @@ license.workspace = true
 libc = "0.2"
 tos-foundation = { path = "../tos-foundation" }
 tos-fd-open = { path = "../tos-fd-open" }
+tos-source-store = { path = "../tos-source-store" }
 tos-query = { path = "../tos-query" }
 tos-compiler = { path = "../tos-compiler" }
 toml = { version = "=0.9.11", default-features = false, features = ["std", "parse", "serde"] }
