@@ -6785,6 +6785,18 @@ mod prepared_inspect_lens {
             panic!("graph header")
         };
         fields.retain(|(k, _)| !matches!(k.as_str(), Some("nodes" | "relations")));
+        let JsonValue::Object(boundary) = &mut fields
+            .iter_mut()
+            .find(|(k, _)| k.as_str() == Some("authority_boundary"))
+            .unwrap()
+            .1
+        else {
+            panic!("native fixture authority boundary")
+        };
+        boundary.push((
+            JsonString::from_utf8("source_owner"),
+            JsonValue::String(JsonString::from_utf8("Tree-of-Sophia")),
+        ));
         let revision = header
             .object_get("source_revision")
             .unwrap()
