@@ -1330,6 +1330,33 @@ pub(crate) struct WorkGuard<'a> {
     pub(crate) prior_completion_ready: bool,
 }
 impl<'a> WorkCorpusFence<'a> {
+    /// Read-only observers require a previously retained actual writer mutex;
+    /// unlike hold(), this path never creates a missing lock file.
+    pub(crate) fn hold_existing(
+        fs: &'a CreationFilesystem,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        let witness = walk(&fs.root, HOME, fs.uid)?;
+        let lock = tos_fd_open::open_regular_at(&witness, Path::new(super::CORPUS_LOCK))
+            .map_err(|_| SourceCommandError::Conflict("committed corpus lock absent"))?;
+        owned(&lock, fs.uid, false)?;
+        loop {
+            active(deadline, cancelled)?;
+            match rustix::fs::flock(&lock, rustix::fs::FlockOperation::NonBlockingLockExclusive) {
+                Ok(()) => break,
+                Err(Errno::AGAIN) => std::thread::sleep(std::time::Duration::from_millis(5)),
+                Err(_) => {
+                    return Err(SourceCommandError::Denied(
+                        "committed corpus lock unsupported",
+                    ));
+                }
+            }
+        }
+        let result = Self { fs, witness, lock };
+        result.verify(deadline, cancelled)?;
+        Ok(result)
+    }
     pub(crate) fn hold(
         fs: &'a CreationFilesystem,
         deadline: Instant,

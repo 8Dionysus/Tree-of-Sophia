@@ -21,6 +21,13 @@ const CONTROL: &str = "ToS/source-witnesses/.metadata-publication.json";
 #[path = "source_record_revision_tests.rs"]
 mod tests;
 
+#[path = "source_revision_observation.rs"]
+mod observation;
+pub(crate) use observation::{
+    CommittedRecordBinding, CommittedRecordObservation, CurrentRecordBinding,
+    OriginalRecordBinding, observe_committed,
+};
+
 fn read(
     fs: &CreationFilesystem,
     path: &str,
