@@ -1636,33 +1636,22 @@ fn schema_refs(value: &JsonValue, allowed: &[&str], depth: usize) -> SourceComma
     Ok(())
 }
 fn ascii_snapshot(value: &JsonValue) -> SourceCommandResult<String> {
-    ascii_snapshot_bytes(&cmd::canonical(value)?)
-}
-
-/// Python ensure_ascii spelling for already selected ordered/canonical bytes.
-/// This is byte hashing only; the caller owns the JSON emission contract.
-pub(crate) fn ascii_snapshot_bytes(raw: &[u8]) -> SourceCommandResult<String> {
-    let text = std::str::from_utf8(raw)
+    let raw = cmd::canonical(value)?;
+    let raw = std::str::from_utf8(&raw)
         .map_err(|_| SourceCommandError::Invalid("native snapshot UTF-8"))?;
-    let mut digest = tos_foundation::Digest256Hasher::new();
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    for ch in text.chars() {
-        if ch < '\u{007f}' {
-            digest.update(&[ch as u8]);
+    let mut ascii = String::new();
+    for ch in raw.chars() {
+        if ch.is_ascii() {
+            ascii.push(ch);
         } else {
             for unit in ch.encode_utf16(&mut [0; 2]).iter() {
-                digest.update(&[
-                    b'\\',
-                    b'u',
-                    HEX[usize::from((unit >> 12) & 15)],
-                    HEX[usize::from((unit >> 8) & 15)],
-                    HEX[usize::from((unit >> 4) & 15)],
-                    HEX[usize::from(unit & 15)],
-                ]);
+                use std::fmt::Write;
+                write!(&mut ascii, "\\u{unit:04x}")
+                    .map_err(|_| SourceCommandError::Invalid("native snapshot emission"))?;
             }
         }
     }
-    Ok(digest.finalize().to_prefixed())
+    Ok(Digest256::of_bytes(ascii.as_bytes()).to_prefixed())
 }
 
 fn codepoint_span(text: &str, start: u64, end: u64) -> SourceCommandResult<&str> {
@@ -2570,41 +2559,6 @@ pub(crate) fn resolve_public_text_authority<R: SignNativeRead + ?Sized>(
         authority,
         payload_entry: entry,
         inputs: selected_inputs(&native),
-        input_snapshot,
-        schema_digests: native.schemas,
-    })
-}
-
-/// Metadata Profile and Claim owners select this transport only after their
-/// protected scoped grant and OwnerTextContext checks. This is the existing
-/// owner-local read route; it does not translate or grant Sign authority.
-pub(crate) fn resolve_owner_metadata_binding<R: SignNativeRead + ?Sized>(
-    reader: &mut R,
-    worker: &mut CutWorkerSchemaExecutor,
-    binding: &JsonValue,
-    deadline: Instant,
-    cancelled: &AtomicBool,
-) -> SourceCommandResult<ResolvedSignBinding> {
-    reader.verify_current(deadline, cancelled)?;
-    let mut native = Native {
-        reader,
-        worker,
-        deadline,
-        cancelled,
-        cache: BTreeMap::new(),
-        schemas: BTreeMap::new(),
-        remaining_metadata: MAX_METADATA_BYTES,
-        remaining_content: MAX_CONTENT_BYTES,
-        route_profile: NativeRoute::OwnerText,
-    };
-    let (packet, layer, summary) = native.resolve(binding, NativeReadScope::ExactOwnerLocal)?;
-    let input_snapshot = native.snapshot()?;
-    let inputs = selected_inputs(&native);
-    Ok(ResolvedSignBinding {
-        packet,
-        layer,
-        summary,
-        inputs,
         input_snapshot,
         schema_digests: native.schemas,
     })

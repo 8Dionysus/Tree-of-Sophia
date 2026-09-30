@@ -36,12 +36,6 @@ mod claim_publication_owner;
 pub(crate) use claim_publication_owner::CommittedClaimObservation;
 
 const CORPUS_LOCK: &str = ".historical-create.writer.lock";
-
-#[path = "source_legacy_claim_store.rs"]
-mod legacy_claim_store;
-pub(crate) use legacy_claim_store::{
-    LegacyArchiveReader, LegacyOwnerStore, LegacyPackage, verify_owner_metadata_current_cut,
-};
 const CLAIM_CAPTURE_HOME: &str = ".claim-retained";
 const CLAIM_CAPTURE_INDEX: &str = "capture-index.json";
 const CLAIM_CAPTURE_INDEX_BYTES: usize = 524_288;
@@ -3289,9 +3283,9 @@ fn scan(
             }
             continue;
         }
-        // The Work and historical Claim stores supply only their exact owned
-        // archive/journal/control names after validating bytes and publication
-        // state. Those paths remain authored members in every other cut.
+        // Only the Work owner may supply exact archive/journal/control names,
+        // after separately verifying their protected bytes and publication
+        // state. They remain eligible authored paths for every other cut.
         if work_auxiliary.is_some_and(|members| members.contains(&path)) {
             continue;
         }
