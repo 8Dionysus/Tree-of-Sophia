@@ -58,7 +58,7 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
         .unwrap();
     let cancelled = AtomicBool::new(false);
     let deadline = Instant::now() + Duration::from_secs(240);
-    let sample_path="ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/artifact-witness.json";
+    let sample_path = "ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/artifact-witness.json";
     let mut record: Value =
         serde_json::from_slice(&fs::read(repository.join(sample_path)).unwrap()).unwrap();
     let rights_path = record["rights_ref"].as_str().unwrap().to_owned();
@@ -148,7 +148,10 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
         .unwrap();
     let scratch_bound = physical_fixture_budget(&files);
     assert!(fixture_bytes <= 8_388_608 && files.len() <= 256);
-    eprintln!("Artifact physical scratch <={} B including 256MiB headroom; F<=8MiB entries<=256 path<=512B depth<=16; images are supplied outside scratch", scratch_bound);
+    eprintln!(
+        "Artifact physical scratch <={} B including 256MiB headroom; F<=8MiB entries<=256 path<=512B depth<=16; images are supplied outside scratch",
+        scratch_bound
+    );
     let native = PathBuf::from(
         std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH")
             .expect("OPS must select the protected native Artifact image"),
@@ -164,7 +167,10 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
         native_bytes <= 536_870_912 && worker_bytes <= 536_870_912 && consumer_bytes <= 536_870_912
     );
     assert!(Instant::now() < deadline);
-    eprintln!("Artifact CLI F_fixture={} E_native={} C_consumer={} W_worker={} native_children=6 schema_workers<=6 deadline_s=240 per_child_s<=60; existing capture harness has one git selection, one git owner-tool read and two Python capture/restore children",fixture_bytes,native_bytes,consumer_bytes,worker_bytes);
+    eprintln!(
+        "Artifact CLI F_fixture={} E_native={} C_consumer={} W_worker={} native_children=6 schema_workers<=6 deadline_s=240 per_child_s<=60; existing capture harness has one git selection, one git owner-tool read and two Python capture/restore children",
+        fixture_bytes, native_bytes, consumer_bytes, worker_bytes
+    );
     let (capture, software, components) =
         super::command_record_cases::captured_components(&files, deadline, &cancelled);
     let temporary = tempfile::tempdir().unwrap();
@@ -182,7 +188,7 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
         fs::write(&path, raw).unwrap();
         fs::set_permissions(path, fs::Permissions::from_mode(0o644)).unwrap();
     }
-    let source_path="ToS/source-witnesses/artifacts/synthetic/uncertain/new-native-artifact/artifact-witness.json";
+    let source_path = "ToS/source-witnesses/artifacts/synthetic/uncertain/new-native-artifact/artifact-witness.json";
     let home = Path::new(source_path).parent().unwrap();
     fs::create_dir_all(isolated.path().join(home).parent().unwrap()).unwrap();
     let private=isolated.path().join("ToS/source-witnesses/artifacts/synthetic/existing/representations/private/payload/untouched.bin");
@@ -201,11 +207,17 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
     };
     write_invocation(&invocation);
     for operation in ["describe", "prepare"] {
+        let mut information_request = serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":operation});
+        // The maintained prepare contract inspects the delegated record shape.
+        if operation == "prepare" {
+            information_request["record"] = record.clone();
+        }
+        eprintln!("Artifact actual information operation={operation}");
         let result = alignment_native_cli(
             &repository,
             &owner,
             &invocation_path,
-            &serde_json::json!({"schema_version":"tos_local_source_command_v1","operation":operation}),
+            &information_request,
             deadline,
         );
         assert_eq!(
@@ -285,16 +297,20 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
         event["authority_boundary"]["validator_role"],
         "mechanics_and_closure_only_not_truth"
     );
-    assert!(event["method"]["software_components"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|v| v["artifact_ref"] == "runtime:tos-native-executable"));
-    assert!(event["method"]["software_components"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .all(|v| v["artifact_ref"] != "runtime:python-executable"));
+    assert!(
+        event["method"]["software_components"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v["artifact_ref"] == "runtime:tos-native-executable")
+    );
+    assert!(
+        event["method"]["software_components"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|v| v["artifact_ref"] != "runtime:python-executable")
+    );
     let mut current_files = authored_text_files(isolated.path());
     current_files.remove("ToS/source-witnesses/.historical-create.writer.lock");
     physical_fixture_budget(&current_files);
