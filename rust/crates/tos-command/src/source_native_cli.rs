@@ -13,6 +13,7 @@ use crate::source_text_owner::{normalized_absolute, read_absolute};
 use serde_json::{Value, json};
 use std::io::Read;
 use std::path::Path;
+use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, JsonLimits, RelativePath, SourceRevision};
@@ -23,6 +24,8 @@ use tos_validation::FormatProfile;
 use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
 
+#[path = "source_native_agent_publication_cli.rs"]
+mod agent_publication;
 #[path = "source_native_claim_cli.rs"]
 mod claim;
 #[path = "source_native_collection_cli.rs"]
@@ -110,7 +113,7 @@ fn bounded_read(mut input: impl Read, max: usize) -> SourceCommandResult<Vec<u8>
 /// Complete one explicitly selected local invocation. Both protected owner
 /// files are independently reread by the Alignment entry at current use.
 pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Value> {
-    let cancelled = AtomicBool::new(false);
+    let cancelled = Arc::new(AtomicBool::new(false));
     let deadline = Instant::now() + Duration::from_secs(60);
     let uid = rustix::process::getuid().as_raw();
     if rustix::process::geteuid().as_raw() != uid {
@@ -131,6 +134,8 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
         text(&invocation, "schema_version")? == "tos_local_native_item_invocation_v1";
     let collection_invocation =
         text(&invocation, "schema_version")? == "tos_local_native_collection_invocation_v1";
+    let agent_publication_invocation =
+        text(&invocation, "schema_version")? == "tos_local_native_agent_publication_invocation_v1";
     let source_invocation =
         text(&invocation, "schema_version")? == "tos_local_native_source_invocation_v1";
     let mut keys = vec![
@@ -154,13 +159,28 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
             "owner_context"
         },
     );
-    if source_invocation {
+    if source_invocation || agent_publication_invocation {
         keys.extend(["original_source_revision", "assessment_schema_worker"]);
+    }
+    if agent_publication_invocation {
+        keys.extend([
+            "prepared_database",
+            "expected_binding_path",
+            "source_inputs_path",
+            "source_inputs_sha256",
+            "catalog_path",
+            "catalog_sha256",
+            "descriptor_path",
+            "descriptor_sha256",
+            "publication_limits",
+            "reviewed_execution_transition",
+        ]);
     }
     exact(&invocation, &keys)?;
     if !item_invocation
         && !claim_invocation
         && !source_invocation
+        && !agent_publication_invocation
         && !collection_invocation
         && text(&invocation, "schema_version")? != "tos_local_native_owner_invocation_v1"
     {
@@ -174,8 +194,23 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     }
     let request_raw = bounded_read(input, MAX_REQUEST)?;
     let request = cmd::parse(&request_raw)?;
-    let operation = cmd::text(&request, "operation")?;
-    let implemented = if collection_invocation {
+    let operation = cmd::text(
+        &request,
+        if agent_publication_invocation {
+            "action"
+        } else {
+            "operation"
+        },
+    )?;
+    let implemented = if agent_publication_invocation {
+        matches!(
+            operation,
+            "describe-agent-execution"
+                | "reviewed-agent-execution-bootstrap"
+                | "publish-agent-correction"
+                | "inspect-agent-publication"
+        )
+    } else if collection_invocation {
         matches!(
             operation,
             "describe" | "prepare-attach" | "collection.work.attach" | "collection.work.recover"
@@ -303,6 +338,18 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     let components = software
         .select_components(&component_paths)
         .map_err(|_| SourceCommandError::Conflict("selected software components"))?;
+    if agent_publication_invocation {
+        return agent_publication::run(
+            &invocation,
+            &request_raw,
+            &store,
+            &cut,
+            &software,
+            &components,
+            deadline,
+            &cancelled,
+        );
+    }
     if collection_invocation {
         return collection::run(
             &invocation,
