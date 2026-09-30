@@ -1,3 +1,5 @@
+#[path = "source_revision_publication.rs"]
+pub(crate) mod revision_publication;
 //! Descriptor-bound maintained creation publication. This coordinates byte
 //! mechanics in an independently selected owner filesystem, not source admission.
 //! The corpus lock name and rename-no-replace protocol interoperate with Python.

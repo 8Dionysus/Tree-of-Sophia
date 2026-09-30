@@ -39,6 +39,8 @@ mod object_link;
 mod public_text;
 #[path = "source_native_responsibility_cli.rs"]
 mod responsibility;
+#[path = "source_native_revisions_cli.rs"]
+mod revisions;
 #[path = "source_native_text_cli.rs"]
 mod text_owner;
 #[path = "source_native_work_cli.rs"]
@@ -358,6 +360,24 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
             | "tos_local_claim_form_owner_v1"
             | "tos_local_claim_form_owner_v2" => {
                 return forms::run(
+                    &invocation,
+                    &request_raw,
+                    &store,
+                    &cut,
+                    &software,
+                    &components,
+                    deadline,
+                    &cancelled,
+                );
+            }
+            "tos_local_source_revision_owner_v1"
+            | "tos_local_profile_revision_owner_v1"
+            | "tos_local_profile_revision_owner_v2"
+            | "tos_local_corpus_revision_owner_v1"
+            | "tos_local_corpus_revision_owner_v2"
+            | "tos_local_corpus_revision_owner_v3"
+            | "tos_local_native_metadata_revision_owner_v1" => {
+                return revisions::run(
                     &invocation,
                     &request_raw,
                     &store,

@@ -1132,6 +1132,7 @@ pub(crate) fn collection_archive(
         cancelled,
         create,
         "collection.json",
+        true,
     )
 }
 fn compound_archive(
