@@ -119,7 +119,9 @@ class ExplorationOriginTests(unittest.TestCase):
                   + json.dumps(client.as_uri()) + ";const packets=JSON.parse(fs.readFileSync(0,'utf8'));"
                   + "for(const p of packets)validateExploration(p,p.source_revision);"
                   + "process.stdout.write(String(packets.length));")
-        result = subprocess.run(['node', '--experimental-strip-types', '--input-type=module', '-e', script],
+        loader = ACCESS / 'web/src/observatory/human-forms-wasm-test-runtime.mjs'
+        result = subprocess.run(['node', '--experimental-strip-types', '--import', str(loader),
+                                 '--input-type=module', '-e', script],
             input=json.dumps(packets), text=True, capture_output=True, timeout=15)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, str(len(packets)))
