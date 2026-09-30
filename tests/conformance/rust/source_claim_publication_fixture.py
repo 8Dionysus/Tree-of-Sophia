@@ -10,6 +10,7 @@ from unittest.mock import patch
 REPOSITORY = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPOSITORY / 'tests'))
 import test_source_claim_publication as maintained
+from tos_access.prepared_publication import reference_publish_prepared
 
 MAX_PACKET = 16 * 1024 * 1024
 MAX_FILES = 2048
@@ -74,7 +75,10 @@ def export(work, packet_path):
         return result
     with patch.object(tempfile, 'TemporaryDirectory', directory):
         case = maintained.SourceClaimPublicationTests()
-        case.setUp()
+        # This initial Python reference fixture is not a native publication.
+        # Bind its maintained preparation explicitly, never backend discovery.
+        with patch.object(maintained.fixtures, 'publish_prepared', reference_publish_prepared):
+            case.setUp()
         write_fixture(case, packet_path)
         case.db.close()
     # Rust TempDir owns final cleanup after the whole native operation.
@@ -89,7 +93,10 @@ def export_agent(work, packet_path):
         return result
     with patch.object(tempfile, 'TemporaryDirectory', directory):
         case = agents.SourceAgentPublicationTests()
-        case.setUp()
+        # Initial reference predecessor only; native Record and publication
+        # are executed later by the actual protected product caller.
+        with patch.object(agents, 'publish_prepared', reference_publish_prepared):
+            case.setUp()
         # Actual-cut workers require the maintained catalog/header/slot and
         # referenced shared contracts. Preserve any fixture-owned schema bytes.
         contract_bytes = 0
