@@ -210,3 +210,16 @@ cache restoration, declared/effective caps, transaction and marker ordering,
 rollback on kernel failures/interruptions/drift, and post-commit marker failure.
 Test ownership is in `tests/test_inventory.json`; ordered validation authority
 stays in `docs/validation/validation_lanes.json`.
+
+Native prepare measures the executing ELF with a bounded streaming SHA256 read,
+keeps its physical identity through normalization, and verifies it again before
+completion. That processor binding is separate from source revision and the
+registry/query configuration binding. The D1 publisher identity is unchanged.
+
+An explicit `--source-limits` JSON profile may narrow input, capture, stage and
+TEMP envelopes; absence preserves production defaults. Limits describe refusal
+boundaries and do not reserve storage. The finite native consumer selects 8 MiB
+publication/index/file caps and retains one already required successful output
+with its separate fixture-origin receipt. This is a derivative read publication,
+without source admission, ongoing currentness or an incremental source-state
+baseline.

@@ -30,8 +30,16 @@ class OfflineMaintenanceTests(unittest.TestCase):
     def command(self, *extra):
         native = os.environ.get("TOS_NATIVE_SOURCE_PREPARE_EXECUTABLE")
         if native:
+            if "--attach-maintenance" in extra:
+                caps = producer.MaintenanceAttachmentLimits(
+                    catalog_limits=producer.CatalogLimits(max_index_bytes=8388608),
+                    semantic_limits=producer.SemanticIndexLimits(max_bytes=8388608))
+                from dataclasses import asdict
+                extra = (*extra, "--maintenance-limits", json.dumps(asdict(caps)))
             return subprocess.run([native, "prepare", "--source-root", str(self.root),
-                                   "--output-dir", str(self.output), "--max-seconds", "20", *extra],
+                                   "--output-dir", str(self.output), "--max-seconds", "20",
+                                   "--max-bytes", "8388608", "--source-limits",
+                                   os.environ["TOS_NATIVE_SOURCE_PREPARE_LIMITS"], *extra],
                 capture_output=True, text=True, timeout=30, env=os.environ.copy())
         return subprocess.run([sys.executable, "-m", "tos_access.prepare", "--source-root", str(self.root),
             "--output-dir", str(self.output), *extra], capture_output=True, text=True, timeout=30,
@@ -176,7 +184,12 @@ class OfflineMaintenanceTests(unittest.TestCase):
         philosophy = json.loads(path.read_text())
         philosophy["views"] = [{"view_id": "portable-lens", "title": str(self.root / "ToS/lens-title")}]
         path.write_text(json.dumps(philosophy))
-        base = producer.prepare(self.root, self.output)
+        if os.environ.get("TOS_NATIVE_SOURCE_PREPARE_EXECUTABLE"):
+            base = producer.prepare(self.root, self.output,
+                limits=producer.PublicationLimits(max_bytes=8388608),
+                source_computational_limits=json.loads(os.environ["TOS_NATIVE_SOURCE_PREPARE_LIMITS"]))
+        else:
+            base = producer.prepare(self.root, self.output)
         base_reader = PublishedKnowledgeReadModel(self.output / "snapshot.sqlite", base["binding"])
         expected_catalog = base_reader.catalog()
         expected_search = PublishedSearchService(base_reader).search("Alpha")
@@ -204,6 +217,70 @@ class OfflineMaintenanceTests(unittest.TestCase):
             actual = PublishedSearchService(reader).search("Alpha")
             self.assertEqual(actual["nodes"], expected_search["nodes"])
             self.assertEqual(actual["relations"], expected_search["relations"])
+            if bulk and os.environ.get("TOS_NATIVE_SOURCE_PREPARE_RETAIN_DIR"):
+                # Retain this already-needed successful portable-lens output;
+                # no extra native call, fixture, issuer or published baseline.
+                retain = Path(os.environ["TOS_NATIVE_SOURCE_PREPARE_RETAIN_DIR"])
+                self.assertTrue(retain.is_absolute())
+                self.assertFalse(retain.exists() or retain.is_symlink())
+                retain.mkdir(mode=0o700)
+                import hashlib
+                total = 0
+                files = {}
+                for name in ("snapshot.sqlite", "binding.json", "completed.json"):
+                    selected = self.output / name
+                    self.assertFalse(selected.is_symlink())
+                    size = selected.stat().st_size
+                    self.assertLessEqual(size, 8388608)
+                    total += size
+                    self.assertLessEqual(total, 3 * 8388608)
+                    with selected.open("rb") as src:
+                        before = hashlib.file_digest(src, "sha256").hexdigest()
+                    destination = retain / name
+                    with selected.open("rb") as src, destination.open("xb") as dst:
+                        os.chmod(destination, 0o600)
+                        copied = 0
+                        while chunk := src.read(65536):
+                            copied += len(chunk)
+                            self.assertLessEqual(copied, size)
+                            dst.write(chunk)
+                        self.assertEqual(copied, size)
+                        dst.flush()
+                        os.fsync(dst.fileno())
+                    with selected.open("rb") as src, destination.open("rb") as dst:
+                        after = hashlib.file_digest(src, "sha256").hexdigest()
+                        saved = hashlib.file_digest(dst, "sha256").hexdigest()
+                    self.assertEqual(before, after)
+                    self.assertEqual(before, saved)
+                    files[name] = {"bytes": size, "sha256": saved}
+                source_files = {}
+                for selected in sorted(self.root.rglob("*.json")):
+                    self.assertLessEqual(selected.stat().st_size, 1048576)
+                    with selected.open("rb") as stream:
+                        source_files[selected.relative_to(self.root).as_posix()] = {
+                            "bytes": selected.stat().st_size,
+                            "sha256": hashlib.file_digest(stream, "sha256").hexdigest()}
+                origin = {"schema": "tos_retained_prepare_fixture_origin_v1",
+                    "source_revision": receipt["source_revision"], "files": files,
+                    "selected_fixture_files": source_files,
+                    "completed_case": "existing optin bulk with portable-lens",
+                    "source_state_checked_at_capture_moment": True,
+                    "ongoing_currentness_granted": False, "source_admission": False,
+                    "authority": "prepared read profile only; no source-state baseline"}
+                encoded = json.dumps(origin, sort_keys=True).encode() + b"\n"
+                self.assertLessEqual(len(encoded), 65536)
+                self.assertEqual(len(source_files), 5)
+                origin_path = retain.parent / "fixture-origin.json"
+                with origin_path.open("xb") as stream:
+                    os.chmod(origin_path, 0o600)
+                    stream.write(encoded); stream.flush(); os.fsync(stream.fileno())
+                for directory in (retain, retain.parent):
+                    fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
+                    try:
+                        os.fsync(fd)
+                    finally:
+                        os.close(fd)
+
 
     def test_missing_exact_handoff_is_not_reconstructed_from_catalog(self):
         original = source.ToSAccessCore.knowledge_snapshot_once

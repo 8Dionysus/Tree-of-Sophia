@@ -7,7 +7,7 @@ use std::{
 use tos_compiler::{
     local_prepared::PublicationLimits,
     local_prepared_bulk::BulkBootstrapLimits,
-    native_prepare::{self, MaintenanceAttachmentLimits, PrepareRequest},
+    native_prepare::{self, MaintenanceAttachmentLimits, PrepareRequest, SourceBootstrapLimits},
 };
 fn absolute(raw: &str, existing: bool) -> Result<PathBuf, String> {
     let path = Path::new(raw);
@@ -33,6 +33,7 @@ fn positive(raw: &str) -> Result<u64, String> {
     }
 }
 fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
+    let mut source_limits: Option<SourceBootstrapLimits> = None;
     let mut source = None;
     let mut output = None;
     let mut seconds = None;
@@ -57,6 +58,11 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
             "--source-root" => source = Some(absolute(raw, true)?),
             "--output-dir" => output = Some(absolute(raw, false)?),
             "--max-seconds" => seconds = Some(positive(raw)?),
+            "--source-limits" => {
+                source_limits = Some(
+                    serde_json::from_str(raw).map_err(|_| "invalid source computational limits")?,
+                )
+            }
             "--max-bytes" => publication.max_bytes = positive(raw)?,
             "--max-mutations" => publication.max_mutations = positive(raw)?,
             "--bulk-search-scratch-bytes" => scratch_bytes = Some(positive(raw)?),
@@ -115,6 +121,7 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
         search_scratch: scratch,
         maintenance,
         max_seconds: seconds,
+        source_limits,
     })
     .map_err(|_| "native prepare refused")?;
     writeln!(stdout, "{result}").map_err(|e| e.to_string())

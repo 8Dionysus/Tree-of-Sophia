@@ -61,8 +61,16 @@ class OfflinePrepareTests(unittest.TestCase):
                        "PYTHONDONTWRITEBYTECODE": "1", **(env or {})}
         native = environment.get("TOS_NATIVE_SOURCE_PREPARE_EXECUTABLE")
         if native:
+            if "--attach-maintenance" in extra:
+                caps = producer.MaintenanceAttachmentLimits(
+                    catalog_limits=producer.CatalogLimits(max_index_bytes=8388608),
+                    semantic_limits=producer.SemanticIndexLimits(max_bytes=8388608))
+                from dataclasses import asdict
+                extra = (*extra, "--maintenance-limits", json.dumps(asdict(caps)))
             return subprocess.run([native, "prepare", "--source-root", str(self.root),
-                                   "--output-dir", str(self.output), "--max-seconds", "20", *extra],
+                                   "--output-dir", str(self.output), "--max-seconds", "20",
+                                   "--max-bytes", "8388608", "--source-limits",
+                                   os.environ["TOS_NATIVE_SOURCE_PREPARE_LIMITS"], *extra],
                                   env=environment, capture_output=True, text=True, timeout=30)
         return subprocess.run([sys.executable, "-m", "tos_access.prepare", "--source-root", str(self.root),
                                "--output-dir", str(self.output), *extra],

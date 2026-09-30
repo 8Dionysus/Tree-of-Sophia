@@ -3,7 +3,7 @@
 use crate::{
     Error, NATIVE_KNOWLEDGE_ADAPTER_PROFILES, NativeFamilyInputs, NavigationHeaderClaim,
     QueryVocabulary, Result,
-    d1_public_build::{portable_public_d1_limits, processor_binding},
+    d1_public_build::portable_public_d1_limits,
     d1_public_capture::{PublicCapture, compact, json},
     d1_public_graph::{
         PublicRepositoryRoot, PublicStageOwner, exact_receipt, ingest_family_rows,
@@ -23,12 +23,12 @@ use crate::{
 use serde_json::{Value, json as packet};
 use std::{
     fs::{self, File, OpenOptions},
-    io::Write,
+    io::{Read, Seek, SeekFrom, Write},
     os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt},
     path::Path,
     time::{Duration, Instant},
 };
-use tos_foundation::{Digest256, JsonValue};
+use tos_foundation::{Digest256, Digest256Hasher, JsonValue};
 pub const SCHEMA: &str = "tos_offline_prepared_bootstrap_receipt_v1";
 #[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -46,6 +46,134 @@ impl Default for MaintenanceAttachmentLimits {
         }
     }
 }
+/// Explicit computational file envelopes, independent of publication caps.
+/// Absence retains existing production compiler defaults; these grant no space.
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SourceBootstrapLimits {
+    pub max_input_bytes: u64,
+    pub max_capture_bytes: u64,
+    pub max_stage_bytes: u64,
+    pub max_temp_bytes: u64,
+}
+impl SourceBootstrapLimits {
+    fn apply(self, limits: &mut crate::d1_public_build::PublicD1BuildLimits) -> Result<()> {
+        if self.max_input_bytes == 0
+            || self.max_capture_bytes < 65536
+            || self.max_stage_bytes < 65536
+            || self.max_temp_bytes < 65536
+            || self.max_input_bytes > limits.capture.max_input_bytes
+            || self.max_capture_bytes > limits.capture.max_staging_bytes
+            || self.max_stage_bytes > limits.stage.sqlite.max_output_bytes
+            || self.max_temp_bytes > limits.stage.max_temp_bytes
+        {
+            return Err(Error::Budget("prepare explicit computational envelopes"));
+        }
+        limits.capture.max_input_bytes = self.max_input_bytes;
+        limits.capture.max_staging_bytes = self.max_capture_bytes;
+        limits.stage.sqlite.max_output_bytes = self.max_stage_bytes;
+        limits.stage.max_temp_bytes = self.max_temp_bytes;
+        Ok(())
+    }
+}
+// Native prepare alone binds normalization to the actual executing ELF. The
+// D1 publisher's accepted processor identity and public receipt are unchanged.
+struct ExecutingProcessor {
+    file: File,
+    path: std::path::PathBuf,
+    stamp: (u64, u64, u64, i64, i64, i64, i64),
+    digest: Digest256,
+    deadline: Instant,
+}
+fn executable_stamp(m: &fs::Metadata) -> Result<(u64, u64, u64, i64, i64, i64, i64)> {
+    if !m.is_file() || m.len() == 0 || m.len() > 256 * 1024 * 1024 {
+        return Err(Error::Budget("prepare executing ELF file envelope"));
+    }
+    Ok((
+        m.dev(),
+        m.ino(),
+        m.len(),
+        m.mtime(),
+        m.mtime_nsec(),
+        m.ctime(),
+        m.ctime_nsec(),
+    ))
+}
+impl ExecutingProcessor {
+    fn measure(deadline: Instant) -> Result<Self> {
+        let path = std::env::current_exe()?;
+        // /proc/self/exe is the running image, rather than a PATH selection or
+        // a caller-provided string. Keep that inode open for the whole build.
+        let file = File::open("/proc/self/exe")?;
+        let stamp = executable_stamp(&file.metadata()?)?;
+        let mut result = Self {
+            file,
+            path,
+            stamp,
+            digest: Digest256::of_bytes(&[]),
+            deadline,
+        };
+        result.digest = result.hash()?;
+        result.verify_stamp()?;
+        Ok(result)
+    }
+    fn verify_stamp(&self) -> Result<()> {
+        deadline_check(self.deadline)?;
+        if executable_stamp(&self.file.metadata()?)? != self.stamp
+            || executable_stamp(&fs::metadata(&self.path)?)? != self.stamp
+        {
+            return Err(Error::Invalid(
+                "prepare executing ELF physical identity changed",
+            ));
+        }
+        Ok(())
+    }
+    fn hash(&mut self) -> Result<Digest256> {
+        self.verify_stamp()?;
+        self.file.seek(SeekFrom::Start(0))?;
+        let mut head = [0u8; 4];
+        self.file.read_exact(&mut head)?;
+        if head != *b"\x7fELF" {
+            return Err(Error::Invalid("prepare executing image is not ELF"));
+        }
+        let mut hash = Digest256Hasher::new();
+        hash.update(&head);
+        let mut total = 4u64;
+        let mut block = [0u8; 65536];
+        loop {
+            deadline_check(self.deadline)?;
+            let count = self.file.read(&mut block)?;
+            if count == 0 {
+                break;
+            }
+            total = total
+                .checked_add(count as u64)
+                .filter(|n| *n <= self.stamp.2)
+                .ok_or(Error::Budget("prepare ELF read bytes"))?;
+            hash.update(&block[..count]);
+        }
+        if total != self.stamp.2 {
+            return Err(Error::Invalid("prepare ELF changed during read"));
+        }
+        self.verify_stamp()?;
+        Ok(hash.finalize())
+    }
+    fn verify(&mut self) -> Result<()> {
+        if self.hash()? != self.digest {
+            return Err(Error::Invalid("prepare executing ELF digest changed"));
+        }
+        Ok(())
+    }
+}
+fn configuration_binding(descriptor: &[u8], entity: &[u8], relation: &[u8]) -> Digest256 {
+    let mut hash = Digest256Hasher::new();
+    for raw in [descriptor, entity, relation] {
+        hash.update(&(raw.len() as u64).to_be_bytes());
+        hash.update(raw);
+    }
+    hash.finalize()
+}
+
 pub struct PrepareRequest<'a> {
     pub source_root: &'a Path,
     pub output_dir: &'a Path,
@@ -53,6 +181,7 @@ pub struct PrepareRequest<'a> {
     pub search_scratch: Option<BulkBootstrapLimits>,
     pub maintenance: Option<MaintenanceAttachmentLimits>,
     pub max_seconds: u64,
+    pub source_limits: Option<SourceBootstrapLimits>,
 }
 fn deadline_check(deadline: Instant) -> Result<()> {
     if Instant::now() >= deadline {
@@ -181,6 +310,7 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
         search_scratch,
         maintenance,
         max_seconds,
+        source_limits,
     } = request;
     publication.validate()?;
     if let Some(scratch) = search_scratch {
@@ -201,6 +331,11 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
     let deadline = Instant::now()
         .checked_add(Duration::from_secs(max_seconds))
         .ok_or(Error::Budget("prepare deadline arithmetic"))?;
+    let mut limits = portable_public_d1_limits(max_seconds)?;
+    if let Some(profile) = source_limits {
+        profile.apply(&mut limits)?;
+    }
+    let mut processor_owner = ExecutingProcessor::measure(deadline)?;
     operand(source_root)?;
     operand(output_dir)?;
     let root = fs::canonicalize(source_root)?;
@@ -218,7 +353,6 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
     sync_dir(parent)?;
     let scratch_dir = output_dir.join(".native-source-bootstrap");
     fs::DirBuilder::new().mode(0o700).create(&scratch_dir)?;
-    let limits = portable_public_d1_limits(max_seconds)?;
     let capture = PublicCapture::create_prepared(
         &root,
         &scratch_dir.join("capture.sqlite3"),
@@ -266,6 +400,9 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
     let public_root = PublicRepositoryRoot::new(&stage, &source_revision)?;
     let mut additional = NativeFamilyInputs::bounded_from(limits.native);
     additional.repository_root = Some(public_root.input());
+    processor_owner.verify_stamp()?;
+    // The measured executing image encloses the actual row producer call, not
+    // a post-hoc replacement of somebody else's normalization header.
     crate::materialize_native_sources_with_inputs(
         &mut stage,
         &registry,
@@ -277,10 +414,11 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
         limits.native,
         additional,
     )?;
+    processor_owner.verify_stamp()?;
     portabilize_public_stage(&mut stage, &capture, &root)?;
     let semantics = validate_public_semantics(&mut stage, &capture, &registry, &entity, &relation)?;
-    let (processor, configuration) =
-        processor_binding(&public_root, &descriptor, &entity, &relation)?;
+    let processor = processor_owner.digest;
+    let configuration = configuration_binding(&descriptor, &entity, &relation);
     let mut header = build_public_header(
         &mut stage,
         &capture,
@@ -331,6 +469,7 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
     crate::d1_public_rows::portable(&mut catalog.catalog, root_text);
     let catalog_owner = value(&catalog.catalog, publication.max_metadata_bytes)?;
     capture.verify_inputs(limits.capture)?;
+    processor_owner.verify_stamp()?;
     let path = output_dir.join("snapshot.sqlite");
     let search = match search_scratch {
         Some(limits) => BootstrapSearch::Bulk {
@@ -373,7 +512,10 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
             max_writes: m.semantic_limits.max_writes.min(m.max_mutations),
             ..m.semantic_limits
         };
-        let mut precommit = || capture.verify_inputs(limits.capture);
+        let mut precommit = || {
+            processor_owner.verify_stamp()?;
+            capture.verify_inputs(limits.capture)
+        };
         let result = crate::prepared_maintenance_file::bootstrap_prepared_maintenance_file(
             &path,
             &binding,
@@ -406,6 +548,7 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
     } else {
         None
     };
+    processor_owner.verify()?;
     deadline_check(deadline)?;
     let mut result = packet!({"schema":SCHEMA,"status":"completed","mode":"full_bootstrap",
         "source_root":root.to_str().ok_or(Error::Invalid("prepare root UTF8"))?,"output_dir":output_dir.to_str().ok_or(Error::Invalid("prepare output UTF8"))?,

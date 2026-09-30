@@ -279,7 +279,8 @@ def prepare(source_root: str | Path, output_dir: str | Path, *,
             search_scratch_limits: BulkBootstrapLimits | None = None,
             maintenance: MaintenanceAttachmentLimits | None = None,
             native_executable: str | Path | None = None,
-            native_timeout: int | None = None) -> dict:
+            native_timeout: int | None = None,
+            source_computational_limits: dict | None = None) -> dict:
     """Explicit installed native bootstrap; reference source graph is not run."""
     import time
     from .prepared_native import select_publication_executor, _exchange
@@ -302,6 +303,10 @@ def prepare(source_root: str | Path, output_dir: str | Path, *,
     command = [str(executable), "prepare", "--source-root", str(root),
                "--output-dir", str(output), "--max-seconds", str(seconds),
                "--publication-limits", json.dumps(asdict(limits), separators=(",", ":"))]
+    if source_computational_limits is not None:
+        if not isinstance(source_computational_limits, dict):
+            raise ValueError("explicit source computational limits required")
+        command += ["--source-limits", json.dumps(source_computational_limits, separators=(",", ":"))]
     if search_scratch_limits is not None:
         command += ["--search-scratch-limits", json.dumps(asdict(search_scratch_limits), separators=(",", ":"))]
     if maintenance is not None:
