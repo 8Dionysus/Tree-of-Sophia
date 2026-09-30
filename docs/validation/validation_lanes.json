@@ -388,8 +388,37 @@
         "command": ["cargo", "build", "--locked", "-p", "tos-command", "--bin", "tos-native-owner-command"]
       },
       {
-        "label": "test Rust workspace",
-        "command": ["cargo", "test", "--workspace", "--locked"]
+        "label": "test Rust workspace excluding isolated process-cold fixtures",
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--",
+          "--skip", "source_creation_store::revision_publication::tests::native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery",
+          "--skip", "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
+          "--skip", "source_creation_store::work_expression::tests::real_pending_refuses_changed_dependency_then_resumes_or_rolls_back"
+        ]
+      },
+      {
+        "label": "test isolated process-cold source revision fixture",
+        "command": [
+          "cargo", "test", "--locked", "-p", "tos-command", "--lib",
+          "source_creation_store::revision_publication::tests::native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery",
+          "--", "--exact"
+        ]
+      },
+      {
+        "label": "test isolated process-cold Work37 fixture",
+        "command": [
+          "cargo", "test", "--locked", "-p", "tos-command", "--lib",
+          "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
+          "--", "--exact"
+        ]
+      },
+      {
+        "label": "test isolated process-cold Work recovery fixture",
+        "command": [
+          "cargo", "test", "--locked", "-p", "tos-command", "--lib",
+          "source_creation_store::work_expression::tests::real_pending_refuses_changed_dependency_then_resumes_or_rolls_back",
+          "--", "--exact"
+        ]
       },
       {
         "label": "check WASM foundation target",

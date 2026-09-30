@@ -109,6 +109,56 @@ class ValidationLaneTests(unittest.TestCase):
         self.assertEqual(set(selected), set(access_files + software_support_files))
         self.assertEqual(release_check.select_steps(sequence, 'checks') + test_steps, sequence)
 
+    def test_rust_workspace_timeout_partition_covers_each_process_cold_case_once(self):
+        cases = [
+            ('source_creation_store::revision_publication::tests::native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery',
+             'rust/crates/tos-command/src/source_record_revision_tests.rs',
+             'native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery'),
+            ('source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending',
+             'rust/crates/tos-command/src/source_work_expression_tests.rs',
+             'native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending'),
+            ('source_creation_store::work_expression::tests::real_pending_refuses_changed_dependency_then_resumes_or_rolls_back',
+             'rust/crates/tos-command/src/source_work_expression_tests.rs',
+             'real_pending_refuses_changed_dependency_then_resumes_or_rolls_back'),
+        ]
+        names = [name for name, _, _ in cases]
+        sequence = validation_lanes.command_sequence('rust_workspace', ROOT)
+        by_label = dict(sequence)
+        workspace_label = 'test Rust workspace excluding isolated process-cold fixtures'
+        workspace = by_label[workspace_label]
+        self.assertEqual(workspace[:4], ['cargo', 'test', '--workspace', '--locked'])
+        self.assertEqual(workspace[4], '--')
+        self.assertEqual(
+            [workspace[index + 1] for index, value in enumerate(workspace) if value == '--skip'],
+            names,
+        )
+
+        singleton_labels = [
+            'test isolated process-cold source revision fixture',
+            'test isolated process-cold Work37 fixture',
+            'test isolated process-cold Work recovery fixture',
+        ]
+        rust_test_labels = [
+            label for label, _ in sequence
+            if label == workspace_label or label.startswith('test isolated process-cold ')
+        ]
+        self.assertEqual(rust_test_labels, [workspace_label, *singleton_labels])
+        self.assertEqual(
+            [by_label[label] for label in singleton_labels],
+            [
+                ['cargo', 'test', '--locked', '-p', 'tos-command', '--lib', name, '--', '--exact']
+                for name in names
+            ],
+        )
+        self.assertEqual(
+            [label for label, _ in sequence if label.startswith('test isolated process-cold ')],
+            singleton_labels,
+        )
+
+        for (_, source_path, function_name) in cases:
+            source = (ROOT / source_path).read_text(encoding='utf-8')
+            self.assertEqual(source.count(f'#[test]\nfn {function_name}('), 1)
+
     def test_native_release_forwards_only_explicit_executor_limits(self):
         executable = '/tmp/tos-release-check-test-executor'
         with mock.patch.dict(release_check.os.environ,
