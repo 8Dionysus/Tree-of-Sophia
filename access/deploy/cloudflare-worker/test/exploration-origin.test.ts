@@ -11,7 +11,7 @@ import {exploreD1,publishExplorationFixture,validateExploration} from './native-
 import {REQUEST_V2, RESULT_V2, type Origin, type ResolvedOrigin} from '../src/exploration-origin.ts';
 import {publishedWorkerFixtureModules} from './native-lens-fixture.ts';
 import {HttpError, type Item} from '../src/common.ts';
-import {knowledgeScene} from '../src/knowledge.ts';
+import {knowledgeScene} from '../../../shared/knowledge-scene.ts';
 
 type Graph = {source_revision: string; nodes: Item[]; relations: Item[]; authority_boundary: Item};
 type Query = {schema_version: string; source_revision: string; origin: Origin} & Item;

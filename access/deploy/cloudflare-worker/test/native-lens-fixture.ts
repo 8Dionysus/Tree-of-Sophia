@@ -14,7 +14,8 @@ import type {NativeD1Limits} from '../src/native-d1-read.ts';
 import {parseNativeJson, type NativeRef} from '../src/native-lens.ts';
 import {HttpError} from '../src/common.ts';
 import {nativeLower, codePointCompare, nativeUnicodeVersion} from '../../../shared/native-semantics.ts';
-import type {executeKnowledgeLens} from '../src/knowledge.ts';
+import type {Item, KnowledgeNode, KnowledgeRelation, LensSpec} from '../src/knowledge.ts';
+type FixtureLensReply = Item & {nodes:KnowledgeNode[];relations:KnowledgeRelation[];presentation:LensSpec['presentation'];fingerprint:string;authority_boundary:Item};
 const initialized = new WeakSet<object>();
 const sha = (raw: string) => createHash('sha256').update(raw).digest('hex');
 
@@ -107,13 +108,20 @@ export async function publishNativeLensFixture(db: D1Database): Promise<void> {
   for (const [key,raw] of metadata) statements.push(db.prepare('DELETE FROM edge_meta WHERE key=?').bind(key),db.prepare('INSERT INTO edge_meta VALUES (?,0,?)').bind(key,raw));
   for (let at=0;at<statements.length;at+=64) await db.batch(statements.slice(at,at+64));
 }
-export async function executePublishedFixtureLens(db: D1Database, spec: unknown): Promise<Awaited<ReturnType<typeof executeKnowledgeLens>>> {
+export async function executePublishedFixtureLens(db: D1Database, spec: unknown): Promise<FixtureLensReply> {
   await publishNativeLensFixture(db);
   return JSON.parse(await (await executePublishedLensResponse(db,JSON.stringify(spec))).text());
 }
 
+/** Maintained Python oracle for mixed native D1 fixture controls. */
+export async function executeFixturePythonLens(graph:unknown,spec:unknown):Promise<FixtureLensReply> {
+  return JSON.parse(execFileSync('python3',['-B','-c',
+    "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
+    {cwd:fileURLToPath(new URL('../../../../',import.meta.url)),input:JSON.stringify({graph,spec}),encoding:'utf8'}));
+}
+
 /** Exact Python oracle for publication-bound cursors, not in-memory cursors. */
-export async function executePublishedFixturePythonLens(db: D1Database, graph: unknown, spec: unknown): Promise<Awaited<ReturnType<typeof executeKnowledgeLens>>> {
+export async function executePublishedFixturePythonLens(db: D1Database, graph: unknown, spec: unknown): Promise<FixtureLensReply> {
   const rows = await db.prepare("SELECT json_chunk FROM edge_meta WHERE key='knowledge_reader_top' ORDER BY part").all<{json_chunk:string}>();
   const clock = await db.prepare('SELECT epoch FROM knowledge_exploration_clock WHERE singleton=1').first<{epoch:number}>();
   if (!clock) throw new Error('published fixture clock absent');

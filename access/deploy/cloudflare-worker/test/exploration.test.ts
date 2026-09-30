@@ -10,7 +10,8 @@ import {explorationCapabilitiesD1} from '../src/exploration.ts';
 import {PUBLISHED_EXPLORATION_ADJACENCY_SQL as ADJACENCY_SQL,PUBLISHED_EXPLORATION_IDENTITY_SQL as IDENTITY_SQL} from '../src/native-exploration-store.ts';
 import {publishedWorkerFixtureModules} from './native-lens-fixture.ts';
 import {exploreD1,publishExplorationFixture,validateExploration} from './native-exploration-fixture.ts';
-import {knowledgeScene, type Item} from '../src/knowledge.ts';
+import {knowledgeScene} from '../../../shared/knowledge-scene.ts';
+import type {Item} from '../src/knowledge.ts';
 
 const migration = readFileSync(new URL('../migrations/0001-exploration.sql', import.meta.url), 'utf8').replace(/^--.*$/gm, '').trim();
 const repo = fileURLToPath(new URL('../../../../', import.meta.url));
