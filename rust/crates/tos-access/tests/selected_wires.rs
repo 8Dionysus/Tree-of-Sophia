@@ -5233,6 +5233,109 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
             fs::read_link(&program).unwrap(),
             PathBuf::from("../software/access/src/tos_access/tos-access")
         );
+        let installed_commands = |prefix: &Path| {
+            if command_products.is_none() {
+                return;
+            }
+            for role in [
+                "tos-native-owner-command",
+                "tos-schema-worker",
+                "tos-validation-lanes",
+                "tos-release-check",
+                "tos-software-ci",
+            ] {
+                assert_eq!(
+                    fs::read_link(prefix.join("bin").join(role)).unwrap(),
+                    PathBuf::from(format!("../software/native/bin/{role}"))
+                );
+            }
+            let commands = crate::native_child::bounded_output(
+                Command::new("/usr/bin/python3")
+                    .arg(repository.join("scripts/verify_rust_mechanics_install.py"))
+                    .arg("--command-entries-only")
+                    .arg("--installed-prefix")
+                    .arg(prefix),
+                65_536,
+            );
+            assert!(
+                commands.status.success(),
+                "installed ops entries: {}",
+                String::from_utf8_lossy(&commands.stderr)
+            );
+            let owner_consumer = std::env::var_os("TOS_NATIVE_SOFTWARE_OWNER_CONSUMER_BIN")
+                .expect("cohort consumer requires the admitted existing owner-text test binary");
+            let owner_consumer = PathBuf::from(owner_consumer);
+            let expected_sha = std::env::var("TOS_NATIVE_SOFTWARE_OWNER_CONSUMER_SHA256")
+                .expect("cohort consumer requires exact admitted owner test SHA");
+            let expected_size = std::env::var("TOS_NATIVE_SOFTWARE_OWNER_CONSUMER_SIZE_BYTES")
+                .expect("cohort consumer requires exact admitted owner test size")
+                .parse::<u64>()
+                .unwrap();
+            let held =
+                tos_fd_open::open_absolute_regular(&owner_consumer, 512 * 1024 * 1024).unwrap();
+            assert_eq!(held.metadata().unwrap().len(), expected_size);
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(held.metadata().unwrap().permissions().mode() & 0o777, 0o500);
+            assert_eq!(
+                crate::native_child::bounded_sha(&owner_consumer, 512 * 1024 * 1024).to_hex(),
+                expected_sha
+            );
+            for (case, seconds) in [
+                (
+                    "command_owner_text_cases::native_owner_text_cli_extracts_replays_and_recovers_completed_stage",
+                    240,
+                ),
+                (
+                    "command_claim_publication_cases::maintained_agent_record_correction_whole_transaction_and_access",
+                    600,
+                ),
+            ] {
+                let owner = crate::native_child::bounded_output_until(
+                    Command::new(&owner_consumer)
+                        .arg(case)
+                        .args(["--exact", "--test-threads=1", "--nocapture"])
+                        .env(
+                            "TOS_NATIVE_PREPARED_CONSUMER_BIN",
+                            prefix.join("software/access/src/tos_access/tos-access"),
+                        )
+                        .env(
+                            "TOS_NATIVE_PREPARED_CONSUMER_SHA256",
+                            manifest
+                                .object_get("native_access")
+                                .unwrap()
+                                .object_get("sha256")
+                                .unwrap()
+                                .as_str()
+                                .unwrap(),
+                        )
+                        .env(
+                            "TOS_NATIVE_OWNER_COMMAND_PATH",
+                            prefix.join("software/native/bin/tos-native-owner-command"),
+                        )
+                        .env(
+                            "TOS_SCHEMA_WORKER_PATH",
+                            prefix.join("software/native/bin/tos-schema-worker"),
+                        ),
+                    65_536,
+                    Duration::from_secs(seconds),
+                );
+                assert_eq!(
+                    crate::native_child::bounded_sha(&owner_consumer, 512 * 1024 * 1024).to_hex(),
+                    expected_sha
+                );
+                assert!(
+                    owner.status.success(),
+                    "installed owner/worker: {}",
+                    String::from_utf8_lossy(&owner.stderr)
+                );
+                assert!(
+                    String::from_utf8_lossy(&owner.stdout).contains("1 passed; 0 failed"),
+                    "existing installed owner case must actually execute: {}",
+                    String::from_utf8_lossy(&owner.stdout)
+                );
+            }
+        };
+        installed_commands(&installed);
         let outside = root.join("outside");
         fs::create_dir(&outside).unwrap();
         for option in ["--help", "--version"] {
@@ -5528,84 +5631,7 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
             "native restore: {}",
             String::from_utf8_lossy(&restore.stderr)
         );
-        if command_products.is_some() {
-            for prefix in [&installed, &restored] {
-                for role in [
-                    "tos-native-owner-command",
-                    "tos-schema-worker",
-                    "tos-validation-lanes",
-                    "tos-release-check",
-                    "tos-software-ci",
-                ] {
-                    assert_eq!(
-                        fs::read_link(prefix.join("bin").join(role)).unwrap(),
-                        PathBuf::from(format!("../software/native/bin/{role}"))
-                    );
-                }
-                let commands = crate::native_child::bounded_output(
-                    Command::new("/usr/bin/python3")
-                        .arg(repository.join("scripts/verify_rust_mechanics_install.py"))
-                        .arg("--command-entries-only")
-                        .arg("--installed-prefix")
-                        .arg(prefix),
-                    65_536,
-                );
-                assert!(
-                    commands.status.success(),
-                    "installed ops entries: {}",
-                    String::from_utf8_lossy(&commands.stderr)
-                );
-                let owner_consumer = std::env::var_os("TOS_NATIVE_SOFTWARE_OWNER_CONSUMER_BIN")
-                    .expect(
-                        "cohort consumer requires the admitted existing owner-text test binary",
-                    );
-                let owner_consumer = PathBuf::from(owner_consumer);
-                let expected_sha = std::env::var("TOS_NATIVE_SOFTWARE_OWNER_CONSUMER_SHA256")
-                    .expect("cohort consumer requires exact admitted owner test SHA");
-                let expected_size = std::env::var("TOS_NATIVE_SOFTWARE_OWNER_CONSUMER_SIZE_BYTES")
-                    .expect("cohort consumer requires exact admitted owner test size")
-                    .parse::<u64>()
-                    .unwrap();
-                let held =
-                    tos_fd_open::open_absolute_regular(&owner_consumer, 512 * 1024 * 1024).unwrap();
-                assert_eq!(held.metadata().unwrap().len(), expected_size);
-                use std::os::unix::fs::PermissionsExt;
-                assert_eq!(held.metadata().unwrap().permissions().mode() & 0o777, 0o500);
-                assert_eq!(
-                    crate::native_child::bounded_sha(&owner_consumer, 512 * 1024 * 1024).to_hex(),
-                    expected_sha
-                );
-                let owner = crate::native_child::bounded_output_until(
-                    Command::new(&owner_consumer)
-                    .arg("command_owner_text_cases::native_owner_text_cli_extracts_replays_and_recovers_completed_stage")
-                    .args(["--exact", "--test-threads=1", "--nocapture"])
-                    .env(
-                        "TOS_NATIVE_OWNER_COMMAND_PATH",
-                        prefix.join("software/native/bin/tos-native-owner-command"),
-                    )
-                    .env(
-                        "TOS_SCHEMA_WORKER_PATH",
-                        prefix.join("software/native/bin/tos-schema-worker"),
-                    ),
-                    65_536,
-                    Duration::from_secs(240),
-                );
-                assert_eq!(
-                    crate::native_child::bounded_sha(&owner_consumer, 512 * 1024 * 1024).to_hex(),
-                    expected_sha
-                );
-                assert!(
-                    owner.status.success(),
-                    "installed owner/worker: {}",
-                    String::from_utf8_lossy(&owner.stderr)
-                );
-                assert!(
-                    String::from_utf8_lossy(&owner.stdout).contains("1 passed; 0 failed"),
-                    "existing installed owner case must actually execute: {}",
-                    String::from_utf8_lossy(&owner.stdout)
-                );
-            }
-        }
+        installed_commands(&restored);
         let restored_program = restored.join("bin/tos");
         let version = Command::new(&restored_program)
             .arg("--version")
