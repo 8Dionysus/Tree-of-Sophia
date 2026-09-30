@@ -970,3 +970,8 @@ pub use route_center::RouteCenterSession;
 mod worker_source_navigation;
 #[cfg(feature = "wasm")]
 pub use worker_source_navigation::{WorkerSourceRights, WorkerSourceWalk};
+
+#[cfg(feature = "wasm")]
+mod deploy_sync;
+#[cfg(feature = "wasm")]
+pub use deploy_sync::DeploySyncSession;

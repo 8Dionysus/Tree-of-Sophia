@@ -4,6 +4,8 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, copyFileSync, mkdtempSync, rmSync, statSync, readdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import * as deploymentRuntime from '../generated/tos_web_rules.js';
+deploymentRuntime.initSync({module: new WebAssembly.Module(readFileSync(new URL('../generated/tos_web_rules_bg.wasm', import.meta.url)))});
 
 export const REVISION_QUERY = "SELECT GROUP_CONCAT(json_chunk, '') AS json FROM (SELECT json_chunk FROM edge_meta WHERE key = 'data_revision' ORDER BY part);";
 export const LEGACY_REVISION_QUERY = "SELECT json FROM edge_meta WHERE key = 'data_revision';";
@@ -38,21 +40,35 @@ export function revisionFromRows(rows) {
 }
 
 export function syncDecision(localRevision, remoteRevision, statementCount, maximum = null) {
-  if (!Number.isSafeInteger(statementCount) || statementCount < 1) {
-    throw new Error("generated D1 statement count is missing or invalid");
-  }
-  if (maximum !== null && (!Number.isSafeInteger(maximum) || maximum < 1 || statementCount > maximum)) {
-    throw new Error(`generated D1 read model has ${statementCount} statements; safety ceiling is ${maximum}`);
-  }
-  if (localRevision === remoteRevision) return { required: false, reason: "revision-match" };
-  return { required: true, reason: remoteRevision ? "revision-changed" : "database-empty" };
+  const session = new deploymentRuntime.DeploySyncSession(false);
+  try {
+    for (;;) switch (session.need()) {
+      case 'count': session.number(typeof statementCount === 'number', typeof statementCount === 'number' ? statementCount : 0); break;
+      case 'maximum-null': session.flag(maximum === null); break;
+      case 'maximum': session.number(typeof maximum === 'number', typeof maximum === 'number' ? maximum : 0); break;
+      case 'revision': session.flag(localRevision === remoteRevision); break;
+      case 'remote-truthy': session.flag(Boolean(remoteRevision)); break;
+      case 'count-error': throw new Error('generated D1 statement count is missing or invalid');
+      case 'ceiling-error': throw new Error(`generated D1 read model has ${statementCount} statements; safety ceiling is ${maximum}`);
+      case 'decision-return': return {required: session.required(), reason: session.reason()};
+    }
+  } finally { session.free(); }
 }
 
 export function syncFile(manifest, currentRevision) {
-  const delta = manifest.counts?.delta;
-  return delta?.available === true && delta.base_revision === currentRevision && delta.target_revision === manifest.data_revision
-    ? { file: "runtime/read-model.delta.sql", statements: delta.sql_statements, mode: "delta" }
-    : { file: "runtime/read-model.sql", statements: manifest.counts?.sql_statements, mode: "full" };
+  const session = new deploymentRuntime.DeploySyncSession(true);
+  let delta, statements;
+  try {
+    for (;;) switch (session.need()) {
+      case 'delta-read': delta = manifest.counts?.delta; session.flag(false); break;
+      case 'available': session.flag(delta?.available === true); break;
+      case 'base': session.flag(delta.base_revision === currentRevision); break;
+      case 'target': session.flag(delta.target_revision === manifest.data_revision); break;
+      case 'full-count': statements = manifest.counts?.sql_statements; session.flag(false); break;
+      case 'delta-count': statements = delta.sql_statements; session.flag(false); break;
+      case 'file-return': return {file: session.file(), statements, mode: session.mode()};
+    }
+  } finally { session.free(); }
 }
 
 function wrangler(args, capture = false) {

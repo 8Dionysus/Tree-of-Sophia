@@ -121,3 +121,24 @@ test("D1 revision parser accepts Wrangler JSON without using deployment metadata
   assert.equal(revisionQueryForColumns(["key", "json"]), LEGACY_REVISION_QUERY);
   assert.equal(revisionQueryForColumns(["key"]), null);
 });
+
+test('sync policy preserves lazy full fallback, opaque revision identity and refusal coercion', () => {
+  const reads = [];
+  let calls = 0;
+  const manifest = {get counts() {
+    reads.push('counts');
+    return ++calls === 1 ? {delta: {
+      get available() {reads.push('available'); return true;},
+      get base_revision() {reads.push('base'); return 'other';},
+      get target_revision() {throw new Error('short-circuited target');},
+    }} : {sql_statements: 42};
+  }};
+  assert.deepEqual(syncFile(manifest, 'current'), {file: 'runtime/read-model.sql', statements: 42, mode: 'full'});
+  assert.deepEqual(reads, ['counts', 'available', 'base', 'counts']);
+  const revision = {};
+  assert.deepEqual(syncDecision(revision, revision, 1), {required: false, reason: 'revision-match'});
+  assert.deepEqual(syncDecision('new', Symbol('old'), 1), {required: true, reason: 'revision-changed'});
+  assert.throws(() => syncDecision('same', 'same', 0), /statement count/);
+  assert.throws(() => syncDecision('same', 'same', 1, Symbol('ceiling')), TypeError);
+  assert.throws(() => syncDecision('same', 'same', Number.MAX_SAFE_INTEGER + 1), /statement count/);
+});
