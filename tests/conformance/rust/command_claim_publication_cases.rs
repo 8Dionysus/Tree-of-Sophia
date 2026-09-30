@@ -182,6 +182,20 @@ fn maintained_claim_addition_whole_transaction_and_access() {
     } else {
         vec![workspace_root, fixture_root]
     };
+    let selected_packet = packet_path.canonicalize().unwrap();
+    assert!(
+        inventory_roots
+            .iter()
+            .any(|root| selected_packet.starts_with(root))
+    );
+    for output in ["binding_path", "receipt_path"] {
+        let parent = Path::new(required(&packet, output))
+            .parent()
+            .unwrap()
+            .canonicalize()
+            .unwrap();
+        assert!(inventory_roots.iter().any(|root| parent.starts_with(root)));
+    }
     let (fixture_bytes, fixture_entries) = fixture_physical_bytes(&inventory_roots, deadline);
     eprintln!("Claim whole preflight F={fixture_bytes} physical bytes entries={fixture_entries}");
     let connection = rusqlite::Connection::open(&db_path).unwrap();
@@ -286,6 +300,7 @@ fn maintained_claim_addition_whole_transaction_and_access() {
     let raw = serde_json::to_vec(&semantic_reference).unwrap();
     assert!(raw.len() <= 16_777_216);
     fs::write(reference, raw).unwrap();
+    drop(semantic_reference);
     {
         let tx = connection.unchecked_transaction().unwrap();
         for table in [
@@ -328,6 +343,7 @@ fn maintained_claim_addition_whole_transaction_and_access() {
     assert!(files.len() <= 2048);
     let cut_root = workspace.path().join("schema-cut");
     let revision = super::validation_cut_cases::write_cut_store(&files, &cut_root);
+    drop(files);
     let cut = super::command_form_cases::open_cut(&cut_root, revision, deadline, &cancel);
     let mut worker = super::command_form_cases::schemas(&cut, deadline, &cancel);
     let descriptor = serde_json::to_vec(&packet["descriptor"]).unwrap();
@@ -400,6 +416,8 @@ fn maintained_claim_addition_whole_transaction_and_access() {
         .unwrap();
     assert_eq!(result["prepared_committed"], false);
     let result = operation.commit_transaction(tx, &progress).unwrap();
+    drop(worker);
+    drop(cut);
     assert_eq!(result["prepared_committed"], true);
     let expected = &packet["expected"];
     for kind in ["node", "relation"] {
