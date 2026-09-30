@@ -28,7 +28,7 @@ class NativeEditionTests(unittest.TestCase):
         self.origin = expression_fixture.NativeExpressionTests('runTest')
         self.origin.setUp()
         self.addCleanup(self.origin.doCleanups)
-        self.root, self.write = self.origin.root, self.origin.write
+        self.root = self.origin.root
         self.origin_request = self.origin.request()
         commands.run_legacy_oracle_command(self.origin.owner, self.origin_request)
         self.expression_ref = self.origin.config['expression_source_path']
@@ -80,7 +80,9 @@ class NativeEditionTests(unittest.TestCase):
             'expected_dependencies': result['expected_dependencies'], 'expected_publication': result['expected_publication']}
 
     def write(self, ref, value):
-        self.origin.write(ref, value)
+        path = self.root / ref
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(value if isinstance(value, bytes) else revisions._encode(value))
 
     def rebuild(self):
         """Only tiny fixture records/carriers, never the production builder."""
