@@ -153,7 +153,8 @@ fn maintained_claim_addition_whole_transaction_and_access() {
     } else {
         let path = workspace.path().join("claim-fixture.json");
         let mut command = Command::new(
-            std::env::var_os("TOS_MAINTAINED_PYTHON").unwrap_or_else(|| "python3".into()),
+            std::env::var_os("TOS_MAINTAINED_PYTHON")
+                .expect("explicit maintained fixture interpreter"),
         );
         command
             .arg(repository.join("tests/conformance/rust/source_claim_publication_fixture.py"))
@@ -593,7 +594,10 @@ pub(super) fn agent_native_call(
     let input_raw = serde_json::to_vec(request).unwrap();
     assert!(input_raw.len() <= 1_048_576);
     input.write_all(&input_raw).unwrap();
-    let mut command = Command::new("/usr/bin/python3");
+    let mut command = Command::new(
+        std::env::var_os("TOS_MAINTAINED_PYTHON")
+            .expect("explicit maintained fixture interpreter"),
+    );
     command
         .arg(
             repository.join(
@@ -762,7 +766,10 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         .collect::<Vec<_>>();
     let workspace = tempfile::tempdir().unwrap();
     let packet_path = workspace.path().join("agent-fixture.json");
-    let mut export = Command::new("/usr/bin/python3");
+    let mut export = Command::new(
+        std::env::var_os("TOS_MAINTAINED_PYTHON")
+            .expect("explicit maintained fixture interpreter"),
+    );
     export
         .arg(repository.join("tests/conformance/rust/source_claim_publication_fixture.py"))
         .arg("agent")
@@ -899,7 +906,10 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
     let commit = String::from_utf8(commit.stdout).unwrap().trim().to_owned();
     assert!(commit.len() == 40 && commit.bytes().all(|b| b.is_ascii_hexdigit()));
     for restore in [false, true] {
-        let mut command = Command::new("/usr/bin/python3");
+        let mut command = Command::new(
+        std::env::var_os("TOS_MAINTAINED_PYTHON")
+            .expect("explicit maintained fixture interpreter"),
+    );
         for (name, _) in std::env::vars_os() {
             if name.to_string_lossy().starts_with("GIT_") {
                 command.env_remove(name);
@@ -1135,7 +1145,10 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
     assert_eq!(prepared_before, agent_sql_snapshot(&connection, deadline));
     assert_eq!(agent_authored(&root, deadline), current_files);
     let oracle_path = workspace.path().join("Agent-independent-oracle.json");
-    let mut oracle = Command::new("/usr/bin/python3");
+    let mut oracle = Command::new(
+        std::env::var_os("TOS_MAINTAINED_PYTHON")
+            .expect("explicit maintained fixture interpreter"),
+    );
     oracle
         .arg(repository.join("tests/conformance/rust/source_claim_publication_fixture.py"))
         .arg("agent-oracle")
