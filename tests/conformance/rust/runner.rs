@@ -841,3 +841,11 @@ mod compiler_source_cases;
 
 mod command_claim_publication_cases;
 mod command_public_text_cases;
+
+mod command_responsibility_cases;
+
+mod command_edition_cases;
+
+mod command_artifact_cases;
+
+mod command_owner_text_cases;
