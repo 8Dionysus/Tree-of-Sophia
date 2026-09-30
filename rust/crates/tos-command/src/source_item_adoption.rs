@@ -1763,14 +1763,15 @@ fn unavailable_grammar(
         .ok_or(SourceCommandError::Invalid(
             "Item unavailable grammar state budget",
         ))?;
-    let delta = tos_validation::biblio_rules::inspect_bibliographic_delta(
+    let claim_path = format!(
+        "{}/source-claims.jsonl",
+        owner.item_path.as_str().rsplit_once('/').unwrap().0
+    );
+    let mut delta = tos_validation::biblio_rules::inspect_bibliographic_delta(
         tos_validation::biblio_rules::BiblioDeltaInput {
             parent_path: owner.edition_path.as_str(),
             endpoint_path: owner.item_path.as_str(),
-            claim_path: &format!(
-                "{}/source-claims.jsonl",
-                owner.item_path.as_str().rsplit_once('/').unwrap().0
-            ),
+            claim_path: &claim_path,
             parent_before_raw: edition_raw,
             parent_after_raw: &revised_raw,
             endpoint_raw: &item_raw,
@@ -1789,6 +1790,33 @@ fn unavailable_grammar(
     if !delta.issues.is_empty()||delta.issue_sink_truncated||!delta.checked_profiles.contains(&required)
         ||delta.skipped_profiles.len()!=1||!delta.skipped_profiles.contains("whole-compound-plan-forms-dependency-byte-custody-current-lineage-and-permission-fence") {
         return Err(SourceCommandError::Conflict("Item explicit append/backlink mechanics refused"));
+    }
+    // Delta validates these supplied hypothetical buffers, not current files.
+    // The unavailable-inventory path publishes no metadata projection. Keep
+    // their exact byte custody without treating a proposed Edition successor
+    // or absent Item/Claim as a physical current source dependency.
+    for read in &mut delta.reads {
+        let tos_validation::PredicateRead::ExactPath { path, digest } = read else {
+            continue;
+        };
+        let supplied = [
+            (owner.edition_path.as_str(), revised_raw.as_slice()),
+            (owner.item_path.as_str(), item_raw.as_slice()),
+            (claim_path.as_str(), claim_raw.as_slice()),
+        ]
+        .into_iter()
+        .find(|(candidate, _)| *candidate == path.as_str());
+        if let Some((_, raw)) = supplied {
+            if Digest256::of_bytes(raw).to_prefixed() != *digest {
+                return Err(SourceCommandError::Conflict(
+                    "Item supplied delta observation differs from validated bytes",
+                ));
+            }
+            *read = tos_validation::PredicateRead::ExactBytes {
+                locator: format!("supplied-item-delta:{path}"),
+                digest: digest.clone(),
+            };
+        }
     }
     let supplied_bytes = [
         edition_raw.as_slice(),
