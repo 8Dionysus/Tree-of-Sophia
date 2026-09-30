@@ -25,6 +25,7 @@ impl Drop for OwnedChild {
         let _ = self.0.wait();
     }
 }
+#[track_caller]
 fn bounded_child_output_until(
     mut child: OwnedChild,
     stdout_max: usize,
@@ -87,12 +88,15 @@ fn bounded_child_output_until(
         std::thread::sleep(Duration::from_millis(10));
     }
 }
+#[track_caller]
 pub(super) fn bounded_child_output(child: OwnedChild, stdout_max: usize) -> Output {
     bounded_child_output_until(child, stdout_max, Instant::now() + Duration::from_secs(60))
 }
+#[track_caller]
 pub(super) fn bounded_output(command: &mut Command, stdout_max: usize) -> Output {
     bounded_output_until(command, stdout_max, Duration::from_secs(60))
 }
+#[track_caller]
 pub(super) fn bounded_output_until(
     command: &mut Command,
     stdout_max: usize,
@@ -100,6 +104,7 @@ pub(super) fn bounded_output_until(
 ) -> Output {
     bounded_output_before(command, stdout_max, Instant::now() + timeout)
 }
+#[track_caller]
 pub(super) fn bounded_output_before(
     command: &mut Command,
     stdout_max: usize,
