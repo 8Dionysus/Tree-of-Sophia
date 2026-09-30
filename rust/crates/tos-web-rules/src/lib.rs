@@ -974,4 +974,4 @@ pub use worker_source_navigation::{WorkerSourceRights, WorkerSourceWalk};
 #[cfg(feature = "wasm")]
 mod deploy_sync;
 #[cfg(feature = "wasm")]
-pub use deploy_sync::DeploySyncSession;
+pub use deploy_sync::{DeployRevisionSession, DeploySyncSession};

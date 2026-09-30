@@ -116,3 +116,117 @@ impl DeploySyncSession {
         self.reason != "revision-match"
     }
 }
+
+/// Revision-query admission and schema choice for the existing deploy transport.
+#[wasm_bindgen]
+pub struct DeployRevisionSession {
+    phase: &'static str,
+    choice: &'static str,
+}
+#[wasm_bindgen]
+impl DeployRevisionSession {
+    #[wasm_bindgen(constructor)]
+    pub fn new(operation: u8) -> Self {
+        Self {
+            phase: match operation {
+                0 => "chunk-column",
+                1 => "payload-array",
+                2 => "raw-read",
+                _ => "table-length",
+            },
+            choice: "",
+        }
+    }
+    pub fn need(&self) -> String {
+        self.phase.into()
+    }
+    pub fn flag(&mut self, value: bool) {
+        self.phase = match self.phase {
+            "chunk-column" => {
+                if value {
+                    "part-column"
+                } else {
+                    "legacy-column"
+                }
+            }
+            "part-column" => {
+                if value {
+                    self.choice = "chunk";
+                    "query-return"
+                } else {
+                    "legacy-column"
+                }
+            }
+            "legacy-column" => {
+                self.choice = if value { "legacy" } else { "none" };
+                "query-return"
+            }
+            "payload-array" => {
+                if value {
+                    "failed-results"
+                } else {
+                    "query-error"
+                }
+            }
+            "failed-results" => {
+                if value {
+                    "query-error"
+                } else {
+                    "rows-return"
+                }
+            }
+            "raw-read" => "raw-string",
+            "raw-string" => {
+                if value {
+                    "parse-revision"
+                } else {
+                    "null-return"
+                }
+            }
+            "parse-revision" => "digest-string",
+            "digest-string" => {
+                if value {
+                    "digest-truthy"
+                } else {
+                    "null-return"
+                }
+            }
+            "digest-truthy" => {
+                if value {
+                    "digest-return"
+                } else {
+                    "null-return"
+                }
+            }
+            "columns-read" => "query-present",
+            "query-present" => {
+                if value {
+                    "execute-revision"
+                } else {
+                    "schema-error"
+                }
+            }
+            _ => self.phase,
+        };
+    }
+    pub fn table_length(&mut self, is_number: bool, value: f64) {
+        self.phase = if is_number && value == 0.0 {
+            "null-return"
+        } else {
+            "columns-read"
+        };
+    }
+    pub fn choice(&self) -> String {
+        self.choice.into()
+    }
+    // Static predicates survive callbacks retained by overridden native array methods.
+    pub fn failed_success(is_true: bool) -> bool {
+        !is_true
+    }
+    pub fn results_array(is_array: bool) -> bool {
+        is_array
+    }
+    pub fn string_column(is_string: bool) -> bool {
+        is_string
+    }
+}

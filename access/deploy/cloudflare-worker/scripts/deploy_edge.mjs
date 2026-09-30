@@ -19,24 +19,45 @@ function edgeSql(args, options = {}) {
 
 export function revisionQueryForColumns(columns) {
   const names = new Set(columns);
-  if (names.has("json_chunk") && names.has("part")) return REVISION_QUERY;
-  if (names.has("json")) return LEGACY_REVISION_QUERY;
-  return null;
+  const session = new deploymentRuntime.DeployRevisionSession(0);
+  try {
+    for (;;) switch (session.need()) {
+      case 'chunk-column': session.flag(names.has('json_chunk')); break;
+      case 'part-column': session.flag(names.has('part')); break;
+      case 'legacy-column': session.flag(names.has('json')); break;
+      case 'query-return': return {chunk: REVISION_QUERY, legacy: LEGACY_REVISION_QUERY, none: null}[session.choice()];
+    }
+  } finally { session.free(); }
 }
 
 export function resultRows(stdout) {
   const payload = JSON.parse(stdout);
-  if (!Array.isArray(payload) || payload.some((item) => item?.success !== true)) {
-    throw new Error("Cloudflare D1 revision query did not succeed");
-  }
-  return payload.flatMap((item) => (Array.isArray(item.results) ? item.results : []));
+  const session = new deploymentRuntime.DeployRevisionSession(1);
+  const rules = deploymentRuntime.DeployRevisionSession;
+  try {
+    for (;;) switch (session.need()) {
+      case 'payload-array': session.flag(Array.isArray(payload)); break;
+      case 'failed-results': session.flag(Boolean(payload.some(item => rules.failed_success(item?.success === true)))); break;
+      case 'query-error': throw new Error('Cloudflare D1 revision query did not succeed');
+      case 'rows-return': return payload.flatMap(item => rules.results_array(Array.isArray(item.results)) ? item.results : []);
+    }
+  } finally { session.free(); }
 }
 
 export function revisionFromRows(rows) {
-  const raw = rows[0]?.json;
-  if (typeof raw !== "string") return null;
-  const value = JSON.parse(raw);
-  return typeof value?.sha256 === "string" && value.sha256 ? value.sha256 : null;
+  const session = new deploymentRuntime.DeployRevisionSession(2);
+  let raw, value;
+  try {
+    for (;;) switch (session.need()) {
+      case 'raw-read': raw = rows[0]?.json; session.flag(false); break;
+      case 'raw-string': session.flag(typeof raw === 'string'); break;
+      case 'parse-revision': value = JSON.parse(raw); session.flag(false); break;
+      case 'digest-string': session.flag(typeof value?.sha256 === 'string'); break;
+      case 'digest-truthy': session.flag(Boolean(value.sha256)); break;
+      case 'digest-return': return value.sha256;
+      case 'null-return': return null;
+    }
+  } finally { session.free(); }
 }
 
 export function syncDecision(localRevision, remoteRevision, statementCount, maximum = null) {
@@ -89,14 +110,22 @@ function remoteRevision(location = "--remote") {
   const tableRows = resultRows(
     wrangler(["d1", "execute", "DB", location, "--command", TABLE_QUERY, "--json"], true),
   );
-  if (tableRows.length === 0) return null;
-  const revisionQuery = revisionQueryForColumns(
-    tableRows.map((row) => row.name).filter((name) => typeof name === "string"),
-  );
-  if (!revisionQuery) throw new Error("Cloudflare D1 edge_meta schema is unsupported");
-  return revisionFromRows(
-    resultRows(wrangler(["d1", "execute", "DB", location, "--command", revisionQuery, "--json"], true)),
-  );
+  const session = new deploymentRuntime.DeployRevisionSession(3);
+  const rules = deploymentRuntime.DeployRevisionSession;
+  let query;
+  try {
+    for (;;) switch (session.need()) {
+      case 'table-length': {
+        const length = tableRows.length;
+        session.table_length(typeof length === 'number', typeof length === 'number' ? length : 0); break;
+      }
+      case 'columns-read': query = revisionQueryForColumns(tableRows.map(row => row.name).filter(name => rules.string_column(typeof name === 'string'))); session.flag(false); break;
+      case 'query-present': session.flag(Boolean(query)); break;
+      case 'schema-error': throw new Error('Cloudflare D1 edge_meta schema is unsupported');
+      case 'execute-revision': return revisionFromRows(resultRows(wrangler(["d1", "execute", "DB", location, "--command", query, "--json"], true)));
+      case 'null-return': return null;
+    }
+  } finally { session.free(); }
 }
 
 // Use the same SQLite framing as local bootstrap. Physical lines may be inside

@@ -142,3 +142,33 @@ test('sync policy preserves lazy full fallback, opaque revision identity and ref
   assert.throws(() => syncDecision('same', 'same', 1, Symbol('ceiling')), TypeError);
   assert.throws(() => syncDecision('same', 'same', Number.MAX_SAFE_INTEGER + 1), /statement count/);
 });
+
+test('D1 revision policy preserves refusal order and retained native callbacks', () => {
+  assert.throws(() => resultRows('{}'), /revision query did not succeed/);
+  assert.throws(() => resultRows('[{"success":false,"results":null}]'), /revision query did not succeed/);
+  assert.equal(revisionFromRows([{json: 42}]), null);
+  assert.equal(revisionFromRows([{json: '{"sha256":""}'}]), null);
+  assert.throws(() => revisionFromRows([{json: '{'}]), SyntaxError);
+  assert.equal(revisionQueryForColumns(['json_chunk', 'json']), LEGACY_REVISION_QUERY);
+  let successCallback, resultsCallback;
+  const some = Array.prototype.some, flatMap = Array.prototype.flatMap;
+  try {
+    Array.prototype.some = function(callback) { successCallback = callback; return 0; };
+    Array.prototype.flatMap = function(callback) { resultsCallback = callback; return ['opaque']; };
+    assert.deepEqual(resultRows('[{"success":true}]'), ['opaque']);
+  } finally { Array.prototype.some = some; Array.prototype.flatMap = flatMap; }
+  assert.equal(successCallback({success: true}), false);
+  assert.equal(successCallback(null), true);
+  let reads = 0;
+  const opaque = {};
+  assert.equal(resultsCallback({get results() { return ++reads === 1 ? [] : opaque; }}), opaque);
+  assert.equal(reads, 2);
+  assert.deepEqual(resultsCallback({results: 'not an array'}), []);
+  const originalParse = JSON.parse;
+  let digestReads = 0;
+  try {
+    JSON.parse = () => ({get sha256() { return ++digestReads < 3 ? 'admitted' : opaque; }});
+    assert.equal(revisionFromRows([{json: 'source'}]), opaque);
+    assert.equal(digestReads, 3);
+  } finally { JSON.parse = originalParse; }
+});
