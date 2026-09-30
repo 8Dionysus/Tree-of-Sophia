@@ -32,7 +32,21 @@ fn positive(raw: &str) -> Result<u64, String> {
         Ok(n)
     }
 }
-fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
+enum PrepareFailure {
+    Usage(String),
+    Runtime(String),
+}
+impl From<String> for PrepareFailure {
+    fn from(message: String) -> Self {
+        Self::Usage(message)
+    }
+}
+impl From<&str> for PrepareFailure {
+    fn from(message: &str) -> Self {
+        Self::Usage(message.to_owned())
+    }
+}
+fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), PrepareFailure> {
     let mut source_limits: Option<SourceBootstrapLimits> = None;
     let mut source = None;
     let mut output = None;
@@ -43,20 +57,17 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
     let mut scratch_mutations = None;
     let mut maintenance = None;
     let mut maintenance_mutations = None;
-    let mut seen = std::collections::BTreeSet::new();
     let mut options = args.iter().skip(1);
     while let Some(option) = options.next() {
-        if !seen.insert(option.as_str()) {
-            return Err("duplicate prepare option".into());
-        }
+        // Preserve the maintained CLI's last-value-wins scalar options.
         if option == "--attach-maintenance" {
             maintenance = Some(MaintenanceAttachmentLimits::default());
             continue;
         }
         let raw = options.next().ok_or("prepare option requires value")?;
         match option.as_str() {
-            "--source-root" => source = Some(absolute(raw, true)?),
-            "--output-dir" => output = Some(absolute(raw, false)?),
+            "--source-root" => source = Some(absolute(raw, true).map_err(PrepareFailure::Runtime)?),
+            "--output-dir" => output = Some(absolute(raw, false).map_err(PrepareFailure::Runtime)?),
             "--max-seconds" => seconds = Some(positive(raw)?),
             "--source-limits" => {
                 source_limits = Some(
@@ -123,8 +134,8 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
         max_seconds: seconds,
         source_limits,
     })
-    .map_err(|error| error.to_string())?;
-    writeln!(stdout, "{result}").map_err(|e| e.to_string())
+    .map_err(|error| PrepareFailure::Runtime(error.to_string()))?;
+    writeln!(stdout, "{result}").map_err(|e| PrepareFailure::Runtime(e.to_string()))
 }
 pub fn run_if_requested(
     args: &[String],
@@ -136,7 +147,11 @@ pub fn run_if_requested(
     }
     Some(match run(args, stdout) {
         Ok(()) => 0,
-        Err(error) => {
+        Err(failure) => {
+            let (code, error) = match failure {
+                PrepareFailure::Usage(error) => (2, error),
+                PrepareFailure::Runtime(error) => (1, error),
+            };
             // At most 1024 Unicode scalars: even JSON escaping fits the
             // maintained 8192-byte stderr transport envelope.
             let message: String = error.chars().take(1024).collect();
@@ -146,7 +161,7 @@ pub fn run_if_requested(
                 "message": message,
             });
             let _ = writeln!(stderr, "{failure}");
-            1
+            code
         }
     })
 }
