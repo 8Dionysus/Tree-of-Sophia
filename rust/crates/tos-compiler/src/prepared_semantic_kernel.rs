@@ -5,7 +5,7 @@
 //! semantic meaning.
 
 use crate::{Error, Result};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Deref;
@@ -2576,7 +2576,15 @@ fn exact_record_digest(value: Option<&Value>) -> Result<String> {
     let raw = serde_json::to_vec(value).map_err(|error| Error::Source(error.to_string()))?;
     let cap = raw.len().max(1);
     let json = crate::d1_public_capture::json(&raw, cap)?;
-    let canonical = crate::d1_public_capture::compact(&json, cap)?;
+    // Exact source identity uses the owner profile, not insertion-ordered
+    // publication framing. Cargo feature unification may enable preserve_order.
+    let canonical = tos_foundation::canonical_bytes_v1(
+        &json,
+        tos_foundation::CanonicalProfile::SourceRecordDigestV1,
+        tos_foundation::JsonLimits::new(cap, 96, 1_000_000, 4096)
+            .map_err(|_| Error::Budget("semantic exact record JSON"))?,
+    )
+    .map_err(|error| Error::Source(error.to_string()))?;
     Ok(tos_foundation::Digest256::of_bytes(&canonical).to_hex())
 }
 
@@ -2745,4 +2753,23 @@ fn metadata_history_refs(node: &Value) -> Result<Option<Vec<Value>>> {
         return Ok(None);
     }
     Ok(Some(refs.clone()))
+}
+
+#[cfg(test)]
+mod exact_source_identity_tests {
+    use super::*;
+
+    #[test]
+    fn source_identity_uses_sorted_owner_profile() {
+        // Deliberately retain opposite object encounter orders at both depths.
+        let left: Value = serde_json::from_str(r#"{"z":{"b":2,"a":1},"a":"é"}"#).unwrap();
+        let right: Value = serde_json::from_str(r#"{"a":"é","z":{"a":1,"b":2}}"#).unwrap();
+        let expected =
+            tos_foundation::Digest256::of_bytes(r#"{"a":"é","z":{"a":1,"b":2}}"#.as_bytes())
+                .to_hex();
+        assert_eq!(exact_record_digest(Some(&left)).unwrap(), expected);
+        assert_eq!(exact_record_digest(Some(&right)).unwrap(), expected);
+        let changed: Value = serde_json::from_str(r#"{"a":"é","z":{"a":1,"b":3}}"#).unwrap();
+        assert_ne!(exact_record_digest(Some(&changed)).unwrap(), expected);
+    }
 }
