@@ -1052,7 +1052,9 @@ print(raw({'header':raw(header),'nodes':[raw(v) for v in nav['nodes']],'edges':[
 
 #[test]
 fn normalized_selected_dossiers_preserve_shared_file_membership_rights_controls() {
-    use tos_compiler::knowledge_full_fixture::build_native_fixture_with_navigation_inputs;
+    use tos_compiler::knowledge_full_fixture::build_native_fixture_with_navigation_inputs_bounded;
+    use tos_compiler::knowledge_stage::StageLimits;
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(120);
     use tos_query::source_dossier::{
         DOSSIER_INTENDED_USE, DOSSIER_OPERATION, DossierBudget, execute_selected_dossier,
     };
@@ -1155,11 +1157,18 @@ print(encoded.decode())
         let nodes = rows("nodes");
         let edges = rows("edges");
         let rights = rows("rights");
-        let fixture = build_native_fixture_with_navigation_inputs(
+        let fixture = build_native_fixture_with_navigation_inputs_bounded(
             field(group, "header").as_str().unwrap().as_bytes(),
             &nodes,
             &edges,
             &rights,
+            StageLimits {
+                sqlite: tos_compiler::Limits::default(),
+                max_temp_bytes: 64 * 1024 * 1024,
+                max_seek_rows: 2,
+                max_seek_bytes: 1024 * 1024,
+            },
+            deadline,
         );
         let mut cold = fixture.open().unwrap();
         let bound =
