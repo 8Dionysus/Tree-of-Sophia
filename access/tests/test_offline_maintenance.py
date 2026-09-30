@@ -187,6 +187,7 @@ class OfflineMaintenanceTests(unittest.TestCase):
         if os.environ.get("TOS_NATIVE_SOURCE_PREPARE_EXECUTABLE"):
             base = producer.prepare(self.root, self.output,
                 limits=producer.PublicationLimits(max_bytes=8388608),
+                native_timeout=int(os.environ.get("TOS_NATIVE_SOURCE_PREPARE_SECONDS", "20")),
                 source_computational_limits=json.loads(os.environ["TOS_NATIVE_SOURCE_PREPARE_LIMITS"]))
         else:
             base = producer.prepare(self.root, self.output)
