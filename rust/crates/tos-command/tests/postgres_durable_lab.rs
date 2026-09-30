@@ -4562,12 +4562,20 @@ struct RestoreFixtureProfile {
 }
 impl RestoreFixtureProfile {
     fn selected() -> Self {
-        let revisions = std::env::var("TOS_CMD2_RESTORE_REVISIONS")
-            .map(|s| s.parse::<u64>().expect("lab revision count is an integer"))
+        let revisions = std::env::var_os("TOS_CMD2_RESTORE_REVISIONS")
+            .map(|s| {
+                s.into_string()
+                    .expect("lab revision count is UTF-8")
+                    .parse::<u64>()
+                    .expect("lab revision count is an integer")
+            })
             .unwrap_or(2);
-        let payload_bytes = std::env::var("TOS_CMD2_RESTORE_PAYLOAD_BYTES")
-            .ok()
-            .map(|s| s.parse::<usize>().expect("lab payload bytes is an integer"));
+        let payload_bytes = std::env::var_os("TOS_CMD2_RESTORE_PAYLOAD_BYTES").map(|s| {
+            s.into_string()
+                .expect("lab payload byte count is UTF-8")
+                .parse::<usize>()
+                .expect("lab payload bytes is an integer")
+        });
         // Small finite lab selection; transport's existing guards remain laws.
         assert!(
             (2..=64).contains(&revisions),
