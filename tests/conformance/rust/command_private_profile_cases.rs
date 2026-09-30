@@ -18,21 +18,36 @@ fn canonical(value: &Value) -> Vec<u8> {
     .unwrap()
 }
 
+fn charge_fixture_member(reference: &str, size: Option<u64>, census: &mut (usize, u64)) {
+    assert!(reference.len() <= 512 && reference.split('/').count() <= 16);
+    if let Some(size) = size {
+        assert!(size <= 8_388_608);
+        census.0 = census.0.checked_add(1).unwrap();
+        census.1 = census.1.checked_add(size).unwrap();
+        assert!(census.0 <= 256 && census.1 <= 8_388_608);
+    }
+}
+
 fn authored_preflight(root: &Path, deadline: Instant) -> (usize, u64) {
     let mut directories = vec![root.join("ToS")];
-    let (mut entries, mut files, mut bytes) = (0usize, 0usize, 0u64);
+    let mut entries = 0usize;
+    let mut directories_seen = 0usize;
+    let mut census = (0usize, 0u64);
     while let Some(directory) = directories.pop() {
         assert!(Instant::now() < deadline);
         for entry in fs::read_dir(directory).unwrap() {
             let entry = entry.unwrap();
             entries = entries.checked_add(1).unwrap();
-            assert!(entries <= 32768);
+            assert!(entries <= 4352);
             let kind = entry.file_type().unwrap();
             assert!(!kind.is_symlink());
             let path = entry.path();
             let reference = path.strip_prefix(root).unwrap().to_str().unwrap();
             if kind.is_dir() {
                 if tos_source_store::has_authored_source_descendants_v1(reference) {
+                    charge_fixture_member(reference, None, &mut census);
+                    directories_seen = directories_seen.checked_add(1).unwrap();
+                    assert!(directories_seen <= 4096);
                     directories.push(path);
                 }
             } else if tos_source_store::is_authored_source_path_v1(reference)
@@ -40,14 +55,11 @@ fn authored_preflight(root: &Path, deadline: Instant) -> (usize, u64) {
             {
                 assert!(kind.is_file());
                 let size = entry.metadata().unwrap().len();
-                assert!(size <= 8_388_608);
-                files = files.checked_add(1).unwrap();
-                bytes = bytes.checked_add(size).unwrap();
-                assert!(files <= 2048 && bytes <= 33_554_432);
+                charge_fixture_member(reference, Some(size), &mut census);
             }
         }
     }
-    (files, bytes)
+    census
 }
 
 fn capture_process(command: &mut Command, deadline: Instant) -> Vec<u8> {
@@ -328,6 +340,9 @@ fn native_private_profile_cli_preserves_owner_lifecycle_and_cold_archives() {
         "scripts/native_text_binding.py".to_owned(),
         "scripts/source_witness_human_forms.py".to_owned(),
         "scripts/corpus_archive.py".to_owned(),
+        "mechanics/growth-cycle/tests/test_source_owner_profile_commands.py".to_owned(),
+        "mechanics/growth-cycle/tests/test_occurrence_growth.py".to_owned(),
+        "tests/test_native_text_binding.py".to_owned(),
         "rust/crates/tos-command/src/source_native_cli.rs".to_owned(),
         "rust/crates/tos-command/src/source_command.rs".to_owned(),
         "rust/crates/tos-command/src/source_forms.rs".to_owned(),
@@ -362,14 +377,13 @@ fn native_private_profile_cli_preserves_owner_lifecycle_and_cold_archives() {
     }
     names.sort();
     names.dedup();
-    assert!(names.len() <= 2048);
-    let mut fixture_bytes = 0u64;
+    assert!(names.len() <= 256);
+    let mut census = (0usize, 0u64);
     for name in &names {
         let n = fs::metadata(repository.join(name)).unwrap().len();
-        assert!(n <= 8_388_608);
-        fixture_bytes = fixture_bytes.checked_add(n).unwrap();
-        assert!(fixture_bytes <= 33_554_432);
+        charge_fixture_member(name, Some(n), &mut census);
     }
+    let fixture_bytes = census.1;
     let native = PathBuf::from(
         std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH")
             .expect("OPS must select protected native Profile image"),
