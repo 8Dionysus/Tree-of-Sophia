@@ -417,7 +417,7 @@ jobs:
       - name: Checkout Rust sources and validation route
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
-          # Keep literal external include_* inputs for selected Rust crates/tests explicit.
+          # Keep external include_* inputs for selected Rust crates/tests within these bounded owner paths.
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /Cargo.toml
@@ -425,6 +425,7 @@ jobs:
             /rust-toolchain.toml
             /rust/
             /tests/conformance/rust/
+            /tests/fixtures/native-text-binding/
             /access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json
             /access/tests/fixtures/knowledge-contract/ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.json
             /access/tests/test_access_contract.py
@@ -447,6 +448,8 @@ jobs:
             /access/contracts/temporal-comparison-result.v1.schema.json
             /access/contracts/web-actions.v1.json
             /ToS/contracts/
+            /scripts/
+            /mechanics/growth-cycle/parts/branch-growth-cycle/scripts/
             /scripts/tos_corpus_index_common.py
             /scripts/validation_lanes.py
             /scripts/verify_rust_reader_install.py
