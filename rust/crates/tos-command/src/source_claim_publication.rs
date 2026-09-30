@@ -449,7 +449,7 @@ impl ClaimAdditionPublication {
             deadline,
             &cancelled,
         )
-        .map_err(|e| Error::Source(e.to_string()))?;
+        .map_err(|e| Error::Source(format!("{e:?}")))?;
         // This is the real selected schema/source-cut revision, independent
         // of the derived prepared source vector; it is no invented Cut proof.
         let revision = worker.source_revision();
@@ -521,7 +521,7 @@ impl ClaimAdditionPublication {
         }
         self.observer
             .verify_current(self.deadline, &self.cancelled)
-            .map_err(|e| Error::Source(e.to_string()))
+            .map_err(|e| Error::Source(format!("{e:?}")))
     }
     pub fn binding(&self) -> &JsonValue {
         &self.binding

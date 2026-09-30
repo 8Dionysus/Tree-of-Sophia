@@ -2,7 +2,7 @@
 use super::{
     source_claim_publication_assembly::AssembledAddition,
     source_claim_publication_bytes as bytes,
-    source_claim_publication_context::{self, Context},
+    source_claim_publication_context::{self as context, Context},
     source_claim_publication_dependencies as deps,
     source_claim_publication_graph::Graph,
     source_claim_publication_normalize as normalization,
