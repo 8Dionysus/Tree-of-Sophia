@@ -32,9 +32,14 @@ def export(work, packet_path):
     original_directory = tempfile.TemporaryDirectory
     original_command = maintained.commands.run_legacy_oracle_command
     selected_request = None
+    class CallerOwnedDirectory(original_directory):
+        def cleanup(self):
+            # Generator context exit must not delete the exported predecessor.
+            # The caller's Rust TempDir owns this entire nested workspace.
+            self._finalizer.detach()
     def directory(*args, **kwargs):
         kwargs['dir'] = str(work)
-        result = original_directory(*args, **kwargs)
+        result = CallerOwnedDirectory(*args, **kwargs)
         result._finalizer.detach()  # Whole native consumer owns disposal.
         return result
     def command(owner, request, *args, **kwargs):
