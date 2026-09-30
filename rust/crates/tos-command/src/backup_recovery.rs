@@ -278,8 +278,41 @@ fn tool(
             command.env_remove(name);
         }
     }
+    // PGDATABASE is a database name, not a connection URI. Decode the same
+    // configured target into private libpq environment without exposing URL argv.
+    let selected = pg_url.parse::<postgres::Config>().map_err(|_| error())?;
+    require(selected.get_hosts().len() == 1 && selected.get_ports().len() <= 1)?;
+    let host = match &selected.get_hosts()[0] {
+        postgres::config::Host::Tcp(host) => host.as_str(),
+        _ => return Err(error()),
+    };
+    let user = selected.get_user().ok_or_else(error)?;
+    let database = selected.get_dbname().ok_or_else(error)?;
+    command
+        .env("PGHOST", host)
+        .env(
+            "PGPORT",
+            selected
+                .get_ports()
+                .first()
+                .copied()
+                .unwrap_or(5432)
+                .to_string(),
+        )
+        .env("PGUSER", user)
+        .env("PGDATABASE", database)
+        .env("PGCONNECT_TIMEOUT", "5")
+        .env("PGSSLMODE", "disable");
+    if let Some(password) = selected.get_password() {
+        command.env(
+            "PGPASSWORD",
+            std::str::from_utf8(password).map_err(|_| error())?,
+        );
+    }
+    if let Some(options) = selected.get_options() {
+        command.env("PGOPTIONS", options);
+    }
     let spawned = command
-        .env("PGDATABASE", pg_url)
         .args(args)
         .stdin(input.map(Stdio::from).unwrap_or_else(Stdio::null))
         .stdout(output.map(Stdio::from).unwrap_or_else(Stdio::null))
@@ -372,13 +405,7 @@ pub fn backup_quiescent(s: &BackupSelection<'_>, d: Instant, c: &AtomicBool) -> 
         .open(&dump)?;
     let tool_receipt = tool(
         &s.tool,
-        &[
-            "--format=custom",
-            "--no-owner",
-            "--no-privileges",
-            "--dbname",
-            "",
-        ],
+        &["--format=custom", "--no-owner", "--no-privileges"],
         None,
         Some(dump_file.try_clone()?),
         s.pg_url,
@@ -474,8 +501,6 @@ pub fn restore_into_fresh(
             "--single-transaction",
             "--no-owner",
             "--no-privileges",
-            "--dbname",
-            "",
         ],
         Some(dump_file),
         None,
