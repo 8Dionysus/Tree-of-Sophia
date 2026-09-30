@@ -862,3 +862,5 @@ mod command_owner_text_cases;
 mod command_private_profile_cases;
 #[path = "command_private_claim_cases.rs"]
 mod command_private_claim_cases;
+#[path = "command_legacy_claim_cases.rs"]
+mod command_legacy_claim_cases;
