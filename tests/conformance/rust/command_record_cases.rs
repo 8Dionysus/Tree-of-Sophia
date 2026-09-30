@@ -2591,6 +2591,7 @@ fn native_initial_creation_cli_preserves_oracle_and_cold_retained_receipt() {
     let invocation_path = temporary.path().join("native-creation-invocation.json");
     let mut invocation = serde_json::json!({
         "schema_version":"tos_local_native_source_invocation_v1", "owner_context":null, "owner_config":owner,
+        "assessment_schema_worker":null,
         "native_executable":native, "native_executable_sha256":alignment_image_digest(&native).to_prefixed(),
         "corpus_store":store,"source_revision":base.0.to_prefixed(),"original_source_revision":base.0.to_prefixed(),
         "software_capture":capture.capture,"software_restored_root":capture.restored,
