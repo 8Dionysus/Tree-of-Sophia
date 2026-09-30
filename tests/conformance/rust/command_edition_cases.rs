@@ -25,7 +25,7 @@ implementations=sorted(fixture.edition.IMPLEMENTATIONS)
 for ref in implementations:
     p=root/ref;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes((repository/ref).read_bytes());p.chmod(0o644)
 note=case.expression_path.with_name('unrelated-note.txt');note.write_bytes(b'unchanged unrelated note\n')
-print(json.dumps({'config':case.config,'proposal':case.proposal(),'implementations':implementations,'owner':str(case.owner),'edition_ref':case.expression_ref,'work_ref':case.config['work_source_path'],'origin_ref':case.expression_path.with_name('source-claims.jsonl').relative_to(root).as_posix()},ensure_ascii=False))
+print(json.dumps({'config':case.config,'proposal':case.proposal(),'origin_claim':case.origin_request['claim'],'implementations':implementations,'owner':str(case.owner),'edition_ref':case.expression_ref,'work_ref':case.config['work_source_path'],'origin_ref':case.expression_path.with_name('source-claims.jsonl').relative_to(root).as_posix()},ensure_ascii=False))
 "#;
 const UPDATE: &str = r#"
 import json,sys
@@ -44,6 +44,7 @@ case.extra_records=[];case.extra_claims=[]
 
 action=json.load(sys.stdin)
 if action['action']=='next':
+    case.origin_request={'claim':action['origin_claim']}
     case.select_child('second');case.owner.chmod(0o600)
     print(json.dumps({'config':case.config,'proposal':case.proposal()}))
 elif action['action']=='rebuild':
@@ -352,7 +353,7 @@ fn native_edition_cli_preserves_topology_cold_replay_and_retained_recovery() {
                 isolated.path(),
                 isolated.path(),
                 UPDATE,
-                Some(&json!({"action":"next"})),
+                Some(&json!({"action":"next","origin_claim":fixture["origin_claim"]})),
                 deadline,
             );
             invocation["original_source_revision"] = Value::Null;
