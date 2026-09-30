@@ -221,6 +221,13 @@ pub(super) fn run(
         )?;
         let mut response;
         if operation == "describe" {
+            let parent_history = filesystem.verify_work_parent_history(
+                ctx,
+                current,
+                &mut worker,
+                limits,
+                cancelled,
+            )?;
             worker.finish(deadline, cancelled).map_err(|reason| {
                 SourceCommandError::SchemaExecution {
                     path: "work.expression.describe".into(),
@@ -240,6 +247,7 @@ pub(super) fn run(
                 false,
                 None,
                 None,
+                &parent_history,
                 deadline,
                 cancelled,
             )?)?;
@@ -266,6 +274,7 @@ pub(super) fn run(
                 false,
                 None,
                 None,
+                prepared.parent_history_proof(),
                 deadline,
                 cancelled,
             )?)?;
@@ -464,6 +473,7 @@ pub(super) fn run(
                 publication.replayed(),
                 pending.then(|| publication.publication().clone()),
                 Some(views),
+                publication.parent_history_proof(),
                 deadline,
                 cancelled,
             )?)?;

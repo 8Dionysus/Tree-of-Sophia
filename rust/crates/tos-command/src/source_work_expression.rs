@@ -2,7 +2,7 @@
 //! bytes; this module alone may construct its Work-specific authorization.
 
 use super::work_transaction::{self, PublicationSnapshot};
-use super::{active, member_mode_matches, scan, walk, CreationFilesystem, MAX_BYTES, MAX_FILES};
+use super::{CreationFilesystem, MAX_BYTES, MAX_FILES, active, member_mode_matches, scan, walk};
 use crate::source_command::{self as cmd, CommandContext, SourceCommandError, SourceCommandResult};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -10,10 +10,10 @@ use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue, RelativePath};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
+use tos_validation::PredicateRead;
 use tos_validation::item_rules::ItemLimits;
 use tos_validation::item_rules::ItemRefusal;
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
-use tos_validation::PredicateRead;
 
 const CONFIG: &str = "tos_local_work_expression_owner_v1";
 const REQUEST: &str = "tos_local_work_expression_command_v1";
@@ -856,9 +856,206 @@ struct WorkCatalog {
     retained_transactions: BTreeMap<String, String>,
 }
 
+/// Private evidence from the fixed Work kernel and current physical fences.
+/// It records only three digests/lengths; callers cannot construct or alter it.
+pub(crate) struct WorkParentHistoryProof {
+    members: BTreeMap<String, (Digest256, usize)>,
+}
+impl WorkParentHistoryProof {
+    fn from_validated_package(package: &BTreeMap<String, Vec<u8>>) -> Self {
+        Self {
+            members: package
+                .iter()
+                .map(|(name, raw)| (name.clone(), (Digest256::of_bytes(raw), raw.len())))
+                .collect(),
+        }
+    }
+    fn from_validated_plan(
+        plan: &work_transaction::WorkPlan,
+        rollback: bool,
+    ) -> SourceCommandResult<Self> {
+        let scope = cmd::field(&plan.authorization, "scope")?;
+        let home = cmd::text(scope, "work_source_path")?
+            .rsplit_once('/')
+            .ok_or(SourceCommandError::Invalid("Work proof parent"))?
+            .0;
+        let mut members = BTreeMap::new();
+        for name in [
+            "work.json",
+            "work.human-forms.json",
+            "source-revision-history.json",
+        ] {
+            let path = format!("{home}/{name}");
+            let file = plan.files.iter().find(|f| f.path.as_str() == path).ok_or(
+                SourceCommandError::Conflict("Work proof selected parent absent"),
+            )?;
+            if let Some(raw) = if rollback {
+                file.before.as_ref()
+            } else {
+                file.after.as_ref()
+            } {
+                members.insert(name.to_owned(), (Digest256::of_bytes(raw), raw.len()));
+            }
+        }
+        Ok(Self { members })
+    }
+    fn check(&self, package: &BTreeMap<String, Vec<u8>>) -> SourceCommandResult<()> {
+        if self.members.len() != package.len()
+            || package.iter().any(|(name, raw)| {
+                self.members.get(name) != Some(&(Digest256::of_bytes(raw), raw.len()))
+            })
+        {
+            return Err(SourceCommandError::Conflict(
+                "Work response differs from typed parent history proof",
+            ));
+        }
+        Ok(())
+    }
+}
+
+impl CreationFilesystem {
+    /// Current Describe has no publication result. Verify retained Work rows
+    /// through the existing typed Claim/archive/transport owner before FINAL.
+    pub(crate) fn verify_work_parent_history(
+        &self,
+        ctx: &CommandContext,
+        cut: &CorpusCutReader,
+        worker: &mut CutWorkerSchemaExecutor,
+        limits: ItemLimits,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<WorkParentHistoryProof> {
+        let owner = WorkOwner::select_configuration(self, ctx, limits.deadline, cancelled)?;
+        let snapshot = PublicationSnapshot::select(self, limits.deadline, cancelled)?;
+        complete_current_cut(self, cut, &snapshot, limits.deadline, cancelled)?;
+        let package = selected_before(self, &owner, cut, &snapshot, limits.deadline, cancelled)?;
+        let raw = package
+            .get("work.json")
+            .ok_or(SourceCommandError::Conflict(
+                "Work history current record absent",
+            ))?;
+        let history = tos_validation::native_compound::inspect_record_history(
+            &package,
+            raw,
+            limits.deadline,
+            cancelled,
+        )
+        .map_err(item_error)?;
+        let rows = history["receipts"]
+            .as_array()
+            .ok_or(SourceCommandError::Invalid("Work history receipts"))?;
+        let mut read_bytes = 0u64;
+        let mut compound = false;
+        for row in rows {
+            if row["request"]["operation"] == "record.revise" {
+                continue;
+            }
+            if row["request"]["operation"] != OPERATION {
+                return Err(SourceCommandError::Unsupported(
+                    "Work history requires another fixed compound owner",
+                ));
+            }
+            compound = true;
+            let id = row["request"]["claim"]["claim_id"]
+                .as_str()
+                .ok_or(SourceCommandError::Invalid("Work history Claim id"))?;
+            let mut found = None;
+            for file in &ctx.files {
+                if !file.path.as_str().starts_with("ToS/")
+                    || !file.path.as_str().ends_with("/source-claims.jsonl")
+                {
+                    continue;
+                }
+                for line in catalog_lines(&file.raw) {
+                    if crate::source_claims::python_bytes_blank(line) {
+                        continue;
+                    }
+                    let claim = cmd::parse(line)?;
+                    if cmd::text(&claim, "claim_id")? == id {
+                        if found.replace((file.path.as_str(), claim)).is_some() {
+                            return Err(SourceCommandError::Conflict(
+                                "Work history duplicate Claim",
+                            ));
+                        }
+                    }
+                }
+            }
+            let (path, claim) =
+                found.ok_or(SourceCommandError::Conflict("Work history Claim absent"))?;
+            if cmd::text(&claim, "subject_ref")? != owner.work_id {
+                return Err(SourceCommandError::Conflict(
+                    "Work history Claim parent differs",
+                ));
+            }
+            let remaining = limits
+                .max_total_bytes
+                .checked_sub(read_bytes)
+                .ok_or(SourceCommandError::Invalid("Work history read budget"))?;
+            let observed = tos_validation::native_compound::verify_work_expression_reads_from_cut(
+                cut,
+                worker,
+                path,
+                &serde_value(&claim)?,
+                ItemLimits {
+                    max_total_bytes: remaining,
+                    ..limits
+                },
+                cancelled,
+            )
+            .map_err(item_error)?;
+            read_bytes = read_bytes
+                .checked_add(observed.bytes_read)
+                .filter(|n| *n <= limits.max_total_bytes)
+                .ok_or(SourceCommandError::Invalid(
+                    "Work history cumulative read budget",
+                ))?;
+            let (manifest, plan, _, _) = work_transaction::inspect_committed(
+                self,
+                &observed.transaction_id,
+                limits.deadline,
+                cancelled,
+            )?;
+            let transition = foundation_value(row)?;
+            if observed.transport
+                != tos_validation::native_compound::NativeTransportState::Committed
+                || observed.manifest_sha256 != manifest
+                || observed.claim_id != id
+                || cmd::text(cmd::field(&plan.authorization, "scope")?, "claim_id")? != id
+                || observed.work_parent_transition_sha256.as_deref()
+                    != Some(cmd::record_digest(&transition)?.to_prefixed().as_str())
+                || cmd::text(&plan.authorization, "schema_version")? != AUTHORIZATION
+                || cmd::text(cmd::field(&plan.authorization, "scope")?, "work_id")? != owner.work_id
+            {
+                return Err(SourceCommandError::Conflict(
+                    "Work history typed receipt or journal differs",
+                ));
+            }
+            selected_reads_current(
+                self,
+                cut,
+                &observed.reads,
+                &BTreeMap::new(),
+                &[],
+                WorkControlRead::Ready(&snapshot),
+                remaining,
+                limits.deadline,
+                cancelled,
+            )?;
+        }
+        if !compound {
+            crate::source_revisions::history(&package, &cmd::parse(raw)?)?;
+        }
+        complete_current_cut(self, cut, &snapshot, limits.deadline, cancelled)?;
+        software_current(self, ctx, limits.deadline, cancelled)?;
+        self.current_context(ctx, limits.deadline, cancelled)?;
+        snapshot.verify_current(self, limits.deadline, cancelled)?;
+        Ok(WorkParentHistoryProof::from_validated_package(&package))
+    }
+}
+
 /// Exact isolated Work transaction outcome, with no source, rights, semantic,
 /// publication-to-public, or canon admission claim.
 pub struct WorkExpressionPublication {
+    parent_history: WorkParentHistoryProof,
     transaction_id: String,
     manifest_sha256: String,
     publication: JsonValue,
@@ -870,10 +1067,14 @@ pub struct WorkExpressionPublication {
 /// It carries no publication, source, rights, or semantic authority; the
 /// create entry independently selects and revalidates every input.
 pub struct WorkExpressionPreparation {
+    parent_history: WorkParentHistoryProof,
     request: JsonValue,
     projected_outputs: BTreeMap<String, Vec<u8>>,
 }
 impl WorkExpressionPreparation {
+    pub(crate) fn parent_history_proof(&self) -> &WorkParentHistoryProof {
+        &self.parent_history
+    }
     pub fn request(&self) -> &JsonValue {
         &self.request
     }
@@ -882,6 +1083,9 @@ impl WorkExpressionPreparation {
     }
 }
 impl WorkExpressionPublication {
+    pub(crate) fn parent_history_proof(&self) -> &WorkParentHistoryProof {
+        &self.parent_history
+    }
     pub fn transaction_id(&self) -> &str {
         &self.transaction_id
     }
@@ -2388,6 +2592,7 @@ pub(crate) fn work_expression_owner_result(
     replayed: bool,
     recovery: Option<JsonValue>,
     materializations: Option<JsonValue>,
+    parent_history: &WorkParentHistoryProof,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<JsonValue> {
@@ -2413,7 +2618,17 @@ pub(crate) fn work_expression_owner_result(
             "Work response identity differs from delegation",
         ));
     }
-    crate::source_revisions::history(&before, &work)?;
+    parent_history.check(&before)?;
+    // Structural inspection is subordinate to the private typed proof above.
+    tos_validation::native_compound::inspect_record_history(
+        &before,
+        before
+            .get("work.json")
+            .ok_or(SourceCommandError::Conflict("Work response record absent"))?,
+        deadline,
+        cancelled,
+    )
+    .map_err(item_error)?;
     let result = cmd::object(vec![
         (
             "schema_version",
@@ -2641,6 +2856,7 @@ pub fn prepare_isolated_work_expression_from_proposal(
     )?;
     complete_current_cut(fs, cut, &snapshot, limits.deadline, cancelled)?;
     Ok(WorkExpressionPreparation {
+        parent_history: WorkParentHistoryProof::from_validated_package(&before),
         request,
         projected_outputs,
     })
@@ -2882,6 +3098,7 @@ fn apply_work_application(
         receipt,
     } = prepared;
     let fence = work_transaction::WorkCorpusFence::hold(fs, limits.deadline, cancelled)?;
+    let parent_history = WorkParentHistoryProof::from_validated_plan(&plan, false)?;
     let applied = fence.apply(
         plan,
         &guard.snapshot,
@@ -2895,6 +3112,7 @@ fn apply_work_application(
         ));
     }
     Ok(WorkExpressionPublication {
+        parent_history,
         transaction_id: applied.transaction_id,
         manifest_sha256: applied.manifest_sha256,
         publication: applied.publication,
@@ -3078,7 +3296,18 @@ pub fn replay_isolated_work_expression_from_captures(
         return Err(SourceCommandError::Conflict("Work retained replay changed"));
     }
     snapshot.verify_current(fs, limits.deadline, cancelled)?;
+    let response_parent = selected_before(
+        fs,
+        &owner,
+        current_cut,
+        &snapshot,
+        limits.deadline,
+        cancelled,
+    )?;
+    let parent_history = WorkParentHistoryProof::from_validated_package(&response_parent);
+    snapshot.verify_current(fs, limits.deadline, cancelled)?;
     Ok(WorkExpressionPublication {
+        parent_history,
         transaction_id,
         manifest_sha256,
         publication: terminal,
@@ -3379,6 +3608,7 @@ fn recover_work_expression(
             cmd::string(if rollback { "rollback" } else { "resume" }),
         ),
     ]);
+    let parent_history = WorkParentHistoryProof::from_validated_plan(&held_pending.plan, rollback)?;
     let result = fence.recover(
         &held_pending,
         rollback,
@@ -3388,6 +3618,7 @@ fn recover_work_expression(
         cancelled,
     )?;
     Ok(WorkExpressionPublication {
+        parent_history,
         transaction_id: result.transaction_id,
         manifest_sha256: result.manifest_sha256,
         publication: result.publication,
