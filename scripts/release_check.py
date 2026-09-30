@@ -37,9 +37,13 @@ def run_step(label: str, command: list[str]) -> int:
     return completed.returncode
 
 
-def _arguments(argv: list[str] | None = None) -> argparse.Namespace:
+def _arguments(argv: list[str] | None = None, *, native: bool = False) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--phase', choices=('all', 'checks', 'tests'), default='all')
+    if native:
+        for option in ('command-timeout-ms', 'lane-timeout-ms',
+                       'cleanup-grace-ms', 'max-output-bytes'):
+            parser.add_argument('--' + option, type=int, default=None)
     return parser.parse_args(argv)
 
 
@@ -62,13 +66,20 @@ def native_main(argv: list[str] | None = None) -> int:
     import shutil
     import sys
 
-    args = _arguments(argv)
+    args = _arguments(argv, native=True)
     selected = os.environ.get('TOS_RELEASE_CHECK_EXECUTOR')
     executable = selected or shutil.which('tos-release-check')
     if not executable:
         print('[error] install tos-release-check or set TOS_RELEASE_CHECK_EXECUTOR', file=sys.stderr)
         return 1
     arguments = ['--phase', args.phase]
+    # Forward explicit owner limits; native validation remains authoritative.
+    # Omitted values retain the native defaults rather than duplicating them.
+    for option in ('command-timeout-ms', 'lane-timeout-ms',
+                   'cleanup-grace-ms', 'max-output-bytes'):
+        value = getattr(args, option.replace('-', '_'))
+        if value is not None:
+            arguments.extend(['--' + option, str(value)])
     try:
         os.execv(executable, [executable, '--repo-root', str(REPO_ROOT),
                               '--python', sys.executable, *arguments])
