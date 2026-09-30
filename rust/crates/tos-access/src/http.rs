@@ -1025,7 +1025,19 @@ pub fn serve(
     }
     // Missing/unassembled software refuses only site routes; existing APIs
     // retain their independent explicit selected owner behavior.
-    let site = crate::site::SoftwareSite::installed(profile.deadline_probe()).ok();
+    let site = match crate::site::SoftwareSite::installed(profile.deadline_probe()) {
+        Ok(site) => Some(site),
+        Err(error) => {
+            // Site errors contain contract diagnostics, never document contents.
+            // Keep API-only serving available while explaining a refused install.
+            eprintln!(
+                "installed software site: {}: {}",
+                error.code_str(),
+                error.message
+            );
+            None
+        }
+    };
     let listener = TcpListener::bind(addresses.as_slice())?;
     let active = Arc::new(AtomicUsize::new(0));
     for accepted in listener.incoming() {
