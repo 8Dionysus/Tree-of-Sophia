@@ -857,10 +857,12 @@ mod command_edition_cases;
 mod command_artifact_cases;
 mod command_object_link_cases;
 
-mod command_owner_text_cases;
-#[path = "command_private_profile_cases.rs"]
-mod command_private_profile_cases;
-#[path = "command_private_claim_cases.rs"]
-mod command_private_claim_cases;
 #[path = "command_legacy_claim_cases.rs"]
 mod command_legacy_claim_cases;
+#[path = "command_metadata_publication_cases.rs"]
+mod command_metadata_publication_cases;
+mod command_owner_text_cases;
+#[path = "command_private_claim_cases.rs"]
+mod command_private_claim_cases;
+#[path = "command_private_profile_cases.rs"]
+mod command_private_profile_cases;

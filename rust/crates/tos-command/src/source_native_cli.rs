@@ -36,12 +36,16 @@ mod creation;
 mod edition;
 #[path = "source_native_forms_cli.rs"]
 mod forms;
-#[path = "source_native_object_link_cli.rs"]
-mod object_link;
-#[path = "source_native_private_cli.rs"]
-mod private_owner;
 #[path = "source_native_legacy_claim_cli.rs"]
 mod legacy_claim;
+#[path = "source_native_metadata_publication_cli.rs"]
+mod metadata_publication;
+#[path = "source_native_object_link_cli.rs"]
+mod object_link;
+#[path = "source_native_prepared_transport.rs"]
+mod prepared_transport;
+#[path = "source_native_private_cli.rs"]
+mod private_owner;
 #[path = "source_native_public_text_cli.rs"]
 mod public_text;
 #[path = "source_native_responsibility_cli.rs"]
@@ -138,6 +142,8 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
         text(&invocation, "schema_version")? == "tos_local_native_collection_invocation_v1";
     let agent_publication_invocation =
         text(&invocation, "schema_version")? == "tos_local_native_agent_publication_invocation_v1";
+    let metadata_publication_invocation = text(&invocation, "schema_version")?
+        == "tos_local_native_metadata_publication_invocation_v1";
     let source_invocation =
         text(&invocation, "schema_version")? == "tos_local_native_source_invocation_v1";
     let mut keys = vec![
@@ -161,10 +167,10 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
             "owner_context"
         },
     );
-    if source_invocation || agent_publication_invocation {
+    if source_invocation || agent_publication_invocation || metadata_publication_invocation {
         keys.extend(["original_source_revision", "assessment_schema_worker"]);
     }
-    if agent_publication_invocation {
+    if agent_publication_invocation || metadata_publication_invocation {
         keys.extend([
             "prepared_database",
             "expected_binding_path",
@@ -178,11 +184,19 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
             "reviewed_execution_transition",
         ]);
     }
+    if metadata_publication_invocation {
+        keys.extend([
+            "reviewed_metadata_transition",
+            "expected_creation_receipt_sha256",
+            "expected_creation_request_digest",
+        ]);
+    }
     exact(&invocation, &keys)?;
     if !item_invocation
         && !claim_invocation
         && !source_invocation
         && !agent_publication_invocation
+        && !metadata_publication_invocation
         && !collection_invocation
         && text(&invocation, "schema_version")? != "tos_local_native_owner_invocation_v1"
     {
@@ -198,13 +212,20 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     let request = cmd::parse(&request_raw)?;
     let operation = cmd::text(
         &request,
-        if agent_publication_invocation {
+        if agent_publication_invocation || metadata_publication_invocation {
             "action"
         } else {
             "operation"
         },
     )?;
-    let implemented = if agent_publication_invocation {
+    let implemented = if metadata_publication_invocation {
+        matches!(
+            operation,
+            "describe-metadata-execution"
+                | "reviewed-metadata-execution-bootstrap"
+                | "publish-initial-metadata"
+        )
+    } else if agent_publication_invocation {
         matches!(
             operation,
             "describe-agent-execution"
@@ -340,6 +361,18 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
     let components = software
         .select_components(&component_paths)
         .map_err(|_| SourceCommandError::Conflict("selected software components"))?;
+    if metadata_publication_invocation {
+        return metadata_publication::run(
+            &invocation,
+            &request_raw,
+            &store,
+            &cut,
+            &software,
+            &components,
+            deadline,
+            &cancelled,
+        );
+    }
     if agent_publication_invocation {
         return agent_publication::run(
             &invocation,

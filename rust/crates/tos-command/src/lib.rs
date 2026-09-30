@@ -28,6 +28,8 @@ pub mod source_creation_store;
 pub mod source_current_cut;
 mod source_managed_query;
 pub mod source_managed_selection;
+pub mod source_metadata_publication;
+mod source_metadata_publication_assembly;
 pub mod source_native_cli;
 pub use durable_adapter::source_cohort;
 mod source_assessment_journal;

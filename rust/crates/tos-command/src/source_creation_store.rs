@@ -34,6 +34,9 @@ use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 #[path = "source_claim_publication_owner.rs"]
 mod claim_publication_owner;
 pub(crate) use claim_publication_owner::CommittedClaimObservation;
+#[path = "source_metadata_creation_observation.rs"]
+mod metadata_creation_observation;
+pub(crate) use metadata_creation_observation::CommittedMetadataCreationObservation;
 
 const CORPUS_LOCK: &str = ".historical-create.writer.lock";
 

@@ -1631,13 +1631,26 @@ def _run_selected_native_owner(owner_config: Path, invocation_path: Path, reques
             raise PermissionError('native invocation must be private owner bytes')
     raw = _read(invocation_path, MAX_COMMAND_BYTES)
     invocation = _json_object(raw)
+    publication_profile = invocation.get('schema_version')
+    publication = source and publication_profile in (
+        'tos_local_native_agent_publication_invocation_v1',
+        'tos_local_native_metadata_publication_invocation_v1')
     keys = {'schema_version', 'owner_config', 'native_executable', 'native_executable_sha256',
             'corpus_store', 'source_revision', 'software_capture', 'software_restored_root',
             'software_selection', 'software_components', 'schema_worker', 'budgets'}
     keys.add('original_source_revision' if item or claim or collection else 'owner_context')
     if source:
         keys.update(('original_source_revision', 'assessment_schema_worker'))
-    profile = ('tos_local_native_collection_invocation_v1' if collection else
+    if publication:
+        keys.update(('prepared_database', 'expected_binding_path', 'source_inputs_path',
+                     'source_inputs_sha256', 'catalog_path', 'catalog_sha256',
+                     'descriptor_path', 'descriptor_sha256', 'publication_limits',
+                     'reviewed_execution_transition'))
+        if publication_profile == 'tos_local_native_metadata_publication_invocation_v1':
+            keys.update(('reviewed_metadata_transition', 'expected_creation_receipt_sha256',
+                         'expected_creation_request_digest'))
+    profile = (publication_profile if publication else
+               'tos_local_native_collection_invocation_v1' if collection else
                'tos_local_native_claim_invocation_v1' if claim else
                'tos_local_native_item_invocation_v1' if item else
                'tos_local_native_source_invocation_v1' if source else 'tos_local_native_owner_invocation_v1')
