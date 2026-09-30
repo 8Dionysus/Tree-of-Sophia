@@ -125,9 +125,13 @@ route independently of AbyssOS helpers.
 
 ## Local native owner-command delivery
 
-Source mutations have a separate owner-scoped installation route. They are not
-part of the read-only access software archive. From the exact reviewed checkout,
-install the native dispatcher and its schema worker in a fresh absolute prefix:
+Source mutations retain an owner-scoped invocation route. The existing software
+archive can deliver their executables together with access, the schema worker and
+the three compiler-free ops entries using the optional fixed command cohort
+documented in access/README.md. Access-only archives remain supported. Archive
+installation grants no write authority and installs no invocation/config files.
+For separately prepared local products, the existing Cargo installation route
+also remains available from an exact reviewed checkout:
 
 ```sh
 owner_prefix=/absolute/fresh-owner-prefix

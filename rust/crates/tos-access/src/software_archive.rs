@@ -19,6 +19,20 @@ use tos_foundation::{
 use zip::{CompressionMethod, DateTime, ZipWriter, write::SimpleFileOptions};
 
 const PROGRAM: &str = "access/src/tos_access/tos-access";
+const COMMAND_SCHEMA: &str = "tos_native_software_command_build_v1";
+const COMMANDS: [&str; 5] = [
+    "tos-native-owner-command",
+    "tos-schema-worker",
+    "tos-validation-lanes",
+    "tos-release-check",
+    "tos-software-ci",
+];
+fn command_member(name: &str) -> String {
+    format!("native/bin/{name}")
+}
+fn executable_member(name: &str) -> bool {
+    name == PROGRAM || COMMANDS.iter().any(|role| name == command_member(role))
+}
 const MANIFEST: &str = "software.manifest.json";
 const MANIFEST_BYTES: usize = 1_048_576;
 const STATIC: &str = "access/src/tos_access/web_dist/";
@@ -31,7 +45,7 @@ const TOS_SCHEMAS: [&str; 3] = [
     "semantic-relation-type-registry.schema.json",
     "epistemic-evidence-projection.schema.json",
 ];
-const README: &str = "# Tree of Sophia software package\n\nNative Linux x86_64 software is the verified member\n`access/src/tos_access/tos-access`; it needs no Python runtime.\nRun that member with `--help`, or install this archive into a fresh user prefix\nwith `software install --archive ABSOLUTE_ARCHIVE --prefix ABSOLUTE_PREFIX`\nand the explicit total/archive/member/metadata budgets documented in access/README.md.\nThe installed entrypoint is PREFIX/bin/tos; select its PATH explicitly.\nSelect managed data separately with `--release-root ABSOLUTE_RELEASE`.\nNo selected data means truthful unavailable data capabilities.\n\nThis native archive contains no Python runtime or wheel backend.\nThe repository retains explicit LEGACY Python reference compatibility with\n`pip install ./access`, whose command is `tos-legacy`; it is not installed\nfrom this archive. Neither installation carries corpus data.\n";
+const README: &str = "# Tree of Sophia software package\n\nNative Linux x86_64 software is the verified member\n`access/src/tos_access/tos-access`; it needs no Python runtime.\nRun that member with `--help`, or install this archive into a fresh user prefix\nwith `software install --archive ABSOLUTE_ARCHIVE --prefix ABSOLUTE_PREFIX`\nand the explicit total/archive/member/metadata budgets documented in access/README.md.\nThe installed entrypoint is PREFIX/bin/tos; invoke its absolute path explicitly.\nAn optional verified command cohort installs five fixed PREFIX/bin command links.\nOwner command execution still requires a protected explicit invocation and grants.\nSelect managed data separately with `--release-root ABSOLUTE_RELEASE`.\nNo selected data means truthful unavailable data capabilities.\n\nThis native archive contains no Python runtime or wheel backend.\nThe repository retains explicit LEGACY Python reference compatibility with\n`pip install ./access`, whose command is `tos-legacy`; it is not installed\nfrom this archive. Neither installation carries corpus data.\n";
 type Result<T> = std::result::Result<T, String>;
 trait Checked<T> {
     fn checked(self) -> Result<T>;
@@ -191,6 +205,9 @@ fn path_ok(name: &str) -> bool {
 fn allowed(name: &str) -> bool {
     if !path_ok(name) {
         return false;
+    }
+    if executable_member(name) {
+        return true;
     }
     if [
         PROGRAM,
@@ -394,7 +411,10 @@ fn source(root: &File) -> Result<(String, String)> {
     Ok((head, tree))
 }
 fn proof(p: &JsonValue, source_ref: &str) -> Result<()> {
-    let keys = [
+    proof_kind(p, source_ref, false)
+}
+fn proof_kind(p: &JsonValue, source_ref: &str, command: bool) -> Result<()> {
+    let mut keys = vec![
         "schema_version",
         "sha256",
         "size_bytes",
@@ -405,6 +425,9 @@ fn proof(p: &JsonValue, source_ref: &str) -> Result<()> {
         "toolchain",
         "profile",
     ];
+    if command {
+        keys.push("features");
+    }
     let fields = p.as_object().ok_or("native proof must be object")?;
     if fields.len() != keys.len()
         || fields
@@ -413,13 +436,25 @@ fn proof(p: &JsonValue, source_ref: &str) -> Result<()> {
     {
         return Err("native proof fields differ".into());
     }
-    if string(p, "schema_version")? != NATIVE_SCHEMA
+    if string(p, "schema_version")?
+        != if command {
+            COMMAND_SCHEMA
+        } else {
+            NATIVE_SCHEMA
+        }
         || string(p, "target")? != TARGET
         || string(p, "source_commit")? != source_ref
         || !["debug", "release"].contains(&string(p, "profile")?)
         || uint(p, "size_bytes")? < 64
     {
         return Err("native proof profile/source differs".into());
+    }
+    if command
+        && !field(p, "features")?
+            .as_array()
+            .is_some_and(|features| features.is_empty())
+    {
+        return Err("native command role requires its empty effective feature set".into());
     }
     for key in ["sha256", "lock_sha256"] {
         Digest256::from_hex(string(p, key)?).checked()?;
@@ -443,6 +478,37 @@ fn proof(p: &JsonValue, source_ref: &str) -> Result<()> {
         return Err("invalid native toolchain version".into());
     }
     Ok(())
+}
+fn command_proof(p: &JsonValue, access: &JsonValue) -> Result<()> {
+    proof_kind(p, string(access, "source_commit")?, true)?;
+    for key in ["source_tree", "lock_sha256", "toolchain", "target"] {
+        if field(p, key)? != field(access, key)? {
+            return Err("native commands must match the exact access source cohort".into());
+        }
+    }
+    Ok(())
+}
+fn command_closure<'a>(
+    manifest: &'a JsonValue,
+    access: &JsonValue,
+) -> Result<Option<&'a JsonValue>> {
+    let Some(commands) = manifest.object_get("native_commands") else {
+        return Ok(None);
+    };
+    let roles = commands
+        .as_object()
+        .ok_or("native command closure must be object")?;
+    if roles.len() != COMMANDS.len()
+        || roles
+            .iter()
+            .any(|(name, _)| !COMMANDS.contains(&name.as_str().unwrap_or("")))
+    {
+        return Err("native command closure must contain exactly the five supported roles".into());
+    }
+    for role in COMMANDS {
+        command_proof(field(commands, role)?, access)?;
+    }
+    Ok(Some(commands))
 }
 fn header(f: &mut File) -> Result<()> {
     f.seek(SeekFrom::Start(0)).checked()?;
@@ -578,6 +644,20 @@ pub fn build(
     source_ref: &str,
     binary: &Path,
     receipt: &Path,
+    limits: ArchiveLimits,
+) -> Result<JsonValue> {
+    build_with_commands(
+        root, web_dist, output, source_ref, binary, receipt, None, limits,
+    )
+}
+pub fn build_with_commands(
+    root: &Path,
+    web_dist: &Path,
+    output: &Path,
+    source_ref: &str,
+    binary: &Path,
+    receipt: &Path,
+    command_products: Option<&Path>,
     limits: ArchiveLimits,
 ) -> Result<JsonValue> {
     limits.validate()?;
@@ -727,6 +807,81 @@ pub fn build(
     {
         return Err("native executable/lock receipt differs from retained inputs".into());
     }
+    let mut command_proofs = Vec::new();
+    if let Some(products) = command_products {
+        let mut descriptor = open_file(products, 65_536)?;
+        let descriptors = json(&read_small(&mut descriptor, 65_536)?, 65_536)?;
+        input_metadata = input_metadata
+            .checked_add(65_536 * 3 + std::mem::size_of::<JsonValue>() * 40)
+            .filter(|n| *n <= limits.max_metadata_bytes)
+            .ok_or("native command selector metadata exceeds budget")?;
+        let roles = descriptors
+            .as_object()
+            .ok_or("native command products must be object")?;
+        if roles.len() != COMMANDS.len()
+            || roles
+                .iter()
+                .any(|(name, _)| !COMMANDS.contains(&name.as_str().unwrap_or("")))
+        {
+            return Err(
+                "native command products must select exactly the five supported roles".into(),
+            );
+        }
+        for role in COMMANDS {
+            let selected = field(&descriptors, role)?;
+            let fields = selected
+                .as_object()
+                .ok_or("native command product must be object")?;
+            if fields.len() != 2
+                || fields
+                    .iter()
+                    .any(|(key, _)| !["binary", "receipt"].contains(&key.as_str().unwrap_or("")))
+            {
+                return Err("native command product requires binary and receipt paths only".into());
+            }
+            if !Path::new(string(selected, "binary")?).is_absolute()
+                || !Path::new(string(selected, "receipt")?).is_absolute()
+            {
+                return Err("native command product paths must be absolute".into());
+            }
+            let mut receipt = open_file(Path::new(string(selected, "receipt")?), 65_536)?;
+            let proof = json(&read_small(&mut receipt, 65_536)?, 65_536)?;
+            command_proof(&proof, &p)?;
+            input_metadata = input_metadata
+                .checked_add(
+                    encode(&proof, 65_536)?
+                        .len()
+                        .checked_mul(3)
+                        .ok_or("native proof metadata overflow")?
+                        + std::mem::size_of::<JsonValue>() * 40,
+                )
+                .filter(|n| *n <= limits.max_metadata_bytes)
+                .ok_or("native command proof metadata exceeds budget")?;
+            let mut image = open_file(
+                Path::new(string(selected, "binary")?),
+                limits.max_total_bytes,
+            )?;
+            if image.metadata().checked()?.permissions().mode() & 0o111 == 0 {
+                return Err("native command input is not executable".into());
+            }
+            header(&mut image)?;
+            let member = command_member(role);
+            add(
+                &mut inputs,
+                member.clone(),
+                image,
+                limits,
+                &mut total,
+                &mut input_metadata,
+            )?;
+            if inputs[&member].size != uint(&proof, "size_bytes")?
+                || inputs[&member].sha.to_hex() != string(&proof, "sha256")?
+            {
+                return Err("native command executable differs from its build receipt".into());
+            }
+            command_proofs.push((role, proof));
+        }
+    }
     total = total
         .checked_add(README.len() as u64)
         .filter(|n| *n <= limits.max_total_bytes)
@@ -773,14 +928,18 @@ pub fn build(
             ])
         })
         .collect();
-    let manifest = object(vec![
+    let mut manifest_fields = vec![
         ("schema_version", text(SCHEMA)),
         ("software_ref", text(&head)),
         ("source_dirty", JsonValue::Bool(false)),
         ("data_included", JsonValue::Bool(false)),
         ("members", JsonValue::Array(members)),
         ("native_access", p),
-    ]);
+    ];
+    if !command_proofs.is_empty() {
+        manifest_fields.push(("native_commands", object(command_proofs)));
+    }
+    let manifest = object(manifest_fields);
     let manifest_bytes = encode(&manifest, MANIFEST_BYTES)?;
     if total
         .checked_add(manifest_bytes.len() as u64)
@@ -804,7 +963,11 @@ pub fn build(
         } else {
             inputs[&name].size
         };
-        let mode = if name == PROGRAM { 0o755 } else { 0o644 };
+        let mode = if executable_member(&name) {
+            0o755
+        } else {
+            0o644
+        };
         let opts = SimpleFileOptions::default()
             .compression_method(CompressionMethod::Deflated)
             .compression_level(Some(9))
@@ -1038,7 +1201,11 @@ impl VerifiedArchive {
                 return Err("unsafe/non-software/duplicate ZIP member".into());
             }
             let mode = header.external_attributes() >> 16;
-            let expected_mode = if name == PROGRAM { 0o755 } else { 0o644 };
+            let expected_mode = if executable_member(&name) {
+                0o755
+            } else {
+                0o644
+            };
             if ![0, 0o100000].contains(&(mode & 0o170000)) || mode & 0o7777 != expected_mode {
                 return Err("software member regular/executable mode differs".into());
             }
@@ -1136,9 +1303,10 @@ impl VerifiedArchive {
         let ref_id = string(&manifest, "software_ref")?;
         let native = field(&manifest, "native_access")?;
         proof(native, ref_id)?;
+        let commands = command_closure(&manifest, native)?;
         let embedded = manifest.as_object().ok_or("manifest is not object")?;
         let outer = external.as_object().ok_or("sidecar is not object")?;
-        if embedded.len() != 6
+        if embedded.len() != if commands.is_some() { 7 } else { 6 }
             || outer.len() != embedded.len() + 2
             || embedded
                 .iter()
@@ -1184,6 +1352,16 @@ impl VerifiedArchive {
             bytes: Vec::new(),
             cap: 64,
         };
+        let mut command_headers = BTreeMap::new();
+        for role in COMMANDS {
+            command_headers.insert(
+                command_member(role),
+                Prefix {
+                    bytes: Vec::new(),
+                    cap: 64,
+                },
+            );
+        }
         let mut pin_bytes = Vec::new();
         for (name, member) in &mut members {
             let expected = if name == MANIFEST {
@@ -1201,6 +1379,8 @@ impl VerifiedArchive {
             };
             member.sha = if name == PROGRAM {
                 consume_member(&archive, member, &mut elf_header)?
+            } else if let Some(header) = command_headers.get_mut(name) {
+                consume_member(&archive, member, header)?
             } else if name == "rust-toolchain.toml" {
                 if member.size > 8192 {
                     return Err("software toolchain pin oversized".into());
@@ -1235,6 +1415,29 @@ impl VerifiedArchive {
             || elf_header.bytes[18..20] != [0x3e, 0]
         {
             return Err("archive native image is not x86_64 ELF64".into());
+        }
+        for role in COMMANDS {
+            let member = command_member(role);
+            if let Some(commands) = commands {
+                let proof = field(commands, role)?;
+                let image = declared
+                    .get(member.as_str())
+                    .ok_or("native command role member absent")?;
+                if image.0 != uint(proof, "size_bytes")?
+                    || image.1.to_hex() != string(proof, "sha256")?
+                {
+                    return Err("native command role member proof differs".into());
+                }
+                let header = &command_headers[&member].bytes;
+                if header.len() != 64
+                    || &header[..7] != b"\x7fELF\x02\x01\x01"
+                    || header[18..20] != [0x3e, 0]
+                {
+                    return Err("archive native command image is not x86_64 ELF64".into());
+                }
+            } else if declared.contains_key(member.as_str()) {
+                return Err("native command member requires its fixed role closure".into());
+            }
         }
         if toolchain(&pin_bytes)? != string(native, "toolchain")? {
             return Err("archive native toolchain proof differs".into());
@@ -1358,11 +1561,19 @@ impl VerifiedArchive {
         let (extracted, software) = self.extract_at(&root, "software")?;
         fs::create_dir(format!("/proc/self/fd/{}/bin", root.as_raw_fd())).checked()?;
         let bin = tos_fd_open::open_directory_at(&root, Path::new("bin")).checked()?;
-        std::os::unix::fs::symlink(
-            format!("../software/{PROGRAM}"),
-            format!("/proc/self/fd/{}/tos", bin.as_raw_fd()),
-        )
-        .checked()?;
+        let mut links = vec![("tos", PROGRAM.to_owned())];
+        if self.manifest.object_get("native_commands").is_some() {
+            for role in COMMANDS {
+                links.push((role, command_member(role)));
+            }
+        }
+        for (role, member) in &links {
+            std::os::unix::fs::symlink(
+                format!("../software/{member}"),
+                format!("/proc/self/fd/{}/{role}", bin.as_raw_fd()),
+            )
+            .checked()?;
+        }
         bin.sync_all().checked()?;
         root.sync_all().checked()?;
         parent.sync_all().checked()?;
@@ -1370,12 +1581,16 @@ impl VerifiedArchive {
         let selected_bin = tos_fd_open::open_directory_at(&root, Path::new("bin")).checked()?;
         let retained_bin = bin.metadata().checked()?;
         let current_bin = selected_bin.metadata().checked()?;
-        if retained_bin.dev() != current_bin.dev()
-            || retained_bin.ino() != current_bin.ino()
-            || fs::read_link(format!("/proc/self/fd/{}/tos", selected_bin.as_raw_fd())).checked()?
-                != PathBuf::from(format!("../software/{PROGRAM}"))
-        {
+        if retained_bin.dev() != current_bin.dev() || retained_bin.ino() != current_bin.ino() {
             return Err("installed entrypoint changed during assembly".into());
+        }
+        for (role, member) in &links {
+            if fs::read_link(format!("/proc/self/fd/{}/{role}", selected_bin.as_raw_fd()))
+                .checked()?
+                != PathBuf::from(format!("../software/{member}"))
+            {
+                return Err("installed role entrypoint changed during assembly".into());
+            }
         }
         let selected_software =
             tos_fd_open::open_directory_at(&root, Path::new("software")).checked()?;
@@ -1452,6 +1667,7 @@ pub fn run_if_requested(
                 "source-ref",
                 "native-access-binary",
                 "native-access-receipt",
+                "native-command-products",
             ],
             "verify" => &["archive"],
             "extract" => &["archive", "destination"],
@@ -1471,13 +1687,16 @@ pub fn run_if_requested(
             return Err("unknown software option".into());
         }
         let value = match action.as_str() {
-            "build" => build(
+            "build" => build_with_commands(
                 Path::new(&required("root")?),
                 Path::new(&required("web-dist")?),
                 Path::new(&required("output")?),
                 &required("source-ref")?,
                 Path::new(&required("native-access-binary")?),
                 Path::new(&required("native-access-receipt")?),
+                options
+                    .get("native-command-products")
+                    .map(|path| Path::new(path)),
                 limits,
             )?,
             "verify" => VerifiedArchive::open(Path::new(&required("archive")?), limits)?

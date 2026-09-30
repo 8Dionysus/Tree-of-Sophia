@@ -1349,8 +1349,24 @@ utilities. Their adoption does not switch source exports, compile a query
 store, change adapters, or activate source-to-prepared updates. The diff requires
 a caller-admitted exact baseline and never certifies skipped target parts.
 
-The native software archive profile has one explicit executable member,
+The access-only native software archive has the executable member
 `access/src/tos_access/tos-access`, beside its software-owned `web_dist`.
+The same archive optionally delivers the complete command cohort through
+`software build --native-command-products /absolute/products.json`. This bounded
+JSON object must select exactly `tos-native-owner-command`, `tos-schema-worker`,
+`tos-validation-lanes`, `tos-release-check`, and `tos-software-ci`; every value
+contains only absolute `binary` and `receipt` paths. Each build-owned receipt
+uses `tos_native_software_command_build_v1`, the access receipt identity fields,
+and `features: []`. The three ops products are built with
+`--no-default-features`; command and schema-worker products use their empty
+effective feature set. All five must match the access source commit/tree, lock,
+toolchain and target. Their SHA/size and ELF headers are checked independently.
+The additive `native_commands` manifest closure binds these exact roles at
+`native/bin/NAME`; install creates corresponding relative `PREFIX/bin/NAME`
+links. Omitting the selector preserves the access-only archive contract.
+Delivery supplies executables, not invocation files, owner grants or corpus
+data. Owner commands still require an explicit protected invocation and worker
+binding; installing these roles adds no HTTP write capability.
 The software builder accepts `--native-access-binary` and
 `--native-access-receipt` only together. The build-owned receipt
 `tos_native_access_build_v1` binds the exact ELF SHA-256/size, Linux x86_64

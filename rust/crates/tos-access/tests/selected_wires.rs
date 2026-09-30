@@ -5131,8 +5131,15 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
                 metadata.as_str(),
             ]
         };
-        let assembly = Command::new(&binary)
-            .args(["software", "build"])
+        let command_products = std::env::var_os("TOS_NATIVE_SOFTWARE_COMMAND_PRODUCTS");
+        let mut assembly_command = Command::new(&binary);
+        assembly_command.args(["software", "build"]);
+        if let Some(products) = &command_products {
+            assembly_command
+                .arg("--native-command-products")
+                .arg(products);
+        }
+        let assembly = assembly_command
             .arg("--root")
             .arg(&repository)
             .arg("--web-dist")
@@ -5521,6 +5528,61 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
             "native restore: {}",
             String::from_utf8_lossy(&restore.stderr)
         );
+        if command_products.is_some() {
+            for prefix in [&installed, &restored] {
+                for role in [
+                    "tos-native-owner-command",
+                    "tos-schema-worker",
+                    "tos-validation-lanes",
+                    "tos-release-check",
+                    "tos-software-ci",
+                ] {
+                    assert_eq!(
+                        fs::read_link(prefix.join("bin").join(role)).unwrap(),
+                        PathBuf::from(format!("../software/native/bin/{role}"))
+                    );
+                }
+                let commands = Command::new("python3")
+                    .arg(repository.join("scripts/verify_rust_mechanics_install.py"))
+                    .arg("--command-entries-only")
+                    .arg("--installed-prefix")
+                    .arg(prefix)
+                    .output()
+                    .unwrap();
+                assert!(
+                    commands.status.success(),
+                    "installed ops entries: {}",
+                    String::from_utf8_lossy(&commands.stderr)
+                );
+                let owner_consumer = std::env::var_os("TOS_NATIVE_SOFTWARE_OWNER_CONSUMER_BIN")
+                    .expect(
+                        "cohort consumer requires the admitted existing owner-text test binary",
+                    );
+                let owner = Command::new(owner_consumer)
+                    .arg("native_owner_text_cli_extracts_replays_and_recovers_completed_stage")
+                    .arg("--nocapture")
+                    .env(
+                        "TOS_NATIVE_OWNER_COMMAND_PATH",
+                        prefix.join("software/native/bin/tos-native-owner-command"),
+                    )
+                    .env(
+                        "TOS_SCHEMA_WORKER_PATH",
+                        prefix.join("software/native/bin/tos-schema-worker"),
+                    )
+                    .output()
+                    .unwrap();
+                assert!(
+                    owner.status.success(),
+                    "installed owner/worker: {}",
+                    String::from_utf8_lossy(&owner.stderr)
+                );
+                assert!(
+                    String::from_utf8_lossy(&owner.stdout).contains("1 passed; 0 failed"),
+                    "existing installed owner case must actually execute: {}",
+                    String::from_utf8_lossy(&owner.stdout)
+                );
+            }
+        }
         let restored_program = restored.join("bin/tos");
         let version = Command::new(&restored_program)
             .arg("--version")
@@ -7068,5 +7130,4 @@ mod prepared_inspect_lens {
         fs::remove_dir_all(dir).unwrap();
     }
     include!("support/prepared_explore.rs");
-
 }
