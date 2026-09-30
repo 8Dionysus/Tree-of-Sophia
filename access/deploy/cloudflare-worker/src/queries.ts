@@ -1,14 +1,11 @@
+import {PhysicalKeys,workerClassicRules,classicDistinct,classicNeedle,classicBoundedGraph as boundedGraph,classicBoundedClusters as boundedClusters,classicSourceRefs as sourceRefs,classicUniqueValues as uniqueValues} from "./worker-classic.ts";
 import {
-  boundedClusters,
-  boundedGraph,
   HttpError,
   itemId,
   objectArray,
-  sourceRefs,
   stringArray,
   stringValue,
   type Item,
-  uniqueValues,
 } from "./common";
 import {
   compactView,
@@ -29,8 +26,6 @@ import {
   type EdgeRow,
 } from "./store";
 
-const CHALLENGE_PREDICATES = new Set(["contested_by", "uncertain_relation", "polemicizes_with"]);
-const PATH_STATE_LIMIT = 50_000;
 const PATH_FRONTIER_LIMIT = 5_000;
 
 type ItemKind = "node" | "edge";
@@ -65,7 +60,7 @@ async function selectedPhilosophyItem(db: D1Database, id: string): Promise<Selec
 }
 
 export async function corpusSearch(db: D1Database, query: string, limit: number): Promise<Item> {
-  const needle = query.trim().toLowerCase();
+  const needle = classicNeedle(query);
   const results = await rows<{ collection: string; json: string }>(
     db,
     `SELECT collection, json
@@ -90,18 +85,12 @@ export async function corpusSearch(db: D1Database, query: string, limit: number)
 }
 
 export async function philosophySearch(db: D1Database, query: string, limit: number): Promise<Item> {
-  const needle = query.trim().toLowerCase();
+  const needle = classicNeedle(query);
   const result: Item[] = [];
-  const collections: Array<{ name: string; table: string; where: string }> = [
-    { name: "views", table: "philosophy_aux", where: "collection = 'views'" },
-    { name: "nodes", table: "philosophy_nodes", where: "1 = 1" },
-    { name: "edges", table: "philosophy_edges", where: "1 = 1" },
-    { name: "clusters", table: "philosophy_aux", where: "collection = 'clusters'" },
-    { name: "review_packets", table: "philosophy_aux", where: "collection = 'review_packets'" },
-    { name: "graph_layers", table: "philosophy_aux", where: "collection = 'graph_layers'" },
-  ];
-  for (const collection of collections) {
-    const remaining = limit - result.length;
+  const rules=new (workerClassicRules().WorkerSearch)(limit);
+  const collections: Array<{ name: string; table: string; where: string }> = JSON.parse(workerClassicRules().WorkerProfile.search_collections());
+  try { for (const collection of collections) {
+    const remaining = rules.remaining();
     if (remaining <= 0) break;
     const matches = await jsonRows(
       db,
@@ -113,7 +102,8 @@ export async function philosophySearch(db: D1Database, query: string, limit: num
       remaining,
     );
     result.push(...matches.map((item) => ({ collection: collection.name, item })));
-  }
+    rules.observed(matches.length);
+  }}finally{rules.free();}
   return {
     schema: "tos_philosophy_mcp_search_v1",
     query,
@@ -131,7 +121,7 @@ export async function corpusNodePacket(db: D1Database, nodeId: string): Promise<
     nodeId,
     nodeId,
   );
-  if (matches.length === 0 && relatedEdges.length > 0) {
+  if (workerClassicRules().WorkerProfile.missing(matches.length) && relatedEdges.length > 0) {
     matches = [
       {
         node_id: nodeId,
@@ -143,7 +133,7 @@ export async function corpusNodePacket(db: D1Database, nodeId: string): Promise<
       },
     ];
   }
-  if (matches.length === 0) throw new HttpError(404, `unknown ToS corpus node: ${nodeId}`);
+  if (workerClassicRules().WorkerProfile.missing(matches.length)) throw new HttpError(404, `unknown ToS corpus node: ${nodeId}`);
   return {
     schema: "tos_corpus_mcp_node_v1",
     node_id: nodeId,
@@ -155,7 +145,7 @@ export async function corpusNodePacket(db: D1Database, nodeId: string): Promise<
 
 export async function corpusRelationPack(db: D1Database, packId: string): Promise<Item> {
   const packs = await jsonRows(db, "SELECT json FROM corpus_packs WHERE id = ? ORDER BY ord", packId);
-  if (packs.length === 0) throw new HttpError(404, `unknown ToS corpus relation pack: ${packId}`);
+  if (workerClassicRules().WorkerProfile.missing(packs.length)) throw new HttpError(404, `unknown ToS corpus relation pack: ${packId}`);
   const edges = await jsonRows(db, "SELECT json FROM corpus_edges WHERE pack_id = ? ORDER BY ord", packId);
   return {
     schema: "tos_corpus_mcp_relation_pack_v1",
@@ -167,19 +157,19 @@ export async function corpusRelationPack(db: D1Database, packId: string): Promis
 }
 
 export async function corpusGraphView(db: D1Database, viewId: string, limit: number): Promise<Item> {
-  const supported = new Set(["corpus-topology", "route-graph", "promotion-flow"]);
+  const graphMode=workerClassicRules().WorkerEndpoints.graph_mode(viewId);
   const [views, top] = await Promise.all([
     corpusItem(db, "graph_views", viewId),
     metaItem(db, "corpus_top"),
   ]);
   const view = views[0];
   if (!view) throw new HttpError(404, `unknown ToS graph view: ${viewId}`);
-  if (!supported.has(viewId)) throw new HttpError(404, `unsupported standalone ToS graph view: ${viewId}`);
+  if (graphMode===3) throw new HttpError(404, `unsupported standalone ToS graph view: ${viewId}`);
 
   let items: Item[] = [];
   let graphNodes: Item[] = [];
   let graphEdges: Item[] = [];
-  if (viewId === "corpus-topology") {
+  if (graphMode===0) {
     items = await jsonRows(
       db,
       "SELECT json FROM corpus_items WHERE collection = 'branches' ORDER BY ord LIMIT ?",
@@ -212,7 +202,7 @@ export async function corpusGraphView(db: D1Database, viewId: string, limit: num
       });
     }
   } else {
-    if (viewId === "route-graph") {
+    if (graphMode===1) {
       graphEdges = await jsonRows(
         db,
         `SELECT edge.json
@@ -230,38 +220,20 @@ export async function corpusGraphView(db: D1Database, viewId: string, limit: num
       );
     }
     items = graphEdges;
-    const endpointIds = [...new Set(
-      graphEdges.flatMap((edge) => [stringValue(edge.from_id), stringValue(edge.to_id)]).filter(Boolean),
-    )];
-    const indexedNodes = endpointIds.length
-      ? await jsonRows(
-        db,
+    const keys=new PhysicalKeys(),rules=new (workerClassicRules().WorkerEndpoints)();
+    try {
+      for(const edge of graphEdges){for(const endpoint of [stringValue(edge.from_id),stringValue(edge.to_id)])rules.endpoint(keys.key(endpoint),Boolean(endpoint));}
+      const endpointIds=keys.strings(rules.ids());
+      const indexedNodes=endpointIds.length?await jsonRows(db,
         "SELECT json FROM corpus_items WHERE collection = 'nodes' AND id IN (SELECT value FROM json_each(?)) ORDER BY ord",
-        JSON.stringify(endpointIds),
-      )
-      : [];
-    if (viewId === "route-graph") {
-      const selected = new Set(endpointIds);
-      graphNodes = indexedNodes.filter((node) => selected.has(stringValue(node.node_id)));
-    } else {
-      const byId = new Map(indexedNodes.map((node) => [stringValue(node.node_id), node]));
-      const endpointSourceRefs = new Map(endpointIds.map((id) => [id, new Set<string>()]));
-      for (const edge of graphEdges) {
-        const sourceRef = stringValue(edge.source_ref);
-        if (!sourceRef) continue;
-        for (const endpoint of [stringValue(edge.from_id), stringValue(edge.to_id)]) {
-          endpointSourceRefs.get(endpoint)?.add(sourceRef);
-        }
+        JSON.stringify(endpointIds)):[];
+      if(graphMode===1){graphNodes=indexedNodes.filter(node=>rules.contains(keys.key(stringValue(node.node_id))));}
+      else {
+        const byId=new Map(indexedNodes.map(node=>[stringValue(node.node_id),node]));
+        for(const edge of graphEdges){const ref=stringValue(edge.source_ref);if(!ref)continue;for(const endpoint of [stringValue(edge.from_id),stringValue(edge.to_id)])rules.reference(keys.key(endpoint),keys.key(ref),true);}
+        graphNodes=endpointIds.sort().map(id=>byId.get(id)??({node_id:id,label:id,node_type:"candidate-endpoint",authority_layer:"candidate_intake",owner_branch:"ToS/candidate-intake",source_refs:keys.strings(rules.references(keys.key(id))).sort()}));
       }
-      graphNodes = [...endpointIds].sort().map((id) => byId.get(id) ?? ({
-        node_id: id,
-        label: id,
-        node_type: "candidate-endpoint",
-        authority_layer: "candidate_intake",
-        owner_branch: "ToS/candidate-intake",
-        source_refs: [...(endpointSourceRefs.get(id) ?? [])].sort(),
-      }));
-    }
+    }finally{rules.free();}
   }
   return {
     schema: "tos_corpus_mcp_graph_view_v1",
@@ -339,9 +311,9 @@ export async function philosophyView(db: D1Database, viewId: string, limit: numb
   ]);
   if (selectedViewMask === null) throw new HttpError(404, `unknown ToS philosophy graph view: ${viewId}`);
 
-  const edgeFetchLimit = Math.min(13_307, Math.max(1000, limit * 8));
+  const edgeFetchLimit = workerClassicRules().WorkerProfile.edge_fetch_limit(limit);
   const [candidateNodes, candidateEdges, clusters, reviewRows] = await Promise.all([
-    jsonRows(db, "SELECT json FROM philosophy_nodes WHERE (view_mask & ?) != 0 ORDER BY ord LIMIT ?", selectedViewMask, Math.max(limit * 2, limit)),
+    jsonRows(db, "SELECT json FROM philosophy_nodes WHERE (view_mask & ?) != 0 ORDER BY ord LIMIT ?", selectedViewMask, workerClassicRules().WorkerProfile.node_fetch_limit(limit)),
     jsonRows(db, "SELECT json FROM philosophy_edges WHERE (view_mask & ?) != 0 ORDER BY ord LIMIT ?", selectedViewMask, edgeFetchLimit),
     fullClusters(db, { viewMask: selectedViewMask, limit: 1000 }),
     jsonRows(db, "SELECT json FROM philosophy_review_packets WHERE view_id = ?", viewId),
@@ -401,113 +373,61 @@ export async function philosophyNeighborhood(
   ]);
   if (!node) throw new HttpError(404, `unknown ToS philosophy node: ${nodeId}`);
   const predicate = predicateSql(predicates);
-  const selectedIds = new Set([nodeId]);
-  const discoveryOrder = [nodeId];
-  let frontier = [nodeId];
-  const traversalEdges: Item[] = [];
-  const selectedEdgeIds = new Set<string>();
-
-  for (let level = 0; level < depth && frontier.length > 0 && discoveryOrder.length - 1 < limit; level += 1) {
-    const edgeRows = await rows<EdgeRow>(
-      db,
-      `SELECT id, ord, from_id, to_id, predicate_id, view_mask, layer_mask, json
-         FROM philosophy_edges
-        WHERE (from_id IN (SELECT value FROM json_each(?)) OR to_id IN (SELECT value FROM json_each(?)))
-          AND (? IS NULL OR (layer_mask & ?) != 0)
-          AND ${predicate.sql}
-        ORDER BY ord`,
-      JSON.stringify(frontier),
-      JSON.stringify(frontier),
-      layerMask,
-      layerMask,
-      ...(predicates.length === 0 ? [] : [predicate.binding]),
-    );
-    const candidateIds = new Set<string>();
-    for (const edge of edgeRows) {
-      if (frontier.includes(edge.from_id) && !selectedIds.has(edge.to_id)) candidateIds.add(edge.to_id);
-      if (frontier.includes(edge.to_id) && !selectedIds.has(edge.from_id)) candidateIds.add(edge.from_id);
+  const keys=new PhysicalKeys();
+  const rules=new (workerClassicRules().WorkerNeighborhood)(keys.key(nodeId),depth,limit);
+  const physicalEdges=new Map<number,Item>();
+  let nextPhysicalEdge=0;
+  let neighbors:Item[];
+  let retainedEdges:Item[];
+  try {
+    while(rules.active()) {
+      const frontier=keys.strings(rules.frontier());
+      const edgeRows=await rows<EdgeRow>(db,
+        `SELECT id, ord, from_id, to_id, predicate_id, view_mask, layer_mask, json
+           FROM philosophy_edges
+          WHERE (from_id IN (SELECT value FROM json_each(?)) OR to_id IN (SELECT value FROM json_each(?)))
+            AND (? IS NULL OR (layer_mask & ?) != 0) AND ${predicate.sql}
+          ORDER BY ord`,
+        JSON.stringify(frontier),JSON.stringify(frontier),layerMask,layerMask,
+        ...(predicates.length===0?[]:[predicate.binding]));
+      // Preserve lazy original-row decoding: Rust chooses the traversal rows.
+      const base=nextPhysicalEdge;
+      nextPhysicalEdge+=edgeRows.length;
+      for(let index=0;index<edgeRows.length;index+=1){const edge=edgeRows[index]!;rules.observe_edge(keys.key(edge.id),keys.key(edge.from_id),keys.key(edge.to_id),base+index);}
+      const allowedRows=await rows<{id:string;ord:number}>(db,
+        `SELECT id, ord FROM philosophy_nodes WHERE id IN (SELECT value FROM json_each(?))
+           AND (? IS NULL OR (layer_mask & ?) != 0) ORDER BY ord`,
+        JSON.stringify(keys.strings(rules.candidates())),layerMask,layerMask);
+      allowedRows.sort((left,right)=>left.ord-right.ord||left.id.localeCompare(right.id));
+      rules.finish_level(keys.observe(allowedRows.map(row=>row.id)));
+      for(const row of rules.edges()){if(row>=base)physicalEdges.set(row,rowJson(edgeRows[row-base]!));}
     }
-    const allowedRows = await rows<{ id: string; ord: number }>(
-      db,
-      `SELECT id, ord FROM philosophy_nodes
-        WHERE id IN (SELECT value FROM json_each(?))
-          AND (? IS NULL OR (layer_mask & ?) != 0)
-        ORDER BY ord`,
-      JSON.stringify([...candidateIds]),
-      layerMask,
-      layerMask,
-    );
-    const order = new Map(allowedRows.map((row) => [row.id, row.ord]));
-    const candidates = new Map<string, EdgeRow>();
-    for (const edge of edgeRows) {
-      if (frontier.includes(edge.from_id) && !selectedIds.has(edge.to_id) && order.has(edge.to_id) && !candidates.has(edge.to_id)) {
-        candidates.set(edge.to_id, edge);
-      }
-      if (frontier.includes(edge.to_id) && !selectedIds.has(edge.from_id) && order.has(edge.from_id) && !candidates.has(edge.from_id)) {
-        candidates.set(edge.from_id, edge);
-      }
+    neighbors=await itemsByIds(db,"philosophy_nodes",keys.strings(rules.neighbors()));
+    if(rules.enclosed_needed()){
+      const selected=keys.strings(rules.selected());
+      const enclosed=await jsonRows(db,
+        `SELECT json FROM philosophy_edges WHERE from_id IN (SELECT value FROM json_each(?))
+           AND to_id IN (SELECT value FROM json_each(?)) AND (? IS NULL OR (layer_mask & ?) != 0)
+           AND ${predicate.sql} ORDER BY ord`,
+        JSON.stringify(selected),JSON.stringify(selected),layerMask,layerMask,
+        ...(predicates.length===0?[]:[predicate.binding]));
+      for(const edge of enclosed){if(!rules.enclosed_needed())break;const index=nextPhysicalEdge++;physicalEdges.set(index,edge);rules.observe_enclosed(keys.key(stringValue(edge.edge_id)),index);}
     }
-    const nextFrontier: string[] = [];
-    for (const candidateId of [...candidates.keys()].sort((left, right) => (order.get(left) ?? 1e9) - (order.get(right) ?? 1e9) || left.localeCompare(right))) {
-      if (discoveryOrder.length - 1 >= limit) break;
-      selectedIds.add(candidateId);
-      discoveryOrder.push(candidateId);
-      nextFrontier.push(candidateId);
-      const edge = candidates.get(candidateId);
-      if (edge && !selectedEdgeIds.has(edge.id)) {
-        traversalEdges.push(rowJson(edge));
-        selectedEdgeIds.add(edge.id);
-      }
-    }
-    frontier = nextFrontier;
-  }
-
-  const neighbors = await itemsByIds(db, "philosophy_nodes", discoveryOrder.slice(1));
-  const retainedEdges = [...traversalEdges];
-  if (retainedEdges.length < limit) {
-    const enclosed = await jsonRows(
-      db,
-      `SELECT json FROM philosophy_edges
-        WHERE from_id IN (SELECT value FROM json_each(?))
-          AND to_id IN (SELECT value FROM json_each(?))
-          AND (? IS NULL OR (layer_mask & ?) != 0)
-          AND ${predicate.sql}
-        ORDER BY ord`,
-      JSON.stringify([...selectedIds]),
-      JSON.stringify([...selectedIds]),
-      layerMask,
-      layerMask,
-      ...(predicates.length === 0 ? [] : [predicate.binding]),
-    );
-    for (const edge of enclosed) {
-      if (retainedEdges.length >= limit) break;
-      const edgeId = stringValue(edge.edge_id);
-      if (!selectedEdgeIds.has(edgeId)) {
-        retainedEdges.push(edge);
-        selectedEdgeIds.add(edgeId);
-      }
-    }
-  }
+    retainedEdges=Array.from(rules.edges(),index=>physicalEdges.get(index) as Item);
+  }finally{rules.free();}
   return {
     schema: "tos_philosophy_mcp_neighborhood_v1",
     node,
     neighbors,
     edges: retainedEdges,
     depth,
-    layers: [...new Set(layers)].sort(),
-    predicates: [...new Set(predicates)].sort(),
+    layers: classicDistinct(layers).sort(),
+    predicates: classicDistinct(predicates).sort(),
     limit,
     source_refs: sourceRefs([node, ...neighbors, ...retainedEdges]),
     runtime_projection_boundary: runtimeBoundary(top),
   };
 }
-
-type PathState = {
-  current: string;
-  nodeIds: string[];
-  edgeIds: string[];
-  traversal: Item[];
-};
 
 export async function philosophyPath(
   db: D1Database,
@@ -524,7 +444,8 @@ export async function philosophyPath(
   },
 ): Promise<Item> {
   const { fromId, toId, layers, predicates, maxDepth, direction, viewId, alternativeLimit } = options;
-  if (!new Set(["outgoing", "incoming", "either"]).has(direction)) {
+  const directionCode=workerClassicRules().WorkerProfile.direction(direction);
+  if (directionCode===3) {
     throw new HttpError(400, "direction must be outgoing, incoming, or either");
   }
   const [fromNode, toNode, top, selectedViewMask, layerMask] = await Promise.all([
@@ -543,94 +464,41 @@ export async function philosophyPath(
       JSON.stringify([fromId, toId]),
       selectedViewMask,
     );
-    if (available.length < 2 && fromId !== toId) {
+    if (workerClassicRules().WorkerProfile.endpoints_missing(available.length,fromId===toId)) {
       return emptyPathPacket(options, top, 1, 1, false);
     }
   }
-  const excluded = new Set(options.excludedEdgeIds.filter(Boolean));
+  const excluded = classicDistinct(options.excludedEdgeIds.filter(Boolean));
   const predicate = predicateSql(predicates);
-  let queue: PathState[] = [{ current: fromId, nodeIds: [fromId], edgeIds: [], traversal: [] }];
-  const completed: PathState[] = [];
-  let exploredStates = 0;
-  let enqueuedStates = 1;
-  let maxFrontierSize = 1;
-  let explorationTruncated = false;
-
-  while (queue.length > 0 && completed.length < alternativeLimit) {
-    if (exploredStates >= PATH_STATE_LIMIT) {
-      explorationTruncated = true;
-      break;
+  const keys=new PhysicalKeys();
+  const rules=new (workerClassicRules().WorkerPath)(keys.key(fromId),keys.key(toId),maxDepth,
+    directionCode,alternativeLimit,keys.observe([...excluded]));
+  const completed:Array<{nodeIds:string[];edgeIds:string[];traversal:Item[]}>=[];
+  let exploredStates:number,enqueuedStates:number,maxFrontierSize:number,explorationTruncated:boolean;
+  try {
+    while(rules.active()){
+      const currentIds=keys.strings(rules.current_ids());
+      const edgeRows=await rows<EdgeRow>(db,
+        `SELECT id, ord, from_id, to_id, predicate_id, view_mask, layer_mask
+           FROM philosophy_edges
+          WHERE (from_id IN (SELECT value FROM json_each(?)) OR to_id IN (SELECT value FROM json_each(?)))
+            AND (? IS NULL OR (view_mask & ?) != 0) AND (? IS NULL OR (layer_mask & ?) != 0)
+            AND ${predicate.sql} ORDER BY id, from_id, to_id`,
+        JSON.stringify(currentIds),JSON.stringify(currentIds),selectedViewMask,selectedViewMask,
+        layerMask,layerMask,...(predicates.length===0?[]:[predicate.binding]));
+      for(const edge of edgeRows)rules.observe_edge(keys.key(edge.id),keys.key(edge.from_id),keys.key(edge.to_id));
+      rules.finish_level();
     }
-    const currentIds = [...new Set(queue.map((state) => state.current))];
-    const edgeRows = await rows<EdgeRow>(
-      db,
-      `SELECT id, ord, from_id, to_id, predicate_id, view_mask, layer_mask
-         FROM philosophy_edges
-        WHERE (from_id IN (SELECT value FROM json_each(?)) OR to_id IN (SELECT value FROM json_each(?)))
-          AND (? IS NULL OR (view_mask & ?) != 0)
-          AND (? IS NULL OR (layer_mask & ?) != 0)
-          AND ${predicate.sql}
-        ORDER BY id, from_id, to_id`,
-      JSON.stringify(currentIds),
-      JSON.stringify(currentIds),
-      selectedViewMask,
-      selectedViewMask,
-      layerMask,
-      layerMask,
-      ...(predicates.length === 0 ? [] : [predicate.binding]),
-    );
-    const adjacency = new Map<string, Array<{ neighbor: string; edgeId: string; direction: string }>>();
-    for (const edge of edgeRows) {
-      if (excluded.has(edge.id)) continue;
-      if (direction === "outgoing" || direction === "either") {
-        const values = adjacency.get(edge.from_id) ?? [];
-        values.push({ neighbor: edge.to_id, edgeId: edge.id, direction: "forward" });
-        adjacency.set(edge.from_id, values);
-      }
-      if ((direction === "incoming" || direction === "either") && (edge.from_id !== edge.to_id || direction === "incoming")) {
-        const values = adjacency.get(edge.to_id) ?? [];
-        values.push({ neighbor: edge.from_id, edgeId: edge.id, direction: "reverse" });
-        adjacency.set(edge.to_id, values);
-      }
+    for(let index=0;index<rules.path_count();index+=1){
+      const nodeIds=keys.strings(rules.path_nodes(index));
+      const edgeIds=keys.strings(rules.path_edges(index));
+      const directions=rules.path_directions(index);
+      completed.push({nodeIds,edgeIds,traversal:edgeIds.map((edge_id,step)=>({edge_id,from_node_id:nodeIds[step],to_node_id:nodeIds[step+1],edge_direction:directions[step]===0?"forward":"reverse"}))});
     }
-    const nextQueue: PathState[] = [];
-    for (const state of queue) {
-      if (exploredStates >= PATH_STATE_LIMIT || completed.length >= alternativeLimit) break;
-      exploredStates += 1;
-      if (state.current === toId) {
-        completed.push(state);
-        continue;
-      }
-      if (state.edgeIds.length >= maxDepth) continue;
-      for (const step of adjacency.get(state.current) ?? []) {
-        if (state.nodeIds.includes(step.neighbor)) continue;
-        if (enqueuedStates >= PATH_STATE_LIMIT || nextQueue.length >= PATH_FRONTIER_LIMIT) {
-          explorationTruncated = true;
-          break;
-        }
-        nextQueue.push({
-          current: step.neighbor,
-          nodeIds: [...state.nodeIds, step.neighbor],
-          edgeIds: [...state.edgeIds, step.edgeId],
-          traversal: [
-            ...state.traversal,
-            {
-              edge_id: step.edgeId,
-              from_node_id: state.current,
-              to_node_id: step.neighbor,
-              edge_direction: step.direction,
-            },
-          ],
-        });
-        enqueuedStates += 1;
-      }
-    }
-    queue = nextQueue;
-    maxFrontierSize = Math.max(maxFrontierSize, queue.length);
-  }
-
-  const allNodeIds = [...new Set(completed.flatMap((path) => path.nodeIds))];
-  const allEdgeIds = [...new Set(completed.flatMap((path) => path.edgeIds))];
+    exploredStates=rules.explored();enqueuedStates=rules.enqueued();maxFrontierSize=rules.max_frontier();explorationTruncated=rules.truncated();
+  }finally{rules.free();}
+  const allNodeIds = classicDistinct(completed.flatMap((path) => path.nodeIds));
+  const allEdgeIds = classicDistinct(completed.flatMap((path) => path.edgeIds));
   const [nodeItems, edgeItems] = await Promise.all([
     itemsByIds(db, "philosophy_nodes", allNodeIds),
     itemsByIds(db, "philosophy_edges", allEdgeIds),
@@ -670,8 +538,8 @@ export async function philosophyPath(
     enqueued_state_count: enqueuedStates,
     frontier_limit: PATH_FRONTIER_LIMIT,
     max_frontier_size: maxFrontierSize,
-    layers: [...new Set(layers)].sort(),
-    predicates: [...new Set(predicates)].sort(),
+    layers: classicDistinct(layers).sort(),
+    predicates: classicDistinct(predicates).sort(),
     source_refs: sourceRefs([...nodeItems, ...edgeItems]),
     runtime_projection_boundary: runtimeBoundary(top),
     authority_note: "Tree-of-Sophia owns graph meaning; MCP serves a bounded path packet.",
@@ -707,15 +575,15 @@ function emptyPathPacket(
     max_depth: options.maxDepth,
     direction: options.direction,
     view_id: options.viewId,
-    excluded_edge_ids: [...new Set(options.excludedEdgeIds)].sort(),
+    excluded_edge_ids: classicDistinct(options.excludedEdgeIds).sort(),
     alternative_limit: options.alternativeLimit,
     exploration_truncated: truncated,
     explored_state_count: exploredStates,
     enqueued_state_count: enqueuedStates,
     frontier_limit: PATH_FRONTIER_LIMIT,
     max_frontier_size: 1,
-    layers: [...new Set(options.layers)].sort(),
-    predicates: [...new Set(options.predicates)].sort(),
+    layers: classicDistinct(options.layers).sort(),
+    predicates: classicDistinct(options.predicates).sort(),
     source_refs: [],
     runtime_projection_boundary: runtimeBoundary(top),
     authority_note: "Tree-of-Sophia owns graph meaning; MCP serves a bounded path packet.",
@@ -733,7 +601,7 @@ export async function philosophyEpistemic(
     metaItem(db, "philosophy_top"),
     viewMask(db, viewId),
   ]);
-  if (selectedViewMask !== null && (selected.viewMask & selectedViewMask) === 0) {
+  if (selectedViewMask !== null && workerClassicRules().WorkerProfile.outside_view(selected.viewMask,selectedViewMask)) {
     throw new HttpError(404, `ToS philosophy projection item is not present in view ${viewId}: ${itemIdValue}`);
   }
   const selectedNodeIds =
@@ -755,19 +623,24 @@ export async function philosophyEpistemic(
     JSON.stringify(selectedNodeIds),
     itemIdValue,
   );
-  const selectedEdgeIsContext = selected.kind === "edge" && !CHALLENGE_PREDICATES.has(stringValue(selected.item.predicate_id));
-  const challengeCapacity = Math.max(0, limit - (selectedEdgeIsContext ? 1 : 0));
-  const availableChallenges = candidates.filter((edge) => CHALLENGE_PREDICATES.has(stringValue(edge.predicate_id)));
-  const challengeRelations = availableChallenges.slice(0, challengeCapacity);
-  const challengeIds = new Set(challengeRelations.map((edge) => stringValue(edge.edge_id)));
-  const contextRelations = candidates.filter((edge) => !challengeIds.has(stringValue(edge.edge_id))).slice(0, limit - challengeRelations.length);
-  const selectedRelations = [...challengeRelations, ...contextRelations];
-  const relatedNodeIds = [...new Set(selectedRelations.flatMap((edge) => [stringValue(edge.from_id), stringValue(edge.to_id)]).filter(Boolean))];
-  const neighborNodes = (await itemsByIds(db, "philosophy_nodes", relatedNodeIds)).filter(
-    (node) => selected.kind !== "node" || stringValue(node.node_id) !== itemIdValue,
-  );
+  const selectedEdgeIsContext = selected.kind === "edge" && !workerClassicRules().WorkerEpistemic.challenge(stringValue(selected.item.predicate_id));
+  const keys=new PhysicalKeys(),rules=new (workerClassicRules().WorkerEpistemic)(limit,selectedEdgeIsContext);
+  let availableChallengeCount:number,challengeState:string,challengeRelations:Item[],contextRelations:Item[],neighborNodes:Item[];
+  try {
+    for(let index=0;index<candidates.length;index+=1){const edge=candidates[index]!;rules.observe_relation(keys.key(stringValue(edge.edge_id)),index,workerClassicRules().WorkerEpistemic.challenge(stringValue(edge.predicate_id)));}
+    rules.finish_relations();
+    challengeRelations=Array.from(rules.challenge_rows(),index=>candidates[index]!);
+    contextRelations=Array.from(rules.context_rows(),index=>candidates[index]!);
+    const endpoints=new (workerClassicRules().WorkerEndpoints)();
+    let relatedNodeIds:string[];
+    try{for(const edge of [...challengeRelations,...contextRelations])for(const id of [stringValue(edge.from_id),stringValue(edge.to_id)]){endpoints.endpoint(keys.key(id),Boolean(id));}relatedNodeIds=keys.strings(endpoints.ids());}finally{endpoints.free();}
+    neighborNodes=(await itemsByIds(db,"philosophy_nodes",relatedNodeIds)).filter(node=>rules.neighbor(keys.key(stringValue(node.node_id)),selected.kind==="node",keys.key(itemIdValue)));
+    availableChallengeCount=rules.available();challengeState=rules.challenge_state();
+  }finally{rules.free();}
   const surrounding = [...challengeRelations, ...contextRelations, ...neighborNodes];
-  const fieldItems = surrounding.filter((item) => itemId(item) !== itemIdValue);
+  const fieldKeys=new PhysicalKeys();
+  const fieldSelection=fieldKeys.key(itemIdValue);
+  const fieldItems = surrounding.filter((item) => workerClassicRules().WorkerProfile.different(fieldKeys.key(itemId(item)),fieldSelection));
   const fieldProperties = fieldItems.map(properties);
   const selectedProperties = properties(selected.item);
   const confidence = (item: Item): string => stringValue(item.confidence || item.master_confidence);
@@ -791,17 +664,12 @@ export async function philosophyEpistemic(
       authority_postures: uniqueValues(fieldProperties, "authority_posture"),
       canon_statuses: uniqueValues(fieldProperties, "canon_status"),
       review_postures: uniqueValues(fieldProperties, "review_posture"),
-      confidence_values: [...new Set(fieldProperties.map(confidence).filter(Boolean))].sort(),
+      confidence_values: classicDistinct(fieldProperties.map(confidence).filter(Boolean)).sort(),
     },
     coverage: {
       posture: "partial",
-      challenge_state:
-        challengeRelations.length < availableChallenges.length
-          ? "projected_signals_truncated"
-          : availableChallenges.length > 0
-            ? "projected_signals"
-            : "none_in_projection_scope",
-      available_challenge_relations: availableChallenges.length,
+      challenge_state: challengeState,
+      available_challenge_relations: availableChallengeCount,
       returned_challenge_relations: challengeRelations.length,
       missing_surfaces: [
         "claim-level support and counterevidence",
@@ -812,13 +680,13 @@ export async function philosophyEpistemic(
     authority_boundary: { is_source: false, is_canon: false, is_semantic_truth: false, is_rights_clearance: false },
     counts: {
       challenge_relations: challengeRelations.length,
-      available_challenge_relations: availableChallenges.length,
+      available_challenge_relations: availableChallengeCount,
       context_relations: contextRelations.length,
       neighbor_nodes: neighborNodes.length,
       source_refs: sourceRefs([selected.item, ...surrounding]).length,
     },
     source_refs: sourceRefs([selected.item, ...surrounding]),
-    challenge_predicates: [...CHALLENGE_PREDICATES].sort(),
+    challenge_predicates: JSON.parse(workerClassicRules().WorkerProfile.challenge_predicates()),
     runtime_projection_boundary: runtimeBoundary(top),
     authority_note:
       "This packet exposes projected challenge signals and source-return routes. A contested_by, uncertain_relation, or polemicizes_with candidate is not adjudicated counterevidence; ToS source, claim, review, rights, and canon owners remain authoritative.",
@@ -827,32 +695,34 @@ export async function philosophyEpistemic(
 
 async function corpusEpistemic(db: D1Database, itemIdValue: string, viewId: string | null, limit: number): Promise<Item> {
   const selectedView = viewId || "route-graph";
-  if (selectedView !== "route-graph") throw new HttpError(404, "corpus Evidence Lens currently supports the route-graph view");
+  if (!workerClassicRules().WorkerProfile.supported_corpus_evidence(selectedView)) throw new HttpError(404, "corpus Evidence Lens currently supports the route-graph view");
   const edges = await jsonRows(db, "SELECT json FROM corpus_edges WHERE owner_branch = 'ToS/canon' ORDER BY ord LIMIT 1000");
-  const endpointIds = [...new Set(edges.flatMap((edge) => [stringValue(edge.from_id), stringValue(edge.to_id)]).filter(Boolean))];
+  const endpointIds = classicDistinct(edges.flatMap((edge) => [stringValue(edge.from_id), stringValue(edge.to_id)]).filter(Boolean));
   const nodes = await jsonRows(
     db,
     "SELECT json FROM corpus_items WHERE collection = 'nodes' AND id IN (SELECT value FROM json_each(?)) ORDER BY ord",
     JSON.stringify(endpointIds),
   );
-  const selection = [...nodes, ...edges].find((item) => itemId(item) === itemIdValue);
+  const selectionKeys=new PhysicalKeys();
+  const selectedIdentity=selectionKeys.key(itemIdValue);
+  const selection = [...nodes, ...edges].find((item) => workerClassicRules().WorkerProfile.same(selectionKeys.key(itemId(item)),selectedIdentity));
   if (!selection) throw new HttpError(404, `unknown ToS corpus route-graph item: ${itemIdValue}`);
   const selectionIsNode = Boolean(selection.node_id);
   const selectedNodeIds = selectionIsNode
     ? [itemIdValue]
     : [stringValue(selection.from_id), stringValue(selection.to_id)].filter(Boolean);
-  const relationCandidates = edges
-    .filter(
-      (edge) =>
-        stringValue(edge.edge_id) === itemIdValue ||
-        selectedNodeIds.includes(stringValue(edge.from_id)) ||
-        selectedNodeIds.includes(stringValue(edge.to_id)),
-    )
-    .sort((left, right) => Number(itemId(left) !== itemIdValue) - Number(itemId(right) !== itemIdValue) || itemId(left).localeCompare(itemId(right)));
-  const contextRelations = relationCandidates.slice(0, limit);
-  const relatedNodeIds = new Set(contextRelations.flatMap((edge) => [stringValue(edge.from_id), stringValue(edge.to_id)]).filter(Boolean));
-  if (selectionIsNode) relatedNodeIds.delete(itemIdValue);
-  const neighborNodes = nodes.filter((node) => relatedNodeIds.has(stringValue(node.node_id)));
+  const keys=new PhysicalKeys(),selectionKey=keys.key(itemIdValue),nodeKeys=keys.observe(selectedNodeIds);
+  const relationCandidates=edges.filter(edge=>workerClassicRules().WorkerEpistemic.corpus_candidate(keys.key(stringValue(edge.edge_id)),selectionKey,keys.key(stringValue(edge.from_id)),keys.key(stringValue(edge.to_id)),nodeKeys))
+    .sort((left,right)=>workerClassicRules().WorkerProfile.priority(itemId(left)===itemIdValue,itemId(right)===itemIdValue)||itemId(left).localeCompare(itemId(right)));
+  const rules=new (workerClassicRules().WorkerEpistemic)(limit,false);
+  let contextRelations:Item[],neighborNodes:Item[];
+  try {
+    for(let index=0;index<relationCandidates.length;index+=1)rules.observe_relation(keys.key(stringValue(relationCandidates[index]!.edge_id)),index,false);
+    rules.finish_relations();contextRelations=Array.from(rules.context_rows(),index=>relationCandidates[index]!);
+    for(const edge of contextRelations)for(const id of [stringValue(edge.from_id),stringValue(edge.to_id)])rules.observe_endpoint(keys.key(id),Boolean(id));
+    neighborNodes=nodes.filter(node=>rules.corpus_neighbor(keys.key(stringValue(node.node_id)),selectionIsNode,selectionKey));
+  }finally{rules.free();}
+
   return {
     selection,
     challenge_relations: [],
@@ -895,11 +765,18 @@ export async function evidenceLens(
       ? await philosophyEpistemic(db, itemIdValue, viewId, limit)
       : await corpusEpistemic(db, itemIdValue, viewId, limit);
   const evidence = await metaItem(db, "evidence_projection");
-  const scene = objectArray(evidence.scenes).find((candidate) =>
-    objectArray(candidate.selections).some(
-      (route) => stringValue(route.mode) === mode && stringArray(route.item_ids).includes(itemIdValue),
-    ),
-  );
+  const keys=new PhysicalKeys(),rules=new (workerClassicRules().WorkerEvidence)(mode==="philosophy"?0:1,keys.key(itemIdValue));
+  const scenes=objectArray(evidence.scenes);
+  let scene:Item|undefined;
+  try {
+    for(let index=0;index<scenes.length;index+=1){
+      for(const route of objectArray(scenes[index]!.selections)){
+        rules.route(index,stringValue(route.mode),keys.observe(stringArray(route.item_ids)));
+        if(rules.scene()>=0)break;
+      }
+      if(rules.scene()>=0)break;
+    }
+    const sceneIndex=rules.scene();scene=sceneIndex<0?undefined:scenes[sceneIndex];
   const selection = context.selection as Item;
   let finding: string;
   let findingRu: string;
@@ -909,44 +786,35 @@ export async function evidenceLens(
   let gaps: string[];
   let gapsRu: string[];
   let sourceAnchors: Item[];
-  if (!scene) {
-    finding = "No curated Evidence Lens route is published for this selection.";
-    findingRu = "Для выбранного объекта ещё не опубликован курируемый маршрут Evidence Lens.";
-    posture = "projection-only";
-    conclusion = {
-      can_conclude: false,
-      canon_membership: selection.authority_layer === "canon",
-      claim_evidence_closed: false,
-      allowed: ["inspect the projection context and its source-return references"],
-      allowed_ru: ["исследовать контекст проекции и её ссылки возврата к источникам"],
-      not_allowed: ["infer evidence closure from projection membership"],
-      not_allowed_ru: ["выводить доказательную замкнутость из присутствия в проекции"],
-    };
-    routesValue = [];
-    gaps = ["curated source, review, rights, and claim/evidence routes"];
-    gapsRu = ["курируемые маршруты к source, review, rights и claim/evidence"];
-    sourceAnchors = [];
+  if (!rules.curated()) {
+    const fallback=JSON.parse(workerClassicRules().WorkerEvidence.fallback(workerClassicRules().WorkerEvidence.canon_layer(stringValue(selection.authority_layer)))) as Item;
+    finding=fallback.finding as string;findingRu=fallback.finding_ru as string;posture=fallback.posture as string;
+    conclusion=fallback.conclusion as Item;routesValue=[];
+    gaps=fallback.gaps as string[];gapsRu=fallback.gaps_ru as string[];sourceAnchors=[];
   } else {
-    finding = stringValue(scene.finding);
-    findingRu = stringValue(scene.finding_ru) || finding;
-    posture = stringValue(scene.posture);
-    conclusion = scene.conclusion && typeof scene.conclusion === "object" ? (scene.conclusion as Item) : {};
-    routesValue = objectArray(scene.routes);
-    gaps = stringArray(scene.gaps);
-    gapsRu = stringArray(scene.gaps_ru);
-    if (gapsRu.length === 0) gapsRu = gaps;
-    sourceAnchors = objectArray(scene.source_anchors);
+    finding = stringValue(scene!.finding);
+    const observedFindingRu=stringValue(scene!.finding_ru);
+    findingRu = workerClassicRules().WorkerEvidence.field_fallback(observedFindingRu.length)?finding:observedFindingRu;
+    posture = stringValue(scene!.posture);
+    const observedConclusion=scene!.conclusion;
+    conclusion = workerClassicRules().WorkerEvidence.conclusion_record(Boolean(observedConclusion),typeof observedConclusion==="object")?(observedConclusion as Item):{};
+    routesValue = objectArray(scene!.routes);
+    gaps = stringArray(scene!.gaps);
+    gapsRu = stringArray(scene!.gaps_ru);
+    if (workerClassicRules().WorkerEvidence.field_fallback(gapsRu.length)) gapsRu = gaps;
+    sourceAnchors = objectArray(scene!.source_anchors);
     const coverage = context.coverage as Item;
     coverage.missing_surfaces = gaps;
-    coverage.posture = "curated-route";
+    coverage.posture = workerClassicRules().WorkerEvidence.coverage_posture();
   }
   const routeCounts: Record<string, number> = {};
   for (const route of routesValue) {
     const kind = stringValue(route.route_kind) || "other";
-    routeCounts[kind] = (routeCounts[kind] ?? 0) + 1;
+    const current=routeCounts[kind] ?? 0;
+    routeCounts[kind] = typeof current==="number"?rules.count_route(current):current+1;
   }
   const projectionRefs = stringArray(context.source_refs);
-  const lensSourceRefs = [...new Set([...projectionRefs, ...stringArray(scene?.source_refs)])].sort();
+  const lensSourceRefs = classicDistinct([...projectionRefs, ...stringArray(scene?.source_refs)]).sort();
   const boundary = evidence.authority_boundary && typeof evidence.authority_boundary === "object" ? (evidence.authority_boundary as Item) : {};
   return {
     schema: "tos_evidence_lens_packet_v1",
@@ -996,6 +864,7 @@ export async function evidenceLens(
       ],
     },
   };
+  }finally{rules.free();}
 }
 
 export async function philosophyPacket(db: D1Database, query: string, viewId: string | null, limit: number): Promise<Item> {
@@ -1032,7 +901,7 @@ export async function buildHealth(db: D1Database): Promise<Item> {
     meta<{ sha256: string }>(db, "data_revision"),
     meta<Item>(db, "knowledge_top"),
   ]);
-  if (knowledge.schema !== "tos_knowledge_graph_v1") throw new Error("knowledge read model schema is not current");
+  if (!workerClassicRules().WorkerHealth.schema(stringValue(knowledge.schema))) throw new Error("knowledge read model schema is not current");
   const counts = knowledge.counts && typeof knowledge.counts === "object" && !Array.isArray(knowledge.counts)
     ? knowledge.counts as Item
     : {};
@@ -1046,7 +915,7 @@ export async function buildHealth(db: D1Database): Promise<Item> {
     relation_statements: counts.relations,
     relation_explanations: counts.relations,
   };
-  if (Object.entries(expectedCoverage).some(([key, value]) => typeof value !== "number" || coverage[key] !== value)) {
+  if (Object.entries(expectedCoverage).some(([key, value]) => {if(!workerClassicRules().WorkerHealth.expected(typeof value==="number"))return true;const actual=coverage[key];return !workerClassicRules().WorkerHealth.coverage(value as number,typeof actual==="number"?actual:NaN,true);})) {
     throw new Error("knowledge read model display coverage is incomplete");
   }
   const healthCoverage = Object.fromEntries(

@@ -39,10 +39,13 @@ import {initSync, KnowledgeSceneSession, TemporalReplaySession, validate_tempora
   InspectionSession, validate_inspect_request_wasm_v1, LensSession, validate_lens_request_wasm_v1,
   ExplorationSession,validate_exploration_request_wasm_v1,validate_exploration_replay_wasm_v1,
   exploration_cache_version_wasm_v1} from '../generated/tos_web_rules.js';
+import * as classicRuntime from "../generated/tos_web_rules.js";
+import {installWorkerClassicRules} from "./worker-classic.ts";
 import temporalWasm from '../generated/tos_web_rules_bg.wasm';
 
 // wasm-bindgen owns module initialization; no second host cache or fetch.
 initSync({module: temporalWasm});
+installWorkerClassicRules(classicRuntime);
 installKnowledgeSceneRules({KnowledgeSceneSession});
 const temporalRuntime = {TemporalReplaySession, validate_temporal_request_wasm_v1};
 const inspectionRuntime = {InspectionSession, validate_inspect_request_wasm_v1};

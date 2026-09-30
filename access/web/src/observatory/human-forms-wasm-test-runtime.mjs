@@ -47,3 +47,5 @@ installClientPacketRules(runtime);
 
 import {installWebMcpRules} from '../webmcp.ts';
 installWebMcpRules(runtime);
+import {installWorkerClassicRules} from "../../../deploy/cloudflare-worker/src/worker-classic.ts";
+installWorkerClassicRules(runtime);

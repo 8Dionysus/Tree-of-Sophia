@@ -6,15 +6,13 @@
 //! direct knowledge API's legacy default.
 
 #[cfg(feature = "wasm")]
+mod browser_lens_spec;
+mod claim_reading;
+mod claim_reference;
+#[cfg(feature = "wasm")]
 mod client_inspection;
 #[cfg(feature = "wasm")]
 mod client_packet;
-#[cfg(feature = "wasm")]
-mod browser_lens_spec;
-#[cfg(feature = "wasm")]
-mod lens_projection;
-mod claim_reading;
-mod claim_reference;
 mod constructor_machine;
 #[cfg(feature = "wasm")]
 mod exploration_session;
@@ -25,6 +23,8 @@ mod interface_preferences;
 mod knowledge_envelope;
 #[cfg(feature = "wasm")]
 mod knowledge_scene;
+#[cfg(feature = "wasm")]
+mod lens_projection;
 #[cfg(feature = "wasm")]
 mod lens_session;
 mod live_resume;
@@ -43,12 +43,14 @@ mod source_form_session;
 mod temporal_session;
 #[cfg(feature = "wasm")]
 mod webmcp;
+#[cfg(feature = "wasm")]
+mod worker_classic;
 mod workspace_copy;
 mod workspace_machine;
 mod workspace_proposal;
 
 #[cfg(feature = "wasm")]
-pub use webmcp::{WebMcpRules,WebMcpResultChoice,WebMcpToolSession,WebMcpViewSelectorSession};
+pub use webmcp::{WebMcpResultChoice, WebMcpRules, WebMcpToolSession, WebMcpViewSelectorSession};
 
 pub use temporal_session::{
     TemporalSession, TemporalSessionBudget, TemporalSessionStep, TemporalSessionWork,
@@ -58,17 +60,25 @@ pub use temporal_session::{
 pub use record_context::RecordContextSession;
 
 #[cfg(feature = "wasm")]
+pub use browser_lens_spec::{focus_spec_descriptor_wasm_v1, relation_spec_descriptor_wasm_v1};
+#[cfg(feature = "wasm")]
 pub use client_inspection::ClientInspectionSession;
+#[cfg(feature = "wasm")]
+pub use client_packet::{
+    ClientJsonSession, ClientMaterialSession, ClientPacketSession, ClientSelectorSession,
+};
 #[cfg(feature = "wasm")]
 pub use knowledge_scene::KnowledgeSceneSession;
 #[cfg(feature = "wasm")]
-pub use client_packet::{ClientPacketSession,ClientJsonSession,ClientSelectorSession,ClientMaterialSession};
+pub use lens_projection::{LensNodeSession, LensSortSession};
 #[cfg(feature = "wasm")]
 pub use source_dossier::SourceDossierSession;
+
 #[cfg(feature = "wasm")]
-pub use lens_projection::{LensSortSession,LensNodeSession};
-#[cfg(feature = "wasm")]
-pub use browser_lens_spec::{focus_spec_descriptor_wasm_v1,relation_spec_descriptor_wasm_v1};
+pub use worker_classic::{
+    WorkerClusters, WorkerEndpoints, WorkerEpistemic, WorkerEvidence, WorkerGraph, WorkerHealth,
+    WorkerNeighborhood, WorkerPath, WorkerProfile, WorkerSearch, WorkerSet,
+};
 
 pub use claim_reading::validate_claim_reading_v1;
 pub use claim_reference::validate_claim_reference_v1;
@@ -99,9 +109,9 @@ mod wasm {
         ShelfPacketIndex, compact_knowledge_search_page_v1, normalize_interface_preferences_v1,
         normalize_observatory_conditions_v1, normalize_observatory_draft_v1,
         normalize_observatory_pose_v1, normalize_reading_resume_v1, rebind_live_resume_v1,
-        research_shelf_rule_v1, select_knowledge_search_mode_v1, validate_claim_reading_v1, validate_claim_reference_v1,
-        validate_live_resume_v1, validate_workspace_copy_v1, workspace_proposal_digest_v1,
-        workspace_transition_v1,
+        research_shelf_rule_v1, select_knowledge_search_mode_v1, validate_claim_reading_v1,
+        validate_claim_reference_v1, validate_live_resume_v1, validate_workspace_copy_v1,
+        workspace_proposal_digest_v1, workspace_transition_v1,
     };
     use wasm_bindgen::prelude::*;
 
