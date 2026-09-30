@@ -54,8 +54,77 @@ fn read_packet(path: &Path) -> Value {
     .unwrap();
     serde_json::from_slice(&raw).unwrap()
 }
+fn fixture_physical_bytes(roots: &[PathBuf], deadline: Instant) -> (u64, usize) {
+    use std::os::unix::fs::MetadataExt;
+    let mut pending: Vec<_> = roots.iter().cloned().map(|p| (p, 0usize)).collect();
+    let mut entries = 0usize;
+    let mut physical = 0u64;
+    while let Some((path, depth)) = pending.pop() {
+        assert!(Instant::now() < deadline);
+        entries += 1;
+        assert!(
+            entries <= 16_384 && depth <= 64,
+            "finite synthetic fixture inventory"
+        );
+        let metadata = fs::symlink_metadata(&path).unwrap();
+        assert!(
+            !metadata.file_type().is_symlink(),
+            "synthetic fixture symlink"
+        );
+        assert!(
+            metadata.is_file() || metadata.is_dir(),
+            "synthetic fixture member type"
+        );
+        physical = physical
+            .checked_add(metadata.blocks().checked_mul(512).unwrap())
+            .unwrap();
+        assert!(
+            physical <= 512 * 1024 * 1024,
+            "synthetic baseline physical budget"
+        );
+        if metadata.is_dir() {
+            for entry in fs::read_dir(path).unwrap() {
+                assert!(pending.len() + entries < 16_384);
+                pending.push((entry.unwrap().path(), depth + 1));
+            }
+        }
+    }
+    (physical, entries)
+}
+
 #[test]
 fn maintained_claim_addition_whole_transaction_and_access() {
+    let deadline = Instant::now() + Duration::from_secs(240);
+    // Observe exact products before fixture or material writes. These reads
+    // do not copy binaries into the disposable workspace.
+    let executable = Path::new("/proc/self/exe");
+    let consumer = PathBuf::from(std::env::var_os("TOS_NATIVE_PREPARED_CONSUMER_BIN").unwrap());
+    assert!(consumer.is_absolute());
+    let worker_path = super::validation_cut_cases::selected_worker_path();
+    let executable_bytes = fs::metadata(executable).unwrap().len();
+    let consumer_bytes = fs::metadata(&consumer).unwrap().len();
+    let worker_bytes = fs::metadata(&worker_path).unwrap().len();
+    assert!(executable_bytes <= 512 * 1024 * 1024);
+    assert!(consumer_bytes <= 512 * 1024 * 1024);
+    assert!(worker_bytes <= 128 * 1024 * 1024);
+    let executable_sha = native_child::bounded_sha_before(executable, 512 * 1024 * 1024, deadline);
+    let consumer_sha = native_child::bounded_sha_before(&consumer, 512 * 1024 * 1024, deadline);
+    let worker_sha = native_child::bounded_sha_before(&worker_path, 128 * 1024 * 1024, deadline);
+    assert_eq!(
+        executable_sha.to_hex(),
+        std::env::var("TOS_NATIVE_CLAIM_PUBLICATION_CASE_SHA256").unwrap()
+    );
+    assert_eq!(
+        consumer_sha.to_hex(),
+        std::env::var("TOS_NATIVE_PREPARED_CONSUMER_SHA256").unwrap()
+    );
+    eprintln!(
+        "Claim whole preflight E={executable_bytes}:{} C={consumer_bytes}:{} W={worker_bytes}:{}",
+        executable_sha.to_hex(),
+        consumer_sha.to_hex(),
+        worker_sha.to_hex()
+    );
+    assert!(Instant::now() < deadline);
     let repository = super::validation_cut_cases::repository();
     let workspace = tempfile::tempdir().unwrap();
     let packet_path = if let Some(path) = std::env::var_os("TOS_NATIVE_CLAIM_PUBLICATION_FIXTURE") {
@@ -70,8 +139,11 @@ fn maintained_claim_addition_whole_transaction_and_access() {
             .arg(workspace.path())
             .arg(&path)
             .env("PYTHONDONTWRITEBYTECODE", "1");
-        let output =
-            native_child::bounded_output_until(&mut command, 4096, Duration::from_secs(30));
+        let output = native_child::bounded_output_before(
+            &mut command,
+            4096,
+            deadline.min(Instant::now() + Duration::from_secs(30)),
+        );
         assert!(
             output.status.success(),
             "maintained fixture export refused: {}",
@@ -81,10 +153,44 @@ fn maintained_claim_addition_whole_transaction_and_access() {
     };
     assert!(packet_path.is_absolute());
     let packet = read_packet(&packet_path);
-    let db_path = PathBuf::from(required(&packet, "db_path"));
+    let db_path = PathBuf::from(required(&packet, "db_path"))
+        .canonicalize()
+        .unwrap();
+    let owner_config = PathBuf::from(required(&packet, "owner_config"))
+        .canonicalize()
+        .unwrap();
+    assert!(fs::metadata(&owner_config).unwrap().len() <= 1_048_576);
+    let config_raw = fs::read(&owner_config).unwrap();
+    let config: Value = serde_json::from_slice(&config_raw).unwrap();
+    let fixture_root = PathBuf::from(required(&config, "source_root"));
+    assert!(fixture_root.is_absolute());
+    // The optional Python branch supplies its actual disposable fixture, never
+    // an authored repository or arbitrary host tree for this metadata walk.
+    let temporary_base = std::env::temp_dir().canonicalize().unwrap();
+    assert!(
+        !fs::symlink_metadata(&fixture_root)
+            .unwrap()
+            .file_type()
+            .is_symlink()
+    );
+    let fixture_root = fixture_root.canonicalize().unwrap();
+    let workspace_root = workspace.path().canonicalize().unwrap();
+    assert!(fixture_root.starts_with(&temporary_base) && fixture_root != temporary_base);
+    assert!(owner_config.starts_with(&fixture_root) && db_path.starts_with(&fixture_root));
+    let inventory_roots = if fixture_root.starts_with(&workspace_root) {
+        vec![workspace_root]
+    } else {
+        vec![workspace_root, fixture_root]
+    };
+    let (fixture_bytes, fixture_entries) = fixture_physical_bytes(&inventory_roots, deadline);
+    eprintln!("Claim whole preflight F={fixture_bytes} physical bytes entries={fixture_entries}");
     let connection = rusqlite::Connection::open(&db_path).unwrap();
     connection.busy_timeout(Duration::from_secs(2)).unwrap();
     assert!(connection.is_autocommit());
+    let cancel = Arc::new(AtomicBool::new(false));
+    let progress =
+        ClaimPublicationProgress::install(&connection, cancel.clone(), deadline, 100_000_000)
+            .unwrap();
     // Finite maintained consumer envelope; library defaults remain portable.
     let publication_limits = PublicationLimits {
         max_mutations: 100_000,
@@ -177,11 +283,6 @@ fn maintained_claim_addition_whole_transaction_and_access() {
     let raw = serde_json::to_vec(&semantic_reference).unwrap();
     assert!(raw.len() <= 16_777_216);
     fs::write(reference, raw).unwrap();
-    let deadline = Instant::now() + Duration::from_secs(60);
-    let cancel = Arc::new(AtomicBool::new(false));
-    let progress =
-        ClaimPublicationProgress::install(&connection, cancel.clone(), deadline, 100_000_000)
-            .unwrap();
     {
         let tx = connection.unchecked_transaction().unwrap();
         for table in [
@@ -340,17 +441,20 @@ fn maintained_claim_addition_whole_transaction_and_access() {
         &old_executor,
         "GET",
         "/api/knowledge/catalog",
-        tos_access::prepared_local::profile(),
+        tos_access::prepared_local::profile().with_query_timeout(
+            Duration::from_secs(5).min(deadline.checked_duration_since(Instant::now()).unwrap()),
+        ),
     );
     assert_ne!(
         stale.status, 200,
         "old selected binding must refuse the successor"
     );
     drop(old_executor);
-    claim_publication_access::verify_published_access(
+    claim_publication_access::verify_published_access_until(
         &db_path,
         binding_path,
         required(&packet, "new_node_id"),
         required(&packet, "new_relation_id"),
+        deadline,
     );
 }

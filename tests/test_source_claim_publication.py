@@ -109,7 +109,7 @@ class SourceClaimPublicationTests(unittest.TestCase):
             completed = subprocess.run([str(binary), '--exact',
                 'command_claim_publication_cases::maintained_claim_addition_whole_transaction_and_access'],
                 env=environment, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL, timeout=150, check=False)
+                stderr=subprocess.DEVNULL, timeout=260, check=False)
             self.assertEqual(completed.returncode, 0, 'native whole Claim case failed; OPS case output is authoritative')
             result = json.loads(packet.with_suffix('.receipt.json').read_bytes())
             self.assertTrue(result['prepared_committed'])
