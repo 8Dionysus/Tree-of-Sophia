@@ -397,9 +397,22 @@ build_server(core=core).run(transport='stdio')
         first = self.persistent().explore({"focus_node_id": "node:00", "max_depth": 3})
         request = {"cursor": first["page"]["next_cursor"]}
         services = [self.persistent(), self.persistent()]
+        def packet_or_busy(service):
+            try:
+                return service.explore(request)
+            except PublishedCheckpointError as error:
+                # The bounded 100ms lock admission may refuse a competitor.
+                # Only SQLITE_BUSY is this documented outcome; every other
+                # setup, corruption, source or execution failure still fails.
+                self.assertIsInstance(error.__cause__, sqlite3.OperationalError)
+                self.assertEqual(error.__cause__.sqlite_errorcode, sqlite3.SQLITE_BUSY)
+                return None
         with concurrent.futures.ThreadPoolExecutor(2) as pool:
-            packets = list(pool.map(lambda service: service.explore(request), services))
-        self.assertEqual(packets[0], packets[1])
+            outcomes = list(pool.map(packet_or_busy, services))
+        packets = [packet for packet in outcomes if packet is not None]
+        self.assertTrue(packets, "a competing writer must publish its atomic result")
+        for packet in packets:
+            self.assertEqual(packet, packets[0])
         self.assertEqual(self.persistent().explore(request), packets[0])
         self.assertTrue(services[0].capability()["restart_survival"])
         self.assertEqual((self.path.parent / "checkpoints.sqlite").stat().st_mode & 0o777, 0o600)
@@ -409,10 +422,18 @@ from unittest.mock import patch
 from tos_access.published_read_model import PublishedKnowledgeReadModel
 from tos_access.published_exploration import PublishedExplorationService
 from tos_access.exploration import ExplorationService
+from tos_access.published_checkpoints import PublishedCheckpointError
+import sqlite3
 reader = PublishedKnowledgeReadModel(sys.argv[1], json.loads(sys.argv[2]))
-service = PublishedExplorationService(reader, checkpoint_path=sys.argv[3], work_limit=2)
-with patch.object(ExplorationService, '_index', side_effect=AssertionError('cold full graph')):
-    print(json.dumps(service.explore(json.loads(sys.argv[4]))))
+try:
+    service = PublishedExplorationService(reader, checkpoint_path=sys.argv[3], work_limit=2)
+    with patch.object(ExplorationService, '_index', side_effect=AssertionError('cold full graph')):
+        print(json.dumps({'packet': service.explore(json.loads(sys.argv[4]))}))
+except PublishedCheckpointError as error:
+    if (not isinstance(error.__cause__, sqlite3.OperationalError)
+            or error.__cause__.sqlite_errorcode != sqlite3.SQLITE_BUSY):
+        raise
+    print(json.dumps({'busy': sqlite3.SQLITE_BUSY}))
 """
         def cold_process(_):
             run = subprocess.run([sys.executable, "-c", program, str(self.path), json.dumps(self.binding),
@@ -422,8 +443,13 @@ with patch.object(ExplorationService, '_index', side_effect=AssertionError('cold
             return json.loads(run.stdout)
         with concurrent.futures.ThreadPoolExecutor(2) as pool:
             cold_packets = list(pool.map(cold_process, range(2)))
-        self.assertEqual(cold_packets[0], cold_packets[1])
-        self.assertEqual(services[0].explore(following), cold_packets[0])
+        self.assertTrue(all(set(outcome) == {"packet"} or outcome == {"busy": sqlite3.SQLITE_BUSY}
+                            for outcome in cold_packets))
+        completed = [outcome["packet"] for outcome in cold_packets if "packet" in outcome]
+        self.assertTrue(completed, "a cold competing writer must publish its atomic result")
+        for packet in completed:
+            self.assertEqual(packet, completed[0])
+        self.assertEqual(services[0].explore(following), completed[0])
 
     def test_persistent_failure_between_replay_and_successor_rolls_back(self):
         service = self.persistent()
@@ -503,8 +529,15 @@ with patch.object(ExplorationService, '_index', side_effect=AssertionError('cold
         request = {"cursor": first["page"]["next_cursor"]}
         with closing(sqlite3.connect(service.checkpoints.path)) as db:
             db.execute("BEGIN IMMEDIATE")
-            with self.assertRaisesRegex(PublishedCheckpointError, "busy"):
+            before = (db.execute("SELECT * FROM checkpoint_meta").fetchall(),
+                      db.execute("SELECT * FROM checkpoints ORDER BY token").fetchall())
+            with self.assertRaisesRegex(PublishedCheckpointError, "busy") as refused:
                 service.explore(request)
+            self.assertIsInstance(refused.exception.__cause__, sqlite3.OperationalError)
+            self.assertEqual(refused.exception.__cause__.sqlite_errorcode, sqlite3.SQLITE_BUSY)
+            after = (db.execute("SELECT * FROM checkpoint_meta").fetchall(),
+                     db.execute("SELECT * FROM checkpoints ORDER BY token").fetchall())
+            self.assertEqual(after, before, "busy refusal must not publish replay or successor")
             db.rollback()
         self.assertEqual(service.explore(request), self.persistent().explore(request))
         with self.assertRaisesRegex(PublishedCheckpointError, "incompatible"):
