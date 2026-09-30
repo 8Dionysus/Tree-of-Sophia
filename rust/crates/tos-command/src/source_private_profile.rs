@@ -2538,7 +2538,9 @@ fn prepared_create(
         || cmd::integer(&record, "record_version")? != 1
         || cmd::text(&record, "identity_status")? != "provisional"
         || cmd::text(&record, "same_as_posture")? != "no_equivalence_claim"
-        || !cmd::field(&record, "supersedes_ref")?.is_null()
+        || record
+            .object_get("supersedes_ref")
+            .is_some_and(|value| !value.is_null())
     {
         return Err(SourceCommandError::Denied(
             "source creation needs the exact provisional unlinked record posture",

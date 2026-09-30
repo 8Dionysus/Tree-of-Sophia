@@ -457,6 +457,10 @@ fn native_private_profile_cli_preserves_owner_lifecycle_and_cold_archives() {
     fs::write(&invocation_path, canonical(&invocation)).unwrap();
     fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
     let call = |request: &Value| {
+        eprintln!(
+            "Profile native operation={}",
+            request["operation"].as_str().unwrap()
+        );
         let outer = alignment_native_cli(&repository, &owner, &invocation_path, request, deadline);
         assert_eq!(outer["schema_version"], "tos_local_native_source_result_v1");
         assert_eq!(outer["grants_admission"], false);
