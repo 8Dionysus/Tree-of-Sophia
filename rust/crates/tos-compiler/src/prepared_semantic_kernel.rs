@@ -5,7 +5,7 @@
 //! semantic meaning.
 
 use crate::{Error, Result};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Deref;
