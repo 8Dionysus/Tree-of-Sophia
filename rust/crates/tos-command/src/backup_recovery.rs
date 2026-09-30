@@ -271,7 +271,7 @@ fn tool(
     require(identity.1 == tool.sha256)?;
     // The anchored output/backup descriptor must survive exec so the tool never
     // follows a replaced caller pathname. Only this owned directory is inherited.
-    rustix::fs::fcntl_setfd(inherit, rustix::fs::FdFlags::empty()).map_err(|_| error())?;
+    rustix::io::fcntl_setfd(inherit, rustix::io::FdFlags::empty()).map_err(|_| error())?;
     let mut command = Command::new(tool.path);
     for (name, _) in std::env::vars_os() {
         if name.to_string_lossy().starts_with("PG") {
@@ -286,7 +286,7 @@ fn tool(
         .stderr(Stdio::null())
         .process_group(0)
         .spawn();
-    rustix::fs::fcntl_setfd(inherit, rustix::fs::FdFlags::CLOEXEC).map_err(|_| error())?;
+    rustix::io::fcntl_setfd(inherit, rustix::io::FdFlags::CLOEXEC).map_err(|_| error())?;
     let child = spawned?;
     let group = rustix::process::Pid::from_raw(child.id() as i32).ok_or_else(error)?;
     struct OwnedTool {

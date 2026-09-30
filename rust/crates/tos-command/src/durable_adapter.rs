@@ -2158,7 +2158,7 @@ impl DurablePgCoordinator {
             )?;
         }
         if let Some((deadline, cancelled)) = requested {
-            check_cold_deadline(deadline, cancelled)?;
+            check_cold_deadline(started, Some((deadline, cancelled)))?;
             let millis = deadline
                 .saturating_duration_since(Instant::now())
                 .as_millis()
