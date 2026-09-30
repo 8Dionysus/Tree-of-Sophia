@@ -123,7 +123,7 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
         max_seconds: seconds,
         source_limits,
     })
-    .map_err(|_| "native prepare refused")?;
+    .map_err(|error| error.to_string())?;
     writeln!(stdout, "{result}").map_err(|e| e.to_string())
 }
 pub fn run_if_requested(
@@ -136,11 +136,16 @@ pub fn run_if_requested(
     }
     Some(match run(args, stdout) {
         Ok(()) => 0,
-        Err(_) => {
-            let _ = writeln!(
-                stderr,
-                "{{\"schema\":\"tos_offline_prepared_bootstrap_receipt_v1\",\"status\":\"failed\",\"error_type\":\"NativePrepareError\"}}"
-            );
+        Err(error) => {
+            // At most 1024 Unicode scalars: even JSON escaping fits the
+            // maintained 8192-byte stderr transport envelope.
+            let message: String = error.chars().take(1024).collect();
+            let failure = serde_json::json!({
+                "schema": "tos_offline_prepared_bootstrap_receipt_v1",
+                "status": "failed", "error_type": "NativePrepareError",
+                "message": message,
+            });
+            let _ = writeln!(stderr, "{failure}");
             1
         }
     })
