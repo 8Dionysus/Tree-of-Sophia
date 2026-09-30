@@ -407,7 +407,11 @@ fn selected_object(root: &Path, sha256: &str) -> PathBuf {
 fn canonical_json(value: &Value) -> Vec<u8> {
     // This setup encodes only the ASCII v1 manifest; its expected digest and
     // original bytes come from the checked-in independent fixture.
-    let mut raw = serde_json::to_vec(value).unwrap();
+    // Workspace feature unification may enable serde_json/preserve_order.
+    // Canonical fixture bytes must not depend on the map's insertion order.
+    let mut sorted = value.clone();
+    sorted.sort_all_objects();
+    let mut raw = serde_json::to_vec(&sorted).unwrap();
     raw.push(b'\n');
     raw
 }
