@@ -3,6 +3,7 @@
 //! This crate verifies mechanical exactness. Source meaning, rights, admission,
 //! publication and current-use authority remain with their owners.
 
+mod archive;
 mod cut;
 mod error;
 mod limits;
@@ -24,3 +25,5 @@ pub use software::{
     SOFTWARE_COMPANION_PROFILE_V1, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
     SoftwareComponentSelectionV1,
 };
+
+pub use archive::{CaptureRestoreLimits, restore_capture};

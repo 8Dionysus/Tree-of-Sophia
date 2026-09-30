@@ -63,6 +63,172 @@ pub struct SoftwareCaptureReader {
     limits: ReadLimits,
 }
 
+/// Parsed metadata shared by the companion reader and archive transport.
+/// Selection binds the manifest; transport must additionally verify archive bytes.
+pub(crate) struct CaptureIndex {
+    pub(crate) members: BTreeMap<RelativePath, MemberMetadata>,
+    pub(crate) git_blob_oids: BTreeMap<RelativePath, String>,
+    pub(crate) includes: Vec<String>,
+    pub(crate) excludes: Vec<String>,
+    pub(crate) excluded_parts: Vec<String>,
+    pub(crate) member_count: u64,
+    pub(crate) source_bytes: u64,
+    pub(crate) archive_sha256: Digest256,
+    pub(crate) archive_size_bytes: u64,
+}
+
+pub(crate) fn read_capture_index(
+    capture: &File,
+    selection: &SoftwareCaptureSelectionV1,
+    limits: ReadLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<CaptureIndex> {
+    let limits = limits.validate()?;
+    oid(&selection.source_git_commit)?;
+    oid(&selection.source_git_tree)?;
+    check_time(deadline, cancelled)?;
+    let manifest_raw = read_at(
+        capture,
+        "capture.json",
+        limits.max_manifest_bytes as u64,
+        deadline,
+        cancelled,
+    )?;
+    if Digest256::of_bytes(&manifest_raw) != selection.capture_manifest_sha256 {
+        return Err(error(
+            Code::DescriptorMismatch,
+            "selected software capture digest differs",
+        ));
+    }
+    let manifest = canonical(&manifest_raw, limits)?;
+    let version = string_field(&manifest, "schema_version", CODE)?;
+    let mut keys = vec![
+        "schema_version",
+        "source_git_commit",
+        "source_git_tree",
+        "include_prefixes",
+        "member_count",
+        "source_bytes",
+        "members_sha256",
+        "archive_sha256",
+        "archive_size_bytes",
+    ];
+    if version == "tos_corpus_capture_v2" {
+        keys.extend(["exclude_prefixes", "exclude_path_parts"]);
+    } else if version != "tos_corpus_capture_v1" {
+        return Err(error(CODE, "unsupported software Git capture profile"));
+    }
+    exact_keys(&manifest, &keys, CODE)?;
+    if string_field(&manifest, "source_git_commit", CODE)? != selection.source_git_commit
+        || string_field(&manifest, "source_git_tree", CODE)? != selection.source_git_tree
+    {
+        return Err(error(
+            Code::DescriptorMismatch,
+            "software capture revision differs",
+        ));
+    }
+    let includes = strings(&manifest, "include_prefixes", limits, false)?;
+    let excludes = if version == "tos_corpus_capture_v2" {
+        strings(&manifest, "exclude_prefixes", limits, false)?
+    } else {
+        Vec::new()
+    };
+    let excluded_parts = if version == "tos_corpus_capture_v2" {
+        strings(&manifest, "exclude_path_parts", limits, true)?
+    } else {
+        Vec::new()
+    };
+    let member_count = uint_field(&manifest, "member_count", CODE)?;
+    if member_count > limits.max_manifest_entries as u64 {
+        return Err(error(
+            Code::BudgetExceeded,
+            "software member index exceeds budget",
+        ));
+    }
+    let source_bytes = uint_field(&manifest, "source_bytes", CODE)?;
+    let archive_sha256 = digest_field(&manifest, "archive_sha256", CODE)?;
+    let archive_size_bytes = uint_field(&manifest, "archive_size_bytes", CODE)?;
+    let index_raw = read_at(
+        capture,
+        "members.jsonl",
+        limits.max_manifest_bytes as u64,
+        deadline,
+        cancelled,
+    )?;
+    if Digest256::of_bytes(&index_raw) != digest_field(&manifest, "members_sha256", CODE)? {
+        return Err(error(
+            Code::DescriptorMismatch,
+            "software member index digest differs",
+        ));
+    }
+    let mut members = BTreeMap::new();
+    let mut git_blob_oids = BTreeMap::new();
+    let mut last = None;
+    let mut total = 0u64;
+    for line in index_raw.split_inclusive(|b| *b == b'\n') {
+        check_time(deadline, cancelled)?;
+        if !line.ends_with(b"\n") || members.len() >= limits.max_manifest_entries {
+            return Err(error(
+                Code::InvalidMemberIndex,
+                "software member line incomplete or over budget",
+            ));
+        }
+        let value = canonical(line, limits)?;
+        exact_keys(
+            &value,
+            &["path", "git_blob_oid", "size_bytes", "sha256", "mode"],
+            CODE,
+        )?;
+        let path = path_field(&value, "path", CODE)?;
+        if last.as_ref().is_some_and(|previous| &path <= previous)
+            || !matches_prefix(path.as_str(), &includes)
+            || matches_prefix(path.as_str(), &excludes)
+            || path
+                .as_str()
+                .split('/')
+                .any(|part| excluded_parts.iter().any(|p| p == part))
+        {
+            return Err(error(
+                Code::InvalidMemberIndex,
+                "software capture member selection differs",
+            ));
+        }
+        let git_oid = string_field(&value, "git_blob_oid", CODE)?;
+        oid(git_oid)?;
+        git_blob_oids.insert(path.clone(), git_oid.to_owned());
+        let size_bytes = uint_field(&value, "size_bytes", CODE)?;
+        total = total
+            .checked_add(size_bytes)
+            .ok_or_else(|| error(Code::BudgetExceeded, "software source byte count overflow"))?;
+        let metadata = MemberMetadata {
+            path: path.clone(),
+            size_bytes,
+            sha256: digest_field(&value, "sha256", CODE)?,
+            mode: mode_field(&value, "mode", CODE)?,
+        };
+        members.insert(path.clone(), metadata);
+        last = Some(path);
+    }
+    if members.len() as u64 != member_count || total != source_bytes {
+        return Err(error(
+            Code::DescriptorMismatch,
+            "software capture membership totals differ",
+        ));
+    }
+    Ok(CaptureIndex {
+        members,
+        git_blob_oids,
+        includes,
+        excludes,
+        excluded_parts,
+        member_count,
+        source_bytes,
+        archive_sha256,
+        archive_size_bytes,
+    })
+}
+
 impl SoftwareCaptureReader {
     pub fn profile(&self) -> &'static str {
         SOFTWARE_COMPANION_PROFILE_V1
@@ -178,133 +344,15 @@ impl SoftwareCaptureReader {
         check_time(deadline, cancelled)?;
         let capture = open_root(capture_root)?;
         let restored = open_root(restored_root)?;
-        let manifest_raw = read_at(
-            &capture,
-            "capture.json",
-            limits.max_manifest_bytes as u64,
-            deadline,
-            cancelled,
-        )?;
-        if Digest256::of_bytes(&manifest_raw) != selection.capture_manifest_sha256 {
-            return Err(error(
-                Code::DescriptorMismatch,
-                "selected software capture digest differs",
-            ));
-        }
-        let manifest = canonical(&manifest_raw, limits)?;
-        let version = string_field(&manifest, "schema_version", CODE)?;
-        let mut keys = vec![
-            "schema_version",
-            "source_git_commit",
-            "source_git_tree",
-            "include_prefixes",
-            "member_count",
-            "source_bytes",
-            "members_sha256",
-            "archive_sha256",
-            "archive_size_bytes",
-        ];
-        if version == "tos_corpus_capture_v2" {
-            keys.extend(["exclude_prefixes", "exclude_path_parts"]);
-        } else if version != "tos_corpus_capture_v1" {
-            return Err(error(CODE, "unsupported software Git capture profile"));
-        }
-        exact_keys(&manifest, &keys, CODE)?;
-        if string_field(&manifest, "source_git_commit", CODE)? != selection.source_git_commit
-            || string_field(&manifest, "source_git_tree", CODE)? != selection.source_git_tree
-        {
-            return Err(error(
-                Code::DescriptorMismatch,
-                "software capture revision differs",
-            ));
-        }
-        let includes = strings(&manifest, "include_prefixes", limits, false)?;
-        let excludes = if version == "tos_corpus_capture_v2" {
-            strings(&manifest, "exclude_prefixes", limits, false)?
-        } else {
-            Vec::new()
-        };
-        let excluded_parts = if version == "tos_corpus_capture_v2" {
-            strings(&manifest, "exclude_path_parts", limits, true)?
-        } else {
-            Vec::new()
-        };
-        let member_count = uint_field(&manifest, "member_count", CODE)?;
-        if member_count > limits.max_manifest_entries as u64 {
-            return Err(error(
-                Code::BudgetExceeded,
-                "software member index exceeds budget",
-            ));
-        }
-        let source_bytes = uint_field(&manifest, "source_bytes", CODE)?;
-        // Archive fixity fields belong to the capture/restore transport route.
-        // This read-only adapter verifies the selected restored bytes directly.
-        digest_field(&manifest, "archive_sha256", CODE)?;
-        uint_field(&manifest, "archive_size_bytes", CODE)?;
-        let index_raw = read_at(
-            &capture,
-            "members.jsonl",
-            limits.max_manifest_bytes as u64,
-            deadline,
-            cancelled,
-        )?;
-        if Digest256::of_bytes(&index_raw) != digest_field(&manifest, "members_sha256", CODE)? {
-            return Err(error(
-                Code::DescriptorMismatch,
-                "software member index digest differs",
-            ));
-        }
-        let mut members = BTreeMap::new();
-        let mut last = None;
-        let mut total = 0u64;
-        for line in index_raw.split_inclusive(|b| *b == b'\n') {
-            check_time(deadline, cancelled)?;
-            if !line.ends_with(b"\n") || members.len() >= limits.max_manifest_entries {
-                return Err(error(
-                    Code::InvalidMemberIndex,
-                    "software member line incomplete or over budget",
-                ));
-            }
-            let value = canonical(line, limits)?;
-            exact_keys(
-                &value,
-                &["path", "git_blob_oid", "size_bytes", "sha256", "mode"],
-                CODE,
-            )?;
-            let path = path_field(&value, "path", CODE)?;
-            if last.as_ref().is_some_and(|previous| &path <= previous)
-                || !matches_prefix(path.as_str(), &includes)
-                || matches_prefix(path.as_str(), &excludes)
-                || path
-                    .as_str()
-                    .split('/')
-                    .any(|part| excluded_parts.iter().any(|p| p == part))
-            {
-                return Err(error(
-                    Code::InvalidMemberIndex,
-                    "software capture member selection differs",
-                ));
-            }
-            oid(string_field(&value, "git_blob_oid", CODE)?)?;
-            let size_bytes = uint_field(&value, "size_bytes", CODE)?;
-            total = total.checked_add(size_bytes).ok_or_else(|| {
-                error(Code::BudgetExceeded, "software source byte count overflow")
-            })?;
-            let metadata = MemberMetadata {
-                path: path.clone(),
-                size_bytes,
-                sha256: digest_field(&value, "sha256", CODE)?,
-                mode: mode_field(&value, "mode", CODE)?,
-            };
-            members.insert(path.clone(), metadata);
-            last = Some(path);
-        }
-        if members.len() as u64 != member_count || total != source_bytes {
-            return Err(error(
-                Code::DescriptorMismatch,
-                "software capture membership totals differ",
-            ));
-        }
+        let CaptureIndex {
+            members,
+            includes,
+            excludes,
+            excluded_parts,
+            member_count,
+            source_bytes,
+            ..
+        } = read_capture_index(&capture, &selection, limits, deadline, cancelled)?;
         let receipt = canonical(
             &read_at(
                 &restored,
