@@ -1072,7 +1072,7 @@ def selected(navigation,nodes,incoming,outgoing,rights_for,object_id,*,limit=20)
  nodes=copy.deepcopy(nodes)
  edges={e['edge_id']:copy.deepcopy(e) for rows in list(incoming.values())+list(outgoing.values()) for e in rows}
  for n in nodes.values():
-  n.setdefault('label',n['node_id']);n.setdefault('identity_status','not_applicable')
+  n.setdefault('label',n['node_id']);n.setdefault('identity_status','not_applicable');n.setdefault('properties',{})
   n.setdefault('source_ref',f.MANIFEST_B if n['node_id']==f.ITEM_B else f.MANIFEST_A if n['node_kind'] in {'file','item'} else n['node_id'].replace('tos.','')+'.json')
  for e in edges.values(): e.setdefault('review_status','not_applicable')
  rights=copy.deepcopy(rights_for(list(nodes)))
