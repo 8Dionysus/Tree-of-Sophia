@@ -5294,6 +5294,7 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
                     Command::new(&owner_consumer)
                         .arg(case)
                         .args(["--exact", "--test-threads=1", "--nocapture"])
+                        .env("TOS_NATIVE_INSTALLED_SOFTWARE_SITE", "1")
                         .env(
                             "TOS_NATIVE_PREPARED_CONSUMER_BIN",
                             prefix.join("software/access/src/tos_access/tos-access"),
