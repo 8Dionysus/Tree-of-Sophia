@@ -158,12 +158,6 @@ impl ExecutingProcessor {
         self.verify_stamp()?;
         Ok(hash.finalize())
     }
-    fn verify(&mut self) -> Result<()> {
-        if self.hash()? != self.digest {
-            return Err(Error::Invalid("prepare executing ELF digest changed"));
-        }
-        Ok(())
-    }
 }
 fn configuration_binding(descriptor: &[u8], entity: &[u8], relation: &[u8]) -> Digest256 {
     let mut hash = Digest256Hasher::new();
@@ -604,7 +598,10 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
     } else {
         None
     };
-    processor_owner.verify()?;
+    // The protected running ELF is held open; its exact FD/path identity
+    // brackets the initial stream and all work. Recheck that custody here,
+    // without paying a second whole-image hash inside the same deadline.
+    processor_owner.verify_stamp()?;
     deadline_check(deadline)?;
     let mut result = packet!({"schema":SCHEMA,"status":"completed","mode":"full_bootstrap",
         "source_root":root.to_str().ok_or(Error::Invalid("prepare root UTF8"))?,"output_dir":output_dir.to_str().ok_or(Error::Invalid("prepare output UTF8"))?,

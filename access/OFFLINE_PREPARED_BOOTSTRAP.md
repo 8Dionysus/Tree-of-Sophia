@@ -212,8 +212,10 @@ Test ownership is in `tests/test_inventory.json`; ordered validation authority
 stays in `docs/validation/validation_lanes.json`.
 
 Native prepare measures the executing ELF with a bounded streaming SHA256 read,
-keeps its physical identity through normalization, and verifies it again before
-completion. That processor binding is separate from source revision and the
+keeps the executing file open through normalization, and verifies the exact
+file/path physical stamp again before completion. It streams the ELF once per
+call; a second full hash is not required by this protected executing-image
+custody profile. That processor binding is separate from source revision and the
 registry/query configuration binding. The D1 publisher identity is unchanged.
 
 An explicit `--source-limits` JSON profile may narrow input, capture, stage and
