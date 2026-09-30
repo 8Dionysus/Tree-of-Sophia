@@ -30,6 +30,9 @@ class OfflineMaintenanceTests(unittest.TestCase):
     def command(self, *extra):
         native = os.environ.get("TOS_NATIVE_SOURCE_PREPARE_EXECUTABLE")
         if native:
+            seconds = int(os.environ.get("TOS_NATIVE_SOURCE_PREPARE_SECONDS", "20"))
+            if seconds <= 0:
+                raise ValueError("positive finite native prepare allowance required")
             if "--attach-maintenance" in extra:
                 caps = producer.MaintenanceAttachmentLimits(
                     catalog_limits=producer.CatalogLimits(max_index_bytes=8388608),
@@ -37,10 +40,10 @@ class OfflineMaintenanceTests(unittest.TestCase):
                 from dataclasses import asdict
                 extra = (*extra, "--maintenance-limits", json.dumps(asdict(caps)))
             return subprocess.run([native, "prepare", "--source-root", str(self.root),
-                                   "--output-dir", str(self.output), "--max-seconds", "20",
+                                   "--output-dir", str(self.output), "--max-seconds", str(seconds),
                                    "--max-bytes", "8388608", "--source-limits",
                                    os.environ["TOS_NATIVE_SOURCE_PREPARE_LIMITS"], *extra],
-                capture_output=True, text=True, timeout=30, env=os.environ.copy())
+                capture_output=True, text=True, timeout=seconds + 10, env=os.environ.copy())
         return subprocess.run([sys.executable, "-m", "tos_access.prepare", "--source-root", str(self.root),
             "--output-dir", str(self.output), *extra], capture_output=True, text=True, timeout=30,
             env={**os.environ, "PYTHONPATH": str(REPO / "access/src"), "PYTHONDONTWRITEBYTECODE": "1"})
