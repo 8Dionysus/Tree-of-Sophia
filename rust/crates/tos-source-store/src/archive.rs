@@ -71,18 +71,21 @@ fn new_file(root: &File, path: &str, deadline: Instant, cancelled: &AtomicBool) 
     while let Some(part) = parts.next() {
         check(deadline, cancelled).map_err(io_error)?;
         if parts.peek().is_none() {
-            return OpenOptions::new()
+            let file = OpenOptions::new()
                 .write(true)
                 .create_new(true)
                 .mode(0o600)
                 .open(fd_path(&dir, part))
-                .map_err(io_error);
+                .map_err(io_error)?;
+            // Persist this name before a later success receipt can survive.
+            dir.sync_all().map_err(io_error)?;
+            return Ok(file);
         }
         match fs::DirBuilder::new()
             .mode(0o700)
             .create(fd_path(&dir, part))
         {
-            Ok(()) => (),
+            Ok(()) => dir.sync_all().map_err(io_error)?,
             Err(e) if e.kind() == io::ErrorKind::AlreadyExists => (),
             Err(e) => return Err(io_error(e)),
         }
@@ -185,6 +188,7 @@ pub fn restore_capture(
         .mode(0o700)
         .create(fd_path(&parent, name))
         .map_err(io_error)?;
+    parent.sync_all().map_err(io_error)?;
     let output = directory(&parent, name)?;
     let compressed = Limited {
         inner: &mut archive_file,
