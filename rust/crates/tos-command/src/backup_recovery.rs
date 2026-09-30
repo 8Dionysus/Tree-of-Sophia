@@ -259,7 +259,8 @@ fn client(url: &str, d: Instant, c: &AtomicBool) -> io::Result<Client> {
 fn tool(
     tool: &PgTool<'_>,
     args: &[&str],
-    inherit: &File,
+    input: Option<File>,
+    output: Option<File>,
     pg_url: &str,
     d: Instant,
     c: &AtomicBool,
@@ -269,9 +270,8 @@ fn tool(
     require(cap.current.is_some_and(|n| n <= BYTES) && cap.maximum.is_some_and(|n| n <= BYTES))?;
     let identity = hash(tool.path, d, c)?;
     require(identity.1 == tool.sha256)?;
-    // The anchored output/backup descriptor must survive exec so the tool never
-    // follows a replaced caller pathname. Only this owned directory is inherited.
-    rustix::io::fcntl_setfd(inherit, rustix::io::FdFlags::empty()).map_err(|_| error())?;
+    // Only standard streams cross a tool/container boundary. The host writer
+    // inherits FSIZE; no directory or extra descriptor is exported.
     let mut command = Command::new(tool.path);
     for (name, _) in std::env::vars_os() {
         if name.to_string_lossy().starts_with("PG") {
@@ -281,12 +281,11 @@ fn tool(
     let spawned = command
         .env("PGDATABASE", pg_url)
         .args(args)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
+        .stdin(input.map(Stdio::from).unwrap_or_else(Stdio::null))
+        .stdout(output.map(Stdio::from).unwrap_or_else(Stdio::null))
         .stderr(Stdio::null())
         .process_group(0)
         .spawn();
-    rustix::io::fcntl_setfd(inherit, rustix::io::FdFlags::CLOEXEC).map_err(|_| error())?;
     let child = spawned?;
     let group = rustix::process::Pid::from_raw(child.id() as i32).ok_or_else(error)?;
     struct OwnedTool {
@@ -365,29 +364,29 @@ pub fn backup_quiescent(s: &BackupSelection<'_>, d: Instant, c: &AtomicBool) -> 
     let original_cut = cut(s.pg_url, s.domain, &store, d, c)?;
     let members = inventory(&anchored(&source), d, c)?;
     let dump = target.join("metadata.dump");
+    let dump_file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .custom_flags(rustix::fs::OFlags::NOFOLLOW.bits() as i32)
+        .open(&dump)?;
     let tool_receipt = tool(
         &s.tool,
         &[
             "--format=custom",
             "--no-owner",
             "--no-privileges",
-            "--file",
-            dump.to_str().ok_or_else(error)?,
             "--dbname",
             "",
         ],
-        &backup,
+        None,
+        Some(dump_file.try_clone()?),
         s.pg_url,
         d,
         c,
     )?;
-    // Child close is not a durability fence. Sync the exact anchored dump
-    // before publishing any receipt that claims a completed backup.
-    OpenOptions::new()
-        .read(true)
-        .custom_flags(rustix::fs::OFlags::NOFOLLOW.bits() as i32)
-        .open(&dump)?
-        .sync_all()?;
+    // Child close is not a durability fence.
+    dump_file.sync_all()?;
     let dump_identity = hash(&dump, d, c)?;
     let mut magic = [0u8; 5];
     File::open(&dump)?.read_exact(&mut magic)?;
@@ -464,6 +463,10 @@ pub fn restore_into_fresh(
             .to_owned(),
     );
     require(hash(&dump, d, c)? == expected)?;
+    let dump_file = OpenOptions::new()
+        .read(true)
+        .custom_flags(rustix::fs::OFlags::NOFOLLOW.bits() as i32)
+        .open(&dump)?;
     let tool_receipt = tool(
         &s.tool,
         &[
@@ -473,9 +476,9 @@ pub fn restore_into_fresh(
             "--no-privileges",
             "--dbname",
             "",
-            dump.to_str().ok_or_else(error)?,
         ],
-        &backup,
+        Some(dump_file),
+        None,
         s.pg_url,
         d,
         c,
