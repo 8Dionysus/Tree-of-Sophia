@@ -688,7 +688,7 @@ fn pending_factory(
                 &selected,
                 &empty_bindings(),
                 Some(&snapshot),
-                &archive,
+                Some(&archive),
                 prior.as_deref().zip(snapshot.token.as_deref()),
                 &extent,
                 deadline,
