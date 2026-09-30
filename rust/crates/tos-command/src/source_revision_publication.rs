@@ -30,7 +30,10 @@ fn read(
     let (parent, leaf) = path
         .rsplit_once('/')
         .ok_or(SourceCommandError::Invalid("revision member parent"))?;
-    let Some(parent) = tx::read_existing_parent(fs, parent, deadline, cancelled)? else {
+    active(deadline, cancelled)?;
+    let directory = tx::read_existing_parent(fs, parent)?;
+    active(deadline, cancelled)?;
+    let Some(parent) = directory else {
         return Ok(None);
     };
     tx::read_at(&parent, leaf, fs.uid, 8_388_608, deadline, cancelled)
