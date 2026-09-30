@@ -2764,10 +2764,12 @@ class AuthoredContractTests(unittest.TestCase):
         gate = workflow["jobs"]["required_gate"]
         self.assertEqual(set(gate["needs"]), {"plan", "software", "worker", "rust"})
         self.assertEqual(gate["if"], "${{ always() }}")
-        run_steps = [step for step in gate["steps"] if "run" in step]
-        self.assertEqual(len(run_steps), 1)
-        command = run_steps[0]["run"]
-        self.assertEqual(run_steps[0]["env"]["CI_NEEDS"], "${{ toJSON(needs) }}")
+        gate_steps = [step for step in gate["steps"]
+                      if step.get("name") == "Require every selected check to pass"]
+        self.assertEqual(len(gate_steps), 1)
+        self.assertIn("run", gate_steps[0])
+        command = gate_steps[0]["run"]
+        self.assertEqual(gate_steps[0]["env"]["CI_NEEDS"], "${{ toJSON(needs) }}")
         for mode, worker, rust in [("full", True, True), ("reader", True, False),
                                    ("browser", False, False), ("none", True, False),
                                    ("none", False, True), ("none", False, False)]:
