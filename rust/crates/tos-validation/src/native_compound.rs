@@ -510,6 +510,44 @@ fn measured_compound_observation(
     })
 }
 
+/// Same Work-origin verification, returning its actual reads and cumulative cost.
+/// Existing descriptive Work observation API remains unchanged.
+pub fn verify_work_expression_reads_from_cut(
+    cut: &CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    claim_path: &str,
+    claim: &Value,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<NativeCompoundReadObservation, ItemRefusal> {
+    if claim["predicate"] != "has_expression"
+        || schemas.source_revision() != cut.current().revision()
+    {
+        return Err(bad("selected Work compound type/cut"));
+    }
+    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    let observation = reader.verify(claim_path, claim, schemas)?;
+    measured_compound_observation(reader, observation)
+}
+/// Exact qualified Collection membership verification and existing read custody.
+pub fn verify_collection_membership_from_cut(
+    cut: &CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    claim_path: &str,
+    claim: &Value,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<NativeCompoundReadObservation, ItemRefusal> {
+    if claim["predicate"] != "contains_work"
+        || schemas.source_revision() != cut.current().revision()
+    {
+        return Err(bad("selected Collection membership compound type/cut"));
+    }
+    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    let observation = reader.verify(claim_path, claim, schemas)?;
+    measured_compound_observation(reader, observation)
+}
+
 /// Read the exact selected Expression responsibility compound and its retained/current lineage.
 /// The transport observation is descriptive; CMD still owns the physical
 /// publication, source/software and journal fences for any replay decision.
@@ -4921,7 +4959,7 @@ impl WorkExpressionCore<'_> {
     pub fn outputs(&self) -> Result<Vec<(String, &[u8])>, ItemRefusal> {
         let scope = &self.prepared.authority["scope"];
         let parent_home = parent(text(scope, self.prepared.kind.parent_path())?)?;
-        let child_home = parent(text(scope, self.prepared.kind.child_path())?)?;
+        let child_home = self.prepared.kind.publication_home(scope)?;
         let count = self
             .prepared
             .parent_files
@@ -5217,6 +5255,114 @@ fn prepare_typed_compound_preview_bytes<'a>(
     )
 }
 
+/// Typed maintained Collection membership recipe over the existing bounded core.
+pub struct CollectionMembershipCore<'a> {
+    inner: WorkExpressionCore<'a>,
+}
+pub type CollectionMembershipBytes = WorkExpressionBytes;
+impl CollectionMembershipCore<'_> {
+    pub fn authorization(&self) -> &Value {
+        self.inner.authorization()
+    }
+    pub fn archive_path(&self) -> &str {
+        self.inner.archive_path()
+    }
+    pub fn transaction_id(&self) -> &str {
+        self.inner.transaction_id()
+    }
+    pub fn reads(&self) -> &[PredicateRead] {
+        self.inner.reads()
+    }
+    pub fn bytes_read(&self) -> u64 {
+        self.inner.bytes_read()
+    }
+    pub fn grammar_digests(&self) -> &BTreeMap<String, String> {
+        self.inner.grammar_digests()
+    }
+    pub fn outputs(&self) -> Result<Vec<(String, &[u8])>, ItemRefusal> {
+        self.inner.outputs()
+    }
+    pub fn into_prepared_outputs(self) -> Result<BTreeMap<String, Vec<u8>>, ItemRefusal> {
+        self.inner.into_prepared_outputs()
+    }
+}
+pub fn prepare_collection_membership_bytes<'a>(
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    request_raw: &[u8],
+    owned_before: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+    authorize: impl FnOnce(&BTreeMap<String, String>) -> Result<Value, ItemRefusal>,
+) -> Result<CollectionMembershipCore<'a>, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    if schemas.source_revision() != cut.current().revision() || request_raw.len() > MAX_FILE {
+        return Err(bad("compound source/schema revision or request size"));
+    }
+    crate::retirement_rules::observed_instant_order(recorded_at, recorded_at)
+        .map_err(|_| bad("compound recorded aware instant"))?;
+    let reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    prepare_native_with_reader(
+        CompoundKind::CollectionWork,
+        None,
+        reader,
+        schemas,
+        scope,
+        Cow::Borrowed(request_raw),
+        owned_before,
+        recorded_at,
+        None,
+        authorize,
+    )
+    .map(|inner| CollectionMembershipCore { inner })
+}
+pub fn prepare_collection_membership_preview_bytes<'a>(
+    cut: &'a CorpusCutReader,
+    schemas: &mut CutWorkerSchemaExecutor,
+    scope: &Value,
+    proposed_claim_raw: &[u8],
+    owned_before: &BTreeMap<String, Vec<u8>>,
+    recorded_at: &str,
+    limits: ItemLimits,
+    cancelled: &'a AtomicBool,
+    build_request_and_authorization: impl FnOnce(
+        &BTreeMap<String, String>,
+    ) -> Result<(Vec<u8>, Value), ItemRefusal>,
+) -> Result<CollectionMembershipCore<'a>, ItemRefusal> {
+    prepare_typed_compound_preview_bytes(
+        CompoundKind::CollectionWork,
+        cut,
+        schemas,
+        scope,
+        proposed_claim_raw,
+        owned_before,
+        recorded_at,
+        limits,
+        cancelled,
+        build_request_and_authorization,
+    )
+    .map(|inner| CollectionMembershipCore { inner })
+}
+/// Finish one actual native producer capture; its environment stays native-only.
+pub fn finish_collection_membership_bytes(
+    core: CollectionMembershipCore<'_>,
+    environment_raw: &[u8],
+    event_raw: &[u8],
+    schemas: &mut CutWorkerSchemaExecutor,
+) -> Result<CollectionMembershipBytes, ItemRefusal> {
+    finish_work_expression_bytes(core.inner, environment_raw, event_raw, schemas)
+}
+/// Reconstruct exact retained Python/native capture after CMD proved journal custody.
+pub fn restore_collection_membership_bytes(
+    core: CollectionMembershipCore<'_>,
+    environment_raw: &[u8],
+    event_raw: &[u8],
+    schemas: &mut CutWorkerSchemaExecutor,
+) -> Result<CollectionMembershipBytes, ItemRefusal> {
+    finish_prepared_compound_bytes(core.inner, environment_raw, event_raw, schemas, false)
+}
 /// Typed maintained ExpressionResponsibility recipe over the existing bounded compound kernel.
 /// Its output is metadata transport, never semantic or publication admission.
 pub struct ExpressionResponsibilityCore<'a> {
@@ -5719,6 +5865,7 @@ fn preview_item_receipt(
 }
 fn native_preparation_procedure(kind: CompoundKind) -> Result<&'static str, ItemRefusal> {
     match kind {
+        CompoundKind::CollectionWork => Ok("native-collection-membership-serialization"),
         CompoundKind::WorkExpression => Ok("native-work-expression-serialization"),
         CompoundKind::EditionItem => Ok("native-item-adoption-serialization"),
         CompoundKind::ExpressionEdition => Ok("native-expression-edition-serialization"),
@@ -5730,6 +5877,9 @@ fn native_preparation_procedure(kind: CompoundKind) -> Result<&'static str, Item
 }
 fn native_preparation_purpose(kind: CompoundKind) -> Result<&'static str, ItemRefusal> {
     match kind {
+        CompoundKind::CollectionWork => Ok(
+            "Serialize one qualified Collection membership Claim and explicit source-copy forms without judging membership.",
+        ),
         CompoundKind::WorkExpression => Ok(
             "Serialize one declared Work/Expression link and explicit source-copy forms without judging content.",
         ),
@@ -5747,6 +5897,9 @@ fn native_preparation_purpose(kind: CompoundKind) -> Result<&'static str, ItemRe
 }
 fn native_preparation_warning(kind: CompoundKind) -> Result<&'static str, ItemRefusal> {
     match kind {
+        CompoundKind::CollectionWork => Ok(
+            "Completed in-process Collection membership buffer serialization; atomic selected-metadata publication occurs afterward.",
+        ),
         CompoundKind::WorkExpression => Ok(
             "Completed in-process Work/Expression buffer serialization; atomic selected-metadata publication occurs afterward.",
         ),

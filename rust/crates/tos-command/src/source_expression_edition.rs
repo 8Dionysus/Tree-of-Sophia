@@ -754,7 +754,7 @@ fn current_catalog(
         remaining.max_total_bytes = remaining.max_total_bytes.checked_sub(total as u64).ok_or(
             SourceCommandError::Invalid("ExpressionEdition source byte budget"),
         )?;
-        let observation = tos_validation::native_compound::verify_work_expression_from_cut(
+        let observation = tos_validation::native_compound::verify_work_expression_reads_from_cut(
             cut,
             worker,
             origin_path,
