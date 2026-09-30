@@ -10,7 +10,7 @@ use tos_command::source_forms::{run_form_command, run_form_command_from_captures
 use tos_command::source_operation::{SourceOperationError, bind_selected_candidate};
 use tos_source_store::{CorpusCutReader, CutReadLimits, SoftwareCaptureReader};
 use tos_validation::FormatProfile;
-use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
+use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle};
 use tos_validation::operation::OperationLimits;
 use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor};
 
@@ -156,6 +156,18 @@ pub(super) fn schemas_for_profile_with_budget(
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> CutWorkerSchemaExecutor {
+    let image = schema_image(budget, deadline, cancel);
+    schemas_for_profile_with_image(cut, profile, &image, budget, deadline, cancel)
+}
+
+/// Executable admission is one bounded preparation, distinct from the
+/// unchanged default five-second schema request budget of each independent adapter.
+/// The caller's exact SHA and sealed-image verification remain independent.
+pub(super) fn schema_image(
+    budget: ExecutorBudget,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> VerifiedWorkerImageHandle {
     let absolute_path = super::validation_cut_cases::selected_worker_path();
     let hash_started = Instant::now();
     let worker_raw = fs::read(&absolute_path).unwrap();
@@ -163,14 +175,43 @@ pub(super) fn schemas_for_profile_with_budget(
     let sha256 = Digest256::of_bytes(&worker_raw);
     drop(worker_raw);
     let hash_elapsed = hash_started.elapsed();
+    let admission_budget = ExecutorBudget {
+        execution_wall: budget.execution_wall.max(Duration::from_secs(30)),
+        ..budget
+    };
     let preparation_started = Instant::now();
-    let prepared = CutWorkerSchemaExecutor::from_cut(
-        cut,
-        profile,
+    let image = VerifiedWorkerImageHandle::prepare(
         ExactWorkerIdentity {
             absolute_path,
             sha256,
         },
+        admission_budget,
+        deadline,
+        cancel,
+    );
+    eprintln!(
+        "schema worker fixture phase=admit-image family=forms-records image_bytes={} expected_hash_ms={} verification_ms={} admission_wall_ms={} result={:?}",
+        worker_bytes,
+        hash_elapsed.as_millis(),
+        preparation_started.elapsed().as_millis(),
+        admission_budget.execution_wall.as_millis(),
+        image.as_ref().map(|_| ())
+    );
+    image.unwrap()
+}
+
+pub(super) fn schemas_for_profile_with_image(
+    cut: &CorpusCutReader,
+    profile: FormatProfile,
+    image: &VerifiedWorkerImageHandle,
+    budget: ExecutorBudget,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> CutWorkerSchemaExecutor {
+    CutWorkerSchemaExecutor::from_cut_with_image(
+        cut,
+        profile,
+        image,
         budget,
         CutWorkerLimits {
             max_receipts: 128,
@@ -178,16 +219,24 @@ pub(super) fn schemas_for_profile_with_budget(
         },
         deadline,
         cancel,
-    );
-    eprintln!(
-        "schema worker fixture phase=prepare family=forms-records image_bytes={} expected_hash_ms={} preparation_ms={} wall_ms={} result={:?}",
-        worker_bytes,
-        hash_elapsed.as_millis(),
-        preparation_started.elapsed().as_millis(),
-        budget.execution_wall.as_millis(),
-        prepared.as_ref().map(|_| ())
-    );
-    prepared.unwrap()
+    )
+    .unwrap()
+}
+
+pub(super) fn schemas_with_image(
+    cut: &CorpusCutReader,
+    image: &VerifiedWorkerImageHandle,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> CutWorkerSchemaExecutor {
+    schemas_for_profile_with_image(
+        cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        image,
+        ExecutorBudget::laboratory(),
+        deadline,
+        cancel,
+    )
 }
 pub(super) fn context(
     files: &BTreeMap<String, Vec<u8>>,
@@ -319,7 +368,8 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
             .read_selected_component(&components, &component_path, 8_388_608, deadline, &cancel)
             .unwrap();
         let cut = open_cut(&root, base, deadline, &cancel);
-        let mut worker = schemas(&cut, deadline, &cancel);
+        let image = schema_image(ExecutorBudget::laboratory(), deadline, &cancel);
+        let mut worker = schemas_with_image(&cut, &image, deadline, &cancel);
         let independent_work = profile == "de_constantia";
         let claim_profile = matches!(profile, "claim_v1" | "claim_v2");
         let request = fs::read(packet.join(if independent_work || claim_profile {
@@ -538,7 +588,8 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
                 let invalid_base =
                     super::validation_cut_cases::write_cut_store(&invalid_files, &invalid_root);
                 let invalid_cut = open_cut(&invalid_root, invalid_base, deadline, &cancel);
-                let mut invalid_worker = schemas(&invalid_cut, deadline, &cancel);
+                let mut invalid_worker =
+                    schemas_with_image(&invalid_cut, &image, deadline, &cancel);
                 let mut invalid_ctx = context(
                     &invalid_files,
                     config.clone(),
@@ -962,7 +1013,7 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
             path: component_path.clone(),
             raw: software_raw.clone(),
         });
-        let mut worker = schemas(&candidate_cut, deadline, &cancel);
+        let mut worker = schemas_with_image(&candidate_cut, &image, deadline, &cancel);
         let replay = run_form_command_from_captures(
             &replay_ctx,
             &candidate_cut,
