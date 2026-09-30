@@ -184,7 +184,9 @@ impl Config {
         }
         for p in &source_paths {
             match fs::symlink_metadata(p) {
-                Ok(v) if identities.contains(&(v.dev(), v.ino())) => return Err(corrupt()),
+                Ok(v) if !v.is_file() || identities.contains(&(v.dev(), v.ino())) => {
+                    return Err(corrupt());
+                }
                 Ok(_) => {}
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound && p != &self.source => {}
                 Err(_) => return Err(unavailable()),
