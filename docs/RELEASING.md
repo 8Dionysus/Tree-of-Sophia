@@ -61,7 +61,11 @@ owner surfaces.
    JSON and web closure without a Python runtime or corpus. Preserve the
    previous prefix and its matching verifier for rollback. This new verifier
    intentionally refuses older mixed Python/native archives.
-   CI uses this native route for its software candidate. Its separate legacy
+   CI uses this native route with the five native command roles for its software
+   candidate. It builds matching empty-feature receipts, selects the complete
+   command descriptor, and derives package byte limits from the actual six
+   executables, web assets and bounded software inputs; it does not reuse an
+   access-only byte cap. Its separate legacy
    Python wheel/integrity probe remains a reference check; that wheel exposes
    `tos-legacy`, and is not the normal native artifact. Build-time Python test
    tools do not become runtime dependencies of the native prefix.

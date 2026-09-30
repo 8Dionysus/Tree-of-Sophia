@@ -199,6 +199,10 @@ jobs:
           rustup toolchain install 1.98.1 --profile minimal --target wasm32-unknown-unknown
           rustup default 1.98.1
           cargo build --locked -p tos-access --bin tos-access --target x86_64-unknown-linux-gnu
+          cargo build --locked -p tos-command --bin tos-native-owner-command --target x86_64-unknown-linux-gnu
+          cargo build --locked -p tos-validation --bin tos-schema-worker --target x86_64-unknown-linux-gnu
+          cargo build --locked --no-default-features -p tos-ops-mechanics-plan \
+            --bin tos-validation-lanes --bin tos-release-check --bin tos-software-ci --target x86_64-unknown-linux-gnu
           cargo build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown
           archive="$RUNNER_TEMP/software-wasm-bindgen.tar.gz"
           curl --fail --location --silent --show-error \
@@ -222,6 +226,18 @@ jobs:
                      'lock_sha256': hashlib.sha256(Path('Cargo.lock').read_bytes()).hexdigest(),
                      'toolchain': '1.98.1', 'profile': 'debug'}
           Path(os.environ['RUNNER_TEMP'], 'tos-native-build.json').write_text(json.dumps(receipt) + '\n')
+          products = {}
+          for name in ('tos-native-owner-command', 'tos-schema-worker', 'tos-validation-lanes',
+                       'tos-release-check', 'tos-software-ci'):
+              command = binary.parent / name
+              with command.open('rb') as stream:
+                  command_digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+              proof = dict(receipt, schema_version='tos_native_software_command_build_v1',
+                           sha256=command_digest, size_bytes=command.stat().st_size, features=[])
+              proof_path = Path(os.environ['RUNNER_TEMP']) / (name + '-build.json')
+              proof_path.write_text(json.dumps(proof) + '\n')
+              products[name] = {'binary': str(command), 'receipt': str(proof_path)}
+          Path(os.environ['RUNNER_TEMP'], 'tos-native-command-products.json').write_text(json.dumps(products) + '\n')
           # Public prepare/publication defaults require this same-run native product.
           with open(os.environ['GITHUB_ENV'], 'a') as env:
               env.write('TOS_PREPARED_EXECUTOR=' + str(binary) + '\n')
@@ -251,14 +267,43 @@ jobs:
           native="$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-access"
           root="$GITHUB_WORKSPACE"
           archive="$root/dist/tree-of-sophia-software.zip"
-          limits=(--max-total-bytes 536870912 --max-archive-bytes 553648128 --max-members 1024 --max-metadata-bytes 4194304)
+          # Bound the complete six-image input closure, plus generated manifest/README.
+          python - <<'PY_LIMITS'
+          import json, os
+          from pathlib import Path
+          root = Path.cwd()
+          products = json.loads(Path(os.environ['RUNNER_TEMP'], 'tos-native-command-products.json').read_text())
+          images = [Path(os.environ['CARGO_TARGET_DIR']) / 'x86_64-unknown-linux-gnu/debug/tos-access']
+          images.extend(Path(value['binary']) for value in products.values())
+          web = list((root / 'access/web/dist').rglob('*'))
+          access_json = [p for folder in ('access/contracts', 'access/profiles')
+                         for p in (root / folder).rglob('*.json')]
+          # All contract JSON is a conservative upper envelope for the builder's three schemas.
+          source = [root / 'access/README.md', root / 'Cargo.lock', root / 'rust-toolchain.toml']
+          source.extend((root / 'ToS/contracts').rglob('*.json'))
+          files = images + [p for p in web if p.is_file()] + access_json * 2 + source
+          if any(p.is_symlink() or not p.is_file() for p in files):
+              raise SystemExit('software input envelope requires regular files')
+          total = sum(p.stat().st_size for p in files) + 1048576
+          members = len(files) + 2
+          if members > 1024:
+              raise SystemExit('software input envelope exceeds member cap')
+          Path(os.environ['RUNNER_TEMP'], 'tos-native-package-limits.txt').write_text(
+              f'{total} {total + 16777216} 1024 4194304\n')
+          PY_LIMITS
+          read -r total_cap archive_cap member_cap metadata_cap < "$RUNNER_TEMP/tos-native-package-limits.txt"
+          limits=(--max-total-bytes "$total_cap" --max-archive-bytes "$archive_cap" --max-members "$member_cap" --max-metadata-bytes "$metadata_cap")
           "$native" software build --root "$root" --source-ref "${{ github.sha }}" \
             --web-dist "$root/access/web/dist" --output "$archive" \
-            --native-access-binary "$native" --native-access-receipt "$RUNNER_TEMP/tos-native-build.json" "${limits[@]}"
+            --native-access-binary "$native" --native-access-receipt "$RUNNER_TEMP/tos-native-build.json" \
+            --native-command-products "$RUNNER_TEMP/tos-native-command-products.json" "${limits[@]}"
           "$native" software verify --archive "$archive" "${limits[@]}"
           "$native" software install --archive "$archive" --prefix "$RUNNER_TEMP/tos-native-install" "${limits[@]}"
           env -i PATH= "$RUNNER_TEMP/tos-native-install/bin/tos" --help
           env -i PATH= "$RUNNER_TEMP/tos-native-install/bin/tos" --version
+          for role in tos-native-owner-command tos-schema-worker tos-validation-lanes tos-release-check tos-software-ci; do
+            test -x "$RUNNER_TEMP/tos-native-install/bin/$role"
+          done
 
       - name: Retain unique legacy wheel and integrity reference checks
         run: |
