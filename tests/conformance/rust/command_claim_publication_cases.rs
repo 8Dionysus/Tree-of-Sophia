@@ -37,6 +37,24 @@ fn typed(value: &Value) -> JsonValue {
     .root()
     .clone()
 }
+// Compare the full semantic report independently of object encounter order.
+// Preserve every scalar (including number kind/lexeme) and array position.
+fn report_object_order(value: &JsonValue) -> JsonValue {
+    match value {
+        JsonValue::Object(entries) => {
+            let mut entries = entries
+                .iter()
+                .map(|(key, value)| (key.clone(), report_object_order(value)))
+                .collect::<Vec<_>>();
+            entries.sort_by(|a, b| a.0.units().cmp(b.0.units()));
+            JsonValue::Object(entries)
+        }
+        JsonValue::Array(entries) => {
+            JsonValue::Array(entries.iter().map(report_object_order).collect())
+        }
+        scalar => scalar.clone(),
+    }
+}
 fn canonical_lf(value: &Value) -> Vec<u8> {
     canonical_raw_bytes_v1(
         &serde_json::to_vec(value).unwrap(),
@@ -332,7 +350,10 @@ fn maintained_claim_addition_whole_transaction_and_access() {
             semantic_limits,
         )
         .unwrap();
-        assert_eq!(typed(&packet["baseline_semantic_report"]), report);
+        assert_eq!(
+            report_object_order(&typed(&packet["baseline_semantic_report"])),
+            report_object_order(&report)
+        );
         tx.commit().unwrap();
     }
     // Real bounded schema worker over an actual sealed synthetic source cut.
@@ -835,7 +856,10 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
             semantic_limits,
         )
         .unwrap();
-        assert_eq!(report, typed(&packet["baseline_semantic_report"]));
+        assert_eq!(
+            report_object_order(&report),
+            report_object_order(&typed(&packet["baseline_semantic_report"]))
+        );
         tx.commit().unwrap();
     }
     let original_files = agent_authored(&root, deadline);
