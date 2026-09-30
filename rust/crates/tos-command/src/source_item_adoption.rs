@@ -1113,15 +1113,22 @@ fn current_catalog(
                 "{}/expression-edition-receipt.json",
                 path.rsplit_once('/').unwrap().0
             );
-            let raw = source_dependency(
-                fs,
-                cut,
-                &receipt_ref,
-                &mut digests,
-                &mut total_bytes,
-                deadline,
-                cancelled,
-            )?;
+            // The retained transaction owns this receipt binding. Keep its
+            // physical/current-cut check and byte charge, but do not classify
+            // it as a catalog source dependency: the maintained producer uses
+            // the same retained manifest binding after verifying the receipt.
+            let raw =
+                checked_current_source(fs, cut, &receipt_ref, 2_097_152, deadline, cancelled)?;
+            total_bytes = total_bytes
+                .checked_add(raw.len())
+                .ok_or(SourceCommandError::Invalid(
+                    "Item current source byte overflow",
+                ))?;
+            if total_bytes > 33_554_432 {
+                return Err(SourceCommandError::Invalid(
+                    "Item current source dependency budget",
+                ));
+            }
             let receipt = cmd::parse(&raw)?;
             initial_child(&receipt, "edition", &edition, &history)?;
             native_bytes = native_bytes
