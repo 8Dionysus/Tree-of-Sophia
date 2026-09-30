@@ -35,8 +35,6 @@ mod edition;
 mod forms;
 #[path = "source_native_object_link_cli.rs"]
 mod object_link;
-#[path = "source_native_private_cli.rs"]
-mod private_owner;
 #[path = "source_native_public_text_cli.rs"]
 mod public_text;
 #[path = "source_native_responsibility_cli.rs"]
@@ -380,18 +378,6 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
             | "tos_local_corpus_revision_owner_v3"
             | "tos_local_native_metadata_revision_owner_v1" => {
                 return revisions::run(
-                    &invocation,
-                    &request_raw,
-                    &store,
-                    &cut,
-                    &software,
-                    &components,
-                    deadline,
-                    &cancelled,
-                );
-            }
-            "tos_local_owner_profile_command_v1" => {
-                return private_owner::run(
                     &invocation,
                     &request_raw,
                     &store,
