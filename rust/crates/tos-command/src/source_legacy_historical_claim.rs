@@ -503,6 +503,11 @@ fn form_identity_inputs(
 }
 
 fn validate_request_shape(request: &JsonValue, revision: bool) -> SourceCommandResult<()> {
+    if cmd::text(request, "schema_version")? != "tos_local_source_command_v1" {
+        return Err(SourceCommandError::Invalid(
+            "historical Claim request schema",
+        ));
+    }
     let operation = cmd::text(request, "operation")?;
     let keys: &[&str] = match (revision, operation) {
         (true, "describe") => &["operation"],
@@ -536,7 +541,9 @@ fn validate_request_shape(request: &JsonValue, revision: bool) -> SourceCommandR
             ));
         }
     };
-    cmd::exact_keys(request, keys)
+    let mut keys = keys.to_vec();
+    keys.push("schema_version");
+    cmd::exact_keys(request, &keys)
 }
 
 fn contract_digests(ctx: &CommandContext) -> SourceCommandResult<JsonValue> {
