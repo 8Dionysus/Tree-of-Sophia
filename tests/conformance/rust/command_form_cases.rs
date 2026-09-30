@@ -1079,7 +1079,7 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
 // Forms publishes only the adjacent carrier and never revises Link bytes.
 #[test]
 fn retained_link_v1_forms_prepare_apply_and_cold_replay_through_native_owner() {
-    use std::os::unix::fs::PermissionsExt;
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
     use tos_command::source_creation_store::IsolatedCreationRoot;
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
@@ -1148,7 +1148,7 @@ fn retained_link_v1_forms_prepare_apply_and_cold_replay_through_native_owner() {
     let (capture, _software, components) =
         super::command_record_cases::captured_components(&capture_inputs, deadline, &cancelled);
     let owner = temporary.path().join("link-form-owner.json");
-    let config = serde_json::json!({"schema_version":"tos_local_source_command_owner_v1","uid":rustix::process::getuid().as_raw(),
+    let config = serde_json::json!({"schema_version":"tos_local_source_command_owner_v1","uid":fs::metadata(isolated.path()).unwrap().uid(),
         "principal_id":"model:retained-link-forms","source_root":isolated.path(),"source_path":source_path,
         "authority_ref":"test-only:retained-link-form-revision","allowed_form_ids":[form_id],
         "allowed_operations":["form.revise"],"expires_at":"2099-01-01T00:00:00Z"});

@@ -1,6 +1,7 @@
 //! Actual ObjectLink CLI, retained cold replay and deterministic owner recovery.
 use super::*;
 use serde_json::json;
+use std::collections::BTreeMap;
 use std::os::unix::fs::PermissionsExt;
 use std::process::{Command, Stdio};
 use std::sync::atomic::AtomicBool;
@@ -244,7 +245,9 @@ fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
     for image in [&native, &worker] {
         assert!(fs::metadata(image).unwrap().len() <= 536_870_912);
     }
-    eprintln!("ObjectLink whole case: 3 source roots + oracle; 7 native CLI children (each Python-to-native exec), 8 Python fixture children plus 2 retained crash writers, 3 captured_components calls (6 direct Git +6 capture/restore Python children plus archive-tool internal Git); 360s whole deadline, 60s child, 1MiB stdout/stderr; each cut<=256 members/8MiB, native/worker<=512MiB; no native kill race");
+    eprintln!(
+        "ObjectLink whole case: 3 source roots + oracle; 7 native CLI children (each Python-to-native exec), 8 Python fixture children plus 2 retained crash writers, 3 captured_components calls (6 direct Git +6 capture/restore Python children plus archive-tool internal Git); 360s whole deadline, 60s child, 1MiB stdout/stderr; each cut<=256 members/8MiB, native/worker<=512MiB; no native kill race"
+    );
     for decision in [None, Some("resume"), Some("rollback")] {
         let temporary = tempfile::tempdir().unwrap();
         let isolated =
@@ -276,7 +279,10 @@ fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
                 .unwrap(),
         );
         let scratch_bound = physical_fixture_budget(&files);
-        eprintln!("ObjectLink physical scratch <={} B including 256MiB headroom; F<=8MiB entries<=256 path<=512B depth<=16; images supplied outside scratch", scratch_bound);
+        eprintln!(
+            "ObjectLink physical scratch <={} B including 256MiB headroom; F<=8MiB entries<=256 path<=512B depth<=16; images supplied outside scratch",
+            scratch_bound
+        );
         let (capture, _software, components) =
             super::command_record_cases::captured_components(&files, deadline, &cancelled);
         let authored = files
@@ -338,14 +344,18 @@ fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
                 assert_eq!(result["receipt"]["principal_id"], json!("model:synthetic"));
                 read_link_body(isolated.path(), config);
             } else {
-                assert!(!isolated
-                    .path()
-                    .join(config["link_source_path"].as_str().unwrap())
-                    .exists());
-                assert!(!isolated
-                    .path()
-                    .join(config["claim_source_path"].as_str().unwrap())
-                    .exists());
+                assert!(
+                    !isolated
+                        .path()
+                        .join(config["link_source_path"].as_str().unwrap())
+                        .exists()
+                );
+                assert!(
+                    !isolated
+                        .path()
+                        .join(config["claim_source_path"].as_str().unwrap())
+                        .exists()
+                );
             }
         } else {
             let description = cli(
@@ -389,11 +399,13 @@ fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
                 json!({"flag":false,"missing":null})
             );
             for group in result["materializations"].as_object().unwrap().values() {
-                assert!(group
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .all(|view| view["state"] == "ready"));
+                assert!(
+                    group
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .all(|view| view["state"] == "ready")
+                );
             }
             let oracle =
                 IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
