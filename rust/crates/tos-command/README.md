@@ -32,8 +32,14 @@ Both operations require these option/value pairs:
 --max-frame-bytes POSITIVE_INTEGER
 --max-frames POSITIVE_INTEGER
 --max-journal-bytes POSITIVE_INTEGER
---max-seconds POSITIVE_WHOLE_OPERATION_DEADLINE
+--max-seconds POSITIVE_COOPERATIVE_DEADLINE
 ```
+
+`--max-seconds` supplies the cooperative deadline checked by the transport.
+Run the command under an outer hard timeout that covers the entire operation
+and its child processes: synchronous filesystem or database calls may block
+between deadline checks. Expiry is a failed, partial operation, never permission
+to select the destination.
 
 Backup additionally requires `--confirm-quiescent-owner yes`: the owner must
 actually keep this database and store quiescent across the operation. This flag
