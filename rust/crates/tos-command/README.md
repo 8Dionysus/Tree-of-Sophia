@@ -49,13 +49,14 @@ Both operations require these option/value pairs:
 ```
 
 `--max-seconds` supplies the cooperative deadline checked by the transport.
-Run the command under an outer hard timeout that covers the entire operation
-and its child processes: synchronous filesystem or database calls may block
-between deadline checks. On the host laboratory route, use the admitted
-supervisor with `KillMode=control-group`, and stop/remove/reap the exact owned
-container in cleanup when a tool bridge is used. Killing a CLI client alone is
-not proof that a container's PostgreSQL tool has stopped. Expiry is a failed,
-partial operation, never permission to select the destination.
+Run the command under an owned supervisor that applies the outer hard timeout
+to the entire process tree (for example, the admitted service with
+`KillMode=control-group`) and stops/removes/reaps its exact owned container,
+if used. A timeout that only signals the CLI process group is insufficient:
+tools use their own process groups, abrupt CLI termination does not run Rust
+destructors, and a container's tool may survive its client. Synchronous
+filesystem or database calls may block between deadline checks. Expiry is a
+failed, partial operation, never permission to select the destination.
 
 Backup additionally requires `--confirm-quiescent-owner yes`: the owner must
 actually keep this database and store quiescent across the operation. This flag
@@ -75,6 +76,12 @@ then restores the schema/data in one PostgreSQL transaction and checks the
 native committed-history cut. A missing dump schema is not filled in by lab
 initialization.
 Do not point either operation at another owner's live resources.
+
+All selected store and backup directories must already exist, belong to the
+invoking user and have mode `0700`. Create the backup destination and restore
+store as new empty directories under an owned parent; the transport opens them
+without creating missing roots. It refuses nonempty destinations. Do not reuse
+a failed partial destination or change permissions on another owner's directory.
 
 The initial transport profile is bounded to 64 MiB of store files and 64 MiB of
 dump data, with 256 files and 512 filesystem entries. The invoking process must
