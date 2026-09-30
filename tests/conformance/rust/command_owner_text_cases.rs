@@ -1,0 +1,340 @@
+//! Non-OCR owner-local initial TextLayer through the maintained default CLI.
+//! Recovery reconstructs its genuine completed native stage, without a crash claim.
+use super::*;
+use std::collections::BTreeMap;
+use std::os::unix::fs::{MetadataExt, PermissionsExt};
+use std::process::{Command, Stdio};
+use std::sync::atomic::AtomicBool;
+use std::time::{Duration, Instant};
+
+fn text_fixture(
+    repository: &Path,
+    root: &Path,
+    output: &Path,
+    errors: &Path,
+    deadline: Instant,
+) -> Value {
+    let script = r#"
+import json,sys
+from pathlib import Path
+repository,root=map(Path,sys.argv[1:])
+sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts'),str(repository/'tests')]
+import test_source_text_unit_commands as unit
+import test_source_text_layer_commands as layer
+class ExistingRoot:
+    def __init__(self,*args,**kwargs): self.name=str(root)
+    def cleanup(self): pass
+original=unit.tempfile.TemporaryDirectory
+unit.tempfile.TemporaryDirectory=ExistingRoot
+try:
+    case=layer.NativeLayerCommandTests(methodName='runTest')
+    case.setUp()
+finally:
+    unit.tempfile.TemporaryDirectory=original
+print(json.dumps({'public':str(case.public),'private':str(case.store),
+    'context':str(case.context_path),'owner':str(case.owner),
+    'source_ref':case.source_ref,'payload':str(case.payload),'content_sha256':layer.source._digest(case.content)[7:],
+    'content_bytes':len(case.content),'config':case.config,
+    'unit_config':case.seed.config,'unit_proposal':case.seed.proposal,
+    'unit_layer_schema':unit.native.LAYER_CONFIG,
+    'implementations':sorted(set(layer.layers.IMPLEMENTATIONS))},ensure_ascii=False,separators=(',',':')))
+"#;
+    let mut child = Command::new("/usr/bin/python3")
+        .args(["-c", script])
+        .arg(repository)
+        .arg(root)
+        .env_remove("PYTHONPATH")
+        .env_remove("PYTHONHOME")
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .stdout(Stdio::from(fs::File::create(output).unwrap()))
+        .stderr(Stdio::from(fs::File::create(errors).unwrap()))
+        .spawn()
+        .unwrap();
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break status;
+        }
+        if Instant::now() >= deadline
+            || fs::metadata(output).unwrap().len() > 1_048_576
+            || fs::metadata(errors).unwrap().len() > 1_048_576
+        {
+            child.kill().unwrap();
+            child.wait().unwrap();
+            panic!("bounded maintained Text fixture refused");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    assert!(Instant::now() < deadline);
+    assert!(fs::metadata(output).unwrap().len() <= 1_048_576);
+    assert!(fs::metadata(errors).unwrap().len() <= 1_048_576);
+    assert!(
+        status.success(),
+        "{}",
+        String::from_utf8_lossy(&fs::read(errors).unwrap())
+    );
+    serde_json::from_slice(&fs::read(output).unwrap()).unwrap()
+}
+
+fn package_files(path: &Path) -> BTreeMap<String, Vec<u8>> {
+    let mut total = 0usize;
+    let files: BTreeMap<_, _> = fs::read_dir(path)
+        .unwrap()
+        .map(|entry| {
+            let entry = entry.unwrap();
+            let metadata = entry.path().symlink_metadata().unwrap();
+            assert!(metadata.is_file() && metadata.len() <= 8_388_608);
+            assert_eq!(metadata.mode() & 0o777, 0o600);
+            let raw = fs::read(entry.path()).unwrap();
+            total = total.checked_add(raw.len()).unwrap();
+            assert!(total <= 12_582_912);
+            (entry.file_name().to_str().unwrap().to_owned(), raw)
+        })
+        .collect();
+    assert!(!files.is_empty() && files.len() <= 12);
+    files
+}
+
+#[test]
+fn native_owner_text_cli_extracts_replays_and_recovers_completed_stage() {
+    let repository = super::validation_cut_cases::repository()
+        .canonicalize()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(240);
+    let cancelled = AtomicBool::new(false);
+    let temporary = tempfile::tempdir().unwrap();
+    let images = [
+        std::env::current_exe().unwrap(),
+        PathBuf::from(
+            std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH").expect("native CLI required"),
+        ),
+        PathBuf::from(std::env::var_os("TOS_SCHEMA_WORKER_PATH").expect("worker required")),
+    ];
+    // Admitted E/C/W stay in their immutable locations; no image copies.
+    let custody = |path: &Path| {
+        let metadata = path.symlink_metadata().unwrap();
+        assert!(metadata.is_file() && metadata.len() > 0 && metadata.len() <= 536_870_912);
+        assert_eq!(metadata.mode() & 0o022, 0);
+        (
+            metadata.dev(),
+            metadata.ino(),
+            metadata.len(),
+            metadata.mode(),
+            super::command_text_cases::alignment_image_digest(path),
+        )
+    };
+    let before_images: Vec<_> = images.iter().map(|p| custody(p)).collect();
+    let fixture = text_fixture(
+        &repository,
+        temporary.path(),
+        &temporary.path().join("fixture.stdout"),
+        &temporary.path().join("fixture.stderr"),
+        deadline,
+    );
+    let public = PathBuf::from(fixture["public"].as_str().unwrap());
+    let private = PathBuf::from(fixture["private"].as_str().unwrap());
+    let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
+    let context = PathBuf::from(fixture["context"].as_str().unwrap());
+    let source_ref = fixture["source_ref"].as_str().unwrap();
+    let payload = PathBuf::from(fixture["payload"].as_str().unwrap());
+    assert!(fs::metadata(&payload).unwrap().len() <= 8_388_608);
+    let payload_raw = fs::read(&payload).unwrap();
+    let context_raw = fs::read(&context).unwrap();
+    let authored = super::command_text_cases::authored_text_files(&public);
+    let mut captured = authored.clone();
+    for reference in fixture["implementations"].as_array().unwrap() {
+        let reference = reference.as_str().unwrap();
+        let path = repository.join(reference);
+        assert!(path.symlink_metadata().unwrap().is_file());
+        assert!(fs::metadata(&path).unwrap().len() <= 8_388_608);
+        assert!(
+            captured
+                .insert(reference.to_owned(), fs::read(path).unwrap())
+                .is_none()
+        );
+    }
+    assert!(captured.len() <= 2048);
+    assert!(captured.values().map(Vec::len).sum::<usize>() <= 33_554_432);
+    let (capture, _software, components) =
+        super::command_record_cases::captured_components(&captured, deadline, &cancelled);
+    let store = temporary.path().join("source-cut");
+    let selected = super::validation_cut_cases::write_cut_store(&authored, &store);
+    let invocation = serde_json::json!({
+        "schema_version":"tos_local_native_source_invocation_v1",
+        "owner_config":owner,"owner_context":context,"assessment_schema_worker":null,
+        "native_executable":images[1],"native_executable_sha256":before_images[1].4.to_prefixed(),
+        "corpus_store":store,"source_revision":selected.0.to_prefixed(),
+        "original_source_revision":selected.0.to_prefixed(),
+        "software_capture":capture.capture,"software_restored_root":capture.restored,
+        "software_selection":{"source_git_commit":capture.selection.source_git_commit,
+            "source_git_tree":capture.selection.source_git_tree,
+            "capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},
+        "software_components":components.members().map(|m|m.path.as_str()).collect::<Vec<_>>(),
+        "schema_worker":{"absolute_path":images[2],"sha256":before_images[2].4.to_prefixed()},
+        "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,
+            "max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,
+            "worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
+    let invocation_path = temporary.path().join("native-text-invocation.json");
+    fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();
+    fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let observe = |request: &Value| {
+        super::command_text_cases::native_owner_cli_observation(
+            &repository,
+            &owner,
+            &invocation_path,
+            request,
+            deadline,
+        )
+    };
+    let invoke = |request: &Value| -> Value {
+        let (status, raw, errors) = observe(request);
+        assert!(
+            status.success(),
+            "Text CLI: {}",
+            String::from_utf8_lossy(&errors)
+        );
+        let envelope: Value = serde_json::from_slice(&raw).unwrap();
+        assert_eq!(
+            envelope["schema_version"],
+            "tos_local_native_source_result_v1"
+        );
+        assert_eq!(envelope["authentication"], "local-unix-account");
+        assert_eq!(envelope["grants_admission"], false);
+        let result = envelope["result"].clone();
+        assert_eq!(
+            result["schema_version"],
+            "tos_local_text_layer_create_result_v1"
+        );
+        assert_eq!(result["content_disclosure"], "withheld");
+        assert_eq!(result["grants_admission"], false);
+        result
+    };
+    let described = invoke(&serde_json::json!({"operation":"describe"}));
+    assert_eq!(described["target_exists"], false);
+    assert_eq!(described["receipt_sha256"], Value::Null);
+    let preview = invoke(&serde_json::json!({"operation":"prepare-create"}));
+    assert_eq!(
+        preview["owner_configuration"],
+        described["owner_configuration"]
+    );
+    let request = serde_json::json!({"schema_version":"tos_local_source_command_v1",
+        "operation":"text-layer.create","command_id":"native-owner-text-completed-stage",
+        "expected_configuration":preview["owner_configuration"],
+        "expected_dependencies":preview["expected_dependencies"],
+        "expected_source":null,"expected_revision":null});
+    let created = invoke(&request);
+    assert_eq!(created["replayed"], false);
+    let package = private.join(source_ref).parent().unwrap().to_path_buf();
+    assert_eq!(fs::metadata(&package).unwrap().mode() & 0o777, 0o700);
+    assert_eq!(
+        fs::metadata(&package).unwrap().uid(),
+        fs::metadata(&private).unwrap().uid()
+    );
+    let retained = package_files(&package);
+    let content = &retained["content.txt"];
+    assert_eq!(
+        content.len() as u64,
+        fixture["content_bytes"].as_u64().unwrap()
+    );
+    assert_eq!(
+        Digest256::of_bytes(content).to_hex(),
+        fixture["content_sha256"].as_str().unwrap()
+    );
+    assert_eq!(
+        created["receipt_sha256"],
+        Digest256::of_bytes(
+            retained["source-create-receipt.json"]
+                .strip_suffix(b"\n")
+                .expect("canonical receipt line")
+        )
+        .to_prefixed()
+    );
+    assert!(!public.join(source_ref).exists());
+    assert_eq!(
+        super::command_text_cases::authored_text_files(&public),
+        authored
+    );
+    // Fresh CLI process, same absolute protected root/config and same producer.
+    let replay = invoke(&request);
+    assert_eq!(replay["replayed"], true);
+    assert_eq!(replay["receipt_sha256"], created["receipt_sha256"]);
+    assert_eq!(package_files(&package), retained);
+    let after_description = invoke(&serde_json::json!({"operation":"describe"}));
+    assert_eq!(after_description["target_exists"], true);
+    assert_eq!(after_description["receipt_sha256"], Value::Null);
+    let controls: Vec<_> = fs::read_dir(&private)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .filter(|p| {
+            p.file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .starts_with(".native-construction-")
+                && p.file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .ends_with(".pending")
+        })
+        .collect();
+    assert_eq!(controls.len(), 1);
+    let control = &controls[0];
+    let plan = fs::read(control.join("plan.json")).unwrap();
+    assert!(plan.len() <= 18_874_368);
+    let output = control.join("output");
+    assert!(!output.exists());
+    // Genuine completed native package and original plan are moved back to
+    // the existing pre-rename boundary; no provenance/control is fabricated.
+    fs::rename(&package, &output).unwrap();
+    fs::File::open(package.parent().unwrap())
+        .unwrap()
+        .sync_all()
+        .unwrap();
+    fs::File::open(control).unwrap().sync_all().unwrap();
+    let owner_raw = fs::read(&owner).unwrap();
+    let mut revoked: Value = serde_json::from_slice(&owner_raw).unwrap();
+    revoked["allowed_operations"] = serde_json::json!([]);
+    fs::write(&owner, serde_json::to_vec(&revoked).unwrap()).unwrap();
+    assert!(!observe(&request).0.success());
+    assert_eq!(package_files(&output), retained);
+    assert_eq!(fs::read(control.join("plan.json")).unwrap(), plan);
+    assert!(!package.exists());
+    assert_eq!(
+        super::command_text_cases::authored_text_files(&public),
+        authored
+    );
+    assert_eq!(fs::read(&context).unwrap(), context_raw);
+    assert_eq!(fs::read(&payload).unwrap(), payload_raw);
+    fs::write(&owner, &owner_raw).unwrap();
+    fs::write(output.join("content.txt"), b"changed staged content").unwrap();
+    let changed = package_files(&output);
+    assert!(!observe(&request).0.success());
+    assert_eq!(package_files(&output), changed);
+    assert_eq!(fs::read(control.join("plan.json")).unwrap(), plan);
+    assert!(!package.exists());
+    assert_eq!(
+        super::command_text_cases::authored_text_files(&public),
+        authored
+    );
+    assert_eq!(fs::read(&context).unwrap(), context_raw);
+    assert_eq!(fs::read(&payload).unwrap(), payload_raw);
+    fs::write(output.join("content.txt"), content).unwrap();
+    let recovered = invoke(&request);
+    assert_eq!(recovered["replayed"], true);
+    assert_eq!(recovered["receipt_sha256"], created["receipt_sha256"]);
+    assert_eq!(package_files(&package), retained);
+    assert!(!output.exists());
+    assert_eq!(fs::read(control.join("plan.json")).unwrap(), plan);
+    assert_eq!(
+        super::command_text_cases::authored_text_files(&public),
+        authored
+    );
+    assert_eq!(fs::read(&owner).unwrap(), owner_raw);
+    assert_eq!(fs::read(&context).unwrap(), context_raw);
+    assert_eq!(fs::read(&payload).unwrap(), payload_raw);
+    assert_eq!(
+        images.iter().map(|p| custody(p)).collect::<Vec<_>>(),
+        before_images
+    );
+    assert!(Instant::now() < deadline);
+}
