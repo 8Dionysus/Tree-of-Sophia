@@ -381,6 +381,13 @@ pub fn backup_quiescent(s: &BackupSelection<'_>, d: Instant, c: &AtomicBool) -> 
         d,
         c,
     )?;
+    // Child close is not a durability fence. Sync the exact anchored dump
+    // before publishing any receipt that claims a completed backup.
+    OpenOptions::new()
+        .read(true)
+        .custom_flags(rustix::fs::OFlags::NOFOLLOW.bits() as i32)
+        .open(&dump)?
+        .sync_all()?;
     let dump_identity = hash(&dump, d, c)?;
     let mut magic = [0u8; 5];
     File::open(&dump)?.read_exact(&mut magic)?;
