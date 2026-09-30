@@ -6,6 +6,7 @@ use super::command_claim_publication_cases::{
     fixture_physical_bytes, read_packet, typed,
 };
 use super::*;
+use serde_json::json;
 use std::{
     collections::{BTreeMap, BTreeSet},
     os::unix::fs::{MetadataExt, PermissionsExt},
