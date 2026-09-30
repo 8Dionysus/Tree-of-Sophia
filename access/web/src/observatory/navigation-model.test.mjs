@@ -1,3 +1,4 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {test,expect} from 'vitest';
 import {ContractError,RevisionError,validateExploration,projectLens} from './knowledge-client.mjs';
 import {pathAvailable,explorationQuery,validateNativePaths,nativePathSpec,bindPath,loadPaths} from './navigation-model.mjs';

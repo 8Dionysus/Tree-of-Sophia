@@ -1,3 +1,4 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 import {knowledgeScene} from '../../../shared/knowledge-scene.ts';

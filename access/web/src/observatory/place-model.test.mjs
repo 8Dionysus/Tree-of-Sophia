@@ -1,3 +1,4 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {test,expect} from 'vitest';
 import {KnowledgeClient,focusSpec,specForPacket} from './knowledge-client.mjs';
 import {capturePlace,validatePlace,readPlaces,savePlace,readResume,reopenPlace,PLACES_KEY,RESUME_KEY} from './place-model.mjs';
