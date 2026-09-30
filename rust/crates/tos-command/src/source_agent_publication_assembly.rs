@@ -98,7 +98,7 @@ impl Reader<'_, '_> {
         if let Some(raw) = self.files.get(reference) {
             return Ok(raw.clone());
         }
-        if self.files.len() >= self.limits.catalog.max_files {
+        if self.files.len() as u64 >= self.limits.catalog.max_files {
             return Err(Error::Budget("Agent addressed source files"));
         }
         let p = path(reference)?;

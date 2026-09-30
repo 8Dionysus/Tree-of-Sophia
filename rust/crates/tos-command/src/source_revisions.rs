@@ -86,7 +86,7 @@ impl RevisionFamily {
     fn profile(self) -> bool {
         matches!(self, Self::PublicProfile | Self::PublicProfileScope)
     }
-    fn parse(schema: &str) -> SourceCommandResult<Self> {
+    pub(crate) fn parse(schema: &str) -> SourceCommandResult<Self> {
         Ok(match schema {
             "tos_local_source_revision_owner_v1" => Self::Historical,
             "tos_local_profile_revision_owner_v1" => Self::PublicProfile,
