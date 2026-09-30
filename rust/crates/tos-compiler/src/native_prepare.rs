@@ -257,6 +257,14 @@ fn value(packet: &Value, cap: usize) -> Result<JsonValue> {
     let raw = serde_json::to_vec(packet).map_err(|e| Error::Source(e.to_string()))?;
     json(&raw, cap)
 }
+// Reuse the existing portable walker at its foundation JSON boundary. The
+// catalog renderer still consumes serde values, with the same metadata cap.
+fn portable_serde(packet: &mut Value, root: &str, cap: usize) -> Result<()> {
+    let mut owner = value(packet, cap)?;
+    crate::d1_public_rows::portable(&mut owner, root);
+    *packet = value_to_serde(&owner, cap)?;
+    Ok(())
+}
 struct StageRows<'s, 'a> {
     stage: &'s mut KnowledgeStage<'a>,
     capture: &'s PublicCapture,
@@ -432,9 +440,9 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
     stage.close_inputs_for_full_components()?;
     let mut lenses = saved_lenses(&capture)?;
     let root_text = root.to_str().ok_or(Error::Invalid("prepare root UTF8"))?;
-    crate::d1_public_rows::portable(&mut header, root_text);
+    portable_serde(&mut header, root_text, publication.max_metadata_bytes)?;
     for lens in &mut lenses {
-        crate::d1_public_rows::portable(lens, root_text);
+        portable_serde(lens, root_text, publication.max_metadata_bytes)?;
     }
     let header_owner = value(&header, publication.max_metadata_bytes)?;
     let lenses_owner = lenses
@@ -466,7 +474,11 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
             limits.catalog,
         )
     })?;
-    crate::d1_public_rows::portable(&mut catalog.catalog, root_text);
+    portable_serde(
+        &mut catalog.catalog,
+        root_text,
+        publication.max_metadata_bytes,
+    )?;
     let catalog_owner = value(&catalog.catalog, publication.max_metadata_bytes)?;
     capture.verify_inputs(limits.capture)?;
     processor_owner.verify_stamp()?;
