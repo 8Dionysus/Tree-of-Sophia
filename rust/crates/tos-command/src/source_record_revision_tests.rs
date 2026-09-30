@@ -518,7 +518,7 @@ if family==5: f.config['schema_version']=source.CORPUS_COMPLETE_REVISION_CONFIG
 f.owner.write_bytes(revisions._encode(f.config)); f.owner.chmod(0o600)
 for ref in ('ToS/contracts/knowledge-assessment.schema.json','ToS/contracts/human-form.schema.json','ToS/contracts/human-form-set.schema.json','ToS/contracts/human-form-template.schema.json'):
     path=root/ref;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes((repo/ref).read_bytes())
-request=f.request() if family==6 else f.request('native:revision-family-'+str(scenario))
+request=f.request() if family==6 else (case.request('native:revision-family-'+str(scenario)) if family in (4,5) else f.request('native:revision-family-'+str(scenario)))
 proposal={k:v for k,v in request.items() if k not in ('command_id','expected_configuration','expected_source','expected_revision','expected_dependencies','expected_publication')}
 proposal['operation']='prepare-revise'
 print(json.dumps({'owner':str(f.owner),'source_path':f.relative,'record':f.record,'proposal':proposal,'request':request,'untouched':[str(p.relative_to(root)) for p in f.path.parent.rglob('*') if p.is_file() and p not in (f.path,f.formpath)]},ensure_ascii=False,separators=(',',':')))
@@ -631,6 +631,7 @@ fn pending_factory(
             after: side(f.after.as_deref()),
         })
         .collect::<Vec<_>>();
+    let fence = tx::WorkCorpusFence::hold(filesystem, deadline, cancelled).unwrap();
     let snapshot = PublicationSnapshot::select(filesystem, deadline, cancelled).unwrap();
     let archive = tx::record_revision_archive(
         filesystem,
@@ -648,7 +649,6 @@ fn pending_factory(
     let prior =
         physical::original_prior_publication(cut, snapshot.token.as_deref(), deadline, cancelled)
             .unwrap();
-    let fence = tx::WorkCorpusFence::hold(filesystem, deadline, cancelled).unwrap();
     let mut stopped = false;
     let result = fence.apply(
         plan,
@@ -667,6 +667,7 @@ fn pending_factory(
                 deadline,
                 cancelled,
             )?;
+            physical::software_current(filesystem, ctx, deadline, cancelled)?;
             dependencies_current(
                 filesystem,
                 &proposal,
@@ -826,6 +827,7 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             ("expected_source", "source"),
             ("expected_revision", "revision"),
             ("expected_dependencies", "expected_dependencies"),
+            ("expected_publication", "expected_publication"),
         ] {
             assert_eq!(
                 preview[prepared], oracle[field],
