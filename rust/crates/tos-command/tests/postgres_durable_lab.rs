@@ -2358,27 +2358,39 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             .is_none()
     );
     eprintln!("STO tail absent member PASS");
-    for (name, expected) in &expected_original_files {
-        eprintln!("STO tail original member {name} begin");
-        let path = RelativePath::parse(&format!(
-            "ToS/source-witnesses/agents/synthetic-durable-current/{name}"
-        ))
+    let original_paths = expected_original_files
+        .keys()
+        .map(|name| {
+            RelativePath::parse(&format!(
+                "ToS/source-witnesses/agents/synthetic-durable-current/{name}"
+            ))
+            .unwrap()
+        })
+        .collect::<Vec<_>>();
+    eprintln!("STO tail addressed original member batch begin");
+    let original_members = current_reopened
+        .read_current_members(
+            &mut recovered_db,
+            &recovered_store,
+            &original_paths,
+            8_388_608,
+            33_554_432,
+            deadline,
+            &cancelled,
+        )
         .unwrap();
-        let retained = current_reopened
-            .read_current_member(
-                &mut recovered_db,
-                &recovered_store,
-                &path,
-                8_388_608,
-                deadline,
-                &cancelled,
-            )
-            .unwrap();
+    eprintln!("STO tail addressed original member batch ready");
+    for (((name, expected), path), retained) in expected_original_files
+        .iter()
+        .zip(&original_paths)
+        .zip(original_members)
+    {
+        eprintln!("STO tail original member {name} begin");
         let owned_metadata = current_reopened
             .member(
                 &mut recovered_db,
                 &recovered_store,
-                &path,
+                path,
                 deadline,
                 &cancelled,
             )

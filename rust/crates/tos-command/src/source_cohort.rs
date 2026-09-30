@@ -1427,6 +1427,21 @@ fn selected_source_metadata(
     expose_metadata(row, path).map(|(metadata, _)| metadata)
 }
 
+fn charge_member_batch_metadata(work: &mut u64, bytes: i32) -> DurableResult<()> {
+    let bytes =
+        u64::try_from(bytes).map_err(|_| DurableError::Corrupt("batch metadata byte count"))?;
+    if bytes > 1_048_576 {
+        return Err(DurableError::Refused("batch metadata row bound"));
+    }
+    *work = work
+        .checked_add(bytes)
+        .filter(|n| *n <= cmd::SELECTED_SOURCE_MAX_BYTES as u64)
+        .ok_or(DurableError::Refused(
+            "batch cumulative metadata work bound",
+        ))?;
+    Ok(())
+}
+
 impl DurablePgCoordinator {
     pub(crate) fn managed_model_delta_from_commit(
         &mut self,
@@ -1913,6 +1928,173 @@ impl DurablePgCoordinator {
             deadline,
             cancelled,
         )
+    }
+
+    /// Addressed batch over one held current generation. Only one attempt's
+    /// sealed receipts is resident; no receipt cache survives this operation.
+    pub(crate) fn read_generation_source_members(
+        &mut self,
+        store: &SegmentStore,
+        generation: &crate::source_current_cut::ManagedCurrentSourceGeneration,
+        paths: &[RelativePath],
+        max_member_bytes: u64,
+        max_total_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Vec<ManagedCurrentMember>> {
+        active(deadline, cancelled)?;
+        if paths.is_empty()
+            || paths.len() > MAX_MEMBERS
+            || max_member_bytes == 0
+            || max_member_bytes > 8_388_608
+            || max_total_bytes == 0
+            || max_total_bytes > cmd::SELECTED_SOURCE_MAX_BYTES as u64
+            || paths
+                .iter()
+                .map(RelativePath::as_str)
+                .collect::<BTreeSet<_>>()
+                .len()
+                != paths.len()
+        {
+            return Err(DurableError::Refused(
+                "current member batch exceeds operational bounds",
+            ));
+        }
+        if store.store_id() != generation.cohort().store_id
+            || store.custody_domain() != generation.cohort().domain().as_bytes()
+        {
+            return Err(DurableError::Conflict(
+                "current batch custody domain differs",
+            ));
+        }
+        let _custody = store.hold_audit_root()?;
+        let mut tx = self.client.transaction()?;
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        held_generation_metadata(&mut tx, store, generation)?;
+        let domain = generation.cohort().domain();
+        let mut work = 0u64;
+        let mut output_bytes = 0u64;
+        let mut groups: BTreeMap<(Vec<u8>, u64), Vec<(usize, u64, postgres::Row)>> =
+            BTreeMap::new();
+        // Bound each SQL carrier and cumulative metadata before fetching it.
+        for (index, path) in paths.iter().enumerate() {
+            active(deadline, cancelled)?;
+            let size: i32 = tx.query_opt("SELECT octet_length(row_to_json(c)::text) FROM cmd2_current c WHERE domain=$1 AND subject=$2", &[&domain, &path.as_str()])?
+                .ok_or(DurableError::Conflict("current batch member absent"))?.get(0);
+            charge_member_batch_metadata(&mut work, size)?;
+            let current = tx.query_one(
+                "SELECT * FROM cmd2_current WHERE domain=$1 AND subject=$2",
+                &[&domain, &path.as_str()],
+            )?;
+            let revision = as_u64(current.get("revision"))?;
+            let size: i32 = tx.query_opt("SELECT octet_length(row_to_json(h)::text) FROM cmd2_history h WHERE domain=$1 AND subject=$2 AND revision=$3", &[&domain, &path.as_str(), &as_i64(revision)?])?
+                .ok_or(DurableError::Corrupt("batch historical locator absent"))?.get(0);
+            charge_member_batch_metadata(&mut work, size)?;
+            let history = tx.query_one(
+                "SELECT * FROM cmd2_history WHERE domain=$1 AND subject=$2 AND revision=$3",
+                &[&domain, &path.as_str(), &as_i64(revision)?],
+            )?;
+            let prepare: Vec<u8> = history.get("prepare_id");
+            let attempt = tx.query_opt("SELECT state,attempt_fence,commit_seq FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2 FOR SHARE", &[&domain, &prepare])?
+                .ok_or(DurableError::Corrupt("batch historical attempt absent"))?;
+            if attempt.get::<_, String>(0) != "committed"
+                || attempt.get::<_, Option<i64>>(2) != Some(history.get("commit_seq"))
+            {
+                return Err(DurableError::Corrupt(
+                    "batch historical attempt not committed",
+                ));
+            }
+            let fence = as_u64(attempt.get(1))?;
+            groups
+                .entry((prepare, fence))
+                .or_default()
+                .push((index, revision, history));
+        }
+        let mut output: Vec<Option<ManagedCurrentMember>> =
+            (0..paths.len()).map(|_| None).collect();
+        for ((prepare, fence), addresses) in groups {
+            active(deadline, cancelled)?;
+            let receipts = match store.recover_attempt_fenced(&prepare, fence, 0)? {
+                Some(AttemptRecovery::Sealed { receipts }) => receipts,
+                _ => {
+                    return Err(DurableError::Corrupt(
+                        "batch historical fenced intent not sealed",
+                    ));
+                }
+            };
+            // Recheck the current generation after actual cold receipt recovery.
+            // Domain/policy/fence locks and global STO custody remain held.
+            held_generation_metadata(&mut tx, store, generation)?;
+            for (index, revision, history) in addresses {
+                active(deadline, cancelled)?;
+                let path = &paths[index];
+                let pin: Vec<u8> = history.get("pin_id");
+                if pin.len() != 16
+                    || receipts
+                        .iter()
+                        .any(|r| r.pin_id().as_slice() != pin.as_slice())
+                {
+                    return Err(DurableError::Corrupt("batch historical fenced pin differs"));
+                }
+                let expected: String = history.get("sto_receipt_id");
+                let receipt = receipts
+                    .iter()
+                    .find(|r| r.receipt_id().to_hex() == expected)
+                    .ok_or(DurableError::Corrupt(
+                        "batch historical frame receipt absent",
+                    ))?;
+                check_history_locator(&history, receipt, domain, path.as_str(), revision)?;
+                let size: i32 = tx.query_opt("SELECT octet_length(row_to_json(c)::text) FROM cmd2_current c WHERE domain=$1 AND subject=$2", &[&domain, &path.as_str()])?
+                    .ok_or(DurableError::Conflict("current batch member disappeared"))?.get(0);
+                charge_member_batch_metadata(&mut work, size)?;
+                let current = tx.query_one(
+                    "SELECT * FROM cmd2_current WHERE domain=$1 AND subject=$2",
+                    &[&domain, &path.as_str()],
+                )?;
+                check_history_locator(&current, receipt, domain, path.as_str(), revision)?;
+                let selected = generation
+                    .selected()
+                    .lookup_current(domain, path, deadline, cancelled)?
+                    .ok_or(DurableError::Conflict(
+                        "selected batch current frame absent",
+                    ))?;
+                let metadata = selected_source_metadata(&current, &selected, domain, path)?;
+                if selected.placement != receipt.placement() {
+                    return Err(DurableError::Conflict(
+                        "selected recovered batch frame differs",
+                    ));
+                }
+                if metadata.size_bytes > max_member_bytes {
+                    return Err(DurableError::Refused("current batch member byte bound"));
+                }
+                output_bytes = output_bytes
+                    .checked_add(metadata.size_bytes)
+                    .filter(|n| *n <= max_total_bytes)
+                    .ok_or(DurableError::Refused("current batch aggregate byte bound"))?;
+                let (_, dependency_claims) = expose_metadata(&current, path)?;
+                let mut raw = Vec::new();
+                store.read_selected(receipt, max_member_bytes, &mut raw)?;
+                active(deadline, cancelled)?;
+                output[index] = Some(ManagedCurrentMember {
+                    path: path.clone(),
+                    custody_revision: revision,
+                    current_generation: generation.commit_seq(),
+                    commit_seq: as_u64(current.get("commit_seq"))?,
+                    raw,
+                    metadata,
+                    dependency_claims,
+                    placement: receipt.placement(),
+                });
+            }
+            // receipts are dropped before the next exact attempt is recovered.
+        }
+        active(deadline, cancelled)?;
+        held_generation_metadata(&mut tx, store, generation)?;
+        tx.commit()?;
+        output
+            .into_iter()
+            .map(|member| member.ok_or(DurableError::Corrupt("batch result incomplete")))
+            .collect()
     }
 
     fn read_source_member_bound(

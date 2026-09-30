@@ -86,6 +86,36 @@ impl ManagedCurrentSourceGeneration {
         }
     }
 
+    /// Addressed member batch under one generation/rights/custody fence.
+    /// Operational creation member and selected-source byte limits apply;
+    /// these bounds do not define corpus membership or completeness.
+    pub fn read_current_members(
+        &self,
+        coordinator: &mut DurablePgCoordinator,
+        store: &SegmentStore,
+        paths: &[RelativePath],
+        max_member_bytes: u64,
+        max_total_bytes: u64,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> Result<Vec<crate::durable_adapter::source_cohort::ManagedCurrentMember>> {
+        active(deadline, cancel)?;
+        if store.store_id() != self.store_id {
+            return Err(Error::Conflict("managed generation byte store differs"));
+        }
+        coordinator
+            .read_generation_source_members(
+                store,
+                self,
+                paths,
+                max_member_bytes,
+                max_total_bytes,
+                deadline,
+                cancel,
+            )
+            .map_err(durable)
+    }
+
     pub fn read_current_member(
         &self,
         coordinator: &mut DurablePgCoordinator,
