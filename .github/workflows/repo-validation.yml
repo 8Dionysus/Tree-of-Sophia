@@ -426,7 +426,9 @@ jobs:
             /tests/conformance/rust/
             /access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json
             /access/src/
+            /access/deploy/cloudflare-worker/migrations/0001-exploration.sql
             /ToS/contracts/
+            /scripts/tos_corpus_index_common.py
             /scripts/validation_lanes.py
             /scripts/verify_rust_reader_install.py
             /scripts/verify_rust_mechanics_install.py
