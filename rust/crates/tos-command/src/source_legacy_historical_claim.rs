@@ -2085,7 +2085,6 @@ fn validate_history<'a>(
                 "retained revision is outside historical creation package",
             ));
         }
-        let _ = (ctx, worker);
     }
     if let Some(expected) = expected {
         if current_raw != &expected {
