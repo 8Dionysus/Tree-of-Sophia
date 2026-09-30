@@ -2342,6 +2342,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         );
     }
     planner_tx.commit().unwrap();
+    eprintln!("STO tail begin: current member absence and original bytes");
     let absent_path =
         RelativePath::parse("ToS/source-witnesses/agents/never-created/agent.json").unwrap();
     assert!(
@@ -2356,7 +2357,9 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             .unwrap()
             .is_none()
     );
+    eprintln!("STO tail absent member PASS");
     for (name, expected) in &expected_original_files {
+        eprintln!("STO tail original member {name} begin");
         let path = RelativePath::parse(&format!(
             "ToS/source-witnesses/agents/synthetic-durable-current/{name}"
         ))
@@ -2384,7 +2387,14 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         assert_eq!(owned_metadata, retained.metadata);
         assert_eq!(&retained.raw, expected, "process-cold original file {name}");
         assert_eq!(retained.current_generation, expected_current_head);
+        eprintln!("STO tail original member {name} metadata/bytes/head PASS");
     }
+    eprintln!("STO tail member metadata/original bytes PASS; prepare recovery worker");
+    // A successful recovery finishes its actual worker before the commit
+    // fence. Preserve that boundary; the later refusal-only calls can share
+    // one new worker while retaining their independent durable checks.
+    let mut recovery_worker = new_worker(&cut);
+    eprintln!("STO tail recovery worker ready; committed replay begin");
     let (second_replayed, _) = recovered_db
         .recover_committed_managed_agent_creation(
             &recovered_store,
@@ -2394,7 +2404,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             &cut,
             &software,
             &components,
-            &mut new_worker(&cut),
+            &mut recovery_worker,
             contract_digest(),
             0,
             0,
@@ -2410,6 +2420,13 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         recovered_db.head_seq(&recovery_domain).unwrap(),
         expected_current_head
     );
+    drop(recovery_worker);
+    eprintln!("STO tail committed replay/head PASS; prepare refusal worker");
+    // Pending, corrupt binding and revoked rights refuse before successful
+    // worker completion. Changed-owner recovery is last and finishes the
+    // worker before its actual current-owner commit fence refuses.
+    let mut recovery_worker = new_worker(&cut);
+    eprintln!("STO tail refusal worker ready; pending refusal begin");
     assert!(
         matches!(
             recovered_db.recover_committed_managed_agent_creation(
@@ -2420,7 +2437,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                 &cut,
                 &software,
                 &components,
-                &mut new_worker(&cut),
+                &mut recovery_worker,
                 contract_digest(),
                 0,
                 0,
@@ -2433,6 +2450,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         ),
         "recovery cannot turn a pending attempt into a write"
     );
+    eprintln!("STO tail pending refusal PASS; original binding corruptions begin");
     let original_reads: Vec<u8> = sql
         .query_one(
             "SELECT source_reads FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2",
@@ -2445,6 +2463,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         "registered-read-closure",
         "legacy-managed-no-companion",
     ] {
+        eprintln!("STO tail corruption {corruption} begin");
         let mut corrupt: serde_json::Value = serde_json::from_slice(&original_reads).unwrap();
         match corruption {
             "original-basis" => {
@@ -2481,7 +2500,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                     &cut,
                     &software,
                     &components,
-                    &mut new_worker(&cut),
+                    &mut recovery_worker,
                     contract_digest(),
                     0,
                     0,
@@ -2502,7 +2521,9 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             ],
         )
         .unwrap();
+        eprintln!("STO tail corruption {corruption} refusal and restoration PASS");
     }
+    eprintln!("STO tail original binding corruptions PASS; rights refusal begin");
     sql.execute(
         "UPDATE cmd2_domain SET rights_allowed=false WHERE domain=$1",
         &[&recovery_domain],
@@ -2518,7 +2539,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                 &cut,
                 &software,
                 &components,
-                &mut new_worker(&cut),
+                &mut recovery_worker,
                 contract_digest(),
                 0,
                 0,
@@ -2536,6 +2557,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         &[&recovery_domain],
     )
     .unwrap();
+    eprintln!("STO tail rights refusal PASS; changed current owner begin");
     let original_owner_raw = fs::read(&current_owner).unwrap();
     let mut changed_owner: serde_json::Value = serde_json::from_slice(&original_owner_raw).unwrap();
     changed_owner["principal_id"] = serde_json::json!("software:changed-owner-after-process-loss");
@@ -2553,7 +2575,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                 &cut,
                 &software,
                 &components,
-                &mut new_worker(&cut),
+                &mut recovery_worker,
                 contract_digest(),
                 0,
                 0,
@@ -2570,6 +2592,9 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         recovered_db.head_seq(&recovery_domain).unwrap(),
         expected_current_head
     );
+    eprintln!("STO tail changed owner/head PASS; drop finished refusal worker");
+    drop(recovery_worker);
+    eprintln!("STO tail independent cold missing-index refusal begin");
     // Corruption must not be relabelled complete by a cold/open SQL marker.
     sql.execute(
         "DELETE FROM cmd2_source_index WHERE domain=$1 AND kind='metadata' AND token=$2",
@@ -2593,6 +2618,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             )
             .is_err()
     );
+    eprintln!("STO tail independent cold missing-index refusal PASS; complete");
 }
 
 struct Lab {
