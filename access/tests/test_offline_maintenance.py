@@ -322,6 +322,15 @@ class OfflineMaintenanceTests(unittest.TestCase):
         self.assertEqual(attached["effective_limits"]["publication"]["max_bytes"], 2 * 1024 * 1024)
         self.assertEqual(attached["mutation_budget_upper_bound"], 223456)
 
+    @staticmethod
+    def reference_attachment(path, *, core, state, binding, inputs, row_factory,
+                             publication, maintenance, native_executable, native_timeout):
+        # These two tests inject failures into the retained Python kernels.
+        # The native maintenance ACK/currentness path has its own actual tests.
+        return producer.reference_attach_maintenance(path, core=core, state=state,
+            binding=binding, inputs=inputs, row_factory=row_factory,
+            publication=publication, maintenance=maintenance)
+
     def test_attachment_stage_errors_and_interrupt_roll_back_both_indexes(self):
         for stage in ("semantic", "catalog", "interrupt"):
             self.output = Path(self.tmp.name) / stage
@@ -331,7 +340,7 @@ class OfflineMaintenanceTests(unittest.TestCase):
                 original(*args, **kwargs)
                 raise KeyboardInterrupt() if stage == "interrupt" else RuntimeError("injected stage failure")
             error = KeyboardInterrupt if stage == "interrupt" else RuntimeError
-            with patch.object(joined, name, side_effect=fail), self.assertRaises(error):
+            with patch.object(producer, "_attach_maintenance", side_effect=self.reference_attachment), patch.object(joined, name, side_effect=fail), self.assertRaises(error):
                 producer.reference_prepare(self.root, self.output, maintenance=producer.MaintenanceAttachmentLimits())
             self.assert_incomplete_rolled_back()
 
@@ -347,7 +356,7 @@ class OfflineMaintenanceTests(unittest.TestCase):
                 else:
                     db.execute("UPDATE knowledge_exploration_clock SET epoch=epoch+1")
                 return result
-            with patch.object(producer, "bootstrap_prepared_maintenance_transaction", side_effect=drift_after), self.assertRaises((ValueError, RuntimeError)):
+            with patch.object(producer, "_attach_maintenance", side_effect=self.reference_attachment), patch.object(producer, "bootstrap_prepared_maintenance_transaction", side_effect=drift_after), self.assertRaises((ValueError, RuntimeError)):
                 producer.reference_prepare(self.root, self.output, maintenance=producer.MaintenanceAttachmentLimits())
             self.assert_incomplete_rolled_back()
 
