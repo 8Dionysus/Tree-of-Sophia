@@ -8,7 +8,7 @@ use super::command_claim_publication_cases::{
 use super::*;
 use std::{
     collections::{BTreeMap, BTreeSet},
-    os::unix::fs::PermissionsExt,
+    os::unix::fs::{MetadataExt, PermissionsExt},
     process::Command,
     sync::{Arc, atomic::AtomicBool},
     time::{Duration, Instant},
@@ -90,7 +90,17 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     // Only this synthetic fixture is inventoried. No authored host scan or
     // estimation run; reserve the bounded static increments below before DB work.
     let (baseline, _) = fixture_physical_bytes(&[workspace.path().to_owned()], deadline);
-    assert!(baseline + 480 * 1024 * 1024 <= 1024 * 1024 * 1024);
+    for suffix in ["-wal", "-shm", "-journal"] {
+        assert!(!PathBuf::from(format!("{}{suffix}", db_path.display())).exists());
+    }
+    let baseline_db = fs::metadata(&db_path)
+        .unwrap()
+        .blocks()
+        .checked_mul(512)
+        .unwrap();
+    // Replace the DB component of F with the full DB/WAL reserve; no baseline
+    // database double counting or second auxiliary database copy.
+    assert!(baseline.checked_sub(baseline_db).unwrap() + 480 * 1024 * 1024 <= 1024 * 1024 * 1024);
     fs::set_permissions(&db_path, fs::Permissions::from_mode(0o600)).unwrap();
     let original_files = agent_authored(&root, deadline);
     let original_store = workspace.path().join("original-cut");
