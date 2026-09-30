@@ -53,7 +53,7 @@ print(json.dumps({'public':str(case.public),'private':str(case.store),
     'unit_layer_schema':unit.native.LAYER_CONFIG,
     'implementations':sorted(set(layer.layers.IMPLEMENTATIONS))},ensure_ascii=False,separators=(',',':')))
 "#;
-    let mut child = Command::new("/usr/bin/python3")
+    let mut child = Command::new(crate::maintained_python())
         .args(["-c", script])
         .arg(repository)
         .arg(root)
@@ -118,7 +118,7 @@ print(json.dumps({'public':str(case.public),'private':str(case.private),
     'source_ref':case.source_ref,'config':case.config,'proposal':case.proposal,
     'implementations':sorted(set(alignment.align.IMPLEMENTATIONS))},ensure_ascii=False,separators=(',',':')))
 "#;
-    let mut child = Command::new("/usr/bin/python3")
+    let mut child = Command::new(crate::maintained_python())
         .args(["-c", script])
         .arg(repository)
         .arg(root)
@@ -245,7 +245,7 @@ print(json.dumps({'owner':str(owner),'source_ref':config['source_path'],
     'expected_sha256':source._digest(expected)[7:],'expected_bytes':len(expected)},
     ensure_ascii=False,separators=(',',':')))
 "#;
-    let mut child = Command::new("/usr/bin/python3")
+    let mut child = Command::new(crate::maintained_python())
         .args(["-c", script])
         .arg(repository)
         .arg(root)
@@ -430,7 +430,7 @@ pub(super) fn native_owner_cli_observation(
     let mut output = tempfile::tempfile().unwrap();
     let mut errors = tempfile::tempfile().unwrap();
     let mut child =
-        Command::new("/usr/bin/python3")
+        Command::new(crate::maintained_python())
             .arg(repository.join(
                 "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
             ))

@@ -55,7 +55,7 @@ print(json.dumps({'public':str(case.public),'private':str(case.store),
     'unit_layer_schema':unit.native.LAYER_CONFIG,
     'implementations':sorted(set(layer.layers.IMPLEMENTATIONS))},ensure_ascii=False,separators=(',',':')))
 "#;
-    let mut child = Command::new("/usr/bin/python3")
+    let mut child = Command::new(crate::maintained_python())
         .args(["-c", script])
         .arg(repository)
         .arg(root)

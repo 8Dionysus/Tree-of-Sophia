@@ -74,7 +74,7 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     let packet_path = workspace.path().join("metadata-fixture.json");
     let fixture = repository.join("tests/conformance/rust/source_metadata_publication_fixture.py");
     python(
-        Command::new("/usr/bin/python3")
+        Command::new(crate::maintained_python())
             .arg(&fixture)
             .arg(workspace.path())
             .arg(&packet_path),
@@ -158,7 +158,7 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     assert!(output.status.success());
     let commit = String::from_utf8(output.stdout).unwrap().trim().to_owned();
     assert!(commit.len() == 40 && commit.bytes().all(|b| b.is_ascii_hexdigit()));
-    let mut archive = Command::new("/usr/bin/python3");
+    let mut archive = Command::new(crate::maintained_python());
     archive
         .arg(repository.join("scripts/corpus_archive.py"))
         .arg("capture")
@@ -173,7 +173,7 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     }
     python(&mut archive, deadline);
     python(
-        Command::new("/usr/bin/python3")
+        Command::new(crate::maintained_python())
             .arg(repository.join("scripts/corpus_archive.py"))
             .arg("restore")
             .arg("--capture")
@@ -249,7 +249,7 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     // BEFORE any native prepared profile transition changes Python identities.
     let oracle_path = workspace.path().join("metadata-independent-oracle.json");
     python(
-        Command::new("/usr/bin/python3")
+        Command::new(crate::maintained_python())
             .arg(&fixture)
             .arg("oracle")
             .arg(&packet_path)

@@ -275,7 +275,7 @@ fn bounded_process(
 fn fixture(repository: &Path, root: &Path, deadline: Instant, ledger: &mut ProcessLedger) -> Value {
     let script = root.parent().unwrap().join("legacy-claim-fixture.py");
     fs::write(&script, FIXTURE).unwrap();
-    let mut command = Command::new("/usr/bin/python3");
+    let mut command = Command::new(crate::maintained_python());
     command
         .args(["-c", "import resource,runpy,sys;resource.setrlimit(resource.RLIMIT_CPU,(45,45));resource.setrlimit(resource.RLIMIT_AS,(1073741824,1073741824));p=sys.argv[1];sys.argv=sys.argv[1:];runpy.run_path(p,run_name='__main__')"])
         .arg(&script)
@@ -397,7 +397,7 @@ fn selected_software(
     assert!(source.0.success());
     fs::write(&tool, source.1).unwrap();
     let wrapper = "import resource,runpy,sys;resource.setrlimit(resource.RLIMIT_CPU,(20,20));resource.setrlimit(resource.RLIMIT_AS,(1073741824,1073741824));sys.argv=sys.argv[1:];runpy.run_path(sys.argv[0],run_name='__main__')";
-    let mut capture_command = Command::new("/usr/bin/python3");
+    let mut capture_command = Command::new(crate::maintained_python());
     capture_command
         .args(["-c", wrapper])
         .arg(&tool)
@@ -422,7 +422,7 @@ fn selected_software(
     // ls-tree call, and one git cat-file --batch process for this capture.
     ledger.capture_git_spawns += 4;
     ledger.direct_spawns += 4;
-    let mut restore_command = Command::new("/usr/bin/python3");
+    let mut restore_command = Command::new(crate::maintained_python());
     restore_command
         .args(["-c", wrapper])
         .arg(&tool)
@@ -719,7 +719,7 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
     let consumer_bytes = fs::metadata(std::env::current_exe().unwrap())
         .unwrap()
         .len();
-    let python = Path::new("/usr/bin/python3").canonicalize().unwrap();
+    let python = crate::maintained_python().canonicalize().unwrap();
     let python_bytes = fs::metadata(&python).unwrap().len();
     assert!(native_bytes <= 536_870_912 && worker_bytes <= 536_870_912);
     assert!(consumer_bytes <= 536_870_912 && python_bytes <= 536_870_912);

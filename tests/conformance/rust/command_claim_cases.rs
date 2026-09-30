@@ -79,7 +79,7 @@ fn maintained_oracle(
     let stdout_path = temporary.path().join("oracle.stdout");
     let stderr_path = temporary.path().join("oracle.stderr");
     let script = "import json,sys\nfrom pathlib import Path\nr=Path(sys.argv[1]);sys.path[:0]=[str(r/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(r/'scripts')]\nimport claim_revisions as c\nconfig=json.loads(Path(sys.argv[2]).read_text());request=json.loads(Path(sys.argv[3]).read_text());path=Path(config['source_root'])/config['source_path']\nfiles={p.name:p.read_bytes() for p in path.parent.iterdir() if p.is_file()};record=c._claims(files[path.name])[config['claim_id']]\n_,_,_,_,dependencies,bindings=c._proposal(config,path,files,record,request)\nprint(json.dumps({'expected_dependencies':dependencies,'source_bindings':bindings},ensure_ascii=False,sort_keys=True,separators=(',',':')))\n";
-    let mut child = Command::new("python3")
+    let mut child = Command::new(crate::maintained_python())
         .args(["-c", script])
         .arg(repository)
         .arg(&config_path)
@@ -124,7 +124,7 @@ fn publish_fixture_catalog(repository: &Path, root: &Path, deadline: Instant) {
     let output = root.join("fixture-catalog.stdout");
     let errors = root.join("fixture-catalog.stderr");
     let script = "import pathlib,sys;sys.path.insert(0,str(pathlib.Path(sys.argv[1])/'scripts'));import build_source_witness_catalog as catalog;root=pathlib.Path(sys.argv[2]);catalog.write_outputs(root,catalog.render_outputs(root))";
-    let mut child = Command::new("python3")
+    let mut child = Command::new(crate::maintained_python())
         .args(["-c", script])
         .arg(repository)
         .arg(root)
@@ -747,10 +747,10 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
                 .to_prefixed()
         )
     );
-    let script = "import json,sys;from pathlib import Path;r=Path(sys.argv[1]);sys.path[:0]=[str(r/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(r/'scripts')];import source_commands as c;owner=Path(sys.argv[2]);request=json.load(sys.stdin);v=c.run_local_command(owner,request);print(json.dumps({'dependencies':v['expected_dependencies'],'bindings':v['source_bindings'],'files':v['prepared_files']},ensure_ascii=False,separators=(',',':')))";
+    let script = "import json,sys;from pathlib import Path;r=Path(sys.argv[1]);sys.path[:0]=[str(r/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(r/'scripts')];import source_commands as c;owner=Path(sys.argv[2]);request=json.load(sys.stdin);v=c.run_legacy_oracle_command(owner,request);print(json.dumps({'dependencies':v['expected_dependencies'],'bindings':v['source_bindings'],'files':v['prepared_files']},ensure_ascii=False,separators=(',',':')))";
     let oracle_stdout = temporary.path().join("claim-create-oracle.stdout");
     let oracle_stderr = temporary.path().join("claim-create-oracle.stderr");
-    let mut oracle = std::process::Command::new("python3")
+    let mut oracle = std::process::Command::new(crate::maintained_python())
         .args(["-c", script])
         .arg(&repository)
         .arg(&owner)
@@ -848,7 +848,7 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
     let lock_stdout = temporary.path().join("claim-form-lock.stdout");
     let lock_stderr = temporary.path().join("claim-form-lock.stderr");
     let lock_script = "import sys;from pathlib import Path;r=Path(sys.argv[1]);sys.path[:0]=[str(r/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(r/'scripts')];import source_commands as c;form=c.claim_forms_path(Path(sys.argv[2]),sys.argv[3]);\nwith c._locked(form): pass";
-    let mut lock_writer = std::process::Command::new("python3")
+    let mut lock_writer = std::process::Command::new(crate::maintained_python())
         .args(["-c", lock_script])
         .arg(&repository)
         .arg(isolated.path().join(&source_path))

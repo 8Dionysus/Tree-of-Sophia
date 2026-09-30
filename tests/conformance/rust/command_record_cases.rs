@@ -69,7 +69,7 @@ try:
     preview=commands._json_object(commands._canonical(preview))
     configured,_,_=commands._configuration(owner)
     _,outputs,_=commands._prepare_creation(configured,preview)
-    response=commands.run_local_command(owner,preview)
+    response=commands.run_legacy_oracle_command(owner,preview)
     # Complete private custody for this synthetic root, under existing v1 law.
     # Inclusion does not grant native content disclosure or source admission.
     def eligible(p):
@@ -88,7 +88,7 @@ try:
 finally:
     test.doCleanups()
 "#;
-    let mut oracle = Command::new("python3");
+    let mut oracle = Command::new(crate::maintained_python());
     for (key, _) in std::env::vars_os() {
         if key.to_string_lossy().starts_with("GIT_") || key == "PYTHONPATH" || key == "PYTHONHOME" {
             oracle.env_remove(key);
@@ -906,8 +906,8 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
 
         // Actual maintained whole prepare oracle on this same owner-selected
         // filesystem. It prepares buffers only and never writes source bytes.
-        let script = "import json,sys;from pathlib import Path;repo=Path(sys.argv[1]);sys.path[:0]=[str(repo/'scripts'),str(repo/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts')];import source_commands as commands;request=commands._json_object(commands._canonical(json.load(sys.stdin)));config,_,_=commands._configuration(Path(sys.argv[2]));_,files,_=commands._prepare_creation(config,request);result=commands.run_local_command(Path(sys.argv[2]),request);print(json.dumps({'result_raw':commands._canonical(result).hex(),'files':{name:raw.hex() for name,raw in files.items()}},ensure_ascii=False,allow_nan=False))";
-        let mut oracle = Command::new("python3");
+        let script = "import json,sys;from pathlib import Path;repo=Path(sys.argv[1]);sys.path[:0]=[str(repo/'scripts'),str(repo/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts')];import source_commands as commands;request=commands._json_object(commands._canonical(json.load(sys.stdin)));config,_,_=commands._configuration(Path(sys.argv[2]));_,files,_=commands._prepare_creation(config,request);result=commands.run_legacy_oracle_command(Path(sys.argv[2]),request);print(json.dumps({'result_raw':commands._canonical(result).hex(),'files':{name:raw.hex() for name,raw in files.items()}},ensure_ascii=False,allow_nan=False))";
+        let mut oracle = Command::new(crate::maintained_python());
         for (key, _) in std::env::vars_os() {
             if key.to_string_lossy().starts_with("GIT_")
                 || key == "PYTHONPATH"
@@ -2400,7 +2400,7 @@ fn initial_creation_python_oracle(
     let mut output = tempfile::tempfile().unwrap();
     let mut errors = tempfile::tempfile().unwrap();
     let mut child =
-        Command::new("/usr/bin/python3")
+        Command::new(crate::maintained_python())
             .args(["-c", "import json,sys;from pathlib import Path;repo=Path(sys.argv[1]);sys.path[:0]=[str(repo/'scripts'),str(repo/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts')];import source_commands as commands;request=commands._json_object(commands._canonical(json.load(sys.stdin)));print(json.dumps(commands.run_legacy_oracle_command(Path(sys.argv[2]),request),ensure_ascii=False,allow_nan=False))"])
             .arg(repository)
             .arg(owner)

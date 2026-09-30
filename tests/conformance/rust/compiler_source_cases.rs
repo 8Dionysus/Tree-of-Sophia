@@ -348,7 +348,7 @@ result={'branches':owner.build_branches(owner.load_json(root/'ToS/source_home.ma
 assert not diagnostics,diagnostics
 print(json.dumps(result,ensure_ascii=False,sort_keys=True,separators=(',',':')))
 "#;
-    let output = Command::new("python3")
+    let output = Command::new(crate::maintained_python())
         .args(["-c", python])
         .arg(&repository)
         .arg(&capture.restored)
@@ -691,7 +691,7 @@ manifest=json.loads(outputs[catalog.MANIFEST_PATH])
 files={str(path):text for path,text in outputs.items() if path!=catalog.MANIFEST_PATH}
 print(json.dumps({'files':files,'manifest':manifest,'graph':{key:payload[key] for key in ('nodes','edges','claim_traces')}},ensure_ascii=False,sort_keys=True,separators=(',',':')))
 "#;
-    let output = Command::new("python3")
+    let output = Command::new(crate::maintained_python())
         .args(["-c", python])
         .arg(&repository)
         .arg(&oracle_root)
@@ -1342,7 +1342,7 @@ sys.stdout.write(owner.render_payload(payload))
 "#;
     let python = format!("{python}\n{NATIVE_CORPUS_QUERY_ORACLE}");
     phase(started, deadline, "maintained-oracle-start");
-    let output = Command::new("python3")
+    let output = Command::new(crate::maintained_python())
         .args(["-c", &python])
         .arg(&repository)
         .arg(&oracle_root)
@@ -2000,7 +2000,7 @@ with out.open('wb') as stream:
 print(json.dumps({'atlas_counts':atlas['counts'],'graph_counts':graph['counts'],'collections':collections,'schema_units_estimate':units,'schema_batches_estimate':batches,'schema_raw_bytes_estimate':total,'schema_context_bytes_estimate':context,'schema_resource_frame_estimate':resource_frame,'schema_receipt_strings_estimate':receipt_strings,'schema_max_instance_estimate':maximum,'graph_bytes':out.stat().st_size},sort_keys=True))
 "#;
     let expected_path = fixture.path().join("expected-whole-graph.json");
-    let output = Command::new("python3")
+    let output = Command::new(crate::maintained_python())
         .args(["-c", python])
         .arg(&repository)
         .arg(&oracle_root)

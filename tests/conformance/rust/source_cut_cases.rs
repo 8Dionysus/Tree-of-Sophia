@@ -295,7 +295,7 @@ pub(crate) fn captured_software_fixture(
         "fixture owner program exceeds its frozen cap"
     );
     fs::write(&tool, capture_program).unwrap();
-    let mut capture_command = Command::new("python3");
+    let mut capture_command = Command::new(crate::maintained_python());
     capture_command
         .arg(&tool)
         .arg("capture")
@@ -309,7 +309,7 @@ pub(crate) fn captured_software_fixture(
         capture_command.arg("--include-prefix").arg(prefix);
     }
     run(&mut capture_command);
-    run(Command::new("python3")
+    run(Command::new(crate::maintained_python())
         .arg(&tool)
         .arg("restore")
         .arg("--capture")

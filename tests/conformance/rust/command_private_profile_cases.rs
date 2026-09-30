@@ -171,7 +171,7 @@ fn selected_capture(
     );
     fs::write(&tool, program).unwrap();
     let wrapper = "import resource,runpy,sys;resource.setrlimit(resource.RLIMIT_CPU,(20,20));resource.setrlimit(resource.RLIMIT_AS,(1073741824,1073741824));sys.argv=sys.argv[1:];runpy.run_path(sys.argv[0],run_name='__main__')";
-    let mut command = Command::new("/usr/bin/python3");
+    let mut command = Command::new(crate::maintained_python());
     command
         .args(["-c", wrapper])
         .arg(&tool)
@@ -187,7 +187,7 @@ fn selected_capture(
     }
     capture_process(&mut command, deadline);
     capture_process(
-        Command::new("/usr/bin/python3")
+        Command::new(crate::maintained_python())
             .args(["-c", wrapper])
             .arg(&tool)
             .arg("restore")
@@ -281,7 +281,7 @@ print(json.dumps({'public':str(case.public),'private':str(case.store),'owner':st
 "#;
     let mut output = tempfile::tempfile().unwrap();
     let mut errors = tempfile::tempfile().unwrap();
-    let mut child = Command::new("/usr/bin/python3")
+    let mut child = Command::new(crate::maintained_python())
         .args(["-c", script])
         .arg(repository)
         .arg(root)
@@ -406,7 +406,7 @@ fn native_private_profile_cli_preserves_owner_lifecycle_and_cold_archives() {
     let consumer_bytes = fs::metadata(std::env::current_exe().unwrap())
         .unwrap()
         .len();
-    let python_bytes = fs::metadata(Path::new("/usr/bin/python3").canonicalize().unwrap())
+    let python_bytes = fs::metadata(crate::maintained_python().canonicalize().unwrap())
         .unwrap()
         .len();
     assert!(python_bytes <= 536_870_912);

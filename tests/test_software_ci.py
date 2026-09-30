@@ -201,6 +201,9 @@ class SoftwareSelectionTests(unittest.TestCase):
             'tests/test_source_witness_bibliographic_graph.py',
             'access/tests/source_assembly_fixture.py',
             'access/tests/test_indexed_lens.py',
+            'access/tests/source_agent_publication_fixture.py',
+            'access/tests/test_source_metadata_publication.py',
+            'tests/test_native_text_binding.py',
             'ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/artifact-witness.json',
             'ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/rights.json',
             'ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-cbs7771.2026-08-22.v1.json',
@@ -227,6 +230,12 @@ class SoftwareSelectionTests(unittest.TestCase):
             'ToS/source-witnesses/relations/mysl-1996-volume-2-member-order/source-claims.jsonl',
             'ToS/review-ledger/2026-09-10-mysl-collection-order-source-reading.md',
         }
+        for source in (ROOT / 'tests/conformance/rust').glob('*.rs'):
+            text = source.read_text()
+            self.assertNotIn('Command::new("/usr/bin/python3")', text, source.name)
+            self.assertNotIn('Command::new("python3")', text, source.name)
+        self.assertIn('var_os("TOS_MAINTAINED_PYTHON")',
+                      (ROOT / 'tests/conformance/rust/runner.rs').read_text())
         workflow = yaml.safe_load((ROOT / '.github/workflows/repo-validation.yml').read_text())
         checkouts = [
             step for step in workflow['jobs']['rust']['steps']

@@ -733,7 +733,7 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
             String::from_utf8_lossy(&fs::read(&stderr).unwrap())
         );
     };
-    let mut capture = std::process::Command::new("python3");
+    let mut capture = std::process::Command::new(crate::maintained_python());
     capture
         .arg(&archive_tool)
         .args(["capture", "--repo-root"])
@@ -747,7 +747,7 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
     let captured_manifest: Value =
         serde_json::from_slice(&fs::read(captured.join("capture.json")).unwrap()).unwrap();
     assert_eq!(captured_manifest["source_git_commit"], opening_source);
-    let mut restore = std::process::Command::new("python3");
+    let mut restore = std::process::Command::new(crate::maintained_python());
     restore
         .arg(&archive_tool)
         .args(["restore", "--capture"])
@@ -779,7 +779,7 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
     // Reuse the maintained native compound fixture's real isolated writer.
     // Two siblings at each consumed tier exercise parent archive prefixes;
     // descriptive Expression lineage and exact older commitments survive.
-    let oracle=std::process::Command::new("python3").arg("-c").arg(r#"
+    let oracle=std::process::Command::new(crate::maintained_python()).arg("-c").arg(r#"
 import copy,json,sys
 from pathlib import Path
 root=Path(sys.argv[1])
@@ -789,14 +789,14 @@ c=NativeItemTests();c.setUp()
 try:
     c.origin.origin.correct_expression();c.rebuild()
     c.origin.origin.select_child('second');second_work=c.origin.origin.request()
-    commands.run_local_command(c.origin.origin.owner,second_work)
+    commands.run_legacy_oracle_command(c.origin.origin.owner,second_work)
     work_child=Path(c.origin.origin.config['expression_source_path'])
     c.origin.extra_records.append(c.root/work_child)
     c.origin.extra_claims.append((c.root/work_child).with_name('source-claims.jsonl'));c.rebuild()
     c.origin.select_child('second');second_edition=c.origin.request()
-    commands.run_local_command(c.origin.owner,second_edition);c.rebuild()
-    first=c.request();commands.run_local_command(c.owner,first);c.rebuild()
-    c.select_item('second');second=c.request();commands.run_local_command(c.owner,second);c.rebuild()
+    commands.run_legacy_oracle_command(c.origin.owner,second_edition);c.rebuild()
+    first=c.request();commands.run_legacy_oracle_command(c.owner,first);c.rebuild()
+    c.select_item('second');second=c.request();commands.run_legacy_oracle_command(c.owner,second);c.rebuild()
     for request in (c.origin.origin_request,second_work):
         child=request['claim']['evidence_refs'][1]
         edition_fixture.expression_fixture.compound.verify_compound(c.root,str(Path(child).with_name('source-claims.jsonl')),request['claim'])
@@ -819,17 +819,17 @@ try:
         m.root=c.root;m.collection_path=c.root/m.collection_ref;m.work_path=c.root/m.work_ref
         m.owner=c.root/'membership-owner.json';m.config['source_root']=str(c.root)
         m.select_claim('first')
-        m.rebuild();first_membership=m.request();commands.run_local_command(m.owner,first_membership)
+        m.rebuild();first_membership=m.request();commands.run_legacy_oracle_command(m.owner,first_membership)
         m.correct_work();m.work=json.loads(m.work_path.read_bytes());m.rebuild()
-        m.select_claim('second');second_membership=m.request();commands.run_local_command(m.owner,second_membership);m.rebuild()
+        m.select_claim('second');second_membership=m.request();commands.run_legacy_oracle_command(m.owner,second_membership);m.rebuild()
         m.select_claim('first');m.rebuild()
         config={key:m.config[key] for key in ('uid','principal_id','source_root','authority_ref','expires_at')}
         config.update(schema_version=commands.CLAIM_REVISION_CONFIG,source_path=m.config['claim_source_path'],claim_id=m.config['claim_id'],allowed_operations=['claim.revise'],allowed_fields=['qualifiers'],allowed_evidence_refs=m.config['allowed_evidence_refs'],allowed_form_ids=m.config['allowed_claim_form_ids'])
         correction_owner=c.root/'claim-correction-owner.json';correction_owner.write_text(json.dumps(config))
         proposal={'schema_version':'tos_local_source_command_v1','operation':'prepare-revise','fields':{'qualifiers':{'statement':'Corrected wording of the same qualified provider attribution.'}},'forms':m.proposal()['claim_forms'],'reason':'Synthetic qualified statement correction.'}
-        prepared=commands.run_local_command(correction_owner,proposal)
+        prepared=commands.run_legacy_oracle_command(correction_owner,proposal)
         correction={**proposal,'operation':'claim.revise','command_id':'synthetic:claim-correction','expected_configuration':prepared['owner_configuration'],'expected_source':prepared['source'],'expected_revision':prepared['revision'],'expected_dependencies':prepared['expected_dependencies'],'expected_inputs':prepared['source_bindings']}
-        commands.run_local_command(correction_owner,correction);m.rebuild()
+        commands.run_legacy_oracle_command(correction_owner,correction);m.rebuild()
         for request in (first_membership,second_membership):
             ref='ToS/source-witnesses/relations/synthetic-membership-'+request['claim']['claim_id'].rsplit('.',1)[1]+'/source-claims.jsonl'
             current=json.loads((c.root/ref).read_bytes());attachment.verify_compound(c.root,ref,current)
@@ -854,17 +854,17 @@ try:
                    ==fields[selection['field_id']]['pointer'] for selection in r.forms)
         r.config.update(source_root=str(c.root),expression_id=r.expression['record_id'],expression_source_path=r.expression_ref,allowed_expression_form_ids=[form['form_id'] for form in current_forms])
         r.select_claim('first');r.rebuild()
-        first_responsibility=r.request();commands.run_local_command(r.owner,first_responsibility)
+        first_responsibility=r.request();commands.run_legacy_oracle_command(r.owner,first_responsibility)
         r.correct_agent();r.agent=json.loads(r.agent_path.read_bytes());r.rebuild()
-        r.select_claim('second');second_responsibility=r.request();commands.run_local_command(r.owner,second_responsibility);r.rebuild()
+        r.select_claim('second');second_responsibility=r.request();commands.run_legacy_oracle_command(r.owner,second_responsibility);r.rebuild()
         r.select_claim('first');r.rebuild()
         config={key:r.config[key] for key in ('uid','principal_id','source_root','authority_ref','expires_at')}
         config.update(schema_version=commands.CLAIM_REVISION_CONFIG,source_path=r.config['claim_source_path'],claim_id=r.config['claim_id'],allowed_operations=['claim.revise'],allowed_fields=['qualifiers'],allowed_evidence_refs=r.config['allowed_evidence_refs'],allowed_form_ids=r.config['allowed_claim_form_ids'])
         correction_owner=c.root/'translator-correction-owner.json';correction_owner.write_text(json.dumps(config))
         proposal={'schema_version':'tos_local_source_command_v1','operation':'prepare-revise','fields':{'qualifiers':{'statement':'Corrected wording of the same qualified translator attribution.'}},'forms':r.proposal()['claim_forms'],'reason':'Synthetic translator statement correction.'}
-        prepared=commands.run_local_command(correction_owner,proposal)
+        prepared=commands.run_legacy_oracle_command(correction_owner,proposal)
         correction={**proposal,'operation':'claim.revise','command_id':'synthetic:translator-correction','expected_configuration':prepared['owner_configuration'],'expected_source':prepared['source'],'expected_revision':prepared['revision'],'expected_dependencies':prepared['expected_dependencies'],'expected_inputs':prepared['source_bindings']}
-        commands.run_local_command(correction_owner,correction);r.rebuild()
+        commands.run_legacy_oracle_command(correction_owner,correction);r.rebuild()
         for request in (first_responsibility,second_responsibility):
             ref='ToS/source-witnesses/relations/synthetic-translator-'+request['claim']['claim_id'].rsplit('.',1)[1]+'/source-claims.jsonl'
             responsibility.verify_compound(c.root,ref,json.loads((c.root/ref).read_bytes()))
@@ -1507,7 +1507,7 @@ fn actual_native_object_link_binds_committed_origin_and_corrected_lineage() {
         let output_dir = tempfile::tempdir().unwrap();
         let stdout_path = output_dir.path().join("object-link-oracle.stdout");
         let stderr_path = output_dir.path().join("object-link-oracle.stderr");
-        let mut oracle = std::process::Command::new("python3")
+        let mut oracle = std::process::Command::new(crate::maintained_python())
             .arg("-c")
             .arg(r#"
 import json,os,sys
@@ -1533,7 +1533,7 @@ try:
     else:
         c.config['uri']='https://例え.テスト/object'
         c.save_config();c.rebuild()
-    request=c.request();commands.run_local_command(c.owner,request);c.rebuild()
+    request=c.request();commands.run_legacy_oracle_command(c.owner,request);c.rebuild()
     if kind=='work':
         c.revise_link();c.rebuild();c.revise_claim();c.rebuild()
     claim=json.loads((c.root/c.config['claim_source_path']).read_bytes())
@@ -2009,7 +2009,7 @@ fn maintained_assessment_whole_output_matches_native_current_view() {
     // Reuse the maintained pure owner fixture factory and implementation.
     // No protected journal, public source, semantic review or grant is written.
     // The oracle is the entire current-view output, not a hand-authored bool.
-    let oracle = std::process::Command::new("python3").arg("-c").arg(r#"
+    let oracle = std::process::Command::new(crate::maintained_python()).arg("-c").arg(r#"
 import copy,json,sys
 from dataclasses import replace
 from pathlib import Path

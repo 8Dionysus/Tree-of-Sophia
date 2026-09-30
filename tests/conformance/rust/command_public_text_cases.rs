@@ -95,7 +95,7 @@ finally:
 "#;
     let mut stdout = tempfile::tempfile().unwrap();
     let mut stderr = tempfile::tempfile().unwrap();
-    let mut child = Command::new("/usr/bin/python3")
+    let mut child = Command::new(crate::maintained_python())
         .args(["-c", factory])
         .arg(&repository)
         .arg(&root)

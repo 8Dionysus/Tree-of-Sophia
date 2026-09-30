@@ -114,7 +114,7 @@ print(json.dumps({'request':request,'second_proposal':second_proposal,'second_co
 "#;
         let stdout = temporary.path().join("work-fixture.stdout");
         let stderr = temporary.path().join("work-fixture.stderr");
-        let mut producer = Command::new("python3")
+        let mut producer = Command::new(crate::maintained_python())
             .args(["-c", factory])
             .arg(&repository)
             .arg(isolated.path())
@@ -333,7 +333,7 @@ case.rebuild()
 "#;
         let refresh_out = temporary.path().join("work-refresh.stdout");
         let refresh_err = temporary.path().join("work-refresh.stderr");
-        let mut builder = Command::new("python3")
+        let mut builder = Command::new(crate::maintained_python())
             .args(["-c", refresh])
             .arg(&repository)
             .arg(isolated.path())
