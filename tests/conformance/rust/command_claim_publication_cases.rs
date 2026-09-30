@@ -491,3 +491,724 @@ fn maintained_claim_addition_whole_transaction_and_access() {
         deadline,
     );
 }
+
+const AGENT_RECORD_COMPONENTS: &[&str] = &[
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py",
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/human_forms.py",
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/knowledge_assessment.py",
+    "scripts/source_record_profiles.py",
+    "scripts/native_text_binding.py",
+    "scripts/source_owner_context.py",
+    "scripts/source_witness_human_forms.py",
+    "scripts/source_metadata_snapshot.py",
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_metadata_transactions.py",
+    "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_selected_revisions.py",
+];
+fn agent_authored(root: &Path, deadline: Instant) -> BTreeMap<String, Vec<u8>> {
+    let mut pending = vec![root.join("ToS")];
+    let mut files = BTreeMap::new();
+    let mut total = 0usize;
+    while let Some(directory) = pending.pop() {
+        assert!(Instant::now() < deadline);
+        for entry in fs::read_dir(directory).unwrap() {
+            let entry = entry.unwrap();
+            let metadata = entry.file_type().unwrap();
+            assert!(!metadata.is_symlink());
+            if metadata.is_dir() {
+                pending.push(entry.path());
+                continue;
+            }
+            assert!(metadata.is_file());
+            let path = entry
+                .path()
+                .strip_prefix(root)
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned();
+            if path == "ToS/source-witnesses/.historical-create.writer.lock"
+                || !tos_source_store::is_authored_source_path_v1(&path)
+            {
+                continue;
+            }
+            assert!(fs::metadata(entry.path()).unwrap().len() <= 8_388_608);
+            let raw = fs::read(entry.path()).unwrap();
+            total = total.checked_add(raw.len()).unwrap();
+            assert!(total <= 33_554_432 && files.len() < 2048);
+            files.insert(path, raw);
+        }
+    }
+    files
+}
+fn agent_catalog(packet: &Value, header: &Value) -> CatalogInputs {
+    CatalogInputs {
+        header: typed(header),
+        entity_registry: typed(&packet["entities"]),
+        relation_registry: typed(&packet["relations"]),
+        lenses: packet["lenses"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(typed)
+            .collect(),
+        source_order_profile: SourceOrderProfile::SourceGraphId,
+    }
+}
+fn agent_context(
+    files: &BTreeMap<String, Vec<u8>>,
+    config: &[u8],
+    request: &Value,
+    revision: SourceRevision,
+    instant: &str,
+    observed_owner_uid: u64,
+) -> tos_command::source_command::CommandContext {
+    tos_command::source_command::CommandContext {
+        base_revision: revision,
+        configuration_raw: config.to_vec(),
+        request_raw: serde_json::to_vec(request).unwrap(),
+        recorded_at: instant.to_owned(),
+        effective_uid: observed_owner_uid,
+        files: files
+            .iter()
+            .map(|(path, raw)| tos_command::source_command::SourceFile {
+                path: RelativePath::parse(path).unwrap(),
+                raw: raw.clone(),
+            })
+            .collect(),
+    }
+}
+fn agent_native_call(
+    repository: &Path,
+    owner: &Path,
+    invocation: &Path,
+    request: &Value,
+    deadline: Instant,
+) -> Value {
+    use std::io::Write;
+    let mut input = tempfile::NamedTempFile::new().unwrap();
+    let input_raw = serde_json::to_vec(request).unwrap();
+    assert!(input_raw.len() <= 1_048_576);
+    input.write_all(&input_raw).unwrap();
+    let mut command = Command::new("/usr/bin/python3");
+    command
+        .arg(
+            repository.join(
+                "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
+            ),
+        )
+        .arg("--owner-config")
+        .arg(owner)
+        .arg("--native-invocation")
+        .arg(invocation)
+        .env_remove("PYTHONPATH")
+        .env_remove("PYTHONHOME")
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .stdin(std::process::Stdio::from(input.reopen().unwrap()));
+    let output = native_child::bounded_output_before(
+        &mut command,
+        1_048_576,
+        deadline.min(Instant::now() + Duration::from_secs(60)),
+    );
+    assert!(
+        output.status.success(),
+        "actual Agent Record caller: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    serde_json::from_slice(&output.stdout).unwrap()
+}
+
+fn agent_sql_snapshot(
+    connection: &rusqlite::Connection,
+    deadline: Instant,
+) -> BTreeMap<String, Vec<Vec<rusqlite::types::Value>>> {
+    let mut names=connection.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name LIMIT 129").unwrap();
+    let names = names
+        .query_map([], |r| r.get::<_, String>(0))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect::<Vec<_>>();
+    assert!(names.len() <= 128);
+    let mut result = BTreeMap::new();
+    let mut bytes = 0usize;
+    for name in names {
+        assert!(
+            Instant::now() < deadline
+                && name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+        );
+        let probe = connection
+            .prepare(&format!("SELECT * FROM \"{name}\" LIMIT 0"))
+            .unwrap();
+        let columns = probe.column_count();
+        assert!((1..=64).contains(&columns));
+        drop(probe);
+        let order = (1..=columns)
+            .map(|n| n.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+        let mut statement = connection
+            .prepare(&format!(
+                "SELECT * FROM \"{name}\" ORDER BY {order} LIMIT 16385"
+            ))
+            .unwrap();
+        let values = statement
+            .query_map([], |r| {
+                (0..columns)
+                    .map(|column| r.get::<_, rusqlite::types::Value>(column))
+                    .collect::<rusqlite::Result<Vec<_>>>()
+            })
+            .unwrap()
+            .map(Result::unwrap)
+            .collect::<Vec<_>>();
+        assert!(values.len() <= 16384);
+        for row in &values {
+            for value in row {
+                let size = match value {
+                    rusqlite::types::Value::Text(v) => v.len(),
+                    rusqlite::types::Value::Blob(v) => v.len(),
+                    _ => 16,
+                };
+                assert!(size <= 16_777_216);
+                bytes = bytes.checked_add(size).unwrap();
+                assert!(bytes <= 33_554_432);
+            }
+        }
+        result.insert(name, values);
+    }
+    result
+}
+
+fn agent_physical(workspace: &Path, deadline: Instant) {
+    let (bytes, _) = fixture_physical_bytes(&[workspace.to_owned()], deadline);
+    // Reserve4MiB for the one sequential anonymous CLI input/stdout/stderr
+    // framing, including allocated-block rounding; all named copies are here.
+    assert!(bytes <= 508 * 1024 * 1024);
+}
+
+#[test]
+fn maintained_agent_record_correction_whole_transaction_and_access() {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    use tos_command::source_agent_publication::{
+        NativeAgentExecution, bootstrap_reviewed_agent_execution_profile_transaction,
+        publish_committed_agent_correction,
+    };
+    use tos_compiler::prepared_source_binding::read_prepared_source_inputs_transaction;
+    use tos_source_store::{ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1};
+    let deadline = Instant::now() + Duration::from_secs(600);
+    let cancel = Arc::new(AtomicBool::new(false));
+    let repository = super::validation_cut_cases::repository();
+    let consumer = PathBuf::from(
+        std::env::var_os("TOS_NATIVE_PREPARED_CONSUMER_BIN").expect("exact native CLI required"),
+    );
+    let worker_path = super::validation_cut_cases::selected_worker_path();
+    assert!(fs::metadata(&worker_path).unwrap().len() <= 128 * 1024 * 1024);
+    let image_paths = [
+        PathBuf::from("/proc/self/exe"),
+        consumer.clone(),
+        worker_path.clone(),
+    ];
+    let images = image_paths
+        .iter()
+        .map(|p| native_child::bounded_sha_before(p, 512 * 1024 * 1024, deadline))
+        .collect::<Vec<_>>();
+    let workspace = tempfile::tempdir().unwrap();
+    let packet_path = workspace.path().join("agent-fixture.json");
+    let mut export = Command::new("/usr/bin/python3");
+    export
+        .arg(repository.join("tests/conformance/rust/source_claim_publication_fixture.py"))
+        .arg("agent")
+        .arg(workspace.path())
+        .arg(&packet_path)
+        .env("PYTHONDONTWRITEBYTECODE", "1");
+    let output = native_child::bounded_output_before(
+        &mut export,
+        4096,
+        deadline.min(Instant::now() + Duration::from_secs(60)),
+    );
+    assert!(
+        output.status.success(),
+        "Agent fixture: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let packet = read_packet(&packet_path);
+    let root = PathBuf::from(required(&packet, "source_root"))
+        .canonicalize()
+        .unwrap();
+    assert!(root.starts_with(workspace.path().canonicalize().unwrap()));
+    assert_eq!(
+        fs::metadata(&root).unwrap().permissions().mode() & 0o777,
+        0o700
+    );
+    let owner = PathBuf::from(required(&packet, "owner_config"));
+    let config_raw = fs::read(&owner).unwrap();
+    assert_eq!(
+        fs::metadata(&owner).unwrap().permissions().mode() & 0o777,
+        0o600
+    );
+    let db_path = PathBuf::from(required(&packet, "db_path"));
+    assert!(owner.starts_with(&root) && db_path.starts_with(&root));
+    let connection = rusqlite::Connection::open(&db_path).unwrap();
+    connection.busy_timeout(Duration::from_secs(2)).unwrap();
+    connection
+        .execute_batch("PRAGMA temp_store=MEMORY; PRAGMA cache_size=-8192; PRAGMA cache_spill=OFF")
+        .unwrap();
+    let publication = PublicationLimits {
+        max_mutations: 100_000,
+        ..PublicationLimits::default()
+    };
+    let catalog_limits = CatalogMaintenanceLimits {
+        max_delta_bytes: 16_777_216,
+        max_catalog_entries: 16_384,
+        max_aggregate_bytes: 16_777_216,
+        max_catalog_bytes: 8_388_608,
+        max_index_bytes: 67_108_864,
+        ..CatalogMaintenanceLimits::default()
+    };
+    let semantic_limits = SemanticMaintenanceLimits {
+        max_rows: 100_000,
+        max_queries: 100_000,
+        max_writes: 100_000,
+        max_read_bytes: 33_554_432,
+        max_input_bytes: 16_777_216,
+        max_input_values: 1_000_000,
+        max_output_items: 16_384,
+        max_bytes: 67_108_864,
+        ..SemanticMaintenanceLimits::default()
+    };
+    let operation_limits = ClaimPublicationLimits::default();
+    let initial_binding = typed(&packet["binding"]);
+    let initial_catalog = agent_catalog(&packet, &packet["header"]);
+    let initial_source =
+        PreparedSourceInputs::parse(&canonical_lf(&packet["source_inputs"]), publication).unwrap();
+    // Explicit same-fixture native auxiliary index bootstrap. The Python
+    // producer/header identity is retained until the reviewed paired migration.
+    {
+        let tx = connection.unchecked_transaction().unwrap();
+        for table in [
+            "semantic_pending",
+            "semantic_diagnostics",
+            "semantic_cardinality_errors",
+            "semantic_cardinality",
+            "semantic_deps",
+            "semantic_edges",
+            "semantic_rows",
+            "semantic_state",
+        ] {
+            tx.execute(&format!("DROP TABLE {table}"), []).unwrap();
+        }
+        let report = prepared_semantic_index::bootstrap_semantic_index_transaction(
+            &tx,
+            &initial_binding,
+            &initial_catalog.entity_registry,
+            &initial_catalog.relation_registry,
+            None,
+            required(
+                &packet["header"]["normalization_binding"],
+                "processor_digest",
+            ),
+            semantic_limits,
+        )
+        .unwrap();
+        assert_eq!(report, typed(&packet["baseline_semantic_report"]));
+        tx.commit().unwrap();
+    }
+    let execution = NativeAgentExecution::observe(deadline, &cancel).unwrap();
+    let mut after_normalization = packet["header"]["normalization_binding"].clone();
+    after_normalization["processor_digest"] = Value::String(execution.processor().to_owned());
+    let deps = &packet["source_inputs"]["dependencies"];
+    let review = ReviewedClaimProfileTransition {
+        dependency_implementation_before: required(&packet, "dependency_implementation_before")
+            .to_owned(),
+        declaration_before: required(deps, "declaration-profile").to_owned(),
+        agent_publication_before: required(deps, "agent-publication-profile").to_owned(),
+        claim_publication_before: deps
+            .get("claim-publication-profile")
+            .and_then(Value::as_str)
+            .map(str::to_owned),
+        normalization_before: packet["header"]["normalization_binding"].clone(),
+        normalization_after: after_normalization,
+        native_normalization_processor_sha256: execution.processor().to_owned(),
+        review_ref: "test:real-Agent-whole-predecessor-profile-review".into(),
+    };
+    let progress =
+        ClaimPublicationProgress::install(&connection, cancel.clone(), deadline, 100_000_000)
+            .unwrap();
+    let profile_result = {
+        let tx = connection.unchecked_transaction().unwrap();
+        let result = bootstrap_reviewed_agent_execution_profile_transaction(
+            &tx,
+            &initial_binding,
+            &initial_source,
+            &initial_catalog,
+            &execution,
+            &review,
+            execution.agent_publication(),
+            &progress,
+            operation_limits,
+            publication,
+            catalog_limits,
+            semantic_limits,
+        )
+        .unwrap();
+        tx.commit().unwrap();
+        result
+    };
+    let binding = typed(&profile_result["binding"]);
+    let catalog = agent_catalog(&packet, &profile_result["source_header"]);
+    let source = {
+        let tx = connection.unchecked_transaction().unwrap();
+        let source =
+            read_prepared_source_inputs_transaction(&tx, &binding, &catalog, publication).unwrap();
+        tx.rollback().unwrap();
+        source
+    };
+    let predecessor_binding = workspace.path().join("Agent-predecessor-binding.json");
+    fs::write(
+        &predecessor_binding,
+        canonical_lf(&profile_result["binding"]),
+    )
+    .unwrap();
+    drop(progress);
+
+    let original_files = agent_authored(&root, deadline);
+    let original_store = workspace.path().join("original-cut");
+    let original_revision =
+        super::validation_cut_cases::write_cut_store(&original_files, &original_store);
+    let original =
+        super::command_form_cases::open_cut(&original_store, original_revision, deadline, &cancel);
+    let mut combined = original_files.clone();
+    for name in AGENT_RECORD_COMPONENTS {
+        let raw = fs::read(repository.join(name)).unwrap();
+        assert!(raw.len() <= 2_097_152);
+        let path = root.join(name);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(&path, &raw).unwrap();
+        combined.insert((*name).to_owned(), raw);
+    }
+    assert!(combined.values().map(Vec::len).sum::<usize>() <= 33_554_432 && combined.len() <= 2048);
+    let capture = workspace.path().join("software-capture");
+    let restored = workspace.path().join("software-restored");
+    let mut commit = Command::new("git");
+    for (name, _) in std::env::vars_os() {
+        if name.to_string_lossy().starts_with("GIT_") {
+            commit.env_remove(name);
+        }
+    }
+    commit
+        .env("GIT_NO_REPLACE_OBJECTS", "1")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", "/dev/null");
+    commit
+        .arg("-C")
+        .arg(&repository)
+        .args(["rev-parse", "HEAD^{commit}"]);
+    let commit = native_child::bounded_output_before(&mut commit, 4096, deadline);
+    assert!(commit.status.success());
+    let commit = String::from_utf8(commit.stdout).unwrap().trim().to_owned();
+    assert!(commit.len() == 40 && commit.bytes().all(|b| b.is_ascii_hexdigit()));
+    for restore in [false, true] {
+        let mut command = Command::new("/usr/bin/python3");
+        for (name, _) in std::env::vars_os() {
+            if name.to_string_lossy().starts_with("GIT_") {
+                command.env_remove(name);
+            }
+        }
+        command
+            .env("GIT_NO_REPLACE_OBJECTS", "1")
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .env("GIT_CONFIG_GLOBAL", "/dev/null");
+        command.arg(repository.join("scripts/corpus_archive.py"));
+        if restore {
+            command
+                .arg("restore")
+                .arg("--capture")
+                .arg(&capture)
+                .arg("--output")
+                .arg(&restored);
+        } else {
+            command
+                .arg("capture")
+                .arg("--repo-root")
+                .arg(&repository)
+                .arg("--commit")
+                .arg(&commit)
+                .arg("--output")
+                .arg(&capture);
+            for name in AGENT_RECORD_COMPONENTS {
+                command.arg("--include-prefix").arg(name);
+            }
+        }
+        command.env("PYTHONDONTWRITEBYTECODE", "1");
+        let output = native_child::bounded_output_before(
+            &mut command,
+            4096,
+            deadline.min(Instant::now() + Duration::from_secs(60)),
+        );
+        assert!(
+            output.status.success(),
+            "capture: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    let capture_raw = fs::read(capture.join("capture.json")).unwrap();
+    assert!(capture_raw.len() <= 1_048_576);
+    let capture_manifest: Value = serde_json::from_slice(&capture_raw).unwrap();
+    let selection = SoftwareCaptureSelectionV1 {
+        source_git_commit: commit,
+        source_git_tree: required(&capture_manifest, "source_git_tree").to_owned(),
+        capture_manifest_sha256: Digest256::of_bytes(&capture_raw),
+    };
+    let software = SoftwareCaptureReader::open(
+        &capture,
+        &restored,
+        selection.clone(),
+        ReadLimits {
+            max_manifest_bytes: 1_048_576,
+            max_manifest_entries: 512,
+            max_selected_object_bytes: 2_097_152,
+            json: JsonLimits::default(),
+        },
+        deadline,
+        &cancel,
+    )
+    .unwrap();
+    let component_paths = AGENT_RECORD_COMPONENTS
+        .iter()
+        .map(|p| RelativePath::parse(p).unwrap())
+        .collect::<Vec<_>>();
+    let components = software.select_components(&component_paths).unwrap();
+    let invocation_path = workspace.path().join("agent-native-invocation.json");
+    let invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1","owner_config":owner,"owner_context":null,"assessment_schema_worker":null,"native_executable":consumer,"native_executable_sha256":images[1].to_prefixed(),"corpus_store":original_store,"source_revision":original_revision.0.to_prefixed(),"original_source_revision":original_revision.0.to_prefixed(),"software_capture":capture,"software_restored_root":restored,"software_selection":{"source_git_commit":selection.source_git_commit,"source_git_tree":selection.source_git_tree,"capture_manifest_sha256":selection.capture_manifest_sha256.to_prefixed()},"software_components":AGENT_RECORD_COMPONENTS,"schema_worker":{"absolute_path":worker_path,"sha256":images[2].to_prefixed()},"budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
+    fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();
+    fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let preview = agent_native_call(
+        &repository,
+        &owner,
+        &invocation_path,
+        &packet["proposal"],
+        deadline,
+    );
+    for field in [
+        "owner_configuration",
+        "source",
+        "revision",
+        "expected_dependencies",
+    ] {
+        assert_eq!(preview[field], packet["python_preview"][field]);
+    }
+    let mut request = packet["proposal"].clone();
+    request["operation"] = Value::String("record.revise".into());
+    request["command_id"] = Value::String("synthetic:actual-native-Agent-correction".into());
+    for (field, prepared) in [
+        ("expected_configuration", "owner_configuration"),
+        ("expected_source", "source"),
+        ("expected_revision", "revision"),
+        ("expected_dependencies", "expected_dependencies"),
+        ("expected_publication", "expected_publication"),
+    ] {
+        request[field] = preview[prepared].clone();
+    }
+    agent_physical(workspace.path(), deadline);
+    let source_result =
+        agent_native_call(&repository, &owner, &invocation_path, &request, deadline);
+    assert_eq!(source_result["replayed"], false);
+    let source_receipt = workspace.path().join("native-Record-receipt.json");
+    fs::write(&source_receipt, canonical_lf(&source_result)).unwrap();
+    let current_files = agent_authored(&root, deadline);
+    let current_store = workspace.path().join("current-cut");
+    let current_revision =
+        super::validation_cut_cases::write_cut_store(&current_files, &current_store);
+    let current =
+        super::command_form_cases::open_cut(&current_store, current_revision, deadline, &cancel);
+    let mut context_files = current_files.clone();
+    for name in AGENT_RECORD_COMPONENTS {
+        context_files.insert((*name).to_owned(), combined[*name].clone());
+    }
+    let context = agent_context(
+        &context_files,
+        &config_raw,
+        &request,
+        current_revision,
+        required(&source_result["receipt"], "recorded_at"),
+        fs::metadata(&owner).unwrap().uid() as u64,
+    );
+    let descriptor = serde_json::to_vec(&packet["descriptor"]).unwrap();
+    let vocabulary =
+        QueryVocabulary::parse(&descriptor, tos_compiler::NATIVE_KNOWLEDGE_ADAPTER_PROFILES)
+            .unwrap();
+    let bibliographic = BibliographicLimits {
+        catalog: SourceCatalogLimits {
+            max_files: 2048,
+            max_rows: 4096,
+            max_file_bytes: 16_777_216,
+            max_row_bytes: 1_048_576,
+            max_contract_bytes: 4_194_304,
+            max_output_row_bytes: 1_048_576,
+        },
+        max_claim_cohort_rows: 16,
+        max_claim_cohort_bytes: 16_777_216,
+        max_output_rows: 4096,
+        max_output_bytes: 16_777_216,
+        deadline,
+    };
+    let mut original_worker = super::command_form_cases::schemas(&original, deadline, &cancel);
+    let mut current_worker = super::command_form_cases::schemas(&current, deadline, &cancel);
+    let result = publish_committed_agent_correction(
+        &connection,
+        &owner,
+        &context,
+        &current,
+        &original,
+        &software,
+        &components,
+        &source,
+        &binding,
+        &catalog,
+        &mut original_worker,
+        &mut current_worker,
+        &vocabulary,
+        &descriptor,
+        operation_limits,
+        bibliographic,
+        publication,
+        catalog_limits,
+        semantic_limits,
+        cancel.clone(),
+    )
+    .unwrap();
+    assert_eq!(result["prepared_committed"], true);
+    drop(original_worker);
+    drop(current_worker);
+    // A stale predecessor fails as an ordinary guarded retry; the already
+    // committed source and every selected prepared row remain unchanged.
+    let prepared_before = agent_sql_snapshot(&connection, deadline);
+    let mut original_worker = super::command_form_cases::schemas(&original, deadline, &cancel);
+    let mut current_worker = super::command_form_cases::schemas(&current, deadline, &cancel);
+    assert!(
+        publish_committed_agent_correction(
+            &connection,
+            &owner,
+            &context,
+            &current,
+            &original,
+            &software,
+            &components,
+            &source,
+            &binding,
+            &catalog,
+            &mut original_worker,
+            &mut current_worker,
+            &vocabulary,
+            &descriptor,
+            operation_limits,
+            bibliographic,
+            publication,
+            catalog_limits,
+            semantic_limits,
+            cancel.clone()
+        )
+        .is_err()
+    );
+    drop(original_worker);
+    drop(current_worker);
+    let prepared_after = agent_sql_snapshot(&connection, deadline);
+    assert_eq!(prepared_before, prepared_after);
+    assert_eq!(agent_authored(&root, deadline), current_files);
+    let oracle_path = workspace.path().join("Agent-independent-oracle.json");
+    let mut oracle = Command::new("/usr/bin/python3");
+    oracle
+        .arg(repository.join("tests/conformance/rust/source_claim_publication_fixture.py"))
+        .arg("agent-oracle")
+        .arg(&packet_path)
+        .arg(&source_receipt)
+        .arg(&oracle_path)
+        .env("PYTHONDONTWRITEBYTECODE", "1");
+    let output = native_child::bounded_output_before(
+        &mut oracle,
+        4096,
+        deadline.min(Instant::now() + Duration::from_secs(60)),
+    );
+    assert!(
+        output.status.success(),
+        "Agent oracle: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let expected = read_packet(&oracle_path);
+    assert_eq!(agent_authored(&root, deadline), current_files);
+    for kind in ["node", "relation"] {
+        let actual: BTreeMap<String, Value> = connection
+            .prepare(&format!(
+                "SELECT id,json FROM knowledge_{kind}s ORDER BY id LIMIT 16385"
+            ))
+            .unwrap()
+            .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))
+            .unwrap()
+            .map(|r| {
+                let (id, raw) = r.unwrap();
+                (id, serde_json::from_str(&raw).unwrap())
+            })
+            .collect();
+        let expected: BTreeMap<String, Value> = expected[format!("{kind}s")]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| (required(r, "id").to_owned(), r.clone()))
+            .collect();
+        assert!(actual.len() <= 16384);
+        assert_eq!(actual, expected);
+    }
+    assert_eq!(
+        result["semantic_report"],
+        expected["counts"]["semantic_validation"]
+    );
+    let binding_path = workspace.path().join("Agent-binding.json");
+    fs::write(&binding_path, canonical_lf(&result["binding"])).unwrap();
+    drop(connection);
+    let old = tos_access::prepared_local::PreparedLocalExecutor::open(
+        db_path.clone(),
+        predecessor_binding,
+        None,
+    )
+    .unwrap();
+    let stale = tos_access::http::handle_get(
+        &old,
+        "GET",
+        "/api/knowledge/catalog",
+        tos_access::prepared_local::profile().with_query_timeout(
+            Duration::from_secs(5).min(deadline.saturating_duration_since(Instant::now())),
+        ),
+    );
+    assert_ne!(stale.status, 200);
+    drop(old);
+    let agent_id = required(&packet, "record_id");
+    let node = expected["nodes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| {
+            r["properties"]["source_record"]["record_id"] == agent_id
+                && r["properties"]["source_record"]["record_version"] == 2
+        })
+        .expect("independent current Agent node");
+    let relation = expected["relations"]
+        .as_array()
+        .unwrap()
+        .first()
+        .expect("maintained Agent related claim relation");
+    claim_publication_access::verify_published_access_until(
+        &db_path,
+        &binding_path,
+        required(node, "id"),
+        required(relation, "id"),
+        deadline,
+    );
+    agent_physical(workspace.path(), deadline);
+    for (path, expected) in image_paths.iter().zip(images) {
+        assert_eq!(
+            native_child::bounded_sha_before(path, 512 * 1024 * 1024, deadline),
+            expected
+        );
+    }
+    assert!(Instant::now() < deadline);
+}
