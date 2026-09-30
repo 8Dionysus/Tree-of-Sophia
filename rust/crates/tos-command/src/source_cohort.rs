@@ -8,7 +8,7 @@ use crate::source_creation::{
     ManagedCreationObservation, ManagedSerializedCreation, SerializedCreation,
 };
 use crate::source_creation_store::{CreationFilesystem, CreationOwnerFence};
-use crate::{PredicateKind, PredicateRead, PredicateToken, source_claims, source_forms};
+use crate::{source_claims, source_forms, PredicateKind, PredicateRead, PredicateToken};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Cursor;
 use tos_foundation::{RelativePath, SourceRevision};
@@ -1425,6 +1425,30 @@ fn selected_source_metadata(
         return Err(DurableError::Corrupt("selected metadata placement differs"));
     }
     expose_metadata(row, path).map(|(metadata, _)| metadata)
+}
+
+fn held_retained_source_metadata(
+    tx: &mut Transaction<'_>,
+    cohort: &ManagedSourceCohort,
+) -> DurableResult<()> {
+    let fence = tx.query_one(
+        "SELECT maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
+        &[&cohort.domain],
+    )?;
+    if fence.get::<_, String>(0) != "normal" {
+        return Err(DurableError::Refused("retained source maintenance active"));
+    }
+    let domain = tx.query_one(
+        "SELECT * FROM cmd2_domain WHERE domain=$1 FOR SHARE",
+        &[&cohort.domain],
+    )?;
+    cohort_matches(&domain, cohort, true)?;
+    if !domain.get::<_, bool>("rights_allowed") {
+        return Err(DurableError::Refused(
+            "retained source current rights revoked",
+        ));
+    }
+    Ok(())
 }
 
 fn charge_member_batch_metadata(work: &mut u64, bytes: i32) -> DurableResult<()> {
@@ -3264,6 +3288,7 @@ impl DurablePgCoordinator {
             }
             retain_context_file(&mut input.context, &mut total, path, raw)?;
         }
+        let mut observed_rows = Vec::with_capacity(input.observations.len());
         for (path, observed) in &input.observations {
             let row = history
                 .get(&(path.clone(), as_i64(observed.custody_revision)?))
@@ -3280,7 +3305,11 @@ impl DurablePgCoordinator {
                     "recovery original metadata/locator differs",
                 ));
             }
-            let raw = self.read_retained_source_row(store, cohort, row, deadline, cancelled)?;
+            observed_rows.push(row);
+        }
+        let observed_raw =
+            self.read_retained_source_rows(store, cohort, &observed_rows, deadline, cancelled)?;
+        for (observed, raw) in input.observations.values().zip(observed_raw) {
             retain_context_file(
                 &mut input.context,
                 &mut total,
@@ -3333,7 +3362,8 @@ impl DurablePgCoordinator {
         }
         let mut original_files = BTreeMap::new();
         let mut output_bytes = 0usize;
-        for row in outputs {
+        let mut output_names = Vec::with_capacity(outputs.len());
+        for row in &outputs {
             let path: String = row.get("subject");
             if !absent.contains(path.as_str())
                 || row.get::<_, String>("profile_id").as_bytes() != CREATION
@@ -3349,7 +3379,12 @@ impl DurablePgCoordinator {
                 .to_owned();
             RelativePath::parse(&name)
                 .map_err(|_| DurableError::Corrupt("recovery output relative path"))?;
-            let raw = self.read_retained_source_row(store, cohort, &row, deadline, cancelled)?;
+            output_names.push(name);
+        }
+        let output_rows = outputs.iter().collect::<Vec<_>>();
+        let output_raw =
+            self.read_retained_source_rows(store, cohort, &output_rows, deadline, cancelled)?;
+        for (name, raw) in output_names.into_iter().zip(output_raw) {
             output_bytes = output_bytes
                 .checked_add(raw.len())
                 .filter(|n| *n <= cmd::SELECTED_SOURCE_MAX_BYTES)
@@ -3399,57 +3434,129 @@ impl DurablePgCoordinator {
         )
     }
 
-    fn read_retained_source_row(
+    /// Retained reconstruction shares exactly one attempt's cold receipts at
+    /// a time. Every requested historical locator is rechecked after recovery;
+    /// the current domain/rights fence spans the whole addressed operation.
+    fn read_retained_source_rows(
         &mut self,
         store: &SegmentStore,
         cohort: &ManagedSourceCohort,
-        expected: &postgres::Row,
+        expected: &[&postgres::Row],
         deadline: Instant,
         cancelled: &AtomicBool,
-    ) -> DurableResult<Vec<u8>> {
+    ) -> DurableResult<Vec<Vec<u8>>> {
         active(deadline, cancelled)?;
-        let path: String = expected.get("subject");
-        let revision = as_u64(expected.get("revision"))?;
-        if as_u64(expected.get("content_length"))? > 8_388_608 {
-            return Err(DurableError::Refused(
-                "retained source member exceeds existing cap",
+        if expected.len() > cmd::SELECTED_SOURCE_MAX_FILES
+            || store.store_id() != cohort.store_id
+            || store.custody_domain() != cohort.domain.as_bytes()
+        {
+            return Err(DurableError::Conflict(
+                "retained source batch custody or count differs",
             ));
         }
-        let recovered = self.cold_recover_exact(store, &cohort.domain, &path, revision)?;
-        let custody = store.hold_audit_root()?;
+        let mut total = 0u64;
+        let mut unique = BTreeSet::new();
+        for row in expected {
+            let path: String = row.get("subject");
+            let revision = as_u64(row.get("revision"))?;
+            let bytes = as_u64(row.get("content_length"))?;
+            if bytes > 8_388_608 || !unique.insert((path, revision)) {
+                return Err(DurableError::Refused(
+                    "retained source member exceeds existing cap",
+                ));
+            }
+            total = total
+                .checked_add(bytes)
+                .filter(|n| *n <= cmd::SELECTED_SOURCE_MAX_BYTES as u64)
+                .ok_or(DurableError::Refused("retained source aggregate byte cap"))?;
+        }
+        let _custody = store.hold_audit_root()?;
         let mut tx = self.client.transaction()?;
-        tx.batch_execute("SET LOCAL lock_timeout = '5s'; SET LOCAL statement_timeout = '15s'")?;
-        let fence = tx.query_one(
-            "SELECT maintenance_state FROM cmd2_audit_fence WHERE domain=$1 FOR SHARE",
-            &[&cohort.domain],
-        )?;
-        if fence.get::<_, String>(0) != "normal" {
-            return Err(DurableError::Refused("retained source maintenance active"));
+        tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        held_retained_source_metadata(&mut tx, cohort)?;
+        let mut metadata_work = 0u64;
+        let mut groups: BTreeMap<(Vec<u8>, u64), Vec<usize>> = BTreeMap::new();
+        for (index, wanted) in expected.iter().enumerate() {
+            active(deadline, cancelled)?;
+            let path: String = wanted.get("subject");
+            let revision = as_u64(wanted.get("revision"))?;
+            let bytes: i32 = tx.query_one("SELECT octet_length(row_to_json(h)::text) FROM cmd2_history h WHERE domain=$1 AND subject=$2 AND revision=$3", &[&cohort.domain, &path, &as_i64(revision)?])?.get(0);
+            charge_member_batch_metadata(&mut metadata_work, bytes)?;
+            let row = tx.query_one(
+                "SELECT * FROM cmd2_history WHERE domain=$1 AND subject=$2 AND revision=$3",
+                &[&cohort.domain, &path, &as_i64(revision)?],
+            )?;
+            if metadata_locator_digest(&row) != metadata_locator_digest(wanted) {
+                return Err(DurableError::Conflict("retained source locator changed"));
+            }
+            let prepare: Vec<u8> = row.get("prepare_id");
+            let attempt = tx.query_opt("SELECT state,attempt_fence,commit_seq FROM cmd2_attempt WHERE domain=$1 AND prepare_id=$2 FOR SHARE", &[&cohort.domain, &prepare])?
+                .ok_or(DurableError::Corrupt("historical attempt absent"))?;
+            if attempt.get::<_, String>(0) != "committed"
+                || attempt.get::<_, Option<i64>>(2) != Some(row.get("commit_seq"))
+            {
+                return Err(DurableError::Corrupt("historical attempt not committed"));
+            }
+            groups
+                .entry((prepare, as_u64(attempt.get(1))?))
+                .or_default()
+                .push(index);
         }
-        let domain = tx.query_one(
-            "SELECT * FROM cmd2_domain WHERE domain=$1 FOR SHARE",
-            &[&cohort.domain],
-        )?;
-        cohort_matches(&domain, cohort, true)?;
-        if !domain.get::<_, bool>("rights_allowed") {
-            return Err(DurableError::Refused(
-                "retained source current rights revoked",
-            ));
+        let mut result: Vec<Option<Vec<u8>>> = (0..expected.len()).map(|_| None).collect();
+        let mut returned_bytes = 0usize;
+        for ((prepare, fence), indexes) in groups {
+            active(deadline, cancelled)?;
+            let receipts = match store.recover_attempt_fenced(&prepare, fence, 0)? {
+                Some(AttemptRecovery::Sealed { receipts }) => receipts,
+                _ => return Err(DurableError::Corrupt("historical fenced intent not sealed")),
+            };
+            held_retained_source_metadata(&mut tx, cohort)?;
+            for index in indexes {
+                active(deadline, cancelled)?;
+                let wanted = expected[index];
+                let path: String = wanted.get("subject");
+                let revision = as_u64(wanted.get("revision"))?;
+                let bytes: i32 = tx.query_one("SELECT octet_length(row_to_json(h)::text) FROM cmd2_history h WHERE domain=$1 AND subject=$2 AND revision=$3", &[&cohort.domain, &path, &as_i64(revision)?])?.get(0);
+                charge_member_batch_metadata(&mut metadata_work, bytes)?;
+                let row = tx.query_one(
+                    "SELECT * FROM cmd2_history WHERE domain=$1 AND subject=$2 AND revision=$3",
+                    &[&cohort.domain, &path, &as_i64(revision)?],
+                )?;
+                if metadata_locator_digest(&row) != metadata_locator_digest(wanted) {
+                    return Err(DurableError::Conflict("retained source locator changed"));
+                }
+                let pin: Vec<u8> = row.get("pin_id");
+                if pin.len() != 16
+                    || receipts
+                        .iter()
+                        .any(|r| r.pin_id().as_slice() != pin.as_slice())
+                {
+                    return Err(DurableError::Corrupt("historical fenced pin differs"));
+                }
+                let id: String = row.get("sto_receipt_id");
+                let receipt = receipts
+                    .iter()
+                    .find(|r| r.receipt_id().to_hex() == id)
+                    .ok_or(DurableError::Corrupt("historical frame receipt absent"))?;
+                check_history_locator(&row, receipt, &cohort.domain, &path, revision)?;
+                let mut raw = Vec::new();
+                store.read_selected(receipt, 8_388_608, &mut raw)?;
+                active(deadline, cancelled)?;
+                returned_bytes = returned_bytes
+                    .checked_add(raw.len())
+                    .filter(|n| *n <= cmd::SELECTED_SOURCE_MAX_BYTES)
+                    .ok_or(DurableError::Refused("retained source aggregate byte cap"))?;
+                result[index] = Some(raw);
+            }
+            // Only this attempt's receipts live here, never an all-attempt cache.
         }
-        let row = tx.query_one(
-            "SELECT * FROM cmd2_history WHERE domain=$1 AND subject=$2 AND revision=$3",
-            &[&cohort.domain, &path, &as_i64(revision)?],
-        )?;
-        if metadata_locator_digest(&row) != metadata_locator_digest(expected) {
-            return Err(DurableError::Conflict("retained source locator changed"));
-        }
-        check_history_locator(&row, &recovered.receipt, &cohort.domain, &path, revision)?;
-        let mut raw = Vec::new();
-        store.read_selected(&recovered.receipt, 8_388_608, &mut raw)?;
         active(deadline, cancelled)?;
+        held_retained_source_metadata(&mut tx, cohort)?;
         tx.commit()?;
-        drop(custody);
-        Ok(raw)
+        result
+            .into_iter()
+            .map(|v| v.ok_or(DurableError::Corrupt("retained batch result incomplete")))
+            .collect()
     }
 
     pub fn reopen_committed_managed_creation_attempt(
