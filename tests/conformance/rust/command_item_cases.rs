@@ -590,12 +590,14 @@ import source_commands as commands
 owner=root/'item-owner.json'
 if supplied['decision']=='orphan':
     original=item.transactions._publish_state
+    interruption=OSError('existing synthetic pre-pending interruption')
     def interrupt(root,state,previous):
-        if state['phase']=='pending':raise OSError('existing synthetic pre-pending interruption')
+        if state['phase']=='pending':raise interruption
         return original(root,state,previous)
     with patch.object(item.transactions,'_publish_state',interrupt):
         try:commands.run_legacy_oracle_command(owner,supplied['request'])
-        except OSError:pass
+        except OSError as error:
+            if error is not interruption:raise
         else:raise AssertionError('actual maintained orphan interruption absent')
     observed=item.transactions.inspect_transaction(root,item._transaction_id(supplied['request']))
     assert observed['status']=='orphan'
