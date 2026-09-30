@@ -21,7 +21,7 @@ use tos_foundation::{
     Digest256, JsonLimits, JsonString, JsonValue, RelativePath, emit_python_compact_json,
 };
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
+use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 pub(crate) const CONFIG: &str = "tos_local_owner_profile_command_v1";
 pub(crate) const HISTORY: &str = "source-revision-history.json";
@@ -162,7 +162,7 @@ fn hash_map(values: BTreeMap<String, String>) -> JsonValue {
     JsonValue::Object(
         values
             .into_iter()
-            .map(|(name, digest)| (JsonString::from_utf8(name), cmd::string(&digest)))
+            .map(|(name, digest)| (JsonString::from_utf8(&name), cmd::string(&digest)))
             .collect(),
     )
 }
@@ -713,6 +713,7 @@ fn parse_grant(
     ]);
     let digest = cmd::record_digest(&digest_basis)?.to_prefixed();
     ctx.check_from_selected_captures(cut, software, components, deadline, cancelled)?;
+    let source_access = access.clone();
     Ok(Grant {
         value,
         digest,
@@ -728,7 +729,7 @@ fn parse_grant(
         form_ids,
         operations,
         fields,
-        source_access: access.clone(),
+        source_access,
         source_binding,
     })
 }
@@ -761,7 +762,13 @@ fn implementation_digests(
             ));
         }
         let raw = software
-            .read_selected_component(components, &path, MAX_INPUT_BYTES, deadline, cancelled)
+            .read_selected_component(
+                components,
+                &path,
+                MAX_INPUT_BYTES as u64,
+                deadline,
+                cancelled,
+            )
             .map_err(|_| SourceCommandError::Conflict("profile rule-source capture changed"))?;
         if raw.len() as u64 != member.size_bytes || Digest256::of_bytes(&raw) != member.sha256 {
             return Err(SourceCommandError::Conflict(
@@ -1290,7 +1297,7 @@ fn decode_archive(
         JsonValue::Object(
             locations
                 .into_iter()
-                .map(|(name, value)| (JsonString::from_utf8(name), value))
+                .map(|(name, value)| (JsonString::from_utf8(&name), value))
                 .collect(),
         ),
     ))
@@ -1342,7 +1349,7 @@ fn archive_package(
             "files",
             JsonValue::Object(
                 refs.into_iter()
-                    .map(|(name, value)| (JsonString::from_utf8(name), value))
+                    .map(|(name, value)| (JsonString::from_utf8(&name), value))
                     .collect(),
             ),
         ),
@@ -2150,7 +2157,7 @@ fn profile_snapshot(
     ]);
     let _ = (
         context_config,
-        selected.source_digest,
+        selected.source_digest.as_str(),
         selected.source_path.as_str(),
     );
     Ok(cmd::record_digest(&snapshot_basis)?.to_prefixed())
@@ -2184,7 +2191,7 @@ fn package_file_refs(files: &PrivatePackage) -> JsonValue {
             .iter()
             .map(|(name, raw)| {
                 (
-                    JsonString::from_utf8(name.clone()),
+                    JsonString::from_utf8(name),
                     cmd::object(vec![
                         (
                             "sha256",
@@ -2834,7 +2841,7 @@ fn validate_form_growth_history(
         }
         cmd::validate_instant(cmd::text(receipt, "recorded_at")?)?;
         let source = cmd::field(receipt, "source")?;
-        if cmd::text(source, "id")? != cmd::text(&cmd::field(forms, "subject")?, "id")? {
+        if cmd::text(source, "id")? != cmd::text(cmd::field(forms, "subject")?, "id")? {
             return Err(SourceCommandError::Conflict(
                 "private form receipt source identity",
             ));
@@ -3184,11 +3191,28 @@ fn create_replay(
         let reference = cmd::text(first_receipt, "archive_path")?;
         let archived_raw = archive_reader.read_archive(reference, deadline, cancelled)?;
         let (archived_files, _) = decode_archive(reference, archived_raw, first_receipt, grant)?;
-        if archived_files.get(grant.source_path.as_str().rsplit('/').next().ok_or(
-            SourceCommandError::Invalid("private profile source basename"),
-        )?) != initial_package.get(grant.source_path.as_str().rsplit('/').next().ok_or(
-            SourceCommandError::Invalid("private profile source basename"),
-        )?)? {
+        let source_name =
+            grant
+                .source_path
+                .as_str()
+                .rsplit('/')
+                .next()
+                .ok_or(SourceCommandError::Invalid(
+                    "private profile source basename",
+                ))?;
+        let archived_source =
+            archived_files
+                .get(source_name)
+                .ok_or(SourceCommandError::Invalid(
+                    "private profile archive source absent",
+                ))?;
+        let initial_source =
+            initial_package
+                .get(source_name)
+                .ok_or(SourceCommandError::Invalid(
+                    "private profile initial source absent",
+                ))?;
+        if archived_source != initial_source {
             return Err(SourceCommandError::Conflict(
                 "owner-local initial source bytes differ from the retained creation request",
             ));
@@ -3588,7 +3612,7 @@ pub(crate) fn prepare(
             let package = current.ok_or(SourceCommandError::Invalid(
                 "private profile target disappeared",
             ))?;
-            let state = current_state(ctx, cut, &grant, package, worker, deadline, cancelled)?;
+            let state = inspect_state(ctx, cut, &grant, package, worker, deadline, cancelled)?;
             verify_cold_history(
                 ctx,
                 cut,
@@ -3697,7 +3721,7 @@ pub(crate) fn prepare(
                 }
                 Some(package) => {
                     let state =
-                        current_state(ctx, cut, &grant, package, worker, deadline, cancelled)?;
+                        inspect_state(ctx, cut, &grant, package, worker, deadline, cancelled)?;
                     verify_cold_history(
                         ctx,
                         cut,
@@ -3735,7 +3759,7 @@ pub(crate) fn prepare(
             let package = current.ok_or(SourceCommandError::Invalid(
                 "private profile package is absent",
             ))?;
-            let state = current_state(ctx, cut, &grant, package, worker, deadline, cancelled)?;
+            let state = inspect_state(ctx, cut, &grant, package, worker, deadline, cancelled)?;
             verify_cold_history(
                 ctx,
                 cut,
