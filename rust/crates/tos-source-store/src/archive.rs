@@ -92,7 +92,7 @@ fn new_file(root: &File, path: &str, deadline: Instant, cancelled: &AtomicBool) 
 }
 
 /// Restore into a new private directory. On failure it may contain partial bytes,
-/// but never a success receipt. Caller owns cleanup and physical reservation.
+/// and must not be consumed. Caller owns cleanup and physical reservation.
 /// Input capture and destination parent must remain exclusively owner-controlled.
 /// The selected manifest digest is supplied by the caller, not trusted from input.
 pub fn restore_capture(
@@ -289,10 +289,19 @@ pub fn restore_capture(
         selection.source_git_commit
     );
     let mut file = new_file(&output, "restore-receipt.json", deadline, cancelled)?;
-    file.write_all(receipt.as_bytes()).map_err(io_error)?;
-    file.sync_all().map_err(io_error)?;
-    output.sync_all().map_err(io_error)?;
-    Ok(())
+    let result = (|| {
+        file.write_all(receipt.as_bytes()).map_err(io_error)?;
+        file.sync_all().map_err(io_error)?;
+        output.sync_all().map_err(io_error)?;
+        Ok(())
+    })();
+    if result.is_err() {
+        // A failed receipt write must not leave a parseable success marker.
+        // Cleanup can itself fail; callers must always honor the returned error.
+        drop(file);
+        let _ = fs::remove_file(fd_path(&output, "restore-receipt.json"));
+    }
+    result
 }
 
 #[cfg(test)]
