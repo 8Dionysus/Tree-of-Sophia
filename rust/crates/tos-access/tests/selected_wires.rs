@@ -5247,7 +5247,7 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
         );
         let outside = root.join("outside");
         fs::create_dir(&outside).unwrap();
-        let installed_commands = |prefix: &Path| {
+        let installed_commands = |prefix: &std::path::Path| {
             if command_products.is_none() {
                 return;
             }
