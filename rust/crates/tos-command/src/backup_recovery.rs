@@ -241,9 +241,33 @@ fn copy_store(
     }
     target.sync_all()
 }
+// Both Rust and native tools accept only this same non-TLS target subset.
+// Reject routing differences before opening a database or writing backup bytes.
+fn selected_config(url: &str) -> io::Result<postgres::Config> {
+    let config = url.parse::<postgres::Config>().map_err(|_| error())?;
+    require(config.get_hosts().len() == 1 && config.get_ports().len() <= 1)?;
+    require(config.get_hostaddrs().is_empty())?;
+    require(config.get_target_session_attrs() == postgres::config::TargetSessionAttrs::Any)?;
+    require(matches!(
+        config.get_ssl_mode(),
+        postgres::config::SslMode::Disable | postgres::config::SslMode::Prefer
+    ))?;
+    require(
+        matches!(&config.get_hosts()[0], postgres::config::Host::Tcp(host) if host == "127.0.0.1" || host == "::1"),
+    )?;
+    require(config.get_user().is_some())?;
+    let database = config.get_dbname().ok_or_else(error)?;
+    require(
+        !database.is_empty()
+            && !database.contains('=')
+            && !database.starts_with("postgres://")
+            && !database.starts_with("postgresql://"),
+    )?;
+    Ok(config)
+}
 fn client(url: &str, d: Instant, c: &AtomicBool) -> io::Result<Client> {
     active(d, c)?;
-    let mut config = url.parse::<postgres::Config>().map_err(|_| error())?;
+    let mut config = selected_config(url)?;
     config.connect_timeout(Duration::from_secs(5).min(d.saturating_duration_since(Instant::now())));
     let mut db = config.connect(NoTls).map_err(|_| error())?;
     active(d, c)?;
@@ -280,7 +304,7 @@ fn tool(
     }
     // PGDATABASE is a database name, not a connection URI. Decode the same
     // configured target into private libpq environment without exposing URL argv.
-    let selected = pg_url.parse::<postgres::Config>().map_err(|_| error())?;
+    let selected = selected_config(pg_url)?;
     require(selected.get_hosts().len() == 1 && selected.get_ports().len() <= 1)?;
     let host = match &selected.get_hosts()[0] {
         postgres::config::Host::Tcp(host) => host.as_str(),
