@@ -708,7 +708,7 @@ pub(crate) fn run(
         home,
         source_path,
         cmd::field(&selection.config, "rights_record_refs")?,
-        &foundation(&json!([config["publication_authority"]]))?,
+        &foundation(&config["publication_authority"])?,
         inputs,
         &mut p.assembly.files,
         software,
