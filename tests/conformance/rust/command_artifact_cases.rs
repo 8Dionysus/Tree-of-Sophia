@@ -11,6 +11,46 @@ use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_command::source_creation_store::IsolatedCreationRoot;
 
+// Consumer-only physical scratch envelope; library budgets stay unchanged.
+// Sixteen full fixture allocations cover source/oracle roots, archive capture,
+// compressed archive, restored software, cut object copies and transaction
+// staging/retained packages. The fixed allowances cover manifests, child I/O,
+// owner-tool copy and growth outputs, plus explicit filesystem headroom.
+fn physical_fixture_budget(files: &BTreeMap<String, Vec<u8>>) -> u64 {
+    const BLOCK: u64 = 4096;
+    assert!(files.len() <= 256);
+    let mut logical = 0u64;
+    let mut allocated = 0u64;
+    for (path, raw) in files {
+        assert!(path.len() <= 512 && path.split('/').count() <= 16);
+        assert!(
+            !path.starts_with('/')
+                && !path
+                    .split('/')
+                    .any(|part| part.is_empty() || part == "." || part == "..")
+        );
+        logical = logical.checked_add(raw.len() as u64).unwrap();
+        // Round every file separately; allow a block per path directory and
+        // two further blocks for file/directory inode and metadata allocation.
+        allocated = allocated
+            .checked_add(
+                (raw.len() as u64).div_ceil(BLOCK) * BLOCK
+                    + (path.split('/').count() as u64 + 2) * BLOCK,
+            )
+            .unwrap();
+    }
+    assert!(logical <= 8_388_608);
+    let total = allocated
+        .checked_mul(16)
+        .unwrap()
+        .checked_add(128 * 1_048_576)
+        .unwrap()
+        .checked_add(256 * 1_048_576)
+        .unwrap();
+    assert!(total <= 1_073_741_824);
+    total
+}
+
 #[test]
 fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes() {
     let repository = super::validation_cut_cases::repository()
@@ -106,7 +146,9 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
         .values()
         .try_fold(0u64, |n, raw| n.checked_add(raw.len() as u64))
         .unwrap();
-    assert!(fixture_bytes <= 33_554_432 && files.len() <= 2048);
+    let scratch_bound = physical_fixture_budget(&files);
+    assert!(fixture_bytes <= 8_388_608 && files.len() <= 256);
+    eprintln!("Artifact physical scratch <={} B including 256MiB headroom; F<=8MiB entries<=256 path<=512B depth<=16; images are supplied outside scratch", scratch_bound);
     let native = PathBuf::from(
         std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH")
             .expect("OPS must select the protected native Artifact image"),
@@ -152,7 +194,7 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
     fs::write(&owner, serde_json::to_vec(&config).unwrap()).unwrap();
     fs::set_permissions(&owner, fs::Permissions::from_mode(0o600)).unwrap();
     let invocation_path = temporary.path().join("artifact-invocation.json");
-    let mut invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1","owner_config":owner,"owner_context":null,"assessment_schema_worker":null,"native_executable":native,"native_executable_sha256":alignment_image_digest(&native).to_prefixed(),"corpus_store":store,"source_revision":base.0.to_prefixed(),"original_source_revision":base.0.to_prefixed(),"software_capture":capture.capture,"software_restored_root":capture.restored,"software_selection":{"source_git_commit":capture.selection.source_git_commit,"source_git_tree":capture.selection.source_git_tree,"capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},"software_components":components.members().map(|member|member.path.as_str()).collect::<Vec<_>>(),"schema_worker":{"absolute_path":worker,"sha256":alignment_image_digest(&worker).to_prefixed()},"budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
+    let mut invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1","owner_config":owner,"owner_context":null,"assessment_schema_worker":null,"native_executable":native,"native_executable_sha256":alignment_image_digest(&native).to_prefixed(),"corpus_store":store,"source_revision":base.0.to_prefixed(),"original_source_revision":base.0.to_prefixed(),"software_capture":capture.capture,"software_restored_root":capture.restored,"software_selection":{"source_git_commit":capture.selection.source_git_commit,"source_git_tree":capture.selection.source_git_tree,"capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},"software_components":components.members().map(|member|member.path.as_str()).collect::<Vec<_>>(),"schema_worker":{"absolute_path":worker,"sha256":alignment_image_digest(&worker).to_prefixed()},"budgets":{"max_revisions":4,"max_members":256,"max_total_bytes":8388608,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
     let write_invocation = |value: &Value| {
         fs::write(&invocation_path, serde_json::to_vec(value).unwrap()).unwrap();
         fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
@@ -255,6 +297,7 @@ fn native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes()
         .all(|v| v["artifact_ref"] != "runtime:python-executable"));
     let mut current_files = authored_text_files(isolated.path());
     current_files.remove("ToS/source-witnesses/.historical-create.writer.lock");
+    physical_fixture_budget(&current_files);
     let current = successor(&current_files, &store, base);
     invocation["source_revision"] = serde_json::json!(current.0.to_prefixed());
     write_invocation(&invocation);

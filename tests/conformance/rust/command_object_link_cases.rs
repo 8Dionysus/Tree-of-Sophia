@@ -17,6 +17,13 @@ class SelectedRoot:
     def cleanup(self): pass
 original=tempfile.TemporaryDirectory;tempfile.TemporaryDirectory=SelectedRoot
 try:
+    # Literal owner-source census precedes the fixture's first source copy.
+    refs=[p for p in (repository/'ToS/contracts').glob('*.schema.json')]
+    refs += [repository/'ToS/doctrine/semantic-interchange'/name for name in ('entity-types.v1.json','relation-types.v1.json')]
+    refs += [repository/ref for ref in fixture.links.IMPLEMENTATIONS]
+    refs += [repository/'rust/crates/tos-command/src/source_serialization.rs']
+    assert len(refs)<=256 and sum(p.stat().st_size for p in refs)<=8388608
+    assert all(not p.is_symlink() and p.is_file() and len(p.relative_to(repository).parts)<=16 and len(p.relative_to(repository).as_posix())<=512 for p in refs)
     case=fixture.NativeObjectLinkTests(methodName='runTest');case.setUp()
 finally: tempfile.TemporaryDirectory=original
 case.owner.chmod(0o600)
@@ -174,6 +181,46 @@ fn read_link_body(root: &Path, config: &Value) -> (Value, Value, Value, Value, V
         provenance,
     )
 }
+// Consumer-only physical scratch envelope; library budgets stay unchanged.
+// Sixteen full fixture allocations cover source/oracle roots, archive capture,
+// compressed archive, restored software, cut object copies and transaction
+// staging/retained packages. The fixed allowances cover manifests, child I/O,
+// owner-tool copy and growth outputs, plus explicit filesystem headroom.
+fn physical_fixture_budget(files: &BTreeMap<String, Vec<u8>>) -> u64 {
+    const BLOCK: u64 = 4096;
+    assert!(files.len() <= 256);
+    let mut logical = 0u64;
+    let mut allocated = 0u64;
+    for (path, raw) in files {
+        assert!(path.len() <= 512 && path.split('/').count() <= 16);
+        assert!(
+            !path.starts_with('/')
+                && !path
+                    .split('/')
+                    .any(|part| part.is_empty() || part == "." || part == "..")
+        );
+        logical = logical.checked_add(raw.len() as u64).unwrap();
+        // Round every file separately; allow a block per path directory and
+        // two further blocks for file/directory inode and metadata allocation.
+        allocated = allocated
+            .checked_add(
+                (raw.len() as u64).div_ceil(BLOCK) * BLOCK
+                    + (path.split('/').count() as u64 + 2) * BLOCK,
+            )
+            .unwrap();
+    }
+    assert!(logical <= 8_388_608);
+    let total = allocated
+        .checked_mul(16)
+        .unwrap()
+        .checked_add(128 * 1_048_576)
+        .unwrap()
+        .checked_add(256 * 1_048_576)
+        .unwrap();
+    assert!(total <= 1_073_741_824);
+    total
+}
+
 #[test]
 fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
     use super::command_text_cases::{alignment_image_digest, authored_text_files};
@@ -197,7 +244,7 @@ fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
     for image in [&native, &worker] {
         assert!(fs::metadata(image).unwrap().len() <= 536_870_912);
     }
-    eprintln!("ObjectLink whole case: 3 source roots + oracle; 7 native CLI children (each Python-to-native exec), 8 Python fixture children plus 2 retained crash writers, 3 captured_components calls (6 direct Git +6 capture/restore Python children plus archive-tool internal Git); 360s whole deadline, 60s child, 1MiB stdout/stderr; each cut<=2048 members/32MiB, native/worker<=512MiB; no native kill race");
+    eprintln!("ObjectLink whole case: 3 source roots + oracle; 7 native CLI children (each Python-to-native exec), 8 Python fixture children plus 2 retained crash writers, 3 captured_components calls (6 direct Git +6 capture/restore Python children plus archive-tool internal Git); 360s whole deadline, 60s child, 1MiB stdout/stderr; each cut<=256 members/8MiB, native/worker<=512MiB; no native kill race");
     for decision in [None, Some("resume"), Some("rollback")] {
         let temporary = tempfile::tempdir().unwrap();
         let isolated =
@@ -228,7 +275,8 @@ fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
             fs::read(repository.join("rust/crates/tos-command/src/source_serialization.rs"))
                 .unwrap(),
         );
-        assert!(files.len() <= 2048 && files.values().map(Vec::len).sum::<usize>() <= 33_554_432);
+        let scratch_bound = physical_fixture_budget(&files);
+        eprintln!("ObjectLink physical scratch <={} B including 256MiB headroom; F<=8MiB entries<=256 path<=512B depth<=16; images supplied outside scratch", scratch_bound);
         let (capture, _software, components) =
             super::command_record_cases::captured_components(&files, deadline, &cancelled);
         let authored = files
@@ -246,7 +294,7 @@ fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
             "software_selection":{"source_git_commit":capture.selection.source_git_commit,"source_git_tree":capture.selection.source_git_tree,"capture_manifest_sha256":capture.selection.capture_manifest_sha256.to_prefixed()},
             "software_components":components.members().map(|m|m.path.as_str()).collect::<Vec<_>>(),
             "schema_worker":{"absolute_path":worker,"sha256":alignment_image_digest(&worker).to_prefixed()},
-            "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
+            "budgets":{"max_revisions":4,"max_members":256,"max_total_bytes":8388608,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
         freeze_invocation(&invocation_path, &invocation);
         if let Some(decision) = decision {
             let pending = python(
@@ -257,8 +305,10 @@ fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
                 Some(&json!({"action":"crash","decision":decision})),
                 deadline,
             );
+            let pending_files = authored_text_files(isolated.path());
+            physical_fixture_budget(&pending_files);
             let pending_revision = super::validation_cut_cases::write_cut_store_on_base(
-                &authored_text_files(isolated.path()),
+                &pending_files,
                 &store,
                 Some(base),
             );
@@ -395,8 +445,10 @@ fn native_object_link_cli_creates_cold_replays_and_recovers_original_package() {
                 Some(&json!({"action":"rebuild"})),
                 deadline,
             );
+            let current_files = authored_text_files(isolated.path());
+            physical_fixture_budget(&current_files);
             let current = super::validation_cut_cases::write_cut_store_on_base(
-                &authored_text_files(isolated.path()),
+                &current_files,
                 &store,
                 Some(base),
             );
