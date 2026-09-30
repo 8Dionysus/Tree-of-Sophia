@@ -28,6 +28,13 @@ owner surfaces.
    Run `python scripts/release_check.py`
    to check contracts, build browser assets and run program fixture tests.
    This command uses program fixtures and repository-owned dependencies.
+   The wrapper forwards explicit `--command-timeout-ms`, `--lane-timeout-ms`,
+   `--cleanup-grace-ms` and `--max-output-bytes` to the native executor.
+   Omitted limits retain its defaults. Select a phase with `--phase checks`
+   or `--phase tests` when the preceding phase already succeeded on the same
+   candidate. Set a longer command deadline only from the selected workload
+   cost; a timeout is incomplete validation, not a passing test result. These
+   flags do not change host resource admission or skip checks in that phase.
 3. For browser changes, install the locked dependencies with
    `npm ci --prefix access/web`, then run the software check above and
    `python scripts/validation_lanes.py --run software_browser`.
