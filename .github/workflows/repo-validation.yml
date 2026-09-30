@@ -222,6 +222,12 @@ jobs:
                      'lock_sha256': hashlib.sha256(Path('Cargo.lock').read_bytes()).hexdigest(),
                      'toolchain': '1.98.1', 'profile': 'debug'}
           Path(os.environ['RUNNER_TEMP'], 'tos-native-build.json').write_text(json.dumps(receipt) + '\n')
+          # Public prepare/publication defaults require this same-run native product.
+          with open(os.environ['GITHUB_ENV'], 'a') as env:
+              env.write('TOS_PREPARED_EXECUTOR=' + str(binary) + '\n')
+              env.write('TOS_NATIVE_SOURCE_PREPARE_EXECUTABLE=' + str(binary) + '\n')
+              env.write('TOS_PREPARED_MAX_SECONDS=20\n')
+              env.write('TOS_NATIVE_SOURCE_PREPARE_LIMITS={"max_input_bytes":1048576,"max_capture_bytes":8388608,"max_stage_bytes":8388608,"max_temp_bytes":8388608}\n')
           PY_RECEIPT
 
       - name: Validate software contracts and build browser assets
