@@ -25,6 +25,12 @@ use tos_foundation::{
     canonical_count_v1, parse_json,
 };
 
+#[path = "source_private_owner_store.rs"]
+mod owner_store;
+pub(crate) use owner_store::{
+    PrivateArchiveReader, PrivateIdentityInputs, PrivateOwnerStore, PrivatePackage,
+};
+
 const MAX_FILES: usize = 12;
 const MAX_PACKAGE: usize = 12 * 1024 * 1024;
 const MAX_CONTROL: usize = 18 * 1024 * 1024;

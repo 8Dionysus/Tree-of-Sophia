@@ -13,6 +13,10 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use tos_foundation::{Digest256, Digest256Hasher, JsonValue};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 
+#[path = "source_private_serialization.rs"]
+mod private_metadata;
+pub(crate) use private_metadata::{PrivateMetadataFamily, capture_private_metadata};
+
 fn active(deadline: Instant, cancelled: &AtomicBool) -> SourceCommandResult<()> {
     if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
         Err(SourceCommandError::Denied(
