@@ -1,4 +1,4 @@
-use super::command_form_cases::{context as cut_context, open_cut, schemas, schemas_for_profile};
+use super::command_form_cases::{context as cut_context, open_cut, schemas};
 use super::*;
 use std::collections::BTreeMap;
 use std::sync::atomic::AtomicBool;
@@ -13,6 +13,66 @@ use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonString, JsonValue, RelativePath,
     SourceRevision, canonical_bytes_v1, parse_json,
 };
+
+/// Profiles keep independent plans/receipts/child state while one sealed image
+/// owns executable custody for this bounded record scenario.
+fn profile_workers(
+    cut: &tos_source_store::CorpusCutReader,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> (
+    tos_validation::source_cut::CutWorkerSchemaExecutor,
+    tos_validation::source_cut::CutWorkerSchemaExecutor,
+) {
+    use tos_validation::executor::{
+        ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle,
+    };
+    use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor};
+    let path = super::validation_cut_cases::selected_worker_path();
+    let hash_started = Instant::now();
+    let raw = fs::read(&path).unwrap();
+    let image_bytes = raw.len();
+    let sha256 = Digest256::of_bytes(&raw);
+    drop(raw);
+    let hash_elapsed = hash_started.elapsed();
+    let verification_started = Instant::now();
+    let image = VerifiedWorkerImageHandle::prepare(
+        ExactWorkerIdentity {
+            absolute_path: path,
+            sha256,
+        },
+        ExecutorBudget::laboratory(),
+        deadline,
+        cancelled,
+    );
+    eprintln!(
+        "schema worker fixture phase=shared-image family=records image_bytes={} expected_hash_ms={} verification_ms={} result={:?}",
+        image_bytes,
+        hash_elapsed.as_millis(),
+        verification_started.elapsed().as_millis(),
+        image.as_ref().map(|_| ())
+    );
+    let image = image.unwrap();
+    let make = |profile| {
+        CutWorkerSchemaExecutor::from_cut_with_image(
+            cut,
+            profile,
+            &image,
+            ExecutorBudget::laboratory(),
+            CutWorkerLimits {
+                max_receipts: 128,
+                max_receipt_bytes: 262_144,
+            },
+            deadline,
+            cancelled,
+        )
+        .unwrap()
+    };
+    (
+        make(FormatProfile::LegacyPythonObserved20260923),
+        make(FormatProfile::AssertedSourceCandidateV1),
+    )
+}
 
 #[test]
 fn sign_uses_current_native_content_assessment_and_replays_its_original_package() {
@@ -250,13 +310,7 @@ finally:
         batch: BatchBudget::laboratory(),
         deadline,
     };
-    let mut local_worker = schemas(&cut, deadline, &cancellation);
-    let mut assessment_worker = schemas_for_profile(
-        &cut,
-        FormatProfile::AssertedSourceCandidateV1,
-        deadline,
-        &cancellation,
-    );
+    let (mut local_worker, mut assessment_worker) = profile_workers(&cut, deadline, &cancellation);
     let prepared = prepare_sign_promotion_from_captures(
         owner,
         &context,
@@ -286,13 +340,7 @@ finally:
     // The request retains the Python author's exact basis/configuration and
     // dependency values; Rust must independently reconstruct them again.
     context.request_raw = canonical_json(&oracle["request"]);
-    let mut local_worker = schemas(&cut, deadline, &cancellation);
-    let mut assessment_worker = schemas_for_profile(
-        &cut,
-        FormatProfile::AssertedSourceCandidateV1,
-        deadline,
-        &cancellation,
-    );
+    let (mut local_worker, mut assessment_worker) = profile_workers(&cut, deadline, &cancellation);
     let prepared = prepare_sign_promotion_from_captures(
         owner,
         &context,
@@ -355,13 +403,7 @@ finally:
             changed
         };
         fs::write(&target, changed).unwrap();
-        let mut local = schemas(&cut, deadline, &cancellation);
-        let mut assessment = schemas_for_profile(
-            &cut,
-            FormatProfile::AssertedSourceCandidateV1,
-            deadline,
-            &cancellation,
-        );
+        let (mut local, mut assessment) = profile_workers(&cut, deadline, &cancellation);
         assert!(
             filesystem
                 .publish_sign_isolated(
@@ -385,13 +427,7 @@ finally:
         }
     }
     let native_before = fs::read(isolated.path().join(required(&oracle, "content"))).unwrap();
-    let mut local_worker = schemas(&cut, deadline, &cancellation);
-    let mut assessment_worker = schemas_for_profile(
-        &cut,
-        FormatProfile::AssertedSourceCandidateV1,
-        deadline,
-        &cancellation,
-    );
+    let (mut local_worker, mut assessment_worker) = profile_workers(&cut, deadline, &cancellation);
     let published = filesystem
         .publish_sign_isolated(
             &serialized,
@@ -422,13 +458,7 @@ finally:
     let mut changed_content = native_before.clone();
     changed_content.push(b'\n');
     fs::write(&content_path, changed_content).unwrap();
-    let mut local_worker = schemas(&cut, deadline, &cancellation);
-    let mut assessment_worker = schemas_for_profile(
-        &cut,
-        FormatProfile::AssertedSourceCandidateV1,
-        deadline,
-        &cancellation,
-    );
+    let (mut local_worker, mut assessment_worker) = profile_workers(&cut, deadline, &cancellation);
     assert!(
         filesystem
             .replay_sign_isolated(
@@ -445,13 +475,7 @@ finally:
         "replay cannot inherit earlier content verification"
     );
     fs::write(&content_path, &native_before).unwrap();
-    let mut local_worker = schemas(&cut, deadline, &cancellation);
-    let mut assessment_worker = schemas_for_profile(
-        &cut,
-        FormatProfile::AssertedSourceCandidateV1,
-        deadline,
-        &cancellation,
-    );
+    let (mut local_worker, mut assessment_worker) = profile_workers(&cut, deadline, &cancellation);
     let replay = filesystem
         .replay_sign_isolated(
             &serialized,

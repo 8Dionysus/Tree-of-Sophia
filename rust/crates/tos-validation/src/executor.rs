@@ -43,6 +43,44 @@ pub struct ExactWorkerIdentity {
     pub sha256: Digest256,
 }
 
+/// One exact sealed image for related adapters within a single bounded caller
+/// operation. It carries no schema receipt, child state, or global cache entry.
+/// Only successful image verification can construct this handle.
+pub struct VerifiedWorkerImageHandle {
+    identity: ExactWorkerIdentity,
+    operation_deadline: Instant,
+    #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+    file: std::fs::File,
+}
+
+impl VerifiedWorkerImageHandle {
+    pub fn prepare(
+        worker: ExactWorkerIdentity,
+        budget: ExecutorBudget,
+        operation_deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, ExecutorFailure> {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            native::VerifiedWorkerImage::prepare(&worker, budget, operation_deadline, cancelled)
+                .map(native::VerifiedWorkerImage::into_handle)
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        {
+            let _ = (worker, budget, operation_deadline, cancelled);
+            Err(ExecutorFailure::UnsupportedHost)
+        }
+    }
+
+    pub fn identity(&self) -> &ExactWorkerIdentity {
+        &self.identity
+    }
+
+    pub(crate) fn operation_deadline(&self) -> Instant {
+        self.operation_deadline
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct ExecutorBudget {
     /// Deadline for image verification, fork, transfer and worker execution.
@@ -617,6 +655,17 @@ impl PreparedSchemaWorker {
     ) -> Result<Self, ExecutorFailure> {
         Err(ExecutorFailure::UnsupportedHost)
     }
+    pub(crate) fn prepare_with_image(
+        _: &VerifiedWorkerImageHandle,
+        _: &[SchemaResource],
+        _: FormatProfile,
+        _: ExecutorBudget,
+        _: Instant,
+        _: &AtomicBool,
+    ) -> Result<Self, ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+
     pub(crate) fn evaluate(
         &mut self,
         _: &str,
@@ -876,6 +925,53 @@ mod native {
                 .min(operation_deadline);
             let file = sealed_worker_checked(worker, Some(deadline), Some(cancelled))?;
             preparation_check(Some(deadline), Some(cancelled))?;
+            Self::from_file(
+                file,
+                worker.clone(),
+                budget,
+                operation_deadline,
+                operation_started,
+            )
+        }
+
+        pub(super) fn into_handle(self) -> VerifiedWorkerImageHandle {
+            VerifiedWorkerImageHandle {
+                file: self.file,
+                identity: self.identity,
+                operation_deadline: self.operation_deadline,
+            }
+        }
+
+        fn from_handle(
+            handle: &VerifiedWorkerImageHandle,
+            budget: ExecutorBudget,
+            operation_deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<Self, ExecutorFailure> {
+            scalar_budget(budget)?;
+            let operation_deadline = operation_deadline.min(handle.operation_deadline);
+            preparation_check(Some(operation_deadline), Some(cancelled))?;
+            let file = handle
+                .file
+                .try_clone()
+                .map_err(|_| ExecutorFailure::WorkerIdentity)?;
+            preparation_check(Some(operation_deadline), Some(cancelled))?;
+            Self::from_file(
+                file,
+                handle.identity.clone(),
+                budget,
+                operation_deadline,
+                Instant::now(),
+            )
+        }
+
+        fn from_file(
+            file: File,
+            identity: ExactWorkerIdentity,
+            budget: ExecutorBudget,
+            operation_deadline: Instant,
+            operation_started: Instant,
+        ) -> Result<Self, ExecutorFailure> {
             let mut operation_budget = BatchStreamBudget::laboratory();
             operation_budget.batch.total_execution_wall = budget.execution_wall;
             operation_budget.batch.startup_wall = budget.execution_wall;
@@ -885,7 +981,7 @@ mod native {
             operation_budget.operation_address_space_bytes = budget.address_space_bytes;
             Ok(Self {
                 file,
-                identity: worker.clone(),
+                identity,
                 operation_deadline,
                 operation_budget,
                 session: None,
@@ -1547,6 +1643,45 @@ mod native {
             operation_deadline: Instant,
             cancelled: &AtomicBool,
         ) -> Result<Self, ExecutorFailure> {
+            Self::prepare_inner(
+                worker,
+                None,
+                resources,
+                profile,
+                budget,
+                operation_deadline,
+                cancelled,
+            )
+        }
+
+        pub(crate) fn prepare_with_image(
+            handle: &VerifiedWorkerImageHandle,
+            resources: &[SchemaResource],
+            profile: FormatProfile,
+            budget: ExecutorBudget,
+            operation_deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<Self, ExecutorFailure> {
+            Self::prepare_inner(
+                handle.identity(),
+                Some(handle),
+                resources,
+                profile,
+                budget,
+                operation_deadline.min(handle.operation_deadline),
+                cancelled,
+            )
+        }
+
+        fn prepare_inner(
+            worker: &ExactWorkerIdentity,
+            handle: Option<&VerifiedWorkerImageHandle>,
+            resources: &[SchemaResource],
+            profile: FormatProfile,
+            budget: ExecutorBudget,
+            operation_deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<Self, ExecutorFailure> {
             scalar_budget(budget)?;
             let deadline = Instant::now()
                 .checked_add(budget.execution_wall)
@@ -1555,15 +1690,21 @@ mod native {
             preparation_check(Some(deadline), Some(cancelled))?;
             let (encoded_resources, schema_set_sha256) = encode_resources(resources)?;
             preparation_check(Some(deadline), Some(cancelled))?;
-            let image = VerifiedWorkerImage::prepare(
-                worker,
-                ExecutorBudget {
-                    execution_wall: deadline.saturating_duration_since(Instant::now()),
-                    ..budget
-                },
-                operation_deadline,
-                cancelled,
-            )?;
+            let remaining = ExecutorBudget {
+                execution_wall: deadline.saturating_duration_since(Instant::now()),
+                ..budget
+            };
+            let image = match handle {
+                Some(handle) => VerifiedWorkerImage::from_handle(
+                    handle,
+                    remaining,
+                    operation_deadline,
+                    cancelled,
+                ),
+                None => {
+                    VerifiedWorkerImage::prepare(worker, remaining, operation_deadline, cancelled)
+                }
+            }?;
             preparation_check(Some(deadline), Some(cancelled))?;
             Ok(Self {
                 image,
@@ -3549,6 +3690,76 @@ mod native {
                 );
                 assert!(!partial.windows(8).any(|w| w == OPERATION_FINAL_MAGIC));
             }
+        }
+
+        #[test]
+        fn shared_verified_image_preserves_seals_deadline_and_independent_operation_state() {
+            use std::os::unix::fs::{FileExt, PermissionsExt};
+            let directory = tempfile::tempdir().unwrap();
+            let path = directory.path().join("fixture-image");
+            let raw = b"Synthetic executable custody fixture; no worker execution.";
+            std::fs::write(&path, raw).unwrap();
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o500)).unwrap();
+            let cancel = AtomicBool::new(false);
+            let deadline = Instant::now() + Duration::from_secs(60);
+            let handle = VerifiedWorkerImageHandle::prepare(
+                ExactWorkerIdentity {
+                    absolute_path: path.clone(),
+                    sha256: Digest256::of_bytes(raw),
+                },
+                ExecutorBudget::laboratory(),
+                deadline,
+                &cancel,
+            )
+            .unwrap();
+            // Subsequent adapters use only this actual sealed image, never a
+            // reopened path or a caller-supplied assertion of verification.
+            std::fs::remove_file(&path).unwrap();
+            let mut first = VerifiedWorkerImage::from_handle(
+                &handle,
+                ExecutorBudget::laboratory(),
+                deadline,
+                &cancel,
+            )
+            .unwrap();
+            let second = VerifiedWorkerImage::from_handle(
+                &handle,
+                ExecutorBudget::laboratory(),
+                deadline,
+                &cancel,
+            )
+            .unwrap();
+            let mut observed = vec![0; raw.len()];
+            second.file.read_exact_at(&mut observed, 0).unwrap();
+            assert_eq!(observed, raw);
+            let seals = unsafe { libc::fcntl(second.file.as_raw_fd(), libc::F_GET_SEALS) };
+            let required =
+                libc::F_SEAL_WRITE | libc::F_SEAL_GROW | libc::F_SEAL_SHRINK | libc::F_SEAL_SEAL;
+            assert_eq!(seals & required, required);
+            first.used_frames = 1;
+            first.poisoned = Some(ExecutorFailure::Backend);
+            assert_eq!(second.used_frames, 0);
+            assert!(second.poisoned.is_none() && second.session.is_none());
+            assert_eq!(first.identity.sha256, second.identity.sha256);
+            assert_eq!(second.operation_deadline, deadline);
+            assert!(matches!(
+                VerifiedWorkerImage::from_handle(
+                    &handle,
+                    ExecutorBudget::laboratory(),
+                    Instant::now(),
+                    &cancel
+                ),
+                Err(ExecutorFailure::Timeout)
+            ));
+            assert!(matches!(
+                VerifiedWorkerImage::from_handle(
+                    &handle,
+                    ExecutorBudget::laboratory(),
+                    deadline,
+                    &AtomicBool::new(true)
+                ),
+                Err(ExecutorFailure::Cancelled)
+            ));
         }
 
         #[test]

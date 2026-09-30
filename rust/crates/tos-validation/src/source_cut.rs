@@ -17,6 +17,7 @@ use crate::executor::{
     BatchBudget, BatchCoverageCheckpoint, BatchCoverageExpectation, BatchOutcome,
     BatchStreamBudget, BatchUnit, BatchUnitVerdict, ExactWorkerIdentity, ExecutionIdentity,
     ExecutorBudget, ExecutorFailure, ExecutorOutcome, PreparedSchemaWorker,
+    VerifiedWorkerImageHandle,
 };
 use crate::item_rules::{
     ItemFamilyReport, ItemLimits, ItemPayload, ItemRefusal, ItemRules, ItemSource,
@@ -173,6 +174,45 @@ impl CutWorkerSchemaExecutor {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<Self, ItemRefusal> {
+        Self::from_cut_inner(
+            cut, profile, worker, None, budget, limits, deadline, cancelled,
+        )
+    }
+
+    /// Read and bind this adapter's own exact source/schema closure while sharing
+    /// only the already verified immutable executable of the caller operation.
+    pub fn from_cut_with_image(
+        cut: &CorpusCutReader,
+        profile: FormatProfile,
+        image: &VerifiedWorkerImageHandle,
+        budget: ExecutorBudget,
+        limits: CutWorkerLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        let deadline = deadline.min(image.operation_deadline());
+        Self::from_cut_inner(
+            cut,
+            profile,
+            image.identity().clone(),
+            Some(image),
+            budget,
+            limits,
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn from_cut_inner(
+        cut: &CorpusCutReader,
+        profile: FormatProfile,
+        worker: ExactWorkerIdentity,
+        image: Option<&VerifiedWorkerImageHandle>,
+        budget: ExecutorBudget,
+        limits: CutWorkerLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
         let operation_origin = Instant::now();
         check(deadline, cancelled)?;
         if limits.max_receipts == 0
@@ -236,9 +276,14 @@ impl CutWorkerSchemaExecutor {
             })?
             .schema_set_digest();
         check(deadline, cancelled)?;
-        let mut prepared = PreparedSchemaWorker::prepare(
-            &worker, &resources, profile, budget, deadline, cancelled,
-        )
+        let mut prepared = match image {
+            Some(image) => PreparedSchemaWorker::prepare_with_image(
+                image, &resources, profile, budget, deadline, cancelled,
+            ),
+            None => PreparedSchemaWorker::prepare(
+                &worker, &resources, profile, budget, deadline, cancelled,
+            ),
+        }
         .map_err(|reason| match reason {
             ExecutorFailure::Timeout => ItemRefusal::Deadline,
             ExecutorFailure::Cancelled => {
