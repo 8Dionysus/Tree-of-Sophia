@@ -4553,6 +4553,196 @@ fn cold_cut_rejects_locator_and_outbox_tampering() {
     ));
 }
 
+// This drill owns an isolated quiescent database. It is not a production
+// backup API or permission to copy a live coordinator behind its writer.
+const RESTORE_DRILL_BYTES: u64 = 64 * 1024 * 1024;
+const RESTORE_DRILL_FILES: usize = 256;
+
+fn restore_drill_sha(path: &std::path::Path) -> (u64, String) {
+    use std::os::unix::fs::MetadataExt;
+    let before = fs::symlink_metadata(path).unwrap();
+    assert!(before.is_file() && before.nlink() == 1);
+    assert!(before.len() <= RESTORE_DRILL_BYTES);
+    let mut file = fs::File::open(path).unwrap();
+    let mut hasher = tos_foundation::Digest256Hasher::new();
+    let mut buffer = [0u8; 65536];
+    let mut count = 0u64;
+    loop {
+        let n = file.read(&mut buffer).unwrap();
+        if n == 0 {
+            break;
+        }
+        count = count.checked_add(n as u64).unwrap();
+        assert!(count <= RESTORE_DRILL_BYTES);
+        hasher.update(&buffer[..n]);
+    }
+    assert_eq!(count, before.len());
+    let after = fs::symlink_metadata(path).unwrap();
+    assert_eq!(
+        (
+            before.dev(),
+            before.ino(),
+            before.len(),
+            before.mtime(),
+            before.mtime_nsec(),
+            before.ctime(),
+            before.ctime_nsec()
+        ),
+        (
+            after.dev(),
+            after.ino(),
+            after.len(),
+            after.mtime(),
+            after.mtime_nsec(),
+            after.ctime(),
+            after.ctime_nsec()
+        )
+    );
+    (before.len(), hasher.finalize().to_hex())
+}
+
+fn restore_drill_members(root: &std::path::Path) -> Vec<serde_json::Value> {
+    fn walk(
+        root: &std::path::Path,
+        at: &std::path::Path,
+        depth: usize,
+        total: &mut u64,
+        entries: &mut usize,
+        out: &mut Vec<serde_json::Value>,
+    ) {
+        assert!(depth <= 1);
+        for entry in fs::read_dir(at).unwrap() {
+            *entries += 1;
+            assert!(*entries <= 512);
+            let path = entry.unwrap().path();
+            let metadata = fs::symlink_metadata(&path).unwrap();
+            assert!(!metadata.file_type().is_symlink());
+            if metadata.is_dir() {
+                assert_eq!(depth, 0);
+                assert!(
+                    [
+                        "staging",
+                        "segments",
+                        "pins",
+                        "attempts",
+                        "leaves",
+                        "generations"
+                    ]
+                    .contains(&path.file_name().unwrap().to_str().unwrap())
+                );
+                walk(root, &path, depth + 1, total, entries, out);
+            } else {
+                assert!(metadata.is_file() && out.len() < RESTORE_DRILL_FILES);
+                let (bytes, sha) = restore_drill_sha(&path);
+                *total = total.checked_add(bytes).unwrap();
+                assert!(*total <= RESTORE_DRILL_BYTES);
+                out.push(serde_json::json!({"path":path.strip_prefix(root).unwrap().to_str().unwrap(),"bytes":bytes,"sha256":sha}));
+            }
+        }
+    }
+    let mut result = Vec::new();
+    walk(root, root, 0, &mut 0, &mut 0, &mut result);
+    result.sort_by(|a, b| a["path"].as_str().cmp(&b["path"].as_str()));
+    result
+}
+
+fn restore_drill_copy(
+    source: &std::path::Path,
+    target: &std::path::Path,
+    members: &[serde_json::Value],
+) {
+    use std::os::unix::fs::PermissionsExt;
+    assert!(
+        !fs::symlink_metadata(target)
+            .unwrap()
+            .file_type()
+            .is_symlink()
+    );
+    let source_canonical = fs::canonicalize(source).unwrap();
+    let target_canonical = fs::canonicalize(target).unwrap();
+    assert!(
+        !source_canonical.starts_with(&target_canonical)
+            && !target_canonical.starts_with(&source_canonical)
+    );
+    assert!(target.is_dir() && fs::read_dir(target).unwrap().next().is_none());
+    // Empty namespaces are part of the store, including unresolved staging.
+    for name in [
+        "staging",
+        "segments",
+        "pins",
+        "attempts",
+        "leaves",
+        "generations",
+    ] {
+        if source.join(name).is_dir() {
+            fs::create_dir(target.join(name)).unwrap();
+        }
+    }
+    assert_eq!(restore_drill_members(source), members);
+    for member in members {
+        let relative = std::path::Path::new(member["path"].as_str().unwrap());
+        assert!(
+            relative
+                .components()
+                .all(|c| matches!(c, std::path::Component::Normal(_)))
+        );
+        let to = target.join(relative);
+        fs::create_dir_all(to.parent().unwrap()).unwrap();
+        assert!(!to.exists());
+        fs::copy(source.join(relative), &to).unwrap();
+        fs::set_permissions(&to, fs::Permissions::from_mode(0o600)).unwrap();
+        fs::File::open(&to).unwrap().sync_all().unwrap();
+        assert_eq!(
+            restore_drill_sha(&to),
+            (
+                member["bytes"].as_u64().unwrap(),
+                member["sha256"].as_str().unwrap().to_owned()
+            )
+        );
+    }
+    assert_eq!(restore_drill_members(source), members);
+    assert_eq!(restore_drill_members(target), members);
+    fs::File::open(target).unwrap().sync_all().unwrap();
+}
+
+fn restore_drill_tool(name: &str, args: &[&str]) -> serde_json::Value {
+    use std::os::unix::process::CommandExt;
+    let fsize = rustix::process::getrlimit(rustix::process::Resource::Fsize);
+    assert!(fsize.current.is_some_and(|n| n <= RESTORE_DRILL_BYTES));
+    assert!(fsize.maximum.is_some_and(|n| n <= RESTORE_DRILL_BYTES));
+    let path = PathBuf::from(
+        std::env::var_os(format!("TOS_CMD2_{name}_PATH"))
+            .expect("explicit frozen PostgreSQL tool required"),
+    );
+    let sha = std::env::var(format!("TOS_CMD2_{name}_SHA256")).expect("tool SHA required");
+    let identity = restore_drill_sha(&path);
+    assert_eq!(identity.1, sha);
+    let mut child = Command::new(&path)
+        .args(args)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .process_group(0)
+        .spawn()
+        .unwrap();
+    let group = rustix::process::Pid::from_raw(child.id() as i32).unwrap();
+    let deadline = Instant::now() + Duration::from_secs(60);
+    loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            assert!(status.success(), "PostgreSQL tool failed");
+            break;
+        }
+        if Instant::now() >= deadline {
+            let _ = rustix::process::kill_process_group(group, rustix::process::Signal::KILL);
+            child.wait().unwrap();
+            panic!("PostgreSQL tool exceeded whole tool deadline");
+        }
+        thread::sleep(Duration::from_millis(10));
+    }
+    assert_eq!(restore_drill_sha(&path), identity);
+    serde_json::json!({"path":path,"bytes":identity.0,"sha256":sha,"deadline_seconds":60})
+}
+
 /// Run this exact ignored test alone, then copy its reported sealed store and
 /// pg_dump the quiescent synthetic PostgreSQL database. The intentional leak
 /// keeps this one fixture on disk after the test process exits for restore.
@@ -4624,6 +4814,79 @@ fn export_cold_restore_fixture() {
         original_cut.log_digest().to_hex(),
         original_cut.historical_members()
     );
+    if let Some(backup) = std::env::var_os("TOS_CMD2_BACKUP_ROOT") {
+        assert_eq!(
+            std::env::var("TOS_CMD2_BACKUP_QUIESCENT").unwrap(),
+            "owned-fixture-only"
+        );
+        let backup = PathBuf::from(backup);
+        assert!(
+            !fs::symlink_metadata(&backup)
+                .unwrap()
+                .file_type()
+                .is_symlink()
+        );
+        let backup_canonical = fs::canonicalize(&backup).unwrap();
+        let original_canonical = fs::canonicalize(&lab._root.0).unwrap();
+        assert!(
+            !backup_canonical.starts_with(&original_canonical)
+                && !original_canonical.starts_with(&backup_canonical)
+        );
+        assert!(backup.is_dir() && fs::read_dir(&backup).unwrap().next().is_none());
+        let mut client = Client::connect(&url, NoTls).unwrap();
+        assert_eq!(
+            client
+                .query_one("SELECT count(*) FROM cmd2_domain", &[])
+                .unwrap()
+                .get::<_, i64>(0),
+            1
+        );
+        let database: String = client
+            .query_one("SELECT current_database()", &[])
+            .unwrap()
+            .get(0);
+        let dump = backup.join("metadata.dump");
+        let tool = restore_drill_tool(
+            "PG_DUMP",
+            &[
+                "--format=custom",
+                "--no-owner",
+                "--no-privileges",
+                "--file",
+                dump.to_str().unwrap(),
+                "--dbname",
+                &url,
+            ],
+        );
+        let dump_identity = restore_drill_sha(&dump);
+        assert!(dump_identity.0 <= RESTORE_DRILL_BYTES);
+        let mut magic = [0u8; 5];
+        fs::File::open(&dump)
+            .unwrap()
+            .read_exact(&mut magic)
+            .unwrap();
+        assert_eq!(&magic, b"PGDMP");
+        let physical = backup.join("store");
+        fs::create_dir(&physical).unwrap();
+        let members = restore_drill_members(&lab._root.0);
+        restore_drill_copy(&lab._root.0, &physical, &members);
+        let receipt = serde_json::json!({"schema":"tos_cmd2_quiescent_restore_drill_v1","domain":lab.domain,"database":database,"cut":original_cut.log_digest().to_hex(),"through_commit_seq":2,"historical_members":3,"store_members":members,"dump":{"bytes":dump_identity.0,"sha256":dump_identity.1},"tool":tool,"production_backup_authority":false});
+        let mut receipt_file = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(backup.join("receipt.json"))
+            .unwrap();
+        use std::io::Write;
+        receipt_file
+            .write_all(&serde_json::to_vec(&receipt).unwrap())
+            .unwrap();
+        receipt_file.sync_all().unwrap();
+        fs::File::open(&backup).unwrap().sync_all().unwrap();
+        println!(
+            "CMD2_BACKUP_RECEIPT sha256={}",
+            restore_drill_sha(&backup.join("receipt.json")).1
+        );
+    }
     std::mem::forget(lab);
 }
 
@@ -4636,6 +4899,70 @@ fn verify_cold_restored_fixture() {
     let domain = std::env::var("TOS_CMD2_RESTORE_DOMAIN").expect("exported domain required");
     let store_path =
         std::env::var_os("TOS_CMD2_RESTORE_STORE").expect("independent STO copy required");
+    let mut expected_backup_cut = None;
+    if let Some(backup) = std::env::var_os("TOS_CMD2_RESTORE_BACKUP") {
+        let backup = PathBuf::from(backup);
+        let receipt_path = backup.join("receipt.json");
+        let (receipt_bytes, receipt_sha) = restore_drill_sha(&receipt_path);
+        assert_eq!(
+            receipt_sha,
+            std::env::var("TOS_CMD2_BACKUP_RECEIPT_SHA256")
+                .expect("exact backup receipt SHA required")
+        );
+        assert!(receipt_bytes <= 1024 * 1024);
+        let receipt: serde_json::Value =
+            serde_json::from_slice(&fs::read(&receipt_path).unwrap()).unwrap();
+        assert_eq!(receipt["schema"], "tos_cmd2_quiescent_restore_drill_v1");
+        assert_eq!(receipt["domain"], domain);
+        expected_backup_cut = Some(receipt["cut"].as_str().unwrap().to_owned());
+        let mut client = Client::connect(&url, NoTls).unwrap();
+        let database: String = client
+            .query_one("SELECT current_database()", &[])
+            .unwrap()
+            .get(0);
+        assert_ne!(database, receipt["database"].as_str().unwrap());
+        assert_eq!(
+            client
+                .query_one(
+                    "SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname='public'",
+                    &[]
+                )
+                .unwrap()
+                .get::<_, i64>(0),
+            0
+        );
+        let dump = backup.join("metadata.dump");
+        assert_eq!(
+            restore_drill_sha(&dump),
+            (
+                receipt["dump"]["bytes"].as_u64().unwrap(),
+                receipt["dump"]["sha256"].as_str().unwrap().to_owned()
+            )
+        );
+        let members = receipt["store_members"].as_array().unwrap();
+        assert!(members.len() <= RESTORE_DRILL_FILES);
+        assert_eq!(restore_drill_members(&backup.join("store")), *members);
+        restore_drill_copy(&backup.join("store"), &PathBuf::from(&store_path), members);
+        restore_drill_tool(
+            "PG_RESTORE",
+            &[
+                "--exit-on-error",
+                "--single-transaction",
+                "--no-owner",
+                "--no-privileges",
+                "--dbname",
+                &url,
+                dump.to_str().unwrap(),
+            ],
+        );
+        assert_eq!(
+            restore_drill_sha(&dump),
+            (
+                receipt["dump"]["bytes"].as_u64().unwrap(),
+                receipt["dump"]["sha256"].as_str().unwrap().to_owned()
+            )
+        );
+    }
     let store = SegmentStore::open_existing(&PathBuf::from(store_path), limits())
         .expect("copied STO store cold-opens");
     let mut db = DurablePgCoordinator::connect(&url).unwrap();
@@ -4686,6 +5013,9 @@ fn verify_cold_restored_fixture() {
         assert_eq!(bytes, lab_record_bytes(subject, revision, payload));
     }
     let cut = db.cold_verify_cut(&store, &domain).unwrap();
+    if let Some(expected) = expected_backup_cut {
+        assert_eq!(cut.log_digest().to_hex(), expected);
+    }
     assert_eq!(cut.through_commit_seq(), 2);
     assert_eq!(cut.historical_members(), 3);
     db.seal_shadow_cut(&cut).unwrap();
