@@ -326,7 +326,9 @@ impl<'a> LegacyOwnerStore<'a> {
                 "historical retained archive changed",
             ));
         }
-        if observed.len() >= 128 && !observed.contains_key(reference) {
+        // Record and Claim histories each retain at most 128 entries. Their
+        // independently selected archives may therefore have 256 references.
+        if observed.len() >= 256 && !observed.contains_key(reference) {
             return Err(invalid());
         }
         observed.insert(reference.to_owned(), digest);
