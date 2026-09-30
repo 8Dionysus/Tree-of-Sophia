@@ -1448,6 +1448,36 @@ discovery is preserved; ambient Git directory/worktree/index overrides cannot
 select another source.
 
 
+### Restoring a selected source capture
+
+`tos capture-restore` restores an existing `tos_corpus_capture_v1` or `v2`
+capture (`capture.json`, `members.jsonl`, `source.tar.gz`) into a new directory.
+Choose the expected commit, tree and manifest SHA-256 from the retained owner
+record, independently of the archive supplied for restoration:
+
+```sh
+tos capture-restore --capture /absolute/capture --output /absolute/new-root \
+  --source-commit EXPECTED_COMMIT --source-tree EXPECTED_TREE \
+  --manifest-sha256 EXPECTED_MANIFEST_SHA256 \
+  --max-archive-bytes COMPRESSED_CAP --max-decoded-bytes TAR_STREAM_CAP \
+  --max-source-bytes FILE_BYTES_CAP --max-metadata-bytes INDEX_CAP \
+  --max-members MEMBER_CAP --max-seconds WHOLE_DEADLINE
+```
+
+All caps are explicit positive integers. The decoded cap includes tar headers,
+PAX extensions and padding, not just file bytes. Reserve filesystem allocation
+and directory overhead separately through the host storage route. Keep the
+capture and destination parent under exclusive owner control during the call.
+The command verifies archive and member digests, Git blob identities, paths and
+modes, and emits the existing `restore-receipt.json` after successful extraction.
+It refuses an existing output directory. Failure may leave partial output;
+that directory is not a completed restore and remains caller-owned cleanup.
+
+This restores selected bytes. It neither admits those sources nor selects them
+for readers, reconstructs a PostgreSQL journal, changes rights, or activates a
+publication. Those operations retain their existing owner routes. The Python
+capture producer remains available until its native replacement is validated.
+
 ### Native fresh-prefix installation
 
 The native software archive installs without Python:
