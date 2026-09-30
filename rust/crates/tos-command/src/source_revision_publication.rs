@@ -17,6 +17,10 @@ use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponent
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 const CONTROL: &str = "ToS/source-witnesses/.metadata-publication.json";
 
+#[cfg(test)]
+#[path = "source_record_revision_tests.rs"]
+mod tests;
+
 fn read(
     fs: &CreationFilesystem,
     path: &str,
@@ -114,13 +118,15 @@ fn plan(
         });
     }
     let request = cmd::parse(&ctx.request_raw)?;
-    Ok(WorkPlan {
+    let plan = WorkPlan {
         transaction_id: revision::transaction_id(&request)?,
         authorization: authorization(ctx, config, family, record)?,
         item_path_profile: None,
         files,
         new_directories: Vec::new(),
-    })
+    };
+    tx::validate_plan(&plan)?;
+    Ok(plan)
 }
 fn empty_bindings() -> JsonValue {
     cmd::object(vec![

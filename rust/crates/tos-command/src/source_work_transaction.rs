@@ -458,6 +458,11 @@ fn binding(bytes: Option<&[u8]>) -> JsonValue {
         ]),
     }
 }
+/// Validate a fixed owner's in-memory transport plan before retaining any
+/// auxiliary archive bytes. This is the existing byte/path law, not admission.
+pub(crate) fn validate_plan(plan: &WorkPlan) -> SourceCommandResult<()> {
+    freeze(plan.clone()).map(|_| ())
+}
 fn freeze(plan: WorkPlan) -> SourceCommandResult<FrozenPlan> {
     if !hash(&plan.transaction_id)
         || plan.files.is_empty()
