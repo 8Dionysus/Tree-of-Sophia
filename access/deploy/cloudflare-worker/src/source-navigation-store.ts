@@ -1,15 +1,19 @@
 import { HttpError, stringArray, stringValue, type Item } from "./common.ts";
 import {NativeD1Read, nativeD1Limits, nativeSha256} from './native-d1-read.ts';
 import {consistentRead} from './knowledge-store.ts';
-import {SourceNavigationError} from "./source-navigation.ts";
 import {sourceNavigationRules,observeRights,observeMemberships,type SourceRights} from "./source-navigation-rules.ts";
 import {PhysicalKeys} from "./worker-classic.ts";
+
+export class SourceNavigationError extends Error {
+  readonly status:number;
+  constructor(status:number,message:string){super(message);this.status=status;}
+}
 
 /*
  * Source navigation is stored as a row projection in D1.  The JSON payload
  * remains the owned navigation record; the scalar columns are only indexes
- * for bounded selection.  Keep this adapter separate from source-navigation
- * so the pure implementation remains useful for offline parity tests.
+ * for bounded selection. Rust owns the maintained query policy; the host
+ * retains hydration, checksums, current fencing and original row objects.
  */
 
 type SourceJsonRow = { json: string };

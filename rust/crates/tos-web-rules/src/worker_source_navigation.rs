@@ -570,12 +570,6 @@ impl WorkerSourceRights {
             self.owners.entry(file).or_default().push(item);
         }
     }
-    pub fn aggregate_rows(&self) -> Vec<u32> {
-        aggregate_rows(&self.records)
-            .into_iter()
-            .map(|r| r.row)
-            .collect()
-    }
     pub fn filtered_rows(&mut self) -> Vec<u32> {
         let rows: Vec<u32> = self.filtered().into_iter().map(|r| r.row).collect();
         self.filtered_cache = Some(rows.iter().copied().collect());

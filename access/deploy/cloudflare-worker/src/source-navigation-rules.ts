@@ -1,7 +1,6 @@
 // Actual consumers use checksum-verified decoded JSON and HTTP integer limits.
-// Arbitrary accessor/method overrides of offline parity inputs are not preserved.
 import {stringArray,stringValue,type Item} from './common.ts';
-import {PhysicalKeys} from './worker-classic.ts';
+import {type PhysicalKeys} from './worker-classic.ts';
 export interface SourceWalk {
  need():string;current():number;incoming():boolean;semantic():boolean;sorting_ids():Uint32Array;sorted(ids:Uint32Array):void;
  contains(id:number):boolean;target():number;edge(id:number,row:number,from:number,to:number,kind:string,predicate:string):boolean;
@@ -16,7 +15,7 @@ export interface SourceRights {
  context(index:number,record:boolean,manifest:number,nonempty:boolean,right:number,rightNonempty:boolean,legacyEmpty:boolean):void;
  finish_membership(index:number,present:boolean,array:boolean,length:number):void;
  incoming_owner(file:number,item:number,kind:string,predicate:string):void;
- observe_legacy_file(file:number,kind:string,predicate:string,array:boolean,length:number,valid:number):void;legacy_file_ids():Uint32Array;aggregate_rows():Uint32Array;filtered_rows():Uint32Array;intersects_component(scopes:Uint32Array):boolean;
+ observe_legacy_file(file:number,kind:string,predicate:string,array:boolean,length:number,valid:number):void;legacy_file_ids():Uint32Array;filtered_rows():Uint32Array;intersects_component(scopes:Uint32Array):boolean;
  status(value:string):void;summary(decision:Uint32Array,links:number):string;free():void;
 }
 interface Runtime {
@@ -50,17 +49,4 @@ export function observeMemberships(rules:SourceRights,keys:PhysicalKeys,edges:It
   }
   rules.finish_membership(index,present,Array.isArray(contexts),Array.isArray(contexts)?contexts.length:0);
  }
-}
-export function rustAggregateRights(records:Item[]):Item[]{
- const keys=new PhysicalKeys(),rules=new (sourceNavigationRules().WorkerSourceRights)();
- try{observeRights(rules,keys,records);return Array.from(rules.aggregate_rows(),index=>records[index]!);}finally{rules.free();}
-}
-export function rustFilterRights(rights:Item[],componentIds:Set<string>,nodesById:Map<string,Item>,edges:Iterable<Item>,incomingByFile:Map<string,Item[]>):Item[]{
- const keys=new PhysicalKeys(),rules=new (sourceNavigationRules().WorkerSourceRights)();
- try{
-  for(const id of componentIds)rules.component(keys.key(id),stringValue(nodesById.get(id)?.node_kind));
-  observeRights(rules,keys,rights);observeMemberships(rules,keys,edges);
-  for(const [file,owners] of incomingByFile)for(const edge of owners)rules.incoming_owner(keys.key(file),keys.key(stringValue(edge.from_id)),stringValue(edge.edge_kind),stringValue(edge.predicate_id));
-  return Array.from(rules.filtered_rows(),index=>rights[index]!);
- }finally{rules.free();}
 }

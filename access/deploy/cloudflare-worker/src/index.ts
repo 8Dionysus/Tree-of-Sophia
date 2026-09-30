@@ -26,8 +26,7 @@ import {
   temporalSnapshotResponseD1,
   knowledgeCatalogD1,
 } from "./knowledge-store";
-import { SourceNavigationError } from "./source-navigation";
-import { sourceDescendD1, sourceDossierD1 } from "./source-navigation-store";
+import { SourceNavigationError, sourceDescendD1, sourceDossierD1 } from "./source-navigation-store";
 import { metaItem } from "./store";
 import { KnowledgeRevisionConflict } from "./lens-pagination";
 import { explorationSnapshotResponseD1, explorationCapabilitiesD1 } from "./exploration";
