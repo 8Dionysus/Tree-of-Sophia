@@ -1051,6 +1051,149 @@ print(raw({'header':raw(header),'nodes':[raw(v) for v in nav['nodes']],'edges':[
 }
 
 #[test]
+fn normalized_selected_dossiers_preserve_shared_file_membership_rights_controls() {
+    use tos_compiler::knowledge_full_fixture::build_native_fixture_with_navigation_inputs;
+    use tos_query::source_dossier::{
+        DOSSIER_INTENDED_USE, DOSSIER_OPERATION, DossierBudget, execute_selected_dossier,
+    };
+    // Reuse the maintained synthetic rights fixtures and their unique assertions.
+    // Emit full published test rows explicitly: the abbreviated pure-query rows
+    // themselves are not claimed to satisfy the compiler input contract.
+    let script = r#"
+import copy,json,sys
+sys.path[:0]=[sys.argv[1],sys.argv[2]]
+import test_source_navigation_file_rights as f
+original=f.source_dossier_query
+groups={}
+raw=lambda v:json.dumps(v,ensure_ascii=False,separators=(',',':'),allow_nan=False)
+def selected(navigation,nodes,incoming,outgoing,rights_for,object_id,*,limit=20):
+ nodes=copy.deepcopy(nodes)
+ edges={e['edge_id']:copy.deepcopy(e) for rows in list(incoming.values())+list(outgoing.values()) for e in rows}
+ for n in nodes.values():
+  n.setdefault('label',n['node_id']);n.setdefault('identity_status','not_applicable')
+  n.setdefault('source_ref',f.MANIFEST_B if n['node_id']==f.ITEM_B else f.MANIFEST_A if n['node_kind'] in {'file','item'} else n['node_id'].replace('tos.','')+'.json')
+ for e in edges.values(): e.setdefault('review_status','not_applicable')
+ rights=copy.deepcopy(rights_for(list(nodes)))
+ header=dict(navigation,schema_version='tos_source_navigation_v1',counts={'nodes':len(nodes),'edges':len(edges),'rights':len(rights)})
+ # Both readers see the same full test originals, not an independently padded
+ # expected packet. Existing rights/manifest assertions still run below.
+ ins={};outs={}
+ for e in edges.values():
+  ins.setdefault(e['to_id'],[]).append(e);outs.setdefault(e['from_id'],[]).append(e)
+ packet=original(header,nodes,ins,outs,lambda _ids:rights,object_id,limit=limit)
+ group={'header':raw(header),'nodes':[raw(n) for n in nodes.values()],'edges':[raw(e) for e in edges.values()],'rights':[raw(r) for r in rights]}
+ key=raw(group)
+ if key not in groups: groups[key]=dict(group,cases=[])
+ groups[key]['cases'].append({'name':active,'object_id':object_id,'limit':limit,'packet':packet})
+ assert len(groups)<=32 and sum(len(g['cases']) for g in groups.values())<=64
+ assert len(nodes)<=12 and len(edges)<=12 and len(rights)<=6
+ return packet
+f.source_dossier_query=selected
+names=[
+ 'test_shared_file_does_not_promote_one_items_rights_to_the_other',
+ 'test_file_source_refs_require_the_complete_membership_edge_set',
+ 'test_file_only_candidate_from_exact_source_stays_review_required',
+ 'test_file_aggregate_requires_context_for_every_edge_source_ref',
+ 'test_file_aggregate_rejects_duplicate_manifest_contexts',
+ 'test_file_conclusion_requires_every_complete_membership_to_be_reviewed_positive',
+ 'test_legacy_single_item_file_keeps_its_exact_item_scoped_rights',
+ 'test_legacy_single_item_file_rejects_conflicting_unbound_rights_sources',
+ 'test_legacy_shared_file_without_rights_refs_fails_closed',
+ 'test_legacy_file_only_rights_scope_stays_unbound',
+ 'test_ancestor_dossiers_filter_file_rights_to_reachable_memberships',
+ 'test_ancestor_dossier_preserves_only_unambiguous_legacy_single_owner_rights',
+]
+for active in names: getattr(f.SharedFileRightsTests(methodName=active),active)()
+# Exact File-only layer source remains visible for File, absent from sibling Item.
+active='file-only-layer-exact-source'
+navigation,nodes,ins,outs,rights=f.navigation_fixture()
+rights.append({'rights_id':'rights-a-file-layer','assessment_kind':'layer','source_ref':f.RIGHTS_A,'scope_refs':[f.FILE_ID],'assessment_status':'copyright_undetermined','redistribution_posture':'not_authorized','review_status':'unreviewed'})
+file=selected(navigation,nodes,ins,outs,lambda _ids:rights,f.FILE_ID)
+assert [r['rights_id'] for r in file['rights']]==['rights-a','rights-a-file-layer','rights-b']
+item=selected(navigation,nodes,ins,outs,lambda _ids:rights,f.ITEM_B)
+assert [r['rights_id'] for r in item['rights']]==['rights-b']
+encoded=raw(list(groups.values())).encode();assert len(encoded)<=1048576
+print(encoded.decode())
+"#;
+    let output = Command::new("python3")
+        .args(["-B", "-c", script])
+        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../access/src"))
+        .arg(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../../access/tests"
+        ))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.stdout.len() <= 1_048_576);
+    let groups = parse_json(
+        &output.stdout,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .into_root();
+    let caps = DossierBudget {
+        inspect: budget().inspect,
+        max_candidates: budget().max_candidates,
+        max_work_steps: u64::try_from(budget().max_path_steps).unwrap(),
+        block_size: budget().block_size,
+    };
+    for group in groups.as_array().unwrap() {
+        let rows = |name| {
+            field(group, name)
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| v.as_str().unwrap().as_bytes())
+                .collect::<Vec<_>>()
+        };
+        let nodes = rows("nodes");
+        let edges = rows("edges");
+        let rights = rows("rights");
+        let fixture = build_native_fixture_with_navigation_inputs(
+            field(group, "header").as_str().unwrap().as_bytes(),
+            &nodes,
+            &edges,
+            &rights,
+        );
+        let mut cold = fixture.open().unwrap();
+        let bound =
+            bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();
+        for case in field(group, "cases").as_array().unwrap() {
+            let mut current = Authority::new(&bound);
+            current.scope.operation_id = DOSSIER_OPERATION.into();
+            current.scope.intended_use = DOSSIER_INTENDED_USE.into();
+            current.originals_denied = false;
+            let mut packet = execute_selected_dossier(
+                &mut cold,
+                &bound,
+                &mut current,
+                field(case, "object_id").as_str().unwrap(),
+                field(case, "limit").as_u64().unwrap() as usize,
+                caps,
+            )
+            .unwrap();
+            assert_eq!(
+                &*packet,
+                canonical(field(case, "packet")),
+                "{}",
+                field(case, "name").as_str().unwrap()
+            );
+            current.withdrawn.store(true, Ordering::SeqCst);
+            assert_eq!(
+                packet.recheck().unwrap_err().code,
+                SearchV2ErrorCode::StalePolicy
+            );
+        }
+    }
+}
+
+#[test]
 fn normalized_selected_philosophy_reads_match_original_python_packets_and_hold_projection() {
     use tos_compiler::{
         PhilosophyOriginalCollection,
