@@ -7,7 +7,16 @@ use crate::prepared_maintenance::{self as joined, MaintenanceReceipt};
 use crate::prepared_semantic_index::{SemanticMaintenanceLimits, SemanticRows};
 use crate::{Error, Result, local_prepared::PublicationLimits};
 use rusqlite::{Connection, OpenFlags, Transaction, TransactionBehavior};
-use std::{fs, os::unix::fs::MetadataExt, path::Path, time::Instant};
+use std::{
+    fs,
+    os::unix::fs::MetadataExt,
+    path::Path,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Instant,
+};
 use tos_foundation::JsonValue;
 
 fn deadline_check(deadline: Instant) -> Result<()> {
@@ -58,8 +67,33 @@ where
         OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NO_MUTEX,
     )?;
     check_path(path, &original)?;
-    db.progress_handler(1000, Some(move || Instant::now() >= deadline));
-    let tx = db.transaction_with_behavior(TransactionBehavior::Immediate)?;
+    let deadline_interrupted = Arc::new(AtomicBool::new(false));
+    let callback_interrupted = Arc::clone(&deadline_interrupted);
+    db.progress_handler(
+        1000,
+        Some(move || {
+            let expired = Instant::now() >= deadline;
+            if expired {
+                callback_interrupted.store(true, Ordering::Relaxed);
+            }
+            expired
+        }),
+    );
+    // The generic SQLite conversion cannot know which progress handler stopped
+    // execution. Preserve real VM-budget failures unless this handler fired.
+    let classify = |error: Error| {
+        if deadline_interrupted.load(Ordering::Relaxed)
+            && matches!(&error, Error::Budget("SQLite VM steps"))
+        {
+            Error::Budget("maintenance whole operation deadline")
+        } else {
+            error
+        }
+    };
+    let tx = db
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(Error::from)
+        .map_err(&classify)?;
     let result = (|| {
         check_path(path, &original)?;
         deadline_check(deadline)?;
@@ -75,10 +109,11 @@ where
     })();
     match result {
         Ok(receipt) => {
-            tx.commit()?;
+            tx.commit().map_err(Error::from).map_err(&classify)?;
             Ok(receipt)
         }
         Err(error) => {
+            let error = classify(error);
             let _ = tx.rollback();
             Err(error)
         }
