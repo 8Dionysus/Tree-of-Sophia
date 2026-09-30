@@ -63,7 +63,10 @@ fn view(value: &JsonValue) -> Result<Value> {
 fn stable(value: &Value) -> Result<String> {
     SourceRow::parse(&bytes::canonical(value, META)?, META)?.stable_digest()
 }
-fn source_vector(mut value: Value, limits: PublicationLimits) -> Result<PreparedSourceInputs> {
+pub(crate) fn source_vector(
+    mut value: Value,
+    limits: PublicationLimits,
+) -> Result<PreparedSourceInputs> {
     let roots = value["roots"]
         .as_object()
         .ok_or(Error::Invalid("Claim vector roots"))?;
@@ -77,7 +80,7 @@ fn source_vector(mut value: Value, limits: PublicationLimits) -> Result<Prepared
     )?);
     PreparedSourceInputs::parse(&bytes::canonical(&value, META)?, limits)
 }
-fn catalog_after(
+pub(crate) fn catalog_after(
     before: &CatalogInputs,
     source: &PreparedSourceInputs,
     normalization: &Value,
@@ -102,12 +105,15 @@ pub struct NativeClaimProfiles {
     pub agent_publication: String,
     pub claim_publication: String,
 }
-struct ExecutingImage {
+pub(crate) struct ExecutingImage {
     file: std::fs::File,
     identity: (u64, u64, u64, i64, i64, i64, i64),
     digest: String,
 }
 impl ExecutingImage {
+    pub(crate) fn digest(&self) -> &str {
+        &self.digest
+    }
     fn identity(metadata: &std::fs::Metadata) -> (u64, u64, u64, i64, i64, i64, i64) {
         use std::os::unix::fs::MetadataExt;
         (
@@ -120,7 +126,7 @@ impl ExecutingImage {
             metadata.ctime_nsec(),
         )
     }
-    fn observe(deadline: Instant, cancelled: &AtomicBool) -> Result<Self> {
+    pub(crate) fn observe(deadline: Instant, cancelled: &AtomicBool) -> Result<Self> {
         use std::io::Read;
         let mut file = std::fs::File::open("/proc/self/exe")?;
         let metadata = file.metadata()?;
@@ -158,7 +164,7 @@ impl ExecutingImage {
         this.verify()?;
         Ok(this)
     }
-    fn verify(&self) -> Result<()> {
+    pub(crate) fn verify(&self) -> Result<()> {
         let current = std::fs::File::open("/proc/self/exe")?;
         if Self::identity(&current.metadata()?) != self.identity
             || Self::identity(&self.file.metadata()?) != self.identity
@@ -168,7 +174,7 @@ impl ExecutingImage {
         Ok(())
     }
 }
-fn profiles_for_image(digest: &str) -> Result<NativeClaimProfiles> {
+pub(crate) fn profiles_for_image(digest: &str) -> Result<NativeClaimProfiles> {
     let profile = |schema: &str| {
         bytes::row_digest(
             &json!({"schema":schema,"executing_artifact_sha256":digest}),
@@ -222,7 +228,7 @@ impl Default for ClaimPublicationLimits {
     }
 }
 impl ClaimPublicationLimits {
-    fn validate(self) -> Result<()> {
+    pub(crate) fn validate(self) -> Result<()> {
         if self.max_nodes == 0
             || self.max_nodes > 4096
             || self.max_relations == 0

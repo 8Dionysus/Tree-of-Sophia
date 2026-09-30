@@ -270,7 +270,7 @@ impl<'a, 'tx> Dependencies<'a, 'tx> {
         }
         Ok(value)
     }
-    fn claim(&mut self, id: &str) -> Result<Option<Declaration>> {
+    pub(super) fn claim(&mut self, id: &str) -> Result<Option<Declaration>> {
         self.query()?;
         let row:Option<(Option<String>,Option<String>)>=self.tx.query_row(
             "SELECT CASE WHEN length(CAST(declaration AS BLOB))<=? THEN declaration END,CASE WHEN length(CAST(digest AS BLOB))=64 THEN digest END FROM source_dependency_claims WHERE claim_id=?",

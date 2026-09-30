@@ -6,6 +6,7 @@
 pub(crate) mod forms_publication;
 #[path = "source_revision_publication.rs"]
 pub(crate) mod revision_publication;
+pub(crate) use revision_publication::CommittedRecordObservation;
 
 #[path = "source_creation_cli_selection.rs"]
 mod cli_selection;

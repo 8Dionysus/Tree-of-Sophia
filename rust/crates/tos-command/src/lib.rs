@@ -5,6 +5,11 @@
 
 mod durable_adapter;
 pub mod source_agent_publication;
+mod source_agent_publication_apply;
+mod source_agent_publication_assembly;
+mod source_agent_publication_closure;
+mod source_agent_publication_commit;
+mod source_agent_publication_profile;
 pub mod source_artifact_native;
 pub mod source_claim_publication;
 mod source_claim_publication_assembly;

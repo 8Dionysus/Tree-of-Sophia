@@ -1,6 +1,11 @@
 //! Agent source addressing paired with prepared rows, dependencies and context.
 //! The caller owns source membership/locks and the complete transaction rollback.
 //! Extending an address never updates an execution profile or admits a source.
+pub use crate::source_agent_publication_commit::publish_committed_agent_correction;
+pub use crate::source_agent_publication_profile::{
+    NativeAgentExecution, bootstrap_reviewed_agent_execution_profile_transaction,
+};
+
 use crate::{
     source_claim_publication::ClaimPublicationProgress,
     source_claim_publication_bytes as bytes,
@@ -31,7 +36,7 @@ fn view(value: &JsonValue, cap: usize) -> Result<Value> {
     bytes::parse(&raw, cap)
 }
 
-fn require_vector(inputs: &PreparedSourceInputs, cap: usize) -> Result<Value> {
+pub(super) fn require_vector(inputs: &PreparedSourceInputs, cap: usize) -> Result<Value> {
     let value = bytes::parse(inputs.raw(), cap)?;
     for role in [
         "source-catalog",
@@ -59,6 +64,24 @@ fn require_vector(inputs: &PreparedSourceInputs, cap: usize) -> Result<Value> {
         if let Some(schema) = schema {
             if body["header"] != json!({"schema_version":schema}) {
                 return Err(Error::Invalid("Agent independent raw row profile"));
+            }
+            let fields: &[(&str, &str)] = if role == "source-navigation" {
+                &[("nodes", "node_id"), ("edges", "edge_id")]
+            } else {
+                &[
+                    ("nodes", "node_id"),
+                    ("edges", "edge_id"),
+                    ("claim_traces", "claim_ref"),
+                ]
+            };
+            if body["logical_schema"] != schema
+                || body["collections"].as_object().map(|v| v.len()) != Some(fields.len())
+                || fields.iter().any(|(name, key)| {
+                    body["collections"][*name]["key_field"] != *key
+                        || body["collections"][*name]["order_fields"] != json!([key])
+                })
+            {
+                return Err(Error::Invalid("Agent raw collection identity/order"));
             }
         }
         digests.insert(role.clone(), json!(root.snapshot_sha256));
