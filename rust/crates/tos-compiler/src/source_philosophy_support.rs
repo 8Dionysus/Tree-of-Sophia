@@ -228,13 +228,23 @@ mod tests {
     }
     #[test]
     fn unsupported_source_representation_is_never_rewritten() {
-        assert!(parse(br#"{"value":1844674407370955161601}"#, 4096).is_err());
         assert!(parse(br#"{"value":"\ud800"}"#, 4096).is_err());
         assert!(parse(br#"{"value":1,"value":2}"#, 4096).is_err());
         assert_eq!(
             parse(br#"{"nested":{"unknown":[true,1]}}"#, 4096).unwrap()["nested"]["unknown"][0],
             true
         );
+    }
+
+    #[test]
+    fn arbitrary_precision_integer_round_trips_without_rewrite() {
+        let raw = br#"{"value":1844674407370955161601}"#;
+        let parsed = parse(raw, 4096).unwrap();
+        assert_eq!(
+            parsed["value"].as_number().unwrap().to_string(),
+            "1844674407370955161601"
+        );
+        assert_eq!(bytes(&parsed, 4096).unwrap(), canonical(raw, 4096).unwrap());
     }
 }
 

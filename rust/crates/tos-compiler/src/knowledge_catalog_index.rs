@@ -946,7 +946,7 @@ mod tests {
     }
 
     #[test]
-    fn cumulative_decoded_budget_refuses_before_blob_transfer() {
+    fn undersized_decoded_budget_refuses_during_casefold_before_blob_transfer() {
         let (mut db, receipt, vocab, packet) = fixture(false);
         let digest = Digest256::of_bytes(&packet);
         let limits = CatalogIndexLimits {
@@ -955,7 +955,7 @@ mod tests {
         };
         let error =
             materialize_inner(&mut db, &receipt, &vocab, limits, &packet, &digest).unwrap_err();
-        assert!(error.to_string().contains("decoded bytes"));
+        assert!(error.to_string().contains("catalog facet casefold bytes"));
     }
 
     #[test]

@@ -1670,7 +1670,7 @@ mod tests {
             "status":"missing","reason":"not retained","version_status":null,"record":null,
             "provenance":{},"grants_current_use":false,"performs_assessment":false});
         let version = json!({"node_id":native,"node_kind":"record-version","label":"Exact record version",
-            "source_ref":"ToS/claim.json","identity_status":"not_applicable",
+            "source_ref":"ToS/contracts/record-version-view.schema.json#/properties/record_ref","identity_status":"not_applicable",
             "properties":{"record_version_view":view}});
         let make = |native: &str, kind: &str, properties: Value| {
             let label = kind
