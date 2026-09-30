@@ -801,6 +801,14 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
     );
     let db_path = PathBuf::from(required(&packet, "db_path"));
     assert!(owner.starts_with(&root) && db_path.starts_with(&root));
+    // The native DB fence requires its immediate parent to be fixture-private.
+    let db_parent = db_path.parent().unwrap();
+    assert_eq!(db_parent.canonicalize().unwrap(), db_parent);
+    assert_eq!(
+        fs::metadata(db_parent).unwrap().uid(),
+        fs::metadata(&root).unwrap().uid()
+    );
+    fs::set_permissions(db_parent, fs::Permissions::from_mode(0o700)).unwrap();
     let connection = rusqlite::Connection::open(&db_path).unwrap();
     connection.busy_timeout(Duration::from_secs(2)).unwrap();
     connection

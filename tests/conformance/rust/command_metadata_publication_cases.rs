@@ -56,7 +56,7 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     let cancelled = Arc::new(AtomicBool::new(false));
     let repository = super::validation_cut_cases::repository();
     let consumer = PathBuf::from(
-        std::env::var_os("TOS_NATIVE_PREPARED_CONSUMER_BIN").expect("protected native owner C"),
+        std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH").expect("protected native owner C"),
     );
     let worker_path = super::validation_cut_cases::selected_worker_path();
     let e = std::env::current_exe().expect("current conformance executable E");
@@ -88,6 +88,14 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
     let owner = PathBuf::from(required(&packet, "owner_config"));
     let db_path = PathBuf::from(required(&packet, "db_path"));
     assert!(owner.starts_with(&root) && db_path.starts_with(&root));
+    // The native DB fence requires its immediate parent to be fixture-private.
+    let db_parent = db_path.parent().unwrap();
+    assert_eq!(db_parent.canonicalize().unwrap(), db_parent);
+    assert_eq!(
+        fs::metadata(db_parent).unwrap().uid(),
+        fs::metadata(&root).unwrap().uid()
+    );
+    fs::set_permissions(db_parent, fs::Permissions::from_mode(0o700)).unwrap();
     // Only this synthetic fixture is inventoried. No authored host scan or
     // estimation run; reserve the bounded static increments below before DB work.
     let (baseline, _) = fixture_physical_bytes(&[workspace.path().to_owned()], deadline);
