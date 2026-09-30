@@ -62,6 +62,56 @@ pub fn publish_committed_agent_correction(
     semantic_limits: SemanticMaintenanceLimits,
     cancelled: Arc<AtomicBool>,
 ) -> Result<Value> {
+    publish_committed_agent_correction_with_precommit(
+        db,
+        owner_configuration,
+        context,
+        current,
+        original,
+        software,
+        components,
+        before_source,
+        expected_binding,
+        catalog,
+        original_worker,
+        current_worker,
+        vocabulary,
+        descriptor,
+        operation,
+        bibliographic,
+        publication,
+        catalog_limits,
+        semantic_limits,
+        cancelled,
+        &mut || Ok(()),
+    )
+}
+
+/// Same guarded publication with a transport-owned final database fence.
+#[allow(clippy::too_many_arguments)]
+pub fn publish_committed_agent_correction_with_precommit(
+    db: &Connection,
+    owner_configuration: &Path,
+    context: &CommandContext,
+    current: &CorpusCutReader,
+    original: &CorpusCutReader,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    before_source: &PreparedSourceInputs,
+    expected_binding: &JsonValue,
+    catalog: &CatalogInputs,
+    original_worker: &mut CutWorkerSchemaExecutor,
+    current_worker: &mut CutWorkerSchemaExecutor,
+    vocabulary: &QueryVocabulary,
+    descriptor: &[u8],
+    operation: ClaimPublicationLimits,
+    bibliographic: BibliographicLimits,
+    publication: PublicationLimits,
+    catalog_limits: CatalogMaintenanceLimits,
+    semantic_limits: SemanticMaintenanceLimits,
+    cancelled: Arc<AtomicBool>,
+    precommit: &mut dyn FnMut() -> Result<()>,
+) -> Result<Value> {
     operation.validate()?;
     publication.validate()?;
     catalog.validate()?;
@@ -165,5 +215,5 @@ pub fn publish_committed_agent_correction(
         .finish(deadline, &cancelled)
         .map_err(|e| Error::Source(format!("Agent current worker FINAL: {e:?}")))?;
     execution.verify()?;
-    applied.commit(tx, &progress, &observation, deadline, &cancelled)
+    applied.commit(tx, &progress, &observation, deadline, &cancelled, precommit)
 }

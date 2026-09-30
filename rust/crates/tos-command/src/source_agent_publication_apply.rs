@@ -76,6 +76,7 @@ impl Applied {
         observation: &CommittedRecordObservation<'_>,
         deadline: Instant,
         cancelled: &AtomicBool,
+        precommit: &mut dyn FnMut() -> Result<()>,
     ) -> Result<Value> {
         progress.verify(&tx)?;
         let schema: u64 = tx.query_row("PRAGMA main.schema_version", [], |r| r.get(0))?;
@@ -98,6 +99,7 @@ impl Applied {
         }
         verify(observation, deadline, cancelled)?;
         progress.verify(&tx)?;
+        precommit()?;
         tx.commit()?;
         let mut result = self.receipt;
         result["prepared_committed"] = json!(true);

@@ -1,7 +1,9 @@
 //! Agent source addressing paired with prepared rows, dependencies and context.
 //! The caller owns source membership/locks and the complete transaction rollback.
 //! Extending an address never updates an execution profile or admits a source.
-pub use crate::source_agent_publication_commit::publish_committed_agent_correction;
+pub use crate::source_agent_publication_commit::{
+    publish_committed_agent_correction, publish_committed_agent_correction_with_precommit,
+};
 pub use crate::source_agent_publication_profile::{
     NativeAgentExecution, bootstrap_reviewed_agent_execution_profile_transaction,
 };

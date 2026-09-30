@@ -12,7 +12,7 @@ use tos_source_store::{
     SoftwareComponentSelectionV1,
 };
 use tos_validation::source_cut::CutSchemaExecutor;
-fn context(
+pub(super) fn context(
     configuration_raw: &[u8],
     request_raw: &[u8],
     recorded_at: &str,

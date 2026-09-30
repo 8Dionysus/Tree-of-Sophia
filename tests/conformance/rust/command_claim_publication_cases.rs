@@ -198,6 +198,7 @@ fn maintained_claim_addition_whole_transaction_and_access() {
     }
     let (fixture_bytes, fixture_entries) = fixture_physical_bytes(&inventory_roots, deadline);
     eprintln!("Claim whole preflight F={fixture_bytes} physical bytes entries={fixture_entries}");
+    fs::set_permissions(&db_path, fs::Permissions::from_mode(0o600)).unwrap();
     let connection = rusqlite::Connection::open(&db_path).unwrap();
     connection.busy_timeout(Duration::from_secs(2)).unwrap();
     assert!(connection.is_autocommit());
@@ -556,29 +557,6 @@ fn agent_catalog(packet: &Value, header: &Value) -> CatalogInputs {
         source_order_profile: SourceOrderProfile::SourceGraphId,
     }
 }
-fn agent_context(
-    files: &BTreeMap<String, Vec<u8>>,
-    config: &[u8],
-    request: &Value,
-    revision: SourceRevision,
-    instant: &str,
-    observed_owner_uid: u64,
-) -> tos_command::source_command::CommandContext {
-    tos_command::source_command::CommandContext {
-        base_revision: revision,
-        configuration_raw: config.to_vec(),
-        request_raw: serde_json::to_vec(request).unwrap(),
-        recorded_at: instant.to_owned(),
-        effective_uid: observed_owner_uid,
-        files: files
-            .iter()
-            .map(|(path, raw)| tos_command::source_command::SourceFile {
-                path: RelativePath::parse(path).unwrap(),
-                raw: raw.clone(),
-            })
-            .collect(),
-    }
-}
 fn agent_native_call(
     repository: &Path,
     owner: &Path,
@@ -617,6 +595,45 @@ fn agent_native_call(
         String::from_utf8_lossy(&output.stderr)
     );
     serde_json::from_slice(&output.stdout).unwrap()
+}
+
+fn agent_publication_cli_output(
+    executable: &Path,
+    invocation: &Path,
+    request: &Value,
+    deadline: Instant,
+) -> std::process::Output {
+    use std::io::Write;
+    let mut input = tempfile::NamedTempFile::new().unwrap();
+    let raw = serde_json::to_vec(request).unwrap();
+    assert!(raw.len() <= 1_048_576);
+    input.write_all(&raw).unwrap();
+    let mut command = Command::new(executable);
+    command
+        .arg("--invocation")
+        .arg(invocation)
+        .stdin(std::process::Stdio::from(input.reopen().unwrap()));
+    native_child::bounded_output_before(
+        &mut command,
+        1_048_576,
+        deadline.min(Instant::now() + Duration::from_secs(60)),
+    )
+}
+fn agent_publication_cli(
+    executable: &Path,
+    invocation: &Path,
+    request: &Value,
+    deadline: Instant,
+) -> Value {
+    let output = agent_publication_cli_output(executable, invocation, request, deadline);
+    assert!(
+        output.status.success(),
+        "actual Agent publication CLI: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let envelope: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(envelope["grants_admission"], false);
+    envelope["result"].clone()
 }
 
 fn agent_sql_snapshot(
@@ -689,10 +706,6 @@ fn agent_physical(workspace: &Path, deadline: Instant) {
 #[test]
 fn maintained_agent_record_correction_whole_transaction_and_access() {
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
-    use tos_command::source_agent_publication::{
-        NativeAgentExecution, bootstrap_reviewed_agent_execution_profile_transaction,
-        publish_committed_agent_correction,
-    };
     use tos_compiler::prepared_source_binding::read_prepared_source_inputs_transaction;
     use tos_source_store::{ReadLimits, SoftwareCaptureReader, SoftwareCaptureSelectionV1};
     let deadline = Instant::now() + Duration::from_secs(600);
@@ -787,8 +800,6 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
     let operation_limits = ClaimPublicationLimits::default();
     let initial_binding = typed(&packet["binding"]);
     let initial_catalog = agent_catalog(&packet, &packet["header"]);
-    let initial_source =
-        PreparedSourceInputs::parse(&canonical_lf(&packet["source_inputs"]), publication).unwrap();
     // Explicit same-fixture native auxiliary index bootstrap. The Python
     // producer/header identity is retained until the reviewed paired migration.
     {
@@ -821,69 +832,11 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         assert_eq!(report, typed(&packet["baseline_semantic_report"]));
         tx.commit().unwrap();
     }
-    let execution = NativeAgentExecution::observe(deadline, &cancel).unwrap();
-    let mut after_normalization = packet["header"]["normalization_binding"].clone();
-    after_normalization["processor_digest"] = Value::String(execution.processor().to_owned());
-    let deps = &packet["source_inputs"]["dependencies"];
-    let review = ReviewedClaimProfileTransition {
-        dependency_implementation_before: required(&packet, "dependency_implementation_before")
-            .to_owned(),
-        declaration_before: required(deps, "declaration-profile").to_owned(),
-        agent_publication_before: required(deps, "agent-publication-profile").to_owned(),
-        claim_publication_before: deps
-            .get("claim-publication-profile")
-            .and_then(Value::as_str)
-            .map(str::to_owned),
-        normalization_before: packet["header"]["normalization_binding"].clone(),
-        normalization_after: after_normalization,
-        native_normalization_processor_sha256: execution.processor().to_owned(),
-        review_ref: "test:real-Agent-whole-predecessor-profile-review".into(),
-    };
-    let progress =
-        ClaimPublicationProgress::install(&connection, cancel.clone(), deadline, 100_000_000)
-            .unwrap();
-    let profile_result = {
-        let tx = connection.unchecked_transaction().unwrap();
-        let result = bootstrap_reviewed_agent_execution_profile_transaction(
-            &tx,
-            &initial_binding,
-            &initial_source,
-            &initial_catalog,
-            &execution,
-            &review,
-            execution.agent_publication(),
-            &progress,
-            operation_limits,
-            publication,
-            catalog_limits,
-            semantic_limits,
-        )
-        .unwrap();
-        tx.commit().unwrap();
-        result
-    };
-    let binding = typed(&profile_result["binding"]);
-    let catalog = agent_catalog(&packet, &profile_result["source_header"]);
-    let source = {
-        let tx = connection.unchecked_transaction().unwrap();
-        let source =
-            read_prepared_source_inputs_transaction(&tx, &binding, &catalog, publication).unwrap();
-        tx.rollback().unwrap();
-        source
-    };
-    let predecessor_binding = workspace.path().join("Agent-predecessor-binding.json");
-    fs::write(
-        &predecessor_binding,
-        canonical_lf(&profile_result["binding"]),
-    )
-    .unwrap();
-    drop(progress);
-
     let original_files = agent_authored(&root, deadline);
     let original_store = workspace.path().join("original-cut");
     let original_revision =
         super::validation_cut_cases::write_cut_store(&original_files, &original_store);
-    let original =
+    let _original =
         super::command_form_cases::open_cut(&original_store, original_revision, deadline, &cancel);
     let mut combined = original_files.clone();
     for name in AGENT_RECORD_COMPONENTS {
@@ -985,11 +938,94 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         .iter()
         .map(|p| RelativePath::parse(p).unwrap())
         .collect::<Vec<_>>();
-    let components = software.select_components(&component_paths).unwrap();
+    let _components = software.select_components(&component_paths).unwrap();
     let invocation_path = workspace.path().join("agent-native-invocation.json");
     let invocation = serde_json::json!({"schema_version":"tos_local_native_source_invocation_v1","owner_config":owner,"owner_context":null,"assessment_schema_worker":null,"native_executable":owner_command,"native_executable_sha256":images[1].to_prefixed(),"corpus_store":original_store,"source_revision":original_revision.0.to_prefixed(),"original_source_revision":original_revision.0.to_prefixed(),"software_capture":capture,"software_restored_root":restored,"software_selection":{"source_git_commit":selection.source_git_commit,"source_git_tree":selection.source_git_tree,"capture_manifest_sha256":selection.capture_manifest_sha256.to_prefixed()},"software_components":AGENT_RECORD_COMPONENTS,"schema_worker":{"absolute_path":worker_path,"sha256":images[2].to_prefixed()},"budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,"max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
     fs::write(&invocation_path, serde_json::to_vec(&invocation).unwrap()).unwrap();
     fs::set_permissions(&invocation_path, fs::Permissions::from_mode(0o600)).unwrap();
+    let agent_invocation_path = root.join("agent-publication-invocation.json");
+    let binding_companion = root.join("agent-selected-binding.json");
+    let source_companion = root.join("agent-selected-source.json");
+    let catalog_companion = root.join("agent-selected-catalog.json");
+    let descriptor_companion = root.join("agent-selected-descriptor.json");
+    let write_protected = |path: &Path, value: &Value| {
+        fs::write(path, canonical_lf(value)).unwrap();
+        fs::set_permissions(path, fs::Permissions::from_mode(0o600)).unwrap();
+    };
+    let selected_catalog_value = |header: &Value| serde_json::json!({"header":header,"entity_registry":packet["entities"],"relation_registry":packet["relations"],"lenses":packet["lenses"],"source_order_profile":"source-graph-id-v1"});
+    write_protected(&binding_companion, &packet["binding"]);
+    write_protected(&source_companion, &packet["source_inputs"]);
+    write_protected(
+        &catalog_companion,
+        &selected_catalog_value(&packet["header"]),
+    );
+    write_protected(&descriptor_companion, &packet["descriptor"]);
+    let file_sha = |path: &Path| Digest256::of_bytes(&fs::read(path).unwrap()).to_prefixed();
+    let mut agent_invocation = invocation.clone();
+    agent_invocation["schema_version"] = json!("tos_local_native_agent_publication_invocation_v1");
+    agent_invocation["prepared_database"] = json!(db_path);
+    agent_invocation["expected_binding_path"] = json!(binding_companion);
+    agent_invocation["source_inputs_path"] = json!(source_companion);
+    agent_invocation["source_inputs_sha256"] = json!(file_sha(&source_companion));
+    agent_invocation["catalog_path"] = json!(catalog_companion);
+    agent_invocation["catalog_sha256"] = json!(file_sha(&catalog_companion));
+    agent_invocation["descriptor_path"] = json!(descriptor_companion);
+    agent_invocation["descriptor_sha256"] = json!(file_sha(&descriptor_companion));
+    agent_invocation["reviewed_execution_transition"] = Value::Null;
+    agent_invocation["publication_limits"] = json!({
+        "operation":{"max_nodes":operation_limits.max_nodes,"max_relations":operation_limits.max_relations,"max_claims":operation_limits.max_claims,"max_bytes":operation_limits.max_bytes,"max_row_bytes":operation_limits.max_row_bytes,"max_contexts":operation_limits.max_contexts,"max_vm_steps":operation_limits.max_vm_steps,"cow_target_bytes":operation_limits.cow_target_bytes},
+        "publication":publication,"catalog":catalog_limits,"semantic":semantic_limits,
+        "bibliographic":{"max_claim_cohort_rows":256,"max_claim_cohort_bytes":16777216,"max_output_rows":16384,"max_output_bytes":16777216}
+    });
+    write_protected(&agent_invocation_path, &agent_invocation);
+    let execution = agent_publication_cli(
+        &owner_command,
+        &agent_invocation_path,
+        &json!({"action":"describe-agent-execution"}),
+        deadline,
+    );
+    let mut after_normalization = packet["header"]["normalization_binding"].clone();
+    after_normalization["processor_digest"] = execution["processor"].clone();
+    let deps = &packet["source_inputs"]["dependencies"];
+    agent_invocation["reviewed_execution_transition"] = json!({
+        "dependency_implementation_before":packet["dependency_implementation_before"],"declaration_before":deps["declaration-profile"],"agent_publication_before":deps["agent-publication-profile"],"claim_publication_before":deps.get("claim-publication-profile").cloned().unwrap_or(Value::Null),
+        "normalization_before":packet["header"]["normalization_binding"],"normalization_after":after_normalization,"native_normalization_processor_sha256":execution["processor"],"review_ref":"test:real-Agent-whole-predecessor-profile-review","reviewed_after_agent_sha256":execution["agent_publication"]
+    });
+    write_protected(&agent_invocation_path, &agent_invocation);
+    let profile_result = agent_publication_cli(
+        &owner_command,
+        &agent_invocation_path,
+        &json!({"action":"reviewed-agent-execution-bootstrap"}),
+        deadline,
+    );
+    let binding = typed(&profile_result["binding"]);
+    let catalog = agent_catalog(&packet, &profile_result["source_header"]);
+    let source = {
+        let tx = connection.unchecked_transaction().unwrap();
+        let source =
+            read_prepared_source_inputs_transaction(&tx, &binding, &catalog, publication).unwrap();
+        tx.rollback().unwrap();
+        source
+    };
+    let predecessor_binding = workspace.path().join("Agent-predecessor-binding.json");
+    fs::write(
+        &predecessor_binding,
+        canonical_lf(&profile_result["binding"]),
+    )
+    .unwrap();
+    write_protected(&binding_companion, &profile_result["binding"]);
+    write_protected(
+        &source_companion,
+        &serde_json::from_slice::<Value>(source.raw()).unwrap(),
+    );
+    write_protected(
+        &catalog_companion,
+        &selected_catalog_value(&profile_result["source_header"]),
+    );
+    agent_invocation["source_inputs_sha256"] = json!(file_sha(&source_companion));
+    agent_invocation["catalog_sha256"] = json!(file_sha(&catalog_companion));
+    agent_invocation["reviewed_execution_transition"] = Value::Null;
+    write_protected(&agent_invocation_path, &agent_invocation);
     let preview = agent_native_call(
         &repository,
         &owner,
@@ -1024,104 +1060,49 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
     let source_receipt = workspace.path().join("native-Record-receipt.json");
     fs::write(&source_receipt, canonical_lf(&source_result)).unwrap();
     let current_files = agent_authored(&root, deadline);
-    let current_store = workspace.path().join("current-cut");
-    let current_revision =
-        super::validation_cut_cases::write_cut_store(&current_files, &current_store);
-    let current =
+    let current_store = original_store.clone();
+    let current_revision = super::validation_cut_cases::write_cut_store_on_base(
+        &current_files,
+        &current_store,
+        Some(original_revision),
+    );
+    let _current =
         super::command_form_cases::open_cut(&current_store, current_revision, deadline, &cancel);
-    let mut context_files = current_files.clone();
-    for name in AGENT_RECORD_COMPONENTS {
-        context_files.insert((*name).to_owned(), combined[*name].clone());
-    }
-    let context = agent_context(
-        &context_files,
-        &config_raw,
-        &request,
-        current_revision,
-        required(&source_result["receipt"], "recorded_at"),
-        fs::metadata(&owner).unwrap().uid() as u64,
-    );
-    let descriptor = serde_json::to_vec(&packet["descriptor"]).unwrap();
-    let vocabulary =
-        QueryVocabulary::parse(&descriptor, tos_compiler::NATIVE_KNOWLEDGE_ADAPTER_PROFILES)
-            .unwrap();
-    let bibliographic = BibliographicLimits {
-        catalog: SourceCatalogLimits {
-            max_files: 2048,
-            max_rows: 4096,
-            max_file_bytes: 16_777_216,
-            max_row_bytes: 1_048_576,
-            max_contract_bytes: 4_194_304,
-            max_output_row_bytes: 1_048_576,
-        },
-        max_claim_cohort_rows: 16,
-        max_claim_cohort_bytes: 16_777_216,
-        max_output_rows: 4096,
-        max_output_bytes: 16_777_216,
+    agent_invocation["source_revision"] = json!(current_revision.0.to_prefixed());
+    write_protected(&agent_invocation_path, &agent_invocation);
+    let publication_request = json!({"action":"publish-agent-correction","recorded_at":source_result["receipt"]["recorded_at"],"record_request":request});
+    let result = agent_publication_cli(
+        &owner_command,
+        &agent_invocation_path,
+        &publication_request,
         deadline,
-    };
-    let mut original_worker = super::command_form_cases::schemas(&original, deadline, &cancel);
-    let mut current_worker = super::command_form_cases::schemas(&current, deadline, &cancel);
-    let result = publish_committed_agent_correction(
-        &connection,
-        &owner,
-        &context,
-        &current,
-        &original,
-        &software,
-        &components,
-        &source,
-        &binding,
-        &catalog,
-        &mut original_worker,
-        &mut current_worker,
-        &vocabulary,
-        &descriptor,
-        operation_limits,
-        bibliographic,
-        publication,
-        catalog_limits,
-        semantic_limits,
-        cancel.clone(),
-    )
-    .unwrap();
-    assert_eq!(result["prepared_committed"], true);
-    drop(original_worker);
-    drop(current_worker);
-    // A stale predecessor fails as an ordinary guarded retry; the already
-    // committed source and every selected prepared row remain unchanged.
-    let prepared_before = agent_sql_snapshot(&connection, deadline);
-    let mut original_worker = super::command_form_cases::schemas(&original, deadline, &cancel);
-    let mut current_worker = super::command_form_cases::schemas(&current, deadline, &cancel);
-    assert!(
-        publish_committed_agent_correction(
-            &connection,
-            &owner,
-            &context,
-            &current,
-            &original,
-            &software,
-            &components,
-            &source,
-            &binding,
-            &catalog,
-            &mut original_worker,
-            &mut current_worker,
-            &vocabulary,
-            &descriptor,
-            operation_limits,
-            bibliographic,
-            publication,
-            catalog_limits,
-            semantic_limits,
-            cancel.clone()
-        )
-        .is_err()
     );
-    drop(original_worker);
-    drop(current_worker);
-    let prepared_after = agent_sql_snapshot(&connection, deadline);
-    assert_eq!(prepared_before, prepared_after);
+    assert_eq!(result["prepared_committed"], true);
+    // Actual protected production CLI stale predecessor refusal preserves all SQL/source bytes.
+    let prepared_before = agent_sql_snapshot(&connection, deadline);
+    let refusal = agent_publication_cli_output(
+        &owner_command,
+        &agent_invocation_path,
+        &publication_request,
+        deadline,
+    );
+    assert!(!refusal.status.success());
+    assert_eq!(prepared_before, agent_sql_snapshot(&connection, deadline));
+    assert_eq!(agent_authored(&root, deadline), current_files);
+    // Discard publication stdout as an authority: recover only from the persisted
+    // paired state under the authenticated source observation and read-only DB.
+    let recovered = agent_publication_cli(
+        &owner_command,
+        &agent_invocation_path,
+        &json!({"action":"inspect-agent-publication","recorded_at":source_result["receipt"]["recorded_at"],"record_request":request}),
+        deadline,
+    );
+    assert_eq!(recovered["binding"], result["binding"]);
+    assert_eq!(
+        recovered["transaction"]["transaction_id"],
+        result["transaction_id"]
+    );
+    assert_eq!(prepared_before, agent_sql_snapshot(&connection, deadline));
     assert_eq!(agent_authored(&root, deadline), current_files);
     let oracle_path = workspace.path().join("Agent-independent-oracle.json");
     let mut oracle = Command::new("/usr/bin/python3");
