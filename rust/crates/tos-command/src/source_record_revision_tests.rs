@@ -454,6 +454,10 @@ fn revision_cli_observe(
         output.metadata().unwrap().len() <= 1_048_576
             && errors.metadata().unwrap().len() <= 1_048_576
     );
+    assert!(
+        output.metadata().unwrap().blocks() + errors.metadata().unwrap().blocks()
+            <= 3 * 1024 * 1024 / 512
+    );
     output.seek(SeekFrom::Start(0)).unwrap();
     errors.seek(SeekFrom::Start(0)).unwrap();
     let mut raw = Vec::new();
@@ -561,6 +565,29 @@ const IMPLEMENTATIONS: &[&str] = &[
     "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_native_metadata_commands.py",
     "scripts/build_source_witness_catalog.py",
 ];
+
+// Count actual allocated blocks and inodes of every named owned copy.
+// Four MiB of the 512MiB ceiling remains for current anonymous CLI framing.
+fn scratch_budget(root: &Path, deadline: Instant) {
+    let mut pending = vec![root.to_path_buf()];
+    let mut blocks = 0u64;
+    let mut inodes = 0u64;
+    while let Some(path) = pending.pop() {
+        assert!(Instant::now() < deadline);
+        let metadata = path.symlink_metadata().unwrap();
+        assert!(!metadata.file_type().is_symlink());
+        blocks = blocks.checked_add(metadata.blocks()).unwrap();
+        inodes += 1;
+        assert!(blocks <= 508 * 1024 * 1024 / 512 && inodes <= 16_384);
+        if metadata.is_dir() {
+            for child in fs::read_dir(path).unwrap() {
+                pending.push(child.unwrap().path());
+            }
+        } else {
+            assert!(metadata.is_file());
+        }
+    }
+}
 
 fn freeze_invocation(path: &Path, value: &serde_json::Value) {
     let raw = serde_json::to_vec(value).unwrap();
@@ -694,8 +721,8 @@ fn pending_factory(
 
 #[test]
 fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery() {
-    let repository = repository();
     let deadline = Instant::now() + Duration::from_secs(900);
+    let repository = repository();
     let cancelled = AtomicBool::new(false);
     let native = PathBuf::from(
         std::env::var_os("TOS_NATIVE_OWNER_COMMAND_PATH").expect("immutable native CLI required"),
@@ -761,6 +788,7 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             })
             .collect();
         assert!(untouched.values().map(Vec::len).sum::<usize>() <= 33_554_432);
+        scratch_budget(temporary.path(), deadline);
         let initial = authored(isolated.path());
         let mut files = initial.clone();
         for reference in IMPLEMENTATIONS {
@@ -791,6 +819,7 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             "budgets":{"max_revisions":4,"max_members":2048,"max_total_bytes":33554432,"max_member_bytes":8388608,
                 "max_schema_receipts":128,"max_schema_receipt_bytes":262144,"worker_cpu_seconds":3,"worker_address_space_bytes":1073741824}});
         freeze_invocation(&invocation_path, &invocation);
+        scratch_budget(temporary.path(), deadline);
         let invoke = |request: &serde_json::Value| {
             let (success, result) =
                 revision_cli_observe(&repository, &owner, &invocation_path, request, deadline);
@@ -862,6 +891,7 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
                 .unwrap()
                 .unwrap();
             let transaction = retained_pending.plan.transaction_id.clone();
+            scratch_budget(temporary.path(), deadline);
             let control = fs::read(isolated.path().join(CONTROL)).unwrap();
             let mut unrelated = initial.clone();
             unrelated
@@ -991,6 +1021,7 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             let (current_revision, _) = cut(&after, &store, deadline, &cancelled);
             invocation["source_revision"] = serde_json::json!(current_revision.0.to_prefixed());
             freeze_invocation(&invocation_path, &invocation);
+            scratch_budget(temporary.path(), deadline);
             let replay = invoke(&request);
             assert_eq!(replay["replayed"], true);
             assert_eq!(created["receipt"], replay["receipt"]);
@@ -1049,6 +1080,7 @@ fn native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery(
             assert_eq!(fs::read(isolated.path().join(path)).unwrap(), *raw);
         }
         assert_eq!(fs::read(&owner).unwrap(), owner_raw);
+        scratch_budget(temporary.path(), deadline);
     }
     assert_eq!(
         [
