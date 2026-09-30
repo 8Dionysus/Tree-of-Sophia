@@ -355,13 +355,14 @@ fn owner(
         ));
     }
     let _ = (allowed_operations, allowed_fields);
+    let claim_id = id.to_owned();
     Ok(Owner {
         config,
         request,
         path,
         config_digest,
         contract_digests: contracts,
-        claim_id: id.to_owned(),
+        claim_id,
         form_identity_inputs,
         reads: ctx.files.clone(),
     })
@@ -437,7 +438,6 @@ fn form_identity_inputs(
     }
     let mut total = 0usize;
     let mut inputs = Vec::new();
-    let mut identities = BTreeSet::new();
     for name in paths {
         let path = rel(&name)?;
         if cut.current().member(&path).is_none() {
@@ -1482,7 +1482,10 @@ fn verify_record_origin(
                 "Historical Record archive subject differs",
             ));
         }
-        let prior_history = archived.get(SOURCE_HISTORY).map(cmd::parse).transpose()?;
+        let prior_history = archived
+            .get(SOURCE_HISTORY)
+            .map(|raw| cmd::parse(raw))
+            .transpose()?;
         let prior_receipts = if let Some(prior_history) = prior_history {
             cmd::exact_keys(&prior_history, &["schema_version", "record_id", "receipts"])?;
             if cmd::text(&prior_history, "record_id")? != record_id {
@@ -2037,7 +2040,7 @@ fn validate_history<'a>(
             ));
         }
         let next = replace_row(before_raw, &revised)?;
-        if index + 1 == receipts.len() && current_raw != next {
+        if index + 1 == receipts.len() && current_raw != &next {
             return Err(SourceCommandError::Conflict(
                 "current historical Claim stream is not retained head",
             ));
@@ -2085,7 +2088,7 @@ fn validate_history<'a>(
         let _ = (ctx, worker);
     }
     if let Some(expected) = expected {
-        if current_raw != expected {
+        if current_raw != &expected {
             return Err(SourceCommandError::Conflict(
                 "historical Claim stream differs from retained revision head",
             ));
@@ -2118,7 +2121,7 @@ fn verify_archived_form_result(
     )?;
     let form_name = package_form_name(path, id)?;
     let prior_raw = archived.get(&form_name);
-    let prior = prior_raw.map(cmd::parse).transpose()?;
+    let prior = prior_raw.map(|raw| cmd::parse(raw)).transpose()?;
     if let (Some(raw), Some(set)) = (prior_raw, prior.as_ref()) {
         schema(
             ctx,
@@ -2987,7 +2990,10 @@ fn validate_claim_head(
     // The captured request is exact source authority for identity continuity;
     // source schemas and the existing HumanForm kernel validate its descendants.
     let form_name = package_form_name(cmd::text(&owner.config, "source_path")?, &owner.claim_id)?;
-    let set = current.get(&form_name).map(cmd::parse).transpose()?;
+    let set = current
+        .get(&form_name)
+        .map(|raw| cmd::parse(raw))
+        .transpose()?;
     if let Some(set) = &set {
         schema(
             ctx,
@@ -3438,7 +3444,7 @@ fn prepare_forms(
                         owner,
                         current,
                         &claim,
-                        set.as_ref(),
+                        Some(set),
                         Some(receipt.clone()),
                         true,
                         &fields,

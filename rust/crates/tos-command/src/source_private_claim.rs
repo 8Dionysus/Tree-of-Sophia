@@ -5,6 +5,7 @@
 use crate::source_command::{self as cmd, *};
 use crate::source_forms;
 use crate::source_serialization::{self, PrivateMetadataFamily};
+use crate::source_sign_native::SignNativeRead;
 use crate::source_text_owner::OwnerTextContext;
 use crate::source_text_private_store::{
     PrivateArchiveReader, PrivateIdentityInputs, PrivatePackage,
@@ -665,7 +666,7 @@ fn archive_package(
 fn read_archive(
     grant: &Grant,
     context: &JsonValue,
-    archives: &mut impl PrivateArchiveReader,
+    archives: &mut (impl PrivateArchiveReader + ?Sized),
     receipt: &JsonValue,
     deadline: Instant,
     cancelled: &AtomicBool,
@@ -1491,7 +1492,7 @@ fn identity_inventory(
         }
     }
     let mut total = 0usize;
-    let mut fingerprints = BTreeMap::new();
+    let mut fingerprints = Vec::new();
     let mut ids = BTreeSet::new();
     for (reference, raw) in &selected {
         if raw.len() > MAX_INVENTORY_FILE_BYTES {
@@ -1505,10 +1506,10 @@ fn identity_inventory(
             .ok_or(SourceCommandError::Invalid(
                 "private Claim identity byte budget",
             ))?;
-        fingerprints.insert(
+        fingerprints.push((
             tos_foundation::JsonString::from_utf8(reference),
             cmd::string(&Digest256::of_bytes(raw).to_prefixed()),
-        );
+        ));
         let jsonl = reference.ends_with(".jsonl");
         for row in inventory_value(raw, jsonl)? {
             inventory_ids(&row, &mut ids)?;
@@ -2247,7 +2248,7 @@ fn claim_profile_route<'a>(
             route.reader.as_str(),
             "semantic-relation-v1" | "identity-relation-v1" | "structured-reference-value-v1"
         )
-        || !selection.source_access.is_object()
+        || selection.source_access.as_object().is_none()
         || !route
             .assertion_layers
             .contains(&cmd::text(claim, "assertion_layer")?.to_owned())
@@ -2846,13 +2847,13 @@ fn prepare_claim_forms(
         cancelled,
     )?;
     let views = private_claim_materializations(record, &payload)?;
-    if views
-        .iter()
-        .any(|view| cmd::text(view, "state")? != "ready")
-        || !views
-            .iter()
-            .any(|view| cmd::text(view, "role")? == "statement")
-    {
+    let mut all_ready = true;
+    let mut has_statement = false;
+    for view in &views {
+        all_ready &= cmd::text(view, "state")? == "ready";
+        has_statement |= cmd::text(view, "role")? == "statement";
+    }
+    if !all_ready || !has_statement {
         return Err(SourceCommandError::Invalid(
             "private Claim forms require ready source copies including the full statement",
         ));
@@ -3661,7 +3662,7 @@ fn ground_claims(
         cancelled,
     )?;
     require_contract_digest(worker, CONTEXT_SCHEMA_REF, &context_schema)?;
-    let mut configuration_grammars = BTreeMap::new();
+    let mut configuration_grammars = Vec::new();
     for (identity, route) in &routes {
         let mut schema_map = BTreeMap::new();
         schema_map.insert(
@@ -3700,10 +3701,10 @@ fn ground_claims(
                     .to_owned(),
             );
         }
-        configuration_grammars.insert(
+        configuration_grammars.push((
             tos_foundation::JsonString::from_utf8(identity),
             hash_map(schema_map),
-        );
+        ));
     }
     let configuration_basis = cmd::object(vec![
         (
@@ -4151,6 +4152,7 @@ fn historical_grant(raw: &[u8], context: &JsonValue) -> SourceCommandResult<Gran
             ));
         }
     }
+    let home = format!("{private_prefix}claims/{scope}/");
     Ok(Grant {
         raw: raw.to_vec(),
         value,
@@ -4159,11 +4161,11 @@ fn historical_grant(raw: &[u8], context: &JsonValue) -> SourceCommandResult<Gran
         digest: String::new(),
         context_snapshot: String::new(),
         source_path,
-        home: format!("{private_prefix}claims/{scope}/"),
+        home,
     })
 }
 
-fn validate_request_shape(request: &JsonValue) -> SourceCommandResult<&'static str> {
+fn validate_request_shape(request: &JsonValue) -> SourceCommandResult<&str> {
     let operation = cmd::text(request, "operation")?;
     if cmd::text(request, "schema_version")? != "tos_local_source_command_v1" {
         return Err(SourceCommandError::Unsupported(
@@ -5817,7 +5819,7 @@ fn initialize_grant_digest(
     let forms = form_grammar.as_object().ok_or(SourceCommandError::Invalid(
         "private Claim form grammar map",
     ))?;
-    let mut configuration_grammars = BTreeMap::new();
+    let mut configuration_grammars = Vec::new();
     for (identity, selection) in &grant.selections {
         let candidates = grammar
             .routes
@@ -5864,10 +5866,10 @@ fn initialize_grant_digest(
                     .to_owned(),
             );
         }
-        configuration_grammars.insert(
+        configuration_grammars.push((
             tos_foundation::JsonString::from_utf8(identity),
             hash_map(schema_map),
-        );
+        ));
     }
     let basis = cmd::object(vec![
         (
