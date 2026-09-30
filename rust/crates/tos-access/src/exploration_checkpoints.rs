@@ -261,6 +261,12 @@ impl ExplorationCheckpoints for ProcessExplorationCheckpoints {
                 {
                     return Err(budget());
                 }
+                let expires = match input {
+                    Some(input) => store.entries.get(input).ok_or_else(expired)?.expires,
+                    None => Instant::now()
+                        .checked_add(self.limits.ttl)
+                        .ok_or_else(corrupt)?,
+                };
                 if let Some(input) = input {
                     store.busy.insert(input.to_owned());
                 }
@@ -277,17 +283,14 @@ impl ExplorationCheckpoints for ProcessExplorationCheckpoints {
                     replay: None,
                     replay_packet: None,
                     response_staged: false,
-                    response_cap: limits
-                        .read
-                        .max_response_bytes
-                        .min(limits.read.json.max_bytes),
+                    response_cap: limits.read.max_response_bytes,
                     checkpoint_cap: self
                         .limits
                         .max_encoded_bytes
                         .min(limits.max_checkpoint_bytes),
                     replay_bytes: 0,
                     reserved: 0,
-                    ttl: self.limits.ttl,
+                    expires,
                     done: false,
                 })
             })();
@@ -346,7 +349,7 @@ struct Staged {
     checkpoint_cap: usize,
     replay_bytes: usize,
     reserved: usize,
-    ttl: Duration,
+    expires: Instant,
     done: bool,
 }
 impl PreparedExplorationCheckpoint for Staged {
@@ -395,7 +398,7 @@ impl PreparedExplorationCheckpoint for Staged {
         if self.done || !self.response_staged {
             return Err(corrupt());
         }
-        let expires = Instant::now().checked_add(self.ttl).ok_or_else(corrupt)?;
+        let expires = self.expires;
         let mut store = lock(&self.store)?;
         if self.next.is_some() != self.state.is_some()
             || self.input.is_some() != self.replay.is_some()
