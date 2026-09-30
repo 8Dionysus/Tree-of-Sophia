@@ -384,6 +384,10 @@
         "command": ["cargo", "build", "--locked", "-p", "tos-validation", "--bin", "tos-schema-worker"]
       },
       {
+        "label": "build exact native owner CLI for process-cold fixtures",
+        "command": ["cargo", "build", "--locked", "-p", "tos-command", "--bin", "tos-native-owner-command"]
+      },
+      {
         "label": "test Rust workspace",
         "command": ["cargo", "test", "--workspace", "--locked"]
       },
