@@ -408,5 +408,41 @@ manifest={'schema_version':'tos_corpus_capture_v2','source_git_commit':'1'*40,'s
             .is_err()
         );
         assert!(!rejected.exists());
+        // Restore the stream, corrupt only gzip CRC, then honestly rebind the
+        // outer digest. The decoder still must reject it before receipting.
+        let mutate = r#"
+import sys,json,hashlib
+from pathlib import Path
+p=Path(sys.argv[1]); a=bytearray((p/'source.tar.gz').read_bytes()); a[10]^=1; a[-8]^=1
+(p/'source.tar.gz').write_bytes(a)
+m=json.loads((p/'capture.json').read_bytes()); m['archive_sha256']=hashlib.sha256(a).hexdigest()
+(p/'capture.json').write_bytes((json.dumps(m,sort_keys=True,separators=(',',':'))+'\n').encode())
+"#;
+        assert!(
+            std::process::Command::new("python3")
+                .arg("-I")
+                .arg("-c")
+                .arg(mutate)
+                .arg(&capture)
+                .status()
+                .unwrap()
+                .success()
+        );
+        let mut rebound = selection.clone();
+        rebound.capture_manifest_sha256 =
+            Digest256::of_bytes(&fs::read(capture.join("capture.json")).unwrap());
+        let crc_output = scratch.0.join("bad-crc");
+        assert!(
+            restore_capture(
+                &capture,
+                &crc_output,
+                &rebound,
+                limits,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        assert!(!crc_output.join("restore-receipt.json").exists());
     }
 }
