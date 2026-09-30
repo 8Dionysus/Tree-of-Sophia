@@ -53,7 +53,7 @@ try:
             'extensions':{'unknown':{'negative':False,'missing':None}}}
         claims=[{**copy.deepcopy(claim),'claim_id':f'tos.claim.creation-fixture-{index}',
             'subject_ref':record['record_id']} for index,claim in enumerate(old_claims)]
-        relative='ToS/source-witnesses/history/new-subject/historical-claims.jsonl'
+        relative='ToS/source-witnesses/history/new-subject/historical-event.json'
         config={'schema_version':'tos_local_historical_create_owner_v1','uid':__import__('os').getuid(),
             'principal_id':'software:test-fixture','maker_type':'software','source_root':str(root),
             'source_path':relative,'record_id':record['record_id'],
