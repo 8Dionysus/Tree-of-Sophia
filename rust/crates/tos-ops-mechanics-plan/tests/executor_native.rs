@@ -454,9 +454,11 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
     assert!(stdout.contains("[ok] first\n"));
     assert!(stdout.contains("[run] failing: /usr/bin/python3 -B adapter.py fail\n"));
     assert!(!stdout.contains("[run] later:"));
-    assert!(String::from_utf8(output.stderr)
-        .unwrap()
-        .contains("[error] failing failed with exit code 17\n"));
+    assert!(
+        String::from_utf8(output.stderr)
+            .unwrap()
+            .contains("[error] failing failed with exit code 17\n")
+    );
     fs::remove_dir_all(root).unwrap();
 }
 
