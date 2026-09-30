@@ -143,6 +143,7 @@ fn fixture_bounds(files: &std::collections::BTreeMap<String, Vec<u8>>) {
     let total = files.values().map(Vec::len).sum::<usize>();
     let maximum = files.values().map(Vec::len).max().unwrap_or(0);
     assert!(files.len() <= 2048 && total <= 8 * 1024 * 1024 && maximum <= 2 * 1024 * 1024);
+    assert!(files.keys().all(|path| path.len() <= 1024));
     eprintln!(
         "edition fixture preflight: members={} bytes={} max={}",
         files.len(),
