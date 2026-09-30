@@ -8,6 +8,30 @@ use std::time::{Duration, Instant};
 use tos_command::source_creation_store::IsolatedCreationRoot;
 use tos_foundation::Digest256;
 
+// Keep the same live fixture directory on failure for exact physical diagnosis.
+// No copy or second capture is created, and successful calls clean up normally.
+struct ItemFailureFixture(Option<tempfile::TempDir>);
+impl ItemFailureFixture {
+    fn new() -> Self {
+        Self(Some(tempfile::tempdir().unwrap()))
+    }
+    fn path(&self) -> &Path {
+        self.0.as_ref().unwrap().path()
+    }
+}
+impl Drop for ItemFailureFixture {
+    fn drop(&mut self) {
+        if std::thread::panicking() {
+            if let Some(directory) = self.0.take() {
+                eprintln!(
+                    "Item failed fixture retained at {}",
+                    directory.keep().display()
+                );
+            }
+        }
+    }
+}
+
 const FACTORY: &str = r#"
 import json,sys,tempfile
 from pathlib import Path
@@ -143,13 +167,20 @@ fn cli(
     success: bool,
     deadline: Instant,
 ) -> Value {
+    eprintln!(
+        "Item native invocation operation={} command_id={} decision={}",
+        request["operation"], request["command_id"], request["decision"],
+    );
     let (status, raw, errors) = super::command_text_cases::native_owner_cli_observation(
         repository, owner, invocation, request, deadline,
     );
     assert_eq!(
         status.success(),
         success,
-        "Item native CLI output={} stderr={}",
+        "Item native CLI operation={} command_id={} decision={} output={} stderr={}",
+        request["operation"],
+        request["command_id"],
+        request["decision"],
         String::from_utf8_lossy(&raw),
         String::from_utf8_lossy(&errors)
     );
@@ -190,7 +221,7 @@ fn native_item_cli_adopts_replays_and_retains_unavailable_inventory() {
         .unwrap();
     let deadline = Instant::now() + Duration::from_secs(900);
     let cancelled = AtomicBool::new(false);
-    let temporary = tempfile::tempdir().unwrap();
+    let temporary = ItemFailureFixture::new();
     let isolated = IsolatedCreationRoot::create(temporary.path(), deadline, &cancelled).unwrap();
     let recovery = temporary.path().join("item-private-recovery");
     fs::create_dir(&recovery).unwrap();
@@ -481,7 +512,7 @@ print(json.dumps({'config':case.config,'proposal':p,'input':str(case.input)},ens
     // source recipe. The separate native owner reconstructs every buffer and
     // consumes the current explicit recovery grant for resume/rollback.
     for decision in ["resume", "rollback", "orphan"] {
-        let branch = tempfile::tempdir().unwrap();
+        let branch = ItemFailureFixture::new();
         let selected_root =
             IsolatedCreationRoot::create(branch.path(), deadline, &cancelled).unwrap();
         let recovery = branch.path().join("item-private-recovery");

@@ -1730,12 +1730,29 @@ pub(super) fn selected_reads_current(
                 "Work retained read aggregate overflow",
             ))?;
         let actual_digest = Digest256::of_bytes(&raw);
-        if total > limit
-            || !member_mode_matches(mode, member.mode, true)
-            || raw.len() as u64 != member.size_bytes
-            || actual_digest != member.sha256
-            || actual_digest.to_prefixed() != *digest
-        {
+        let refusal = if total > limit {
+            Some("aggregate read budget")
+        } else if !member_mode_matches(mode, member.mode, true) {
+            Some("physical mode differs from cut")
+        } else if raw.len() as u64 != member.size_bytes {
+            Some("physical size differs from cut")
+        } else if actual_digest != member.sha256 {
+            Some("physical digest differs from cut")
+        } else if actual_digest.to_prefixed() != *digest {
+            Some("observation digest differs from physical/cut bytes")
+        } else {
+            None
+        };
+        if let Some(reason) = refusal {
+            // Exact failed dependency only; never dump authored/payload bytes.
+            eprintln!(
+                "selected source read refused: path={path:?} reason={reason} cut_sha256={} physical_sha256={} observation_sha256={digest} cut_bytes={} physical_bytes={} cut_mode={:o} physical_mode={mode:o} aggregate_bytes={total} limit={limit}",
+                member.sha256.to_prefixed(),
+                actual_digest.to_prefixed(),
+                member.size_bytes,
+                raw.len(),
+                member.mode,
+            );
             return Err(SourceCommandError::Conflict(
                 "Work selected read changed before publication",
             ));
