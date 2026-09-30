@@ -69,6 +69,9 @@ owner surfaces.
    Python wheel/integrity probe remains a reference check; that wheel exposes
    `tos-legacy`, and is not the normal native artifact. Build-time Python test
    tools do not become runtime dependencies of the native prefix.
+   Native prepare fixture calls in CI use a 45-second allowance and a 55-second
+   child wait, matching the measured joined maintenance fixture; the native
+   product default remains 20 seconds. This allowance is not a production SLO.
 6. Complete the ordinary checkpoint review for the exact repo, commit and
    session; open a PR. Required **Repo Validation** selects checks from the
    exact changed paths using the table below. Failed, cancelled or unexpectedly

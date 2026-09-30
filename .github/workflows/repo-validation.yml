@@ -243,6 +243,8 @@ jobs:
               env.write('TOS_PREPARED_EXECUTOR=' + str(binary) + '\n')
               env.write('TOS_NATIVE_SOURCE_PREPARE_EXECUTABLE=' + str(binary) + '\n')
               env.write('TOS_PREPARED_MAX_SECONDS=20\n')
+              # CI fixture allowance; the native product still defaults to 20 seconds.
+              env.write('TOS_NATIVE_SOURCE_PREPARE_SECONDS=45\n')
               env.write('TOS_NATIVE_SOURCE_PREPARE_LIMITS={"max_input_bytes":1048576,"max_capture_bytes":8388608,"max_stage_bytes":8388608,"max_temp_bytes":8388608}\n')
           PY_RECEIPT
 
