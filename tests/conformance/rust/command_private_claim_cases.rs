@@ -385,8 +385,11 @@ initial_private=private_snapshot(case.local.private)
 calls={'oracle':0}
 def oracle(request):
     calls['oracle']+=1
-    return commands.run_legacy_oracle_command(case.owner,
+    print(f"private Claim oracle enter {calls['oracle']} {request['operation']}",file=sys.stderr,flush=True)
+    result=commands.run_legacy_oracle_command(case.owner,
         {'schema_version':'tos_local_source_command_v1',**request})
+    print(f"private Claim oracle exit {calls['oracle']} {request['operation']}",file=sys.stderr,flush=True)
+    return result
 
 before=oracle({'operation':'describe'})
 preview=oracle({'operation':'prepare-create','claims':[case.claim],'forms':case.forms})
@@ -488,7 +491,7 @@ print(json.dumps({'public':str(case.local.public),'private':str(case.local.priva
     errors.read_to_end(&mut error).unwrap();
     assert!(
         status.success(),
-        "private Claim fixture: {}",
+        "private Claim fixture ({status}): {}",
         String::from_utf8_lossy(&error)
     );
     serde_json::from_slice(&raw).unwrap()
