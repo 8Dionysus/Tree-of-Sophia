@@ -146,5 +146,14 @@ pub fn run(args: &[String]) -> Result<serde_json::Value, &'static str> {
             &cancelled,
         )
     };
-    result.map_err(|_| "backup/restore refused; retain partial output for owner recovery")
+    result.map_err(|error| match error.kind() {
+        std::io::ErrorKind::TimedOut => "backup/restore deadline exceeded; preserve partial output",
+        std::io::ErrorKind::Interrupted => "backup/restore cancelled; preserve partial output",
+        std::io::ErrorKind::InvalidInput => "backup/restore selection or limits refused",
+        std::io::ErrorKind::InvalidData => "backup/restore integrity or format refused",
+        std::io::ErrorKind::PermissionDenied => "backup/restore owner or access refused",
+        std::io::ErrorKind::AlreadyExists => "backup/restore requires a fresh destination",
+        std::io::ErrorKind::NotFound => "backup/restore selected input or tool is absent",
+        _ => "backup/restore IO or database refused; preserve partial output",
+    })
 }
