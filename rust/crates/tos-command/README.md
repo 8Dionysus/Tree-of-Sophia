@@ -125,3 +125,41 @@ transport guards or establish corpus capacity. A larger whole operation needs
 its own complete disk/time admission, including export, PostgreSQL/WAL, dump,
 three store copies, restore and cold verification. It is independent of the
 Agent source/archive restore and prepared graph's N/E/history measurement.
+
+## Installed Agent correction and recovery
+
+An installation containing the native command products exposes the owner command
+at `PREFIX/software/native/bin/tos-native-owner-command`. It consumes an explicit
+owner-selected invocation and a JSON request on stdin:
+
+```sh
+"$PREFIX/software/native/bin/tos-native-owner-command" \
+  --invocation "$ABSOLUTE_INVOCATION" < "$REQUEST_JSON"
+```
+
+The invocation binds the source, prepared database, software and resource limits;
+the request cannot substitute paths or grant itself authority. The Agent route
+accepts `describe-agent-execution`, `reviewed-agent-execution-bootstrap`,
+`publish-agent-correction` and `inspect-agent-publication`. Bootstrap requires the
+reviewed transition selected by the owner. Publication and inspection carry the
+original `record_request` and `recorded_at`; retain them with the source result.
+
+Source commit and prepared publication are separate outcomes. After an interrupted
+publication, `inspect-agent-publication` reconciles the retained source observation
+with the committed prepared binding, source vector and catalog in a read-only
+transaction. It does not roll back the source, accept an arbitrary replacement
+binding or grant a new writer. Resolve its result before selecting a successor or
+retrying publication; repeating source creation is not recovery.
+
+Read the resulting publication through installed `PREFIX/bin/tos` with the exact
+`--prepared-read-model` and `--prepared-binding` pair, including the existing
+CLI, `serve` and `mcp` routes. Software installation does not select this data.
+A verified source archive restore is a separate operation; successful publication
+inspection alone does not establish backup completeness or recovery on another
+machine.
+
+The Python `source_agent_publication` module remains a dependency of maintained
+Claim/Metadata publication and exact-source owner reads. A successful native Agent
+projection does not authorize removing those consumers. Retire the old module
+only as those operations acquire working replacements and their unique controls
+move to the replacements.
