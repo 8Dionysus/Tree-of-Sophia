@@ -847,5 +847,6 @@ mod command_responsibility_cases;
 mod command_edition_cases;
 
 mod command_artifact_cases;
+mod command_object_link_cases;
 
 mod command_owner_text_cases;
