@@ -1202,7 +1202,7 @@ fn compound_archive(
     }
     let manifest_raw = cmd::published(&manifest)?;
     expected.insert("manifest.json".to_owned(), manifest_raw.as_slice());
-    let observation = WorkArchive {
+    let mut observation = WorkArchive {
         path: location.clone(),
         members: expected
             .iter()
@@ -1210,6 +1210,32 @@ fn compound_archive(
             .collect(),
     };
     if !create {
+        // Retained writers share the exact archive object contract, while their
+        // published JSON member order can differ. Authenticate that object,
+        // then retain the actual bytes for every subsequent currentness check.
+        let directory = walk(&fs.root, &location, fs.uid)?;
+        let (raw, mode) = read_at_mode(
+            &directory,
+            "manifest.json",
+            fs.uid,
+            8192,
+            deadline,
+            cancelled,
+        )?
+        .ok_or(SourceCommandError::Conflict(
+            "Work archive manifest disappeared",
+        ))?;
+        if !matches!(mode, 0o600 | 0o644)
+            || cmd::canonical(&cmd::parse(&raw)?)? != cmd::canonical(&manifest)?
+        {
+            return Err(SourceCommandError::Conflict(
+                "Work archive manifest differs",
+            ));
+        }
+        observation.members.insert(
+            "manifest.json".to_owned(),
+            (Digest256::of_bytes(&raw), raw.len()),
+        );
         observation.verify_current(fs, deadline, cancelled)?;
         return Ok(observation);
     }
