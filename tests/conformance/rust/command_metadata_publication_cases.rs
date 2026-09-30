@@ -236,9 +236,14 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
             .clone();
     assert_eq!(created["replayed"], false);
     let current_files = agent_authored(&root, deadline);
-    let current_store = workspace.path().join("current-cut");
-    let current_revision =
-        super::validation_cut_cases::write_cut_store(&current_files, &current_store);
+    // One corpus store retains the original authenticated revision while the
+    // new current revision is appended; the fixed CLI opens BOTH through it.
+    let current_store = original_store.clone();
+    let current_revision = super::validation_cut_cases::write_cut_store_on_base(
+        &current_files,
+        &current_store,
+        Some(original_revision),
+    );
     // Genuine native creation is observed by the exact maintained full oracle
     // BEFORE any native prepared profile transition changes Python identities.
     let oracle_path = workspace.path().join("metadata-independent-oracle.json");
