@@ -4221,6 +4221,8 @@ with tempfile.TemporaryDirectory() as d:
                 if descriptor.operation_id == tos_access::SEARCH_OPERATION_ID {
                     executor.knowledge_search_legacy_available()
                         || executor.knowledge_search_indexed_available()
+                } else if descriptor.operation_id == tos_access::reading::OPERATION_ID {
+                    executor.reading_search_available()
                 } else {
                     O::from_id(&descriptor.operation_id).is_some_and(|op| {
                         op == O::ExplorationContracts || executor.knowledge_available(op)
@@ -4239,6 +4241,8 @@ with tempfile.TemporaryDirectory() as d:
                 if op.operation_id == tos_access::SEARCH_OPERATION_ID {
                     executor.knowledge_search_legacy_available()
                         || executor.knowledge_search_indexed_available()
+                } else if op.operation_id == tos_access::reading::OPERATION_ID {
+                    executor.reading_search_available()
                 } else {
                     O::from_id(&op.operation_id).is_some_and(|op| {
                         op == O::ExplorationContracts || executor.knowledge_available(op)
