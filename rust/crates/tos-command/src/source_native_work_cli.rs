@@ -3,7 +3,7 @@ use super::{absolute, capped, digest, selected_schema, text};
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::{self as owner, CreationFilesystem};
 use serde_json::{Value, json};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{JsonValue, SourceRevision};
@@ -271,15 +271,84 @@ pub(super) fn run(
             )?)?;
             let prepared_request = value(prepared.request())?;
             let outputs = prepared.projected_outputs();
-            let expression_home = cmd::text(&configuration, "expression_source_path")?
-                .rsplit_once('/')
-                .ok_or(SourceCommandError::Invalid("Work preview child parent"))?
-                .0;
-            let receipt = cmd::parse(
-                outputs
-                    .get(&format!("{expression_home}/work-expression-receipt.json"))
-                    .ok_or(SourceCommandError::Conflict("Work preview receipt absent"))?,
-            )?;
+            // Preview outputs deliberately omit capture/receipt carriers.
+            // Derive the maintained descriptive references from their exact
+            // validated record/form buffers, in the proposal selection order.
+            let mut prepared_refs = BTreeMap::new();
+            let mut prepared_forms = Vec::new();
+            for (kind, path_key, form_selections, id_key, version_key) in [
+                (
+                    "work",
+                    "work_source_path",
+                    "forms",
+                    "record_id",
+                    "record_version",
+                ),
+                (
+                    "expression",
+                    "expression_source_path",
+                    "expression_forms",
+                    "record_id",
+                    "record_version",
+                ),
+                (
+                    "claim",
+                    "expression_source_path",
+                    "claim_forms",
+                    "claim_id",
+                    "claim_version",
+                ),
+            ] {
+                let path = cmd::text(&configuration, path_key)?;
+                let home = path
+                    .rsplit_once('/')
+                    .ok_or(SourceCommandError::Invalid("Work preview record parent"))?
+                    .0;
+                let record_path = if kind == "claim" {
+                    format!("{home}/source-claims.jsonl")
+                } else {
+                    path.to_owned()
+                };
+                let record = cmd::parse(
+                    outputs
+                        .get(&record_path)
+                        .ok_or(SourceCommandError::Conflict("Work preview record absent"))?,
+                )?;
+                prepared_refs.insert(kind, cmd::reference(&record, id_key, version_key)?);
+                let forms_name = if kind == "claim" {
+                    format!(
+                        "source-claims.{}.human-forms.json",
+                        tos_foundation::Digest256::of_bytes(
+                            cmd::text(&configuration, "claim_id")?.as_bytes()
+                        )
+                        .to_hex()
+                    )
+                } else {
+                    format!("{kind}.human-forms.json")
+                };
+                let set = cmd::parse(
+                    outputs
+                        .get(&format!("{home}/{forms_name}"))
+                        .ok_or(SourceCommandError::Conflict("Work preview forms absent"))?,
+                )?;
+                let forms = cmd::array(&set, "forms")?;
+                let refs = cmd::array(prepared.request(), form_selections)?
+                    .iter()
+                    .map(|selection| {
+                        let id = cmd::text(selection, "form_id")?;
+                        let form = forms
+                            .iter()
+                            .find(|form| {
+                                form.object_get("form_id").and_then(JsonValue::as_str) == Some(id)
+                            })
+                            .ok_or(SourceCommandError::Conflict(
+                                "Work preview selected form absent",
+                            ))?;
+                        crate::source_forms::form_reference(form)
+                    })
+                    .collect::<SourceCommandResult<Vec<_>>>()?;
+                prepared_forms.push((kind, JsonValue::Array(refs)));
+            }
             let object = response
                 .as_object_mut()
                 .ok_or(SourceCommandError::Invalid("Work result object"))?;
@@ -290,14 +359,17 @@ pub(super) fn run(
             ] {
                 object.insert(key.into(), prepared_request[field].clone());
             }
-            for (key, field) in [
-                ("prepared_work", "parent_after"),
+            for (key, kind) in [
+                ("prepared_work", "work"),
                 ("prepared_expression", "expression"),
                 ("prepared_claim", "claim"),
-                ("prepared_forms", "forms"),
             ] {
-                object.insert(key.into(), value(cmd::field(&receipt, field)?)?);
+                object.insert(key.into(), value(&prepared_refs[kind])?);
             }
+            object.insert(
+                "prepared_forms".into(),
+                value(&cmd::object(prepared_forms))?,
+            );
             object.insert(
                 "prepared_materializations".into(),
                 value(&owner::work_expression_materializations(
