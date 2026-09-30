@@ -8,7 +8,7 @@ use crate::source_creation::{
     ManagedCreationObservation, ManagedSerializedCreation, SerializedCreation,
 };
 use crate::source_creation_store::{CreationFilesystem, CreationOwnerFence};
-use crate::{source_claims, source_forms, PredicateKind, PredicateRead, PredicateToken};
+use crate::{PredicateKind, PredicateRead, PredicateToken, source_claims, source_forms};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Cursor;
 use tos_foundation::{RelativePath, SourceRevision};

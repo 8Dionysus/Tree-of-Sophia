@@ -600,26 +600,73 @@ fn array(value: &Value) -> impl Iterator<Item = &Value> {
 // Actual bibliography consumer's complementary logical workspace for the
 // semantic owner below. Indexes borrow existing event strings/Values; each
 // possible entity/derivation contributes a named slot, not raw-byte scaling.
-pub(crate) fn semantic_workspace(event:&Value,max_issues:usize,available:usize)->Result<usize,ItemRefusal> {
-    let entities=["inputs","outputs","byproducts"].into_iter().try_fold(0usize,|n,group|n.checked_add(array(&event["entities"][group]).filter(|v|v.is_object()&&v["entity_ref"].as_str().is_some()).count()).ok_or(ItemRefusal::Budget))?;
-    let derivations=array(&event["derivations"]).filter(|v|v.is_object()).count();
-    let messages=std::mem::size_of::<Vec<&'static str>>()+max_issues.checked_mul(std::mem::size_of::<&'static str>()).ok_or(ItemRefusal::Budget)?;
-    let indexes=std::mem::size_of::<BTreeMap<&str,BTreeSet<&str>>>()
-        +["inputs","outputs","byproducts"].len()*std::mem::size_of::<(&str,BTreeSet<&str>)>()
-        +entities.checked_mul(std::mem::size_of::<&str>()).ok_or(ItemRefusal::Budget)?
-        +std::mem::size_of::<BTreeMap<&str,&Value>>()
-        +entities.checked_mul(std::mem::size_of::<(&str,&Value)>()).ok_or(ItemRefusal::Budget)?
-        +std::mem::size_of::<BTreeSet<&str>>()
-        +derivations.checked_mul(std::mem::size_of::<&str>()).ok_or(ItemRefusal::Budget)?;
-    let base=messages.checked_add(indexes).and_then(|n|n.checked_add(std::mem::size_of::<tos_foundation::Digest256Hasher>())).and_then(|n|n.checked_add(std::mem::size_of::<String>()+std::mem::size_of::<Digest256>()*2)).ok_or(ItemRefusal::Budget)?;
-    let command=&event["method"]["command_capture"];
-    let extra=if command["disclosure"]=="inline"&&command["argv"].is_array() {
-        let header=std::mem::size_of::<Vec<u8>>();
-        let remaining=available.checked_sub(base).and_then(|n|n.checked_sub(header)).ok_or(ItemRefusal::Budget)?;
-        header.checked_add(crate::record_biblio_cut::decoded_wire_size(&command["argv"],remaining)?).ok_or(ItemRefusal::Budget)?
-    }else{0};
-    let cost=base.checked_add(extra).ok_or(ItemRefusal::Budget)?;
-    if cost>available {return Err(ItemRefusal::BudgetCheck {check:"bibliography provenance semantic workspace",used:Some(cost as u64),limit:Some(available as u64)});}
+pub(crate) fn semantic_workspace(
+    event: &Value,
+    max_issues: usize,
+    available: usize,
+) -> Result<usize, ItemRefusal> {
+    let entities =
+        ["inputs", "outputs", "byproducts"]
+            .into_iter()
+            .try_fold(0usize, |n, group| {
+                n.checked_add(
+                    array(&event["entities"][group])
+                        .filter(|v| v.is_object() && v["entity_ref"].as_str().is_some())
+                        .count(),
+                )
+                .ok_or(ItemRefusal::Budget)
+            })?;
+    let derivations = array(&event["derivations"])
+        .filter(|v| v.is_object())
+        .count();
+    let messages = std::mem::size_of::<Vec<&'static str>>()
+        + max_issues
+            .checked_mul(std::mem::size_of::<&'static str>())
+            .ok_or(ItemRefusal::Budget)?;
+    let indexes = std::mem::size_of::<BTreeMap<&str, BTreeSet<&str>>>()
+        + ["inputs", "outputs", "byproducts"].len() * std::mem::size_of::<(&str, BTreeSet<&str>)>()
+        + entities
+            .checked_mul(std::mem::size_of::<&str>())
+            .ok_or(ItemRefusal::Budget)?
+        + std::mem::size_of::<BTreeMap<&str, &Value>>()
+        + entities
+            .checked_mul(std::mem::size_of::<(&str, &Value)>())
+            .ok_or(ItemRefusal::Budget)?
+        + std::mem::size_of::<BTreeSet<&str>>()
+        + derivations
+            .checked_mul(std::mem::size_of::<&str>())
+            .ok_or(ItemRefusal::Budget)?;
+    let base = messages
+        .checked_add(indexes)
+        .and_then(|n| n.checked_add(std::mem::size_of::<tos_foundation::Digest256Hasher>()))
+        .and_then(|n| {
+            n.checked_add(std::mem::size_of::<String>() + std::mem::size_of::<Digest256>() * 2)
+        })
+        .ok_or(ItemRefusal::Budget)?;
+    let command = &event["method"]["command_capture"];
+    let extra = if command["disclosure"] == "inline" && command["argv"].is_array() {
+        let header = std::mem::size_of::<Vec<u8>>();
+        let remaining = available
+            .checked_sub(base)
+            .and_then(|n| n.checked_sub(header))
+            .ok_or(ItemRefusal::Budget)?;
+        header
+            .checked_add(crate::record_biblio_cut::decoded_wire_size(
+                &command["argv"],
+                remaining,
+            )?)
+            .ok_or(ItemRefusal::Budget)?
+    } else {
+        0
+    };
+    let cost = base.checked_add(extra).ok_or(ItemRefusal::Budget)?;
+    if cost > available {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "bibliography provenance semantic workspace",
+            used: Some(cost as u64),
+            limit: Some(available as u64),
+        });
+    }
     Ok(cost)
 }
 

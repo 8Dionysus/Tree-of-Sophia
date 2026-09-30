@@ -6,8 +6,8 @@ use crate::knowledge_global_titles::CompleteBaseNodes;
 use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_stage::{KnowledgeStage, NodeRow, RelationRow, WritePhase};
 use crate::{Error, QueryVocabulary, Result};
-use rusqlite::{params, OptionalExtension};
-use serde_json::{json, Value};
+use rusqlite::{OptionalExtension, params};
+use serde_json::{Value, json};
 use std::collections::BTreeSet;
 use tos_foundation::{Digest256, Digest256Hasher};
 
@@ -895,7 +895,7 @@ pub fn clear_repository_topology(
 }
 
 fn ordered_branch_material(raw: &[u8], views: &Value, limits: TopologyLimits) -> Result<Vec<u8>> {
-    use tos_foundation::{parse_json, JsonLimits, JsonMode, JsonValue};
+    use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
     let jl = JsonLimits {
         max_bytes: limits.max_row_bytes,
         ..JsonLimits::default()

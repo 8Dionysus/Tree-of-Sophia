@@ -2,7 +2,7 @@
 //! authority; this state holds one exact pending request across uncertain I/O.
 
 use tos_foundation::{
-    emit_value_preserved_json, parse_json, JsonLimits, JsonMode, JsonString, JsonValue,
+    JsonLimits, JsonMode, JsonString, JsonValue, emit_value_preserved_json, parse_json,
 };
 use wasm_bindgen::prelude::*;
 

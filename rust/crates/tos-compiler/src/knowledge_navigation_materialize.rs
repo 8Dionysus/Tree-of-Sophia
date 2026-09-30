@@ -580,10 +580,10 @@ mod tests {
         StageOwner,
     };
     use crate::{
-        prepare_navigation_relation_dependencies, prepare_source_navigation, KnowledgeRegistry,
-        Limits, NavigationHeaderClaim, NavigationNodeLimits, NavigationPrepareLimits,
-        NavigationRelationLimits, NavigationRelationNormalizeLimits, QueryVocabulary,
-        SourceBinding,
+        KnowledgeRegistry, Limits, NavigationHeaderClaim, NavigationNodeLimits,
+        NavigationPrepareLimits, NavigationRelationLimits, NavigationRelationNormalizeLimits,
+        QueryVocabulary, SourceBinding, prepare_navigation_relation_dependencies,
+        prepare_source_navigation,
     };
     use serde_json::json;
     use std::{

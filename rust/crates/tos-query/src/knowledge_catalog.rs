@@ -127,7 +127,9 @@ pub trait CatalogCurrentAuthority<'hold> {
             "managed selected source authorization unavailable",
         ))
     }
-    fn abort_probe(&self) -> Option<Arc<dyn crate::AbortProbe>> { None }
+    fn abort_probe(&self) -> Option<Arc<dyn crate::AbortProbe>> {
+        None
+    }
     fn policy_binding(&self) -> CurrentPolicyBinding;
     fn disclosure_scope(&self) -> CatalogDisclosureScope;
     fn check_selected(&mut self) -> Result<(), CatalogError>;
@@ -207,15 +209,23 @@ pub fn execute_selected_catalog<'hold, A: CatalogCurrentAuthority<'hold> + ?Size
     let policy = authority.policy_binding();
     let abort = authority.abort_probe();
     let check_abort = || match abort.as_ref().and_then(|probe| probe.reason()) {
-        Some(crate::AbortReason::Cancelled) => Err(error(CatalogErrorCode::Cancelled, "catalog query cancelled")),
-        Some(crate::AbortReason::DeadlineExceeded) => Err(error(CatalogErrorCode::DeadlineExceeded, "catalog query deadline exceeded")),
+        Some(crate::AbortReason::Cancelled) => Err(error(
+            CatalogErrorCode::Cancelled,
+            "catalog query cancelled",
+        )),
+        Some(crate::AbortReason::DeadlineExceeded) => Err(error(
+            CatalogErrorCode::DeadlineExceeded,
+            "catalog query deadline exceeded",
+        )),
         None => Ok(()),
     };
     check_abort()?;
     let scope = authority.disclosure_scope();
     scope.validate(bound, &policy)?;
     authority.check_selected()?;
-    if let Some(proof) = bound.source_basis().managed_source() { authority.authorize_managed_source_current(proof)?; }
+    if let Some(proof) = bound.source_basis().managed_source() {
+        authority.authorize_managed_source_current(proof)?;
+    }
 
     let connection = model.connection();
     let count = Arc::new(AtomicU64::new(0));
@@ -224,7 +234,12 @@ pub fn execute_selected_catalog<'hold, A: CatalogCurrentAuthority<'hold> + ?Size
     let vm_abort = abort.clone();
     connection.progress_handler(
         1,
-        Some(move || vm_abort.as_ref().is_some_and(|probe| probe.reason().is_some()) || observed.fetch_add(1, Ordering::Relaxed) >= cap),
+        Some(move || {
+            vm_abort
+                .as_ref()
+                .is_some_and(|probe| probe.reason().is_some())
+                || observed.fetch_add(1, Ordering::Relaxed) >= cap
+        }),
     );
     let selected = (|| {
         let mut statement = connection.prepare_cached(
@@ -302,11 +317,18 @@ pub fn execute_selected_catalog<'hold, A: CatalogCurrentAuthority<'hold> + ?Size
         )
     })?;
     let root = parsed.root();
-    bound.validate_catalog_identity(root, budget.json).map_err(|reason| error(
-        if reason.code == crate::search_v2::SearchV2ErrorCode::BudgetExceeded { CatalogErrorCode::BudgetExceeded }
-        else { CatalogErrorCode::CorruptSelectedCarrier },
-        "selected catalog identity differs",
-    ))?;
+    bound
+        .validate_catalog_identity(root, budget.json)
+        .map_err(|reason| {
+            error(
+                if reason.code == crate::search_v2::SearchV2ErrorCode::BudgetExceeded {
+                    CatalogErrorCode::BudgetExceeded
+                } else {
+                    CatalogErrorCode::CorruptSelectedCarrier
+                },
+                "selected catalog identity differs",
+            )
+        })?;
     authority.authorize_current(bound.selection().catalog_packet_sha256)?;
     authority.check_selected()?;
     bound.check_model(model).map_err(|_| {
@@ -315,7 +337,9 @@ pub fn execute_selected_catalog<'hold, A: CatalogCurrentAuthority<'hold> + ?Size
             "selected catalog binding changed",
         )
     })?;
-    if let Some(proof) = bound.source_basis().managed_source() { authority.authorize_managed_source_current(proof)?; }
+    if let Some(proof) = bound.source_basis().managed_source() {
+        authority.authorize_managed_source_current(proof)?;
+    }
     let mut lease =
         authority.acquire_disclosure(&scope, bound.selection().catalog_packet_sha256)?;
     lease.recheck()?;

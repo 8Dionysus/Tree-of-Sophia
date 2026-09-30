@@ -11,7 +11,7 @@ const OPENING_SENTENCE_PLAN: &str = "ToS/source-witnesses/works/friedrich-nietzs
 use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::text_rules::{self, LayerResource, TextRuleReport, TextRuleState};
 use crate::{KeyState, PredicateRead};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use tos_foundation::{Digest256, RelativePath};
 
 pub trait LayerFamilySource {
@@ -351,27 +351,28 @@ impl LayerFamilyRules {
             .checked_sub(self.state_bytes)
             .and_then(|n| n.checked_sub(self.named_transient))
             .ok_or(ItemRefusal::Budget)?;
-        let codec = tos_foundation::JsonLimits::new(
-            self.limits.max_member_bytes,
-            64,
-            300_000,
-            4_300,
-        )
-        .map_err(|_| ItemRefusal::Budget)?;
-        let (value, decoded_state) = match crate::record_biblio_cut::bounded_legacy_decoded_state_with_limits(
-            &raw, codec, available, self.limits.deadline, source.cancellation(),
-        ) {
-            Ok(result) => result,
-            Err(ItemRefusal::Source(reason)) => {
-                self.issue(path, "invalid-json", reason)?;
-                return Ok(None);
-            }
-            Err(ItemRefusal::Unsupported(reason)) => {
-                self.gap(path, &reason)?;
-                return Ok(None);
-            }
-            Err(reason) => return Err(reason),
-        };
+        let codec =
+            tos_foundation::JsonLimits::new(self.limits.max_member_bytes, 64, 300_000, 4_300)
+                .map_err(|_| ItemRefusal::Budget)?;
+        let (value, decoded_state) =
+            match crate::record_biblio_cut::bounded_legacy_decoded_state_with_limits(
+                &raw,
+                codec,
+                available,
+                self.limits.deadline,
+                source.cancellation(),
+            ) {
+                Ok(result) => result,
+                Err(ItemRefusal::Source(reason)) => {
+                    self.issue(path, "invalid-json", reason)?;
+                    return Ok(None);
+                }
+                Err(ItemRefusal::Unsupported(reason)) => {
+                    self.gap(path, &reason)?;
+                    return Ok(None);
+                }
+                Err(reason) => return Err(reason),
+            };
         self.reserve_named(decoded_state)?;
         if !value.is_object() {
             self.issue(path, "object-required", path)?;

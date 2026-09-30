@@ -74,7 +74,10 @@ pub trait InspectCurrentAuthority<'hold> {
         &mut self,
         _: &tos_compiler::ManagedSourceProofV1,
     ) -> Result<(), SearchV2Error> {
-        Err(error(SearchV2ErrorCode::Unavailable, "managed selected source authorization unavailable"))
+        Err(error(
+            SearchV2ErrorCode::Unavailable,
+            "managed selected source authorization unavailable",
+        ))
     }
     /// Exact captured/public corpus originals, under the same current release
     /// projection hold. This does not grant source text or authored admission.
@@ -86,7 +89,10 @@ pub trait InspectCurrentAuthority<'hold> {
         _: &[u8],
         _: Digest256,
     ) -> Result<(), SearchV2Error> {
-        Err(error(SearchV2ErrorCode::Unavailable, "selected corpus original authorization unavailable"))
+        Err(error(
+            SearchV2ErrorCode::Unavailable,
+            "selected corpus original authorization unavailable",
+        ))
     }
     /// Cold-verified GraphViews index identity, covered by the same corpus
     /// projection hold. No original body or source-text grant is implied.
@@ -97,7 +103,10 @@ pub trait InspectCurrentAuthority<'hold> {
         _: Option<&str>,
         _: Digest256,
     ) -> Result<(), SearchV2Error> {
-        Err(error(SearchV2ErrorCode::Unavailable, "selected corpus view identity authorization unavailable"))
+        Err(error(
+            SearchV2ErrorCode::Unavailable,
+            "selected corpus view identity authorization unavailable",
+        ))
     }
     /// The current projection hold covers the exact selected philosophy
     /// header and every consulted original row. Custody alone is not a grant.
@@ -109,7 +118,10 @@ pub trait InspectCurrentAuthority<'hold> {
         _: &[u8],
         _: Digest256,
     ) -> Result<(), SearchV2Error> {
-        Err(error(SearchV2ErrorCode::Unavailable, "selected philosophy original authorization unavailable"))
+        Err(error(
+            SearchV2ErrorCode::Unavailable,
+            "selected philosophy original authorization unavailable",
+        ))
     }
     /// Original navigation custody is distinct from normalized carrier access.
     /// The same disclosure lease must cover this selected component, including
@@ -121,7 +133,10 @@ pub trait InspectCurrentAuthority<'hold> {
         _: &[u8],
         _: Digest256,
     ) -> Result<(), SearchV2Error> {
-        Err(error(SearchV2ErrorCode::Unavailable, "selected navigation original authorization unavailable"))
+        Err(error(
+            SearchV2ErrorCode::Unavailable,
+            "selected navigation original authorization unavailable",
+        ))
     }
     /// Exact owner-carried registry bytes, never ambient data-root discovery.
     /// A contracts disclosure lease must cover both grants through final flush.
@@ -131,15 +146,23 @@ pub trait InspectCurrentAuthority<'hold> {
         _: &[u8],
         _: Digest256,
     ) -> Result<(), SearchV2Error> {
-        Err(error(SearchV2ErrorCode::Unavailable, "selected registry authorization unavailable"))
+        Err(error(
+            SearchV2ErrorCode::Unavailable,
+            "selected registry authorization unavailable",
+        ))
     }
     /// Stored-lens discovery consults the exact selected public catalog.
     /// The acquired disclosure lease must also cover this catalog grant.
     fn authorize_catalog_current(&mut self, _: Digest256) -> Result<(), SearchV2Error> {
-        Err(error(SearchV2ErrorCode::Unavailable, "selected catalog authorization unavailable"))
+        Err(error(
+            SearchV2ErrorCode::Unavailable,
+            "selected catalog authorization unavailable",
+        ))
     }
     /// Transport cancellation is independent of source authorization.
-    fn abort_probe(&self) -> Option<Arc<dyn crate::AbortProbe>> { None }
+    fn abort_probe(&self) -> Option<Arc<dyn crate::AbortProbe>> {
+        None
+    }
     fn policy_binding(&self) -> CurrentPolicyBinding;
     fn disclosure_scope(&self) -> IndexedDisclosureScope;
     fn check_selected(&mut self) -> Result<(), SearchV2Error>;
@@ -182,125 +205,324 @@ pub(crate) struct Reader<'a, 'b, A: ?Sized> {
 impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
     fn original_error(reason: tos_compiler::Error) -> SearchV2Error {
         match reason {
-            tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => budget_error(),
+            tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => {
+                budget_error()
+            }
             _ => corrupt("selected navigation original read failed"),
         }
     }
     fn charge_original(&mut self, rows: usize, bytes: u64) -> Result<(), SearchV2Error> {
-        self.rows = self.rows.checked_add(rows as u64).ok_or_else(budget_error)?;
+        self.rows = self
+            .rows
+            .checked_add(rows as u64)
+            .ok_or_else(budget_error)?;
         self.decoded = self.decoded.checked_add(bytes).ok_or_else(budget_error)?;
-        if self.rows > self.budget.max_rows || self.decoded > self.budget.max_decoded_bytes { return Err(budget_error()); }
+        if self.rows > self.budget.max_rows || self.decoded > self.budget.max_decoded_bytes {
+            return Err(budget_error());
+        }
         self.check_interrupt()
     }
-    pub(crate) fn original_receipt(&mut self) -> Result<tos_compiler::NavigationOriginalReceipt, SearchV2Error> {
+    pub(crate) fn original_receipt(
+        &mut self,
+    ) -> Result<tos_compiler::NavigationOriginalReceipt, SearchV2Error> {
         self.check_interrupt()?;
         if !self.model.navigation_original_available() {
-            return Err(error(SearchV2ErrorCode::Unavailable, "selected navigation originals unavailable"));
+            return Err(error(
+                SearchV2ErrorCode::Unavailable,
+                "selected navigation originals unavailable",
+            ));
         }
-        self.model.check_pin().map_err(|_| error(SearchV2ErrorCode::StaleSelection, "selected navigation pin changed"))?;
-        let receipt = self.model.navigation_original_receipt().map_err(Self::original_error)?.clone();
-        let rows = receipt.nodes.checked_add(receipt.edges).and_then(|n| n.checked_add(receipt.rights)).and_then(|n| n.checked_add(1)).ok_or_else(budget_error)?;
-        let bytes = receipt.total_bytes.checked_add(receipt.member_index_bytes).ok_or_else(budget_error)?;
-        if rows > self.budget.max_rows.saturating_sub(self.rows) || bytes > self.budget.max_decoded_bytes.saturating_sub(self.decoded) { return Err(budget_error()); }
+        self.model.check_pin().map_err(|_| {
+            error(
+                SearchV2ErrorCode::StaleSelection,
+                "selected navigation pin changed",
+            )
+        })?;
+        let receipt = self
+            .model
+            .navigation_original_receipt()
+            .map_err(Self::original_error)?
+            .clone();
+        let rows = receipt
+            .nodes
+            .checked_add(receipt.edges)
+            .and_then(|n| n.checked_add(receipt.rights))
+            .and_then(|n| n.checked_add(1))
+            .ok_or_else(budget_error)?;
+        let bytes = receipt
+            .total_bytes
+            .checked_add(receipt.member_index_bytes)
+            .ok_or_else(budget_error)?;
+        if rows > self.budget.max_rows.saturating_sub(self.rows)
+            || bytes > self.budget.max_decoded_bytes.saturating_sub(self.decoded)
+        {
+            return Err(budget_error());
+        }
         Ok(receipt)
     }
-    pub(crate) fn philosophy_receipt(&mut self) -> Result<tos_compiler::PhilosophyOriginalReceipt, SearchV2Error> {
+    pub(crate) fn philosophy_receipt(
+        &mut self,
+    ) -> Result<tos_compiler::PhilosophyOriginalReceipt, SearchV2Error> {
         self.check_interrupt()?;
         if !self.model.philosophy_original_available() {
-            return Err(error(SearchV2ErrorCode::Unavailable, "selected philosophy originals unavailable"));
+            return Err(error(
+                SearchV2ErrorCode::Unavailable,
+                "selected philosophy originals unavailable",
+            ));
         }
-        self.model.check_pin().map_err(|_| error(SearchV2ErrorCode::StaleSelection, "selected philosophy pin changed"))?;
-        let receipt = self.model.philosophy_original_receipt().map_err(|reason| match reason {
-            tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => budget_error(),
-            _ => corrupt("selected philosophy original receipt invalid"),
-        })?.clone();
-        let rows = receipt.nodes.checked_add(receipt.edges).and_then(|n| n.checked_add(1)).ok_or_else(budget_error)?;
-        if rows > self.budget.max_rows.saturating_sub(self.rows) || receipt.total_bytes > self.budget.max_decoded_bytes.saturating_sub(self.decoded) { return Err(budget_error()); }
+        self.model.check_pin().map_err(|_| {
+            error(
+                SearchV2ErrorCode::StaleSelection,
+                "selected philosophy pin changed",
+            )
+        })?;
+        let receipt = self
+            .model
+            .philosophy_original_receipt()
+            .map_err(|reason| match reason {
+                tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => {
+                    budget_error()
+                }
+                _ => corrupt("selected philosophy original receipt invalid"),
+            })?
+            .clone();
+        let rows = receipt
+            .nodes
+            .checked_add(receipt.edges)
+            .and_then(|n| n.checked_add(1))
+            .ok_or_else(budget_error)?;
+        if rows > self.budget.max_rows.saturating_sub(self.rows)
+            || receipt.total_bytes > self.budget.max_decoded_bytes.saturating_sub(self.decoded)
+        {
+            return Err(budget_error());
+        }
         Ok(receipt)
     }
-    pub(crate) fn corpus_receipt(&mut self) -> Result<tos_compiler::CorpusOriginalReceipt, SearchV2Error> {
+    pub(crate) fn corpus_receipt(
+        &mut self,
+    ) -> Result<tos_compiler::CorpusOriginalReceipt, SearchV2Error> {
         self.check_interrupt()?;
-        if !self.model.corpus_original_available() { return Err(error(SearchV2ErrorCode::Unavailable, "selected corpus originals unavailable")); }
-        self.model.corpus_original_receipt().map(Clone::clone).map_err(|reason| match reason {
-            tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => budget_error(),
-            _ => corrupt("selected corpus original receipt invalid"),
-        })
+        if !self.model.corpus_original_available() {
+            return Err(error(
+                SearchV2ErrorCode::Unavailable,
+                "selected corpus originals unavailable",
+            ));
+        }
+        self.model
+            .corpus_original_receipt()
+            .map(Clone::clone)
+            .map_err(|reason| match reason {
+                tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => {
+                    budget_error()
+                }
+                _ => corrupt("selected corpus original receipt invalid"),
+            })
     }
-    pub(crate) fn corpus_view_identity(&mut self, receipt: &tos_compiler::CorpusOriginalReceipt, after: Option<u64>) -> Result<Option<tos_compiler::CorpusOriginalViewIdentity>, SearchV2Error> {
+    pub(crate) fn corpus_view_identity(
+        &mut self,
+        receipt: &tos_compiler::CorpusOriginalReceipt,
+        after: Option<u64>,
+    ) -> Result<Option<tos_compiler::CorpusOriginalViewIdentity>, SearchV2Error> {
         self.check_interrupt()?;
-        if self.rows >= self.budget.max_rows { return Err(budget_error()); }
-        let bytes = self.budget.max_decoded_bytes.saturating_sub(self.decoded).min(self.budget.max_payload_bytes as u64);
-        let page = self.model.corpus_original_view_identities_under_caller_budget(after, 1, self.budget.max_field_bytes, bytes).map_err(|reason| match reason {
-            tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => budget_error(),
-            _ => corrupt("selected corpus view identity read failed"),
-        })?;
+        if self.rows >= self.budget.max_rows {
+            return Err(budget_error());
+        }
+        let bytes = self
+            .budget
+            .max_decoded_bytes
+            .saturating_sub(self.decoded)
+            .min(self.budget.max_payload_bytes as u64);
+        let page = self
+            .model
+            .corpus_original_view_identities_under_caller_budget(
+                after,
+                1,
+                self.budget.max_field_bytes,
+                bytes,
+            )
+            .map_err(|reason| match reason {
+                tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => {
+                    budget_error()
+                }
+                _ => corrupt("selected corpus view identity read failed"),
+            })?;
         self.charge_original(page.rows.len(), page.decoded_bytes)?;
-        let Some(row) = page.rows.into_iter().next() else { return Ok(None); };
-        if after.is_some_and(|previous| row.ordinal <= previous) { return Err(corrupt("selected corpus view identity order differs")); }
-        let sha = Digest256::from_hex(&row.raw_sha256).map_err(|_| corrupt("selected corpus view identity digest invalid"))?;
-        self.authority.authorize_corpus_view_identity_current(receipt, row.ordinal, row.view_id.as_deref(), sha)?;
+        let Some(row) = page.rows.into_iter().next() else {
+            return Ok(None);
+        };
+        if after.is_some_and(|previous| row.ordinal <= previous) {
+            return Err(corrupt("selected corpus view identity order differs"));
+        }
+        let sha = Digest256::from_hex(&row.raw_sha256)
+            .map_err(|_| corrupt("selected corpus view identity digest invalid"))?;
+        self.authority.authorize_corpus_view_identity_current(
+            receipt,
+            row.ordinal,
+            row.view_id.as_deref(),
+            sha,
+        )?;
         self.check_interrupt()?;
         Ok(Some(row))
     }
-    pub(crate) fn corpus_row(&mut self, receipt: &tos_compiler::CorpusOriginalReceipt, collection: tos_compiler::CorpusOriginalCollection, selector: &tos_compiler::CorpusOriginalSelector, after: Option<u64>) -> Result<Option<(u64, JsonValue)>, SearchV2Error> {
+    pub(crate) fn corpus_row(
+        &mut self,
+        receipt: &tos_compiler::CorpusOriginalReceipt,
+        collection: tos_compiler::CorpusOriginalCollection,
+        selector: &tos_compiler::CorpusOriginalSelector,
+        after: Option<u64>,
+    ) -> Result<Option<(u64, JsonValue)>, SearchV2Error> {
         self.check_interrupt()?;
-        let bytes = self.budget.max_decoded_bytes.saturating_sub(self.decoded).min(self.budget.max_payload_bytes as u64);
+        let bytes = self
+            .budget
+            .max_decoded_bytes
+            .saturating_sub(self.decoded)
+            .min(self.budget.max_payload_bytes as u64);
         let row_cap = usize::try_from(bytes).map_err(|_| budget_error())?;
-        let page = self.model.corpus_original_page_under_caller_budget(collection, selector, after, 1, row_cap, bytes).map_err(|reason| match reason {
-            tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => budget_error(),
-            _ => corrupt("selected corpus original read failed"),
-        })?;
+        let page = self
+            .model
+            .corpus_original_page_under_caller_budget(
+                collection, selector, after, 1, row_cap, bytes,
+            )
+            .map_err(|reason| match reason {
+                tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => {
+                    budget_error()
+                }
+                _ => corrupt("selected corpus original read failed"),
+            })?;
         self.charge_original(page.rows.len(), page.decoded_bytes)?;
-        let Some(row) = page.rows.into_iter().next() else { return Ok(None); };
+        let Some(row) = page.rows.into_iter().next() else {
+            return Ok(None);
+        };
         let sha = Digest256::of_bytes(&row.raw);
-        if sha.to_hex() != row.raw_sha256 { return Err(corrupt("selected corpus original digest differs")); }
-        self.authority.authorize_corpus_original_current(receipt, collection, row.ordinal, &row.raw, sha)?;
+        if sha.to_hex() != row.raw_sha256 {
+            return Err(corrupt("selected corpus original digest differs"));
+        }
+        self.authority.authorize_corpus_original_current(
+            receipt,
+            collection,
+            row.ordinal,
+            &row.raw,
+            sha,
+        )?;
         self.check_interrupt()?;
-        let value = parse_json(&row.raw, JsonMode::PublishedStrict, self.budget.json).map_err(|_| corrupt("selected corpus original JSON invalid"))?.into_root();
+        let value = parse_json(&row.raw, JsonMode::PublishedStrict, self.budget.json)
+            .map_err(|_| corrupt("selected corpus original JSON invalid"))?
+            .into_root();
         Ok(Some((row.ordinal, value)))
     }
-    pub(crate) fn philosophy_row(&mut self, receipt: &tos_compiler::PhilosophyOriginalReceipt, collection: tos_compiler::PhilosophyOriginalCollection, after: Option<u64>) -> Result<Option<(u64, JsonValue)>, SearchV2Error> {
+    pub(crate) fn philosophy_row(
+        &mut self,
+        receipt: &tos_compiler::PhilosophyOriginalReceipt,
+        collection: tos_compiler::PhilosophyOriginalCollection,
+        after: Option<u64>,
+    ) -> Result<Option<(u64, JsonValue)>, SearchV2Error> {
         self.check_interrupt()?;
-        if self.rows >= self.budget.max_rows { return Err(budget_error()); }
-        let bytes = self.budget.max_decoded_bytes.saturating_sub(self.decoded).min(self.budget.max_payload_bytes as u64);
+        if self.rows >= self.budget.max_rows {
+            return Err(budget_error());
+        }
+        let bytes = self
+            .budget
+            .max_decoded_bytes
+            .saturating_sub(self.decoded)
+            .min(self.budget.max_payload_bytes as u64);
         let row_cap = usize::try_from(bytes).map_err(|_| budget_error())?;
-        let page = self.model.philosophy_original_page_under_caller_budget(collection, after, 1, row_cap, bytes).map_err(|reason| match reason {
-            tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => budget_error(),
-            _ => corrupt("selected philosophy original read failed"),
-        })?;
+        let page = self
+            .model
+            .philosophy_original_page_under_caller_budget(collection, after, 1, row_cap, bytes)
+            .map_err(|reason| match reason {
+                tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => {
+                    budget_error()
+                }
+                _ => corrupt("selected philosophy original read failed"),
+            })?;
         self.charge_original(page.rows.len(), page.decoded_bytes)?;
-        let Some(row) = page.rows.into_iter().next() else { return Ok(None); };
+        let Some(row) = page.rows.into_iter().next() else {
+            return Ok(None);
+        };
         let sha = Digest256::of_bytes(&row.raw);
-        if sha.to_hex() != row.raw_sha256 { return Err(corrupt("selected philosophy original digest differs")); }
-        self.authority.authorize_philosophy_original_current(receipt, collection, row.ordinal, &row.raw, sha)?;
+        if sha.to_hex() != row.raw_sha256 {
+            return Err(corrupt("selected philosophy original digest differs"));
+        }
+        self.authority.authorize_philosophy_original_current(
+            receipt,
+            collection,
+            row.ordinal,
+            &row.raw,
+            sha,
+        )?;
         self.check_interrupt()?;
-        let value = parse_json(&row.raw, JsonMode::PublishedStrict, self.budget.json).map_err(|_| corrupt("selected philosophy original JSON invalid"))?.into_root();
+        let value = parse_json(&row.raw, JsonMode::PublishedStrict, self.budget.json)
+            .map_err(|_| corrupt("selected philosophy original JSON invalid"))?
+            .into_root();
         Ok(Some((row.ordinal, value)))
     }
-    pub(crate) fn original_row(&mut self, receipt: &tos_compiler::NavigationOriginalReceipt, after: Option<i64>) -> Result<Option<(i64, JsonValue)>, SearchV2Error> {
+    pub(crate) fn original_row(
+        &mut self,
+        receipt: &tos_compiler::NavigationOriginalReceipt,
+        after: Option<i64>,
+    ) -> Result<Option<(i64, JsonValue)>, SearchV2Error> {
         self.check_interrupt()?;
-        if self.rows >= self.budget.max_rows { return Err(budget_error()); }
-        let bytes = self.budget.max_decoded_bytes.saturating_sub(self.decoded).min(self.budget.max_payload_bytes as u64);
-        let page = self.model.navigation_original_page_under_caller_budget(after, 1, bytes as usize, bytes).map_err(Self::original_error)?;
+        if self.rows >= self.budget.max_rows {
+            return Err(budget_error());
+        }
+        let bytes = self
+            .budget
+            .max_decoded_bytes
+            .saturating_sub(self.decoded)
+            .min(self.budget.max_payload_bytes as u64);
+        let page = self
+            .model
+            .navigation_original_page_under_caller_budget(after, 1, bytes as usize, bytes)
+            .map_err(Self::original_error)?;
         self.charge_original(page.rows.len(), page.decoded_bytes)?;
-        let Some((ordinal, raw)) = page.rows.into_iter().next() else { return Ok(None); };
-        self.authority.authorize_navigation_original_current(receipt, ordinal, &raw, Digest256::of_bytes(&raw))?;
+        let Some((ordinal, raw)) = page.rows.into_iter().next() else {
+            return Ok(None);
+        };
+        self.authority.authorize_navigation_original_current(
+            receipt,
+            ordinal,
+            &raw,
+            Digest256::of_bytes(&raw),
+        )?;
         self.check_interrupt()?;
-        let value = parse_json(&raw, JsonMode::PublishedStrict, self.budget.json).map_err(|_| corrupt("selected navigation original JSON invalid"))?.into_root();
+        let value = parse_json(&raw, JsonMode::PublishedStrict, self.budget.json)
+            .map_err(|_| corrupt("selected navigation original JSON invalid"))?
+            .into_root();
         Ok(Some((ordinal, value)))
     }
-    pub(crate) fn original_member(&mut self, collection: &str, after: Option<&str>) -> Result<Option<tos_compiler::NavigationOriginalMember>, SearchV2Error> {
+    pub(crate) fn original_member(
+        &mut self,
+        collection: &str,
+        after: Option<&str>,
+    ) -> Result<Option<tos_compiler::NavigationOriginalMember>, SearchV2Error> {
         self.check_interrupt()?;
-        if self.rows >= self.budget.max_rows { return Err(budget_error()); }
-        let bytes = self.budget.max_decoded_bytes.saturating_sub(self.decoded).min(self.budget.max_payload_bytes as u64);
-        let page = self.model.navigation_original_members_under_caller_budget(collection, after, 1, bytes).map_err(Self::original_error)?;
+        if self.rows >= self.budget.max_rows {
+            return Err(budget_error());
+        }
+        let bytes = self
+            .budget
+            .max_decoded_bytes
+            .saturating_sub(self.decoded)
+            .min(self.budget.max_payload_bytes as u64);
+        let page = self
+            .model
+            .navigation_original_members_under_caller_budget(collection, after, 1, bytes)
+            .map_err(Self::original_error)?;
         self.charge_original(page.rows.len(), page.decoded_bytes)?;
         Ok(page.rows.into_iter().next())
     }
-    pub(crate) fn registry_current(&mut self, id: &str, raw: &[u8], sha: Digest256) -> Result<(), SearchV2Error> {
+    pub(crate) fn registry_current(
+        &mut self,
+        id: &str,
+        raw: &[u8],
+        sha: Digest256,
+    ) -> Result<(), SearchV2Error> {
         self.check_interrupt()?;
         self.rows = self.rows.checked_add(1).ok_or_else(budget_error)?;
-        self.decoded = self.decoded.checked_add(raw.len() as u64).ok_or_else(budget_error)?;
+        self.decoded = self
+            .decoded
+            .checked_add(raw.len() as u64)
+            .ok_or_else(budget_error)?;
         if self.rows > self.budget.max_rows || self.decoded > self.budget.max_decoded_bytes {
             return Err(budget_error());
         }
@@ -330,7 +552,9 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         }
         self.authority.check_selected()
     }
-    pub(crate) fn abort_probe(&self) -> Option<Arc<dyn crate::AbortProbe>> { self.authority.abort_probe() }
+    pub(crate) fn abort_probe(&self) -> Option<Arc<dyn crate::AbortProbe>> {
+        self.authority.abort_probe()
+    }
     pub(crate) fn disclosure_scope(&self) -> &IndexedDisclosureScope {
         self.scope
     }
@@ -429,21 +653,52 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
     }
     /// A stored spec is source-owned catalog data, never a request-supplied
     /// replacement. Admission occurs before copying its complete bounded BLOB.
-    pub(crate) fn catalog_packet(&mut self, bound: &BoundCmpKnowledge<'_>) -> Result<JsonValue, SearchV2Error> {
+    pub(crate) fn catalog_packet(
+        &mut self,
+        bound: &BoundCmpKnowledge<'_>,
+    ) -> Result<JsonValue, SearchV2Error> {
         self.authority.check_selected()?;
-        self.authority.authorize_catalog_current(bound.selection().catalog_packet_sha256)?;
+        self.authority
+            .authorize_catalog_current(bound.selection().catalog_packet_sha256)?;
         let mut statement = self.model.connection().prepare_cached("SELECT packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 END,CASE WHEN typeof(packet)='blob' AND packet_len BETWEEN 0 AND ?2 AND length(packet)=packet_len THEN packet END FROM catalog_index_meta WHERE descriptor_sha256=?1").map_err(sql_error)?;
-        let mut rows = statement.query(params![bound.selection().vocabulary.descriptor_sha256.to_hex(),self.budget.max_payload_bytes as i64]).map_err(sql_error)?;
-        let row=rows.next().map_err(sql_error)?.ok_or_else(||corrupt("selected catalog absent"))?;
-        let length=row.get::<_,i64>(0).map_err(sql_error)?;
-        if length<0||length as usize>self.budget.max_payload_bytes{return Err(budget_error())}
-        self.rows=self.rows.checked_add(1).ok_or_else(budget_error)?;
-        self.decoded=self.decoded.checked_add(length as u64+40).ok_or_else(budget_error)?;
-        if self.rows>self.budget.max_rows||self.decoded>self.budget.max_decoded_bytes{return Err(budget_error())}
-        let sha=row.get::<_,Option<Vec<u8>>>(1).map_err(sql_error)?.ok_or_else(||corrupt("selected catalog digest width invalid"))?;
-        let payload=row.get::<_,Option<Vec<u8>>>(2).map_err(sql_error)?.ok_or_else(||corrupt("selected catalog length/type invalid"))?;
-        if sha.as_slice()!=bound.selection().catalog_packet_sha256.as_bytes()||Digest256::of_bytes(&payload)!=bound.selection().catalog_packet_sha256{return Err(corrupt("selected catalog digest differs"))}
-        let packet=parse_json(&payload,JsonMode::PublishedStrict,self.budget.json).map_err(|_|corrupt("selected catalog JSON invalid"))?.into_root();
+        let mut rows = statement
+            .query(params![
+                bound.selection().vocabulary.descriptor_sha256.to_hex(),
+                self.budget.max_payload_bytes as i64
+            ])
+            .map_err(sql_error)?;
+        let row = rows
+            .next()
+            .map_err(sql_error)?
+            .ok_or_else(|| corrupt("selected catalog absent"))?;
+        let length = row.get::<_, i64>(0).map_err(sql_error)?;
+        if length < 0 || length as usize > self.budget.max_payload_bytes {
+            return Err(budget_error());
+        }
+        self.rows = self.rows.checked_add(1).ok_or_else(budget_error)?;
+        self.decoded = self
+            .decoded
+            .checked_add(length as u64 + 40)
+            .ok_or_else(budget_error)?;
+        if self.rows > self.budget.max_rows || self.decoded > self.budget.max_decoded_bytes {
+            return Err(budget_error());
+        }
+        let sha = row
+            .get::<_, Option<Vec<u8>>>(1)
+            .map_err(sql_error)?
+            .ok_or_else(|| corrupt("selected catalog digest width invalid"))?;
+        let payload = row
+            .get::<_, Option<Vec<u8>>>(2)
+            .map_err(sql_error)?
+            .ok_or_else(|| corrupt("selected catalog length/type invalid"))?;
+        if sha.as_slice() != bound.selection().catalog_packet_sha256.as_bytes()
+            || Digest256::of_bytes(&payload) != bound.selection().catalog_packet_sha256
+        {
+            return Err(corrupt("selected catalog digest differs"));
+        }
+        let packet = parse_json(&payload, JsonMode::PublishedStrict, self.budget.json)
+            .map_err(|_| corrupt("selected catalog JSON invalid"))?
+            .into_root();
         bound.validate_catalog_identity(&packet, self.budget.json)?;
         Ok(packet)
     }
@@ -472,15 +727,9 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         let encoded =
             std::str::from_utf8(&encoded).map_err(|_| corrupt("candidate sources invalid"))?;
         let (table, index) = if kind == SearchKind::Nodes {
-            (
-                "knowledge_nodes",
-                "knowledge_nodes_source_order",
-            )
+            ("knowledge_nodes", "knowledge_nodes_source_order")
         } else {
-            (
-                "knowledge_relations",
-                "knowledge_relations_source_order",
-            )
+            ("knowledge_relations", "knowledge_relations_source_order")
         };
         let (source, position) = after.unwrap_or(("", -1));
         let sql = format!(
@@ -507,7 +756,9 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
                 .map_err(sql_error)?
                 .ok_or_else(budget_error)?;
             let position = row.get::<_, i64>(1).map_err(sql_error)?;
-            if position < 0 { return Err(corrupt("candidate source order invalid")); }
+            if position < 0 {
+                return Err(corrupt("candidate source order invalid"));
+            }
             let id = row
                 .get::<_, Option<String>>(2)
                 .map_err(sql_error)?
@@ -631,7 +882,11 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         limit: usize,
         ordered_id: bool,
     ) -> Result<Vec<JsonValue>, SearchV2Error> {
-        Ok(self.items_with_sizes(kind, field, id, limit, ordered_id)?.into_iter().map(|(value, _)| value).collect())
+        Ok(self
+            .items_with_sizes(kind, field, id, limit, ordered_id)?
+            .into_iter()
+            .map(|(value, _)| value)
+            .collect())
     }
     pub(crate) fn items_with_sizes(
         &mut self,
@@ -753,12 +1008,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         matches: &[String],
         limit: usize,
     ) -> Result<(u64, Vec<JsonValue>), SearchV2Error> {
-        let ids = JsonValue::Array(
-            matches
-                .iter()
-                .map(|value| text(value))
-                .collect(),
-        );
+        let ids = JsonValue::Array(matches.iter().map(|value| text(value)).collect());
         let encoded = canonical_bytes_v1(
             &ids,
             CanonicalProfile::SourceRecordDigestV1,
@@ -830,30 +1080,56 @@ pub fn execute_selected_inspect<'hold, A: InspectCurrentAuthority<'hold> + ?Size
         |read| {
             let mut plan = if let Some(revision) = bound.source_revision() {
                 let authority_boundary = parse_json(
-                    bound.authority_boundary().as_bytes(), JsonMode::PublishedStrict, budget.json,
-                ).map_err(|_| corrupt("inspect authority boundary invalid"))?.into_root();
+                    bound.authority_boundary().as_bytes(),
+                    JsonMode::PublishedStrict,
+                    budget.json,
+                )
+                .map_err(|_| corrupt("inspect authority boundary invalid"))?
+                .into_root();
                 crate::InspectPlan::new(request, revision.to_owned(), authority_boundary, budget)?
             } else {
                 // Only this adapter supplies the digest-bound selected header.
                 let header = read.header()?;
-                crate::InspectPlan::from_managed_header(request, header, bound, budget, &mut read.decoded)?
+                crate::InspectPlan::from_managed_header(
+                    request,
+                    header,
+                    bound,
+                    budget,
+                    &mut read.decoded,
+                )?
             };
             let probe = read.authority.abort_probe();
             while let Some(need) = plan.need().cloned() {
                 read.check_interrupt()?;
                 let before = read.decoded;
                 match need {
-                    crate::InspectNeed::Lookup { kind, selector, identifier, limit } => {
-                        let rows = read.items(kind, selector, &identifier, limit.checked_add(1).ok_or_else(budget_error)?, false)?;
+                    crate::InspectNeed::Lookup {
+                        kind,
+                        selector,
+                        identifier,
+                        limit,
+                    } => {
+                        let rows = read.items(
+                            kind,
+                            selector,
+                            &identifier,
+                            limit.checked_add(1).ok_or_else(budget_error)?,
+                            false,
+                        )?;
                         plan.resume_lookup(rows, read.decoded - before, probe.as_deref())?;
                     }
-                    crate::InspectNeed::NodeIncident { ids, relation_limit } => {
+                    crate::InspectNeed::NodeIncident {
+                        ids,
+                        relation_limit,
+                    } => {
                         let (total, rows) = read.incident(&ids, relation_limit)?;
                         plan.resume_incident(total, rows, read.decoded - before, probe.as_deref())?;
                     }
                     crate::InspectNeed::RelationEndpoints { ids } => {
                         let mut rows = Vec::new();
-                        for id in ids { rows.extend(read.items(SearchKind::Nodes, "id", &id, 1, true)?); }
+                        for id in ids {
+                            rows.extend(read.items(SearchKind::Nodes, "id", &id, 1, true)?);
+                        }
                         plan.resume_endpoints(rows, read.decoded - before, probe.as_deref())?;
                     }
                 }
@@ -864,7 +1140,11 @@ pub fn execute_selected_inspect<'hold, A: InspectCurrentAuthority<'hold> + ?Size
 }
 
 // The exact-carrier families share one bounded read and disclosure lifetime.
-pub(crate) fn execute_selected_carrier_packet<'hold, A: InspectCurrentAuthority<'hold> + ?Sized, F>(
+pub(crate) fn execute_selected_carrier_packet<
+    'hold,
+    A: InspectCurrentAuthority<'hold> + ?Sized,
+    F,
+>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
@@ -876,13 +1156,27 @@ pub(crate) fn execute_selected_carrier_packet<'hold, A: InspectCurrentAuthority<
 where
     F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchV2Error>,
 {
-    execute_selected_carrier_packet_observed(model, bound, authority, operation, intended_use, budget, compute, |_| Ok(()))
+    execute_selected_carrier_packet_observed(
+        model,
+        bound,
+        authority,
+        operation,
+        intended_use,
+        budget,
+        compute,
+        |_| Ok(()),
+    )
 }
 
 // E3 alone needs the actual emitted response for staged checkpoint accounting.
 // The observer cannot return/substitute bytes. Failure drops the staged hold
 // before disclosure; successful commit remains outside this common read path.
-pub(crate) fn execute_selected_carrier_packet_observed<'hold, A: InspectCurrentAuthority<'hold> + ?Sized, F, O>(
+pub(crate) fn execute_selected_carrier_packet_observed<
+    'hold,
+    A: InspectCurrentAuthority<'hold> + ?Sized,
+    F,
+    O,
+>(
     model: &mut VerifiedKnowledgeModel<'_>,
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
@@ -915,22 +1209,35 @@ where
     let policy = authority.policy_binding();
     let abort = authority.abort_probe();
     let check_abort = || match abort.as_ref().and_then(|probe| probe.reason()) {
-        Some(crate::AbortReason::Cancelled) => Err(SearchV2Error { code: SearchV2ErrorCode::Cancelled, message: "selected knowledge query cancelled" }),
-        Some(crate::AbortReason::DeadlineExceeded) => Err(SearchV2Error { code: SearchV2ErrorCode::DeadlineExceeded, message: "selected knowledge query deadline exceeded" }),
+        Some(crate::AbortReason::Cancelled) => Err(SearchV2Error {
+            code: SearchV2ErrorCode::Cancelled,
+            message: "selected knowledge query cancelled",
+        }),
+        Some(crate::AbortReason::DeadlineExceeded) => Err(SearchV2Error {
+            code: SearchV2ErrorCode::DeadlineExceeded,
+            message: "selected knowledge query deadline exceeded",
+        }),
         None => Ok(()),
     };
     check_abort()?;
     let scope = authority.disclosure_scope();
     scope.validate_for(bound, &policy, operation, intended_use)?;
     authority.check_selected()?;
-    if let Some(proof) = bound.source_basis().managed_source() { authority.authorize_managed_source_current(proof)?; }
+    if let Some(proof) = bound.source_basis().managed_source() {
+        authority.authorize_managed_source_current(proof)?;
+    }
     let steps = Arc::new(AtomicU64::new(0));
     let observed = Arc::clone(&steps);
     let cap = budget.max_read_vm_steps;
     let vm_abort = abort.clone();
     model.connection().progress_handler(
         1,
-        Some(move || vm_abort.as_ref().is_some_and(|probe| probe.reason().is_some()) || observed.fetch_add(1, Ordering::Relaxed) >= cap),
+        Some(move || {
+            vm_abort
+                .as_ref()
+                .is_some_and(|probe| probe.reason().is_some())
+                || observed.fetch_add(1, Ordering::Relaxed) >= cap
+        }),
     );
     let result = (|| {
         let mut read = Reader {
@@ -948,14 +1255,19 @@ where
         limits.max_bytes = limits.max_bytes.min(budget.max_response_bytes);
         let body = canonical_bytes_v1(&value, CanonicalProfile::SourceRecordDigestV1, limits)
             .map_err(|reason| {
-                if reason.code == FoundationErrorCode::BudgetExceeded { budget_error() }
-                else { corrupt("selected knowledge response cannot be emitted") }
+                if reason.code == FoundationErrorCode::BudgetExceeded {
+                    budget_error()
+                } else {
+                    corrupt("selected knowledge response cannot be emitted")
+                }
             })?;
         observe(&body)?;
         check_abort()?;
         read.authority.check_selected()?;
         bound.check_model(read.model)?;
-        if let Some(proof) = bound.source_basis().managed_source() { read.authority.authorize_managed_source_current(proof)?; }
+        if let Some(proof) = bound.source_basis().managed_source() {
+            read.authority.authorize_managed_source_current(proof)?;
+        }
         let mut lease = read.authority.acquire_disclosure(&scope, &read.consulted)?;
         lease.recheck()?;
         check_abort()?;

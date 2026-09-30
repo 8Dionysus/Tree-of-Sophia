@@ -3,7 +3,7 @@
 
 use std::collections::HashSet;
 use tos_foundation::{
-    emit_value_preserved_json, parse_json, JsonLimits, JsonMode, JsonString, JsonValue,
+    JsonLimits, JsonMode, JsonString, JsonValue, emit_value_preserved_json, parse_json,
 };
 
 use crate::claim_reference::normalize_claim_reference_value;

@@ -222,7 +222,10 @@ pub const KNOWLEDGE_CONTRACTS_INTENDED_USE: &str = "read_only_public_knowledge_c
 /// A missing production registry holder remains unavailable. Digest equality
 /// alone cannot satisfy `authorize_registry_current` or acquire a public grant.
 #[cfg(not(target_arch = "wasm32"))]
-pub fn execute_selected_knowledge_contracts<'hold, A: crate::InspectCurrentAuthority<'hold> + ?Sized>(
+pub fn execute_selected_knowledge_contracts<
+    'hold,
+    A: crate::InspectCurrentAuthority<'hold> + ?Sized,
+>(
     model: &mut tos_compiler::VerifiedKnowledgeModel<'_>,
     bound: &crate::BoundCmpKnowledge<'_>,
     authority: &mut A,

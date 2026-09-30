@@ -250,46 +250,87 @@ pub(crate) fn captured_software_fixture(
     use std::process::{Command, Output};
     assert!(source_repo.is_absolute());
     assert_eq!(source_commit.len(), 40);
-    assert!(source_commit.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)));
+    assert!(
+        source_commit
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    );
     assert!(!prefixes.is_empty());
     fn clean(command: &mut Command) -> &mut Command {
         for (key, _) in std::env::vars_os() {
-            if key.to_string_lossy().starts_with("GIT_") || key == "PYTHONPATH" || key == "PYTHONHOME" {
+            if key.to_string_lossy().starts_with("GIT_")
+                || key == "PYTHONPATH"
+                || key == "PYTHONHOME"
+            {
                 command.env_remove(key);
             }
         }
-        command.env("GIT_NO_REPLACE_OBJECTS", "1")
-            .env("GIT_CONFIG_NOSYSTEM", "1").env("GIT_CONFIG_GLOBAL", "/dev/null")
+        command
+            .env("GIT_NO_REPLACE_OBJECTS", "1")
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
             .env("PYTHONDONTWRITEBYTECODE", "1")
     }
     fn run(command: &mut Command) -> Output {
         let output = clean(command).output().unwrap();
-        assert!(output.status.success(), "owner fixture capture failed: {}",
-            String::from_utf8_lossy(&output.stderr));
+        assert!(
+            output.status.success(),
+            "owner fixture capture failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
         output
     }
     let temporary = tempfile::tempdir().unwrap();
     let capture = temporary.path().join("software-capture");
     let restored = temporary.path().join("software-restored");
     let tool = temporary.path().join("corpus_archive.py");
-    let capture_program = run(Command::new("git").arg("-C").arg(source_repo)
-        .arg("show").arg(format!("{source_commit}:scripts/corpus_archive.py"))).stdout;
-    assert!(capture_program.len() <= 1_048_576, "fixture owner program exceeds its frozen cap");
+    let capture_program = run(Command::new("git")
+        .arg("-C")
+        .arg(source_repo)
+        .arg("show")
+        .arg(format!("{source_commit}:scripts/corpus_archive.py")))
+    .stdout;
+    assert!(
+        capture_program.len() <= 1_048_576,
+        "fixture owner program exceeds its frozen cap"
+    );
     fs::write(&tool, capture_program).unwrap();
     let mut capture_command = Command::new("python3");
-    capture_command.arg(&tool).arg("capture").arg("--repo-root").arg(source_repo)
-        .arg("--commit").arg(source_commit).arg("--output").arg(&capture);
-    for prefix in prefixes { capture_command.arg("--include-prefix").arg(prefix); }
+    capture_command
+        .arg(&tool)
+        .arg("capture")
+        .arg("--repo-root")
+        .arg(source_repo)
+        .arg("--commit")
+        .arg(source_commit)
+        .arg("--output")
+        .arg(&capture);
+    for prefix in prefixes {
+        capture_command.arg("--include-prefix").arg(prefix);
+    }
     run(&mut capture_command);
-    run(Command::new("python3").arg(&tool).arg("restore").arg("--capture").arg(&capture)
-        .arg("--output").arg(&restored));
+    run(Command::new("python3")
+        .arg(&tool)
+        .arg("restore")
+        .arg("--capture")
+        .arg(&capture)
+        .arg("--output")
+        .arg(&restored));
     let manifest_raw = fs::read(capture.join("capture.json")).unwrap();
     let manifest: Value = serde_json::from_slice(&manifest_raw).unwrap();
-    assert_eq!(manifest["source_git_commit"].as_str().unwrap(), source_commit);
+    assert_eq!(
+        manifest["source_git_commit"].as_str().unwrap(),
+        source_commit
+    );
     let selection = tos_source_store::SoftwareCaptureSelectionV1 {
         source_git_commit: source_commit.to_owned(),
         source_git_tree: manifest["source_git_tree"].as_str().unwrap().to_owned(),
         capture_manifest_sha256: Digest256::of_bytes(&manifest_raw),
     };
-    SoftwareCaptureFixture { temporary, capture, restored, selection }
+    SoftwareCaptureFixture {
+        temporary,
+        capture,
+        restored,
+        selection,
+    }
 }

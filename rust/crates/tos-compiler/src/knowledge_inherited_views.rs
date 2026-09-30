@@ -5,7 +5,7 @@
 //! not create nodes, relations, or a selected output file.
 
 use crate::knowledge_stage::{KnowledgeStage, WritePhase};
-use crate::{knowledge_normalization::SourceRow, Error, Result};
+use crate::{Error, Result, knowledge_normalization::SourceRow};
 use rusqlite::params;
 use serde_json::Value;
 use std::collections::BTreeSet;
@@ -597,15 +597,17 @@ mod tests {
         assert!(run(&incomplete, seal(), limits()).is_err());
         let mut malformed = ROWS.to_vec();
         malformed[0].4 = r#"{"id":"canon:e1","source_graph":"canon","from_id":"wrong","to_id":"philosophy:n:a","view_ids":["route"]}"#;
-        assert!(run(
-            &malformed,
-            CompleteRelationSeal {
-                relation_root_sha256: raw_root(&malformed),
-                ..seal()
-            },
-            limits()
-        )
-        .is_err());
+        assert!(
+            run(
+                &malformed,
+                CompleteRelationSeal {
+                    relation_root_sha256: raw_root(&malformed),
+                    ..seal()
+                },
+                limits()
+            )
+            .is_err()
+        );
         let mut small = limits();
         small.max_view_tokens = 3;
         assert!(run(ROWS, seal(), small).is_err());
@@ -623,15 +625,17 @@ mod tests {
         assert!(run(&duplicate, seal(), limits()).is_err());
         let mut invalid_views = ROWS.to_vec();
         invalid_views[0].4 = r#"{"id":"canon:e1","source_graph":"canon","from_id":"canon:a","to_id":"philosophy:n:a","view_ids":[1]}"#;
-        assert!(run(
-            &invalid_views,
-            CompleteRelationSeal {
-                relation_root_sha256: raw_root(&invalid_views),
-                ..seal()
-            },
-            limits()
-        )
-        .is_err());
+        assert!(
+            run(
+                &invalid_views,
+                CompleteRelationSeal {
+                    relation_root_sha256: raw_root(&invalid_views),
+                    ..seal()
+                },
+                limits()
+            )
+            .is_err()
+        );
     }
     fn raw_root(rows: &[FixtureRow]) -> String {
         let mut hash = Digest256Hasher::new();

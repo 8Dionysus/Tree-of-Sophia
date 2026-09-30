@@ -3,7 +3,7 @@
 use super::{absolute, capped, digest, selected_schema, text};
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::{self as owner, CreationFilesystem};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::SourceRevision;

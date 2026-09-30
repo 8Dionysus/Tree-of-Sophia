@@ -5,23 +5,23 @@
 
 use crate::knowledge_candidates::{candidate_normalizer, prepare_candidate_inputs};
 use crate::knowledge_canon_materialize::{
-    materialize_canon_nodes, materialize_canon_relations, scan_canon_relations, source_material,
-    CanonMaterializeLimits, CanonNormalizer,
+    CanonMaterializeLimits, CanonNormalizer, materialize_canon_nodes, materialize_canon_relations,
+    scan_canon_relations, source_material,
 };
 use crate::knowledge_canon_prepare::{
-    clear_canon_prepare, prepare_canon_inputs, CanonPrepareLimits,
+    CanonPrepareLimits, clear_canon_prepare, prepare_canon_inputs,
 };
 use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_source_claims::{
-    claim_context_sources, claim_contexts, clear_source_claim_indices, finalize_source_claims,
-    materialize_source_claim_nodes, materialize_source_claim_relations,
-    prepare_claim_context_groups, ClaimNormalizeLimits, ClaimNormalizer,
+    ClaimNormalizeLimits, ClaimNormalizer, claim_context_sources, claim_contexts,
+    clear_source_claim_indices, finalize_source_claims, materialize_source_claim_nodes,
+    materialize_source_claim_relations, prepare_claim_context_groups,
 };
 use crate::knowledge_source_navigation_prepare::{
-    clear_source_navigation_prepare, NavigationJoinClosure,
+    NavigationJoinClosure, clear_source_navigation_prepare,
 };
 use crate::knowledge_source_navigation_relation::{
-    clear_navigation_relation_dependencies, NavigationRelationCompletionProof,
+    NavigationRelationCompletionProof, clear_navigation_relation_dependencies,
 };
 use crate::knowledge_stage::{KnowledgeStage, NodeRow, WritePhase};
 use crate::*;

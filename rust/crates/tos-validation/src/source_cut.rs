@@ -274,7 +274,9 @@ impl CutWorkerSchemaExecutor {
     pub fn set_operation_budget(&mut self, budget: BatchStreamBudget) -> Result<(), ItemRefusal> {
         self.prepared
             .set_operation_budget(budget)
-            .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))
+            .map_err(|reason| {
+                operation_failure_with_context(reason, self.prepared.exchange_failure())
+            })
     }
 
     /// Explicit reuse of an actual scalar execution within this immutable
@@ -288,29 +290,43 @@ impl CutWorkerSchemaExecutor {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<bool, ItemRefusal> {
-        self.prepared.preflight(deadline, cancelled).map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
+        self.prepared
+            .preflight(deadline, cancelled)
+            .map_err(|reason| {
+                operation_failure_with_context(reason, self.prepared.exchange_failure())
+            })?;
         // Reapply the same selected-contract/fragment and raw/decoded admission
         // bounds even on a hit; a receipt cannot bypass current operation law.
-        let (_, decoded)=self.decoded_input(raw,contract)?;
-        let raw_sha=Digest256::of_bytes(raw);
-        let decoded_sha=Digest256::of_bytes(&decoded);
-        let hit=self.receipts.iter().rev().find(|receipt|
-            receipt.batch.is_none()
-            && receipt.path==path && receipt.contract==contract
-            && receipt.source_revision==self.revision
-            && receipt.source_raw_sha256==raw_sha
-            && receipt.decoded_instance_sha256==decoded_sha
-            && receipt.execution.instance_sha256==decoded_sha
-            && receipt.execution.schema_set_sha256==self.schema_set_digest
-            && receipt.execution.profile==self.profile
-            && receipt.execution.worker_sha256==self.worker.sha256
-        ).map(|receipt|receipt.valid);
+        let (_, decoded) = self.decoded_input(raw, contract)?;
+        let raw_sha = Digest256::of_bytes(raw);
+        let decoded_sha = Digest256::of_bytes(&decoded);
+        let hit = self
+            .receipts
+            .iter()
+            .rev()
+            .find(|receipt| {
+                receipt.batch.is_none()
+                    && receipt.path == path
+                    && receipt.contract == contract
+                    && receipt.source_revision == self.revision
+                    && receipt.source_raw_sha256 == raw_sha
+                    && receipt.decoded_instance_sha256 == decoded_sha
+                    && receipt.execution.instance_sha256 == decoded_sha
+                    && receipt.execution.schema_set_sha256 == self.schema_set_digest
+                    && receipt.execution.profile == self.profile
+                    && receipt.execution.worker_sha256 == self.worker.sha256
+            })
+            .map(|receipt| receipt.valid);
         drop(decoded);
-        if let Some(valid)=hit {
-            self.prepared.preflight(deadline,cancelled).map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
+        if let Some(valid) = hit {
+            self.prepared
+                .preflight(deadline, cancelled)
+                .map_err(|reason| {
+                    operation_failure_with_context(reason, self.prepared.exchange_failure())
+                })?;
             return Ok(valid);
         }
-        self.check(path,raw,contract,deadline,cancelled)
+        self.check(path, raw, contract, deadline, cancelled)
     }
 
     fn decoded_input(&self, raw: &[u8], contract: &str) -> Result<(String, Vec<u8>), ItemRefusal> {
@@ -362,7 +378,9 @@ impl CutWorkerSchemaExecutor {
     ) -> Result<(), ItemRefusal> {
         self.prepared
             .release_child(deadline, cancelled)
-            .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))
+            .map_err(|reason| {
+                operation_failure_with_context(reason, self.prepared.exchange_failure())
+            })
     }
 
     pub fn contract_digest(&self, contract: &str) -> Option<Digest256> {
@@ -397,7 +415,9 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<bool, ItemRefusal> {
-        CutWorkerSchemaExecutor::check_reusing_scalar(self, path, raw, contract, deadline, cancelled)
+        CutWorkerSchemaExecutor::check_reusing_scalar(
+            self, path, raw, contract, deadline, cancelled,
+        )
     }
 
     fn schema_input_cost(
@@ -425,7 +445,9 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
                 uri.len(),
                 unit.raw_instance.len(),
             )
-            .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
+            .map_err(|reason| {
+                operation_failure_with_context(reason, self.prepared.exchange_failure())
+            })?;
         let receipt = path
             .len()
             .checked_add(contract.len())
@@ -451,9 +473,9 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
     }
 
     fn finish(&mut self, deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
-        self.prepared
-            .finish(deadline, cancelled)
-            .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))
+        self.prepared.finish(deadline, cancelled).map_err(|reason| {
+            operation_failure_with_context(reason, self.prepared.exchange_failure())
+        })
     }
 
     fn check_batch(
@@ -465,7 +487,9 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
     ) -> Result<Vec<bool>, ItemRefusal> {
         self.prepared
             .preflight(deadline, cancelled)
-            .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
+            .map_err(|reason| {
+                operation_failure_with_context(reason, self.prepared.exchange_failure())
+            })?;
         if budget.max_units == 0
             || budget.max_units > BatchBudget::MAX_UNITS
             || budget.max_total_raw_bytes == 0
@@ -488,7 +512,9 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         for (ordinal, input) in checks.iter().enumerate() {
             self.prepared
                 .preflight(deadline, cancelled)
-                .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
+                .map_err(|reason| {
+                    operation_failure_with_context(reason, self.prepared.exchange_failure())
+                })?;
             next_bytes = input
                 .path
                 .len()
@@ -525,7 +551,9 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         if matches!(&outcome, BatchOutcome::Complete { .. }) {
             self.prepared
                 .preflight(deadline, cancelled)
-                .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
+                .map_err(|reason| {
+                    operation_failure_with_context(reason, self.prepared.exchange_failure())
+                })?;
         }
         let (receipts, checkpoint) = match outcome {
             BatchOutcome::Complete {
@@ -602,7 +630,9 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         }
         self.prepared
             .preflight(deadline, cancelled)
-            .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
+            .map_err(|reason| {
+                operation_failure_with_context(reason, self.prepared.exchange_failure())
+            })?;
         self.receipt_bytes = next_bytes;
         self.receipts.extend(staged);
         Ok(verdicts)
@@ -618,18 +648,29 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
     ) -> Result<bool, ItemRefusal> {
         self.prepared
             .preflight(deadline, cancelled)
-            .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
+            .map_err(|reason| {
+                operation_failure_with_context(reason, self.prepared.exchange_failure())
+            })?;
         if self.receipts.len() >= self.limits.max_receipts {
-            return Err(ItemRefusal::BudgetCheck {check:"Cut scalar receipt count",used:(self.receipts.len() as u64).checked_add(1),limit:Some(self.limits.max_receipts as u64)});
+            return Err(ItemRefusal::BudgetCheck {
+                check: "Cut scalar receipt count",
+                used: (self.receipts.len() as u64).checked_add(1),
+                limit: Some(self.limits.max_receipts as u64),
+            });
         }
         let receipt_bytes = path
             .len()
             .checked_add(contract.len())
             .and_then(|n| n.checked_add(192))
             .ok_or(ItemRefusal::Budget)?;
-        let attempted_bytes=self.receipt_bytes.checked_add(receipt_bytes);
-        let next_bytes=attempted_bytes.filter(|n|*n<=self.limits.max_receipt_bytes)
-            .ok_or(ItemRefusal::BudgetCheck {check:"Cut scalar receipt bytes",used:attempted_bytes.map(|n|n as u64),limit:Some(self.limits.max_receipt_bytes as u64)})?;
+        let attempted_bytes = self.receipt_bytes.checked_add(receipt_bytes);
+        let next_bytes = attempted_bytes
+            .filter(|n| *n <= self.limits.max_receipt_bytes)
+            .ok_or(ItemRefusal::BudgetCheck {
+                check: "Cut scalar receipt bytes",
+                used: attempted_bytes.map(|n| n as u64),
+                limit: Some(self.limits.max_receipt_bytes as u64),
+            })?;
         let (uri, worker_raw) = self.decoded_input(raw, contract)?;
         let decoded_digest = Digest256::of_bytes(&worker_raw);
         let mut budget = self.budget;
@@ -646,7 +687,9 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
         ) {
             self.prepared
                 .preflight(deadline, cancelled)
-                .map_err(|reason| operation_failure_with_context(reason,self.prepared.exchange_failure()))?;
+                .map_err(|reason| {
+                    operation_failure_with_context(reason, self.prepared.exchange_failure())
+                })?;
         }
         let (execution, valid) = match result {
             ExecutorOutcome::SchemaValid(identity) => (identity, true),
@@ -948,8 +991,8 @@ pub fn inspect_items_from_cut(
     let mut kinds = BTreeMap::new();
     let mut manifests = Vec::new();
     let mut items = Vec::new();
-    let mut index_bytes = 2 * std::mem::size_of::<Vec<String>>()
-        + std::mem::size_of::<BTreeMap<String, String>>();
+    let mut index_bytes =
+        2 * std::mem::size_of::<Vec<String>>() + std::mem::size_of::<BTreeMap<String, String>>();
     if index_bytes > limits.max_state_bytes {
         return Err(ItemRefusal::Budget);
     }
@@ -1143,12 +1186,17 @@ fn store_error(error: tos_source_store::StoreError) -> ItemRefusal {
 }
 
 fn operation_failure(reason: ExecutorFailure) -> ItemRefusal {
-    operation_failure_with_context(reason,None)
+    operation_failure_with_context(reason, None)
 }
-fn operation_failure_with_context(reason: ExecutorFailure, exchange: Option<crate::executor::ExchangeFailureContext>) -> ItemRefusal {
+fn operation_failure_with_context(
+    reason: ExecutorFailure,
+    exchange: Option<crate::executor::ExchangeFailureContext>,
+) -> ItemRefusal {
     match reason {
         ExecutorFailure::Timeout => ItemRefusal::Deadline,
         ExecutorFailure::Cancelled => ItemRefusal::Source("schema operation cancelled".into()),
-        other => ItemRefusal::Unsupported(format!("schema operation refused: {other:?}; original exchange: {exchange:?}")),
+        other => ItemRefusal::Unsupported(format!(
+            "schema operation refused: {other:?}; original exchange: {exchange:?}"
+        )),
     }
 }

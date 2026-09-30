@@ -487,7 +487,7 @@ fn store(error: tos_source_store::StoreError) -> RetirementRefusal {
 fn schema_error(error: ItemRefusal) -> RetirementRefusal {
     match error {
         ItemRefusal::Budget => RetirementRefusal::Budget,
-        error @ ItemRefusal::BudgetCheck {..} => RetirementRefusal::Schema(error),
+        error @ ItemRefusal::BudgetCheck { .. } => RetirementRefusal::Schema(error),
         ItemRefusal::Deadline => RetirementRefusal::Deadline,
         ItemRefusal::Source(s) => RetirementRefusal::Source(s),
         ItemRefusal::Unsupported(s) => RetirementRefusal::Unsupported(s),
@@ -882,8 +882,13 @@ mod tests {
         }
         assert!(observed_datetime_order("2026-09-14", "2026-09-14T00:00:00Z").is_err());
         assert!(observed_instant_order("2026-09-14", "2026-09-15").is_err());
-        assert_eq!(observed_instant_order("2026-09-14T01:00:00+01:00", "2026-09-14T00:00:00Z"), Ok(std::cmp::Ordering::Equal));
-        assert!(observed_instant_order("0001-01-01T00:00:00+01:00", "0001-01-01T00:00:00Z").is_err());
+        assert_eq!(
+            observed_instant_order("2026-09-14T01:00:00+01:00", "2026-09-14T00:00:00Z"),
+            Ok(std::cmp::Ordering::Equal)
+        );
+        assert!(
+            observed_instant_order("0001-01-01T00:00:00+01:00", "0001-01-01T00:00:00Z").is_err()
+        );
         assert_eq!(
             observed_datetime_raw_order("2026-09-14Z12", "2026-09-14T12"),
             Ok(Equal)

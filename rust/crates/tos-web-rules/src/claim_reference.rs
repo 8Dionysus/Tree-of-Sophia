@@ -3,7 +3,7 @@
 
 use std::collections::HashSet;
 use tos_foundation::{
-    emit_value_preserved_json, parse_json, JsonLimits, JsonMode, JsonString, JsonValue,
+    JsonLimits, JsonMode, JsonString, JsonValue, emit_value_preserved_json, parse_json,
 };
 
 // 127 valid 2,048-unit IDs can each require six ASCII JSON escape bytes per
@@ -137,9 +137,11 @@ mod tests {
     fn opaque_surrogates_and_closure_identity() {
         let raw = br#"{"claim_id":"a\ud800","reference":{"claimId":"a\ud800","pathId":"p","relationType":"r","nodeIds":["x","a\ud800","z"],"relationIds":["r1","r2"],"detailRelationIds":[],"closureNodeIds":["x","a\ud800","z"],"wording":"discard"}}"#;
         let output = validate_claim_reference_v1(raw).unwrap();
-        assert!(!String::from_utf8(output.clone())
-            .unwrap()
-            .contains("wording"));
+        assert!(
+            !String::from_utf8(output.clone())
+                .unwrap()
+                .contains("wording")
+        );
         let bad = String::from_utf8(raw.to_vec())
             .unwrap()
             .replace("\"r2\"", "\"r1\"");

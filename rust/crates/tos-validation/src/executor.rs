@@ -345,7 +345,11 @@ impl BatchCoverageExpectation {
 }
 
 fn unknown(reason: ExecutorFailure, identity: Option<ExecutionIdentity>) -> ExecutorOutcome {
-    ExecutorOutcome::Indeterminate { reason, identity, exchange: None }
+    ExecutorOutcome::Indeterminate {
+        reason,
+        identity,
+        exchange: None,
+    }
 }
 
 pub struct BoundedSchemaExecutor;
@@ -518,7 +522,9 @@ pub(crate) use native::{PreparedSchemaWorker, VerifiedWorkerImage};
 pub(crate) struct VerifiedWorkerImage;
 #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
 impl VerifiedWorkerImage {
-    pub(crate) fn exchange_failure(&self) -> Option<ExchangeFailureContext> { None }
+    pub(crate) fn exchange_failure(&self) -> Option<ExchangeFailureContext> {
+        None
+    }
     pub(crate) fn preflight(&mut self, _: Instant, _: &AtomicBool) -> Result<(), ExecutorFailure> {
         Err(ExecutorFailure::UnsupportedHost)
     }
@@ -565,7 +571,9 @@ impl VerifiedWorkerImage {
 pub(crate) struct PreparedSchemaWorker;
 #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
 impl PreparedSchemaWorker {
-    pub(crate) fn exchange_failure(&self) -> Option<ExchangeFailureContext> { None }
+    pub(crate) fn exchange_failure(&self) -> Option<ExchangeFailureContext> {
+        None
+    }
     pub(crate) fn preflight(&mut self, _: Instant, _: &AtomicBool) -> Result<(), ExecutorFailure> {
         Err(ExecutorFailure::UnsupportedHost)
     }
@@ -1171,7 +1179,9 @@ mod native {
             let refusal = |p, r, why| batch_incomplete(p, Vec::new(), r, why);
             if let Some(reason) = self.poisoned {
                 let mut outcome = refusal(prepared, results, reason);
-                if let BatchOutcome::Incomplete { exchange, .. } = &mut outcome { *exchange = self.poison_exchange; }
+                if let BatchOutcome::Incomplete { exchange, .. } = &mut outcome {
+                    *exchange = self.poison_exchange;
+                }
                 return outcome;
             }
             if let Err(reason) = preparation_check(Some(deadline), Some(cancelled)) {
@@ -1352,10 +1362,14 @@ mod native {
             );
             match &outcome {
                 BatchOutcome::Complete { .. } => session.sequence += 1,
-                BatchOutcome::Incomplete { reason, exchange, .. } => {
+                BatchOutcome::Incomplete {
+                    reason, exchange, ..
+                } => {
                     // A later preflight/finish refuses this poisoned operation,
                     // but must not replace its first actual exchange origin.
-                    if self.poison_exchange.is_none() { self.poison_exchange = *exchange; }
+                    if self.poison_exchange.is_none() {
+                        self.poison_exchange = *exchange;
+                    }
                     let why = *reason;
                     self.poison(why);
                 }
@@ -1498,7 +1512,10 @@ mod native {
                     }
                 }
                 BatchOutcome::Incomplete {
-                    reason, checkpoint, exchange, ..
+                    reason,
+                    checkpoint,
+                    exchange,
+                    ..
                 } => {
                     let identity = ExecutionIdentity {
                         worker_sha256: checkpoint.worker_sha256,
@@ -1510,7 +1527,11 @@ mod native {
                     if reason == ExecutorFailure::ParseRejected {
                         ExecutorOutcome::InputRejected(identity)
                     } else {
-                        ExecutorOutcome::Indeterminate { reason, identity: Some(identity), exchange }
+                        ExecutorOutcome::Indeterminate {
+                            reason,
+                            identity: Some(identity),
+                            exchange,
+                        }
                     }
                 }
             }
@@ -2094,9 +2115,10 @@ mod native {
             if status.is_some() || Instant::now() >= reap_deadline {
                 break;
             }
-            thread::sleep(Duration::from_millis(1).min(
-                reap_deadline.saturating_duration_since(Instant::now()),
-            ));
+            thread::sleep(
+                Duration::from_millis(1)
+                    .min(reap_deadline.saturating_duration_since(Instant::now())),
+            );
         }
         if status.is_none() {
             // A kernel-uninterruptible child cannot be reaped on a deadline.
@@ -2246,7 +2268,13 @@ mod native {
             max_total_raw_bytes: crate::SchemaBackendProbe::MAX_INSTANCE_BYTES,
         };
         match run_batch_image_cancellable(image, prepared, results, batch, start, argv, cancelled) {
-            BatchOutcome::Incomplete { reason, exchange, .. } => ExecutorOutcome::Indeterminate { reason, identity: Some(identity), exchange },
+            BatchOutcome::Incomplete {
+                reason, exchange, ..
+            } => ExecutorOutcome::Indeterminate {
+                reason,
+                identity: Some(identity),
+                exchange,
+            },
             BatchOutcome::Complete { .. } => unknown(ExecutorFailure::Protocol, Some(identity)),
         }
     }
@@ -2290,12 +2318,15 @@ mod native {
             // best-effort natural observation, not a promised cause capture.
             let observation_deadline = started + self.cleanup_grace / 2;
             let mut observed = poll_exit(self.pid, &mut self.status);
-            while observe_eof_exit && observed.is_ok() && self.status.is_none()
+            while observe_eof_exit
+                && observed.is_ok()
+                && self.status.is_none()
                 && Instant::now() < observation_deadline
             {
-                thread::sleep(Duration::from_millis(1).min(
-                    observation_deadline.saturating_duration_since(Instant::now()),
-                ));
+                thread::sleep(
+                    Duration::from_millis(1)
+                        .min(observation_deadline.saturating_duration_since(Instant::now())),
+                );
                 observed = poll_exit(self.pid, &mut self.status);
             }
             // Only status collected before any parent kill belongs to origin.
@@ -2441,7 +2472,9 @@ mod native {
                 Some("ack-startup-wall")
             } else if unit_deadline.is_some_and(|deadline| now >= deadline) {
                 Some("unit-wall")
-            } else { None };
+            } else {
+                None
+            };
             if let Some(boundary) = timeout_boundary {
                 failure = Some((ExecutorFailure::Timeout, boundary));
                 break;
@@ -2554,11 +2587,15 @@ mod native {
                                 (1, 0) => BatchUnitVerdict::SchemaInvalid,
                                 (2, 1) => BatchUnitVerdict::InputRejected,
                                 (3, 1) => {
-                                    failure = Some((ExecutorFailure::InputBudget, "worker-unit-input-budget"));
+                                    failure = Some((
+                                        ExecutorFailure::InputBudget,
+                                        "worker-unit-input-budget",
+                                    ));
                                     break;
                                 }
                                 (3, 2) => {
-                                    failure = Some((ExecutorFailure::Backend, "worker-unit-backend"));
+                                    failure =
+                                        Some((ExecutorFailure::Backend, "worker-unit-backend"));
                                     break;
                                 }
                                 _ => {
@@ -2579,7 +2616,8 @@ mod native {
                                 verdict,
                             });
                             if verdict == BatchUnitVerdict::InputRejected {
-                                failure = Some((ExecutorFailure::ParseRejected, "worker-unit-parse"));
+                                failure =
+                                    Some((ExecutorFailure::ParseRejected, "worker-unit-parse"));
                                 break;
                             }
                             unit_deadline = Some(Instant::now() + budget.per_unit_wall);
@@ -2620,7 +2658,14 @@ mod native {
                 break;
             }
             if retained && (output_eof || status.is_some()) {
-                failure = Some((ExecutorFailure::Protocol, if output_eof {"early-output-eof"} else {"early-child-exit"}));
+                failure = Some((
+                    ExecutorFailure::Protocol,
+                    if output_eof {
+                        "early-output-eof"
+                    } else {
+                        "early-child-exit"
+                    },
+                ));
                 break;
             }
             if output_eof
@@ -2645,7 +2690,16 @@ mod native {
             };
             if count >= 0 || io::Error::last_os_error().kind() != io::ErrorKind::WouldBlock {
                 output_eof |= count == 0;
-                failure = Some((ExecutorFailure::Protocol, if count == 0 {"post-terminal-eof"} else if count > 0 {"post-terminal-extra-byte"} else {"post-terminal-receive"}));
+                failure = Some((
+                    ExecutorFailure::Protocol,
+                    if count == 0 {
+                        "post-terminal-eof"
+                    } else if count > 0 {
+                        "post-terminal-extra-byte"
+                    } else {
+                        "post-terminal-receive"
+                    },
+                ));
             }
         }
         child.status = status;
@@ -2659,13 +2713,26 @@ mod native {
             let observed_failure = child.natural_status.and_then(status_failure);
             let natural_termination = child.natural_status.map(|status| {
                 let signal = status & 0x7f;
-                if signal == 0 { ChildTermination::Exited((status >> 8) & 0xff) }
-                else { ChildTermination::Signalled(signal) }
+                if signal == 0 {
+                    ChildTermination::Exited((status >> 8) & 0xff)
+                } else {
+                    ChildTermination::Signalled(signal)
+                }
             });
-            let mut outcome = batch_incomplete(prepared, receipts, results,
-                cleanup.err().unwrap_or_else(|| observed_failure.unwrap_or(reason)));
+            let mut outcome = batch_incomplete(
+                prepared,
+                receipts,
+                results,
+                cleanup
+                    .err()
+                    .unwrap_or_else(|| observed_failure.unwrap_or(reason)),
+            );
             if let BatchOutcome::Incomplete { exchange, .. } = &mut outcome {
-                *exchange = Some(ExchangeFailureContext { boundary, failure: reason, natural_termination });
+                *exchange = Some(ExchangeFailureContext {
+                    boundary,
+                    failure: reason,
+                    natural_termination,
+                });
             }
             return outcome;
         }
@@ -3743,25 +3810,59 @@ mod native {
             // Force EOF while the child is still blocked on input, then let
             // it exit naturally. EOF must not make cleanup immediately kill it.
             let script = c"import os,sys; os.close(1); sys.stdin.buffer.read(1); sys.exit(17)";
-            let argv = [c"python3".as_ptr() as *mut libc::c_char,
-                c"-c".as_ptr() as *mut libc::c_char, script.as_ptr() as *mut libc::c_char,
-                std::ptr::null_mut()];
-            let mut child = spawn_operation_child(&image, ExecutorBudget::laboratory(), &argv).unwrap();
+            let argv = [
+                c"python3".as_ptr() as *mut libc::c_char,
+                c"-c".as_ptr() as *mut libc::c_char,
+                script.as_ptr() as *mut libc::c_char,
+                std::ptr::null_mut(),
+            ];
+            let mut child =
+                spawn_operation_child(&image, ExecutorBudget::laboratory(), &argv).unwrap();
             let eof_deadline = Instant::now() + Duration::from_millis(700);
             loop {
                 let mut byte = [0u8; 1];
-                let count = unsafe { libc::recv(child.output.as_raw_fd(), byte.as_mut_ptr().cast(), 1, libc::MSG_DONTWAIT) };
-                if count == 0 { break; }
-                assert!(count < 0 && io::Error::last_os_error().kind() == io::ErrorKind::WouldBlock);
+                let count = unsafe {
+                    libc::recv(
+                        child.output.as_raw_fd(),
+                        byte.as_mut_ptr().cast(),
+                        1,
+                        libc::MSG_DONTWAIT,
+                    )
+                };
+                if count == 0 {
+                    break;
+                }
+                assert!(
+                    count < 0 && io::Error::last_os_error().kind() == io::ErrorKind::WouldBlock
+                );
                 assert!(Instant::now() < eof_deadline, "child did not close output");
-                thread::sleep(Duration::from_millis(1).min(eof_deadline.saturating_duration_since(Instant::now())));
+                thread::sleep(
+                    Duration::from_millis(1)
+                        .min(eof_deadline.saturating_duration_since(Instant::now())),
+                );
             }
             poll_exit(child.pid, &mut child.status).unwrap();
-            assert!(child.status.is_none(), "EOF fixture must still be awaiting input");
-            assert_eq!(unsafe { libc::send(child.input.as_raw_fd(), b"x".as_ptr().cast(), 1, libc::MSG_NOSIGNAL) }, 1);
+            assert!(
+                child.status.is_none(),
+                "EOF fixture must still be awaiting input"
+            );
+            assert_eq!(
+                unsafe {
+                    libc::send(
+                        child.input.as_raw_fd(),
+                        b"x".as_ptr().cast(),
+                        1,
+                        libc::MSG_NOSIGNAL,
+                    )
+                },
+                1
+            );
             let cleanup_started = Instant::now();
             child.cleanup_after_eof().unwrap();
-            assert_eq!(child.natural_status.map(status_failure), Some(Some(ExecutorFailure::CrashExit(17))));
+            assert_eq!(
+                child.natural_status.map(status_failure),
+                Some(Some(ExecutorFailure::CrashExit(17)))
+            );
             assert_eq!(child.status, child.natural_status);
             assert!(cleanup_started.elapsed() < Duration::from_millis(700));
             child.cleanup().unwrap();
@@ -3771,29 +3872,46 @@ mod native {
             // receives only the original cleanup envelope and then is killed;
             // that SIGKILL is cleanup evidence, never natural termination.
             let script = c"import os,time; os.close(1); time.sleep(2)";
-            let argv = [c"python3".as_ptr() as *mut libc::c_char,
-                c"-c".as_ptr() as *mut libc::c_char, script.as_ptr() as *mut libc::c_char,
-                std::ptr::null_mut()];
-            let mut child = spawn_operation_child(&image, ExecutorBudget::laboratory(), &argv).unwrap();
-            let prepared = make_batch_request(Digest256::of_bytes(b"fixture-worker"),
-                &batch_schema(), FormatProfile::AssertedSourceCandidateV1,
-                [batch_unit(0, b"7")], budget).unwrap();
+            let argv = [
+                c"python3".as_ptr() as *mut libc::c_char,
+                c"-c".as_ptr() as *mut libc::c_char,
+                script.as_ptr() as *mut libc::c_char,
+                std::ptr::null_mut(),
+            ];
+            let mut child =
+                spawn_operation_child(&image, ExecutorBudget::laboratory(), &argv).unwrap();
+            let prepared = make_batch_request(
+                Digest256::of_bytes(b"fixture-worker"),
+                &batch_schema(),
+                FormatProfile::AssertedSourceCandidateV1,
+                [batch_unit(0, b"7")],
+                budget,
+            )
+            .unwrap();
             let mut results = Digest256Hasher::new();
             results.update(b"tos-val2-batch-results-v1\0");
             let started = Instant::now();
-            let outcome = run_batch_exchange(&mut child, prepared, results, budget, started, None, true);
+            let outcome =
+                run_batch_exchange(&mut child, prepared, results, budget, started, None, true);
             match outcome {
-                BatchOutcome::Incomplete { reason: ExecutorFailure::Protocol, receipts,
-                    exchange: Some(context), .. } => {
+                BatchOutcome::Incomplete {
+                    reason: ExecutorFailure::Protocol,
+                    receipts,
+                    exchange: Some(context),
+                    ..
+                } => {
                     assert!(receipts.is_empty());
                     assert_eq!(context.boundary, "early-output-eof");
                     assert_eq!(context.failure, ExecutorFailure::Protocol);
                     assert_eq!(context.natural_termination, None);
-                },
+                }
                 other => panic!("live EOF child did not preserve failure origin: {other:?}"),
             }
             assert!(started.elapsed() < Duration::from_millis(700));
-            assert_eq!(child.status.map(status_failure), Some(Some(ExecutorFailure::CrashSignal(libc::SIGKILL))));
+            assert_eq!(
+                child.status.map(status_failure),
+                Some(Some(ExecutorFailure::CrashSignal(libc::SIGKILL)))
+            );
             assert_eq!(child.natural_status, None);
             child.cleanup_after_eof().unwrap();
             assert_eq!(child.natural_status, None);
@@ -3802,34 +3920,70 @@ mod native {
             // detail; unlike a cleanup SIGKILL, it may explain missing output.
             for (script, expected) in [
                 (c"import sys; sys.exit(17)", ChildTermination::Exited(17)),
-                (c"import os,signal; os.kill(os.getpid(),signal.SIGTERM)", ChildTermination::Signalled(libc::SIGTERM)),
+                (
+                    c"import os,signal; os.kill(os.getpid(),signal.SIGTERM)",
+                    ChildTermination::Signalled(libc::SIGTERM),
+                ),
             ] {
                 let budget = BatchBudget::laboratory();
-                let argv = [c"python3".as_ptr() as *mut libc::c_char,
-                    c"-c".as_ptr() as *mut libc::c_char, script.as_ptr() as *mut libc::c_char,
-                    std::ptr::null_mut()];
-                let mut child = spawn_operation_child(&image, ExecutorBudget::laboratory(), &argv).unwrap();
+                let argv = [
+                    c"python3".as_ptr() as *mut libc::c_char,
+                    c"-c".as_ptr() as *mut libc::c_char,
+                    script.as_ptr() as *mut libc::c_char,
+                    std::ptr::null_mut(),
+                ];
+                let mut child =
+                    spawn_operation_child(&image, ExecutorBudget::laboratory(), &argv).unwrap();
                 let start = Instant::now();
                 while child.status.is_none() && start.elapsed() < Duration::from_millis(700) {
                     poll_exit(child.pid, &mut child.status).unwrap();
-                    if child.status.is_none() { thread::sleep(Duration::from_millis(1)); }
+                    if child.status.is_none() {
+                        thread::sleep(Duration::from_millis(1));
+                    }
                 }
-                assert!(child.status.is_some(), "natural child exit was not observed");
-                let prepared = make_batch_request(Digest256::of_bytes(b"fixture-worker"),
-                    &batch_schema(), FormatProfile::AssertedSourceCandidateV1,
-                    [batch_unit(0, b"7")], budget).unwrap();
+                assert!(
+                    child.status.is_some(),
+                    "natural child exit was not observed"
+                );
+                let prepared = make_batch_request(
+                    Digest256::of_bytes(b"fixture-worker"),
+                    &batch_schema(),
+                    FormatProfile::AssertedSourceCandidateV1,
+                    [batch_unit(0, b"7")],
+                    budget,
+                )
+                .unwrap();
                 let mut results = Digest256Hasher::new();
                 results.update(b"tos-val2-batch-results-v1\0");
-                let outcome = run_batch_exchange(&mut child, prepared, results, budget,
-                    Instant::now(), None, true);
+                let outcome = run_batch_exchange(
+                    &mut child,
+                    prepared,
+                    results,
+                    budget,
+                    Instant::now(),
+                    None,
+                    true,
+                );
                 match outcome {
-                    BatchOutcome::Incomplete { reason, receipts, exchange: Some(context), .. } => {
-                        assert_eq!(reason, match expected { ChildTermination::Exited(code)=>ExecutorFailure::CrashExit(code), ChildTermination::Signalled(signal)=>ExecutorFailure::CrashSignal(signal) });
+                    BatchOutcome::Incomplete {
+                        reason,
+                        receipts,
+                        exchange: Some(context),
+                        ..
+                    } => {
+                        assert_eq!(
+                            reason,
+                            match expected {
+                                ChildTermination::Exited(code) => ExecutorFailure::CrashExit(code),
+                                ChildTermination::Signalled(signal) =>
+                                    ExecutorFailure::CrashSignal(signal),
+                            }
+                        );
                         assert!(receipts.is_empty());
                         assert_eq!(context.failure, ExecutorFailure::Protocol);
                         assert_eq!(context.natural_termination, Some(expected));
                         assert!(!context.boundary.is_empty());
-                    },
+                    }
                     other => panic!("missing natural termination context: {other:?}"),
                 }
                 // Latched cleanup cannot overwrite the independently observed
@@ -3871,11 +4025,20 @@ mod native {
                     ..
                 } if receipts.is_empty()
             ));
-            if let BatchOutcome::Incomplete { exchange: Some(context), .. } = outcome {
+            if let BatchOutcome::Incomplete {
+                exchange: Some(context),
+                ..
+            } = outcome
+            {
                 assert_eq!(context.failure, ExecutorFailure::Timeout);
                 assert_eq!(context.boundary, "ack-startup-wall");
-                assert_eq!(context.natural_termination, None, "cleanup SIGKILL is not natural termination");
-            } else { panic!("missing timeout exchange context"); }
+                assert_eq!(
+                    context.natural_termination, None,
+                    "cleanup SIGKILL is not natural termination"
+                );
+            } else {
+                panic!("missing timeout exchange context");
+            }
             assert!(start.elapsed() < Duration::from_millis(700));
         }
 

@@ -2,14 +2,14 @@
 //! The complete assembler supplies endpoint titles, placeholders and finalizers.
 use crate::knowledge_base::{BaseNodeOverrides, BaseNormalizationLimits, KnowledgeBaseNormalizer};
 use crate::knowledge_canon_prepare::{
-    canonical_digest, dependency_root, required, text, CanonPrepareReceipt, CANDIDATE_PROFILE,
-    CANON_PROFILE,
+    CANDIDATE_PROFILE, CANON_PROFILE, CanonPrepareReceipt, canonical_digest, dependency_root,
+    required, text,
 };
-use crate::knowledge_normalization::{stamp_content_revision, SourceRow};
+use crate::knowledge_normalization::{SourceRow, stamp_content_revision};
 use crate::knowledge_stage::{KnowledgeStage, NodeRow, RelationRow, WritePhase};
 use crate::{Error, KnowledgeRegistry, QueryVocabulary, Result};
-use rusqlite::{params, OptionalExtension};
-use serde_json::{json, Value};
+use rusqlite::{OptionalExtension, params};
+use serde_json::{Value, json};
 use tos_foundation::Digest256;
 
 #[derive(Clone, Copy, Debug)]
@@ -565,7 +565,7 @@ mod tests {
     use crate::knowledge_candidates::{
         candidate_normalizer, materialize_candidate_relations, prepare_candidate_inputs,
     };
-    use crate::knowledge_canon_prepare::{prepare_canon_inputs, CanonPrepareLimits};
+    use crate::knowledge_canon_prepare::{CanonPrepareLimits, prepare_canon_inputs};
     use crate::knowledge_stage::{
         ExactInputReceipt, InputCollectionReceipt, InputRow, StageIsolation, StageLimits,
         StageOwner,

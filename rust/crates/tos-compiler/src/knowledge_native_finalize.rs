@@ -34,13 +34,17 @@ impl NativeFinalizeLimits {
             || self.max_row_bytes > 8 * 1024 * 1024
             || self.max_page_bytes == 0
             || self.max_page_bytes > 64 * 1024 * 1024
-            || self.max_page_rows.checked_mul(self.max_row_bytes)
+            || self
+                .max_page_rows
+                .checked_mul(self.max_row_bytes)
                 .is_none_or(|n| n > self.max_page_bytes)
             || self.max_view_ids_per_node == 0
             || self.max_context_sources == 0
             || self.max_context_sources > 64
             || self.max_work_bytes == 0
-        { return Err(Error::Budget("native finalization limits")); }
+        {
+            return Err(Error::Budget("native finalization limits"));
+        }
         Ok(())
     }
 }

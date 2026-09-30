@@ -1110,10 +1110,15 @@ finally:c.doCleanups()
             .any(|(path, predicate)| path == crosswalk
                 && predicate.starts_with("_transfer_candidate_crosswalk_issues/v1"))
     );
-    assert!(report.layers.layer_family.checked_predicates.iter().any(
-        |(path, predicate)| path == opening_plan
-            && predicate == "named-zarathustra-opening-sentence-tracked-closure-v1"
-    ));
+    assert!(
+        report
+            .layers
+            .layer_family
+            .checked_predicates
+            .iter()
+            .any(|(path, predicate)| path == opening_plan
+                && predicate == "named-zarathustra-opening-sentence-tracked-closure-v1")
+    );
     assert!(
         !report
             .layers
@@ -1214,30 +1219,57 @@ finally:c.doCleanups()
                     | "native-edition-item-compound-evidence"
             ))
     );
-    assert!(report.bibliography.shadow.checked_profiles.contains(
-        "native-collection-work-exact-compound-plan-and-current-lineage@1"
-    ));
+    assert!(
+        report
+            .bibliography
+            .shadow
+            .checked_profiles
+            .contains("native-collection-work-exact-compound-plan-and-current-lineage@1")
+    );
     assert_eq!(
-        report.bibliography.native_compounds.iter().filter(|observed|
-            observed.claim_path.contains("/relations/synthetic-membership-")).count(),
+        report
+            .bibliography
+            .native_compounds
+            .iter()
+            .filter(|observed| observed
+                .claim_path
+                .contains("/relations/synthetic-membership-"))
+            .count(),
         2
     );
-    assert!(!report.bibliography.shadow.skipped_profiles.contains(
-        "native-compound-owner-evidence:contains_work"
-    ));
+    assert!(
+        !report
+            .bibliography
+            .shadow
+            .skipped_profiles
+            .contains("native-compound-owner-evidence:contains_work")
+    );
 
-    assert!(report.bibliography.shadow.checked_profiles.contains(
-        "native-expression-responsibility-exact-compound-plan-and-current-lineage@1"
-    ));
+    assert!(
+        report
+            .bibliography
+            .shadow
+            .checked_profiles
+            .contains("native-expression-responsibility-exact-compound-plan-and-current-lineage@1")
+    );
     assert_eq!(
-        report.bibliography.native_compounds.iter().filter(|observed|
-            observed.claim_path.contains("/relations/synthetic-translator-")).count(),
+        report
+            .bibliography
+            .native_compounds
+            .iter()
+            .filter(|observed| observed
+                .claim_path
+                .contains("/relations/synthetic-translator-"))
+            .count(),
         2
     );
-    assert!(!report.bibliography.shadow.skipped_profiles.contains(
-        "native-compound-owner-evidence:translated_by"
-    ));
-
+    assert!(
+        !report
+            .bibliography
+            .shadow
+            .skipped_profiles
+            .contains("native-compound-owner-evidence:translated_by")
+    );
 
     // Equal decoded JSON is insufficient: retained publication binds exact
     // receipt bytes. Inspect the changed current cut through the same actual
@@ -1288,22 +1320,45 @@ finally:c.doCleanups()
         .unwrap()
         .to_owned()
         + "fixity.sha256";
-    let membership = report.bibliography.native_compounds.iter().find(|observed|
-        observed.claim_path.contains("/relations/synthetic-membership-first/")).unwrap();
-    let membership_history = membership.claim_path.strip_suffix("source-claims.jsonl")
-        .unwrap().to_owned() + "claim-revision-history.json";
+    let membership = report
+        .bibliography
+        .native_compounds
+        .iter()
+        .find(|observed| {
+            observed
+                .claim_path
+                .contains("/relations/synthetic-membership-first/")
+        })
+        .unwrap();
+    let membership_history = membership
+        .claim_path
+        .strip_suffix("source-claims.jsonl")
+        .unwrap()
+        .to_owned()
+        + "claim-revision-history.json";
     let mut removed_history: Value = serde_json::from_slice(&files[&membership_history]).unwrap();
     removed_history["receipts"] = serde_json::json!([]);
-    let translator = report.bibliography.native_compounds.iter().find(|observed|
-        observed.claim_path.contains("/relations/synthetic-translator-first/")).unwrap();
-    let translator_receipt = translator.claim_path.strip_suffix("source-claims.jsonl")
-        .unwrap().to_owned() + "responsibility-attachment-receipt.json";
+    let translator = report
+        .bibliography
+        .native_compounds
+        .iter()
+        .find(|observed| {
+            observed
+                .claim_path
+                .contains("/relations/synthetic-translator-first/")
+        })
+        .unwrap();
+    let translator_receipt = translator
+        .claim_path
+        .strip_suffix("source-claims.jsonl")
+        .unwrap()
+        .to_owned()
+        + "responsibility-attachment-receipt.json";
     let binding: Value = serde_json::from_slice(&files[&translator_receipt]).unwrap();
     let agent_path = binding["scope"]["agent_source_path"].as_str().unwrap();
-    let agent_history = agent_path.strip_suffix("agent.json").unwrap().to_owned()
-        + "source-revision-history.json";
-    let mut removed_agent_history: Value =
-        serde_json::from_slice(&files[&agent_history]).unwrap();
+    let agent_history =
+        agent_path.strip_suffix("agent.json").unwrap().to_owned() + "source-revision-history.json";
+    let mut removed_agent_history: Value = serde_json::from_slice(&files[&agent_history]).unwrap();
     removed_agent_history["receipts"] = serde_json::json!([]);
     for (target, raw, claim_path, code) in [
         (
@@ -1312,8 +1367,12 @@ finally:c.doCleanups()
             translator.claim_path.as_str(),
             "native-expression-responsibility-compound-evidence",
         ),
-        (membership_history, serde_json::to_vec(&removed_history).unwrap(),
-            membership.claim_path.as_str(), "native-collection-work-compound-evidence"),
+        (
+            membership_history,
+            serde_json::to_vec(&removed_history).unwrap(),
+            membership.claim_path.as_str(),
+            "native-collection-work-compound-evidence",
+        ),
         (
             receipt_path.clone(),
             {
@@ -1340,8 +1399,6 @@ finally:c.doCleanups()
             item.claim_path.as_str(),
             "native-edition-item-compound-evidence",
         ),
-
-
     ] {
         let mut damaged = files.clone();
         damaged.insert(target, raw);
@@ -1528,19 +1585,28 @@ finally:c.doCleanups()
         assert!(fs::metadata(&stdout_path).unwrap().len() <= 67_108_864);
         assert!(fs::metadata(&stderr_path).unwrap().len() <= 1_048_576);
         assert!(Instant::now() < deadline, "ObjectLink whole-case deadline");
-        assert!(oracle_status.success(), "maintained ObjectLink oracle: {}",
-            String::from_utf8_lossy(&fs::read(&stderr_path).unwrap()));
+        assert!(
+            oracle_status.success(),
+            "maintained ObjectLink oracle: {}",
+            String::from_utf8_lossy(&fs::read(&stderr_path).unwrap())
+        );
         let packet: Value = serde_json::from_slice(&fs::read(&stdout_path).unwrap()).unwrap();
         let claim_path = required(&packet, "claim_path").to_owned();
         let mut files = selected_item_sources();
         let relation = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
-        files.insert(relation.into(), fs::read(repository().join(relation)).unwrap());
+        files.insert(
+            relation.into(),
+            fs::read(repository().join(relation)).unwrap(),
+        );
         for (path, hex) in packet["files"].as_object().unwrap() {
-            assert!(tos_source_store::is_authored_source_path_v1(path),
-                "unexpected non-authored ObjectLink fixture member {path}");
+            assert!(
+                tos_source_store::is_authored_source_path_v1(path),
+                "unexpected non-authored ObjectLink fixture member {path}"
+            );
             let hex = hex.as_str().unwrap();
             assert_eq!(hex.len() % 2, 0);
-            let raw = (0..hex.len()).step_by(2)
+            let raw = (0..hex.len())
+                .step_by(2)
                 .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
                 .collect::<Vec<_>>();
             if let Some(existing) = files.get(path) {
@@ -1552,41 +1618,97 @@ finally:c.doCleanups()
         let root = temporary.path().join("store");
         let revision = write_cut_store(&files, &root);
         let cancelled = AtomicBool::new(false);
-        let reader = CorpusReader::open_existing(&root, ReadLimits {
-            max_manifest_bytes: 1_048_576, max_manifest_entries: 1024,
-            max_selected_object_bytes: 2_097_152, json: JsonLimits::default(),
-        }).unwrap();
-        let cut = reader.open_source_cut(revision, CutReadLimits {
-            max_revisions: 4, max_members: 2048, max_total_bytes: 32_000_000,
-            max_member_bytes: 2_097_152,
-        }, deadline, &cancelled).unwrap();
+        let reader = CorpusReader::open_existing(
+            &root,
+            ReadLimits {
+                max_manifest_bytes: 1_048_576,
+                max_manifest_entries: 1024,
+                max_selected_object_bytes: 2_097_152,
+                json: JsonLimits::default(),
+            },
+        )
+        .unwrap();
+        let cut = reader
+            .open_source_cut(
+                revision,
+                CutReadLimits {
+                    max_revisions: 4,
+                    max_members: 2048,
+                    max_total_bytes: 32_000_000,
+                    max_member_bytes: 2_097_152,
+                },
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
         let limits = ItemLimits {
-            max_member_bytes: 2_097_152, max_total_bytes: 64_000_000,
-            max_state_bytes: 16_777_216, max_issues: 256, deadline,
+            max_member_bytes: 2_097_152,
+            max_total_bytes: 64_000_000,
+            max_state_bytes: 16_777_216,
+            max_issues: 256,
+            deadline,
         };
-        let mut records = BiblioRecordExecutor::new(worker.clone(),
-            remaining_budget(), FormatProfile::LegacyPythonObserved20260923, 256);
+        let mut records = BiblioRecordExecutor::new(
+            worker.clone(),
+            remaining_budget(),
+            FormatProfile::LegacyPythonObserved20260923,
+            256,
+        );
         let current = tos_validation::record_biblio_cut::inspect_records_from_cut(
-            &cut, limits, &cancelled, &mut records).unwrap();
+            &cut,
+            limits,
+            &cancelled,
+            &mut records,
+        )
+        .unwrap();
         records.finish(deadline, &cancelled).unwrap();
         drop(records);
-        let mut schemas = CutWorkerSchemaExecutor::from_cut(&cut,
-            FormatProfile::LegacyPythonObserved20260923, worker.clone(),
-            remaining_budget(), CutWorkerLimits {
-                max_receipts: 256, max_receipt_bytes: 262_144,
-            }, deadline, &cancelled).unwrap();
+        let mut schemas = CutWorkerSchemaExecutor::from_cut(
+            &cut,
+            FormatProfile::LegacyPythonObserved20260923,
+            worker.clone(),
+            remaining_budget(),
+            CutWorkerLimits {
+                max_receipts: 256,
+                max_receipt_bytes: 262_144,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
         let report = tos_validation::biblio_rules::inspect_bibliography_from_cut(
-            &cut, &current, limits, &cancelled, &mut schemas).unwrap();
+            &cut,
+            &current,
+            limits,
+            &cancelled,
+            &mut schemas,
+        )
+        .unwrap();
         schemas.finish(deadline, &cancelled).unwrap();
         drop(schemas);
-        assert!(report.native_compounds.iter().any(|observed|
-            observed.claim_path == claim_path
-                && observed.transport == tos_validation::native_compound::NativeTransportState::Committed),
-            "native ObjectLink source issue: {:?}", report.shadow.issues);
-        assert!(report.shadow.checked_profiles.contains(
-            "native-object-link-exact-compound-plan-and-current-lineage@1"));
-        assert!(!report.shadow.issues.iter().any(|issue|
-            issue.code == "native-object-link-compound-evidence"));
+        assert!(
+            report
+                .native_compounds
+                .iter()
+                .any(|observed| observed.claim_path == claim_path
+                    && observed.transport
+                        == tos_validation::native_compound::NativeTransportState::Committed),
+            "native ObjectLink source issue: {:?}",
+            report.shadow.issues
+        );
+        assert!(
+            report
+                .shadow
+                .checked_profiles
+                .contains("native-object-link-exact-compound-plan-and-current-lineage@1")
+        );
+        assert!(
+            !report
+                .shadow
+                .issues
+                .iter()
+                .any(|issue| issue.code == "native-object-link-compound-evidence")
+        );
 
         if kind == "work" {
             // Removing the retained Link correction cannot be repaired by the
@@ -1595,31 +1717,73 @@ finally:c.doCleanups()
             let mut damaged = files.clone();
             damaged.remove(link_history).unwrap();
             let damaged_revision = write_cut_store_on_base(&damaged, &root, Some(revision));
-            let damaged_cut = reader.open_source_cut(damaged_revision, CutReadLimits {
-                max_revisions: 4, max_members: 2048, max_total_bytes: 32_000_000,
-                max_member_bytes: 2_097_152,
-            }, deadline, &cancelled).unwrap();
-            let mut negative_records = BiblioRecordExecutor::new(worker.clone(),
-                remaining_budget(), FormatProfile::LegacyPythonObserved20260923, 256);
+            let damaged_cut = reader
+                .open_source_cut(
+                    damaged_revision,
+                    CutReadLimits {
+                        max_revisions: 4,
+                        max_members: 2048,
+                        max_total_bytes: 32_000_000,
+                        max_member_bytes: 2_097_152,
+                    },
+                    deadline,
+                    &cancelled,
+                )
+                .unwrap();
+            let mut negative_records = BiblioRecordExecutor::new(
+                worker.clone(),
+                remaining_budget(),
+                FormatProfile::LegacyPythonObserved20260923,
+                256,
+            );
             let retained = tos_validation::record_biblio_cut::inspect_records_from_cut(
-                &damaged_cut, limits, &cancelled, &mut negative_records).unwrap();
+                &damaged_cut,
+                limits,
+                &cancelled,
+                &mut negative_records,
+            )
+            .unwrap();
             negative_records.finish(deadline, &cancelled).unwrap();
             drop(negative_records);
-            let mut negative_schemas = CutWorkerSchemaExecutor::from_cut(&damaged_cut,
-                FormatProfile::LegacyPythonObserved20260923, worker.clone(),
-                remaining_budget(), CutWorkerLimits {
-                    max_receipts: 256, max_receipt_bytes: 262_144,
-                }, deadline, &cancelled).unwrap();
+            let mut negative_schemas = CutWorkerSchemaExecutor::from_cut(
+                &damaged_cut,
+                FormatProfile::LegacyPythonObserved20260923,
+                worker.clone(),
+                remaining_budget(),
+                CutWorkerLimits {
+                    max_receipts: 256,
+                    max_receipt_bytes: 262_144,
+                },
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
             let refused = tos_validation::biblio_rules::inspect_bibliography_from_cut(
-                &damaged_cut, &retained, limits, &cancelled, &mut negative_schemas).unwrap();
+                &damaged_cut,
+                &retained,
+                limits,
+                &cancelled,
+                &mut negative_schemas,
+            )
+            .unwrap();
             negative_schemas.finish(deadline, &cancelled).unwrap();
             drop(negative_schemas);
-            assert!(refused.shadow.issues.iter().any(|issue|
-                issue.code == "native-object-link-compound-evidence"
-                    && issue.location.starts_with(&claim_path)));
-            assert!(!refused.native_compounds.iter().any(|observed|
-                observed.claim_path == claim_path
-                    && observed.transport == tos_validation::native_compound::NativeTransportState::Committed));
+            assert!(
+                refused
+                    .shadow
+                    .issues
+                    .iter()
+                    .any(|issue| issue.code == "native-object-link-compound-evidence"
+                        && issue.location.starts_with(&claim_path))
+            );
+            assert!(
+                !refused
+                    .native_compounds
+                    .iter()
+                    .any(|observed| observed.claim_path == claim_path
+                        && observed.transport
+                            == tos_validation::native_compound::NativeTransportState::Committed)
+            );
         }
     }
 }

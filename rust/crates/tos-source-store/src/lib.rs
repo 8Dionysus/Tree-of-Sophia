@@ -14,7 +14,8 @@ mod software;
 
 pub use cut::{
     CorpusCutReader, CutReadLimits, RetiredSourceMemberV1, SourceMemberStreamV1, SourceMemberV1,
-    SourceMembershipV1, SourcePresenceV1, has_authored_source_descendants_v1, is_authored_source_path_v1,
+    SourceMembershipV1, SourcePresenceV1, has_authored_source_descendants_v1,
+    is_authored_source_path_v1,
 };
 pub use error::{Result, StoreError, StoreErrorCode};
 pub use limits::ReadLimits;

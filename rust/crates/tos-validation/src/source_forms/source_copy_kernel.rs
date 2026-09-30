@@ -44,8 +44,16 @@ fn canonical(value: &JsonValue) -> Result<Vec<u8>> {
     )
     .map_err(|_| Error::Invalid("source canonical input"))
 }
-fn canonical_size(value:&JsonValue)->Result<usize> {
-    canonical_count_v1(value,CanonicalProfile::SourceCommandInputV1,JsonLimits{max_bytes:8_388_608,..JsonLimits::default()}).map_err(|_|Error::Invalid("source canonical input"))
+fn canonical_size(value: &JsonValue) -> Result<usize> {
+    canonical_count_v1(
+        value,
+        CanonicalProfile::SourceCommandInputV1,
+        JsonLimits {
+            max_bytes: 8_388_608,
+            ..JsonLimits::default()
+        },
+    )
+    .map_err(|_| Error::Invalid("source canonical input"))
 }
 fn record_digest(value: &JsonValue) -> Result<Digest256> {
     Ok(Digest256::of_bytes(&canonical(value)?))
@@ -426,11 +434,17 @@ pub fn prepare_form_change(
         .iter()
         .find(|field| field.id == field_id)
         .ok_or(Error::Invalid("unknown source field selector"))?;
-    prepare_form_change_from_fields(source,set,principal,id,selected)
+    prepare_form_change_from_fields(source, set, principal, id, selected)
 }
 // Same pure preparation law; the compound consumer borrows a selected field
 // from its one priced catalogue instead of rebuilding that catalogue per form.
-pub(crate) fn prepare_form_change_from_fields(source:&JsonValue,set:Option<&JsonValue>,principal:&str,id:&str,selected:&FormField)->Result<JsonValue> {
+pub(crate) fn prepare_form_change_from_fields(
+    source: &JsonValue,
+    set: Option<&JsonValue>,
+    principal: &str,
+    id: &str,
+    selected: &FormField,
+) -> Result<JsonValue> {
     let subject = metadata_subject(source)?;
     let empty = empty_set(&subject);
     prepared_change(set.unwrap_or(&empty), &subject, principal, id, selected)
@@ -515,17 +529,47 @@ fn stopped(form: &JsonValue, subject: &JsonValue, state: &str, issue: &str) -> R
     ]))
 }
 pub fn materialize_source_forms(source: &JsonValue, set: &JsonValue) -> Result<Vec<JsonValue>> {
-    materialize_source_forms_impl(source,set,None,None).map_err(|error|match error {MaterializeError::Form(error)=>error,MaterializeError::Logical{..}=>Error::Unsupported("form logical workspace")})
-}
-pub(crate) fn materialize_source_forms_from_fields(source:&JsonValue,set:&JsonValue,fields:&[FormField],available:usize)->std::result::Result<Vec<JsonValue>,crate::item_rules::ItemRefusal> {
-    materialize_source_forms_impl(source,set,Some(fields),Some(available)).map_err(|error|match error {
-        MaterializeError::Form(error)=>crate::item_rules::ItemRefusal::Unsupported(format!("compound source-copy forms: {error:?}")),
-        MaterializeError::Logical{used,limit}=>crate::item_rules::ItemRefusal::BudgetCheck{check:"compound source-copy materialization logical state",used:used.map(|n|n as u64),limit:Some(limit as u64)},
+    materialize_source_forms_impl(source, set, None, None).map_err(|error| match error {
+        MaterializeError::Form(error) => error,
+        MaterializeError::Logical { .. } => Error::Unsupported("form logical workspace"),
     })
 }
-enum MaterializeError {Form(FormMechanicsError),Logical{used:Option<usize>,limit:usize}}
-impl From<FormMechanicsError> for MaterializeError {fn from(error:FormMechanicsError)->Self {Self::Form(error)}}
-fn materialize_source_forms_impl(source:&JsonValue,set:&JsonValue,selected_fields:Option<&[FormField]>,logical_limit:Option<usize>)->std::result::Result<Vec<JsonValue>,MaterializeError> {
+pub(crate) fn materialize_source_forms_from_fields(
+    source: &JsonValue,
+    set: &JsonValue,
+    fields: &[FormField],
+    available: usize,
+) -> std::result::Result<Vec<JsonValue>, crate::item_rules::ItemRefusal> {
+    materialize_source_forms_impl(source, set, Some(fields), Some(available)).map_err(|error| {
+        match error {
+            MaterializeError::Form(error) => crate::item_rules::ItemRefusal::Unsupported(format!(
+                "compound source-copy forms: {error:?}"
+            )),
+            MaterializeError::Logical { used, limit } => {
+                crate::item_rules::ItemRefusal::BudgetCheck {
+                    check: "compound source-copy materialization logical state",
+                    used: used.map(|n| n as u64),
+                    limit: Some(limit as u64),
+                }
+            }
+        }
+    })
+}
+enum MaterializeError {
+    Form(FormMechanicsError),
+    Logical { used: Option<usize>, limit: usize },
+}
+impl From<FormMechanicsError> for MaterializeError {
+    fn from(error: FormMechanicsError) -> Self {
+        Self::Form(error)
+    }
+}
+fn materialize_source_forms_impl(
+    source: &JsonValue,
+    set: &JsonValue,
+    selected_fields: Option<&[FormField]>,
+    logical_limit: Option<usize>,
+) -> std::result::Result<Vec<JsonValue>, MaterializeError> {
     let subject = metadata_subject(source)?;
     validate_history(set, &subject)?;
     if source
@@ -542,16 +586,26 @@ fn materialize_source_forms_impl(source:&JsonValue,set:&JsonValue,selected_field
                     != Some("source-copy")
             })
     {
-        return Err(Error::Denied(
-            "canonical current and retained forms permit only source-copy",
-        ).into());
+        return Err(
+            Error::Denied("canonical current and retained forms permit only source-copy").into(),
+        );
     }
-    let fields=match selected_fields {Some(fields)=>std::borrow::Cow::Borrowed(fields),None=>std::borrow::Cow::Owned(metadata_fields(source)?)};
+    let fields = match selected_fields {
+        Some(fields) => std::borrow::Cow::Borrowed(fields),
+        None => std::borrow::Cow::Owned(metadata_fields(source)?),
+    };
     let mut output = Vec::new();
     let mut bytes = 0usize;
-    let mut logical=std::mem::size_of::<Vec<JsonValue>>();
+    let mut logical = std::mem::size_of::<Vec<JsonValue>>();
     for form in array(set, "forms")? {
-        let mut view = materialize_one(source, &subject, set, form, &fields,logical_limit.map(|limit|limit.saturating_sub(logical)))?;
+        let mut view = materialize_one(
+            source,
+            &subject,
+            set,
+            form,
+            &fields,
+            logical_limit.map(|limit| limit.saturating_sub(logical)),
+        )?;
         if source.object_get("claim_id").is_some()
             && !matches!(
                 source.object_get("visibility").and_then(JsonValue::as_str),
@@ -562,17 +616,42 @@ fn materialize_source_forms_impl(source:&JsonValue,set:&JsonValue,selected_field
         }
         // Existing output byte law; the private compound caller additionally
         // bounds the temporary emission while earlier views remain retained.
-        let wire_size=if let Some(limit)=logical_limit {
-            let tree=crate::record_biblio_cut::ordered_state(&view).map_err(|_|MaterializeError::Logical{used:None,limit})?;
-            let indexes=crate::record_biblio_cut::ordered_emit_state(&view).map_err(|_|MaterializeError::Logical{used:None,limit})?;
-            let base=logical.checked_add(tree).and_then(|n|n.checked_add(indexes)).ok_or(MaterializeError::Logical{used:None,limit})?;
-            if base>limit {return Err(MaterializeError::Logical{used:Some(base),limit});}
+        let wire_size = if let Some(limit) = logical_limit {
+            let tree = crate::record_biblio_cut::ordered_state(&view)
+                .map_err(|_| MaterializeError::Logical { used: None, limit })?;
+            let indexes = crate::record_biblio_cut::ordered_emit_state(&view)
+                .map_err(|_| MaterializeError::Logical { used: None, limit })?;
+            let base = logical
+                .checked_add(tree)
+                .and_then(|n| n.checked_add(indexes))
+                .ok_or(MaterializeError::Logical { used: None, limit })?;
+            if base > limit {
+                return Err(MaterializeError::Logical {
+                    used: Some(base),
+                    limit,
+                });
+            }
             canonical_size(&view)?
-        }else{canonical_size(&view)?};
-        bytes = bytes.checked_add(wire_size).filter(|size| *size <= 262_144).ok_or(Error::Invalid("form materialization output budget"))?;
-        if let Some(limit)=logical_limit {
-            logical=logical.checked_add(crate::record_biblio_cut::ordered_state(&view).map_err(|_|MaterializeError::Logical{used:None,limit})?).ok_or(MaterializeError::Logical{used:None,limit})?;
-            if logical>limit {return Err(MaterializeError::Logical{used:Some(logical),limit});}
+        } else {
+            canonical_size(&view)?
+        };
+        bytes = bytes
+            .checked_add(wire_size)
+            .filter(|size| *size <= 262_144)
+            .ok_or(Error::Invalid("form materialization output budget"))?;
+        if let Some(limit) = logical_limit {
+            logical = logical
+                .checked_add(
+                    crate::record_biblio_cut::ordered_state(&view)
+                        .map_err(|_| MaterializeError::Logical { used: None, limit })?,
+                )
+                .ok_or(MaterializeError::Logical { used: None, limit })?;
+            if logical > limit {
+                return Err(MaterializeError::Logical {
+                    used: Some(logical),
+                    limit,
+                });
+            }
         }
         output.push(view);
     }
@@ -584,10 +663,11 @@ fn materialize_one(
     set: &JsonValue,
     form: &JsonValue,
     fields: &[FormField],
-    logical_limit:Option<usize>,
-) -> std::result::Result<JsonValue,MaterializeError> {
+    logical_limit: Option<usize>,
+) -> std::result::Result<JsonValue, MaterializeError> {
     if !same(field(set, "subject")?, subject)? || !same(field(form, "subject")?, subject)? {
-        return stopped(form, subject, "stale", "metadata-adapter.subject-changed").map_err(MaterializeError::Form);
+        return stopped(form, subject, "stale", "metadata-adapter.subject-changed")
+            .map_err(MaterializeError::Form);
     }
     let content = field(form, "content")?;
     if text(content, "kind")? != "source-copy" {
@@ -596,7 +676,8 @@ fn materialize_one(
             subject,
             "unavailable",
             "metadata-adapter.unsupported-role-or-production-mode",
-        ).map_err(MaterializeError::Form);
+        )
+        .map_err(MaterializeError::Form);
     }
     let bindings = field(form, "bindings")?;
     let slot = text(content, "slot")?;
@@ -606,7 +687,8 @@ fn materialize_one(
             subject,
             "unavailable",
             "metadata-adapter.unsupported-role-or-production-mode",
-        ).map_err(MaterializeError::Form);
+        )
+        .map_err(MaterializeError::Form);
     };
     if !same(field(selected, "record")?, subject)? {
         return stopped(
@@ -614,7 +696,8 @@ fn materialize_one(
             subject,
             "unavailable",
             "metadata-adapter.unsupported-role-or-production-mode",
-        ).map_err(MaterializeError::Form);
+        )
+        .map_err(MaterializeError::Form);
     }
     let matches = fields
         .iter()
@@ -632,7 +715,8 @@ fn materialize_one(
             subject,
             "unavailable",
             "metadata-adapter.unsupported-role-or-production-mode",
-        ).map_err(MaterializeError::Form);
+        )
+        .map_err(MaterializeError::Form);
     };
     if !same(field(form, "language")?, &chosen.language)?
         || !same(field(form, "script")?, &chosen.script)?
@@ -642,7 +726,8 @@ fn materialize_one(
             subject,
             "invalid",
             "source-copy.language-not-bound-to-source",
-        ).map_err(MaterializeError::Form);
+        )
+        .map_err(MaterializeError::Form);
     }
     if form
         .object_get("language_context")
@@ -653,7 +738,8 @@ fn materialize_one(
             subject,
             "invalid",
             "language-context.outside-owner-scope",
-        ).map_err(MaterializeError::Form);
+        )
+        .map_err(MaterializeError::Form);
     }
     // Resolve every authored binding, including extra slots. A valid wording
     // slot cannot hide a stale or unavailable dependency in another binding.
@@ -670,7 +756,8 @@ fn materialize_one(
                 subject,
                 "unavailable",
                 &format!("binding.unavailable:{binding_slot}"),
-            ).map_err(MaterializeError::Form);
+            )
+            .map_err(MaterializeError::Form);
         }
         if !same(field(bound, "record")?, subject)? {
             return stopped(
@@ -678,7 +765,8 @@ fn materialize_one(
                 subject,
                 "stale",
                 &format!("binding.changed:{binding_slot}"),
-            ).map_err(MaterializeError::Form);
+            )
+            .map_err(MaterializeError::Form);
         }
         if pointer(source, text(bound, "pointer")?).is_err() {
             return stopped(
@@ -686,7 +774,8 @@ fn materialize_one(
                 subject,
                 "invalid",
                 &format!("binding.pointer:{binding_slot}"),
-            ).map_err(MaterializeError::Form);
+            )
+            .map_err(MaterializeError::Form);
         }
     }
     let mut context = Vec::new();
@@ -698,7 +787,8 @@ fn materialize_one(
             .iter()
             .find(|(_, value)| same(value, &expected).unwrap_or(false));
         let Some((key, _)) = matching else {
-            return stopped(form, subject, "invalid", "context.omitted").map_err(MaterializeError::Form);
+            return stopped(form, subject, "invalid", "context.omitted")
+                .map_err(MaterializeError::Form);
         };
         context.push(object(vec![
             (
@@ -716,7 +806,8 @@ fn materialize_one(
             subject,
             "invalid",
             "source-copy.requires-complete-nonempty-string",
-        ).map_err(MaterializeError::Form);
+        )
+        .map_err(MaterializeError::Form);
     }
     let mut view = object(vec![
         (
@@ -738,18 +829,35 @@ fn materialize_one(
         ("dependencies", JsonValue::Array(vec![subject.clone()])),
         ("standalone_reading", JsonValue::Bool(false)),
     ]);
-    if let Some(limit)=logical_limit {
-        let used=crate::record_biblio_cut::ordered_state(&view).map_err(|_|MaterializeError::Logical{used:None,limit})?;
-        if used>limit {return Err(MaterializeError::Logical{used:Some(used),limit});}
+    if let Some(limit) = logical_limit {
+        let used = crate::record_biblio_cut::ordered_state(&view)
+            .map_err(|_| MaterializeError::Logical { used: None, limit })?;
+        if used > limit {
+            return Err(MaterializeError::Logical {
+                used: Some(used),
+                limit,
+            });
+        }
     }
-    let view_size=if let Some(limit)=logical_limit {
-        let tree=crate::record_biblio_cut::ordered_state(&view).map_err(|_|MaterializeError::Logical{used:None,limit})?;
-        let indexes=crate::record_biblio_cut::ordered_emit_state(&view).map_err(|_|MaterializeError::Logical{used:None,limit})?;
-        let base=tree.checked_add(indexes).ok_or(MaterializeError::Logical{used:None,limit})?;
-        if base>limit {return Err(MaterializeError::Logical{used:Some(base),limit});}
+    let view_size = if let Some(limit) = logical_limit {
+        let tree = crate::record_biblio_cut::ordered_state(&view)
+            .map_err(|_| MaterializeError::Logical { used: None, limit })?;
+        let indexes = crate::record_biblio_cut::ordered_emit_state(&view)
+            .map_err(|_| MaterializeError::Logical { used: None, limit })?;
+        let base = tree
+            .checked_add(indexes)
+            .ok_or(MaterializeError::Logical { used: None, limit })?;
+        if base > limit {
+            return Err(MaterializeError::Logical {
+                used: Some(base),
+                limit,
+            });
+        }
         canonical_size(&view)?
-    }else{canonical_size(&view)?};
-    let over_wire=view_size>65_536;
+    } else {
+        canonical_size(&view)?
+    };
+    let over_wire = view_size > 65_536;
     if over_wire {
         view = stopped(
             form,
@@ -948,10 +1056,7 @@ pub fn validate_history(set: &JsonValue, subject: &JsonValue) -> Result<()> {
                 return Err(Error::Unsupported("duplicate or foreign source receipt"));
             }
             for reference in array(receipt, "results")? {
-                let key = (
-                    text(reference, "id")?,
-                    integer(reference, "version")?,
-                );
+                let key = (text(reference, "id")?, integer(reference, "version")?);
                 let Some(form) = indexed.get(&key) else {
                     return Err(Error::Unsupported("receipt result not retained"));
                 };

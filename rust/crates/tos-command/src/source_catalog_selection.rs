@@ -1,6 +1,6 @@
 //! Bounded raw catalog selection shared by native owner adapters.
 use super::work_expression::{catalog_lines, known_catalog_kind, raw_hex};
-use super::{active, walk, work_transaction, CreationFilesystem};
+use super::{CreationFilesystem, active, walk, work_transaction};
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;

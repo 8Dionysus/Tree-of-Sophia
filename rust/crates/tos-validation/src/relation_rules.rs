@@ -793,16 +793,31 @@ pub fn inspect_profiled_claims(
 /// structural closure does not inspect or certify those carrier routes.
 /// Polarity, including negative/unknown, remains a Claim value in the union.
 pub fn inspect_current_topology(
-    records: &[Value], claims: &[Value], item_edition: &BTreeMap<String,String>,
-    verified_complete_union: bool, union_generation: &str,
+    records: &[Value],
+    claims: &[Value],
+    item_edition: &BTreeMap<String, String>,
+    verified_complete_union: bool,
+    union_generation: &str,
 ) -> RelationShadow {
     // This pure compatibility surface retains its existing source count caps.
     // The actual cut consumer below additionally supplies its remaining state,
     // original deadline and cancellation; neither route grants source authority.
-    let cancelled=std::sync::atomic::AtomicBool::new(false);
-    match inspect_current_topology_inner(records,claims,item_edition,verified_complete_union,union_generation,None,&cancelled) {
-        Ok((shadow,_))=>shadow,
-        Err(_)=>{let mut shadow=RelationShadow::default();shadow.skip("current-topology-state-capacity");shadow}
+    let cancelled = std::sync::atomic::AtomicBool::new(false);
+    match inspect_current_topology_inner(
+        records,
+        claims,
+        item_edition,
+        verified_complete_union,
+        union_generation,
+        None,
+        &cancelled,
+    ) {
+        Ok((shadow, _)) => shadow,
+        Err(_) => {
+            let mut shadow = RelationShadow::default();
+            shadow.skip("current-topology-state-capacity");
+            shadow
+        }
     }
 }
 
@@ -811,99 +826,229 @@ pub fn inspect_current_topology(
 // remain charged until the algorithm returns; each serialization streams into
 // the existing SHA-256 implementation rather than retaining a second JSON Vec.
 struct TopologyState<'a> {
-    shadow:RelationShadow,
-    state:usize,
-    report_state:usize,
-    limits:Option<crate::item_rules::ItemLimits>,
-    cancelled:&'a std::sync::atomic::AtomicBool,
+    shadow: RelationShadow,
+    state: usize,
+    report_state: usize,
+    limits: Option<crate::item_rules::ItemLimits>,
+    cancelled: &'a std::sync::atomic::AtomicBool,
 }
 impl TopologyState<'_> {
-    fn reserve(&mut self,amount:usize)->Result<(),crate::item_rules::ItemRefusal> {
-        if let Some(limits)=self.limits {crate::record_biblio_cut::check(limits.deadline,self.cancelled)?;}
-        let next=self.state.checked_add(amount).ok_or(crate::item_rules::ItemRefusal::Budget)?;
-        let limit=self.limits.map_or(usize::MAX,|limits|limits.max_state_bytes);
-        if next>limit {return Err(crate::item_rules::ItemRefusal::BudgetCheck {check:"bibliography topology simultaneous logical state",used:Some(next as u64),limit:Some(limit as u64)});}
-        self.state=next;Ok(())
-    }
-    fn report(&mut self,amount:usize)->Result<(),crate::item_rules::ItemRefusal> {
-        self.reserve(amount)?;self.report_state=self.report_state.checked_add(amount).ok_or(crate::item_rules::ItemRefusal::Budget)?;Ok(())
-    }
-    fn issue(&mut self,code:&'static str,location:&str)->Result<(),crate::item_rules::ItemRefusal> {
-        if self.shadow.issues.len()<MAX_ISSUES {
-            self.report(std::mem::size_of::<RelationIssue>()+location.len())?;
+    fn reserve(&mut self, amount: usize) -> Result<(), crate::item_rules::ItemRefusal> {
+        if let Some(limits) = self.limits {
+            crate::record_biblio_cut::check(limits.deadline, self.cancelled)?;
         }
-        self.shadow.issue(code,location);Ok(())
+        let next = self
+            .state
+            .checked_add(amount)
+            .ok_or(crate::item_rules::ItemRefusal::Budget)?;
+        let limit = self
+            .limits
+            .map_or(usize::MAX, |limits| limits.max_state_bytes);
+        if next > limit {
+            return Err(crate::item_rules::ItemRefusal::BudgetCheck {
+                check: "bibliography topology simultaneous logical state",
+                used: Some(next as u64),
+                limit: Some(limit as u64),
+            });
+        }
+        self.state = next;
+        Ok(())
     }
-    fn skip(&mut self,profile:impl AsRef<str>)->Result<(),crate::item_rules::ItemRefusal> {
-        let profile=profile.as_ref();
+    fn report(&mut self, amount: usize) -> Result<(), crate::item_rules::ItemRefusal> {
+        self.reserve(amount)?;
+        self.report_state = self
+            .report_state
+            .checked_add(amount)
+            .ok_or(crate::item_rules::ItemRefusal::Budget)?;
+        Ok(())
+    }
+    fn issue(
+        &mut self,
+        code: &'static str,
+        location: &str,
+    ) -> Result<(), crate::item_rules::ItemRefusal> {
+        if self.shadow.issues.len() < MAX_ISSUES {
+            self.report(std::mem::size_of::<RelationIssue>() + location.len())?;
+        }
+        self.shadow.issue(code, location);
+        Ok(())
+    }
+    fn skip(&mut self, profile: impl AsRef<str>) -> Result<(), crate::item_rules::ItemRefusal> {
+        let profile = profile.as_ref();
         if !self.shadow.skipped_profiles.contains(profile) {
-            let retained=if self.shadow.skipped_profiles.len()<MAX_SKIPPED_PROFILES {profile}else{"skipped-profile-sink-capacity"};
-            if !self.shadow.skipped_profiles.contains(retained) {self.report(std::mem::size_of::<String>()+retained.len())?;}
+            let retained = if self.shadow.skipped_profiles.len() < MAX_SKIPPED_PROFILES {
+                profile
+            } else {
+                "skipped-profile-sink-capacity"
+            };
+            if !self.shadow.skipped_profiles.contains(retained) {
+                self.report(std::mem::size_of::<String>() + retained.len())?;
+            }
         }
-        self.shadow.skip(profile);Ok(())
+        self.shadow.skip(profile);
+        Ok(())
     }
-    fn read(&mut self,payload:usize,make:impl FnOnce()->PredicateRead)->Result<(),crate::item_rules::ItemRefusal> {
-        if self.shadow.reads.len()<MAX_READS {self.report(std::mem::size_of::<PredicateRead>().checked_add(payload).ok_or(crate::item_rules::ItemRefusal::Budget)?)?;self.shadow.reads.push(make());}else{self.skip("predicate-read-sink-capacity")?;}Ok(())
+    fn read(
+        &mut self,
+        payload: usize,
+        make: impl FnOnce() -> PredicateRead,
+    ) -> Result<(), crate::item_rules::ItemRefusal> {
+        if self.shadow.reads.len() < MAX_READS {
+            self.report(
+                std::mem::size_of::<PredicateRead>()
+                    .checked_add(payload)
+                    .ok_or(crate::item_rules::ItemRefusal::Budget)?,
+            )?;
+            self.shadow.reads.push(make());
+        } else {
+            self.skip("predicate-read-sink-capacity")?;
+        }
+        Ok(())
     }
-    fn fact(&mut self,namespace:&str,key_len:usize,make_key:impl FnOnce()->String,digest:Digest256)->Result<(),crate::item_rules::ItemRefusal> {
-        if self.shadow.facts.len()<MAX_FACTS {
-            self.report(std::mem::size_of::<ValidationFact>()+namespace.len()+key_len+"sha256:".len()+digest.as_bytes().len()*2)?;
-            self.shadow.facts.push(ValidationFact {namespace:namespace.into(),key:make_key(),value_digest:digest.to_prefixed()});
-        }else{self.skip("validation-fact-sink-capacity")?;}Ok(())
+    fn fact(
+        &mut self,
+        namespace: &str,
+        key_len: usize,
+        make_key: impl FnOnce() -> String,
+        digest: Digest256,
+    ) -> Result<(), crate::item_rules::ItemRefusal> {
+        if self.shadow.facts.len() < MAX_FACTS {
+            self.report(
+                std::mem::size_of::<ValidationFact>()
+                    + namespace.len()
+                    + key_len
+                    + "sha256:".len()
+                    + digest.as_bytes().len() * 2,
+            )?;
+            self.shadow.facts.push(ValidationFact {
+                namespace: namespace.into(),
+                key: make_key(),
+                value_digest: digest.to_prefixed(),
+            });
+        } else {
+            self.skip("validation-fact-sink-capacity")?;
+        }
+        Ok(())
     }
-    fn strings<'a>(&mut self,record:&'a Value,field:&str)->Result<(Option<Vec<&'a str>>,usize),crate::item_rules::ItemRefusal> {
-        let count=record.get(field).and_then(Value::as_array).map_or(0,Vec::len);
-        let cost=std::mem::size_of::<Option<Vec<&str>>>().checked_add(count.checked_mul(std::mem::size_of::<&str>()).ok_or(crate::item_rules::ItemRefusal::Budget)?).ok_or(crate::item_rules::ItemRefusal::Budget)?;
-        self.reserve(cost)?;Ok((topology_strings(record,field),cost))
+    fn strings<'a>(
+        &mut self,
+        record: &'a Value,
+        field: &str,
+    ) -> Result<(Option<Vec<&'a str>>, usize), crate::item_rules::ItemRefusal> {
+        let count = record
+            .get(field)
+            .and_then(Value::as_array)
+            .map_or(0, Vec::len);
+        let cost = std::mem::size_of::<Option<Vec<&str>>>()
+            .checked_add(
+                count
+                    .checked_mul(std::mem::size_of::<&str>())
+                    .ok_or(crate::item_rules::ItemRefusal::Budget)?,
+            )
+            .ok_or(crate::item_rules::ItemRefusal::Budget)?;
+        self.reserve(cost)?;
+        Ok((topology_strings(record, field), cost))
     }
-    fn json_key<const N:usize>(&mut self,parts:[&str;N])->Result<(String,usize),crate::item_rules::ItemRefusal> {
-        let remaining=self.limits.map_or(usize::MAX,|limits|limits.max_state_bytes).checked_sub(self.state).and_then(|n|n.checked_sub(std::mem::size_of::<String>())).ok_or(crate::item_rules::ItemRefusal::Budget)?;
-        let bytes=crate::record_biblio_cut::serialized_wire_size(remaining,|writer|serde_json::to_writer(writer,parts.as_slice()))?;
-        let cost=std::mem::size_of::<String>()+bytes;self.reserve(cost)?;
-        let key=serde_json::to_string(parts.as_slice()).map_err(|_|crate::item_rules::ItemRefusal::Unsupported("topology key serialization".into()))?;Ok((key,cost))
+    fn json_key<const N: usize>(
+        &mut self,
+        parts: [&str; N],
+    ) -> Result<(String, usize), crate::item_rules::ItemRefusal> {
+        let remaining = self
+            .limits
+            .map_or(usize::MAX, |limits| limits.max_state_bytes)
+            .checked_sub(self.state)
+            .and_then(|n| n.checked_sub(std::mem::size_of::<String>()))
+            .ok_or(crate::item_rules::ItemRefusal::Budget)?;
+        let bytes = crate::record_biblio_cut::serialized_wire_size(remaining, |writer| {
+            serde_json::to_writer(writer, parts.as_slice())
+        })?;
+        let cost = std::mem::size_of::<String>() + bytes;
+        self.reserve(cost)?;
+        let key = serde_json::to_string(parts.as_slice()).map_err(|_| {
+            crate::item_rules::ItemRefusal::Unsupported("topology key serialization".into())
+        })?;
+        Ok((key, cost))
     }
-    fn checked(&mut self,profile:&str)->Result<(),crate::item_rules::ItemRefusal> {
-        if !self.shadow.checked_profiles.contains(profile) {self.report(std::mem::size_of::<String>()+profile.len())?;self.shadow.checked_profiles.insert(profile.into());}Ok(())
+    fn checked(&mut self, profile: &str) -> Result<(), crate::item_rules::ItemRefusal> {
+        if !self.shadow.checked_profiles.contains(profile) {
+            self.report(std::mem::size_of::<String>() + profile.len())?;
+            self.shadow.checked_profiles.insert(profile.into());
+        }
+        Ok(())
     }
 }
 struct TopologyDigest(tos_foundation::Digest256Hasher);
 impl std::io::Write for TopologyDigest {
-    fn write(&mut self,bytes:&[u8])->std::io::Result<usize>{self.0.update(bytes);Ok(bytes.len())}
-    fn flush(&mut self)->std::io::Result<()>{Ok(())}
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        self.0.update(bytes);
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
 }
-fn topology_digest(write:impl FnOnce(&mut TopologyDigest)->serde_json::Result<()>)->serde_json::Result<Digest256> {
-    let mut writer=TopologyDigest(tos_foundation::Digest256Hasher::new());write(&mut writer)?;Ok(writer.0.finalize())
+fn topology_digest(
+    write: impl FnOnce(&mut TopologyDigest) -> serde_json::Result<()>,
+) -> serde_json::Result<Digest256> {
+    let mut writer = TopologyDigest(tos_foundation::Digest256Hasher::new());
+    write(&mut writer)?;
+    Ok(writer.0.finalize())
 }
 
 pub(crate) fn inspect_current_topology_bounded(
-    records:&[Value],claims:&[Value],item_edition:&BTreeMap<String,String>,
-    verified_complete_union:bool,union_generation:&str,
-    limits:crate::item_rules::ItemLimits,cancelled:&std::sync::atomic::AtomicBool,
-)->Result<(RelationShadow,usize),crate::item_rules::ItemRefusal> {
-    inspect_current_topology_inner(records,claims,item_edition,verified_complete_union,union_generation,Some(limits),cancelled)
+    records: &[Value],
+    claims: &[Value],
+    item_edition: &BTreeMap<String, String>,
+    verified_complete_union: bool,
+    union_generation: &str,
+    limits: crate::item_rules::ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<(RelationShadow, usize), crate::item_rules::ItemRefusal> {
+    inspect_current_topology_inner(
+        records,
+        claims,
+        item_edition,
+        verified_complete_union,
+        union_generation,
+        Some(limits),
+        cancelled,
+    )
 }
 fn inspect_current_topology_inner(
-    records:&[Value],claims:&[Value],item_edition:&BTreeMap<String,String>,verified_complete_union:bool,union_generation:&str,
-    limits:Option<crate::item_rules::ItemLimits>,cancelled:&std::sync::atomic::AtomicBool,
-)->Result<(RelationShadow,usize),crate::item_rules::ItemRefusal> {
-    let root=std::mem::size_of::<RelationShadow>();
-    let mut shadow=TopologyState {shadow:RelationShadow::default(),state:0,report_state:0,limits,cancelled};
+    records: &[Value],
+    claims: &[Value],
+    item_edition: &BTreeMap<String, String>,
+    verified_complete_union: bool,
+    union_generation: &str,
+    limits: Option<crate::item_rules::ItemLimits>,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<(RelationShadow, usize), crate::item_rules::ItemRefusal> {
+    let root = std::mem::size_of::<RelationShadow>();
+    let mut shadow = TopologyState {
+        shadow: RelationShadow::default(),
+        state: 0,
+        report_state: 0,
+        limits,
+        cancelled,
+    };
     shadow.report(root)?;
-    shadow.reserve(std::mem::size_of::<TopologyState<'_>>()-root+std::mem::size_of::<TopologyDigest>())?;
+    shadow.reserve(
+        std::mem::size_of::<TopologyState<'_>>() - root + std::mem::size_of::<TopologyDigest>(),
+    )?;
     if !verified_complete_union || union_generation.is_empty() {
         shadow.skip("verified-current-topology-union")?;
-        return Ok((shadow.shadow,shadow.report_state));
+        return Ok((shadow.shadow, shadow.report_state));
     }
     if union_generation.len() > MAX_GENERATION_BYTES {
         shadow.skip("current-topology-generation-capacity")?;
-        return Ok((shadow.shadow,shadow.report_state));
+        return Ok((shadow.shadow, shadow.report_state));
     }
     if records.len() > MAX_TOPOLOGY_OBJECTS
         || claims.len() > MAX_TOPOLOGY_OBJECTS
         || item_edition.len() > MAX_TOPOLOGY_OBJECTS
     {
         shadow.skip("current-topology-input-capacity")?;
-        return Ok((shadow.shadow,shadow.report_state));
+        return Ok((shadow.shadow, shadow.report_state));
     }
     const ROUTES: [(&str, &str, &str, &str); 3] = [
         (
@@ -928,7 +1073,9 @@ fn inspect_current_topology_inner(
             field_str(record, "record_id"),
             field_str(record, "record_type"),
         ) {
-            if !by_id.contains_key(id) {shadow.reserve(std::mem::size_of::<(&str,&Value)>())?;}
+            if !by_id.contains_key(id) {
+                shadow.reserve(std::mem::size_of::<(&str, &Value)>())?;
+            }
             if by_id.insert(id, record).is_some() {
                 shadow.issue("duplicate-record-id", id)?;
             }
@@ -948,41 +1095,48 @@ fn inspect_current_topology_inner(
         };
         if kind == "expression" {
             if let Some(work) = field_str(record, "work_ref") {
-                topology_expected(&mut expected,"has_expression",work,id,&mut shadow)?;
+                topology_expected(&mut expected, "has_expression", work, id, &mut shadow)?;
             } else {
                 shadow.issue("missing-work-ref", id)?;
             }
         } else if kind == "edition" {
-            let (refs,refs_state)=shadow.strings(record,"embodies_expression_refs")?;
+            let (refs, refs_state) = shadow.strings(record, "embodies_expression_refs")?;
             if let Some(refs) = refs {
-                let scratch=std::mem::size_of::<BTreeSet<&str>>()+refs.len()*std::mem::size_of::<&str>();
+                let scratch = std::mem::size_of::<BTreeSet<&str>>()
+                    + refs.len() * std::mem::size_of::<&str>();
                 shadow.reserve(scratch)?;
-                if refs.iter().any(|id|id.is_empty())
+                if refs.iter().any(|id| id.is_empty())
                     || refs.iter().copied().collect::<BTreeSet<_>>().len() != refs.len()
                 {
                     shadow.issue("invalid-expression-refs", id)?;
                 }
                 for expression in &refs {
-                    topology_expected(&mut expected,"embodied_by",expression,id,&mut shadow)?;
+                    topology_expected(&mut expected, "embodied_by", expression, id, &mut shadow)?;
                 }
-                drop(refs);shadow.state-=scratch;
+                drop(refs);
+                shadow.state -= scratch;
             } else {
                 shadow.issue("invalid-expression-refs", id)?;
             }
-            shadow.state-=refs_state;
+            shadow.state -= refs_state;
         } else if kind == "item" && !item_edition.contains_key(id) {
             shadow.issue("missing-item-embodiment", id)?;
         }
     }
     for (item, edition) in item_edition {
         shadow.reserve(0)?;
-        topology_expected(&mut expected,"exemplified_by",edition,item,&mut shadow)?;
+        topology_expected(&mut expected, "exemplified_by", edition, item, &mut shadow)?;
     }
     let mut actual: BTreeMap<(&str, &str), BTreeMap<&str, &str>> = BTreeMap::new();
     let mut seen_ids = BTreeSet::new();
     let mut seen_pairs = BTreeSet::new();
     let mut expression_works = BTreeMap::<&str, &str>::new();
-    shadow.reserve(std::mem::size_of_val(&actual)+std::mem::size_of_val(&seen_ids)+std::mem::size_of_val(&seen_pairs)+std::mem::size_of_val(&expression_works))?;
+    shadow.reserve(
+        std::mem::size_of_val(&actual)
+            + std::mem::size_of_val(&seen_ids)
+            + std::mem::size_of_val(&seen_pairs)
+            + std::mem::size_of_val(&expression_works),
+    )?;
     for claim in claims {
         shadow.reserve(0)?;
         if !claim.is_object() {
@@ -996,10 +1150,14 @@ fn inspect_current_topology_inner(
             ROUTES.iter().find(|route| route.0 == predicate)
         else {
             if predicate.len() <= MAX_GENERATION_BYTES {
-                let temporary=std::mem::size_of::<String>()+"non-topology-claim-profile:".len()+predicate.len();
+                let temporary = std::mem::size_of::<String>()
+                    + "non-topology-claim-profile:".len()
+                    + predicate.len();
                 shadow.reserve(temporary)?;
-                let profile=format!("non-topology-claim-profile:{predicate}");shadow.skip(&profile)?;
-                drop(profile);shadow.state-=temporary;
+                let profile = format!("non-topology-claim-profile:{predicate}");
+                shadow.skip(&profile)?;
+                drop(profile);
+                shadow.state -= temporary;
             } else {
                 shadow.skip("non-topology-claim-profile-overlong")?;
             }
@@ -1017,26 +1175,41 @@ fn inspect_current_topology_inner(
             shadow.issue("topology-claim-shape", predicate)?;
             continue;
         }
-        if !seen_ids.contains(id) {shadow.reserve(std::mem::size_of::<&str>())?;}
+        if !seen_ids.contains(id) {
+            shadow.reserve(std::mem::size_of::<&str>())?;
+        }
         if !seen_ids.insert(id) {
             shadow.issue("duplicate-topology-claim-id", id)?;
         }
-        shadow.read("bibliographic-topology-claim-id".len()+id.len()+predicate.len()+subject.len()+object.len()+2,||PredicateRead::UniqueKey {
-            namespace: "bibliographic-topology-claim-id".into(),
-            key: id.into(),
-            owner: format!("{predicate}:{subject}:{object}"),
-        })?;
-        if !seen_pairs.contains(&(predicate,subject,object)) {shadow.reserve(std::mem::size_of::<(&str,&str,&str)>())?;}
+        shadow.read(
+            "bibliographic-topology-claim-id".len()
+                + id.len()
+                + predicate.len()
+                + subject.len()
+                + object.len()
+                + 2,
+            || PredicateRead::UniqueKey {
+                namespace: "bibliographic-topology-claim-id".into(),
+                key: id.into(),
+                owner: format!("{predicate}:{subject}:{object}"),
+            },
+        )?;
+        if !seen_pairs.contains(&(predicate, subject, object)) {
+            shadow.reserve(std::mem::size_of::<(&str, &str, &str)>())?;
+        }
         if !seen_pairs.insert((predicate, subject, object)) {
             shadow.issue("duplicate-topology-pair", id)?;
         }
-        let (pair_key,key_state)=shadow.json_key([predicate,subject,object])?;
-        shadow.state-=key_state; // ownership moves into the report; no second key payload.
-        shadow.read("bibliographic-topology-pair".len()+pair_key.len()+id.len(),||PredicateRead::UniqueKey {
-            namespace: "bibliographic-topology-pair".into(),
-            key: pair_key,
-            owner: id.into(),
-        })?;
+        let (pair_key, key_state) = shadow.json_key([predicate, subject, object])?;
+        shadow.state -= key_state; // ownership moves into the report; no second key payload.
+        shadow.read(
+            "bibliographic-topology-pair".len() + pair_key.len() + id.len(),
+            || PredicateRead::UniqueKey {
+                namespace: "bibliographic-topology-pair".into(),
+                key: pair_key,
+                owner: id.into(),
+            },
+        )?;
         let subject_state = if by_id.get(subject).and_then(|r| field_str(r, "record_type"))
             == Some(*subject_type)
         {
@@ -1050,15 +1223,19 @@ fn inspect_current_topology_inner(
             } else {
                 KeyState::Absent
             };
-        shadow.read(subject_type.len()+subject.len(),||PredicateRead::RefEndpoint {
-            endpoint_type: (*subject_type).into(),
-            id: subject.into(),
-            observed: subject_state,
+        shadow.read(subject_type.len() + subject.len(), || {
+            PredicateRead::RefEndpoint {
+                endpoint_type: (*subject_type).into(),
+                id: subject.into(),
+                observed: subject_state,
+            }
         })?;
-        shadow.read(object_type.len()+object.len(),||PredicateRead::RefEndpoint {
-            endpoint_type: (*object_type).into(),
-            id: object.into(),
-            observed: object_state,
+        shadow.read(object_type.len() + object.len(), || {
+            PredicateRead::RefEndpoint {
+                endpoint_type: (*object_type).into(),
+                id: object.into(),
+                observed: object_state,
+            }
         })?;
         if by_id.get(subject).and_then(|r| field_str(r, "record_type")) != Some(*subject_type)
             || by_id.get(object).and_then(|r| field_str(r, "record_type")) != Some(*object_type)
@@ -1071,7 +1248,9 @@ fn inspect_current_topology_inner(
         {
             shadow.issue("topology-link-unbacked", id)?;
         }
-        if predicate == "has_expression" && !expression_works.contains_key(object) {shadow.reserve(std::mem::size_of::<(&str,&str)>())?;}
+        if predicate == "has_expression" && !expression_works.contains_key(object) {
+            shadow.reserve(std::mem::size_of::<(&str, &str)>())?;
+        }
         if predicate == "has_expression"
             && expression_works
                 .insert(object.into(), subject.into())
@@ -1079,87 +1258,138 @@ fn inspect_current_topology_inner(
         {
             shadow.issue("expression-two-work-owners", id)?;
         }
-        if !actual.contains_key(&(predicate,subject)) {shadow.reserve(std::mem::size_of::<((&str,&str),BTreeMap<&str,&str>)>())?;}
-        let rows=actual.entry((predicate,subject)).or_default();
-        if !rows.contains_key(id) {shadow.reserve(std::mem::size_of::<(&str,&str)>())?;}
-        rows.insert(id,object);
-        if let Ok(canonical_claim) = topology_digest(|writer|serde_json::to_writer(writer,claim)) {
+        if !actual.contains_key(&(predicate, subject)) {
+            shadow.reserve(std::mem::size_of::<((&str, &str), BTreeMap<&str, &str>)>())?;
+        }
+        let rows = actual.entry((predicate, subject)).or_default();
+        if !rows.contains_key(id) {
+            shadow.reserve(std::mem::size_of::<(&str, &str)>())?;
+        }
+        rows.insert(id, object);
+        if let Ok(canonical_claim) = topology_digest(|writer| serde_json::to_writer(writer, claim))
+        {
             // Polarity is retained in this value digest. A negative Claim is
             // still an observed Claim, never an AbsentKey for its relation.
-            shadow.fact("bibliographic-topology-claim-value",id.len(),||id.into(),canonical_claim)?;
+            shadow.fact(
+                "bibliographic-topology-claim-value",
+                id.len(),
+                || id.into(),
+                canonical_claim,
+            )?;
         } else {
             shadow.issue("topology-claim-serialization", id)?;
         }
     }
     for (predicate, subject_type, _, field) in ROUTES {
         for record in records {
-        shadow.reserve(0)?;
+            shadow.reserve(0)?;
             if field_str(record, "record_type") != Some(subject_type) {
                 continue;
             }
             let Some(subject) = field_str(record, "record_id") else {
                 continue;
             };
-            let (refs,refs_state)=shadow.strings(record,field)?;
-            let scratch=std::mem::size_of::<BTreeSet<&str>>()+actual.get(&(predicate,subject)).map_or(0,|r|r.len()*std::mem::size_of::<&str>());
-            let compare_state=std::mem::size_of::<BTreeSet<&str>>()+refs.as_ref().map_or(0,|r|r.len()*std::mem::size_of::<&str>());
-            shadow.reserve(scratch+compare_state)?;
+            let (refs, refs_state) = shadow.strings(record, field)?;
+            let scratch = std::mem::size_of::<BTreeSet<&str>>()
+                + actual
+                    .get(&(predicate, subject))
+                    .map_or(0, |r| r.len() * std::mem::size_of::<&str>());
+            let compare_state = std::mem::size_of::<BTreeSet<&str>>()
+                + refs
+                    .as_ref()
+                    .map_or(0, |r| r.len() * std::mem::size_of::<&str>());
+            shadow.reserve(scratch + compare_state)?;
             let found = actual.get(&(predicate.into(), subject.into()));
             let found_ids: BTreeSet<&str> = found
                 .map(|rows| rows.keys().copied().collect())
                 .unwrap_or_default();
             if refs.as_ref().is_none_or(|items| {
-                items.iter().any(|id|id.is_empty())
+                items.iter().any(|id| id.is_empty())
                     || items.iter().cloned().collect::<BTreeSet<_>>() != found_ids
                     || items.len() != found_ids.len()
             }) {
                 shadow.issue("topology-reverse-closure", subject)?;
             }
-            drop(found_ids);drop(refs);shadow.state-=compare_state+refs_state;
+            drop(found_ids);
+            drop(refs);
+            shadow.state -= compare_state + refs_state;
             let found_targets: BTreeSet<&str> = found
                 .map(|rows| rows.values().copied().collect())
                 .unwrap_or_default();
-            if expected.get(&(predicate,subject)).map_or(!found_targets.is_empty(),|wanted|&found_targets!=wanted) {
+            if expected
+                .get(&(predicate, subject))
+                .map_or(!found_targets.is_empty(), |wanted| &found_targets != wanted)
+            {
                 shadow.issue("topology-forward-closure", subject)?;
             }
-            if let Ok(closure) =
-                topology_digest(|writer|serde_json::to_writer(writer,&(found, expected.get(&(predicate, subject)))))
-            {
-                let (key,key_state)=shadow.json_key([predicate,subject])?;
-                shadow.state-=key_state;
-                shadow.fact("bibliographic-topology-subject-closure",key.len(),||key,closure)?;
+            if let Ok(closure) = topology_digest(|writer| {
+                serde_json::to_writer(writer, &(found, expected.get(&(predicate, subject))))
+            }) {
+                let (key, key_state) = shadow.json_key([predicate, subject])?;
+                shadow.state -= key_state;
+                shadow.fact(
+                    "bibliographic-topology-subject-closure",
+                    key.len(),
+                    || key,
+                    closure,
+                )?;
             } else {
                 shadow.issue("topology-closure-serialization", subject)?;
             }
-            shadow.read("topology:".len()+predicate.len()+":subject".len()+subject.len()+subject.len()+union_generation.len(),||PredicateRead::Range {
-                namespace: format!("topology:{predicate}:subject"),
-                lower: subject.into(),
-                upper: subject.into(),
-                generation: union_generation.into(),
-            })?;
-            drop(found_targets);shadow.state-=scratch;
+            shadow.read(
+                "topology:".len()
+                    + predicate.len()
+                    + ":subject".len()
+                    + subject.len()
+                    + subject.len()
+                    + union_generation.len(),
+                || PredicateRead::Range {
+                    namespace: format!("topology:{predicate}:subject"),
+                    lower: subject.into(),
+                    upper: subject.into(),
+                    generation: union_generation.into(),
+                },
+            )?;
+            drop(found_targets);
+            shadow.state -= scratch;
         }
     }
     for (predicate, _, _, _) in ROUTES {
-        shadow.read("source-topology-current-claims".len()+predicate.len()+predicate.len()+union_generation.len(),||PredicateRead::Range {
-            namespace: "source-topology-current-claims".into(),
-            lower: predicate.into(),
-            upper: predicate.into(),
-            generation: union_generation.into(),
-        })?;
-        let rows_count=actual.keys().filter(|(route,_)|*route==predicate).count();
-        let rows_state=std::mem::size_of::<Vec<(&(&str,&str),&BTreeMap<&str,&str>)>>()+rows_count*std::mem::size_of::<(&(&str,&str),&BTreeMap<&str,&str>)>();
+        shadow.read(
+            "source-topology-current-claims".len()
+                + predicate.len()
+                + predicate.len()
+                + union_generation.len(),
+            || PredicateRead::Range {
+                namespace: "source-topology-current-claims".into(),
+                lower: predicate.into(),
+                upper: predicate.into(),
+                generation: union_generation.into(),
+            },
+        )?;
+        let rows_count = actual
+            .keys()
+            .filter(|(route, _)| *route == predicate)
+            .count();
+        let rows_state = std::mem::size_of::<Vec<(&(&str, &str), &BTreeMap<&str, &str>)>>()
+            + rows_count * std::mem::size_of::<(&(&str, &str), &BTreeMap<&str, &str>)>();
         shadow.reserve(rows_state)?;
         let rows: Vec<_> = actual
             .iter()
             .filter(|((route, _), _)| *route == predicate)
             .collect();
-        if let Ok(union) = topology_digest(|writer|serde_json::to_writer(writer,&rows)) {
-            shadow.fact("bibliographic-topology-predicate-union",predicate.len(),||predicate.into(),union)?;
+        if let Ok(union) = topology_digest(|writer| serde_json::to_writer(writer, &rows)) {
+            shadow.fact(
+                "bibliographic-topology-predicate-union",
+                predicate.len(),
+                || predicate.into(),
+                union,
+            )?;
         } else {
             shadow.issue("topology-union-serialization", predicate)?;
         }
-        drop(rows);shadow.state-=rows_state;
+        drop(rows);
+        shadow.state -= rows_state;
     }
     let mut reverse_objects = BTreeSet::new();
     shadow.reserve(std::mem::size_of_val(&reverse_objects))?;
@@ -1172,14 +1402,16 @@ fn inspect_current_topology_inner(
             .get(subject)
             .and_then(|record| field_str(record, "record_type"))
             == Some(route.1);
-        shadow.read(route.1.len()+subject.len(),||PredicateRead::RefEndpoint {
-            endpoint_type: route.1.into(),
-            id: (*subject).into(),
-            observed: if subject_present {
-                KeyState::Present
-            } else {
-                KeyState::Absent
-            },
+        shadow.read(route.1.len() + subject.len(), || {
+            PredicateRead::RefEndpoint {
+                endpoint_type: route.1.into(),
+                id: (*subject).into(),
+                observed: if subject_present {
+                    KeyState::Present
+                } else {
+                    KeyState::Absent
+                },
+            }
         })?;
         if !subject_present {
             shadow.issue("topology-declared-link-endpoint", subject)?;
@@ -1189,53 +1421,90 @@ fn inspect_current_topology_inner(
                 .get(target)
                 .and_then(|record| field_str(record, "record_type"))
                 == Some(route.2);
-            shadow.read(route.2.len()+target.len(),||PredicateRead::RefEndpoint {
-                endpoint_type: route.2.into(),
-                id: (*target).into(),
-                observed: if target_present {
-                    KeyState::Present
-                } else {
-                    KeyState::Absent
-                },
+            shadow.read(route.2.len() + target.len(), || {
+                PredicateRead::RefEndpoint {
+                    endpoint_type: route.2.into(),
+                    id: (*target).into(),
+                    observed: if target_present {
+                        KeyState::Present
+                    } else {
+                        KeyState::Absent
+                    },
+                }
             })?;
             if !target_present {
                 shadow.issue("topology-declared-link-endpoint", target)?;
             }
         }
-        shadow.read(subject.len()+"source-topology:".len()+predicate.len()+":subject".len()+union_generation.len(),||PredicateRead::ReverseRefs {
-            target: (*subject).into(),
-            relation: format!("source-topology:{predicate}:subject"),
-            generation: union_generation.into(),
-        })?;
+        shadow.read(
+            subject.len()
+                + "source-topology:".len()
+                + predicate.len()
+                + ":subject".len()
+                + union_generation.len(),
+            || PredicateRead::ReverseRefs {
+                target: (*subject).into(),
+                relation: format!("source-topology:{predicate}:subject"),
+                generation: union_generation.into(),
+            },
+        )?;
         for target in targets {
-            if !reverse_objects.contains(&(*predicate,*target)) {shadow.reserve(std::mem::size_of::<(&str,&str)>())?;}
-            reverse_objects.insert((*predicate,*target));
+            if !reverse_objects.contains(&(*predicate, *target)) {
+                shadow.reserve(std::mem::size_of::<(&str, &str)>())?;
+            }
+            reverse_objects.insert((*predicate, *target));
         }
     }
     for ((predicate, _), rows) in &actual {
         for target in rows.values() {
-            if !reverse_objects.contains(&(*predicate,*target)) {shadow.reserve(std::mem::size_of::<(&str,&str)>())?;}
-            reverse_objects.insert((*predicate,*target));
+            if !reverse_objects.contains(&(*predicate, *target)) {
+                shadow.reserve(std::mem::size_of::<(&str, &str)>())?;
+            }
+            reverse_objects.insert((*predicate, *target));
         }
     }
     for (predicate, target) in reverse_objects {
-        shadow.read(target.len()+"source-topology:".len()+predicate.len()+":object".len()+union_generation.len(),||PredicateRead::ReverseRefs {
-            target:target.into(),
-            relation: format!("source-topology:{predicate}:object"),
-            generation: union_generation.into(),
-        })?;
+        shadow.read(
+            target.len()
+                + "source-topology:".len()
+                + predicate.len()
+                + ":object".len()
+                + union_generation.len(),
+            || PredicateRead::ReverseRefs {
+                target: target.into(),
+                relation: format!("source-topology:{predicate}:object"),
+                generation: union_generation.into(),
+            },
+        )?;
     }
     shadow.checked("source-bibliographic-topology-current-union@1")?;
     shadow.skip("compound-native-and-retained-provenance-verification")?;
-    Ok((shadow.shadow,shadow.report_state))
+    Ok((shadow.shadow, shadow.report_state))
 }
-fn topology_strings<'a>(record:&'a Value,field:&str)->Option<Vec<&'a str>> {
-    record.get(field)?.as_array()?.iter().map(Value::as_str).collect()
+fn topology_strings<'a>(record: &'a Value, field: &str) -> Option<Vec<&'a str>> {
+    record
+        .get(field)?
+        .as_array()?
+        .iter()
+        .map(Value::as_str)
+        .collect()
 }
-fn topology_expected<'a>(expected:&mut BTreeMap<(&'a str,&'a str),BTreeSet<&'a str>>,predicate:&'a str,subject:&'a str,target:&'a str,state:&mut TopologyState<'_>)->Result<(),crate::item_rules::ItemRefusal> {
-    if !expected.contains_key(&(predicate,subject)) {state.reserve(std::mem::size_of::<((&str,&str),BTreeSet<&str>)>())?;}
-    let targets=expected.entry((predicate,subject)).or_default();
-    if !targets.contains(target) {state.reserve(std::mem::size_of::<&str>())?;targets.insert(target);}Ok(())
+fn topology_expected<'a>(
+    expected: &mut BTreeMap<(&'a str, &'a str), BTreeSet<&'a str>>,
+    predicate: &'a str,
+    subject: &'a str,
+    target: &'a str,
+    state: &mut TopologyState<'_>,
+) -> Result<(), crate::item_rules::ItemRefusal> {
+    if !expected.contains_key(&(predicate, subject)) {
+        state.reserve(std::mem::size_of::<((&str, &str), BTreeSet<&str>)>())?;
+    }
+    let targets = expected.entry((predicate, subject)).or_default();
+    if !targets.contains(target) {
+        state.reserve(std::mem::size_of::<&str>())?;
+        targets.insert(target);
+    }
+    Ok(())
 }
 
 /// Verify one event's declared local digest bindings, not historical truth or

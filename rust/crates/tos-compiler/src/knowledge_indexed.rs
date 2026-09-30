@@ -3,12 +3,12 @@
 //! source meaning or implement other registered source adapters.
 
 use crate::{
-    knowledge_stage::{ExactInputReceipt, KnowledgeStage, NodeRow, RelationRow},
     Error, KnowledgeRegistry, QueryVocabulary, Result,
+    knowledge_stage::{ExactInputReceipt, KnowledgeStage, NodeRow, RelationRow},
 };
 use serde_json::Value;
 use std::collections::BTreeSet;
-use tos_foundation::{parse_json, Digest256, JsonLimits, JsonMode};
+use tos_foundation::{Digest256, JsonLimits, JsonMode, parse_json};
 
 const PROFILE: &str = "indexed-node-edge-v1";
 
@@ -419,10 +419,11 @@ fn materialize_indexed_sources_inner(
 mod tests {
     use super::*;
     use crate::{
+        Limits, ScopeLimits, SourceBinding,
         knowledge_stage::{
             InputCollectionReceipt, InputRow, StageIsolation, StageLimits, StageOwner, WritePhase,
         },
-        write_source_scope, Limits, ScopeLimits, SourceBinding,
+        write_source_scope,
     };
     use std::{
         fs,
@@ -680,16 +681,18 @@ mod tests {
             &isolation,
         )
         .unwrap();
-        assert!(materialize_indexed_sources(
-            &mut stage,
-            &vocabulary,
-            &registry,
-            IndexedLimits {
-                max_row_bytes: 1024 * 1024,
-                max_page_rows: 1
-            }
-        )
-        .is_err());
+        assert!(
+            materialize_indexed_sources(
+                &mut stage,
+                &vocabulary,
+                &registry,
+                IndexedLimits {
+                    max_row_bytes: 1024 * 1024,
+                    max_page_rows: 1
+                }
+            )
+            .is_err()
+        );
         assert!(stage.finish().is_err());
         assert!(!path.exists());
         fs::remove_dir_all(path.parent().unwrap()).unwrap();
