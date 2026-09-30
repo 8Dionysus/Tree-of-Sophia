@@ -5245,6 +5245,8 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
             fs::read_link(&program).unwrap(),
             PathBuf::from("../software/access/src/tos_access/tos-access")
         );
+        let outside = root.join("outside");
+        fs::create_dir(&outside).unwrap();
         let installed_commands = |prefix: &Path| {
             if command_products.is_none() {
                 return;
@@ -5271,6 +5273,7 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
             };
             let commands = crate::native_child::bounded_output_until(
                 Command::new("/usr/bin/python3")
+                    .current_dir(&outside)
                     .arg(repository.join("scripts/verify_rust_mechanics_install.py"))
                     .arg("--command-entries-only")
                     .arg("--installed-prefix")
@@ -5313,6 +5316,8 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
             ] {
                 let owner = crate::native_child::bounded_output_until(
                     Command::new(&owner_consumer)
+                        .current_dir(&outside)
+                        .env("TOS_NATIVE_SOFTWARE_SOURCE_ROOT", &repository)
                         .arg(case)
                         .args(["--exact", "--test-threads=1", "--nocapture"])
                         .env("TOS_NATIVE_INSTALLED_SOFTWARE_SITE", "1")
@@ -5358,8 +5363,6 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
             }
         };
         installed_commands(&installed);
-        let outside = root.join("outside");
-        fs::create_dir(&outside).unwrap();
         for option in ["--help", "--version"] {
             let help = Command::new(&program)
                 .arg(option)

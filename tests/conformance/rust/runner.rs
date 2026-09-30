@@ -15,6 +15,14 @@ use tos_foundation::{
 use tos_source_store::{CorpusReader, ReadLimits, Selector, StoreErrorCode};
 
 fn fixtures() -> PathBuf {
+    if std::env::var("TOS_NATIVE_INSTALLED_SOFTWARE_SITE").as_deref() == Ok("1") {
+        let source = PathBuf::from(
+            std::env::var_os("TOS_NATIVE_SOFTWARE_SOURCE_ROOT")
+                .expect("installed cohort requires its exact admitted fixture source"),
+        );
+        assert!(source.is_absolute());
+        return source.join("tests/conformance/rust");
+    }
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
