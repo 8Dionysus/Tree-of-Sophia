@@ -54,6 +54,8 @@ def test_root_security_headers_and_nonce_bind_inline_boot(access_server) -> None
     assert nonce_match
     assert f"'nonce-{nonce_match.group(1)}'" in csp
     assert "script-src 'self'" in csp
+    assert "'wasm-unsafe-eval'" in csp
+    assert "'unsafe-eval'" not in csp
     assert "'unsafe-inline'" not in csp
     assert "object-src 'none'" in csp
     assert "frame-ancestors 'none'" in csp

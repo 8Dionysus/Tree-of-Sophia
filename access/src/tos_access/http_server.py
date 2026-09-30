@@ -94,7 +94,9 @@ def _boot_payload(core: ToSAccessCore) -> dict[str, Any]:
 
 
 def _security_headers(csp_nonce: str | None = None) -> dict[str, str]:
-    script_source = "'self'"
+    # The browser app compiles the admitted Rust WebAssembly rules bundle.
+    # This narrower source allows Wasm compilation without enabling JS eval.
+    script_source = "'self' 'wasm-unsafe-eval'"
     if csp_nonce:
         script_source += f" 'nonce-{csp_nonce}'"
     return {
