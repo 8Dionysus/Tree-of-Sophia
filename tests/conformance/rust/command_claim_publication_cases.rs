@@ -1,6 +1,8 @@
 //! Actual maintained Claim fixture enters the native whole caller before BEGIN.
 //! The same committed DB/binding continues to native CLI, HTTP and MCP readers.
 use super::*;
+use serde_json::json;
+use std::os::unix::fs::PermissionsExt;
 use std::{
     collections::BTreeMap,
     process::Command,
