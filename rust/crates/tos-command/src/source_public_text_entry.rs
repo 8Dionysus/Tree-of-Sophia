@@ -471,8 +471,10 @@ fn verify_retained(
         || cmd::text(&receipt, "owner_configuration")?
             != selection.configuration_digest().to_prefixed()
         || cmd::field(&receipt, "source_path")? != cmd::field(&selection.config, "source_path")?
-        || cmd::field(&receipt, "source")?
-            != &cmd::reference(&prepared.assembly.packet, "packet_id", "packet_version")?
+        || !cmd::same(
+            cmd::field(&receipt, "source")?,
+            &cmd::reference(&prepared.assembly.packet, "packet_id", "packet_version")?,
+        )?
         || cmd::text(&receipt, "dependencies")? != prepared.dependencies
         || cmd::field(&receipt, "grants_admission")? != &JsonValue::Bool(false)
         || cmd::canonical(cmd::field(&receipt, "files")?)?
@@ -506,7 +508,7 @@ fn verify_retained(
         .ok_or(SourceCommandError::Invalid("public Text retained home"))?
         .0;
     let mut rebuilt = prepared.assembly.files.clone();
-    crate::source_serialization::restore_creation_capture(
+    crate::source_serialization::restore_public_project_text_capture(
         request,
         cmd::text(
             cmd::field(&selection.config, "identities")?,

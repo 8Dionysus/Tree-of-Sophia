@@ -1090,6 +1090,11 @@ fn capture_compound(
 
 /// Reuse only exact historical byte observations supplied by the durable owner.
 /// No current runtime capture or past authority is inferred from these buffers.
+enum CaptureRestoreProfile {
+    Creation,
+    PublicProjectText,
+}
+
 pub(crate) fn restore_creation_capture(
     request: &JsonValue,
     event_id: &str,
@@ -1100,6 +1105,57 @@ pub(crate) fn restore_creation_capture(
     components: &SoftwareComponentSelectionV1,
     deadline: Instant,
     cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    restore_capture_selected(
+        request,
+        event_id,
+        home,
+        files,
+        retained,
+        software,
+        components,
+        deadline,
+        cancelled,
+        CaptureRestoreProfile::Creation,
+    )
+}
+
+pub(crate) fn restore_public_project_text_capture(
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    files: &mut BTreeMap<String, Vec<u8>>,
+    retained: &BTreeMap<String, Vec<u8>>,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    restore_capture_selected(
+        request,
+        event_id,
+        home,
+        files,
+        retained,
+        software,
+        components,
+        deadline,
+        cancelled,
+        CaptureRestoreProfile::PublicProjectText,
+    )
+}
+
+fn restore_capture_selected(
+    request: &JsonValue,
+    event_id: &str,
+    home: &str,
+    files: &mut BTreeMap<String, Vec<u8>>,
+    retained: &BTreeMap<String, Vec<u8>>,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    profile: CaptureRestoreProfile,
 ) -> SourceCommandResult<()> {
     active(deadline, cancelled)?;
     let capture_names = [
@@ -1199,14 +1255,33 @@ pub(crate) fn restore_creation_capture(
             "retained Artifact serialization procedure differs",
         ));
     }
+    let configuration_binding = match profile {
+        CaptureRestoreProfile::Creation => binding("source-create-request.json", &request_raw),
+        CaptureRestoreProfile::PublicProjectText => {
+            if event.pointer("/method/procedure/name")
+                != Some(&json!("tos.project-authored.utf8-range.v1"))
+            {
+                return Err(SourceCommandError::Conflict(
+                    "retained public Text serialization procedure differs",
+                ));
+            }
+            binding(
+                "construction-plan.json",
+                files
+                    .get("construction-plan.json")
+                    .ok_or(SourceCommandError::Conflict(
+                        "retained public Text construction plan absent",
+                    ))?,
+            )
+        }
+    };
     if event.get("event_id") != Some(&json!(event_id))
         || event.get("record_binding")
             != Some(
                 &json!({"manifest_ref":format!("{home}/source-create-receipt.json"),
             "digest_algorithm":"sha256","digest_scope":"exact_event_record_bytes"}),
             )
-        || event.pointer("/method/configuration_binding")
-            != Some(&binding("source-create-request.json", &request_raw))
+        || event.pointer("/method/configuration_binding") != Some(&configuration_binding)
         || event.pointer("/method/environment") != Some(&method_environment)
         || event.pointer("/method/software_components") != Some(&Value::Array(selected))
     {
