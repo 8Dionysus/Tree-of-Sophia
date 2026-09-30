@@ -56,7 +56,7 @@ fn public_text_native_cli_preserves_whole_public_closure_and_cold_replay() {
     }
     assert!(f <= 33_554_432 && Instant::now() < deadline);
     eprintln!(
-        "public Text CLI preflight F={f} E={e} C={c} W={w} native_processes=9 fixture_processes=1 whole_seconds=240 outer_proposed_seconds=260"
+        "public Text CLI preflight F={f} E={e} C={c} W={w} native_processes=9 fixture_processes=1 protected_python_max_bytes=67108864 whole_seconds=240 outer_proposed_seconds=260"
     );
     let temporary = tempfile::tempdir().unwrap();
     let isolated = tos_command::source_creation_store::IsolatedCreationRoot::create(
@@ -71,9 +71,60 @@ fn public_text_native_cli_preserves_whole_public_closure_and_cold_replay() {
     fs::create_dir(&recovery).unwrap();
     fs::set_permissions(&recovery, fs::Permissions::from_mode(0o700)).unwrap();
     let factory = r#"
-import json,sys,shutil,time
+import hashlib,json,os,stat,sys,sysconfig,shutil,time
 from pathlib import Path
 repo,root,recovery=map(Path,sys.argv[1:])
+# Re-exec the selected ELF in this owner-protected fixture, preserving its
+# installed Python/library roots. sys.executable must describe the real child.
+runtime=root.parent/'maintained-python'
+receipt_name='TOS_PUBLIC_TEXT_PYTHON_RECEIPT'
+def identity(info):
+    return (info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns)
+def prefixes():
+    return [sys.prefix,sys.base_prefix,sys.exec_prefix,sys.base_exec_prefix]
+def libraries():
+    return sorted({line.split(maxsplit=5)[5] for line in Path('/proc/self/maps').read_text().splitlines()
+                   if len(line.split(maxsplit=5))==6 and '.so' in line.split(maxsplit=5)[5]})
+if receipt_name not in os.environ:
+    selected=Path(sys.executable).resolve(strict=True)
+    runtime.mkdir(mode=0o700)
+    executable=runtime/selected.name
+    with selected.open('rb') as original:
+        before=os.fstat(original.fileno())
+        assert stat.S_ISREG(before.st_mode) and 0 < before.st_size <= 64*1024*1024
+        digest=hashlib.sha256()
+        with executable.open('xb') as copy:
+            total=0
+            while raw:=original.read(1024*1024):
+                total+=len(raw)
+                assert total<=before.st_size
+                digest.update(raw); copy.write(raw)
+        assert total==before.st_size and identity(os.fstat(original.fileno()))==identity(before)
+        assert identity(selected.stat())==identity(before)
+    executable.chmod(0o500)
+    with executable.open('rb') as copy:
+        assert hashlib.file_digest(copy,'sha256').hexdigest()==digest.hexdigest()
+    receipt={'selected':str(selected),'executable':str(executable),'sha256':digest.hexdigest(),
+             'bytes':total,'allocated_bytes':executable.stat().st_blocks*512,
+             'prefixes':prefixes(),'sys_path':sys.path,
+             'stdlib':sysconfig.get_path('stdlib'),'libdir':sysconfig.get_config_var('LIBDIR'),
+             'libraries':libraries()}
+    environment=dict(os.environ)
+    environment[receipt_name]=json.dumps(receipt)
+    environment['PYTHONHOME']=os.pathsep.join([sys.prefix,sys.exec_prefix])
+    libdir=sysconfig.get_config_var('LIBDIR')
+    if libdir:
+        environment['LD_LIBRARY_PATH']=os.pathsep.join(filter(None,[libdir,environment.get('LD_LIBRARY_PATH','')]))
+    os.execve(executable,[str(executable),'-c',os.environ['TOS_PUBLIC_TEXT_FACTORY'],*sys.argv[1:]],environment)
+receipt=json.loads(os.environ.pop(receipt_name))
+os.environ.pop('TOS_PUBLIC_TEXT_FACTORY')
+assert prefixes()==receipt['prefixes'], 'selected Python installed prefixes changed'
+assert sys.path==receipt['sys_path'] and sysconfig.get_path('stdlib')==receipt['stdlib']
+assert sysconfig.get_config_var('LIBDIR')==receipt['libdir'] and libraries()==receipt['libraries']
+assert Path(sys.executable).resolve(strict=True)==Path(receipt['executable'])
+with Path(sys.executable).open('rb') as copy:
+    assert hashlib.file_digest(copy,'sha256').hexdigest()==receipt['sha256']
+print('public Text protected Python '+json.dumps(receipt),file=sys.stderr)
 sys.path[:0]=[str(repo/'mechanics/growth-cycle/tests'),str(repo/'tests'),str(repo/'scripts'),str(repo/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts')]
 from test_source_public_native_commands import PublicNativeCommandTests
 import source_public_native_commands as public
@@ -103,6 +154,8 @@ finally:
         .env_remove("PYTHONPATH")
         .env_remove("PYTHONHOME")
         .env("PYTHONDONTWRITEBYTECODE", "1")
+        .env_remove("TOS_PUBLIC_TEXT_PYTHON_RECEIPT")
+        .env("TOS_PUBLIC_TEXT_FACTORY", factory)
         .stdout(Stdio::from(stdout.try_clone().unwrap()))
         .stderr(Stdio::from(stderr.try_clone().unwrap()))
         .spawn()
