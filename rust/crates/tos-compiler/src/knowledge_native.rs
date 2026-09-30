@@ -31,6 +31,8 @@ use tos_foundation::{Digest256, Digest256Hasher};
 /// Concrete maintained family inputs. Repository root identity/wording are
 /// selected source material, never inferred from an ambient checkout path.
 pub struct NativeFamilyInputs<'a> {
+    /// Explicit maintained prepared projection profile; sealed/D1 callers default false.
+    pub prepared_philosophy_projection: bool,
     pub repository_root: Option<RepositoryRootInput<'a>>,
     pub navigation_original: Option<NavigationOriginalInput<'a>>,
     pub philosophy_original: Option<crate::PhilosophyOriginalInput<'a>>,
@@ -44,6 +46,7 @@ pub struct NativeFamilyInputs<'a> {
 impl NativeFamilyInputs<'_> {
     pub fn bounded_from(limits: NativeProducerLimits) -> Self {
         Self {
+            prepared_philosophy_projection: false,
             repository_root: None,
             navigation_original: None,
             philosophy_original: None,
@@ -706,7 +709,15 @@ pub fn materialize_native_sources_with_inputs(
         };
         let mut philosophy_original = None;
         let philosophy = if selected("philosophy-node-edge-v1")? {
-            let prepared = prepare_philosophy(stage, vocabulary, limits.philosophy_prepare)?;
+            let prepared = if additional.prepared_philosophy_projection {
+                crate::knowledge_philosophy_prepare::prepare_philosophy_projection(
+                    stage,
+                    vocabulary,
+                    limits.philosophy_prepare,
+                )?
+            } else {
+                prepare_philosophy(stage, vocabulary, limits.philosophy_prepare)?
+            };
             if let Some(original) = additional.philosophy_original.as_ref() {
                 philosophy_original = Some(crate::retain_philosophy_original(
                     stage, vocabulary, &prepared, original,

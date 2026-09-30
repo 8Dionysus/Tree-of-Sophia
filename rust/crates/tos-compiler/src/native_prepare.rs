@@ -426,6 +426,7 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
     let public_root = PublicRepositoryRoot::new(&stage, &source_revision)?;
     let mut additional = NativeFamilyInputs::bounded_from(limits.native);
     additional.repository_root = Some(public_root.input());
+    additional.prepared_philosophy_projection = true;
     processor_owner.verify_stamp()?;
     // The measured executing image encloses the actual row producer call, not
     // a post-hoc replacement of somebody else's normalization header.

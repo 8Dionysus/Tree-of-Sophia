@@ -280,6 +280,7 @@ fn walk_nodes(
     selected: &Selected,
     limits: PhilosophyPrepareLimits,
     work: &mut u64,
+    projection: bool,
 ) -> Result<u64> {
     let mut walk = Walk::new();
     loop {
@@ -295,12 +296,34 @@ fn walk_nodes(
             walk.add(raw, limits.max_nodes)?;
             let row = SourceRow::parse(&raw.payload, limits.max_row_bytes)?;
             let value = row.value();
-            owner_shape(value, true)?;
+            if !projection {
+                owner_shape(value, true)?;
+            }
             let id = typed_id(value, "node_id")?;
             if id != raw.id {
                 return Err(Error::Invalid("philosophy node identity"));
             }
-            let kind = required(value, "node_type")?.trim();
+            let kind = if projection {
+                value
+                    .get("node_type")
+                    .and_then(Value::as_str)
+                    .filter(|s| !s.is_empty())
+                    .or_else(|| {
+                        value
+                            .get("node_kind")
+                            .and_then(Value::as_str)
+                            .filter(|s| !s.is_empty())
+                    })
+                    .or_else(|| {
+                        value
+                            .get("resource_kind")
+                            .and_then(Value::as_str)
+                            .filter(|s| !s.is_empty())
+                    })
+                    .unwrap_or("knowledge-object")
+            } else {
+                required(value, "node_type")?.trim()
+            };
             let semantic_kind = value
                 .get("properties")
                 .and_then(|p| p.get("original_node_type"))
@@ -312,7 +335,15 @@ fn walk_nodes(
                 id: id.into(),
                 kind: kind.into(),
                 semantic_kind: semantic_kind.into(),
-                source_ref: required(value, "source_ref")?.into(),
+                source_ref: if projection {
+                    value
+                        .get("source_ref")
+                        .and_then(Value::as_str)
+                        .unwrap_or("")
+                        .into()
+                } else {
+                    required(value, "source_ref")?.into()
+                },
                 sha: digest(&raw.payload_sha256)?,
             });
         }
@@ -358,6 +389,7 @@ fn walk_edges(
     selected: &Selected,
     limits: PhilosophyPrepareLimits,
     work: &mut u64,
+    projection: bool,
 ) -> Result<(u64, u64, u64)> {
     let mut walk = Walk::new();
     let mut view_tokens = 0u64;
@@ -374,7 +406,9 @@ fn walk_edges(
             walk.add(raw, limits.max_edges)?;
             let row = SourceRow::parse(&raw.payload, limits.max_row_bytes)?;
             let value = row.value();
-            owner_shape(value, false)?;
+            if !projection {
+                owner_shape(value, false)?;
+            }
             let id = typed_id(value, "edge_id")?;
             if id != raw.id {
                 return Err(Error::Invalid("philosophy edge identity"));
@@ -403,10 +437,22 @@ fn walk_edges(
                     unresolved.push((role, source.to_owned(), endpoint.to_owned()));
                 }
             }
-            let views = required_array(value, "view_ids")?
-                .iter()
-                .map(|view| view.as_str().expect("checked view ID").to_owned())
-                .collect::<Vec<_>>();
+            let views = if projection {
+                value
+                    .get("view_ids")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                    .filter_map(Value::as_str)
+                    .filter(|s| !s.is_empty())
+                    .map(str::to_owned)
+                    .collect::<Vec<_>>()
+            } else {
+                required_array(value, "view_ids")?
+                    .iter()
+                    .map(|view| view.as_str().expect("checked view ID").to_owned())
+                    .collect::<Vec<_>>()
+            };
             view_tokens = view_tokens
                 .checked_add(views.len() as u64)
                 .ok_or(Error::Budget("philosophy view bindings"))?;
@@ -418,7 +464,15 @@ fn walk_edges(
                 from: from.into(),
                 to: to.into(),
                 predicate: required(value, "predicate_id")?.trim().into(),
-                source_ref: required(value, "source_ref")?.into(),
+                source_ref: if projection {
+                    value
+                        .get("source_ref")
+                        .and_then(Value::as_str)
+                        .unwrap_or("")
+                        .into()
+                } else {
+                    required(value, "source_ref")?.into()
+                },
                 from_source: from_source.into(),
                 to_source: to_source.into(),
                 sha: digest(&raw.payload_sha256)?,
@@ -502,14 +556,15 @@ fn prepare_inner(
     stage: &mut KnowledgeStage<'_>,
     vocabulary: &QueryVocabulary,
     limits: PhilosophyPrepareLimits,
+    projection: bool,
 ) -> Result<PhilosophyPrepareReceipt> {
     limits.validate()?;
     let selected = select(vocabulary, stage.exact_receipt(), limits)?;
     create_tables(stage)?;
     let mut work = 0u64;
-    let nodes = walk_nodes(stage, &selected, limits, &mut work)?;
+    let nodes = walk_nodes(stage, &selected, limits, &mut work, projection)?;
     let (edges, edge_view_bindings, unresolved_endpoint_refs) =
-        walk_edges(stage, &selected, limits, &mut work)?;
+        walk_edges(stage, &selected, limits, &mut work, projection)?;
     let dependency_root_sha256 = dependency_root(stage)?;
     Ok(PhilosophyPrepareReceipt {
         source_graph: selected.source,
@@ -534,7 +589,25 @@ pub fn prepare_philosophy(
     vocabulary: &QueryVocabulary,
     limits: PhilosophyPrepareLimits,
 ) -> Result<PhilosophyPrepareReceipt> {
-    let result = prepare_inner(stage, vocabulary, limits);
+    let result = prepare_inner(stage, vocabulary, limits, false);
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+
+// Maintained prepare reads a derived projection with optional display carriers.
+// Raw packets/roots remain exact and the normalizer owns optional-field meaning.
+// This profile is never the default sealed philosophy or D1 admission route.
+pub(crate) fn prepare_philosophy_projection(
+    stage: &mut KnowledgeStage<'_>,
+    vocabulary: &QueryVocabulary,
+    limits: PhilosophyPrepareLimits,
+) -> Result<PhilosophyPrepareReceipt> {
+    if !stage.public_build() {
+        return Err(Error::Invalid("prepare projection computational stage"));
+    }
+    let result = prepare_inner(stage, vocabulary, limits, true);
     if result.is_err() {
         stage.poison();
     }
