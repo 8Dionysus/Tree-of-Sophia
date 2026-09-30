@@ -1,7 +1,9 @@
 import { HttpError, stringArray, stringValue, type Item } from "./common.ts";
 import {NativeD1Read, nativeD1Limits, nativeSha256} from './native-d1-read.ts';
 import {consistentRead} from './knowledge-store.ts';
-import { aggregateRightsRecords, filterFileScopedRights, SourceNavigationError } from "./source-navigation.ts";
+import {SourceNavigationError} from "./source-navigation.ts";
+import {sourceNavigationRules,observeRights,observeMemberships,type SourceRights} from "./source-navigation-rules.ts";
+import {PhysicalKeys} from "./worker-classic.ts";
 
 /*
  * Source navigation is stored as a row projection in D1.  The JSON payload
@@ -43,22 +45,6 @@ const SOURCE_RIGHT_PAYLOAD_TABLE = "source_navigation_rights_payload";
 // edge whose endpoints are admitted, and silently dropping a later page would
 // make both the edge packet and dossier closure misleading.
 export const SOURCE_NAVIGATION_PAGE_SIZE = 100;
-
-const BIBLIOGRAPHIC_PREDICATES = ["has_expression", "embodied_by", "exemplified_by"] as const;
-const LINK_PREDICATES = ["described_by", "metadata_at", "downloadable_at", "rights_statement_at"] as const;
-const CHAIN_KINDS = [
-  "branch",
-  "era",
-  "region",
-  "tradition",
-  "source_planting",
-  "work",
-  "expression",
-  "edition",
-  "item",
-  "file",
-  "link",
-] as const;
 
 function parseRow<T extends SourceJsonRow>(row: T, payload?: string): Item {
   const value: unknown = JSON.parse(payload ?? row.json);
@@ -117,10 +103,6 @@ function sortedById(items: Item[], key: string): Item[] {
   return [...items].sort((left, right) => stringValue(left[key]).localeCompare(stringValue(right[key])));
 }
 
-function intersects(values: unknown, selected: Set<string>): boolean {
-  return stringArray(values).some((value) => selected.has(value));
-}
-
 function pageSize(limit: number): number {
   return Math.max(1, Math.min(SOURCE_NAVIGATION_PAGE_SIZE, limit));
 }
@@ -172,7 +154,7 @@ async function sourceNode(db: D1Database, id: string): Promise<Item | null> {
       }
     }
   }
-  return stringValue(properties.packet_id) ? null : node;
+  return sourceNavigationRules().WorkerSourceWalk.packet_filtered(stringValue(properties.packet_id)) ? null : node;
 }
 
 function parsedObject(value: unknown): Item {
@@ -182,7 +164,7 @@ function parsedObject(value: unknown): Item {
 type EdgeDirection = "incoming" | "outgoing";
 
 function semanticClause(): { sql: string; values: string[] } {
-  const predicates = [...BIBLIOGRAPHIC_PREDICATES, ...LINK_PREDICATES];
+  const predicates: string[] = JSON.parse(sourceNavigationRules().WorkerSourceWalk.semantic_predicates());
   return {
     sql: `(e.edge_kind = 'authored_item_manifest'
             OR (e.edge_kind = 'evidence_claim' AND e.predicate_id IN (${predicates.map(() => "?").join(", ")})))`,
@@ -310,61 +292,46 @@ export async function sourceDescendD1(
 }
 
 async function readSourceDescendD1(db: D1Database, nodeId: string, maxDepth: number, limit: number): Promise<Item> {
-  const navigation = await sourceNavigationHeader(db);
-  const root = await sourceNode(db, nodeId);
-  if (!root) throw new SourceNavigationError(404, `unknown ToS source-navigation node: ${nodeId}`);
+  const navigation=await sourceNavigationHeader(db),root=await sourceNode(db,nodeId);
+  if(!root)throw new SourceNavigationError(404,`unknown ToS source-navigation node: ${nodeId}`);
+  const walked=await walkSource(db,nodeId,root,false,maxDepth,limit);
+  try{
+    const nodes=walked.keys.strings(walked.rules.node_ids()).sort((left,right)=>
+      walked.rules.node_depth(walked.keys.key(left))-walked.rules.node_depth(walked.keys.key(right))||left.localeCompare(right))
+      .map(id=>({...walked.nodes.get(id),depth:walked.rules.node_depth(walked.keys.key(id))}));
+    const edges=Array.from(walked.rules.edge_rows(),row=>walked.edges[row]!);
+    return {schema:'tos_source_descent_v1',root_id:nodeId,max_depth:maxDepth,limit,truncated:walked.rules.truncated(),
+      counts:{nodes:nodes.length,edges:edges.length},nodes,edges,authority_note:navigation.authority_boundary};
+  }finally{walked.rules.free();}
+}
 
-  const nodesById = new Map<string, Item>([[nodeId, root]]);
-  const nodeCache = new Map<string, Item | null>([[nodeId, root]]);
-  const queue: Array<[string, number]> = [[nodeId, 0]];
-  const depths = new Map<string, number>([[nodeId, 0]]);
-  const selectedEdges: Item[] = [];
-  const selectedEdgeIds = new Set<string>();
-  let truncated = false;
-  for (let cursor = 0; cursor < queue.length; cursor += 1) {
-    const [current, depth] = queue[cursor]!;
-    if (depth >= maxDepth) continue;
-    for (const edge of await sourceEdges(db, "outgoing", current, false, limit)) {
-      const target = stringValue(edge.to_id);
-      if (!target) continue;
-      if (!nodesById.has(target)) {
-        let targetNode = nodeCache.get(target);
-        if (!nodeCache.has(target)) {
-          targetNode = await sourceNode(db, target);
-          nodeCache.set(target, targetNode);
-        }
-        if (!targetNode) continue;
-        if (depths.size >= limit) {
-          truncated = true;
-          continue;
-        }
-        nodesById.set(target, targetNode);
+async function walkSource(db:D1Database,id:string,root:Item,dossier:boolean,depth:number,limit:number){
+  const keys=new PhysicalKeys(),rules=new (sourceNavigationRules().WorkerSourceWalk)(keys.key(id),keys.key(''),stringValue(root.node_kind),dossier,depth,limit);
+  try{
+  const nodes=new Map<string,Item>([[id,root]]),cache=new Map<string,Item|null>([[id,root]]),edges:Item[]=[];
+  const incomingCache=new Map<string,Item[]>(),outgoingCache=new Map<string,Item[]>(),handles=new Map<Item,number>();
+  const incoming=async(id:string)=>{const prior=incomingCache.get(id);if(prior)return prior;
+    const rows=await sourceEdges(db,'incoming',id,false,limit);incomingCache.set(id,rows);return rows;};
+  const outgoing=async(id:string,semantic:boolean)=>{if(!dossier)return sourceEdges(db,'outgoing',id,semantic,limit);const prior=outgoingCache.get(id);if(prior)return prior;
+    const rows=await sourceEdges(db,'outgoing',id,semantic,limit);outgoingCache.set(id,rows);return rows;};
+  while(rules.need()!=='done'){
+    if(rules.need()==='sort'){rules.sorted(keys.observe(keys.strings(rules.sorting_ids()).sort()));continue;}
+    const current=keys.strings(Uint32Array.of(rules.current()))[0]!;
+    for(const edge of await (rules.incoming()?incoming(current):outgoing(current,rules.semantic()))){
+      const known=handles.get(edge),row=known??edges.length,edgeId=keys.key(stringValue(edge.edge_id));
+      const target=stringValue(edge.to_id);
+      if(rules.edge(edgeId,row,keys.key(stringValue(edge.from_id)),keys.key(target),stringValue(edge.edge_kind),stringValue(edge.predicate_id))){
+        const wanted=keys.strings(Uint32Array.of(rules.target()))[0]!;
+        if(!cache.has(wanted))cache.set(wanted,await sourceNode(db,wanted));
+        const node=cache.get(wanted);rules.loaded(Boolean(node),stringValue(node?.node_kind));
+        if(node&&rules.contains(keys.key(wanted)))nodes.set(wanted,node);
       }
-      const edgeId = stringValue(edge.edge_id);
-      if (!selectedEdgeIds.has(edgeId)) {
-        selectedEdgeIds.add(edgeId);
-        selectedEdges.push(edge);
-      }
-      if (!depths.has(target)) {
-        depths.set(target, depth + 1);
-        queue.push([target, depth + 1]);
-      }
+      if(known===undefined&&rules.retained(edgeId,row)){handles.set(edge,row);edges.push(edge);}
     }
+    rules.finish_edges();
   }
-  const selectedNodes = [...depths.entries()]
-    .sort(([leftId, leftDepth], [rightId, rightDepth]) => leftDepth - rightDepth || leftId.localeCompare(rightId))
-    .map(([id, depth]) => ({ ...nodesById.get(id), depth }));
-  return {
-    schema: "tos_source_descent_v1",
-    root_id: nodeId,
-    max_depth: maxDepth,
-    limit,
-    truncated,
-    counts: { nodes: selectedNodes.length, edges: selectedEdges.length },
-    nodes: selectedNodes,
-    edges: selectedEdges,
-    authority_note: navigation.authority_boundary,
-  };
+  return {keys,rules,nodes,edges,incoming};
+  }catch(error){rules.free();throw error;}
 }
 
 /** Execute the Work/Link dossier route against indexed D1 rows. */
@@ -373,248 +340,42 @@ export async function sourceDossierD1(db: D1Database, objectId: string, limit: n
 }
 
 async function readSourceDossierD1(db: D1Database, objectId: string, limit: number): Promise<Item> {
-  const navigation = await sourceNavigationHeader(db);
-  const selected = await sourceNode(db, objectId);
-  if (!selected) throw new SourceNavigationError(404, `unknown ToS dossier object: ${objectId}`);
-  const selectedKind = stringValue(selected.node_kind);
-  if (selectedKind !== "work" && selectedKind !== "link") {
-    throw new SourceNavigationError(400, "dossiers are currently available for Work and Link objects");
-  }
-
-  const nodesById = new Map<string, Item>([[objectId, selected]]);
-  const nodeCache = new Map<string, Item | null>([[objectId, selected]]);
-  const incomingCache = new Map<string, Item[]>();
-  const semanticOutgoingCache = new Map<string, Item[]>();
-  const incoming = async (id: string): Promise<Item[]> => {
-    const cached = incomingCache.get(id);
-    if (cached) return cached;
-    const edges = await sourceEdges(db, "incoming", id, false, limit);
-    incomingCache.set(id, edges);
-    return edges;
-  };
-  const semanticOutgoing = async (id: string): Promise<Item[]> => {
-    const cached = semanticOutgoingCache.get(id);
-    if (cached) return cached;
-    const edges = await sourceEdges(db, "outgoing", id, true, limit);
-    semanticOutgoingCache.set(id, edges);
-    return edges;
-  };
-  const loadNode = async (id: string): Promise<Item | null> => {
-    if (nodeCache.has(id)) return nodeCache.get(id) ?? null;
-    const node = await sourceNode(db, id);
-    nodeCache.set(id, node);
-    return node;
-  };
-
-  const componentIds = new Set<string>([objectId]);
-  const componentEdges = new Map<string, Item>();
-  let truncated = false;
-  const admit = async (nodeId: string): Promise<boolean> => {
-    if (componentIds.has(nodeId)) return true;
-    const node = await loadNode(nodeId);
-    if (!node) return false;
-    if (componentIds.size >= limit) {
-      truncated = true;
-      return false;
+  const navigation=await sourceNavigationHeader(db),selected=await sourceNode(db,objectId);
+  if(!selected)throw new SourceNavigationError(404,`unknown ToS dossier object: ${objectId}`);
+  const selectedKind=stringValue(selected.node_kind),runtime=sourceNavigationRules();
+  if(!runtime.WorkerSourceWalk.supported(selectedKind))throw new SourceNavigationError(400,'dossiers are currently available for Work and Link objects');
+  const walked=await walkSource(db,objectId,selected,true,0,limit),{keys,rules,nodes}=walked;
+  let rightsRules:SourceRights|undefined;
+  try{
+    rightsRules=new runtime.WorkerSourceRights();
+    const componentIds=keys.strings(rules.node_ids()).sort(),componentNodes=componentIds.map(id=>nodes.get(id)!);
+    const chain:Record<string,Item[]>={};for(const kind of JSON.parse(runtime.WorkerSourceWalk.chain_kinds()) as string[])
+      chain[kind]=componentIds.filter(id=>rules.kind_matches(keys.key(id),kind)).map(id=>nodes.get(id)!);
+    const edgeRows=Array.from(rules.edge_rows()),componentEdges=edgeRows.map(row=>walked.edges[row]!);
+    const orderedRows=Uint32Array.from(edgeRows.sort((left,right)=>stringValue(walked.edges[left]!.edge_id).localeCompare(stringValue(walked.edges[right]!.edge_id))));
+    const treePaths:Item[]=[];
+    rules.prepare_paths(keys.observe((chain.era??[]).map(era=>stringValue(era.node_id))),orderedRows);
+    for(let index=0;index<rules.path_count();index++)treePaths.push({node_ids:keys.strings(rules.path_nodes(index)),
+      edge_ids:Array.from(rules.path_edges(index),row=>stringValue(walked.edges[row]!.edge_id))});
+    for(const id of componentIds)rightsRules.component(keys.key(id),stringValue(nodes.get(id)?.node_kind));
+    const rights=(await sourceRights(db,keys.strings(rules.node_ids()),limit)).filter(record=>rightsRules.intersects_component(keys.observe(stringArray(record.scope_refs))));
+    observeRights(rightsRules,keys,rights);observeMemberships(rightsRules,keys,componentEdges);
+    for(const edge of componentEdges){const properties=parsedObject(edge.properties),contexts=properties.item_file_contexts;
+      let valid=0;if(Array.isArray(contexts))for(const value of contexts){const record=Boolean(value)&&typeof value==='object'&&!Array.isArray(value);
+        if(runtime.WorkerSourceRights.context_ref(record,Boolean(stringValue(record?(value as Item).rights_ref:undefined))))valid++;}
+      rightsRules.observe_legacy_file(keys.key(stringValue(edge.to_id)),stringValue(edge.edge_kind),stringValue(edge.predicate_id),Array.isArray(contexts),Array.isArray(contexts)?contexts.length:0,valid);
     }
-    componentIds.add(nodeId);
-    nodesById.set(nodeId, node);
-    return true;
-  };
-
-  let forwardRoots = new Set<string>(selectedKind === "work" ? [objectId] : []);
-  if (selectedKind === "link") {
-    const lineageQueue = [objectId];
-    const visitedLineage = new Set<string>();
-    for (let cursor = 0; cursor < lineageQueue.length; cursor += 1) {
-      const current = lineageQueue[cursor]!;
-      if (visitedLineage.has(current)) continue;
-      visitedLineage.add(current);
-      const currentKind = stringValue(nodesById.get(current)?.node_kind);
-      if (currentKind === "work") {
-        forwardRoots.add(current);
-        continue;
-      }
-      const allowed = currentKind === "link" ? new Set<string>(LINK_PREDICATES) : new Set<string>(BIBLIOGRAPHIC_PREDICATES);
-      for (const edge of await incoming(current)) {
-        if (edge.edge_kind !== "evidence_claim" || !allowed.has(stringValue(edge.predicate_id))) continue;
-        const parent = stringValue(edge.from_id);
-        if (!await admit(parent)) continue;
-        componentEdges.set(stringValue(edge.edge_id), edge);
-        lineageQueue.push(parent);
-      }
-    }
-    if (forwardRoots.size === 0) {
-      forwardRoots = new Set([...componentIds].filter((id) => stringValue(nodesById.get(id)?.node_kind) !== "link"));
-    }
-  }
-
-  const forwardQueue = [...forwardRoots].sort();
-  const visitedForward = new Set<string>();
-  for (let cursor = 0; cursor < forwardQueue.length; cursor += 1) {
-    const current = forwardQueue[cursor]!;
-    if (visitedForward.has(current)) continue;
-    visitedForward.add(current);
-    for (const edge of await semanticOutgoing(current)) {
-      const target = stringValue(edge.to_id);
-      if (!await admit(target)) continue;
-      componentEdges.set(stringValue(edge.edge_id), edge);
-      forwardQueue.push(target);
-    }
-  }
-
-  const ancestorQueue: string[] = [];
-  const workIds = [...componentIds]
-    .filter((id) => stringValue(nodesById.get(id)?.node_kind) === "work")
-    .sort();
-  for (const workId of workIds) {
-    for (const edge of await incoming(workId)) {
-      if (edge.edge_kind !== "authored_source_planting") continue;
-      const parent = stringValue(edge.from_id);
-      if (!await admit(parent)) continue;
-      componentEdges.set(stringValue(edge.edge_id), edge);
-      ancestorQueue.push(parent);
-    }
-  }
-
-  const visitedAncestors = new Set<string>();
-  for (let cursor = 0; cursor < ancestorQueue.length; cursor += 1) {
-    const current = ancestorQueue[cursor]!;
-    if (visitedAncestors.has(current)) continue;
-    visitedAncestors.add(current);
-    const currentKind = stringValue(nodesById.get(current)?.node_kind);
-    for (const edge of await incoming(current)) {
-      const isBranchParent = edge.edge_kind === "authored_branch_hierarchy";
-      const isPlantingParent = currentKind === "source_planting"
-        && edge.edge_kind === "authored_source_planting"
-        && edge.predicate_id === "has_source_planting";
-      if (!isBranchParent && !isPlantingParent) continue;
-      const parent = stringValue(edge.from_id);
-      if (!await admit(parent)) continue;
-      componentEdges.set(stringValue(edge.edge_id), edge);
-      ancestorQueue.push(parent);
-    }
-  }
-
-  const componentNodes = [...componentIds].sort().map((id) => nodesById.get(id) as Item);
-  const chain: Record<string, Item[]> = {};
-  for (const kind of CHAIN_KINDS) chain[kind] = componentNodes.filter((node) => node.node_kind === kind);
-  const componentOutgoing = new Map<string, Item[]>();
-  for (const edge of componentEdges.values()) {
-    const bucket = componentOutgoing.get(stringValue(edge.from_id)) ?? [];
-    bucket.push(edge);
-    componentOutgoing.set(stringValue(edge.from_id), bucket);
-  }
-  const treePaths: Item[] = [];
-  for (const era of chain.era ?? []) {
-    const eraId = stringValue(era.node_id);
-    const frontier: Array<[string, string[], string[]]> = [[eraId, [eraId], []]];
-    const seen = new Set([eraId]);
-    for (let cursor = 0; cursor < frontier.length; cursor += 1) {
-      const [current, nodePath, edgePath] = frontier[cursor]!;
-      if (current === objectId) {
-        treePaths.push({ node_ids: nodePath, edge_ids: edgePath });
-        break;
-      }
-      for (const edge of sortedById(componentOutgoing.get(current) ?? [], "edge_id")) {
-        const target = stringValue(edge.to_id);
-        if (!target || seen.has(target)) continue;
-        seen.add(target);
-        frontier.push([target, [...nodePath, target], [...edgePath, stringValue(edge.edge_id)] ]);
-      }
-    }
-  }
-
-  const rights = (await sourceRights(db, componentIds, limit))
-    .filter((record) => intersects(record.scope_refs, componentIds));
-  const legacyMembershipFiles = new Set<string>();
-  for (const edge of componentEdges.values()) {
-    if (edge.edge_kind !== "authored_item_manifest" || edge.predicate_id !== "has_file") continue;
-    const properties = parsedObject(edge.properties);
-    const contexts = properties.item_file_contexts;
-    const hasExactRightsRefs = Array.isArray(contexts) && contexts.length > 0 && contexts.every((value) =>
-      value && typeof value === "object" && !Array.isArray(value) && Boolean(stringValue((value as Item).rights_ref)));
-    if (!hasExactRightsRefs) legacyMembershipFiles.add(stringValue(edge.to_id));
-  }
-  const incomingByFile = new Map<string, Item[]>();
-  for (const fileId of [...legacyMembershipFiles].filter(Boolean).sort()) {
-    incomingByFile.set(fileId, await incoming(fileId));
-  }
-  rights.splice(0, rights.length, ...filterFileScopedRights(
-    rights, componentIds, nodesById, componentEdges.values(), incomingByFile,
-  ));
-  let decisionScopeIds = new Set([objectId]);
-  if (selectedKind === "link") {
-    decisionScopeIds = new Set(
-      [...componentEdges.values()]
-        .filter((edge) => edge.to_id === objectId && edge.edge_kind === "evidence_claim")
-        .map((edge) => stringValue(edge.from_id)),
-    );
-  }
-  const decisionRights = rights.filter((record) => intersects(record.scope_refs, decisionScopeIds));
-  const dossierLinks = selectedKind === "work" ? (chain.link ?? []) : [selected];
-  const linkStatuses = new Set(dossierLinks.map((node) => stringValue((node.properties as Item | undefined)?.access_status) || "unknown"));
-  let technicalAccess = "unknown";
-  if (linkStatuses.has("open_download")) technicalAccess = "downloadable";
-  else if (linkStatuses.has("open_view")) technicalAccess = "viewable";
-  else if (linkStatuses.has("metadata_only")) technicalAccess = "metadata_only";
-  else if (["restricted", "login_required", "unavailable"].some((status) => linkStatuses.has(status))) {
-    technicalAccess = "restricted_or_unavailable";
-  }
-
-  const decisionAggregateRights = aggregateRightsRecords(decisionRights);
-  const positiveRights = decisionAggregateRights.filter((record) =>
-    ["licensed", "public_domain_reviewed"].includes(stringValue(record.assessment_status))
-    && ["authorized", "authorized_with_conditions"].includes(stringValue(record.redistribution_posture)),
-  );
-  const reviewedPositive = positiveRights.filter((record) =>
-    ["accepted", "accepted_with_limits"].includes(stringValue(record.review_status)),
-  );
-  const rightsPosture = reviewedPositive.length > 0
-    ? "reviewed_reuse_route"
-    : positiveRights.length > 0
-      ? "candidate_requires_human_review"
-      : decisionRights.length > 0
-        ? "not_cleared"
-        : "unknown";
-  const gaps: string[] = [];
-  if (decisionRights.length === 0) gaps.push("no associated public rights record");
-  else if (decisionAggregateRights.length === 0) gaps.push("no unambiguous aggregate rights assessment");
-  if (positiveRights.length > 0 && reviewedPositive.length === 0) gaps.push("positive rights route exists but has no accepted human review");
-  if ((chain.link ?? []).length === 0) gaps.push("no first-class associated Link record");
-
-  const sourceRefSet = new Set<string>();
-  for (const node of componentNodes) {
-    const sourceRef = stringValue(node.source_ref);
-    if (sourceRef) sourceRefSet.add(sourceRef);
-  }
-  for (const edge of componentEdges.values()) {
-    for (const sourceRef of stringArray(edge.source_refs)) sourceRefSet.add(sourceRef);
-  }
-  for (const record of rights) {
-    const sourceRef = stringValue(record.source_ref);
-    if (sourceRef) sourceRefSet.add(sourceRef);
-  }
-
-  return {
-    schema: "tos_source_dossier_v1",
-    object_id: objectId,
-    object: selected,
-    agent_summary: {
-      technical_access: technicalAccess,
-      rights_posture: rightsPosture,
-      human_review_required: reviewedPositive.length === 0,
-      can_conclude_legal_openness: reviewedPositive.length > 0,
-      availability_is_license: false,
-      rights_scope_refs: [...decisionScopeIds].sort(),
-      gaps,
-    },
-    chain,
-    tree_paths: treePaths,
-    relations: [...componentEdges.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([, edge]) => edge),
-    rights: sortedById(rights, "rights_id"),
-    source_refs: [...sourceRefSet].sort(),
-    truncated,
-    authority_note: navigation.authority_boundary,
-  };
+    for(const file of keys.strings(rightsRules.legacy_file_ids()).filter(Boolean).sort())for(const edge of await walked.incoming(file))
+      rightsRules.incoming_owner(keys.key(file),keys.key(stringValue(edge.from_id)),stringValue(edge.edge_kind),stringValue(edge.predicate_id));
+    const filtered=Array.from(rightsRules.filtered_rows(),row=>rights[row]!);
+    for(const link of selectedKind==='work'?(chain.link??[]):[selected])rightsRules.status(stringValue((link.properties as Item|undefined)?.access_status)||'unknown');
+    const decision=rules.decision_ids(),summary=JSON.parse(rightsRules.summary(decision,(chain.link??[]).length)) as Item;
+    summary.rights_scope_refs=keys.strings(decision).sort();
+    for(const node of componentNodes){const ref=stringValue(node.source_ref);rules.reference(keys.key(ref),Boolean(ref));}
+    for(const edge of componentEdges)for(const ref of stringArray(edge.source_refs))rules.reference(keys.key(ref),true);
+    for(const record of filtered){const ref=stringValue(record.source_ref);rules.reference(keys.key(ref),Boolean(ref));}
+    return {schema:'tos_source_dossier_v1',object_id:objectId,object:selected,agent_summary:summary,chain,tree_paths:treePaths,
+      relations:Array.from(orderedRows,row=>walked.edges[row]!),rights:sortedById(filtered,'rights_id'),source_refs:keys.strings(rules.references()).sort(),
+      truncated:rules.truncated(),authority_note:navigation.authority_boundary};
+  }finally{rightsRules?.free();rules.free();}
 }

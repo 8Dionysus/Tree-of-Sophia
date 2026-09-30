@@ -49,3 +49,6 @@ import {installWebMcpRules} from '../webmcp.ts';
 installWebMcpRules(runtime);
 import {installWorkerClassicRules} from "../../../deploy/cloudflare-worker/src/worker-classic.ts";
 installWorkerClassicRules(runtime);
+
+import {installSourceNavigationRules} from "../../../deploy/cloudflare-worker/src/source-navigation-rules.ts";
+installSourceNavigationRules(runtime);

@@ -1,3 +1,4 @@
+import {rustAggregateRights,rustFilterRights} from "./source-navigation-rules.ts";
 type Item = Record<string, unknown>;
 
 export class SourceNavigationError extends Error {
@@ -54,141 +55,14 @@ function intersects(values: unknown, selected: Set<string>): boolean {
   return stringArray(values).some((value) => selected.has(value));
 }
 
-const ROOT_RIGHTS_ID = /^tos\.rights\.[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
-const LAYER_RIGHTS_ID = /^tos\.rights\.[a-z0-9]+(?:[.-][a-z0-9]+)*\.layer\.[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
-
-/** Keep layer findings visible while deriving openness only from an unambiguous aggregate row. */
-export function aggregateRightsRecords(records: Item[]): Item[] {
-  const bySource = new Map<string, Item[]>();
-  for (const record of records) {
-    const sourceRef = stringValue(record.source_ref);
-    if (!sourceRef) continue;
-    const group = bySource.get(sourceRef) ?? [];
-    group.push(record);
-    bySource.set(sourceRef, group);
-  }
-
-  const aggregateRecords: Item[] = [];
-  for (const sourceRecords of bySource.values()) {
-    if (sourceRecords.some((record) => Object.prototype.hasOwnProperty.call(record, "assessment_kind"))) {
-      if (sourceRecords.some((record) => !["aggregate", "layer"].includes(stringValue(record.assessment_kind)))) continue;
-      const aggregates = sourceRecords.filter((record) => stringValue(record.assessment_kind) === "aggregate");
-      if (aggregates.length === 1) aggregateRecords.push(aggregates[0]!);
-      continue;
-    }
-
-    const aggregateCandidates = sourceRecords.filter((record) =>
-      ROOT_RIGHTS_ID.test(stringValue(record.rights_id)) && !LAYER_RIGHTS_ID.test(stringValue(record.rights_id)));
-    const layerCandidates = sourceRecords.filter((record) => LAYER_RIGHTS_ID.test(stringValue(record.rights_id)));
-    if (aggregateCandidates.length === 1 && aggregateCandidates.length + layerCandidates.length === sourceRecords.length) {
-      aggregateRecords.push(aggregateCandidates[0]!);
-    }
-  }
-  return aggregateRecords;
+/** Mechanical projection only; source assessment and rights authority stay stronger. */
+export function aggregateRightsRecords(records:Item[]):Item[]{return rustAggregateRights(records);}
+export function filterFileScopedRights(rights:Item[],componentIds:Set<string>,nodesById:Map<string,Item>,componentEdges:Iterable<Item>,incomingByFile:Map<string,Item[]>):Item[]{
+  return rustFilterRights(rights,componentIds,nodesById,componentEdges,incomingByFile);
 }
 
-/** Keep File-scoped rights only through Item→File memberships in this dossier. */
-export function filterFileScopedRights(
-  rights: Item[],
-  componentIds: Set<string>,
-  nodesById: Map<string, Item>,
-  componentEdges: Iterable<Item>,
-  incomingByFile: Map<string, Item[]>,
-): Item[] {
-  const fileIds = new Set([...componentIds].filter((id) => stringValue(nodesById.get(id)?.node_kind) === "file"));
-  if (fileIds.size === 0) return rights;
-  const targetBibliographicIds = new Set([...componentIds].filter((id) =>
-    ["work", "expression", "edition"].includes(stringValue(nodesById.get(id)?.node_kind))));
-  const membershipsByFile = new Map<string, Array<{
-    itemId: string;
-    rightsRefs: Set<string>;
-    legacy: boolean;
-    valid: boolean;
-  }>>();
-  for (const edge of componentEdges) {
-    if (edge.edge_kind !== "authored_item_manifest" || edge.predicate_id !== "has_file") continue;
-    const itemId = stringValue(edge.from_id);
-    const fileId = stringValue(edge.to_id);
-    if (!componentIds.has(itemId) || stringValue(nodesById.get(itemId)?.node_kind) !== "item" || !fileIds.has(fileId)) continue;
-
-    const rawSourceRefs = edge.source_refs;
-    const edgeSourceRefs = stringArray(rawSourceRefs);
-    const sourceRefSet = new Set(edgeSourceRefs);
-    let valid = Array.isArray(rawSourceRefs) && edgeSourceRefs.length === rawSourceRefs.length
-      && sourceRefSet.size === edgeSourceRefs.length && edgeSourceRefs.length > 0;
-    const properties = itemObject(edge.properties);
-    const rightsRefs = new Set<string>();
-    let legacy = false;
-    if (!Object.prototype.hasOwnProperty.call(properties, "item_file_contexts")) {
-      legacy = true;
-      valid = valid && edgeSourceRefs.length === 1;
-    } else {
-      const rawContexts = properties.item_file_contexts;
-      const contextManifestRefs = new Set<string>();
-      if (!Array.isArray(rawContexts) || rawContexts.length === 0) {
-        valid = false;
-      } else {
-        for (const rawContext of rawContexts) {
-          if (!rawContext || typeof rawContext !== "object" || Array.isArray(rawContext)) {
-            valid = false;
-            continue;
-          }
-          const context = rawContext as Item;
-          const manifestRef = stringValue(context.manifest_ref);
-          if (!manifestRef || !sourceRefSet.has(manifestRef) || contextManifestRefs.has(manifestRef)) valid = false;
-          else contextManifestRefs.add(manifestRef);
-          const rawRightsRef = context.rights_ref;
-          const rightsRef = stringValue(rawRightsRef);
-          if (rightsRef) rightsRefs.add(rightsRef);
-          else if (rawRightsRef === undefined || rawRightsRef === null || rawRightsRef === "") legacy = true;
-          else valid = false;
-        }
-        if (contextManifestRefs.size !== sourceRefSet.size
-          || [...sourceRefSet].some((sourceRef) => !contextManifestRefs.has(sourceRef))) valid = false;
-      }
-    }
-    if (rightsRefs.size > 1 || (rightsRefs.size > 0 && legacy)) valid = false;
-    const memberships = membershipsByFile.get(fileId) ?? [];
-    memberships.push({ itemId, rightsRefs, legacy, valid });
-    membershipsByFile.set(fileId, memberships);
-  }
-  for (const memberships of membershipsByFile.values()) {
-    const itemCounts = new Map<string, number>();
-    for (const membership of memberships) {
-      itemCounts.set(membership.itemId, (itemCounts.get(membership.itemId) ?? 0) + 1);
-    }
-    for (const membership of memberships) {
-      if ((itemCounts.get(membership.itemId) ?? 0) > 1) membership.valid = false;
-    }
-  }
-
-  const scopesFor = (record: Item): Set<string> => new Set(stringArray(record.scope_refs));
-  const legacySourceIsUnique = (itemId: string, fileId: string, sourceRef: unknown): boolean => {
-    const ownerEdges = (incomingByFile.get(fileId) ?? []).filter((edge) =>
-      edge.edge_kind === "authored_item_manifest" && edge.predicate_id === "has_file");
-    if (ownerEdges.length !== 1 || stringValue(ownerEdges[0]?.from_id) !== itemId) return false;
-    const matching = rights.filter((record) => {
-      const scopes = scopesFor(record);
-      return scopes.has(itemId) && scopes.has(fileId);
-    });
-    const sources = new Set(matching.map((record) => stringValue(record.source_ref)).filter(Boolean));
-    return sources.size === 1 && matching.every((record) => stringValue(record.source_ref))
-      && sources.has(stringValue(sourceRef));
-  };
-
-  return rights.filter((record) => {
-    const scopes = scopesFor(record);
-    const fileScopes = [...fileIds].filter((id) => scopes.has(id));
-    if (fileScopes.length === 0 || [...targetBibliographicIds].some((id) => scopes.has(id))) return true;
-    return fileScopes.every((fileId) => (membershipsByFile.get(fileId) ?? []).some((membership) => {
-      if (!membership.valid) return false;
-      if (membership.rightsRefs.size > 0) return membership.rightsRefs.has(stringValue(record.source_ref));
-      return membership.legacy && scopes.has(membership.itemId)
-        && legacySourceIsUnique(membership.itemId, fileId, record.source_ref);
-    }));
-  });
-}
-
+// Temporary offline-only six-kind parity producer. Its unique File/Item
+// controls are held until the native six-kind owner executes their transfer.
 export function sourceDescend(navigation: Item, nodeId: string, maxDepth: number, limit: number): Item {
   const nodes = objectArray(navigation.nodes);
   const nodesById = new Map(nodes.map((node) => [stringValue(node.node_id), node]));

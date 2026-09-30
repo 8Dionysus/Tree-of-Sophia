@@ -1,3 +1,4 @@
+import {installSourceNavigationRules} from "./source-navigation-rules.ts";
 import { boundedInt, HttpError, jsonResponse, listParam, withSecurity, type Item } from "./common";
 import {
   buildHealth,
@@ -46,6 +47,7 @@ import temporalWasm from '../generated/tos_web_rules_bg.wasm';
 // wasm-bindgen owns module initialization; no second host cache or fetch.
 initSync({module: temporalWasm});
 installWorkerClassicRules(classicRuntime);
+installSourceNavigationRules(classicRuntime);
 installKnowledgeSceneRules({KnowledgeSceneSession});
 const temporalRuntime = {TemporalReplaySession, validate_temporal_request_wasm_v1};
 const inspectionRuntime = {InspectionSession, validate_inspect_request_wasm_v1};

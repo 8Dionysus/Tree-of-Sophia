@@ -487,3 +487,28 @@ test('D1 rejects full-row drift and missing checksums before deriving rights pos
     } finally { await mf.dispose(); }
   }
 });
+
+test('source closure checks a candidate original row before an exhausted admission limit',async()=>{
+  const {mf,db}=await database();
+  try{
+    const navigation=baseNavigation();await populate(db,navigation);
+    const link=navigation.nodes.find(node=>node.node_id==='link')!;
+    await db.prepare("UPDATE source_navigation_nodes SET json=? WHERE node_id='link'")
+      .bind(JSON.stringify({...link,research_note:'unverified change'})).run();
+    for(const operation of [()=>sourceDescendD1(db,'work',1,1),()=>sourceDossierD1(db,'work',1)])
+      await assert.rejects(operation(),/emitted source-navigation row checksum differs/);
+  }finally{await mf.dispose();}
+});
+
+test('legacy aggregate ID body named layer is a root, not a layer finding',async()=>{
+  const {mf,db}=await database();
+  try{
+    const navigation=baseNavigation();navigation.rights=[
+      {...navigation.rights[0],rights_id:'tos.rights.layer.x',assessment_kind:undefined},
+      {...navigation.rights[0],rights_id:'tos.rights.layer.x.layer.ocr',assessment_kind:undefined,redistribution_posture:'not_authorized'},
+    ];navigation.counts.rights=2;await populate(db,navigation);
+    const packet=await sourceDossierD1(db,'work',30);
+    assert.equal((packet.agent_summary as Item).can_conclude_legal_openness,true);
+    assert.deepEqual((packet.rights as Item[]).map(record=>record.rights_id),['tos.rights.layer.x','tos.rights.layer.x.layer.ocr']);
+  }finally{await mf.dispose();}
+});

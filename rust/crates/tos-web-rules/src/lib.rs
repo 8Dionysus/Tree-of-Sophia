@@ -965,3 +965,8 @@ mod wasm {
 mod route_center;
 #[cfg(feature = "wasm")]
 pub use route_center::RouteCenterSession;
+
+#[cfg(feature = "wasm")]
+mod worker_source_navigation;
+#[cfg(feature = "wasm")]
+pub use worker_source_navigation::{WorkerSourceWalk,WorkerSourceRights};
