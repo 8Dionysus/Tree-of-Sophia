@@ -49,6 +49,12 @@ pub(crate) fn reconcile(
     operation.validate()?;
     publication.validate()?;
     progress.verify(tx)?;
+    let query_only: i64 = tx.query_row("PRAGMA query_only", [], |row| row.get(0))?;
+    if query_only != 1 || tx.total_changes() != 0 {
+        return Err(Error::Invalid(
+            "Agent recovery requires fresh read-only selection",
+        ));
+    }
     let changes = tx.total_changes();
     execution.verify_source(source, catalog)?;
     if read_prepared_source_inputs_transaction(tx, selected, catalog, publication)?.raw()
