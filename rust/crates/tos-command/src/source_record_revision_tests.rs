@@ -418,7 +418,7 @@ fn revision_cli_observe(
     let mut output = tempfile::tempfile().unwrap();
     let mut errors = tempfile::tempfile().unwrap();
     let mut child =
-        Command::new("/usr/bin/python3")
+        Command::new("python3")
             .arg(repository.join(
                 "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
             ))
@@ -530,7 +530,7 @@ print(json.dumps({'owner':str(f.owner),'source_path':f.relative,'record':f.recor
     let out = scratch.join("fixture.stdout");
     let err = scratch.join("fixture.stderr");
     bounded_child(
-        Command::new("/usr/bin/python3")
+        Command::new("python3")
             .args(["-c", script])
             .arg(repository)
             .arg(root)

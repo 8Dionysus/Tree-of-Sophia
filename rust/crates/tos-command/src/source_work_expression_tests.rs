@@ -610,7 +610,7 @@ fn cli37_observe(
     let mut output = tempfile::tempfile().unwrap();
     let mut errors = tempfile::tempfile().unwrap();
     let mut child =
-        Command::new("/usr/bin/python3")
+        Command::new("python3")
             .arg(repository.join(
                 "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
             ))
@@ -713,7 +713,7 @@ print(json.dumps({'proposal':case.proposal(),'request':case.request(),'work_ref'
         let out = temporary.path().join("fixture.stdout");
         let err = temporary.path().join("fixture.stderr");
         bounded_child(
-            Command::new("/usr/bin/python3")
+            Command::new("python3")
                 .args(["-c", fixture_script])
                 .arg(&repository)
                 .arg(isolated.path())

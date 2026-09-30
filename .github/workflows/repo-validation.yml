@@ -451,19 +451,8 @@ jobs:
             /access/contracts/web-actions.v1.json
             /ToS/contracts/
             /scripts/
-            /mechanics/growth-cycle/parts/branch-growth-cycle/scripts/
-            /scripts/tos_corpus_index_common.py
-            /scripts/validation_lanes.py
-            /scripts/verify_rust_reader_install.py
-            /scripts/verify_rust_mechanics_install.py
-            /scripts/run_mechanics_local_tests.py
-            /scripts/agents_route_harness.py
-            /scripts/build_agents_route_currentness.py
-            /scripts/release_check.py
-            /scripts/software_ci.py
-            /scripts/validate_active_naming.py
-            /scripts/validate_mechanics_topology.py
-            /scripts/validate_nested_agents.py
+            /mechanics/growth-cycle/
+            /requirements-dev.txt
             /ToS/doctrine/semantic-interchange/
             /ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json
             /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json
@@ -475,7 +464,6 @@ jobs:
             /ToS/research-packets/foundation-laboratory-2026-07/DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md
             /ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/
             /ToS/research-packets/retained-builder-inputs/build_provenance_event_v2_lab/
-            /scripts/verify_rust_web_host.py
             /docs/validation/validation_lanes.json
       - name: Fetch same-run native CI executors
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
@@ -517,6 +505,8 @@ jobs:
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: "3.14"
+      - name: Install maintained Python fixture dependencies
+        run: python -m pip install -r requirements-dev.txt
       - name: Install pinned Rust toolchain and WASM target
         run: |
           rustup toolchain install 1.98.1 --profile minimal --component rustfmt --target wasm32-unknown-unknown
