@@ -9,6 +9,17 @@ use std::process::{Command, Stdio};
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 
+fn rule_software_component(name: &str) -> bool {
+    !name.starts_with("ToS/")
+        || matches!(
+            name,
+            "ToS/contracts/human-form.schema.json"
+                | "ToS/contracts/human-form-set.schema.json"
+                | "ToS/contracts/human-form-template.schema.json"
+                | "ToS/contracts/provenance-event-v2.schema.json"
+        )
+}
+
 fn canonical(value: &Value) -> Vec<u8> {
     tos_foundation::canonical_raw_bytes_v1(
         &serde_json::to_vec(value).unwrap(),
@@ -171,7 +182,7 @@ fn selected_capture(
         .arg(&commit)
         .arg("--output")
         .arg(&capture);
-    for name in names.iter().filter(|name| !name.starts_with("ToS/")) {
+    for name in names.iter().filter(|name| rule_software_component(name)) {
         command.arg("--include-prefix").arg(name);
     }
     capture_process(&mut command, deadline);
@@ -218,7 +229,7 @@ fn selected_capture(
     .unwrap();
     let paths = names
         .iter()
-        .filter(|name| !name.starts_with("ToS/"))
+        .filter(|name| rule_software_component(name))
         .map(|name| RelativePath::parse(name).unwrap())
         .collect::<Vec<_>>();
     let components = software.select_components(&paths).unwrap();

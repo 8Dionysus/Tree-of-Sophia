@@ -15,6 +15,36 @@ use tos_source_store::{
 use tos_validation::source_cut::CutSchemaExecutor;
 use tos_validation::source_cut::CutWorkerSchemaExecutor;
 
+// Python's implementation map hashes these bytes from source.ROOT. They are
+// software rules, distinct from owner-context grammar at the same source refs.
+const RULE_SCHEMA_COMPONENTS: &[&str] = &[
+    "ToS/contracts/human-form.schema.json",
+    "ToS/contracts/human-form-set.schema.json",
+    "ToS/contracts/human-form-template.schema.json",
+    "ToS/contracts/provenance-event-v2.schema.json",
+];
+
+fn verify_selected_software(
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    let mut total = 0u64;
+    for member in components.members() {
+        total = total
+            .checked_add(member.size_bytes)
+            .ok_or(SourceCommandError::Invalid("private software budget"))?;
+        if total > 33_554_432 || member.size_bytes > 8_388_608 {
+            return Err(SourceCommandError::Invalid("private software budget"));
+        }
+        software
+            .read_selected_component(components, &member.path, 8_388_608, deadline, cancelled)
+            .map_err(|_| SourceCommandError::Conflict("private selected software changed"))?;
+    }
+    Ok(())
+}
+
 #[path = "source_private_profile.rs"]
 pub(crate) mod profile;
 
@@ -142,6 +172,7 @@ pub(super) fn run(
                 ));
             }
         }
+        verify_selected_software(software, components, deadline, cancelled)?;
         selected
             .context
             .check_from_selected_captures(current, software, components, deadline, cancelled)
@@ -281,6 +312,16 @@ fn select(
         let raw = software
             .read_selected_component(components, &member.path, 8_388_608, deadline, cancelled)
             .map_err(|_| SourceCommandError::Conflict("private selected software"))?;
+        if member.path.as_str().starts_with("ToS/") {
+            if !RULE_SCHEMA_COMPONENTS.contains(&member.path.as_str()) {
+                return Err(SourceCommandError::Denied(
+                    "private rule software schema scope",
+                ));
+            }
+            // Keep the typed software carrier separate. CommandContext ToS
+            // inputs always remain the independently selected current cut.
+            continue;
+        }
         context.files.push(cmd::SourceFile {
             path: member.path.clone(),
             raw,
