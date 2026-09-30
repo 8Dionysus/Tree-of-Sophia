@@ -437,7 +437,9 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
                     &cancelled,
                 );
             }
-            "tos_local_owner_profile_command_v1" => {
+            "tos_local_owner_profile_command_v1"
+            | "tos_local_owner_claim_command_v1"
+            | "tos_local_owner_claim_command_v2" => {
                 return private_owner::run(
                     &invocation,
                     &request_raw,

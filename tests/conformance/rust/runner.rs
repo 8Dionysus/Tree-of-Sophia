@@ -860,3 +860,5 @@ mod command_object_link_cases;
 mod command_owner_text_cases;
 #[path = "command_private_profile_cases.rs"]
 mod command_private_profile_cases;
+#[path = "command_private_claim_cases.rs"]
+mod command_private_claim_cases;
