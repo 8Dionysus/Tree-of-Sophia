@@ -7,6 +7,7 @@
 pub mod cli;
 pub mod doctor;
 pub mod exploration_checkpoints;
+pub mod persistent_exploration_checkpoints;
 pub mod exploration_contracts;
 mod indexed_cursor;
 pub mod knowledge;

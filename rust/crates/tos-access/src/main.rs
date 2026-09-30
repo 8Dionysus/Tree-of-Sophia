@@ -7,7 +7,7 @@ use tos_access::{
 fn main() {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
     // Software help/version never opens a selected release or grants readiness.
-    let help = "usage: tos [--release-root ABSOLUTE_DIRECTORY | --root ABS | --prepared-read-model ABS --prepared-binding ABS [--root ABS]] COMMAND\n\nCommands:\n  serve [LOOPBACK:PORT]     local HTTP and installed software site\n  mcp                       MCP JSONL on stdin/stdout\n  knowledge | lens | source bounded read operations\n  reading-search --query Q   local Zarathustra reading data\n  doctor | verify           source-backed diagnostic report\n  software build|verify|extract|install OPTIONS\n  prepare --source-root ROOT --output-dir FRESH_DIR --max-seconds N\n          [--max-bytes N --max-mutations N --attach-maintenance]\n  build-data --source-root ROOT --output DIST --runtime RUNTIME\n             [--max-build-seconds N]  disposable offline public D1 v9\n\nNative install: software install --archive ABS --prefix FRESH_ABS\nwith --max-total-bytes N --max-archive-bytes N --max-members N\nand --max-metadata-bytes N. Installation never selects data or edits PATH.\nData operations without a selected owner report unavailable.\nPublic build requires TOS_BUILD_MAX_SECONDS unless --max-build-seconds is supplied.\n";
+    let help = "usage: tos [--release-root ABSOLUTE_DIRECTORY | --root ABS | --prepared-read-model ABS --prepared-binding ABS [--root ABS] [--exploration-checkpoints ABS]] COMMAND\n\nCommands:\n  serve [LOOPBACK:PORT]     local HTTP and installed software site\n  mcp                       MCP JSONL on stdin/stdout\n  knowledge | lens | source bounded read operations\n  reading-search --query Q   local Zarathustra reading data\n  doctor | verify           source-backed diagnostic report\n  software build|verify|extract|install OPTIONS\n  prepare --source-root ROOT --output-dir FRESH_DIR --max-seconds N\n          [--max-bytes N --max-mutations N --attach-maintenance]\n  build-data --source-root ROOT --output DIST --runtime RUNTIME\n             [--max-build-seconds N]  disposable offline public D1 v9\n\nNative install: software install --archive ABS --prefix FRESH_ABS\nwith --max-total-bytes N --max-archive-bytes N --max-members N\nand --max-metadata-bytes N. Installation never selects data or edits PATH.\nData operations without a selected owner report unavailable.\nPublic build requires TOS_BUILD_MAX_SECONDS unless --max-build-seconds is supplied.\n";
     if args.len() == 1 && matches!(args[0].as_str(), "--version" | "-V") {
         println!("tos {}", env!("CARGO_PKG_VERSION"));
         return;
@@ -64,6 +64,7 @@ fn main() {
     let mut explicit_release = false;
     let mut prepared_model = None;
     let mut prepared_binding = None;
+    let mut exploration_checkpoints = None;
     let mut prepared_root = std::env::var_os("TOS_DATA_ROOT");
     let mut explicit_data_root = false;
     while args.first().is_some_and(|arg| {
@@ -71,6 +72,7 @@ fn main() {
             "--release-root",
             "--prepared-read-model",
             "--prepared-binding",
+            "--exploration-checkpoints",
             "--root",
         ]
         .iter()
@@ -92,6 +94,7 @@ fn main() {
             }
             "--prepared-read-model" => &mut prepared_model,
             "--prepared-binding" => &mut prepared_binding,
+            "--exploration-checkpoints" => &mut exploration_checkpoints,
             "--root" => {
                 explicit_data_root = true;
                 &mut prepared_root
@@ -106,6 +109,12 @@ fn main() {
     {
         eprintln!(
             "invalid_request: prepared paths require a pair; explicit root and release-root selections conflict"
+        );
+        std::process::exit(2)
+    }
+    if exploration_checkpoints.is_some() && prepared_model.is_none() {
+        eprintln!(
+            "invalid_request: --exploration-checkpoints requires an explicitly selected prepared reader"
         );
         std::process::exit(2)
     }
@@ -138,10 +147,11 @@ fn main() {
     }
     let selected: Result<Arc<dyn AccessExecutor>, tos_access::AccessError> =
         if let (Some(model), Some(binding)) = (prepared_model, prepared_binding) {
-            tos_access::prepared_local::PreparedLocalExecutor::open(
+            tos_access::prepared_local::PreparedLocalExecutor::open_with_checkpoints(
                 model.into(),
                 binding.into(),
                 prepared_root.map(Into::into),
+                exploration_checkpoints.map(Into::into),
             )
             .map(|executor| Arc::new(executor) as Arc<dyn AccessExecutor>)
         } else if explicit_data_root || (prepared_root.is_some() && release_root.is_none()) {

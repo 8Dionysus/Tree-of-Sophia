@@ -838,6 +838,13 @@ pub trait PreparedExplorationCheckpoint: Send {
 /// Clock, expiry, opaque-token generation, replay and bounded checkpoint storage
 /// belong to this host adapter, separate from immutable selected corpus bytes.
 pub trait ExplorationCheckpoints {
+    /// Persistent hosts retain a replay transaction through the disclosure
+    /// fence too; process-only hosts have no clock/pruning write to admit.
+    fn prepare_replay(
+        &mut self,
+    ) -> Result<Option<Box<dyn PreparedExplorationCheckpoint>>, SearchV2Error> {
+        Ok(None)
+    }
     fn load(
         &mut self,
         cursor: &str,

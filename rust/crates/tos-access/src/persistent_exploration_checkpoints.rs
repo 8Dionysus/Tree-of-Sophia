@@ -114,6 +114,7 @@ impl Clone for PersistentExplorationCheckpoints {
 struct Held {
     db: Connection,
     clock: i64,
+    expires: i64,
     loaded: Option<(String, String, i64)>,
     probe: Option<Arc<dyn tos_query::AbortProbe>>,
 }
@@ -291,6 +292,11 @@ impl Config {
             Ok(clock) => Ok(Held {
                 db,
                 clock,
+                expires: clock
+                    .checked_add(
+                        i64::try_from(self.limits.ttl.as_millis()).map_err(|_| capacity())?,
+                    )
+                    .ok_or_else(capacity)?,
                 loaded: None,
                 probe,
             }),
@@ -318,7 +324,7 @@ impl PersistentExplorationCheckpoints {
         limits: CheckpointLimits,
         budget: ExplorationBudget,
     ) -> Result<Self, SearchV2Error> {
-        if limits.ttl.is_zero()
+        if limits.ttl.as_millis() == 0
             || limits.ttl > Duration::from_secs(86400)
             || limits.max_entries == 0
             || limits.max_entries > 128
@@ -330,6 +336,8 @@ impl PersistentExplorationCheckpoints {
             || budget.max_state_bytes > budget.max_checkpoint_bytes
             || budget.max_checkpoints == 0
             || budget.max_checkpoints > 128
+            || limits.max_entries > budget.max_checkpoints
+            || limits.max_encoded_bytes > budget.max_checkpoint_bytes
         {
             return Err(err(
                 SearchV2ErrorCode::InvalidRequest,
@@ -491,14 +499,12 @@ fn put(
     }
     let sequence = existing.iter().map(|r| r.2).max().unwrap_or(0);
     let sequence = sequence.checked_add(1).ok_or_else(capacity)?;
-    let ttl = i64::try_from(config.limits.ttl.as_millis()).map_err(|_| capacity())?;
-    let expires = held.clock.checked_add(ttl).ok_or_else(capacity)?;
     sql(held.db.execute(
         "INSERT INTO checkpoints VALUES(?1,?2,?3,?4,?5,?6,?7)",
         params![
             token,
             revision,
-            expires,
+            held.expires,
             sequence,
             kind,
             Digest256::of_bytes(raw).to_hex(),
@@ -513,65 +519,71 @@ impl ExplorationCheckpoints for PersistentExplorationCheckpoints {
         cursor: &str,
         revision: &str,
     ) -> Result<ExplorationCheckpoint, SearchV2Error> {
-        check(self.probe.as_deref())?;
-        if !bare(cursor)
-            || revision.is_empty()
-            || self.pending.get_mut().map_err(|_| unavailable())?.is_some()
-        {
-            return Err(corrupt());
-        }
-        let mut held = self.config.begin(self.probe.clone())?;
-        let row: Option<(String, i64, String, i64)> = sql(held
+        let operation_probe = self.probe.clone();
+        let result: Result<ExplorationCheckpoint, SearchV2Error> = (|| {
+            check(self.probe.as_deref())?;
+            if !bare(cursor)
+                || revision.is_empty()
+                || self.pending.get_mut().map_err(|_| unavailable())?.is_some()
+            {
+                return Err(corrupt());
+            }
+            let mut held = self.config.begin(self.probe.clone())?;
+            let row: Option<(String, i64, String, i64, i64)> = sql(held
             .db
             .query_row(
-                "SELECT CASE WHEN length(revision)<=4096 THEN revision ELSE NULL END,kind,CASE WHEN length(digest)=64 THEN digest ELSE NULL END,length(raw) FROM checkpoints WHERE token=?1",
+                "SELECT CASE WHEN length(revision)<=4096 THEN revision ELSE NULL END,kind,CASE WHEN length(digest)=64 THEN digest ELSE NULL END,length(raw),expires FROM checkpoints WHERE token=?1",
                 [cursor],
-                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
             )
             .optional())?;
-        let (stored, kind, digest, size) = row.ok_or_else(expired)?;
-        if stored != revision {
-            return Err(err(
-                SearchV2ErrorCode::StaleContinuation,
-                "checkpoint source snapshot or execution changed",
-            ));
-        }
-        if size < 0 || size as usize > self.config.limits.max_encoded_bytes || !bare(&digest) {
-            return Err(corrupt());
-        }
-        let raw: Vec<u8> = sql(held.db.query_row(
-            "SELECT raw FROM checkpoints WHERE token=?1",
-            [cursor],
-            |r| r.get(0),
-        ))?;
-        if Digest256::of_bytes(&raw).to_hex() != digest {
-            return Err(corrupt());
-        }
-        check(self.probe.as_deref())?;
-        let value = match kind {
-            0 => ExplorationCheckpoint::State(decode_published_exploration_state(
-                &raw,
-                revision,
-                self.config.budget,
-            )?),
-            1 => {
-                let doc = parse_json(
-                    &raw,
-                    JsonMode::PublishedStrict,
-                    self.config.budget.read.json,
-                )
-                .map_err(|_| corrupt())?;
-                ExplorationCheckpoint::Replay {
-                    packet: doc.root().clone(),
-                    packet_sha256: Digest256::of_bytes(&raw),
-                }
+            let (stored, kind, digest, size, expires) = row.ok_or_else(expired)?;
+            held.expires = expires;
+            if stored != revision {
+                return Err(err(
+                    SearchV2ErrorCode::StaleContinuation,
+                    "checkpoint source snapshot or execution changed",
+                ));
             }
-            _ => return Err(corrupt()),
-        };
-        check(self.probe.as_deref())?;
-        held.loaded = Some((cursor.to_owned(), revision.to_owned(), kind));
-        *self.pending.get_mut().map_err(|_| unavailable())? = Some(held);
-        Ok(value)
+            if size < 0 || size as usize > self.config.limits.max_encoded_bytes || !bare(&digest) {
+                return Err(corrupt());
+            }
+            let raw: Vec<u8> = sql(held.db.query_row(
+                "SELECT raw FROM checkpoints WHERE token=?1",
+                [cursor],
+                |r| r.get(0),
+            ))?;
+            if Digest256::of_bytes(&raw).to_hex() != digest {
+                return Err(corrupt());
+            }
+            check(self.probe.as_deref())?;
+            let value = match kind {
+                0 => ExplorationCheckpoint::State(decode_published_exploration_state(
+                    &raw,
+                    revision,
+                    self.config.budget,
+                )?),
+                1 => {
+                    let mut limits = self.config.budget.read.json;
+                    limits.max_bytes = self.config.budget.read.max_response_bytes;
+                    let doc = parse_json(&raw, JsonMode::PublishedStrict, limits)
+                        .map_err(|_| corrupt())?;
+                    ExplorationCheckpoint::Replay {
+                        packet: doc.root().clone(),
+                        packet_sha256: Digest256::of_bytes(&raw),
+                    }
+                }
+                _ => return Err(corrupt()),
+            };
+            check(self.probe.as_deref())?;
+            held.loaded = Some((cursor.to_owned(), revision.to_owned(), kind));
+            *self.pending.get_mut().map_err(|_| unavailable())? = Some(held);
+            Ok(value)
+        })();
+        if result.is_err() {
+            check(operation_probe.as_deref())?;
+        }
+        result
     }
     fn prepare(
         &mut self,
@@ -581,89 +593,104 @@ impl ExplorationCheckpoints for PersistentExplorationCheckpoints {
         _packet: &JsonValue,
         budget: ExplorationBudget,
     ) -> Result<Box<dyn PreparedExplorationCheckpoint>, SearchV2Error> {
-        check(self.probe.as_deref())?;
-        if format!("{budget:?}") != format!("{:?}", self.config.budget)
-            || revision.is_empty()
-            || successor.is_some_and(|s| s.snapshot_revision() != revision)
-        {
-            return Err(corrupt());
-        }
-        let held = match self.take()? {
-            Some(h) => h,
-            None if input.is_none() => self.config.begin(self.probe.clone())?,
-            _ => return Err(expired()),
-        };
-        if let Some(input) = input {
-            if !bare(input)
-                || held.loaded.as_ref() != Some(&(input.to_owned(), revision.to_owned(), 0))
+        let operation_probe = self.probe.clone();
+        let result: Result<Box<dyn PreparedExplorationCheckpoint>, SearchV2Error> = (|| {
+            check(self.probe.as_deref())?;
+            if format!("{budget:?}") != format!("{:?}", self.config.budget)
+                || revision.is_empty()
+                || successor.is_some_and(|s| s.snapshot_revision() != revision)
             {
                 return Err(corrupt());
             }
-        } else if held.loaded.is_some() {
-            return Err(corrupt());
-        }
-        let mut protected = BTreeSet::new();
-        if let Some(input) = input {
-            protected.insert(input.to_owned());
-        }
-        let mut state_raw = None;
-        let next = if let Some(state) = successor {
-            let mut limits = budget.read.json;
-            limits.max_bytes = limits.max_bytes.min(budget.max_state_bytes);
-            state.encoded_state_count(limits)?;
-            let raw = state.encoded_state(limits)?;
-            let mut chosen = None;
-            for _ in 0..4 {
-                let token = random_token()?;
-                let exists: i64 = sql(held.db.query_row(
-                    "SELECT count(*) FROM checkpoints WHERE token=?1",
-                    [&token],
-                    |r| r.get(0),
-                ))?;
-                if exists == 0 {
-                    chosen = Some(token);
-                    break;
+            let held = match self.take()? {
+                Some(h) => h,
+                None if input.is_none() => self.config.begin(self.probe.clone())?,
+                _ => return Err(expired()),
+            };
+            if let Some(input) = input {
+                if !bare(input)
+                    || held.loaded.as_ref() != Some(&(input.to_owned(), revision.to_owned(), 0))
+                {
+                    return Err(corrupt());
                 }
+            } else if held.loaded.is_some() {
+                return Err(corrupt());
             }
-            let next = chosen.ok_or_else(unavailable)?;
-            protected.insert(next.clone());
-            state_raw = Some(raw);
-            Some(next)
-        } else {
-            None
-        };
-        check(self.probe.as_deref())?;
-        Ok(Box::new(Staged {
-            config: Arc::clone(&self.config),
-            held: Some(held),
-            input: input.map(str::to_owned),
-            revision: revision.to_owned(),
-            next,
-            protected,
-            staged: false,
-            replay_only: false,
-            state_raw,
-        }))
+            let mut protected = BTreeSet::new();
+            if let Some(input) = input {
+                protected.insert(input.to_owned());
+            }
+            let mut state_raw = None;
+            let next = if let Some(state) = successor {
+                let mut limits = budget.read.json;
+                limits.max_bytes = limits.max_bytes.min(budget.max_state_bytes);
+                state.encoded_state_count(limits)?;
+                let raw = state.encoded_state(limits)?;
+                let mut chosen = None;
+                for _ in 0..4 {
+                    let token = random_token()?;
+                    let exists: i64 = sql(held.db.query_row(
+                        "SELECT count(*) FROM checkpoints WHERE token=?1",
+                        [&token],
+                        |r| r.get(0),
+                    ))?;
+                    if exists == 0 {
+                        chosen = Some(token);
+                        break;
+                    }
+                }
+                let next = chosen.ok_or_else(unavailable)?;
+                protected.insert(next.clone());
+                state_raw = Some(raw);
+                Some(next)
+            } else {
+                None
+            };
+            check(self.probe.as_deref())?;
+            Ok(Box::new(Staged {
+                config: Arc::clone(&self.config),
+                held: Some(held),
+                input: input.map(str::to_owned),
+                revision: revision.to_owned(),
+                next,
+                protected,
+                staged: false,
+                replay_only: false,
+                state_raw,
+            }))
+        })();
+        if result.is_err() {
+            check(operation_probe.as_deref())?;
+        }
+        result
     }
     fn prepare_replay(
         &mut self,
     ) -> Result<Option<Box<dyn PreparedExplorationCheckpoint>>, SearchV2Error> {
-        check(self.probe.as_deref())?;
-        let held = self.take()?.ok_or_else(expired)?;
-        if !held.loaded.as_ref().is_some_and(|(_, _, kind)| *kind == 1) {
-            return Err(corrupt());
+        let operation_probe = self.probe.clone();
+        let result: Result<Option<Box<dyn PreparedExplorationCheckpoint>>, SearchV2Error> =
+            (|| {
+                check(self.probe.as_deref())?;
+                let held = self.take()?.ok_or_else(expired)?;
+                if !held.loaded.as_ref().is_some_and(|(_, _, kind)| *kind == 1) {
+                    return Err(corrupt());
+                }
+                Ok(Some(Box::new(Staged {
+                    config: Arc::clone(&self.config),
+                    held: Some(held),
+                    input: None,
+                    revision: String::new(),
+                    next: None,
+                    protected: BTreeSet::new(),
+                    staged: false,
+                    replay_only: true,
+                    state_raw: None,
+                })))
+            })();
+        if result.is_err() {
+            check(operation_probe.as_deref())?;
         }
-        Ok(Some(Box::new(Staged {
-            config: Arc::clone(&self.config),
-            held: Some(held),
-            input: None,
-            revision: String::new(),
-            next: None,
-            protected: BTreeSet::new(),
-            staged: false,
-            replay_only: true,
-            state_raw: None,
-        })))
+        result
     }
 }
 struct Staged {
@@ -682,68 +709,76 @@ impl PreparedExplorationCheckpoint for Staged {
         self.next.as_deref()
     }
     fn stage_response(&mut self, body: &[u8]) -> Result<(), SearchV2Error> {
-        check(self.held.as_ref().ok_or_else(corrupt)?.probe.as_deref())?;
-        if self.staged
-            || self.held.is_none()
-            || body.len()
-                > self
-                    .config
-                    .budget
-                    .read
-                    .max_response_bytes
-                    .min(self.config.budget.read.json.max_bytes)
-        {
-            return Err(capacity());
+        let operation_probe = self.held.as_ref().and_then(|held| held.probe.clone());
+        let result: Result<(), SearchV2Error> = (|| {
+            check(self.held.as_ref().ok_or_else(corrupt)?.probe.as_deref())?;
+            if self.staged
+                || self.held.is_none()
+                || body.len() > self.config.budget.read.max_response_bytes
+            {
+                return Err(capacity());
+            }
+            if let Some(input) = &self.input {
+                put(
+                    &self.config,
+                    self.held.as_ref().ok_or_else(corrupt)?,
+                    input,
+                    &self.revision,
+                    1,
+                    body,
+                    &self.protected,
+                )?;
+            }
+            if let (Some(next), Some(raw)) = (&self.next, &self.state_raw) {
+                put(
+                    &self.config,
+                    self.held.as_ref().ok_or_else(corrupt)?,
+                    next,
+                    &self.revision,
+                    0,
+                    raw,
+                    &self.protected,
+                )?;
+            }
+            check(self.held.as_ref().ok_or_else(corrupt)?.probe.as_deref())?;
+            self.state_raw.take();
+            self.staged = true;
+            Ok(())
+        })();
+        if result.is_err() {
+            check(operation_probe.as_deref())?;
         }
-        if let Some(input) = &self.input {
-            put(
-                &self.config,
-                self.held.as_ref().ok_or_else(corrupt)?,
-                input,
-                &self.revision,
-                1,
-                body,
-                &self.protected,
-            )?;
-        }
-        if let (Some(next), Some(raw)) = (&self.next, &self.state_raw) {
-            put(
-                &self.config,
-                self.held.as_ref().ok_or_else(corrupt)?,
-                next,
-                &self.revision,
-                0,
-                raw,
-                &self.protected,
-            )?;
-        }
-        check(self.held.as_ref().ok_or_else(corrupt)?.probe.as_deref())?;
-        self.state_raw.take();
-        self.staged = true;
-        Ok(())
+        result
     }
     fn commit(&mut self) -> Result<(), SearchV2Error> {
-        if !self.staged && !self.replay_only {
-            return Err(corrupt());
+        let operation_probe = self.held.as_ref().and_then(|held| held.probe.clone());
+        let result: Result<(), SearchV2Error> = (|| {
+            if !self.staged && !self.replay_only {
+                return Err(corrupt());
+            }
+            let held = self.held.as_ref().ok_or_else(corrupt)?;
+            check(held.probe.as_deref())?;
+            self.config.verify()?;
+            let committed_clock = now()?;
+            if committed_clock < held.clock {
+                return Err(err(
+                    SearchV2ErrorCode::Unavailable,
+                    "checkpoint wall clock moved backwards; state retained",
+                ));
+            }
+            self.config.validate(&held.db)?;
+            sql(held.db.execute(
+                "UPDATE checkpoint_meta SET last_time=?1 WHERE singleton=1",
+                [committed_clock],
+            ))?;
+            check(held.probe.as_deref())?;
+            sql(held.db.execute_batch("COMMIT"))?;
+            self.held.take();
+            Ok(())
+        })();
+        if result.is_err() {
+            check(operation_probe.as_deref())?;
         }
-        let held = self.held.as_ref().ok_or_else(corrupt)?;
-        check(held.probe.as_deref())?;
-        self.config.verify()?;
-        let committed_clock = now()?;
-        if committed_clock < held.clock {
-            return Err(err(
-                SearchV2ErrorCode::Unavailable,
-                "checkpoint wall clock moved backwards; state retained",
-            ));
-        }
-        self.config.validate(&held.db)?;
-        sql(held.db.execute(
-            "UPDATE checkpoint_meta SET last_time=?1 WHERE singleton=1",
-            [committed_clock],
-        ))?;
-        check(held.probe.as_deref())?;
-        sql(held.db.execute_batch("COMMIT"))?;
-        self.held.take();
-        Ok(())
+        result
     }
 }

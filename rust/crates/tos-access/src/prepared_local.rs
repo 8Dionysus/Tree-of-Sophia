@@ -1,6 +1,8 @@
 //! Explicit local prepared projection reader. An independently supplied binding
 //! selects a snapshot; this adapter grants no source, rights or publication
 //! authority and never falls back to a release/compatibility graph.
+use crate::exploration_checkpoints::{CheckpointLimits, ProcessExplorationCheckpoints};
+use crate::persistent_exploration_checkpoints::PersistentExplorationCheckpoints;
 use crate::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence,
     KnowledgeOperation, KnowledgeRequest, Params, PreparedPacket,
@@ -165,8 +167,27 @@ impl DisclosureFence for CurrentFence {
         Ok(())
     }
 }
+#[derive(Clone)]
+enum Checkpoints {
+    Process(ProcessExplorationCheckpoints),
+    Persistent(PersistentExplorationCheckpoints),
+}
+impl Checkpoints {
+    fn limits(&self) -> CheckpointLimits {
+        match self {
+            Self::Process(s) => s.limits(),
+            Self::Persistent(s) => s.limits(),
+        }
+    }
+    fn store(&mut self) -> &mut dyn tos_query::knowledge_exploration::ExplorationCheckpoints {
+        match self {
+            Self::Process(s) => s,
+            Self::Persistent(s) => s,
+        }
+    }
+}
 struct Selection {
-    checkpoints: crate::exploration_checkpoints::ProcessExplorationCheckpoints,
+    checkpoints: Checkpoints,
     path: PathBuf,
     binding: JsonValue,
     read: PreparedReadLimits,
@@ -180,6 +201,16 @@ impl PreparedLocalExecutor {
         path: PathBuf,
         binding_path: PathBuf,
         root: Option<PathBuf>,
+    ) -> Result<Self, AccessError> {
+        Self::open_with_checkpoints(path, binding_path, root, None)
+    }
+    /// Only an explicit separate owner-selected file enables restart survival.
+    /// This disposable store never supplies source or mutation authority.
+    pub fn open_with_checkpoints(
+        path: PathBuf,
+        binding_path: PathBuf,
+        root: Option<PathBuf>,
+        checkpoint_path: Option<PathBuf>,
     ) -> Result<Self, AccessError> {
         if !path.is_absolute() || !binding_path.is_absolute() {
             return Err(error(
@@ -215,6 +246,33 @@ impl PreparedLocalExecutor {
             max_response_bytes: PREPARED_RESPONSE_BYTES,
             ..PreparedReadLimits::default()
         };
+        let checkpoint_limits = CheckpointLimits {
+            ttl: Duration::from_secs(900),
+            max_entries: 128,
+            max_encoded_bytes: 32 * 1024 * 1024,
+        };
+        let checkpoints = match checkpoint_path {
+            Some(selected) => {
+                if selected == binding_path {
+                    return Err(error(
+                        AccessErrorCode::InvalidRequest,
+                        "checkpoint must be distinct from binding",
+                    ));
+                }
+                Checkpoints::Persistent(
+                    PersistentExplorationCheckpoints::open(
+                        &selected,
+                        &path,
+                        checkpoint_limits,
+                        tos_query::prepared_exploration::exploration_budget(read),
+                    )
+                    .map_err(AccessError::from)?,
+                )
+            }
+            None => Checkpoints::Process(
+                ProcessExplorationCheckpoints::new(checkpoint_limits).map_err(AccessError::from)?,
+            ),
+        };
         // Binding validation and publication observation remain in the metered
         // request, rather than scanning the database at adapter construction.
         Ok(Self {
@@ -223,14 +281,7 @@ impl PreparedLocalExecutor {
                 binding,
                 read,
                 reading,
-                checkpoints: crate::exploration_checkpoints::ProcessExplorationCheckpoints::new(
-                    crate::exploration_checkpoints::CheckpointLimits {
-                        ttl: Duration::from_secs(900),
-                        max_entries: 128,
-                        max_encoded_bytes: 32 * 1024 * 1024,
-                    },
-                )
-                .map_err(AccessError::from)?,
+                checkpoints,
             }),
         })
     }
@@ -299,8 +350,11 @@ impl PreparedLocalExecutor {
                 .map_err(AccessError::from)?
         } else if let LocalRequest::Explore(request) = &request {
             let mut checkpoints = s.checkpoints.clone();
+            if let Checkpoints::Persistent(store) = &mut checkpoints {
+                store.set_abort_probe(probe.clone());
+            }
             let result = session
-                .explore(&s.binding, request, &mut checkpoints)
+                .explore(&s.binding, request, checkpoints.store())
                 .map_err(AccessError::from)?;
             checkpoint = result.checkpoint;
             result.packet
@@ -433,13 +487,49 @@ impl AccessExecutor for PreparedLocalExecutor {
     fn exploration_runtime_capabilities(&self) -> JsonValue {
         // Engine selection only: each request still admits the supplied binding
         // and checks current publication before disclosing data or a cursor.
-        crate::exploration_contracts::runtime_capabilities_for_profile(
+        let mut packet = crate::exploration_contracts::runtime_capabilities_for_profile(
             Some((
                 self.selected.checkpoints.limits(),
                 tos_query::prepared_exploration::exploration_budget(self.selected.read),
             )),
             tos_query::exploration_plan::ExplorationProfile::PublishedD1,
-        )
+        );
+        if let Checkpoints::Persistent(store) = &self.selected.checkpoints {
+            let JsonValue::Object(fields) = &mut packet else {
+                unreachable!()
+            };
+            for (key, value) in fields.iter_mut() {
+                match key.as_str() {
+                    Some("storage") => *value = string("owner-selected-private-sqlite"),
+                    Some("restart_survival") => *value = JsonValue::Bool(true),
+                    _ => {}
+                }
+            }
+            for (key, value) in [
+                (
+                    "clock",
+                    string(
+                        "UTC epoch seconds; backwards movement fails closed without state change",
+                    ),
+                ),
+                ("database_byte_cap", number(store.database_byte_cap())),
+                (
+                    "storage_overhead",
+                    string(
+                        "DELETE rollback journal may transiently add one database cap plus SQLite headers; free database pages are reused",
+                    ),
+                ),
+                (
+                    "cleanup",
+                    string(
+                        "expired/evicted records pruned transactionally on successful queries; explicit owner reset only for incompatible state",
+                    ),
+                ),
+            ] {
+                fields.push((JsonString::from_utf8(key), value));
+            }
+        }
+        packet
     }
     fn knowledge_available(&self, operation: KnowledgeOperation) -> bool {
         matches!(

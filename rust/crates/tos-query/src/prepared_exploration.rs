@@ -141,7 +141,7 @@ pub(crate) fn explore(
         read.check_abort().map_err(storage_error)?;
         return Ok(PreparedExploration {
             packet: packet.clone(),
-            checkpoint: None,
+            checkpoint: checkpoints.prepare_replay()?,
         });
     }
     let input = match checkpoint {

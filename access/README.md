@@ -633,11 +633,17 @@ The installed software supplies browser assets. Open the service with
 need not contain the browser's default focus. Exploration discovery advertises
 the selected engine and its actual limits, not current data admission. Each
 page independently checks the supplied binding and final currentness fence.
-Native continuations are process-local: reuse the same server (or MCP process),
-restart exploration after process restart, and do not pass the Python-only
-`--exploration-checkpoints` option to the native executable. The checkpoint is
-committed only when the transport admits the response; it grants no source,
-rights, review or publication authority.
+Native continuations are process-local by default. For restart survival, select
+`--exploration-checkpoints /absolute/private/continuations.sqlite` alongside the
+prepared model and binding, before `serve` or `mcp`. Its existing parent must be
+owner-selected; the file is private (0600), separate from the read model and its
+sidecars. The native checkpoint format binds its execution configuration and is
+not interchangeable with a Python checkpoint file. Incompatible or replaced
+stores fail without automatic reset. At default limits the database is capped
+at 97 MiB; a DELETE rollback journal may temporarily need another database cap
+plus SQLite headers. UTC clock rollback refuses changes. State and exact replay
+are committed only when the transport admits the response; neither grants
+source, rights, review or publication authority.
 
 The native candidate's `reading-search` uses an explicit absolute `--root`
 for local Zarathustra reading data. The same selection serves HTTP

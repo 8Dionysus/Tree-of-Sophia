@@ -5,6 +5,7 @@
 fn prepared_explore_native_rows_pages_replay_and_current_fence() {
     use serde_json::{Value, json as value};
     use std::collections::{BTreeMap, BTreeSet};
+    use std::os::unix::fs::PermissionsExt;
     use std::time::Instant;
     use tos_access::{KnowledgeRequest, http::handle_post};
     let fixture = tos_compiler::knowledge_full_fixture::build_native_fixture_bounded(
@@ -134,12 +135,21 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
     )
     .unwrap();
     fs::write(&binding_path, encode(&binding)).unwrap();
-    let executor = tos_access::prepared_local::PreparedLocalExecutor::open(
-        path.clone(),
-        binding_path.clone(),
-        None,
-    )
-    .unwrap();
+    let checkpoint_path = dir.join("continuations.sqlite");
+    let reopen = || {
+        tos_access::prepared_local::PreparedLocalExecutor::open_with_checkpoints(
+            path.clone(),
+            binding_path.clone(),
+            None,
+            Some(checkpoint_path.clone()),
+        )
+        .unwrap()
+    };
+    let mut executor = reopen();
+    assert_eq!(
+        fs::metadata(&checkpoint_path).unwrap().permissions().mode() & 0o777,
+        0o600
+    );
     let profile = tos_access::prepared_local::profile();
     let capabilities = tos_access::http::handle_get(
         &executor,
@@ -154,10 +164,11 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
         capabilities["execution_version"],
         tos_query::knowledge_exploration::PUBLISHED_EXPLORATION_EXECUTION_VERSION
     );
-    assert_eq!(capabilities["restart_survival"], false);
+    assert_eq!(capabilities["restart_survival"], true);
+    assert_eq!(capabilities["storage"], "owner-selected-private-sqlite");
     assert_eq!(capabilities["limits"]["work_per_page"], 512);
-    let post = |body: &[u8]| {
-        let response = handle_post(&executor, "/api/knowledge/explore", body, profile);
+    let post = |executor: &tos_access::prepared_local::PreparedLocalExecutor, body: &[u8]| {
+        let response = handle_post(executor, "/api/knowledge/explore", body, profile);
         assert_eq!(
             response.status,
             200,
@@ -178,9 +189,24 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
             + 4;
         serde_json::from_slice::<Value>(&wire[split..]).unwrap()
     };
-    let mut packet = post(&request_raw);
+    let mut packet = post(&executor, &request_raw);
     assert_eq!(packet["status"], "paused");
     let first_cursor = packet["page"]["next_cursor"].as_str().unwrap().to_owned();
+    let expiry = |token: &str| -> i64 {
+        let db = rusqlite::Connection::open_with_flags(
+            &checkpoint_path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        )
+        .unwrap();
+        db.query_row(
+            "SELECT expires FROM checkpoints WHERE token=?1",
+            [token],
+            |row| row.get(0),
+        )
+        .unwrap()
+    };
+    let session_expiry = expiry(&first_cursor);
+
     let mut seen_nodes = BTreeSet::new();
     let mut seen_relations = BTreeSet::new();
     let mut continued = false;
@@ -211,13 +237,29 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
             break;
         };
         let body = serde_json::to_vec(&value!({"cursor":cursor})).unwrap();
-        packet = post(&body);
         if !continued {
+            // Drop every handle before loading the first saved state.
+            drop(executor);
+            executor = reopen();
+        }
+        packet = post(&executor, &body);
+        if !continued {
+            // The same token must replay the exact committed wire page cold.
+            drop(executor);
+            executor = reopen();
             assert_eq!(
-                post(&body),
+                post(&executor, &body),
                 packet,
                 "same cursor replays exact admitted page"
             );
+            assert_eq!(
+                expiry(&first_cursor),
+                session_expiry,
+                "continuation must not renew the session lifetime"
+            );
+            if let Some(next) = packet["page"]["next_cursor"].as_str() {
+                assert_eq!(expiry(next), session_expiry);
+            }
             continued = true;
         }
     }
@@ -226,6 +268,9 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
         "bounded fixture must complete, not merely produce a first page"
     );
     assert!(seen_nodes.contains(origin_id) && !seen_relations.is_empty());
+    // A withheld page must not change durable continuations on a stale fence.
+    let checkpoint_cap = 97 * 1024 * 1024;
+    let before_held = crate::native_child::bounded_sha(&checkpoint_path, checkpoint_cap);
     let mut held = executor
         .knowledge(
             KnowledgeRequest::Explore(json(&request_raw)),
@@ -272,5 +317,10 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
     assert_ne!(stale.status, 200);
     drop(held);
     drop(executor);
+    assert_eq!(
+        crate::native_child::bounded_sha(&checkpoint_path, checkpoint_cap),
+        before_held,
+        "failed disclosure must roll back the persistent cursor transaction"
+    );
     fs::remove_dir_all(dir).unwrap();
 }
