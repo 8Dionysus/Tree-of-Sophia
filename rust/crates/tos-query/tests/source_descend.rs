@@ -839,3 +839,43 @@ fn resumable_session_requires_owner_lease_and_current_policy() {
         };
     }
 }
+
+#[test]
+fn source_descend_preserves_retired_worker_bounded_route_control() {
+    let (mut model, _, mut request) = SyntheticReadModel::fixture();
+    let fixture = parse_json(br#"{"nodes":[{"node_id":"era","node_kind":"era","source_ref":"era.json"},{"node_id":"planting","node_kind":"source_planting","source_ref":"planting.json"},{"node_id":"work","node_kind":"work","source_ref":"work.json"},{"node_id":"expression","node_kind":"expression","source_ref":"expression.json"},{"node_id":"link","node_kind":"link","source_ref":"link.json","properties":{"access_status":"open_download"}}],"edges":[{"edge_id":"e1","from_id":"era","to_id":"planting","predicate_id":"contains","edge_kind":"authored_branch_hierarchy","source_refs":["era.json"]},{"edge_id":"e2","from_id":"planting","to_id":"work","predicate_id":"references_source_witness","edge_kind":"authored_source_planting","source_refs":["planting.json"]},{"edge_id":"e3","from_id":"work","to_id":"expression","predicate_id":"has_expression","edge_kind":"evidence_claim","source_refs":["claims.jsonl"]},{"edge_id":"e4","from_id":"work","to_id":"link","predicate_id":"downloadable_at","edge_kind":"evidence_claim","source_refs":["links.jsonl"]}]}"#, JsonMode::PublishedStrict, JsonLimits::default()).unwrap().into_root();
+    model.nodes = field(&fixture, "nodes")
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| (string(v, "node_id").to_owned(), raw(v, &model.binding)))
+        .collect();
+    model.edges.clear();
+    for e in field(&fixture, "edges").as_array().unwrap() {
+        model
+            .edges
+            .entry(string(e, "from_id").into())
+            .or_default()
+            .push(raw(e, &model.binding));
+    }
+    request.node_id = "era".into();
+    request.max_depth = 8;
+    request.limit = 3;
+    let packet = source_descend(&mut model, &request, budget()).unwrap();
+    let packet = parse_json(&packet, JsonMode::PublishedStrict, JsonLimits::default())
+        .unwrap()
+        .into_root();
+    assert_eq!(field(field(&packet, "counts"), "nodes").as_u64(), Some(3));
+    assert_eq!(field(field(&packet, "counts"), "edges").as_u64(), Some(2));
+    assert_eq!(field(&packet, "truncated"), &JsonValue::Bool(true));
+    assert_eq!(
+        field(&packet, "nodes")
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| string(n, "node_id"))
+            .collect::<Vec<_>>(),
+        vec!["era", "planting", "work"]
+    );
+    assert!(model.pin_checks >= 3);
+}

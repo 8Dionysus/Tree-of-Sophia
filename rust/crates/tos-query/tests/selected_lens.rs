@@ -1203,6 +1203,158 @@ print(encoded.decode())
 }
 
 #[test]
+fn normalized_selected_dossiers_preserve_remaining_source_navigation_boundaries() {
+    use tos_compiler::knowledge_full_fixture::build_native_fixture_with_navigation_inputs_bounded;
+    use tos_compiler::knowledge_stage::StageLimits;
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(120);
+    use tos_query::source_dossier::{
+        DOSSIER_INTENDED_USE, DOSSIER_OPERATION, DossierBudget, execute_selected_dossier,
+    };
+    // Reuse the maintained synthetic rights fixtures and their unique assertions.
+    // Emit full published test rows explicitly: the abbreviated pure-query rows
+    // themselves are not claimed to satisfy the compiler input contract.
+    let script = r#"
+import copy,json,sys
+sys.path[:0]=[sys.argv[1],sys.argv[2]]
+import test_source_navigation_file_rights as f
+original=f.source_dossier_query
+groups={}
+raw=lambda v:json.dumps(v,ensure_ascii=False,separators=(',',':'),allow_nan=False)
+def selected(navigation,nodes,incoming,outgoing,rights_for,object_id,*,limit=20):
+ nodes=copy.deepcopy(nodes)
+ edges={e['edge_id']:copy.deepcopy(e) for rows in list(incoming.values())+list(outgoing.values()) for e in rows}
+ for n in nodes.values():
+  n.setdefault('label',n['node_id']);n.setdefault('identity_status','not_applicable');n.setdefault('properties',{})
+  n.setdefault('source_ref',f.MANIFEST_B if n['node_id']==f.ITEM_B else f.MANIFEST_A if n['node_kind'] in {'file','item'} else n['node_id'].replace('tos.','')+'.json')
+ for e in edges.values(): e.setdefault('review_status','not_applicable')
+ rights=copy.deepcopy(rights_for(list(nodes)))
+ header=dict(navigation,schema_version='tos_source_navigation_v1',counts={'nodes':len(nodes),'edges':len(edges),'rights':len(rights)})
+ # Both readers see the same full test originals, not an independently padded
+ # expected packet. Existing rights/manifest assertions still run below.
+ ins={};outs={}
+ for e in edges.values():
+  ins.setdefault(e['to_id'],[]).append(e);outs.setdefault(e['from_id'],[]).append(e)
+ packet=original(header,nodes,ins,outs,lambda _ids:rights,object_id,limit=limit)
+ group={'header':raw(header),'nodes':[raw(n) for n in nodes.values()],'edges':[raw(e) for e in edges.values()],'rights':[raw(r) for r in rights]}
+ key=raw(group)
+ if key not in groups: groups[key]=dict(group,cases=[])
+ groups[key]['cases'].append({'name':active,'object_id':object_id,'limit':limit,'packet':packet})
+ assert len(groups)<=16 and sum(len(g['cases']) for g in groups.values())<=24
+ assert len(nodes)<=12 and len(edges)<=12 and len(rights)<=6
+ return packet
+f.source_dossier_query=selected
+names=[
+ 'test_positive_layer_remains_visible_but_cannot_lift_restrictive_aggregate',
+ 'test_legacy_aggregate_and_layer_group_keeps_layer_out_of_clearance',
+ 'test_legacy_overlapping_root_layer_pattern_fails_closed',
+ 'test_legacy_multiple_non_layer_rows_for_one_source_fail_closed',
+ 'test_legacy_single_manifest_edge_without_context_keeps_unique_item_scoped_rights',
+ 'test_truncated_ancestor_dossier_does_not_import_sibling_file_rights',
+]
+for active in names: getattr(f.SharedFileRightsTests(methodName=active),active)()
+# The remaining basic route controls use the same synthetic authored route.
+active='tree-route-evidence-links-reviewed-rights'
+nodes={id:{'node_id':id,'node_kind':kind,'source_ref':id+'.json','properties':({'access_status':'open_download'} if kind=='link' else {})} for id,kind in [('era','era'),('planting','source_planting'),('work','work'),('expression','expression'),('link','link')]}
+edges=[{'edge_id':id,'from_id':fr,'to_id':to,'predicate_id':pred,'edge_kind':kind,'source_refs':[ref]} for id,fr,to,pred,kind,ref in [('e1','era','planting','contains','authored_branch_hierarchy','era.json'),('e2','planting','work','references_source_witness','authored_source_planting','planting.json'),('e3','work','expression','has_expression','evidence_claim','claims.jsonl'),('e4','work','link','downloadable_at','evidence_claim','links.jsonl')]]
+ins={};outs={}
+for e in edges:ins.setdefault(e['to_id'],[]).append(e);outs.setdefault(e['from_id'],[]).append(e)
+rights=[{'rights_id':'r1','assessment_kind':'aggregate','scope_refs':['work'],'assessment_status':'licensed','redistribution_posture':'authorized','review_status':'accepted','source_ref':'rights.json'}]
+for id in ['work','expression','link']:
+ packet=selected({'authority_boundary':'source-owned navigation only'},nodes,ins,outs,lambda _ids:rights,id,limit=300)
+ assert packet['object']['node_kind']==nodes[id]['node_kind'] and packet['tree_paths'][0]['node_ids'][-1]==id
+ if id=='work':
+  assert packet['agent_summary']=={'technical_access':'downloadable','rights_posture':'reviewed_reuse_route','human_review_required':False,'can_conclude_legal_openness':True,'availability_is_license':False,'rights_scope_refs':['work'],'gaps':[]}
+  assert packet['tree_paths'][0]['node_ids']==['era','planting','work']
+  assert [e['edge_id'] for e in packet['relations']]==['e1','e2','e3','e4']
+encoded=raw(list(groups.values())).encode();assert len(encoded)<=1048576
+print(encoded.decode())
+"#;
+    let output = Command::new("python3")
+        .args(["-B", "-c", script])
+        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../access/src"))
+        .arg(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../../access/tests"
+        ))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.stdout.len() <= 1_048_576);
+    let groups = parse_json(
+        &output.stdout,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap()
+    .into_root();
+    let caps = DossierBudget {
+        inspect: budget().inspect,
+        max_candidates: budget().max_candidates,
+        max_work_steps: u64::try_from(budget().max_path_steps).unwrap(),
+        block_size: budget().block_size,
+    };
+    for group in groups.as_array().unwrap() {
+        let rows = |name| {
+            field(group, name)
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| v.as_str().unwrap().as_bytes())
+                .collect::<Vec<_>>()
+        };
+        let nodes = rows("nodes");
+        let edges = rows("edges");
+        let rights = rows("rights");
+        let fixture = build_native_fixture_with_navigation_inputs_bounded(
+            field(group, "header").as_str().unwrap().as_bytes(),
+            &nodes,
+            &edges,
+            &rights,
+            StageLimits {
+                sqlite: tos_compiler::Limits::default(),
+                max_temp_bytes: 64 * 1024 * 1024,
+                max_seek_rows: 2,
+                max_seek_bytes: 1024 * 1024,
+            },
+            deadline,
+        );
+        let mut cold = fixture.open().unwrap();
+        let bound =
+            bind_verified_knowledge(&cold, &fixture.vocabulary, &fixture.descriptor_bytes).unwrap();
+        for case in field(group, "cases").as_array().unwrap() {
+            let mut current = Authority::new(&bound);
+            current.scope.operation_id = DOSSIER_OPERATION.into();
+            current.scope.intended_use = DOSSIER_INTENDED_USE.into();
+            current.originals_denied = false;
+            let mut packet = execute_selected_dossier(
+                &mut cold,
+                &bound,
+                &mut current,
+                field(case, "object_id").as_str().unwrap(),
+                field(case, "limit").as_u64().unwrap() as usize,
+                caps,
+            )
+            .unwrap();
+            assert_eq!(
+                &*packet,
+                canonical(field(case, "packet")),
+                "{}",
+                field(case, "name").as_str().unwrap()
+            );
+            current.withdrawn.store(true, Ordering::SeqCst);
+            assert_eq!(
+                packet.recheck().unwrap_err().code,
+                SearchV2ErrorCode::StalePolicy
+            );
+        }
+    }
+}
+
+#[test]
 fn normalized_selected_philosophy_reads_match_original_python_packets_and_hold_projection() {
     use tos_compiler::{
         PhilosophyOriginalCollection,
