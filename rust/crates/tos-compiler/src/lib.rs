@@ -203,7 +203,7 @@ pub use knowledge_selected::{
 };
 pub use knowledge_semantic_join::{
     SemanticJoinReceipt, clear_semantic_joins, materialize_semantic_relations,
-    prepare_semantic_joins,
+    prepare_semantic_joins, render_supplied_shared_identity_pair,
 };
 pub use knowledge_source_claims_prepare::{
     ClaimExternalDependency, ClaimPrepareLimits, ClaimPrepareReceipt, prepare_source_claims,

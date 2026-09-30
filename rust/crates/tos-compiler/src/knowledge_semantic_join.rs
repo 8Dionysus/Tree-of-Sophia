@@ -3,14 +3,14 @@
 
 use crate::knowledge_base::KnowledgeBaseNormalizer;
 use crate::knowledge_global_titles::CompleteBaseNodes;
-use crate::knowledge_normalization::{stable_digest, SourceRow};
+use crate::knowledge_normalization::{SourceRow, stable_digest};
 use crate::knowledge_repository::{
-    bytes, charge, required, root_item, source_for, strings, text, TopologyLimits,
+    TopologyLimits, bytes, charge, required, root_item, source_for, strings, text,
 };
 use crate::knowledge_stage::{KnowledgeStage, RelationRow, WritePhase};
 use crate::{Error, QueryVocabulary, Result};
-use rusqlite::{params, OptionalExtension};
-use serde_json::{json, Value};
+use rusqlite::{OptionalExtension, params};
+use serde_json::{Value, json};
 use std::collections::BTreeSet;
 use tos_foundation::{Digest256, Digest256Hasher};
 
@@ -60,6 +60,97 @@ fn identity_prefix(vocab: &QueryVocabulary) -> Result<String> {
         return Err(Error::Invalid("semantic identity namespace"));
     }
     Ok(prefix)
+}
+
+// Computational pair rule shared by the admitted stage and supplied whole
+// metadata caller. It carries no stage, cut, receipt or admission authority.
+#[allow(clippy::too_many_arguments)]
+fn shared_identity_pair(
+    left: &SourceRow,
+    right: &SourceRow,
+    left_id: &str,
+    right_id: &str,
+    entity: &str,
+    claims: &str,
+    nav: &str,
+    entity_ref: &str,
+    prefix: &str,
+) -> Result<Option<Value>> {
+    if !entity.starts_with(prefix) {
+        return Ok(None);
+    }
+    assessed_parity(left.value(), right.value())?;
+    let mut refs = strings(left.value().get("source_refs"));
+    refs.extend(strings(right.value().get("source_refs")));
+    refs.insert(entity_ref.into());
+    let digest = stable_digest(&json!([left_id, right_id]))?;
+    Ok(Some(
+        json!({"edge_id":format!("projects:{entity}:{}",&digest[..16]),"from_id":required(left.value(),"native_id")?,"from_source_graph":claims,"to_id":required(right.value(),"native_id")?,"to_source_graph":nav,"predicate_id":"projects","source_refs":refs,"graph_layers":["semantic-interchange"],"properties":{"derivation":"shared-persistent-tos-entity-id","entity_id":entity,"relation_label":"projects","note":"Связь соединяет две проекции одного объявленного устойчивого ToS ID и не создаёт новое утверждение same_as."}}),
+    ))
+}
+
+/// A bounded computational renderer over two supplied normalized carriers.
+/// The caller proves complete cohort ownership and source admission separately.
+pub fn render_supplied_shared_identity_pair(
+    left: &SourceRow,
+    right: &SourceRow,
+    vocab: &QueryVocabulary,
+    descriptor_bytes: &[u8],
+    max_row_bytes: usize,
+) -> Result<Option<Value>> {
+    if max_row_bytes == 0 || max_row_bytes > 8_388_608 {
+        return Err(Error::Budget("supplied shared identity row bytes"));
+    }
+    if descriptor_bytes.is_empty() || descriptor_bytes.len() > 1_048_576 {
+        return Err(Error::Budget("supplied shared identity descriptor bytes"));
+    }
+    vocab.verify_authored_bytes(descriptor_bytes)?;
+    let limits = TopologyLimits {
+        max_rows: 1,
+        max_page_rows: 1,
+        max_row_bytes,
+        max_work_bytes: 1,
+    };
+    bytes(left.value(), limits)?;
+    bytes(right.value(), limits)?;
+    let claims = optional_source(vocab, "reified-bibliographic-claims-v1")?
+        .ok_or(Error::Invalid("supplied shared identity claims source"))?;
+    let nav = optional_source(vocab, "source-navigation-node-edge-v1")?
+        .ok_or(Error::Invalid("supplied shared identity navigation source"))?;
+    for (row, graph) in [(left, &claims), (right, &nav)] {
+        if required(row.value(), "source_graph")? != graph
+            || required(row.value(), "id")?
+                != format!("{graph}:{}", required(row.value(), "native_id")?)
+        {
+            return Err(Error::Invalid(
+                "supplied shared identity normalized identity",
+            ));
+        }
+    }
+    let entity = required(left.value(), "entity_id")?;
+    if entity != required(right.value(), "entity_id")? {
+        return Ok(None);
+    }
+    let descriptor = SourceRow::parse(descriptor_bytes, 1_048_576)?;
+    let entity_ref = required(
+        &descriptor.value()["semantic_registry_refs"]["entity"],
+        "source_ref",
+    )?;
+    let result = shared_identity_pair(
+        left,
+        right,
+        required(left.value(), "id")?,
+        required(right.value(), "id")?,
+        entity,
+        &claims,
+        &nav,
+        entity_ref,
+        &identity_prefix(vocab)?,
+    )?;
+    if let Some(value) = &result {
+        bytes(value, limits)?;
+    }
+    Ok(result)
 }
 
 fn exact_form(value: &Value) -> bool {
@@ -296,18 +387,12 @@ pub fn prepare_semantic_joins(
                     }
                     let left = SourceRow::parse(&left, limits.max_row_bytes)?;
                     let right = SourceRow::parse(&right, limits.max_row_bytes)?;
-                    assessed_parity(left.value(), right.value())?;
-                    let mut refs = strings(left.value().get("source_refs"));
-                    refs.extend(strings(right.value().get("source_refs")));
-                    refs.insert(entity_ref.into());
-                    let digest = stable_digest(&json!([left_id, right_id]))?;
-                    insert(
-                        stage,
-                        json!({"edge_id":format!("projects:{entity}:{}",&digest[..16]),"from_id":required(left.value(),"native_id")?,"from_source_graph":claims,"to_id":required(right.value(),"native_id")?,"to_source_graph":nav,"predicate_id":"projects","source_refs":refs,"graph_layers":["semantic-interchange"],"properties":{"derivation":"shared-persistent-tos-entity-id","entity_id":entity,"relation_label":"projects","note":"Связь соединяет две проекции одного объявленного устойчивого ToS ID и не создаёт новое утверждение same_as."}}),
-                        limits,
-                        &mut count,
-                        &mut work,
-                    )?;
+                    let pair = shared_identity_pair(
+                        &left, &right, &left_id, &right_id, &entity, claims, nav, entity_ref,
+                        &prefix,
+                    )?
+                    .ok_or(Error::Invalid("semantic admitted pair prefix"))?;
+                    insert(stage, pair, limits, &mut count, &mut work)?;
                 }
             }
         }
