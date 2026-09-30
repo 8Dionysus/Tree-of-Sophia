@@ -27,7 +27,7 @@ use tos_compiler::{
 mod claim_publication_access;
 #[path = "../../../rust/crates/tos-access/tests/support/native_child.rs"]
 mod native_child;
-fn typed(value: &Value) -> JsonValue {
+pub(super) fn typed(value: &Value) -> JsonValue {
     parse_json(
         &canonical_json(value),
         JsonMode::PublishedStrict,
@@ -55,7 +55,7 @@ fn report_object_order(value: &JsonValue) -> JsonValue {
         scalar => scalar.clone(),
     }
 }
-fn canonical_lf(value: &Value) -> Vec<u8> {
+pub(super) fn canonical_lf(value: &Value) -> Vec<u8> {
     canonical_raw_bytes_v1(
         &serde_json::to_vec(value).unwrap(),
         CanonicalProfile::CorpusSnapshotV1,
@@ -63,7 +63,7 @@ fn canonical_lf(value: &Value) -> Vec<u8> {
     )
     .unwrap()
 }
-fn read_packet(path: &Path) -> Value {
+pub(super) fn read_packet(path: &Path) -> Value {
     assert!(fs::metadata(path).unwrap().len() <= 16_777_216);
     let raw = fs::read(path).unwrap();
     parse_json(
@@ -74,7 +74,7 @@ fn read_packet(path: &Path) -> Value {
     .unwrap();
     serde_json::from_slice(&raw).unwrap()
 }
-fn fixture_physical_bytes(roots: &[PathBuf], deadline: Instant) -> (u64, usize) {
+pub(super) fn fixture_physical_bytes(roots: &[PathBuf], deadline: Instant) -> (u64, usize) {
     use std::os::unix::fs::MetadataExt;
     let mut pending: Vec<_> = roots.iter().cloned().map(|p| (p, 0usize)).collect();
     let mut entries = 0usize;
@@ -517,7 +517,7 @@ fn maintained_claim_addition_whole_transaction_and_access() {
     );
 }
 
-const AGENT_RECORD_COMPONENTS: &[&str] = &[
+pub(super) const AGENT_RECORD_COMPONENTS: &[&str] = &[
     "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py",
     "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_command_contracts.py",
     "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_revisions.py",
@@ -531,7 +531,7 @@ const AGENT_RECORD_COMPONENTS: &[&str] = &[
     "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_metadata_transactions.py",
     "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_selected_revisions.py",
 ];
-fn agent_authored(root: &Path, deadline: Instant) -> BTreeMap<String, Vec<u8>> {
+pub(super) fn agent_authored(root: &Path, deadline: Instant) -> BTreeMap<String, Vec<u8>> {
     let mut pending = vec![root.join("ToS")];
     let mut files = BTreeMap::new();
     let mut total = 0usize;
@@ -567,7 +567,7 @@ fn agent_authored(root: &Path, deadline: Instant) -> BTreeMap<String, Vec<u8>> {
     }
     files
 }
-fn agent_catalog(packet: &Value, header: &Value) -> CatalogInputs {
+pub(super) fn agent_catalog(packet: &Value, header: &Value) -> CatalogInputs {
     CatalogInputs {
         header: typed(header),
         entity_registry: typed(&packet["entities"]),
@@ -581,7 +581,7 @@ fn agent_catalog(packet: &Value, header: &Value) -> CatalogInputs {
         source_order_profile: SourceOrderProfile::SourceGraphId,
     }
 }
-fn agent_native_call(
+pub(super) fn agent_native_call(
     repository: &Path,
     owner: &Path,
     invocation: &Path,
