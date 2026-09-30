@@ -64,8 +64,7 @@ describe("WebMCP page-command binding", () => {
     const context={revision:0,selected:{id:'selected',kind:'node',evidence_available:false},view_id:'observatory',deep_link:'http://tos.local/'};
     Object.defineProperty(context,'mode',{get(){return ++modeReads===1?'philosophy':'corpus';}});
     Object.defineProperty(context,'active_layers',{get(){throw new Error('fresh corpus mode must stop before layers');}});
-    const registry={context:()=>context,subscribe:()=>()=>{},invoke:async()=>({value,context,context_revision:0})}
-      as unknown as import('./page-commands').PageCommandRegistry;
+    const registry={context:()=>context,subscribe:()=>()=>{},invoke:async()=>({value,context,context_revision:0})} as unknown as import('./page-commands').PageCommandRegistry;
     const tools=new Map<string,RegisteredTool>();
     const adapter=createWebMCPAdapter(registry,{modelContext:{registerTool:async(tool:RegisteredTool)=>{tools.set(tool.name,tool);}}} as unknown as WebMCPDocument);
     await adapter.start();
