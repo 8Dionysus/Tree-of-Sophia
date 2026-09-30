@@ -5132,6 +5132,18 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
             ]
         };
         let command_products = std::env::var_os("TOS_NATIVE_SOFTWARE_COMMAND_PRODUCTS");
+        // The owner launcher has one outer budget including guards/assembly.
+        // All cohort descendants consume this same remaining case budget.
+        let cohort_deadline = command_products.as_ref().map(|_| {
+            let seconds = std::env::var("TOS_NATIVE_SOFTWARE_MAX_SECONDS")
+                .expect("cohort requires one admitted whole case deadline")
+                .parse::<u64>()
+                .unwrap();
+            assert!(seconds > 0);
+            std::time::Instant::now()
+                .checked_add(Duration::from_secs(seconds))
+                .unwrap()
+        });
         let mut assembly_command = Command::new(&binary);
         assembly_command.args(["software", "build"]);
         if let Some(products) = &command_products {
@@ -5249,13 +5261,22 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
                     PathBuf::from(format!("../software/native/bin/{role}"))
                 );
             }
-            let commands = crate::native_child::bounded_output(
+            let remaining = |cap: u64| {
+                let left = cohort_deadline
+                    .unwrap()
+                    .checked_duration_since(std::time::Instant::now())
+                    .expect("installed cohort whole deadline expired");
+                assert!(!left.is_zero());
+                left.min(Duration::from_secs(cap))
+            };
+            let commands = crate::native_child::bounded_output_until(
                 Command::new("/usr/bin/python3")
                     .arg(repository.join("scripts/verify_rust_mechanics_install.py"))
                     .arg("--command-entries-only")
                     .arg("--installed-prefix")
                     .arg(prefix),
                 65_536,
+                remaining(60),
             );
             assert!(
                 commands.status.success(),
@@ -5318,7 +5339,7 @@ json.dump({'capture':str(capture),'restored':str(restored),'commit':commit,'tree
                             prefix.join("software/native/bin/tos-schema-worker"),
                         ),
                     65_536,
-                    Duration::from_secs(seconds),
+                    remaining(seconds),
                 );
                 assert_eq!(
                     crate::native_child::bounded_sha(&owner_consumer, 512 * 1024 * 1024).to_hex(),
