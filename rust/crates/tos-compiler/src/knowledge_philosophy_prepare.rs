@@ -307,17 +307,20 @@ fn walk_nodes(
                 value
                     .get("node_type")
                     .and_then(Value::as_str)
+                    .map(str::trim)
                     .filter(|s| !s.is_empty())
                     .or_else(|| {
                         value
                             .get("node_kind")
                             .and_then(Value::as_str)
+                            .map(str::trim)
                             .filter(|s| !s.is_empty())
                     })
                     .or_else(|| {
                         value
                             .get("resource_kind")
                             .and_then(Value::as_str)
+                            .map(str::trim)
                             .filter(|s| !s.is_empty())
                     })
                     .unwrap_or("knowledge-object")
