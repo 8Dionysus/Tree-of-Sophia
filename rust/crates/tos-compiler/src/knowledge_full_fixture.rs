@@ -683,7 +683,14 @@ fn finish_fixture_with_limits(
         index_generation: source_binding.index_generation,
         route_map_version: source_binding.route_map_version,
         reader_abi: source_binding.reader_abi,
-        authority_boundary: serde_json::to_string(&header["authority_boundary"]).unwrap(),
+        authority_boundary: String::from_utf8(
+            crate::knowledge_seal::canonical(
+                &header["authority_boundary"],
+                limits.seal.max_header_bytes,
+            )
+            .expect("fixture authority uses the producer's seal profile"),
+        )
+        .expect("fixture authority is canonical UTF-8"),
         source_scopes,
         complete: true,
     };

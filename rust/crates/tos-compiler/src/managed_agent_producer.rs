@@ -456,8 +456,11 @@ fn build_selected(
         index_generation: source_binding.index_generation,
         route_map_version: source_binding.route_map_version,
         reader_abi: source_binding.reader_abi,
-        authority_boundary: serde_json::to_string(&header["authority_boundary"])
-            .map_err(|e| Error::Source(e.to_string()))?,
+        authority_boundary: String::from_utf8(crate::knowledge_seal::canonical(
+            &header["authority_boundary"],
+            full_limits.seal.max_header_bytes,
+        )?)
+        .map_err(|e| Error::Source(e.to_string()))?,
         source_scopes: scopes,
         complete: true,
     };

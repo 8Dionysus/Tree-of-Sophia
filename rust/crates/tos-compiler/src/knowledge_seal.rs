@@ -69,7 +69,7 @@ pub struct KnowledgeSealReceipt {
     pub search_index_root_sha256: String,
 }
 
-fn canonical(value: &Value, cap: usize) -> Result<Vec<u8>> {
+pub(crate) fn canonical(value: &Value, cap: usize) -> Result<Vec<u8>> {
     if cap == 0 || cap > 8 * 1024 * 1024 {
         return Err(Error::Budget("knowledge header cap"));
     }
