@@ -426,13 +426,13 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
     assert!(!root.join("external.sqlite").exists());
     fs::write(
         root.join("docs/validation/validation_lanes.json"),
-        r#"{"command_sequences":{"sample":[{"label":"first","command":["python","-B","adapter.py","first"]},{"label":"failing","command":["python","-B","adapter.py","fail"]},{"label":"later","command":["python","-B","adapter.py","later"]}]}}"#,
+        r#"{"command_sequences":{"sample":[{"label":"first","command":["python","-B","adapter.py","first"]},{"label":"failing","command":["python","-B","adapter.py","fail"]},{"label":"later","command":["python","-B","adapter.py","later"]}],"rust_workspace":[{"label":"budgeted slow","command":["python","-B","adapter.py","slow"],"command_timeout_ms":500},{"label":"never after timeout","command":["python","-B","adapter.py","later"]}]}}"#,
     )
     .unwrap();
     let adapter = root.join("adapter.py");
     fs::write(
         &adapter,
-        "import pathlib,sys\nwith pathlib.Path('trace').open('a') as trace: trace.write(sys.argv[1]+'\\n')\nraise SystemExit(17 if sys.argv[1]=='fail' else 0)\n",
+        "import pathlib,sys,time\nwith pathlib.Path('trace').open('a') as trace: trace.write(sys.argv[1]+'\\n')\nif sys.argv[1]=='slow': time.sleep(5)\nraise SystemExit(17 if sys.argv[1]=='fail' else 0)\n",
     )
     .unwrap();
     let executable = std::env::var_os("TOS_VALIDATION_LANES_TEST_EXECUTABLE")
@@ -440,7 +440,7 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
     let output = Command::new("/usr/bin/python3")
         .arg("-B")
         .arg(root.join("scripts/validation_lanes.py"))
-        .env("TOS_VALIDATION_LANES_EXECUTOR", executable)
+        .env("TOS_VALIDATION_LANES_EXECUTOR", &executable)
         .args(["--sequence", "sample", "--run", "sample"])
         .output()
         .unwrap();
@@ -459,6 +459,34 @@ fn installed_entrypoints_preserve_argv_environment_and_validation_first_failure(
             .unwrap()
             .contains("[error] failing failed with exit code 17\n")
     );
+
+    fs::remove_file(root.join("trace")).unwrap();
+    let output = Command::new("/usr/bin/python3")
+        .arg("-B")
+        .arg(root.join("scripts/validation_lanes.py"))
+        .env("TOS_VALIDATION_LANES_EXECUTOR", &executable)
+        .args(["--run", "rust_workspace"])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("[run] budgeted slow: /usr/bin/python3 -B adapter.py slow\n"));
+    assert!(
+        stdout
+            .contains("[budget] budgeted slow: command_timeout_ms=500 lane_wall_cap_ms=3600000\n")
+    );
+    assert!(
+        String::from_utf8(output.stderr)
+            .unwrap()
+            .contains("execution wall deadline")
+    );
+    let trace = match fs::read_to_string(root.join("trace")) {
+        Ok(trace) => trace,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(error) => panic!("cannot read budgeted command trace: {error}"),
+    };
+    assert!(trace.is_empty() || trace == "slow\n");
+    assert!(!trace.lines().any(|line| line == "later"));
     fs::remove_dir_all(root).unwrap();
 }
 

@@ -162,6 +162,12 @@ class ValidationLaneTests(unittest.TestCase):
         )
         workspace_label = 'test Rust workspace excluding isolated process-cold fixtures'
         workspace = by_label[workspace_label]
+        manifest_steps = validation_lanes.load_manifest(ROOT)['command_sequences']['rust_workspace']
+        self.assertEqual(
+            [(step['label'], step['command_timeout_ms']) for step in manifest_steps
+             if 'command_timeout_ms' in step],
+            [(workspace_label, 900000)],
+        )
         self.assertEqual(workspace[:6], ['cargo', 'test', '--workspace', '--locked', '--', '--nocapture'])
         self.assertEqual(
             [workspace[index + 1] for index, value in enumerate(workspace) if value == '--skip'],
@@ -213,6 +219,16 @@ class ValidationLaneTests(unittest.TestCase):
         for (_, source_path, function_name) in cases + conformance_cases:
             source = (ROOT / source_path).read_text(encoding='utf-8')
             self.assertEqual(source.count(f'#[test]\nfn {function_name}('), 1)
+
+    def test_explicit_command_deadline_refuses_malformed_or_unapplied_budget(self):
+        self.assertIsNone(validation_lanes._command_timeout_ms('rust_workspace', {}))
+        self.assertEqual(validation_lanes._command_timeout_ms(
+            'rust_workspace', {'command_timeout_ms': 900000}), 900000)
+        with self.assertRaises(ValueError):
+            validation_lanes._command_timeout_ms('software_browser', {'command_timeout_ms': 900000})
+        for value in (None, True, 0, -1, 900000.0, 3600001):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                validation_lanes._command_timeout_ms('rust_workspace', {'command_timeout_ms': value})
 
     def test_rust_conformance_artifact_selection_uses_exact_test_package_and_target(self):
         selected = Path('/runner/cargo-target/debug/deps/conformance-deadbeef')
@@ -359,6 +375,17 @@ class ValidationLaneTests(unittest.TestCase):
                 '--phase', 'tests', '--command-timeout-ms', '900000',
                 '--lane-timeout-ms', '3600000', '--cleanup-grace-ms', '2000',
                 '--max-output-bytes', '8388608',
+            ])
+
+    def test_native_validation_forwards_rust_run_to_exact_executor(self):
+        executable = '/tmp/tos-validation-lanes-test-executor'
+        with mock.patch.dict(validation_lanes.os.environ,
+                             {'TOS_VALIDATION_LANES_EXECUTOR': executable}), \
+             mock.patch.object(validation_lanes.os, 'execv') as execv:
+            self.assertIsNone(validation_lanes.native_main(['--run', 'rust_workspace']))
+            execv.assert_called_once_with(executable, [
+                executable, '--repo-root', str(ROOT), '--python', sys.executable,
+                '--run', 'rust_workspace',
             ])
 
 

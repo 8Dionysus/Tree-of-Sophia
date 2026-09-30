@@ -25,18 +25,18 @@
     "tracked_source": "git ls-files -z"
   },
   "context_summary": {
-    "family_count": 16,
+    "family_count": 17,
     "metric": "whitespace_tokens_v1",
     "posture": "summary_first_records_on_demand",
     "record_loading": "machine readers may select records by family_id or path; do not load the full carrier into an always-on prompt",
     "tracked_surface_count": 6292,
-    "unhandled_family_count": 162
+    "unhandled_family_count": 0
   },
   "coverage": {
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 5166,
     "human_scope": {
-      "bytes": 7045754,
+      "bytes": 7046284,
       "count": 1072,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -61,9 +61,9 @@
           "lines": 315
         },
         "github": {
-          "bytes": 43666,
+          "bytes": 43887,
           "count": 5,
-          "lines": 790
+          "lines": 794
         },
         "kag": {
           "bytes": 6723,
@@ -95,6 +95,11 @@
           "count": 14,
           "lines": 3096
         },
+        "rust": {
+          "bytes": 73936,
+          "count": 9,
+          "lines": 1062
+        },
         "scripts": {
           "bytes": 9478,
           "count": 2,
@@ -114,14 +119,9 @@
           "bytes": 4948446,
           "count": 720,
           "lines": 81781
-        },
-        "unhandled": {
-          "bytes": 73627,
-          "count": 9,
-          "lines": 1057
         }
       },
-      "lines": 117018
+      "lines": 117027
     },
     "surface_kind_counts": {
       "executable": 573,
@@ -130,171 +130,8 @@
     },
     "tracked_path_count": 11458,
     "tracked_surface_count": 6292,
-    "unhandled_family_count": 162,
-    "unhandled_paths": [
-      "rust/README.md",
-      "rust/crates/tos-access/README.md",
-      "rust/crates/tos-access/operations.v1.json",
-      "rust/crates/tos-command/README.md",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/apply.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/apply.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/apply.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/apply.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.recast-native-identity.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.recast-native-identity.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.schema-byte-drift.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.schema-byte-drift.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.stale-source-version.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.stale-source-version.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.visibility-revoked-replay.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.visibility-revoked-replay.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.wrong-owner-path.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.wrong-owner-path.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/describe.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/describe.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/form-set.initial.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/form-set.published.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/owner.synthetic.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/prepare.name.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/prepare.name.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/prepare.note.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/prepare.note.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/replay.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/replay.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/source-schema.initial.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/source.initial.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/apply.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/apply.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.recast-native-identity.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.recast-native-identity.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.schema-byte-drift.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.schema-byte-drift.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.stale-source-version.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.stale-source-version.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.visibility-revoked-replay.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.visibility-revoked-replay.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.wrong-owner-path.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.wrong-owner-path.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/describe.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/describe.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/form-set.initial.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/form-set.published.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/owner.synthetic.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/prepare.name.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/prepare.name.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/prepare.note.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/prepare.note.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/replay.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/replay.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/source-schema.initial.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/source.initial.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/apply.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/apply_request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/describe.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/describe_request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/initial.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/owner.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/prepare-claim-statement.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/prepare-claim-statement.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/published.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/replay.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/source.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/source_contracts.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/source_corrected_replay.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/apply.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/apply_request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/describe.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/describe_request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/initial.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/owner.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/prepare-claim-caption.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/prepare-claim-caption.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/prepare-claim-hover.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/prepare-claim-hover.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/prepare-claim-name.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/prepare-claim-name.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/prepare-claim-statement.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/prepare-claim-statement.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/published.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/replay.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/source.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/source_contracts.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/source_corrected_replay.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/apply.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/apply.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.recast-native-identity.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.recast-native-identity.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.schema-byte-drift.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.schema-byte-drift.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.stale-source-version.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.stale-source-version.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.visibility-revoked-replay.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.visibility-revoked-replay.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.wrong-owner-path.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.wrong-owner-path.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/describe.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/describe.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/form-set.initial.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/form-set.published.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/owner.synthetic.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/prepare.name.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/prepare.name.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/prepare.note.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/prepare.note.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/replay.request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/replay.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/source-schema.initial.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/source.initial.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/apply.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/apply_request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/create.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/create_request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/describe.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/describe_request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/initial.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/owner.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/prepare.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/prepare_request.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/published.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/replay.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/source.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/describe.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/form-set.initial.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/form-set.published.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/owner.synthetic.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/prepare.preferred.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/prepare.russian.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/replay.response.json",
-      "rust/crates/tos-command/tests/fixtures/source_forms_shadow/source.initial.json",
-      "rust/crates/tos-compiler/README.md",
-      "rust/crates/tos-compiler/tests/fixtures/query-vocabulary.v1.json",
-      "rust/crates/tos-compiler/tests/fixtures/tos_corpus_index.min.json",
-      "rust/crates/tos-compiler/tests/fixtures/tos_corpus_index.min.parts/2e/2e0000d72949de54db941f12461ec4c937fe5dabfb05965dcac4a65a9333d3b3.index.json",
-      "rust/crates/tos-compiler/tests/fixtures/tos_corpus_index.min.parts/7c/7c20202555656e09ef0bf65781b978545e7adc15787113e5de7525a05643f1a4.index.json",
-      "rust/crates/tos-compiler/tests/fixtures/tos_corpus_index.min.parts/b3/b38263af03b2783c5f31fabc315438fbdfef0a5135e96c510e99db2df9e1e105.index.json",
-      "rust/crates/tos-foundation/README.md",
-      "rust/crates/tos-foundation/generate_unicode.py",
-      "rust/crates/tos-ops-mechanics-plan/README.md",
-      "rust/crates/tos-ops-mechanics-plan/tests/fixtures/oracle-plan.json",
-      "rust/crates/tos-query/tests/fixtures/cmp_knowledge_inspect_python_oracle.json",
-      "rust/crates/tos-query/tests/fixtures/cmp_knowledge_search_python_oracle.json",
-      "rust/crates/tos-query/tests/fixtures/cmp_selected_python_oracle.json",
-      "rust/crates/tos-query/tests/fixtures/generate_unicode_python_oracle.py",
-      "rust/crates/tos-query/tests/fixtures/native_exploration_temporal_oracle.py",
-      "rust/crates/tos-query/tests/fixtures/search_candidate_python_oracle.json",
-      "rust/crates/tos-query/tests/fixtures/search_v2_python_oracle.json",
-      "rust/crates/tos-query/tests/fixtures/selected_lens_python_oracle.py",
-      "rust/crates/tos-query/tests/fixtures/source_descend_python_oracle.json",
-      "rust/crates/tos-query/tests/fixtures/unicode_python_oracle.json",
-      "rust/crates/tos-reader/README.md",
-      "rust/crates/tos-validation/fixtures/provenance-event-source.json",
-      "rust/crates/tos-validation/fixtures/structured-value-source.json",
-      "rust/crates/tos-validation/tests/fixtures/jgb-work.human-forms.json",
-      "rust/crates/tos-validation/tests/fixtures/jgb-work.json",
-      "rust/crates/tos-validation/tests/fixtures/scoped-work.human-forms.json",
-      "rust/crates/tos-web-codec/README.md",
-      "rust/crates/tos-web-rules/README.md"
-    ]
+    "unhandled_family_count": 0,
+    "unhandled_paths": []
   },
   "family_summaries": [
     {
@@ -325,7 +162,7 @@
       "surface_kind_counts": {
         "human": 5
       },
-      "tracked_surface_bytes": 43666,
+      "tracked_surface_bytes": 43887,
       "tracked_surface_count": 5
     },
     {
@@ -354,7 +191,7 @@
         "human": 87,
         "structured": 6
       },
-      "tracked_surface_bytes": 1071986,
+      "tracked_surface_bytes": 1074334,
       "tracked_surface_count": 93
     },
     {
@@ -399,8 +236,18 @@
         "executable": 175,
         "human": 2
       },
-      "tracked_surface_bytes": 5376863,
+      "tracked_surface_bytes": 5377597,
       "tracked_surface_count": 177
+    },
+    {
+      "family_id": "rust",
+      "surface_kind_counts": {
+        "executable": 4,
+        "human": 9,
+        "structured": 149
+      },
+      "tracked_surface_bytes": 1257866,
+      "tracked_surface_count": 162
     },
     {
       "family_id": "tests",
@@ -409,7 +256,7 @@
         "human": 6,
         "structured": 11
       },
-      "tracked_surface_bytes": 3248833,
+      "tracked_surface_bytes": 3250839,
       "tracked_surface_count": 126
     },
     {
@@ -442,9 +289,9 @@
   "generated_by": "scripts/build_documentation_family_currentness.py",
   "schema_version": "tos_documentation_family_currentness_v1",
   "source_map": "docs/validation/documentation_family_map.json",
-  "source_map_sha256": "a67301ceee1274e82e5f38f83b7167a287a3fe39682b445cdf430d88f9914d06",
+  "source_map_sha256": "65ca7d3dcb9ce763c7599ce3f9d3041397e4cf47fa9a1cf652a2e2cdd5f83a26",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "42b85070ade6662c0a8964dae4dd263027400b5aa11c5673aad43e1d35cbb6f3",
+  "tracked_surface_digest": "3fca1f89cad76b49917b60453ac83ad708797fc1fda471bcf2996fc70f1a123e",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -519,11 +366,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 37138,
+      "bytes": 37359,
       "currentness": "tracked_source_snapshot",
       "family_id": "github",
       "path": ".github/workflows/repo-validation.yml",
-      "sha256": "f231559af268d4f11aee311d619fb4e57b635eff97a9fd30a85df0031be7a2aa",
+      "sha256": "202dc0e7810d18626e3fd3a9874cfd5b8726ca9e9658f80936738b6a1959e8ad",
       "surface_kind": "human"
     },
     {
@@ -44551,11 +44398,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 41919,
+      "bytes": 44229,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/documentation_family_map.json",
-      "sha256": "a67301ceee1274e82e5f38f83b7167a287a3fe39682b445cdf430d88f9914d06",
+      "sha256": "65ca7d3dcb9ce763c7599ce3f9d3041397e4cf47fa9a1cf652a2e2cdd5f83a26",
       "surface_kind": "structured"
     },
     {
@@ -44567,11 +44414,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 44610,
+      "bytes": 44648,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/validation_lanes.json",
-      "sha256": "0d3f53e3e6e185f4a09b84496005a0a27e050a274b4994fd59c20d1964c9384a",
+      "sha256": "68a1bf22dc6d736234e6a8ea0c2844c44426bacfcd7b485a1467bd160bc86b87",
       "surface_kind": "structured"
     },
     {
@@ -47023,17 +46870,17 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 3158,
+      "bytes": 3467,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/README.md",
-      "sha256": "31bc34bdac198eaba3f2f6a28ce5f16ff5f80fcbfd553ecfaae4b2434f6e2fe6",
+      "sha256": "cc8af1d84d35e25167401da1b3a32c622b8099106bfa05575bb5a16290545c2c",
       "surface_kind": "human"
     },
     {
       "bytes": 11161,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-access/README.md",
       "sha256": "0faccb97f7dc9da04e91e1c43dcf10eb8558bb99701ab774591679f9894179bc",
       "surface_kind": "human"
@@ -47041,7 +46888,7 @@
     {
       "bytes": 37205,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-access/operations.v1.json",
       "sha256": "c6127a634aa356aa933679fd39b32db6499f8827e833dd3ae916b68f04926346",
       "surface_kind": "structured"
@@ -47049,7 +46896,7 @@
     {
       "bytes": 11779,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/README.md",
       "sha256": "970af452f16b8e458d12c8c6ad3d8463f5dcfc64c2f059c473ecf45093e5f7d9",
       "surface_kind": "human"
@@ -47057,7 +46904,7 @@
     {
       "bytes": 5342,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/apply.request.json",
       "sha256": "9de107b777198935ba8cc3186802fc75813e0690d63df978af1b8d3e4e7c59e5",
       "surface_kind": "structured"
@@ -47065,7 +46912,7 @@
     {
       "bytes": 10855,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/apply.response.json",
       "sha256": "0e708dbd6eef4dffb85f557250659d4c707617164de3b34b622869ba0fac67ed",
       "surface_kind": "structured"
@@ -47073,7 +46920,7 @@
     {
       "bytes": 3224,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/apply.request.json",
       "sha256": "ff1e225de9005c3b115c71cb935faef933741b581e438e96a42c3105bc68b482",
       "surface_kind": "structured"
@@ -47081,7 +46928,7 @@
     {
       "bytes": 15873,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/apply.response.json",
       "sha256": "7bf39d23445753e881a05a80992e81d1346b3daa42287e9164101d01cea84e55",
       "surface_kind": "structured"
@@ -47089,7 +46936,7 @@
     {
       "bytes": 71,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.recast-native-identity.request.json",
       "sha256": "c7329ce2f8d3c3d1fd298d1e727bc74ff5fd2463bc8d527b7d3802690fd9fbcc",
       "surface_kind": "structured"
@@ -47097,7 +46944,7 @@
     {
       "bytes": 79,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.recast-native-identity.response.json",
       "sha256": "ede524e48fb2f5661be2d2b452bfa03d75654b94e0977cf0334cd7154b6240c8",
       "surface_kind": "structured"
@@ -47105,7 +46952,7 @@
     {
       "bytes": 3224,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.schema-byte-drift.request.json",
       "sha256": "ff1e225de9005c3b115c71cb935faef933741b581e438e96a42c3105bc68b482",
       "surface_kind": "structured"
@@ -47113,7 +46960,7 @@
     {
       "bytes": 84,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.schema-byte-drift.response.json",
       "sha256": "e0f03dc4d337d4bb848ba7fc8fe41cfe8c36a7c4101dc0458fc7fd314226bdb3",
       "surface_kind": "structured"
@@ -47121,7 +46968,7 @@
     {
       "bytes": 3224,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.stale-source-version.request.json",
       "sha256": "ff1e225de9005c3b115c71cb935faef933741b581e438e96a42c3105bc68b482",
       "surface_kind": "structured"
@@ -47129,7 +46976,7 @@
     {
       "bytes": 84,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.stale-source-version.response.json",
       "sha256": "e0f03dc4d337d4bb848ba7fc8fe41cfe8c36a7c4101dc0458fc7fd314226bdb3",
       "surface_kind": "structured"
@@ -47137,7 +46984,7 @@
     {
       "bytes": 3224,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.visibility-revoked-replay.request.json",
       "sha256": "ff1e225de9005c3b115c71cb935faef933741b581e438e96a42c3105bc68b482",
       "surface_kind": "structured"
@@ -47145,7 +46992,7 @@
     {
       "bytes": 79,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.visibility-revoked-replay.response.json",
       "sha256": "ede524e48fb2f5661be2d2b452bfa03d75654b94e0977cf0334cd7154b6240c8",
       "surface_kind": "structured"
@@ -47153,7 +47000,7 @@
     {
       "bytes": 71,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.wrong-owner-path.request.json",
       "sha256": "c7329ce2f8d3c3d1fd298d1e727bc74ff5fd2463bc8d527b7d3802690fd9fbcc",
       "surface_kind": "structured"
@@ -47161,7 +47008,7 @@
     {
       "bytes": 79,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/denied.wrong-owner-path.response.json",
       "sha256": "ede524e48fb2f5661be2d2b452bfa03d75654b94e0977cf0334cd7154b6240c8",
       "surface_kind": "structured"
@@ -47169,7 +47016,7 @@
     {
       "bytes": 71,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/describe.request.json",
       "sha256": "c7329ce2f8d3c3d1fd298d1e727bc74ff5fd2463bc8d527b7d3802690fd9fbcc",
       "surface_kind": "structured"
@@ -47177,7 +47024,7 @@
     {
       "bytes": 12082,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/describe.response.json",
       "sha256": "b36d8e65024cbf3db79c2914e2731cc75d6653a7f7e97762c28be3316e673090",
       "surface_kind": "structured"
@@ -47185,7 +47032,7 @@
     {
       "bytes": 7637,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/form-set.initial.json",
       "sha256": "294d6031f4f8fa6af1afc0e7e977f8b6059c04be2569940bf64aad93f831fd67",
       "surface_kind": "structured"
@@ -47193,7 +47040,7 @@
     {
       "bytes": 12507,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/form-set.published.json",
       "sha256": "3044376ee0189c2217de86840fc3a08f52f2a9c40d877b35561841bce3669343",
       "surface_kind": "structured"
@@ -47201,7 +47048,7 @@
     {
       "bytes": 758,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/owner.synthetic.json",
       "sha256": "4295918ea13e61b225c2fb1b23833bce2f4142c88a596b5ef6d3487023b644b9",
       "surface_kind": "structured"
@@ -47209,7 +47056,7 @@
     {
       "bytes": 157,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/prepare.name.request.json",
       "sha256": "badc549d6f80e9d924a3baedfac96a6fee8445e88b6bd17f2a3231d4c5e793f7",
       "surface_kind": "structured"
@@ -47217,7 +47064,7 @@
     {
       "bytes": 16216,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/prepare.name.response.json",
       "sha256": "5ddb7b8782a9f819ec60789cad71015ad71c9f44d13ffcd3d7ce33133c7246e1",
       "surface_kind": "structured"
@@ -47225,7 +47072,7 @@
     {
       "bytes": 181,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/prepare.note.request.json",
       "sha256": "50d220277b33787be22de79d7f067afec8010c98ccd87b356e264c1cdbdc51ee",
       "surface_kind": "structured"
@@ -47233,7 +47080,7 @@
     {
       "bytes": 21144,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/prepare.note.response.json",
       "sha256": "8d6922f5e4ef1a44845a36486ce838e9cbb8b61f607efc3c9a8760efae9b6e69",
       "surface_kind": "structured"
@@ -47241,7 +47088,7 @@
     {
       "bytes": 3224,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/replay.request.json",
       "sha256": "ff1e225de9005c3b115c71cb935faef933741b581e438e96a42c3105bc68b482",
       "surface_kind": "structured"
@@ -47249,7 +47096,7 @@
     {
       "bytes": 15872,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/replay.response.json",
       "sha256": "bd5ecc04c24128e76f7ec5b1c83c5e856782e63f3af94028b497a6e88e040fde",
       "surface_kind": "structured"
@@ -47257,7 +47104,7 @@
     {
       "bytes": 11046,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/source-schema.initial.json",
       "sha256": "1b5a1a49851093daf3b08182b08fc78658d05de4ca1f838bc795cc9c6fb0ce3f",
       "surface_kind": "structured"
@@ -47265,7 +47112,7 @@
     {
       "bytes": 7364,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v1/source.initial.json",
       "sha256": "58caa50da8c0aef45e190b07c8c5efad2493290b52ff7f65bf983010eb3e322d",
       "surface_kind": "structured"
@@ -47273,7 +47120,7 @@
     {
       "bytes": 3025,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/apply.request.json",
       "sha256": "3c1ee82e949a1d744ff4cf1d81a09baebefe641260203ac381898f8327bfa1f7",
       "surface_kind": "structured"
@@ -47281,7 +47128,7 @@
     {
       "bytes": 13235,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/apply.response.json",
       "sha256": "1e1c875910cd686445bad2c8fa244387f8f13e2e87979f95b323eefff87de66e",
       "surface_kind": "structured"
@@ -47289,7 +47136,7 @@
     {
       "bytes": 71,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.recast-native-identity.request.json",
       "sha256": "c7329ce2f8d3c3d1fd298d1e727bc74ff5fd2463bc8d527b7d3802690fd9fbcc",
       "surface_kind": "structured"
@@ -47297,7 +47144,7 @@
     {
       "bytes": 79,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.recast-native-identity.response.json",
       "sha256": "ede524e48fb2f5661be2d2b452bfa03d75654b94e0977cf0334cd7154b6240c8",
       "surface_kind": "structured"
@@ -47305,7 +47152,7 @@
     {
       "bytes": 3025,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.schema-byte-drift.request.json",
       "sha256": "3c1ee82e949a1d744ff4cf1d81a09baebefe641260203ac381898f8327bfa1f7",
       "surface_kind": "structured"
@@ -47313,7 +47160,7 @@
     {
       "bytes": 84,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.schema-byte-drift.response.json",
       "sha256": "e0f03dc4d337d4bb848ba7fc8fe41cfe8c36a7c4101dc0458fc7fd314226bdb3",
       "surface_kind": "structured"
@@ -47321,7 +47168,7 @@
     {
       "bytes": 3025,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.stale-source-version.request.json",
       "sha256": "3c1ee82e949a1d744ff4cf1d81a09baebefe641260203ac381898f8327bfa1f7",
       "surface_kind": "structured"
@@ -47329,7 +47176,7 @@
     {
       "bytes": 84,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.stale-source-version.response.json",
       "sha256": "e0f03dc4d337d4bb848ba7fc8fe41cfe8c36a7c4101dc0458fc7fd314226bdb3",
       "surface_kind": "structured"
@@ -47337,7 +47184,7 @@
     {
       "bytes": 3025,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.visibility-revoked-replay.request.json",
       "sha256": "3c1ee82e949a1d744ff4cf1d81a09baebefe641260203ac381898f8327bfa1f7",
       "surface_kind": "structured"
@@ -47345,7 +47192,7 @@
     {
       "bytes": 79,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.visibility-revoked-replay.response.json",
       "sha256": "ede524e48fb2f5661be2d2b452bfa03d75654b94e0977cf0334cd7154b6240c8",
       "surface_kind": "structured"
@@ -47353,7 +47200,7 @@
     {
       "bytes": 71,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.wrong-owner-path.request.json",
       "sha256": "c7329ce2f8d3c3d1fd298d1e727bc74ff5fd2463bc8d527b7d3802690fd9fbcc",
       "surface_kind": "structured"
@@ -47361,7 +47208,7 @@
     {
       "bytes": 79,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/denied.wrong-owner-path.response.json",
       "sha256": "ede524e48fb2f5661be2d2b452bfa03d75654b94e0977cf0334cd7154b6240c8",
       "surface_kind": "structured"
@@ -47369,7 +47216,7 @@
     {
       "bytes": 71,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/describe.request.json",
       "sha256": "c7329ce2f8d3c3d1fd298d1e727bc74ff5fd2463bc8d527b7d3802690fd9fbcc",
       "surface_kind": "structured"
@@ -47377,7 +47224,7 @@
     {
       "bytes": 9501,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/describe.response.json",
       "sha256": "bcbcd3306e6caa65ebb8744bdd83ea9cefda49332e9f1715f60a4da8ec1d60a3",
       "surface_kind": "structured"
@@ -47385,7 +47232,7 @@
     {
       "bytes": 3434,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/form-set.initial.json",
       "sha256": "b42689334dcd94cb1921602e1a2f9a0a2a6c68a227ca7136241651c6bd3e0572",
       "surface_kind": "structured"
@@ -47393,7 +47240,7 @@
     {
       "bytes": 8136,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/form-set.published.json",
       "sha256": "ab79d68623cd45b596289a3a6bccec7198804920070f78d95c9e48330e930e17",
       "surface_kind": "structured"
@@ -47401,7 +47248,7 @@
     {
       "bytes": 675,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/owner.synthetic.json",
       "sha256": "2e6f2d7f9ee4693f6909a0c0a4f1faf3d5d35c8cc140c75ff8a4e474d69fdd6d",
       "surface_kind": "structured"
@@ -47409,7 +47256,7 @@
     {
       "bytes": 157,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/prepare.name.request.json",
       "sha256": "5790b24f17acde1312ea36128dba73fed243bdcaf14e8f5549519ab30bed1fbd",
       "surface_kind": "structured"
@@ -47417,7 +47264,7 @@
     {
       "bytes": 13558,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/prepare.name.response.json",
       "sha256": "46406f5aff48d434047dfab17ba187e6783ab72f78f9937961d7540dbe1ba650",
       "surface_kind": "structured"
@@ -47425,7 +47272,7 @@
     {
       "bytes": 148,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/prepare.note.request.json",
       "sha256": "09a84c86a3b983620dae6ab0e76d41f33c13e3878e96518e696e28c43ed4208f",
       "surface_kind": "structured"
@@ -47433,7 +47280,7 @@
     {
       "bytes": 16083,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/prepare.note.response.json",
       "sha256": "a2210e5a8c3a3bb3fe7b053b26107f0a7880caf90b20b358180bb7fd16f031e0",
       "surface_kind": "structured"
@@ -47441,7 +47288,7 @@
     {
       "bytes": 3025,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/replay.request.json",
       "sha256": "3c1ee82e949a1d744ff4cf1d81a09baebefe641260203ac381898f8327bfa1f7",
       "surface_kind": "structured"
@@ -47449,7 +47296,7 @@
     {
       "bytes": 13234,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/replay.response.json",
       "sha256": "81cf4672298296b7ea3bded7819a02cd638b14dc0873b84d248f924e5f63d266",
       "surface_kind": "structured"
@@ -47457,7 +47304,7 @@
     {
       "bytes": 11257,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/source-schema.initial.json",
       "sha256": "bdedd892c9cce4120dd77fb78d4bb953127919149ba2a7583b7934dec7f15215",
       "surface_kind": "structured"
@@ -47465,7 +47312,7 @@
     {
       "bytes": 4587,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/artifact-v2/source.initial.json",
       "sha256": "39a6cf4a2db5ba833d18cfbf6d3e238b627b3dc899b551c2f1cdb7f9898c1f20",
       "surface_kind": "structured"
@@ -47473,7 +47320,7 @@
     {
       "bytes": 20415,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/apply.json",
       "sha256": "6b3736b3fd49f87409a0db5cae550e230489c1e79e753dc632b2c0c8546d781e",
       "surface_kind": "structured"
@@ -47481,7 +47328,7 @@
     {
       "bytes": 2255,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/apply_request.json",
       "sha256": "0421756bcd38054dee22c63c5ee812eea5c3279ce91ed1d8c99511fd13a597fc",
       "surface_kind": "structured"
@@ -47489,7 +47336,7 @@
     {
       "bytes": 18311,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/describe.json",
       "sha256": "cf7c12cd68a9cd061e7c6f0cd68d52fbc2be882d548c35762a2e6af8ed214a03",
       "surface_kind": "structured"
@@ -47497,7 +47344,7 @@
     {
       "bytes": 81,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/describe_request.json",
       "sha256": "0577d50225f2224fc3e1f3d82b7e52f796f04b130c32950aa5983f949e15a71d",
       "surface_kind": "structured"
@@ -47505,7 +47352,7 @@
     {
       "bytes": 8404,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/initial.json",
       "sha256": "3f5a0dac1b7781e3c5ecc1ec6b742402ab9e422cb4500bc75a9f999258054b84",
       "surface_kind": "structured"
@@ -47513,7 +47360,7 @@
     {
       "bytes": 834,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/owner.json",
       "sha256": "326b7cb0130defb481dfa9a4521a998462162a4d29879c40b57a9b7acfb115a6",
       "surface_kind": "structured"
@@ -47521,7 +47368,7 @@
     {
       "bytes": 182,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/prepare-claim-statement.request.json",
       "sha256": "23b12c43ffb648433c61708b9df08b4fae70307a6c74b61a640d6c95b7575bee",
       "surface_kind": "structured"
@@ -47529,7 +47376,7 @@
     {
       "bytes": 23496,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/prepare-claim-statement.response.json",
       "sha256": "cfb8cd347a7061888277e8b504288f2706797dbd4f38dd5e0387038c576f4132",
       "surface_kind": "structured"
@@ -47537,7 +47384,7 @@
     {
       "bytes": 12133,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/published.json",
       "sha256": "8b6e9af62743b4ce8ee6f33e8c89abb4dffb81c6f6ecd0c308950ba178aa51b7",
       "surface_kind": "structured"
@@ -47545,7 +47392,7 @@
     {
       "bytes": 20414,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/replay.json",
       "sha256": "f7217374e302eca92a86aa25e2cc4812f767ca79f9bb1cc672e64f1fb4d2f869",
       "surface_kind": "structured"
@@ -47553,7 +47400,7 @@
     {
       "bytes": 2393,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/source.json",
       "sha256": "97c8af473ecd35841f7541b6f68ef76a7a8f09c6a90bdbf9da3b3955380e5cd2",
       "surface_kind": "structured"
@@ -47561,7 +47408,7 @@
     {
       "bytes": 1296,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/source_contracts.json",
       "sha256": "f21ce32a9f5129a53a43a90f1ea9f4b64f6fc2e5f45148571a6dc0e6672110cf",
       "surface_kind": "structured"
@@ -47569,7 +47416,7 @@
     {
       "bytes": 7818,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v1/source_corrected_replay.json",
       "sha256": "937c621ba13e66d8df63b5799582e338cf92ee92c3e7e921e2650ff3c84146ba",
       "surface_kind": "structured"
@@ -47577,7 +47424,7 @@
     {
       "bytes": 20930,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/apply.json",
       "sha256": "b4fa91bf2cf24e5b388765822312d930ac82595b8c98e6ce71c7b30cf07a21e5",
       "surface_kind": "structured"
@@ -47585,7 +47432,7 @@
     {
       "bytes": 7420,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/apply_request.json",
       "sha256": "df61230ae007287be0831b15fffed3415549737981400d0331579dd1db999d00",
       "surface_kind": "structured"
@@ -47593,7 +47440,7 @@
     {
       "bytes": 18357,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/describe.json",
       "sha256": "5e95334d948c417baa8f2aec4bc61ff1e42b08d5fd4f1fdeb736e3fe5f8344af",
       "surface_kind": "structured"
@@ -47601,7 +47448,7 @@
     {
       "bytes": 81,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/describe_request.json",
       "sha256": "0577d50225f2224fc3e1f3d82b7e52f796f04b130c32950aa5983f949e15a71d",
       "surface_kind": "structured"
@@ -47609,7 +47456,7 @@
     {
       "bytes": 8404,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/initial.json",
       "sha256": "3f5a0dac1b7781e3c5ecc1ec6b742402ab9e422cb4500bc75a9f999258054b84",
       "surface_kind": "structured"
@@ -47617,7 +47464,7 @@
     {
       "bytes": 944,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/owner.json",
       "sha256": "50e83dd756746ac8c3277daf7eecb9ab0f3866eaa93d16d07b9b24035247ead4",
       "surface_kind": "structured"
@@ -47625,7 +47472,7 @@
     {
       "bytes": 175,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/prepare-claim-caption.request.json",
       "sha256": "64e28d6605d321847162fb7d60593989e7a9fefbab441d5d6796bc8ef61e34a1",
       "surface_kind": "structured"
@@ -47633,7 +47480,7 @@
     {
       "bytes": 23264,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/prepare-claim-caption.response.json",
       "sha256": "32557531b3a514155be2e41a90d320f4a8dab7b4f983da3cf7daf2c42e7c83de",
       "surface_kind": "structured"
@@ -47641,7 +47488,7 @@
     {
       "bytes": 171,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/prepare-claim-hover.request.json",
       "sha256": "bb042d7a8ace019327c3646ffb5635fcd1aff2a5264464aa43af4e1a166eb10f",
       "surface_kind": "structured"
@@ -47649,7 +47496,7 @@
     {
       "bytes": 23393,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/prepare-claim-hover.response.json",
       "sha256": "9880b794274c0531c517f3e2c111971ab6fe4c6b5ef5c9151eedbcde06eeed29",
       "surface_kind": "structured"
@@ -47657,7 +47504,7 @@
     {
       "bytes": 169,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/prepare-claim-name.request.json",
       "sha256": "3109d4b50b1cf66c41e55743a707cac5bff914e63d723d5aa824c03e3d1993d0",
       "surface_kind": "structured"
@@ -47665,7 +47512,7 @@
     {
       "bytes": 23169,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/prepare-claim-name.response.json",
       "sha256": "7a1e751b85bb447f621846f3711676ea2e240e86f3c9b2743b4b06d4fb1060c2",
       "surface_kind": "structured"
@@ -47673,7 +47520,7 @@
     {
       "bytes": 182,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/prepare-claim-statement.request.json",
       "sha256": "23b12c43ffb648433c61708b9df08b4fae70307a6c74b61a640d6c95b7575bee",
       "surface_kind": "structured"
@@ -47681,7 +47528,7 @@
     {
       "bytes": 23542,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/prepare-claim-statement.response.json",
       "sha256": "bc9c064333e1d19107722aaff5bca66181028cb0b4412571d1699b04a223a055",
       "surface_kind": "structured"
@@ -47689,7 +47536,7 @@
     {
       "bytes": 16869,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/published.json",
       "sha256": "c95bacecc466e82df1411742ca32a351ed302b1204edfc916cd49937c14dcfbb",
       "surface_kind": "structured"
@@ -47697,7 +47544,7 @@
     {
       "bytes": 20929,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/replay.json",
       "sha256": "6597fbbbffec6db5c937aa03fc7fc72941a90b9e01179691d68aedcac8f02791",
       "surface_kind": "structured"
@@ -47705,7 +47552,7 @@
     {
       "bytes": 2393,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/source.json",
       "sha256": "97c8af473ecd35841f7541b6f68ef76a7a8f09c6a90bdbf9da3b3955380e5cd2",
       "surface_kind": "structured"
@@ -47713,7 +47560,7 @@
     {
       "bytes": 1296,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/source_contracts.json",
       "sha256": "f4424a1bf6dbf926887cc14cc2acebab8cf3806cd6479c8a5e90fcaa9805b1d8",
       "surface_kind": "structured"
@@ -47721,7 +47568,7 @@
     {
       "bytes": 8333,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/claim_v2/source_corrected_replay.json",
       "sha256": "d333c7f52614cef78122956697c8f7c1e2b1423a0cb2dad7b15e0f0a10c84fa9",
       "surface_kind": "structured"
@@ -47729,7 +47576,7 @@
     {
       "bytes": 3479,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/apply.request.json",
       "sha256": "8f23a1c037cf29b9762221a3bd1f8e271c3676950f46dfa139e654af8f6235bd",
       "surface_kind": "structured"
@@ -47737,7 +47584,7 @@
     {
       "bytes": 18104,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/apply.response.json",
       "sha256": "0a3a73efb2582bd39f7bc8a4e9ffe3a6d5d91065ce2dc8f19b6f7608c57aa579",
       "surface_kind": "structured"
@@ -47745,7 +47592,7 @@
     {
       "bytes": 71,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.recast-native-identity.request.json",
       "sha256": "c7329ce2f8d3c3d1fd298d1e727bc74ff5fd2463bc8d527b7d3802690fd9fbcc",
       "surface_kind": "structured"
@@ -47753,7 +47600,7 @@
     {
       "bytes": 79,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.recast-native-identity.response.json",
       "sha256": "ede524e48fb2f5661be2d2b452bfa03d75654b94e0977cf0334cd7154b6240c8",
       "surface_kind": "structured"
@@ -47761,7 +47608,7 @@
     {
       "bytes": 3479,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.schema-byte-drift.request.json",
       "sha256": "8f23a1c037cf29b9762221a3bd1f8e271c3676950f46dfa139e654af8f6235bd",
       "surface_kind": "structured"
@@ -47769,7 +47616,7 @@
     {
       "bytes": 84,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.schema-byte-drift.response.json",
       "sha256": "e0f03dc4d337d4bb848ba7fc8fe41cfe8c36a7c4101dc0458fc7fd314226bdb3",
       "surface_kind": "structured"
@@ -47777,7 +47624,7 @@
     {
       "bytes": 3479,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.stale-source-version.request.json",
       "sha256": "8f23a1c037cf29b9762221a3bd1f8e271c3676950f46dfa139e654af8f6235bd",
       "surface_kind": "structured"
@@ -47785,7 +47632,7 @@
     {
       "bytes": 84,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.stale-source-version.response.json",
       "sha256": "e0f03dc4d337d4bb848ba7fc8fe41cfe8c36a7c4101dc0458fc7fd314226bdb3",
       "surface_kind": "structured"
@@ -47793,7 +47640,7 @@
     {
       "bytes": 3479,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.visibility-revoked-replay.request.json",
       "sha256": "8f23a1c037cf29b9762221a3bd1f8e271c3676950f46dfa139e654af8f6235bd",
       "surface_kind": "structured"
@@ -47801,7 +47648,7 @@
     {
       "bytes": 79,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.visibility-revoked-replay.response.json",
       "sha256": "ede524e48fb2f5661be2d2b452bfa03d75654b94e0977cf0334cd7154b6240c8",
       "surface_kind": "structured"
@@ -47809,7 +47656,7 @@
     {
       "bytes": 71,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.wrong-owner-path.request.json",
       "sha256": "c7329ce2f8d3c3d1fd298d1e727bc74ff5fd2463bc8d527b7d3802690fd9fbcc",
       "surface_kind": "structured"
@@ -47817,7 +47664,7 @@
     {
       "bytes": 79,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/denied.wrong-owner-path.response.json",
       "sha256": "ede524e48fb2f5661be2d2b452bfa03d75654b94e0977cf0334cd7154b6240c8",
       "surface_kind": "structured"
@@ -47825,7 +47672,7 @@
     {
       "bytes": 71,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/describe.request.json",
       "sha256": "c7329ce2f8d3c3d1fd298d1e727bc74ff5fd2463bc8d527b7d3802690fd9fbcc",
       "surface_kind": "structured"
@@ -47833,7 +47680,7 @@
     {
       "bytes": 14191,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/describe.response.json",
       "sha256": "3d16e8550d0fda5e90dce8f643c1ca6f4f70d093066f611deda1c0a5baf79351",
       "surface_kind": "structured"
@@ -47841,7 +47688,7 @@
     {
       "bytes": 8095,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/form-set.initial.json",
       "sha256": "1900842a2cc6a32088cddc0428a25499cfe42326dfdd2e75f3978b29d8aac4b7",
       "surface_kind": "structured"
@@ -47849,7 +47696,7 @@
     {
       "bytes": 13225,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/form-set.published.json",
       "sha256": "1922ddc5e6d3c1db0fdca0a659c4ba1ec3fb56efa0e16e0228df75e47c074085",
       "surface_kind": "structured"
@@ -47857,7 +47704,7 @@
     {
       "bytes": 836,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/owner.synthetic.json",
       "sha256": "1bbdfa6c26a5b58ea10048bfd8b9c13090dd0c7434c9e121cfbfb7f8360dd42a",
       "surface_kind": "structured"
@@ -47865,7 +47712,7 @@
     {
       "bytes": 158,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/prepare.name.request.json",
       "sha256": "63183bee54c65bafe597b83644b3f6a65adcd099c63e3ee6ac97bfd1014aa6f2",
       "surface_kind": "structured"
@@ -47873,7 +47720,7 @@
     {
       "bytes": 18513,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/prepare.name.response.json",
       "sha256": "8793e526e3eafa09534b7cc1d3a9019ba8f2ade921fd75a7e708a9efa8740de1",
       "surface_kind": "structured"
@@ -47881,7 +47728,7 @@
     {
       "bytes": 200,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/prepare.note.request.json",
       "sha256": "4196bce98247992af86b055c2d6c07ba117215adf6850c555f2f366111be667f",
       "surface_kind": "structured"
@@ -47889,7 +47736,7 @@
     {
       "bytes": 25213,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/prepare.note.response.json",
       "sha256": "eb11cfe331eab7a8bd0e2c3341fafd098fd57998fc45bf62a91cb683ae07c10d",
       "surface_kind": "structured"
@@ -47897,7 +47744,7 @@
     {
       "bytes": 3479,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/replay.request.json",
       "sha256": "8f23a1c037cf29b9762221a3bd1f8e271c3676950f46dfa139e654af8f6235bd",
       "surface_kind": "structured"
@@ -47905,7 +47752,7 @@
     {
       "bytes": 18103,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/replay.response.json",
       "sha256": "4f8efd9f9ba4235e05168e07fe38987bbd97a2a951ea110c13a1bea137b21d01",
       "surface_kind": "structured"
@@ -47913,7 +47760,7 @@
     {
       "bytes": 9755,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/source-schema.initial.json",
       "sha256": "d704fac5f02a747578b3ef6ddaf7f7af06c517c29c529d767ceaf5b84af25cd9",
       "surface_kind": "structured"
@@ -47921,7 +47768,7 @@
     {
       "bytes": 9270,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/composite-v1/source.initial.json",
       "sha256": "132a485840cf89f7b088183f991da45858afcf31f18ebe196204385fba495bf3",
       "surface_kind": "structured"
@@ -47929,7 +47776,7 @@
     {
       "bytes": 8565,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/apply.json",
       "sha256": "2af8d0631f896b725518be9961fb7e990abbdc538ed3f1ebbad1ea896ecec730",
       "surface_kind": "structured"
@@ -47937,7 +47784,7 @@
     {
       "bytes": 2867,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/apply_request.json",
       "sha256": "97ce58145411f032fdcdc812d3d05d7e7ccfe33501cf94eeaea6491b05c403d1",
       "surface_kind": "structured"
@@ -47945,7 +47792,7 @@
     {
       "bytes": 10754,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/create.json",
       "sha256": "dcabc0c09e37a630d279f1814c492a0c84b77bc2430449e481152a62483d91d6",
       "surface_kind": "structured"
@@ -47953,7 +47800,7 @@
     {
       "bytes": 177,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/create_request.json",
       "sha256": "23619e0ca28f97c5fae46e311c1a77f85ebc6a11771f32ebe542c231984bd2de",
       "surface_kind": "structured"
@@ -47961,7 +47808,7 @@
     {
       "bytes": 7747,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/describe.json",
       "sha256": "7e7e85fa9f654acf154a3f0a65a6fa064e80ef2894ed00385833211a80d85578",
       "surface_kind": "structured"
@@ -47969,7 +47816,7 @@
     {
       "bytes": 81,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/describe_request.json",
       "sha256": "0577d50225f2224fc3e1f3d82b7e52f796f04b130c32950aa5983f949e15a71d",
       "surface_kind": "structured"
@@ -47977,7 +47824,7 @@
     {
       "bytes": 13320,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/initial.json",
       "sha256": "29f1e0d7f8a73d565238753bcd90f01a6b883a605a45b799f5f9f411f7c6dfce",
       "surface_kind": "structured"
@@ -47985,7 +47832,7 @@
     {
       "bytes": 783,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/owner.json",
       "sha256": "b9d17f0fc59edd8841ec88f06c82e9abeb67d58e0f82cbada75d9df563085898",
       "surface_kind": "structured"
@@ -47993,7 +47840,7 @@
     {
       "bytes": 11285,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/prepare.json",
       "sha256": "963417ccbe35fe554b068653cb9e11e62ced2713111febded6e6ef5f8666834f",
       "surface_kind": "structured"
@@ -48001,7 +47848,7 @@
     {
       "bytes": 185,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/prepare_request.json",
       "sha256": "2030cfc7adf4bed26c79ac2bef2ab5eba16b92909438a131a48f25a0982c7f7a",
       "surface_kind": "structured"
@@ -48009,7 +47856,7 @@
     {
       "bytes": 16275,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/published.json",
       "sha256": "6d15a873834c2ac49d2f6cae61fa12af15cd8fc9460848538500d5efb9ca6b6c",
       "surface_kind": "structured"
@@ -48017,7 +47864,7 @@
     {
       "bytes": 8564,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/replay.json",
       "sha256": "547ca9301650cf5345048126be9dff91178af0e147e427cbb349b90078356193",
       "surface_kind": "structured"
@@ -48025,7 +47872,7 @@
     {
       "bytes": 1236,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/de_constantia/source.json",
       "sha256": "04264b238c26de26e2a9dd32cae1b1640ab65e87af6b17f4eba643999f3fde9e",
       "surface_kind": "structured"
@@ -48033,7 +47880,7 @@
     {
       "bytes": 7413,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/describe.response.json",
       "sha256": "48237970a8940a0d96ed008136e1debb3822f1a3018778292ab01da4d1710b9e",
       "surface_kind": "structured"
@@ -48041,7 +47888,7 @@
     {
       "bytes": 18335,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/form-set.initial.json",
       "sha256": "7abcf8fe8b90667ac5ca8e2eb5affe51cc56283fb3ca4f7f26a2e03750f4e25b",
       "surface_kind": "structured"
@@ -48049,7 +47896,7 @@
     {
       "bytes": 23742,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/form-set.published.json",
       "sha256": "68eaceb9d4689d37d5814fc626a7ab67c4b14ed52c654f5569d3a71d041fcb74",
       "surface_kind": "structured"
@@ -48057,7 +47904,7 @@
     {
       "bytes": 765,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/owner.synthetic.json",
       "sha256": "4087525b658c9b6ff2f2147d16eb46786f7a826e83deeec0604e4e75e7e21f9d",
       "surface_kind": "structured"
@@ -48065,7 +47912,7 @@
     {
       "bytes": 10354,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/prepare.preferred.response.json",
       "sha256": "929751a51abe19f5e23219a7a89a077db1498b92359ddab0b9da697e3ea6c2bd",
       "surface_kind": "structured"
@@ -48073,7 +47920,7 @@
     {
       "bytes": 11683,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/prepare.russian.response.json",
       "sha256": "03108373827aaacf24cea03dfd300f5c3dd4058ef9fd1502fefa02df4241c821",
       "surface_kind": "structured"
@@ -48081,7 +47928,7 @@
     {
       "bytes": 10854,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/replay.response.json",
       "sha256": "d5bee5fa10d02bd9f9a845c13e39554996fb2ffc98df92b99576b8ac7ed7ea90",
       "surface_kind": "structured"
@@ -48089,7 +47936,7 @@
     {
       "bytes": 2613,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-command/tests/fixtures/source_forms_shadow/source.initial.json",
       "sha256": "032d3acdc89f751943c98a0b450835effdf0bcc8e0c1ddd362bb9e2d90658f3c",
       "surface_kind": "structured"
@@ -48097,7 +47944,7 @@
     {
       "bytes": 5099,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-compiler/README.md",
       "sha256": "5f66b97a3966d7032ba31e781277532ff8fdc66a0dfb3554649c83d2ee8e1bf4",
       "surface_kind": "human"
@@ -48105,7 +47952,7 @@
     {
       "bytes": 6971,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-compiler/tests/fixtures/query-vocabulary.v1.json",
       "sha256": "60353a59a4dad50c3f711d7e8f08e9400866841ea4d169f43824be7dec1864ea",
       "surface_kind": "structured"
@@ -48113,7 +47960,7 @@
     {
       "bytes": 4240,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-compiler/tests/fixtures/tos_corpus_index.min.json",
       "sha256": "2d9edbd88ebee606fc6fc4b06e23b43d4c73ccaed15e2ffb171d7518ead2f3e3",
       "surface_kind": "structured"
@@ -48121,7 +47968,7 @@
     {
       "bytes": 799,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-compiler/tests/fixtures/tos_corpus_index.min.parts/2e/2e0000d72949de54db941f12461ec4c937fe5dabfb05965dcac4a65a9333d3b3.index.json",
       "sha256": "2e0000d72949de54db941f12461ec4c937fe5dabfb05965dcac4a65a9333d3b3",
       "surface_kind": "structured"
@@ -48129,7 +47976,7 @@
     {
       "bytes": 799,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-compiler/tests/fixtures/tos_corpus_index.min.parts/7c/7c20202555656e09ef0bf65781b978545e7adc15787113e5de7525a05643f1a4.index.json",
       "sha256": "7c20202555656e09ef0bf65781b978545e7adc15787113e5de7525a05643f1a4",
       "surface_kind": "structured"
@@ -48137,7 +47984,7 @@
     {
       "bytes": 796,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-compiler/tests/fixtures/tos_corpus_index.min.parts/b3/b38263af03b2783c5f31fabc315438fbdfef0a5135e96c510e99db2df9e1e105.index.json",
       "sha256": "b38263af03b2783c5f31fabc315438fbdfef0a5135e96c510e99db2df9e1e105",
       "surface_kind": "structured"
@@ -48145,7 +47992,7 @@
     {
       "bytes": 4377,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-foundation/README.md",
       "sha256": "f19c4498d5cd4eaa53bcefd80b30154e1b43e40006944fae0c15906733c4d43e",
       "surface_kind": "human"
@@ -48153,7 +48000,7 @@
     {
       "bytes": 3933,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-foundation/generate_unicode.py",
       "sha256": "4b56490fa02a358c91c60fcda6ae3b8e3ba37406cc44b09192b1de8748335c3d",
       "surface_kind": "executable"
@@ -48161,7 +48008,7 @@
     {
       "bytes": 20937,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-ops-mechanics-plan/README.md",
       "sha256": "80a5eeb4ec94dc97e907db558866ca198543f1d7c95a4354e0d7374a600f177e",
       "surface_kind": "human"
@@ -48169,7 +48016,7 @@
     {
       "bytes": 1086,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-ops-mechanics-plan/tests/fixtures/oracle-plan.json",
       "sha256": "2c90a5260638b97cd155de8af595857d2bb0c287ddbb1874f1b1f2618b5d81ba",
       "surface_kind": "structured"
@@ -48177,7 +48024,7 @@
     {
       "bytes": 13732,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-query/tests/fixtures/cmp_knowledge_inspect_python_oracle.json",
       "sha256": "794406fef669db797ec91f5f2c0b2a017f9c756d8b2cf469b295ed56f7ee0e39",
       "surface_kind": "structured"
@@ -48185,7 +48032,7 @@
     {
       "bytes": 4476,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-query/tests/fixtures/cmp_knowledge_search_python_oracle.json",
       "sha256": "4bb42664dd9d6ba3c43a6c967425f1e317120b71cfcfe25f862733277b88cbfb",
       "surface_kind": "structured"
@@ -48193,7 +48040,7 @@
     {
       "bytes": 642,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-query/tests/fixtures/cmp_selected_python_oracle.json",
       "sha256": "d65fce6e667fa4599f9b18c7abe4e937a784235f022dff33b06549a1e0d19d45",
       "surface_kind": "structured"
@@ -48201,7 +48048,7 @@
     {
       "bytes": 2421,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-query/tests/fixtures/generate_unicode_python_oracle.py",
       "sha256": "45e97c6a3d6fdb53e871207ad4c12999369e9e77c61206148b80ed3b035b9e49",
       "surface_kind": "executable"
@@ -48209,7 +48056,7 @@
     {
       "bytes": 3478,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-query/tests/fixtures/native_exploration_temporal_oracle.py",
       "sha256": "4bc366218273d48c16ffa6a5d7f4ebaa0911e5a8ce004de955131d99bfe1f0a9",
       "surface_kind": "executable"
@@ -48217,7 +48064,7 @@
     {
       "bytes": 2789,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-query/tests/fixtures/search_candidate_python_oracle.json",
       "sha256": "e1dfe93fb918ad32f9f2bcdc5632999cc04e1dbbb3ad0dca318429575c32fe40",
       "surface_kind": "structured"
@@ -48225,7 +48072,7 @@
     {
       "bytes": 5992,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-query/tests/fixtures/search_v2_python_oracle.json",
       "sha256": "d925f6f1def5c3992225d9c5d0d0efcd49c47faa8df92655c64ead994f5110d3",
       "surface_kind": "structured"
@@ -48233,7 +48080,7 @@
     {
       "bytes": 9052,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-query/tests/fixtures/selected_lens_python_oracle.py",
       "sha256": "1a4830a52fe098291bda86e48da8b6ac43d4fb735a6589d917d6b43a68ca6218",
       "surface_kind": "executable"
@@ -48241,7 +48088,7 @@
     {
       "bytes": 2181,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-query/tests/fixtures/source_descend_python_oracle.json",
       "sha256": "23d576263b60617c3d5699b2cfddac4a6db333cf95b169dddf943453eeed73d5",
       "surface_kind": "structured"
@@ -48249,7 +48096,7 @@
     {
       "bytes": 146199,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-query/tests/fixtures/unicode_python_oracle.json",
       "sha256": "08aee02bed96e65060b3d9e4cfd94701b5b1a5107bd6f51836130dbac99fb121",
       "surface_kind": "structured"
@@ -48257,7 +48104,7 @@
     {
       "bytes": 1379,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-reader/README.md",
       "sha256": "e90f9a3212d892d5762386b3f8c9cd4036e436249a0941be1d44968f75de03d0",
       "surface_kind": "human"
@@ -48265,7 +48112,7 @@
     {
       "bytes": 1745,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-validation/fixtures/provenance-event-source.json",
       "sha256": "15644812415183f399f74b38076831b253d43142317ea2c8fb8146b39b062425",
       "surface_kind": "structured"
@@ -48273,7 +48120,7 @@
     {
       "bytes": 626,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-validation/fixtures/structured-value-source.json",
       "sha256": "740e1ba5533a1cea3e662f0c277614fba99a975f5f1732c33ffb17f8c07de6ef",
       "surface_kind": "structured"
@@ -48281,7 +48128,7 @@
     {
       "bytes": 18335,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-validation/tests/fixtures/jgb-work.human-forms.json",
       "sha256": "7abcf8fe8b90667ac5ca8e2eb5affe51cc56283fb3ca4f7f26a2e03750f4e25b",
       "surface_kind": "structured"
@@ -48289,7 +48136,7 @@
     {
       "bytes": 2613,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-validation/tests/fixtures/jgb-work.json",
       "sha256": "032d3acdc89f751943c98a0b450835effdf0bcc8e0c1ddd362bb9e2d90658f3c",
       "surface_kind": "structured"
@@ -48297,7 +48144,7 @@
     {
       "bytes": 10973,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-validation/tests/fixtures/scoped-work.human-forms.json",
       "sha256": "412bd2cd80e17dd3e8a2fc43e375a6655f16502090ba024e9ee5bd2760c2b490",
       "surface_kind": "structured"
@@ -48305,7 +48152,7 @@
     {
       "bytes": 2145,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-web-codec/README.md",
       "sha256": "c90f849bb21c0679331da25078ef52bc36060420af1f9207142be2c60f572fe4",
       "surface_kind": "human"
@@ -48313,7 +48160,7 @@
     {
       "bytes": 13592,
       "currentness": "tracked_source_snapshot",
-      "family_id": "unhandled",
+      "family_id": "rust",
       "path": "rust/crates/tos-web-rules/README.md",
       "sha256": "71350cf87480d47f1735b8fd07e816d20e31ec571054ba3c15732de0a80e50ea",
       "surface_kind": "human"
@@ -49447,11 +49294,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 46703,
+      "bytes": 46748,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validate_documentation_cross_corpus.py",
-      "sha256": "316e80bd030c7681e65c2b25f77a4fbdb3631b2c4acd47c22bda4789c66a5754",
+      "sha256": "cf564130dfb504382fbfe0a6d7d19ae64e57919e397755544ade2b1496d1d3c4",
       "surface_kind": "executable"
     },
     {
@@ -49679,11 +49526,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 15052,
+      "bytes": 15741,
       "currentness": "tracked_source_snapshot",
       "family_id": "scripts",
       "path": "scripts/validation_lanes.py",
-      "sha256": "8cf4672ab0b13b2f0adf4163841b5cf58de68fb5d702376ce7b2103a9ebc1c5d",
+      "sha256": "cc12553f0c02510c40fca97176f254573332b2e949e06ad3c9e6998ebb3ef64d",
       "surface_kind": "executable"
     },
     {
@@ -50399,11 +50246,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 15711,
+      "bytes": 16089,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_software_ci.py",
-      "sha256": "7d18e97d99028e4f1d28f8f890cf8aa77040113d51cd3ad3b80205d55b7b77a5",
+      "sha256": "b5fb30cefb707c02fadaec27176d076b9479c691d3d045b0297bac121a04b731",
       "surface_kind": "executable"
     },
     {
@@ -50647,11 +50494,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 19517,
+      "bytes": 21145,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_validation_lanes.py",
-      "sha256": "18c7c6776352ffc41a0e8ccb3952ec5d0e3f556e66b4f15081bd125a613f1eaa",
+      "sha256": "810ee62c6a2836811a96775086de7467ced47da401773718873bdfd690c469fc",
       "surface_kind": "executable"
     },
     {

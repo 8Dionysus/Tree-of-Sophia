@@ -397,6 +397,7 @@
       },
       {
         "label": "test Rust workspace excluding isolated process-cold fixtures",
+        "command_timeout_ms": 900000,
         "command": [
           "cargo", "test", "--workspace", "--locked", "--",
           "--nocapture",

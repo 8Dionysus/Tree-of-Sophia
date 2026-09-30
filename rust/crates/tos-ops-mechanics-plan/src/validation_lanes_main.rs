@@ -123,7 +123,7 @@ fn main() {
         }
     }
     if let Some(sequence) = options.run.as_deref() {
-        let steps = validation_lanes::command_sequence(
+        let steps = validation_lanes::command_sequence_with_budgets(
             &options.root,
             sequence,
             options.python.as_deref().unwrap_or(""),

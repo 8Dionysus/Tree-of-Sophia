@@ -133,6 +133,9 @@ class SoftwareSelectionTests(unittest.TestCase):
         self.assertEqual(len(native_package), 1)
         for operation in ('software build --root', 'software verify --archive', 'software install --archive'):
             self.assertIn(operation, native_package[0]['run'])
+        package_run = native_package[0]['run']
+        self.assertLess(package_run.index('mkdir -p -- "$root/dist"'),
+                        package_run.index('software build --root'))
         self.assertIn('env -i PATH=', native_package[0]['run'])
         self.assertNotIn('pip install', native_package[0]['run'])
         legacy_reference = [s for s in steps if 'tree-of-sophia-legacy-reference.zip' in s.get('run', '')]
@@ -196,6 +199,7 @@ class SoftwareSelectionTests(unittest.TestCase):
             'tests/test_source_catalog_slots.py',
             'tests/test_source_claim_publication.py',
             'tests/test_source_witness_bibliographic_graph.py',
+            'access/tests/source_assembly_fixture.py',
             'ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/artifact-witness.json',
             'ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/rights.json',
             'ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-cbs7771.2026-08-22.v1.json',
@@ -212,6 +216,8 @@ class SoftwareSelectionTests(unittest.TestCase):
             'ToS/source-witnesses/.metadata-transactions/ea6aab06fd43ea735791de0ae5e973950f67900dfd9b70a6af1fee853673705c/',
             'ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/work.json',
             'ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json',
+            'ToS/source-witnesses/agents/friedrich-nietzsche/agent.json',
+            'ToS/source-witnesses/places/chemnitz/place.json',
             'ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/work.json',
             'ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/work.json',
             'ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/work.json',

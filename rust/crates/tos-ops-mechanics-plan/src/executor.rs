@@ -55,12 +55,26 @@ pub fn run(root: &Path, plan: &Plan, limits: Limits, cancel: &AtomicI32) -> io::
 pub fn run_validation_sequence(
     root: &Path,
     python: &str,
-    steps: &[(String, Vec<String>)],
+    steps: &[crate::validation_lanes::BudgetedCommandStep],
     limits: Limits,
     cancel: &AtomicI32,
 ) -> io::Result<i32> {
+    // Only validation selections carry source-owned per-step budgets. Other
+    // executor clients and serialized mechanics plans retain their old shape.
+    let mut commands = Vec::with_capacity(steps.len());
+    let mut timeouts = Vec::with_capacity(steps.len());
+    for (command, timeout_ms) in steps {
+        if timeout_ms.is_some_and(|value| value == 0 || value > 3_600_000) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "invalid per-step validation timeout",
+            ));
+        }
+        commands.push(command.clone());
+        timeouts.push(timeout_ms.map(Duration::from_millis));
+    }
     let plan = selected_plan(
-        steps,
+        &commands,
         "tos_validation_lanes_selected_v1",
         "validation_lane_step",
     );
@@ -71,12 +85,12 @@ pub fn run_validation_sequence(
             &plan,
             limits,
             cancel,
-            native::Style::Validation(python),
+            native::Style::Validation(python, &timeouts),
         )
     }
     #[cfg(not(target_os = "linux"))]
     {
-        let _ = (root, plan, limits, cancel);
+        let _ = (root, plan, limits, cancel, timeouts);
         Err(io::Error::new(
             io::ErrorKind::Unsupported,
             "execution requires Linux subreaper/pidfd custody",
@@ -172,7 +186,7 @@ mod native {
     #[derive(Clone, Copy)]
     pub(super) enum Style<'a> {
         Mechanics,
-        Validation(&'a str),
+        Validation(&'a str, &'a [Option<Duration>]),
         Release,
         Capture,
     }
@@ -649,12 +663,22 @@ mod native {
         let _stderr_mode = Nonblocking::new(2)?;
         let lane_deadline = Instant::now() + limits.lane_wall;
         let mut products: Option<crate::conformance_products::Products> = None;
-        for command in &plan.commands {
-            let deadline = lane_deadline.min(Instant::now() + limits.command_wall);
+        if let Style::Validation(_, timeouts) = style {
+            if timeouts.len() != plan.commands.len() {
+                return Err(error("validation timeout/command count differs"));
+            }
+        }
+        for (index, command) in plan.commands.iter().enumerate() {
+            let explicit_timeout = match style {
+                Style::Validation(_, timeouts) => timeouts[index],
+                _ => None,
+            };
+            let command_wall = explicit_timeout.unwrap_or(limits.command_wall);
+            let deadline = lane_deadline.min(Instant::now() + command_wall);
             let progress = match style {
                 Style::Capture => String::new(),
                 Style::Mechanics => format!("[mechanics-local] {}\n", command.argv.join(" ")),
-                Style::Validation(_) => {
+                Style::Validation(_, _) => {
                     format!("[run] {}: {}\n", command.home, command.argv.join(" "))
                 }
                 Style::Release => {
@@ -662,9 +686,23 @@ mod native {
                 }
             };
             write(1, progress.as_bytes(), deadline, cancel)?;
-            let preparing = matches!(style, Style::Validation(_))
+            if let Some(timeout) = explicit_timeout {
+                write(
+                    1,
+                    format!(
+                        "[budget] {}: command_timeout_ms={} lane_wall_cap_ms={}\n",
+                        command.home,
+                        timeout.as_millis(),
+                        limits.lane_wall.as_millis()
+                    )
+                    .as_bytes(),
+                    deadline,
+                    cancel,
+                )?;
+            }
+            let preparing = matches!(style, Style::Validation(_, _))
                 && crate::conformance_products::preparation(&command.argv);
-            let overrides = if matches!(style, Style::Validation(_))
+            let overrides = if matches!(style, Style::Validation(_, _))
                 && crate::conformance_products::execution(&command.argv)
             {
                 products.as_ref().ok_or_else(|| error("workspace conformance requires successful current-lane Cargo artifact preparation"))?.environment(deadline, cancel)?
@@ -672,7 +710,7 @@ mod native {
                 Vec::new()
             };
             let mut overrides = overrides;
-            if let Style::Validation(python) = style {
+            if let Style::Validation(python, _) = style {
                 if crate::conformance_products::execution(&command.argv) {
                     if python.is_empty() || python.contains('\0') {
                         return Err(error("explicit maintained Python interpreter required"));
@@ -764,7 +802,7 @@ mod native {
                         command.argv.join(" "),
                         status.unwrap()
                     ),
-                    Style::Validation(_) => format!(
+                    Style::Validation(_, _) => format!(
                         "[error] {} failed with exit code {}\n",
                         command.home,
                         status
@@ -793,7 +831,7 @@ mod native {
                 )?;
                 return Ok(match style {
                     Style::Mechanics => 1,
-                    Style::Validation(_) | Style::Release | Style::Capture => {
+                    Style::Validation(_, _) | Style::Release | Style::Capture => {
                         status.unwrap().code().unwrap_or_else(|| {
                             // sys.exit(-signal) from the Python compatibility entry
                             // is observed by its parent as 256-signal on Unix.
@@ -802,7 +840,7 @@ mod native {
                     }
                 });
             }
-            if matches!(style, Style::Validation(_)) {
+            if matches!(style, Style::Validation(_, _)) {
                 write(
                     1,
                     format!("[ok] {}\n", command.home).as_bytes(),

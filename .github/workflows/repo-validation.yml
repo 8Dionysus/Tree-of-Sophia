@@ -296,6 +296,7 @@ jobs:
           PY_LIMITS
           read -r total_cap archive_cap member_cap metadata_cap < "$RUNNER_TEMP/tos-native-package-limits.txt"
           limits=(--max-total-bytes "$total_cap" --max-archive-bytes "$archive_cap" --max-members "$member_cap" --max-metadata-bytes "$metadata_cap")
+          mkdir -p -- "$root/dist"
           "$native" software build --root "$root" --source-ref "${{ github.sha }}" \
             --web-dist "$root/access/web/dist" --output "$archive" \
             --native-access-binary "$native" --native-access-receipt "$RUNNER_TEMP/tos-native-build.json" \
@@ -467,6 +468,7 @@ jobs:
             /tests/test_source_catalog_slots.py
             /tests/test_source_claim_publication.py
             /tests/test_source_witness_bibliographic_graph.py
+            /access/tests/source_assembly_fixture.py
             /ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/artifact-witness.json
             /ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/rights.json
             /ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-cbs7771.2026-08-22.v1.json
@@ -483,6 +485,8 @@ jobs:
             /ToS/source-witnesses/.metadata-transactions/ea6aab06fd43ea735791de0ae5e973950f67900dfd9b70a6af1fee853673705c/
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/work.json
             /ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json
+            /ToS/source-witnesses/agents/friedrich-nietzsche/agent.json
+            /ToS/source-witnesses/places/chemnitz/place.json
             /ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/work.json
             /ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/work.json
             /ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/work.json

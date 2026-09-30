@@ -9,6 +9,7 @@ use std::path::Path;
 
 pub type Issue = (String, String);
 pub type CommandStep = (String, Vec<String>);
+pub type BudgetedCommandStep = (CommandStep, Option<u64>);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ReleasePhase {
@@ -69,6 +70,26 @@ fn valid_command(value: Option<&Value>) -> bool {
                 .iter()
                 .all(|part| part.as_str().is_some_and(|part| !part.is_empty()))
     })
+}
+
+// Per-step deadlines are explicit Rust-lane source inputs, not global defaults.
+fn command_timeout_ms(
+    sequence: &str,
+    step: &serde_json::Map<String, Value>,
+) -> io::Result<Option<u64>> {
+    let Some(value) = step.get("command_timeout_ms") else {
+        return Ok(None);
+    };
+    if sequence != "rust_workspace" {
+        return Err(invalid(
+            "command_timeout_ms is only supported for rust_workspace",
+        ));
+    }
+    let value = value
+        .as_u64()
+        .filter(|value| *value > 0 && *value <= 3_600_000)
+        .ok_or_else(|| invalid("command_timeout_ms must be an integer in 1..=3600000"))?;
+    Ok(Some(value))
 }
 
 /// Ordered mechanical findings matching the maintained validation-lanes
@@ -241,6 +262,9 @@ pub fn validate_manifest(root: &Path) -> io::Result<Vec<Issue>> {
                     format!("{location}.command must be a non-empty string list"),
                 )?;
             }
+            if let Err(error) = command_timeout_ms(sequence_id, step) {
+                issue(&mut issues, MANIFEST, format!("{location}: {error}"))?;
+            }
         }
     }
     Ok(issues)
@@ -254,6 +278,18 @@ pub fn command_sequence(
     sequence_id: &str,
     python: &str,
 ) -> io::Result<Vec<CommandStep>> {
+    Ok(command_sequence_with_budgets(root, sequence_id, python)?
+        .into_iter()
+        .map(|(command, _)| command)
+        .collect())
+}
+
+/// Read commands and their explicit deadlines from the same manifest snapshot.
+pub fn command_sequence_with_budgets(
+    root: &Path,
+    sequence_id: &str,
+    python: &str,
+) -> io::Result<Vec<BudgetedCommandStep>> {
     if python.is_empty() {
         return Err(invalid("invalid Python interpreter path"));
     }
@@ -304,7 +340,10 @@ pub fn command_sequence(
         if parts[0] == "python" {
             parts[0] = python.to_owned();
         }
-        resolved.push((label.to_owned(), parts));
+        resolved.push((
+            (label.to_owned(), parts),
+            command_timeout_ms(sequence_id, step)?,
+        ));
     }
     Ok(resolved)
 }
@@ -357,5 +396,34 @@ pub fn release_steps(
     } else {
         steps.truncate(test_start);
         Ok(steps)
+    }
+}
+
+#[cfg(test)]
+mod timeout_tests {
+    use super::*;
+
+    #[test]
+    fn explicit_command_deadline_refuses_malformed_or_unapplied_budget() {
+        let absent = serde_json::Map::new();
+        assert_eq!(command_timeout_ms("rust_workspace", &absent).unwrap(), None);
+        let budget = serde_json::json!({"command_timeout_ms": 900000});
+        let budget = budget.as_object().unwrap();
+        assert_eq!(
+            command_timeout_ms("rust_workspace", budget).unwrap(),
+            Some(900000)
+        );
+        assert!(command_timeout_ms("software_browser", budget).is_err());
+        for value in [
+            serde_json::Value::Null,
+            serde_json::json!(true),
+            serde_json::json!(0),
+            serde_json::json!(-1),
+            serde_json::json!(900000.0),
+            serde_json::json!(3600001),
+        ] {
+            let step = serde_json::json!({"command_timeout_ms": value});
+            assert!(command_timeout_ms("rust_workspace", step.as_object().unwrap()).is_err());
+        }
     }
 }

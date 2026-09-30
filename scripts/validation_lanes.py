@@ -39,6 +39,17 @@ def _is_command(value: object) -> bool:
     return isinstance(value, list) and bool(value) and all(isinstance(part, str) and part for part in value)
 
 
+def _command_timeout_ms(sequence_id: str, step: dict) -> int | None:
+    if "command_timeout_ms" not in step:
+        return None
+    value = step["command_timeout_ms"]
+    if sequence_id != "rust_workspace":
+        raise ValueError("command_timeout_ms is only supported for rust_workspace")
+    if type(value) is not int or not 1 <= value <= 3_600_000:
+        raise ValueError("command_timeout_ms must be an integer in 1..=3600000")
+    return value
+
+
 def validate_manifest(repo_root: Path | None = None) -> list[Issue]:
     root = repo_root or REPO_ROOT
     issues: list[Issue] = []
@@ -113,6 +124,10 @@ def validate_manifest(repo_root: Path | None = None) -> list[Issue]:
                 issues.append((LANES_PATH.as_posix(), f"{location}.label must be a non-empty string"))
             if not _is_command(command):
                 issues.append((LANES_PATH.as_posix(), f"{location}.command must be a non-empty string list"))
+            try:
+                _command_timeout_ms(sequence_id, step)
+            except ValueError as exc:
+                issues.append((LANES_PATH.as_posix(), f"{location}: {exc}"))
 
     return issues
 
@@ -136,6 +151,7 @@ def command_sequence(sequence_id: str, repo_root: Path | None = None) -> list[Co
         command = step.get("command")
         if not isinstance(label, str) or not _is_command(command):
             raise ValueError(f"{sequence_id} contains an invalid command step")
+        _command_timeout_ms(sequence_id, step)
         command_parts = list(command)
         if command_parts[0] == "python":
             command_parts[0] = sys.executable
