@@ -2109,7 +2109,10 @@ fn profile_snapshot(
         let raw = ctx.file(&path)?.ok_or(SourceCommandError::Unsupported(
             "profile snapshot contract absent",
         ))?;
-        if worker.contract_digest(reference) != Some(Digest256::of_bytes(raw)) {
+        // The selected registry is authored data; only schemas belong to the worker.
+        if reference != PROFILE_REGISTRY
+            && worker.contract_digest(reference) != Some(Digest256::of_bytes(raw))
+        {
             return Err(SourceCommandError::Conflict(
                 "profile snapshot contract changed",
             ));
