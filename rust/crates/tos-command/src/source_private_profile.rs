@@ -714,6 +714,11 @@ fn parse_grant(
     let digest = cmd::record_digest(&digest_basis)?.to_prefixed();
     ctx.check_from_selected_captures(cut, software, components, deadline, cancelled)?;
     let source_access = access.clone();
+    let home = format!(
+        "{}{}/",
+        private_prefix,
+        relative_parts[..relative_parts.len() - 1].join("/")
+    );
     Ok(Grant {
         value,
         digest,
@@ -721,11 +726,7 @@ fn parse_grant(
         profile,
         profile_type_id,
         private_prefix: private_prefix.to_owned(),
-        home: format!(
-            "{}{}/",
-            private_prefix,
-            relative_parts[..relative_parts.len() - 1].join("/")
-        ),
+        home,
         form_ids,
         operations,
         fields,
