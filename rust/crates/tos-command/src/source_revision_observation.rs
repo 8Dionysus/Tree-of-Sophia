@@ -39,6 +39,7 @@ pub(crate) struct CommittedRecordObservation<'a> {
     components: &'a SoftwareComponentSelectionV1,
     fence: tx::WorkCorpusFence<'a>,
     binding: CommittedRecordBinding,
+    original_ctx: CommandContext,
     selected_read_bytes: Cell<usize>,
     selected_read_rows: Cell<usize>,
     original_read_bytes: Cell<usize>,
@@ -56,7 +57,7 @@ pub(crate) fn observe_committed<'a>(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<CommittedRecordObservation<'a>> {
     let fence = tx::WorkCorpusFence::hold_existing(fs, deadline, cancelled)?;
-    let binding = authenticate(
+    let (binding, original_ctx) = authenticate(
         fs, ctx, current, original, software, components, deadline, cancelled,
     )?;
     fence.verify(deadline, cancelled)?;
@@ -69,6 +70,7 @@ pub(crate) fn observe_committed<'a>(
         components,
         fence,
         binding,
+        original_ctx,
         selected_read_bytes: Cell::new(0),
         selected_read_rows: Cell::new(0),
         original_read_bytes: Cell::new(0),
@@ -92,6 +94,108 @@ impl CommittedRecordObservation<'_> {
     pub(crate) fn binding(&self) -> &CommittedRecordBinding {
         &self.binding
     }
+    pub(crate) fn original_cut(&self) -> &CorpusCutReader {
+        self.original
+    }
+    pub(crate) fn current_cut(&self) -> &CorpusCutReader {
+        self.current
+    }
+    /// Independently authenticated against original_cut, including its actual
+    /// revision identity. A historical resolver needs a worker for this cut.
+    pub(crate) fn original_context(&self) -> &CommandContext {
+        &self.original_ctx
+    }
+    pub(crate) fn current_context(&self) -> &CommandContext {
+        self.ctx
+    }
+
+    pub(crate) fn read_current_optional(
+        &self,
+        path: &RelativePath,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<Vec<u8>>> {
+        self.verify_read_boundary(path, deadline, cancelled)?;
+        if self.current.current().member(path).is_some() {
+            return self.read_selected(path, deadline, cancelled).map(Some);
+        }
+        let rows =
+            self.selected_read_rows
+                .get()
+                .checked_add(1)
+                .ok_or(SourceCommandError::Unsupported(
+                    "committed Record optional row overflow",
+                ))?;
+        if rows > 2048 {
+            return Err(SourceCommandError::Unsupported(
+                "committed Record optional row budget",
+            ));
+        }
+        self.selected_read_rows.set(rows);
+        if read(self.fs, path.as_str(), deadline, cancelled)?.is_some() {
+            return Err(SourceCommandError::Conflict(
+                "committed Record current manifest absence differs",
+            ));
+        }
+        self.verify_read_boundary(path, deadline, cancelled)?;
+        Ok(None)
+    }
+
+    pub(crate) fn read_original_optional(
+        &self,
+        path: &RelativePath,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<Vec<u8>>> {
+        self.verify_read_boundary(path, deadline, cancelled)?;
+        if self.original.current().member(path).is_some() {
+            return self
+                .read_original_selected(path, deadline, cancelled)
+                .map(Some);
+        }
+        let rows =
+            self.original_read_rows
+                .get()
+                .checked_add(1)
+                .ok_or(SourceCommandError::Unsupported(
+                    "committed Record original optional row overflow",
+                ))?;
+        if rows > 2048 {
+            return Err(SourceCommandError::Unsupported(
+                "committed Record original optional row budget",
+            ));
+        }
+        self.original_read_rows.set(rows);
+        // Absence is selected from the authenticated complete historical
+        // manifest. A later live member cannot rewrite that namespace.
+        self.verify_read_boundary(path, deadline, cancelled)?;
+        Ok(None)
+    }
+
+    fn verify_read_boundary(
+        &self,
+        path: &RelativePath,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        active(deadline, cancelled)?;
+        if !path.as_str().starts_with("ToS/") {
+            return Err(SourceCommandError::Denied(
+                "committed Record optional authored path",
+            ));
+        }
+        self.fence.verify(deadline, cancelled)?;
+        self.fs.current_context(self.ctx, deadline, cancelled)?;
+        if !snapshot_matches(
+            &PublicationSnapshot::select(self.fs, deadline, cancelled)?,
+            &self.binding.current_publication,
+        )? {
+            return Err(SourceCommandError::Conflict(
+                "committed Record optional publication changed",
+            ));
+        }
+        Ok(())
+    }
 
     pub(crate) fn verify_current(
         &self,
@@ -99,7 +203,7 @@ impl CommittedRecordObservation<'_> {
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
         self.fence.verify(deadline, cancelled)?;
-        let current = authenticate(
+        let (current, original_ctx) = authenticate(
             self.fs,
             self.ctx,
             self.current,
@@ -109,7 +213,12 @@ impl CommittedRecordObservation<'_> {
             deadline,
             cancelled,
         )?;
-        if current != self.binding {
+        if current != self.binding
+            || original_ctx.base_revision != self.original_ctx.base_revision
+            || original_ctx.files != self.original_ctx.files
+            || original_ctx.configuration_raw != self.original_ctx.configuration_raw
+            || original_ctx.request_raw != self.original_ctx.request_raw
+        {
             return Err(SourceCommandError::Conflict(
                 "committed Record observation changed",
             ));
@@ -185,8 +294,7 @@ impl CommittedRecordObservation<'_> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Vec<u8>> {
-        active(deadline, cancelled)?;
-        self.fence.verify(deadline, cancelled)?;
+        self.verify_read_boundary(path, deadline, cancelled)?;
         let member = self
             .original
             .current()
@@ -261,7 +369,7 @@ fn authenticate(
     components: &SoftwareComponentSelectionV1,
     deadline: Instant,
     cancelled: &AtomicBool,
-) -> SourceCommandResult<CommittedRecordBinding> {
+) -> SourceCommandResult<(CommittedRecordBinding, CommandContext)> {
     ctx.check_from_selected_captures(current, software, components, deadline, cancelled)?;
     fs.current_context(ctx, deadline, cancelled)?;
     let (config, family) = revision::configuration(ctx)?;
@@ -451,28 +559,31 @@ fn authenticate(
     physical::complete_current_cut(fs, current, &snapshot, deadline, cancelled)?;
     physical::software_current(fs, ctx, deadline, cancelled)?;
     fs.current_context(ctx, deadline, cancelled)?;
-    Ok(CommittedRecordBinding {
-        transaction_id: transaction,
-        record_id: cmd::text(&now_subject, "id")?.to_owned(),
-        family,
-        source_path: RelativePath::parse(source)
-            .map_err(|_| SourceCommandError::Invalid("committed Record source path"))?,
-        archive_path: RelativePath::parse(cmd::text(receipt, "archive_path")?)
-            .map_err(|_| SourceCommandError::Invalid("committed Record archive path"))?,
-        original: OriginalRecordBinding {
-            raw: before_raw.clone(),
-            sha256: Digest256::of_bytes(before_raw),
-            subject: before_subject,
+    Ok((
+        CommittedRecordBinding {
+            transaction_id: transaction,
+            record_id: cmd::text(&now_subject, "id")?.to_owned(),
+            family,
+            source_path: RelativePath::parse(source)
+                .map_err(|_| SourceCommandError::Invalid("committed Record source path"))?,
+            archive_path: RelativePath::parse(cmd::text(receipt, "archive_path")?)
+                .map_err(|_| SourceCommandError::Invalid("committed Record archive path"))?,
+            original: OriginalRecordBinding {
+                raw: before_raw.clone(),
+                sha256: Digest256::of_bytes(before_raw),
+                subject: before_subject,
+            },
+            current: CurrentRecordBinding {
+                raw: now_raw.clone(),
+                sha256: Digest256::of_bytes(now_raw),
+                subject: now_subject,
+            },
+            manifest_sha256: Digest256::from_prefixed(&manifest)
+                .map_err(|_| SourceCommandError::Invalid("committed Record manifest digest"))?,
+            original_publication: base_publication,
+            current_publication: terminal,
+            authorization: plan.authorization,
         },
-        current: CurrentRecordBinding {
-            raw: now_raw.clone(),
-            sha256: Digest256::of_bytes(now_raw),
-            subject: now_subject,
-        },
-        manifest_sha256: Digest256::from_prefixed(&manifest)
-            .map_err(|_| SourceCommandError::Invalid("committed Record manifest digest"))?,
-        original_publication: base_publication,
-        current_publication: terminal,
-        authorization: plan.authorization,
-    })
+        original_ctx,
+    ))
 }
