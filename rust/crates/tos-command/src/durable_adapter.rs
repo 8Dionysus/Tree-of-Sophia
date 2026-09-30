@@ -1105,6 +1105,12 @@ impl DurablePgCoordinator {
         Ok(Self { client })
     }
 
+    /// Internal owner transport keeps its already configured PostgreSQL 16
+    /// connection and SQL ceilings rather than opening an ambient connection.
+    pub(crate) fn from_configured_client(client: Client) -> Self {
+        Self { client }
+    }
+
     pub fn backend_pid(&mut self) -> DurableResult<i32> {
         Ok(self
             .client
@@ -2078,7 +2084,7 @@ impl DurablePgCoordinator {
         self.cold_verify_cut_with_budget(store, domain, None)
     }
 
-    fn cold_verify_cut_with_budget(
+    pub(crate) fn cold_verify_cut_with_budget(
         &mut self,
         store: &SegmentStore,
         domain: &str,
@@ -2149,6 +2155,26 @@ impl DurablePgCoordinator {
             tx.query_one(
                 "SELECT set_config('statement_timeout',$1,true)",
                 &[&format!("{}ms", profile.max_sql_statement_ms)],
+            )?;
+        }
+        if let Some((deadline, cancelled)) = requested {
+            check_cold_deadline(deadline, cancelled)?;
+            let millis = deadline
+                .saturating_duration_since(Instant::now())
+                .as_millis()
+                .min(60_000);
+            if millis == 0 {
+                return Err(DurableError::Refused(
+                    "cold verification deadline exhausted",
+                ));
+            }
+            tx.query_one(
+                "SELECT set_config('statement_timeout',$1,true)",
+                &[&format!("{millis}ms")],
+            )?;
+            tx.query_one(
+                "SELECT set_config('lock_timeout',$1,true)",
+                &[&format!("{}ms", millis.min(5000))],
             )?;
         }
         let domain_row = tx.query_one(
