@@ -1691,7 +1691,23 @@ def _run_selected_native_owner(owner_config: Path, invocation_path: Path, reques
                 raise ValueError('native owner command refused' + (': ' + reason if reason else ''))
             output.seek(0)
             response = _json_object(output.read(MAX_COMMAND_BYTES + 1))
-            if response.get('schema_version') != ('tos_collection_membership_result_v1' if collection else 'tos_local_native_claim_result_v1' if claim else 'tos_edition_item_result_v1' if item else 'tos_local_native_source_result_v1' if source else 'tos_local_native_alignment_result_v1'):
+            expected_result = ('tos_collection_membership_result_v1' if collection else
+                               'tos_local_native_claim_result_v1' if claim else
+                               'tos_edition_item_result_v1' if item else
+                               'tos_expression_edition_result_v1' if schema == 'tos_local_expression_edition_owner_v1' else
+                               'tos_expression_responsibility_result_v1' if schema == 'tos_local_expression_responsibility_owner_v1' else
+                               'tos_local_native_source_result_v1' if source else
+                               'tos_local_native_alignment_result_v1')
+            if publication and publication_profile == 'tos_local_native_metadata_publication_invocation_v1':
+                expected_result = {
+                    'describe-metadata-execution': 'tos_local_native_metadata_execution_v1',
+                    'reviewed-metadata-execution-bootstrap': 'tos_local_native_metadata_publication_result_v1',
+                    'publish-initial-metadata': 'tos_local_native_metadata_publication_result_v1',
+                }.get(request.get('action'))
+                if (expected_result is None or response.get('grants_admission') is not False
+                        or not isinstance(response.get('result'), dict)):
+                    raise ValueError('native Metadata result profile')
+            if response.get('schema_version') != expected_result:
                 raise ValueError('native owner result profile')
             return response
     finally:
