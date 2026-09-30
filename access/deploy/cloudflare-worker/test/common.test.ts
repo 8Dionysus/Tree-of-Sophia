@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { boundedClusters, boundedGraph, listParam, sourceRefs } from "../src/common.ts";
+import {listParam} from "../src/common.ts";
+import {classicBoundedClusters as boundedClusters,classicBoundedGraph as boundedGraph,classicSourceRefs as sourceRefs} from "../src/worker-classic.ts";
 
 test("boundedGraph preserves projection order and keeps endpoint-closed edges", () => {
   const nodes = [
