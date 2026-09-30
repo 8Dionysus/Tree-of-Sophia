@@ -62,7 +62,8 @@ export function filterFileScopedRights(rights:Item[],componentIds:Set<string>,no
 }
 
 // Temporary offline-only six-kind parity producer. Its unique File/Item
-// controls are held until the native six-kind owner executes their transfer.
+// body stays for remaining positive-layer, legacy-aggregate, no-context manifest
+// and truncated-ancestor controls until their matching native execution.
 export function sourceDescend(navigation: Item, nodeId: string, maxDepth: number, limit: number): Item {
   const nodes = objectArray(navigation.nodes);
   const nodesById = new Map(nodes.map((node) => [stringValue(node.node_id), node]));
