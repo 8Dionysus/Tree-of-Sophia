@@ -110,6 +110,7 @@ fn capability_requires_real_owner_selection() {
     let input = br#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25"}}
 {"jsonrpc":"2.0","method":"notifications/initialized"}
 {"jsonrpc":"2.0","id":2,"method":"tools/list"}
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"tos_zarathustra_reading_search","arguments":{"query":"x"}}}
 "#;
     let mut output = Vec::new();
     run_io(Cursor::new(input), &mut output, &executor, profile()).unwrap();
@@ -117,7 +118,7 @@ fn capability_requires_real_owner_selection() {
         .unwrap()
         .lines()
         .collect::<Vec<_>>();
-    assert_eq!(lines.len(), 2);
+    assert_eq!(lines.len(), 3);
     let document = parse_json(
         lines[1].as_bytes(),
         JsonMode::PublishedStrict,
@@ -132,17 +133,44 @@ fn capability_requires_real_owner_selection() {
         .unwrap()
         .as_array()
         .unwrap();
+    let names = tools
+        .iter()
+        .map(|tool| {
+            tool.object_get("name")
+                .and_then(tos_foundation::JsonValue::as_str)
+                .unwrap()
+                .to_owned()
+        })
+        .collect::<std::collections::BTreeSet<_>>();
     assert_eq!(
-        tools.len(),
-        1,
-        "only software contracts need no source owner"
+        names,
+        std::collections::BTreeSet::from([
+            tos_access::exploration_contracts::OPERATION.to_owned(),
+            tos_access::reading::MCP_TOOL.to_owned(),
+        ]),
+        "only packaged contracts and the unavailable reading capability need no data owner"
     );
+    let reading = parse_json(
+        lines[2].as_bytes(),
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    let capability = reading
+        .root()
+        .object_get("result")
+        .unwrap()
+        .object_get("structuredContent")
+        .unwrap();
     assert_eq!(
-        tools[0]
-            .object_get("name")
-            .and_then(tos_foundation::JsonValue::as_str),
-        Some(tos_access::exploration_contracts::OPERATION)
+        capability.object_get("available"),
+        Some(&tos_foundation::JsonValue::Bool(false))
     );
+    assert!(matches!(
+        capability.object_get("result"),
+        Some(tos_foundation::JsonValue::Null)
+    ));
+    assert!(executor.calls.lock().unwrap().is_empty());
 }
 
 #[test]
@@ -807,7 +835,7 @@ fn mcp_bounds_metadata_and_refusal_frames_before_output() {
 }
 
 #[test]
-fn exploration_software_contracts_survive_unselected_data_and_all_native_wires() {
+fn exploration_software_contracts_survive_unrelated_data_selection_and_all_native_wires() {
     use tos_foundation::{CanonicalProfile, JsonValue, canonical_bytes_v1};
     let executor = Synthetic {
         allowed: false,
@@ -966,12 +994,20 @@ fn exploration_software_contracts_survive_unselected_data_and_all_native_wires()
         mcp_profile,
     )
     .unwrap();
-    // The actual installed entrypoint defaults to NoOwner and still serves
-    // packaged software contracts; an unrelated data root cannot replace them.
+    // A valid unrelated data selection cannot replace software-owned schemas.
+    let data_root = std::env::temp_dir().join(format!(
+        "tos-unrelated-empty-data-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    std::fs::create_dir(&data_root).unwrap();
     let mut child = std::process::Command::new(env!("CARGO_BIN_EXE_tos-access"))
         .arg("mcp")
         .env_remove("TOS_RELEASE_ROOT")
-        .env("TOS_DATA_ROOT", "/unselected-data-cannot-own-software")
+        .env("TOS_DATA_ROOT", &data_root)
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
@@ -984,6 +1020,7 @@ fn exploration_software_contracts_survive_unselected_data_and_all_native_wires()
         .write_all(input.as_bytes())
         .unwrap();
     let installed = child.wait_with_output().unwrap();
+    std::fs::remove_dir(&data_root).unwrap();
     assert!(
         installed.status.success(),
         "{}",
