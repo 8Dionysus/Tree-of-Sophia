@@ -117,7 +117,7 @@ export async function executePublishedFixtureLens(db: D1Database, spec: unknown)
 export async function executeFixturePythonLens(graph:unknown,spec:unknown):Promise<FixtureLensReply> {
   return JSON.parse(execFileSync('python3',['-B','-c',
     "import sys,json;sys.path.insert(0,'access/src');from tos_access.knowledge import execute_knowledge_lens;p=json.load(sys.stdin);print(json.dumps(execute_knowledge_lens(p['graph'],p['spec'])))"],
-    {cwd:fileURLToPath(new URL('../../../../',import.meta.url)),input:JSON.stringify({graph,spec}),encoding:'utf8'}));
+    {cwd:fileURLToPath(new URL('../../../../',import.meta.url)),input:JSON.stringify({graph,spec}),encoding:'utf8',maxBuffer:32*1024*1024}));
 }
 
 /** Exact Python oracle for publication-bound cursors, not in-memory cursors. */

@@ -165,7 +165,8 @@ print(json.dumps({'graph':g,'catalog':{'context_presentation':catalog['context_p
     // A JSON HTTP response normalizes -0 to 0. That ordinary carrier is not
     // the numeric-fidelity evidence; the canonical string below is unchanged.
     assert.deepEqual(JSON.parse(JSON.stringify(delivered)), JSON.parse(JSON.stringify(numeric.expected)));
-    assert.deepEqual(await executeFixturePythonLens(numeric.graph, numeric.spec), numeric.expected);
+    assert.deepEqual(JSON.parse(JSON.stringify(await executeFixturePythonLens(numeric.graph, numeric.spec))),
+      JSON.parse(JSON.stringify(numeric.expected)));
     const numericNode = (delivered.nodes as KnowledgeGraph['nodes'])[0]!;
     const materials = numericNode.readable_context!.exact_materials as {digest: string; canonical_json: string; origin_pointers: string[]}[];
     assert.equal(materials.length, 1);

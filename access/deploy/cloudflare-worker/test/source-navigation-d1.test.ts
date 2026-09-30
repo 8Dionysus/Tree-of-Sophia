@@ -27,6 +27,7 @@ class FixtureCore(ToSAccessCore):
     def __init__(self,navigation):
         self.navigation=navigation
         self._prepared_reader=None
+        self._data_guard=None
     def _query_store(self): return None
     def index(self): return {'source_navigation':self.navigation}
 request=json.load(sys.stdin)

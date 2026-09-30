@@ -7,10 +7,10 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
 import {createHash} from 'node:crypto';
-import {build} from 'esbuild';
 import {Miniflare,convertV4MiniflareOptions} from 'miniflare';
 import {knowledgeSearchD1,knowledgeSearchD1Indexed} from '../src/knowledge-store.ts';
 import {nativePacketJson} from '../src/native-lens.ts';
+import {publishedNodeFixtureWorker,publishedWorkerFixtureModules} from './native-lens-fixture.ts';
 
 const repo=fileURLToPath(new URL('../../../../',import.meta.url));
 const python=(code,input)=>JSON.parse(execFileSync('python3',['-B','-c',
@@ -82,8 +82,7 @@ function database(version=9){
  const db={prepare(sql){let args=[];return {bind(...values){args=values;return this;},async all(){const results=sqlite.prepare(sql).all(...args);statements.push({sql,args,results});hook.after?.(sql,args);return {results,meta:{rows_read:0}};},async first(){const result=sqlite.prepare(sql).get(...args)??null;statements.push({sql,args,results:result?[result]:[]});hook.after?.(sql,args);return result;}};}};
  return {db,sqlite,statements,hook,close(){sqlite.close();}};
 }
-let workerPromise;
-async function worker(){workerPromise??=build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'}).then(async result=>(await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'))).default);return workerPromise;}
+const worker=publishedNodeFixtureWorker;
 async function response(database,mode='legacy',query='',extra={},method='GET'){
  const params=new URLSearchParams({mode,query,...extra});
  return (await worker()).fetch(new Request('https://tos.test/api/knowledge/search?'+params,{method}),{DB:database.db,ASSETS:{fetch(){throw new Error('search must not fetch static or full-graph fallback');}}},{});
@@ -523,11 +522,11 @@ test('selection plans retain linear legacy carrier scan plus primary-key lookup 
  }finally{d.close();}
 });
 test('real D1 Worker first/continuation native bytes survive isolate restart without cache or schema writes',async()=>{
- const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
+ const workerModules=await publishedWorkerFixtureModules();
  const directory=mkdtempSync(join(tmpdir(),'tos-native-search-d1-'));let firstRaw,cursor;
  const expected=oracle('indexed','αβγ',{limit:1});
  try{for(let launch=0;launch<2;launch++){
-  const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:bundle.outputFiles[0].text,d1Databases:['DB'],resourcePersistencePath:directory}));
+  const mf=new Miniflare(convertV4MiniflareOptions({...workerModules,d1Databases:['DB'],resourcePersistencePath:directory}));
   try{const db=await mf.getD1Database('DB');
    if(launch===0){const statements=[...schema.split(';').filter(value=>value.trim()).map(sql=>db.prepare(sql)),
     ...migration.replace(/^--.*$/gm,'').trim().split(/\n(?=CREATE |INSERT )/).map(sql=>db.prepare(sql)),

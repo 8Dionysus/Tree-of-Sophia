@@ -417,6 +417,7 @@ jobs:
       - name: Checkout Rust sources and validation route
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
+          # Keep literal external include_* inputs for selected Rust crates/tests explicit.
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /Cargo.toml
@@ -425,15 +426,44 @@ jobs:
             /rust/
             /tests/conformance/rust/
             /access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json
+            /access/tests/fixtures/knowledge-contract/ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.json
+            /access/tests/test_access_contract.py
             /access/src/
             /access/deploy/cloudflare-worker/migrations/0001-exploration.sql
+            /access/contracts/exploration-request.v1.schema.json
+            /access/contracts/exploration-request.v2.schema.json
+            /access/contracts/exploration-result.v1.schema.json
+            /access/contracts/exploration-result.v2.schema.json
+            /access/contracts/knowledge-api.v1.json
+            /access/contracts/knowledge-graph.v1.schema.json
+            /access/contracts/knowledge-search-indexed.v2.schema.json
+            /access/contracts/lens-result.v1.schema.json
+            /access/contracts/lens-spec.v1.schema.json
+            /access/contracts/readable-context.v1.schema.json
+            /access/contracts/runtime-data.v1.json
+            /access/contracts/runtime-manifest.v1.json
+            /access/contracts/source-read.v1.schema.json
+            /access/contracts/temporal-comparison-request.v1.schema.json
+            /access/contracts/temporal-comparison-result.v1.schema.json
+            /access/contracts/web-actions.v1.json
             /ToS/contracts/
             /scripts/tos_corpus_index_common.py
             /scripts/validation_lanes.py
             /scripts/verify_rust_reader_install.py
             /scripts/verify_rust_mechanics_install.py
             /scripts/run_mechanics_local_tests.py
+            /scripts/agents_route_harness.py
+            /scripts/build_agents_route_currentness.py
+            /scripts/release_check.py
+            /scripts/software_ci.py
+            /scripts/validate_active_naming.py
+            /scripts/validate_mechanics_topology.py
+            /scripts/validate_nested_agents.py
             /ToS/doctrine/semantic-interchange/
+            /ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-request.v2.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/requests/fate.concept-request.v2.json
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/edition.json
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/
             !/ToS/source-witnesses/**/payload/
