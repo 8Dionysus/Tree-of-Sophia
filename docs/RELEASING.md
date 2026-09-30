@@ -33,9 +33,30 @@ owner surfaces.
    `python scripts/validation_lanes.py --run software_browser`.
    Browser tests require Playwright and Chromium. They create their own small
    dataset. `access/web/dist` remains an ignored build output.
-4. For Worker code, run its locked dependency install, `npm run typecheck
+4. For Worker code, first prepare the matching rules from this exact checkout:
+
+   ```sh
+   rustup toolchain install 1.98.1 --profile minimal --target wasm32-unknown-unknown
+   cargo +1.98.1 build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown
+   rules_target_dir="${CARGO_TARGET_DIR:-target}"
+   bindgen_dir="$(mktemp -d)"
+   curl --fail --location --silent --show-error \
+     'https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.128/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl.tar.gz' \
+     --output "$bindgen_dir/wasm-bindgen.tar.gz"
+   printf '%s  %s\n' 'b51f0208fdff83515a787bd8ab9ac5865ed84dabb66d0c709957bb59793c645f' "$bindgen_dir/wasm-bindgen.tar.gz" | sha256sum --check --status
+   tar -xzf "$bindgen_dir/wasm-bindgen.tar.gz" -C "$bindgen_dir"
+   "$bindgen_dir/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl/wasm-bindgen" \
+     --target web --out-name tos_web_rules --out-dir access/deploy/cloudflare-worker/generated \
+     "$rules_target_dir/wasm32-unknown-unknown/release/tos_web_rules.wasm"
+   rm -rf "$bindgen_dir"
+   ```
+
+   This verified Linux x86_64 recipe produces the matching JavaScript, WASM and
+   two declaration files required by the Worker bootstrap and Node preloader.
+   Then run `npm ci --prefix access/deploy/cloudflare-worker`, `npm run typecheck
    --prefix access/deploy/cloudflare-worker` and `npm test --prefix
-   access/deploy/cloudflare-worker`. These checks run against local fixtures.
+   access/deploy/cloudflare-worker`. These checks run against local fixtures;
+   the Worker CI job prepares its own rules independently of the software job.
 5. Build and verify the native installable candidate from a clean reviewed
    commit. Prepare the locked `tos-access` binary with the pinned toolchain and
    its exact nine-field `tos_native_access_build_v1` build receipt. Prepare the
