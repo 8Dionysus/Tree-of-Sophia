@@ -619,7 +619,7 @@ impl WorkerSourceRights {
             .map(|r| (*r).clone())
             .collect();
         let aggregates = aggregate_rows(&records);
-        let positive = aggregates.iter().filter(|r| positive(r)).count();
+        let positive_count = aggregates.iter().filter(|r| positive(r)).count();
         let reviewed = aggregates
             .iter()
             .filter(|r| {
@@ -642,7 +642,7 @@ impl WorkerSourceRights {
         };
         let posture = if reviewed > 0 {
             "reviewed_reuse_route"
-        } else if positive > 0 {
+        } else if positive_count > 0 {
             "candidate_requires_human_review"
         } else if !records.is_empty() {
             "not_cleared"
@@ -655,7 +655,7 @@ impl WorkerSourceRights {
         } else if aggregates.is_empty() {
             gaps.push("no unambiguous aggregate rights assessment");
         }
-        if positive > 0 && reviewed == 0 {
+        if positive_count > 0 && reviewed == 0 {
             gaps.push("positive rights route exists but has no accepted human review");
         }
         if links == 0 {
