@@ -846,6 +846,9 @@ pub mod antonovsky_structural;
 
 pub mod native_prepare;
 
+/// Finite owned external-tool I/O for exact native producers.
+pub mod owned_native_child;
+
 pub mod zarathustra_lexical;
 pub mod zarathustra_lexical_schema;
 pub mod zarathustra_lexical_validate;

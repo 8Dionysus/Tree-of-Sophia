@@ -6,10 +6,18 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
     io::Read,
+    os::{fd::AsRawFd, unix::fs::MetadataExt},
     path::{Path, PathBuf},
     process::Command,
+    sync::{
+        Arc,
+        atomic::{AtomicU64, Ordering},
+    },
+    time::{Duration, Instant},
 };
 use tos_foundation::{Digest256, JsonLimits, JsonMode, emit_python_compact_json, parse_json};
+mod output;
+use output::OutputOwner;
 pub type Result<T> = std::result::Result<T, String>;
 pub const V1: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1";
 pub const V2: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-structural-paragraph-v2";
@@ -31,26 +39,142 @@ fn n(v: &Value) -> usize {
 fn a(v: &Value) -> &[Value] {
     v.as_array().map(Vec::as_slice).unwrap_or(&[])
 }
-fn resolve(root: &Path, r: &Path) -> Result<PathBuf> {
-    let root = root.canonicalize().map_err(|e| e.to_string())?;
-    let p = root.join(r).canonicalize().map_err(|e| e.to_string())?;
-    if !p.starts_with(&root) {
-        return fail("source reference escapes root");
+/// Finite independently retained source custody, with no Research dependency.
+pub const SOURCE_READ_CAP_BYTES: u64 = 512 * 1024 * 1024;
+#[derive(Debug)]
+struct SourceInput {
+    root: PathBuf,
+    directory: fs::File,
+    bytes: Arc<AtomicU64>,
+}
+impl SourceInput {
+    fn new(root: &Path) -> Result<Self> {
+        Ok(Self {
+            root: root.to_owned(),
+            directory: tos_fd_open::open_absolute_directory(root).map_err(|e| e.to_string())?,
+            bytes: Arc::new(AtomicU64::new(0)),
+        })
     }
-    Ok(p)
+    fn from_directory(root: &Path, directory: &fs::File) -> Result<Self> {
+        if !root.is_absolute()
+            || root.components().any(|c| {
+                !matches!(
+                    c,
+                    std::path::Component::RootDir | std::path::Component::Normal(_)
+                )
+            })
+        {
+            return fail("source root label is not a normalized absolute path");
+        }
+        Ok(Self {
+            root: root.to_owned(),
+            directory: tos_fd_open::reopen_directory(directory).map_err(|e| e.to_string())?,
+            bytes: Arc::new(AtomicU64::new(0)),
+        })
+    }
+    fn sibling(&self, root: &Path) -> Result<Self> {
+        let mut source = Self::new(root)?;
+        source.bytes = self.bytes.clone();
+        Ok(source)
+    }
+    fn open(&self, reference: &str) -> Result<fs::File> {
+        let path = Path::new(reference);
+        let path = if path.is_absolute() {
+            path.strip_prefix(&self.root)
+                .map_err(|_| "source reference escapes held root")?
+        } else {
+            path
+        };
+        let parent = path.parent().ok_or("source parent")?;
+        let mut directory =
+            tos_fd_open::reopen_directory(&self.directory).map_err(|e| e.to_string())?;
+        for part in parent.components() {
+            directory = tos_fd_open::open_directory_at(&directory, Path::new(part.as_os_str()))
+                .map_err(|e| e.to_string())?;
+        }
+        let file = tos_fd_open::open_regular_at(
+            &directory,
+            Path::new(path.file_name().ok_or("source leaf")?),
+        )
+        .map_err(|e| e.to_string())?;
+        if file.metadata().map_err(|e| e.to_string())?.len() > 64 * 1024 * 1024 {
+            return fail("source per-file byte cap");
+        }
+        Ok(file)
+    }
+    fn check_path(&self, root: &Path) -> Result<()> {
+        if self.root != root {
+            return fail("source caller root differs from held selection");
+        }
+        Ok(())
+    }
+    fn identity(&self) -> Result<(u64, u64)> {
+        let stat = self.directory.metadata().map_err(|e| e.to_string())?;
+        Ok((stat.dev(), stat.ino()))
+    }
 }
-fn read(root: &Path, r: &str) -> Result<Vec<u8>> {
-    fs::read(resolve(root, Path::new(r))?).map_err(|e| format!("{r}: {e}"))
+fn tick(deadline: Instant) -> Result<()> {
+    if Instant::now() >= deadline {
+        return fail("structural whole deadline");
+    }
+    Ok(())
 }
-fn load(root: &Path, r: &str) -> Result<Value> {
-    serde_json::from_slice(&read(root, r)?).map_err(|e| format!("{r}: {e}"))
+fn default_deadline() -> Instant {
+    Instant::now() + Duration::from_secs(180)
 }
-fn loadl(root: &Path, r: &str) -> Result<Vec<Value>> {
-    std::str::from_utf8(&read(root, r)?)
+fn read_until(deadline: Instant, source: &SourceInput, r: &str) -> Result<Vec<u8>> {
+    tick(deadline)?;
+    let mut file = source.open(r)?;
+    read_held_until(deadline, source, &mut file, r)
+}
+fn read_held_until(
+    deadline: Instant,
+    source: &SourceInput,
+    file: &mut fs::File,
+    r: &str,
+) -> Result<Vec<u8>> {
+    tick(deadline)?;
+    let mut raw = Vec::new();
+    let mut buf = [0u8; 65536];
+    loop {
+        tick(deadline)?;
+        let count = file.read(&mut buf).map_err(|e| format!("{r}: {e}"))?;
+        if count == 0 {
+            break;
+        }
+        if count > (64usize * 1024 * 1024).saturating_sub(raw.len()) {
+            return fail("source per-file byte cap");
+        }
+        source
+            .bytes
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
+                n.checked_add(count as u64)
+                    .filter(|n| *n <= SOURCE_READ_CAP_BYTES)
+            })
+            .map_err(|_| "source aggregate byte cap")?;
+        raw.extend_from_slice(&buf[..count]);
+    }
+    tick(deadline)?;
+    Ok(raw)
+}
+fn load_until(deadline: Instant, root: &SourceInput, r: &str) -> Result<Value> {
+    let raw = read_until(deadline, root, r)?;
+    let value = serde_json::from_slice(&raw).map_err(|e| format!("{r}: {e}"))?;
+    tick(deadline)?;
+    Ok(value)
+}
+fn loadl_until(deadline: Instant, root: &SourceInput, r: &str) -> Result<Vec<Value>> {
+    let raw = read_until(deadline, root, r)?;
+    let mut values = Vec::new();
+    for line in std::str::from_utf8(&raw)
         .map_err(|e| e.to_string())?
         .lines()
-        .map(|l| serde_json::from_str(l).map_err(|e| e.to_string()))
-        .collect()
+    {
+        tick(deadline)?;
+        values.push(serde_json::from_str(line).map_err(|e| e.to_string())?);
+    }
+    tick(deadline)?;
+    Ok(values)
 }
 fn reference(name: &str) -> String {
     format!("{V2}/{name}")
@@ -71,11 +195,18 @@ fn sorted(v: &Value) -> Value {
 /// Foundation owns CPython float spelling. Sorting is explicit, independent of
 /// serde feature unification. Pretty framing changes whitespace only.
 fn encode(v: &Value, pretty: bool) -> Result<Vec<u8>> {
+    encode_until(default_deadline(), v, pretty)
+}
+fn encode_until(deadline: Instant, v: &Value, pretty: bool) -> Result<Vec<u8>> {
+    tick(deadline)?;
     let raw = serde_json::to_vec(&sorted(v)).map_err(|e| e.to_string())?;
+    tick(deadline)?;
     let limits =
         JsonLimits::new(64 * 1024 * 1024, 128, 4_000_000, 4300).map_err(|e| e.to_string())?;
     let doc = parse_json(&raw, JsonMode::PublishedStrict, limits).map_err(|e| e.to_string())?;
+    tick(deadline)?;
     let compact = emit_python_compact_json(doc.root(), limits).map_err(|e| e.to_string())?;
+    tick(deadline)?;
     if !pretty {
         return Ok(compact);
     }
@@ -84,6 +215,9 @@ fn encode(v: &Value, pretty: bool) -> Result<Vec<u8>> {
     let mut string = false;
     let mut escape = false;
     for (i, &b) in compact.iter().enumerate() {
+        if i % 8192 == 0 {
+            tick(deadline)?;
+        }
         if string {
             out.push(b);
             if escape {
@@ -127,10 +261,15 @@ fn encode(v: &Value, pretty: bool) -> Result<Vec<u8>> {
     out.push(b'\n');
     Ok(out)
 }
-fn encodel(v: &[Value]) -> Result<Vec<u8>> {
+fn encodel_until(deadline: Instant, v: &[Value]) -> Result<Vec<u8>> {
     let mut out = Vec::new();
     for x in v {
-        out.extend(encode(x, false)?);
+        tick(deadline)?;
+        let raw = encode_until(deadline, x, false)?;
+        if raw.len() + 1 > (64usize * 1024 * 1024).saturating_sub(out.len()) {
+            return fail("encoded JSONL byte cap");
+        }
+        out.extend(raw);
         out.push(b'\n');
     }
     Ok(out)
@@ -239,6 +378,8 @@ pub struct Row {
 }
 #[derive(Debug)]
 pub struct Model {
+    deadline: Instant,
+    source: SourceInput,
     pub lines: Vec<Line>,
     pub rows: Vec<Row>,
     pub census: Vec<Value>,
@@ -247,6 +388,16 @@ pub struct Model {
     pub verse_lines: Vec<Value>,
     pub conflicts: Vec<Value>,
 }
+impl Model {
+    /// Includes reconstruction and subsequent identity/challenger/output reads.
+    pub fn source_read_bytes(&self) -> u64 {
+        self.source.bytes.load(Ordering::Relaxed)
+    }
+    pub fn root_identity(&self) -> Result<(u64, u64)> {
+        self.source.identity()
+    }
+}
+
 fn key(r: &Value) -> Result<String> {
     Ok(match s(&r["record_kind"]) {
         "part_heading" => s(&r["part_id"]).into(),
@@ -374,7 +525,9 @@ fn observation(
     inventory: &[Value],
     citations: &[Value],
     plan: &Value,
+    deadline: Instant,
 ) -> Result<Vec<Block>> {
+    tick(deadline)?;
     use quick_xml::{Reader, events::Event};
     let by_locator: BTreeMap<_, _> = citations
         .iter()
@@ -396,6 +549,7 @@ fn observation(
     let mut word: Option<String> = None;
     let mut stack = Vec::<String>::new();
     loop {
+        tick(deadline)?;
         match reader.read_event().map_err(|e| e.to_string())? {
             Event::Start(e) => {
                 let name = std::str::from_utf8(e.local_name().as_ref())
@@ -543,9 +697,10 @@ fn observation(
             .then(a.flow.cmp(&b.flow))
             .then(a.ordinal.cmp(&b.ordinal))
     });
-    validate_observation_counts(&blocks, total_flows, page, plan)?;
+    validate_observation_counts(&blocks, total_flows, page, plan, deadline)?;
     let mut text = String::new();
     for (i, b) in blocks.iter().enumerate() {
+        tick(deadline)?;
         if i > 0 {
             let p = &blocks[i - 1];
             text.push_str(if p.page != b.page {
@@ -569,15 +724,16 @@ fn observation(
     }
     Ok(blocks)
 }
-fn load_source(root: &Path) -> Result<(Vec<Block>, Vec<Value>)> {
-    let plan = load(root, &format!("{V1}/plan.v1.json"))?;
+fn load_source(deadline: Instant, source: &SourceInput) -> Result<(Vec<Block>, Vec<Value>)> {
+    tick(deadline)?;
+    let plan = load_until(deadline, source, &format!("{V1}/plan.v1.json"))?;
     if s(&plan["contract_ref"]) != "ToS/contracts/source-text-unit-packet-v1.schema.json"
         || s(&plan["route_root"]) != V1
     {
         return fail("plan contract or route drift");
     }
     let src = &plan["source_item"];
-    let manifest = load(root, s(&src["manifest_ref"]))?;
+    let manifest = load_until(deadline, source, s(&src["manifest_ref"]))?;
     if manifest["item_id"] != src["item_ref"] || manifest["embodiment_ref"] != src["edition_ref"] {
         return fail("source item or edition binding drift");
     }
@@ -588,19 +744,25 @@ fn load_source(root: &Path) -> Result<(Vec<Block>, Vec<Value>)> {
     if entries.len() != 1 || entries[0]["sha256"] != src["file_sha256"] {
         return fail("exact source PDF manifest drift");
     }
-    let pdf = root
+    let pdf = source
+        .root
         .join(
             Path::new(s(&src["manifest_ref"]))
                 .parent()
                 .ok_or("manifest parent")?,
         )
         .join(s(&entries[0]["relative_path"]));
-    let pdf = resolve(root, &pdf)?;
-    let raw = fs::read(&pdf).map_err(|e| format!("exact local PDF unavailable: {e}"))?;
+
+    let pdf_ref = pdf.to_str().ok_or("PDF path encoding")?;
+    let mut pdf_file = source.open(pdf_ref)?;
+    let raw = read_held_until(deadline, source, &mut pdf_file, pdf_ref)?;
+    // Poppler opens the retained input inode through the invoking process's
+    // descriptor carrier. No reopened source pathname can redirect extraction.
+    let pdf_carrier = format!("/proc/{}/fd/{}", std::process::id(), pdf_file.as_raw_fd());
     if sha(&raw) != PDF_SHA || s(&src["file_sha256"]) != PDF_SHA {
         return fail("local PDF digest drift");
     }
-    let inv = load(root, s(&src["resource_inventory_ref"]))?;
+    let inv = load_until(deadline, source, s(&src["resource_inventory_ref"]))?;
     if inv["item_id"] != src["item_ref"] {
         return fail("resource inventory item identity drift");
     }
@@ -620,10 +782,26 @@ fn load_source(root: &Path) -> Result<(Vec<Block>, Vec<Value>)> {
     {
         return fail("resource inventory page identities drift");
     }
-    let version = Command::new("pdftotext")
-        .arg("-v")
-        .output()
-        .map_err(|e| e.to_string())?;
+    let policy = &plan["extraction_policy"];
+    if s(&policy["software_version"]) != "26.01.0"
+        || n(&policy["expected_bbox_bytes"]) != 12_306_305
+        || s(&policy["expected_bbox_sha256"]) != BBOX_SHA
+        || n(&policy["expected_warning_count"]) != 2601
+        || s(&policy["expected_warning"]) != "Syntax Warning: Invalid Font Weight"
+    {
+        return fail("frozen extraction policy drift");
+    }
+    use crate::owned_native_child::{CaptureLimits, capture};
+    let version = capture(
+        Command::new("pdftotext").arg("-v"),
+        None,
+        CaptureLimits {
+            max_stdin_bytes: 0,
+            max_stdout_bytes: 16_384,
+            max_stderr_bytes: 16_384,
+        },
+        deadline,
+    )?;
     let mut ver = version.stdout;
     ver.extend(version.stderr);
     let ver = String::from_utf8(ver).map_err(|e| e.to_string())?;
@@ -639,12 +817,19 @@ fn load_source(root: &Path) -> Result<(Vec<Block>, Vec<Value>)> {
     {
         return fail("pdftotext version drift");
     }
-    let result = Command::new("pdftotext")
-        .arg("-bbox-layout")
-        .arg(&pdf)
-        .arg("-")
-        .output()
-        .map_err(|e| e.to_string())?;
+    let result = capture(
+        Command::new("pdftotext")
+            .arg("-bbox-layout")
+            .arg(&pdf_carrier)
+            .arg("-"),
+        None,
+        CaptureLimits {
+            max_stdin_bytes: 0,
+            max_stdout_bytes: 12_306_305,
+            max_stderr_bytes: ("Syntax Warning: Invalid Font Weight".len() + 2) * 2601,
+        },
+        deadline,
+    )?;
     if !result.status.success() {
         return fail("pdftotext bbox extraction failed");
     }
@@ -667,12 +852,13 @@ fn load_source(root: &Path) -> Result<(Vec<Block>, Vec<Value>)> {
     let blocks = observation(
         &result.stdout,
         pages,
-        &loadl(root, &format!("{V1}/citation-spine.v1.jsonl"))?,
+        &loadl_until(deadline, source, &format!("{V1}/citation-spine.v1.jsonl"))?,
         &plan,
+        deadline,
     )?;
     Ok((
         blocks,
-        loadl(root, &reference("structure-census.v2.jsonl"))?,
+        loadl_until(deadline, source, &reference("structure-census.v2.jsonl"))?,
     ))
 }
 fn page_header(r: &Row) -> bool {
@@ -789,9 +975,16 @@ fn paragraph_boundary(a: &Row, b: &Row) -> (bool, &'static str, f64) {
     }
     (false, "base_margin_continuation", 0.91)
 }
-fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
+fn reconstruct_blocks(
+    blocks: Vec<Block>,
+    census: Vec<Value>,
+    deadline: Instant,
+    source: SourceInput,
+) -> Result<Model> {
+    tick(deadline)?;
     let mut lines = Vec::new();
     for b in blocks {
+        tick(deadline)?;
         for (i, (text, box_)) in b.lines.into_iter().enumerate() {
             let ordinal = i + 1;
             lines.push(Line {
@@ -837,9 +1030,11 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
     }
     let mut by_citation = BTreeMap::<String, Vec<usize>>::new();
     for (i, l) in lines.iter().enumerate() {
+        tick(deadline)?;
         by_citation.entry(l.citation.clone()).or_default().push(i);
     }
     for r in &census {
+        tick(deadline)?;
         for anchor in a(&r["anchors"]) {
             let citation = s(&anchor["display_citation"]);
             if citation.contains("@visual") {
@@ -855,10 +1050,12 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
                     .or(candidates.last())
                     .ok_or("empty marker candidates")?;
                 for i in candidates {
+                    tick(deadline)?;
                     lines[*i].explicit = Some(if i == marker { kind } else { "ornament" }.into());
                 }
             } else if matches!(kind, "reading_unit_heading" | "cycle_heading") {
                 for i in candidates {
+                    tick(deadline)?;
                     lines[*i].explicit = Some(
                         if ornament(&lines[*i].text) {
                             "ornament"
@@ -870,6 +1067,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
                 }
             } else if matches!(kind, "part_heading" | "terminal_marker") {
                 for i in candidates {
+                    tick(deadline)?;
                     lines[*i].explicit = Some(kind.into());
                 }
             }
@@ -877,6 +1075,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
     }
     let mut groups = Vec::<Vec<usize>>::new();
     for (i, l) in lines.iter().enumerate() {
+        tick(deadline)?;
         let Some(current) = groups.last_mut() else {
             groups.push(vec![i]);
             continue;
@@ -901,6 +1100,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
     }
     let mut rows = Vec::new();
     for mut group in groups {
+        tick(deadline)?;
         group.sort_by(|a, b| {
             lines[*a].bbox[0]
                 .total_cmp(&lines[*b].bbox[0])
@@ -929,6 +1129,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
             probe: false,
         };
         for i in &row.lines {
+            tick(deadline)?;
             lines[*i].row = rows.len();
         }
         rows.push(row);
@@ -937,6 +1138,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
         return fail("logical-row census drift");
     }
     for row in &mut rows {
+        tick(deadline)?;
         row.role = region(row.page, &row.panel);
         if row.role.is_none() {
             row.role = row
@@ -961,6 +1163,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
     // Sequential in-place neighbor observation matches Python, including a newly
     // promoted preceding residue.
     for i in 0..rows.len() {
+        tick(deadline)?;
         if rows[i].role.as_deref() == Some("residue")
             && (i
                 .checked_sub(1)
@@ -978,6 +1181,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
     }
     let mut citation_rows = BTreeMap::<String, Vec<usize>>::new();
     for (i, row) in rows.iter().enumerate() {
+        tick(deadline)?;
         for citation in row
             .lines
             .iter()
@@ -993,6 +1197,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
     let mut visual = Vec::new();
     let mut all_subparts = BTreeSet::new();
     for r in &census {
+        tick(deadline)?;
         let kind = s(&r["record_kind"]);
         if kind == "reading_unit_heading" {
             let candidates = a(&r["anchors"])
@@ -1050,6 +1255,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
     let (mut reading, mut subpart) = (None, None);
     let mut fired = BTreeSet::new();
     for (i, row) in rows.iter_mut().enumerate() {
+        tick(deadline)?;
         if parts.contains(&i) {
             reading = None;
             subpart = None;
@@ -1059,6 +1265,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
             subpart = None;
         }
         for (page, panel, y, ref_) in &visual {
+            tick(deadline)?;
             if !fired.contains(ref_)
                 && row.page == *page
                 && row.panel == *panel
@@ -1075,6 +1282,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
         row.reading = reading.clone();
         row.subpart = subpart.clone();
         for i in &row.lines {
+            tick(deadline)?;
             lines[*i].reading = reading.clone();
             lines[*i].subpart = subpart.clone();
         }
@@ -1084,6 +1292,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
     }
     let mut candidates = BTreeMap::<(usize, String), Vec<f64>>::new();
     for row in &rows {
+        tick(deadline)?;
         if row.role.is_none()
             && row.reading.is_some()
             && (34. ..=540.).contains(&row.bbox[1])
@@ -1102,6 +1311,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
         .collect();
     let mut margins = BTreeMap::new();
     for row in &rows {
+        tick(deadline)?;
         let k = (row.page, row.panel.clone());
         if margins.contains_key(&k) {
             continue;
@@ -1121,6 +1331,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
         margins.insert(k, base);
     }
     for row in &mut rows {
+        tick(deadline)?;
         if row.role.is_none() && row.reading.is_some() {
             row.base = Some(margins[&(row.page, row.panel.clone())]);
             row.indent = Some(row.bbox[0] - row.base.unwrap());
@@ -1130,6 +1341,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
     let mut runs = Vec::<Vec<usize>>::new();
     let mut current = Vec::<usize>::new();
     for (i, row) in rows.iter().enumerate() {
+        tick(deadline)?;
         if row.role.is_some() || row.reading.is_none() {
             if !current.is_empty() {
                 runs.push(std::mem::take(&mut current));
@@ -1146,6 +1358,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
     }
     let mut conflicts = Vec::new();
     for run in runs {
+        tick(deadline)?;
         let mut marked = vec![false; run.len()];
         let mut i = 0;
         while i < run.len() {
@@ -1177,6 +1390,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
             i = j + 1;
         }
         for i in 0..run.len() {
+            tick(deadline)?;
             if !marked[i]
                 && rows[run[i]].probe
                 && ((i > 0 && marked[i - 1]) || (i + 1 < run.len() && marked[i + 1]))
@@ -1185,12 +1399,14 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
             }
         }
         for (i, verse) in run.into_iter().zip(marked) {
+            tick(deadline)?;
             if verse {
                 rows[i].role = Some("verse".into());
             }
         }
     }
     for row in &mut rows {
+        tick(deadline)?;
         if row.role.is_none() {
             row.role = Some(
                 if row.reading.is_some() {
@@ -1204,6 +1420,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
     }
     let mut prior = None;
     for (i, row) in rows.iter().enumerate() {
+        tick(deadline)?;
         if row.role.as_deref() != Some("prose") {
             continue;
         }
@@ -1220,6 +1437,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
     let mut reasons = Vec::new();
     let mut current = Vec::<usize>::new();
     for (i, row) in rows.iter().enumerate() {
+        tick(deadline)?;
         if row.role.as_deref() != Some("prose") {
             if !current.is_empty() {
                 groups.push(std::mem::take(&mut current));
@@ -1244,6 +1462,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
     let mut reading_ord = BTreeMap::<String, usize>::new();
     let mut subpart_ord = BTreeMap::<String, usize>::new();
     for (group, (basis, confidence)) in groups.into_iter().zip(reasons) {
+        tick(deadline)?;
         let row = &rows[group[0]];
         let reading = row.reading.as_ref().ok_or("prose reading missing")?;
         let ro = reading_ord.entry(reading.clone()).or_default();
@@ -1256,6 +1475,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
         let physical: Vec<_> = group.iter().flat_map(|i| rows[*i].lines.clone()).collect();
         let ref_ = format!("paragraph-{:05}", paragraphs.len() + 1);
         for i in &physical {
+            tick(deadline)?;
             lines[*i].paragraph = Some(ref_.clone());
         }
         paragraphs.push(json!({"paragraph_ref":ref_,"global_ordinal":paragraphs.len()+1,"reading_ref":reading,"reading_paragraph_ordinal":*ro,"subpart_ref":row.subpart,"subpart_paragraph_ordinal":so,"boundary_basis":basis,"boundary_confidence":confidence,"row_refs":group.iter().map(|i|rows[*i].reference.clone()).collect::<Vec<_>>(),"physical_line_refs":physical.iter().map(|i|lines[*i].locator.clone()).collect::<Vec<_>>(),"first_locator":lines[physical[0]].locator,"last_locator":lines[*physical.last().unwrap()].locator,"cross_panel":!same_panel(&rows[group[0]],&rows[*group.last().unwrap()]),"text_sha256":sha(group.iter().map(|i|rows[*i].text.as_str()).collect::<Vec<_>>().join("\n").as_bytes())}));
@@ -1263,6 +1483,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
     let mut groups = Vec::new();
     let mut current = Vec::<usize>::new();
     for (i, row) in rows.iter().enumerate() {
+        tick(deadline)?;
         if row.role.as_deref() != Some("verse") {
             if !current.is_empty() {
                 groups.push(std::mem::take(&mut current));
@@ -1286,6 +1507,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
     let mut verse_lines = Vec::new();
     let mut reading_ord = BTreeMap::<String, usize>::new();
     for group in groups {
+        tick(deadline)?;
         let row = &rows[group[0]];
         let reading = row.reading.as_ref().ok_or("verse reading missing")?;
         let ro = reading_ord.entry(reading.clone()).or_default();
@@ -1293,9 +1515,11 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
         let ref_ = format!("verse-group-{:04}", verse_groups.len() + 1);
         let mut line_refs = Vec::new();
         for (ordinal, i) in group.iter().enumerate() {
+            tick(deadline)?;
             let row = &rows[*i];
             let line_ref = format!("{ref_}.line-{:03}", ordinal + 1);
             for i in &row.lines {
+                tick(deadline)?;
                 lines[*i].verse_group = Some(ref_.clone());
                 lines[*i].verse_line = Some(line_ref.clone());
             }
@@ -1306,6 +1530,7 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
         verse_groups.push(json!({"verse_group_ref":ref_,"global_ordinal":verse_groups.len()+1,"reading_ref":reading,"reading_verse_group_ordinal":*ro,"subpart_ref":row.subpart,"verse_line_refs":line_refs,"physical_line_refs":physical.iter().map(|i|lines[*i].locator.clone()).collect::<Vec<_>>(),"first_locator":lines[physical[0]].locator,"last_locator":lines[*physical.last().unwrap()].locator,"cross_panel":!same_panel(&rows[group[0]],&rows[*group.last().unwrap()]),"text_sha256":sha(group.iter().map(|i|rows[*i].text.as_str()).collect::<Vec<_>>().join("\n").as_bytes())}));
     }
     for row in &rows {
+        tick(deadline)?;
         for i in &row.lines {
             lines[*i].role = Some(
                 if matches!(
@@ -1335,7 +1560,10 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
             conflicts.len()
         ));
     }
+    tick(deadline)?;
     Ok(Model {
+        deadline,
+        source,
         lines,
         rows,
         census,
@@ -1346,13 +1574,33 @@ fn reconstruct_blocks(blocks: Vec<Block>, census: Vec<Value>) -> Result<Model> {
     })
 }
 pub fn reconstruct(root: &Path) -> Result<Model> {
-    let (blocks, census) = load_source(root)?;
-    reconstruct_blocks(blocks, census)
+    reconstruct_with_deadline(root, default_deadline())
 }
+/// Research callers supply their already-started whole operation deadline.
+pub fn reconstruct_with_deadline(root: &Path, deadline: Instant) -> Result<Model> {
+    tick(deadline)?;
+    let directory = tos_fd_open::open_absolute_directory(root).map_err(|e| e.to_string())?;
+    reconstruct_from_directory(root, &directory, deadline)
+}
+/// Keep an upstream context's already-held source directory as the actual
+/// authority. `root` is only its normalized navigation label, never reopened.
+pub fn reconstruct_from_directory(
+    root: &Path,
+    directory: &fs::File,
+    deadline: Instant,
+) -> Result<Model> {
+    tick(deadline)?;
+    let source = SourceInput::from_directory(root, directory)?;
+    let (blocks, census) = load_source(deadline, &source)?;
+    reconstruct_blocks(blocks, census, deadline, source)
+}
+
 fn fixity() -> Value {
     json!({"pdf_sha256":PDF_SHA,"bbox_sha256":BBOX_SHA,"private_text_layer_sha256":TEXT_SHA})
 }
 fn issuance_bindings(m: &Model) -> Result<BTreeMap<String, Vec<String>>> {
+    let deadline = m.deadline;
+    tick(deadline)?;
     Ok(BTreeMap::from([
         (
             "physical_lines".into(),
@@ -1384,13 +1632,18 @@ pub fn load_identities(
     root: &Path,
     m: &Model,
 ) -> Result<BTreeMap<String, BTreeMap<String, String>>> {
-    let value = load(root, &reference("identity-issuance.v2.json"))?;
+    m.source.check_path(root)?;
+    let source = &m.source;
+    let deadline = m.deadline;
+    tick(deadline)?;
+    let value = load_until(deadline, source, &reference("identity-issuance.v2.json"))?;
     if value["source_fixity"] != fixity() {
         return fail("identity issuance source fixity drift");
     }
     let mut result = BTreeMap::new();
     let mut all = BTreeSet::new();
     for (kind, bindings) in issuance_bindings(m)? {
+        tick(deadline)?;
         let records = a(&value["identities"][&kind]);
         if records.iter().map(|r| s(&r["binding"])).collect::<Vec<_>>()
             != bindings.iter().map(String::as_str).collect::<Vec<_>>()
@@ -1399,6 +1652,7 @@ pub fn load_identities(
         }
         let mut ids = BTreeMap::new();
         for r in records {
+            tick(deadline)?;
             let id = s(&r["id"]).to_owned();
             if !all.insert(id.clone()) {
                 return fail("opaque identity collision");
@@ -1407,6 +1661,7 @@ pub fn load_identities(
         }
         result.insert(kind, ids);
     }
+    tick(deadline)?;
     Ok(result)
 }
 fn id(ids: &BTreeMap<String, String>, key: Option<&str>) -> Value {
@@ -1423,9 +1678,19 @@ fn increment(counts: &mut BTreeMap<String, usize>, key: &str) {
     *counts.entry(key.into()).or_default() += 1;
 }
 fn compare(root: &Path, m: &Model) -> Result<Value> {
-    let challenger = load(root, &reference("primary-challenger-input.v2.json"))?;
+    m.source.check_path(root)?;
+    let source = &m.source;
+    let deadline = m.deadline;
+    tick(deadline)?;
+    let challenger = load_until(
+        deadline,
+        source,
+        &reference("primary-challenger-input.v2.json"),
+    )?;
     let order = json!(m.lines.iter().map(|l| &l.locator).collect::<Vec<_>>());
-    if s(&challenger["ordered_source_line_binding_sha256"]) != sha(&encode(&order, false)?) {
+    if s(&challenger["ordered_source_line_binding_sha256"])
+        != sha(&encode_until(deadline, &order, false)?)
+    {
         return fail("challenger physical-line binding drift");
     }
     let owners = a(&challenger["owner_unit_ordinal_by_source_line"]);
@@ -1436,6 +1701,7 @@ fn compare(root: &Path, m: &Model) -> Result<Value> {
     let mut categories = BTreeMap::new();
     let mut body = BTreeMap::new();
     for (i, pair) in m.lines.windows(2).enumerate() {
+        tick(deadline)?;
         let (l, r) = (&pair[0], &pair[1]);
         let own = |l: &Line| {
             l.paragraph
@@ -1499,6 +1765,10 @@ fn output(kind: &str) -> String {
     reference(OUTPUTS.iter().find(|(k, _)| *k == kind).unwrap().1)
 }
 pub fn make_outputs(root: &Path, m: &Model) -> Result<BTreeMap<String, Vec<u8>>> {
+    m.source.check_path(root)?;
+    let source = &m.source;
+    let deadline = m.deadline;
+    tick(deadline)?;
     let ids = load_identities(root, m)?;
     let line = &ids["physical_lines"];
     let row = &ids["logical_rows"];
@@ -1533,21 +1803,25 @@ pub fn make_outputs(root: &Path, m: &Model) -> Result<BTreeMap<String, Vec<u8>>>
         };
     let mut structure_rows = Vec::new();
     for r in &m.census {
+        tick(deadline)?;
         let key = key(r)?;
         let p = parent(r);
         structure_rows.push(json!({"schema_version":"tos_antonovsky_1911_structure_spine_v2","structure_unit_id":required_id(structure,&key)?,"technical_structure_key":key,"record_kind":r["record_kind"],"parent_structure_unit_id":match p {Some(p)=>json!(required_id(structure,&p)?),None=>Value::Null},"part_id":r["part_id"],"reading_unit_ordinal_within_part":r["reading_unit_ordinal_within_part"],"reading_unit_ordinal_global":r["reading_unit_ordinal_global"],"numbered_subpart_number":r["number"],"source_anchor_refs":r.get("anchors").unwrap_or(&json!([])),"source_locator_span":r["source_locator_span"],"display_citation_span":r.get("panel_span").unwrap_or(&r["display_citations"]),"source_visible":r.get("source_visible").unwrap_or(&json!(true)),"visual_only_heading_observation":a(&r["anchors"]).iter().any(|r|r["embedded_bbox_anchor_missing"].as_bool()==Some(true)),"source_text_included":false,"semantic_promotion":false}));
     }
     let mut physical = Vec::new();
     for l in &m.lines {
+        tick(deadline)?;
         physical.push(json!({"schema_version":"tos_antonovsky_1911_physical_line_spine_v2","physical_line_unit_id":required_id(line,&l.locator)?,"source_line_ref":l.source_line_ref,"source_locator":l.locator,"source_block_unit_ref":l.block,"block_line_ordinal":l.ordinal,"pdf_page":l.page,"panel":l.panel,"bbox_points":l.bbox.map(|x|round(x,6)),"exact_sha256":l.digest,"logical_row_unit_ref":required_id(row,&row_keys[m.rows[l.row].reference.as_str()])?,"technical_role":l.role,"reading_unit_ref":id(structure,l.reading.as_deref()),"numbered_subpart_ref":id(structure,l.subpart.as_deref()),"paragraph_unit_ref":map_key(paragraph,&paragraph_keys,l.paragraph.as_deref()),"verse_group_unit_ref":map_key(vg,&vg_keys,l.verse_group.as_deref()),"verse_line_unit_ref":map_key(vl,&vl_keys,l.verse_line.as_deref()),"source_text_included":false,"semantic_promotion":false}));
     }
     let mut logical = Vec::new();
     for r in &m.rows {
+        tick(deadline)?;
         logical.push(json!({"schema_version":"tos_antonovsky_1911_logical_row_spine_v2","logical_row_unit_id":required_id(row,&row_binding(r,&m.lines))?,"pdf_page":r.page,"panel":r.panel,"bbox_points":r.bbox.map(|x|round(x,6)),"ordered_physical_line_unit_refs":r.lines.iter().map(|i|required_id(line,&m.lines[*i].locator)).collect::<Result<Vec<_>>>()?,"exact_sha256":r.digest,"technical_role":r.role,"reading_unit_ref":id(structure,r.reading.as_deref()),"numbered_subpart_ref":id(structure,r.subpart.as_deref()),"estimated_body_margin_x":r.base.map(|x|round(x,3)),"indent_delta_points":r.indent.map(|x|round(x,3)),"source_text_included":false,"semantic_promotion":false}));
     }
     let by_locator: BTreeMap<_, _> = m.lines.iter().map(|l| (l.locator.as_str(), l)).collect();
     let mut paragraphs = Vec::new();
     for r in &m.paragraphs {
+        tick(deadline)?;
         let blocks: BTreeSet<_> = a(&r["physical_line_refs"])
             .iter()
             .map(|x| by_locator[s(x)].block.clone())
@@ -1557,15 +1831,18 @@ pub fn make_outputs(root: &Path, m: &Model) -> Result<BTreeMap<String, Vec<u8>>>
     }
     let mut verse_groups = Vec::new();
     for r in &m.verse_groups {
+        tick(deadline)?;
         let reading = s(&r["reading_ref"]);
         verse_groups.push(json!({"schema_version":"tos_antonovsky_1911_verse_group_spine_v2","verse_group_unit_id":required_id(vg,&binding(r))?,"unit_kind":"continuous_verse_group","display_citation":format!("Za-RU-Ant1911.{}.vg{:03}",reading.replace("part_","P").replace(".reading_",".R"),n(&r["reading_verse_group_ordinal"])),"global_technical_ordinal":r["global_ordinal"],"reading_unit_ref":required_id(structure,reading)?,"numbered_subpart_ref":id(structure,r["subpart_ref"].as_str()),"ordinal_within_reading_unit":r["reading_verse_group_ordinal"],"ordered_verse_line_refs":a(&r["verse_line_refs"]).iter().map(|x|required_id(vl,&vl_keys[s(x)])).collect::<Result<Vec<_>>>()?,"ordered_physical_line_refs":a(&r["physical_line_refs"]).iter().map(|x|required_id(line,s(x))).collect::<Result<Vec<_>>>()?,"crosses_page_sides":r["cross_panel"],"exact_sha256":r["text_sha256"],"boundary_posture":"agent_verified_technical","source_text_included":false,"semantic_promotion":false}));
     }
     let mut verse_lines = Vec::new();
     for r in &m.verse_lines {
+        tick(deadline)?;
         verse_lines.push(json!({"schema_version":"tos_antonovsky_1911_verse_line_spine_v2","verse_line_unit_id":required_id(vl,&verse_binding(r))?,"verse_group_unit_ref":required_id(vg,&vg_keys[s(&r["verse_group_ref"])])?,"ordinal_within_verse_group":r["verse_line_ordinal"],"reading_unit_ref":required_id(structure,s(&r["reading_ref"]))?,"numbered_subpart_ref":id(structure,r["subpart_ref"].as_str()),"logical_row_unit_ref":required_id(row,&row_keys[s(&r["row_ref"])])?,"ordered_physical_line_refs":a(&r["physical_line_refs"]).iter().map(|x|required_id(line,s(x))).collect::<Result<Vec<_>>>()?,"bbox_points":r["bbox_points"],"exact_sha256":r["text_sha256"],"source_text_included":false,"semantic_promotion":false}));
     }
     let mut conflicts = Vec::new();
     for (i, r) in m.conflicts.iter().enumerate() {
+        tick(deadline)?;
         let mut converted = r.clone();
         let obj = converted.as_object_mut().ok_or("conflict object")?;
         obj.retain(|k, _| !k.ends_with("row_ref"));
@@ -1601,10 +1878,12 @@ pub fn make_outputs(root: &Path, m: &Model) -> Result<BTreeMap<String, Vec<u8>>>
     }
     let mut roles = BTreeMap::new();
     for l in &m.lines {
+        tick(deadline)?;
         increment(&mut roles, l.role.as_deref().ok_or("line role missing")?);
     }
     let mut prose_by_part = BTreeMap::new();
     for r in &m.paragraphs {
+        tick(deadline)?;
         increment(
             &mut prose_by_part,
             s(&r["reading_ref"]).split('.').next().unwrap(),
@@ -1612,6 +1891,7 @@ pub fn make_outputs(root: &Path, m: &Model) -> Result<BTreeMap<String, Vec<u8>>>
     }
     let mut verse_by_part = BTreeMap::new();
     for r in &m.verse_groups {
+        tick(deadline)?;
         increment(
             &mut verse_by_part,
             s(&r["reading_ref"]).split('.').next().unwrap(),
@@ -1665,6 +1945,7 @@ pub fn make_outputs(root: &Path, m: &Model) -> Result<BTreeMap<String, Vec<u8>>>
     // These are historical source-owned events, replayed byte-for-byte; they do
     // not claim the current native execution happened on the historical date.
     for r in &mut provenance {
+        tick(deadline)?;
         let obj = r.as_object_mut().unwrap();
         obj.insert(
             "schema_version".into(),
@@ -1687,7 +1968,7 @@ pub fn make_outputs(root: &Path, m: &Model) -> Result<BTreeMap<String, Vec<u8>>>
         ("contradictions", contradictions),
         ("provenance", provenance),
     ] {
-        artifacts.insert(output(kind), encodel(&records)?);
+        artifacts.insert(output(kind), encodel_until(deadline, &records)?);
     }
     for (kind, value) in [
         ("comparison", comparison),
@@ -1695,7 +1976,7 @@ pub fn make_outputs(root: &Path, m: &Model) -> Result<BTreeMap<String, Vec<u8>>>
         ("verification", verification),
         ("summary", summary),
     ] {
-        artifacts.insert(output(kind), encode(&value, true)?);
+        artifacts.insert(output(kind), encode_until(deadline, &value, true)?);
     }
     let mut static_inputs = serde_json::Map::new();
     for name in [
@@ -1704,14 +1985,15 @@ pub fn make_outputs(root: &Path, m: &Model) -> Result<BTreeMap<String, Vec<u8>>>
         "primary-challenger-input.v2.json",
     ] {
         let ref_ = reference(name);
-        let raw = read(root, &ref_)?;
+        let raw = read_until(deadline, source, &ref_)?;
         static_inputs.insert(ref_, json!({"sha256":sha(&raw),"bytes":raw.len()}));
     }
     let generated = artifacts
         .iter()
         .map(|(ref_, raw)| (ref_.clone(), json!({"sha256":sha(raw),"bytes":raw.len()})))
         .collect::<serde_json::Map<_, _>>();
-    artifacts.insert(output("manifest"),encode(&json!({"schema_version":"tos_antonovsky_1911_structural_paragraph_manifest_v2","static_inputs":static_inputs,"generated_outputs":generated,"source_text_included":false,"semantic_authority":false}),true)?);
+    artifacts.insert(output("manifest"),encode_until(deadline, &json!({"schema_version":"tos_antonovsky_1911_structural_paragraph_manifest_v2","static_inputs":static_inputs,"generated_outputs":generated,"source_text_included":false,"semantic_authority":false}),true)?);
+    tick(deadline)?;
     Ok(artifacts)
 }
 const FORBIDDEN: &[&str] = &[
@@ -1727,6 +2009,10 @@ const FORBIDDEN: &[&str] = &[
     "relation",
 ];
 fn text_free(value: &Value) -> Result<()> {
+    text_free_until(default_deadline(), value)
+}
+fn text_free_until(deadline: Instant, value: &Value) -> Result<()> {
+    tick(deadline)?;
     match value {
         Value::Object(obj) => {
             for (k, v) in obj {
@@ -1736,12 +2022,12 @@ fn text_free(value: &Value) -> Result<()> {
                 if k == "source_text_included" && v != &json!(false) {
                     return fail("source_text_included must be false");
                 }
-                text_free(v)?;
+                text_free_until(deadline, v)?;
             }
         }
         Value::Array(v) => {
             for v in v {
-                text_free(v)?;
+                text_free_until(deadline, v)?;
             }
         }
         _ => {}
@@ -1749,13 +2035,20 @@ fn text_free(value: &Value) -> Result<()> {
     Ok(())
 }
 pub fn validate_tracked(root: &Path) -> Result<Value> {
-    let manifest = load(root, &output("manifest"))?;
+    validate_tracked_with_deadline(root, default_deadline())
+}
+pub fn validate_tracked_with_deadline(root: &Path, deadline: Instant) -> Result<Value> {
+    tick(deadline)?;
+    let source = SourceInput::new(root)?;
+    let root = &source;
+    let manifest = load_until(deadline, root, &output("manifest"))?;
     for field in ["static_inputs", "generated_outputs"] {
+        tick(deadline)?;
         for (ref_, receipt) in manifest[field]
             .as_object()
             .ok_or("manifest inputs/outputs object")?
         {
-            let raw = read(root, ref_)?;
+            let raw = read_until(deadline, root, ref_)?;
             if sha(&raw) != s(&receipt["sha256"]) || raw.len() != n(&receipt["bytes"]) {
                 return Err(format!("{field} manifest drift: {ref_}"));
             }
@@ -1763,12 +2056,13 @@ pub fn validate_tracked(root: &Path) -> Result<Value> {
     }
     let mut parsed = BTreeMap::new();
     for (ref_, _) in manifest["generated_outputs"].as_object().unwrap() {
+        tick(deadline)?;
         let value = if ref_.ends_with(".jsonl") {
-            json!(loadl(root, ref_)?)
+            json!(loadl_until(deadline, root, ref_)?)
         } else {
-            load(root, ref_)?
+            load_until(deadline, root, ref_)?
         };
-        text_free(&value)?;
+        text_free_until(deadline, &value)?;
         parsed.insert(ref_.clone(), value);
     }
     let get = |kind: &str| -> Result<&Value> {
@@ -1840,6 +2134,7 @@ pub fn validate_tracked(root: &Path) -> Result<Value> {
     let mut reading_ord = BTreeMap::<String, Vec<usize>>::new();
     let mut subpart_ord = BTreeMap::<String, Vec<usize>>::new();
     for r in paragraphs {
+        tick(deadline)?;
         reading_ord
             .entry(s(&r["reading_unit_ref"]).into())
             .or_default()
@@ -1899,11 +2194,6 @@ pub fn validate_tracked(root: &Path) -> Result<Value> {
         json!({"status":"pass","physical_lines":physical.len(),"logical_rows":logical.len(),"prose_paragraphs":paragraphs.len(),"continuous_verse_groups":groups.len(),"verse_lines":verse.len(),"reading_units":81,"numbered_subparts":112,"unresolved":0}),
     )
 }
-fn write(root: &Path, ref_: &str, raw: &[u8]) -> Result<()> {
-    let p = root.join(ref_);
-    fs::create_dir_all(p.parent().ok_or("output parent")?).map_err(|e| e.to_string())?;
-    fs::write(p, raw).map_err(|e| e.to_string())
-}
 fn mint(prefix: &str) -> Result<String> {
     let mut bytes = [0u8; 16];
     fs::File::open("/dev/urandom")
@@ -1914,13 +2204,16 @@ fn mint(prefix: &str) -> Result<String> {
         bytes.iter().map(|b| format!("{b:02x}")).collect::<String>()
     ))
 }
-fn issue(root: &Path, m: &Model) -> Result<Value> {
+fn issue(root: &Path, m: &Model, writer: &OutputOwner) -> Result<Value> {
+    let deadline = m.deadline;
+    tick(deadline)?;
     let ref_ = reference("identity-issuance.v2.json");
     if root.join(&ref_).exists() {
         return fail("identity issuance already exists; refusing to remint");
     }
     let mut identities = serde_json::Map::new();
     for (kind, bindings) in issuance_bindings(m)? {
+        tick(deadline)?;
         let prefix = if kind == "structures" {
             "tos.structure-unit"
         } else {
@@ -1933,20 +2226,35 @@ fn issue(root: &Path, m: &Model) -> Result<Value> {
         identities.insert(kind, json!(values));
     }
     let payload = json!({"schema_version":"tos_antonovsky_1911_structural_paragraph_identity_issuance_v2","issuance_id":"tos.identity-issuance.zarathustra-antonovsky-1911-structural-paragraph-v2","issued_on":"2026-09-01","opaque_identity":true,"source_binding_is_not_identity":true,"source_fixity":fixity(),"identities":identities});
-    write(root, &ref_, &encode(&payload, true)?)?;
+    writer.write(
+        &ref_,
+        &encode_until(deadline, &payload, true)?,
+        true,
+        deadline,
+    )?;
     Ok(json!({"status":"issued","identity_ref":ref_}))
 }
-fn import(root: &Path, directory: &Path, m: &Model) -> Result<Value> {
+fn import(root: &Path, directory: &Path, m: &Model, writer: &OutputOwner) -> Result<Value> {
+    let directory_source = m.source.sibling(directory)?;
+    let directory = &directory_source;
+    let deadline = m.deadline;
+    tick(deadline)?;
     let ref_ = reference("primary-challenger-input.v2.json");
     if root.join(&ref_).exists() {
         return fail("primary challenger input already exists; refusing to replace");
     }
-    let units = loadl(directory, "paragraph-units.private.prototype.v2.jsonl")?;
+    let units = loadl_until(
+        deadline,
+        directory,
+        "paragraph-units.private.prototype.v2.jsonl",
+    )?;
     let mut owner = BTreeMap::<String, usize>::new();
     let mut roles = serde_json::Map::new();
     for (i, unit) in units.iter().enumerate() {
+        tick(deadline)?;
         roles.insert((i + 1).to_string(), unit["technical_role"].clone());
         for fragment in a(&unit["source_fragments"]) {
+            tick(deadline)?;
             if owner
                 .insert(s(&fragment["fragment_id"]).into(), i + 1)
                 .is_some()
@@ -1966,10 +2274,18 @@ fn import(root: &Path, directory: &Path, m: &Model) -> Result<Value> {
         "summary.prototype.v2.json",
         "manifest.prototype.v2.json",
     ] {
-        digests.insert(name.into(), json!(sha(&read(directory, name)?)));
+        digests.insert(
+            name.into(),
+            json!(sha(&read_until(deadline, directory, name)?)),
+        );
     }
-    let payload = json!({"schema_version":"tos_antonovsky_1911_primary_challenger_input_v2","role":"complete_boundary_challenger_not_authority","source_text_included":false,"source_fixity":fixity(),"source_line_count":order.len(),"ordered_source_line_binding_sha256":sha(&encode(&json!(order),false)?),"challenger_unit_count":units.len(),"challenger_content_unit_count":units.iter().filter(|u|matches!(s(&u["technical_role"]),"prose_paragraph"|"verse_stanza")).count(),"owner_unit_ordinal_by_source_line":order.iter().map(|l|owner[l]).collect::<Vec<_>>(),"technical_role_by_unit_ordinal":roles,"input_artifact_sha256":digests,"resolution_policy":"independent_source_visible_pass_controls_final_technical_boundary"});
-    write(root, &ref_, &encode(&payload, true)?)?;
+    let payload = json!({"schema_version":"tos_antonovsky_1911_primary_challenger_input_v2","role":"complete_boundary_challenger_not_authority","source_text_included":false,"source_fixity":fixity(),"source_line_count":order.len(),"ordered_source_line_binding_sha256":sha(&encode_until(deadline, &json!(order),false)?),"challenger_unit_count":units.len(),"challenger_content_unit_count":units.iter().filter(|u|matches!(s(&u["technical_role"]),"prose_paragraph"|"verse_stanza")).count(),"owner_unit_ordinal_by_source_line":order.iter().map(|l|owner[l]).collect::<Vec<_>>(),"technical_role_by_unit_ordinal":roles,"input_artifact_sha256":digests,"resolution_policy":"independent_source_visible_pass_controls_final_technical_boundary"});
+    writer.write(
+        &ref_,
+        &encode_until(deadline, &payload, true)?,
+        true,
+        deadline,
+    )?;
     Ok(json!({"status":"imported","challenger_ref":ref_}))
 }
 #[derive(Clone, Debug)]
@@ -1982,17 +2298,33 @@ pub enum Action {
     ImportChallenger(PathBuf),
 }
 pub fn run(root: &Path, action: Action) -> Result<Vec<u8>> {
+    let deadline = default_deadline();
+    tick(deadline)?;
     if matches!(action, Action::ValidateTracked) {
-        return encode(&validate_tracked(root)?, true);
+        return encode_until(
+            deadline,
+            &validate_tracked_with_deadline(root, deadline)?,
+            true,
+        );
     }
-    let m = reconstruct(root)?;
+    let writer = if matches!(
+        action,
+        Action::Build | Action::IssueIdentities | Action::ImportChallenger(_)
+    ) {
+        Some(OutputOwner::acquire(root, deadline)?)
+    } else {
+        None
+    };
+    let m = reconstruct_with_deadline(root, deadline)?;
     match action {
-        Action::PrivateModel => encode(&private_model(root, &m)?, false).map(|mut raw| {
-            raw.push(b'\n');
-            raw
-        }),
+        Action::PrivateModel => {
+            encode_until(deadline, &private_model(root, &m)?, false).map(|mut raw| {
+                raw.push(b'\n');
+                raw
+            })
+        }
         Action::IssueIdentities => {
-            issue(root, &m)?;
+            issue(root, &m, writer.as_ref().ok_or("output custody absent")?)?;
             Ok(format!(
                 "{{\n  \"status\": \"issued\",\n  \"identity_ref\": \"{}\"\n}}\n",
                 reference("identity-issuance.v2.json")
@@ -2000,7 +2332,12 @@ pub fn run(root: &Path, action: Action) -> Result<Vec<u8>> {
             .into_bytes())
         }
         Action::ImportChallenger(directory) => {
-            import(root, &directory, &m)?;
+            import(
+                root,
+                &directory,
+                &m,
+                writer.as_ref().ok_or("output custody absent")?,
+            )?;
             Ok(format!(
                 "{{\n  \"status\": \"imported\",\n  \"challenger_ref\": \"{}\"\n}}\n",
                 reference("primary-challenger-input.v2.json")
@@ -2011,11 +2348,17 @@ pub fn run(root: &Path, action: Action) -> Result<Vec<u8>> {
             let artifacts = make_outputs(root, &m)?;
             let mut drift = Vec::new();
             for (kind, _) in OUTPUTS {
+                tick(deadline)?;
                 let ref_ = output(kind);
                 let payload = &artifacts[&ref_];
                 if matches!(action, Action::Build) {
-                    write(root, &ref_, payload)?;
-                } else if fs::read(root.join(&ref_)).ok().as_deref() != Some(payload.as_slice()) {
+                    writer
+                        .as_ref()
+                        .ok_or("output custody absent")?
+                        .write(&ref_, payload, false, deadline)?;
+                } else if read_until(deadline, &m.source, &ref_).ok().as_deref()
+                    != Some(payload.as_slice())
+                {
                     drift.push(ref_.clone());
                 }
             }
@@ -2123,6 +2466,50 @@ mod tests {
         assert!(binding(&r).starts_with("part_1.reading_01|None|a|b|"));
     }
     #[test]
+    fn source_input_retains_root_inode_and_accounts_each_read() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("selected");
+        fs::create_dir(&root).unwrap();
+        fs::write(root.join("input"), b"exact").unwrap();
+        let source = SourceInput::new(&root).unwrap();
+        let identity = source.identity().unwrap();
+        fs::rename(&root, temp.path().join("retained")).unwrap();
+        fs::create_dir(&root).unwrap();
+        fs::write(root.join("input"), b"wrong").unwrap();
+        assert_eq!(
+            read_until(default_deadline(), &source, "input").unwrap(),
+            b"exact"
+        );
+        assert_eq!(source.identity().unwrap(), identity);
+        assert_eq!(source.bytes.load(Ordering::Relaxed), 5);
+        assert_eq!(
+            read_until(default_deadline(), &source, "input").unwrap(),
+            b"exact"
+        );
+        assert_eq!(source.bytes.load(Ordering::Relaxed), 10);
+        source
+            .bytes
+            .store(SOURCE_READ_CAP_BYTES - 4, Ordering::Relaxed);
+        assert!(
+            read_until(default_deadline(), &source, "input")
+                .unwrap_err()
+                .contains("aggregate")
+        );
+    }
+    #[test]
+    fn inherited_deadline_refuses_before_source_acquisition() {
+        assert!(
+            reconstruct_with_deadline(Path::new("/no-source"), Instant::now())
+                .unwrap_err()
+                .contains("deadline")
+        );
+        assert!(
+            validate_tracked_with_deadline(Path::new("/no-source"), Instant::now())
+                .unwrap_err()
+                .contains("deadline")
+        );
+    }
+    #[test]
     #[ignore = "exact owner-selected local PDF/Poppler corpus; sole OPS admission"]
     fn full_source_oracle_all_fourteen_generated_artifacts() {
         let root = PathBuf::from(
@@ -2130,13 +2517,18 @@ mod tests {
                 "explicit source home required; missing input is not a skipped parity result",
             ),
         );
-        let tracked = validate_tracked(&root).unwrap();
+        let deadline = default_deadline();
+        let tracked = validate_tracked_with_deadline(&root, deadline).unwrap();
         assert_eq!(tracked["status"], json!("pass"));
-        let model = reconstruct(&root).unwrap();
+        let model = reconstruct_with_deadline(&root, deadline).unwrap();
         let outputs = make_outputs(&root, &model).unwrap();
         assert_eq!(outputs.len(), 14);
         for (reference, raw) in outputs {
-            assert_eq!(read(&root, &reference).unwrap(), raw, "{reference}");
+            assert_eq!(
+                read_until(deadline, &model.source, &reference).unwrap(),
+                raw,
+                "{reference}"
+            );
         }
         let private = private_model(&root, &model).unwrap();
         let wanted = "tos.text-unit.sid-d523bc897647d01030f767c2faf5266b";
@@ -2163,7 +2555,9 @@ fn validate_observation_counts(
     flows: usize,
     pages: usize,
     plan: &Value,
+    deadline: Instant,
 ) -> Result<()> {
+    tick(deadline)?;
     let rule = &plan["heading_candidate_rule"];
     let f = |k: &str| {
         rule[k]
@@ -2174,6 +2568,7 @@ fn validate_observation_counts(
     let mut panels = BTreeSet::new();
     let mut headings = 0;
     for (i, b) in blocks.iter().enumerate() {
+        tick(deadline)?;
         let panel_key = |page: usize, panel: &str| (page, usize::from(panel != "left"));
         let position = panel_key(b.page, &b.panel);
         let matches: Vec<_> = a(&plan["region_candidates"])
@@ -2232,7 +2627,8 @@ fn validate_observation_counts(
     if observed != plan["expected_counts"] {
         return Err(format!(
             "technical count surface drifted: {}",
-            String::from_utf8(encode(
+            String::from_utf8(encode_until(
+                deadline,
                 &json!({"expected":plan["expected_counts"],"observed":observed}),
                 false
             )?)
@@ -2245,12 +2641,15 @@ fn validate_observation_counts(
 /// public endpoint calls this. Words, punctuation, order and original row/line
 /// bindings remain exact; downstream algorithms remain owned by their families.
 pub fn private_model(root: &Path, m: &Model) -> Result<Value> {
+    let deadline = m.deadline;
+    tick(deadline)?;
     let identities = load_identities(root, m)?;
     let line_value = |l: &Line| json!({"source_line_ref":l.source_line_ref,"citation":l.citation,"locator":l.locator,"block_unit_id":l.block,"ordinal":l.ordinal,"page":l.page,"panel":l.panel,"bbox":l.bbox,"text":l.text,"text_sha256":l.digest,"explicit_role":l.explicit,"role":l.role,"row_ref":m.rows[l.row].reference,"reading_ref":l.reading,"subpart_ref":l.subpart,"paragraph_ref":l.paragraph,"verse_group_ref":l.verse_group,"verse_line_ref":l.verse_line});
-    let rows=m.rows.iter().map(|r|json!({"row_ref":r.reference,"page":r.page,"panel":r.panel,"lines":r.lines.iter().map(|i|line_value(&m.lines[*i])).collect::<Vec<_>>(),"bbox":r.bbox,"text":r.text,"text_sha256":r.digest,"role":r.role,"reading_ref":r.reading,"subpart_ref":r.subpart,"base_x":r.base,"indent_delta":r.indent,"verse_probe":r.probe,"binding":row_binding(r,&m.lines)})).collect::<Vec<_>>();
+    let rows=m.rows.iter().map(|r| { tick(deadline)?; Ok(json!({"row_ref":r.reference,"page":r.page,"panel":r.panel,"lines":r.lines.iter().map(|i|line_value(&m.lines[*i])).collect::<Vec<_>>(),"bbox":r.bbox,"text":r.text,"text_sha256":r.digest,"role":r.role,"reading_ref":r.reading,"subpart_ref":r.subpart,"base_x":r.base,"indent_delta":r.indent,"verse_probe":r.probe,"binding":row_binding(r,&m.lines)})) }).collect::<Result<Vec<_>>>()?;
     let mut readings = serde_json::Map::new();
     let mut subparts = serde_json::Map::new();
     for r in &m.census {
+        tick(deadline)?;
         match s(&r["record_kind"]) {
             "reading_unit_heading" => {
                 readings.insert(key(r)?, r.clone());
@@ -2261,7 +2660,7 @@ pub fn private_model(root: &Path, m: &Model) -> Result<Value> {
             _ => {}
         }
     }
-    Ok(
-        json!({"schema_version":"tos_antonovsky_1911_private_reconstruction_v2","source_fixity":fixity(),"source_text_included":true,"semantic_authority":false,"lines":m.lines.iter().map(line_value).collect::<Vec<_>>(),"rows":rows,"census":m.census,"readings":readings,"subparts":subparts,"paragraphs":m.paragraphs,"verse_groups":m.verse_groups,"verse_lines":m.verse_lines,"conflicts":m.conflicts,"identities":identities}),
-    )
+    let value = json!({"schema_version":"tos_antonovsky_1911_private_reconstruction_v2","source_fixity":fixity(),"source_text_included":true,"semantic_authority":false,"lines":m.lines.iter().map(line_value).collect::<Vec<_>>(),"rows":rows,"census":m.census,"readings":readings,"subparts":subparts,"paragraphs":m.paragraphs,"verse_groups":m.verse_groups,"verse_lines":m.verse_lines,"conflicts":m.conflicts,"identities":identities});
+    tick(deadline)?;
+    Ok(value)
 }
