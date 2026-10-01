@@ -36,12 +36,14 @@ publication authority.
 
 For chunked imports, set a positive whole operation
 `TOS_D1_SQL_STREAM_MAX_SECONDS`; it includes the time the consumer holds each
-chunk while Wrangler imports it. The native child holds the original source
-identity, produces one chunk only after the consumer requests it, and checks
-currentness again on resume. EOF cancels the reader; Node reaps that exact
-child before removing its own temporary district. The five-second platform
-cancellation grace is separate from the native operation deadline. Deadline
-expiry never unlinks a handed-off chunk under an active consumer. Direct
+chunk while Wrangler imports it. The native child reads each chunk through
+a clone of the original source descriptor, produces it only after the consumer
+requests it, and checks descriptor and pathname currentness before and after
+reading. EOF cancels the reader. Node uses one five-second monotonic cleanup
+deadline for EOF, SIGTERM, SIGKILL and exact-child close, separately from the
+native operation deadline. It removes its temporary district only after close.
+If close cannot be observed, it reports the unreaped PID and retains that exact
+directory. Deadline expiry never unlinks a handed-off chunk under a consumer. Direct
 `edge-sql-stream` callers supply an empty directory and `--max-seconds N` and
 own its cleanup after the child exits. `edge-sql-chunk` remains a bounded,
 single-chunk tool for independent parity checks.

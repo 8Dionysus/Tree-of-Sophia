@@ -109,11 +109,27 @@ fn chunk_until(
     maximum: u64,
     deadline: Option<Instant>,
 ) -> Result<Value> {
+    let file = input(source)?;
+    let metadata = file.metadata().map_err(|e| e.to_string())?;
+    chunk_held_until(source, file, &metadata, output, offset, maximum, deadline)
+}
+
+fn chunk_held_until(
+    source: &Path,
+    mut file: File,
+    metadata: &std::fs::Metadata,
+    output: &Path,
+    offset: u64,
+    maximum: u64,
+    deadline: Option<Instant>,
+) -> Result<Value> {
     if maximum == 0 {
         return Err("SQL chunk size must be positive".into());
     }
-    let mut file = input(source)?;
-    let metadata = file.metadata().map_err(|e| e.to_string())?;
+    if identity(&file.metadata().map_err(|e| e.to_string())?) != identity(metadata) {
+        return Err("held producer SQL descriptor changed".into());
+    }
+    unchanged(source, metadata)?;
     if offset > metadata.len() {
         return Err("SQL offset exceeds input".into());
     }
@@ -127,7 +143,7 @@ fn chunk_until(
         .map_err(|e| e.to_string())?;
     let result = (|| {
         let mut statements = Statements {
-            reader: BufReader::new(file.take(metadata.len() - offset)),
+            reader: BufReader::new((&mut file).take(metadata.len() - offset)),
             done: false,
             deadline,
         };
@@ -144,7 +160,11 @@ fn chunk_until(
             written = written.checked_add(length).ok_or("SQL byte overflow")?;
             count += u64::from(statement.iter().any(|b| !b.is_ascii_whitespace()));
         }
-        unchanged(source, &metadata)?;
+        drop(statements);
+        if identity(&file.metadata().map_err(|e| e.to_string())?) != identity(metadata) {
+            return Err("held producer SQL descriptor changed".into());
+        }
+        unchanged(source, metadata)?;
         target.sync_all().map_err(|e| e.to_string())?;
         Ok(
             json!({"next_offset": offset.checked_add(written).ok_or("SQL offset overflow")?,
@@ -469,7 +489,15 @@ fn stream(args: &[String], stdout: &mut dyn Write) -> Result<()> {
         }
         let filename = format!("part-{part}.sql");
         let target = directory.join(&filename);
-        let result = chunk_until(source, &target, offset, maximum.unwrap(), Some(deadline))?;
+        let result = chunk_held_until(
+            source,
+            pin.try_clone().map_err(|e| e.to_string())?,
+            &metadata,
+            &target,
+            offset,
+            maximum.unwrap(),
+            Some(deadline),
+        )?;
         owned.0 = Some(target);
         if Instant::now() >= deadline {
             return Err("SQL stream deadline exceeded".into());
@@ -729,6 +757,58 @@ mod tests {
                 Some("new")
             );
         }
+    }
+
+    #[test]
+    fn held_chunk_rejects_other_descriptor_and_replaced_path_before_output() {
+        let fixture = Fixture::new();
+        let source = fixture.0.join("source.sql");
+        let other = fixture.0.join("other.sql");
+        let output = fixture.0.join("chunk.sql");
+        std::fs::write(&source, b"SELECT 1;\nSELECT 2;\n").unwrap();
+        std::fs::write(&other, b"SELECT 3;\nSELECT 4;\n").unwrap();
+        let pin = input(&source).unwrap();
+        let metadata = pin.metadata().unwrap();
+        assert!(
+            chunk_held_until(
+                &source,
+                input(&other).unwrap(),
+                &metadata,
+                &output,
+                0,
+                10,
+                None
+            )
+            .is_err()
+        );
+        assert!(!output.exists());
+        let chunk = chunk_held_until(
+            &source,
+            pin.try_clone().unwrap(),
+            &metadata,
+            &output,
+            0,
+            10,
+            None,
+        )
+        .unwrap();
+        assert_eq!(chunk["bytes"], 10);
+        assert_eq!(std::fs::read(&output).unwrap(), b"SELECT 1;\n");
+        std::fs::remove_file(&output).unwrap();
+        std::fs::rename(&other, &source).unwrap();
+        assert!(
+            chunk_held_until(
+                &source,
+                pin.try_clone().unwrap(),
+                &metadata,
+                &output,
+                10,
+                10,
+                None
+            )
+            .is_err()
+        );
+        assert!(!output.exists());
     }
 
     #[test]

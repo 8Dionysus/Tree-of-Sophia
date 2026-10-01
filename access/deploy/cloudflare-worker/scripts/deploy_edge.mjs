@@ -169,15 +169,29 @@ export async function* sqlImportChunks(path, maximumBytes = 16 * 1024 * 1024,
   } finally {
     if (child) {
       child.stdin.end();
-      // EOF releases the held native reader. Reap this exact child before
-      // removing its owned district, with a platform cancellation grace.
-      let timer;
-      const graceful = await Promise.race([closed.then(() => true),
-        new Promise((done) => { timer = setTimeout(() => done(false), 5000); })]);
-      clearTimeout(timer);
-      if (!graceful) child.kill('SIGTERM');
-      const status = await closed;
+      // One monotonic cleanup deadline includes EOF, TERM, KILL and close.
+      // Only this exact child can be signalled; no unbounded reap follows it.
+      const cleanupDeadline = performance.now() + 5000;
+      const waitClose = async (grace) => {
+        let timer;
+        try {
+          return await Promise.race([closed, new Promise((done) => {
+            timer = setTimeout(() => done(null), Math.max(0,
+              Math.min(grace, cleanupDeadline - performance.now())));
+          })]);
+        } finally { clearTimeout(timer); }
+      };
+      let status = await waitClose(1000);
+      if (!status) { child.kill('SIGTERM'); status = await waitClose(1000); }
+      if (!status) { child.kill('SIGKILL'); status = await waitClose(Infinity); }
       lines?.close();
+      if (!status) {
+        // The process may still own these bytes: preserve its exact district,
+        // release host handles, and report the unresolved custody explicitly.
+        child.stdin.destroy(); child.stdout.destroy(); child.stderr.destroy();
+        child.unref();
+        throw new Error(`SQL import cleanup deadline exceeded; child ${child.pid} not reaped; retained ${directory}`);
+      }
       rmSync(directory, { recursive: true });
       if (finished && status.code !== 0) throw new Error(`SQL import framing failed: ${stderr.trim()}`);
     } else rmSync(directory, { recursive: true });

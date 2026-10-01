@@ -94,6 +94,41 @@ test('held native deadline preserves the in-use chunk until the platform reaps a
   }
 });
 
+test('host cancellation escalates the exact TERM-resistant child and closes within one cleanup deadline', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'tos-sql-cancel-'));
+  const path = join(directory, 'input.sql');
+  const standin = join(directory, 'term-resistant.mjs');
+  const previousBinary = process.env.TOS_ACCESS_BIN;
+  try {
+    writeFileSync(path, 'SELECT 1;\n');
+    writeFileSync(standin, `#!/usr/bin/env node
+import {writeFileSync} from 'node:fs';
+import {join} from 'node:path';
+const args = process.argv.slice(2);
+const directory = args[args.indexOf('--directory') + 1];
+process.on('SIGTERM', () => {});
+process.stdin.resume();
+process.stdin.once('data', () => {
+  writeFileSync(join(directory, 'part-0.sql'), 'SELECT 1;\\n');
+  process.stdout.write(JSON.stringify({kind:'chunk',file:'part-0.sql'}) + '\\n');
+});
+setInterval(() => {}, 1000);
+`, {mode: 0o700});
+    process.env.TOS_ACCESS_BIN = standin;
+    const chunks = sqlImportChunks(path, 10, 30);
+    const first = await chunks.next();
+    assert.equal(readFileSync(first.value, 'utf8'), 'SELECT 1;\n');
+    const started = performance.now();
+    await chunks.return();
+    assert.ok(performance.now() - started < 6000, 'cleanup exceeded its bounded deadline');
+    assert.deepEqual(readdirSync(directory).sort(), ['input.sql', 'term-resistant.mjs']);
+  } finally {
+    if (previousBinary === undefined) delete process.env.TOS_ACCESS_BIN;
+    else process.env.TOS_ACCESS_BIN = previousBinary;
+    rmSync(directory, {recursive:true});
+  }
+});
+
 test('SQL imports reject producer file replacement while the consumer is suspended', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'tos-sql-replacement-'));
   const path = join(directory, 'input.sql');
