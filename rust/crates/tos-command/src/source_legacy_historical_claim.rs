@@ -1076,7 +1076,10 @@ fn validate_capture(
         || cmd::field(&receipt, "owner_configuration")?
             != cmd::field(&request, "expected_configuration")?
         || cmd::field(&receipt, "dependencies")? != cmd::field(&request, "expected_dependencies")?
-        || cmd::field(&receipt, "source")? != &source_forms::metadata_subject(&record)?
+        || !cmd::same(
+            cmd::field(&receipt, "source")?,
+            &source_forms::metadata_subject(&record)?,
+        )?
         || cmd::field(&receipt, "grants_admission")? != &JsonValue::Bool(false)
     {
         return Err(SourceCommandError::Denied(
