@@ -11,6 +11,7 @@ REPOSITORY = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPOSITORY / 'tests'))
 import test_source_claim_publication as maintained
 from tos_access.prepared_publication import reference_publish_prepared
+from corpus_source_validation import is_source_member
 
 MAX_PACKET = 16 * 1024 * 1024
 MAX_FILES = 2048
@@ -30,13 +31,18 @@ def write_fixture(case, packet_path):
         if path.is_symlink():
             raise ValueError('synthetic schema cut symlink')
         if path.is_file():
+            relative = path.relative_to(case.root).as_posix()
+            # Generated catalog/export carriers stay in the oracle fixture,
+            # but are not authored members of the sealed source cut.
+            if not is_source_member(relative):
+                continue
             if path.stat().st_size > MAX_SOURCE_BYTES:
                 raise ValueError('synthetic selected source file budget')
             payload = path.read_bytes()
             total += len(payload)
             if len(files) >= MAX_FILES or total > MAX_SOURCE_BYTES:
                 raise ValueError('synthetic selected worker cut budget')
-            files[path.relative_to(case.root).as_posix()] = payload.hex()
+            files[relative] = payload.hex()
     state = json.loads(case.db.execute('SELECT json FROM source_dependency_state WHERE singleton=1').fetchone()[0])
     claim_id = case.claim['claim_id']
     node_id = 'source-claims:' + next(row['node_id'] for row in raw['nodes'].values()

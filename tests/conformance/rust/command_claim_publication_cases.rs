@@ -656,7 +656,9 @@ fn agent_publication_cli(
     let output = agent_publication_cli_output(executable, invocation, request, deadline);
     assert!(
         output.status.success(),
-        "actual Agent publication CLI: {}",
+        "actual Agent publication CLI action={} status={}: {}",
+        request["action"].as_str().expect("fixed Agent publication action"),
+        output.status,
         String::from_utf8_lossy(&output.stderr)
     );
     let envelope: Value = serde_json::from_slice(&output.stdout).unwrap();
