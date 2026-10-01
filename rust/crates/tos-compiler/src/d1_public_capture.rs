@@ -87,9 +87,13 @@ pub struct PublicCapture {
     vm_used: Arc<AtomicU64>,
 }
 
+enum SourceOrigin {
+    File(PathBuf),
+    Compiled(&'static [u8]),
+}
 struct SourceFile {
     label: String,
-    path: PathBuf,
+    origin: SourceOrigin,
     digest: Option<Digest256>,
     len: u64,
 }
@@ -976,6 +980,60 @@ fn capture_partitioned(root_path: &Path, raw: &[u8], writer: &mut CaptureWriter<
     Ok(())
 }
 
+fn runtime_companion(label: &str) -> Option<&'static [u8]> {
+    match label {
+        "ToS/doctrine/semantic-interchange/query-vocabulary.v1.json" => Some(include_bytes!(
+            "../../../../ToS/doctrine/semantic-interchange/query-vocabulary.v1.json"
+        )),
+        "access/contracts/knowledge-api.v1.json" => Some(include_bytes!(
+            "../../../../access/contracts/knowledge-api.v1.json"
+        )),
+        "access/contracts/knowledge-graph.v1.schema.json" => Some(include_bytes!(
+            "../../../../access/contracts/knowledge-graph.v1.schema.json"
+        )),
+        "access/contracts/knowledge-search-indexed.v2.schema.json" => Some(include_bytes!(
+            "../../../../access/contracts/knowledge-search-indexed.v2.schema.json"
+        )),
+        "access/contracts/readable-context.v1.schema.json" => Some(include_bytes!(
+            "../../../../access/contracts/readable-context.v1.schema.json"
+        )),
+        "access/contracts/lens-spec.v1.schema.json" => Some(include_bytes!(
+            "../../../../access/contracts/lens-spec.v1.schema.json"
+        )),
+        "access/contracts/lens-result.v1.schema.json" => Some(include_bytes!(
+            "../../../../access/contracts/lens-result.v1.schema.json"
+        )),
+        "access/contracts/temporal-comparison-request.v1.schema.json" => Some(include_bytes!(
+            "../../../../access/contracts/temporal-comparison-request.v1.schema.json"
+        )),
+        "access/contracts/temporal-comparison-result.v1.schema.json" => Some(include_bytes!(
+            "../../../../access/contracts/temporal-comparison-result.v1.schema.json"
+        )),
+        "access/contracts/source-read.v1.schema.json" => Some(include_bytes!(
+            "../../../../access/contracts/source-read.v1.schema.json"
+        )),
+        "access/contracts/exploration-request.v1.schema.json" => Some(include_bytes!(
+            "../../../../access/contracts/exploration-request.v1.schema.json"
+        )),
+        "access/contracts/exploration-result.v1.schema.json" => Some(include_bytes!(
+            "../../../../access/contracts/exploration-result.v1.schema.json"
+        )),
+        "access/contracts/exploration-request.v2.schema.json" => Some(include_bytes!(
+            "../../../../access/contracts/exploration-request.v2.schema.json"
+        )),
+        "access/contracts/exploration-result.v2.schema.json" => Some(include_bytes!(
+            "../../../../access/contracts/exploration-result.v2.schema.json"
+        )),
+        "ToS/contracts/semantic-entity-type-registry.schema.json" => Some(include_bytes!(
+            "../../../../ToS/contracts/semantic-entity-type-registry.schema.json"
+        )),
+        "ToS/contracts/semantic-relation-type-registry.schema.json" => Some(include_bytes!(
+            "../../../../ToS/contracts/semantic-relation-type-registry.schema.json"
+        )),
+        _ => None,
+    }
+}
+
 impl PublicCapture {
     pub fn create(
         root: &Path,
@@ -983,7 +1041,7 @@ impl PublicCapture {
         limits: PublicCaptureLimits,
         deadline: Instant,
     ) -> Result<Self> {
-        Self::create_profile(root, staging, limits, deadline, false, false)
+        Self::create_profile(root, staging, limits, deadline, false, false, false)
     }
 
     /// Five maintained prepare input roles. Software contracts are compiled
@@ -994,7 +1052,7 @@ impl PublicCapture {
         limits: PublicCaptureLimits,
         deadline: Instant,
     ) -> Result<Self> {
-        Self::create_profile(root, staging, limits, deadline, true, false)
+        Self::create_profile(root, staging, limits, deadline, true, false, false)
     }
     /// Evidence Lens opens only views and canon node/edge collections.
     pub(crate) fn create_evidence(
@@ -1003,7 +1061,29 @@ impl PublicCapture {
         limits: PublicCaptureLimits,
         deadline: Instant,
     ) -> Result<Self> {
-        Self::create_profile(root, staging, limits, deadline, false, true)
+        Self::create_profile(root, staging, limits, deadline, false, true, false)
+    }
+    /// Runtime projection data belongs to the selected source root; executable
+    /// contract/vocabulary companions belong to this exact compiled producer.
+    pub fn create_runtime(
+        root: &Path,
+        staging: &Path,
+        limits: PublicCaptureLimits,
+        deadline: Instant,
+    ) -> Result<Self> {
+        let capture = Self::create_profile(root, staging, limits, deadline, false, false, true)?;
+        let total = capture
+            .retained_input_members()?
+            .iter()
+            .try_fold(0u64, |n, (_, _, len)| {
+                n.checked_add(*len)
+                    .filter(|bytes| *bytes <= limits.max_input_bytes)
+                    .ok_or(Error::Budget("runtime capture aggregate source bytes"))
+            })?;
+        if total == 0 {
+            return Err(Error::Invalid("runtime capture empty input"));
+        }
+        Ok(capture)
     }
     fn create_profile(
         root: &Path,
@@ -1012,6 +1092,7 @@ impl PublicCapture {
         deadline: Instant,
         prepared_profile: bool,
         evidence_profile: bool,
+        runtime_profile: bool,
     ) -> Result<Self> {
         limits.validate()?;
         let prepared_state = if prepared_profile {
@@ -1176,7 +1257,7 @@ impl PublicCapture {
             db.execute_batch("COMMIT")?;
             sources.push(SourceFile {
                 label: relative.to_owned(),
-                path,
+                origin: SourceOrigin::File(path),
                 digest: Some(digest),
                 len,
             });
@@ -1216,6 +1297,21 @@ impl PublicCapture {
             {
                 continue;
             }
+            if runtime_profile {
+                if let Some(raw) = runtime_companion(relative) {
+                    if raw.len() as u64 > limits.max_input_bytes {
+                        return Err(Error::Budget("runtime compiled companion bytes"));
+                    }
+                    checked_add(&mut work_bytes, raw.len(), limits.max_work_bytes)?;
+                    sources.push(SourceFile {
+                        label: relative.to_owned(),
+                        origin: SourceOrigin::Compiled(raw),
+                        digest: Some(Digest256::of_bytes(raw)),
+                        len: raw.len() as u64,
+                    });
+                    continue;
+                }
+            }
             let path = root.join(relative);
             let mut file = profile_open(&path, limits.max_input_bytes, prepared_profile)?;
             let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
@@ -1226,7 +1322,7 @@ impl PublicCapture {
             })?;
             sources.push(SourceFile {
                 label: relative.to_owned(),
-                path,
+                origin: SourceOrigin::File(path),
                 digest: Some(digest),
                 len,
             });
@@ -1247,14 +1343,14 @@ impl PublicCapture {
                     })?;
                     sources.push(SourceFile {
                         label: relative.to_owned(),
-                        path,
+                        origin: SourceOrigin::File(path),
                         digest: Some(digest),
                         len,
                     });
                 } else {
                     sources.push(SourceFile {
                         label: relative.to_owned(),
-                        path,
+                        origin: SourceOrigin::File(path),
                         digest: None,
                         len: 0,
                     });
@@ -1297,7 +1393,7 @@ impl PublicCapture {
                     })?;
                     sources.push(SourceFile {
                         label: format!("{ledger_relative}/{name}"),
-                        path,
+                        origin: SourceOrigin::File(path),
                         digest: Some(digest),
                         len,
                     });
@@ -1412,16 +1508,18 @@ impl PublicCapture {
             return Err(Error::Invalid("public D1 changed work budget"));
         }
         for source in &self.sources {
+            let SourceOrigin::File(path) = &source.origin else {
+                continue;
+            };
             if source.digest.is_none() {
-                if source.path.exists() || source.path.is_symlink() {
+                if path.exists() || path.is_symlink() {
                     return Err(Error::Invalid(
                         "public D1 optional source appeared during build",
                     ));
                 }
                 continue;
             }
-            let mut file =
-                profile_open(&source.path, limits.max_input_bytes, self.prepared_profile)?;
+            let mut file = profile_open(path, limits.max_input_bytes, self.prepared_profile)?;
             let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
                 self.charge_work(n as u64)
             })?;
@@ -1486,6 +1584,95 @@ impl PublicCapture {
         Ok(())
     }
 
+    /// Read only an exact member already selected by this retained capture,
+    /// including partition members. No ambient relative-path read is admitted.
+    pub fn read_retained_input(&self, label: &str, cap: usize) -> Result<Vec<u8>> {
+        self.check_custody()?;
+        if self
+            .sources
+            .iter()
+            .any(|source| source.label == label && source.digest.is_some())
+        {
+            return self
+                .read_input(label, cap)?
+                .ok_or(Error::Invalid("captured runtime member absent"));
+        }
+        let relative = tos_foundation::RelativePath::parse(label)
+            .map_err(|_| Error::Invalid("captured runtime member path"))?;
+        let path = self.root.join(relative.as_str());
+        let db = self.read_db()?;
+        let part: Option<(Vec<u8>, u64)> = db
+            .query_row(
+                "SELECT sha256,size_bytes FROM capture_sources WHERE path=?1",
+                [path
+                    .to_str()
+                    .ok_or(Error::Invalid("captured runtime path UTF8"))?],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
+        let (expected, len) = part.ok_or(Error::Invalid("captured runtime member absent"))?;
+        if len > cap as u64 {
+            return Err(Error::Budget("captured runtime member bytes"));
+        }
+        self.charge_work(len)?;
+        let file = safe_open::open_regular(&path, cap as u64)?;
+        let mut raw = Vec::with_capacity(len as usize);
+        file.take(cap as u64 + 1).read_to_end(&mut raw)?;
+        if raw.len() as u64 != len
+            || Digest256::of_bytes(&raw).as_bytes().as_slice() != expected.as_slice()
+        {
+            return Err(Error::Invalid("captured runtime part changed"));
+        }
+        Ok(raw)
+    }
+
+    /// Exact retained closure from the same capture, including authenticated
+    /// partition members and typed compiled companions. Optional absence stays
+    /// absent; no source tree enumeration is used.
+    pub fn retained_input_members(&self) -> Result<Vec<(String, Digest256, u64)>> {
+        self.check_custody()?;
+        let mut members = BTreeMap::new();
+        for source in &self.sources {
+            if let Some(digest) = source.digest {
+                members.insert(source.label.clone(), (digest, source.len));
+            }
+        }
+        let db = self.read_db()?;
+        let mut statement =
+            db.prepare("SELECT path,sha256,size_bytes FROM capture_sources ORDER BY path")?;
+        let mut rows = statement.query([])?;
+        while let Some(row) = rows.next()? {
+            if members.len() >= 65536 {
+                return Err(Error::Budget("captured runtime member count"));
+            }
+            let path: String = row.get(0)?;
+            let raw_sha: Vec<u8> = row.get(1)?;
+            let len: u64 = row.get(2)?;
+            self.charge_work(path.len() as u64 + 40)?;
+            let relative = Path::new(&path)
+                .strip_prefix(&self.root)
+                .map_err(|_| Error::Invalid("captured runtime part outside root"))?
+                .to_str()
+                .ok_or(Error::Invalid("captured runtime member UTF8"))?
+                .to_owned();
+            tos_foundation::RelativePath::parse(&relative)
+                .map_err(|_| Error::Invalid("captured runtime member path"))?;
+            let bytes: [u8; 32] = raw_sha
+                .try_into()
+                .map_err(|_| Error::Invalid("captured runtime member digest"))?;
+            let sha = Digest256::from_bytes(bytes);
+            if let Some(previous) = members.insert(relative, (sha, len)) {
+                if previous != (sha, len) {
+                    return Err(Error::Invalid("captured runtime duplicate member differs"));
+                }
+            }
+        }
+        Ok(members
+            .into_iter()
+            .map(|(path, (sha, len))| (path, sha, len))
+            .collect())
+    }
+
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -1527,6 +1714,94 @@ impl PublicCapture {
     /// Measured public inputs for the existing completion manifest. Part rows
     /// were admitted by the source-owned partition descriptors during capture;
     /// only their bounded root is exported, never private absolute paths.
+    /// Verify the existing public D1 completion pair against this captured
+    /// source. This grants no selected reader authority and creates no output.
+    /// Call before and after the local comparison using the same capture.
+    pub fn verify_public_completion(
+        &self,
+        runtime: &Path,
+        dist: &Path,
+        limits: PublicCaptureLimits,
+        manifest_bytes: usize,
+    ) -> Result<(serde_json::Value, Vec<u8>)> {
+        use std::io::Read;
+        self.verify_inputs(limits)?;
+        if manifest_bytes == 0 || manifest_bytes > MAX_HEADER_BYTES + 1 {
+            return Err(Error::Budget("public D1 verifier manifest bytes"));
+        }
+        let read_marker = |path: &Path| -> Result<Vec<u8>> {
+            let mut file = tos_fd_open::open_absolute_regular(path, manifest_bytes as u64)
+                .map_err(|_| Error::Invalid("public D1 completion marker"))?;
+            let size = file.metadata()?.len();
+            if size == 0 || size > manifest_bytes as u64 {
+                return Err(Error::Budget("public D1 completion marker bytes"));
+            }
+            self.charge_work(
+                size.checked_mul(3)
+                    .ok_or(Error::Budget("public D1 verifier work"))?,
+            )?;
+            let mut raw = Vec::with_capacity(size as usize);
+            std::io::Read::by_ref(&mut file)
+                .take(size + 1)
+                .read_to_end(&mut raw)?;
+            if raw.len() as u64 != size {
+                return Err(Error::Invalid("public D1 completion marker changed"));
+            }
+            Ok(raw)
+        };
+        let raw = read_marker(&runtime.join("manifest.json"))?;
+        if raw != read_marker(&dist.join("__edge/build-manifest.json"))? {
+            return Err(Error::Invalid("public D1 completion markers differ"));
+        }
+        let manifest: serde_json::Value =
+            serde_json::from_slice(&raw).map_err(|e| Error::Source(e.to_string()))?;
+        let revision = manifest["data_revision"]
+            .as_str()
+            .filter(|value| {
+                value.len() == 64
+                    && value
+                        .bytes()
+                        .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            })
+            .ok_or(Error::Invalid("public D1 completion revision"))?;
+        if manifest["schema"] != "tos_cloudflare_edge_build_v1"
+            || manifest["read_model_schema"] != "tos_cloudflare_edge_read_model_v9"
+        {
+            return Err(Error::Invalid("public D1 completion schema"));
+        }
+        for (name, field) in [
+            ("read-model.sql", "sql_bytes"),
+            ("read-model.rows.json", "baseline_bytes"),
+        ] {
+            let size = manifest[field]
+                .as_u64()
+                .filter(|n| *n > 0)
+                .ok_or(Error::Invalid("public D1 completed file size"))?;
+            let file = tos_fd_open::open_absolute_regular(&runtime.join(name), size)
+                .map_err(|_| Error::Invalid("public D1 completed file"))?;
+            if file.metadata()?.len() != size {
+                return Err(Error::Invalid("public D1 completed file size"));
+            }
+            if name == "read-model.rows.json" {
+                let mut prefix = Vec::with_capacity(160);
+                (&file).take(160).read_to_end(&mut prefix)?;
+                let count = prefix.len();
+                let expected = format!(
+                    "{{\"schema\":\"tos_cloudflare_edge_read_model_v9\",\"revision\":\"{revision}\""
+                );
+                if !prefix.starts_with(expected.as_bytes()) {
+                    return Err(Error::Invalid("public D1 baseline revision"));
+                }
+                self.charge_work(count as u64)?;
+            }
+        }
+        if manifest["public_input_binding"] != self.manifest_input_binding(manifest_bytes)? {
+            return Err(Error::Invalid("public D1 measured input binding differs"));
+        }
+        self.check_custody()?;
+        Ok((manifest, raw))
+    }
+
     pub(crate) fn manifest_input_binding(&self, max_bytes: usize) -> Result<serde_json::Value> {
         #[derive(serde::Serialize)]
         struct Entry<'a> {
@@ -1756,7 +2031,10 @@ impl PublicCapture {
             return Err(Error::Budget("public D1 input bytes"));
         }
         self.charge_work(source.len)?;
-        let mut file = profile_open(&source.path, cap as u64, self.prepared_profile)?;
+        let mut file = match &source.origin {
+            SourceOrigin::Compiled(raw) => return Ok(Some(raw.to_vec())),
+            SourceOrigin::File(path) => profile_open(path, cap as u64, self.prepared_profile)?,
+        };
         let mut raw = Vec::with_capacity(source.len as usize);
         file.take(cap as u64 + 1).read_to_end(&mut raw)?;
         if raw.len() as u64 != source.len || Digest256::of_bytes(&raw) != expected {
@@ -1988,6 +2266,32 @@ impl PublicCapture {
             }
         }
         Ok(serde_json::Value::Object(fields))
+    }
+
+    /// Declared presence and container kind from the authenticated capture.
+    /// An absent collection remains absent; callers must not invent empty rows.
+    pub(crate) fn captured_collection_kind(
+        &self,
+        role: &str,
+        collection: &str,
+    ) -> Result<Option<String>> {
+        self.check_custody()?;
+        if !selected_rows(role, collection) {
+            return Err(Error::Invalid("public D1 collection outside fixed input"));
+        }
+        let db = self.read_db()?;
+        use rusqlite::OptionalExtension;
+        let kind: Option<String> = db
+            .query_row(
+                "SELECT kind FROM capture_collections WHERE role=?1 AND collection=?2",
+                params![role, collection],
+                |row| row.get(0),
+            )
+            .optional()?;
+        if let Some(value) = &kind {
+            self.charge_work(value.len() as u64)?;
+        }
+        Ok(kind)
     }
 
     /// Physical part order is a hash traversal. This cursor restores the

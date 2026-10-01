@@ -148,11 +148,45 @@ impl Snapshot {
         Ok(PathBuf::from(relative))
     }
 }
+type PartStamp = (u64, u64, u64, i64, i64, i64, i64);
+fn part_stamp(m: &std::fs::Metadata) -> PartStamp {
+    use std::os::unix::fs::MetadataExt;
+    (
+        m.dev(),
+        m.ino(),
+        m.len(),
+        m.mtime(),
+        m.mtime_nsec(),
+        m.ctime(),
+        m.ctime_nsec(),
+    )
+}
+struct PartPin {
+    path: PathBuf,
+    file: File,
+    stamp: PartStamp,
+}
+impl PartPin {
+    fn verify(&self) -> Result<()> {
+        let named = tos_fd_open::open_absolute_regular(&self.path, self.stamp.2)
+            .map_err(|e| Error::Source(e.to_string()))?;
+        if part_stamp(&self.file.metadata()?) != self.stamp
+            || part_stamp(&named.metadata()?) != self.stamp
+        {
+            return Err(Error::Invalid("source addressed part identity changed"));
+        }
+        Ok(())
+    }
+}
+
 pub(super) struct Roots {
     pub snapshots: BTreeMap<String, Snapshot>,
     limits: MutationLimits,
     usage: Usage,
     cache: BTreeMap<(PathBuf, String, Vec<u8>), Arc<[u8]>>,
+    // Only read-only SourceRead retains named/held part identity. Mutation
+    // callers keep the existing COW candidate behavior through new().
+    read_pins: Option<BTreeMap<PathBuf, PartPin>>,
 }
 impl Roots {
     pub fn new(snapshots: BTreeMap<String, Snapshot>, limits: MutationLimits) -> Result<Self> {
@@ -161,11 +195,20 @@ impl Roots {
             limits,
             usage: Usage::default(),
             cache: BTreeMap::new(),
+            read_pins: None,
         };
         for snapshot in this.snapshots.values() {
             take(&mut this.usage.decoded, snapshot.raw.len(), limits.decoded)?;
         }
         Ok(this)
+    }
+    pub fn new_retained(
+        snapshots: BTreeMap<String, Snapshot>,
+        limits: MutationLimits,
+    ) -> Result<Self> {
+        let mut result = Self::new(snapshots, limits)?;
+        result.read_pins = Some(BTreeMap::new());
+        Ok(result)
     }
     fn load(&mut self, role: &str, d: &Value, prefix: &str) -> Result<Arc<[u8]>> {
         let snapshot = self
@@ -181,6 +224,12 @@ impl Roots {
             bytes::canonical(d, 65536)?,
         );
         if let Some(raw) = self.cache.get(&key) {
+            if let Some(pins) = &self.read_pins {
+                let path = snapshot.path.parent().unwrap().join(&relative);
+                pins.get(&path)
+                    .ok_or(Error::Invalid("source part pin absent"))?
+                    .verify()?;
+            }
             self.usage.hits += 1;
             return Ok(Arc::clone(raw));
         }
@@ -219,11 +268,20 @@ impl Roots {
             }
         }
         let file = file.ok_or(Error::Invalid("Claim raw part path"))?;
-        if file.metadata()?.len() != stored as u64 {
+        let before = file.metadata()?;
+        if before.len() != stored as u64 {
             return Err(Error::Invalid("Claim raw physical size"));
         }
+        if self.read_pins.is_some() {
+            use std::os::unix::fs::MetadataExt;
+            if before.uid() != rustix::process::getuid().as_raw() || before.mode() & 0o022 != 0 {
+                return Err(Error::Invalid("source part owner or mode"));
+            }
+        }
         let mut encoded = Vec::new();
-        file.take((stored + 1) as u64).read_to_end(&mut encoded)?;
+        (&file)
+            .take((stored + 1) as u64)
+            .read_to_end(&mut encoded)?;
         if encoded.len() != stored || bytes::digest(&encoded) != d["sha256"].as_str().unwrap_or("")
         {
             return Err(Error::Invalid("Claim raw stored identity"));
@@ -240,6 +298,26 @@ impl Roots {
         if raw.len() != decoded || bytes::digest(&raw) != d["decoded_sha256"].as_str().unwrap_or("")
         {
             return Err(Error::Invalid("Claim raw decoded identity"));
+        }
+        if let Some(pins) = &mut self.read_pins {
+            if part_stamp(&file.metadata()?) != part_stamp(&before) {
+                return Err(Error::Invalid("source part changed during read"));
+            }
+            let path = snapshot.path.parent().unwrap().join(&relative);
+            if let Some(pin) = pins.get(&path) {
+                pin.verify()?;
+                if part_stamp(&before) != pin.stamp {
+                    return Err(Error::Invalid("source part reread inode changed"));
+                }
+            } else {
+                let pin = PartPin {
+                    file,
+                    path: path.clone(),
+                    stamp: part_stamp(&before),
+                };
+                pin.verify()?;
+                pins.insert(path, pin);
+            }
         }
         let raw: Arc<[u8]> = raw.into();
         self.cache.insert(key, Arc::clone(&raw));
@@ -339,6 +417,55 @@ impl Roots {
             prefix.push_str(digit);
         }
         Ok(self.rows(role, collection, &d, &prefix)?.remove(key))
+    }
+    /// Revalidate the exact addressed parts consumed by a retained snapshot.
+    /// Retained root bytes were authenticated by Snapshot::parse and the source
+    /// vector; its locator is not a selected-current projection pointer file.
+    /// No mutation/current-publication caller can enter this read-only route.
+    /// All encoded/decoded rereads remain inside the same cumulative budgets.
+    pub fn verify_retained_reads(
+        &mut self,
+        deadline: std::time::Instant,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> Result<()> {
+        let check = || {
+            if cancelled.load(std::sync::atomic::Ordering::Relaxed)
+                || std::time::Instant::now() >= deadline
+            {
+                Err(Error::Invalid("source part read interrupted"))
+            } else {
+                Ok(())
+            }
+        };
+        for pin in self
+            .read_pins
+            .as_ref()
+            .ok_or(Error::Invalid("retained read guard mode absent"))?
+            .values()
+        {
+            check()?;
+            pin.verify()?;
+        }
+        let selected = std::mem::take(&mut self.cache);
+        for ((path, prefix, descriptor), expected) in selected {
+            check()?;
+            let role = self
+                .snapshots
+                .iter()
+                .find(|(_, snapshot)| snapshot.path == path)
+                .map(|(role, _)| role.clone())
+                .ok_or(Error::Invalid("source root cache namespace"))?;
+            let descriptor = bytes::parse(&descriptor, 65536)?;
+            let actual = self.load(&role, &descriptor, &prefix)?;
+            if actual.as_ref() != expected.as_ref() {
+                return Err(Error::Invalid("source root selected part changed"));
+            }
+        }
+        for pin in self.read_pins.as_ref().unwrap().values() {
+            check()?;
+            pin.verify()?;
+        }
+        check()
     }
     pub fn accounting(&self) -> Value {
         json!({"opened_parts":self.usage.parts,"stored_read_bytes":self.usage.stored,
