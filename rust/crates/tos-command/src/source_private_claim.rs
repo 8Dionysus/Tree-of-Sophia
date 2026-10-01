@@ -1169,15 +1169,14 @@ impl ClaimGrammar {
             for endpoint in domain.iter().chain(range.iter()) {
                 let ancestry =
                     crate::source_claims::ancestry(cmd::array(&entities, "types")?, endpoint)?;
-                if ancestry.contains("tos.entity.thing")
-                    || matches!(
-                        endpoint.as_str(),
-                        "tos.entity.identity"
-                            | "tos.entity.semantic-object"
-                            | "tos.entity.unmapped"
-                            | "tos.entity.unresolved-endpoint"
-                    )
-                {
+                if matches!(
+                    endpoint.as_str(),
+                    "tos.entity.thing"
+                        | "tos.entity.identity"
+                        | "tos.entity.semantic-object"
+                        | "tos.entity.unmapped"
+                        | "tos.entity.unresolved-endpoint"
+                ) {
                     return Err(SourceCommandError::Conflict(
                         "private Claim relation uses an abstract endpoint family",
                     ));
