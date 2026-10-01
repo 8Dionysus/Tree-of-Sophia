@@ -112,6 +112,40 @@ pub(super) fn fixture_physical_bytes(roots: &[PathBuf], deadline: Instant) -> (u
     (physical, entries)
 }
 
+// Same local failure-custody pattern as Item/PublicText; no source copy.
+// Only the explicit narrow launcher opt-in retains a failed fixture.
+struct PublicationFailureFixture {
+    directory: tempfile::TempDir,
+    label: &'static str,
+    retain_failure: bool,
+}
+impl PublicationFailureFixture {
+    fn new(label: &'static str) -> Self {
+        Self {
+            directory: tempfile::tempdir().unwrap(),
+            label,
+            retain_failure: std::env::var_os("TOS_NATIVE_CLAIM_PUBLICATION_RETAIN_FIXTURE")
+                .as_deref()
+                == Some(std::ffi::OsStr::new("1")),
+        }
+    }
+    fn path(&self) -> &Path {
+        self.directory.path()
+    }
+}
+impl Drop for PublicationFailureFixture {
+    fn drop(&mut self) {
+        if self.retain_failure && std::thread::panicking() {
+            self.directory.disable_cleanup(true);
+            eprintln!(
+                "{} failed fixture retained at {}",
+                self.label,
+                self.path().display()
+            );
+        }
+    }
+}
+
 #[test]
 fn maintained_claim_addition_whole_transaction_and_access() {
     let deadline = Instant::now() + Duration::from_secs(240);
@@ -147,7 +181,7 @@ fn maintained_claim_addition_whole_transaction_and_access() {
     );
     assert!(Instant::now() < deadline);
     let repository = super::validation_cut_cases::repository();
-    let workspace = tempfile::tempdir().unwrap();
+    let workspace = PublicationFailureFixture::new("Claim addition");
     let packet_path = if let Some(path) = std::env::var_os("TOS_NATIVE_CLAIM_PUBLICATION_FIXTURE") {
         PathBuf::from(path)
     } else {
@@ -768,7 +802,7 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         .iter()
         .map(|(p, maximum)| native_child::bounded_sha_before(p, *maximum, deadline))
         .collect::<Vec<_>>();
-    let workspace = tempfile::tempdir().unwrap();
+    let workspace = PublicationFailureFixture::new("Agent correction");
     let packet_path = workspace.path().join("agent-fixture.json");
     let mut export = Command::new(
         std::env::var_os("TOS_MAINTAINED_PYTHON").expect("explicit maintained fixture interpreter"),
