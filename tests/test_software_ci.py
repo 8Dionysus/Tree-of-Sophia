@@ -204,6 +204,19 @@ class SoftwareSelectionTests(unittest.TestCase):
         check=next(step for step in steps if step.get('name')=='Build and check Worker')
         self.assertLess(steps.index(native),steps.index(check))
         self.assertIn('npm run check',check['run'])
+        wasm=next(step for step in steps if step.get('name')=='Prepare pinned Worker rules WASM')
+        self.assertIn(
+            'rustup toolchain install 1.98.1 --profile minimal --target wasm32-unknown-unknown',
+            wasm['run'],
+        )
+        self.assertIn(
+            'cargo +1.98.1 build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown',
+            wasm['run'],
+        )
+        self.assertIn('b51f0208fdff83515a787bd8ab9ac5865ed84dabb66d0c709957bb59793c645f',wasm['run'])
+        self.assertIn('--target web --out-name tos_web_rules --out-dir generated',wasm['run'])
+        self.assertLess(steps.index(native),steps.index(wasm))
+        self.assertLess(steps.index(wasm),steps.index(check))
         self.assertIn('npx wrangler deploy --dry-run',steps[-1]['run'])
 
     def test_acquisition_custody_tests_are_in_required_software_validation(self):
