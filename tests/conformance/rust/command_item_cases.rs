@@ -603,6 +603,44 @@ if supplied['decision']=='orphan':
     assert observed['status']=='orphan'
 else:
     result=subprocess.run([sys.executable,'-c',fixture.CRASH_WRITER,str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(owner),'2'],input=json.dumps(supplied['request']),text=True,capture_output=True,timeout=50)
+    if result.returncode!=86:
+        # Diagnose the same authentic failed producer, never manufacture a new
+        # prepared request or substitute an observation into its retained plan.
+        try:
+            actual=item.deposit.observe(json.loads(owner.read_bytes()))
+            expected={'inventory':supplied['request']['inventory'],'limitation':supplied['request']['inventory_limitation']}
+            selected={key:actual[key] for key in ('inventory','limitation')}
+            assert len(json.dumps(selected,ensure_ascii=False).encode())<=262144
+            differences=[];visited=0;truncated=False
+            enums={'media_type','profile','structural_role','resource_kind','limitation'}
+            def summary(value,key):
+                if key in enums and isinstance(value,str):return value[:160]
+                if value is None or isinstance(value,(bool,int)):return value
+                return type(value).__name__
+            def compare(left,right,path='',depth=0):
+                global visited,truncated
+                if visited>=4096 or depth>24 or len(differences)>=32:
+                    truncated=True;return
+                visited+=1
+                if type(left) is type(right) and isinstance(left,dict):
+                    for key in sorted(set(left)|set(right)):
+                        if visited>=4096 or len(differences)>=32:
+                            truncated=True;break
+                        compare(left.get(key),right.get(key),path+'/'+str(key)[:128],depth+1)
+                elif type(left) is type(right) and isinstance(left,list):
+                    for index in range(max(len(left),len(right))):
+                        if visited>=4096 or len(differences)>=32:
+                            truncated=True;break
+                        compare(left[index] if index<len(left) else None,right[index] if index<len(right) else None,path+'/'+str(index),depth+1)
+                elif type(left) is not type(right) or left!=right:
+                    key=path.rsplit('/',1)[-1]
+                    differences.append({'field':path[:512],'prepared':summary(left,key),'observed':summary(right,key)})
+            compare(expected,selected)
+            diagnostic=json.dumps({'item_failed_inventory_diff':differences,'visited':visited,'truncated':truncated},ensure_ascii=False,separators=(',',':'))
+            assert len(diagnostic.encode())<=16384
+            print(diagnostic,file=sys.stderr)
+        except Exception as diagnostic_error:
+            print('item_failed_inventory_diagnostic:'+type(diagnostic_error).__name__,file=sys.stderr)
     assert result.returncode==86,(result.returncode,result.stdout,result.stderr)
     observed=item.transactions.read_pending_transaction(root)
     assert observed is not None
