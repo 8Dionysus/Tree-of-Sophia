@@ -220,6 +220,12 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             _ => corrupt("selected navigation original read failed"),
         }
     }
+    pub(crate) fn external_projection_bytes(&mut self, bytes: usize) -> Result<(), SearchV2Error> {
+        if bytes == 0 || bytes > self.budget.max_payload_bytes {
+            return Err(budget_error());
+        }
+        self.charge_original(1, bytes as u64)
+    }
     fn charge_original(&mut self, rows: usize, bytes: u64) -> Result<(), SearchV2Error> {
         self.rows = self
             .rows
