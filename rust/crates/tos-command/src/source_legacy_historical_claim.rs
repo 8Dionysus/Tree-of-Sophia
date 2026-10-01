@@ -1302,7 +1302,7 @@ fn verify_record_origin(
                 .rsplit_once('/')
                 .map(|pair| pair.0)
         || cmd::text(&receipt, "schema_version")? != "tos_local_historical_create_receipt_v1"
-        || cmd::field(&receipt, "source")? != &original_subject
+        || !same(cmd::field(&receipt, "source")?, &original_subject)?
         || cmd::field(&receipt, "owner_configuration")?
             != cmd::field(&request, "expected_configuration")?
         || cmd::field(&receipt, "dependencies")? != cmd::field(&request, "expected_dependencies")?
