@@ -1093,13 +1093,35 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
     agent_invocation["catalog_sha256"] = json!(file_sha(&catalog_companion));
     agent_invocation["reviewed_execution_transition"] = Value::Null;
     write_protected(&agent_invocation_path, &agent_invocation);
-    let preview = agent_native_call(
+    // Agent's selected Record owner returns a native transport envelope around
+    // the source_revisions selected-family response. Other callers keep the
+    // outer envelope, so unwrap only these two Agent observations.
+    let checked_agent_record_result = |mut envelope: Value| {
+        assert!(envelope.is_object(), "Agent native source envelope object");
+        assert_eq!(envelope.as_object().unwrap().len(), 4);
+        assert_eq!(
+            envelope["schema_version"],
+            "tos_local_native_source_result_v1"
+        );
+        assert_eq!(envelope["authentication"], "local-unix-account");
+        assert_eq!(envelope["grants_admission"], false);
+        let result = envelope.as_object_mut().unwrap().remove("result").unwrap();
+        assert!(result.is_object(), "Agent selected Record result object");
+        assert_eq!(
+            result["schema_version"],
+            "tos_local_source_revision_result_v2"
+        );
+        assert_eq!(result["authentication"], "local-unix-account");
+        assert_eq!(result["grants_admission"], false);
+        result
+    };
+    let preview = checked_agent_record_result(agent_native_call(
         &repository,
         &owner,
         &invocation_path,
         &packet["proposal"],
         deadline,
-    );
+    ));
     for field in [
         "owner_configuration",
         "source",
@@ -1121,8 +1143,13 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         request[field] = preview[prepared].clone();
     }
     agent_physical(workspace.path(), deadline);
-    let source_result =
-        agent_native_call(&repository, &owner, &invocation_path, &request, deadline);
+    let source_result = checked_agent_record_result(agent_native_call(
+        &repository,
+        &owner,
+        &invocation_path,
+        &request,
+        deadline,
+    ));
     assert_eq!(source_result["replayed"], false);
     let source_receipt = workspace.path().join("native-Record-receipt.json");
     fs::write(&source_receipt, canonical_lf(&source_result)).unwrap();
