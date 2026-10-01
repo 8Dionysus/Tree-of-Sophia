@@ -161,10 +161,11 @@ fn maintained_claim_addition_whole_transaction_and_access() {
             .arg(workspace.path())
             .arg(&path)
             .env("PYTHONDONTWRITEBYTECODE", "1");
-        let output = native_child::bounded_output_before(
+        let output = native_child::bounded_output_before_diagnostic(
             &mut command,
             4096,
             deadline.min(Instant::now() + Duration::from_secs(30)),
+            "claim.fixture-export",
         );
         assert!(
             output.status.success(),

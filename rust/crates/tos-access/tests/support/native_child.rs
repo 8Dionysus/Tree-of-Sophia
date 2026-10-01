@@ -25,14 +25,67 @@ impl Drop for OwnedChild {
         let _ = self.0.wait();
     }
 }
+// Opt-in failure evidence only. The existing generic reader path stays unchanged.
+type DiagnosticPipes = [std::sync::Arc<std::sync::Mutex<Vec<u8>>>; 2];
+struct DiagnosticPrefix(Option<Vec<u8>>);
+impl std::fmt::Display for DiagnosticPrefix {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use std::fmt::Write;
+        match &self.0 {
+            None => f.write_str("unavailable"),
+            Some(bytes) => {
+                write!(
+                    f,
+                    "captured-prefix-bytes={} total-stream-length=unknown prefix=",
+                    bytes.len()
+                )?;
+                // Stream escaping directly into the panic payload avoids a second
+                // UTF8-lossy string allocation; every retained byte stays visible.
+                for byte in bytes.escape_ascii() {
+                    f.write_char(char::from(byte))?;
+                }
+                Ok(())
+            }
+        }
+    }
+}
+#[track_caller]
+fn diagnostic_refusal(
+    child: &mut OwnedChild,
+    phase: &str,
+    trigger: &str,
+    detail: &str,
+    captures: &DiagnosticPipes,
+) -> ! {
+    let observed_before_kill = child.try_wait();
+    let kill_result = child.kill();
+    let post_kill_reap = child.wait();
+    // Never add an EOF wait or a new deadline window. A busy/unavailable capture
+    // is explicitly unknown; a zero prefix does not assert an empty stream.
+    let stdout = DiagnosticPrefix(captures[0].try_lock().ok().map(|b| b.clone()));
+    let stderr = DiagnosticPrefix(captures[1].try_lock().ok().map(|b| b.clone()));
+    panic!(
+        "native child refusal phase={phase} trigger={trigger} detail={detail} observed_before_kill={observed_before_kill:?} original_signal=unknown_unless_observed_before_kill kill_result={kill_result:?} post_kill_reap={post_kill_reap:?} stdout=[{stdout}] stderr=[{stderr}]"
+    );
+}
 #[track_caller]
 fn bounded_child_output_until(
     mut child: OwnedChild,
     stdout_max: usize,
     deadline: Instant,
+    diagnostic: Option<&str>,
 ) -> Output {
     use std::sync::mpsc;
     const STDERR_MAX: usize = 16 * 1024;
+    let captures: Option<DiagnosticPipes> = diagnostic.map(|_| {
+        std::array::from_fn(|kind| {
+            std::sync::Arc::new(std::sync::Mutex::new(Vec::with_capacity(if kind == 0 {
+                stdout_max + 1
+            } else {
+                STDERR_MAX + 1
+            })))
+        })
+    });
     let (tx, rx) = mpsc::channel();
     for (kind, pipe, max) in [
         (
@@ -47,9 +100,37 @@ fn bounded_child_output_until(
         ),
     ] {
         let tx = tx.clone();
+        let capture = captures.as_ref().map(|pipes| pipes[kind].clone());
         std::thread::spawn(move || {
-            let mut bytes = Vec::new();
-            let result = pipe.take((max + 1) as u64).read_to_end(&mut bytes);
+            let mut bytes = if capture.is_some() {
+                Vec::with_capacity(max + 1)
+            } else {
+                Vec::new()
+            };
+            let result = if let Some(capture) = capture {
+                let mut limited = pipe.take((max + 1) as u64);
+                let mut chunk = [0u8; 1024];
+                (|| -> std::io::Result<usize> {
+                    loop {
+                        let count = match limited.read(&mut chunk) {
+                            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => {
+                                continue;
+                            }
+                            Err(error) => return Err(error),
+                            Ok(count) => count,
+                        };
+                        if count == 0 {
+                            return Ok(bytes.len());
+                        }
+                        bytes.extend_from_slice(&chunk[..count]);
+                        if let Ok(mut prefix) = capture.lock() {
+                            prefix.extend_from_slice(&chunk[..count]);
+                        }
+                    }
+                })()
+            } else {
+                pipe.take((max + 1) as u64).read_to_end(&mut bytes)
+            };
             let _ = tx.send((kind, result, bytes));
         });
     }
@@ -58,14 +139,40 @@ fn bounded_child_output_until(
     let mut stderr = None;
     loop {
         if Instant::now() >= deadline {
+            if let (Some(phase), Some(captures)) = (diagnostic, &captures) {
+                diagnostic_refusal(
+                    &mut child,
+                    phase,
+                    "absolute-deadline",
+                    "deadline reached",
+                    captures,
+                );
+            }
             let _ = child.kill();
             let _ = child.wait();
             panic!("native child exceeded its absolute deadline");
         }
         while let Ok((kind, result, bytes)) = rx.try_recv() {
+            if let (Err(error), Some(phase), Some(captures)) = (&result, diagnostic, &captures) {
+                diagnostic_refusal(
+                    &mut child,
+                    phase,
+                    "pipe-read-error",
+                    &error.to_string(),
+                    captures,
+                );
+            }
             result.unwrap();
             let max = if kind == 0 { stdout_max } else { STDERR_MAX };
             if bytes.len() > max {
+                if let (Some(phase), Some(captures)) = (diagnostic, &captures) {
+                    let detail = if kind == 0 {
+                        "stdout exceeded configured cap"
+                    } else {
+                        "stderr exceeded 16384-byte cap"
+                    };
+                    diagnostic_refusal(&mut child, phase, "output-cap", detail, captures);
+                }
                 let _ = child.kill();
                 let _ = child.wait();
                 panic!("native child exceeded {max}-byte output cap");
@@ -76,7 +183,18 @@ fn bounded_child_output_until(
                 stderr = Some(bytes);
             }
         }
-        if let Some(status) = child.try_wait().unwrap() {
+        let observed_status = child.try_wait();
+        if let (Err(error), Some(phase), Some(captures)) = (&observed_status, diagnostic, &captures)
+        {
+            diagnostic_refusal(
+                &mut child,
+                phase,
+                "child-status-error",
+                &error.to_string(),
+                captures,
+            );
+        }
+        if let Some(status) = observed_status.unwrap() {
             if stdout.is_some() && stderr.is_some() {
                 return Output {
                     status,
@@ -90,7 +208,12 @@ fn bounded_child_output_until(
 }
 #[track_caller]
 pub(super) fn bounded_child_output(child: OwnedChild, stdout_max: usize) -> Output {
-    bounded_child_output_until(child, stdout_max, Instant::now() + Duration::from_secs(60))
+    bounded_child_output_until(
+        child,
+        stdout_max,
+        Instant::now() + Duration::from_secs(60),
+        None,
+    )
 }
 #[track_caller]
 pub(super) fn bounded_output(command: &mut Command, stdout_max: usize) -> Output {
@@ -119,7 +242,23 @@ pub(super) fn bounded_output_before(
         .stderr(Stdio::piped())
         .spawn()
         .unwrap();
-    bounded_child_output_until(OwnedChild(child), stdout_max, deadline)
+    bounded_child_output_until(OwnedChild(child), stdout_max, deadline, None)
+}
+/// Only the selected factory opts into bounded partial failure evidence.
+#[track_caller]
+pub(super) fn bounded_output_before_diagnostic(
+    command: &mut Command,
+    stdout_max: usize,
+    deadline: Instant,
+    phase: &str,
+) -> Output {
+    assert!(
+        Instant::now() < deadline,
+        "native child refusal phase={phase} trigger=deadline-before-spawn original_signal=unknown child=not-spawned output=unavailable"
+    );
+    let child = command.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn()
+        .unwrap_or_else(|error| panic!("native child refusal phase={phase} trigger=spawn-error error={error} original_signal=unknown child=not-spawned output=unavailable"));
+    bounded_child_output_until(OwnedChild(child), stdout_max, deadline, Some(phase))
 }
 pub(super) fn bounded_sha(path: &std::path::Path, max: u64) -> Digest256 {
     hash_before(path, max, None)
