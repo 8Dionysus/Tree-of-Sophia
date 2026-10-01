@@ -846,5 +846,5 @@ pub mod zarathustra_lexical;
 pub mod zarathustra_lexical_schema;
 pub mod zarathustra_lexical_validate;
 
-mod zarathustra_lexical_usage_validate;
 mod zarathustra_lexical_morphology_validate;
+mod zarathustra_lexical_usage_validate;
