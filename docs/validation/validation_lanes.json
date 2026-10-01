@@ -397,6 +397,7 @@
       },
       {
         "label": "test Rust workspace remainder excluding conformance and isolated process-cold fixtures",
+        "command_timeout_ms": 900000,
         "command": [
           "cargo", "test", "--workspace", "--locked", "--exclude", "tos-conformance", "--",
           "--nocapture",

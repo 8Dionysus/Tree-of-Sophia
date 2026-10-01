@@ -187,7 +187,7 @@ class ValidationLaneTests(unittest.TestCase):
         }
         self.assertEqual(
             timeout_steps,
-            [(label, 900000) for label in family_labels],
+            [(workspace_label, 900000), *[(label, 900000) for label in family_labels]],
         )
         self.assertEqual(
             workspace[:7],
