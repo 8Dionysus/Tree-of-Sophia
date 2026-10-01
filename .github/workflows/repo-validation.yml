@@ -419,7 +419,7 @@ jobs:
       - name: Checkout Rust sources and validation route
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
-          # Keep external include_* inputs for selected Rust crates/tests within these bounded owner paths.
+          # Keep external include_* inputs and selected tos-validation fixtures within bounded owner paths.
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /Cargo.toml
@@ -472,6 +472,42 @@ jobs:
             /ToS/candidate-intake/zarathustra/concept-workbench-v1/requests/fate.concept-request.v2.json
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/edition.json
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/
+            /ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/variant-a-occurrences-only.json
+            /ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/variant-b-competing-sign-proposals.json
+            /ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/variant-c-invalid-model-promotion.json
+            /ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/variant-a-one-to-one-proposal.json
+            /ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/variant-b-competing-mappings.json
+            /ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/variant-c-invalid-acceptance.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/variant-a.anchor.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/variant-b.anchor.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/variant-c.anchor.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/variant-b-unicode.txt
+            /ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/lab.manifest.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-a.layer.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-b.layer.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-c.layer.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-a-raw-ocr.txt
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-b-diplomatic.txt
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/editorial-policy.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-a-source-layout-observation.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-b-competing-segmentations.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-c-invalid-acceptance.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt
+            /ToS/source-witnesses/research-corpora/foundation-source-routes/research-corpus.json
+            /ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/artifact-witness.json
+            /ToS/source-witnesses/agents/erasmus-of-rotterdam/agent.json
+            /ToS/source-witnesses/links/cdli/cdlb-2006-1/article/link.json
+            /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/work.json
+            /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/expression.json
+            /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-claims.jsonl
+            /ToS/source-witnesses/relations/oim-a00645-physical-composition/source-claims.jsonl
+            /ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645-plus-a00649a-i/artifact-witness.json
+            /ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/artifact-witness.json
+            /ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md
+            /ToS/source-witnesses/discovery/provenance.jsonl
+            /ToS/source-witnesses/discovery/runs/zarathustra-parts-2-3-provision-identity.2026-08-01.v1.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/source-metadata-snapshot.json
+            /ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_PARTS_2_3_PROVISION_IDENTITY_RESEARCH.md
             # Exact authored inputs used by the native Artifact and retained-Collection consumers.
             /tests/test_bibliographic_claim_assembler.py
             /tests/test_source_agent_publication.py

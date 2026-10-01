@@ -191,7 +191,7 @@ class SoftwareSelectionTests(unittest.TestCase):
         sparse_paths=set(checkout['with']['sparse-checkout'].splitlines())
         self.assertTrue({f'/{path}' for path in required_tests | required_fixtures} <= sparse_paths)
 
-    def test_rust_sparse_checkout_includes_exact_native_conformance_sources(self):
+    def test_rust_sparse_checkout_includes_exact_rust_test_inputs(self):
         required_sources = {
             'ToS/candidate-intake/AGENTS.md',
             'ToS/candidate-intake/thus-spoke-zarathustra/prologue-1/mode-b/edges.csv',
@@ -207,6 +207,27 @@ class SoftwareSelectionTests(unittest.TestCase):
             'ToS/public-compatibility/source_node.example.json',
             'ToS/research-packets/AGENTS.md',
             'ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md',
+            'ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/variant-a-occurrences-only.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/variant-b-competing-sign-proposals.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/variant-c-invalid-model-promotion.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/variant-a-one-to-one-proposal.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/variant-b-competing-mappings.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/variant-c-invalid-acceptance.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/variant-a.anchor.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/variant-b.anchor.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/variant-c.anchor.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/variant-b-unicode.txt',
+            'ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/lab.manifest.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-a.layer.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-b.layer.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-c.layer.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-a-raw-ocr.txt',
+            'ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-b-diplomatic.txt',
+            'ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/editorial-policy.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-a-source-layout-observation.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-b-competing-segmentations.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-c-invalid-acceptance.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt',
             'ToS/review-ledger/AGENTS.md',
             'ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/',
             'ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497/',
@@ -283,6 +304,21 @@ class SoftwareSelectionTests(unittest.TestCase):
             'ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/work.json',
             'ToS/source-witnesses/relations/mysl-1996-volume-2-member-order/source-claims.jsonl',
             'ToS/review-ledger/2026-09-10-mysl-collection-order-source-reading.md',
+            'ToS/source-witnesses/research-corpora/foundation-source-routes/research-corpus.json',
+            'ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/artifact-witness.json',
+            'ToS/source-witnesses/agents/erasmus-of-rotterdam/agent.json',
+            'ToS/source-witnesses/links/cdli/cdlb-2006-1/article/link.json',
+            'ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/work.json',
+            'ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/expression.json',
+            'ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-claims.jsonl',
+            'ToS/source-witnesses/relations/oim-a00645-physical-composition/source-claims.jsonl',
+            'ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645-plus-a00649a-i/artifact-witness.json',
+            'ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/artifact-witness.json',
+            'ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md',
+            'ToS/source-witnesses/discovery/provenance.jsonl',
+            'ToS/source-witnesses/discovery/runs/zarathustra-parts-2-3-provision-identity.2026-08-01.v1.json',
+            'ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/source-metadata-snapshot.json',
+            'ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_PARTS_2_3_PROVISION_IDENTITY_RESEARCH.md',
         }
         for source in (ROOT / 'tests/conformance/rust').glob('*.rs'):
             text = source.read_text()
