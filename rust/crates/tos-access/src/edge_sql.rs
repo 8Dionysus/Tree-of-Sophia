@@ -505,4 +505,29 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn absent_empty_missing_or_null_object_digest_keeps_oracle_empty_baseline() {
+        for prior in [None, Some(""), Some("{}"), Some("{\"sha256\":null}")] {
+            let fixture = Fixture::new();
+            let database = database(&fixture);
+            let db = Connection::open(&database).unwrap();
+            db.execute("DELETE FROM edge_meta", []).unwrap();
+            if let Some(prior) = prior {
+                db.execute("INSERT INTO edge_meta VALUES('data_revision',0,?)", [prior])
+                    .unwrap();
+            }
+            assert_eq!(revision(&db).unwrap(), None);
+            drop(db);
+            let sql = fixture.path("input.sql");
+            fs::write(&sql, "DELETE FROM edge_meta;\nINSERT INTO edge_meta VALUES('data_revision',0,'{\"sha256\":\"new\"}');\n").unwrap();
+            import(&database, &sql, None, "new").unwrap();
+            assert_eq!(
+                revision(&Connection::open(&database).unwrap())
+                    .unwrap()
+                    .as_deref(),
+                Some("new")
+            );
+        }
+    }
 }
