@@ -1856,6 +1856,7 @@ fn validate_native_profile(
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(
     Option<String>,
+    Option<String>,
     Option<JsonValue>,
     Vec<SourceFile>,
     BTreeMap<String, String>,
@@ -1870,7 +1871,7 @@ fn validate_native_profile(
                 "non-native private profile cannot acquire source content access",
             ));
         }
-        return Ok((None, None, Vec::new(), BTreeMap::new()));
+        return Ok((None, None, None, Vec::new(), BTreeMap::new()));
     }
     if native_binding_adapter.and_then(JsonValue::as_str) != Some("source-text-unit-v1")
         || cmd::text(&grant.profile, "record_type")? != "occurrence"
@@ -1893,7 +1894,7 @@ fn validate_native_profile(
         ));
     }
     let mut native_reader = ProfileNativeReader(owner);
-    let mut resolved = source_sign_native::resolve_owner_metadata_binding(
+    let (mut resolved, metadata_inputs) = source_sign_native::resolve_owner_profile_binding(
         &mut native_reader,
         worker,
         binding,
@@ -1946,6 +1947,8 @@ fn validate_native_profile(
     owner.snapshot(deadline, cancelled)?;
     let snapshot =
         owner_metadata_snapshot(owner, &native_reader, &resolved.inputs, deadline, cancelled)?;
+    let metadata_snapshot =
+        owner_metadata_snapshot(owner, &native_reader, &metadata_inputs, deadline, cancelled)?;
     let summary = owner_metadata_summary(
         &mut resolved.summary,
         &resolved.packet,
@@ -1958,6 +1961,7 @@ fn validate_native_profile(
         .collect();
     Ok((
         Some(snapshot),
+        Some(metadata_snapshot),
         Some(summary),
         reads.into_values().collect(),
         schemas,
@@ -2089,6 +2093,7 @@ fn profile_snapshot(
     selected: &SelectedProfileRecord,
     context_config: &JsonValue,
     native_snapshot: Option<&str>,
+    native_metadata_snapshot: Option<&str>,
     native_contracts: &BTreeMap<String, String>,
     worker: &CutWorkerSchemaExecutor,
     ctx: &CommandContext,
@@ -2140,7 +2145,12 @@ fn profile_snapshot(
         .map(|value| cmd::canonical(value).map(|raw| Digest256::of_bytes(&raw).to_hex()))
         .transpose()?;
     let native = cmd::object(vec![
-        ("metadata", JsonValue::Null),
+        (
+            "metadata",
+            native_metadata_snapshot
+                .map(cmd::string)
+                .unwrap_or(JsonValue::Null),
+        ),
         (
             "exact",
             native_snapshot.map(cmd::string).unwrap_or(JsonValue::Null),
@@ -2351,22 +2361,24 @@ fn make_snapshot(
         deadline,
         cancelled,
     )?;
-    let (rights, native_summary, native_reads, native_contracts) = validate_native_profile(
-        ctx,
-        owner,
-        grant,
-        &selected.record,
-        worker,
-        context_config,
-        deadline,
-        cancelled,
-    )?;
+    let (rights, native_metadata, native_summary, native_reads, native_contracts) =
+        validate_native_profile(
+            ctx,
+            owner,
+            grant,
+            &selected.record,
+            worker,
+            context_config,
+            deadline,
+            cancelled,
+        )?;
     let profile_digest = profile_snapshot(
         owner,
         grant,
         &selected,
         context_config,
         rights.as_deref(),
+        native_metadata.as_deref(),
         &native_contracts,
         worker,
         ctx,

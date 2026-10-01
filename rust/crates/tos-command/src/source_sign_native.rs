@@ -2575,6 +2575,35 @@ pub(crate) fn resolve_public_text_authority<R: SignNativeRead + ?Sized>(
     })
 }
 
+/// Resolve both maintained Profile snapshots with one selected owner cache and quota.
+pub(crate) fn resolve_owner_profile_binding<R: SignNativeRead + ?Sized>(
+    reader: &mut R,
+    worker: &mut CutWorkerSchemaExecutor,
+    binding: &JsonValue,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(ResolvedSignBinding, Vec<NativeInput>)> {
+    let mut native = selected_native(reader, worker, deadline, cancelled)?;
+    native.route_profile = NativeRoute::OwnerText;
+    native.resolve(binding, NativeReadScope::MetadataOnly)?;
+    native.snapshot()?;
+    let metadata_inputs = selected_inputs(&native);
+    let (packet, layer, summary) = native.resolve(binding, NativeReadScope::ExactOwnerLocal)?;
+    let input_snapshot = native.snapshot()?;
+    let inputs = selected_inputs(&native);
+    Ok((
+        ResolvedSignBinding {
+            packet,
+            layer,
+            summary,
+            inputs,
+            input_snapshot,
+            schema_digests: native.schemas,
+        },
+        metadata_inputs,
+    ))
+}
+
 /// Metadata Profile and Claim owners select this transport only after their
 /// protected scoped grant and OwnerTextContext checks. This is the existing
 /// owner-local read route; it does not translate or grant Sign authority.
