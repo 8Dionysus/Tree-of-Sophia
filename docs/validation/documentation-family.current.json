@@ -36,7 +36,7 @@
     "excluded_generated_carrier_rules": 3,
     "excluded_tracked_path_count": 5166,
     "human_scope": {
-      "bytes": 7052852,
+      "bytes": 7053016,
       "count": 1072,
       "excluded_skill_launch_metadata": 0,
       "family_counts": {
@@ -96,9 +96,9 @@
           "lines": 3096
         },
         "rust": {
-          "bytes": 73936,
+          "bytes": 74100,
           "count": 9,
-          "lines": 1062
+          "lines": 1065
         },
         "scripts": {
           "bytes": 9478,
@@ -121,7 +121,7 @@
           "lines": 81781
         }
       },
-      "lines": 117086
+      "lines": 117089
     },
     "surface_kind_counts": {
       "executable": 573,
@@ -191,7 +191,7 @@
         "human": 87,
         "structured": 6
       },
-      "tracked_surface_bytes": 1074334,
+      "tracked_surface_bytes": 1079473,
       "tracked_surface_count": 93
     },
     {
@@ -246,7 +246,7 @@
         "human": 9,
         "structured": 149
       },
-      "tracked_surface_bytes": 1257866,
+      "tracked_surface_bytes": 1258030,
       "tracked_surface_count": 162
     },
     {
@@ -256,7 +256,7 @@
         "human": 6,
         "structured": 11
       },
-      "tracked_surface_bytes": 3259515,
+      "tracked_surface_bytes": 3264478,
       "tracked_surface_count": 126
     },
     {
@@ -291,7 +291,7 @@
   "source_map": "docs/validation/documentation_family_map.json",
   "source_map_sha256": "65ca7d3dcb9ce763c7599ce3f9d3041397e4cf47fa9a1cf652a2e2cdd5f83a26",
   "tracked_source": "git ls-files -z",
-  "tracked_surface_digest": "185968c01e01e3afec12b7093d17fa6914b5e0090ba6400e2933bee6a1b2d9fc",
+  "tracked_surface_digest": "af23b7c995024b9be459983eb1202fd16cd5fb5c60d5ec7c932836c2e96de8d3",
   "tracked_surfaces": [
     {
       "bytes": 1660,
@@ -44414,11 +44414,11 @@
       "surface_kind": "structured"
     },
     {
-      "bytes": 44648,
+      "bytes": 49787,
       "currentness": "tracked_source_snapshot",
       "family_id": "docs",
       "path": "docs/validation/validation_lanes.json",
-      "sha256": "68a1bf22dc6d736234e6a8ea0c2844c44426bacfcd7b485a1467bd160bc86b87",
+      "sha256": "ffdb3cae057c8982f865cbb99374adaf7800c2ff836ae900eb87a2ce03169249",
       "surface_kind": "structured"
     },
     {
@@ -46870,11 +46870,11 @@
       "surface_kind": "human"
     },
     {
-      "bytes": 3467,
+      "bytes": 3631,
       "currentness": "tracked_source_snapshot",
       "family_id": "rust",
       "path": "rust/README.md",
-      "sha256": "cc8af1d84d35e25167401da1b3a32c622b8099106bfa05575bb5a16290545c2c",
+      "sha256": "247a1796b73c4d5ce2168f39e223de19360a43213a1bfd84d52fac7656c3a4a7",
       "surface_kind": "human"
     },
     {
@@ -50494,11 +50494,11 @@
       "surface_kind": "executable"
     },
     {
-      "bytes": 21145,
+      "bytes": 26108,
       "currentness": "tracked_source_snapshot",
       "family_id": "tests",
       "path": "tests/test_validation_lanes.py",
-      "sha256": "810ee62c6a2836811a96775086de7467ced47da401773718873bdfd690c469fc",
+      "sha256": "3e144ccc9970590c23c71da82cd58a7c2567daf43d2e79894a4c78443d2c066a",
       "surface_kind": "executable"
     },
     {

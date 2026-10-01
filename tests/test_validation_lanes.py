@@ -6,6 +6,7 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -112,7 +113,7 @@ class ValidationLaneTests(unittest.TestCase):
         self.assertEqual(set(selected), set(access_files + software_support_files))
         self.assertEqual(release_check.select_steps(sequence, 'checks') + test_steps, sequence)
 
-    def test_rust_workspace_timeout_partition_covers_each_isolated_case_once(self):
+    def test_rust_workspace_partitions_cover_each_conformance_family_once(self):
         cases = [
             ('source_creation_store::revision_publication::tests::native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery',
              'rust/crates/tos-command/src/source_record_revision_tests.rs',
@@ -160,19 +161,112 @@ class ValidationLaneTests(unittest.TestCase):
             by_label['compile exact Rust conformance test image'],
             ['cargo', 'test', '--no-run', '--workspace', '--locked', '--message-format=json'],
         )
-        workspace_label = 'test Rust workspace excluding isolated process-cold fixtures'
+        workspace_label = 'test Rust workspace remainder excluding conformance and isolated process-cold fixtures'
         workspace = by_label[workspace_label]
         manifest_steps = validation_lanes.load_manifest(ROOT)['command_sequences']['rust_workspace']
+        timeout_steps = [(step['label'], step['command_timeout_ms']) for step in manifest_steps
+                         if 'command_timeout_ms' in step]
+        family_labels = {
+            'test Rust conformance Form and Record families': {
+                'command_form_cases', 'command_record_cases',
+            },
+            'test Rust conformance Claim publication families': {
+                'command_claim_cases', 'command_claim_publication_cases',
+            },
+            'test Rust conformance lifecycle families': {
+                'command_collection_cases', 'command_item_cases', 'command_work_cases',
+                'command_edition_cases', 'command_artifact_cases',
+                'command_object_link_cases', 'command_legacy_claim_cases',
+            },
+            'test Rust conformance text and private families': {
+                'command_text_cases', 'command_public_text_cases',
+                'command_responsibility_cases', 'command_metadata_publication_cases',
+                'command_owner_text_cases', 'command_private_claim_cases',
+                'command_private_profile_cases',
+            },
+        }
         self.assertEqual(
-            [(step['label'], step['command_timeout_ms']) for step in manifest_steps
-             if 'command_timeout_ms' in step],
-            [(workspace_label, 900000)],
+            timeout_steps,
+            [(label, 900000) for label in family_labels],
         )
-        self.assertEqual(workspace[:6], ['cargo', 'test', '--workspace', '--locked', '--', '--nocapture'])
+        self.assertEqual(
+            workspace[:7],
+            ['cargo', 'test', '--workspace', '--locked', '--exclude', 'tos-conformance', '--'],
+        )
+        self.assertIn('--nocapture', workspace)
         self.assertEqual(
             [workspace[index + 1] for index, value in enumerate(workspace) if value == '--skip'],
-            names + conformance_names,
+            names,
         )
+
+        runner = (ROOT / 'tests/conformance/rust/runner.rs').read_text(encoding='utf-8')
+        modules = re.findall(r'(?m)^\s*mod (command_[a-z0-9_]+);$', runner)
+        self.assertEqual(len(modules), len(set(modules)))
+        self.assertEqual(
+            set(modules),
+            set().union(*family_labels.values()),
+        )
+
+        def filters(command):
+            args = command[command.index('--') + 1:]
+            return [args[index + 1] for index, value in enumerate(args) if value == '--skip']
+
+        root_source_label = 'test Rust conformance root and source families'
+        root_source = by_label[root_source_label]
+        self.assertEqual(
+            root_source[:7],
+            ['cargo', 'test', '--workspace', '--locked', '--test', 'conformance', '--'],
+        )
+        self.assertEqual(filters(root_source), [f'{module}::' for module in modules])
+        self.assertTrue(all(value.endswith('::') for value in filters(root_source)))
+
+        family_coverage = []
+        for label, expected in family_labels.items():
+            command = by_label[label]
+            self.assertEqual(
+                command[:8],
+                ['cargo', 'test', '--workspace', '--locked', '--test', 'conformance', 'command_', '--'],
+            )
+            module_filters = [value[:-2] for value in filters(command) if value.endswith('::')]
+            self.assertEqual(len(module_filters), len(set(module_filters)))
+            self.assertTrue(set(module_filters).issubset(set(modules)))
+            selected = set(modules) - set(module_filters)
+            self.assertEqual(selected, expected)
+            self.assertTrue(all(value.endswith('::') or value in conformance_names
+                                for value in filters(command)))
+            family_coverage.extend(selected)
+        self.assertEqual(len(family_coverage), len(set(family_coverage)))
+        self.assertEqual(set(family_coverage), set(modules))
+
+        module_paths = re.findall(
+            r'(?m)^\s*(?:#\[path = "([^"]+)"\]\s*\n)?\s*mod ([a-z0-9_]+);$',
+            runner,
+        )
+        for relative, module in module_paths:
+            if module.startswith('command_'):
+                continue
+            source_path = ROOT / 'tests/conformance/rust' / (relative or f'{module}.rs')
+            source = source_path.read_text(encoding='utf-8')
+            test_names = re.findall(
+                r'(?m)^\s*#\[test\]\s*\n(?:^\s*#\[[^\n]*\]\s*\n)*^\s*fn\s+([a-zA-Z0-9_]+)\s*\(',
+                source,
+            )
+            self.assertFalse(
+                any('command_' in name for name in test_names),
+                f'{source_path.relative_to(ROOT)} has tests that would leak into command_ filtered groups',
+            )
+
+        segment = by_label['test Rust segment conformance target']
+        self.assertEqual(
+            segment,
+            ['cargo', 'test', '--workspace', '--locked', '--test', 'segment-conformance', '--',
+             '--nocapture'],
+        )
+        self.assertTrue(all(
+            '--workspace' in command
+            for label, command in sequence
+            if label.startswith('test Rust ')
+        ))
 
         singleton_labels = [
             'test isolated process-cold source revision fixture',
@@ -215,6 +309,24 @@ class ValidationLaneTests(unittest.TestCase):
             ],
         )
         self.assertEqual(len(names + conformance_names), len(set(names + conformance_names)))
+
+        family_exact_skips = [
+            value for label in family_labels for value in filters(by_label[label])
+            if not value.endswith('::')
+        ]
+        self.assertCountEqual(family_exact_skips, conformance_names)
+        ordered_test_labels = [
+            workspace_label,
+            root_source_label,
+            *family_labels,
+            'test Rust segment conformance target',
+            *singleton_labels,
+            *conformance_labels,
+        ]
+        self.assertEqual(
+            [label for label, _ in sequence if label in set(ordered_test_labels)],
+            ordered_test_labels,
+        )
 
         for (_, source_path, function_name) in cases + conformance_cases:
             source = (ROOT / source_path).read_text(encoding='utf-8')

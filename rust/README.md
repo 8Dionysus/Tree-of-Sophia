@@ -37,9 +37,12 @@ Node. It does not prove a released public adapter, browser/Worker bundle
 integration or production-scale runtime.
 
 The native lane defaults each command to 300 seconds and caps the full lane at
-3,600 seconds. The current broad workspace-test step uses a 900-second command
-deadline for its next bounded validation attempt. Other steps retain the
-command default, and every command remains capped by the full-lane deadline.
+3,600 seconds. The conformance suite runs in disjoint source and named family
+commands so output and deadlines stay attributable to those test groups. Each
+of the four grouped family commands has a 900-second command deadline. The
+native executor keeps one shared 3,600-second lane deadline and caps every
+command by the remaining lane time. Other steps retain the 300-second command
+default.
 
 The PostgreSQL integration target requires the explicit `postgres-lab` feature
 and a dedicated ephemeral database. The ordinary workspace lane excludes this
