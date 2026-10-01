@@ -605,8 +605,7 @@ fn addressed_agent_creation_reaches_selected_reader_and_cold_restore() {
 // the parent independently cold-verifies the restored source before reading.
 fn addressed_backup_restore_phase(phase: &str) {
     use tos_command::backup_recovery::{
-        BackupSelection, PgTool, RestoreSelection, backup_quiescent,
-        restore_into_fresh,
+        BackupSelection, PgTool, RestoreSelection, backup_quiescent, restore_into_fresh,
     };
     let url = database_url();
     let domain = std::env::var("TOS_CMD2_V2_DOMAIN").unwrap();

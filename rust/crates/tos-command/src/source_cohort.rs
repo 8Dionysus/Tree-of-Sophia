@@ -2610,8 +2610,11 @@ impl DurablePgCoordinator {
         let owner = filesystem
             .hold_creation_owner(package, deadline, cancelled)
             .map_err(source_error)?;
-        let mut tx = self.client.build_transaction()
-            .isolation_level(IsolationLevel::RepeatableRead).start()?;
+        let mut tx = self
+            .client
+            .build_transaction()
+            .isolation_level(IsolationLevel::RepeatableRead)
+            .start()?;
         tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
         let domain = generation.cohort().domain();
         let audit = tx.query_one(
@@ -5709,13 +5712,17 @@ fn managed_model_recovery_audit_error(error: super::audit_delta::AuditDeltaError
             ColdRequiredReason::IntervalTooLarge => "recovery audit interval exceeds bound",
             ColdRequiredReason::GenerationGap => "recovery audit generation gap",
             ColdRequiredReason::MaintenanceActive => "recovery audit maintenance active",
-            ColdRequiredReason::RepeatableSnapshotRequired => "recovery audit requires repeatable snapshot",
+            ColdRequiredReason::RepeatableSnapshotRequired => {
+                "recovery audit requires repeatable snapshot"
+            }
             ColdRequiredReason::UnknownTable => "recovery audit table unknown",
             ColdRequiredReason::UnknownOperation => "recovery audit operation unknown",
             ColdRequiredReason::MalformedStableKey => "recovery audit stable key malformed",
             ColdRequiredReason::MalformedCommitment => "recovery audit commitment malformed",
             ColdRequiredReason::ChainDiscontinuity => "recovery audit chain discontinuity",
-            ColdRequiredReason::FinalCommitmentMismatch => "recovery audit final commitment differs",
+            ColdRequiredReason::FinalCommitmentMismatch => {
+                "recovery audit final commitment differs"
+            }
             ColdRequiredReason::CancelledOrExpired => "recovery audit cancelled or expired",
             ColdRequiredReason::DomainNotActivated => "recovery audit domain not activated",
             ColdRequiredReason::ProfileMismatch => "recovery audit profile differs",
