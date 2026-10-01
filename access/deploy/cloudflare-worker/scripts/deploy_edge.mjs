@@ -9,6 +9,12 @@ export const REVISION_QUERY = "SELECT GROUP_CONCAT(json_chunk, '') AS json FROM 
 export const LEGACY_REVISION_QUERY = "SELECT json FROM edge_meta WHERE key = 'data_revision';";
 const TABLE_QUERY = "PRAGMA table_info(edge_meta);";
 
+// The installed native access product owns SQL algorithms. Node remains the
+// platform process adapter for Wrangler; Cargo is never invoked during import.
+function edgeSql(args, options = {}) {
+  return spawnSync(process.env.TOS_ACCESS_BIN || 'tos', args, options);
+}
+
 export function revisionQueryForColumns(columns) {
   const names = new Set(columns);
   if (names.has("json_chunk") && names.has("part")) return REVISION_QUERY;
@@ -101,7 +107,7 @@ export async function* sqlImportChunks(path, maximumBytes = 16 * 1024 * 1024) {
     while (true) {
       unchanged();
       const target = join(directory, `part-${part++}.sql`);
-      const result = spawnSync('python', [fileURLToPath(new URL('./sql_stream.py', import.meta.url)),
+      const result = edgeSql(['edge-sql-chunk',
         '--source', source, '--output', target, '--offset', String(offset),
         '--maximum-bytes', String(maximumBytes)], { encoding: 'utf8', maxBuffer: 8192 });
       if (result.status !== 0) {
@@ -152,7 +158,7 @@ async function main() {
       ? readdirSync(localStore).filter((name) => /^[0-9a-f]{64}\.sqlite$/.test(name)) : [];
     if (candidates.length === 1) {
       console.log('Streaming local bootstrap in one SQLite transaction; remote imports always use Wrangler.');
-      const imported = spawnSync('python', [fileURLToPath(new URL('./import_local_sqlite.py', import.meta.url)),
+      const imported = edgeSql(['edge-import-local',
         '--database', join(localStore, candidates[0]), '--sql', input,
         '--base', currentRevision ?? 'null', '--target', localRevision], {stdio: 'inherit'});
       if (imported.status !== 0) throw new Error('local SQLite bootstrap failed; transaction rolled back');

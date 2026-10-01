@@ -6,6 +6,7 @@
 
 pub mod cli;
 pub mod doctor;
+pub mod edge_sql;
 pub mod exploration_checkpoints;
 pub mod exploration_contracts;
 mod indexed_cursor;

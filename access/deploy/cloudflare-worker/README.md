@@ -24,7 +24,24 @@ The original `scripts/build_runtime.py` remains an independent Python oracle
 until the full native output has been compared and accepted. It is not invoked
 by `npm run build:data`.
 
-`npm run build:data` invokes `tos-access build-data` and requires a positive
+The maintained `deploy_edge.mjs` entry invokes installed `tos` for bounded
+`edge-sql-chunk` framing and `edge-import-local` offline SQLite bootstrap.
+Set `TOS_ACCESS_BIN` to an explicit native executable when it is outside PATH.
+Import never launches Cargo. Node owns Wrangler process invocation and the
+explicit local-store selection; Rust owns SQLite statement completeness,
+byte-exact chunking, statement/value budgets, baseline and target revision
+checks, and the one-transaction import/rollback. Stop the local Worker before
+bootstrap. Remote imports continue through Wrangler and require their own
+publication authority.
+
+`scripts/sql_stream.py` and `scripts/import_local_sqlite.py` remain independent
+parity oracles and are no longer called by the maintained deployment entry.
+The private prepared-pair, catchup and source-navigation Python capture APIs
+remain retained runtime paths: the public builder/import cutover does not
+replace their owner-selected snapshots or grant selected-D1 admission.
+
+`npm run build:data` invokes installed `tos build-data` (or the explicit
+`TOS_ACCESS_BIN`) and requires a positive
 whole-build `TOS_BUILD_MAX_SECONDS` environment variable. Direct CLI callers
 may override it with `--max-build-seconds N`; the CLI refuses a missing,
 invalid, or overflowing deadline before locking the runtime directory or
@@ -35,9 +52,9 @@ promise that a particular corpus fits. The Rust route always computes the full
 disposable v9 SQL, row baseline, and static outputs. It does not install a
 native-current read model or grant publication authority. Its SQLite page and
 work limits are per component and do not form an aggregate host-disk quota.
-`npm` first launches offline, locked Cargo from the repository's root
-`Cargo.toml`; compilation may consume separate time and build-cache space.
-The explicit deadline begins in `tos-access build-data` after compilation and
+Prepare the native software product through the separate release route before
+running this profile; the maintained build/import entries never invoke Cargo.
+The explicit deadline begins in native `build-data` and
 covers the producer, not Cargo compilation. An invalid CLI deadline refuses
 before output lock, directory creation, or completion-marker changes.
 The generated D1 revision binds the source inputs, actual per-item normalized
