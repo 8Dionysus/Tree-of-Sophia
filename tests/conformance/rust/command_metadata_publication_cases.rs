@@ -124,6 +124,12 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
         .iter()
         .map(|s| (*s).to_owned())
         .collect();
+    // Fixed initial-creation rule inputs not carried by the catalog execution profile.
+    names.extend([
+        "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_historical_claims.py"
+            .to_owned(),
+        "scripts/source_witness_bibliographic_graph_common.py".to_owned(),
+    ]);
     for reference in source_catalog["header"]["profile_bindings"]["execution"]
         .as_object()
         .unwrap()
