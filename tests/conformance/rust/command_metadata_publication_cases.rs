@@ -3,7 +3,7 @@
 //! its committed database/binding then continue through the real access lanes.
 use super::command_claim_publication_cases::{
     AGENT_RECORD_COMPONENTS, agent_authored, agent_catalog, agent_native_call, canonical_lf,
-    fixture_physical_bytes, read_packet, typed,
+    fixture_physical_bytes, read_packet, report_object_order, typed,
 };
 use super::*;
 use serde_json::json;
@@ -339,7 +339,10 @@ fn maintained_initial_metadata_whole_transaction_and_access() {
             semantic_limits,
         )
         .unwrap();
-        assert_eq!(report, typed(&packet["baseline_semantic_report"]));
+        assert_eq!(
+            report_object_order(&report),
+            report_object_order(&typed(&packet["baseline_semantic_report"]))
+        );
         tx.commit().unwrap();
     }
     connection

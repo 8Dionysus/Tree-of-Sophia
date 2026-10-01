@@ -39,7 +39,7 @@ pub(super) fn typed(value: &Value) -> JsonValue {
 }
 // Compare the full semantic report independently of object encounter order.
 // Preserve every scalar (including number kind/lexeme) and array position.
-fn report_object_order(value: &JsonValue) -> JsonValue {
+pub(super) fn report_object_order(value: &JsonValue) -> JsonValue {
     match value {
         JsonValue::Object(entries) => {
             let mut entries = entries
