@@ -518,6 +518,23 @@ fn same_binding(a: &SourceBinding, b: &SourceBinding) -> bool {
 /// then execute the existing catalog and selected-cut bibliographic producers.
 /// The caller supplies the actual native forms adapter from its owning crate;
 /// compiler has no dependency on command execution or publication authority.
+/// Actual cold-plan transfer observations; excludes protocol/page I/O and renderer-wide CPU.
+/// Caller-retained counters survive later failure; failed calls without a completed
+/// result are not inferred as successful reads or staged input rows.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct SourceCatalogRenderWorkV1 {
+    pub source_members_returned: u64,
+    pub source_payload_bytes_returned: u64,
+    pub input_rows_staged: u64,
+    pub input_payload_bytes_staged: u64,
+}
+fn charge_render_work(field: &mut u64, value: u64) -> Result<()> {
+    *field = field
+        .checked_add(value)
+        .ok_or(Error::Budget("cold render work overflow"))?;
+    Ok(())
+}
+
 pub fn render_source_bibliographic_plan(
     plan: &SourceCatalogInputPlan,
     cut: &CorpusCutReader,
@@ -529,6 +546,34 @@ pub fn render_source_bibliographic_plan(
     l: BibliographicLimits,
     max_version_read_files: usize,
     max_version_read_bytes: usize,
+) -> Result<SourceBibliographicCandidate> {
+    render_source_bibliographic_plan_with_work(
+        plan,
+        cut,
+        expected_revision,
+        expected_membership,
+        target,
+        validator,
+        forms,
+        l,
+        max_version_read_files,
+        max_version_read_bytes,
+        &mut SourceCatalogRenderWorkV1::default(),
+    )
+}
+
+pub fn render_source_bibliographic_plan_with_work(
+    plan: &SourceCatalogInputPlan,
+    cut: &CorpusCutReader,
+    expected_revision: SourceRevision,
+    expected_membership: SourceMembershipV1,
+    target: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    forms: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+    max_version_read_files: usize,
+    max_version_read_bytes: usize,
+    observed: &mut SourceCatalogRenderWorkV1,
 ) -> Result<SourceBibliographicCandidate> {
     let result = (|| {
         plan.limits.validate(l)?;
@@ -602,6 +647,11 @@ pub fn render_source_bibliographic_plan(
                 )
                 .map_err(|e| Error::Source(e.to_string()))?
                 .raw;
+            charge_render_work(&mut observed.source_members_returned, 1)?;
+            charge_render_work(
+                &mut observed.source_payload_bytes_returned,
+                raw.len() as u64,
+            )?;
             if raw.len() as u64 != member.size || Digest256::of_bytes(&raw) != member.sha {
                 return Err(Error::Invalid("cold catalog transfer exact bytes"));
             }
@@ -620,6 +670,8 @@ pub fn render_source_bibliographic_plan(
                         id: path,
                         payload: &raw,
                     })?;
+                    charge_render_work(&mut observed.input_rows_staged, 1)?;
+                    charge_render_work(&mut observed.input_payload_bytes_staged, raw.len() as u64)?;
                 }
             } else {
                 let mut collections = member.collections.iter();
@@ -641,6 +693,13 @@ pub fn render_source_bibliographic_plan(
                         break;
                     }
                     target.ingest_input_batch(&rows)?;
+                    charge_render_work(&mut observed.input_rows_staged, rows.len() as u64)?;
+                    charge_render_work(
+                        &mut observed.input_payload_bytes_staged,
+                        (raw.len() as u64)
+                            .checked_mul(rows.len() as u64)
+                            .ok_or(Error::Budget("cold render work overflow"))?,
+                    )?;
                     check(l.deadline, validator.cancelled)?;
                 }
             }

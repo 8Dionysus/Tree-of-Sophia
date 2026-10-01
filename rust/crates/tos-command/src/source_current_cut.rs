@@ -86,6 +86,18 @@ impl ManagedCurrentSourceGeneration {
         }
     }
 
+    pub(crate) fn from_verified_addressed(
+        store: &SegmentStore,
+        cohort: ManagedSourceCohort,
+        selected: crate::durable_adapter::source_cohort::VerifiedAddressedGeneration,
+    ) -> Self {
+        Self {
+            store_id: store.store_id(),
+            cohort,
+            selected: SelectedSourceGeneration::Addressed(selected),
+        }
+    }
+
     /// Addressed member batch under one generation/rights/custody fence.
     /// Operational creation member and selected-source byte limits apply;
     /// these bounds do not define corpus membership or completeness.
@@ -112,6 +124,29 @@ impl ManagedCurrentSourceGeneration {
                 max_total_bytes,
                 deadline,
                 cancel,
+            )
+            .map_err(durable)
+    }
+
+    /// Exact retained revision under this selection's current rights and
+    /// custody fences. A historical digest alone never grants disclosure.
+    pub fn read_historical_member(
+        &self,
+        coordinator: &mut DurablePgCoordinator,
+        store: &SegmentStore,
+        path: &RelativePath,
+        revision: u64,
+        max_bytes: u64,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> Result<crate::durable_adapter::source_cohort::ManagedCurrentMember> {
+        active(deadline, cancel)?;
+        if store.store_id() != self.store_id {
+            return Err(Error::Conflict("managed generation byte store differs"));
+        }
+        coordinator
+            .read_generation_historical_source_member(
+                store, self, path, revision, max_bytes, deadline, cancel,
             )
             .map_err(durable)
     }
@@ -234,12 +269,87 @@ pub fn select_current_source_generation(
     })
 }
 
+/// Explicit versioned source-only opt-in. Cold verification still uses the
+/// maintained source/index assessment, then installs independent authenticated
+/// state and membership roots. This is the same operation on a cold restore;
+/// prior V1/V2 descriptor objects and exact historical references are retained.
+/// The caller installs the audit protocol explicitly in its isolated private DB
+/// before this function; no installed-release writer is switched by selection.
+pub fn select_current_source_generation_addressed(
+    coordinator: &mut DurablePgCoordinator,
+    store: &SegmentStore,
+    domain: &str,
+    original: &CorpusCutReader,
+    initial_revision: SourceRevision,
+    initial_membership: SourceMembershipV1,
+    bootstrap_context: &CommandContext,
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    worker: &mut CutWorkerSchemaExecutor,
+    streamed: Option<(
+        &crate::durable_adapter::PrivateGenerationWorkspace,
+        crate::durable_adapter::StreamedGenerationProfile,
+    )>,
+    tree_limits: tos_segment_store::AuthenticatedTreeLimitsV1,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> Result<ManagedCurrentSourceGeneration> {
+    let cold = select_current_source_generation(
+        coordinator,
+        store,
+        domain,
+        original,
+        initial_revision,
+        initial_membership,
+        bootstrap_context,
+        software,
+        components,
+        worker,
+        streamed,
+        deadline,
+        cancel,
+    )?;
+    coordinator
+        .migrate_current_source_generation_addressed(store, &cold, tree_limits, deadline, cancel)
+        .map_err(durable)
+}
+
+/// Migrate the freshly verified complete export's selection while retaining
+/// its genuine source bytes and export membership for the first V2 producer.
+/// The audit protocol must already be installed explicitly by the caller.
+pub fn migrate_current_source_cut_addressed(
+    coordinator: &mut DurablePgCoordinator,
+    store: &SegmentStore,
+    mut export: ManagedCurrentSourceCut,
+    tree_limits: tos_segment_store::AuthenticatedTreeLimitsV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<ManagedCurrentSourceCut> {
+    export.generation = coordinator
+        .migrate_current_source_generation_addressed(
+            store,
+            &export.generation,
+            tree_limits,
+            deadline,
+            cancelled,
+        )
+        .map_err(durable)?;
+    Ok(export)
+}
+
 pub(crate) fn durable(error: DurableError) -> Error {
     match error {
         DurableError::Source(error) => error,
         DurableError::Conflict(_) => Error::Conflict("managed current selection changed"),
         DurableError::Refused(_) => Error::Denied("managed current selection refused"),
-        _ => Error::Invalid("managed current selection or custody failed"),
+        // These are source-owned static labels. Never expose database messages,
+        // SQL or the optional storage io::Error (which may carry private paths).
+        DurableError::Storage(error) => Error::Invalid(error.detail),
+        DurableError::Invalid(reason) | DurableError::Corrupt(reason) => Error::Invalid(reason),
+        DurableError::Indeterminate(_) => Error::Invalid("managed current selection indeterminate"),
+        DurableError::Database(_) => {
+            Error::Invalid("managed current selection database operation failed")
+        }
     }
 }
 fn directory(parent: &File, name: &str, uid: u32) -> Result<File> {

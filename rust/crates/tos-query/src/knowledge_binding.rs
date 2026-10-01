@@ -86,7 +86,8 @@ impl BoundCmpKnowledge<'_> {
                     return Err(invalid());
                 }
             }
-            KnowledgeSourceBasis::ManagedCurrent { .. } => {
+            KnowledgeSourceBasis::ManagedCurrent { .. }
+            | KnowledgeSourceBasis::ManagedCurrentV2 { .. } => {
                 if packet.object_get("schema").and_then(JsonValue::as_str)
                     != Some(tos_compiler::managed_source::MANAGED_CATALOG_SCHEMA)
                     || packet.object_get("source_revision").is_some()
@@ -113,9 +114,18 @@ impl BoundCmpKnowledge<'_> {
             code: SearchV2ErrorCode::CorruptSelectedCarrier,
             message: "selected managed source basis differs",
         };
-        let proof = self.source_basis.managed_source().ok_or_else(invalid)?;
+        let (kind, expected) = match &self.source_basis {
+            KnowledgeSourceBasis::ManagedCurrent { proof } => {
+                ("managed_current", proof.root_sha256())
+            }
+            KnowledgeSourceBasis::ManagedCurrentV2 { proof } => {
+                ("managed_current_v2", proof.root_sha256())
+            }
+            _ => return Err(invalid()),
+        };
+        let expected = expected.map_err(|_| invalid())?;
         if basis.as_object().map(|fields| fields.len()) != Some(2)
-            || basis.object_get("kind").and_then(JsonValue::as_str) != Some("managed_current")
+            || basis.object_get("kind").and_then(JsonValue::as_str) != Some(kind)
         {
             return Err(invalid());
         }
@@ -132,7 +142,6 @@ impl BoundCmpKnowledge<'_> {
             },
             message: "selected managed source basis cannot be checked",
         })?;
-        let expected = proof.root_sha256().map_err(|_| invalid())?;
         if Digest256::of_bytes(&actual) != digest(&expected)? {
             return Err(invalid());
         }
@@ -214,6 +223,26 @@ pub fn bind_managed_verified_knowledge<'a>(
     Ok(bound)
 }
 
+/// Exact typed managed proof, accepted only under the caller's existing held source authority.
+pub fn bind_managed_proof_verified_knowledge<'a, P: tos_compiler::ManagedProducerProof>(
+    model: &VerifiedKnowledgeModel<'_>,
+    vocabulary: &'a QueryVocabulary,
+    authored_descriptor: &[u8],
+    proof: &P,
+    authorize_current: impl FnOnce(&P) -> Result<(), SearchV2Error>,
+) -> Result<BoundCmpKnowledge<'a>, SearchV2Error> {
+    let bound = bind_knowledge(model, vocabulary, authored_descriptor)?;
+    if bound.source_basis != proof.basis() {
+        return Err(stale("managed binding typed source proof differs"));
+    }
+    proof
+        .validate()
+        .map_err(|_| stale("managed binding typed source proof invalid"))?;
+    authorize_current(proof)?;
+    bound.check_model(model)?;
+    Ok(bound)
+}
+
 fn bind_knowledge<'a>(
     model: &VerifiedKnowledgeModel<'_>,
     vocabulary: &'a QueryVocabulary,
@@ -232,7 +261,7 @@ fn bind_knowledge<'a>(
         .map_err(|_| stale("selected knowledge source basis is invalid"))?;
     if matches!(
         model.source_basis(),
-        KnowledgeSourceBasis::ManagedCurrent { .. }
+        KnowledgeSourceBasis::ManagedCurrent { .. } | KnowledgeSourceBasis::ManagedCurrentV2 { .. }
     ) != (selected.model_abi == KNOWLEDGE_MANAGED_MODEL_ABI)
     {
         return Err(stale(

@@ -2,13 +2,14 @@
 //! and immutable installed custody remain with the actual command owner.
 use crate::{
     Error, ExpectedSourceScope, FullKnowledgeLimits, KnowledgeRegistry, KnowledgeSealReceipt,
-    KnowledgeSelectedExpectation, KnowledgeSourceBasis, ManagedSourceProofV1, NativeFamilyInputs,
-    NativeProducerLimits, NavigationHeaderClaim, NavigationOriginalInput, NavigationOriginalLimits,
+    KnowledgeSelectedExpectation, ManagedSourceProofV1, NativeFamilyInputs, NativeProducerLimits,
+    NavigationHeaderClaim, NavigationOriginalInput, NavigationOriginalLimits,
     NavigationOriginalReceipt, QueryVocabulary, Result, SourceBinding,
     knowledge_stage::{
         ExactInputReceipt, InputCollectionReceipt, InputRow, KnowledgeStage, StageIsolation,
         StageLimits, StageOwner, StageReceipt, WritePhase,
     },
+    managed_source::ManagedProducerProof,
     source_bibliographic_source::SourceCatalogInputPlan,
     source_navigation_source::NavigationSourceProjection,
 };
@@ -19,13 +20,13 @@ use tos_source_store::SourceMembershipV1;
 
 /// Only the actual full invocation below can construct this outcome. Public
 /// descriptive receipts and arbitrary cold models cannot be converted into it.
-pub struct CompletedManagedAgentProducer {
+pub struct CompletedManagedAgentProducer<P: ManagedProducerProof = ManagedSourceProofV1> {
     path: PathBuf,
     stage: StageReceipt,
     seal: KnowledgeSealReceipt,
     expectation: KnowledgeSelectedExpectation,
     navigation: NavigationOriginalReceipt,
-    source: ManagedSourceProofV1,
+    source: P,
     export_revision: SourceRevision,
     export_membership: SourceMembershipV1,
     source_catalog_root: String,
@@ -35,7 +36,7 @@ pub struct CompletedManagedAgentProducer {
     created_record_input: Option<(String, String, u64)>,
     created_forms_input: Option<(String, String, u64)>,
 }
-impl CompletedManagedAgentProducer {
+impl<P: ManagedProducerProof> CompletedManagedAgentProducer<P> {
     pub fn artifact_path(&self) -> &Path {
         &self.path
     }
@@ -51,7 +52,7 @@ impl CompletedManagedAgentProducer {
     pub fn navigation_original(&self) -> &NavigationOriginalReceipt {
         &self.navigation
     }
-    pub fn source_proof(&self) -> &ManagedSourceProofV1 {
+    pub fn source_proof(&self) -> &P {
         &self.source
     }
     pub fn export_source_revision(&self) -> SourceRevision {
@@ -106,11 +107,11 @@ fn charge(work: &mut u64, bytes: usize, cap: u64) -> Result<()> {
 /// Non-navigation selected families require their real complete reconstruction,
 /// and are explicitly refused rather than replaced by empty collections.
 #[allow(clippy::too_many_arguments)]
-pub fn prepare_managed_agent_selected_model(
+pub fn prepare_managed_agent_selected_model<P: ManagedProducerProof>(
     source_plan: &SourceCatalogInputPlan,
     projection: &NavigationSourceProjection,
     validator: &crate::source_witness_catalog::SourceCatalogValidator<'_>,
-    proof: ManagedSourceProofV1,
+    proof: P,
     candidate: &Path,
     binding: SourceBinding,
     stage_limits: StageLimits,
@@ -126,15 +127,15 @@ pub fn prepare_managed_agent_selected_model(
     saved_lenses: &[Value],
     owner_receipt_id: String,
     build_header: impl FnOnce(&mut KnowledgeStage<'_>, &KnowledgeRegistry) -> Result<Value>,
-) -> Result<CompletedManagedAgentProducer> {
+) -> Result<CompletedManagedAgentProducer<P>> {
     proof.validate()?;
     let export_revision = source_plan.source_revision();
     let export_membership = source_plan.source_membership();
     let original_binding = source_plan.input_receipt().binding;
-    if proof.delta.is_some()
-        || proof.initial_export_source_revision != export_revision.0.to_hex()
-        || proof.initial_export_membership_sha256 != export_membership.digest.to_hex()
-        || proof.initial_export_members != export_membership.count
+    if proof.delta().is_some()
+        || proof.initial_export().0 != export_revision.0.to_hex()
+        || proof.initial_export().1 != export_membership.digest.to_hex()
+        || proof.initial_export().2 != export_membership.count
         || projection.source_binding["source_revision"] != export_revision.0.to_hex()
         || projection.source_binding["membership_sha256"] != export_membership.digest.to_hex()
         || projection.source_binding["membership_count"] != export_membership.count
@@ -191,14 +192,14 @@ pub fn prepare_managed_agent_selected_model(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn build_selected(
+fn build_selected<P: ManagedProducerProof>(
     projection: &Value,
     source_catalog_root: &str,
     export_revision: SourceRevision,
     export_membership: SourceMembershipV1,
     schema_worker_sha256: String,
     schema_set_sha256: String,
-    proof: ManagedSourceProofV1,
+    proof: P,
     candidate: &Path,
     mut binding: SourceBinding,
     stage_limits: StageLimits,
@@ -218,7 +219,7 @@ fn build_selected(
     created_record_input: Option<(String, String, u64)>,
     created_forms_input: Option<(String, String, u64)>,
     build_header: impl FnOnce(&mut KnowledgeStage<'_>, &KnowledgeRegistry) -> Result<Value>,
-) -> Result<CompletedManagedAgentProducer> {
+) -> Result<CompletedManagedAgentProducer<P>> {
     let vocabulary = QueryVocabulary::parse(descriptor_raw, supported_profiles)?;
     if vocabulary.sources.len() != 1
         || vocabulary.sources[0].adapter_profile != "source-navigation-node-edge-v1"
@@ -309,8 +310,8 @@ fn build_selected(
         return Err(Error::Budget("managed original header bytes"));
     }
     binding.source_cut = proof.stage_source_cut()?;
-    binding.membership_root = proof.generation.current_membership_sha256.clone();
-    binding.through_commit_seq = proof.generation.through_commit_seq;
+    binding.membership_root = proof.current_root().to_owned();
+    binding.through_commit_seq = proof.through_commit_seq();
     let receipt_bytes = crate::source_bibliographic_render::encode(
         &serde_json::to_value(&collections).map_err(|e| Error::Source(e.to_string()))?,
         full_limits.seal.max_header_bytes,
@@ -397,10 +398,7 @@ fn build_selected(
     );
     object.insert(
         "source_basis".into(),
-        serde_json::to_value(KnowledgeSourceBasis::ManagedCurrent {
-            proof: proof.clone(),
-        })
-        .map_err(|e| Error::Source(e.to_string()))?,
+        serde_json::to_value(proof.basis()).map_err(|e| Error::Source(e.to_string()))?,
     );
     let source_binding = stage.exact_receipt().binding.clone();
     let full = crate::compile_full_knowledge_components(
@@ -497,6 +495,101 @@ fn preparation_check(
         ));
     }
     parent.check_pin()
+}
+
+/// One genuine original navigation member from the pinned immutable base.
+/// The existing original-member PK and native-ID index bound the seek; the
+/// canonical/raw/semantic seals still own exact source return.
+pub(crate) fn parent_navigation_member(
+    parent: &crate::VerifiedKnowledgeModel<'_>,
+    validator: &crate::source_witness_catalog::SourceCatalogValidator<'_>,
+    collection: &str,
+    id: &str,
+    l: crate::source_bibliographic::BibliographicLimits,
+    limits: StageLimits,
+    work: &mut u64,
+    visited_rows: &mut u64,
+) -> Result<Option<Value>> {
+    use crate::source_bibliographic_render::encode;
+    limits.validate()?;
+    l.validate()?;
+    preparation_check(validator, l, parent)?;
+    let Some(member) = parent.navigation_original_member_under_caller_budget(
+        collection,
+        id,
+        limits.max_seek_bytes,
+    )?
+    else {
+        return Ok(None);
+    };
+    let receipt = parent.navigation_original_receipt()?;
+    let (table, id_field) = match collection {
+        "nodes" => ("knowledge_nodes", "node_id"),
+        "edges" => ("knowledge_relations", "edge_id"),
+        _ => return Err(Error::Invalid("managed base member collection")),
+    };
+    let sql = format!(
+        "SELECT payload_len,CASE WHEN payload_len=length(payload) AND payload_len<=?3 THEN payload ELSE NULL END FROM {table} WHERE native_id=?1 AND source_graph=?2 ORDER BY source_order LIMIT ?4"
+    );
+    let mut stmt = parent.connection().prepare(&sql)?;
+    let mut rows = stmt.query(rusqlite::params![
+        id,
+        receipt.source_graph,
+        limits.sqlite.max_row_bytes as i64,
+        limits
+            .max_seek_rows
+            .checked_add(1)
+            .ok_or(Error::Budget("managed base seek row overflow"))? as i64
+    ])?;
+    let mut selected = None;
+    let mut visits = 0usize;
+    while let Some(row) = rows.next()? {
+        preparation_check(validator, l, parent)?;
+        visits += 1;
+        *visited_rows = visited_rows
+            .checked_add(1)
+            .ok_or(Error::Budget("managed base candidate rows"))?;
+        if visits > limits.max_seek_rows {
+            return Err(Error::Budget("managed base identity candidates"));
+        }
+        let len: i64 = row.get(0)?;
+        let raw: Vec<u8> = row
+            .get::<_, Option<Vec<u8>>>(1)?
+            .ok_or(Error::Budget("managed base normalized row bound"))?;
+        if len <= 0 || raw.len() as i64 != len {
+            return Err(Error::Invalid("managed base row length"));
+        }
+        charge(work, raw.len(), limits.sqlite.max_work_bytes)?;
+        let carrier =
+            crate::knowledge_normalization::SourceRow::parse(&raw, limits.sqlite.max_row_bytes)?;
+        let payload = &carrier.value()["source_record"]["payload"];
+        let canonical = encode(payload, limits.sqlite.max_row_bytes)?;
+        charge(work, canonical.len(), limits.sqlite.max_work_bytes)?;
+        if Digest256::of_bytes(&canonical).to_hex() != member.canonical_original_sha256 {
+            continue;
+        }
+        let parsed = crate::knowledge_normalization::SourceRow::parse(
+            &canonical,
+            limits.sqlite.max_row_bytes,
+        )?;
+        if payload[id_field] != member.id
+            || parsed.stable_digest()? != member.semantic_sha256
+            || carrier.value()["source_record"]["digest"] != member.semantic_sha256
+            || canonical.len() as u64 != member.raw_bytes
+            || Digest256::of_bytes(&canonical).to_hex() != member.raw_sha256
+        {
+            return Err(Error::ManagedSourceUnsupported(
+                "managed base exact original closure unavailable",
+            ));
+        }
+        if selected.replace(payload.clone()).is_some() {
+            return Err(Error::Invalid("managed base duplicate admitted carrier"));
+        }
+    }
+    preparation_check(validator, l, parent)?;
+    selected.map(Some).ok_or(Error::ManagedSourceUnsupported(
+        "managed base original carrier unavailable; FullOnly required",
+    ))
 }
 
 /// Reconstruct only cold-verified original membership, never all normalized
@@ -692,10 +785,10 @@ fn parent_navigation(
 /// The callback streams the ACTUAL retained catalogue and returns its owner
 /// inventory projection root after complete metadata coverage/EOF.
 #[allow(clippy::too_many_arguments)]
-pub fn prepare_managed_agent_selected_successor(
-    old: &CompletedManagedAgentProducer,
+pub fn prepare_managed_agent_selected_successor<P: ManagedProducerProof>(
+    old: &CompletedManagedAgentProducer<P>,
     parent: &crate::VerifiedKnowledgeModel<'_>,
-    proof: ManagedSourceProofV1,
+    proof: P,
     catalogue: impl FnOnce(&mut dyn FnMut(&Value) -> Result<()>) -> Result<String>,
     record_path: &str,
     record_raw: &[u8],
@@ -719,23 +812,17 @@ pub fn prepare_managed_agent_selected_successor(
     saved_lenses: &[Value],
     owner_receipt_id: String,
     build_header: impl FnOnce(&mut KnowledgeStage<'_>, &KnowledgeRegistry) -> Result<Value>,
-) -> Result<CompletedManagedAgentProducer> {
+) -> Result<CompletedManagedAgentProducer<P>> {
     use crate::source_bibliographic_render::{encode, text};
     use tos_validation::source_cut::CutSchemaExecutor;
     proof.validate()?;
     l.validate()?;
     original_limits.validate()?;
     let delta = proof
-        .delta
-        .as_ref()
+        .delta()
         .ok_or(Error::Invalid("managed successor committed delta absent"))?;
     let previous = &old.source;
-    let a = &previous.generation;
-    let b = &proof.generation;
-    if parent.source_basis()
-        != &(KnowledgeSourceBasis::ManagedCurrent {
-            proof: previous.clone(),
-        })
+    if parent.source_basis() != &(previous.basis())
         || encode(
             &serde_json::to_value(parent.selection()).map_err(|e| Error::Source(e.to_string()))?,
             full_limits.seal.max_header_bytes,
@@ -746,19 +833,9 @@ pub fn prepare_managed_agent_selected_successor(
         || delta.parent_model_sha256 != old.expectation.model_sha256
         || delta.parent_model_size_bytes != old.expectation.model_size_bytes
         || delta.parent_source_proof_sha256 != previous.root_sha256()?
-        || delta.parent_through_commit_seq != a.through_commit_seq
-        || a.domain != b.domain
-        || a.store_id != b.store_id
-        || a.epoch != b.epoch
-        || a.definition_sha256 != b.definition_sha256
-        || a.database_oid != b.database_oid
-        || a.schema_profile_sha256 != b.schema_profile_sha256
-        || a.bootstrap_source_revision != b.bootstrap_source_revision
-        || a.bootstrap_membership_sha256 != b.bootstrap_membership_sha256
-        || a.bootstrap_members != b.bootstrap_members
-        || previous.initial_export_source_revision != proof.initial_export_source_revision
-        || previous.initial_export_membership_sha256 != proof.initial_export_membership_sha256
-        || previous.initial_export_members != proof.initial_export_members
+        || delta.parent_through_commit_seq != previous.through_commit_seq()
+        || !previous.same_immutable_context(&proof)
+        || previous.initial_export() != proof.initial_export()
         || Digest256::of_bytes(entity_raw).to_hex() != old.expectation.entity_registry_sha256
         || Digest256::of_bytes(relation_raw).to_hex() != old.expectation.relation_registry_sha256
         || Digest256::of_bytes(descriptor_raw).to_hex() != old.expectation.descriptor_sha256
@@ -915,7 +992,7 @@ pub fn prepare_managed_agent_selected_successor(
         entries.insert(id.to_owned(), entry.clone());
         Ok(())
     })?;
-    if observed != proof.generation.inventory_projection_sha256 {
+    if observed != proof.inventory_projection() {
         return Err(Error::Invalid(
             "managed current catalogue owner projection EOF/root",
         ));

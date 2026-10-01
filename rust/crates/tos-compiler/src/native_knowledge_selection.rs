@@ -38,6 +38,8 @@ pub struct NativeSelectionProducer {
     pub corpus_original: Option<crate::CorpusOriginalReceipt>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub managed_source: Option<crate::ManagedSourceProofV1>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub managed_source_v2: Option<crate::ManagedSourceProofV2>,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -85,7 +87,7 @@ impl NativeKnowledgeSelection {
         max_bytes: usize,
     ) -> Result<Self> {
         let packet = Packet {
-            schema: if producer.managed_source.is_some() {
+            schema: if producer.managed_source.is_some() || producer.managed_source_v2.is_some() {
                 crate::managed_source::MANAGED_SELECTION_SCHEMA
             } else if producer.corpus_original.is_some() {
                 CORPUS_SCHEMA
@@ -287,9 +289,16 @@ fn validate_packet(p: &Packet) -> Result<()> {
             "native independent producer receipt binding",
         ));
     }
-    match (&p.producer.managed_source, &e.managed_source_root_sha256) {
-        (None, None) => (),
-        (Some(proof), Some(root)) if &proof.root_sha256()? == root => {
+    match (
+        &p.producer.managed_source,
+        &p.producer.managed_source_v2,
+        &e.managed_source_root_sha256,
+    ) {
+        (None, None, None) => (),
+        (Some(proof), None, Some(root)) if &proof.root_sha256()? == root => {
+            proof.check_binding(&e.source_cut, &e.membership_root, e.through_commit_seq)?;
+        }
+        (None, Some(proof), Some(root)) if &proof.root_sha256()? == root => {
             proof.check_binding(&e.source_cut, &e.membership_root, e.through_commit_seq)?;
         }
         _ => {

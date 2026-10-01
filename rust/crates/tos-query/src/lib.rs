@@ -68,7 +68,8 @@ pub use inspect_plan::{
 
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_binding::{
-    BoundCmpKnowledge, bind_managed_verified_knowledge, bind_verified_knowledge,
+    BoundCmpKnowledge, bind_managed_proof_verified_knowledge, bind_managed_verified_knowledge,
+    bind_verified_knowledge,
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_catalog::{

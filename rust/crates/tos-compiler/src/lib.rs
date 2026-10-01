@@ -60,8 +60,9 @@ pub use knowledge_corpus_source::{
 pub mod managed_agent_producer;
 pub mod managed_source;
 pub use managed_source::{
-    KNOWLEDGE_MANAGED_MODEL_ABI, KnowledgeSourceBasis, ManagedSourceDeltaV1,
-    ManagedSourceGenerationV1, ManagedSourceProofV1,
+    KNOWLEDGE_MANAGED_MODEL_ABI, KnowledgeSourceBasis, ManagedProducerProof, ManagedSourceDeltaV1,
+    ManagedSourceGenerationV1, ManagedSourceGenerationV2, ManagedSourceProofV1,
+    ManagedSourceProofV2,
 };
 mod knowledge_full;
 #[cfg(all(not(target_arch = "wasm32"), any(test, feature = "test-fixture")))]
@@ -112,6 +113,14 @@ mod knowledge_source_navigation_prepare;
 mod knowledge_source_navigation_relation;
 pub mod knowledge_stage;
 mod legacy;
+mod managed_model_overlay;
+pub use managed_model_overlay::{
+    CompletedManagedOverlayBaseV2, CompletedManagedOverlayRecoveryV2,
+    CompletedManagedOverlaySuccessorV2, ManagedOverlayChangedMemberV2, ManagedOverlayLookupWorkV2,
+    ManagedOverlayReaderV2, prepare_managed_overlay_base_v2,
+    prepare_managed_overlay_initial_agent_v2, prepare_managed_overlay_recovery_rebind_v2,
+};
+mod managed_model_manifest;
 mod native_knowledge_selection;
 mod publication;
 mod safe_open;
@@ -124,6 +133,12 @@ mod source_bibliographic_source;
 mod source_bibliographic_unicode;
 mod source_bibliographic_values;
 mod source_bibliographic_versions;
+pub use managed_model_manifest::{
+    ManagedManifestDeltaV2, ManagedManifestLimitsV2, ManagedManifestRecoveryRebindV2,
+    ManagedManifestV2, ManagedOverlaySourceBindingV2,
+};
+mod versions_catalog_epoch;
+pub use versions_catalog_epoch::VersionsCatalogEpochV2;
 pub mod source_corpus;
 mod source_navigation_packets;
 pub mod source_navigation_source;
@@ -233,7 +248,8 @@ pub use selected::{
 };
 pub use source_bibliographic_source::{
     SourceBibliographicCandidate, SourceCatalogInputLimits, SourceCatalogInputPlan,
-    plan_source_catalog_inputs, render_source_bibliographic_plan,
+    SourceCatalogRenderWorkV1, plan_source_catalog_inputs, render_source_bibliographic_plan,
+    render_source_bibliographic_plan_with_work,
 };
 pub use vocabulary::{QueryVocabulary, RegisteredSource, VocabularyBinding};
 

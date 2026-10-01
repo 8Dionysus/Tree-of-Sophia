@@ -79,6 +79,15 @@ pub trait InspectCurrentAuthority<'hold> {
             "managed selected source authorization unavailable",
         ))
     }
+    fn authorize_managed_source_v2_current(
+        &mut self,
+        _: &tos_compiler::ManagedSourceProofV2,
+    ) -> Result<(), SearchV2Error> {
+        Err(error(
+            SearchV2ErrorCode::Unavailable,
+            "managed selected source authorization unavailable",
+        ))
+    }
     /// Exact captured/public corpus originals, under the same current release
     /// projection hold. This does not grant source text or authored admission.
     fn authorize_corpus_original_current(
@@ -1226,6 +1235,9 @@ where
     if let Some(proof) = bound.source_basis().managed_source() {
         authority.authorize_managed_source_current(proof)?;
     }
+    if let Some(proof) = bound.source_basis().managed_source_v2() {
+        authority.authorize_managed_source_v2_current(proof)?;
+    }
     let steps = Arc::new(AtomicU64::new(0));
     let observed = Arc::clone(&steps);
     let cap = budget.max_read_vm_steps;
@@ -1267,6 +1279,9 @@ where
         bound.check_model(read.model)?;
         if let Some(proof) = bound.source_basis().managed_source() {
             read.authority.authorize_managed_source_current(proof)?;
+        }
+        if let Some(proof) = bound.source_basis().managed_source_v2() {
+            read.authority.authorize_managed_source_v2_current(proof)?;
         }
         let mut lease = read.authority.acquire_disclosure(&scope, &read.consulted)?;
         lease.recheck()?;

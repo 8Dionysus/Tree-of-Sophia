@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::os::unix::fs::MetadataExt;
 use std::path::{Component, Path};
 use std::sync::Arc;
@@ -86,6 +86,15 @@ impl Drop for PinDirectoryLease {
     fn drop(&mut self) {
         let _ = flock(&self.file, FlockOperation::Unlock);
     }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct ImmutableBlobInstallV1 {
+    /// Bytes physically read to verify an already installed object or a
+    /// concurrent no-replace install.
+    pub read_bytes: u64,
+    /// Payload bytes written to the staging file before no-replace install.
+    pub written_bytes: u64,
 }
 
 /// Process-local custody of the exact anchored store that a caller audits.
@@ -717,6 +726,210 @@ impl SegmentStore {
             descriptor,
             pin_lock,
         })
+    }
+
+    /// Install one bounded immutable content-addressed object in the existing
+    /// generation directory. The caller supplies a format that binds its
+    /// domain and kind. A prior object at the same address is reopened and
+    /// compared byte-for-byte before reuse.
+    pub(crate) fn install_authenticated_blob(
+        &self,
+        digest: Digest256,
+        raw: &[u8],
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<ImmutableBlobInstallV1> {
+        check_generation(deadline, cancelled)?;
+        if raw.len() > max_bytes || Digest256::of_bytes(raw) != digest {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "authenticated object exceeds limit or digest differs",
+            ));
+        }
+        let generations = self.inner.generations.as_ref().ok_or_else(|| {
+            SegmentError::new(
+                Code::InvalidRoot,
+                "store lacks immutable generation directory",
+            )
+        })?;
+        let name = digest.to_hex();
+        match open_regular(generations, &name) {
+            Ok(file) => {
+                let existing = read_bounded_regular(file, max_bytes, deadline, cancelled)?;
+                if existing != raw {
+                    return Err(SegmentError::new(
+                        Code::CorruptBytes,
+                        "content-addressed object readback differs",
+                    ));
+                }
+                return Ok(ImmutableBlobInstallV1 {
+                    read_bytes: existing.len() as u64,
+                    written_bytes: 0,
+                });
+            }
+            Err(error) if is_missing(&error) => {}
+            Err(error) => return Err(error),
+        }
+
+        let mut stage_id = [0u8; 16];
+        getrandom::fill(&mut stage_id)
+            .map_err(|_| SegmentError::new(Code::Io, "cannot create object staging ID"))?;
+        let stage_name = format!("{}.part", hex_id(stage_id));
+        let mut stage = create_exclusive(generations, &stage_name)?;
+        check_generation(deadline, cancelled)?;
+        stage
+            .write_all(raw)
+            .map_err(|error| SegmentError::io("cannot write authenticated object", error))?;
+        stage
+            .sync_all()
+            .map_err(|error| SegmentError::io("cannot sync authenticated object", error))?;
+        drop(stage);
+        match linkat(
+            generations,
+            stage_name.as_str(),
+            generations,
+            name.as_str(),
+            AtFlags::empty(),
+        ) {
+            Ok(()) | Err(Errno::EXIST) => {}
+            Err(error) => {
+                return Err(SegmentError::io(
+                    "cannot no-replace install authenticated object",
+                    error.into(),
+                ));
+            }
+        }
+        fsync(generations).map_err(|error| {
+            SegmentError::io("cannot sync authenticated object directory", error.into())
+        })?;
+        unlinkat(generations, stage_name.as_str(), AtFlags::empty()).map_err(|error| {
+            SegmentError::io(
+                "cannot unlink authenticated object staging file",
+                error.into(),
+            )
+        })?;
+        fsync(generations).map_err(|error| {
+            SegmentError::io("cannot sync authenticated object directory", error.into())
+        })?;
+        check_generation(deadline, cancelled)?;
+        let readback = read_bounded_regular(
+            open_regular(generations, &name)?,
+            max_bytes,
+            deadline,
+            cancelled,
+        )?;
+        if readback != raw {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "authenticated object readback differs",
+            ));
+        }
+        let read_bytes = readback.len() as u64;
+        Ok(ImmutableBlobInstallV1 {
+            read_bytes,
+            written_bytes: raw.len() as u64,
+        })
+    }
+
+    /// Read exact bounded bytes from the existing content-addressed generation
+    /// directory. The enclosing format is verified by the tree/object owner.
+    pub(crate) fn read_authenticated_blob(
+        &self,
+        digest: Digest256,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Vec<u8>> {
+        check_generation(deadline, cancelled)?;
+        let generations = self.inner.generations.as_ref().ok_or_else(|| {
+            SegmentError::new(
+                Code::InvalidRoot,
+                "store lacks immutable generation directory",
+            )
+        })?;
+        let raw = read_bounded_regular(
+            open_regular(generations, &digest.to_hex())?,
+            max_bytes,
+            deadline,
+            cancelled,
+        )?;
+        if Digest256::of_bytes(&raw) != digest {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "authenticated object content digest differs",
+            ));
+        }
+        Ok(raw)
+    }
+
+    /// Read one bounded frame from a content-addressed immutable generation
+    /// object without materializing the rest of its pack. The caller verifies
+    /// the frame commitment; full object SHA-256 is checked at install/readback
+    /// and explicit cold closure, not on every warm path traversal.
+    pub(crate) fn read_authenticated_blob_range(
+        &self,
+        digest: Digest256,
+        offset: u64,
+        length: usize,
+        max_object_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Vec<u8>> {
+        check_generation(deadline, cancelled)?;
+        if length == 0 || length > max_object_bytes {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "authenticated frame exceeds read limit",
+            ));
+        }
+        let generations = self.inner.generations.as_ref().ok_or_else(|| {
+            SegmentError::new(
+                Code::InvalidRoot,
+                "store lacks immutable generation directory",
+            )
+        })?;
+        let name = digest.to_hex();
+        let mut file = open_regular(generations, &name)?;
+        let before = file
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat authenticated pack", error))?;
+        require_private_generation_file(&before)?;
+        let object_len = before.len();
+        let end = offset
+            .checked_add(length as u64)
+            .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "frame offset overflow"))?;
+        if object_len > max_object_bytes as u64 || end > object_len {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "authenticated frame lies outside its immutable pack",
+            ));
+        }
+        let mut raw = Vec::new();
+        raw.try_reserve_exact(length).map_err(|_| {
+            SegmentError::new(
+                Code::BudgetExceeded,
+                "authenticated frame allocation failed",
+            )
+        })?;
+        raw.resize(length, 0);
+        file.seek(SeekFrom::Start(offset))
+            .map_err(|error| SegmentError::io("cannot seek authenticated frame", error))?;
+        for block in raw.chunks_mut(64 * 1024) {
+            check_generation(deadline, cancelled)?;
+            file.read_exact(block)
+                .map_err(|error| SegmentError::io("cannot read authenticated frame", error))?;
+        }
+        let after = file
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat authenticated pack", error))?;
+        require_same_generation_file(&before, &after)?;
+        let named_after = open_regular(generations, &name)?
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat authenticated pack path", error))?;
+        require_same_generation_file(&before, &named_after)?;
+        check_generation(deadline, cancelled)?;
+        Ok(raw)
     }
 
     pub(crate) fn hold_generation_pin(&self) -> Result<PinDirectoryLease> {
@@ -1845,6 +2058,99 @@ fn open_directory(parent: &File, name: &str) -> Result<File> {
 fn open_regular(parent: &File, name: &str) -> Result<File> {
     tos_fd_open::open_regular_at(parent, Path::new(name))
         .map_err(|error| map_fd_open(error, Code::UnsafePath, "cannot securely open segment file"))
+}
+
+fn require_private_generation_file(metadata: &std::fs::Metadata) -> Result<()> {
+    if !metadata.is_file()
+        || metadata.nlink() != 1
+        || metadata.uid() != rustix::process::geteuid().as_raw()
+        || metadata.mode() & 0o7777 != 0o600
+    {
+        return Err(SegmentError::new(
+            Code::UnsafePath,
+            "authenticated pack is not a private regular file",
+        ));
+    }
+    Ok(())
+}
+
+fn require_same_generation_file(
+    before: &std::fs::Metadata,
+    after: &std::fs::Metadata,
+) -> Result<()> {
+    require_private_generation_file(after)?;
+    if before.dev() != after.dev()
+        || before.ino() != after.ino()
+        || before.len() != after.len()
+        || before.uid() != after.uid()
+        || before.mode() != after.mode()
+        || before.nlink() != after.nlink()
+    {
+        return Err(SegmentError::new(
+            Code::CorruptBytes,
+            "authenticated pack custody changed during frame read",
+        ));
+    }
+    Ok(())
+}
+
+fn read_bounded_regular(
+    mut file: File,
+    max_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<Vec<u8>> {
+    let declared = file
+        .metadata()
+        .map_err(|error| SegmentError::io("cannot stat authenticated object", error))?
+        .len();
+    if declared > max_bytes as u64 {
+        return Err(SegmentError::new(
+            Code::BudgetExceeded,
+            "authenticated object exceeds read limit",
+        ));
+    }
+    let capacity = usize::try_from(declared).map_err(|_| {
+        SegmentError::new(
+            Code::BudgetExceeded,
+            "authenticated object exceeds address space",
+        )
+    })?;
+    let mut raw = Vec::new();
+    raw.try_reserve_exact(capacity).map_err(|_| {
+        SegmentError::new(
+            Code::BudgetExceeded,
+            "authenticated object allocation failed",
+        )
+    })?;
+    let mut block = [0u8; 64 * 1024];
+    loop {
+        check_generation(deadline, cancelled)?;
+        let count = file
+            .read(&mut block)
+            .map_err(|error| SegmentError::io("cannot read authenticated object", error))?;
+        if count == 0 {
+            break;
+        }
+        if raw
+            .len()
+            .checked_add(count)
+            .is_none_or(|length| length > max_bytes)
+        {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "authenticated object grew beyond read limit",
+            ));
+        }
+        raw.extend_from_slice(&block[..count]);
+    }
+    if raw.len() as u64 != declared {
+        return Err(SegmentError::new(
+            Code::CorruptBytes,
+            "authenticated object length changed during read",
+        ));
+    }
+    Ok(raw)
 }
 
 fn create_exclusive(parent: &File, name: &str) -> Result<File> {

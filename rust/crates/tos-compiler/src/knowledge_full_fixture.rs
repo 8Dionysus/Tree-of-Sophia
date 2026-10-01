@@ -1426,7 +1426,8 @@ pub fn native_fixture_header_with_binding(
         KnowledgeSourceBasis::V1Cut { source_revision } => {
             header["source_revision"] = json!(source_revision);
         }
-        KnowledgeSourceBasis::ManagedCurrent { .. } => {
+        KnowledgeSourceBasis::ManagedCurrent { .. }
+        | KnowledgeSourceBasis::ManagedCurrentV2 { .. } => {
             header["schema"] = json!(crate::managed_source::MANAGED_GRAPH_SCHEMA);
             header["source_basis"] =
                 serde_json::to_value(source_basis).map_err(|e| Error::Source(e.to_string()))?;

@@ -15,6 +15,7 @@ tos-foundation = { path = "../tos-foundation" }
 tos-fd-open = { path = "../tos-fd-open" }
 tos-validation = { path = "../tos-validation" }
 tos-source-store = { path = "../tos-source-store" }
+tos-segment-store = { path = "../tos-segment-store" }
 rusqlite = { version = "0.37", features = ["bundled", "hooks"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["arbitrary_precision", "raw_value"] }
@@ -23,6 +24,9 @@ regex = "1"
 flate2 = "1"
 fs2 = "0.4"
 libc = "0.2"
+
+[dev-dependencies]
+tempfile = "=3.27.0"
 
 [lib]
 name = "tos_compiler"

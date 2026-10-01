@@ -127,6 +127,15 @@ pub trait CatalogCurrentAuthority<'hold> {
             "managed selected source authorization unavailable",
         ))
     }
+    fn authorize_managed_source_v2_current(
+        &mut self,
+        _: &tos_compiler::ManagedSourceProofV2,
+    ) -> Result<(), CatalogError> {
+        Err(error(
+            CatalogErrorCode::PolicyBindingUnavailable,
+            "managed selected source authorization unavailable",
+        ))
+    }
     fn abort_probe(&self) -> Option<Arc<dyn crate::AbortProbe>> {
         None
     }
@@ -225,6 +234,9 @@ pub fn execute_selected_catalog<'hold, A: CatalogCurrentAuthority<'hold> + ?Size
     authority.check_selected()?;
     if let Some(proof) = bound.source_basis().managed_source() {
         authority.authorize_managed_source_current(proof)?;
+    }
+    if let Some(proof) = bound.source_basis().managed_source_v2() {
+        authority.authorize_managed_source_v2_current(proof)?;
     }
 
     let connection = model.connection();
@@ -339,6 +351,9 @@ pub fn execute_selected_catalog<'hold, A: CatalogCurrentAuthority<'hold> + ?Size
     })?;
     if let Some(proof) = bound.source_basis().managed_source() {
         authority.authorize_managed_source_current(proof)?;
+    }
+    if let Some(proof) = bound.source_basis().managed_source_v2() {
+        authority.authorize_managed_source_v2_current(proof)?;
     }
     let mut lease =
         authority.acquire_disclosure(&scope, bound.selection().catalog_packet_sha256)?;

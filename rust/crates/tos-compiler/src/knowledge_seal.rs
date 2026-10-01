@@ -98,7 +98,7 @@ fn checked_header(header: &Value, nodes: u64, relations: u64) -> Result<&Value> 
         .as_object()
         .ok_or(Error::Invalid("knowledge graph header object"))?;
     let basis = crate::managed_source::header_basis(header)?;
-    let identity_field = if basis.managed_source().is_some() {
+    let identity_field = if basis.managed_proof().is_some() {
         "source_basis"
     } else {
         "source_revision"
@@ -329,7 +329,7 @@ fn seal_inner(
     let corpus =
         crate::knowledge_corpus_original::verify_stage(stage, Some(&vocabulary.descriptor_sha256))?;
     let basis = crate::managed_source::header_basis(header)?;
-    let managed_source_root_sha256 = if let Some(proof) = basis.managed_source() {
+    let managed_source_root_sha256 = if let Some(proof) = basis.managed_proof() {
         proof.check_binding(
             &binding.source_cut,
             &binding.membership_root,

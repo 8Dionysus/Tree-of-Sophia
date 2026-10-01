@@ -312,6 +312,79 @@ pub(crate) fn project_managed_initial_agent(
     )
 }
 
+/// Opt-in initial-Agent rendering with the exact selected V2 catalog epoch.
+/// Source commit/schema/form admission remains with the producer caller.
+pub(crate) fn project_managed_initial_agent_with_epoch(
+    entry: &Value,
+    source: &Value,
+    raw: &[u8],
+    entities: &Value,
+    epoch: &crate::VersionsCatalogEpochV2,
+    tree_limits: tos_segment_store::AuthenticatedTreeLimitsV1,
+    deadline: std::time::Instant,
+    cancelled: &std::sync::atomic::AtomicBool,
+    forms: Option<(&str, &Value)>,
+    l: BibliographicLimits,
+) -> Result<NavigationRecordProjection> {
+    project_managed_initial_agent_with_epoch_and_work(
+        entry,
+        source,
+        raw,
+        entities,
+        epoch,
+        tree_limits,
+        deadline,
+        cancelled,
+        forms,
+        l,
+    )
+    .map(|(projection, _)| projection)
+}
+
+pub(crate) fn project_managed_initial_agent_with_epoch_and_work(
+    entry: &Value,
+    source: &Value,
+    raw: &[u8],
+    entities: &Value,
+    epoch: &crate::VersionsCatalogEpochV2,
+    tree_limits: tos_segment_store::AuthenticatedTreeLimitsV1,
+    deadline: std::time::Instant,
+    cancelled: &std::sync::atomic::AtomicBool,
+    forms: Option<(&str, &Value)>,
+    l: BibliographicLimits,
+) -> Result<(
+    NavigationRecordProjection,
+    tos_segment_store::AuthenticatedTreeWorkV1,
+)> {
+    let (version, work) =
+        crate::source_bibliographic_versions::initial_managed_agent_version_with_epoch_and_work(
+            entry,
+            source,
+            raw,
+            entities,
+            epoch,
+            tree_limits,
+            deadline,
+            cancelled,
+            l,
+        )?;
+    let history = metadata_history(&version, text(entry, "record_id")?)?;
+    let reference = version.current_ref.clone();
+    let versions = vec![(reference.clone(), resolved(&reference, version))];
+    project_source_navigation_record(
+        NavigationRecordInput {
+            entry,
+            source_record: source,
+            forms,
+            history: Some(&history),
+            versions: &versions,
+            native_composite: false,
+        },
+        l,
+    )
+    .map(|projection| (projection, work))
+}
+
 fn resolved(reference: &Value, version: Version) -> Value {
     json!({"status":"available","reason":format!("exact-{}-version",version.version_status),"exact_ref":reference,
         "version_status":version.version_status,"record":version.record,"record_digest":reference["digest"],"provenance":version.provenance,

@@ -114,6 +114,62 @@ fn member_item(h: &mut Digest256Hasher, m: &NavigationOriginalMember) -> Result<
     }
     Ok(())
 }
+fn decode_member(row: &rusqlite::Row<'_>, collection: &str) -> Result<NavigationOriginalMember> {
+    let id: String = row
+        .get::<_, Option<String>>(0)?
+        .ok_or(Error::Invalid("navigation original member ID"))?;
+    let n: i64 = row.get(1)?;
+    if n <= 0 || n > 8 * 1024 * 1024 {
+        return Err(Error::Invalid("navigation original member raw length"));
+    }
+    Ok(NavigationOriginalMember {
+        collection: collection.into(),
+        id,
+        raw_bytes: n as u64,
+        raw_sha256: digest(
+            row.get::<_, Option<Vec<u8>>>(2)?
+                .ok_or(Error::Invalid("navigation original member raw SHA"))?,
+        )?,
+        semantic_sha256: digest(
+            row.get::<_, Option<Vec<u8>>>(3)?
+                .ok_or(Error::Invalid("navigation original member semantic SHA"))?,
+        )?,
+        canonical_original_sha256: digest(
+            row.get::<_, Option<Vec<u8>>>(4)?
+                .ok_or(Error::Invalid("navigation original member canonical SHA"))?,
+        )?,
+    })
+}
+
+/// Exact indexed membership under the already admitted immutable base.
+/// Absence belongs to this same base; no catalogue scan is used.
+pub(crate) fn member_exact(
+    db: &Connection,
+    collection: &str,
+    id: &str,
+    max_bytes: u64,
+) -> Result<Option<NavigationOriginalMember>> {
+    if !["nodes", "edges"].contains(&collection)
+        || id.is_empty()
+        || id.len() > 4096
+        || max_bytes == 0
+        || max_bytes > 64 * 1024 * 1024
+        || max_bytes < (collection.len() + id.len() + 192 + 8) as u64
+    {
+        return Err(Error::Budget("navigation exact member limits"));
+    }
+    let mut stmt = db.prepare("SELECT CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB)) BETWEEN 1 AND 4096 THEN id ELSE NULL END,raw_bytes,CASE WHEN typeof(raw_sha256)='blob' AND length(raw_sha256)=32 THEN raw_sha256 ELSE NULL END,CASE WHEN typeof(semantic_sha256)='blob' AND length(semantic_sha256)=32 THEN semantic_sha256 ELSE NULL END,CASE WHEN typeof(canonical_original_sha256)='blob' AND length(canonical_original_sha256)=32 THEN canonical_original_sha256 ELSE NULL END FROM navigation_original_members WHERE collection=?1 AND id=?2")?;
+    let mut rows = stmt.query(params![collection, id])?;
+    let Some(row) = rows.next()? else {
+        return Ok(None);
+    };
+    let member = decode_member(row, collection)?;
+    if member.id != id || member_charge(&member) > max_bytes {
+        return Err(Error::Budget("navigation exact member bytes/identity"));
+    }
+    Ok(Some(member))
+}
+
 pub(crate) fn member_page(
     db: &Connection,
     collection: &str,
@@ -141,30 +197,7 @@ pub(crate) fn member_page(
     let mut rows = Vec::new();
     let mut decoded_bytes = 0u64;
     while let Some(row) = scan.next()? {
-        let id: String = row
-            .get::<_, Option<String>>(0)?
-            .ok_or(Error::Invalid("navigation original member ID"))?;
-        let n: i64 = row.get(1)?;
-        if n <= 0 || n > 8 * 1024 * 1024 {
-            return Err(Error::Invalid("navigation original member raw length"));
-        }
-        let m = NavigationOriginalMember {
-            collection: collection.into(),
-            id,
-            raw_bytes: n as u64,
-            raw_sha256: digest(
-                row.get::<_, Option<Vec<u8>>>(2)?
-                    .ok_or(Error::Invalid("navigation original member raw SHA"))?,
-            )?,
-            semantic_sha256: digest(
-                row.get::<_, Option<Vec<u8>>>(3)?
-                    .ok_or(Error::Invalid("navigation original member semantic SHA"))?,
-            )?,
-            canonical_original_sha256: digest(
-                row.get::<_, Option<Vec<u8>>>(4)?
-                    .ok_or(Error::Invalid("navigation original member canonical SHA"))?,
-            )?,
-        };
+        let m = decode_member(row, collection)?;
         decoded_bytes = decoded_bytes
             .checked_add(member_charge(&m))
             .filter(|n| *n <= max_page_bytes)
@@ -834,4 +867,39 @@ pub(crate) fn verify_stage(
         }
         Ok(Some(r))
     })
+}
+
+#[cfg(test)]
+mod addressed_membership_tests {
+    use super::*;
+
+    #[test]
+    fn exact_original_member_preserves_absence_and_refuses_corrupt_commitment() {
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch(MEMBER_DDL).unwrap();
+        let digest = Digest256::of_bytes(b"exact original");
+        db.execute(
+            "INSERT INTO navigation_original_members VALUES('nodes','agent:one',14,?1,?1,?1)",
+            [digest.as_bytes().as_slice()],
+        )
+        .unwrap();
+        let selected = member_exact(&db, "nodes", "agent:one", 8192)
+            .unwrap()
+            .unwrap();
+        assert_eq!(selected.id, "agent:one");
+        assert_eq!(selected.raw_sha256, digest.to_hex());
+        assert!(
+            member_exact(&db, "nodes", "agent:gap", 8192)
+                .unwrap()
+                .is_none()
+        );
+        assert!(
+            member_exact(&db, "edges", "agent:one", 8192)
+                .unwrap()
+                .is_none()
+        );
+        assert!(member_exact(&db, "nodes", "agent:one", 1).is_err());
+        db.execute("UPDATE navigation_original_members SET canonical_original_sha256=x'01' WHERE id='agent:one'", []).unwrap();
+        assert!(member_exact(&db, "nodes", "agent:one", 8192).is_err());
+    }
 }

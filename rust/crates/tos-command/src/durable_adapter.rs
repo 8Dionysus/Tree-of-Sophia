@@ -5,6 +5,9 @@ use std::fmt;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
+#[path = "audit_delta.rs"]
+pub(crate) mod audit_delta;
+
 #[path = "cold_membership_spool.rs"]
 mod cold_membership_spool;
 pub use cold_membership_spool::{ColdWorkspaceLimits, PrivateGenerationWorkspace};
@@ -457,6 +460,17 @@ pub struct ColdRecoveredMember {
     receipt: ByteDurabilityReceipt,
 }
 
+#[derive(Clone)]
+struct VerifiedLogFrontier(Digest256Hasher);
+impl std::fmt::Debug for VerifiedLogFrontier {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_tuple("VerifiedLogFrontier")
+            .field(&self.0.clone().finalize())
+            .finish()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct ColdCut {
     // Private anchored STO capability, retained through candidate selection.
@@ -466,6 +480,8 @@ pub struct ColdCut {
     domain: String,
     through_commit_seq: u64,
     log_digest: Digest256,
+    // Private live frontier; its finalized digest remains the exact V1 wire.
+    log_frontier: VerifiedLogFrontier,
     state_digest: Digest256,
     schema_profile_digest: Digest256,
     database_oid: u64,
@@ -487,6 +503,7 @@ pub(crate) struct WarmSuccessorCut {
     audited_root: AuditedStoreRoot,
     domain: String,
     descriptor_cut: GenerationCutV1,
+    log_frontier: VerifiedLogFrontier,
     history_rows: Vec<PlacementGenerationRowV1>,
     current_rows: Vec<PlacementGenerationRowV1>,
 }
@@ -500,27 +517,31 @@ pub(crate) struct VerifiedWarmGeneration {
 pub(crate) enum SelectedSourceGeneration {
     Cold(VerifiedSelectedGeneration),
     Warm(VerifiedWarmGeneration),
+    Addressed(source_cohort::VerifiedAddressedGeneration),
 }
 impl SelectedSourceGeneration {
     pub(crate) fn digest(&self) -> Digest256 {
         match self {
             Self::Cold(value) => value.digest(),
             Self::Warm(value) => value.installed.digest(),
+            Self::Addressed(value) => value.digest,
+        }
+    }
+    fn log_frontier(&self) -> &Digest256Hasher {
+        match self {
+            Self::Cold(value) => &value.cut.log_frontier.0,
+            Self::Warm(value) => &value.cut.log_frontier.0,
+            Self::Addressed(value) => &value.log_frontier.0,
         }
     }
     pub(crate) fn through_seq(&self) -> u64 {
-        self.view().descriptor_cut.through_seq
+        self.facts().descriptor_cut.through_seq
     }
     pub(crate) fn audit_generation(&self) -> u64 {
         match self {
             Self::Cold(value) => value.cut.audit_generation,
             Self::Warm(value) => value.selected_audit_generation,
-        }
-    }
-    fn installed(&self) -> &InstalledGenerationV1 {
-        match self {
-            Self::Cold(value) => &value.installed,
-            Self::Warm(value) => &value.installed,
+            Self::Addressed(value) => value.selected_audit_generation,
         }
     }
     fn read_limits(&self) -> GenerationReadLimits {
@@ -529,11 +550,11 @@ impl SelectedSourceGeneration {
                 .cut
                 .streamed_profile
                 .map_or_else(generation_limits, |profile| profile.generation),
-            Self::Warm(_) => generation_limits(),
+            Self::Warm(_) | Self::Addressed(_) => generation_limits(),
         }
     }
     pub(crate) fn current_count(&self) -> u64 {
-        self.installed().descriptor().cut.current_members
+        self.facts().descriptor_cut.current_members
     }
     pub(crate) fn lookup_current(
         &self,
@@ -543,17 +564,78 @@ impl SelectedSourceGeneration {
         cancelled: &AtomicBool,
     ) -> DurableResult<Option<PlacementGenerationRowV1>> {
         let key = membership_key(CURRENT_KEY_TAG, domain, path.as_str(), None)?;
-        Ok(self.installed().lookup(
-            GenerationNamespaceV1::Current,
-            &key,
-            self.read_limits(),
-            deadline,
-            cancelled,
-        )?)
-    }
-    fn view(&self) -> MembershipInstallation<'_> {
         match self {
-            Self::Cold(value) => MembershipInstallation {
+            Self::Cold(value) => Ok(value.installed.lookup(
+                GenerationNamespaceV1::Current,
+                &key,
+                self.read_limits(),
+                deadline,
+                cancelled,
+            )?),
+            Self::Warm(value) => Ok(value.installed.lookup(
+                GenerationNamespaceV1::Current,
+                &key,
+                self.read_limits(),
+                deadline,
+                cancelled,
+            )?),
+            Self::Addressed(value) => value.lookup_current(domain, path, deadline, cancelled),
+        }
+    }
+    fn lookup_history(
+        &self,
+        domain: &str,
+        path: &RelativePath,
+        revision: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<Option<PlacementGenerationRowV1>> {
+        let key = membership_key(HISTORY_KEY_TAG, domain, path.as_str(), Some(revision))?;
+        match self {
+            Self::Cold(value) => Ok(value.installed.lookup(
+                GenerationNamespaceV1::History,
+                &key,
+                self.read_limits(),
+                deadline,
+                cancelled,
+            )?),
+            Self::Warm(value) => Ok(value.installed.lookup(
+                GenerationNamespaceV1::History,
+                &key,
+                self.read_limits(),
+                deadline,
+                cancelled,
+            )?),
+            Self::Addressed(value) => {
+                value.lookup_history(domain, path, revision, deadline, cancelled)
+            }
+        }
+    }
+    // Borrow only the anchored store retention from this private-issued selection.
+    // This is not a current source/model disclosure grant; callers still need
+    // the source/owner gates and the independently bound descriptor.
+    pub(crate) fn audited_root(&self) -> &AuditedStoreRoot {
+        self.facts().audited_root
+    }
+
+    fn facts(&self) -> SourceSelectionFacts<'_> {
+        match self {
+            Self::Cold(value) => SourceSelectionFacts {
+                audited_root: &value.cut.audited_root,
+                domain: &value.cut.domain,
+                descriptor_cut: SelectedCutFacts::legacy(&value.installed.descriptor().cut),
+            },
+            Self::Warm(value) => SourceSelectionFacts {
+                audited_root: &value.cut.audited_root,
+                domain: &value.cut.domain,
+                descriptor_cut: SelectedCutFacts::legacy(&value.cut.descriptor_cut),
+            },
+            Self::Addressed(value) => value.facts(),
+        }
+    }
+    fn legacy_view(&self) -> Option<MembershipInstallation<'_>> {
+        match self {
+            Self::Cold(value) => Some(MembershipInstallation {
                 audited_root: &value.cut.audited_root,
                 domain: &value.cut.domain,
                 descriptor_cut: value.installed.descriptor().cut.clone(),
@@ -562,10 +644,53 @@ impl SelectedSourceGeneration {
                 history_spool: value.cut.history_spool.as_ref(),
                 current_spool: value.cut.current_spool.as_ref(),
                 profile: value.cut.streamed_profile,
-            },
-            Self::Warm(value) => value.cut.installation(),
+            }),
+            Self::Warm(value) => Some(value.cut.installation()),
+            Self::Addressed(_) => None,
         }
     }
+}
+// Internal facts carry an explicit commitment version; they are never encoded
+// as a V1 descriptor or presented as a V1 exhaustive transcript certificate.
+#[derive(Clone)]
+struct SelectedCutFacts {
+    commitment_version: u16,
+    store_id: [u8; 16],
+    domain_digest: Digest256,
+    through_seq: u64,
+    audit_generation: u64,
+    database_oid: u64,
+    schema_profile_digest: Digest256,
+    state_digest: Digest256,
+    log_digest: Digest256,
+    historical_members: u64,
+    current_members: u64,
+    history_membership_root: Digest256,
+    current_membership_root: Digest256,
+}
+impl SelectedCutFacts {
+    fn legacy(cut: &GenerationCutV1) -> Self {
+        Self {
+            commitment_version: 1,
+            store_id: cut.store_id,
+            domain_digest: cut.domain_digest,
+            through_seq: cut.through_seq,
+            audit_generation: cut.audit_generation,
+            database_oid: cut.database_oid,
+            schema_profile_digest: cut.schema_profile_digest,
+            state_digest: cut.state_digest,
+            log_digest: cut.log_digest,
+            historical_members: cut.historical_members,
+            current_members: cut.current_members,
+            history_membership_root: cut.history_membership_root,
+            current_membership_root: cut.current_membership_root,
+        }
+    }
+}
+struct SourceSelectionFacts<'a> {
+    audited_root: &'a AuditedStoreRoot,
+    domain: &'a str,
+    descriptor_cut: SelectedCutFacts,
 }
 #[derive(Clone)]
 struct MembershipInstallation<'a> {
@@ -979,23 +1104,32 @@ fn admit_private_metadata(
     requested: Option<(Instant, &AtomicBool)>,
     profile: Option<StreamedGenerationProfile>,
 ) -> DurableResult<()> {
+    let row_limit = profile.map_or(100_000, |p| p.max_metadata_rows) as u64;
     let mut admitted_rows = 0u64;
     let mut admitted_bytes = 0u64;
     for (table, _) in METADATA_TABLES {
         check_cold_profile_deadline(started, requested, profile)?;
+        // Keep the resource gate itself bounded: one row beyond the remaining
+        // allowance proves refusal, while accepted inputs retain exact totals.
+        let scan_rows = as_i64(
+            row_limit
+                .checked_sub(admitted_rows)
+                .and_then(|remaining| remaining.checked_add(1))
+                .ok_or(DurableError::Refused("cold metadata row count overflow"))?,
+        )?;
         let query = format!(
             "SELECT count(*),coalesce(max(octet_length(row_to_json(t)::text)),0),
                         coalesce(sum(octet_length(row_to_json(t)::text)),0)
-                 FROM {table} t WHERE domain=$1"
+                 FROM (SELECT * FROM {table} WHERE domain=$1 LIMIT $2) t"
         );
-        let row = tx.query_one(&query, &[&domain])?;
+        let row = tx.query_one(&query, &[&domain, &scan_rows])?;
         admitted_rows = admitted_rows
             .checked_add(as_u64(row.get::<_, i64>(0))?)
             .ok_or(DurableError::Refused("cold metadata row count overflow"))?;
         admitted_bytes = admitted_bytes
             .checked_add(as_u64(row.get::<_, i64>(2))?)
             .ok_or(DurableError::Refused("cold metadata byte count overflow"))?;
-        if admitted_rows > profile.map_or(100_000, |p| p.max_metadata_rows) as u64
+        if admitted_rows > row_limit
             || row.get::<_, i32>(1) > 1_048_576
             || admitted_bytes > profile.map_or(64 * 1024 * 1024, |p| p.max_metadata_bytes) as u64
         {
@@ -2646,7 +2780,8 @@ impl DurablePgCoordinator {
             audited_root,
             domain: domain.to_owned(),
             through_commit_seq: head,
-            log_digest: log_hasher.finalize(),
+            log_digest: log_hasher.clone().finalize(),
+            log_frontier: VerifiedLogFrontier(log_hasher),
             state_digest: state_hasher.finalize(),
             schema_profile_digest: profile_digest,
             database_oid,

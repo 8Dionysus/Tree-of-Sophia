@@ -1767,6 +1767,7 @@ with tempfile.TemporaryDirectory() as d:
                 philosophy_original: None,
                 corpus_original: None,
                 managed_source: None,
+                managed_source_v2: None,
             },
             fixture.expectation.clone(),
             measurement,

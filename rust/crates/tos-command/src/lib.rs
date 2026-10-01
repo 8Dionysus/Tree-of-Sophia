@@ -118,3 +118,7 @@ pub enum PredicateRead {
 pub mod source_public_text_entry;
 pub mod source_public_text_owner;
 pub mod source_public_text_proposal;
+
+// Descriptive work, without source authority.
+pub use durable_adapter::audit_delta::AuditDeltaWork;
+pub use durable_adapter::source_cohort::ManagedSourceWorkV1;

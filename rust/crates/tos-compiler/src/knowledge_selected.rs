@@ -140,6 +140,8 @@ pub struct VerifiedKnowledgeModel<'a> {
     max_cold_vm_steps: u64,
     sqlite_cache_kib: u64,
     open_vm_steps: u64,
+    cold_digest_read_bytes: u64,
+    cold_validation_charged_bytes: u64,
 }
 
 impl<'a> VerifiedKnowledgeModel<'a> {
@@ -321,6 +323,25 @@ impl<'a> VerifiedKnowledgeModel<'a> {
         self.check_pin()?;
         result
     }
+    /// Exact original member point seek with the caller's retained VM hook.
+    /// The pinned, cold-verified immutable base owns membership/absence.
+    pub fn navigation_original_member_under_caller_budget(
+        &self,
+        collection: &str,
+        id: &str,
+        max_bytes: u64,
+    ) -> Result<Option<crate::NavigationOriginalMember>> {
+        self.navigation_original_receipt()?;
+        let result = crate::knowledge_navigation_original::member_exact(
+            &self.connection,
+            collection,
+            id,
+            max_bytes,
+        );
+        self.check_pin()?;
+        result
+    }
+
     pub fn selection(&self) -> &KnowledgeSelectedExpectation {
         &self.selection
     }
@@ -345,9 +366,35 @@ impl<'a> VerifiedKnowledgeModel<'a> {
     pub fn connection_mut(&mut self) -> &mut Connection {
         &mut self.connection
     }
+    /// Bytes actually consumed by the cold full-file digest. A warm fork
+    /// performs no digest admission and reports zero, never repeats its base's
+    /// historical cost as newly performed I/O.
+    pub fn cold_digest_read_bytes(&self) -> u64 {
+        self.cold_digest_read_bytes
+    }
+    /// Existing logical row/payload work charge from cold validation; excludes
+    /// SQLite internal page reads/PRAGMA work (VM steps are reported separately).
+    pub fn cold_validation_charged_bytes(&self) -> u64 {
+        self.cold_validation_charged_bytes
+    }
     pub fn open_vm_steps(&self) -> u64 {
         self.open_vm_steps
     }
+    /// Cold transport consumes only the genuinely pinned selected inode.
+    /// This is not a writer or a new authority constructor.
+    pub(crate) fn read_pinned_chunk(&self, offset: u64, bytes: &mut [u8]) -> Result<()> {
+        use std::os::unix::fs::FileExt;
+        if offset
+            .checked_add(bytes.len() as u64)
+            .is_none_or(|end| end > self.selection.model_size_bytes)
+        {
+            return Err(Error::Budget("selected base transport chunk"));
+        }
+        self.check_pin()?;
+        self.pinned.read_exact_at(bytes, offset)?;
+        self.check_pin()
+    }
+
     pub fn check_pin(&self) -> Result<()> {
         let meta = self.pinned.metadata()?;
         if !meta.file_type().is_file() || meta.len() != self.selection.model_size_bytes {
@@ -376,6 +423,8 @@ impl<'a> VerifiedKnowledgeModel<'a> {
             max_cold_vm_steps: max_vm_steps,
             sqlite_cache_kib: self.sqlite_cache_kib,
             open_vm_steps: counter.load(Ordering::Relaxed),
+            cold_digest_read_bytes: 0,
+            cold_validation_charged_bytes: 0,
         })
     }
 }
@@ -801,7 +850,7 @@ fn verify_catalog(
         )
         .map_err(|_| Error::Invalid("managed catalog source basis shape"))?;
         let proof = basis
-            .managed_source()
+            .managed_proof()
             .ok_or(Error::Invalid("managed catalog source profile"))?;
         if &proof.root_sha256()? != expected_root {
             return Err(Error::Invalid("managed catalog source root"));
@@ -1146,6 +1195,8 @@ fn open_selected_inner<'a>(
         max_cold_vm_steps: limits.max_vm_steps,
         sqlite_cache_kib: limits.sqlite_cache_kib,
         open_vm_steps: counter.load(Ordering::Relaxed),
+        cold_digest_read_bytes: size,
+        cold_validation_charged_bytes: work,
     })
 }
 
@@ -1228,7 +1279,7 @@ fn verify_graph_root(
             "normalization_binding",
             "query_properties",
             "schema",
-            if basis.managed_source().is_some() {
+            if basis.managed_proof().is_some() {
                 "source_basis"
             } else {
                 "source_revision"
@@ -1246,7 +1297,7 @@ fn verify_graph_root(
     let schema = required("schema")?
         .as_str()
         .ok_or(Error::Invalid("knowledge graph schema"))?;
-    if let Some(proof) = basis.managed_source() {
+    if let Some(proof) = basis.managed_proof() {
         if expected.managed_source_root_sha256.as_deref() != Some(proof.root_sha256()?.as_str()) {
             return Err(Error::Invalid("knowledge managed source root binding"));
         }
@@ -1269,7 +1320,7 @@ fn verify_graph_root(
     )
     .map_err(|e| Error::Source(e.to_string()))?;
     if schema
-        != if basis.managed_source().is_some() {
+        != if basis.managed_proof().is_some() {
             crate::managed_source::MANAGED_GRAPH_SCHEMA
         } else {
             "tos_knowledge_graph_v1"

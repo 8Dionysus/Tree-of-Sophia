@@ -31,6 +31,10 @@ pub(crate) struct Versions<'a, 'b> {
     files: BTreeMap<String, Vec<u8>>,
     bytes: usize,
     catalog_root: String,
+    catalog_epoch: Option<(
+        crate::VersionsCatalogEpochV2,
+        tos_segment_store::AuthenticatedTreeLimitsV1,
+    )>,
 }
 fn path(reference: &str) -> Result<RelativePath> {
     RelativePath::parse(reference).map_err(|_| Error::Invalid("bibliographic cut source path"))
@@ -94,6 +98,7 @@ impl<'a, 'b> Versions<'a, 'b> {
             files: BTreeMap::new(),
             bytes: 0,
             catalog_root: receipt.row_root_sha256.clone(),
+            catalog_epoch: None,
         };
         // Bind every declared raw input, including selected schemas and native
         // packets, to a member of this exact current source revision.
@@ -274,6 +279,57 @@ impl<'a, 'b> Versions<'a, 'b> {
         encode(&basis, l.max_claim_cohort_bytes)?;
         Ok(basis)
     }
+    /// Explicit V2 reader; the selected epoch commitment is independent of the
+    /// record request. V1 constructor/output remain unchanged.
+    pub(crate) fn new_with_catalog_epoch(
+        input: &'a BibliographicSourceCut<'b>,
+        stage: &mut KnowledgeStage<'_>,
+        validator: &SourceCatalogValidator<'_>,
+        receipt: &catalog::SourceCatalogReceipt,
+        l: BibliographicLimits,
+        epoch: &crate::VersionsCatalogEpochV2,
+        expected_epoch: Digest256,
+        limits: tos_segment_store::AuthenticatedTreeLimitsV1,
+    ) -> Result<Self> {
+        if epoch.commitment() != expected_epoch {
+            return Err(Error::Invalid(
+                "Versions independently selected epoch differs",
+            ));
+        }
+        epoch.require_catalog(receipt)?;
+        let mut versions = Self::new(input, stage, validator, receipt, l)?;
+        versions.catalog_epoch = Some((epoch.clone(), limits));
+        Ok(versions)
+    }
+
+    fn catalog_location(
+        &self,
+        stage: &mut KnowledgeStage<'_>,
+        category: &str,
+        kind: Option<&str>,
+        id: &str,
+        validator: &SourceCatalogValidator<'_>,
+        l: BibliographicLimits,
+    ) -> Result<CatalogLocation> {
+        if let Some((epoch, limits)) = &self.catalog_epoch {
+            let row = catalog::catalog_row(stage, category, id, l.catalog)?
+                .ok_or(Error::Invalid("Versions selected catalog row absent"))?;
+            if kind.is_some_and(|kind| row["entry"]["record_type"] != kind) {
+                return Err(Error::Invalid("Versions catalog record family differs"));
+            }
+            return Ok(CatalogLocation::Epoch(epoch.provenance(
+                category,
+                id,
+                &row["entry"],
+                *limits,
+                l.deadline,
+                validator.cancelled,
+            )?));
+        }
+        let (line, sha) = legacy_catalog(stage, category, kind, id, l)?;
+        Ok(CatalogLocation::Legacy(line, sha))
+    }
+
     pub(crate) fn verify_catalog_binding(
         &self,
         stage: &mut KnowledgeStage<'_>,
@@ -557,7 +613,8 @@ impl<'a, 'b> Versions<'a, 'b> {
                 "bibliographic Collection exact version/digest not retained",
             ));
         }
-        let catalog = legacy_catalog(stage, "records", Some(&route.kind), id, l)?;
+        let catalog =
+            self.catalog_location(stage, "records", Some(&route.kind), id, validator, l)?;
         let provenance = if receipts.is_empty() {
             initial_metadata_provenance(
                 &route,
@@ -569,8 +626,8 @@ impl<'a, 'b> Versions<'a, 'b> {
             )
         } else {
             json!({"verification_scope":"selected-record-chain","all_package_bytes_verified":false,
-            "catalog":{"source_ref":format!("ToS/source-witnesses/catalog/{}",route.catalog_filename),"line":catalog.0,
-                "sha256":catalog.1,"source_record_ref":reference,"current_record_ref":current},
+            "catalog":catalog.render(json!({"source_ref":format!("ToS/source-witnesses/catalog/{}",route.catalog_filename),
+                "source_record_ref":reference,"current_record_ref":current})),
             "descriptor":route.descriptor(&record["schema_version"]),
             "history":{"source_ref":history_raw.as_ref().map(|_|history_ref),
                 "sha256":history_raw.as_ref().map(|raw|format!("sha256:{}",Digest256::of_bytes(raw).to_hex())),"receipt_count":receipts.len(),
@@ -1155,9 +1212,9 @@ impl<'a, 'b> Versions<'a, 'b> {
         let (record, source, transition, version_status) = chosen.ok_or(Error::Invalid(
             "bibliographic exact membership version/digest not retained",
         ))?;
-        let catalog = legacy_catalog(stage, "claims", None, id, l)?;
-        let provenance = json!({"catalog":{"source_ref":"ToS/source-witnesses/catalog/claims.jsonl","line":catalog.0,"sha256":catalog.1,
-            "source_claim_file_ref":reference,"source_claim_line":entry["source_claim_line"],"current_record_ref":current,"visibility":entry["visibility"]},
+        let catalog = self.catalog_location(stage, "claims", None, id, validator, l)?;
+        let provenance = json!({"catalog":catalog.render(json!({"source_ref":"ToS/source-witnesses/catalog/claims.jsonl",
+            "source_claim_file_ref":reference,"source_claim_line":entry["source_claim_line"],"current_record_ref":current,"visibility":entry["visibility"]})),
             "source":source,"history":{"source_ref":adjacent(reference,"claim-revision-history.json")?,
                 "sha256":retained.map(|raw|format!("sha256:{}",Digest256::of_bytes(raw).to_hex())),"receipt_count":receipts.len(),"correction_chain_verified":true},
             "transition":transition});
@@ -1308,10 +1365,9 @@ impl<'a, 'b> Versions<'a, 'b> {
                 ));
             }
         }
-        let catalog = legacy_catalog(stage, "claims", None, id, l)?;
-        let provenance = json!({"catalog":{"source_ref":"ToS/source-witnesses/catalog/claims.jsonl",
-            "line":catalog.0,"sha256":catalog.1,"source_claim_file_ref":reference,
-            "source_claim_line":entry["source_claim_line"],"current_record_ref":current,"visibility":entry["visibility"]},
+        let catalog = self.catalog_location(stage, "claims", None, id, validator, l)?;
+        let provenance = json!({"catalog":catalog.render(json!({"source_ref":"ToS/source-witnesses/catalog/claims.jsonl",
+            "source_claim_file_ref":reference,"source_claim_line":entry["source_claim_line"],"current_record_ref":current,"visibility":entry["visibility"]})),
             "source":{"source_ref":reference,"stream_sha256":format!("sha256:{}",Digest256::of_bytes(&raw).to_hex()),
                 "stream_bytes":raw.len(),"package_revision":revision,"archive_blob_ref":null,"line":entry["source_claim_line"]},
             "history":history,"transition":null});
@@ -1610,12 +1666,12 @@ fn initial_metadata_provenance(
     record: &Value,
     reference: &str,
     current: &Value,
-    catalog: &(u64, String),
+    catalog: &CatalogLocation,
     source: Value,
 ) -> Value {
     json!({"verification_scope":"selected-record-chain","all_package_bytes_verified":false,
-        "catalog":{"source_ref":format!("ToS/source-witnesses/catalog/{}",route.catalog_filename),"line":catalog.0,
-            "sha256":catalog.1,"source_record_ref":reference,"current_record_ref":current},
+        "catalog":catalog.render(json!({"source_ref":format!("ToS/source-witnesses/catalog/{}",route.catalog_filename),
+            "source_record_ref":reference,"current_record_ref":current})),
         "descriptor":route.descriptor(&record["schema_version"]),
         "history":{"source_ref":null,"sha256":null,"receipt_count":0,
             "retained_record_chain_verified":true,"retained_baseline_ref":current},
@@ -1630,6 +1686,80 @@ pub(crate) fn initial_managed_agent_version(
     raw: &[u8],
     entities: &Value,
     catalog: (u64, String),
+    l: BibliographicLimits,
+) -> Result<Version> {
+    initial_managed_agent_version_at(
+        entry,
+        record,
+        raw,
+        entities,
+        CatalogLocation::Legacy(catalog.0, catalog.1),
+        l,
+    )
+}
+
+/// Genuine V2 epoch identity, never fabricated V1 ordinal or file SHA.
+pub(crate) fn initial_managed_agent_version_with_epoch(
+    entry: &Value,
+    record: &Value,
+    raw: &[u8],
+    entities: &Value,
+    epoch: &crate::VersionsCatalogEpochV2,
+    tree_limits: tos_segment_store::AuthenticatedTreeLimitsV1,
+    deadline: std::time::Instant,
+    cancelled: &std::sync::atomic::AtomicBool,
+    l: BibliographicLimits,
+) -> Result<Version> {
+    initial_managed_agent_version_with_epoch_and_work(
+        entry,
+        record,
+        raw,
+        entities,
+        epoch,
+        tree_limits,
+        deadline,
+        cancelled,
+        l,
+    )
+    .map(|(version, _)| version)
+}
+
+pub(crate) fn initial_managed_agent_version_with_epoch_and_work(
+    entry: &Value,
+    record: &Value,
+    raw: &[u8],
+    entities: &Value,
+    epoch: &crate::VersionsCatalogEpochV2,
+    tree_limits: tos_segment_store::AuthenticatedTreeLimitsV1,
+    deadline: std::time::Instant,
+    cancelled: &std::sync::atomic::AtomicBool,
+    l: BibliographicLimits,
+) -> Result<(Version, tos_segment_store::AuthenticatedTreeWorkV1)> {
+    let (location, work) = epoch.provenance_with_work(
+        "records",
+        text(entry, "record_id")?,
+        entry,
+        tree_limits,
+        deadline,
+        cancelled,
+    )?;
+    initial_managed_agent_version_at(
+        entry,
+        record,
+        raw,
+        entities,
+        CatalogLocation::Epoch(location),
+        l,
+    )
+    .map(|version| (version, work))
+}
+
+fn initial_managed_agent_version_at(
+    entry: &Value,
+    record: &Value,
+    raw: &[u8],
+    entities: &Value,
+    catalog: CatalogLocation,
     l: BibliographicLimits,
 ) -> Result<Version> {
     if entry["record_type"] != "agent" || record["record_version"] != 1 {
@@ -1880,6 +2010,33 @@ fn record_ref(record: &Value, claim: bool, l: BibliographicLimits) -> Result<Val
     exact_ref(&reference, claim)?;
     Ok(reference)
 }
+enum CatalogLocation {
+    Legacy(u64, String),
+    Epoch(Value),
+}
+impl CatalogLocation {
+    fn render(&self, mut context: Value) -> Value {
+        let object = context
+            .as_object_mut()
+            .expect("internal catalog provenance object");
+        match self {
+            Self::Legacy(line, sha) => {
+                object.insert("line".into(), json!(line));
+                object.insert("sha256".into(), json!(sha));
+            }
+            Self::Epoch(epoch) => {
+                object.extend(
+                    epoch
+                        .as_object()
+                        .expect("constructed V2 provenance object")
+                        .clone(),
+                );
+            }
+        }
+        context
+    }
+}
+
 fn legacy_catalog(
     stage: &mut KnowledgeStage<'_>,
     category: &str,
@@ -2940,6 +3097,31 @@ mod oracle {
                 limits
             )
             .is_err()
+        );
+    }
+    #[test]
+    fn v1_catalog_location_preserves_exact_canonical_fields_and_v2_has_no_fake_line() {
+        let context = json!({"source_ref":"ToS/source-witnesses/catalog/agents.jsonl",
+            "source_record_ref":"ToS/agent.json","current_record_ref":{"id":"tos.agent.a","version":1,"digest":"sha256:original"}});
+        let expected = json!({"source_ref":"ToS/source-witnesses/catalog/agents.jsonl",
+            "line":7,"sha256":"sha256:whole-jsonl","source_record_ref":"ToS/agent.json",
+            "current_record_ref":{"id":"tos.agent.a","version":1,"digest":"sha256:original"}});
+        let legacy =
+            CatalogLocation::Legacy(7, "sha256:whole-jsonl".into()).render(context.clone());
+        assert_eq!(
+            encode(&legacy, 4096).unwrap(),
+            encode(&expected, 4096).unwrap()
+        );
+        let epoch = json!({"schema_version":"tos_versions_catalog_reference_v2",
+            "epoch":{"root_sha256":"selected-epoch"},"record_id":"tos.agent.a",
+            "canonical_entry_sha256":"selected-entry"});
+        let rendered = CatalogLocation::Epoch(epoch).render(context);
+        assert!(rendered.get("line").is_none());
+        assert!(rendered.get("sha256").is_none());
+        assert_eq!(rendered["source_record_ref"], expected["source_record_ref"]);
+        assert_eq!(
+            rendered["current_record_ref"],
+            expected["current_record_ref"]
         );
     }
 }

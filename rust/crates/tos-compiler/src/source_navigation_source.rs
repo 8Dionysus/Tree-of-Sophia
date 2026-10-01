@@ -230,12 +230,62 @@ pub fn project_source_navigation_from_cut(
     forms: &mut dyn BibliographicForms,
     l: BibliographicLimits,
 ) -> Result<NavigationSourceProjection> {
+    project_source_navigation_with_epoch(
+        stage, receipt, source, validator, entities, forms, l, None,
+    )
+}
+
+/// Opt-in V2 catalog provenance. This cold whole projection remains global;
+/// warm addressed model construction is a separate explicit producer.
+pub fn project_source_navigation_from_cut_with_catalog_epoch(
+    stage: &mut KnowledgeStage<'_>,
+    receipt: &SourceCatalogReceipt,
+    source: &BibliographicSourceCut<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    entities: &Value,
+    forms: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+    epoch: &crate::VersionsCatalogEpochV2,
+    expected_epoch: tos_foundation::Digest256,
+    tree_limits: tos_segment_store::AuthenticatedTreeLimitsV1,
+) -> Result<NavigationSourceProjection> {
+    project_source_navigation_with_epoch(
+        stage,
+        receipt,
+        source,
+        validator,
+        entities,
+        forms,
+        l,
+        Some((epoch, expected_epoch, tree_limits)),
+    )
+}
+
+fn project_source_navigation_with_epoch(
+    stage: &mut KnowledgeStage<'_>,
+    receipt: &SourceCatalogReceipt,
+    source: &BibliographicSourceCut<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    entities: &Value,
+    forms: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+    epoch: Option<(
+        &crate::VersionsCatalogEpochV2,
+        tos_foundation::Digest256,
+        tos_segment_store::AuthenticatedTreeLimitsV1,
+    )>,
+) -> Result<NavigationSourceProjection> {
     let result = (|| {
         l.validate()?;
         if receipt.worker_sha256 != validator.worker.sha256.to_hex() {
             return Err(Error::Invalid("navigation exact catalog worker identity"));
         }
-        let mut versions = Versions::new(source, stage, validator, receipt, l)?;
+        let mut versions = match epoch {
+            Some((epoch, expected, limits)) => Versions::new_with_catalog_epoch(
+                source, stage, validator, receipt, l, epoch, expected, limits,
+            )?,
+            None => Versions::new(source, stage, validator, receipt, l)?,
+        };
         let selected_entities = original(
             &versions.required(
                 "ToS/doctrine/semantic-interchange/entity-types.v1.json",
@@ -557,7 +607,7 @@ pub fn project_source_navigation_from_cut(
             .rights
             .sort_by(|a, b| a["rights_id"].as_str().cmp(&b["rights_id"].as_str()));
         let counts = json!({"nodes":projection.nodes.len(),"edges":projection.edges.len(),"rights":projection.rights.len()});
-        let value = json!({"schema_version":"tos_source_navigation_v1","authority_boundary":"generated read-only navigation; authored branch manifests, source records, claims, item manifests, and rights records retain authority",
+        let value = json!({"schema_version":if epoch.is_some() {"tos_source_navigation_v2"} else {"tos_source_navigation_v1"},"authority_boundary":"generated read-only navigation; authored branch manifests, source records, claims, item manifests, and rights records retain authority",
             "counts":counts,"nodes":projection.nodes.into_values().collect::<Vec<_>>(),
             "edges":projection.edges.into_values().collect::<Vec<_>>(),"rights":projection.rights});
         encode(

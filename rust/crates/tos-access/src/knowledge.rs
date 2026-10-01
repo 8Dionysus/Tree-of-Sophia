@@ -897,6 +897,12 @@ impl<'hold> tos_query::CatalogCurrentAuthority<'hold> for CatalogProbe<'_, 'hold
     ) -> Result<(), tos_query::CatalogError> {
         self.inner.authorize_managed_source_current(proof)
     }
+    fn authorize_managed_source_v2_current(
+        &mut self,
+        proof: &tos_compiler::ManagedSourceProofV2,
+    ) -> Result<(), tos_query::CatalogError> {
+        self.inner.authorize_managed_source_v2_current(proof)
+    }
     fn abort_probe(&self) -> Option<Arc<dyn AbortProbe>> {
         Some(Arc::clone(&self.probe))
     }
@@ -933,6 +939,12 @@ impl<'hold> tos_query::InspectCurrentAuthority<'hold> for InspectProbe<'_, 'hold
         proof: &tos_compiler::ManagedSourceProofV1,
     ) -> Result<(), tos_query::search_v2::SearchV2Error> {
         self.inner.authorize_managed_source_current(proof)
+    }
+    fn authorize_managed_source_v2_current(
+        &mut self,
+        proof: &tos_compiler::ManagedSourceProofV2,
+    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+        self.inner.authorize_managed_source_v2_current(proof)
     }
     fn authorize_corpus_view_identity_current(
         &mut self,

@@ -34,7 +34,7 @@ static INIT_SCHEMA: Once = Once::new();
 const PROFILE_ID: &[u8] = b"cmd2.lab.embedded-revision";
 const PROFILE_VERSION: &[u8] = b"1";
 
-struct ScratchRoot(PathBuf);
+struct ScratchRoot(PathBuf, bool);
 
 impl ScratchRoot {
     fn new() -> Self {
@@ -47,17 +47,39 @@ impl ScratchRoot {
             std::process::id(),
             NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed)
         );
-        let path = std::env::var_os("TOS_CMD2_LAB_ROOT")
-            .map(PathBuf::from)
+        let configured_root = std::env::var_os("TOS_CMD2_LAB_ROOT").map(PathBuf::from);
+        let retain_failure = match std::env::var_os("TOS_CMD2_LAB_RETAIN_ON_FAILURE") {
+            None => false,
+            Some(value) if value == "1" => {
+                assert!(
+                    configured_root
+                        .as_ref()
+                        .is_some_and(|root| root.is_absolute()),
+                    "failure retention requires an explicit absolute admitted lab root"
+                );
+                true
+            }
+            Some(_) => panic!("unsupported lab failure retention setting"),
+        };
+        let path = configured_root
             .unwrap_or_else(std::env::temp_dir)
             .join(name);
         fs::create_dir_all(&path).expect("private STO lab root created");
-        Self(path)
+        Self(path, retain_failure)
     }
 }
 
 impl Drop for ScratchRoot {
     fn drop(&mut self) {
+        // Preserve only this invocation's owned fixture during unwinding.
+        // The admitted batch owner accounts for and disposes of retained bytes.
+        if self.1 && std::thread::panicking() {
+            eprintln!(
+                "retained failed private STO lab fixture: {}",
+                self.0.display()
+            );
+            return;
+        }
         fs::remove_dir_all(&self.0).expect("private STO lab root removed");
     }
 }
@@ -246,8 +268,8 @@ struct ManagedFixtureReadGrant {
     active: std::sync::Arc<AtomicU64>,
 }
 impl ManagedFixtureReadGrant {
-    fn new(
-        parent: &tos_command::source_managed_selection::ManagedAgentSelectedParent,
+    fn new<P: tos_command::source_managed_selection::ManagedSelectedProof>(
+        parent: &tos_command::source_managed_selection::ManagedAgentSelectedParent<P>,
         carriers: Vec<ManagedFixtureCarrier>,
     ) -> Self {
         Self {
@@ -564,11 +586,191 @@ fn managed_fixture_query_budgets() -> tos_access::knowledge::SelectedKnowledgeBu
 
 #[test]
 fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes() {
+    maintained_agent_creation_operation::<tos_compiler::managed_source::ManagedSourceProofV1>(
+        false,
+    );
+}
+
+#[test]
+fn addressed_agent_creation_reaches_selected_reader_and_cold_restore() {
+    if let Ok(phase) = std::env::var("TOS_CMD2_V2_BACKUP_PHASE") {
+        addressed_backup_restore_phase(&phase);
+        return;
+    }
+    maintained_agent_creation_operation::<tos_compiler::managed_source::ManagedSourceProofV2>(true);
+}
+
+// Transport phases execute in children of the same protected fixture image
+// under the maintained 64 MiB file limit. Their receipts describe transport;
+// the parent independently cold-verifies the restored source before reading.
+fn addressed_backup_restore_phase(phase: &str) {
+    use tos_command::backup_recovery::{
+        BackupSelection, PgTool, RestoreSelection, backup_quiescent,
+        restore_into_fresh,
+    };
+    let url = database_url();
+    let domain = std::env::var("TOS_CMD2_V2_DOMAIN").unwrap();
+    let store = PathBuf::from(std::env::var_os("TOS_CMD2_V2_STORE").unwrap());
+    let backup = PathBuf::from(std::env::var_os("TOS_CMD2_V2_BACKUP").unwrap());
+    let remaining: u64 = std::env::var("TOS_CMD2_V2_PHASE_MS")
+        .unwrap()
+        .parse()
+        .unwrap();
+    assert!(remaining > 0 && remaining <= 240_000);
+    let deadline = Instant::now() + Duration::from_millis(remaining);
+    let cancelled = AtomicBool::new(false);
+    let tool_kind = match phase {
+        "backup" => "DUMP",
+        "restore" => "RESTORE",
+        _ => panic!("unknown V2 transport phase"),
+    };
+    let path = PathBuf::from(std::env::var_os(format!("TOS_CMD2_PG_{tool_kind}_PATH")).unwrap());
+    let sha256 = std::env::var(format!("TOS_CMD2_PG_{tool_kind}_SHA256")).unwrap();
+    let tool = PgTool {
+        path: &path,
+        sha256: &sha256,
+    };
+    let result = if phase == "backup" {
+        backup_quiescent(
+            &BackupSelection {
+                pg_url: &url,
+                domain: &domain,
+                store_root: &store,
+                backup_root: &backup,
+                tool,
+                store_limits: limits(),
+                quiescent_owner_confirmed: true,
+            },
+            deadline,
+            &cancelled,
+        )
+    } else {
+        let receipt_sha256 = std::env::var("TOS_CMD2_V2_RECEIPT_SHA256").unwrap();
+        restore_into_fresh(
+            &RestoreSelection {
+                pg_url: &url,
+                domain: &domain,
+                store_root: &store,
+                backup_root: &backup,
+                receipt_sha256: &receipt_sha256,
+                tool,
+                store_limits: limits(),
+                fresh_target_owner_confirmed: true,
+            },
+            deadline,
+            &cancelled,
+        )
+    }
+    .expect("maintained V2 DB/store transport must fit and verify its unchanged profile");
+    println!(
+        "CMD2_V2_TRANSPORT {}",
+        serde_json::to_string(&result).unwrap()
+    );
+}
+
+fn run_addressed_transport_phase(
+    phase: &str,
+    url: &str,
+    domain: &str,
+    store: &std::path::Path,
+    backup: &std::path::Path,
+    receipt_sha256: Option<&str>,
+    deadline: Instant,
+) {
+    let remaining = deadline
+        .checked_duration_since(Instant::now())
+        .expect("whole operation deadline remains");
+    let mut command = Command::new("/usr/bin/prlimit");
+    command
+        .args(["--fsize=67108864:67108864", "--"])
+        .arg(std::env::current_exe().unwrap())
+        .args([
+            "--exact",
+            "addressed_agent_creation_reaches_selected_reader_and_cold_restore",
+            "--nocapture",
+            "--test-threads=1",
+        ])
+        .env("TOS_CMD_POSTGRES_URL", url)
+        .env("TOS_CMD2_V2_BACKUP_PHASE", phase)
+        .env("TOS_CMD2_V2_DOMAIN", domain)
+        .env("TOS_CMD2_V2_STORE", store)
+        .env("TOS_CMD2_V2_BACKUP", backup)
+        .env("TOS_CMD2_V2_PHASE_MS", remaining.as_millis().to_string());
+    if let Some(sha) = receipt_sha256 {
+        command.env("TOS_CMD2_V2_RECEIPT_SHA256", sha);
+    }
+    let mut child = command.spawn().expect("owned transport child starts");
+    loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            assert!(
+                status.success(),
+                "V2 {phase} child refused the actual transport/profile: {status}"
+            );
+            break;
+        }
+        if Instant::now() >= deadline {
+            child.kill().expect("own overdue transport child stopped");
+            child.wait().unwrap();
+            panic!("whole V2 operation exceeded its deadline during {phase}");
+        }
+        thread::sleep(Duration::from_millis(20));
+    }
+}
+
+fn addressed_journal_snapshot(url: &str, domain: &str) -> serde_json::Value {
+    use postgres::fallible_iterator::FallibleIterator;
+    let mut db = Client::connect(url, NoTls).unwrap();
+    db.batch_execute("SET statement_timeout='15000'; SET default_transaction_read_only=on")
+        .unwrap();
+    let mut tx = db
+        .build_transaction()
+        .isolation_level(postgres::IsolationLevel::RepeatableRead)
+        .read_only(true)
+        .start()
+        .unwrap();
+    let generation: i64 = tx
+        .query_one(
+            "SELECT generation FROM cmd2_audit_fence WHERE domain=$1",
+            &[&domain],
+        )
+        .unwrap()
+        .get(0);
+    let marker: String = tx
+        .query_one(
+            "SELECT row_to_json(p)::text FROM cmd2_audit_delta_v1_domain p WHERE domain=$1",
+            &[&domain],
+        )
+        .unwrap()
+        .get(0);
+    let mut hash = tos_foundation::Digest256Hasher::new();
+    let mut count = 0u64;
+    let mut rows = tx.query_raw("SELECT sha256(convert_to(row_to_json(j)::text,'UTF8')) FROM cmd2_audit_delta_v1 j WHERE domain=$1 ORDER BY generation LIMIT 4097", [&domain]).unwrap();
+    while let Some(row) = rows.next().unwrap() {
+        count += 1;
+        assert!(
+            count <= 4096,
+            "finite synthetic journal witness stays bounded"
+        );
+        let digest: Vec<u8> = row.get(0);
+        assert_eq!(digest.len(), 32);
+        hash.update(&digest);
+    }
+    drop(rows);
+    tx.commit().unwrap();
+    serde_json::json!([generation, marker, count, hash.finalize().to_hex()])
+}
+
+fn maintained_agent_creation_operation<
+    P: tos_command::source_managed_selection::ManagedSelectedProof,
+>(
+    addressed: bool,
+) {
     use std::collections::BTreeMap;
-    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
     use tos_command::source_command::{CommandContext, SourceFile};
     use tos_command::source_creation::prepare_source_creation_from_captures;
     use tos_command::source_creation_store::{CreationFilesystem, IsolatedCreationRoot};
+    use tos_compiler::managed_source::ManagedProducerProof;
     use tos_foundation::{
         CanonicalProfile, JsonLimits, JsonMode, RelativePath, canonical_bytes_v1, parse_json,
     };
@@ -612,6 +814,87 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     }
     let url = database_url();
     let mut lab = Lab::new(&url);
+    if addressed {
+        // Exercise the actual audit query builders and Rust bindings before
+        // Git capture, schema workers, or the full cold source/model setup.
+        lab.db.enable_addressed_audit_protocol().unwrap();
+        println!("STO addressed audit SQL binding/decode precondition PASS");
+    }
+    // PostgreSQL must preserve named composite JSON and exact accepted
+    // aggregates after moving the admission limit below serialization.
+    let mut admission_sql = Client::connect(&url, NoTls).unwrap();
+    admission_sql.batch_execute(
+        "SET statement_timeout = '5s';
+         CREATE TEMP TABLE admission_shape(domain text, ordinal integer, payload text, optional integer);
+         INSERT INTO admission_shape VALUES('selected',1,'named \"bytes\"',NULL),
+             ('selected',2,'unicode λ',7),('other',1,repeat('x',1024),NULL)"
+    ).unwrap();
+    let full = admission_sql
+        .query_one(
+            "SELECT count(*),coalesce(max(octet_length(row_to_json(t)::text)),0),
+                coalesce(sum(octet_length(row_to_json(t)::text)),0)
+         FROM admission_shape t WHERE domain=$1",
+            &[&"selected"],
+        )
+        .unwrap();
+    for limit in [2i64, 3] {
+        let bounded = admission_sql
+            .query_one(
+                "SELECT count(*),coalesce(max(octet_length(row_to_json(t)::text)),0),
+                    coalesce(sum(octet_length(row_to_json(t)::text)),0)
+             FROM (SELECT * FROM admission_shape WHERE domain=$1 LIMIT $2) t",
+                &[&"selected", &limit],
+            )
+            .unwrap();
+        assert_eq!(bounded.get::<_, i64>(0), full.get::<_, i64>(0));
+        assert_eq!(bounded.get::<_, i32>(1), full.get::<_, i32>(1));
+        assert_eq!(bounded.get::<_, i64>(2), full.get::<_, i64>(2));
+    }
+    let named: String = admission_sql
+        .query_one(
+            "SELECT row_to_json(t)::text FROM (SELECT * FROM admission_shape
+         WHERE domain=$1 AND ordinal=1 LIMIT $2) t",
+            &[&"selected", &2i64],
+        )
+        .unwrap()
+        .get(0);
+    let named: serde_json::Value = serde_json::from_str(&named).unwrap();
+    assert_eq!(
+        named,
+        serde_json::json!({"domain":"selected","ordinal":1,
+        "payload":"named \"bytes\"","optional":null})
+    );
+    admission_sql
+        .execute(
+            "INSERT INTO admission_shape VALUES('selected',3,repeat('x',4096),NULL)",
+            &[],
+        )
+        .unwrap();
+    let plan = admission_sql
+        .query(
+            "EXPLAIN (ANALYZE,COSTS OFF,TIMING OFF,SUMMARY OFF)
+         SELECT count(*),coalesce(max(octet_length(row_to_json(t)::text)),0),
+                coalesce(sum(octet_length(row_to_json(t)::text)),0)
+         FROM (SELECT * FROM admission_shape WHERE domain=$1 LIMIT $2) t",
+            &[&"selected", &2i64],
+        )
+        .unwrap();
+    assert!(
+        plan.iter().any(|row| {
+            let line: String = row.get(0);
+            line.contains("Limit") && line.contains("actual rows=2 loops=1")
+        }),
+        "PostgreSQL must limit aggregate input to remaining+1 rows"
+    );
+    let overflow: i64 = admission_sql
+        .query_one(
+            "SELECT count(*) FROM (SELECT * FROM admission_shape WHERE domain=$1 LIMIT $2) t",
+            &[&"selected", &2i64],
+        )
+        .unwrap()
+        .get(0);
+    assert!(overflow > 1, "remaining+1 proves row-budget refusal");
+    eprintln!("STO cold metadata named JSON/exact accepted aggregates/overflow witness PASS");
     let root = ScratchRoot::new();
     let repository = match std::env::var_os("TOS_CMD2_LAB_SOURCE_ROOT") {
         Some(path) => {
@@ -1398,6 +1681,29 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         &cancelled,
     )
     .unwrap();
+    let tree_limits = tos_segment_store::AuthenticatedTreeLimitsV1 {
+        max_key_bytes: 4096,
+        max_value_bytes: 1_048_576,
+        max_kind_bytes: 128,
+        max_node_bytes: 1_048_576,
+        max_children: 16,
+        max_nodes: 100_000,
+        max_total_bytes: 64 * 1024 * 1024,
+        max_rows: 4096,
+    };
+    let export = if addressed {
+        tos_command::source_current_cut::migrate_current_source_cut_addressed(
+            &mut reopened_db,
+            &reopened_store,
+            export,
+            tree_limits,
+            deadline,
+            &cancelled,
+        )
+        .unwrap()
+    } else {
+        export
+    };
     let mut descriptor: serde_json::Value = serde_json::from_slice(
         &fs::read(
             repository.join("rust/crates/tos-compiler/tests/fixtures/query-vocabulary.v1.json"),
@@ -1486,16 +1792,27 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     let entity_raw = &files["ToS/doctrine/semantic-interchange/entity-types.v1.json"];
     let relation_raw = &files["ToS/doctrine/semantic-interchange/relation-types.v1.json"];
     let entities: serde_json::Value = serde_json::from_slice(entity_raw).unwrap();
-    let binding_for = |proof: &tos_compiler::ManagedSourceProofV1| tos_compiler::SourceBinding {
-        owner_profile: "synthetic-private-managed-agent-consumer".into(),
-        source_cut: proof.initial_export_source_revision.clone(),
-        through_commit_seq: proof.generation.through_commit_seq,
-        membership_root: proof.generation.current_membership_sha256.clone(),
-        index_generation: proof.generation.installed_generation_sha256.clone(),
-        route_map_version: "private-managed-agent-v1".into(),
-        reader_abi: "private-managed-agent-v1".into(),
-        projection_root_sha256: proof.generation.inventory_projection_sha256.clone(),
-        complete: true,
+    let binding_for = |proof: &P| {
+        let installed = match proof.basis() {
+            tos_compiler::KnowledgeSourceBasis::ManagedCurrent { proof } => {
+                proof.generation.installed_generation_sha256
+            }
+            tos_compiler::KnowledgeSourceBasis::ManagedCurrentV2 { proof } => {
+                proof.generation.installed_generation_sha256
+            }
+            _ => unreachable!(),
+        };
+        tos_compiler::SourceBinding {
+            owner_profile: "synthetic-private-managed-agent-consumer".into(),
+            source_cut: proof.initial_export().0.into(),
+            through_commit_seq: proof.through_commit_seq(),
+            membership_root: proof.current_root().into(),
+            index_generation: installed,
+            route_map_version: "private-managed-agent-v1".into(),
+            reader_abi: "private-managed-agent-v1".into(),
+            projection_root_sha256: proof.inventory_projection().into(),
+            complete: true,
+        }
     };
     let validator_for = |schema_cut: &CorpusCutReader| {
         let mut operation = tos_validation::executor::BatchStreamBudget::laboratory();
@@ -1518,9 +1835,13 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             &cancelled,
         )
     };
+    let overlay = addressed && std::env::var_os("TOS_CMD2_MODEL_OVERLAY_V2").is_some();
+    let mut catalog_epoch = None;
     let mut initial_carriers = Vec::new();
-    let initial_selected =
-        tos_command::source_managed_selection::prepare_managed_agent_selected_parent(
+    let mut cold_render_work = tos_compiler::SourceCatalogRenderWorkV1::default();
+    let mut cold_source_work = tos_command::ManagedSourceWorkV1::default();
+    let initial_selected_result =
+        tos_command::source_managed_selection::prepare_managed_agent_selected_parent_with_work::<P>(
             &mut reopened_db,
             &reopened_store,
             export,
@@ -1535,6 +1856,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             cold_limits,
             deadline,
             &cancelled,
+            &mut cold_source_work,
             |export, proof| {
                 let selected_cut = export.cut();
                 let selected_revision = selected_cut.current().revision();
@@ -1568,7 +1890,13 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                 )?;
                 let validator = validator_for(selected_cut)?;
                 let mut forms = tos_command::source_forms_compiler::NativeBibliographicForms;
-                let candidate = tos_compiler::render_source_bibliographic_plan(
+                eprintln!(
+                    "CMD2_MODEL_V2_COLD_PLAN members={} observed_work_bytes={} manifest_members={}",
+                    plan.selected_member_count(),
+                    plan.observed_work_bytes(),
+                    plan.source_membership().count
+                );
+                let candidate = tos_compiler::render_source_bibliographic_plan_with_work(
                     &plan,
                     selected_cut,
                     selected_revision,
@@ -1579,6 +1907,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                     bibliographic_limits,
                     512,
                     16 * 1024 * 1024,
+                    &mut cold_render_work,
                 )?;
                 let source = tos_compiler::source_bibliographic::BibliographicSourceCut {
                     cut: selected_cut,
@@ -1598,9 +1927,18 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                         &mut forms,
                         bibliographic_limits,
                     )?;
-                let basis = tos_compiler::KnowledgeSourceBasis::ManagedCurrent {
-                    proof: proof.clone(),
-                };
+                if overlay {
+                    catalog_epoch = Some(tos_compiler::VersionsCatalogEpochV2::build_with_work(
+                        &mut stage,
+                        &candidate.catalog,
+                        &reopened_store,
+                        bibliographic_limits.catalog,
+                        tree_limits,
+                        deadline,
+                        &cancelled,
+                    )?);
+                }
+                let basis = proof.basis();
                 tos_compiler::managed_source::prepare_managed_agent_selected_model(
                     &plan,
                     &navigation,
@@ -1637,11 +1975,65 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
                     },
                 )
             },
-        )
-        .unwrap();
+        );
+    eprintln!(
+        "CMD2_MODEL_V2_COLD_PREPARATION result_ok={} source_work={cold_source_work:?} render_work={cold_render_work:?}",
+        initial_selected_result.is_ok()
+    );
+    let initial_selected = initial_selected_result.unwrap();
     assert!(!initial_carriers.is_empty());
     drop(initial_carriers); // the next selected model has its own finite carrier set
-    let current = initial_selected.generation();
+    let manifest_limits = tos_compiler::ManagedManifestLimitsV2 {
+        max_manifest_bytes: 1_048_576,
+        max_retained_generations: 16,
+        max_retained_logical_bound_bytes: 64 * 1024 * 1024,
+    };
+    let mut initial_selected = Some(initial_selected);
+    let overlay_parent = if overlay {
+        Client::connect(&url, NoTls)
+            .unwrap()
+            .batch_execute(include_str!("../src/managed_model_selection_v2.sql"))
+            .unwrap();
+        let (epoch, epoch_work) = catalog_epoch.as_ref().unwrap();
+        let result =
+            tos_command::source_managed_selection::prepare_managed_agent_overlay_parent_v2(
+                &mut reopened_db,
+                &reopened_store,
+                initial_selected.take().unwrap(),
+                epoch,
+                &owners[0],
+                &packages[0],
+                contract_digest(),
+                0,
+                0,
+                "private-job",
+                1,
+                tree_limits,
+                manifest_limits,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        eprintln!(
+            "CMD2_MODEL_V2_COLD source_work={cold_source_work:?} render_work={cold_render_work:?} catalog_records={} catalog_entries={} epoch_work={epoch_work:?} base_digest_read={} base_transport_read={} base_validation_charged={} base_transport_work={:?} manifest_work={:?} cas_work={:?}",
+            result.1.catalog_records(),
+            result.1.catalog_total_entries(),
+            result.1.base_digest_read_bytes(),
+            result.1.base_transport_read_bytes(),
+            result.1.base_validation_charged_bytes(),
+            result.1.base_transport_work(),
+            result.1.manifest_work(),
+            result.2
+        );
+        Some(result.0)
+    } else {
+        None
+    };
+    let current = if let Some(parent) = &overlay_parent {
+        parent.generation()
+    } else {
+        initial_selected.as_ref().unwrap().generation()
+    };
     assert_eq!(current.commit_seq(), a.commit_seq);
     let mut current_context = contexts[1].clone();
     current_context
@@ -1718,26 +2110,31 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     current_request["expected_source"] = serde_json::Value::Null;
     current_request["expected_revision"] = serde_json::Value::Null;
     current_context.request_raw = canonical(&current_request);
-    let (current_package, second_receipt, _, successor) = reopened_db
-        .execute_managed_agent_creation_from_captures(
-            &reopened_store,
-            &current,
-            &cut,
-            b"agent-current-second",
-            &current_filesystem,
-            &current_context,
-            &software,
-            &components,
-            &mut current_worker,
-            contract_digest(),
-            0,
-            0,
-            "private-job",
-            1,
-            deadline,
-            &cancelled,
-        )
-        .unwrap();
+    let mut warm_source_work = tos_command::ManagedSourceWorkV1::default();
+    let successor_result = reopened_db.execute_managed_agent_creation_from_captures_with_work(
+        &reopened_store,
+        &current,
+        &cut,
+        b"agent-current-second",
+        &current_filesystem,
+        &current_context,
+        &software,
+        &components,
+        &mut current_worker,
+        contract_digest(),
+        0,
+        0,
+        "private-job",
+        1,
+        deadline,
+        &cancelled,
+        &mut warm_source_work,
+    );
+    eprintln!(
+        "CMD2_SOURCE_V1_WARM_COMMIT result_ok={} work={warm_source_work:?}",
+        successor_result.is_ok()
+    );
+    let (current_package, second_receipt, _, successor) = successor_result.unwrap();
     drop(current_worker);
     assert_eq!(second_receipt.commit_seq, a.commit_seq + 1);
     let addressed_members = current_package
@@ -1798,12 +2195,502 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             .iter()
             .any(|path| path.as_str() == earlier_path)
     );
+    if let Some(parent) = &overlay_parent {
+        use tos_command::backup_recovery::{
+            BackupSelection, PgTool, RestoreSelection, backup_quiescent,
+            restore_into_fresh_with_managed_binding,
+        };
+        // The genuine current owner/package must not grant an old manifest
+        // current disclosure after the committed source generation advanced.
+        let mut stale_seek_called = false;
+        let stale_read = parent.with_current_model(
+            &mut reopened_db,
+            &reopened_store,
+            &current_filesystem,
+            &current_package,
+            contract_digest(),
+            0,
+            0,
+            "private-job",
+            1,
+            manifest_limits,
+            deadline,
+            &cancelled,
+            |_| {
+                stale_seek_called = true;
+                Ok(())
+            },
+        );
+        assert!(stale_read.is_err(), "stale overlay parent is not current");
+        assert!(
+            !stale_seek_called,
+            "stale overlay cannot enter reader callback"
+        );
+        eprintln!("CMD2_MODEL_V2_STALE_PARENT_REFUSAL PASS");
+        let validator = validator_for(&cut).unwrap();
+        let overlay_audited = reopened_store.hold_audit_root().unwrap();
+        let overlay_result =
+            tos_command::source_managed_selection::prepare_managed_agent_overlay_successor_v2_with_work(
+                &mut reopened_db,
+                &reopened_store,
+                parent,
+                successor,
+                b"agent-current-second",
+                &current_package,
+                &current_filesystem,
+                contract_digest(),
+                0,
+                0,
+                "private-job",
+                1,
+                manifest_limits,
+                deadline,
+                &cancelled,
+                &mut warm_source_work,
+                |previous,
+                 digest,
+                 base,
+                 source,
+                 delta,
+                 changed,
+                 projection,
+                 path,
+                 raw,
+                 forms_raw| {
+                    let mut forms = tos_command::source_forms_compiler::NativeBibliographicForms;
+                    tos_compiler::prepare_managed_overlay_initial_agent_v2(
+                        previous,
+                        digest,
+                        base,
+                        source,
+                        delta,
+                        changed,
+                        projection,
+                        path,
+                        raw,
+                        forms_raw,
+                        &mut forms,
+                        &validator,
+                        revision,
+                        entity_raw,
+                        bibliographic_limits,
+                        selected_stage_limits,
+                        &reopened_store,
+                        &overlay_audited,
+                        tree_limits,
+                        manifest_limits,
+                        deadline,
+                        &cancelled,
+                    )
+                },
+            );
+        eprintln!(
+            "CMD2_MODEL_V2_SUCCESSOR result_ok={} source_work={warm_source_work:?}",
+            overlay_result.is_ok()
+        );
+        let (selected, prepared, cas_work) = overlay_result.unwrap();
+        assert_eq!(warm_source_work.addressed_continuations_attempted, 1);
+        assert_eq!(warm_source_work.legacy_continuations_attempted, 0);
+        assert_eq!(warm_source_work.projection_rows_returned, 0);
+        assert_eq!(warm_source_work.catalogue_entries_delivered, 0);
+        assert!(warm_source_work.audit.interval_rows_returned > 0);
+        assert_eq!(current_package.files().len(), 6);
+        assert_eq!(prepared.changed_source_members, 6);
+        assert_eq!(warm_source_work.point_projection_rows_returned, 6);
+        assert_eq!(
+            prepared.source_input_bytes_consumed,
+            current_package
+                .files()
+                .values()
+                .map(|raw| raw.len() as u64)
+                .sum::<u64>()
+        );
+        eprintln!(
+            "CMD2_MODEL_V2_COST_SCOPE PG=returned-decoded-logical-payload-only PGphysical=unobserved PGprotocol=unobserved gates=excluded STO=completed-receipts-including-active-buffer cold=full-initial-and-recovery warm=source-delta-overlay-installed-reader"
+        );
+        let (old_entry, old_work) = catalog_epoch
+            .as_ref()
+            .unwrap()
+            .0
+            .lookup_with_work(
+                "records",
+                "tos.agent.synthetic-durable-a",
+                tree_limits,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        let ((new_entry, unchanged, navigation, read_work), guard_work) = selected
+            .with_current_model(
+                &mut reopened_db,
+                &reopened_store,
+                &current_filesystem,
+                &current_package,
+                contract_digest(),
+                0,
+                0,
+                "private-job",
+                1,
+                manifest_limits,
+                deadline,
+                &cancelled,
+                |reader| {
+                    let (new_entry, new_work) = reader
+                        .catalog_member(
+                            "records",
+                            "tos.agent.synthetic-durable-current",
+                            tree_limits,
+                            deadline,
+                            &cancelled,
+                        )
+                        .map_err(
+                            tos_command::source_managed_selection::ManagedSelectionError::Compiler,
+                        )?;
+                    let (unchanged, old_work) = reader
+                        .catalog_member(
+                            "records",
+                            "tos.agent.synthetic-durable-a",
+                            tree_limits,
+                            deadline,
+                            &cancelled,
+                        )
+                        .map_err(
+                            tos_command::source_managed_selection::ManagedSelectionError::Compiler,
+                        )?;
+                    let (navigation, nav_work) = reader
+                        .navigation_member(
+                            "nodes",
+                            "tos.agent.synthetic-durable-current",
+                            &validator,
+                            bibliographic_limits,
+                            selected_stage_limits,
+                            tree_limits,
+                            deadline,
+                            &cancelled,
+                        )
+                        .map_err(
+                            tos_command::source_managed_selection::ManagedSelectionError::Compiler,
+                        )?;
+                    Ok((
+                        new_entry,
+                        unchanged,
+                        navigation,
+                        (new_work, old_work, nav_work),
+                    ))
+                },
+            )
+            .unwrap();
+        assert!(new_entry.is_some());
+        assert_eq!(
+            unchanged, old_entry,
+            "unchanged selected Versions entry/provenance must remain exact"
+        );
+        assert!(
+            navigation.is_some(),
+            "actual addressed navigation reader reaches changed Agent"
+        );
+        eprintln!(
+            "CMD2_MODEL_V2_WARM source_work={warm_source_work:?} source_members={} source_history={} changed_record={:?} changed_forms={:?} overlay_work={:?} cas_work={cas_work:?} old_epoch_read={old_work:?} reads={read_work:?} final_guards={guard_work:?}",
+            selected.source_binding().current_source_members,
+            selected.source_binding().historical_source_members,
+            prepared.created_record_input(),
+            prepared.created_forms_input(),
+            (
+                prepared.catalog_work,
+                prepared.navigation_work,
+                prepared.manifest_work,
+                prepared.base_candidate_rows,
+                prepared.base_charged_bytes,
+                prepared.changed_source_members,
+                prepared.changed_catalog_records,
+                prepared.source_input_bytes_consumed
+            )
+        );
+        let version_ref =
+            navigation.as_ref().unwrap()["properties"]["record_history"]["current_ref"].clone();
+        assert!(version_ref.is_object());
+        let ((version_node, version_work), version_guards) =
+            selected
+                .with_current_model(
+                    &mut reopened_db,
+                    &reopened_store,
+                    &current_filesystem,
+                    &current_package,
+                    contract_digest(),
+                    0,
+                    0,
+                    "private-job",
+                    1,
+                    manifest_limits,
+                    deadline,
+                    &cancelled,
+                    |reader| {
+                        reader.record_version_member(&version_ref, &validator, bibliographic_limits,
+                selected_stage_limits, tree_limits, deadline, &cancelled)
+                .map_err(tos_command::source_managed_selection::ManagedSelectionError::Compiler)
+                    },
+                )
+                .unwrap();
+        let version = version_node
+            .as_ref()
+            .expect("genuine Versions response reached");
+        assert_eq!(
+            version["properties"]["record_version_view"]["record"],
+            serde_json::from_slice::<serde_json::Value>(&current_package.files()["agent.json"])
+                .unwrap()
+        );
+        eprintln!("CMD2_MODEL_V2_VERSIONS read={version_work:?} guards={version_guards:?}");
+        // Keep the real opaque restore witness in this same existing whole
+        // operation. JSON from a transport subprocess cannot grant rebind.
+        let restored_url = std::env::var("TOS_CMD2_V2_RESTORE_PG_URL").unwrap();
+        assert_ne!(url, restored_url);
+        let backup_root = ScratchRoot::new();
+        let recovered_root = ScratchRoot::new();
+        for directory in [&backup_root.0, &recovered_root.0, &copied.0] {
+            fs::set_permissions(directory, fs::Permissions::from_mode(0o700)).unwrap();
+        }
+        let dump_path = PathBuf::from(std::env::var_os("TOS_CMD2_PG_DUMP_PATH").unwrap());
+        let dump_sha = std::env::var("TOS_CMD2_PG_DUMP_SHA256").unwrap();
+        let restore_path = PathBuf::from(std::env::var_os("TOS_CMD2_PG_RESTORE_PATH").unwrap());
+        let restore_sha = std::env::var("TOS_CMD2_PG_RESTORE_SHA256").unwrap();
+        let backup = backup_quiescent(
+            &BackupSelection {
+                pg_url: &url,
+                domain: &lab.domain,
+                store_root: &copied.0,
+                backup_root: &backup_root.0,
+                tool: PgTool {
+                    path: &dump_path,
+                    sha256: &dump_sha,
+                },
+                store_limits: limits(),
+                quiescent_owner_confirmed: true,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let receipt_sha =
+            Digest256::of_bytes(&fs::read(backup_root.0.join("receipt.json")).unwrap()).to_hex();
+        let old_digest = selected.manifest_digest();
+        let old_binding = selected.source_binding().clone();
+        drop(selected);
+        drop(prepared);
+        drop(overlay_parent);
+        drop(catalog_epoch);
+        drop(overlay_audited);
+        drop(reopened_db);
+        drop(reopened_store);
+        let (restore_receipt, witness) = restore_into_fresh_with_managed_binding(
+            &RestoreSelection {
+                pg_url: &restored_url,
+                domain: &lab.domain,
+                store_root: &recovered_root.0,
+                backup_root: &backup_root.0,
+                receipt_sha256: &receipt_sha,
+                tool: PgTool {
+                    path: &restore_path,
+                    sha256: &restore_sha,
+                },
+                store_limits: limits(),
+                fresh_target_owner_confirmed: true,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let witness =
+            witness.expect("recognized actual model restore must issue its opaque witness");
+        let recovered_store = SegmentStore::open_existing(&recovered_root.0, limits()).unwrap();
+        let mut recovered_db = DurablePgCoordinator::connect(&restored_url).unwrap();
+        let current = tos_command::source_current_cut::select_current_source_generation(
+            &mut recovered_db,
+            &recovered_store,
+            &lab.domain,
+            &cut,
+            revision,
+            membership,
+            &contexts[0],
+            &software,
+            &components,
+            &mut new_worker(&cut),
+            Some((&generation_workspace, generation_profile)),
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let current = recovered_db
+            .migrate_current_source_generation_addressed(
+                &recovered_store,
+                &current,
+                tree_limits,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        let audited = recovered_store.hold_audit_root().unwrap();
+        let (cold, cold_work) = tos_compiler::ManagedManifestV2::read_retained_cold(
+            &recovered_store,
+            &audited,
+            &[old_digest],
+            manifest_limits,
+            tree_limits,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let manifest = &cold[0].0;
+        let restored_base = model_root.join("restored-overlay-base.sqlite");
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .read(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(&restored_base)
+            .unwrap();
+        let (stage_receipt, transport_work) = manifest
+            .restore_base_to_empty_file(
+                &recovered_store,
+                &audited,
+                &mut file,
+                manifest_limits,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        drop(file);
+        let measurement =
+            tos_compiler::prepare_native_knowledge_artifact(&restored_base, &stage_receipt)
+                .unwrap();
+        let custody = tos_compiler::LinuxFsVerityCustody::new(measurement, process_limits).unwrap();
+        let base = tos_compiler::open_selected_knowledge_model_owned(
+            &restored_base,
+            manifest.base_selection().clone(),
+            std::sync::Arc::new(custody),
+            cold_limits,
+        )
+        .unwrap();
+        let mut recovery_audit_work = tos_command::AuditDeltaWork::default();
+        let recovery_result =
+            tos_command::source_managed_selection::rebind_restored_managed_agent_overlay_v2_with_work(
+                &mut recovered_db,
+                &recovered_store,
+                current,
+                base,
+                old_digest,
+                &witness,
+                &current_filesystem,
+                &current_package,
+                contract_digest(),
+                0,
+                0,
+                "private-job",
+                1,
+                manifest_limits,
+                deadline,
+                &cancelled,
+                &mut recovery_audit_work,
+            );
+        eprintln!(
+            "CMD2_MODEL_V2_REBIND result_ok={} audit_work={recovery_audit_work:?}",
+            recovery_result.is_ok()
+        );
+        let (rebound, recovery, recovery_guards) = recovery_result.unwrap();
+        assert_ne!(
+            rebound.source_binding().database_oid,
+            old_binding.database_oid
+        );
+        assert_eq!(
+            rebound.source_binding().through_commit_seq,
+            old_binding.through_commit_seq
+        );
+        let ((restored_entry, restored_nav, cold_lookup_work), final_guards) = rebound
+            .with_current_model(
+                &mut recovered_db,
+                &recovered_store,
+                &current_filesystem,
+                &current_package,
+                contract_digest(),
+                0,
+                0,
+                "private-job",
+                1,
+                manifest_limits,
+                deadline,
+                &cancelled,
+                |reader| {
+                    let (entry, entry_work) = reader
+                        .catalog_member(
+                            "records",
+                            "tos.agent.synthetic-durable-current",
+                            tree_limits,
+                            deadline,
+                            &cancelled,
+                        )
+                        .map_err(
+                            tos_command::source_managed_selection::ManagedSelectionError::Compiler,
+                        )?;
+                    let (navigation, navigation_work) = reader
+                        .navigation_member(
+                            "nodes",
+                            "tos.agent.synthetic-durable-current",
+                            &validator,
+                            bibliographic_limits,
+                            selected_stage_limits,
+                            tree_limits,
+                            deadline,
+                            &cancelled,
+                        )
+                        .map_err(
+                            tos_command::source_managed_selection::ManagedSelectionError::Compiler,
+                        )?;
+                    Ok((entry, navigation, (entry_work, navigation_work)))
+                },
+            )
+            .unwrap();
+        assert_eq!(restored_entry, new_entry);
+        assert_eq!(restored_nav, navigation);
+        let ((restored_version, version_cold_work), version_cold_guards) =
+            rebound
+                .with_current_model(
+                    &mut recovered_db,
+                    &recovered_store,
+                    &current_filesystem,
+                    &current_package,
+                    contract_digest(),
+                    0,
+                    0,
+                    "private-job",
+                    1,
+                    manifest_limits,
+                    deadline,
+                    &cancelled,
+                    |reader| {
+                        reader.record_version_member(&version_ref, &validator, bibliographic_limits,
+                selected_stage_limits, tree_limits, deadline, &cancelled)
+                .map_err(tos_command::source_managed_selection::ManagedSelectionError::Compiler)
+                    },
+                )
+                .unwrap();
+        assert_eq!(
+            restored_version, version_node,
+            "cold current Versions response/provenance exact"
+        );
+        eprintln!(
+            "CMD2_MODEL_V2_RESTORED_VERSIONS read={version_cold_work:?} guards={version_cold_guards:?}"
+        );
+        eprintln!(
+            "CMD2_MODEL_V2_RESTORE audit_work={recovery_audit_work:?} lookup_work={cold_lookup_work:?} backup={backup} restore={restore_receipt} cold_work={cold_work:?} transport_work={transport_work:?} recovery_manifest_work={:?} recovery_guards={recovery_guards:?} final_guards={final_guards:?}",
+            recovery.manifest_work()
+        );
+        return;
+    }
     let mut successor_carriers = Vec::new();
     let second_selected =
         tos_command::source_managed_selection::prepare_managed_agent_selected_successor(
             &mut reopened_db,
             &reopened_store,
-            &initial_selected,
+            initial_selected.as_ref().unwrap(),
             successor,
             b"agent-current-second",
             &current_package,
@@ -1819,9 +2706,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
             &cancelled,
             |old, parent, proof, catalogue, record_path, record_raw, forms_raw| {
                 let binding = binding_for(&proof);
-                let basis = tos_compiler::KnowledgeSourceBasis::ManagedCurrent {
-                    proof: proof.clone(),
-                };
+                let basis = proof.basis();
                 let validator = validator_for(&cut)?;
                 let mut forms = tos_command::source_forms_compiler::NativeBibliographicForms;
                 tos_compiler::managed_source::prepare_managed_agent_selected_successor(
@@ -1870,7 +2755,7 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         )
         .unwrap();
     assert_eq!(
-        second_selected.source_proof().generation.through_commit_seq,
+        second_selected.source_proof().through_commit_seq(),
         second_receipt.commit_seq
     );
     assert_eq!(
@@ -1879,11 +2764,18 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     );
     assert_ne!(
         second_selected.selection_expectation().model_sha256,
-        initial_selected.selection_expectation().model_sha256
+        initial_selected
+            .as_ref()
+            .unwrap()
+            .selection_expectation()
+            .model_sha256
     );
     assert_eq!(
         second_selected.source_catalog_root_sha256(),
-        initial_selected.source_catalog_root_sha256()
+        initial_selected
+            .as_ref()
+            .unwrap()
+            .source_catalog_root_sha256()
     );
     let mut synthetic_read = ManagedFixtureReadGrant::new(&second_selected, successor_carriers);
     let mut no_checkpoints = ManagedFixtureNoCheckpoints;
@@ -1967,7 +2859,14 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         let packet: serde_json::Value = serde_json::from_slice(&output.bytes).unwrap();
         if let Some(schema) = expected_schema {
             assert_eq!(packet["schema"], schema);
-            assert_eq!(packet["source_basis"]["kind"], "managed_current");
+            assert_eq!(
+                packet["source_basis"]["kind"],
+                if addressed {
+                    "managed_current_v2"
+                } else {
+                    "managed_current"
+                }
+            );
             assert_eq!(
                 packet["managed_source_root_sha256"],
                 second_selected.source_proof().root_sha256().unwrap()
@@ -2191,6 +3090,37 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         "the selected full successor cannot disclose after the next actual committed generation"
     );
     assert!(stale_output.is_empty());
+    if addressed {
+        // Journal insertion and the generation increment must disappear with
+        // a rolled-back semantic mutation, leaving the selected capability live.
+        let mut rollback_client = Client::connect(&url, NoTls).unwrap();
+        let observation = |client: &mut Client| -> (i64, i64) {
+            let r = client.query_one("SELECT f.generation,(SELECT count(*) FROM cmd2_audit_delta_v1 WHERE domain=f.domain) AS journal_rows FROM cmd2_audit_fence f WHERE domain=$1", &[&lab.domain]).unwrap();
+            (r.get(0), r.get(1))
+        };
+        let before = observation(&mut rollback_client);
+        let mut rollback = rollback_client.transaction().unwrap();
+        rollback
+            .execute(
+                "UPDATE cmd2_domain SET rights_allowed=NOT rights_allowed WHERE domain=$1",
+                &[&lab.domain],
+            )
+            .unwrap();
+        rollback.rollback().unwrap();
+        assert_eq!(observation(&mut rollback_client), before);
+        let exact = warm_successor
+            .read_historical_member(
+                &mut reopened_db,
+                &reopened_store,
+                &second_path,
+                1,
+                8_388_608,
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        assert_eq!(exact.raw, successor_member.raw);
+    }
     let expected_current_head = warm_receipt.commit_seq;
     drop(warm_package);
     drop(warm_receipt);
@@ -2234,11 +3164,54 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
     drop(software);
     drop(components);
     drop(cut);
+    drop(sql);
     drop(lab);
     let recovered_root = ScratchRoot::new();
-    copy_store_tree(&copied.0, &recovered_root.0);
+    let backup_root = ScratchRoot::new();
+    let url = if addressed {
+        let restored_url = std::env::var("TOS_CMD2_V2_RESTORE_PG_URL")
+            .expect("V2 whole operation requires a distinct empty owned restore database");
+        assert_ne!(url, restored_url, "restore target must be independent");
+        for root in [&copied.0, &backup_root.0, &recovered_root.0] {
+            fs::set_permissions(root, fs::Permissions::from_mode(0o700)).unwrap();
+        }
+        let journal = addressed_journal_snapshot(&url, &recovery_domain);
+        run_addressed_transport_phase(
+            "backup",
+            &url,
+            &recovery_domain,
+            &copied.0,
+            &backup_root.0,
+            None,
+            deadline,
+        );
+        let receipt = fs::read(backup_root.0.join("receipt.json")).unwrap();
+        assert!(receipt.len() <= 1024 * 1024);
+        let receipt_sha256 = Digest256::of_bytes(&receipt).to_hex();
+        run_addressed_transport_phase(
+            "restore",
+            &restored_url,
+            &recovery_domain,
+            &recovered_root.0,
+            &backup_root.0,
+            Some(&receipt_sha256),
+            deadline,
+        );
+        assert_eq!(
+            journal,
+            addressed_journal_snapshot(&restored_url, &recovery_domain),
+            "actual DB restore preserves exact V2 journal/profile/fence before cold selection"
+        );
+        restored_url
+    } else {
+        copy_store_tree(&copied.0, &recovered_root.0);
+        url
+    };
     let recovered_store = SegmentStore::open_existing(&recovered_root.0, limits()).unwrap();
     let mut recovered_db = DurablePgCoordinator::connect(&url).unwrap();
+    // Every recovery-tail corruption/control must target the same database
+    // that the restored coordinator reads, after all original handles died.
+    let mut sql = Client::connect(&url, NoTls).unwrap();
     let cut = CorpusReader::open_existing(&source_root, read_limits)
         .unwrap()
         .open_source_cut(
@@ -2282,6 +3255,19 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         &cancelled,
     )
     .unwrap();
+    let current_reopened = if addressed {
+        recovered_db
+            .migrate_current_source_generation_addressed(
+                &recovered_store,
+                &current_reopened,
+                tree_limits,
+                deadline,
+                &cancelled,
+            )
+            .unwrap()
+    } else {
+        current_reopened
+    };
     // Record ordinary and controlled plans for the actual keyset queries.
     // These small-fixture observations do not establish whole-query capacity
     // or gate the current/cold/recovery protection checks below.
@@ -2462,6 +3448,48 @@ fn maintained_agent_creation_commits_current_indexes_and_reopens_original_bytes(
         ),
         "recovery cannot turn a pending attempt into a write"
     );
+    let refusal_profile = StreamedGenerationProfile {
+        max_metadata_rows: 1,
+        ..generation_profile
+    };
+    assert!(matches!(
+        recovered_db.cold_verify_cut_streamed(
+            &recovered_store,
+            &recovery_domain,
+            &generation_workspace,
+            refusal_profile,
+            deadline,
+            &cancelled,
+        ),
+        Err(DurableError::Refused(
+            "cold metadata preadmission budget exceeded"
+        ))
+    ));
+    assert!(matches!(
+        recovered_db.cold_reopen_source_cohort_streamed(
+            &recovered_store,
+            &recovery_domain,
+            &cut,
+            revision,
+            membership,
+            &bootstrap_context,
+            &software,
+            &components,
+            &mut recovery_worker,
+            &generation_workspace,
+            refusal_profile,
+            deadline,
+            &cancelled,
+        ),
+        Err(DurableError::Refused(
+            "cold metadata preadmission budget exceeded"
+        ))
+    ));
+    assert_eq!(
+        recovered_db.head_seq(&recovery_domain).unwrap(),
+        expected_current_head
+    );
+    eprintln!("STO cold metadata row overflow refuses both consumers without publication PASS");
     eprintln!("STO tail pending refusal PASS; original binding corruptions begin");
     let original_reads: Vec<u8> = sql
         .query_one(
