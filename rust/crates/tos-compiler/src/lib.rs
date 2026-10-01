@@ -841,6 +841,9 @@ fn compile_created<I: NavigationInput>(
     })
 }
 
+/// Exact private-source structural/paragraph producer; no semantic admission.
+pub mod antonovsky_structural;
+
 pub mod native_prepare;
 
 pub mod zarathustra_lexical;
