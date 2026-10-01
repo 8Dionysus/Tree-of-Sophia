@@ -984,7 +984,7 @@ pub(crate) fn work_archive(
     compound_archive(
         fs,
         work_path,
-        work,
+        &cmd::reference(work, "record_id", "record_version")?,
         before,
         expected_revision,
         deadline,
@@ -1016,7 +1016,7 @@ pub(crate) fn expression_archive(
     compound_archive(
         fs,
         expression_path,
-        expression,
+        &cmd::reference(expression, "record_id", "record_version")?,
         before,
         expected_revision,
         deadline,
@@ -1044,7 +1044,7 @@ pub(crate) fn item_archive(
     compound_archive(
         fs,
         edition_path,
-        edition,
+        &cmd::reference(edition, "record_id", "record_version")?,
         before,
         expected_revision,
         deadline,
@@ -1085,14 +1085,10 @@ pub(crate) fn record_revision_archive(
             "record revision archive selected package",
         ));
     }
-    let archive_identity = cmd::object(vec![
-        ("record_id", cmd::field(&subject, "id")?.clone()),
-        ("record_version", cmd::field(&subject, "version")?.clone()),
-    ]);
     compound_archive(
         fs,
         source_path,
-        &archive_identity,
+        &subject,
         before,
         expected_revision,
         deadline,
@@ -1125,7 +1121,7 @@ pub(crate) fn collection_archive(
     compound_archive(
         fs,
         collection_path,
-        collection,
+        &cmd::reference(collection, "record_id", "record_version")?,
         before,
         expected_revision,
         deadline,
@@ -1138,7 +1134,7 @@ pub(crate) fn collection_archive(
 fn compound_archive(
     fs: &CreationFilesystem,
     work_path: &str,
-    work: &JsonValue,
+    subject: &JsonValue,
     before: &BTreeMap<String, Vec<u8>>,
     expected_revision: &str,
     deadline: Instant,
@@ -1162,7 +1158,7 @@ fn compound_archive(
             "selected Work archive predecessor differs or exceeds its budget",
         ));
     }
-    let id = cmd::text(work, "record_id")?;
+    let id = cmd::text(subject, "id")?;
     let config = cmd::object(vec![("record_id", cmd::string(id))]);
     let location = crate::source_revisions::archive_path(&config, &revision)?;
     let leaf = location
@@ -1186,10 +1182,7 @@ fn compound_archive(
             }),
         ),
         ("source_path", cmd::string(work_path)),
-        (
-            "source",
-            cmd::reference(work, "record_id", "record_version")?,
-        ),
+        ("source", subject.clone()),
         ("revision", cmd::string(&revision)),
         ("files", crate::source_revisions::file_refs(before, true)),
     ]);
