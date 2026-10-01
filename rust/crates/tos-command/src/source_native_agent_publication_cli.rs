@@ -164,7 +164,7 @@ pub(super) fn run(
         catalog: SourceCatalogLimits {
             max_files: 2048,
             max_rows: 4096,
-            max_file_bytes: 16_777_216,
+            max_file_bytes: 8_388_608,
             max_row_bytes: 1_048_576,
             max_contract_bytes: 4_194_304,
             max_output_row_bytes: 32_768,
