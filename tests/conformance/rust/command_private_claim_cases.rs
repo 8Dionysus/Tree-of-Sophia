@@ -467,16 +467,22 @@ print(json.dumps({'public':str(case.local.public),'private':str(case.local.priva
         if let Some(status) = child.try_wait().unwrap() {
             break status;
         }
-        if Instant::now() >= step
-            || output.metadata().unwrap().len() > 8_388_608
-            || errors.metadata().unwrap().len() > 1_048_576
-        {
+        let deadline_reached = Instant::now() >= step;
+        let output_bytes = output.metadata().unwrap().len();
+        let error_bytes = errors.metadata().unwrap().len();
+        if deadline_reached || output_bytes > 8_388_608 || error_bytes > 1_048_576 {
             let _ = Command::new("/usr/bin/kill")
                 .args(["-KILL", "--", &format!("-{}", child.id())])
                 .status();
             let _ = child.kill();
-            let _ = child.wait();
-            panic!("bounded maintained private Claim fixture refused");
+            let status = child.wait().unwrap();
+            errors.seek(SeekFrom::Start(0)).unwrap();
+            let mut error = Vec::new();
+            errors.take(1_048_576).read_to_end(&mut error).unwrap();
+            panic!(
+                "bounded maintained private Claim fixture refused: deadline_reached={deadline_reached} output_bytes={output_bytes} stderr_bytes={error_bytes} post_kill_status={status}; {}",
+                String::from_utf8_lossy(&error)
+            );
         }
         std::thread::sleep(Duration::from_millis(10));
     };
