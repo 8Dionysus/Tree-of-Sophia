@@ -250,10 +250,17 @@ fn metadata(
         .ok_or(Error::Invalid("Claim metadata parent"))?;
     let historical_refs =
         owner(observation.retain_endpoint_history(&path(&reference)?, l.deadline, cancelled))?;
-    if !["public", "public_metadata_only"].contains(&source["visibility"].as_str().unwrap_or("")) {
+    let schema = bytes::text(&row["entry"], "source_schema_ref")?.to_owned();
+    // Native Corpus identity metadata uses its exact closed schema, which
+    // has no visibility field. Maintained profiles retain explicit visibility.
+    let native_corpus = source["schema_version"] == "tos_corpus_record_v1"
+        && schema == "ToS/contracts/corpus-record.schema.json";
+    if !native_corpus
+        && !["public", "public_metadata_only"]
+            .contains(&source["visibility"].as_str().unwrap_or(""))
+    {
         return Err(Error::Invalid("Claim endpoint public metadata profile"));
     }
-    let schema = bytes::text(&row["entry"], "source_schema_ref")?.to_owned();
     check_resource(observation, worker, &schema, l, cancelled)?;
     check(worker, &reference, &raw, &schema, l, cancelled)?;
     let entry = tos_compiler::source_witness_catalog::render_catalog_record(
