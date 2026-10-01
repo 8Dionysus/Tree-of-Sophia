@@ -858,6 +858,9 @@ fn database(
     db(c.execute_batch(include_str!("zarathustra_lexical_schema.sql")))?;
     db(c.pragma_update(None, "max_page_count", l.max_database_bytes / 4096))?;
     c.progress_handler(10000, Some(move || Instant::now() >= deadline));
+    // Match Python sqlite3 implicit DML transaction: metadata and all rows
+    // commit together after schema/PRAGMA setup.
+    db(c.execute_batch("BEGIN"))?;
     for (k, v) in [
         ("plan_id", text(plan, "plan_id")?),
         ("plan_sha256", plan_sha),
@@ -868,7 +871,6 @@ fn database(
             params![k, v],
         ))?;
     }
-    db(c.execute_batch("BEGIN"))?;
     let mut forms: BTreeMap<String, u64> = BTreeMap::new();
     let mut all = vec![];
     for r in results {
