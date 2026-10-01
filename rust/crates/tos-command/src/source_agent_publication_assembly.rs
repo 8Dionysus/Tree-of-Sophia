@@ -46,7 +46,9 @@ pub(super) fn schema_failure(error: tos_validation::item_rules::ItemRefusal) -> 
         ItemRefusal::BudgetCheck { check, .. } => Error::Budget(check),
         ItemRefusal::Deadline => Error::Budget("Agent selected schema deadline"),
         ItemRefusal::Source(_) => Error::Invalid("Agent selected schema source refusal"),
-        ItemRefusal::Unsupported(_) => Error::PreparedUnsupported("Agent selected schema unsupported"),
+        ItemRefusal::Unsupported(_) => {
+            Error::PreparedUnsupported("Agent selected schema unsupported")
+        }
     }
 }
 fn owner<T>(value: cmd::SourceCommandResult<T>) -> Result<T> {
