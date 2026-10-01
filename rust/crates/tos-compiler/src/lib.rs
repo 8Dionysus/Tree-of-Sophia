@@ -841,3 +841,10 @@ fn compile_created<I: NavigationInput>(
 }
 
 pub mod native_prepare;
+
+pub mod zarathustra_lexical;
+pub mod zarathustra_lexical_schema;
+pub mod zarathustra_lexical_validate;
+
+mod zarathustra_lexical_usage_validate;
+mod zarathustra_lexical_morphology_validate;

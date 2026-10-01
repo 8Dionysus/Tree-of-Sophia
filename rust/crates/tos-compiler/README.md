@@ -78,3 +78,47 @@ shares owned custody across warm forks. FSIZE is a per-file write bound, not an
 aggregate SQLite temporary-space quota; existing query/work/private-temp budgets
 remain required. Missing kernel support or wider/unlimited bounds refuses. This
 software preparation neither selects a public release nor admits source/rights.
+
+The maintained DTA Parts 1–4 lexical producer is exposed by
+`zarathustra_lexical::build_from_cut` and the installed
+`tos lexical-index build|validate|validate-legacy` command. It reads the exact
+plan, manifests, resource inventories, rights states and schema closure from an
+explicit authenticated corpus revision. The operator supplies a software source
+capture, the four existing fixity-bound private TEI payloads, an exact verified
+schema worker and finite JSON resource declarations. The native diagnostics-v2
+adapter evaluates the complete projection under its existing 32 MiB raw-instance
+profile; it never substitutes a small projection probe.
+
+`build` requires a fresh private candidate root and writes the plan-declared
+relative projection and SQLite paths below that root, plus
+`native-lexical-provenance.jsonl` and `native-lexical-build.json`. The provenance
+companion preserves the authored chain and appends one private native export
+observation. `validate` checks that explicit candidate, its complete provenance
+and the source/usage/morphology validation closure. `validate-legacy` checks an
+explicit retained legacy projection against the captured authored provenance;
+`--local-output-root` adds the private SQLite verification.
+
+Whole validation also reads exact retained generated controls through an explicit
+`--derived-input-root`; they remain weaker companions and never become authored
+cut members. Recorded historical Python inputs resolve only by original script
+path and exact SHA-256 through the existing retained-builder source route.
+
+All three actions require `--source-store`, `--source-revision`,
+`--software-root`, `--schema-worker`, `--schema-worker-sha256` and `--limits`.
+`build` additionally requires `--payload-source-root`, `--candidate-root` and
+`--event-time`; `validate` requires `--candidate-root`; `validate-legacy`
+requires `--projection`. Paths must be absolute. The limits JSON has explicit
+`max_seconds`, manifest/cut read ceilings, a `lexical` object matching
+`LexicalLimits`, and a `schema` object matching `LexicalSchemaLimits`. These are
+`schema.max_preparation_bytes` admits the metadata-derived schema/parser/image
+preparation upper bound before constructing the worker; `max_state_bytes`
+separately admits diagnostics controller state. These are finite computational refusal boundaries; the host launcher separately admits
+storage and process resources. No command writes the canonical projection or
+source provenance, changes data selection, accepts German, supplies a lemma or
+sign, clears rights, admits canon, or grants publication.
+
+The Python builder/validator remains the distinct compatibility oracle until
+real-input parity and the installed native producer/validator consumer have been
+accepted. Archived source copies and historical lexical artifacts retain their
+original identities. The native reading/word-search API is a consumer of reading
+data and does not replace this lexical producer.
