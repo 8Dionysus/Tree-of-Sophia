@@ -430,9 +430,20 @@ jobs:
             /tests/fixtures/native-text-binding/
             /access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json
             /access/tests/fixtures/knowledge-contract/ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.json
+            # Exact maintained Python oracles imported by selected-lens integration tests.
             /access/tests/test_access_contract.py
             /access/tests/fixture_support.py
+            /access/tests/test_source_navigation_file_rights.py
+            /access/pyproject.toml
             /access/src/
+            /access/packaging/archive_common.py
+            /access/packaging/data_compile_common.py
+            /access/packaging/validate_standalone.py
+            /access/deploy/cloudflare-worker/scripts/build_runtime.py
+            /access/deploy/cloudflare-worker/scripts/build_stages.py
+            /access/deploy/cloudflare-worker/scripts/incremental_runtime.py
+            /access/deploy/cloudflare-worker/scripts/lens_auxiliary_runtime.py
+            /access/deploy/cloudflare-worker/scripts/source_navigation_rows.py
             /access/deploy/cloudflare-worker/migrations/0001-exploration.sql
             /access/contracts/exploration-request.v1.schema.json
             /access/contracts/exploration-request.v2.schema.json
@@ -527,6 +538,8 @@ jobs:
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/expression.json
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/responsibility-claims.jsonl
+            # Public source-gap records selected by runtime-data.v1 for parity tests.
+            /ToS/source-witnesses/access-requests/public-ledger/
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/edition-reading-admission.dta-ekgwb.za-i-vorrede-1.v1.json
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/initial-sign-packet.v5.json
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.opening-sentence-alignment.za-i-vorrede-1.v2.json
