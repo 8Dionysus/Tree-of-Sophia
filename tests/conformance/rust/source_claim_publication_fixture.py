@@ -85,6 +85,16 @@ def export(work, packet_path):
         # Bind its maintained preparation explicitly, never backend discovery.
         with patch.object(maintained.fixtures, 'publish_prepared', reference_publish_prepared):
             case.setUp()
+        # The native addressed catalog consumer checks this exact source
+        # contract through the same sealed worker cut; the maintained fixture
+        # does not materialize it. Preserve any fixture-owned contract bytes.
+        reference = 'ToS/contracts/source-catalog-projection-v2.schema.json'
+        target = case.root / reference
+        if not target.exists():
+            contract = REPOSITORY / reference
+            if contract.is_symlink() or contract.stat().st_size > MAX_SOURCE_BYTES:
+                raise ValueError('Claim selected catalog contract budget')
+            target.write_bytes(contract.read_bytes())
         write_fixture(case, packet_path)
         case.db.close()
     # Rust TempDir owns final cleanup after the whole native operation.
