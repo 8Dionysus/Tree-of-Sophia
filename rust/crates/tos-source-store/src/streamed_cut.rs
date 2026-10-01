@@ -1774,7 +1774,10 @@ fn validate_dependencies(
     Ok(())
 }
 
-fn open_index(file: &File, limits: StreamedCutReadLimitsV1) -> Result<crate::PinnedSqliteConnection> {
+fn open_index(
+    file: &File,
+    limits: StreamedCutReadLimitsV1,
+) -> Result<crate::PinnedSqliteConnection> {
     let index = crate::PinnedSqliteConnection::open_private_derived(file)?;
     let cache_kib = limits
         .sqlite_cache_bytes

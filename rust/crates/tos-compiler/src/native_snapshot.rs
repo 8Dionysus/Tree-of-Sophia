@@ -75,6 +75,7 @@ impl CompletedNativeSnapshot {
                 philosophy_original: self.producer.philosophy_original.clone(),
                 corpus_original: self.producer.corpus_original.clone(),
                 managed_source: None,
+                managed_source_v2: None,
             },
             self.expectation.clone(),
             measurement,

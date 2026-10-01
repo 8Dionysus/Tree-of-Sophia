@@ -256,10 +256,10 @@ pub use selected::{
 pub use source_bibliographic_source::{
     ColdSourceCatalogInputPlan, SourceBibliographicCandidate, SourceCatalogInputLimits,
     SourceCatalogInputPlan, SourceCatalogRenderWorkV1, plan_cold_source_catalog_inputs,
-    plan_cold_source_catalog_inputs_with_workspace,
-    plan_source_catalog_inputs, prepare_cold_source_catalog_plan,
-    prepare_cold_source_catalog_plan_observed, prepare_source_catalog_plan,
-    render_source_bibliographic_plan, render_source_bibliographic_plan_with_work,
+    plan_cold_source_catalog_inputs_with_workspace, plan_source_catalog_inputs,
+    prepare_cold_source_catalog_plan, prepare_cold_source_catalog_plan_observed,
+    prepare_source_catalog_plan, render_source_bibliographic_plan,
+    render_source_bibliographic_plan_with_work,
 };
 pub use vocabulary::{QueryVocabulary, RegisteredSource, VocabularyBinding};
 

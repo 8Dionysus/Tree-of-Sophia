@@ -246,7 +246,10 @@ fn validate_navigation_carriers(
             entities,
             // The candidate envelope may be 8MiB; this owner renderer admits
             // at most 4MiB per input. Preserve its narrower reservation.
-            cap.min(4 * 1024 * 1024),
+            tos_compiler::source_bibliographic::BibliographicDocumentLimits {
+                input_document_bytes: cap.min(4 * 1024 * 1024),
+                output_row_bytes: cap.min(4 * 1024 * 1024),
+            },
         )?
         .ok_or(Error::Invalid(
             "Claim candidate navigation template unavailable",

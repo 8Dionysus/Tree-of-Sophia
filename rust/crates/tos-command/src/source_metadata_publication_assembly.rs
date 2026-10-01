@@ -214,7 +214,7 @@ pub(super) fn assemble(
         l.catalog.max_contract_bytes,
     )?;
     let descriptor =
-        bib::supplied_metadata_descriptor(&entry, &record, &entities, l.catalog.max_row_bytes)?;
+        bib::supplied_metadata_descriptor(&entry, &record, &entities, l.catalog.into())?;
     let row = json!({"record_id":id,"entry":entry,"source":{"source_ref":reference,"raw_sha256":bytes::digest(&raw),"raw_bytes":raw.len(),"record_ref":subject}});
     let (home, name) = reference
         .rsplit_once('/')
@@ -298,7 +298,7 @@ pub(super) fn assemble(
         &entry,
         &record,
         Some((&form_ref, &material)),
-        l.catalog.max_output_row_bytes,
+        l.catalog.into(),
     )?;
     let mut nodes = BTreeMap::new();
     let mut edges = BTreeMap::new();

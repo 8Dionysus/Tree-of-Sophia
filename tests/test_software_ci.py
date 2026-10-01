@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -285,6 +286,8 @@ class SoftwareSelectionTests(unittest.TestCase):
             'quests/TOS-Q-0003.yaml',
             'quests/TOS-Q-0004.yaml',
             'ToS/candidate-intake/AGENTS.md',
+            'ToS/candidate-intake/zarathustra/concept-workbench-v1/word-analysis-task.v1.schema.json',
+            'ToS/candidate-intake/zarathustra/concept-workbench-v1/english-translation-candidate.v1.schema.json',
             'ToS/candidate-intake/thus-spoke-zarathustra/prologue-1/mode-b/edges.csv',
             'ToS/canon/**/node.human-forms.json',
             'ToS/canon/**/node.json',
@@ -412,6 +415,27 @@ class SoftwareSelectionTests(unittest.TestCase):
             'ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/source-metadata-snapshot.json',
             'ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_PARTS_2_3_PROVISION_IDENTITY_RESEARCH.md',
         }
+        generic_xml_sources = (
+            ROOT / 'rust/crates/tos-compiler/tests/generic_xml_uxlc_lab.rs',
+            ROOT / 'rust/crates/tos-compiler/tests/generic_xml_uxlc_lab/inputs.rs',
+        )
+        generic_xml_fixture_root = (
+            'ToS/research-packets/foundation-laboratory-2026-07/'
+            'generic-xml-resource-inventory-uxlc-abc-v1/'
+        )
+        include_literal = re.compile(r'include_(?:bytes|str)!\s*\(\s*"([^"]+)"\s*\)', re.S)
+        generic_xml_inputs = set()
+        for source in generic_xml_sources:
+            for literal in include_literal.findall(source.read_text()):
+                if 'generic-xml-resource-inventory-uxlc-abc-v1' not in literal:
+                    continue
+                resolved = (source.parent / literal).resolve()
+                relative = resolved.relative_to(ROOT).as_posix()
+                self.assertTrue(relative.startswith(generic_xml_fixture_root), relative)
+                self.assertTrue(resolved.is_file(), relative)
+                generic_xml_inputs.add(relative)
+        self.assertEqual(len(generic_xml_inputs), 58)
+        required_sources.update(generic_xml_inputs)
         for source in (ROOT / 'tests/conformance/rust').glob('*.rs'):
             text = source.read_text()
             self.assertNotIn('Command::new("/usr/bin/python3")', text, source.name)
@@ -419,16 +443,38 @@ class SoftwareSelectionTests(unittest.TestCase):
         self.assertIn('var_os("TOS_MAINTAINED_PYTHON")',
                       (ROOT / 'tests/conformance/rust/runner.rs').read_text())
         workflow = yaml.safe_load((ROOT / '.github/workflows/repo-validation.yml').read_text())
-        checkouts = [
-            step for step in workflow['jobs']['rust']['steps']
-            if step.get('name') == 'Checkout Rust sources and validation route'
-        ]
-        self.assertEqual(len(checkouts), 1)
-        sparse_paths = set(checkouts[0]['with']['sparse-checkout'].splitlines())
+        def checkout_paths(job, step_name):
+            checkouts = [
+                step for step in workflow['jobs'][job]['steps']
+                if step.get('name') == step_name and 'sparse-checkout' in step.get('with', {})
+            ]
+            self.assertEqual(len(checkouts), 1, job)
+            return set(checkouts[0]['with']['sparse-checkout'].splitlines())
+
+        sparse_paths = checkout_paths('rust', 'Checkout Rust sources and validation route')
+        software_sparse_paths = checkout_paths('software', 'Checkout software and bounded test fixtures')
+        worker_sparse_paths = checkout_paths('worker', 'Checkout Worker software')
+        software_schemas = {
+            'ToS/candidate-intake/zarathustra/concept-workbench-v1/word-analysis-task.v1.schema.json',
+            'ToS/candidate-intake/zarathustra/concept-workbench-v1/english-translation-candidate.v1.schema.json',
+        }
+        worker_schemas = software_schemas | {
+            'ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json',
+            'ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-request.v2.schema.json',
+            'ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json',
+            'ToS/doctrine/semantic-interchange/query-vocabulary.v1.json',
+        }
+        for path in software_schemas | worker_schemas:
+            self.assertTrue((ROOT / path).is_file(), path)
         self.assertTrue({f'/{path}' for path in required_sources} <= sparse_paths)
+        self.assertTrue({f'/{path}' for path in software_schemas} <= software_sparse_paths)
+        self.assertTrue({f'/{path}' for path in worker_schemas} <= worker_sparse_paths)
         self.assertIn('!/ToS/source-witnesses/**/payload/', sparse_paths)
-        self.assertNotIn('/ToS/source-witnesses/', sparse_paths)
-        self.assertNotIn('/ToS/', sparse_paths)
+        for checkout in (sparse_paths, software_sparse_paths, worker_sparse_paths):
+            self.assertNotIn('/ToS/source-witnesses/', checkout)
+            self.assertNotIn('/ToS/', checkout)
+            self.assertNotIn('/ToS/candidate-intake/', checkout)
+        self.assertNotIn(f'/{generic_xml_fixture_root}', sparse_paths)
 
 
 if __name__ == '__main__':

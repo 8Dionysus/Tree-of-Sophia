@@ -372,7 +372,7 @@ fn metadata(
         &entry,
         &source,
         forms.as_ref().map(|v| (forms_ref.as_str(), v)),
-        l.catalog.max_output_row_bytes,
+        l.catalog.into(),
     )?;
     Ok(Some(Identity {
         entry,
@@ -1068,7 +1068,7 @@ pub(super) fn assemble(
             &object,
             &registry,
             &entities,
-            l.catalog.max_output_row_bytes,
+            l.catalog.into(),
         )?;
         let cohort = bib::render_supplied_claim(
             bib::SuppliedBibliographicClaimInputs {

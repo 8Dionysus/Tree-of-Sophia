@@ -5009,10 +5009,7 @@ fn agent_evidence_map(
             ("source_line", number(row.physical_line)),
             ("source_sha256", string(&row.source_sha256.to_hex())),
         ]);
-        if entries
-            .insert(row.id.clone(), value)
-            .is_some()
-        {
+        if entries.insert(row.id.clone(), value).is_some() {
             return Err(SourceCommandError::Conflict(match kind {
                 AgentInventoryEvidenceKind::Event => "duplicate complete evidence index identity",
                 AgentInventoryEvidenceKind::Anchor => "duplicate complete evidence index identity",

@@ -281,8 +281,9 @@ pub(crate) fn descriptor(
     object: &Value,
     registry: &Value,
     entities: &Value,
-    cap: usize,
+    limits: super::source_bibliographic::BibliographicDocumentLimits,
 ) -> Result<Option<Value>> {
+    let cap = limits.input_document_bytes;
     let Some(template) = registry.get("claim_navigation_template") else {
         return Ok(None);
     };
@@ -434,7 +435,7 @@ pub(crate) fn descriptor(
                     .as_str()
                     .ok_or(Error::Invalid("bibliographic descriptor language"))?,
             );
-            if rendered.len() > cap {
+            if rendered.len() > limits.output_row_bytes {
                 unavailable!("over-budget")
             }
         }
@@ -448,7 +449,7 @@ pub(crate) fn descriptor(
             .cloned()
             .ok_or(Error::Invalid("bibliographic descriptor default"))?,
     );
-    if encode(&json!(title), cap)?.len() as u64
+    if encode(&json!(title), limits.output_row_bytes)?.len() as u64
         > template["max_output_bytes"]
             .as_u64()
             .ok_or(Error::Invalid("bibliographic descriptor cap"))?

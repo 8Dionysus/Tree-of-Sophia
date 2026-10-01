@@ -39,6 +39,8 @@ pub(crate) struct CommittedRecordObservation<'a> {
     components: &'a SoftwareComponentSelectionV1,
     fence: tx::WorkCorpusFence<'a>,
     binding: CommittedRecordBinding,
+    original_publication: JsonValue,
+    current_publication: JsonValue,
     original_ctx: CommandContext,
     selected_read_bytes: Cell<usize>,
     selected_read_rows: Cell<usize>,
@@ -61,6 +63,17 @@ pub(crate) fn observe_committed<'a>(
         fs, ctx, current, original, software, components, deadline, cancelled,
     )?;
     fence.verify(deadline, cancelled)?;
+    // Catalog publication bindings expose the authenticated journal selection,
+    // not the private transaction state or its internal two-field base.
+    let publication = |state: &JsonValue| -> SourceCommandResult<JsonValue> {
+        Ok(cmd::object(vec![
+            ("protocol", cmd::string("tos_selected_source_metadata_v1")),
+            ("token", cmd::field(state, "token")?.clone()),
+            ("generation", cmd::field(state, "generation")?.clone()),
+        ]))
+    };
+    let original_publication = publication(&binding.original_publication)?;
+    let current_publication = publication(&binding.current_publication)?;
     Ok(CommittedRecordObservation {
         fs,
         ctx,
@@ -70,6 +83,8 @@ pub(crate) fn observe_committed<'a>(
         components,
         fence,
         binding,
+        original_publication,
+        current_publication,
         original_ctx,
         selected_read_bytes: Cell::new(0),
         selected_read_rows: Cell::new(0),
@@ -89,7 +104,10 @@ impl CommittedRecordObservation<'_> {
         self.binding.manifest_sha256
     }
     pub(crate) fn source_publication(&self) -> &JsonValue {
-        &self.binding.current_publication
+        &self.current_publication
+    }
+    pub(crate) fn original_source_publication(&self) -> &JsonValue {
+        &self.original_publication
     }
     pub(crate) fn binding(&self) -> &CommittedRecordBinding {
         &self.binding

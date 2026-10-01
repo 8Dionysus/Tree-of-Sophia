@@ -1302,8 +1302,11 @@ fn maintained_agent_creation_operation<
         let streamed_original = streamed_original_result.unwrap();
         assert!(work.original_index_length_observed > 0);
         assert!(work.original_index_allocated_observed > 0);
-        assert_eq!(std::fs::read_dir(&bootstrap_scratch.0).unwrap().count(), 0,
-            "streamed SQLite must write only its charged unnamed inode");
+        assert_eq!(
+            std::fs::read_dir(&bootstrap_scratch.0).unwrap().count(),
+            0,
+            "streamed SQLite must write only its charged unnamed inode"
+        );
         assert_eq!(
             streamed_original
                 .revision_at(0)
@@ -1379,8 +1382,11 @@ fn maintained_agent_creation_operation<
         let initial = result.unwrap();
         assert!(work.derived_index.sqlite_file_len_high_water > 0);
         assert!(work.derived_index.sqlite_allocated_bytes_high_water > 0);
-        assert_eq!(std::fs::read_dir(&bootstrap_scratch.0).unwrap().count(), 0,
-            "assessment SQLite must retain only charged unnamed scratch");
+        assert_eq!(
+            std::fs::read_dir(&bootstrap_scratch.0).unwrap().count(),
+            0,
+            "assessment SQLite must retain only charged unnamed scratch"
+        );
         let cohort = initial.cohort().clone();
         for expected in cut.current().members() {
             let observed = initial

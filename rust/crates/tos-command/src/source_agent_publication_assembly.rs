@@ -558,10 +558,10 @@ impl Reader<'_, '_> {
                     "Agent identity-like Claim object unresolved",
                 ));
             } else {
-                bib::supplied_bibliographic_literal(entry, &claim, cap)?
+                bib::supplied_bibliographic_literal(entry, &claim, self.limits.catalog.into())?
             }
         } else {
-            bib::supplied_bibliographic_literal(entry, &claim, cap)?
+            bib::supplied_bibliographic_literal(entry, &claim, self.limits.catalog.into())?
         };
         let transition = matches!(
             reader,
@@ -573,13 +573,13 @@ impl Reader<'_, '_> {
                 &subject,
                 &relation["domain_type_ids"],
                 entities,
-                cap,
+                self.limits.catalog.into(),
             )? || object["node_kind"] == "identity"
                 && !bib::supplied_bibliographic_endpoint_matches(
                     &object,
                     &relation["range_type_ids"],
                     entities,
-                    cap,
+                    self.limits.catalog.into(),
                 )?)
         {
             return Err(Error::Invalid("Agent Claim endpoint domain/range"));
@@ -598,7 +598,7 @@ impl Reader<'_, '_> {
                         &node,
                         &profile["object_reference_set"]["member_type_ids"],
                         entities,
-                        cap,
+                        self.limits.catalog.into(),
                     )?
                 {
                     return Err(Error::Invalid("Agent Claim member endpoint domain"));
@@ -766,7 +766,7 @@ impl Reader<'_, '_> {
                 &node,
                 &json!(["tos.entity.historical-situation"]),
                 entities,
-                cap,
+                self.limits.catalog.into(),
             )? {
                 return Err(Error::Invalid("Agent relative historical anchor domain"));
             }
@@ -833,7 +833,12 @@ impl Reader<'_, '_> {
             None
         };
         let descriptor = bib::supplied_claim_navigation_descriptor(
-            &claim, &subject, &object, registry, entities, cap,
+            &claim,
+            &subject,
+            &object,
+            registry,
+            entities,
+            self.limits.catalog.into(),
         )?;
         let inputs = SuppliedBibliographicClaimInputs {
             entry,
@@ -1030,7 +1035,7 @@ impl Reader<'_, '_> {
             &row["entry"],
             &record,
             entities,
-            self.limits.catalog.max_row_bytes,
+            self.limits.catalog.into(),
         )?;
         let schema = bytes::text(&descriptor, "source_schema_ref")?.to_owned();
         self.check(&reference, &raw, &schema)?;
@@ -1141,7 +1146,7 @@ impl Reader<'_, '_> {
             &entry,
             &record,
             forms.as_ref().map(|(r, v)| (r.as_str(), v)),
-            self.limits.catalog.max_output_row_bytes,
+            self.limits.catalog.into(),
         )?;
         let retained = json!({"entry":entry,"record":record,"identity":identity,"forms":forms,"history":history});
         let state_bytes = bytes::canonical(&retained, 33_554_432)?
@@ -1205,7 +1210,8 @@ pub(super) fn assemble(
         .clone();
     let binding = observation.binding();
     if header["claims_addressed"] != true
-        || header["source_publication"] != view(&binding.original_publication, 1_048_576)?
+        || header["source_publication"]
+            != view(observation.original_source_publication(), 1_048_576)?
         || !binding.source_path.as_str().ends_with("/agent.json")
     {
         return Err(Error::Invalid("Agent catalog exact immediate predecessor"));
@@ -1244,7 +1250,7 @@ pub(super) fn assemble(
     )?;
     let new_row = json!({"record_id":observation.record_id(),"entry":entry,"source":{"source_ref":binding.source_path.as_str(),"raw_sha256":binding.current.sha256.to_hex(),"raw_bytes":binding.current.raw.len(),"record_ref":view(&binding.current.subject,1_048_576)?}});
     let mut after_header = header.clone();
-    after_header["source_publication"] = view(&binding.current_publication, 1_048_576)?;
+    after_header["source_publication"] = view(observation.source_publication(), 1_048_576)?;
     after_header["last_transition"] = json!({"transaction_id":observation.transaction_id(),"manifest_sha256":observation.manifest_sha256().to_hex(),"record_id":observation.record_id()});
     let (old, new) = {
         let mut old = Reader {

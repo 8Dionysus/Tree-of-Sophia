@@ -20,7 +20,7 @@ pub(crate) const STORED_OVERHEAD: usize = 65536;
 
 /// Shared physical part decoder for existing filesystem navigation and exact
 /// captured corpus inputs. Namespace and member selection stay with each owner.
-pub(crate) fn decode_partition_part(
+pub fn decode_partition_part(
     stored: &[u8],
     kind: &str,
     stored_len: usize,

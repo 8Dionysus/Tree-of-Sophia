@@ -119,6 +119,8 @@ jobs:
             /ToS/doctrine/semantic-interchange/query-vocabulary.v1.json
             /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-request.v2.schema.json
             /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/word-analysis-task.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/english-translation-candidate.v1.schema.json
             /ToS/candidate-intake/zarathustra/concept-workbench-v1/requests/fate.concept-request.v2.json
             /ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json
             /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.json
@@ -355,6 +357,12 @@ jobs:
             /ToS/canon/registries/predicates.csv
             /ToS/doctrine/semantic-interchange/entity-types.v1.json
             /ToS/doctrine/semantic-interchange/relation-types.v1.json
+            /ToS/doctrine/semantic-interchange/query-vocabulary.v1.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/word-analysis-task.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/english-translation-candidate.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-request.v2.schema.json
+            /ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json
             /requirements-dev.txt
 
       - name: Setup Python for cross-adapter fixture checks
@@ -511,6 +519,8 @@ jobs:
             /ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json
             /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json
             /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-request.v2.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/word-analysis-task.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/english-translation-candidate.v1.schema.json
             /ToS/candidate-intake/zarathustra/concept-workbench-v1/requests/fate.concept-request.v2.json
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/edition.json
             /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/
@@ -638,6 +648,65 @@ jobs:
             /ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json
             /ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.human-forms.json
             /ToS/source_home.manifest.json
+            # Exact files embedded by the native GenericXML integration test; historical programs/receipts are not executed.
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/build_candidate.py
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/comparison-result.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/consume_owner.py
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/evaluate_lab.py
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v16.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v6.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/input-manifest.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P1-no-namespace.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P10-true-tei.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P11-tei-lookalike.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P12-dynamic-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P12-dynamic-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P13-reorder-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P13-reorder-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P14-text-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P14-text-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P15-attribute-value-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P15-attribute-value-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P2-prefix-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P2-prefix-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P3-default-namespace.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P4-duplicate-siblings.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P5-interleaved-siblings.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P6-empty-long.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P6-empty-short.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P7-attributes-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P7-attributes-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P8-comments-pi-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P8-comments-pi-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P9-mixed-namespaces.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/PC1-uxlc-shape.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P1-no-namespace.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P10-true-tei.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P11-tei-lookalike.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P12-dynamic-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P12-dynamic-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P13-reorder-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P13-reorder-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P14-text-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P14-text-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P15-attribute-value-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P15-attribute-value-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P2-prefix-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P2-prefix-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P3-default-namespace.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P4-duplicate-siblings.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P5-interleaved-siblings.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P6-empty-long.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P6-empty-short.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P7-attributes-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P7-attributes-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P8-comments-pi-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P8-comments-pi-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P9-mixed-namespaces.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/PC1-uxlc-shape.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/bc/PC1-uxlc-shape.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/c/PC1-uxlc-shape.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/run_experiment.py
             /ToS/zarathustra/AGENTS.md
             /access/tests/fixtures/knowledge-contract/ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.human-forms.json
             /access/tests/fixtures/source-assembly/ToS/source-witnesses/agents/friedrich-nietzsche/agent.json

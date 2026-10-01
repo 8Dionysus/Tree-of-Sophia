@@ -6,14 +6,12 @@ use super::*;
 mod addressed_inventory;
 #[path = "addressed_successor.rs"]
 mod addressed_successor;
+#[path = "source_cohort_bootstrap_streamed.rs"]
+mod source_cohort_bootstrap_streamed;
 #[path = "source_cohort_stream_index.rs"]
 mod source_cohort_stream_index;
 #[path = "source_cohort_streamed.rs"]
 mod source_cohort_streamed;
-#[path = "source_cohort_bootstrap_streamed.rs"]
-mod source_cohort_bootstrap_streamed;
-pub use source_cohort_stream_index::SourceAssessmentWork as StreamedSourceIndexWorkV1;
-pub use source_cohort_streamed::{StreamedColdSourceLimitsV1, StreamedColdSourceWorkV1};
 use crate::source_command::{self as cmd, CommandContext, SourceFile};
 use crate::source_creation::{
     CreationFamily, CreationPackage, ManagedCreationBasis, ManagedCreationInput,
@@ -22,6 +20,8 @@ use crate::source_creation::{
 use crate::source_creation_store::{CreationFilesystem, CreationOwnerFence};
 use crate::{PredicateKind, PredicateRead, PredicateToken, source_claims, source_forms};
 pub(crate) use addressed_successor::VerifiedAddressedGeneration;
+pub use source_cohort_stream_index::SourceAssessmentWork as StreamedSourceIndexWorkV1;
+pub use source_cohort_streamed::{StreamedColdSourceLimitsV1, StreamedColdSourceWorkV1};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Cursor;
 use tos_foundation::{RelativePath, SourceRevision};
@@ -5748,7 +5748,9 @@ fn cold_source_key_rows(
     cancelled: &AtomicBool,
     consume: impl FnMut(&postgres::Row) -> DurableResult<()>,
 ) -> DurableResult<()> {
-    cold_source_key_rows_controlled(tx, None, domain, predicate, count, deadline, cancelled, consume)
+    cold_source_key_rows_controlled(
+        tx, None, domain, predicate, count, deadline, cancelled, consume,
+    )
 }
 
 fn cold_source_key_rows_controlled(
