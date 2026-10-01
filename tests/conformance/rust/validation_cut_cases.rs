@@ -205,16 +205,16 @@ fn actual_cut_worker_and_item_companions_preserve_metadata_only_outcome() {
         )
         .unwrap();
     // OPS supplies the separately built exact worker; absence is a failure.
-    let worker_path = selected_worker_path();
-    assert!(worker_path.is_absolute());
-    let worker_digest = Digest256::of_bytes(&fs::read(&worker_path).unwrap());
-    let mut schemas = CutWorkerSchemaExecutor::from_cut(
+    let image = super::command_form_cases::schema_image(
+        tos_validation::executor::ExecutorBudget::laboratory(),
+        deadline,
+        &cancelled,
+    );
+    let worker_digest = image.identity().sha256;
+    let mut schemas = CutWorkerSchemaExecutor::from_cut_with_image(
         &cut,
         FormatProfile::LegacyPythonObserved20260923,
-        ExactWorkerIdentity {
-            absolute_path: worker_path,
-            sha256: worker_digest,
-        },
+        &image,
         ExecutorBudget::laboratory(),
         CutWorkerLimits {
             max_receipts: 128,
@@ -1822,15 +1822,12 @@ fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
             &cancelled,
         )
         .unwrap();
-    let worker_path = selected_worker_path();
-    let worker_digest = Digest256::of_bytes(&fs::read(&worker_path).unwrap());
-    let mut schemas = CutWorkerSchemaExecutor::from_cut(
+    let image =
+        super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, &cancelled);
+    let mut schemas = CutWorkerSchemaExecutor::from_cut_with_image(
         &cut,
         FormatProfile::LegacyPythonObserved20260923,
-        ExactWorkerIdentity {
-            absolute_path: worker_path,
-            sha256: worker_digest,
-        },
+        &image,
         ExecutorBudget::laboratory(),
         CutWorkerLimits {
             max_receipts: 16,

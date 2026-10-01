@@ -210,14 +210,12 @@ fn actual_selected_capture_repository_plan_render_matches_maintained_python() {
         )
         .unwrap();
     let membership = cut.stream(revision).unwrap().expectation();
-    let worker_path = super::validation_cut_cases::selected_worker_path();
-    let mut schemas = CutWorkerSchemaExecutor::from_cut(
+    let worker_image =
+        super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, &cancelled);
+    let mut schemas = CutWorkerSchemaExecutor::from_cut_with_image(
         &cut,
         tos_validation::FormatProfile::LegacyPythonObserved20260923,
-        ExactWorkerIdentity {
-            sha256: Digest256::of_bytes(&fs::read(&worker_path).unwrap()),
-            absolute_path: worker_path,
-        },
+        &worker_image,
         ExecutorBudget::laboratory(),
         CutWorkerLimits {
             max_receipts: 128,
@@ -613,11 +611,8 @@ fn actual_selected_catalog_and_native_forms_match_maintained_python() {
         &isolation,
     )
     .unwrap();
-    let worker_path = super::validation_cut_cases::selected_worker_path();
-    let worker = ExactWorkerIdentity {
-        sha256: Digest256::of_bytes(&fs::read(&worker_path).unwrap()),
-        absolute_path: worker_path,
-    };
+    let worker_image =
+        super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, &cancelled);
     // One explicit finite envelope for this complete catalog/schema operation.
     // Limits derive from the declared output/receipt budget and common deadline.
     let mut operation = tos_validation::executor::BatchStreamBudget::laboratory();
@@ -626,9 +621,9 @@ fn actual_selected_catalog_and_native_forms_match_maintained_python() {
     operation.total_execution_wall = deadline.saturating_duration_since(Instant::now());
     operation.operation_cpu_seconds = operation.total_execution_wall.as_secs().saturating_add(1);
     operation.operation_address_space_bytes = ExecutorBudget::laboratory().address_space_bytes;
-    let validator = SourceCatalogValidator::from_cut(
+    let validator = SourceCatalogValidator::from_cut_with_image(
         &cut,
-        &worker,
+        &worker_image,
         ExecutorBudget::laboratory(),
         tos_validation::source_cut::CutWorkerLimits {
             max_receipts: usize::try_from(limits.max_output_rows).unwrap(),

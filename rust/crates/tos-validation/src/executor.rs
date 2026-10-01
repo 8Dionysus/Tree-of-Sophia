@@ -76,7 +76,8 @@ impl VerifiedWorkerImageHandle {
         &self.identity
     }
 
-    pub(crate) fn operation_deadline(&self) -> Instant {
+    /// Upper bound for any operation that reuses this admitted image.
+    pub fn operation_deadline(&self) -> Instant {
         self.operation_deadline
     }
 }

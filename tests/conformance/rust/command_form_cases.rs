@@ -190,7 +190,7 @@ pub(super) fn schema_image(
         cancel,
     );
     eprintln!(
-        "schema worker fixture phase=admit-image family=forms-records image_bytes={} expected_hash_ms={} verification_ms={} admission_wall_ms={} result={:?}",
+        "schema worker fixture phase=admit-image image_bytes={} expected_hash_ms={} verification_ms={} admission_wall_ms={} result={:?}",
         worker_bytes,
         hash_elapsed.as_millis(),
         preparation_started.elapsed().as_millis(),

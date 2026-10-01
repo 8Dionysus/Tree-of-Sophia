@@ -8,7 +8,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_source_store::{CorpusCutReader, CutReadLimits};
 use tos_validation::FormatProfile;
-use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
+use tos_validation::executor::ExecutorBudget;
 use tos_validation::retirement_rules::{
     RetirementFamilyReport, RetirementLimits, RetirementRefusal, inspect_retirements_from_cut,
 };
@@ -194,22 +194,14 @@ fn worker(
     cancelled: &AtomicBool,
     deadline: Instant,
 ) -> (CutWorkerSchemaExecutor, Digest256) {
-    let path = super::validation_cut_cases::selected_worker_path();
-    assert!(path.is_absolute());
-    let hash_started = Instant::now();
-    let worker_raw = fs::read(&path).unwrap();
-    let worker_bytes = worker_raw.len();
-    let digest = Digest256::of_bytes(&worker_raw);
-    drop(worker_raw);
-    let hash_elapsed = hash_started.elapsed();
+    let image =
+        super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, cancelled);
+    let digest = image.identity().sha256;
     let preparation_started = Instant::now();
-    let prepared = CutWorkerSchemaExecutor::from_cut(
+    let prepared = CutWorkerSchemaExecutor::from_cut_with_image(
         cut,
         FormatProfile::LegacyPythonObserved20260923,
-        ExactWorkerIdentity {
-            absolute_path: path,
-            sha256: digest,
-        },
+        &image,
         ExecutorBudget::laboratory(),
         CutWorkerLimits {
             max_receipts: 32,
@@ -219,9 +211,7 @@ fn worker(
         cancelled,
     );
     eprintln!(
-        "schema worker fixture phase=prepare family=retirement image_bytes={} expected_hash_ms={} preparation_ms={} wall_ms={} result={:?}",
-        worker_bytes,
-        hash_elapsed.as_millis(),
+        "schema worker fixture phase=adapter-prepare family=retirement preparation_ms={} wall_ms={} result={:?}",
         preparation_started.elapsed().as_millis(),
         ExecutorBudget::laboratory().execution_wall.as_millis(),
         prepared.as_ref().map(|_| ())

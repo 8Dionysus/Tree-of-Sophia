@@ -19,7 +19,9 @@ use tos_foundation::{
     canonical_raw_bytes_v1,
 };
 use tos_source_store::CorpusCutReader;
-use tos_validation::executor::{BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget};
+use tos_validation::executor::{
+    BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle,
+};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
 use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
 
@@ -419,15 +421,66 @@ impl<'a> SourceCatalogValidator<'a> {
         deadline: Instant,
         cancelled: &'a AtomicBool,
     ) -> Result<Self> {
-        let mut schemas = CutWorkerSchemaExecutor::from_cut(
+        Self::from_cut_inner(
+            cut, worker, None, budget, limits, operation, deadline, cancelled,
+        )
+    }
+
+    /// Prepare the catalog operation from a previously admitted immutable
+    /// worker image. Image admission can have its own bounded allowance while
+    /// each schema adapter retains its original execution budget.
+    pub fn from_cut_with_image(
+        cut: &CorpusCutReader,
+        image: &'a VerifiedWorkerImageHandle,
+        budget: ExecutorBudget,
+        limits: CutWorkerLimits,
+        operation: BatchStreamBudget,
+        deadline: Instant,
+        cancelled: &'a AtomicBool,
+    ) -> Result<Self> {
+        let deadline = deadline.min(image.operation_deadline());
+        Self::from_cut_inner(
             cut,
-            FormatProfile::LegacyPythonObserved20260923,
-            worker.clone(),
+            image.identity(),
+            Some(image),
             budget,
             limits,
+            operation,
             deadline,
             cancelled,
         )
+    }
+
+    fn from_cut_inner(
+        cut: &CorpusCutReader,
+        worker: &'a ExactWorkerIdentity,
+        image: Option<&'a VerifiedWorkerImageHandle>,
+        budget: ExecutorBudget,
+        limits: CutWorkerLimits,
+        operation: BatchStreamBudget,
+        deadline: Instant,
+        cancelled: &'a AtomicBool,
+    ) -> Result<Self> {
+        let mut schemas = match image {
+            Some(image) => CutWorkerSchemaExecutor::from_cut_with_image(
+                cut,
+                FormatProfile::LegacyPythonObserved20260923,
+                image,
+                budget,
+                limits,
+                deadline,
+                cancelled,
+            ),
+            None => CutWorkerSchemaExecutor::from_cut(
+                cut,
+                FormatProfile::LegacyPythonObserved20260923,
+                worker.clone(),
+                budget,
+                limits,
+                deadline,
+                cancelled,
+            ),
+        }
         .map_err(|e| Error::Source(format!("catalog exact cut executor:{e:?}")))?;
         schemas
             .set_operation_budget(operation)
