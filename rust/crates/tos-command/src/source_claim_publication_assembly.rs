@@ -250,23 +250,32 @@ fn metadata(
         .ok_or(Error::Invalid("Claim metadata parent"))?;
     let historical_refs =
         owner(observation.retain_endpoint_history(&path(&reference)?, l.deadline, cancelled))?;
-    let schema = bytes::text(&row["entry"], "source_schema_ref")?.to_owned();
-    // Native Corpus identity metadata uses its exact closed schema, which
-    // has no visibility field. Maintained profiles retain explicit visibility.
-    let native_corpus = source["schema_version"] == "tos_corpus_record_v1"
-        && schema == "ToS/contracts/corpus-record.schema.json";
+    // The owner renderer omits source_schema_ref for native Corpus entries.
+    // Declared profiles carry that field and require explicit public metadata.
+    let native_corpus = row["entry"].get("source_schema_ref").is_none()
+        && source["schema_version"] == "tos_corpus_record_v1";
+    let declared_schema = if native_corpus {
+        let kind = bytes::text(&source, "record_type")?;
+        if name != format!("{kind}.json") {
+            return Err(Error::Invalid("Claim native endpoint filename/type"));
+        }
+        None
+    } else {
+        Some(bytes::text(&row["entry"], "source_schema_ref")?)
+    };
+    let schema = declared_schema.unwrap_or("ToS/contracts/corpus-record.schema.json");
     if !native_corpus
         && !["public", "public_metadata_only"]
             .contains(&source["visibility"].as_str().unwrap_or(""))
     {
         return Err(Error::Invalid("Claim endpoint public metadata profile"));
     }
-    check_resource(observation, worker, &schema, l, cancelled)?;
-    check(worker, &reference, &raw, &schema, l, cancelled)?;
+    check_resource(observation, worker, schema, l, cancelled)?;
+    check(worker, &reference, &raw, schema, l, cancelled)?;
     let entry = tos_compiler::source_witness_catalog::render_catalog_record(
         &source,
         &reference,
-        Some(&schema),
+        declared_schema,
         l.catalog.max_output_row_bytes,
     )?;
     if entry != row["entry"] {
@@ -341,15 +350,16 @@ fn metadata(
         if retained.version_status != "historical"
             || retained.current_ref != exact
             || retained.record["schema_version"] != source["schema_version"]
-            || !["public", "public_metadata_only"]
-                .contains(&retained.record["visibility"].as_str().unwrap_or(""))
+            || (!native_corpus
+                && !["public", "public_metadata_only"]
+                    .contains(&retained.record["visibility"].as_str().unwrap_or("")))
         {
             return Err(Error::Invalid(
                 "Claim retained endpoint public schema/version binding differs",
             ));
         }
         let historical_raw = source_canonical(&retained.record)?;
-        check(worker, &reference, &historical_raw, &schema, l, cancelled)?;
+        check(worker, &reference, &historical_raw, schema, l, cancelled)?;
         version_bytes = version_bytes
             .checked_add(historical_raw.len())
             .filter(|n| *n <= 33_554_432)
