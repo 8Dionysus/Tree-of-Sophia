@@ -244,7 +244,9 @@ fn validate_navigation_carriers(
             target,
             registry,
             entities,
-            cap,
+            // The candidate envelope may be 8MiB; this owner renderer admits
+            // at most 4MiB per input. Preserve its narrower reservation.
+            cap.min(4 * 1024 * 1024),
         )?
         .ok_or(Error::Invalid(
             "Claim candidate navigation template unavailable",
