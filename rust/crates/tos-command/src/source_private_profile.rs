@@ -2398,7 +2398,8 @@ fn make_snapshot(
     let dependencies = dependencies(
         grant,
         &profile_digest,
-        rights.as_deref(),
+        // The maintained rights resolver binds metadata; exact content remains in profiles.
+        native_metadata.as_deref(),
         &form_digests,
         &identity_digest,
         &implementation_digests,
@@ -2407,7 +2408,7 @@ fn make_snapshot(
     let _ = archive_reader;
     Ok(Snapshot {
         profile_snapshot: profile_digest,
-        rights_snapshot: rights,
+        rights_snapshot: native_metadata,
         native_summary,
         native_reads,
         form_digests,
