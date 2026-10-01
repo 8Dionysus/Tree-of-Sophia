@@ -66,8 +66,9 @@ fn sign_uses_current_native_content_assessment_and_replays_its_original_package(
     // The normal maintained synthetic factory authors the judgments and the
     // separately delegated issuance grant. Relocation happens before its
     // public rebind, review append and Sign describe; no ready report is fed
-    // to Rust. Original authority dates expire on 2026-10-01. An expired
-    // current evaluation must FAIL this positive case, never skip it.
+    // to Rust. Fresh synthetic competence and authority are valid through 2099
+    // before their refs/reviews are authored. Native current-clock expiry
+    // checks and the maintained separate expiry-negative cases stay unchanged.
     let factory = r#"
 import json,sys,shutil,stat
 from pathlib import Path
@@ -76,6 +77,7 @@ repo,root=map(Path,sys.argv[1:])
 sys.path[:0]=[str(repo/'mechanics/growth-cycle/tests'),str(repo/'tests'),str(repo/'scripts'),str(repo/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts')]
 from test_occurrence_assessment_guard import OccurrenceAssessmentGuardTests
 from test_native_text_assessment import NativeAssessmentFixture
+import test_knowledge_assessment as assessment_policy_fixtures
 import source_commands as commands
 original=NativeAssessmentFixture.__init__
 def selected(self,test,**kwargs):
@@ -89,7 +91,8 @@ def selected(self,test,**kwargs):
     self.save()
 test=OccurrenceAssessmentGuardTests(methodName='runTest')
 try:
-    with patch.object(NativeAssessmentFixture,'__init__',selected):
+    with (patch.object(assessment_policy_fixtures,'END','2099-01-01T00:00:00Z'),
+          patch.object(NativeAssessmentFixture,'__init__',selected)):
         f,owner,config,request=test.sign_command_fixture()
     preview={key:value for key,value in request.items() if key not in {'command_id','expected_configuration','expected_source','expected_revision','expected_dependencies'}}
     preview['operation']='prepare-create'
