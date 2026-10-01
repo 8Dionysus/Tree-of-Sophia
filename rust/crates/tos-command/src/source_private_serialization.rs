@@ -29,8 +29,10 @@ pub(crate) fn capture_private_metadata(
         PrivateMetadataFamily::Profile => "owner-local-source-profile-metadata-serialization",
         PrivateMetadataFamily::Claim => "owner-local-source-claim-serialization",
     };
+    // No invocation-held observation flows here; authenticate the current executable afresh.
     capture_creation_with_procedure(
-        request, event_id, home, files, software, components, procedure, None, deadline, cancelled,
+        request, event_id, home, files, software, components, procedure, None, None, deadline,
+        cancelled,
     )?;
     let raw = files
         .get("source-create-provenance.jsonl")
