@@ -126,18 +126,18 @@ pub fn publish_committed_agent_correction_with_precommit(
         deadline,
         &cancelled,
     )
-    .map_err(|e| Error::Source(format!("Agent protected owner: {e:?}")))?;
+    .map_err(crate::source_agent_publication_assembly::source_failure)?;
     if selected_configuration != context.configuration_raw {
         return Err(Error::Invalid(
             "Agent protected configuration differs from selected context",
         ));
     }
     let config = crate::source_command::parse(&selected_configuration)
-        .map_err(|e| Error::Source(format!("Agent owner configuration: {e:?}")))?;
+        .map_err(crate::source_agent_publication_assembly::source_failure)?;
     let schema = crate::source_command::text(&config, "schema_version")
-        .map_err(|e| Error::Source(format!("Agent owner schema: {e:?}")))?;
+        .map_err(crate::source_agent_publication_assembly::source_failure)?;
     crate::source_revisions::RevisionFamily::parse(schema)
-        .map_err(|e| Error::Source(format!("Agent requires Record revision owner: {e:?}")))?;
+        .map_err(crate::source_agent_publication_assembly::source_failure)?;
 
     // Image hashing happens before taking the source mutex. Its descriptor is
     // kept and verified cheaply at the final commit, not hashed per row.
@@ -157,7 +157,7 @@ pub fn publish_committed_agent_correction_with_precommit(
     let observation = observe_committed(
         &fs, context, current, original, software, components, deadline, &cancelled,
     )
-    .map_err(|e| Error::Source(format!("Agent committed Record: {e:?}")))?;
+    .map_err(crate::source_agent_publication_assembly::source_failure)?;
     let progress =
         ClaimPublicationProgress::install(db, cancelled.clone(), deadline, operation.max_vm_steps)?;
     let tx = db.unchecked_transaction()?;
@@ -210,10 +210,10 @@ pub fn publish_committed_agent_correction_with_precommit(
     // possible. A transport/schema refusal must never follow a DB commit.
     original_worker
         .finish(deadline, &cancelled)
-        .map_err(|e| Error::Source(format!("Agent original worker FINAL: {e:?}")))?;
+        .map_err(crate::source_agent_publication_assembly::schema_failure)?;
     current_worker
         .finish(deadline, &cancelled)
-        .map_err(|e| Error::Source(format!("Agent current worker FINAL: {e:?}")))?;
+        .map_err(crate::source_agent_publication_assembly::schema_failure)?;
     execution.verify()?;
     applied.commit(tx, &progress, &observation, deadline, &cancelled, precommit)
 }

@@ -428,7 +428,7 @@ fn maintained_claim_addition_whole_transaction_and_access() {
         binding,
         catalog,
         Digest256::from_hex(required(&packet, "expected_receipt_sha256")).unwrap(),
-        Digest256::from_hex(required(&packet, "expected_request_digest")).unwrap(),
+        Digest256::from_prefixed(required(&packet, "expected_request_digest")).unwrap(),
         review,
         vocabulary,
         descriptor,

@@ -56,7 +56,7 @@ fn verify(
 ) -> Result<()> {
     observation
         .verify_current(deadline, cancelled)
-        .map_err(|e| Error::Source(format!("Agent source fence: {e:?}")))
+        .map_err(crate::source_agent_publication_assembly::source_failure)
 }
 
 pub(super) struct Applied {

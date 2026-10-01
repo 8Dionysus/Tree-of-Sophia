@@ -25,8 +25,32 @@ const CATALOG_SCHEMA: &str = "ToS/contracts/source-catalog-projection-v2.schema.
 const ENTITIES: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const RELATIONS: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
 
+// Preserve source-owned static refusal reasons without serializing selected
+// paths, dynamic IO/schema messages or payloads into the public CLI error.
+pub(super) fn source_failure(error: cmd::SourceCommandError) -> Error {
+    match error {
+        cmd::SourceCommandError::Invalid(reason)
+        | cmd::SourceCommandError::Conflict(reason)
+        | cmd::SourceCommandError::Denied(reason)
+        | cmd::SourceCommandError::Unsupported(reason) => Error::Invalid(reason),
+        cmd::SourceCommandError::MissingProductionAdmission => {
+            Error::Invalid("Agent source production admission missing")
+        }
+        cmd::SourceCommandError::SchemaExecution { reason, .. } => schema_failure(reason),
+    }
+}
+pub(super) fn schema_failure(error: tos_validation::item_rules::ItemRefusal) -> Error {
+    use tos_validation::item_rules::ItemRefusal;
+    match error {
+        ItemRefusal::Budget => Error::Budget("Agent selected schema budget"),
+        ItemRefusal::BudgetCheck { check, .. } => Error::Budget(check),
+        ItemRefusal::Deadline => Error::Budget("Agent selected schema deadline"),
+        ItemRefusal::Source(_) => Error::Invalid("Agent selected schema source refusal"),
+        ItemRefusal::Unsupported(_) => Error::PreparedUnsupported("Agent selected schema unsupported"),
+    }
+}
 fn owner<T>(value: cmd::SourceCommandResult<T>) -> Result<T> {
-    value.map_err(|e| Error::Source(format!("Agent source observation: {e:?}")))
+    value.map_err(source_failure)
 }
 fn path(reference: &str) -> Result<RelativePath> {
     if !reference.starts_with("ToS/")
@@ -148,7 +172,7 @@ impl Reader<'_, '_> {
         ) {
             Ok(true) => Ok(()),
             Ok(false) => Err(Error::Invalid("Agent source schema refused")),
-            Err(e) => Err(Error::Source(format!("Agent actual schema worker: {e:?}"))),
+            Err(e) => Err(schema_failure(e)),
         }
     }
     fn record_row(&mut self, id: &str) -> Result<Option<Value>> {
