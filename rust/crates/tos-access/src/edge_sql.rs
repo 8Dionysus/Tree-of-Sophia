@@ -185,10 +185,13 @@ fn revision(db: &Connection) -> Result<Option<String>> {
         return Ok(None);
     }
     let value: Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
-    Ok(value
-        .get("sha256")
-        .and_then(Value::as_str)
-        .map(str::to_owned))
+    match value.get("sha256") {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::String(revision)) => Ok(Some(revision.clone())),
+        // A malformed present value must never become an empty baseline and
+        // admit --base null. The retained oracle rejects this baseline too.
+        Some(_) => Err("local revision sha256 is not a string".into()),
+    }
 }
 
 fn import(database: &Path, source: &Path, base: Option<&str>, target: &str) -> Result<Value> {
@@ -461,5 +464,33 @@ mod tests {
         assert_eq!(revision(&db).unwrap().as_deref(), Some("legacy"));
         db.execute_batch("DROP TABLE edge_meta; CREATE TABLE edge_meta(key TEXT,part INTEGER,json_chunk TEXT); INSERT INTO edge_meta VALUES('data_revision',1,'\"chunked\"}'),('data_revision',0,'{\"sha256\":');").unwrap();
         assert_eq!(revision(&db).unwrap().as_deref(), Some("chunked"));
+    }
+
+    #[test]
+    fn nonstring_present_revision_never_admits_empty_baseline() {
+        let fixture = Fixture::new();
+        let database = database(&fixture);
+        let sql = fixture.path("input.sql");
+        fs::write(&sql, "INSERT INTO t VALUES ('must not enter');\nUPDATE edge_meta SET json_chunk='{\"sha256\":\"new\"}';\n").unwrap();
+        for invalid in ["123", "true", "{}", "[]"] {
+            let db = Connection::open(&database).unwrap();
+            let malformed = format!("{{\"sha256\":{invalid}}}");
+            db.execute("UPDATE edge_meta SET json_chunk=?", [&malformed])
+                .unwrap();
+            drop(db);
+            assert!(import(&database, &sql, None, "new").is_err());
+            let db = Connection::open(&database).unwrap();
+            assert_eq!(
+                db.query_row("SELECT json_chunk FROM edge_meta", [], |r| r
+                    .get::<_, String>(0))
+                    .unwrap(),
+                malformed
+            );
+            assert_eq!(
+                db.query_row("SELECT COUNT(*) FROM t", [], |r| r.get::<_, u64>(0))
+                    .unwrap(),
+                0
+            );
+        }
     }
 }
