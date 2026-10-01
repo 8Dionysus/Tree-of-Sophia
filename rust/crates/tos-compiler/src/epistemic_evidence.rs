@@ -42,7 +42,15 @@ fn string(v: &Value) -> Result<&str> {
         "Evidence Lens identity/ref must be a string",
     ))
 }
-fn read(root: &Path, reference: &str) -> Result<Vec<u8>> {
+fn guard(deadline: Instant) -> Result<()> {
+    if Instant::now() >= deadline {
+        Err(Error::Budget("Evidence Lens deadline"))
+    } else {
+        Ok(())
+    }
+}
+fn read(root: &Path, reference: &str, deadline: Instant) -> Result<Vec<u8>> {
+    guard(deadline)?;
     let p = Path::new(reference);
     if reference.is_empty()
         || p.is_absolute()
@@ -56,17 +64,21 @@ fn read(root: &Path, reference: &str) -> Result<Vec<u8>> {
     let mut file = safe_open::open_regular(&root.join(p), CAP as u64)?;
     let mut raw = Vec::new();
     file.read_to_end(&mut raw)?;
+    guard(deadline)?;
     Ok(raw)
 }
-fn rendered(v: &Value) -> Result<Vec<u8>> {
+fn rendered(v: &Value, deadline: Instant) -> Result<Vec<u8>> {
+    guard(deadline)?;
     let raw = serde_json::to_vec(v).map_err(|e| err(e.to_string()))?;
     let mut result = compact(&json(&raw, CAP)?, CAP)?;
     result.push(b'\n');
+    guard(deadline)?;
     Ok(result)
 }
 
-pub fn validate_payload(root: &Path, payload: &Value) -> Result<()> {
-    let raw = read(root, SCHEMA_REF)?;
+pub fn validate_payload(root: &Path, payload: &Value, deadline: Instant) -> Result<()> {
+    guard(deadline)?;
+    let raw = read(root, SCHEMA_REF, deadline)?;
     let schema = decode(&raw)?;
     let uri = string(&schema["$id"])?;
     let backend = SchemaBackendProbe::new(
@@ -78,11 +90,12 @@ pub fn validate_payload(root: &Path, payload: &Value) -> Result<()> {
     )
     .map_err(|e| err(format!("Evidence Lens schema: {e:?}")))?;
     if !backend
-        .is_valid_raw(uri, &rendered(payload)?)
+        .is_valid_raw(uri, &rendered(payload, deadline)?)
         .map_err(|e| err(format!("Evidence Lens schema: {e:?}")))?
     {
         return Err(Error::Invalid("Evidence Lens schema violation"));
     }
+    guard(deadline)?;
     let mut ids = BTreeSet::new();
     for scene in array(payload, "scenes")? {
         if scene["posture"] == "contested-pre-canon" && scene["conclusion"]["can_conclude"] == true
@@ -102,7 +115,7 @@ pub fn validate_payload(root: &Path, payload: &Value) -> Result<()> {
             }
         }
     }
-    Ok(())
+    guard(deadline)
 }
 
 /// Captures selected collections to caller-owned fresh staging, then rechecks all
@@ -113,8 +126,9 @@ pub fn build(
     limits: PublicCaptureLimits,
     deadline: Instant,
 ) -> Result<Vec<u8>> {
-    let source_raw = read(root, SOURCE_REF)?;
+    let source_raw = read(root, SOURCE_REF, deadline)?;
     let source = decode(&source_raw)?;
+    guard(deadline)?;
     let scenes = array(&source, "scenes")?;
     let mut requested: BTreeMap<(String, String), BTreeSet<String>> = BTreeMap::new();
     for scene in scenes {
@@ -210,7 +224,7 @@ pub fn build(
             )));
         }
     }
-    let canon_raw = read(root, CANON_REF)?;
+    let canon_raw = read(root, CANON_REF, deadline)?;
     let mut header = Vec::new();
     let mut anchors = BTreeMap::new();
     let l = crate::knowledge_canon_source::CanonSourceLimits {
@@ -255,7 +269,7 @@ pub fn build(
         (CANON_REF.to_owned(), Digest256::of_bytes(&canon_raw)),
         (
             SCHEMA_REF.to_owned(),
-            Digest256::of_bytes(&read(root, SCHEMA_REF)?),
+            Digest256::of_bytes(&read(root, SCHEMA_REF, deadline)?),
         ),
     ]);
     capture.charge_work((source_raw.len() + canon_raw.len()) as u64)?;
@@ -280,7 +294,7 @@ pub fn build(
                 .ok_or(Error::Invalid("Evidence Lens routes must be objects"))?
                 .clone();
             let reference = string(&raw_route["ref"])?;
-            let raw = read(root, reference)?;
+            let raw = read(root, reference, deadline)?;
             route.insert("exists".into(), Value::Bool(true));
             route.insert(
                 "sha256".into(),
@@ -322,16 +336,17 @@ pub fn build(
         output.push(Value::Object(scene));
     }
     let payload = value!({"schema_version":"tos_epistemic_evidence_projection_v1","owner_repo":"Tree-of-Sophia","surface_kind":"derived_public_evidence_navigation","source_definition_ref":SOURCE_REF,"source_definition_sha256":opened[SOURCE_REF].to_hex(),"scenes":output,"authority_boundary":{"is_source":false,"is_canon":false,"is_semantic_truth":false,"is_rights_clearance":false,"note":"This projection joins explicit owner routes for inspection. The referenced source, review, canon, and rights surfaces retain authority."}});
-    validate_payload(root, &payload)?;
+    validate_payload(root, &payload, deadline)?;
     capture.verify_inputs(limits)?;
     for (reference, digest) in opened {
-        let raw = read(root, &reference)?;
+        let raw = read(root, &reference, deadline)?;
         capture.charge_work(raw.len() as u64)?;
         if Digest256::of_bytes(&raw) != digest {
             return Err(Error::Invalid("Evidence Lens source changed during build"));
         }
     }
-    rendered(&payload)
+    guard(deadline)?;
+    rendered(&payload, deadline)
 }
 
 /// Read-only parity check shared by maintained check and validator commands.
@@ -342,10 +357,10 @@ pub fn check(
     deadline: Instant,
 ) -> Result<()> {
     let expected = build(root, staging, limits, deadline)?;
-    if read(root, PROJECTION_REF)? != expected {
+    if read(root, PROJECTION_REF, deadline)? != expected {
         return Err(err(format!("{PROJECTION_REF} is out of date")));
     }
-    Ok(())
+    guard(deadline)
 }
 
 #[cfg(test)]
@@ -444,5 +459,7 @@ mod tests {
         source["scenes"][0]["selections"][0]["item_ids"] = value!(["absent"]);
         write_source(root, &source);
         assert!(candidate(root, "unknown.sqlite").is_err());
+        assert!(build(root, &root.join("expired.sqlite"), limits(), Instant::now()).is_err());
+        assert!(!root.join("expired.sqlite").exists());
     }
 }

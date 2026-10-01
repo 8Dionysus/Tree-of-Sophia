@@ -61,6 +61,9 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
         }
         let rendered = epistemic_evidence::build(&root, &staging, limits, deadline)
             .map_err(|e| e.to_string())?;
+        if Instant::now() >= deadline {
+            return Err("Evidence Lens deadline".into());
+        }
         // Fresh explicit output leaves authoritative checked-in projection intact.
         use std::io::Write as _;
         let mut file = fs::OpenOptions::new()
@@ -71,12 +74,24 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
         file.write_all(&rendered)
             .and_then(|_| file.sync_all())
             .map_err(|e| e.to_string())?;
-        writeln!(stdout, "[ok] wrote ToS Evidence Lens projection").map_err(|e| e.to_string())
+        if Instant::now() >= deadline {
+            return Err(
+                "Evidence Lens deadline after output sync; fresh output is not accepted".into(),
+            );
+        }
+        writeln!(stdout, "[ok] wrote ToS Evidence Lens projection").map_err(|e| e.to_string())?;
+        if Instant::now() >= deadline {
+            return Err("Evidence Lens deadline after receipt".into());
+        }
+        Ok(())
     } else {
         if output.is_some() {
             return Err("check/validate do not accept --output".into());
         }
         epistemic_evidence::check(&root, &staging, limits, deadline).map_err(|e| e.to_string())?;
+        if Instant::now() >= deadline {
+            return Err("Evidence Lens deadline".into());
+        }
         writeln!(
             stdout,
             "[ok] {} ToS Evidence Lens projection",
@@ -86,7 +101,11 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
                 "validated"
             }
         )
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+        if Instant::now() >= deadline {
+            return Err("Evidence Lens deadline after receipt".into());
+        }
+        Ok(())
     }
 }
 pub fn run_if_requested(
