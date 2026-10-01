@@ -390,6 +390,30 @@ fn maintained_claim_addition_whole_transaction_and_access() {
             report_object_order(&typed(&packet["baseline_semantic_report"])),
             report_object_order(&report)
         );
+        // Import the independent Python catalog through the genuine native
+        // bootstrap, which reproduces its full catalog/header before binding
+        // the native auxiliary index. Never relabel the Python projector.
+        for table in [
+            "catalog_heads",
+            "catalog_occurrences",
+            "catalog_contributors",
+            "catalog_totals",
+            "catalog_atoms",
+            "catalog_state",
+        ] {
+            tx.execute(&format!("DROP TABLE {table}"), []).unwrap();
+        }
+        let catalog_receipt =
+            tos_compiler::prepared_maintenance::bootstrap_prepared_catalog_transaction(
+                &tx,
+                &binding,
+                &catalog,
+                publication_limits,
+                catalog_limits,
+            )
+            .unwrap();
+        assert_eq!(catalog_receipt.binding, binding);
+        assert!(!catalog_receipt.publication_changed && !catalog_receipt.consumer_switched);
         tx.commit().unwrap();
     }
     // Real bounded schema worker over an actual sealed synthetic source cut.
