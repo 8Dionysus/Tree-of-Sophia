@@ -16,7 +16,7 @@ use crate::error::{Result, SegmentError, SegmentErrorCode as Code};
 use crate::generation::PlacementGenerationRowV1;
 use crate::placement::PlacementV1;
 use crate::selected::check;
-use crate::store::{ImmutableBlobInstallV1, SegmentStore};
+use crate::store::{ImmutableBlobInstallV1, PinDirectoryLease, SegmentStore};
 
 const NODE_MAGIC: &[u8; 8] = b"TOSATN1\0";
 const DESCRIPTOR_MAGIC: &[u8; 8] = b"TOSATD1\0";
@@ -429,7 +429,7 @@ pub struct AuthenticatedTreeRowStreamV1 {
     store: SegmentStore,
     descriptor: AuthenticatedTreeDescriptorV1,
     limits: AuthenticatedTreeLimitsV1,
-    _pin_lock: Arc<std::fs::File>,
+    _pin_lock: Arc<PinDirectoryLease>,
     stack: Vec<StreamFrame>,
     started: bool,
     observed: u64,
@@ -569,7 +569,7 @@ pub struct AuthenticatedTreeRowStreamV2 {
     store: SegmentStore,
     descriptor: AuthenticatedTreeDescriptorV2,
     limits: AuthenticatedTreeLimitsV1,
-    _pin_lock: Arc<std::fs::File>,
+    _pin_lock: Arc<PinDirectoryLease>,
     stack: Vec<StreamFrameV2>,
     started: bool,
     observed: u64,
