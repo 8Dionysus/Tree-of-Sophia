@@ -3,30 +3,298 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 from pathlib import Path
 from threading import Lock
-from typing import Any
+from types import SimpleNamespace
+from typing import TYPE_CHECKING, Any
 
-from .core import ToSAccessCore
+if TYPE_CHECKING:
+    from .core import ToSAccessCore
 
 
 LOGGER = logging.getLogger(__name__)
 DEFAULT_HTTP_PORT = 5429
 
 
-def _run_server(server: Any) -> None:
+def _native_wire_bytes(value):
+    # JSON permits lone UTF-16 surrogates. Preserve ordinary UTF-8 byte costs,
+    # escaping only those code units rather than changing normal Unicode text.
+    return json.dumps(value, ensure_ascii=False, allow_nan=False,
+                      separators=(",", ":")).encode("utf-8", "backslashreplace")
+
+
+def _transport_options() -> tuple[str, str | None, int | None]:
     transport = os.environ.get("TOS_MCP_TRANSPORT") or os.environ.get("AOA_MCP_TRANSPORT", "stdio").strip() or "stdio"
     if transport == "stdio":
-        server.run(transport="stdio")
-        return
+        return transport, None, None
     if transport != "streamable-http":
         raise SystemExit(f"unsupported AOA_MCP_TRANSPORT: {transport}")
     host = os.environ.get("TOS_MCP_HOST") or os.environ.get("AOA_MCP_HOST", "127.0.0.1").strip()
     if host not in {"127.0.0.1", "localhost", "::1"}:
         raise SystemExit("AOA_MCP_HOST must remain loopback-only")
-    server.settings.host = host
-    server.settings.port = int(os.environ.get("TOS_MCP_PORT") or os.environ.get("AOA_MCP_PORT", DEFAULT_HTTP_PORT))
-    server.run(transport="streamable-http")
+    port = int(os.environ.get("TOS_MCP_PORT") or os.environ.get("AOA_MCP_PORT", DEFAULT_HTTP_PORT))
+    if not 0 <= port <= 65535:
+        raise SystemExit("AOA_MCP_PORT must be a valid local TCP port")
+    return transport, host, port
+
+
+def _run_server(server: Any) -> None:
+    transport, host, port = _transport_options()
+    if transport == "streamable-http":
+        server.settings.host = host
+        server.settings.port = port
+    server.run(transport=transport)
+
+
+class NativeMCPServer:
+    """Imported serving caller for one explicit installed native MCP process.
+
+    Serving replaces the process through the maintained held-image association.
+    Async tool calls use one bounded child with that same explicit association;
+    reference Core/default discovery remain separate.
+    """
+
+    def __init__(self, prefix: str | Path, arguments=()):
+        self.prefix = Path(prefix)
+        if not self.prefix.is_absolute() or '..' in self.prefix.parts:
+            raise ValueError('native MCP requires an explicit absolute software prefix')
+        if (not isinstance(arguments, (list, tuple))
+                or any(type(value) is not str or '\0' in value for value in arguments)
+                or sum(len(value.encode('utf-8')) for value in arguments) > 1048576):
+            raise ValueError('native MCP options exceed the bounded argv contract')
+        self.arguments = tuple(arguments)
+        self.settings = SimpleNamespace(host="127.0.0.1", port=DEFAULT_HTTP_PORT)
+
+    async def list_tools(self):
+        """List only tools declared by this explicitly selected native session."""
+        return (await self._native_api("list", None)).tools
+
+    async def list_resources(self):
+        """Keep the maintained imported resource metadata result shape."""
+        return (await self._native_api("resources", None)).resources
+
+    async def list_resource_templates(self):
+        return (await self._native_api("resource_templates", None)).resourceTemplates
+
+    async def read_resource(self, uri):
+        from mcp.server.fastmcp.exceptions import ResourceError
+        from mcp.server.lowlevel.helper_types import ReadResourceContents
+        from mcp.types import TextResourceContents
+        try:
+            result = await self._native_api("read_resource", str(uri))
+            if any(not isinstance(item, TextResourceContents) for item in result.contents):
+                raise ResourceError("Native ToS resource returned an unsupported representation")
+            return [ReadResourceContents(content=item.text, mime_type=item.mimeType,
+                                         meta=item.meta) for item in result.contents]
+        except ResourceError:
+            raise
+        except Exception as error:
+            raise ResourceError(str(error)) from error
+
+    async def list_prompts(self):
+        return (await self._native_api("prompts", None)).prompts
+
+    async def get_prompt(self, name, arguments=None):
+        # FastMCP imported calls validate the Python rank type; MCP wire prompt
+        # arguments are strings. Preserve that caller coercion mechanically.
+        from pydantic import TypeAdapter
+        try:
+            if arguments is not None:
+                if type(arguments) is not dict:
+                    raise ValueError("Prompt arguments must be an object")
+                arguments = dict(arguments)
+                if name == "tos-zarathustra-word-analysis" and "rank" in arguments:
+                    arguments["rank"] = str(TypeAdapter(int).validate_python(arguments["rank"]))
+            return await self._native_api("get_prompt", (name, arguments))
+        except Exception as error:
+            raise ValueError(str(error)) from error
+
+    async def call_tool(self, name: str, arguments: dict[str, Any]):
+        """Keep the maintained imported MCP result shapes for native tools."""
+        from mcp.server.fastmcp.exceptions import ToolError
+        if type(name) is not str or not name or type(arguments) is not dict:
+            raise ToolError("Native tool call requires a name and object arguments")
+        try:
+            result = await self._native_api("call", (name, arguments))
+            if result.isError:
+                reason = " ".join(item.text for item in result.content if hasattr(item, "text"))
+                raise ToolError(reason or "Native tool refused the request")
+            if name == "tos_knowledge_search" and arguments.get("mode") == "compressed":
+                return result
+            return result.content, result.structuredContent
+        except ToolError:
+            raise
+        except Exception as error:
+            raise ToolError(f"Error executing tool {name}: {error}") from error
+
+    async def _native_api(self, operation, arguments, *, absolute_deadline=None):
+        # Existing SDK owns MCP lifecycle/types; this adapter owns the exact
+        # child and bounded JSONL I/O so cancellation cannot abandon its PID.
+        import signal
+        import math
+        import time
+        from datetime import timedelta
+        import anyio
+        # The synchronous bridge supplies a system-monotonic deadline. Public
+        # AnyIO callers retain their backend clock (including Trio clock epochs).
+        now = time.monotonic if absolute_deadline is not None else anyio.current_time
+        start = now()
+        if absolute_deadline is not None:
+            if (type(absolute_deadline) not in (int, float)
+                    or not math.isfinite(absolute_deadline)):
+                raise ValueError("Native caller deadline must be finite")
+            if absolute_deadline <= start:
+                raise TimeoutError("Native caller deadline expired before setup")
+        child_deadline = min(start + 50, absolute_deadline) if absolute_deadline is not None else start + 50
+        operation_deadline = min(start + 45, child_deadline - 5)
+        if operation_deadline <= start:
+            raise TimeoutError("Native caller has no remaining operation budget")
+        from mcp import ClientSession, types
+        from mcp.shared.message import SessionMessage
+
+        request_cap = 65_536
+        # Fixed native main profile: 1MiB packet, worst-case escaped duplicate
+        # carrier and request-sized RPC id, plus bounded framing punctuation.
+        frame_cap = 7 * 1_048_576 + 6 * request_cap + 1024
+        if arguments is not None:
+            encoded = _native_wire_bytes(arguments)
+            if len(encoded) + 256 > request_cap:
+                raise ValueError("Native MCP request exceeds the frame byte budget")
+        from . import native_dispatch
+        dispatch = Path(native_dispatch.__file__).resolve(strict=True)
+        program = (
+            "import importlib.util,sys,json;from pathlib import Path;"
+            "s=importlib.util.spec_from_file_location('native_selected_dispatch',sys.argv[1]);"
+            "m=importlib.util.module_from_spec(s);s.loader.exec_module(m);"
+            "m.run(Path(sys.argv[2]),json.loads(sys.argv[3]))"
+        )
+        child = None
+        sender, incoming = anyio.create_memory_object_stream(0)
+        outgoing, receiver = anyio.create_memory_object_stream(0)
+        try:
+            with anyio.fail_after(max(0, operation_deadline - now())):
+                child = await anyio.open_process(
+                    [sys.executable, "-B", "-c", program, str(dispatch), str(self.prefix),
+                     json.dumps([*self.arguments, "mcp"])],
+                    stderr=-3, start_new_session=True,
+                )
+                async def read_frames():
+                    pending = bytearray()
+                    async with sender:
+                        while True:
+                            try:
+                                chunk = await child.stdout.receive(65_536)
+                            except anyio.EndOfStream:
+                                if pending:
+                                    raise ValueError("Native MCP ended inside a frame")
+                                return
+                            pending.extend(chunk)
+                            while b"\n" in pending:
+                                line, _, rest = pending.partition(b"\n")
+                                if len(line) + 1 > frame_cap:
+                                    raise ValueError("Native MCP response exceeds frame budget")
+                                pending = bytearray(rest)
+                                message = types.JSONRPCMessage.model_validate_json(line)
+                                await sender.send(SessionMessage(message))
+                            if len(pending) >= frame_cap:
+                                raise ValueError("Native MCP response exceeds frame budget")
+                async def write_frames():
+                    async with receiver:
+                        async for message in receiver:
+                            raw = _native_wire_bytes(message.message.model_dump(
+                                mode="json", by_alias=True, exclude_none=True))
+                            if len(raw) + 1 > request_cap:
+                                raise ValueError("Native MCP request exceeds frame budget")
+                            await child.stdin.send(raw + b"\n")
+                async with anyio.create_task_group() as tasks:
+                    tasks.start_soon(read_frames)
+                    tasks.start_soon(write_frames)
+                    try:
+                        # Initial client wait includes one authentic software
+                        # admission30 plus the unchanged native request5.
+                        async with ClientSession(incoming, outgoing,
+                                read_timeout_seconds=timedelta(seconds=35)) as session:
+                            await session.initialize()
+                            with anyio.fail_after(min(5, operation_deadline - now())):
+                                if operation == "list":
+                                    result = await session.list_tools()
+                                elif operation == "call":
+                                    result = await session.call_tool(arguments[0], arguments[1],
+                                        read_timeout_seconds=timedelta(seconds=5))
+                                elif operation == "resources":
+                                    result = await session.list_resources()
+                                elif operation == "resource_templates":
+                                    result = await session.list_resource_templates()
+                                elif operation == "read_resource":
+                                    from pydantic import AnyUrl
+                                    result = await session.read_resource(AnyUrl(arguments))
+                                elif operation == "prompts":
+                                    result = await session.list_prompts()
+                                elif operation == "get_prompt":
+                                    result = await session.get_prompt(arguments[0], arguments[1])
+                                else:
+                                    raise ValueError("Unknown native imported API operation")
+                    finally:
+                        tasks.cancel_scope.cancel()
+        finally:
+            # No preliminary close/wait error may skip owned group termination.
+            # All grace, kill, reap and stream closure share the original50s.
+            cleanup_error = None
+            with anyio.CancelScope(shield=True):
+                try:
+                    if child is not None:
+                        try:
+                            with anyio.move_on_after(min(2, max(0, child_deadline - now()))):
+                                if child.stdin is not None:
+                                    await child.stdin.aclose()
+                                await child.wait()
+                        except Exception as error:
+                            cleanup_error = error
+                        finally:
+                            # Even an exited leader can leave owned descendants
+                            # holding pipes. This group was created for this call.
+                            try:
+                                os.killpg(child.pid, signal.SIGKILL)
+                            except ProcessLookupError:
+                                pass
+                            except OSError as error:
+                                cleanup_error = error
+                            try:
+                                remaining = max(0, child_deadline - now())
+                                with anyio.fail_after(remaining):
+                                    await child.wait()
+                                    await child.aclose()
+                            except Exception as error:
+                                cleanup_error = error
+                finally:
+                    # Memory-stream closure is synchronous and cannot spend a
+                    # fresh timeout or obstruct the unconditional kill/reap.
+                    incoming.close()
+                    outgoing.close()
+                    sender.close()
+                    receiver.close()
+            if cleanup_error is not None:
+                raise RuntimeError("Native MCP cleanup refused within absolute child deadline") from cleanup_error
+        if child.returncode != 0:
+            raise ValueError(f"Native MCP child exited {child.returncode}")
+        if now() >= child_deadline:
+            raise TimeoutError("Native MCP deadline expired before returning the result")
+        return result
+
+    def run(self, *, transport='stdio'):
+        options = []
+        if transport == 'streamable-http':
+            if self.settings.host not in {'127.0.0.1', 'localhost', '::1'}:
+                raise ValueError('native MCP HTTP must remain loopback-only')
+            if type(self.settings.port) is not int or not 0 <= self.settings.port <= 65535:
+                raise ValueError('native MCP HTTP requires a valid local TCP port')
+            options = ['--transport', 'streamable-http', '--host', self.settings.host,
+                       '--port', str(self.settings.port)]
+        elif transport != 'stdio':
+            raise ValueError('unsupported native MCP transport')
+        from .native_dispatch import run
+        return run(self.prefix, [*self.arguments, 'mcp', *options])
 
 
 def build_server(
@@ -36,7 +304,17 @@ def build_server(
     philosophy_post_planting_audit_path: str | Path | None = None,
     *,
     core: ToSAccessCore | None = None,
+    native_prefix: str | Path | None = None,
+    native_arguments: list[str] | tuple[str, ...] = (),
 ) -> Any:
+    if native_prefix is not None:
+        if core is not None or any(value is not None for value in (
+                tos_root, index_path, philosophy_graph_projection_path, philosophy_post_planting_audit_path)):
+            raise ValueError('select native software/options or a reference core/discovery paths')
+        return NativeMCPServer(native_prefix, native_arguments)
+    if native_arguments:
+        raise ValueError('native MCP options require an explicit native prefix')
+    from .core import ToSAccessCore
     if core is not None and any(value is not None for value in (
             tos_root, index_path, philosophy_graph_projection_path, philosophy_post_planting_audit_path)):
         raise ValueError("select either an existing core or MCP source discovery paths")
@@ -597,6 +875,23 @@ def build_server(
     return mcp
 
 
-def main() -> None:
+def main(arguments=None) -> None:
+    # Imported main() historically uses configured reference discovery, not
+    # the hosting application's argv. The executable module passes argv below.
+    args = list(() if arguments is None else arguments)
+    if args:
+        # Reuse the maintained explicit-prefix parser and image custody. This
+        # fixed server entry does not introduce another operation registry.
+        if not (args[0] == '--native-prefix' or args[0].startswith('--native-prefix=')):
+            raise SystemExit('native MCP module options require --native-prefix')
+        transport, host, port = _transport_options()
+        options = (['--transport', transport, '--host', host, '--port', str(port)]
+                   if transport == 'streamable-http' else [])
+        from .__main__ import main as module_main
+        return module_main([*args, 'mcp', *options])
     logging.basicConfig(level=logging.INFO)
     _run_server(build_server())
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])

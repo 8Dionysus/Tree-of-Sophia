@@ -432,6 +432,82 @@ impl DisclosureFence for RootFence {
     }
 }
 impl AccessExecutor for ReadingLocalExecutor {
+    fn concept_search(
+        &self,
+        request: tos_query::reading_search::ConceptSearchRequest,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        let roots = ExplicitReadingRoots {
+            source_root: self.selected.path.clone(),
+            analysis_root: self.selected.path.clone(),
+        };
+        let mut result = tos_query::reading_search::execute_concept_search(
+            &roots,
+            &ReadingSoftware::embedded(),
+            &request,
+            ReadingSearchBudget::local_default(),
+            Arc::clone(&probe),
+        )
+        .map_err(query_error)?;
+        let body = std::mem::take(&mut result.body);
+        let mut fence = ReadingFence {
+            result,
+            outer: Box::new(RootFence(Arc::clone(&self.selected))),
+            probe,
+        };
+        fence.recheck()?;
+        Ok(PreparedPacket {
+            body,
+            fence: Box::new(fence),
+        })
+    }
+
+    fn word_analysis_available(&self) -> bool {
+        true
+    }
+    fn word_analysis(
+        &self,
+        request: tos_query::reading_search::WordAnalysisRequest,
+        candidate: Option<&[u8]>,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        let roots = ExplicitReadingRoots {
+            source_root: self.selected.path.clone(),
+            analysis_root: self.selected.path.clone(),
+        };
+        let software = ReadingSoftware::embedded();
+        let budget = ReadingSearchBudget::local_default();
+        let mut result = match candidate {
+            Some(bytes) => tos_query::reading_search::validate_word_analysis_candidate(
+                &roots,
+                &software,
+                &request,
+                bytes,
+                budget,
+                Arc::clone(&probe),
+            ),
+            None => tos_query::reading_search::execute_word_analysis_task(
+                &roots,
+                &software,
+                &request,
+                budget,
+                Arc::clone(&probe),
+            ),
+        }
+        .map_err(query_error)?;
+        let body = std::mem::take(&mut result.body);
+        let mut fence = ReadingFence {
+            result,
+            outer: Box::new(RootFence(Arc::clone(&self.selected))),
+            probe,
+        };
+        fence.recheck()?;
+        Ok(PreparedPacket {
+            body,
+            fence: Box::new(fence),
+        })
+    }
+
     fn source_descend_available(&self) -> bool {
         false
     }
@@ -468,4 +544,17 @@ impl AccessExecutor for ReadingLocalExecutor {
             probe,
         )
     }
+}
+
+/// The existing public-bundle capability excludes the local source provider.
+/// Query parameters cannot convert this software posture into source access.
+pub(crate) fn public_word_analysis_capability(cap: usize) -> Result<Vec<u8>, crate::AccessError> {
+    let raw = r#"{"schema":"tos_zarathustra_word_analysis_capability_v1","available":false,"reason":"local source-bound word-analysis provider is excluded from the public bundle","provider_ref":"scripts/prepare_zarathustra_word_analysis_v1.py","publication_posture":"excluded_from_public_bundle","task":null,"authority":{"source_owner":"Tree-of-Sophia","access_plane_is_source":false,"is_semantic_truth":false,"writes_to_tree":false,"reviewed":false,"canon":false}}"#;
+    if raw.len() > cap {
+        return Err(crate::AccessError::new(
+            crate::AccessErrorCode::BudgetExceeded,
+            "word-analysis capability response budget",
+        ));
+    }
+    Ok(raw.as_bytes().to_vec())
 }

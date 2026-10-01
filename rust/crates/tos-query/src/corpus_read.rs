@@ -34,6 +34,7 @@ pub struct CorpusReadBudget {
 pub enum CorpusReadRequest {
     Status,
     Summary,
+    GraphViews,
     Search {
         query: String,
         limit: usize,
@@ -65,6 +66,7 @@ impl CorpusReadRequest {
         match self {
             Self::Status => "tos_corpus_status",
             Self::Summary => "tos_corpus_summary",
+            Self::GraphViews => "tos_corpus_graph_views",
             Self::Search { .. } => "tos_corpus_search",
             Self::Resources { .. } => "tos_corpus_resources",
             Self::Node { .. } => "tos_corpus_node",
@@ -81,7 +83,7 @@ impl CorpusReadRequest {
         let string = |s: &str| s.len() <= budget.inspect.max_field_bytes;
         let optional = |s: &Option<String>| s.as_deref().is_none_or(string);
         let valid = match self {
-            Self::Status | Self::Summary => true,
+            Self::Status | Self::Summary | Self::GraphViews => true,
             Self::Search {
                 query,
                 limit,
@@ -640,6 +642,13 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> CorpusRead<'_, '_, '_, A
                 let views = self.views()?;
                 Ok(self.status(&views))
             }
+            CorpusReadRequest::GraphViews => {
+                let views = self.views()?;
+                Ok(object(vec![
+                    ("schema", text("tos_corpus_mcp_graph_views_v1")),
+                    ("graph_views", array(views)),
+                ]))
+            }
             CorpusReadRequest::Summary => {
                 let views = self.views()?;
                 let branches = self.rows(Collection::Branches, Selector::All, None)?;
@@ -845,4 +854,37 @@ pub fn execute_selected_corpus_view_ids<'hold, A: InspectCurrentAuthority<'hold>
             Ok(object(vec![("graph_views", array(views))]))
         },
     )
+}
+
+/// The existing route-graph kernel under the same cumulative selected Reader.
+pub(crate) fn graph_for_evidence<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
+    read: &mut Reader<'_, '_, A>,
+    bound: &BoundCmpKnowledge<'_>,
+    context: &CorpusReadContext,
+    remaining: u64,
+) -> Result<(JsonValue, u64), SearchV2Error> {
+    let receipt = bound_original_receipt(read, bound)?;
+    let (ordinal, header) = read
+        .corpus_row(&receipt, Collection::Header, &Selector::All, None)?
+        .ok_or_else(|| {
+            fail(
+                SearchV2ErrorCode::CorruptSelectedCarrier,
+                "selected corpus header absent",
+            )
+        })?;
+    if ordinal != 0 || header.as_object().is_none() {
+        return Err(fail(
+            SearchV2ErrorCode::CorruptSelectedCarrier,
+            "selected corpus header invalid",
+        ));
+    }
+    let mut corpus = CorpusRead {
+        read,
+        receipt,
+        header,
+        context,
+        remaining,
+    };
+    let graph = corpus.graph_view("route-graph", 1000)?;
+    Ok((graph, corpus.remaining))
 }

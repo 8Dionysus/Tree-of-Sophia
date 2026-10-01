@@ -1,6 +1,10 @@
 //! MCP 2025-11-25 stdio framing and lifecycle for registered native tools.
 
-use std::io::{self, BufRead, Write};
+use std::{
+    io::{self, BufRead, Write},
+    sync::Arc,
+};
+use tos_query::AbortProbe;
 
 use tos_foundation::{JsonMode, JsonNumberKind, JsonValue, parse_json};
 
@@ -49,17 +53,31 @@ pub fn tool_result_frame_byte_bound(
     tool_result_frame_len(max_packet_bytes, escaped_text, id)
 }
 
-struct McpSession {
+// Software metadata replies carry the same absolute request probe through
+// final output too; data replies replace this with their stronger held fence.
+struct RpcProbeFence(Arc<dyn AbortProbe>);
+impl DisclosureFence for RpcProbeFence {
+    fn recheck(&mut self) -> Result<(), crate::AccessError> {
+        crate::knowledge::check_abort(&self.0)
+    }
+}
+
+pub(crate) struct McpSession {
     handshake_accepted: bool,
     initialized: bool,
     pending_initialize: bool,
     profile: AccessProfile,
     pending_fence: Option<Box<dyn DisclosureFence>>,
     pending_id: Option<Vec<u8>>,
+    pending_tool_result: bool,
+    software: Option<Arc<crate::site::SoftwareSite>>,
 }
 
 impl McpSession {
-    fn new(profile: AccessProfile) -> Self {
+    pub(crate) fn with_software(
+        profile: AccessProfile,
+        software: Option<Arc<crate::site::SoftwareSite>>,
+    ) -> Self {
         Self {
             handshake_accepted: false,
             initialized: false,
@@ -67,13 +85,29 @@ impl McpSession {
             profile,
             pending_fence: None,
             pending_id: None,
+            pending_tool_result: false,
+            software,
         }
     }
 
     fn handle_line(&mut self, executor: &dyn AccessExecutor, line: &[u8]) -> Option<Vec<u8>> {
+        self.handle_line_with_probe(executor, line, self.profile.deadline_probe())
+    }
+
+    pub(crate) fn initializing(&self) -> bool {
+        self.pending_initialize
+    }
+
+    pub(crate) fn handle_line_with_probe(
+        &mut self,
+        executor: &dyn AccessExecutor,
+        line: &[u8],
+        probe: Arc<dyn AbortProbe>,
+    ) -> Option<Vec<u8>> {
         self.pending_initialize = false;
         self.pending_fence = None;
         self.pending_id = None;
+        self.pending_tool_result = false;
         if line.len() > self.profile.max_line_bytes {
             return Some(rpc_error(b"null", -32700, "MCP frame exceeds byte budget"));
         }
@@ -130,14 +164,75 @@ impl McpSession {
                 return Some(rpc_error(&id, -32602, "Unsupported MCP protocol version"));
             }
             self.pending_initialize = true;
-            return Some(rpc_result(&id, br#"{"protocolVersion":"2025-11-25","capabilities":{"tools":{"listChanged":false}},"serverInfo":{"name":"tree-of-sophia","version":"0.0.0"}}"#));
+            return Some(rpc_result(&id, br#"{"protocolVersion":"2025-11-25","capabilities":{"tools":{"listChanged":false},"resources":{"subscribe":false,"listChanged":false},"prompts":{"listChanged":false}},"serverInfo":{"name":"tree-of-sophia","version":"0.0.0"}}"#));
         }
         if !self.initialized {
             return Some(rpc_error(&id, -32002, "MCP session is not initialized"));
         }
+        self.pending_fence = Some(Box::new(RpcProbeFence(Arc::clone(&probe))));
         match method {
             "ping" => Some(rpc_result(&id, b"{}")),
-            "tools/list" => match mcp_tool_list(executor) {
+            "resources/list" => Some(rpc_result(&id, &crate::mcp_resources::list(false))),
+            "resources/templates/list" => Some(rpc_result(&id, &crate::mcp_resources::list(true))),
+            "prompts/list" => Some(rpc_result(&id, &crate::mcp_prompts::list())),
+            "prompts/get" => match crate::knowledge::check_abort(&probe)
+                .and_then(|_| {
+                    crate::mcp_prompts::get(
+                        value.object_get("params"),
+                        self.profile.max_response_bytes,
+                    )
+                })
+                .and_then(|body| {
+                    crate::knowledge::check_abort(&probe)?;
+                    Ok(body)
+                }) {
+                Ok(body) => Some(rpc_result(&id, &body)),
+                Err(error) => Some(rpc_error(&id, -32602, error.message)),
+            },
+            "resources/read" => {
+                let uri = match crate::mcp_resources::uri(value.object_get("params")) {
+                    Ok(uri) => uri,
+                    Err(error) => return Some(rpc_error(&id, -32602, error.message)),
+                };
+                let result = checked_execute(probe, |probe| {
+                    let request = crate::mcp_resources::request(uri, self.profile)?;
+                    executor.knowledge(request, probe)
+                })
+                .and_then(|packet| {
+                    if packet.body.len() > self.profile.max_response_bytes {
+                        return Err(crate::AccessError::new(
+                            crate::AccessErrorCode::BudgetExceeded,
+                            "resource packet exceeds byte budget",
+                        ));
+                    }
+                    validate_packet(&packet.body, self.profile.max_response_bytes)?;
+                    Ok(packet)
+                });
+                match result {
+                    Ok(packet) => {
+                        let text = match std::str::from_utf8(&packet.body) {
+                            Ok(text) => text,
+                            Err(_) => {
+                                return Some(rpc_error(
+                                    &id,
+                                    -32603,
+                                    "Resource packet is not UTF-8",
+                                ));
+                            }
+                        };
+                        match crate::mcp_resources::contents(uri, text, id.len(), self.profile) {
+                            Ok(body) => {
+                                self.pending_fence = Some(packet.fence);
+                                self.pending_id = Some(id.clone());
+                                Some(rpc_result(&id, &body))
+                            }
+                            Err(error) => Some(rpc_error(&id, -32603, error.message)),
+                        }
+                    }
+                    Err(error) => Some(rpc_error(&id, -32000, error.message)),
+                }
+            }
+            "tools/list" => match mcp_tool_list(executor, self.software.is_some()) {
                 Ok(list) => Some(rpc_result(&id, &list)),
                 Err(_) => Some(rpc_error(
                     &id,
@@ -146,6 +241,7 @@ impl McpSession {
                 )),
             },
             "tools/call" => {
+                self.pending_tool_result = true;
                 let params = value.object_get("params");
                 let name = params
                     .and_then(|p| p.object_get("name"))
@@ -157,11 +253,32 @@ impl McpSession {
                 });
                 let available = match name {
                     Some(MCP_TOOL) => executor.source_descend_available(),
+                    Some(crate::word_analysis::MCP_TOOL) => {
+                        self.software.is_some() || executor.word_analysis_available()
+                    }
                     Some(crate::reading::MCP_TOOL) => executor.reading_search_available(),
                     Some(SEARCH_MCP_TOOL) => {
                         executor.knowledge_search_indexed_available()
                             || executor.knowledge_search_legacy_available()
                             || executor.knowledge_search_compressed_available()
+                    }
+                    Some(name)
+                        if registered_operations().ok().is_some_and(|ops| {
+                            ops.iter().any(|op| {
+                                op.mcp_tool == name
+                                    && crate::source_read::Operation::from_id(&op.operation_id)
+                                        .is_some()
+                            })
+                        }) =>
+                    {
+                        executor.source_read_available()
+                            || registered_operations().ok().is_some_and(|ops| {
+                                ops.iter().any(|op| {
+                                    op.mcp_tool == name
+                                        && crate::source_read::Operation::from_id(&op.operation_id)
+                                            .is_some_and(|o| o.software_only())
+                                })
+                            })
                     }
                     Some(name) => registered_operations()
                         .ok()
@@ -173,6 +290,24 @@ impl McpSession {
                         }),
                     None => false,
                 };
+                // A declared source operation without its selected owner has
+                // a genuine unavailable diagnostic, not an unknown tool name.
+                // Keep it absent from discovery; this grants no source access.
+                if known
+                    && !available
+                    && registered_operations().ok().is_some_and(|ops| {
+                        ops.iter().any(|op| {
+                            Some(op.mcp_tool.as_str()) == name
+                                && crate::source_read::Operation::from_id(&op.operation_id)
+                                    .is_some_and(|operation| !operation.software_only())
+                        })
+                    })
+                {
+                    return Some(tool_error(
+                        &id,
+                        "exact source reader unavailable: no selected owner",
+                    ));
+                }
                 if !known || !available {
                     return Some(rpc_error(&id, -32602, "Unknown tool"));
                 }
@@ -193,7 +328,22 @@ impl McpSession {
                 }) {
                     return Some(rpc_error(&id, -32602, "Unknown tool argument"));
                 }
-                let result = checked_execute(self.profile.deadline_probe(), |probe| match name {
+                let result = checked_execute(probe, |probe| match name {
+                    Some(crate::word_analysis::MCP_TOOL) => {
+                        if executor.word_analysis_available() {
+                            crate::word_analysis::prepare_capability(
+                                executor,
+                                arguments,
+                                self.profile,
+                                probe,
+                            )
+                        } else {
+                            self.software
+                                .as_ref()
+                                .expect("available software")
+                                .word_analysis_negative(arguments, probe, self.profile)
+                        }
+                    }
                     Some(MCP_TOOL) => Params::from_json(arguments)
                         .and_then(|request| executor.source_descend(request, probe)),
                     Some(crate::reading::MCP_TOOL) => crate::reading::from_arguments(arguments)
@@ -202,6 +352,19 @@ impl McpSession {
                     Some(SEARCH_MCP_TOOL) => {
                         crate::search::SearchRequest::from_arguments(arguments)
                             .and_then(|request| request.execute(executor, probe))
+                    }
+                    Some(_)
+                        if crate::source_read::Operation::from_id(
+                            &operation.unwrap().operation_id,
+                        )
+                        .is_some() =>
+                    {
+                        let op = crate::source_read::Operation::from_id(
+                            &operation.unwrap().operation_id,
+                        )
+                        .unwrap();
+                        crate::source_read::Request::from_arguments(op, arguments, self.profile)
+                            .and_then(|request| executor.source_read(request, probe))
                     }
                     Some(_) => crate::KnowledgeOperation::from_id(&operation.unwrap().operation_id)
                         .ok_or_else(|| {
@@ -270,6 +433,61 @@ impl McpSession {
             _ => Some(rpc_error(&id, -32601, "Method not found")),
         }
     }
+    /// Retain the same disclosure fence through transport output and final flush.
+    /// Initialize is committed only after the complete response was delivered.
+    pub(crate) fn write_reply(
+        &mut self,
+        mut frame: Vec<u8>,
+        suffix: &[u8],
+        write: impl FnOnce(&[u8]) -> io::Result<()>,
+    ) -> io::Result<()> {
+        let fence = self.pending_fence.take();
+        let mut fence = fence;
+        if let Some(current) = fence.as_mut() {
+            if let Err(error) = current.recheck() {
+                frame = if self.pending_tool_result {
+                    tool_error(self.pending_id.as_deref().unwrap_or(b"null"), error.message)
+                } else {
+                    rpc_error(
+                        self.pending_id.as_deref().unwrap_or(b"null"),
+                        -32000,
+                        error.message,
+                    )
+                };
+                fence = None;
+            }
+        }
+        if !frame
+            .len()
+            .checked_add(suffix.len())
+            .is_some_and(|bytes| bytes <= self.profile.max_mcp_frame_bytes)
+        {
+            frame = rpc_error(
+                self.pending_id.as_deref().unwrap_or(b"null"),
+                -32603,
+                "MCP response frame exceeds byte budget",
+            );
+            fence = None;
+            self.pending_initialize = false;
+            if !frame
+                .len()
+                .checked_add(suffix.len())
+                .is_some_and(|bytes| bytes <= self.profile.max_mcp_frame_bytes)
+            {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "MCP refusal frame exceeds byte budget",
+                ));
+            }
+        }
+        frame.extend_from_slice(suffix);
+        write(&frame)?;
+        if self.pending_initialize {
+            self.handshake_accepted = true;
+        }
+        drop(fence);
+        Ok(())
+    }
 }
 
 fn rpc_result(id: &[u8], result: &[u8]) -> Vec<u8> {
@@ -302,19 +520,35 @@ fn tool_error(id: &[u8], message: &str) -> Vec<u8> {
 /// Each stdio line is one UTF-8 JSON-RPC message. Process diagnostics belong
 /// on stderr; stdout carries protocol frames only.
 pub fn run_stdio(executor: &dyn AccessExecutor, profile: AccessProfile) -> io::Result<()> {
+    run_stdio_with_software(executor, profile, None)
+}
+pub fn run_stdio_with_software(
+    executor: &dyn AccessExecutor,
+    profile: AccessProfile,
+    software: Option<Arc<crate::site::SoftwareSite>>,
+) -> io::Result<()> {
     let stdin = io::stdin();
     let stdout = io::stdout();
-    run_io(stdin.lock(), stdout.lock(), executor, profile)
+    run_io_with_software(stdin.lock(), stdout.lock(), executor, profile, software)
 }
 
 /// Same protocol path over supplied streams for real byte-level client tests.
 pub fn run_io<R: BufRead, W: Write>(
+    input: R,
+    output: W,
+    executor: &dyn AccessExecutor,
+    profile: AccessProfile,
+) -> io::Result<()> {
+    run_io_with_software(input, output, executor, profile, None)
+}
+pub fn run_io_with_software<R: BufRead, W: Write>(
     mut input: R,
     mut output: W,
     executor: &dyn AccessExecutor,
     profile: AccessProfile,
+    software: Option<Arc<crate::site::SoftwareSite>>,
 ) -> io::Result<()> {
-    let mut session = McpSession::new(profile);
+    let mut session = McpSession::with_software(profile, software);
     loop {
         let mut line = Vec::new();
         let mut overflow = false;
@@ -339,48 +573,11 @@ pub fn run_io<R: BufRead, W: Write>(
         } else {
             session.handle_line(executor, &line)
         };
-        if let Some(mut frame) = response {
-            let fence = session.pending_fence.take();
-            let mut fence = fence;
-            if let Some(current) = fence.as_mut() {
-                if let Err(error) = current.recheck() {
-                    frame = tool_error(
-                        session.pending_id.as_deref().unwrap_or(b"null"),
-                        error.message,
-                    );
-                    fence = None;
-                }
-            }
-            if !frame
-                .len()
-                .checked_add(1)
-                .is_some_and(|bytes| bytes <= profile.max_mcp_frame_bytes)
-            {
-                frame = rpc_error(
-                    session.pending_id.as_deref().unwrap_or(b"null"),
-                    -32603,
-                    "MCP response frame exceeds byte budget",
-                );
-                fence = None;
-                session.pending_initialize = false;
-                if !frame
-                    .len()
-                    .checked_add(1)
-                    .is_some_and(|bytes| bytes <= profile.max_mcp_frame_bytes)
-                {
-                    return Err(io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        "MCP refusal frame exceeds byte budget",
-                    ));
-                }
-            }
-            frame.push(b'\n');
-            output.write_all(&frame)?;
-            output.flush()?;
-            if session.pending_initialize {
-                session.handshake_accepted = true;
-            }
-            drop(fence);
+        if let Some(frame) = response {
+            session.write_reply(frame, b"\n", |frame| {
+                output.write_all(frame)?;
+                output.flush()
+            })?;
         }
     }
 }

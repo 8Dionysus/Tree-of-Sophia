@@ -19,6 +19,7 @@ e2e = ["pytest>=8", "playwright>=1.40"]
 all = ["mcp>=1.27,<2", "pytest>=8"]
 
 [project.scripts]
+tos-native = "tos_access.__main__:native_main"
 tos-legacy = "tos_access.cli:main"
 
 [tool.setuptools]

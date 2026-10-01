@@ -1,6 +1,12 @@
 //! Installed software delivery. Explicit data selection cannot supply code.
 use crate::{AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence};
-use std::{fs::File, io::Read, os::unix::fs::MetadataExt, path::Path, sync::Arc};
+use std::{
+    fs::File,
+    io::Read,
+    os::unix::fs::{FileExt, MetadataExt},
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 use tos_foundation::{
     Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonString, JsonValue, RelativePath,
     parse_json,
@@ -15,6 +21,16 @@ const INDEX: &str = "<!doctype html>\n<html lang=\"ru\"><head><meta charset=\"UT
 type Identity = (u64, u64, u64, i64, i64, i64, i64);
 fn unavailable(message: &'static str) -> AccessError {
     AccessError::new(AccessErrorCode::Unavailable, message)
+}
+fn word_language(input: &str, max_input_code_points: usize) -> Result<String, AccessError> {
+    tos_foundation::python_strip_unicode16_v1(input, max_input_code_points)
+        .map(str::to_lowercase)
+        .map_err(|_| {
+            AccessError::new(
+                AccessErrorCode::InvalidRequest,
+                "word-analysis language exceeds request budget",
+            )
+        })
 }
 fn identity(file: &File) -> Result<Identity, AccessError> {
     let m = file
@@ -101,6 +117,7 @@ fn hash_file(
 /// source is the executable layout; neither cwd nor selected data is consulted.
 pub struct SoftwareSite {
     root: File,
+    root_path: PathBuf,
     manifest: JsonValue,
     manifest_file: File,
     manifest_identity: Identity,
@@ -108,7 +125,257 @@ pub struct SoftwareSite {
     executable_identity: Identity,
     required_assets: Vec<(File, String, Identity)>,
 }
+const SCHEMA_WORKER: &str = "native/bin/tos-schema-worker";
+pub(crate) const WORD_OPERATION: &str = "tos.zarathustra.word_analysis_task";
+pub(crate) const WORD_TOOL: &str = "tos_zarathustra_prepare_word_analysis";
+const WORD_PROVIDER: &str = "scripts/prepare_zarathustra_word_analysis_v1.py";
+fn missing_software_member(error: &tos_fd_open::OpenError) -> bool {
+    error.code == tos_fd_open::OpenErrorCode::Io
+        && error
+            .source
+            .as_ref()
+            .is_some_and(|source| source.kind() == std::io::ErrorKind::NotFound)
+}
+/// Pin the directory containing the first absent path component. Its identity
+/// includes change stamps, so provider installation cannot race final flush.
+struct AbsentSoftwareMember {
+    parent: File,
+    prefix: String,
+    missing: String,
+    original: Identity,
+}
+impl AbsentSoftwareMember {
+    fn verify(&self, root: &File) -> Result<(), AccessError> {
+        let mut named = tos_fd_open::reopen_directory(root)
+            .map_err(|_| unavailable("software absence root unavailable"))?;
+        for part in self.prefix.split('/').filter(|p| !p.is_empty()) {
+            named = tos_fd_open::open_directory_at(&named, Path::new(part))
+                .map_err(|_| unavailable("software absence directory changed"))?;
+        }
+        if identity(&named)? != self.original || identity(&self.parent)? != self.original {
+            return Err(unavailable("software absence directory changed"));
+        }
+        match tos_fd_open::open_regular_at(&self.parent, Path::new(&self.missing)) {
+            Err(error) if missing_software_member(&error) => Ok(()),
+            _ => Err(unavailable("software provider appeared or is unsupported")),
+        }
+    }
+}
 impl SoftwareSite {
+    fn word_provider_absence(&self) -> Result<AbsentSoftwareMember, AccessError> {
+        self.check()?;
+        if self
+            .members()?
+            .iter()
+            .any(|item| field(item, "path").ok() == Some(WORD_PROVIDER))
+        {
+            return Err(unavailable(
+                "installed private word-analysis provider requires unsupported native task kernel",
+            ));
+        }
+        let mut parent = tos_fd_open::reopen_directory(&self.root)
+            .map_err(|_| unavailable("software absence root unavailable"))?;
+        let mut prefix = String::new();
+        let mut parts = WORD_PROVIDER.split('/').peekable();
+        while let Some(part) = parts.next() {
+            let original = identity(&parent)?;
+            if parts.peek().is_none() {
+                let guard = AbsentSoftwareMember {
+                    parent,
+                    prefix,
+                    missing: part.to_owned(),
+                    original,
+                };
+                guard.verify(&self.root)?;
+                return Ok(guard);
+            }
+            match tos_fd_open::open_directory_at(&parent, Path::new(part)) {
+                Ok(next) => {
+                    if !prefix.is_empty() {
+                        prefix.push('/');
+                    }
+                    prefix.push_str(part);
+                    parent = next;
+                }
+                Err(error) if missing_software_member(&error) => {
+                    let guard = AbsentSoftwareMember {
+                        parent,
+                        prefix,
+                        missing: part.to_owned(),
+                        original,
+                    };
+                    guard.verify(&self.root)?;
+                    return Ok(guard);
+                }
+                _ => {
+                    return Err(unavailable(
+                        "installed private word-analysis provider path unsupported",
+                    ));
+                }
+            }
+        }
+        Err(unavailable("software provider path invalid"))
+    }
+    pub(crate) fn word_analysis_negative(
+        self: &Arc<Self>,
+        arguments: &JsonValue,
+        probe: Arc<dyn AbortProbe>,
+        profile: AccessProfile,
+    ) -> Result<crate::PreparedPacket<'static>, AccessError> {
+        crate::knowledge::check_abort(&probe)?;
+        let invalid = |message| AccessError::new(AccessErrorCode::InvalidRequest, message);
+        let Some(JsonValue::String(query)) = arguments.object_get("query") else {
+            return Err(invalid("word-analysis query is required"));
+        };
+        let whitespace = |unit: u16| {
+            char::from_u32(unit as u32).is_some_and(|ch| {
+                let mut b = [0; 4];
+                tos_foundation::python_strip_unicode16_v1(ch.encode_utf8(&mut b), 1)
+                    .is_ok_and(str::is_empty)
+            })
+        };
+        let query = query.units();
+        let begin = query
+            .iter()
+            .position(|u| !whitespace(*u))
+            .unwrap_or(query.len());
+        let end = query
+            .iter()
+            .rposition(|u| !whitespace(*u))
+            .map_or(begin, |i| i + 1);
+        if begin == end || char::decode_utf16(query[begin..end].iter().copied()).count() > 256 {
+            return Err(invalid(
+                "word-analysis query must contain 1 to 256 characters",
+            ));
+        }
+        let language = word_language(
+            match arguments.object_get("language") {
+                None => "ru",
+                Some(value) => value
+                    .as_str()
+                    .ok_or_else(|| invalid("word-analysis language must be a string"))?,
+            },
+            profile.max_request_bytes,
+        )?;
+        if !matches!(language.as_str(), "de" | "ru" | "en") {
+            return Err(invalid("unsupported word-analysis language"));
+        }
+        if arguments.object_get("rank").is_some_and(|v| !match v {
+            JsonValue::Bool(_) => true,
+            JsonValue::Number(n) if n.kind == tos_foundation::JsonNumberKind::Int => true,
+            JsonValue::Number(n) => n
+                .lexeme
+                .parse::<f64>()
+                .is_ok_and(|v| v.is_finite() && v.fract() == 0.0),
+            JsonValue::String(v) => v
+                .as_str()
+                .is_some_and(|v| crate::mcp_prompts::rank(v).is_ok()),
+            _ => false,
+        }) {
+            return Err(invalid("word-analysis rank must be an integer"));
+        }
+        if arguments
+            .object_get("include_semantic_neighbors")
+            .is_some_and(|v| !match v {
+                JsonValue::Bool(_) => true,
+                JsonValue::Number(n) => n.lexeme.parse::<f64>().is_ok_and(|v| v == 0.0 || v == 1.0),
+                JsonValue::String(s) => s.as_str().is_some_and(|s| {
+                    matches!(
+                        s.to_ascii_lowercase().as_str(),
+                        "0" | "1"
+                            | "off"
+                            | "on"
+                            | "f"
+                            | "t"
+                            | "false"
+                            | "true"
+                            | "n"
+                            | "y"
+                            | "no"
+                            | "yes"
+                    )
+                }),
+                _ => false,
+            })
+        {
+            return Err(invalid(
+                "word-analysis semantic-neighbor flag must be boolean",
+            ));
+        }
+        let absent = self.word_provider_absence()?;
+        let body = br#"{"schema":"tos_zarathustra_word_analysis_capability_v1","available":false,"reason":"local source-bound word-analysis provider is not installed","provider_ref":"scripts/prepare_zarathustra_word_analysis_v1.py","publication_posture":"excluded_from_public_bundle","task":null,"authority":{"source_owner":"Tree-of-Sophia","access_plane_is_source":false,"is_semantic_truth":false,"writes_to_tree":false,"reviewed":false,"canon":false}}"#.to_vec();
+        if body.len() > profile.max_response_bytes {
+            return Err(AccessError::new(
+                AccessErrorCode::BudgetExceeded,
+                "word-analysis response byte budget",
+            ));
+        }
+        let mut fence = SoftwareFence {
+            site: Arc::clone(self),
+            file: None,
+            probe,
+            holds: vec![],
+            absent: Some(absent),
+        };
+        fence.recheck()?;
+        Ok(crate::PreparedPacket {
+            body,
+            fence: Box::new(fence),
+        })
+    }
+}
+
+/// Retain this selection through the source reader's final disclosure fence.
+/// The worker launcher still owns execution and its exact-image checks.
+pub struct InstalledSchemaWorker {
+    site: Arc<SoftwareSite>,
+    file: File,
+    original: Identity,
+    path: PathBuf,
+    sha256: Digest256,
+}
+impl InstalledSchemaWorker {
+    pub(crate) fn software(&self) -> Arc<SoftwareSite> {
+        Arc::clone(&self.site)
+    }
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+    pub fn sha256(&self) -> Digest256 {
+        self.sha256
+    }
+    pub fn verify(&self) -> Result<(), AccessError> {
+        self.site.check()?;
+        let current = tos_fd_open::open_absolute_regular(&self.path, self.original.2)
+            .map_err(|_| unavailable("installed schema worker path changed"))?;
+        if identity(&self.file)? != self.original
+            || identity(&current)? != self.original
+            || identity(&child(&self.site.root, SCHEMA_WORKER)?)? != self.original
+        {
+            return Err(unavailable("installed schema worker changed"));
+        }
+        Ok(())
+    }
+}
+impl SoftwareSite {
+    /// Standalone raw binaries retain existing MCP fixture behavior without
+    /// claiming an installed provider. A recognized installed layout must verify;
+    /// integrity failures never fall back to absent software authority.
+    pub fn installed_for_mcp(probe: Arc<dyn AbortProbe>) -> Result<Option<Arc<Self>>, AccessError> {
+        let executable =
+            std::env::current_exe().map_err(|_| unavailable("installed executable unavailable"))?;
+        if executable
+            .to_str()
+            .and_then(|s| s.strip_suffix(" (deleted)"))
+            .is_some_and(|s| Path::new(s).ends_with(PROGRAM))
+        {
+            return Err(unavailable("installed software image was removed"));
+        }
+        if !executable.ends_with(PROGRAM) {
+            return Ok(None);
+        }
+        Self::open_running(&executable, probe).map(Some)
+    }
     pub fn installed(probe: Arc<dyn AbortProbe>) -> Result<Arc<Self>, AccessError> {
         let executable =
             std::env::current_exe().map_err(|_| unavailable("installed executable unavailable"))?;
@@ -265,6 +532,7 @@ impl SoftwareSite {
         }
         let mut site = Self {
             root,
+            root_path: root_path.to_owned(),
             manifest,
             manifest_file,
             manifest_identity,
@@ -326,6 +594,71 @@ impl SoftwareSite {
         }
         site.check()?;
         Ok(Arc::new(site))
+    }
+    /// Select only the installed schema worker, using the archive's existing
+    /// same-cohort proof rules. The caller supplies its admitted image cap.
+    pub fn source_schema_worker(
+        self: &Arc<Self>,
+        max_image_bytes: usize,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<InstalledSchemaWorker, AccessError> {
+        self.check()?;
+        let proof = self
+            .manifest
+            .object_get("native_commands")
+            .and_then(|roles| roles.object_get("tos-schema-worker"))
+            .ok_or_else(|| unavailable("installed schema worker proof absent"))?;
+        let access = self
+            .manifest
+            .object_get("native_access")
+            .ok_or_else(|| unavailable("installed native build proof absent"))?;
+        crate::software_archive::command_proof(proof, access)
+            .map_err(|_| unavailable("installed schema worker cohort differs"))?;
+        let declared = size(proof)?;
+        if declared > max_image_bytes {
+            return Err(AccessError::new(
+                AccessErrorCode::BudgetExceeded,
+                "installed schema worker exceeds selected image cap",
+            ));
+        }
+        let mut members = self
+            .members()?
+            .iter()
+            .filter(|item| field(item, "path").ok() == Some(SCHEMA_WORKER));
+        let member = members
+            .next()
+            .ok_or_else(|| unavailable("installed schema worker member absent"))?;
+        if members.next().is_some()
+            || size(member)? != declared
+            || field(member, "sha256")? != field(proof, "sha256")?
+        {
+            return Err(unavailable(
+                "installed schema worker member binding differs",
+            ));
+        }
+        let file = child(&self.root, SCHEMA_WORKER)?;
+        let original = identity(&file)?;
+        let sha256 = Digest256::from_hex(field(proof, "sha256")?)
+            .map_err(|_| unavailable("installed schema worker digest invalid"))?;
+        let mut header = [0u8; 64];
+        file.read_exact_at(&mut header, 0)
+            .map_err(|_| unavailable("installed schema worker header unavailable"))?;
+        if &header[..7] != b"\x7fELF\x02\x01\x01"
+            || header[18..20] != [0x3e, 0]
+            || original.2 != declared as u64
+            || hash_file(&file, declared, &probe)? != sha256
+        {
+            return Err(unavailable("installed schema worker image binding differs"));
+        }
+        let worker = InstalledSchemaWorker {
+            site: Arc::clone(self),
+            file,
+            original,
+            sha256,
+            path: self.root_path.join(SCHEMA_WORKER),
+        };
+        worker.verify()?;
+        Ok(worker)
     }
     fn members(&self) -> Result<&[JsonValue], AccessError> {
         self.manifest
@@ -429,6 +762,7 @@ impl SoftwareSite {
                 file: Some((file, path, original)),
                 probe,
                 holds: vec![],
+                absent: None,
             }),
         })
     }
@@ -438,11 +772,15 @@ struct SoftwareFence {
     file: Option<(File, String, Identity)>,
     probe: Arc<dyn AbortProbe>,
     holds: Vec<Box<dyn DisclosureFence>>,
+    absent: Option<AbsentSoftwareMember>,
 }
 impl DisclosureFence for SoftwareFence {
     fn recheck(&mut self) -> Result<(), AccessError> {
         crate::knowledge::check_abort(&self.probe)?;
         self.site.check()?;
+        if let Some(absent) = &self.absent {
+            absent.verify(&self.site.root)?;
+        }
         if let Some((file, path, original)) = &self.file {
             if identity(file)? != *original
                 || identity(&child(&self.site.root, path)?)? != *original
@@ -618,9 +956,82 @@ impl SoftwareSite {
                     file: None,
                     probe,
                     holds,
+                    absent: None,
                 }),
             },
             nonce,
         ))
+    }
+}
+
+#[cfg(test)]
+mod mcp_maintained_tests {
+    use super::*;
+    #[test]
+    fn mcp_maintained_software_absence_pins_named_directory_identity() {
+        assert_eq!(word_language("\u{001c}RU\u{001f}", 4).unwrap(), "ru");
+        assert!(word_language("\u{001c}RU\u{001f}", 3).is_err());
+        let path = std::env::temp_dir().join(format!(
+            "tos-mcp-absence-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&path).unwrap();
+        struct Cleanup(PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let _cleanup = Cleanup(path.clone());
+        let root = tos_fd_open::open_absolute_directory(&path).unwrap();
+        let parent = tos_fd_open::reopen_directory(&root).unwrap();
+        let absent = AbsentSoftwareMember {
+            original: identity(&parent).unwrap(),
+            parent,
+            prefix: String::new(),
+            missing: "scripts".into(),
+        };
+        absent.verify(&root).unwrap();
+        std::fs::create_dir(path.join("scripts")).unwrap();
+        assert!(
+            absent.verify(&root).is_err(),
+            "appearing provider directory must refuse"
+        );
+        let parent = tos_fd_open::open_directory_at(&root, Path::new("scripts")).unwrap();
+        let absent = AbsentSoftwareMember {
+            original: identity(&parent).unwrap(),
+            parent,
+            prefix: "scripts".into(),
+            missing: "prepare_zarathustra_word_analysis_v1.py".into(),
+        };
+        absent.verify(&root).unwrap();
+        std::fs::write(
+            path.join("scripts/prepare_zarathustra_word_analysis_v1.py"),
+            b"owned test bytes",
+        )
+        .unwrap();
+        assert!(
+            absent.verify(&root).is_err(),
+            "appearing provider file must refuse"
+        );
+        std::fs::remove_file(path.join("scripts/prepare_zarathustra_word_analysis_v1.py")).unwrap();
+        let parent = tos_fd_open::open_directory_at(&root, Path::new("scripts")).unwrap();
+        let absent = AbsentSoftwareMember {
+            original: identity(&parent).unwrap(),
+            parent,
+            prefix: "scripts".into(),
+            missing: "prepare_zarathustra_word_analysis_v1.py".into(),
+        };
+        absent.verify(&root).unwrap();
+        std::fs::rename(path.join("scripts"), path.join("previous")).unwrap();
+        std::fs::create_dir(path.join("scripts")).unwrap();
+        assert!(
+            absent.verify(&root).is_err(),
+            "same absent name under a substituted directory must refuse"
+        );
     }
 }

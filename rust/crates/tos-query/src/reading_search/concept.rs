@@ -255,6 +255,34 @@ pub(super) fn baseline(
     query: &str,
     r: &ReadingSearchRequest,
 ) -> Result<(Value, Vec<String>)> {
+    baseline_with_limit(read, query, r, 9_223_372_036_854_775_807)
+}
+
+/// Same verified concept selection, with the maintained caller's result-limit
+/// identity. Reading requests retain the all-matches predecessor above; word
+/// tasks select a ranked prefix while preserving total occurrence counts.
+pub(super) fn baseline_with_limit(
+    read: &mut Reader<'_>,
+    query: &str,
+    r: &ReadingSearchRequest,
+    result_limit: u64,
+) -> Result<(Value, Vec<String>)> {
+    baseline_with_limit_text(
+        read,
+        query,
+        r,
+        &result_limit.to_string(),
+        usize::try_from(result_limit).unwrap_or(usize::MAX),
+    )
+}
+
+pub(super) fn baseline_with_limit_text(
+    read: &mut Reader<'_>,
+    query: &str,
+    r: &ReadingSearchRequest,
+    result_limit: &str,
+    card_limit: usize,
+) -> Result<(Value, Vec<String>)> {
     let request_ref = r.request_ref.as_deref().unwrap_or(DEFAULT_REQUEST_REF);
     let request_raw = read.bytes(Root::Source, request_ref, false)?;
     read.validate(REQUEST_SCHEMA_REF, &request_raw)?;
@@ -506,7 +534,7 @@ pub(super) fn baseline(
     let result_id = format!(
         "tos.navigation.concept-search-result.sid-{}",
         &hash(&format!(
-            "{route_id}\n{}\n{}\nsemantic={}\nlimit=9223372036854775807",
+            "{route_id}\n{}\n{}\nsemantic={}\nlimit={result_limit}",
             r.language,
             string(&query_analysis, "normalized")?,
             if semantic { "True" } else { "False" }
@@ -519,6 +547,9 @@ pub(super) fn baseline(
         *counts
             .entry(string(occurrence, "evidence_tier")?.to_owned())
             .or_default() += 1;
+        if rank >= card_limit {
+            continue;
+        }
         let occurrence_id = string(occurrence, "occurrence_candidate_id")?;
         let exact_row = exact
             .get(string(occurrence, "existing_occurrence_ref")?)
@@ -592,6 +623,7 @@ pub(super) fn baseline(
                 {"step":"source_return","from_ref":occurrence_id,"to_ref":occurrence["existing_occurrence_ref"],"status":"exact_witness_return"}],
             "accepted":false,"review_status":"unreviewed","semantic_fact_asserted":false,"translation_truth_asserted":false,"graph_effect":false,"canon_effect":false}));
     }
+    let total_source_results = source.len();
     let result = json!({"schema_version":"tos_zarathustra_concept_search_result_v1","search_result_id":result_id,
         "query_analysis":query_analysis,"concept_search_route":{"route_id":route_id,"identity_basis_ref":identity,
             "identity_posture":"stable_navigation_identity_not_semantic_concept_identity","labels":request["labels"],"aliases":aliases,
@@ -601,7 +633,7 @@ pub(super) fn baseline(
         "provenance":{"source_manifest_ref":manifest_ref,"source_manifest_sha256":read.file_hash(Root::Source,&manifest_ref)?,
             "query_adapter_ref":CONCEPT_ADAPTER_REF,"query_adapter_sha256":read.file_hash(Root::Software,CONCEPT_ADAPTER_REF)?,
             "result_schema_ref":CONCEPT_SCHEMA_REF,"result_schema_sha256":read.file_hash(Root::Software,CONCEPT_SCHEMA_REF)?},
-        "coverage":{"total_source_results":rows.len(),"returned_source_results":rows.len(),"source_evidence_tier_counts":counts,
+        "coverage":{"total_source_results":total_source_results,"returned_source_results":rows.len(),"source_evidence_tier_counts":counts,
             "semantic_neighbors_included":semantic,"original_language":"de","russian_query_is_source_authority":false},"results":rows});
     let body = read.emit(&result)?;
     read.validate(CONCEPT_SCHEMA_REF, &body)?;

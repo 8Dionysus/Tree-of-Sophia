@@ -71,6 +71,409 @@ fn profile() -> AccessProfile {
     AccessProfile::new(65_536, 1_048_576, 65_536)
 }
 
+/// One actual HTTP connection over the production MCP socket path, using the
+/// existing transport fixture executor and shared session state.
+fn mcp_http_roundtrip(
+    executor: Arc<dyn AccessExecutor>,
+    sessions: Arc<tos_access::mcp_http::HttpSessions>,
+    method: &str,
+    body: &[u8],
+    extra: &str,
+) -> (u16, String, Vec<u8>) {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = std::thread::spawn(move || {
+        let (stream, _) = listener.accept().unwrap();
+        tos_access::mcp_http::serve_connection(stream, executor, profile(), sessions);
+    });
+    let mut client = TcpStream::connect(address).unwrap();
+    client
+        .set_read_timeout(Some(std::time::Duration::from_secs(6)))
+        .unwrap();
+    client
+        .set_write_timeout(Some(std::time::Duration::from_secs(2)))
+        .unwrap();
+    write!(client, "{method} /mcp HTTP/1.1\r\nHost: {address}\r\nAccept: application/json, text/event-stream\r\nContent-Type: application/json\r\nContent-Length: {}\r\n{extra}\r\n", body.len()).unwrap();
+    client.write_all(body).unwrap();
+    client.shutdown(Shutdown::Write).unwrap();
+    let mut raw = Vec::new();
+    client.read_to_end(&mut raw).unwrap();
+    server.join().unwrap();
+    assert!(raw.len() <= 2_097_152);
+    if raw.is_empty() {
+        return (0, String::new(), raw);
+    }
+    let split = raw.windows(4).position(|v| v == b"\r\n\r\n").unwrap();
+    let head = std::str::from_utf8(&raw[..split]).unwrap().to_owned();
+    let code = head.split_whitespace().nth(1).unwrap().parse().unwrap();
+    (code, head, raw[split + 4..].to_vec())
+}
+
+#[test]
+fn mcp_streamable_http_real_session_packets_and_transport_boundaries() {
+    let concrete = Arc::new(Synthetic {
+        allowed: true,
+        calls: Mutex::new(vec![]),
+    });
+    let executor: Arc<dyn AccessExecutor> = concrete.clone();
+    let sessions = Arc::new(tos_access::mcp_http::HttpSessions::default());
+    let initialize = br#"{"jsonrpc":"2.0","id":"init","method":"initialize","params":{"protocolVersion":"2025-11-25"}}"#;
+    let (code, head, raw) =
+        mcp_http_roundtrip(executor.clone(), sessions.clone(), "POST", initialize, "");
+    assert_eq!(code, 200);
+    let parsed = parse_json(&raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+    assert_eq!(
+        parsed
+            .root()
+            .object_get("result")
+            .unwrap()
+            .object_get("protocolVersion")
+            .unwrap()
+            .as_str(),
+        Some("2025-11-25")
+    );
+    let id = head
+        .lines()
+        .find_map(|line| line.strip_prefix("MCP-Session-Id: "))
+        .unwrap();
+    assert_eq!(id.len(), 64);
+    assert!(id.bytes().all(|v| v.is_ascii_hexdigit()));
+    let headers = format!("MCP-Session-Id: {id}\r\nMCP-Protocol-Version: 2025-11-25\r\n");
+    let notification = br#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#;
+    let (code, _, body) = mcp_http_roundtrip(
+        executor.clone(),
+        sessions.clone(),
+        "POST",
+        notification,
+        &headers,
+    );
+    assert_eq!(code, 202);
+    assert!(body.is_empty());
+    let list = br#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#;
+    let (code, _, raw) =
+        mcp_http_roundtrip(executor.clone(), sessions.clone(), "POST", list, &headers);
+    assert_eq!(code, 200);
+    assert!(
+        std::str::from_utf8(&raw)
+            .unwrap()
+            .contains("tos_source_descend")
+    );
+    let request = br#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"tos_source_descend","arguments":{"node_id":"tos.literal"}}}"#;
+    let (code, _, http_packet) = mcp_http_roundtrip(
+        executor.clone(),
+        sessions.clone(),
+        "POST",
+        request,
+        &headers,
+    );
+    assert_eq!(code, 200);
+    let mut stdio = Vec::new();
+    let mut input = initialize.to_vec();
+    input.push(b'\n');
+    input.extend(notification);
+    input.push(b'\n');
+    input.extend(request);
+    input.push(b'\n');
+    run_io(Cursor::new(input), &mut stdio, executor.as_ref(), profile()).unwrap();
+    assert_eq!(
+        http_packet,
+        stdio
+            .split(|v| *v == b'\n')
+            .filter(|v| !v.is_empty())
+            .last()
+            .unwrap()
+    );
+    assert_eq!(concrete.calls.lock().unwrap().len(), 2);
+    assert_eq!(
+        mcp_http_roundtrip(executor.clone(), sessions.clone(), "GET", b"", &headers).0,
+        405
+    );
+    assert_eq!(
+        mcp_http_roundtrip(executor.clone(), sessions.clone(), "POST", list, "").0,
+        400
+    );
+    assert_eq!(
+        mcp_http_roundtrip(
+            executor.clone(),
+            sessions.clone(),
+            "POST",
+            list,
+            "MCP-Session-Id: unknown\r\n"
+        )
+        .0,
+        404
+    );
+    assert_eq!(
+        mcp_http_roundtrip(
+            executor.clone(),
+            sessions.clone(),
+            "POST",
+            list,
+            &format!("MCP-Session-Id: {id}\r\nMCP-Protocol-Version: invalid\r\n")
+        )
+        .0,
+        400
+    );
+    assert_eq!(
+        mcp_http_roundtrip(
+            executor.clone(),
+            sessions.clone(),
+            "POST",
+            list,
+            &format!("{headers}Origin: https://foreign.example\r\n")
+        )
+        .0,
+        403
+    );
+    assert_eq!(
+        mcp_http_roundtrip(executor.clone(), sessions.clone(), "DELETE", b"", &headers).0,
+        200
+    );
+    assert_eq!(
+        mcp_http_roundtrip(executor.clone(), sessions.clone(), "POST", list, &headers).0,
+        404
+    );
+    assert_eq!(
+        mcp_http_roundtrip(executor, sessions, "GET", b"", &headers).0,
+        404
+    );
+}
+
+#[test]
+fn mcp_streamable_http_cancellation_reaches_the_held_operation() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    struct Blocking {
+        started: AtomicBool,
+    }
+    impl AccessExecutor for Blocking {
+        fn source_descend_available(&self) -> bool {
+            true
+        }
+        fn source_descend(
+            &self,
+            _: Params,
+            probe: Arc<dyn AbortProbe>,
+        ) -> Result<PreparedPacket<'static>, AccessError> {
+            self.started.store(true, Ordering::Release);
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+            while std::time::Instant::now() < deadline {
+                if probe.reason() == Some(AbortReason::Cancelled) {
+                    return Err(AccessError::new(
+                        tos_access::AccessErrorCode::Cancelled,
+                        "cancelled actual held operation",
+                    ));
+                }
+                std::thread::sleep(std::time::Duration::from_millis(1));
+            }
+            panic!("MCP cancellation did not reach active request");
+        }
+    }
+    let blocking = Arc::new(Blocking {
+        started: AtomicBool::new(false),
+    });
+    let executor: Arc<dyn AccessExecutor> = blocking.clone();
+    let sessions = Arc::new(tos_access::mcp_http::HttpSessions::default());
+    let (_,head,_)=mcp_http_roundtrip(executor.clone(),sessions.clone(),"POST",br#"{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-11-25"}}"#,"");
+    let id = head
+        .lines()
+        .find_map(|v| v.strip_prefix("MCP-Session-Id: "))
+        .unwrap();
+    let headers = format!("MCP-Session-Id: {id}\r\nMCP-Protocol-Version: 2025-11-25\r\n");
+    assert_eq!(
+        mcp_http_roundtrip(
+            executor.clone(),
+            sessions.clone(),
+            "POST",
+            br#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
+            &headers
+        )
+        .0,
+        202
+    );
+    let e = executor.clone();
+    let s = sessions.clone();
+    let h = headers.clone();
+    let pending = std::thread::spawn(move || {
+        mcp_http_roundtrip(e,s,"POST",br#"{"jsonrpc":"2.0","id":"held","method":"tools/call","params":{"name":"tos_source_descend","arguments":{"node_id":"tos.literal"}}}"#,&h)
+    });
+    let wait = std::time::Instant::now() + std::time::Duration::from_secs(1);
+    while !blocking.started.load(Ordering::Acquire) {
+        assert!(std::time::Instant::now() < wait);
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    let (code, _, raw) = mcp_http_roundtrip(
+        executor,
+        sessions,
+        "POST",
+        br#"{"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":"held"}}"#,
+        &headers,
+    );
+    assert_eq!(code, 202);
+    assert!(raw.is_empty());
+    let (code, _, raw) = pending.join().unwrap();
+    // The active executor observed cancellation; the same output probe now
+    // prevents publishing a response after the cancelled request boundary.
+    assert_eq!(code, 0);
+    assert!(raw.is_empty());
+}
+
+#[test]
+fn mcp_streamable_http_delayed_packet_and_stalled_output_share_one_deadline() {
+    use std::os::fd::AsRawFd;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::time::{Duration, Instant};
+    struct Held(Arc<AtomicBool>);
+    impl DisclosureFence for Held {
+        fn recheck(&mut self) -> Result<(), AccessError> {
+            Ok(())
+        }
+    }
+    impl Drop for Held {
+        fn drop(&mut self) {
+            self.0.store(false, Ordering::Release);
+        }
+    }
+    struct Delayed(Arc<AtomicBool>);
+    impl AccessExecutor for Delayed {
+        fn source_descend_available(&self) -> bool {
+            true
+        }
+        fn source_descend(
+            &self,
+            _: Params,
+            _: Arc<dyn AbortProbe>,
+        ) -> Result<PreparedPacket<'static>, AccessError> {
+            std::thread::sleep(Duration::from_millis(200));
+            let mut body = br#"{"padding":""#.to_vec();
+            body.extend(std::iter::repeat_n(b'x', 262_144));
+            body.extend_from_slice(br#""}"#);
+            self.0.store(true, Ordering::Release);
+            Ok(PreparedPacket {
+                body,
+                fence: Box::new(Held(self.0.clone())),
+            })
+        }
+    }
+    fn small_buffer(stream: &TcpStream, option: libc::c_int) {
+        let bytes: libc::c_int = 4096;
+        // Test-owned TCP descriptor only; shrink buffers to force real output
+        // backpressure without changing the production listener or packet cap.
+        assert_eq!(
+            unsafe {
+                libc::setsockopt(
+                    stream.as_raw_fd(),
+                    libc::SOL_SOCKET,
+                    option,
+                    (&bytes as *const libc::c_int).cast(),
+                    std::mem::size_of_val(&bytes) as libc::socklen_t,
+                )
+            },
+            0
+        );
+    }
+    let held = Arc::new(AtomicBool::new(false));
+    let executor: Arc<dyn AccessExecutor> = Arc::new(Delayed(held.clone()));
+    let sessions = Arc::new(tos_access::mcp_http::HttpSessions::default());
+    let (_,head,_)=mcp_http_roundtrip(executor.clone(),sessions.clone(),"POST",br#"{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-11-25"}}"#,"");
+    let id = head
+        .lines()
+        .find_map(|v| v.strip_prefix("MCP-Session-Id: "))
+        .unwrap();
+    let headers = format!("MCP-Session-Id: {id}\r\nMCP-Protocol-Version: 2025-11-25\r\n");
+    assert_eq!(
+        mcp_http_roundtrip(
+            executor.clone(),
+            sessions.clone(),
+            "POST",
+            br#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#,
+            &headers
+        )
+        .0,
+        202
+    );
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    let (done, finished) = std::sync::mpsc::channel();
+    let server = std::thread::spawn(move || {
+        let (stream, _) = listener.accept().unwrap();
+        small_buffer(&stream, libc::SO_SNDBUF);
+        let started = Instant::now();
+        tos_access::mcp_http::serve_connection(
+            stream,
+            executor,
+            profile().with_query_timeout(Duration::from_millis(400)),
+            sessions,
+        );
+        done.send(started.elapsed()).unwrap();
+    });
+    let mut client = TcpStream::connect(address).unwrap();
+    small_buffer(&client, libc::SO_RCVBUF);
+    client
+        .set_write_timeout(Some(Duration::from_secs(1)))
+        .unwrap();
+    let body=br#"{"jsonrpc":"2.0","id":"delayed","method":"tools/call","params":{"name":"tos_source_descend","arguments":{"node_id":"tos.literal"}}}"#;
+    write!(client,"POST /mcp HTTP/1.1\r\nHost: {address}\r\nAccept: application/json, text/event-stream\r\nContent-Type: application/json\r\nContent-Length: {}\r\n{headers}\r\n",body.len()).unwrap();
+    client.write_all(body).unwrap();
+    client.shutdown(Shutdown::Write).unwrap();
+    client
+        .set_read_timeout(Some(Duration::from_secs(1)))
+        .unwrap();
+    // Consume exactly the header, leaving the packet unread. This witnesses
+    // actual output while the disclosure fence must remain held.
+    let mut raw = Vec::new();
+    while !raw.ends_with(b"\r\n\r\n") {
+        assert!(raw.len() < 8192, "HTTP header exceeded control budget");
+        let mut byte = [0];
+        client.read_exact(&mut byte).unwrap();
+        raw.push(byte[0]);
+    }
+    assert!(
+        raw.starts_with(b"HTTP/1.1 200 OK\r\n"),
+        "control never reached actual packet output"
+    );
+    let split = raw.len();
+    let declared: usize = std::str::from_utf8(&raw)
+        .unwrap()
+        .lines()
+        .find_map(|v| v.strip_prefix("Content-Length: "))
+        .unwrap()
+        .parse()
+        .unwrap();
+    assert!(
+        declared > 262_144,
+        "control emitted a refusal instead of the large packet"
+    );
+    assert!(
+        held.load(Ordering::Acquire),
+        "fence released while output is active"
+    );
+    assert!(
+        matches!(
+            finished.try_recv(),
+            Err(std::sync::mpsc::TryRecvError::Empty)
+        ),
+        "output completed without the intended backpressure"
+    );
+    // Do not consume the body: granting output a fresh5s cannot finish this
+    // blocked connection within the same400ms request lifetime.
+    let elapsed = finished
+        .recv_timeout(Duration::from_millis(700))
+        .expect("HTTP output acquired a fresh deadline");
+    assert!(elapsed < Duration::from_millis(700));
+    assert!(
+        !held.load(Ordering::Acquire),
+        "fence not released after bounded output termination"
+    );
+    server.join().unwrap();
+    let _ = client.read_to_end(&mut raw);
+    let delimiter = raw.windows(4).position(|v| v == b"\r\n\r\n").unwrap() + 4;
+    assert_eq!(delimiter, split);
+    assert!(
+        raw.len() - delimiter < declared,
+        "stalled output delivered the complete declared HTTP body"
+    );
+}
+
 #[test]
 fn http_maps_legacy_route_defaults_and_preserves_packet() {
     let executor = Synthetic {
@@ -147,6 +550,8 @@ fn capability_requires_real_owner_selection() {
         std::collections::BTreeSet::from([
             tos_access::exploration_contracts::OPERATION.to_owned(),
             tos_access::reading::MCP_TOOL.to_owned(),
+            "tos_source_read_capabilities".to_owned(),
+            "tos_source_read_contract".to_owned(),
         ]),
         "only packaged contracts and the unavailable reading capability need no data owner"
     );
@@ -1110,6 +1515,8 @@ fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
             "TOS_PHILOSOPHY_GRAPH_PROJECTION_PATH",
             "TOS_EVIDENCE_PROJECTION_PATH",
             "TOS_BIBLIOGRAPHIC_GRAPH_PATH",
+            "TOS_ENTITY_TYPE_REGISTRY_PATH",
+            "TOS_RELATION_TYPE_REGISTRY_PATH",
             "TOS_ABYSSOS_ROOT",
         ] {
             command.env_remove(name);
@@ -1310,7 +1717,105 @@ fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
             .any(|id| id.as_str() == Some("query-store")),
         "a store file marker cannot establish native readiness"
     );
-    fs::remove_file(store).unwrap();
+    fs::remove_file(&store).unwrap();
+    // A real completed legacy store and partitioned source remain supported
+    // inputs during replacement. Compile the maintained fixture once; runtime
+    // below is exclusively the native CLI, including stale/journal refusals.
+    let setup = Command::new("python3")
+        .args([
+            "-c",
+            r#"
+import sys
+from pathlib import Path
+sys.path[:0] = [str(Path(sys.argv[1]) / 'access/src'), sys.argv[1]]
+from scripts.partitioned_projection_common import write_partitioned_payload
+from tos_access.knowledge_compile import compile_knowledge_store
+import json
+root = Path(sys.argv[2])
+for relative in (
+    'ToS/derived-exports/tos_corpus_index.min.json',
+    'ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json',
+    'ToS/derived-exports/philosophy_graph_projection.min.json',
+):
+    path = root / relative
+    value = json.loads(path.read_text())
+    if value.get('schema_version') == 'tos_source_witness_bibliographic_graph_v1':
+        value['input_digests'] = {}
+    write_partitioned_payload(path, value)
+compile_knowledge_store(root, root / 'ToS/derived-exports/runtime/knowledge.sqlite3')
+"#,
+        ])
+        .arg(repository)
+        .arg(&directory)
+        .output()
+        .unwrap();
+    assert!(
+        setup.status.success(),
+        "{}",
+        String::from_utf8_lossy(&setup.stderr)
+    );
+    let ready = run(&["verify", "--json"]);
+    let ready = parse_json(
+        &ready.stdout,
+        JsonMode::PublishedStrict,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    let rows = ready
+        .root()
+        .object_get("checks")
+        .unwrap()
+        .as_array()
+        .unwrap();
+    for id in [
+        "query-store",
+        "corpus-index-schema",
+        "philosophy-graph-schema",
+        "graph-view-materialization",
+    ] {
+        let row = rows
+            .iter()
+            .find(|row| row.object_get("check_id").unwrap().as_str() == Some(id))
+            .unwrap();
+        assert_eq!(
+            row.object_get("ok"),
+            Some(&tos_foundation::JsonValue::Bool(true)),
+            "{id}: {:?}",
+            row
+        );
+    }
+    let rejected_store = |output: std::process::Output| {
+        assert_eq!(output.status.code(), Some(1));
+        let report = parse_json(
+            &output.stdout,
+            JsonMode::PublishedStrict,
+            JsonLimits::default(),
+        )
+        .unwrap();
+        assert!(
+            report
+                .root()
+                .object_get("required_failures")
+                .unwrap()
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|id| id.as_str() == Some("query-store"))
+        );
+    };
+    let registry = directory.join("ToS/doctrine/semantic-interchange/entity-types.v1.json");
+    let original = fs::read(&registry).unwrap();
+    let mut changed = original.clone();
+    changed.push(b'\n');
+    fs::write(&registry, changed).unwrap();
+    rejected_store(run(&["doctor", "--json"]));
+    fs::write(&registry, original).unwrap();
+    let journal = store.with_file_name("knowledge.sqlite3-journal");
+    fs::write(&journal, []).unwrap();
+    rejected_store(run(&["doctor", "--json"]));
+    fs::remove_file(journal).unwrap();
+    fs::remove_file(&store).unwrap();
+    rejected_store(run(&["doctor", "--json"]));
     let graph = directory.join("ToS/derived-exports/philosophy_graph_projection.min.json");
     fs::File::create(&graph)
         .unwrap()
@@ -1335,4 +1840,224 @@ fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
             .any(|id| id.as_str() == Some("philosophy-graph-schema"))
     );
     fs::remove_dir_all(directory).unwrap();
+}
+
+// Association control only: genuine packet semantics are compared in selected_lens.
+#[test]
+fn mcp_maintained_resources_prompts_and_packet_associations() {
+    use tos_access::KnowledgeRequest as R;
+    use tos_query::philosophy_read::PhilosophyReadRequest as P;
+    let executor = KnowledgeSynthetic {
+        calls: Mutex::new(vec![]),
+        allowed: true,
+    };
+    let mut requests = String::from(
+        "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\"}}\n{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n",
+    );
+    for (id, method, params) in [
+        (1, "resources/list", "{}"),
+        (2, "resources/templates/list", "{}"),
+        (3, "prompts/list", "{}"),
+        (4, "prompts/get", r#"{"name":"tos-corpus-review"}"#),
+        (
+            5,
+            "prompts/get",
+            r#"{"name":"tos-philosophy-graph-review","arguments":{"query":"\ud800\n'","view_id":"chronology"}}"#,
+        ),
+        (
+            6,
+            "prompts/get",
+            r#"{"name":"tos-zarathustra-word-analysis","arguments":{"query":"Wille","rank":"+002.00"}}"#,
+        ),
+        (
+            7,
+            "resources/read",
+            r#"{"uri":"tos-philosophy://contracts"}"#,
+        ),
+        (8, "resources/read", r#"{"uri":"tos-philosophy://audit"}"#),
+        (
+            9,
+            "resources/read",
+            r#"{"uri":"tos-philosophy://lens/chronology"}"#,
+        ),
+        (
+            10,
+            "tools/call",
+            r#"{"name":"tos_philosophy_epistemic_packet","arguments":{"item_id":"literal%2Fid"}}"#,
+        ),
+        (
+            11,
+            "tools/call",
+            r#"{"name":"tos_philosophy_graph_packet","arguments":{"query":"q","view_id":"chronology","limit":2}}"#,
+        ),
+        (
+            12,
+            "tools/call",
+            r#"{"name":"tos_philosophy_graph_chronology_packet","arguments":{"limit":3}}"#,
+        ),
+        (
+            13,
+            "tools/call",
+            r#"{"name":"tos_evidence_lens","arguments":{"mode":"philosophy","item_id":"literal"}}"#,
+        ),
+        (
+            14,
+            "resources/read",
+            r#"{"uri":"tos-philosophy://lens/bad/segment"}"#,
+        ),
+        (
+            15,
+            "prompts/get",
+            r#"{"name":"tos-zarathustra-word-analysis","arguments":{"query":"q","rank":"1.5"}}"#,
+        ),
+        (
+            16,
+            "resources/read",
+            r#"{"uri":"tos-corpus://graph-views"}"#,
+        ),
+        (
+            17,
+            "tools/call",
+            r#"{"name":"tos_source_handle_discover","arguments":{}}"#,
+        ),
+        (
+            18,
+            "tools/call",
+            r#"{"name":"tos_source_read","arguments":{}}"#,
+        ),
+        (
+            19,
+            "tools/call",
+            r#"{"name":"tos_not_a_registered_tool","arguments":{}}"#,
+        ),
+    ] {
+        requests.push_str(&format!(
+            "{{\"jsonrpc\":\"2.0\",\"id\":{id},\"method\":\"{method}\",\"params\":{params}}}\n"
+        ));
+    }
+    let mut output = vec![];
+    run_io(
+        Cursor::new(requests),
+        &mut output,
+        &executor,
+        profile().with_query_timeout(std::time::Duration::from_secs(5)),
+    )
+    .unwrap();
+    let rows: Vec<_> = output
+        .split(|b| *b == b'\n')
+        .filter(|row| !row.is_empty())
+        .map(|raw| {
+            parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default())
+                .unwrap()
+                .into_root()
+        })
+        .collect();
+    assert_eq!(rows.len(), 20);
+    let result = |id: usize| rows[id].object_get("result").unwrap();
+    assert_eq!(
+        result(1)
+            .object_get("resources")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .len(),
+        12
+    );
+    assert_eq!(
+        result(2)
+            .object_get("resourceTemplates")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .len(),
+        5
+    );
+    assert_eq!(
+        result(3)
+            .object_get("prompts")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .len(),
+        3
+    );
+    let prompt = |id| {
+        result(id)
+            .object_get("messages")
+            .unwrap()
+            .as_array()
+            .unwrap()[0]
+            .object_get("content")
+            .unwrap()
+            .object_get("text")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_owned()
+    };
+    assert_eq!(
+        prompt(4),
+        "Use tos_corpus_status(), then tos_corpus_packet(query='', view_id='corpus-topology'). Treat Tree-of-Sophia source_refs returned by the packet as authority; treat native MCP and standalone runtime as read-only access surfaces."
+    );
+    assert!(prompt(5).contains("query=\"\\ud800\\n'\""));
+    assert!(prompt(6).contains("query='Wille', language='ru', rank=2"));
+    for id in 7..=13 {
+        assert!(rows[id].object_get("error").is_none(), "{id}");
+    }
+    for id in [14, 15] {
+        assert!(rows[id].object_get("error").is_some());
+    }
+    assert_eq!(
+        result(7)
+            .object_get("contents")
+            .unwrap()
+            .as_array()
+            .unwrap()[0]
+            .object_get("mimeType")
+            .unwrap()
+            .as_str(),
+        Some("text/plain")
+    );
+    for id in [17, 18] {
+        let packet = result(id);
+        assert_eq!(
+            packet.object_get("isError").and_then(JsonValue::as_bool),
+            Some(true)
+        );
+        let content = packet.object_get("content").unwrap().as_array().unwrap();
+        assert_eq!(
+            content[0].object_get("text").and_then(JsonValue::as_str),
+            Some("exact source reader unavailable: no selected owner")
+        );
+        assert!(packet.object_get("structuredContent").is_none());
+    }
+    assert_eq!(
+        rows[19]
+            .object_get("error")
+            .unwrap()
+            .object_get("message")
+            .and_then(JsonValue::as_str),
+        Some("Unknown tool")
+    );
+    let calls = executor.calls.lock().unwrap();
+    assert_eq!(calls.len(), 8);
+    assert!(matches!(&calls[0], R::Philosophy(P::Contracts)));
+    assert!(matches!(&calls[1], R::PhilosophyAudit));
+    assert!(
+        matches!(&calls[2], R::Philosophy(P::LensPacket{view_id,limit:20}) if view_id=="chronology")
+    );
+    assert!(
+        matches!(&calls[3], R::Philosophy(P::Epistemic{item_id,view_id:None,limit:80}) if item_id=="literal%2Fid")
+    );
+    assert!(
+        matches!(&calls[4], R::Philosophy(P::Packet{query,view_id:Some(view),limit:2}) if query=="q" && view=="chronology")
+    );
+    assert!(
+        matches!(&calls[5], R::Philosophy(P::LensPacket{view_id,limit:3}) if view_id=="chronology")
+    );
+    assert!(matches!(&calls[6], R::EvidenceLens(_)));
+    assert!(matches!(
+        &calls[7],
+        R::Corpus(tos_query::corpus_read::CorpusReadRequest::GraphViews)
+    ));
 }

@@ -103,7 +103,10 @@ pub fn registered_operations() -> Result<&'static [RegisteredOperation], AccessE
                     .and_then(JsonValue::as_str);
                 let known = op.is_some_and(|id| {
                     id == OPERATION_ID
+                        || id == crate::site::WORD_OPERATION
+                        || crate::source_read::Operation::from_id(id).is_some()
                         || id == crate::reading::OPERATION_ID
+                        || id == crate::word_analysis::OPERATION_ID
                         || id == SEARCH_OPERATION_ID
                         || crate::knowledge::KnowledgeOperation::from_id(id).is_some()
                 });
@@ -142,7 +145,10 @@ pub fn registered_operations() -> Result<&'static [RegisteredOperation], AccessE
         .map_err(Clone::clone)
 }
 
-pub(crate) fn mcp_tool_list(executor: &dyn AccessExecutor) -> Result<Vec<u8>, AccessError> {
+pub(crate) fn mcp_tool_list(
+    executor: &dyn AccessExecutor,
+    software: bool,
+) -> Result<Vec<u8>, AccessError> {
     let operations = registered_operations()?;
     let string = |text: &str| JsonValue::String(JsonString::from_utf8(text));
     let object = |fields: Vec<(&str, JsonValue)>| {
@@ -156,12 +162,17 @@ pub(crate) fn mcp_tool_list(executor: &dyn AccessExecutor) -> Result<Vec<u8>, Ac
     let tools = operations
         .iter()
         .filter(|operation| match operation.operation_id.as_str() {
+            crate::site::WORD_OPERATION => software || executor.word_analysis_available(),
             OPERATION_ID => executor.source_descend_available(),
             crate::reading::OPERATION_ID => executor.reading_search_available(),
             SEARCH_OPERATION_ID => {
                 executor.knowledge_search_indexed_available()
                     || executor.knowledge_search_legacy_available()
                     || executor.knowledge_search_compressed_available()
+            }
+            id if crate::source_read::Operation::from_id(id).is_some() => {
+                crate::source_read::Operation::from_id(id).is_some_and(|op| op.software_only())
+                    || executor.source_read_available()
             }
             id => crate::knowledge::KnowledgeOperation::from_id(id).is_some_and(|op| {
                 op == crate::KnowledgeOperation::ExplorationContracts
@@ -546,6 +557,20 @@ impl AccessExecutor for NoOwner {
 }
 
 pub trait AccessExecutor: Send + Sync {
+    /// Reuse admitted software custody; selected data cannot supply code.
+    fn installed_software(&self) -> Option<Arc<crate::site::SoftwareSite>> {
+        None
+    }
+    fn source_read_available(&self) -> bool {
+        false
+    }
+    fn source_read(
+        &self,
+        request: crate::source_read::Request,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        crate::source_read::software_packet(request.operation, probe)
+    }
     /// Only true when a sealed source cut, verified selected model, live source
     /// policy, pre-disclosure fence and QRY progress-abort probe are installed.
     fn source_descend_available(&self) -> bool;
@@ -623,6 +648,30 @@ pub trait AccessExecutor: Send + Sync {
         probe: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket<'static>, AccessError> {
         crate::reading::unavailable_packet(probe)
+    }
+    fn concept_search(
+        &self,
+        _: tos_query::reading_search::ConceptSearchRequest,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        Err(AccessError::new(
+            AccessErrorCode::Unavailable,
+            "local concept-search data root is not selected",
+        ))
+    }
+    fn word_analysis_available(&self) -> bool {
+        false
+    }
+    fn word_analysis(
+        &self,
+        _: tos_query::reading_search::WordAnalysisRequest,
+        _: Option<&[u8]>,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        Err(AccessError::new(
+            AccessErrorCode::Unavailable,
+            "private word-analysis data root is not selected",
+        ))
     }
     fn knowledge_available(&self, _: crate::knowledge::KnowledgeOperation) -> bool {
         false

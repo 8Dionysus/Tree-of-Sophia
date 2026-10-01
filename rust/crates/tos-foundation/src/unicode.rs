@@ -167,6 +167,13 @@ fn is_python_whitespace(ch: char) -> bool {
         '\u{2028}' | '\u{2029}' | '\u{202f}' | '\u{205f}' | '\u{3000}')
 }
 
+/// Python Unicode `\d`/`isdecimal` category, using the pinned Unicode 16 data.
+/// Numeric letters and superscripts are not decimal digits.
+pub fn python_decimal_unicode16_v1(ch: char) -> bool {
+    use unicode_general_category::{GeneralCategory, get_general_category};
+    matches!(get_general_category(ch), GeneralCategory::DecimalNumber)
+}
+
 /// Python 3.14/Unicode 16 printable scalar predicate used by string repr.
 /// CPython excludes separator and other categories except ASCII space.
 pub fn python_printable_unicode16_v1(ch: char) -> bool {

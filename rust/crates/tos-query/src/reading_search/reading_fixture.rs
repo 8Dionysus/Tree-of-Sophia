@@ -16,6 +16,7 @@ impl AbortProbe for NoAbort {
 pub struct ReadingFixture {
     pub root: PathBuf,
     pub roots: ExplicitReadingRoots,
+    retained_for_consumers: bool,
 }
 const CONCEPT_ROUTE: &str = "ToS/candidate-intake/zarathustra/concept-workbench-v1";
 const PRIVATE: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/local-content/concept-workbench-v1";
@@ -291,8 +292,240 @@ impl ReadingFixture {
             "inputs":[{"ref":"policy.json","sha256":sha(&source.join("policy.json")),"role":"source_visible_voice_policy"}],
             "artifacts":[{"ref":"companion.json","sha256":sha(&analysis.join("companion.json"))}],
             "accepted":false,"human_review":false,"canon_effect":false,"publication_posture":"excluded_from_public_bundle"})).unwrap(),false);
-        Self { root, roots }
+        Self {
+            root,
+            roots,
+            retained_for_consumers: false,
+        }
     }
+    /// Give the existing disposable source members task/request IDs admitted
+    /// by the strict WordAnalysis schema, then re-seal their exact fixity.
+    /// Used by QRY and actual CLI controls; this grants no source admission.
+    pub fn with_word_analysis(self) -> Self {
+        let fixture = self;
+        let source = &fixture.roots.source_root;
+        let manifest_ref = std::path::Path::new(DEFAULT_REQUEST_REF)
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("manifest.v1.json");
+        let manifest_path = source.join(manifest_ref);
+        let mut manifest: Value =
+            serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+        let artifact = |suffix: &str| {
+            manifest["artifacts"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|row| row["ref"].as_str().unwrap())
+                .find(|reference| reference.ends_with(suffix))
+                .unwrap()
+                .to_owned()
+        };
+        let concept_path = source.join(artifact("/concept-candidate.v1.json"));
+        let occurrences_path = source.join(artifact("/occurrence-spine.v1.jsonl"));
+        let tasks_path = source.join(artifact("/english-on-demand-worklist.v1.jsonl"));
+        let mut concept: Value = serde_json::from_slice(&fs::read(&concept_path).unwrap()).unwrap();
+        concept["request_id"] = json!(format!(
+            "tos.annotation.concept-request.sid-{}",
+            &hash("word-analysis synthetic existing reading fixture request")[..32]
+        ));
+        fs::write(&concept_path, serde_json::to_vec(&concept).unwrap()).unwrap();
+        // The existing fixture has three occurrence rows but only the first task.
+        // Supply schema-shaped task IDs for these exact existing refs, including
+        // rank two; do not invent another source or duplicate the query engine.
+        let tasks = fs::read_to_string(occurrences_path)
+            .unwrap()
+            .lines()
+            .map(|line| {
+                let occurrence: Value = serde_json::from_str(line).unwrap();
+                let source_ref = occurrence["occurrence_candidate_id"].as_str().unwrap();
+                let task = json!({
+                    "source_occurrence_ref": source_ref,
+                    "english_task_id": format!(
+                        "tos.annotation.english-translation-task.sid-{}",
+                        &hash(source_ref)[..32]
+                    )
+                });
+                serde_json::to_string(&task).unwrap() + "\n"
+            })
+            .collect::<String>();
+        fs::write(tasks_path, tasks).unwrap();
+        // Re-seal the fixture's own exact membership rather than disabling fixity
+        // or substituting a permissive schema. No private DB bytes were changed.
+        for field in ["artifacts", "private_artifacts"] {
+            for row in manifest[field].as_array_mut().unwrap() {
+                row["sha256"] = json!(sha(&source.join(row["ref"].as_str().unwrap())));
+            }
+        }
+        fs::write(manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+        fixture
+    }
+
+    /// Opt-in disposition of this SAME successful synthetic fixture. The
+    /// receipt remains provisional until its owning native test is accepted.
+    /// No copied source, new producer, public rights or semantic authority.
+    pub fn retain_word_for_consumers(
+        &mut self,
+        receipt: &std::path::Path,
+        task_raw: &[u8],
+        deadline: std::time::Instant,
+    ) {
+        use std::io::{Read, Seek, SeekFrom, Write};
+        use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+        use std::path::Path;
+        const LOGICAL_CAP: u64 = 1_048_576;
+        const ALLOCATED_CAP: u64 = 4_194_304;
+        const RECEIPT_CAP: usize = 65_536;
+        // This native fixture target is Linux-only, as its existing unix modes.
+        const O_NOFOLLOW: i32 = 0o400000;
+        const O_NONBLOCK: i32 = 0o4000;
+        fn stamp(m: &fs::Metadata) -> Value {
+            json!([
+                m.dev(),
+                m.ino(),
+                m.uid(),
+                m.mode(),
+                m.len(),
+                m.mtime(),
+                m.mtime_nsec(),
+                m.ctime(),
+                m.ctime_nsec()
+            ])
+        }
+        fn fresh(path: &Path, raw: &[u8], deadline: std::time::Instant) -> Value {
+            assert!(std::time::Instant::now() < deadline);
+            let mut held = fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create_new(true)
+                .mode(0o600)
+                .open(path)
+                .unwrap();
+            held.write_all(raw).unwrap();
+            held.flush().unwrap();
+            let identity = stamp(&held.metadata().unwrap());
+            assert_eq!(identity, stamp(&fs::symlink_metadata(path).unwrap()));
+            held.seek(SeekFrom::Start(0)).unwrap();
+            let mut observed = Vec::new();
+            (&mut held)
+                .take(raw.len() as u64 + 1)
+                .read_to_end(&mut observed)
+                .unwrap();
+            assert_eq!(observed, raw);
+            assert_eq!(identity, stamp(&held.metadata().unwrap()));
+            assert_eq!(identity, stamp(&fs::symlink_metadata(path).unwrap()));
+            assert!(std::time::Instant::now() < deadline);
+            identity
+        }
+        fn census(root: &Path, deadline: std::time::Instant) -> (Value, u64, u64) {
+            let mut pending = vec![(root.to_owned(), 0usize)];
+            let mut rows = Vec::new();
+            let mut logical = 0u64;
+            let mut allocated = 0u64;
+            let mut files = 0;
+            let mut directories = 0;
+            while let Some((path, depth)) = pending.pop() {
+                assert!(std::time::Instant::now() < deadline && depth <= 16);
+                let named = fs::symlink_metadata(&path).unwrap();
+                assert!(!named.file_type().is_symlink());
+                allocated = allocated.checked_add(named.blocks() * 512).unwrap();
+                assert!(allocated <= ALLOCATED_CAP);
+                let reference = path
+                    .strip_prefix(root)
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_owned();
+                if named.is_dir() {
+                    directories += 1;
+                    assert!(directories <= 64);
+                    let mut entries = Vec::new();
+                    for entry in fs::read_dir(&path).unwrap() {
+                        assert!(entries.len() < 128 && std::time::Instant::now() < deadline);
+                        entries.push(entry.unwrap().path());
+                    }
+                    entries.sort();
+                    pending.extend(entries.into_iter().map(|p| (p, depth + 1)));
+                    assert!(pending.len() <= 128);
+                    assert_eq!(stamp(&named), stamp(&fs::symlink_metadata(&path).unwrap()));
+                    rows.push(json!({"ref":reference,"kind":"directory","stamp":stamp(&named)}));
+                } else {
+                    files += 1;
+                    assert!(files <= 64 && named.is_file());
+                    logical = logical.checked_add(named.len()).unwrap();
+                    assert!(logical <= LOGICAL_CAP && named.len() <= LOGICAL_CAP);
+                    let mut held = fs::OpenOptions::new()
+                        .read(true)
+                        .custom_flags(O_NOFOLLOW | O_NONBLOCK)
+                        .open(&path)
+                        .unwrap();
+                    assert_eq!(stamp(&named), stamp(&held.metadata().unwrap()));
+                    let mut raw = Vec::new();
+                    (&mut held)
+                        .take(named.len() + 1)
+                        .read_to_end(&mut raw)
+                        .unwrap();
+                    assert_eq!(raw.len() as u64, named.len());
+                    assert!(std::time::Instant::now() < deadline);
+                    assert_eq!(stamp(&named), stamp(&held.metadata().unwrap()));
+                    assert_eq!(stamp(&named), stamp(&fs::symlink_metadata(&path).unwrap()));
+                    rows.push(json!({"ref":reference,"kind":"file","bytes":named.len(),
+                        "sha256":tos_foundation::Digest256::of_bytes(&raw).to_hex(),"stamp":stamp(&named)}));
+                }
+            }
+            rows.sort_by(|a, b| a["ref"].as_str().cmp(&b["ref"].as_str()));
+            (Value::Array(rows), logical, allocated)
+        }
+        assert!(std::time::Instant::now() < deadline);
+        assert!(receipt.is_absolute() && task_raw.len() <= LOGICAL_CAP as usize);
+        assert_eq!(self.root.canonicalize().unwrap(), self.root);
+        assert!(
+            self.roots.source_root.starts_with(&self.root)
+                && self.roots.analysis_root.starts_with(&self.root)
+        );
+        let parent = receipt.parent().unwrap();
+        assert_eq!(parent.canonicalize().unwrap(), parent);
+        assert!(!parent.starts_with(&self.root));
+        let parent_meta = fs::symlink_metadata(parent).unwrap();
+        assert!(parent_meta.is_dir() && parent_meta.permissions().mode() & 0o077 == 0);
+        assert_eq!(parent_meta.uid(), fs::metadata(&self.root).unwrap().uid());
+        let (members, logical, allocated) = census(&self.root, deadline);
+        let task_path = receipt.with_extension("task.json");
+        assert_ne!(task_path, receipt);
+        assert!(allocated + task_raw.len() as u64 + RECEIPT_CAP as u64 + 8192 <= ALLOCATED_CAP);
+        let task_stamp = fresh(&task_path, task_raw, deadline);
+        let packet = json!({"schema":"tos_native_word_fixture_retention_v1",
+            "status":"provisional-awaiting-parent-native-test-acceptance",
+            "fixture_kind":"synthetic-existing-reading-fixture",
+            "fixture_root":self.root,"source_root":self.roots.source_root,
+            "analysis_root":self.roots.analysis_root,"members":members,
+            "logical_bytes":logical,"fixture_allocated_bytes":allocated,
+            "task_ref":task_path,"task_stamp":task_stamp,"task_bytes":task_raw.len(),
+            "task_sha256":tos_foundation::Digest256::of_bytes(task_raw).to_hex(),
+            "query":"судьбы","language":"ru","rank":1,"include_semantic_neighbors":false,
+            "provider_origin":"matching native Access build proof; no Python provider file retained",
+            "source_guards_pre_post":true,
+            "authority":{"accepted":false,"canon_effect":false,"grants_current_use":false,
+                "public_or_local_text_unit_authority":false}});
+        let raw = serde_json::to_vec(&packet).unwrap();
+        assert!(raw.len() <= RECEIPT_CAP);
+        fresh(receipt, &raw, deadline);
+        let (after, after_logical, after_allocated) = census(&self.root, deadline);
+        assert_eq!(packet["members"], after);
+        assert_eq!(logical, after_logical);
+        assert_eq!(allocated, after_allocated);
+        assert!(
+            allocated
+                + fs::metadata(&task_path).unwrap().blocks() * 512
+                + fs::metadata(receipt).unwrap().blocks() * 512
+                <= ALLOCATED_CAP
+        );
+        assert!(std::time::Instant::now() < deadline);
+        self.retained_for_consumers = true;
+    }
+
     pub fn request(&self) -> ReadingSearchRequest {
         ReadingSearchRequest {
             query: "судьбы".to_owned(),
@@ -328,6 +561,8 @@ impl ReadingFixture {
 }
 impl Drop for ReadingFixture {
     fn drop(&mut self) {
-        fs::remove_dir_all(&self.root).unwrap();
+        if !self.retained_for_consumers {
+            fs::remove_dir_all(&self.root).unwrap();
+        }
     }
 }

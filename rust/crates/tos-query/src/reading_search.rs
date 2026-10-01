@@ -3,8 +3,15 @@
 //! software holder selects schema and semantic-adapter provenance bytes.
 //! No publication, review, translation, graph or canon authority is granted.
 mod concept;
+mod concept_query;
 mod enrich;
 mod local;
+pub use concept_query::{ConceptSearchRequest, execute_concept_search};
+mod word_analysis;
+pub use word_analysis::{
+    WordAnalysisRequest, execute_word_analysis_task, parse_word_analysis_rank,
+    validate_word_analysis_candidate,
+};
 
 use crate::{AbortProbe, AbortReason};
 use local::{Reader, array, budget_error, corrupt, hash, string};
@@ -376,3 +383,6 @@ mod controls;
 
 #[cfg(any(test, feature = "test-fixture"))]
 pub mod reading_fixture;
+
+#[cfg(test)]
+mod word_analysis_tests;

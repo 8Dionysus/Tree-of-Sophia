@@ -699,6 +699,97 @@ impl ReleaseLease {
         self.member_guards = guards.to_vec();
         self.check_hold()
     }
+    pub(crate) fn public_evidence_projection(&mut self, cap: usize) -> Result<Vec<u8>> {
+        self.check_hold()?;
+        let source = "ToS/derived-exports/epistemic_evidence_projection.min.json";
+        let path = format!("data/{source}");
+        if self
+            .release
+            .source_bindings
+            .get(RUNTIME_DATA_DECLARATION_PATH)
+            != Some(&Digest256::of_bytes(RUNTIME_DATA_DECLARATION))
+        {
+            return Err(unavailable("Evidence Lens runtime declaration differs"));
+        }
+        let (size, sha) = self.release.member_binding(&path)?;
+        if cap == 0 || size > cap as u64 {
+            return Err(AccessError::new(
+                AccessErrorCode::BudgetExceeded,
+                "Evidence Lens carrier byte budget",
+            ));
+        }
+        if self.release.source_bindings.get(source) != Some(&sha) {
+            return Err(AccessError::new(
+                AccessErrorCode::CorruptSelectedCarrier,
+                "Evidence Lens input binding differs",
+            ));
+        }
+        let before = member_identity(&child(&self.release.data, &path)?)?;
+        let raw = self.release.member_bytes(&path, cap)?;
+        if member_identity(&child(&self.release.data, &path)?)? != before {
+            return Err(unavailable("Evidence Lens carrier changed during read"));
+        }
+        self.member_guards.push(ReleaseMemberGuard {
+            path,
+            identity: before,
+        });
+        self.check_hold()?;
+        Ok(raw)
+    }
+    /// Optional audit comes only from the same owner-declared held snapshot.
+    /// Missing declared membership is an absence observation in this snapshot,
+    /// never a search of a source checkout or a fallback data root.
+    pub(crate) fn public_philosophy_audit(
+        &mut self,
+        cap: usize,
+    ) -> Result<(String, Option<Vec<u8>>)> {
+        self.check_hold()?;
+        let source =
+            "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json";
+        let path = format!("data/{source}");
+        if self
+            .release
+            .source_bindings
+            .get(RUNTIME_DATA_DECLARATION_PATH)
+            != Some(&Digest256::of_bytes(RUNTIME_DATA_DECLARATION))
+        {
+            return Err(unavailable("audit runtime declaration differs"));
+        }
+        let navigation = self
+            .release
+            .data_path
+            .join(&path)
+            .to_str()
+            .ok_or_else(|| unavailable("audit navigation path is not UTF-8"))?
+            .to_owned();
+        let Some(member) = self.release.members.get(&path) else {
+            if self.release.source_bindings.contains_key(source) {
+                return Err(unavailable("audit binding exists without declared member"));
+            }
+            self.check_hold()?;
+            return Ok((navigation, None));
+        };
+        if cap == 0 || member.size > cap as u64 {
+            return Err(AccessError::new(
+                AccessErrorCode::BudgetExceeded,
+                "audit carrier byte budget",
+            ));
+        }
+        if self.release.source_bindings.get(source) != Some(&member.digest) {
+            return Err(unavailable("audit input binding differs"));
+        }
+        let before = member_identity(&child(&self.release.data, &path)?)?;
+        let raw = self.release.member_bytes(&path, cap)?;
+        if member_identity(&child(&self.release.data, &path)?)? != before {
+            return Err(unavailable("audit carrier changed during read"));
+        }
+        self.member_guards.push(ReleaseMemberGuard {
+            path,
+            identity: before,
+        });
+        self.check_hold()?;
+        Ok((navigation, Some(raw)))
+    }
     /// Verify the complete owner-declared subset under this same release hold.
     /// The native producer keeps original source bindings and the declaration
     /// digest in the existing manifest; data/<source_path> preserves provenance.

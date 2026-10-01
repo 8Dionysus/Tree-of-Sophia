@@ -19,6 +19,15 @@ use crate::common::{
 const MAX_HEAD: usize = 8 * 1024;
 const MAX_CONCURRENT: usize = 32;
 
+// Retain the reservation in the closure itself: both unwinding a handler and
+// dropping an unstarted closure after a spawn error release the connection.
+struct ConnectionSlot(Arc<AtomicUsize>);
+impl Drop for ConnectionSlot {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::AcqRel);
+    }
+}
+
 /// Poll the already-read request socket without blocking QRY's SQLite progress
 /// callback on every VM instruction. The socket is restored to blocking mode
 /// before the response write; this probe lives only through query execution.
@@ -380,6 +389,72 @@ fn handle_get_with_probe(
         return HttpResponse::error_for_method(413, "request target too large", method);
     }
     let (path, query) = target.split_once('?').unwrap_or((target, ""));
+    if let Some(operation) = crate::source_read::Operation::http(method, path) {
+        return packet_response(
+            checked_execute(abort_probe, |probe| {
+                let request = crate::source_read::Request::from_bytes(operation, b"{}", profile)?;
+                executor.source_read(request, probe)
+            }),
+            method,
+            profile,
+        );
+    }
+    if path == "/api/zarathustra/word-analysis" && executor.word_analysis_available() {
+        use tos_foundation::JsonString;
+        let result = checked_execute(abort_probe, |probe| {
+            // Maintained parse_qs drops empty values before _single selects.
+            let value = |name| {
+                query
+                    .split('&')
+                    .find_map(|pair| query_value(pair, name).filter(|text| !text.is_empty()))
+            };
+            let string = |text: String| JsonValue::String(JsonString::from_utf8(&text));
+            let raw = value("include_semantic_neighbors").unwrap_or_else(|| "false".into());
+            let stripped =
+                tos_foundation::python_strip_unicode16_v1(&raw, profile.max_request_bytes)
+                    .map_err(|_| {
+                        AccessError::new(
+                            AccessErrorCode::InvalidRequest,
+                            "word-analysis boolean exceeds request budget",
+                        )
+                    })?;
+            let semantic = match stripped.to_ascii_lowercase().as_str() {
+                "1" | "true" | "yes" | "on" => true,
+                "0" | "false" | "no" | "off" => false,
+                _ => {
+                    return Err(AccessError::new(
+                        AccessErrorCode::InvalidRequest,
+                        "word-analysis boolean invalid",
+                    ));
+                }
+            };
+            let rank =
+                crate::word_analysis::http_rank(&value("rank").unwrap_or_else(|| "1".into()));
+            let args = JsonValue::Object(vec![
+                (
+                    JsonString::from_utf8("query"),
+                    string(value("query").unwrap_or_default()),
+                ),
+                (
+                    JsonString::from_utf8("language"),
+                    string(value("language").unwrap_or_else(|| "ru".into())),
+                ),
+                (
+                    JsonString::from_utf8("rank"),
+                    JsonValue::Number(JsonNumber {
+                        kind: JsonNumberKind::Int,
+                        lexeme: rank.to_string(),
+                    }),
+                ),
+                (
+                    JsonString::from_utf8("include_semantic_neighbors"),
+                    JsonValue::Bool(semantic),
+                ),
+            ]);
+            crate::word_analysis::prepare_capability(executor, &args, profile, probe)
+        });
+        return packet_response(result, method, profile);
+    }
     if path == crate::reading::HTTP_PATH {
         use tos_foundation::JsonString;
         let string = |s: &str| JsonValue::String(JsonString::from_utf8(s));
@@ -475,6 +550,41 @@ fn handle_get_with_probe(
             Err(error) => packet_response(Err(error), method, profile),
         };
     }
+    if path == "/api/zarathustra/word-analysis" {
+        let packet = crate::reading::public_word_analysis_capability(profile.max_response_bytes);
+        return match packet {
+            Ok(body) => HttpResponse {
+                status: 200,
+                body,
+                head_only: method == "HEAD",
+                fence: None,
+                content_type: "application/json; charset=utf-8",
+                csp_nonce: None,
+            },
+            Err(error) => packet_response(Err(error), method, profile),
+        };
+    }
+    for (prefix, mode) in [
+        ("/api/philosophy/query/epistemic/", "philosophy"),
+        ("/api/corpus/query/epistemic/", "corpus"),
+    ] {
+        if let Some(encoded) = path.strip_prefix(prefix) {
+            let request = percent_decode(encoded, false).map(|item_id| {
+                KnowledgeRequest::EvidenceLens(tos_query::philosophy_read::EvidenceRequest {
+                    mode: if mode == "philosophy" {
+                        tos_query::philosophy_read::EvidenceMode::Philosophy
+                    } else {
+                        tos_query::philosophy_read::EvidenceMode::Corpus
+                    },
+                    item_id,
+                    view_id: query_value(query, "view_id").filter(|v| !v.is_empty()),
+                    limit: bounded_legacy_int(query_value(query, "limit").as_deref(), 80, 1, 200)
+                        as usize,
+                })
+            });
+            return knowledge_response(executor, request, method, profile, abort_probe);
+        }
+    }
     if path == "/api/source-gaps" {
         let request = tos_query::source_gap::SourceGapRequest {
             query: query_value(query, "query").unwrap_or_default(),
@@ -560,7 +670,12 @@ fn handle_get_with_probe(
                     .map(|relation_id| KnowledgeRequest::Relation { relation_id }),
                 _ => continue,
             };
-            return knowledge_response(executor, request, method, profile, abort_probe);
+            let response =
+                knowledge_response(executor, request, method, profile, Arc::clone(&abort_probe));
+            if op == KnowledgeOperation::PhilosophyScaleRows {
+                return scale_export_response(response, encoded, method, profile, &abort_probe);
+            }
+            return response;
         }
     }
     let Some(encoded_id) = path.strip_prefix(HTTP_PREFIX) else {
@@ -689,6 +804,24 @@ fn handle_post_with_probe(
     if target.len() > profile.max_request_bytes || body.len() > profile.max_request_bytes {
         return HttpResponse::error(413, "query request byte cap exceeded");
     }
+    if let Some(operation) = crate::source_read::Operation::http("POST", target) {
+        return packet_response(
+            checked_execute(probe, |probe| {
+                let parsed = parse_json(body, JsonMode::RequestLastWins, profile.json_limits())
+                    .map_err(|_| {
+                        AccessError::new(
+                            AccessErrorCode::InvalidRequest,
+                            "invalid exact-source request JSON",
+                        )
+                    })?;
+                let request =
+                    crate::source_read::Request::from_arguments(operation, parsed.root(), profile)?;
+                executor.source_read(request, probe)
+            }),
+            "POST",
+            profile,
+        );
+    }
     let operation = post_operation(target);
     let Some(operation) = operation else {
         return HttpResponse::error(404, "not found");
@@ -711,7 +844,7 @@ fn post_operation(target: &str) -> Option<KnowledgeOperation> {
         .find(|op| op.http_method == "POST" && op.http_path == path)
         .and_then(|op| KnowledgeOperation::from_id(&op.operation_id))
 }
-fn post_body(
+pub(crate) fn post_body(
     stream: &mut TcpStream,
     text: &str,
     profile: AccessProfile,
@@ -815,7 +948,7 @@ fn post_body(
     Ok(bytes)
 }
 
-fn read_head(stream: &mut TcpStream) -> std::io::Result<Vec<u8>> {
+pub(crate) fn read_head(stream: &mut TcpStream) -> std::io::Result<Vec<u8>> {
     let mut head = Vec::new();
     let mut byte = [0u8; 1];
     let deadline = Instant::now() + Duration::from_secs(5);
@@ -919,7 +1052,9 @@ fn serve_connection_with_software(
                                         AccessErrorCode::BudgetExceeded,
                                         "request target too large",
                                     ))
-                                } else if post_operation(target).is_none() {
+                                } else if post_operation(target).is_none()
+                                    && crate::source_read::Operation::http("POST", target).is_none()
+                                {
                                     Err(AccessError::new(
                                         AccessErrorCode::UnknownExactId,
                                         "not found",
@@ -1025,34 +1160,35 @@ pub fn serve(
     }
     // Missing/unassembled software refuses only site routes; existing APIs
     // retain their independent explicit selected owner behavior.
-    let site = match crate::site::SoftwareSite::installed(profile.deadline_probe()) {
-        Ok(site) => Some(site),
-        Err(error) => {
-            // Site errors contain contract diagnostics, never document contents.
-            // Keep API-only serving available while explaining a refused install.
-            eprintln!(
-                "installed software site: {}: {}",
-                error.code_str(),
-                error.message
-            );
-            None
-        }
-    };
+    // Software admission uses one startup deadline; each request owns a fresh probe.
+    let site = crate::site::SoftwareSite::installed_for_mcp(
+        profile
+            .with_query_timeout(std::time::Duration::from_secs(30))
+            .deadline_probe(),
+    )
+    .map_err(|error| std::io::Error::other(format!("{}: {}", error.code_str(), error.message)))?;
     let listener = TcpListener::bind(addresses.as_slice())?;
     let active = Arc::new(AtomicUsize::new(0));
     for accepted in listener.incoming() {
         let mut stream = accepted?;
         if active.fetch_add(1, Ordering::AcqRel) >= MAX_CONCURRENT {
             active.fetch_sub(1, Ordering::AcqRel);
-            let _ = write_response(&mut stream, HttpResponse::error(503, "server busy"));
+            // Admission runs on the listener thread. A slow overloaded peer
+            // must not block acceptance of later connections. Best-effort 503;
+            // if the socket cannot accept it immediately, close the connection.
+            if stream.set_nonblocking(true).is_ok() {
+                let _ = write_response(&mut stream, HttpResponse::error(503, "server busy"));
+            }
             continue;
         }
-        let active = Arc::clone(&active);
+        let slot = ConnectionSlot(Arc::clone(&active));
         let executor = Arc::clone(&executor);
         let site = site.clone();
-        std::thread::spawn(move || {
+        // A resource-limited spawn closes this accepted socket and releases its
+        // slot; it must not panic the listener or retain a phantom connection.
+        let _ = std::thread::Builder::new().spawn(move || {
+            let _slot = slot;
             serve_connection_with_software(stream, executor, profile, site);
-            active.fetch_sub(1, Ordering::AcqRel);
         });
     }
     Ok(())
@@ -1064,6 +1200,15 @@ fn philosophy_http_request(
     query: &str,
 ) -> Result<KnowledgeRequest, AccessError> {
     use KnowledgeOperation as O;
+    if operation == O::PhilosophyScaleRows {
+        return Ok(KnowledgeRequest::Philosophy(
+            tos_query::philosophy_read::PhilosophyReadRequest::ScaleExport {
+                table: encoded.split('.').next().unwrap_or("").to_owned(),
+                view_id: query_value(query, "view_id").filter(|v| !v.is_empty()),
+                layers: query_list(query, "layers"),
+            },
+        ));
+    }
     let text = |s: String| JsonValue::String(JsonString::from_utf8(&s));
     let count = |key: &str, default: i64, low: i64, high: i64| {
         JsonValue::Number(JsonNumber {
@@ -1081,6 +1226,25 @@ fn philosophy_http_request(
             .unwrap_or(JsonValue::Null)
     };
     let fields = match operation {
+        O::PhilosophyStatus => vec![],
+        O::PhilosophySearch => vec![
+            (
+                "query",
+                text(query_value(query, "query").unwrap_or_default()),
+            ),
+            ("limit", count("limit", 20, 1, 100)),
+        ],
+        O::PhilosophyScaleManifest => {
+            vec![("view_id", optional("view_id")), ("layers", list("layers"))]
+        }
+        O::PhilosophyScaleRows => vec![
+            (
+                "table",
+                text(encoded.split('.').next().unwrap_or("").to_owned()),
+            ),
+            ("view_id", optional("view_id")),
+            ("layers", list("layers")),
+        ],
         O::PhilosophyNode => vec![("node_id", text(percent_decode(encoded, false)?))],
         O::PhilosophyEdge => vec![("edge_id", text(percent_decode(encoded, false)?))],
         O::PhilosophyView => vec![
@@ -1246,4 +1410,189 @@ fn corpus_http_request(
         }
     };
     Ok(KnowledgeRequest::Corpus(request))
+}
+
+#[cfg(test)]
+mod connection_lifecycle_tests {
+    use super::*;
+
+    #[test]
+    fn failed_handler_and_unstarted_handler_release_capacity() {
+        let active = Arc::new(AtomicUsize::new(1));
+        let slot = ConnectionSlot(Arc::clone(&active));
+        assert!(
+            std::thread::spawn(move || {
+                let _slot = slot;
+                panic!("synthetic handler failure");
+            })
+            .join()
+            .is_err()
+        );
+        assert_eq!(active.load(Ordering::Acquire), 0);
+
+        // Builder drops this owned closure when it cannot create a thread.
+        // Exercise that ownership path without depending on host exhaustion.
+        active.store(1, Ordering::Release);
+        let slot = ConnectionSlot(Arc::clone(&active));
+        let unstarted = move || {
+            let _slot = slot;
+        };
+        drop(unstarted);
+        assert_eq!(active.load(Ordering::Acquire), 0);
+    }
+}
+
+fn scale_export_response(
+    mut response: HttpResponse,
+    encoded: &str,
+    method: &str,
+    profile: AccessProfile,
+    probe: &Arc<dyn AbortProbe>,
+) -> HttpResponse {
+    if response.status != 200 {
+        return response;
+    }
+    let result = (|| -> Result<Vec<u8>, AccessError> {
+        let format = encoded
+            .rsplit_once('.')
+            .map(|(_, v)| v)
+            .filter(|v| matches!(*v, "jsonl" | "csv"))
+            .ok_or_else(|| {
+                AccessError::new(
+                    AccessErrorCode::UnknownExactId,
+                    "unknown scale export format",
+                )
+            })?;
+        let limits = tos_foundation::JsonLimits {
+            max_bytes: profile.max_response_bytes,
+            max_depth: 64,
+            max_visits: 300_000,
+            max_integer_digits: 4300,
+        };
+        let document = tos_foundation::parse_json(
+            &response.body,
+            tos_foundation::JsonMode::PublishedStrict,
+            limits,
+        )
+        .map_err(|_| {
+            AccessError::new(
+                AccessErrorCode::CorruptSelectedCarrier,
+                "invalid scale rows packet",
+            )
+        })?;
+        let rows = document
+            .root()
+            .object_get("rows")
+            .and_then(JsonValue::as_array)
+            .ok_or_else(|| {
+                AccessError::new(AccessErrorCode::CorruptSelectedCarrier, "scale rows absent")
+            })?;
+        let mut output = Vec::new();
+        let mut append = |raw: &[u8]| -> Result<(), AccessError> {
+            if let Some(reason) = probe.reason() {
+                return Err(AccessError::new(
+                    match reason {
+                        tos_query::AbortReason::Cancelled => AccessErrorCode::Cancelled,
+                        tos_query::AbortReason::DeadlineExceeded => {
+                            AccessErrorCode::DeadlineExceeded
+                        }
+                    },
+                    "scale serialization interrupted",
+                ));
+            }
+            if output
+                .len()
+                .checked_add(raw.len())
+                .is_none_or(|n| n > profile.max_response_bytes)
+            {
+                return Err(AccessError::new(
+                    AccessErrorCode::BudgetExceeded,
+                    "scale export response budget",
+                ));
+            }
+            output.extend_from_slice(raw);
+            Ok(())
+        };
+        if format == "jsonl" {
+            for row in rows {
+                let raw = tos_foundation::emit_value_preserved_json(row, limits).map_err(|_| {
+                    AccessError::new(AccessErrorCode::BudgetExceeded, "scale row encoding budget")
+                })?;
+                append(&raw)?;
+                append(b"\n")?;
+            }
+        } else {
+            let columns = rows
+                .iter()
+                .flat_map(|r| {
+                    r.as_object()
+                        .unwrap_or(&[])
+                        .iter()
+                        .filter_map(|(k, _)| k.as_str())
+                })
+                .collect::<std::collections::BTreeSet<_>>();
+            let columns = columns.into_iter().collect::<Vec<_>>();
+            let encode = |value: &str| {
+                if value.contains([',', '"', '\r', '\n']) {
+                    format!("\"{}\"", value.replace('"', "\"\""))
+                } else {
+                    value.to_owned()
+                }
+            };
+            append(
+                columns
+                    .iter()
+                    .map(|v| encode(v))
+                    .collect::<Vec<_>>()
+                    .join(",")
+                    .as_bytes(),
+            )?;
+            append(b"\r\n")?;
+            for row in rows {
+                for (i, key) in columns.iter().enumerate() {
+                    if i != 0 {
+                        append(b",")?;
+                    }
+                    let value = row.object_get(key).unwrap_or(&JsonValue::Null);
+                    let value = match value {
+                        JsonValue::Null => String::new(),
+                        JsonValue::Bool(true) => "True".into(),
+                        JsonValue::Bool(false) => "False".into(),
+                        JsonValue::String(_) => value.as_str().unwrap_or("").to_owned(),
+                        _ => String::from_utf8(
+                            tos_foundation::emit_value_preserved_json(value, limits).map_err(
+                                |_| {
+                                    AccessError::new(
+                                        AccessErrorCode::BudgetExceeded,
+                                        "scale CSV value budget",
+                                    )
+                                },
+                            )?,
+                        )
+                        .map_err(|_| {
+                            AccessError::new(
+                                AccessErrorCode::CorruptSelectedCarrier,
+                                "scale CSV UTF8",
+                            )
+                        })?,
+                    };
+                    append(encode(&value).as_bytes())?;
+                }
+                append(b"\r\n")?;
+            }
+        }
+        Ok(output)
+    })();
+    match result {
+        Ok(body) => {
+            response.body = body;
+            response.content_type = if encoded.ends_with(".csv") {
+                "text/csv; charset=utf-8"
+            } else {
+                "application/x-ndjson; charset=utf-8"
+            };
+            response
+        }
+        Err(error) => packet_response(Err(error), method, profile),
+    }
 }

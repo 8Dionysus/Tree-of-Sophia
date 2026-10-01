@@ -263,6 +263,21 @@ The same selection works with `mcp` and the `source capabilities`, `source
 contracts`, `source discover REQUEST.json`, and `source read REQUEST.json` CLI
 commands. Discovery/read accept `-` for bounded JSON input from stdin.
 
+The native selected source reader admits its installed executable and schema
+worker under one absolute 30-second startup budget. The prepared request budget
+remains five seconds, with the same probe retained through currentness checks
+and final disclosure. A long-lived HTTP/MCP reader does not inherit an expired
+startup deadline; each request receives its own processing budget.
+
+The selected source vector authenticates retained root bytes and their digests.
+Its namespace paths locate content-addressed parts; mutable projection pointer
+files may move or disappear without changing that retained selection. The native
+read-only reader pins each consumed regular part FD, verifies owner/mode, named
+inode identity and encoded/decoded hashes, and rechecks through final disclosure.
+Part and byte counters remain cumulative within each request. Authored source
+publication, record and local-condition currentness remain independently checked;
+selected-current mutation readers retain their existing pointer-file contract.
+
 Native artifact/composite metadata uses its schema-declared `artifact_id` or
 `composite_id`, not a fabricated `record_id`. Exact reads bind the existing
 metadata owner's native-witness descriptor, version, digest and public metadata
@@ -1524,6 +1539,75 @@ approximately `5S + 8Z`, plus the previously described bounded manifest/Git and
 startup reads. No new image staging copy or decompressed buffer is introduced.
 These bounds describe operation I/O, not an aggregate RSS guarantee.
 
+The maintained Python module can explicitly associate with a selected native
+prefix: `python -m tos_access --native-prefix /absolute/installed-prefix mcp`
+(or `--native-prefix=/absolute/installed-prefix`). The option precedes data and
+operation arguments. It checks the existing software manifest, exact native
+build receipt, lock/toolchain and complete executable hash, then replaces the
+Python process through the held executable FD with the unchanged argument list.
+`serve --host HOST --port PORT` is already understood by the native adapter.
+This association never discovers code through data roots, the working directory,
+PATH or an environment variable. Native operations and their currentness guards
+remain owned by the selected installation; association alone is not admission,
+compatibility acceptance or retirement. Unselected module calls and imported
+Python APIs retain their current reference behavior.
+
+The existing imported serving caller can select the same explicit native
+association: `build_server(native_prefix=Path('/absolute/installed-prefix'),
+native_arguments=['--root', '/absolute/data', '--prepared-read-model',
+'/absolute/prepared.sqlite', '--prepared-binding', '/absolute/binding.json',
+'--source-inputs', '/absolute/inputs.raw']).run(transport='stdio')`.
+The options are forwarded unchanged, followed by `mcp`; this does not load a
+reference core or require the Python MCP dependency. Native software selection
+is mutually exclusive with `core=` and reference discovery paths. Direct
+`python -m tos_access.mcp_server --native-prefix /absolute/installed-prefix ...`
+uses the same association. With an installation containing the Streamable HTTP
+transport, select `server.settings.host = '127.0.0.1'`, set
+`server.settings.port`, then call `server.run(transport='streamable-http')`.
+The executable module also honors the existing `TOS_MCP_TRANSPORT`/`AOA_MCP_TRANSPORT`,
+host and port settings after explicit `--native-prefix` software association.
+Direct native selection is `tos mcp --transport streamable-http --host 127.0.0.1 --port 5429`.
+The explicitly associated imported server also exposes `await server.list_tools()`
+and `await server.call_tool(name, arguments)` through a bounded native child per
+call. The list contains only native session tools. Ordinary calls return the
+maintained `(content, structured)` pair; compressed knowledge search preserves
+its `CallToolResult`, and native refusals raise `ToolError`. Each child owns one
+absolute 50-second lifetime including cleanup, with a 45-second operation limit
+and five seconds for cleanup; native request deadlines remain five seconds.
+The explicit association also provides `list_resources()`,
+`list_resource_templates()`, `read_resource(uri)`, `list_prompts()` and
+`get_prompt(name, arguments)`. Resource reads retain the selected packet's
+currentness fence and return the maintained `ReadResourceContents` shape;
+prompts are software-owned templates and grant no source authority. Each API
+call retains the same child and request lifetime limits.
+
+The local word-analysis tool can report the maintained unavailable packet only
+when the held installed software manifest and filesystem confirm provider
+absence. A supplied private provider requires a native task kernel and is
+explicitly unsupported; it is never represented as a public unavailable
+reading capability. This remaining positive path retains its reference route.
+
+This explicit API does not select a replacement for reference Core discovery or
+change the reference wheel/default entrypoint.
+
+
+The loopback `/mcp` endpoint returns JSON responses to POST, accepts notifications
+with an empty 202 response, and uses unpredictable session IDs. The ID is only a
+transport session; it selects no source, rights or software. Subsequent requests
+retain the selected native executor and need the returned session ID. DELETE
+terminates the session; GET returns 405 because this profile offers no
+server-initiated or resumable SSE. Host and Origin follow the maintained loopback
+wildcard-port policy. The same absolute request deadline covers packet rechecks, bounded socket writes and final flush; output gains no fresh timeout after execution. Cancellation stops active output rather than publishing a late response. At most 32 connections and 32 sessions are admitted; an idle
+session expires after 15 minutes. Cancellation notifications reach the active
+request; disconnect alone does not cancel it. Each request has a fresh deadline,
+and query/disclosure checks remain held through the final response flush.
+
+In-process Python tools and unselected/default core calls retain their reference
+route. Native doctor/verify already use their source-backed diagnostic entrypoint;
+their scoped compatibility acceptance and the remaining default/import API
+coverage are required before a blanket default or wheel retirement. Source
+implementation of a transport does not establish installed runtime acceptance.
+
 **LEGACY compatibility:** `pip install ./access`, wheel/editable/sdist hooks,
 Python reference CLI and existing isolated-install/streaming RECORD integrity
 checks remain available. The wheel command is explicitly `tos-legacy`; native
@@ -1543,3 +1627,82 @@ runtime or wheel metadata. To roll back, select the retained previous prefix;
 its executable retains its own archive contract. Restore an older archive with
 that matching retained verifier. The native archive change does not claim
 backward compatibility with the previous mixed Python/native layout.
+
+
+The wheel also provides `tos-native`, a console caller for an independently
+installed native software prefix:
+
+```sh
+tos-native --native-prefix /absolute/installed-prefix source contracts
+```
+
+The prefix selector must come first. Missing selection refuses before importing
+the reference core. The caller uses the module's existing installed manifest,
+receipt, held-file identity and full executable SHA checks, then executes that
+exact native image. It does not discover native software through PATH or data
+selection. The wheel carries this Python caller; it does not carry a native ELF.
+`tos-legacy` remains the reference command, and module invocation without the
+explicit native selector retains its reference behavior. This console route
+alone does not establish full typed Core, default MCP, resource/prompt or wheel
+payload replacement.
+
+### Native private concept and WordAnalysis callers
+
+A matching installed native access image supports `concept-search` and
+`word-analysis` against an explicitly selected local source root. Select the
+software installation independently of that data:
+
+```sh
+tos-native --native-prefix /absolute/installed-prefix --root /absolute/source-root concept-search --query 'судьбы' --language ru --limit 20
+tos-native --native-prefix /absolute/installed-prefix --root /absolute/source-root word-analysis --query 'судьбы' --language ru --rank 1
+```
+
+The maintained script entrypoints require the same installation as their first
+option and forward to that Rust image before importing the Python query,
+schema, or database implementation:
+
+```sh
+python scripts/query_zarathustra_concept_workbench_v1.py --native-prefix /absolute/installed-prefix --data-root /absolute/source-root --query 'судьбы' --language ru
+python scripts/prepare_zarathustra_word_analysis_v1.py --native-prefix /absolute/installed-prefix --data-root /absolute/source-root --query 'судьбы' --language ru --rank 1
+```
+
+This requires the installed `tos_access` package providing `tos-native`; data
+roots do not select or import software. Without `--data-root`, the compatibility
+scripts keep their repository source root. Concept `--limit 0` returns coverage
+without cards. Word `--validate-candidate FILE` validates against the prepared
+source task without modifying either source or candidate. The native MCP tool
+`tos_zarathustra_prepare_word_analysis` returns the full task inside its existing
+capability envelope and retains candidate-only authority. Its API rank clamps
+to 1–100; the standalone script/CLI uses a positive rank.
+
+The script CLI has no automatic Python fallback: omitting the explicit
+installation selector fails before loading the query implementation. This is
+a deliberate CLI migration; add the selector to earlier script invocations.
+Imported Python reference functions remain for existing oracle and reading
+controls, and are not the maintained CLI. A matching native installation is
+required; an older image is not implied to provide these operations.
+
+Imported callers can select the same installation explicitly for the four
+source-read methods:
+
+```python
+from tos_access import NativeCore
+core = NativeCore('/absolute/installed-prefix', ['--root', '/absolute/data-root'])
+capabilities = core.source_read_capabilities()
+```
+
+`source_read_contract`, `source_handle_discover(request)` and `source_read(request)`
+keep their dictionary packet/request shapes. Each synchronous call joins one
+helper thread and uses the existing authenticated native MCP child with one
+50-second operation/cleanup deadline. The data arguments cannot select software.
+An absent source owner still raises `SourceReadError` for discovery/read. This
+explicit source-method slice does not replace the default `ToSAccessCore`, its
+other methods, or a package's installation identity.
+
+The explicit `NativeCore.zarathustra_word_analysis_task` caller keeps the
+reference query/language conversion, rank fallback/clamp and boolean conversion,
+then returns the complete native capability packet under its original50s clock.
+It uses the selected native Word provider; it does not load a Python provider.
+Native tool refusals remain `ToolError`, distinct from source-read `SourceReadError`.
+This connection awaits a matching positive Word image and selected local data;
+source mapping controls do not establish positive provider parity or default retirement.

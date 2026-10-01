@@ -32,6 +32,7 @@ use tos_query::{
 pub const PREPARED_RESPONSE_BYTES: usize = 4 * 1024 * 1024;
 const REQUEST_BYTES: usize = 65_536;
 enum LocalRequest {
+    SourceBinding,
     Search(CompressedSearchRequest),
     SearchCapabilities,
     Catalog,
@@ -194,6 +195,7 @@ struct Selection {
     reading: Option<crate::reading::ReadingLocalExecutor>,
 }
 pub struct PreparedLocalExecutor {
+    source: Option<crate::selected_source::Selection>,
     selected: Arc<Selection>,
 }
 impl PreparedLocalExecutor {
@@ -276,6 +278,7 @@ impl PreparedLocalExecutor {
         // Binding validation and publication observation remain in the metered
         // request, rather than scanning the database at adapter construction.
         Ok(Self {
+            source: None,
             selected: Arc::new(Selection {
                 path,
                 binding,
@@ -284,6 +287,24 @@ impl PreparedLocalExecutor {
                 checkpoints,
             }),
         })
+    }
+    pub fn with_source_reader(
+        mut self,
+        root: &std::path::Path,
+        inputs: &std::path::Path,
+        local: Option<&std::path::Path>,
+        profile: AccessProfile,
+    ) -> Result<Self, AccessError> {
+        let revision = self
+            .selected
+            .binding
+            .object_get("source_revision")
+            .and_then(JsonValue::as_str)
+            .ok_or_else(unavailable)?;
+        self.source = Some(crate::selected_source::Selection::open(
+            root, inputs, local, revision, profile,
+        )?);
+        Ok(self)
     }
     fn read(
         &self,
@@ -372,6 +393,18 @@ impl PreparedLocalExecutor {
             session
                 .stored_lens(&s.binding, identifier)
                 .map_err(AccessError::from)?
+        } else if matches!(request, LocalRequest::SourceBinding) {
+            session.admit_binding(&s.binding).map_err(query_error)?;
+            session
+                .source_binding(
+                    &s.binding,
+                    self.source
+                        .as_ref()
+                        .ok_or_else(unavailable)?
+                        .source_inputs_sha256(),
+                )
+                .map_err(query_error)?;
+            object(vec![])
         } else if matches!(request, LocalRequest::Catalog) {
             session.catalog(&s.binding).map_err(query_error)?
         } else {
@@ -424,6 +457,17 @@ impl PreparedLocalExecutor {
         db.execute_batch("COMMIT; BEGIN")
             .map_err(|_| unavailable())?;
         session.recheck_binding(&s.binding).map_err(query_error)?;
+        if matches!(request, LocalRequest::SourceBinding) {
+            session
+                .source_binding(
+                    &s.binding,
+                    self.source
+                        .as_ref()
+                        .ok_or_else(unavailable)?
+                        .source_inputs_sha256(),
+                )
+                .map_err(query_error)?;
+        }
         db.execute_batch("COMMIT").map_err(|_| unavailable())?;
         drop(session);
         if state(&s.path)? != before {
@@ -454,6 +498,28 @@ impl PreparedLocalExecutor {
     }
 }
 impl AccessExecutor for PreparedLocalExecutor {
+    fn installed_software(&self) -> Option<Arc<crate::site::SoftwareSite>> {
+        self.source
+            .as_ref()
+            .map(crate::selected_source::Selection::software)
+    }
+    fn source_read_available(&self) -> bool {
+        self.source.is_some()
+    }
+    fn source_read(
+        &self,
+        request: crate::source_read::Request,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        if request.operation == crate::source_read::Operation::Contract || self.source.is_none() {
+            return crate::source_read::software_packet(request.operation, probe);
+        }
+        let source = self.source.as_ref().ok_or_else(unavailable)?;
+        let deadline = source.deadline()?;
+        let prepared = self.read(LocalRequest::SourceBinding, Arc::clone(&probe))?;
+        source.prepare(request, prepared.fence, deadline, probe)
+    }
+
     fn source_descend_available(&self) -> bool {
         false
     }
@@ -483,6 +549,42 @@ impl AccessExecutor for PreparedLocalExecutor {
             Some(reading) => reading.reading_search(request, probe),
             None => crate::reading::unavailable_packet(probe),
         }
+    }
+    fn concept_search(
+        &self,
+        request: tos_query::reading_search::ConceptSearchRequest,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        self.selected
+            .reading
+            .as_ref()
+            .ok_or_else(|| {
+                AccessError::new(
+                    AccessErrorCode::Unavailable,
+                    "local concept-search data root is not selected",
+                )
+            })?
+            .concept_search(request, probe)
+    }
+    fn word_analysis_available(&self) -> bool {
+        self.selected.reading.is_some()
+    }
+    fn word_analysis(
+        &self,
+        request: tos_query::reading_search::WordAnalysisRequest,
+        candidate: Option<&[u8]>,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        self.selected
+            .reading
+            .as_ref()
+            .ok_or_else(|| {
+                AccessError::new(
+                    AccessErrorCode::Unavailable,
+                    "private word-analysis data root is not selected",
+                )
+            })?
+            .word_analysis(request, candidate, probe)
     }
     fn exploration_runtime_capabilities(&self) -> JsonValue {
         // Engine selection only: each request still admits the supplied binding

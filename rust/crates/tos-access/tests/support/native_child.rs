@@ -5,6 +5,35 @@ use std::{
     time::{Duration, Instant},
 };
 use tos_foundation::{Digest256, Digest256Hasher};
+// The admitted controller owns image digest, held-FD and pre/post custody.
+// An explicit override avoids mutable Cargo target origins in installed runs.
+pub(super) fn selected_test_binary(embedded: &str) -> std::path::PathBuf {
+    use std::os::unix::{ffi::OsStrExt, fs::PermissionsExt};
+    let Some(value) = std::env::var_os("TOS_NATIVE_ACCESS_TEST_BINARY") else {
+        return embedded.into();
+    };
+    let bytes = value.as_bytes();
+    assert!(
+        !bytes.is_empty() && bytes.len() <= 4096 && !bytes.contains(&0),
+        "invalid explicit native test binary path"
+    );
+    let path = std::path::PathBuf::from(value);
+    assert!(
+        path.is_absolute()
+            && path.components().all(|component| matches!(
+                component,
+                std::path::Component::RootDir | std::path::Component::Normal(_)
+            )),
+        "explicit native test binary must be an absolute normalized path"
+    );
+    let file = tos_fd_open::open_absolute_regular(&path, 512 * 1024 * 1024)
+        .expect("explicit native test binary must be a bounded nofollow regular file");
+    assert!(
+        file.metadata().unwrap().permissions().mode() & 0o111 != 0,
+        "explicit native test binary is not executable"
+    );
+    path
+}
 // Reap every owned child even if a later packet/custody assertion unwinds.
 // These programs do not spawn a service/process tree of their own.
 pub(super) struct OwnedChild(pub(super) Child);

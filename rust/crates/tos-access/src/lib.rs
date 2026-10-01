@@ -5,6 +5,7 @@
 //! current-rights fence must be installed by the source owner first.
 
 pub mod cli;
+pub mod concept_search;
 pub mod doctor;
 pub mod edge_sql;
 pub mod exploration_checkpoints;
@@ -20,13 +21,19 @@ pub mod prepared_publication;
 pub mod public_d1_build;
 pub mod reading;
 pub mod release_state;
+pub mod word_analysis;
 pub use knowledge::{KnowledgeOperation, KnowledgeRequest};
 mod common;
 pub mod http;
 pub mod mcp;
+pub mod mcp_http;
+mod mcp_prompts;
+mod mcp_resources;
 pub mod search;
+mod selected_source;
 pub mod site;
 pub mod software_archive;
+pub mod source_read;
 
 pub use common::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence,

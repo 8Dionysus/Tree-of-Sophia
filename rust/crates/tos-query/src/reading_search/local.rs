@@ -683,6 +683,13 @@ fn embedded(reference: &str) -> Result<&'static [u8]> {
         REQUEST_SCHEMA_REF => Ok(include_bytes!(
             "../../../../../ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-request.v2.schema.json"
         )),
+        super::word_analysis::TASK_SCHEMA_REF => Ok(include_bytes!(
+            "../../../../../ToS/candidate-intake/zarathustra/concept-workbench-v1/word-analysis-task.v1.schema.json"
+        )),
+        super::word_analysis::CANDIDATE_SCHEMA_REF => Ok(include_bytes!(
+            "../../../../../ToS/candidate-intake/zarathustra/concept-workbench-v1/english-translation-candidate.v1.schema.json"
+        )),
+        super::word_analysis::PROVIDER_REF => Ok(include_bytes!("word_analysis.rs")),
         READING_ADAPTER_REF => Ok(include_bytes!("../reading_search.rs")),
         CONCEPT_ADAPTER_REF => Ok(include_bytes!("concept.rs")),
         _ => Err(corrupt("software reading ref not embedded")),

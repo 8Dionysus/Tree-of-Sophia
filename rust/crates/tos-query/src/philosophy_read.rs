@@ -17,6 +17,14 @@ use tos_foundation::{
     JsonValue, canonical_bytes_v1, parse_json,
 };
 
+#[path = "philosophy_read_evidence.rs"]
+mod evidence;
+#[path = "philosophy_read_mcp.rs"]
+mod mcp;
+#[path = "philosophy_read_public.rs"]
+mod public;
+pub use evidence::{EVIDENCE_OPERATION, EvidenceMode, EvidenceRequest, execute_selected_evidence};
+
 pub const PHILOSOPHY_INTENDED_USE: &str = "read_only_public_philosophy_projection_v1";
 pub const PHILOSOPHY_CARRIER_LAYER: &str = crate::knowledge_packet::INDEXED_SEARCH_CARRIER_LAYER;
 
@@ -158,6 +166,42 @@ pub enum PhilosophyDirection {
 }
 #[derive(Clone, Debug)]
 pub enum PhilosophyReadRequest {
+    Status,
+    Contracts,
+    Epistemic {
+        item_id: String,
+        view_id: Option<String>,
+        limit: usize,
+    },
+    Packet {
+        query: String,
+        view_id: Option<String>,
+        limit: usize,
+    },
+    LensPacket {
+        view_id: String,
+        limit: usize,
+    },
+    Search {
+        query: String,
+        limit: usize,
+    },
+    ScaleManifest {
+        view_id: Option<String>,
+        layers: Vec<String>,
+    },
+    ScaleRows {
+        table: String,
+        view_id: Option<String>,
+        layers: Vec<String>,
+        offset: usize,
+        limit: usize,
+    },
+    ScaleExport {
+        table: String,
+        view_id: Option<String>,
+        layers: Vec<String>,
+    },
     Node {
         node_id: String,
     },
@@ -206,6 +250,14 @@ impl PhilosophyReadRequest {
     /// maintained MCP selector. The intended use binds the philosophy mode.
     pub fn operation_id(&self) -> &'static str {
         match self {
+            Self::Status => "tos_philosophy_graph_status",
+            Self::Contracts => "tos_philosophy_graph_contracts",
+            Self::Epistemic { .. } => "tos_philosophy_epistemic_packet",
+            Self::Packet { .. } => "tos_philosophy_graph_packet",
+            Self::LensPacket { .. } => "tos_philosophy_graph_lens_packet",
+            Self::Search { .. } => "tos_philosophy_graph_search",
+            Self::ScaleManifest { .. } => "tos_philosophy_graph_scale_manifest",
+            Self::ScaleRows { .. } | Self::ScaleExport { .. } => "tos_philosophy_graph_scale_rows",
             Self::Node { .. } => "tos.node.inspect",
             Self::Edge { .. } => "tos_philosophy_graph_edge",
             Self::Neighborhood { .. } => "tos.neighborhood",
@@ -227,6 +279,62 @@ impl PhilosophyReadRequest {
             v.len() <= budget.max_matches && v.iter().all(|s| s.len() <= budget.max_field_bytes)
         };
         let valid = match self {
+            Self::Status | Self::Contracts => true,
+            Self::Epistemic {
+                item_id,
+                view_id,
+                limit,
+            } => id(item_id) && optional(view_id) && (1..=200).contains(limit),
+            Self::Packet {
+                query,
+                view_id,
+                limit,
+            } => {
+                query.len() <= budget.max_field_bytes
+                    && optional(view_id)
+                    && (1..=100).contains(limit)
+            }
+            Self::LensPacket { view_id, limit } => id(view_id) && (1..=100).contains(limit),
+            Self::Search { query, limit } => {
+                query.len() <= budget.max_field_bytes && (1..=100).contains(limit)
+            }
+            Self::ScaleManifest { view_id, layers } => optional(view_id) && filters(layers),
+            Self::ScaleExport {
+                table,
+                view_id,
+                layers,
+            } => {
+                [
+                    "nodes",
+                    "edges",
+                    "clusters",
+                    "cluster-node-memberships",
+                    "cluster-edge-memberships",
+                ]
+                .contains(&table.as_str())
+                    && optional(view_id)
+                    && filters(layers)
+            }
+            Self::ScaleRows {
+                table,
+                view_id,
+                layers,
+                offset,
+                limit,
+            } => {
+                [
+                    "nodes",
+                    "edges",
+                    "clusters",
+                    "cluster-node-memberships",
+                    "cluster-edge-memberships",
+                ]
+                .contains(&table.as_str())
+                    && optional(view_id)
+                    && filters(layers)
+                    && *offset <= 10_000_000
+                    && (1..=10_000).contains(limit)
+            }
             Self::Node { node_id } => id(node_id),
             Self::Edge { edge_id } => id(edge_id),
             Self::Neighborhood {
@@ -332,6 +440,9 @@ pub fn execute_selected_philosophy<'hold, A: InspectCurrentAuthority<'hold> + ?S
             let receipt = bound_original_receipt(read, bound)?;
             let mut header =
                 original_rows(read, &receipt, PhilosophyOriginalCollection::Header, 1)?;
+            if matches!(request, PhilosophyReadRequest::Status) {
+                return Ok(public::status(&header.remove(0)));
+            }
             let nodes = original_rows(
                 read,
                 &receipt,
@@ -708,8 +819,96 @@ pub(crate) fn compute_philosophy_read(
         interrupt,
     };
     let graph = Graph::new(header, base_nodes, base_edges, &mut w)?;
+    compute_on_graph(&graph, base_nodes, base_edges, request, &mut w)
+}
+
+fn compute_on_graph<'a>(
+    graph: &Graph<'a>,
+    base_nodes: &'a [JsonValue],
+    base_edges: &'a [JsonValue],
+    request: &PhilosophyReadRequest,
+    mut w: &mut Work<'_>,
+) -> Result<JsonValue, SearchV2Error> {
+    let header = graph.header;
     let boundary = || metadata(header, "runtime_projection_boundary");
     match request {
+        PhilosophyReadRequest::Contracts => mcp::contracts(graph, base_nodes, base_edges, &mut w),
+        PhilosophyReadRequest::Packet {
+            query,
+            view_id,
+            limit,
+        } => mcp::packet(
+            graph,
+            base_nodes,
+            base_edges,
+            query,
+            view_id.as_deref(),
+            *limit,
+            &mut w,
+        ),
+        PhilosophyReadRequest::LensPacket { view_id, limit } => {
+            mcp::lens(graph, base_nodes, base_edges, view_id, *limit, &mut w)
+        }
+        PhilosophyReadRequest::Epistemic {
+            item_id,
+            view_id,
+            limit,
+        } => mcp::epistemic(
+            graph,
+            base_nodes,
+            base_edges,
+            &EvidenceRequest {
+                mode: EvidenceMode::Philosophy,
+                item_id: item_id.clone(),
+                view_id: view_id.clone(),
+                limit: *limit,
+            },
+            &mut w,
+        ),
+        PhilosophyReadRequest::Status => Ok(public::status(header)),
+        PhilosophyReadRequest::Search { query, limit } => {
+            public::search(&graph, base_nodes, base_edges, query, *limit, &mut w)
+        }
+        PhilosophyReadRequest::ScaleManifest { view_id, layers } => public::scale(
+            &graph,
+            base_nodes,
+            base_edges,
+            None,
+            view_id.as_deref(),
+            layers,
+            None,
+            &mut w,
+        ),
+        PhilosophyReadRequest::ScaleRows {
+            table,
+            view_id,
+            layers,
+            offset,
+            limit,
+        } => public::scale(
+            &graph,
+            base_nodes,
+            base_edges,
+            Some(table),
+            view_id.as_deref(),
+            layers,
+            Some((*offset, *limit)),
+            &mut w,
+        ),
+        PhilosophyReadRequest::ScaleExport {
+            table,
+            view_id,
+            layers,
+        } => public::scale(
+            &graph,
+            base_nodes,
+            base_edges,
+            Some(table),
+            view_id.as_deref(),
+            layers,
+            None,
+            &mut w,
+        ),
         PhilosophyReadRequest::Node { node_id } => {
             let node = graph.node(node_id)?;
             let edges = graph
@@ -1305,6 +1504,79 @@ pub fn execute_selected_philosophy_view_ids<'hold, A: InspectCurrentAuthority<'h
                 views.push(object(vec![("view_id", text(&id))]));
             }
             Ok(object(vec![("views", values(views))]))
+        },
+    )
+}
+
+/// The held release adapter supplies a declared audit member (or authenticated
+/// absence) and its navigation path. Neither input grants source authority.
+pub fn execute_selected_philosophy_audit<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    audit_path: &str,
+    audit_raw: Option<&[u8]>,
+    budget: PhilosophyReadBudget,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+    if audit_path.is_empty() || audit_path.len() > budget.inspect.max_field_bytes {
+        return Err(invalid());
+    }
+    let bytes = audit_raw.map_or(0, <[u8]>::len);
+    if budget.max_work_steps == 0
+        || bytes > budget.inspect.max_payload_bytes
+        || bytes as u64 >= budget.max_work_steps
+    {
+        return Err(failure(
+            SearchV2ErrorCode::BudgetExceeded,
+            "audit projection work/byte budget",
+        ));
+    }
+    execute_selected_carrier_packet(
+        model,
+        bound,
+        authority,
+        "tos_philosophy_graph_audit",
+        PHILOSOPHY_INTENDED_USE,
+        budget.inspect,
+        |read| {
+            let _receipt = bound_original_receipt(read, bound)?;
+            let audit = if let Some(raw) = audit_raw {
+                read.external_projection_bytes(bytes)?;
+                let document = parse_json(raw, JsonMode::PublishedStrict, budget.inspect.json)
+                    .map_err(|_| {
+                        failure(
+                            SearchV2ErrorCode::CorruptSelectedCarrier,
+                            "invalid philosophy audit",
+                        )
+                    })?;
+                if document.root().as_object().is_none()
+                    || s(get(document.root(), "schema_version"))
+                        != "tos_philosophy_post_planting_audit_v1"
+                {
+                    return Err(failure(
+                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        "philosophy audit schema",
+                    ));
+                }
+                document.root().clone()
+            } else {
+                object(vec![])
+            };
+            read.check_interrupt()?;
+            Ok(object(vec![
+                ("schema", text("tos_philosophy_mcp_audit_v1")),
+                ("audit_exists", JsonValue::Bool(audit_raw.is_some())),
+                ("audit_path", text(audit_path)),
+                ("audit", audit),
+                (
+                    "authority_note",
+                    text(if audit_raw.is_some() {
+                        "Tree-of-Sophia owns the audit; MCP serves it as an access packet."
+                    } else {
+                        "Tree-of-Sophia has not published the post-planting audit at this MCP path."
+                    }),
+                ),
+            ]))
         },
     )
 }

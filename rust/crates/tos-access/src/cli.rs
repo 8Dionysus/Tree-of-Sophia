@@ -241,8 +241,18 @@ pub fn run_cli_with_input(
     }
     let expanded = expanded_options(args);
     let args = expanded.as_slice();
+    if args.first().is_some_and(|arg| arg == "concept-search") {
+        return crate::concept_search::run_cli(args, executor, profile, stdout, stderr);
+    }
+    if args.first().is_some_and(|arg| arg == "word-analysis") {
+        return crate::word_analysis::run_cli(args, executor, profile, stdout, stderr);
+    }
     if args.first().is_some_and(|arg| arg == "reading-search") {
         return crate::reading::run_cli(args, executor, profile, stdout, stderr);
+    }
+    if let Some(code) = crate::source_read::run_cli(args, executor, profile, stdin, stdout, stderr)
+    {
+        return code;
     }
     if let Some(code) = run_knowledge(args, executor, profile, stdin, stdout, stderr) {
         return code;

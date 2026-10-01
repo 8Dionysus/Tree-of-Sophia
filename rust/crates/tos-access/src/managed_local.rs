@@ -396,6 +396,14 @@ impl AccessExecutor for ManagedLocalExecutor {
                     .and_then(|mut hold| hold.retain_member_guards(&self.corpus_guards))
                     .is_ok();
         }
+        if operation == O::EvidenceLens {
+            return self
+                .release
+                .member_binding("data/ToS/derived-exports/epistemic_evidence_projection.min.json")
+                .is_ok()
+                && (self.philosophy_original.is_some()
+                    || (self.corpus_original.is_some() && self.corpus_context.is_some()));
+        }
         if operation.is_philosophy() {
             self.philosophy_original.is_some()
         } else {
@@ -526,8 +534,73 @@ impl AccessExecutor for ManagedLocalExecutor {
             return crate::exploration_contracts::execute(self, self.profile.max_response_bytes);
         }
         let operation = request.operation();
-        let mut inspect = Authority::new(self, &bound, operation.id(), intended(operation))?;
+        let intended_use = match &request {
+            R::EvidenceLens(request) => request.intended_use(),
+            _ => intended(operation),
+        };
+        let mut inspect = Authority::new(self, &bound, operation.id(), intended_use)?;
         let budgets = self.budgets();
+        if matches!(request, R::PhilosophyAudit) {
+            crate::knowledge::check_abort(&probe)?;
+            let cap = budgets
+                .inspect
+                .max_payload_bytes
+                .min(self.profile.max_response_bytes)
+                .min(usize::try_from(budgets.inspect.max_decoded_bytes).unwrap_or(usize::MAX))
+                .min(usize::try_from(budgets.inspect.max_read_vm_steps).unwrap_or(usize::MAX));
+            let hold = inspect
+                .lease
+                .as_mut()
+                .ok_or_else(|| unavailable("audit current hold absent"))?;
+            let (path, raw) = hold.public_philosophy_audit(cap)?;
+            crate::knowledge::check_abort(&probe)?;
+            return crate::knowledge::execute_selected_philosophy_audit(
+                &mut model,
+                &bound,
+                &mut inspect,
+                &path,
+                raw.as_deref(),
+                tos_query::philosophy_read::PhilosophyReadBudget {
+                    inspect: budgets.inspect,
+                    max_work_steps: budgets.inspect.max_read_vm_steps,
+                },
+                probe,
+            );
+        }
+        if let R::EvidenceLens(request) = &request {
+            crate::knowledge::check_abort(&probe)?;
+            let cap = budgets
+                .inspect
+                .max_payload_bytes
+                .min(self.profile.max_response_bytes)
+                .min(usize::try_from(budgets.inspect.max_decoded_bytes).unwrap_or(usize::MAX))
+                .min(usize::try_from(budgets.inspect.max_read_vm_steps).unwrap_or(usize::MAX));
+            let hold = inspect
+                .lease
+                .as_mut()
+                .ok_or_else(|| unavailable("Evidence Lens current hold absent"))?;
+            if matches!(
+                request.mode,
+                tos_query::philosophy_read::EvidenceMode::Corpus
+            ) {
+                hold.retain_member_guards(&self.corpus_guards)?;
+            }
+            let raw = hold.public_evidence_projection(cap)?;
+            crate::knowledge::check_abort(&probe)?;
+            return crate::knowledge::execute_selected_evidence(
+                &mut model,
+                &bound,
+                &mut inspect,
+                request,
+                &raw,
+                self.corpus_context.as_ref(),
+                tos_query::philosophy_read::PhilosophyReadBudget {
+                    inspect: budgets.inspect,
+                    max_work_steps: budgets.inspect.max_read_vm_steps,
+                },
+                probe,
+            );
+        }
         if matches!(request, R::CorpusViewIds) {
             if self.corpus_context.is_none() {
                 return Err(unavailable("selected corpus source context unavailable"));

@@ -6,6 +6,7 @@ use tos_query::{AbortProbe, AbortReason};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum KnowledgeOperation {
+    EvidenceLens,
     Catalog,
     Node,
     Relation,
@@ -18,6 +19,18 @@ pub enum KnowledgeOperation {
     Contracts,
     SearchCapabilities,
     Dossier,
+    PhilosophyContracts,
+    PhilosophyEpistemic,
+    PhilosophyAudit,
+    PhilosophyPacket,
+    PhilosophyChronology,
+    PhilosophySourceEvidence,
+    PhilosophyConceptLineage,
+    PhilosophyLens,
+    PhilosophyStatus,
+    PhilosophySearch,
+    PhilosophyScaleManifest,
+    PhilosophyScaleRows,
     PhilosophyNode,
     PhilosophyEdge,
     PhilosophyNeighborhood,
@@ -31,6 +44,7 @@ pub enum KnowledgeOperation {
     PhilosophyUnresolved,
     CorpusStatus,
     CorpusSummary,
+    CorpusGraphViews,
     CorpusSearch,
     CorpusResources,
     CorpusNode,
@@ -41,6 +55,7 @@ pub enum KnowledgeOperation {
 impl KnowledgeOperation {
     pub fn from_id(id: &str) -> Option<Self> {
         Some(match id {
+            "tos.epistemic.inspect" | "tos_evidence_lens" => Self::EvidenceLens,
             "tos.knowledge.catalog" => Self::Catalog,
             "tos.knowledge.node.inspect" => Self::Node,
             "tos.knowledge.relation.inspect" => Self::Relation,
@@ -53,6 +68,18 @@ impl KnowledgeOperation {
             "tos.knowledge.contracts" => Self::Contracts,
             "tos.knowledge.search.capabilities" => Self::SearchCapabilities,
             "tos.dossier.inspect" => Self::Dossier,
+            "tos_philosophy_graph_contracts" => Self::PhilosophyContracts,
+            "tos_philosophy_epistemic_packet" => Self::PhilosophyEpistemic,
+            "tos_philosophy_graph_audit" => Self::PhilosophyAudit,
+            "tos_philosophy_graph_packet" => Self::PhilosophyPacket,
+            "tos_philosophy_graph_chronology_packet" => Self::PhilosophyChronology,
+            "tos_philosophy_graph_source_evidence_packet" => Self::PhilosophySourceEvidence,
+            "tos_philosophy_graph_concept_lineage_packet" => Self::PhilosophyConceptLineage,
+            "tos_philosophy_graph_lens_packet" => Self::PhilosophyLens,
+            "tos_philosophy_graph_status" => Self::PhilosophyStatus,
+            "tos_philosophy_graph_search" => Self::PhilosophySearch,
+            "tos_philosophy_graph_scale_manifest" => Self::PhilosophyScaleManifest,
+            "tos_philosophy_graph_scale_rows" => Self::PhilosophyScaleRows,
             "tos.node.inspect" => Self::PhilosophyNode,
             "tos_philosophy_graph_edge" => Self::PhilosophyEdge,
             "tos.neighborhood" => Self::PhilosophyNeighborhood,
@@ -66,6 +93,7 @@ impl KnowledgeOperation {
             "tos_philosophy_graph_unresolved" => Self::PhilosophyUnresolved,
             "tos_corpus_status" => Self::CorpusStatus,
             "tos_corpus_summary" => Self::CorpusSummary,
+            "tos_corpus_graph_views" => Self::CorpusGraphViews,
             "tos_corpus_search" => Self::CorpusSearch,
             "tos_corpus_resources" => Self::CorpusResources,
             "tos_corpus_node" => Self::CorpusNode,
@@ -77,6 +105,7 @@ impl KnowledgeOperation {
     }
     pub fn id(self) -> &'static str {
         match self {
+            Self::EvidenceLens => "tos.epistemic.inspect",
             Self::Catalog => "tos.knowledge.catalog",
             Self::Node => "tos.knowledge.node.inspect",
             Self::Relation => "tos.knowledge.relation.inspect",
@@ -89,6 +118,18 @@ impl KnowledgeOperation {
             Self::Contracts => "tos.knowledge.contracts",
             Self::SearchCapabilities => "tos.knowledge.search.capabilities",
             Self::Dossier => "tos.dossier.inspect",
+            Self::PhilosophyContracts => "tos_philosophy_graph_contracts",
+            Self::PhilosophyEpistemic => "tos_philosophy_epistemic_packet",
+            Self::PhilosophyAudit => "tos_philosophy_graph_audit",
+            Self::PhilosophyPacket => "tos_philosophy_graph_packet",
+            Self::PhilosophyChronology => "tos_philosophy_graph_chronology_packet",
+            Self::PhilosophySourceEvidence => "tos_philosophy_graph_source_evidence_packet",
+            Self::PhilosophyConceptLineage => "tos_philosophy_graph_concept_lineage_packet",
+            Self::PhilosophyLens => "tos_philosophy_graph_lens_packet",
+            Self::PhilosophyStatus => "tos_philosophy_graph_status",
+            Self::PhilosophySearch => "tos_philosophy_graph_search",
+            Self::PhilosophyScaleManifest => "tos_philosophy_graph_scale_manifest",
+            Self::PhilosophyScaleRows => "tos_philosophy_graph_scale_rows",
             Self::PhilosophyNode => "tos.node.inspect",
             Self::PhilosophyEdge => "tos_philosophy_graph_edge",
             Self::PhilosophyNeighborhood => "tos.neighborhood",
@@ -102,6 +143,7 @@ impl KnowledgeOperation {
             Self::PhilosophyUnresolved => "tos_philosophy_graph_unresolved",
             Self::CorpusStatus => "tos_corpus_status",
             Self::CorpusSummary => "tos_corpus_summary",
+            Self::CorpusGraphViews => "tos_corpus_graph_views",
             Self::CorpusSearch => "tos_corpus_search",
             Self::CorpusResources => "tos_corpus_resources",
             Self::CorpusNode => "tos_corpus_node",
@@ -115,6 +157,7 @@ impl KnowledgeOperation {
             self,
             Self::CorpusStatus
                 | Self::CorpusSummary
+                | Self::CorpusGraphViews
                 | Self::CorpusSearch
                 | Self::CorpusResources
                 | Self::CorpusNode
@@ -126,7 +169,19 @@ impl KnowledgeOperation {
     pub fn is_philosophy(self) -> bool {
         matches!(
             self,
-            Self::PhilosophyNode
+            Self::PhilosophyContracts
+                | Self::PhilosophyEpistemic
+                | Self::PhilosophyAudit
+                | Self::PhilosophyPacket
+                | Self::PhilosophyChronology
+                | Self::PhilosophySourceEvidence
+                | Self::PhilosophyConceptLineage
+                | Self::PhilosophyLens
+                | Self::PhilosophyStatus
+                | Self::PhilosophySearch
+                | Self::PhilosophyScaleManifest
+                | Self::PhilosophyScaleRows
+                | Self::PhilosophyNode
                 | Self::PhilosophyEdge
                 | Self::PhilosophyNeighborhood
                 | Self::PhilosophyPath
@@ -142,6 +197,7 @@ impl KnowledgeOperation {
 }
 #[derive(Clone, Debug)]
 pub enum KnowledgeRequest {
+    EvidenceLens(tos_query::philosophy_read::EvidenceRequest),
     Catalog,
     Node {
         node_id: String,
@@ -164,6 +220,8 @@ pub enum KnowledgeRequest {
         object_id: String,
         limit: usize,
     },
+    /// Requires the actual optional member context of the held original release.
+    PhilosophyAudit,
     Philosophy(tos_query::philosophy_read::PhilosophyReadRequest),
     Corpus(tos_query::corpus_read::CorpusReadRequest),
     /// Internal boot projections, not separately advertised operations.
@@ -173,8 +231,10 @@ pub enum KnowledgeRequest {
 impl KnowledgeRequest {
     pub fn operation(&self) -> KnowledgeOperation {
         match self {
+            Self::PhilosophyAudit => KnowledgeOperation::PhilosophyAudit,
             Self::PhilosophyViewIds => KnowledgeOperation::PhilosophyViews,
             Self::CorpusViewIds => KnowledgeOperation::CorpusSummary,
+            Self::EvidenceLens(_) => KnowledgeOperation::EvidenceLens,
             Self::Catalog => KnowledgeOperation::Catalog,
             Self::Node { .. } => KnowledgeOperation::Node,
             Self::Relation { .. } => KnowledgeOperation::Relation,
@@ -193,6 +253,18 @@ impl KnowledgeRequest {
             Self::Philosophy(request) => {
                 use tos_query::philosophy_read::PhilosophyReadRequest as P;
                 match request {
+                    P::Contracts => KnowledgeOperation::PhilosophyContracts,
+                    P::Epistemic { .. } => KnowledgeOperation::PhilosophyEpistemic,
+                    P::Packet { .. } => KnowledgeOperation::PhilosophyPacket,
+                    // Fixed MCP tools select a view, but the held QRY operation
+                    // is the same genuine lens packet operation for every view.
+                    P::LensPacket { .. } => KnowledgeOperation::PhilosophyLens,
+                    P::Status => KnowledgeOperation::PhilosophyStatus,
+                    P::Search { .. } => KnowledgeOperation::PhilosophySearch,
+                    P::ScaleManifest { .. } => KnowledgeOperation::PhilosophyScaleManifest,
+                    P::ScaleRows { .. } | P::ScaleExport { .. } => {
+                        KnowledgeOperation::PhilosophyScaleRows
+                    }
                     P::Node { .. } => KnowledgeOperation::PhilosophyNode,
                     P::Edge { .. } => KnowledgeOperation::PhilosophyEdge,
                     P::Neighborhood { .. } => KnowledgeOperation::PhilosophyNeighborhood,
@@ -212,6 +284,15 @@ impl KnowledgeRequest {
         operation: KnowledgeOperation,
         args: &JsonValue,
     ) -> Result<Self, AccessError> {
+        if operation == KnowledgeOperation::PhilosophyAudit {
+            if args.as_object().is_none_or(|fields| !fields.is_empty()) {
+                return Err(invalid("audit takes no tool arguments"));
+            }
+            return Ok(Self::PhilosophyAudit);
+        }
+        if operation == KnowledgeOperation::EvidenceLens {
+            return evidence_from_arguments(args).map(Self::EvidenceLens);
+        }
         if operation.is_corpus() {
             return corpus_from_arguments(operation, args).map(Self::Corpus);
         }
@@ -331,7 +412,7 @@ fn corpus_from_arguments(
     use KnowledgeOperation as O;
     use tos_query::corpus_read::CorpusReadRequest as R;
     let allowed: &[&str] = match operation {
-        O::CorpusStatus | O::CorpusSummary => &[],
+        O::CorpusStatus | O::CorpusSummary | O::CorpusGraphViews => &[],
         O::CorpusSearch => &["query", "limit", "resource_kind"],
         O::CorpusResources => &["resource_kind", "owner_branch", "limit"],
         O::CorpusNode => &["node_id"],
@@ -372,6 +453,7 @@ fn corpus_from_arguments(
     Ok(match operation {
         O::CorpusStatus => R::Status,
         O::CorpusSummary => R::Summary,
+        O::CorpusGraphViews => R::GraphViews,
         O::CorpusSearch => R::Search {
             query: required("query")?,
             limit: count(20, 100)?,
@@ -410,6 +492,16 @@ fn philosophy_from_arguments(
         .as_object()
         .ok_or_else(|| invalid("tool arguments must be an object"))?;
     let allowed: &[&str] = match operation {
+        O::PhilosophyContracts | O::PhilosophyStatus => &[],
+        O::PhilosophyEpistemic => &["item_id", "view_id", "limit"],
+        O::PhilosophyPacket => &["query", "view_id", "limit"],
+        O::PhilosophyLens => &["view_id", "limit"],
+        O::PhilosophyChronology | O::PhilosophySourceEvidence | O::PhilosophyConceptLineage => {
+            &["limit"]
+        }
+        O::PhilosophySearch => &["query", "limit"],
+        O::PhilosophyScaleManifest => &["view_id", "layers"],
+        O::PhilosophyScaleRows => &["table", "view_id", "layers", "offset", "limit"],
         O::PhilosophyNode => &["node_id"],
         O::PhilosophyEdge => &["edge_id"],
         O::PhilosophyNeighborhood => &["node_id", "depth", "limit", "layers", "predicates"],
@@ -526,6 +618,45 @@ fn philosophy_from_arguments(
             view_id: optional("view_id")?,
             excluded_edge_ids: strings("excluded_edge_ids")?,
             alternative_limit: count("alternative_limit", 1, 1, 5)?,
+        },
+        O::PhilosophyContracts => R::Contracts,
+        O::PhilosophyEpistemic => R::Epistemic {
+            item_id: id("item_id")?,
+            view_id: optional("view_id")?,
+            limit: count("limit", 80, 1, 200)?,
+        },
+        O::PhilosophyPacket => R::Packet {
+            query: optional("query")?.unwrap_or_default(),
+            view_id: optional("view_id")?,
+            limit: count("limit", 20, 1, 100)?,
+        },
+        O::PhilosophyLens
+        | O::PhilosophyChronology
+        | O::PhilosophySourceEvidence
+        | O::PhilosophyConceptLineage => R::LensPacket {
+            view_id: match operation {
+                O::PhilosophyChronology => "chronology".into(),
+                O::PhilosophySourceEvidence => "source-evidence".into(),
+                O::PhilosophyConceptLineage => "concept-lineage".into(),
+                _ => id("view_id")?,
+            },
+            limit: count("limit", 20, 1, 100)?,
+        },
+        O::PhilosophyStatus => R::Status,
+        O::PhilosophySearch => R::Search {
+            query: optional("query")?.unwrap_or_default(),
+            limit: count("limit", 20, 1, 100)?,
+        },
+        O::PhilosophyScaleManifest => R::ScaleManifest {
+            view_id: optional("view_id")?,
+            layers: strings("layers")?,
+        },
+        O::PhilosophyScaleRows => R::ScaleRows {
+            table: id("table")?,
+            view_id: optional("view_id")?,
+            layers: strings("layers")?,
+            offset: count("offset", 0, 0, 10_000_000)?,
+            limit: count("limit", 1000, 1, 10_000)?,
         },
         O::PhilosophyView => R::View {
             view_id: id("view_id")?,
@@ -683,6 +814,18 @@ pub fn execute_selected_knowledge<'hold>(
         probe: inspect_probe,
     };
     let packet = match request {
+        KnowledgeRequest::PhilosophyAudit => {
+            return Err(AccessError::new(
+                AccessErrorCode::Unavailable,
+                "selected audit release context unavailable",
+            ));
+        }
+        KnowledgeRequest::EvidenceLens(_) => {
+            return Err(AccessError::new(
+                AccessErrorCode::Unavailable,
+                "selected evidence release context unavailable",
+            ));
+        }
         KnowledgeRequest::ExplorationContracts => {
             return Err(AccessError::new(
                 AccessErrorCode::Unavailable,
@@ -1167,6 +1310,111 @@ pub fn execute_selected_corpus_view_ids<'hold>(
         model,
         bound,
         &mut authority,
+        budget,
+    )?;
+    check_abort(&probe)?;
+    Ok(from_inspect(packet))
+}
+
+fn evidence_from_arguments(
+    args: &JsonValue,
+) -> Result<tos_query::philosophy_read::EvidenceRequest, AccessError> {
+    use tos_query::philosophy_read::{EvidenceMode, EvidenceRequest};
+    let fields = args
+        .as_object()
+        .ok_or_else(|| invalid("Evidence Lens arguments must be an object"))?;
+    if fields.iter().any(|(k, _)| {
+        !k.as_str()
+            .is_some_and(|k| ["mode", "item_id", "view_id", "limit"].contains(&k))
+    }) {
+        return Err(invalid("unknown Evidence Lens argument"));
+    }
+    let mode = match args.object_get("mode").and_then(JsonValue::as_str) {
+        Some("philosophy") => EvidenceMode::Philosophy,
+        Some("corpus") => EvidenceMode::Corpus,
+        _ => return Err(invalid("invalid Evidence Lens mode")),
+    };
+    let item_id = args
+        .object_get("item_id")
+        .and_then(JsonValue::as_str)
+        .filter(|v| !v.is_empty())
+        .ok_or_else(|| invalid("Evidence Lens item_id missing"))?
+        .to_owned();
+    let view_id = match args.object_get("view_id") {
+        None | Some(JsonValue::Null) => None,
+        Some(value) => Some(
+            value
+                .as_str()
+                .ok_or_else(|| invalid("invalid Evidence Lens view_id"))?
+                .to_owned(),
+        ),
+    };
+    let limit = match args.object_get("limit") {
+        None => 80,
+        Some(value) => value
+            .as_u64()
+            .and_then(|n| usize::try_from(n).ok())
+            .filter(|n| (1..=200).contains(n))
+            .ok_or_else(|| invalid("invalid Evidence Lens limit"))?,
+    };
+    Ok(EvidenceRequest {
+        mode,
+        item_id,
+        view_id,
+        limit,
+    })
+}
+pub(crate) fn execute_selected_evidence<'hold>(
+    model: &mut tos_compiler::VerifiedKnowledgeModel<'_>,
+    bound: &tos_query::BoundCmpKnowledge<'_>,
+    authority: &mut dyn tos_query::InspectCurrentAuthority<'hold>,
+    request: &tos_query::philosophy_read::EvidenceRequest,
+    raw: &[u8],
+    context: Option<&tos_query::corpus_read::CorpusReadContext>,
+    budget: tos_query::philosophy_read::PhilosophyReadBudget,
+    probe: Arc<dyn AbortProbe>,
+) -> Result<PreparedPacket<'hold>, AccessError> {
+    check_abort(&probe)?;
+    let probe = combined_probe(probe, authority.abort_probe());
+    let mut authority = InspectProbe {
+        inner: authority,
+        probe: Arc::clone(&probe),
+    };
+    let packet = tos_query::philosophy_read::execute_selected_evidence(
+        model,
+        bound,
+        &mut authority,
+        request,
+        raw,
+        context,
+        budget,
+    )?;
+    check_abort(&probe)?;
+    Ok(from_inspect(packet))
+}
+
+/// Hold the actual audit release context and the same request abort probe.
+pub(crate) fn execute_selected_philosophy_audit<'hold>(
+    model: &mut tos_compiler::VerifiedKnowledgeModel<'_>,
+    bound: &tos_query::BoundCmpKnowledge<'_>,
+    authority: &mut dyn tos_query::InspectCurrentAuthority<'hold>,
+    path: &str,
+    raw: Option<&[u8]>,
+    budget: tos_query::philosophy_read::PhilosophyReadBudget,
+    probe: Arc<dyn AbortProbe>,
+) -> Result<PreparedPacket<'hold>, AccessError> {
+    check_abort(&probe)?;
+    let probe = combined_probe(probe, authority.abort_probe());
+    let mut authority = InspectProbe {
+        inner: authority,
+        probe: Arc::clone(&probe),
+    };
+    let packet = tos_query::philosophy_read::execute_selected_philosophy_audit(
+        model,
+        bound,
+        &mut authority,
+        path,
+        raw,
         budget,
     )?;
     check_abort(&probe)?;
