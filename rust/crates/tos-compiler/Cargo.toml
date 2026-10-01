@@ -10,6 +10,7 @@ publish = false
 test-fixture = []
 
 [dependencies]
+quick-xml = "=0.41.0"
 tos-foundation = { path = "../tos-foundation" }
 tos-fd-open = { path = "../tos-fd-open" }
 tos-validation = { path = "../tos-validation" }
