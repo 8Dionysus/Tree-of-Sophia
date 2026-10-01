@@ -185,6 +185,9 @@ fn revision(db: &Connection) -> Result<Option<String>> {
         return Ok(None);
     }
     let value: Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+    if !value.is_object() {
+        return Err("local revision metadata is not an object".into());
+    }
     match value.get("sha256") {
         None | Some(Value::Null) => Ok(None),
         Some(Value::String(revision)) => Ok(Some(revision.clone())),
@@ -472,9 +475,18 @@ mod tests {
         let database = database(&fixture);
         let sql = fixture.path("input.sql");
         fs::write(&sql, "INSERT INTO t VALUES ('must not enter');\nUPDATE edge_meta SET json_chunk='{\"sha256\":\"new\"}';\n").unwrap();
-        for invalid in ["123", "true", "{}", "[]"] {
+        for malformed in [
+            "{\"sha256\":123}",
+            "{\"sha256\":true}",
+            "{\"sha256\":{}}",
+            "{\"sha256\":[]}",
+            "123",
+            "true",
+            "[]",
+            "null",
+            "\"old\"",
+        ] {
             let db = Connection::open(&database).unwrap();
-            let malformed = format!("{{\"sha256\":{invalid}}}");
             db.execute("UPDATE edge_meta SET json_chunk=?", [&malformed])
                 .unwrap();
             drop(db);
