@@ -666,13 +666,20 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
     let store = temporary.path().join("selected-store");
     let base = super::validation_cut_cases::write_cut_store(&authored, &store);
     let cut = open_cut(&store, base, deadline, &cancellation);
+    // One sealed executable image; every adapter still authenticates its own cut.
+    let mut image_budget = ExecutorBudget::laboratory();
+    image_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
+    assert!(!image_budget.execution_wall.is_zero());
+    let worker_image =
+        super::command_form_cases::schema_image(image_budget, deadline, &cancellation);
     let claim_worker = || {
         let mut budget = ExecutorBudget::laboratory();
         budget.execution_wall = deadline.saturating_duration_since(Instant::now());
         assert!(!budget.execution_wall.is_zero());
-        super::command_form_cases::schemas_for_profile_with_budget(
+        super::command_form_cases::schemas_for_profile_with_image(
             &cut,
             FormatProfile::LegacyPythonObserved20260923,
+            &worker_image,
             budget,
             deadline,
             &cancellation,
@@ -1049,9 +1056,10 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
     let mut preview_budget = ExecutorBudget::laboratory();
     preview_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
     assert!(!preview_budget.execution_wall.is_zero());
-    let mut revision_preview_worker = super::command_form_cases::schemas_for_profile_with_budget(
+    let mut revision_preview_worker = super::command_form_cases::schemas_for_profile_with_image(
         &current_cut,
         FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
         preview_budget,
         deadline,
         &cancellation,
@@ -1094,9 +1102,10 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
     let mut revision_budget = ExecutorBudget::laboratory();
     revision_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
     assert!(!revision_budget.execution_wall.is_zero());
-    let mut revision_worker = super::command_form_cases::schemas_for_profile_with_budget(
+    let mut revision_worker = super::command_form_cases::schemas_for_profile_with_image(
         &current_cut,
         FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
         revision_budget,
         deadline,
         &cancellation,
@@ -1407,9 +1416,13 @@ fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
         let mut budget = ExecutorBudget::laboratory();
         budget.execution_wall = deadline.saturating_duration_since(Instant::now());
         assert!(!budget.execution_wall.is_zero());
-        let mut worker = super::command_form_cases::schemas_for_profile_with_budget(
+        // The same operation keeps its sealed image through creation and replay.
+        // Schema receipts and cut state remain private to each fresh adapter.
+        let worker_image = super::command_form_cases::schema_image(budget, deadline, &cancellation);
+        let mut worker = super::command_form_cases::schemas_for_profile_with_image(
             &cut,
             FormatProfile::LegacyPythonObserved20260923,
+            &worker_image,
             budget,
             deadline,
             &cancellation,
@@ -1470,9 +1483,10 @@ fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
         let mut replay_budget = ExecutorBudget::laboratory();
         replay_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
         assert!(!replay_budget.execution_wall.is_zero());
-        let mut replay_worker = super::command_form_cases::schemas_for_profile_with_budget(
+        let mut replay_worker = super::command_form_cases::schemas_for_profile_with_image(
             &cut,
             FormatProfile::LegacyPythonObserved20260923,
+            &worker_image,
             replay_budget,
             deadline,
             &cancellation,
@@ -1480,9 +1494,10 @@ fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
         let mut current_budget = ExecutorBudget::laboratory();
         current_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
         assert!(!current_budget.execution_wall.is_zero());
-        let mut current_worker = super::command_form_cases::schemas_for_profile_with_budget(
+        let mut current_worker = super::command_form_cases::schemas_for_profile_with_image(
             &current_cut,
             FormatProfile::LegacyPythonObserved20260923,
+            &worker_image,
             current_budget,
             deadline,
             &cancellation,
@@ -1572,14 +1587,14 @@ fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
         let mut preview_budget = ExecutorBudget::laboratory();
         preview_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
         assert!(!preview_budget.execution_wall.is_zero());
-        let mut revision_preview_worker =
-            super::command_form_cases::schemas_for_profile_with_budget(
-                &current_cut,
-                FormatProfile::LegacyPythonObserved20260923,
-                preview_budget,
-                deadline,
-                &cancellation,
-            );
+        let mut revision_preview_worker = super::command_form_cases::schemas_for_profile_with_image(
+            &current_cut,
+            FormatProfile::LegacyPythonObserved20260923,
+            &worker_image,
+            preview_budget,
+            deadline,
+            &cancellation,
+        );
         let revision_preview = prepare_isolated_claim_revision_from_captures(
             &revision_filesystem,
             &revision_context,
@@ -1627,9 +1642,10 @@ fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
         let mut revision_budget = ExecutorBudget::laboratory();
         revision_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
         assert!(!revision_budget.execution_wall.is_zero());
-        let mut revision_worker = super::command_form_cases::schemas_for_profile_with_budget(
+        let mut revision_worker = super::command_form_cases::schemas_for_profile_with_image(
             &current_cut,
             FormatProfile::LegacyPythonObserved20260923,
+            &worker_image,
             revision_budget,
             deadline,
             &cancellation,
@@ -1678,9 +1694,10 @@ fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
         let mut original_budget = ExecutorBudget::laboratory();
         original_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
         assert!(!original_budget.execution_wall.is_zero());
-        let mut original_worker = super::command_form_cases::schemas_for_profile_with_budget(
+        let mut original_worker = super::command_form_cases::schemas_for_profile_with_image(
             &cut,
             FormatProfile::LegacyPythonObserved20260923,
+            &worker_image,
             original_budget,
             deadline,
             &cancellation,
@@ -1688,9 +1705,10 @@ fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
         let mut latest_budget = ExecutorBudget::laboratory();
         latest_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
         assert!(!latest_budget.execution_wall.is_zero());
-        let mut latest_worker = super::command_form_cases::schemas_for_profile_with_budget(
+        let mut latest_worker = super::command_form_cases::schemas_for_profile_with_image(
             &corrected_cut,
             FormatProfile::LegacyPythonObserved20260923,
+            &worker_image,
             latest_budget,
             deadline,
             &cancellation,
@@ -1727,9 +1745,10 @@ fn initial_identity_proposals_retain_selected_catalog_and_cold_replay() {
         let mut retry_budget = ExecutorBudget::laboratory();
         retry_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
         assert!(!retry_budget.execution_wall.is_zero());
-        let mut retry_worker = super::command_form_cases::schemas_for_profile_with_budget(
+        let mut retry_worker = super::command_form_cases::schemas_for_profile_with_image(
             &corrected_cut,
             FormatProfile::LegacyPythonObserved20260923,
+            &worker_image,
             retry_budget,
             deadline,
             &cancellation,
@@ -1952,9 +1971,13 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
     let mut broken_budget = ExecutorBudget::laboratory();
     broken_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
     assert!(!broken_budget.execution_wall.is_zero());
-    let mut broken_worker = super::command_form_cases::schemas_for_profile_with_budget(
+    // Broken/current/history cuts share code, never schema results or child state.
+    let worker_image =
+        super::command_form_cases::schema_image(broken_budget, deadline, &cancellation);
+    let mut broken_worker = super::command_form_cases::schemas_for_profile_with_image(
         &broken_cut,
         FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
         broken_budget,
         deadline,
         &cancellation,
@@ -1987,9 +2010,10 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
     let mut budget = ExecutorBudget::laboratory();
     budget.execution_wall = deadline.saturating_duration_since(Instant::now());
     assert!(!budget.execution_wall.is_zero());
-    let mut worker = super::command_form_cases::schemas_for_profile_with_budget(
+    let mut worker = super::command_form_cases::schemas_for_profile_with_image(
         &cut,
         FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
         budget,
         deadline,
         &cancellation,
@@ -2052,9 +2076,10 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
     let mut create_budget = ExecutorBudget::laboratory();
     create_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
     assert!(!create_budget.execution_wall.is_zero());
-    let mut worker = super::command_form_cases::schemas_for_profile_with_budget(
+    let mut worker = super::command_form_cases::schemas_for_profile_with_image(
         &cut,
         FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
         create_budget,
         deadline,
         &cancellation,
@@ -2085,9 +2110,10 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
     let mut original_budget = ExecutorBudget::laboratory();
     original_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
     assert!(!original_budget.execution_wall.is_zero());
-    let mut original_worker = super::command_form_cases::schemas_for_profile_with_budget(
+    let mut original_worker = super::command_form_cases::schemas_for_profile_with_image(
         &cut,
         FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
         original_budget,
         deadline,
         &cancellation,
@@ -2095,9 +2121,10 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
     let mut current_budget = ExecutorBudget::laboratory();
     current_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
     assert!(!current_budget.execution_wall.is_zero());
-    let mut current_worker = super::command_form_cases::schemas_for_profile_with_budget(
+    let mut current_worker = super::command_form_cases::schemas_for_profile_with_image(
         &current_cut,
         FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
         current_budget,
         deadline,
         &cancellation,
@@ -2184,9 +2211,10 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
     let mut preview_budget = ExecutorBudget::laboratory();
     preview_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
     assert!(!preview_budget.execution_wall.is_zero());
-    let mut revision_preview_worker = super::command_form_cases::schemas_for_profile_with_budget(
+    let mut revision_preview_worker = super::command_form_cases::schemas_for_profile_with_image(
         &current_cut,
         FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
         preview_budget,
         deadline,
         &cancellation,
@@ -2242,9 +2270,10 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
     let mut revision_budget = ExecutorBudget::laboratory();
     revision_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
     assert!(!revision_budget.execution_wall.is_zero());
-    let mut revision_worker = super::command_form_cases::schemas_for_profile_with_budget(
+    let mut revision_worker = super::command_form_cases::schemas_for_profile_with_image(
         &current_cut,
         FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
         revision_budget,
         deadline,
         &cancellation,
@@ -2293,9 +2322,10 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
     let mut original_budget = ExecutorBudget::laboratory();
     original_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
     assert!(!original_budget.execution_wall.is_zero());
-    let mut original_worker = super::command_form_cases::schemas_for_profile_with_budget(
+    let mut original_worker = super::command_form_cases::schemas_for_profile_with_image(
         &cut,
         FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
         original_budget,
         deadline,
         &cancellation,
@@ -2303,9 +2333,10 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
     let mut latest_budget = ExecutorBudget::laboratory();
     latest_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
     assert!(!latest_budget.execution_wall.is_zero());
-    let mut latest_worker = super::command_form_cases::schemas_for_profile_with_budget(
+    let mut latest_worker = super::command_form_cases::schemas_for_profile_with_image(
         &corrected_cut,
         FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
         latest_budget,
         deadline,
         &cancellation,
@@ -2341,9 +2372,10 @@ fn initial_collection_order_binds_retained_version_and_cold_replays() {
     let mut retry_budget = ExecutorBudget::laboratory();
     retry_budget.execution_wall = deadline.saturating_duration_since(Instant::now());
     assert!(!retry_budget.execution_wall.is_zero());
-    let mut retry_worker = super::command_form_cases::schemas_for_profile_with_budget(
+    let mut retry_worker = super::command_form_cases::schemas_for_profile_with_image(
         &corrected_cut,
         FormatProfile::LegacyPythonObserved20260923,
+        &worker_image,
         retry_budget,
         deadline,
         &cancellation,
