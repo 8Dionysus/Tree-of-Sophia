@@ -23,28 +23,49 @@ pub fn render_supplied_navigation_record(
     crate::source_bibliographic_navigation::project_source_navigation_record(input, limits)
 }
 
+/// Input documents and emitted rows have different cost/size contracts.
+#[derive(Clone, Copy)]
+pub struct BibliographicDocumentLimits {
+    pub input_document_bytes: usize,
+    pub output_row_bytes: usize,
+}
+impl From<SourceCatalogLimits> for BibliographicDocumentLimits {
+    fn from(limits: SourceCatalogLimits) -> Self {
+        Self {
+            input_document_bytes: limits.max_row_bytes,
+            output_row_bytes: limits.max_output_row_bytes,
+        }
+    }
+}
+
 /// Existing metadata route descriptor over source-authenticated inputs.
 pub fn supplied_metadata_descriptor(
     entry: &Value,
     record: &Value,
     entities: &Value,
-    max_row_bytes: usize,
+    limits: BibliographicDocumentLimits,
 ) -> Result<Value> {
     for value in [entry, record, entities] {
-        encode(value, max_row_bytes)?;
+        encode(value, limits.input_document_bytes)?;
     }
-    crate::source_bibliographic_versions::supplied_metadata_descriptor(entry, record, entities)
+    let descriptor = crate::source_bibliographic_versions::supplied_metadata_descriptor(
+        entry, record, entities,
+    )?;
+    encode(&descriptor, limits.output_row_bytes)?;
+    Ok(descriptor)
 }
 
 /// The same literal renderer used by the maintained full Claim producer.
 pub fn supplied_bibliographic_literal(
     entry: &Value,
     claim: &Value,
-    max_row_bytes: usize,
+    limits: BibliographicDocumentLimits,
 ) -> Result<Value> {
-    encode(entry, max_row_bytes)?;
-    encode(claim, max_row_bytes)?;
-    render::literal(entry, claim, max_row_bytes)
+    encode(entry, limits.input_document_bytes)?;
+    encode(claim, limits.input_document_bytes)?;
+    let row = render::literal(entry, claim, limits.input_document_bytes)?;
+    encode(&row, limits.output_row_bytes)?;
+    Ok(row)
 }
 
 /// Existing fixed reference/proposal grammar, with original member order.
@@ -63,10 +84,10 @@ pub fn supplied_bibliographic_endpoint_matches(
     node: &Value,
     allowed: &Value,
     entities: &Value,
-    max_row_bytes: usize,
+    limits: BibliographicDocumentLimits,
 ) -> Result<bool> {
     for value in [node, allowed, entities] {
-        encode(value, max_row_bytes)?;
+        encode(value, limits.input_document_bytes)?;
     }
     typed_endpoint(node, allowed, entities)
 }
@@ -111,15 +132,19 @@ pub fn supplied_claim_navigation_descriptor(
     object: &Value,
     registry: &Value,
     entities: &Value,
-    max_row_bytes: usize,
+    limits: BibliographicDocumentLimits,
 ) -> Result<Option<Value>> {
-    if max_row_bytes == 0 || max_row_bytes > 4 * 1024 * 1024 {
+    if limits.input_document_bytes == 0 || limits.output_row_bytes == 0 {
         return Err(Error::Budget("bibliographic descriptor row cap"));
     }
     for value in [claim, subject, object, registry, entities] {
-        encode(value, max_row_bytes)?;
+        encode(value, limits.input_document_bytes)?;
     }
-    render::descriptor(claim, subject, object, registry, entities, max_row_bytes)
+    let descriptor = render::descriptor(claim, subject, object, registry, entities, limits)?;
+    if let Some(value) = &descriptor {
+        encode(value, limits.output_row_bytes)?;
+    }
+    Ok(descriptor)
 }
 
 /// Project an already authenticated selected metadata identity.
@@ -127,18 +152,18 @@ pub fn supplied_bibliographic_identity(
     entry: &Value,
     source: &Value,
     forms: Option<(&str, &Value)>,
-    max_row_bytes: usize,
+    limits: BibliographicDocumentLimits,
 ) -> Result<Value> {
-    if max_row_bytes == 0 || max_row_bytes > 4 * 1024 * 1024 {
+    if limits.input_document_bytes == 0 || limits.output_row_bytes == 0 {
         return Err(Error::Budget("bibliographic identity row cap"));
     }
-    encode(entry, max_row_bytes)?;
-    encode(source, max_row_bytes)?;
+    encode(entry, limits.input_document_bytes)?;
+    encode(source, limits.input_document_bytes)?;
     if let Some((_, value)) = forms {
-        encode(value, max_row_bytes)?;
+        encode(value, limits.input_document_bytes)?;
     }
     let result = render::identity(entry, source, forms)?;
-    encode(&result, max_row_bytes)?;
+    encode(&result, limits.output_row_bytes)?;
     Ok(result)
 }
 
@@ -166,7 +191,7 @@ pub struct BibliographicLimits {
     pub deadline: std::time::Instant,
 }
 impl BibliographicLimits {
-    pub(crate) fn validate(self) -> Result<()> {
+    pub fn validate(self) -> Result<()> {
         if std::time::Instant::now() >= self.deadline {
             return Err(Error::Budget("bibliographic deadline"));
         }
@@ -331,8 +356,7 @@ fn raw_file(
     let mut found = None;
     for name in [SOURCE_FILES, CONTRACT_FILES, BIBLIOGRAPHIC_FILES] {
         if !stage
-            .exact_receipt()
-            .collections
+            .input_collections()
             .iter()
             .any(|c| c.source_graph == CATALOG_SOURCE && c.collection == name)
         {
@@ -786,10 +810,10 @@ fn evidence(
     )
 }
 
-fn maker(
+fn maker<B: catalog::CatalogInputBinding>(
     stage: &mut KnowledgeStage<'_>,
     claim: &Value,
-    receipt: &SourceCatalogReceipt,
+    receipt: &SourceCatalogReceipt<B>,
     validator: &SourceCatalogValidator<'_>,
     materializer: &mut dyn BibliographicForms,
     l: BibliographicLimits,
@@ -930,10 +954,10 @@ pub fn validate_supplied_catalogue_attribution(claim: &Value) -> Result<()> {
     Ok(())
 }
 
-fn claim_cohort(
+fn claim_cohort<B: catalog::CatalogInputBinding>(
     stage: &mut KnowledgeStage<'_>,
     id: &str,
-    receipt: &SourceCatalogReceipt,
+    receipt: &SourceCatalogReceipt<B>,
     validator: &SourceCatalogValidator<'_>,
     entities: &Value,
     registry: &Value,
@@ -1273,7 +1297,7 @@ fn claim_cohort(
         &object,
         registry,
         entities,
-        l.catalog.max_output_row_bytes,
+        l.catalog.into(),
     )?;
     let result = render_supplied_claim(
         render::ClaimInputs {
@@ -1371,9 +1395,26 @@ pub fn prepare_bibliographic_graph_from_cut(
         Some(source),
     )
 }
-fn prepare_impl(
+pub fn prepare_cold_bibliographic_graph_from_cut(
     stage: &mut KnowledgeStage<'_>,
-    catalog_receipt: &SourceCatalogReceipt,
+    catalog_receipt: &catalog::ColdSourceCatalogReceipt,
+    validator: &SourceCatalogValidator<'_>,
+    materializer: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+    source: &crate::source_bibliographic_versions::BibliographicSourceCut<'_>,
+) -> Result<BibliographicReceipt> {
+    prepare_impl(
+        stage,
+        catalog_receipt,
+        validator,
+        materializer,
+        l,
+        Some(source),
+    )
+}
+fn prepare_impl<B: catalog::CatalogInputBinding>(
+    stage: &mut KnowledgeStage<'_>,
+    catalog_receipt: &SourceCatalogReceipt<B>,
     validator: &SourceCatalogValidator<'_>,
     materializer: &mut dyn BibliographicForms,
     l: BibliographicLimits,
@@ -1383,8 +1424,7 @@ fn prepare_impl(
         l.validate()?;
         catalog::verify_catalog(stage, catalog_receipt, l.catalog)?;
         if !stage
-            .exact_receipt()
-            .collections
+            .input_collections()
             .iter()
             .any(|c| c.source_graph == CATALOG_SOURCE && c.collection == BIBLIOGRAPHIC_FILES)
         {
@@ -1504,6 +1544,24 @@ pub fn render_bibliographic_graph(
     l: BibliographicLimits,
     sink: &mut impl BibliographicSink,
 ) -> Result<()> {
+    render_impl(stage, catalog_receipt, receipt, l, sink)
+}
+pub fn render_cold_bibliographic_graph(
+    stage: &mut KnowledgeStage<'_>,
+    catalog_receipt: &catalog::ColdSourceCatalogReceipt,
+    receipt: &BibliographicReceipt,
+    l: BibliographicLimits,
+    sink: &mut impl BibliographicSink,
+) -> Result<()> {
+    render_impl(stage, catalog_receipt, receipt, l, sink)
+}
+fn render_impl<B: catalog::CatalogInputBinding>(
+    stage: &mut KnowledgeStage<'_>,
+    catalog_receipt: &SourceCatalogReceipt<B>,
+    receipt: &BibliographicReceipt,
+    l: BibliographicLimits,
+    sink: &mut impl BibliographicSink,
+) -> Result<()> {
     let result = (|| {
         l.validate()?;
         catalog::verify_catalog(stage, catalog_receipt, l.catalog)?;
@@ -1564,4 +1622,56 @@ pub fn clear_bibliographic_graph(
         stage.poison()
     }
     result
+}
+
+#[cfg(test)]
+mod descriptor_limit_tests {
+    use super::*;
+
+    #[test]
+    fn literal_bounds_source_separately_from_emitted_row() {
+        let claim = json!({"claim_id":"claim:test","object":"small","retained_extension":"x".repeat(40_000)});
+        let entry = json!({});
+        let render = |input_document_bytes, output_row_bytes| {
+            supplied_bibliographic_literal(
+                &entry,
+                &claim,
+                BibliographicDocumentLimits {
+                    input_document_bytes,
+                    output_row_bytes,
+                },
+            )
+        };
+        assert_eq!(
+            render(1_048_576, 4096).unwrap()["properties"]["value"],
+            "small"
+        );
+        assert!(render(4096, 4096).is_err());
+        assert!(render(1_048_576, 16).is_err());
+    }
+
+    #[test]
+    fn descriptor_uses_caller_input_and_output_bounds_independently() {
+        let claim = json!({"claim_id":"claim:test","claim_version":1,"predicate":"unmapped"});
+        let registry = json!({"claim_navigation_template":{"template_id":"test","template_version":1},"relations":[],"retained_extension":"x".repeat(40_000)});
+        let empty = json!({});
+        let render = |input_document_bytes, output_row_bytes| {
+            supplied_claim_navigation_descriptor(
+                &claim,
+                &empty,
+                &empty,
+                &registry,
+                &empty,
+                BibliographicDocumentLimits {
+                    input_document_bytes,
+                    output_row_bytes,
+                },
+            )
+        };
+        let descriptor = render(8 * 1024 * 1024, 4096).unwrap().unwrap();
+        assert_eq!(descriptor["reason"], "predicate-not-understood");
+        assert!(render(4096, 4096).is_err());
+        assert!(render(8 * 1024 * 1024, 16).is_err());
+        assert!(render(0, 4096).is_err());
+    }
 }

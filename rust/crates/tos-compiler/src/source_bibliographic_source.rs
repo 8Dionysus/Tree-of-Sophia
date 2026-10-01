@@ -3,7 +3,10 @@
 //! creates its independently receipted stage. Generated catalog artifacts and
 //! retained archives are not relabelled as current catalog source files.
 use crate::knowledge_normalization::SourceRow;
-use crate::knowledge_stage::{ExactInputReceipt, InputCollectionReceipt, InputRow, KnowledgeStage};
+use crate::knowledge_stage::{
+    ColdAuthoredBinding, ColdExactInputReceipt, ExactInputReceipt, InputCollectionReceipt,
+    InputRow, KnowledgeStage,
+};
 use crate::source_bibliographic::{
     self as graph, BibliographicForms, BibliographicLimits, BibliographicReceipt,
     BibliographicSourceCut,
@@ -64,18 +67,38 @@ struct Member {
 }
 /// Only the producer can create the selected member plan. The receipt is a
 /// clone for final-stage creation; changing it cannot change this private seal.
-pub struct SourceCatalogInputPlan {
-    receipt: ExactInputReceipt,
+struct PlanInput<B> {
+    binding: B,
+    collections: Vec<InputCollectionReceipt>,
+}
+pub struct SourceCatalogInputPlan<B = SourceBinding> {
+    receipt: PlanInput<B>,
     revision: SourceRevision,
     membership: SourceMembershipV1,
     members: BTreeMap<String, Member>,
     limits: SourceCatalogInputLimits,
     work_bytes: u64,
+    raw_input_max_bytes: usize,
+    workspace_limit: Option<usize>,
 }
 impl SourceCatalogInputPlan {
     pub fn input_receipt(&self) -> ExactInputReceipt {
-        self.receipt.clone()
+        ExactInputReceipt {
+            binding: self.receipt.binding.clone(),
+            collections: self.receipt.collections.clone(),
+        }
     }
+}
+pub type ColdSourceCatalogInputPlan = SourceCatalogInputPlan<ColdAuthoredBinding>;
+impl SourceCatalogInputPlan<ColdAuthoredBinding> {
+    pub fn input_receipt(&self) -> ColdExactInputReceipt {
+        ColdExactInputReceipt {
+            binding: self.receipt.binding.clone(),
+            collections: self.receipt.collections.clone(),
+        }
+    }
+}
+impl<B> SourceCatalogInputPlan<B> {
     pub fn selected_member_count(&self) -> usize {
         self.members.len()
     }
@@ -87,6 +110,10 @@ impl SourceCatalogInputPlan {
     }
     pub fn observed_work_bytes(&self) -> u64 {
         self.work_bytes
+    }
+    /// Declared temporary parser/plan ceiling, not observed RSS or retained plan bytes.
+    pub fn temporary_workspace_limit(&self) -> Option<usize> {
+        self.workspace_limit
     }
     pub(crate) fn verify_selected_member_bytes(&self, path: &str, raw: &[u8]) -> Result<()> {
         let member = self
@@ -178,6 +205,12 @@ struct Planning<'a> {
     scanned: BTreeSet<String>,
     plan_bytes: usize,
     work_bytes: u64,
+    raw_input_max_bytes: usize,
+    json_input_max_bytes: usize,
+    cold_raw_parser: bool,
+    workspace_limit: Option<usize>,
+    live_raw_bytes: usize,
+    live_parser_upper: usize,
 }
 impl Planning<'_> {
     fn charge(&mut self, bytes: usize) -> Result<()> {
@@ -186,7 +219,35 @@ impl Planning<'_> {
             .checked_add(bytes)
             .filter(|n| *n <= self.limits.max_plan_bytes)
             .ok_or(Error::Budget("cold catalog plan state"))?;
+        self.check_workspace()
+    }
+    fn check_workspace(&self) -> Result<()> {
+        if let Some(limit) = self.workspace_limit {
+            self.plan_bytes
+                .checked_add(self.live_raw_bytes)
+                .and_then(|n| n.checked_add(self.live_parser_upper))
+                .filter(|n| *n <= limit)
+                .ok_or(Error::Budget("cold catalog temporary workspace"))?;
+        }
         Ok(())
+    }
+    fn parse_packet(&mut self, raw: &[u8], cap: usize) -> Result<SourceRow> {
+        if self.cold_raw_parser {
+            if let Some(limit) = self.workspace_limit {
+                let available = limit
+                    .checked_sub(self.plan_bytes)
+                    .and_then(|n| n.checked_sub(self.live_raw_bytes))
+                    .ok_or(Error::Budget("cold catalog parser workspace"))?;
+                let (parsed, upper) =
+                    SourceRow::parse_raw_input_with_state_budget(raw, cap, available)?;
+                self.live_parser_upper = upper;
+                check(self.graph_limits.deadline, self.cancelled)?;
+                return Ok(parsed);
+            }
+            SourceRow::parse_raw_input(raw, cap)
+        } else {
+            SourceRow::parse(raw, cap)
+        }
     }
     fn queue(&mut self, path: &str) -> Result<()> {
         if !self.scanned.contains(path) && !self.pending.contains(path) {
@@ -209,13 +270,7 @@ impl Planning<'_> {
         let Some(metadata) = self.cut.current().member(&relative) else {
             return Ok(false);
         };
-        if metadata.size_bytes
-            > self
-                .graph_limits
-                .catalog
-                .max_file_bytes
-                .min(8 * 1024 * 1024) as u64
-        {
+        if metadata.size_bytes > self.raw_input_max_bytes as u64 {
             return Err(Error::Budget(
                 "cold catalog original source exceeds raw stage row cap",
             ));
@@ -273,15 +328,35 @@ impl Planning<'_> {
             .ok_or(Error::Budget("cold catalog raw work"))?;
         let size = member.size;
         let sha = member.sha;
+        self.live_raw_bytes =
+            usize::try_from(size).map_err(|_| Error::Budget("cold catalog raw workspace range"))?;
+        if self.workspace_limit.is_some() {
+            // TimedStage grows a Vec geometrically: reserve old/new buffer
+            // overlap and loader scratch before read, not raw length as RSS.
+            self.live_raw_bytes = self
+                .live_raw_bytes
+                .max(8)
+                .checked_mul(4)
+                .and_then(|n| n.checked_add(128 * 1024))
+                .ok_or(Error::Budget("cold catalog raw workspace range"))?;
+            let relative =
+                RelativePath::parse(path).map_err(|_| Error::Invalid("cold catalog raw path"))?;
+            for id in self.cut.current().indexed_ids_for_path(&relative) {
+                self.live_raw_bytes = self
+                    .live_raw_bytes
+                    .checked_add(id.len())
+                    .and_then(|n| n.checked_add(4 * std::mem::size_of::<String>()))
+                    .ok_or(Error::Budget("cold catalog source IDs workspace"))?;
+            }
+        }
+        self.live_parser_upper = 0;
+        self.check_workspace()?;
         let raw = self
             .cut
             .read_member(
                 self.revision,
                 &RelativePath::parse(path).map_err(|_| Error::Invalid("cold catalog raw path"))?,
-                self.graph_limits
-                    .catalog
-                    .max_file_bytes
-                    .min(8 * 1024 * 1024) as u64,
+                self.raw_input_max_bytes as u64,
                 self.graph_limits.deadline,
                 self.cancelled,
             )
@@ -329,11 +404,15 @@ impl Planning<'_> {
             || self.members[path].collections.contains(CONTRACT_FILES);
         let cap = self.graph_limits.catalog.max_row_bytes;
         if path.ends_with(".json") {
-            let parsed = SourceRow::parse(raw, cap);
+            let parsed = self.parse_packet(raw, self.json_input_max_bytes);
             if required {
                 self.value(parsed?.value(), 0)?;
-            } else if let Ok(parsed) = parsed {
-                self.value(parsed.value(), 0)?;
+            } else {
+                match parsed {
+                    Ok(parsed) => self.value(parsed.value(), 0)?,
+                    Err(error @ Error::Budget(_)) if self.cold_raw_parser => return Err(error),
+                    Err(_) => (),
+                }
             }
             if source {
                 self.dependency(&format!(
@@ -351,7 +430,7 @@ impl Planning<'_> {
                 .split(['\r', '\n'])
                 .filter(|line| !line.trim().is_empty())
             {
-                let parsed = SourceRow::parse(line.as_bytes(), cap);
+                let parsed = self.parse_packet(line.as_bytes(), cap);
                 if let Ok(parsed) = parsed {
                     self.value(parsed.value(), 0)?;
                     if source
@@ -369,8 +448,14 @@ impl Planning<'_> {
                             ))?;
                         }
                     }
-                } else if required {
-                    return Err(Error::Invalid("cold catalog source JSONL row"));
+                } else {
+                    match parsed {
+                        Err(error @ Error::Budget(_)) if self.cold_raw_parser => return Err(error),
+                        Err(_) if required => {
+                            return Err(Error::Invalid("cold catalog source JSONL row"));
+                        }
+                        _ => (),
+                    }
                 }
             }
         }
@@ -428,8 +513,100 @@ pub fn plan_source_catalog_inputs(
     l: BibliographicLimits,
     cancelled: &AtomicBool,
 ) -> Result<SourceCatalogInputPlan> {
+    plan_inputs(
+        cut,
+        expected_revision,
+        expected_membership,
+        binding,
+        limits,
+        l,
+        cancelled,
+        l.catalog.max_file_bytes.min(8 * 1024 * 1024),
+        l.catalog.max_row_bytes,
+        false,
+        None,
+    )
+}
+pub fn plan_cold_source_catalog_inputs(
+    cut: &CorpusCutReader,
+    expected_revision: SourceRevision,
+    expected_membership: SourceMembershipV1,
+    binding: &ColdAuthoredBinding,
+    limits: SourceCatalogInputLimits,
+    l: BibliographicLimits,
+    cancelled: &AtomicBool,
+) -> Result<ColdSourceCatalogInputPlan> {
+    if binding.revision() != expected_revision || binding.membership() != expected_membership {
+        return Err(Error::Invalid(
+            "cold catalog binding differs from selected manifest",
+        ));
+    }
+    plan_inputs(
+        cut,
+        expected_revision,
+        expected_membership,
+        binding,
+        limits,
+        l,
+        cancelled,
+        l.catalog.max_file_bytes,
+        l.catalog.max_file_bytes,
+        true,
+        None,
+    )
+}
+/// Cold dependency discovery with a separate complete temporary workspace.
+/// Locator format capacity remains governed by SourceCatalogInputLimits.
+pub fn plan_cold_source_catalog_inputs_with_workspace(
+    cut: &CorpusCutReader,
+    expected_revision: SourceRevision,
+    expected_membership: SourceMembershipV1,
+    binding: &ColdAuthoredBinding,
+    limits: SourceCatalogInputLimits,
+    l: BibliographicLimits,
+    cancelled: &AtomicBool,
+    max_workspace_bytes: usize,
+) -> Result<ColdSourceCatalogInputPlan> {
+    if binding.revision() != expected_revision || binding.membership() != expected_membership {
+        return Err(Error::Invalid(
+            "cold catalog binding differs from selected manifest",
+        ));
+    }
+    if max_workspace_bytes == 0 {
+        return Err(Error::Budget("cold catalog temporary workspace"));
+    }
+    plan_inputs(
+        cut,
+        expected_revision,
+        expected_membership,
+        binding,
+        limits,
+        l,
+        cancelled,
+        l.catalog.max_file_bytes,
+        l.catalog.max_file_bytes,
+        true,
+        Some(max_workspace_bytes),
+    )
+}
+fn plan_inputs<B: catalog::CatalogInputBinding>(
+    cut: &CorpusCutReader,
+    expected_revision: SourceRevision,
+    expected_membership: SourceMembershipV1,
+    binding: &B,
+    limits: SourceCatalogInputLimits,
+    l: BibliographicLimits,
+    cancelled: &AtomicBool,
+    raw_input_max_bytes: usize,
+    json_input_max_bytes: usize,
+    cold_raw_parser: bool,
+    workspace_limit: Option<usize>,
+) -> Result<SourceCatalogInputPlan<B>> {
     limits.validate(l)?;
-    binding.validate()?;
+    if raw_input_max_bytes == 0 || raw_input_max_bytes > 64 * 1024 * 1024 {
+        return Err(Error::Budget("cold catalog raw input ceiling"));
+    }
+    binding.validate_plan()?;
     selected_cut(
         cut,
         expected_revision,
@@ -449,6 +626,12 @@ pub fn plan_source_catalog_inputs(
         scanned: BTreeSet::new(),
         plan_bytes: 0,
         work_bytes: 0,
+        raw_input_max_bytes,
+        json_input_max_bytes,
+        cold_raw_parser,
+        workspace_limit,
+        live_raw_bytes: 0,
+        live_parser_upper: 0,
     };
     for registry in [ENTITY, RELATION] {
         if !plan.select(registry, CONTRACT_FILES)? {
@@ -456,7 +639,17 @@ pub fn plan_source_catalog_inputs(
         }
     }
     let raw = plan.raw(ENTITY)?;
-    let entities = SourceRow::parse(&raw, l.catalog.max_row_bytes)?;
+    let entities = plan.parse_packet(&raw, l.catalog.max_row_bytes)?;
+    // This small registry's derived basename set coexists with its DOM. A
+    // second complete DOM/container envelope conservatively covers that set
+    // before the existing selector allocates it (no duplicate selector).
+    if plan.workspace_limit.is_some() {
+        plan.live_parser_upper = plan
+            .live_parser_upper
+            .checked_mul(2)
+            .ok_or(Error::Budget("cold catalog registry workspace"))?;
+        plan.check_workspace()?;
+    }
     let basenames = catalog::source_basenames(entities.value())?;
     for member in cut.current().members() {
         check(l.deadline, cancelled)?;
@@ -485,13 +678,26 @@ pub fn plan_source_catalog_inputs(
             }
         }
     }
+    drop(basenames);
+    drop(entities);
+    drop(raw);
+    plan.live_parser_upper = 0;
+    plan.live_raw_bytes = 0;
     while let Some(path) = plan.pending.pop_first() {
         check(l.deadline, cancelled)?;
         plan.scanned.insert(path.clone());
         let raw = plan.raw(&path)?;
         plan.packet(&path, &raw)?;
+        drop(raw);
+        plan.live_parser_upper = 0;
+        plan.live_raw_bytes = 0;
     }
-    let receipt = ExactInputReceipt {
+    if plan.workspace_limit.is_some() {
+        // Five fixed collection receipts plus the returned plan/binding and
+        // transient source-path framing. Reserve before constructing receipts.
+        plan.charge(COLLECTIONS.len() * 1024 + std::mem::size_of::<SourceCatalogInputPlan<B>>())?;
+    }
+    let receipt = PlanInput {
         binding: binding.clone(),
         collections: collection_receipts(&plan.members, l)?,
     };
@@ -502,22 +708,13 @@ pub fn plan_source_catalog_inputs(
         members: plan.members,
         limits,
         work_bytes: plan.work_bytes,
+        raw_input_max_bytes,
+        workspace_limit,
     })
 }
-fn same_binding(a: &SourceBinding, b: &SourceBinding) -> bool {
-    a.owner_profile == b.owner_profile
-        && a.source_cut == b.source_cut
-        && a.through_commit_seq == b.through_commit_seq
-        && a.membership_root == b.membership_root
-        && a.index_generation == b.index_generation
-        && a.route_map_version == b.route_map_version
-        && a.reader_abi == b.reader_abi
-        && a.complete == b.complete
-}
-/// Transfer actual original bytes into an independently created exact stage,
-/// then execute the existing catalog and selected-cut bibliographic producers.
-/// The caller supplies the actual native forms adapter from its owning crate;
-/// compiler has no dependency on command execution or publication authority.
+/// Transfer the authenticated planned cut and prepare only catalog parity.
+/// The maintained foundation validator selects its optional bibliographic
+/// continuation independently; this function never reads generated catalogs.
 /// Actual cold-plan transfer observations; excludes protocol/page I/O and renderer-wide CPU.
 /// Caller-retained counters survive later failure; failed calls without a completed
 /// result are not inferred as successful reads or staged input rows.
@@ -535,55 +732,83 @@ fn charge_render_work(field: &mut u64, value: u64) -> Result<()> {
     Ok(())
 }
 
-pub fn render_source_bibliographic_plan(
+pub fn prepare_source_catalog_plan(
     plan: &SourceCatalogInputPlan,
     cut: &CorpusCutReader,
     expected_revision: SourceRevision,
     expected_membership: SourceMembershipV1,
     target: &mut KnowledgeStage<'_>,
     validator: &SourceCatalogValidator<'_>,
-    forms: &mut dyn BibliographicForms,
     l: BibliographicLimits,
-    max_version_read_files: usize,
-    max_version_read_bytes: usize,
-) -> Result<SourceBibliographicCandidate> {
-    render_source_bibliographic_plan_with_work(
+) -> Result<SourceCatalogReceipt> {
+    prepare_catalog_plan(
         plan,
         cut,
         expected_revision,
         expected_membership,
         target,
         validator,
-        forms,
         l,
-        max_version_read_files,
-        max_version_read_bytes,
+        &mut catalog::IgnoreCatalogProfiles,
         &mut SourceCatalogRenderWorkV1::default(),
     )
 }
-
-pub fn render_source_bibliographic_plan_with_work(
-    plan: &SourceCatalogInputPlan,
+pub fn prepare_cold_source_catalog_plan(
+    plan: &ColdSourceCatalogInputPlan,
     cut: &CorpusCutReader,
     expected_revision: SourceRevision,
     expected_membership: SourceMembershipV1,
     target: &mut KnowledgeStage<'_>,
     validator: &SourceCatalogValidator<'_>,
-    forms: &mut dyn BibliographicForms,
     l: BibliographicLimits,
-    max_version_read_files: usize,
-    max_version_read_bytes: usize,
+) -> Result<catalog::ColdSourceCatalogReceipt> {
+    prepare_catalog_plan(
+        plan,
+        cut,
+        expected_revision,
+        expected_membership,
+        target,
+        validator,
+        l,
+        &mut catalog::IgnoreCatalogProfiles,
+        &mut SourceCatalogRenderWorkV1::default(),
+    )
+}
+pub fn prepare_cold_source_catalog_plan_observed(
+    plan: &ColdSourceCatalogInputPlan,
+    cut: &CorpusCutReader,
+    expected_revision: SourceRevision,
+    expected_membership: SourceMembershipV1,
+    target: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    l: BibliographicLimits,
+    observer: &mut impl catalog::SourceCatalogProfileObserver,
+) -> Result<catalog::ColdSourceCatalogReceipt> {
+    prepare_catalog_plan(
+        plan,
+        cut,
+        expected_revision,
+        expected_membership,
+        target,
+        validator,
+        l,
+        observer,
+        &mut SourceCatalogRenderWorkV1::default(),
+    )
+}
+fn prepare_catalog_plan<B: catalog::CatalogInputBinding>(
+    plan: &SourceCatalogInputPlan<B>,
+    cut: &CorpusCutReader,
+    expected_revision: SourceRevision,
+    expected_membership: SourceMembershipV1,
+    target: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    l: BibliographicLimits,
+    observer: &mut impl catalog::SourceCatalogProfileObserver,
     observed: &mut SourceCatalogRenderWorkV1,
-) -> Result<SourceBibliographicCandidate> {
+) -> Result<SourceCatalogReceipt<B>> {
     let result = (|| {
         plan.limits.validate(l)?;
-        if max_version_read_files == 0
-            || max_version_read_files > 4096
-            || max_version_read_bytes == 0
-            || max_version_read_bytes > 64 * 1024 * 1024
-        {
-            return Err(Error::Budget("cold catalog selected version read limits"));
-        }
         drop(validator.schemas(expected_revision)?);
         selected_cut(
             cut,
@@ -595,18 +820,17 @@ pub fn render_source_bibliographic_plan_with_work(
         )?;
         if plan.revision != expected_revision
             || plan.membership != expected_membership
-            || !same_binding(&plan.receipt.binding, &target.exact_receipt().binding)
+            || plan.receipt.binding.value() != B::selected(target)?.value()
         {
             return Err(Error::Invalid("cold catalog plan source binding"));
         }
         let actual = collection_receipts(&plan.members, l)?;
-        let target_receipt = target.exact_receipt();
-        if target_receipt.collections.len() != actual.len() {
+        let target_collections = target.input_collections();
+        if target_collections.len() != actual.len() {
             return Err(Error::Invalid("cold catalog target collection closure"));
         }
         for expected in &actual {
-            let entry = target_receipt
-                .collections
+            let entry = target_collections
                 .iter()
                 .find(|entry| {
                     entry.source_graph == expected.source_graph
@@ -641,7 +865,7 @@ pub fn render_source_bibliographic_plan_with_work(
                 .read_member(
                     expected_revision,
                     &relative,
-                    l.catalog.max_file_bytes.min(8 * 1024 * 1024) as u64,
+                    plan.raw_input_max_bytes.min(l.catalog.max_file_bytes) as u64,
                     l.deadline,
                     validator.cancelled,
                 )
@@ -704,7 +928,78 @@ pub fn render_source_bibliographic_plan_with_work(
                 }
             }
         }
-        let receipt = catalog::prepare_source_witness_catalog(target, validator, l.catalog)?;
+        catalog::prepare_catalog_receipt_observed(target, validator, l.catalog, observer)
+    })();
+    if result.is_err() {
+        target.poison();
+    }
+    result
+}
+
+/// Transfer actual original bytes into an independently created exact stage,
+/// then execute the existing catalog and selected-cut bibliographic producers.
+/// The caller supplies the actual native forms adapter from its owning crate;
+/// compiler has no dependency on command execution or publication authority.
+pub fn render_source_bibliographic_plan(
+    plan: &SourceCatalogInputPlan,
+    cut: &CorpusCutReader,
+    expected_revision: SourceRevision,
+    expected_membership: SourceMembershipV1,
+    target: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    forms: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+    max_version_read_files: usize,
+    max_version_read_bytes: usize,
+) -> Result<SourceBibliographicCandidate> {
+    render_source_bibliographic_plan_with_work(
+        plan,
+        cut,
+        expected_revision,
+        expected_membership,
+        target,
+        validator,
+        forms,
+        l,
+        max_version_read_files,
+        max_version_read_bytes,
+        &mut SourceCatalogRenderWorkV1::default(),
+    )
+}
+
+pub fn render_source_bibliographic_plan_with_work(
+    plan: &SourceCatalogInputPlan,
+    cut: &CorpusCutReader,
+    expected_revision: SourceRevision,
+    expected_membership: SourceMembershipV1,
+    target: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    forms: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+    max_version_read_files: usize,
+    max_version_read_bytes: usize,
+    observed: &mut SourceCatalogRenderWorkV1,
+) -> Result<SourceBibliographicCandidate> {
+    let result = (|| {
+        plan.limits.validate(l)?;
+        if max_version_read_files == 0
+            || max_version_read_files > 4096
+            || max_version_read_bytes == 0
+            || max_version_read_bytes > 64 * 1024 * 1024
+        {
+            return Err(Error::Budget("cold catalog selected version read limits"));
+        }
+        let receipt = prepare_catalog_plan(
+            plan,
+            cut,
+            expected_revision,
+            expected_membership,
+            target,
+            validator,
+            l,
+            &mut catalog::IgnoreCatalogProfiles,
+            observed,
+        )?;
         let source = BibliographicSourceCut {
             cut,
             expected_revision,

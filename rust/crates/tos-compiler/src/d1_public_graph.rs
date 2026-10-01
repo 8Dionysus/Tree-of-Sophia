@@ -75,7 +75,7 @@ pub(crate) struct PublicRepositoryRoot {
 
 impl PublicRepositoryRoot {
     pub(crate) fn new(stage: &KnowledgeStage<'_>, source_revision: &str) -> Result<Self> {
-        let source_cut = &stage.exact_receipt().binding.source_cut;
+        let source_cut = &stage.exact_receipt()?.binding.source_cut;
         if !stage.public_build() || source_cut != &format!("public-projection:{source_revision}") {
             return Err(Error::Invalid("public D1 repository root binding"));
         }
@@ -85,6 +85,42 @@ impl PublicRepositoryRoot {
         software.update(PUBLIC_ROOT_ROW.as_bytes());
         Ok(Self {
             source_cut: source_cut.clone(),
+            material_sha256: Digest256::of_bytes(PUBLIC_ROOT_ROW.as_bytes()).to_hex(),
+            producer_sha256: software.finalize().to_hex(),
+        })
+    }
+
+    /// Exact maintained software projection, scoped to this captured derived
+    /// snapshot. This does not assert authored source-home or live authority.
+    pub(crate) fn captured_native_projection(
+        capture: &PublicCapture,
+        stage: &KnowledgeStage<'_>,
+        source_revision: &str,
+    ) -> Result<Self> {
+        capture.check_custody()?;
+        let binding = &stage.exact_receipt()?.binding;
+        if stage.public_build()
+            || binding.owner_profile != "tos-native-projection-snapshot-v1"
+            || binding.source_cut != format!("native-projection:{source_revision}")
+        {
+            return Err(Error::Invalid("native captured projection root binding"));
+        }
+        let mut software = Digest256Hasher::new();
+        software.update(b"tos-native-captured-repository-projection-v1");
+        for raw in [
+            include_bytes!("native_snapshot.rs").as_slice(),
+            include_bytes!("d1_public_graph.rs").as_slice(),
+            include_bytes!("d1_public_capture.rs").as_slice(),
+            include_bytes!("d1_public_header.rs").as_slice(),
+            include_bytes!("d1_public_semantics.rs").as_slice(),
+        ] {
+            software.update(&(raw.len() as u64).to_be_bytes());
+            software.update(raw);
+        }
+        software.update(binding.source_cut.as_bytes());
+        software.update(PUBLIC_ROOT_ROW.as_bytes());
+        Ok(Self {
+            source_cut: binding.source_cut.clone(),
             material_sha256: Digest256::of_bytes(PUBLIC_ROOT_ROW.as_bytes()).to_hex(),
             producer_sha256: software.finalize().to_hex(),
         })
@@ -302,11 +338,10 @@ fn root_item(hash: &mut Digest256Hasher, id: &str, digest: &[u8]) {
     hash.update(digest);
 }
 
-pub(crate) fn exact_receipt(
+pub(crate) fn captured_input_roots(
     capture: &PublicCapture,
     vocabulary: &QueryVocabulary,
-    source_revision: &str,
-) -> Result<ExactInputReceipt> {
+) -> Result<(Vec<InputCollectionReceipt>, String, Digest256)> {
     capture.check_custody()?;
     let db = capture.read_db()?;
     let mut collections = Vec::new();
@@ -362,6 +397,15 @@ pub(crate) fn exact_receipt(
         membership.update(b"\0");
     }
     let membership = membership.finalize().to_hex();
+    Ok((collections, membership, corpus_root))
+}
+
+pub(crate) fn exact_receipt(
+    capture: &PublicCapture,
+    vocabulary: &QueryVocabulary,
+    source_revision: &str,
+) -> Result<ExactInputReceipt> {
+    let (collections, membership, corpus_root) = captured_input_roots(capture, vocabulary)?;
     Ok(ExactInputReceipt {
         binding: SourceBinding {
             owner_profile: "tos-public-projection-snapshot-v1".into(),

@@ -166,7 +166,7 @@ fn write_source_scope_inner(
         }
     }
     let mut covered = BTreeSet::new();
-    for input in &stage.exact_receipt().collections {
+    for input in &stage.exact_receipt()?.collections {
         let source = states
             .get(&input.source_graph)
             .ok_or(Error::Invalid("unregistered knowledge input source"))?;

@@ -56,6 +56,10 @@ pub struct SourceCutBiblioReport {
     pub claims: Vec<BiblioClaim>,
     pub bytes_read: u64,
     pub native_compounds: Vec<crate::native_compound::NativeCompoundObservation>,
+    /// Logical state-accounting upper bound for the returned report. It
+    /// includes retained outputs plus conservative state still charged by the
+    /// family ledger; it is not a process-memory or RSS measurement.
+    pub accounted_state_upper_bound_bytes: usize,
 }
 struct Route<'a> {
     reader: &'a str,
@@ -347,6 +351,22 @@ pub fn inspect_bibliography_from_cut(
             "bibliography record cut mismatch".into(),
         ));
     }
+    // `Rules` already charges the `RelationShadow` and `bytes_read` headers.
+    // Claims and native-compound Vec headers are charged when those owners
+    // are initialized below, so precharge only the remaining report header
+    // bytes here, including the new usage field and layout padding.
+    let already_charged_report_headers = std::mem::size_of::<RelationShadow>()
+        .checked_add(std::mem::size_of::<Vec<BiblioClaim>>())
+        .and_then(|bytes| bytes.checked_add(std::mem::size_of::<u64>()))
+        .and_then(|bytes| {
+            bytes.checked_add(std::mem::size_of::<
+                Vec<crate::native_compound::NativeCompoundObservation>,
+            >())
+        })
+        .ok_or(ItemRefusal::Budget)?;
+    let uncharged_report_header_bytes = std::mem::size_of::<SourceCutBiblioReport>()
+        .checked_sub(already_charged_report_headers)
+        .ok_or(ItemRefusal::Budget)?;
     let mut rules = Rules {
         limits,
         cancelled,
@@ -358,6 +378,11 @@ pub fn inspect_bibliography_from_cut(
         schema_seen: BTreeSet::new(),
         shadow: RelationShadow::default(),
     };
+    reserve(
+        &mut rules.state,
+        uncharged_report_header_bytes,
+        limits.max_state_bytes,
+    )?;
     for id in records.observations.iter().filter_map(|r| match r {
         crate::record_rules::RecordObservation::NativeReservation { id, .. } => Some(id),
         _ => None,
@@ -1176,6 +1201,7 @@ pub fn inspect_bibliography_from_cut(
         claims,
         bytes_read: rules.bytes,
         native_compounds,
+        accounted_state_upper_bound_bytes: rules.state,
     })
 }
 

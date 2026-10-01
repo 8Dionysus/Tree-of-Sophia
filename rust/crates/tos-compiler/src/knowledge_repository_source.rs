@@ -519,14 +519,14 @@ pub fn render_repository_source_plan(
     cancelled: &AtomicBool,
 ) -> Result<()> {
     let result = (|| {
-        if stage.exact_receipt().binding.source_cut != plan.job_source_cut
+        if stage.exact_receipt()?.binding.source_cut != plan.job_source_cut
             || vocabulary.descriptor_sha256 != plan.descriptor_sha256
         {
             return Err(Error::Invalid("repository source plan target binding"));
         }
         for expected in &plan.receipt.collections {
             let matches: Vec<_> = stage
-                .exact_receipt()
+                .exact_receipt()?
                 .collections
                 .iter()
                 .filter(|row| {
@@ -545,7 +545,7 @@ pub fn render_repository_source_plan(
         }
         let source = &plan.receipt.collections[0].source_graph;
         if stage
-            .exact_receipt()
+            .exact_receipt()?
             .collections
             .iter()
             .filter(|row| &row.source_graph == source)

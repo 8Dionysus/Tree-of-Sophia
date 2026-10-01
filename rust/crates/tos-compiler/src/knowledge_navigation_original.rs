@@ -370,7 +370,7 @@ pub fn retain_navigation_original(
 ) -> Result<NavigationOriginalReceipt> {
     let result = (|| {
         limits.validate()?;
-        let binding = stage.exact_receipt().binding.clone();
+        let binding = stage.exact_receipt()?.binding.clone();
         let source = vocabulary
             .sources
             .iter()
@@ -397,7 +397,7 @@ pub fn retain_navigation_original(
             ("edges", prepared.edges, &prepared.edge_input_root_sha256),
         ] {
             let entries: Vec<_> = stage
-                .exact_receipt()
+                .exact_receipt()?
                 .collections
                 .iter()
                 .filter(|c| c.source_graph == source.source_graph_id && c.collection == name)
@@ -834,7 +834,7 @@ pub(crate) fn verify_stage(
     stage: &mut KnowledgeStage<'_>,
     descriptor: Option<&str>,
 ) -> Result<Option<NavigationOriginalReceipt>> {
-    let binding = stage.exact_receipt().binding.clone();
+    let binding = stage.exact_receipt()?.binding.clone();
     stage.with_connection(WritePhase::Finalize, |db| {
         if !present(db)? {
             return Ok(None);

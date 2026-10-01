@@ -116,8 +116,8 @@ where
             .stream(revision)
             .map_err(|e| Error::Source(e.to_string()))?
             .expectation();
-        if canon_planner.exact_receipt().binding.source_cut != binding.source_cut
-            || canon_planner.exact_receipt().binding.membership_root != membership.digest.to_hex()
+        if canon_planner.exact_receipt()?.binding.source_cut != binding.source_cut
+            || canon_planner.exact_receipt()?.binding.membership_root != membership.digest.to_hex()
             || binding.membership_root != membership.digest.to_hex()
             || root.source_cut != binding.source_cut
         {
@@ -208,7 +208,7 @@ fn read_collection(
         ));
     }
     let declarations = stage
-        .exact_receipt()
+        .exact_receipt()?
         .collections
         .iter()
         .filter(|c| c.source_graph == input.source_graph && c.collection == input.collection)
@@ -548,8 +548,8 @@ pub fn project_native_corpus_from_sources(
             || c.manifest_membership_root_sha256 != membership.digest.to_hex()
             || !c.current_members_only
             || c.final_graph_rows_written
-            || c.job_source_cut != stage.exact_receipt().binding.source_cut
-            || membership.digest.to_hex() != stage.exact_receipt().binding.membership_root
+            || c.job_source_cut != stage.exact_receipt()?.binding.source_cut
+            || membership.digest.to_hex() != stage.exact_receipt()?.binding.membership_root
             || repository.root_input().source_cut != c.job_source_cut
             || software.selection() != &r.inventory_selection
             || navigation.source_binding["source_revision"] != c.source_revision
@@ -796,7 +796,7 @@ pub fn project_native_corpus_from_sources(
             },
             value: payload,
             output_bytes: raw,
-            binding: stage.exact_receipt().binding.clone(),
+            binding: stage.exact_receipt()?.binding.clone(),
         })
     })();
     if result.is_err() {

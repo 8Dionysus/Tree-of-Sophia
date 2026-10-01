@@ -58,6 +58,9 @@ pub enum ItemPayload {
 /// interrupt blocked I/O. Schema execution must use the named exact contract
 /// and return Unsupported rather than silently selecting another profile.
 pub trait ItemSource {
+    /// Borrow the operation's original cancellation flag. Decoders poll this
+    /// exact signal; adapters must not synthesize or reset a local token.
+    fn cancellation_flag(&self) -> &AtomicBool;
     fn metadata(
         &mut self,
         path: &str,
@@ -74,6 +77,31 @@ pub trait ItemSource {
     ) -> Result<bool, ItemRefusal>;
     fn payload(&mut self, path: &str, deadline: Instant) -> Result<ItemPayload, ItemRefusal>;
     fn record_kind(&mut self, id: &str, deadline: Instant) -> Result<Option<&str>, ItemRefusal>;
+    /// Optional cooperative cancellation checkpoint for bounded owner loops.
+    fn check_cancelled(&self) -> Result<(), ItemRefusal> {
+        Ok(())
+    }
+
+    /// Optional compatibility seam for inventory bytes that the legacy
+    /// Python JSON loader accepted but serde_json cannot represent. It is
+    /// reached only after the ordinary finite decoder rejects an inventory;
+    /// implementations must return a typed FND tree for an actual nonfinite
+    /// value, never a substituted serde value.
+    fn legacy_observed_inventory(
+        &mut self,
+        _path: &str,
+        _raw: &[u8],
+        _max_member_bytes: usize,
+        _available_state_bytes: usize,
+        _deadline: Instant,
+    ) -> Result<Option<tos_foundation::JsonValue>, ItemRefusal> {
+        Ok(None)
+    }
+}
+
+enum ItemInventoryValue {
+    Finite(Value),
+    LegacyObserved(tos_foundation::JsonValue),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -88,6 +116,12 @@ pub struct ItemFamilyReport {
     pub manifest_item_ids: BTreeSet<String>,
     pub metadata_bytes: u64,
     pub unavailable_payloads: u64,
+    /// Logical retained-state counter charged by this ItemRules execution.
+    /// This is an accounting upper bound, not a process-memory or RSS value.
+    pub accounted_state_upper_bound_bytes: usize,
+    /// Prefix-scan steps used by finite and observed inventory duplicate
+    /// checks; globally capped by the caller's Item state limit.
+    pub inventory_set_scan_steps: usize,
     /// Family-local execution is not proof of complete source membership.
     pub source_admission_complete: bool,
 }
@@ -103,6 +137,7 @@ pub struct ItemRules {
     manifest_item_ids: BTreeSet<String>,
     event_ids: BTreeSet<String>,
     file_descriptors: BTreeMap<String, [Value; 3]>,
+    inventory_set_scan_steps: usize,
 }
 
 impl ItemRules {
@@ -118,6 +153,7 @@ impl ItemRules {
             manifest_item_ids: BTreeSet::new(),
             event_ids: BTreeSet::new(),
             file_descriptors: BTreeMap::new(),
+            inventory_set_scan_steps: 0,
         }
     }
 
@@ -127,6 +163,27 @@ impl ItemRules {
         } else {
             Ok(())
         }
+    }
+
+    fn charge_inventory_set_scan_step(
+        &mut self,
+        source: &impl ItemSource,
+    ) -> Result<(), ItemRefusal> {
+        self.check()?;
+        source.check_cancelled()?;
+        let used = self
+            .inventory_set_scan_steps
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        if used > self.limits.max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "Item inventory set membership scan steps",
+                used: Some(used as u64),
+                limit: Some(self.limits.max_state_bytes as u64),
+            });
+        }
+        self.inventory_set_scan_steps = used;
+        Ok(())
     }
 
     fn reserve(&mut self, bytes: usize) -> Result<(), ItemRefusal> {
@@ -245,7 +302,7 @@ impl ItemRules {
             item_json_limits(self.limits.max_member_bytes, available)?,
             available,
             self.limits.deadline,
-            &AtomicBool::new(false),
+            source.cancellation_flag(),
         );
         let (value, decoded_bytes) = match decoded {
             Ok(result) => result,
@@ -282,6 +339,290 @@ impl ItemRules {
         Ok(Some((value, raw)))
     }
 
+    fn inventory_object(
+        &mut self,
+        source: &mut impl ItemSource,
+        path: &str,
+    ) -> Result<Option<(ItemInventoryValue, Vec<u8>)>, ItemRefusal> {
+        let Some(raw) = self.raw(source, path)? else {
+            return Ok(None);
+        };
+        let available = self.available()?;
+        let decoded = crate::record_biblio_cut::bounded_legacy_item_decoded_state(
+            &raw,
+            item_json_limits(self.limits.max_member_bytes, available)?,
+            available,
+            self.limits.deadline,
+            source.cancellation_flag(),
+        );
+        let (value, decoded_bytes) = match decoded {
+            Ok(result) => result,
+            Err(ItemRefusal::Source(reason)) if reason == "invalid finite native JSON" => {
+                let observed = source.legacy_observed_inventory(
+                    path,
+                    &raw,
+                    self.limits.max_member_bytes,
+                    available,
+                    self.limits.deadline,
+                )?;
+                let Some(observed) = observed else {
+                    self.release_raw(&raw);
+                    drop(raw);
+                    self.issue(path, "invalid-json")?;
+                    return Ok(None);
+                };
+                let decoded_bytes = observed_json_retained_bytes(&observed)?;
+                self.admit_live(decoded_bytes)?;
+                if !source.schema(path, &raw, INVENTORY, self.limits.deadline)? {
+                    self.issue(path, "schema")?;
+                }
+                if observed.as_object().is_none() {
+                    self.live_bytes -= decoded_bytes;
+                    self.release_raw(&raw);
+                    drop(observed);
+                    drop(raw);
+                    self.issue(path, "object-required")?;
+                    return Ok(None);
+                }
+                self.check()?;
+                self.source_refs_observed(source, path, &observed)?;
+                return Ok(Some((ItemInventoryValue::LegacyObserved(observed), raw)));
+            }
+            Err(error @ ItemRefusal::Unsupported(_)) => return Err(error),
+            Err(error) => {
+                return Err(item_codec_refusal(
+                    error,
+                    raw.len(),
+                    available,
+                    self.limits.max_member_bytes,
+                ));
+            }
+        };
+        self.admit_live(decoded_bytes)?;
+        if !value.is_object() {
+            self.live_bytes -= decoded_bytes;
+            self.release_raw(&raw);
+            drop(value);
+            drop(raw);
+            self.issue(path, "object-required")?;
+            return Ok(None);
+        }
+        if !source.schema(path, &raw, INVENTORY, self.limits.deadline)? {
+            self.issue(path, "schema")?;
+        }
+        self.check()?;
+        self.source_refs(source, path, &value)?;
+        Ok(Some((ItemInventoryValue::Finite(value), raw)))
+    }
+
+    fn inspect_finite_inventory(
+        &mut self,
+        source: &impl ItemSource,
+        path: &str,
+        manifest: &Value,
+        inventory: &Value,
+    ) -> Result<(), ItemRefusal> {
+        if inventory["item_id"] != manifest["item_id"] {
+            self.issue(path, "inventory-item-id")?;
+        }
+        let mut expected = array(&manifest["payload_files"]).filter(|v| v.is_object());
+        let mut actual = array(&inventory["files"]).filter(|v| v.is_object());
+        let same_files = loop {
+            self.check()?;
+            match (actual.next(), expected.next()) {
+                (None, None) => break true,
+                (Some(a), Some(e))
+                    if a["file_id"] == e["file_id"]
+                        && a["file_sha256"] == e["sha256"]
+                        && a["media_type"] == e["media_type"] => {}
+                _ => break false,
+            }
+        };
+        if !same_files {
+            self.issue(path, "inventory-file-identity")?;
+        }
+        for entry in array(&inventory["files"]).filter(|v| v.is_object()) {
+            self.check()?;
+            let resource_values = &entry["resources"];
+
+            // Python's set construction fails for list/dict IDs. Detect those
+            // before any membership scan so a partial duplicate result can
+            // never appear as a complete family report.
+            for resource in array(resource_values) {
+                self.check()?;
+                source.check_cancelled()?;
+                if !resource.is_object() {
+                    continue;
+                }
+                let id = resource.get("resource_id").unwrap_or(&Value::Null);
+                if matches!(id, Value::Array(_) | Value::Object(_)) {
+                    return Err(ItemRefusal::Unsupported(
+                        "legacy inventory set membership has an unhashable resource_id".into(),
+                    ));
+                }
+            }
+
+            for (resource_index, resource) in array(resource_values).enumerate() {
+                if !resource.is_object() {
+                    continue;
+                }
+                self.check()?;
+                source.check_cancelled()?;
+                let id = resource.get("resource_id").unwrap_or(&Value::Null);
+                let mut duplicate = false;
+                for previous in array(resource_values).take(resource_index) {
+                    self.charge_inventory_set_scan_step(source)?;
+                    if !previous.is_object() {
+                        continue;
+                    }
+                    let previous_id = previous.get("resource_id").unwrap_or(&Value::Null);
+                    if native_json_set_members_equal(previous_id, id) {
+                        duplicate = true;
+                        break;
+                    }
+                }
+                if duplicate {
+                    self.issue(path, "duplicate-resource-id")?;
+                }
+            }
+            if entry["summary"].is_object()
+                && entry["summary"]["resource_count"].as_u64()
+                    != Some(array(resource_values).count() as u64)
+            {
+                self.issue(path, "resource-count")?;
+            }
+        }
+        Ok(())
+    }
+
+    fn inspect_observed_inventory(
+        &mut self,
+        source: &impl ItemSource,
+        path: &str,
+        manifest: &Value,
+        inventory: &tos_foundation::JsonValue,
+    ) -> Result<(), ItemRefusal> {
+        if !legacy_json_native_equal(
+            inventory.object_get("item_id").unwrap_or(&LEGACY_JSON_NULL),
+            manifest.get("item_id").unwrap_or(&Value::Null),
+        ) {
+            self.issue(path, "inventory-item-id")?;
+        }
+        let expected = manifest
+            .get("payload_files")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter(|value| value.is_object());
+        let actual = inventory
+            .object_get("files")
+            .and_then(tos_foundation::JsonValue::as_array)
+            .into_iter()
+            .flatten()
+            .filter(|value| value.as_object().is_some());
+        let mut expected = expected;
+        let mut actual = actual;
+        let same_files = loop {
+            self.check()?;
+            match (actual.next(), expected.next()) {
+                (None, None) => break true,
+                (Some(actual), Some(expected))
+                    if legacy_json_native_equal(
+                        actual.object_get("file_id").unwrap_or(&LEGACY_JSON_NULL),
+                        expected.get("file_id").unwrap_or(&Value::Null),
+                    ) && legacy_json_native_equal(
+                        actual
+                            .object_get("file_sha256")
+                            .unwrap_or(&LEGACY_JSON_NULL),
+                        expected.get("sha256").unwrap_or(&Value::Null),
+                    ) && legacy_json_native_equal(
+                        actual.object_get("media_type").unwrap_or(&LEGACY_JSON_NULL),
+                        expected.get("media_type").unwrap_or(&Value::Null),
+                    ) => {}
+                _ => break false,
+            }
+        };
+        if !same_files {
+            self.issue(path, "inventory-file-identity")?;
+        }
+        let files = inventory
+            .object_get("files")
+            .and_then(tos_foundation::JsonValue::as_array)
+            .unwrap_or(&[]);
+        for entry in files.iter().filter(|value| value.as_object().is_some()) {
+            self.check()?;
+            let resources = entry
+                .object_get("resources")
+                .and_then(tos_foundation::JsonValue::as_array)
+                .unwrap_or(&[]);
+            for resource in resources {
+                self.check()?;
+                source.check_cancelled()?;
+                if resource.as_object().is_none() {
+                    continue;
+                }
+                let id = resource
+                    .object_get("resource_id")
+                    .unwrap_or(&LEGACY_JSON_NULL);
+                if matches!(
+                    id,
+                    tos_foundation::JsonValue::Array(_) | tos_foundation::JsonValue::Object(_)
+                ) {
+                    return Err(ItemRefusal::Unsupported(
+                        "legacy inventory set membership has an unhashable resource_id".into(),
+                    ));
+                }
+            }
+            let mut duplicate = false;
+            for (resource_index, resource) in resources.iter().enumerate() {
+                if resource.as_object().is_none() {
+                    continue;
+                }
+                self.check()?;
+                source.check_cancelled()?;
+                let id = resource
+                    .object_get("resource_id")
+                    .unwrap_or(&LEGACY_JSON_NULL);
+                for previous in &resources[..resource_index] {
+                    self.charge_inventory_set_scan_step(source)?;
+                    if previous.as_object().is_none() {
+                        continue;
+                    }
+                    let previous_id = previous
+                        .object_get("resource_id")
+                        .unwrap_or(&LEGACY_JSON_NULL);
+                    if legacy_json_set_members_equal(previous_id, id) {
+                        duplicate = true;
+                        break;
+                    }
+                }
+                if duplicate {
+                    break;
+                }
+            }
+            if duplicate {
+                self.issue(path, "duplicate-resource-id")?;
+            }
+            if entry
+                .object_get("summary")
+                .and_then(tos_foundation::JsonValue::as_object)
+                .is_some()
+            {
+                let expected_count = Value::from(resources.len() as u64);
+                if !legacy_json_native_equal(
+                    entry
+                        .object_get("summary")
+                        .and_then(|summary| summary.object_get("resource_count"))
+                        .unwrap_or(&LEGACY_JSON_NULL),
+                    &expected_count,
+                ) {
+                    self.issue(path, "resource-count")?;
+                }
+            }
+        }
+        Ok(())
+    }
+
     fn source_refs(
         &mut self,
         source: &mut impl ItemSource,
@@ -304,6 +645,53 @@ impl ItemRules {
             if let Some(target) = value.get(field) {
                 self.source_ref(source, path, target)?;
             }
+        }
+        Ok(())
+    }
+
+    fn source_refs_observed(
+        &mut self,
+        source: &mut impl ItemSource,
+        path: &str,
+        value: &tos_foundation::JsonValue,
+    ) -> Result<(), ItemRefusal> {
+        for field in ["source_refs", "source_record_refs", "receipt_refs"] {
+            if let Some(tos_foundation::JsonValue::Array(values)) = value.object_get(field) {
+                for target in values {
+                    self.source_ref_observed(source, path, target)?;
+                }
+            }
+        }
+        for field in [
+            "rights_ref",
+            "provenance_ref",
+            "forensic_report_ref",
+            "resource_inventory_ref",
+            "item_manifest_ref",
+            "generated_from_manifest_ref",
+        ] {
+            if let Some(target) = value.object_get(field) {
+                self.source_ref_observed(source, path, target)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn source_ref_observed(
+        &mut self,
+        source: &mut impl ItemSource,
+        path: &str,
+        target: &tos_foundation::JsonValue,
+    ) -> Result<(), ItemRefusal> {
+        let Some(target) = target.as_str() else {
+            return self.issue(path, "unresolved-source-ref");
+        };
+        if target.starts_with("ToS/") {
+            safe_path(target)?;
+            if !source.exists(target, self.limits.deadline)? {
+                self.issue(path, "unresolved-source-ref")?;
+            }
+            self.check()?;
         }
         Ok(())
     }
@@ -385,80 +773,16 @@ impl ItemRules {
         let inventory = if inventory_path.is_empty() {
             None
         } else {
-            self.object(source, inventory_path, INVENTORY)?
+            self.inventory_object(source, inventory_path)?
         };
         if let Some((inventory, _)) = &inventory {
-            if inventory["item_id"] != *item_id {
-                self.issue(inventory_path, "inventory-item-id")?;
-            }
-            if inventory["generated_from_manifest_ref"] != path {
-                self.issue(inventory_path, "inventory-manifest-ref")?;
-            }
-            let mut expected = array(&manifest["payload_files"]).filter(|v| v.is_object());
-            let mut actual = array(&inventory["files"]).filter(|v| v.is_object());
-            let same_files = loop {
-                self.check()?;
-                match (actual.next(), expected.next()) {
-                    (None, None) => break true,
-                    (Some(a), Some(e))
-                        if a["file_id"] == e["file_id"]
-                            && a["file_sha256"] == e["sha256"]
-                            && a["media_type"] == e["media_type"] => {}
-                    _ => break false,
+            match inventory {
+                ItemInventoryValue::Finite(inventory) => {
+                    self.inspect_finite_inventory(source, inventory_path, &manifest, inventory)?;
                 }
-            };
-            if !same_files {
-                self.issue(inventory_path, "inventory-file-identity")?;
-            }
-            for entry in array(&inventory["files"]).filter(|v| v.is_object()) {
-                self.check()?;
-                let resources = &entry["resources"];
-                let baseline = self.live_bytes;
-                self.admit_live(
-                    std::mem::size_of::<BTreeSet<&str>>() + std::mem::size_of::<BTreeSet<String>>(),
-                )?;
-                let mut ids = BTreeSet::new();
-                let mut invalid_ids = BTreeSet::new();
-                for resource in array(resources).filter(|v| v.is_object()) {
-                    self.check()?;
-                    let id = &resource["resource_id"];
-                    if let Some(id) = id.as_str() {
-                        if ids.contains(id) {
-                            self.issue(inventory_path, "duplicate-resource-id")?;
-                        } else {
-                            self.admit_live(
-                                std::mem::size_of::<&str>() + 3 * std::mem::size_of::<usize>(),
-                            )?;
-                            ids.insert(id);
-                        }
-                        continue;
-                    }
-                    // The contract requires a string. Preserve the native
-                    // malformed-value duplicate diagnostic after schema
-                    // rejection without copying valid resource IDs.
-                    let header = std::mem::size_of::<String>() + 3 * std::mem::size_of::<usize>();
-                    let wire = crate::record_biblio_cut::decoded_wire_size(
-                        id,
-                        self.available()?
-                            .checked_sub(header)
-                            .ok_or(ItemRefusal::Budget)?,
-                    )?;
-                    let cost = header.checked_add(wire).ok_or(ItemRefusal::Budget)?;
-                    self.admit_live(cost)?;
-                    if !invalid_ids.insert(id.to_string()) {
-                        self.live_bytes -= cost;
-                        self.issue(inventory_path, "duplicate-resource-id")?;
-                    }
+                ItemInventoryValue::LegacyObserved(inventory) => {
+                    self.inspect_observed_inventory(source, inventory_path, &manifest, inventory)?;
                 }
-                if entry["summary"].is_object()
-                    && entry["summary"]["resource_count"].as_u64()
-                        != Some(array(resources).count() as u64)
-                {
-                    self.issue(inventory_path, "resource-count")?;
-                }
-                drop(ids);
-                drop(invalid_ids);
-                self.live_bytes = baseline;
             }
         }
         let rights_path = manifest["rights_ref"].as_str().unwrap_or("");
@@ -501,9 +825,12 @@ impl ItemRules {
         }
         let provenance_path = manifest["provenance_ref"].as_str().unwrap_or("");
         let acquisition_ref = manifest["acquisition_event_ref"].as_str();
-        let inventory_event_ref = inventory
-            .as_ref()
-            .and_then(|(value, _)| value["provenance_event_ref"].as_str());
+        let inventory_event_ref = inventory.as_ref().and_then(|(value, _)| match value {
+            ItemInventoryValue::Finite(value) => value["provenance_event_ref"].as_str(),
+            ItemInventoryValue::LegacyObserved(value) => value
+                .object_get("provenance_event_ref")
+                .and_then(tos_foundation::JsonValue::as_str),
+        });
         let inventory_digest = if let Some((_, raw)) = &inventory {
             self.admit_live(std::mem::size_of::<String>() + 64)?;
             Some(Digest256::of_bytes(raw).to_hex())
@@ -541,7 +868,7 @@ impl ItemRules {
                             item_json_limits(self.limits.max_member_bytes, available)?,
                             available,
                             self.limits.deadline,
-                            &AtomicBool::new(false),
+                            source.cancellation_flag(),
                         );
                         let (event, event_bytes) = match decoded {
                             Ok(result) => result,
@@ -787,7 +1114,7 @@ impl ItemRules {
             item_json_limits(self.limits.max_member_bytes, available)?,
             available,
             self.limits.deadline,
-            &AtomicBool::new(false),
+            source.cancellation_flag(),
         );
         let (item, item_bytes) = match decoded {
             Ok(result) => result,
@@ -844,6 +1171,8 @@ impl ItemRules {
             manifest_item_ids: self.manifest_item_ids,
             metadata_bytes: self.metadata_bytes,
             unavailable_payloads: self.unavailable_payloads,
+            accounted_state_upper_bound_bytes: self.state_bytes,
+            inventory_set_scan_steps: self.inventory_set_scan_steps,
             source_admission_complete: false,
         }
     }
@@ -851,6 +1180,354 @@ impl ItemRules {
 
 fn array(value: &Value) -> impl Iterator<Item = &Value> {
     value.as_array().into_iter().flatten()
+}
+
+const LEGACY_JSON_NULL: tos_foundation::JsonValue = tos_foundation::JsonValue::Null;
+
+pub(crate) fn observed_json_retained_bytes(
+    value: &tos_foundation::JsonValue,
+) -> Result<usize, ItemRefusal> {
+    fn vector_capacity_bytes(length: usize, cell: usize) -> Result<usize, ItemRefusal> {
+        if length == 0 {
+            return Ok(0);
+        }
+        let capacity = length.checked_mul(2).ok_or(ItemRefusal::Budget)?.max(4);
+        capacity.checked_mul(cell).ok_or(ItemRefusal::Budget)
+    }
+    fn string_bytes(value: &tos_foundation::JsonString) -> Result<usize, ItemRefusal> {
+        let units = vector_capacity_bytes(value.units().len(), std::mem::size_of::<u16>())?;
+        let utf8 = value
+            .as_str()
+            .map(|text| text.len().checked_mul(2).ok_or(ItemRefusal::Budget))
+            .transpose()?
+            .unwrap_or_default();
+        units.checked_add(utf8).ok_or(ItemRefusal::Budget)
+    }
+    fn visit(value: &tos_foundation::JsonValue) -> Result<usize, ItemRefusal> {
+        let mut bytes = std::mem::size_of::<tos_foundation::JsonValue>();
+        match value {
+            tos_foundation::JsonValue::Null | tos_foundation::JsonValue::Bool(_) => {}
+            tos_foundation::JsonValue::Number(number) => {
+                bytes = bytes
+                    .checked_add(
+                        number
+                            .lexeme
+                            .len()
+                            .checked_mul(2)
+                            .ok_or(ItemRefusal::Budget)?,
+                    )
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+            tos_foundation::JsonValue::String(text) => {
+                bytes = bytes
+                    .checked_add(string_bytes(text)?)
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+            tos_foundation::JsonValue::Array(values) => {
+                bytes = bytes
+                    .checked_add(vector_capacity_bytes(
+                        values.len(),
+                        std::mem::size_of::<tos_foundation::JsonValue>(),
+                    )?)
+                    .ok_or(ItemRefusal::Budget)?;
+                for child in values {
+                    bytes = bytes
+                        .checked_add(visit(child)?)
+                        .ok_or(ItemRefusal::Budget)?;
+                }
+            }
+            tos_foundation::JsonValue::Object(entries) => {
+                bytes =
+                    bytes
+                        .checked_add(vector_capacity_bytes(
+                            entries.len(),
+                            std::mem::size_of::<(
+                                tos_foundation::JsonString,
+                                tos_foundation::JsonValue,
+                            )>(),
+                        )?)
+                        .ok_or(ItemRefusal::Budget)?;
+                for (key, child) in entries {
+                    bytes = bytes
+                        .checked_add(string_bytes(key)?)
+                        .and_then(|bytes| bytes.checked_add(visit(child).ok()?))
+                        .ok_or(ItemRefusal::Budget)?;
+                }
+            }
+        }
+        Ok(bytes)
+    }
+    visit(value)
+}
+
+pub(crate) fn legacy_json_values_equal(
+    left: &tos_foundation::JsonValue,
+    right: &tos_foundation::JsonValue,
+) -> bool {
+    use tos_foundation::{JsonNumberKind as NumberKind, JsonValue as LegacyValue};
+    match (left, right) {
+        (LegacyValue::Null, LegacyValue::Null) => true,
+        (LegacyValue::Bool(left), LegacyValue::Bool(right)) => left == right,
+        (LegacyValue::Bool(value), LegacyValue::Number(number))
+        | (LegacyValue::Number(number), LegacyValue::Bool(value)) => {
+            legacy_number_equals_integer(number, if *value { "1" } else { "0" })
+        }
+        (LegacyValue::Number(left), LegacyValue::Number(right)) => match (left.kind, right.kind) {
+            (NumberKind::Int, NumberKind::Int) => {
+                integer_lexemes_equal(&left.lexeme, &right.lexeme)
+            }
+            (NumberKind::Int, NumberKind::Float) => right
+                .as_python_float()
+                .is_some_and(|value| integer_equals_float(&left.lexeme, value)),
+            (NumberKind::Float, NumberKind::Int) => left
+                .as_python_float()
+                .is_some_and(|value| integer_equals_float(&right.lexeme, value)),
+            (NumberKind::Float, NumberKind::Float) => left
+                .as_python_float()
+                .zip(right.as_python_float())
+                .is_some_and(|(left, right)| left == right),
+        },
+        (LegacyValue::String(left), LegacyValue::String(right)) => left.units() == right.units(),
+        (LegacyValue::Array(left), LegacyValue::Array(right)) => {
+            left.len() == right.len()
+                && left
+                    .iter()
+                    .zip(right)
+                    .all(|(left, right)| legacy_json_values_equal(left, right))
+        }
+        (LegacyValue::Object(left), LegacyValue::Object(right)) => {
+            left.len() == right.len()
+                && left.iter().all(|(key, left_value)| {
+                    right
+                        .iter()
+                        .find(|(right_key, _)| key.units() == right_key.units())
+                        .is_some_and(|(_, right_value)| {
+                            legacy_json_values_equal(left_value, right_value)
+                        })
+                })
+        }
+        _ => false,
+    }
+}
+
+/// Python's JSON decoder returns its cached `NaN` constant object for each
+/// literal. At the source owner's `set(resource_ids)` boundary those values
+/// compare as the same set member through Python's identity fast path, even
+/// though ordinary numeric equality remains non-reflexive.
+pub(crate) fn legacy_json_set_members_equal(
+    left: &tos_foundation::JsonValue,
+    right: &tos_foundation::JsonValue,
+) -> bool {
+    fn is_cached_nan(value: &tos_foundation::JsonValue) -> bool {
+        matches!(
+            value,
+            tos_foundation::JsonValue::Number(number)
+                if number.kind == tos_foundation::JsonNumberKind::Float
+                    && number.lexeme == "NaN"
+        )
+    }
+    (is_cached_nan(left) && is_cached_nan(right)) || legacy_json_values_equal(left, right)
+}
+
+/// Python set membership for JSON-decoded hashable values. Arrays and objects
+/// are rejected by the caller before this comparator runs.
+pub(crate) fn native_json_set_members_equal(left: &Value, right: &Value) -> bool {
+    match (left, right) {
+        (Value::Null, Value::Null) => true,
+        (Value::Bool(left), Value::Bool(right)) => left == right,
+        (Value::Bool(value), Value::Number(number))
+        | (Value::Number(number), Value::Bool(value)) => {
+            native_number_equals_integer(number, if *value { "1" } else { "0" })
+        }
+        (Value::Number(left), Value::Number(right)) => {
+            let left_integer = left
+                .as_i64()
+                .map(|value| value.to_string())
+                .or_else(|| left.as_u64().map(|value| value.to_string()));
+            let right_integer = right
+                .as_i64()
+                .map(|value| value.to_string())
+                .or_else(|| right.as_u64().map(|value| value.to_string()));
+            match (left_integer, right_integer) {
+                (Some(left), Some(right)) => integer_lexemes_equal(&left, &right),
+                (Some(integer), None) => right
+                    .as_f64()
+                    .is_some_and(|float| integer_equals_float(&integer, float)),
+                (None, Some(integer)) => left
+                    .as_f64()
+                    .is_some_and(|float| integer_equals_float(&integer, float)),
+                (None, None) => left
+                    .as_f64()
+                    .zip(right.as_f64())
+                    .is_some_and(|(left, right)| left == right),
+            }
+        }
+        (Value::String(left), Value::String(right)) => left == right,
+        _ => false,
+    }
+}
+
+pub(crate) fn legacy_json_native_equal(legacy: &tos_foundation::JsonValue, native: &Value) -> bool {
+    use tos_foundation::{JsonNumberKind as NumberKind, JsonValue as LegacyValue};
+    match (legacy, native) {
+        (LegacyValue::Null, Value::Null) => true,
+        (LegacyValue::Bool(left), Value::Bool(right)) => left == right,
+        (LegacyValue::Bool(value), Value::Number(number)) => {
+            native_number_equals_integer(number, if *value { "1" } else { "0" })
+        }
+        (LegacyValue::Number(number), Value::Bool(value)) => {
+            legacy_number_equals_integer(number, if *value { "1" } else { "0" })
+        }
+        (LegacyValue::Number(left), Value::Number(right)) => match left.kind {
+            NumberKind::Int => {
+                if let Some(value) = right.as_i64() {
+                    integer_lexemes_equal(&left.lexeme, &value.to_string())
+                } else if let Some(value) = right.as_u64() {
+                    integer_lexemes_equal(&left.lexeme, &value.to_string())
+                } else {
+                    right
+                        .as_f64()
+                        .is_some_and(|value| integer_equals_float(&left.lexeme, value))
+                }
+            }
+            NumberKind::Float => {
+                let Some(left) = left.as_python_float() else {
+                    return false;
+                };
+                if let Some(value) = right.as_i64() {
+                    integer_equals_float(&value.to_string(), left)
+                } else if let Some(value) = right.as_u64() {
+                    integer_equals_float(&value.to_string(), left)
+                } else {
+                    right.as_f64().is_some_and(|right| left == right)
+                }
+            }
+        },
+        (LegacyValue::String(left), Value::String(right)) => {
+            left.as_str().is_some_and(|left| left == right)
+        }
+        (LegacyValue::Array(left), Value::Array(right)) => {
+            left.len() == right.len()
+                && left
+                    .iter()
+                    .zip(right)
+                    .all(|(left, right)| legacy_json_native_equal(left, right))
+        }
+        (LegacyValue::Object(left), Value::Object(right)) => {
+            left.len() == right.len()
+                && left.iter().all(|(key, left_value)| {
+                    key.as_str()
+                        .and_then(|key| right.get(key))
+                        .is_some_and(|right_value| {
+                            legacy_json_native_equal(left_value, right_value)
+                        })
+                })
+        }
+        _ => false,
+    }
+}
+
+fn native_number_equals_integer(number: &serde_json::Number, integer: &str) -> bool {
+    if let Some(value) = number.as_i64() {
+        integer_lexemes_equal(&value.to_string(), integer)
+    } else if let Some(value) = number.as_u64() {
+        integer_lexemes_equal(&value.to_string(), integer)
+    } else {
+        number
+            .as_f64()
+            .is_some_and(|value| integer_equals_float(integer, value))
+    }
+}
+
+fn legacy_number_equals_integer(number: &tos_foundation::JsonNumber, integer: &str) -> bool {
+    match number.kind {
+        tos_foundation::JsonNumberKind::Int => integer_lexemes_equal(&number.lexeme, integer),
+        tos_foundation::JsonNumberKind::Float => number
+            .as_python_float()
+            .is_some_and(|value| integer_equals_float(integer, value)),
+    }
+}
+
+fn integer_lexemes_equal(left: &str, right: &str) -> bool {
+    fn parts(value: &str) -> (bool, &str) {
+        let negative = value.starts_with('-');
+        let digits = value.strip_prefix('-').unwrap_or(value);
+        let digits = digits.trim_start_matches('0');
+        (
+            negative && !digits.is_empty(),
+            if digits.is_empty() { "0" } else { digits },
+        )
+    }
+    let (left_negative, left_digits) = parts(left);
+    let (right_negative, right_digits) = parts(right);
+    left_negative == right_negative && left_digits == right_digits
+}
+
+fn integer_equals_float(integer: &str, value: f64) -> bool {
+    if !value.is_finite() || value.fract() != 0.0 {
+        return false;
+    }
+    let bits = value.to_bits();
+    let negative = bits >> 63 != 0 && value != 0.0;
+    let exponent_bits = ((bits >> 52) & 0x7ff) as i32;
+    let fraction = bits & ((1u64 << 52) - 1);
+    let (mut significand, exponent) = if exponent_bits == 0 {
+        (fraction, 1 - 1023 - 52)
+    } else {
+        ((1u64 << 52) | fraction, exponent_bits - 1023 - 52)
+    };
+    if significand == 0 {
+        return integer_lexemes_equal(integer, "0");
+    }
+    if exponent < 0 {
+        let shift = (-exponent) as u32;
+        if shift >= u64::BITS || significand % (1u64 << shift) != 0 {
+            return false;
+        }
+        significand /= 1u64 << shift;
+    }
+    let mut digits = [0u8; 310];
+    let mut length = 0usize;
+    let mut remaining = significand;
+    while remaining != 0 {
+        digits[length] = (remaining % 10) as u8;
+        remaining /= 10;
+        length += 1;
+    }
+    for _ in 0..exponent.max(0) {
+        let mut carry = 0u16;
+        for digit in &mut digits[..length] {
+            let doubled = u16::from(*digit) * 2 + carry;
+            *digit = (doubled % 10) as u8;
+            carry = doubled / 10;
+        }
+        while carry != 0 {
+            if length >= digits.len() {
+                return false;
+            }
+            digits[length] = (carry % 10) as u8;
+            carry /= 10;
+            length += 1;
+        }
+    }
+    let integer_negative = integer.starts_with('-');
+    let integer_digits = integer
+        .strip_prefix('-')
+        .unwrap_or(integer)
+        .trim_start_matches('0');
+    let integer_digits = if integer_digits.is_empty() {
+        "0"
+    } else {
+        integer_digits
+    };
+    if integer_negative != negative || integer_digits.len() != length {
+        return false;
+    }
+    integer_digits
+        .bytes()
+        .rev()
+        .zip(&digits[..length])
+        .all(|(byte, digit)| byte == b'0' + *digit)
 }
 
 fn item_json_limits(
@@ -956,6 +1633,7 @@ mod tests {
         members: BTreeMap<String, Vec<u8>>,
         kinds: BTreeMap<String, String>,
         schema: SchemaBackendProbe,
+        cancelled: AtomicBool,
     }
 
     impl Fixture {
@@ -1001,11 +1679,16 @@ mod tests {
                 members,
                 kinds,
                 schema,
+                cancelled: AtomicBool::new(false),
             }
         }
     }
 
     impl ItemSource for Fixture {
+        fn cancellation_flag(&self) -> &AtomicBool {
+            &self.cancelled
+        }
+
         fn metadata(
             &mut self,
             path: &str,

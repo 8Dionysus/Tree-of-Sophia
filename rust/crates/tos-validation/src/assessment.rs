@@ -1081,7 +1081,7 @@ fn input_binding(input: &AssessmentReadInput) -> Digest256 {
 // Python's exact-ref dictionary equality is numeric equality (1 == 1.0),
 // whereas evidence membership intentionally uses canonical bytes (1 != 1.0
 // there). Do not round large owner integers through f64 to implement either.
-fn py_equal(left: &Value, right: &Value) -> Result<bool> {
+pub(crate) fn py_equal(left: &Value, right: &Value) -> Result<bool> {
     match (left, right) {
         (Value::Number(_) | Value::Bool(_), Value::Number(_) | Value::Bool(_)) => {
             let li = integer_key(left)?;

@@ -6,6 +6,11 @@
 pub mod backup_recovery;
 pub mod backup_recovery_cli;
 mod durable_adapter;
+pub mod source_admission;
+mod source_admission_candidate;
+mod source_admission_index;
+pub mod source_admission_restore;
+mod source_admission_store;
 pub mod source_agent_publication;
 mod source_agent_publication_apply;
 mod source_agent_publication_assembly;
@@ -28,7 +33,6 @@ pub mod source_command;
 pub mod source_creation;
 pub mod source_creation_store;
 pub mod source_current_cut;
-mod source_managed_query;
 pub mod source_managed_selection;
 pub mod source_metadata_publication;
 mod source_metadata_publication_assembly;
@@ -122,3 +126,12 @@ pub mod source_public_text_proposal;
 // Descriptive work, without source authority.
 pub use durable_adapter::audit_delta::AuditDeltaWork;
 pub use durable_adapter::source_cohort::ManagedSourceWorkV1;
+pub mod source_native_text_read;
+mod source_read_contract;
+pub mod source_read_layers;
+pub mod source_read_owner;
+
+pub mod source_admission_cli;
+mod source_foundation_admission;
+mod source_foundation_admission_history;
+mod source_foundation_admission_identity;

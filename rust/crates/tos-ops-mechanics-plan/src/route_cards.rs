@@ -3,14 +3,18 @@
 use crate::executor::{self, Limits};
 use regex::Regex;
 use serde_json::{Value, json};
+use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File};
 use std::io::{self, Read, Write};
 use std::path::{Component, Path, PathBuf};
-use std::sync::{Arc, atomic::AtomicI32};
+use std::sync::{
+    Arc,
+    atomic::{AtomicI32, AtomicUsize, Ordering},
+};
 use std::time::{Duration, Instant};
 use tos_foundation::{
-    Digest256, JsonLimits, JsonMode, emit_python_compact_json, parse_json,
+    Digest256, Digest256Hasher, JsonLimits, JsonMode, emit_python_compact_json, parse_json,
     python_lower_unicode16_v1,
 };
 use unicode_general_category::{GeneralCategory, get_general_category};
@@ -115,6 +119,24 @@ fn validate_relative(value: &str) -> io::Result<()> {
     }
     Ok(())
 }
+fn canonical_selected_relative(value: &str) -> io::Result<String> {
+    validate_relative(value)?;
+    let mut components = Vec::with_capacity(128);
+    for part in value.split('/') {
+        if part.is_empty() || part == "." {
+            continue;
+        }
+        if components.len() == 128 {
+            return Err(invalid("selected target component bound"));
+        }
+        components.push(part);
+    }
+    Ok(if components.is_empty() {
+        ".".into()
+    } else {
+        components.join("/")
+    })
+}
 struct SourceFile {
     raw: Vec<u8>,
     text: String,
@@ -129,15 +151,57 @@ struct SourceFile {
 /// Consumers copying bytes/text or constructing output must account for those copies.
 pub struct RouteSources {
     root_dir: File,
-    started: Instant,
-    operations: usize,
+    root_custody: Arc<()>,
+    root_path: PathBuf,
+    deadline: Instant,
+    operations: Arc<AtomicUsize>,
+    root_component_opens: Cell<usize>,
     entries: usize,
     bytes_read: usize,
     files: BTreeMap<String, Arc<SourceFile>>,
 }
+/// Opaque identity of one held root. Related roots share an operation allowance
+/// but receive distinct custody identities; this token never grants reads.
+pub struct RouteRootCustody(Arc<()>);
+/// A bounded resolution under this held root, optionally narrowed to one
+/// explicitly selected directory. Outside targets are never opened.
+pub enum RouteResolvedTarget {
+    Inside {
+        relative_path: String,
+        metadata: Option<fs::Metadata>,
+        topology_stamp: Digest256,
+    },
+    OutsideSelectedRoot,
+}
 impl RouteSources {
     pub fn new(root: &Path) -> io::Result<Self> {
-        if root.as_os_str().len() > 4096
+        Self::new_until(root, Instant::now() + Duration::from_secs(30))
+    }
+    /// Join a concrete caller's whole operation clock without resetting it at
+    /// capture or at a later read. Existing route callers retain their 30s clock.
+    pub fn new_until(root: &Path, deadline: Instant) -> io::Result<Self> {
+        Self::with_operations(root, deadline, Arc::new(AtomicUsize::new(0)))
+    }
+    /// Authenticate another explicitly selected root under the same operation
+    /// allowance. This shares only the lookup counter, never root custody,
+    /// cached bytes, or source authority. A related clock may only narrow.
+    pub fn new_until_related(root: &Path, deadline: Instant, primary: &Self) -> io::Result<Self> {
+        primary.check()?;
+        if deadline > primary.deadline {
+            return Err(invalid("related route root extends operation deadline"));
+        }
+        Self::with_operations(root, deadline, Arc::clone(&primary.operations))
+    }
+    fn with_operations(
+        root: &Path,
+        deadline: Instant,
+        operations: Arc<AtomicUsize>,
+    ) -> io::Result<Self> {
+        if operations.load(Ordering::Relaxed) >= MAX_OPERATIONS {
+            return Err(invalid("route lookup operation bound exceeded"));
+        }
+        if Instant::now() >= deadline
+            || root.as_os_str().len() > 4096
             || root.components().count() > 128
             || !root.is_absolute()
             || fs::canonicalize(root)? != root
@@ -145,35 +209,109 @@ impl RouteSources {
         {
             return Err(invalid("repository root must be absolute without symlinks"));
         }
+        let root_component_opens = Cell::new(0);
+        let root_dir = open_root(root, deadline, &operations, &root_component_opens)?;
         Ok(Self {
-            root_dir: open_root(root)?,
-            started: Instant::now(),
-            operations: 0,
+            root_dir,
+            root_custody: Arc::new(()),
+            root_path: root.to_owned(),
+            deadline,
+            operations,
+            root_component_opens,
             entries: 0,
             bytes_read: 0,
             files: BTreeMap::new(),
         })
     }
+    /// Actual absolute-anchor and root-component opens, including initial custody and every recheck.
+    /// These are distinct from relative lookup operations and must be included
+    /// in the caller's whole IO/CPU envelope.
+    pub fn root_component_open_count(&self) -> usize {
+        self.root_component_opens.get()
+    }
+    /// Shared total across this root and all explicitly related roots.
+    pub fn operation_count(&self) -> usize {
+        self.operations.load(Ordering::Relaxed)
+    }
+    pub fn deadline(&self) -> Instant {
+        self.deadline
+    }
+    /// Exact normalized path selected when this held root was authenticated.
+    pub fn selected_root_path(&self) -> &Path {
+        &self.root_path
+    }
+    pub fn root_custody(&self) -> RouteRootCustody {
+        RouteRootCustody(Arc::clone(&self.root_custody))
+    }
+    /// Refuse substitution of another held root before accessing any operand.
+    pub fn verify_custody(&self, selected: &RouteRootCustody) -> io::Result<()> {
+        self.check()?;
+        if !Arc::ptr_eq(&self.root_custody, &selected.0) {
+            return Err(invalid("route held root custody differs"));
+        }
+        self.verify_root()
+    }
     pub fn check(&self) -> io::Result<()> {
-        if self.started.elapsed() > Duration::from_secs(30) {
+        if Instant::now() >= self.deadline {
             Err(invalid("route operation deadline exceeded"))
         } else {
             Ok(())
         }
     }
+    #[cfg(target_os = "linux")]
+    pub fn verify_root(&self) -> io::Result<()> {
+        use std::os::unix::fs::MetadataExt;
+        self.check()?;
+        let retained = self.root_dir.metadata()?;
+        let current = open_root(
+            &self.root_path,
+            self.deadline,
+            &self.operations,
+            &self.root_component_opens,
+        )?
+        .metadata()?;
+        if (retained.dev(), retained.ino()) != (current.dev(), current.ino()) {
+            return Err(invalid("route source root replaced"));
+        }
+        Ok(())
+    }
+    #[cfg(not(target_os = "linux"))]
+    pub fn verify_root(&self) -> io::Result<()> {
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "route root custody requires Linux",
+        ))
+    }
     fn charge(&mut self, value: &str) -> io::Result<()> {
         self.check()?;
         validate_relative(value)?;
-        self.operations += 1;
-        if self.operations > MAX_OPERATIONS {
-            return Err(invalid("route lookup operation bound exceeded"));
-        }
+        // Admit every relative component before the first open, sharing the
+        // same operation cap with authenticated root rewalks.
+        let count = Path::new(value)
+            .components()
+            .filter(|c| matches!(c, Component::Normal(_)))
+            .count()
+            .max(1);
+        charge_operations(&self.operations, count)?;
         Ok(())
     }
     // Each component is opened relative to a retained parent descriptor. The
     // final nofollow/nonblock open prevents FIFO waits and symlink races.
     #[cfg(target_os = "linux")]
     fn open(&mut self, value: &str) -> io::Result<Option<File>> {
+        self.open_with_owner(value, None)
+    }
+    #[cfg(target_os = "linux")]
+    fn open_with_owner(&mut self, value: &str, owner: Option<u32>) -> io::Result<Option<File>> {
+        self.open_with_mode(value, owner, false)
+    }
+    #[cfg(target_os = "linux")]
+    fn open_with_mode(
+        &mut self,
+        value: &str,
+        owner: Option<u32>,
+        metadata_only: bool,
+    ) -> io::Result<Option<File>> {
         use std::os::fd::{AsRawFd, FromRawFd};
         self.charge(value)?;
         let parts: Vec<_> = Path::new(value)
@@ -184,11 +322,23 @@ impl RouteSources {
             })
             .collect();
         let mut dir = self.root_dir.try_clone()?;
+        if let Some(uid) = owner {
+            use std::os::unix::fs::MetadataExt;
+            let meta = dir.metadata()?;
+            if meta.uid() != uid || meta.mode() & 0o022 != 0 {
+                return Err(invalid("protected route root ownership/write boundary"));
+            }
+        }
         for (index, part) in parts.iter().enumerate() {
+            self.check()?;
             use std::os::unix::ffi::OsStrExt;
             let name = std::ffi::CString::new(part.as_bytes()).map_err(|_| invalid("NUL path"))?;
-            let flags = libc::O_RDONLY
-                | libc::O_NOFOLLOW
+            let final_component = index + 1 == parts.len();
+            let flags = (if metadata_only && final_component {
+                libc::O_PATH
+            } else {
+                libc::O_RDONLY
+            }) | libc::O_NOFOLLOW
                 | libc::O_CLOEXEC
                 | libc::O_NONBLOCK
                 | if index + 1 < parts.len() {
@@ -206,8 +356,14 @@ impl RouteSources {
             }
             let next = unsafe { File::from_raw_fd(fd) };
             let meta = next.metadata()?;
-            if !meta.is_file() && !meta.is_dir() {
+            if !(metadata_only && final_component) && !meta.is_file() && !meta.is_dir() {
                 return Err(invalid("route input is not a regular file or directory"));
+            }
+            if let Some(uid) = owner {
+                use std::os::unix::fs::MetadataExt;
+                if meta.uid() != uid || meta.mode() & 0o022 != 0 {
+                    return Err(invalid("protected route ownership/write boundary"));
+                }
             }
             dir = next;
         }
@@ -234,6 +390,518 @@ impl RouteSources {
             Some(file) => Ok(file.metadata()?.is_dir()),
             None => Ok(false),
         }
+    }
+    /// Metadata from the same nofollow held descriptor route, without reading
+    /// private contents merely to classify a selected inventory entry.
+    pub fn metadata(&mut self, value: &str) -> io::Result<Option<fs::Metadata>> {
+        self.verify_root()?;
+        #[cfg(target_os = "linux")]
+        let observed = self
+            .open_with_mode(value, None, true)?
+            .map(|file| file.metadata())
+            .transpose()?;
+        #[cfg(not(target_os = "linux"))]
+        let observed = self.open(value)?.map(|file| file.metadata()).transpose()?;
+        self.verify_root()?;
+        self.check()?;
+        Ok(observed)
+    }
+    /// Observe a selected symlink's bytes through its O_PATH nofollow inode,
+    /// never through the target. The bounded result is internal custody data;
+    /// consumers must not disclose an absolute host target in diagnostics.
+    #[cfg(target_os = "linux")]
+    pub fn bounded_link_target(&mut self, value: &str) -> io::Result<Option<String>> {
+        self.link_target_observation(value)
+            .map(|observation| observation.map(|(target, _)| target))
+    }
+    #[cfg(target_os = "linux")]
+    fn link_target_observation(
+        &mut self,
+        value: &str,
+    ) -> io::Result<Option<(String, fs::Metadata)>> {
+        use std::os::fd::AsRawFd;
+        use std::os::unix::fs::MetadataExt;
+        self.verify_root()?;
+        let Some(link) = self.open_with_mode(value, None, true)? else {
+            return Ok(None);
+        };
+        let before = link.metadata()?;
+        if !before.is_symlink() {
+            return Err(invalid("selected link operand is not a symlink"));
+        }
+        let mut raw = [0u8; 4097];
+        let empty = c"";
+        let count = unsafe {
+            libc::readlinkat(
+                link.as_raw_fd(),
+                empty.as_ptr(),
+                raw.as_mut_ptr().cast(),
+                raw.len(),
+            )
+        };
+        if count < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        let count = count as usize;
+        if count == 0 || count > 4096 {
+            return Err(invalid("selected link target byte bound"));
+        }
+        let target = std::str::from_utf8(&raw[..count])
+            .map_err(|_| invalid("selected link target UTF-8"))?;
+        let stamp = |m: &fs::Metadata| {
+            (
+                m.dev(),
+                m.ino(),
+                m.mode(),
+                m.len(),
+                m.nlink(),
+                m.mtime(),
+                m.mtime_nsec(),
+                m.ctime(),
+                m.ctime_nsec(),
+            )
+        };
+        let current = self
+            .open_with_mode(value, None, true)?
+            .ok_or_else(|| invalid("selected link disappeared"))?;
+        if stamp(&before) != stamp(&link.metadata()?)
+            || stamp(&before) != stamp(&current.metadata()?)
+        {
+            return Err(invalid("selected link changed during observation"));
+        }
+        self.verify_root()?;
+        self.check()?;
+        Ok(Some((target.to_owned(), before)))
+    }
+    #[cfg(target_os = "linux")]
+    pub fn resolve_selected_target(
+        &mut self,
+        value: &str,
+        selected_directory: Option<&str>,
+    ) -> io::Result<RouteResolvedTarget> {
+        use std::os::unix::fs::MetadataExt;
+        fn observed(hash: &mut Digest256Hasher, metadata: &fs::Metadata) {
+            hash.update(&metadata.dev().to_be_bytes());
+            hash.update(&metadata.ino().to_be_bytes());
+            hash.update(&metadata.mode().to_be_bytes());
+            hash.update(&metadata.len().to_be_bytes());
+            hash.update(&metadata.nlink().to_be_bytes());
+            hash.update(&metadata.mtime().to_be_bytes());
+            hash.update(&metadata.mtime_nsec().to_be_bytes());
+            hash.update(&metadata.ctime().to_be_bytes());
+            hash.update(&metadata.ctime_nsec().to_be_bytes());
+        }
+        fn text(hash: &mut Digest256Hasher, value: &str) {
+            hash.update(&(value.len() as u64).to_be_bytes());
+            hash.update(value.as_bytes());
+        }
+        let value = canonical_selected_relative(value)?;
+        let selected_directory_owned = selected_directory
+            .map(canonical_selected_relative)
+            .transpose()?;
+        let selected_directory = selected_directory_owned.as_deref();
+        let mut topology = Digest256Hasher::new();
+        topology.update(b"tos-foundation-held-symlink-topology-v1\0");
+        let root_metadata = self.root_dir.metadata()?;
+        topology.update(&root_metadata.dev().to_be_bytes());
+        topology.update(&root_metadata.ino().to_be_bytes());
+        topology.update(&root_metadata.mode().to_be_bytes());
+        text(&mut topology, &value);
+        text(&mut topology, selected_directory.unwrap_or("."));
+        if let Some(root) = selected_directory {
+            if root != "."
+                && value != root
+                && !value
+                    .strip_prefix(root)
+                    .is_some_and(|tail| tail.starts_with('/'))
+            {
+                return Ok(RouteResolvedTarget::OutsideSelectedRoot);
+            }
+            let Some(metadata) = self.metadata(root)? else {
+                // The held parent root proves this selected lane absent. No
+                // target is followed; later physical recheck fences appearance.
+                return Ok(RouteResolvedTarget::Inside {
+                    relative_path: value,
+                    metadata: None,
+                    topology_stamp: topology.finalize(),
+                });
+            };
+            if !metadata.is_dir() || metadata.is_symlink() {
+                return Err(invalid("selected target directory custody"));
+            }
+            observed(&mut topology, &metadata);
+        }
+        let inside = |path: &str| {
+            selected_directory.is_none_or(|root| {
+                root == "."
+                    || path == root
+                    || path
+                        .strip_prefix(root)
+                        .is_some_and(|tail| tail.starts_with('/'))
+            })
+        };
+        let mut candidate = value;
+        let mut links = 0usize;
+        loop {
+            self.verify_root()?;
+            if !inside(&candidate) {
+                return Ok(RouteResolvedTarget::OutsideSelectedRoot);
+            }
+            match self.metadata(&candidate) {
+                Ok(metadata) if metadata.as_ref().is_none_or(|m| !m.is_symlink()) => {
+                    return Ok(RouteResolvedTarget::Inside {
+                        relative_path: candidate,
+                        metadata,
+                        topology_stamp: topology.finalize(),
+                    });
+                }
+                Ok(_) => (),
+                Err(error)
+                    if matches!(
+                        error.raw_os_error(),
+                        Some(libc::ELOOP) | Some(libc::ENOTDIR)
+                    ) =>
+                {
+                    ()
+                }
+                Err(error) => return Err(error),
+            }
+            // Total component text <=4096, component slots <=128. Owning
+            // these strings releases candidate borrows before replacement.
+            let parts: Vec<_> = candidate.split('/').map(str::to_owned).collect();
+            let mut prefix = String::with_capacity(candidate.len());
+            let mut replaced = false;
+            for (index, component) in parts.iter().enumerate() {
+                if !prefix.is_empty() {
+                    prefix.push('/');
+                }
+                prefix.push_str(component);
+                let metadata = self.metadata(&prefix)?;
+                let Some(metadata) = metadata else {
+                    return Ok(RouteResolvedTarget::Inside {
+                        relative_path: candidate,
+                        metadata: None,
+                        topology_stamp: topology.finalize(),
+                    });
+                };
+                if !metadata.is_symlink() {
+                    if index + 1 < parts.len() && !metadata.is_dir() {
+                        return Ok(RouteResolvedTarget::Inside {
+                            relative_path: candidate,
+                            metadata: None,
+                            topology_stamp: topology.finalize(),
+                        });
+                    }
+                    continue;
+                }
+                links += 1;
+                if links > 40 {
+                    return Err(invalid("selected target symlink bound"));
+                }
+                let (target, link_metadata) = self
+                    .link_target_observation(&prefix)?
+                    .ok_or_else(|| invalid("selected target link disappeared"))?;
+                let mut classified = Digest256Hasher::new();
+                observed(&mut classified, &metadata);
+                let mut selected_link = Digest256Hasher::new();
+                observed(&mut selected_link, &link_metadata);
+                if classified.finalize() != selected_link.finalize() {
+                    return Err(invalid("selected target link changed before observation"));
+                }
+                topology.update(b"link\0");
+                text(&mut topology, &prefix);
+                observed(&mut topology, &link_metadata);
+                text(&mut topology, &target);
+                let mut replacement = String::with_capacity(12_288);
+                if Path::new(&target).is_absolute() {
+                    let Ok(relative) = Path::new(&target).strip_prefix(&self.root_path) else {
+                        return Ok(RouteResolvedTarget::OutsideSelectedRoot);
+                    };
+                    replacement.push_str(
+                        relative
+                            .to_str()
+                            .ok_or_else(|| invalid("selected target relative UTF-8"))?,
+                    );
+                } else {
+                    if let Some((parent, _)) = prefix.rsplit_once('/') {
+                        replacement.push_str(parent);
+                        replacement.push('/');
+                    }
+                    replacement.push_str(&target);
+                }
+                for tail in &parts[index + 1..] {
+                    replacement.push('/');
+                    replacement.push_str(tail);
+                }
+                let mut normalized = Vec::with_capacity(128);
+                for component in replacement.split('/') {
+                    match component {
+                        "" | "." => (),
+                        ".." => {
+                            if normalized.pop().is_none() {
+                                return Ok(RouteResolvedTarget::OutsideSelectedRoot);
+                            }
+                        }
+                        component => {
+                            if normalized.len() == 128 {
+                                return Err(invalid("selected target component bound"));
+                            }
+                            normalized.push(component);
+                        }
+                    }
+                }
+                let length = normalized
+                    .iter()
+                    .try_fold(0usize, |n, part| n.checked_add(part.len() + 1))
+                    .ok_or_else(|| invalid("selected target length overflow"))?;
+                if length > 4097 {
+                    return Err(invalid("selected target normalized bound"));
+                }
+                candidate = if normalized.is_empty() {
+                    ".".into()
+                } else {
+                    normalized.join("/")
+                };
+                replaced = true;
+                break;
+            }
+            if !replaced {
+                return Err(invalid("selected target resolution changed"));
+            }
+        }
+    }
+    /// Maintained foundation Git posture, before any schema child or stage
+    /// writer is started. This reuses the dedicated bounded process custody;
+    /// no writable stage/output descriptor may be inherited by the child.
+    /// It makes no claim of arbitrary same-UID ptrace protection for Git.
+    pub fn foundation_git_path_facts(
+        &mut self,
+        value: &str,
+        output_bytes: usize,
+        cleanup_grace: Duration,
+        cancelled: &AtomicI32,
+    ) -> io::Result<(Option<bool>, Option<bool>)> {
+        self.charge(value)?;
+        self.verify_root()?;
+        if output_bytes == 0 || output_bytes > 65_536 {
+            return Err(invalid("foundation Git output bound"));
+        }
+        #[cfg(target_os = "linux")]
+        {
+            // A regular writable descriptor without CLOEXEC could expose a
+            // candidate/output inode. Standard streams are replaced by the
+            // existing executor's bounded capture pipes before exec.
+            let mut count = 0usize;
+            for entry in fs::read_dir("/proc/self/fd")? {
+                count += 1;
+                if count > 1024 {
+                    return Err(invalid("foundation Git FD census bound"));
+                }
+                let entry = entry?;
+                let Some(fd) = entry
+                    .file_name()
+                    .to_str()
+                    .and_then(|s| s.parse::<i32>().ok())
+                else {
+                    return Err(invalid("foundation Git FD census shape"));
+                };
+                if fd <= 2 {
+                    continue;
+                }
+                let flags = unsafe { libc::fcntl(fd, libc::F_GETFD) };
+                if flags < 0 {
+                    continue;
+                } // census directory may just have closed
+                let access = unsafe { libc::fcntl(fd, libc::F_GETFL) };
+                if access < 0 {
+                    return Err(io::Error::last_os_error());
+                }
+                if flags & libc::FD_CLOEXEC == 0
+                    && access & libc::O_ACCMODE != libc::O_RDONLY
+                    && fs::metadata(entry.path())?.is_file()
+                {
+                    return Err(invalid("foundation Git inherited writable regular FD"));
+                }
+            }
+            let mut status = Vec::new();
+            File::open("/proc/self/status")?
+                .take(65_537)
+                .read_to_end(&mut status)?;
+            if status.len() > 65_536 {
+                return Err(invalid("foundation Git status bound"));
+            }
+            let status =
+                std::str::from_utf8(&status).map_err(|_| invalid("foundation Git status shape"))?;
+            for name in ["CapInh:", "CapPrm:", "CapEff:", "CapBnd:", "CapAmb:"] {
+                let raw = status
+                    .lines()
+                    .find_map(|line| line.strip_prefix(name))
+                    .ok_or_else(|| invalid("foundation Git capability field missing"))?
+                    .trim();
+                if u64::from_str_radix(raw, 16).ok() != Some(0) {
+                    return Err(invalid("foundation Git inherited writer capabilities"));
+                }
+            }
+        }
+        if !self.exists(".git")? {
+            return Ok((None, None));
+        }
+        let mut results = [None, None];
+        for (index, command) in ["ls-files", "check-ignore"].into_iter().enumerate() {
+            self.check()?;
+            let remaining = self.deadline.saturating_duration_since(Instant::now());
+            if remaining <= cleanup_grace {
+                return Err(invalid("foundation Git deadline"));
+            }
+            let wall = remaining - cleanup_grace;
+            // Use the same child-local trace suppression as the existing
+            // semantic-registry Git gate; parent environment is unchanged.
+            let mut argv = vec!["/usr/bin/env".into()];
+            let mut trace_name_bytes = 0usize;
+            for (key, _) in std::env::vars_os() {
+                if key.as_encoded_bytes().starts_with(b"GIT_TRACE") {
+                    trace_name_bytes = trace_name_bytes
+                        .checked_add(key.as_encoded_bytes().len())
+                        .filter(|n| *n <= 4096)
+                        .ok_or_else(|| invalid("foundation Git trace-name bound"))?;
+                    if argv.len() > 256 {
+                        return Err(invalid("foundation Git trace-count bound"));
+                    }
+                    argv.push("-u".into());
+                    argv.push(
+                        key.into_string()
+                            .map_err(|_| invalid("foundation Git trace-name shape"))?,
+                    );
+                }
+            }
+            argv.extend([
+                "--".into(),
+                "GIT_NO_LAZY_FETCH=1".into(),
+                "GIT_OPTIONAL_LOCKS=0".into(),
+                "/usr/bin/git".into(),
+                "--no-pager".into(),
+                "--no-optional-locks".into(),
+                "--no-replace-objects".into(),
+                "--literal-pathspecs".into(),
+                "-c".into(),
+                "core.fsmonitor=false".into(),
+                "-c".into(),
+                "core.untrackedCache=false".into(),
+                "-c".into(),
+                "core.hooksPath=/dev/null".into(),
+                "-c".into(),
+                "trace2.eventTarget=0".into(),
+                "-c".into(),
+                "trace2.perfTarget=0".into(),
+                "-c".into(),
+                "trace2.normalTarget=0".into(),
+                command.into(),
+                if index == 0 {
+                    "--error-unmatch"
+                } else {
+                    "--quiet"
+                }
+                .into(),
+                "--".into(),
+                value.into(),
+            ]);
+            let (code, _, _) = executor::capture_ci_git(
+                &self.root_path,
+                argv,
+                Limits {
+                    command_wall: wall,
+                    lane_wall: wall,
+                    cleanup_grace,
+                    output_bytes,
+                },
+                cancelled,
+            )?;
+            results[index] = match code {
+                0 => Some(true),
+                1 => Some(false),
+                _ => None,
+            };
+            self.verify_root()?;
+            self.check()?;
+        }
+        Ok((results[0], results[1]))
+    }
+    /// Uncached physical operand read. The callback receives only a fixed
+    /// chunk; the caller owns hash algorithms, cancellation and aggregate cost.
+    /// Absence, directories and symlinks are not regular payload observations.
+    pub fn stream_regular(
+        &mut self,
+        value: &str,
+        max_file_bytes: u64,
+        read_bytes: &mut u64,
+        max_total_bytes: u64,
+        mut consume: impl FnMut(&[u8]) -> io::Result<()>,
+    ) -> io::Result<Option<fs::Metadata>> {
+        self.verify_root()?;
+        let mut file = match self.open(value) {
+            Ok(Some(file)) => file,
+            Ok(None) => return Ok(None),
+            #[cfg(target_os = "linux")]
+            Err(error) if error.raw_os_error() == Some(libc::ELOOP) => return Ok(None),
+            Err(error) => return Err(error),
+        };
+        let before = file.metadata()?;
+        if !before.is_file() {
+            return Ok(None);
+        }
+        let remaining = max_total_bytes
+            .checked_sub(*read_bytes)
+            .ok_or_else(|| invalid("physical operand aggregate accounting exceeded"))?;
+        if before.len() > max_file_bytes.min(remaining) {
+            return Err(invalid("physical operand byte bound exceeded"));
+        }
+        let mut buffer = [0u8; 32 * 1024];
+        let mut observed = 0u64;
+        loop {
+            self.check()?;
+            let count = file.read(&mut buffer)?;
+            if count == 0 {
+                break;
+            }
+            observed = observed
+                .checked_add(count as u64)
+                .filter(|n| *n <= before.len())
+                .ok_or_else(|| invalid("physical operand grew during read"))?;
+            *read_bytes = read_bytes
+                .checked_add(count as u64)
+                .ok_or_else(|| invalid("physical operand accounting overflow"))?;
+            consume(&buffer[..count])?;
+        }
+        if observed != before.len() {
+            return Err(invalid("physical operand changed during read"));
+        }
+        #[cfg(target_os = "linux")]
+        {
+            use std::os::unix::fs::MetadataExt;
+            let stamp = |m: &fs::Metadata| {
+                (
+                    m.dev(),
+                    m.ino(),
+                    m.len(),
+                    m.mode(),
+                    m.mtime(),
+                    m.mtime_nsec(),
+                    m.ctime(),
+                    m.ctime_nsec(),
+                )
+            };
+            let current = self
+                .open(value)?
+                .ok_or_else(|| invalid("physical operand disappeared during read"))?;
+            if stamp(&before) != stamp(&file.metadata()?)
+                || stamp(&before) != stamp(&current.metadata()?)
+            {
+                return Err(invalid("physical operand replaced during read"));
+            }
+        }
+        self.verify_root()?;
+        self.check()?;
+        Ok(Some(before))
     }
     fn source(&mut self, value: &str) -> io::Result<Option<Arc<SourceFile>>> {
         self.charge(value)?;
@@ -306,6 +974,18 @@ impl RouteSources {
         read_bytes: &mut usize,
         max_total_bytes: usize,
     ) -> io::Result<Vec<u8>> {
+        self.bounded_metadata_bytes(value, max_file_bytes, read_bytes, max_total_bytes)
+            .map(|(raw, _)| raw)
+    }
+    /// Exact file metadata belongs to the same uncached descriptor read as the
+    /// returned bytes. Snapshot capture must not invent a portable source mode.
+    pub fn bounded_metadata_bytes(
+        &mut self,
+        value: &str,
+        max_file_bytes: usize,
+        read_bytes: &mut usize,
+        max_total_bytes: usize,
+    ) -> io::Result<(Vec<u8>, fs::Metadata)> {
         let remaining = max_total_bytes
             .checked_sub(*read_bytes)
             .ok_or_else(|| invalid("operand aggregate byte accounting exceeded"))?;
@@ -328,11 +1008,120 @@ impl RouteSources {
         if file.read(&mut [0; 1])? != 0 {
             return Err(invalid("operand input changed or exceeded byte bound"));
         }
+        #[cfg(target_os = "linux")]
+        {
+            use std::os::unix::fs::MetadataExt;
+            let stamp = |m: &fs::Metadata| {
+                (
+                    m.dev(),
+                    m.ino(),
+                    m.len(),
+                    m.mode(),
+                    m.mtime(),
+                    m.mtime_nsec(),
+                    m.ctime(),
+                    m.ctime_nsec(),
+                )
+            };
+            let current = self
+                .open(value)?
+                .ok_or_else(|| invalid("operand input disappeared during read"))?;
+            if stamp(&meta) != stamp(&file.metadata()?)
+                || stamp(&meta) != stamp(&current.metadata()?)
+            {
+                return Err(invalid("operand input changed or replaced during read"));
+            }
+        }
         *read_bytes = read_bytes
             .checked_add(raw.len())
             .ok_or_else(|| invalid("operand aggregate byte accounting overflow"))?;
         self.check()?;
-        Ok(raw)
+        Ok((raw, meta))
+    }
+    /// Re-select a participating publication control on every call. This
+    /// supplies physical custody only; the source-store epoch codec owns its
+    /// shape/token and the caller owns before/after selection. No cache hit is
+    /// permitted, including for a control first observed absent.
+    #[cfg(target_os = "linux")]
+    pub fn protected_control_bytes(&mut self, value: &str) -> io::Result<Option<Vec<u8>>> {
+        use std::os::unix::fs::MetadataExt;
+        fn stamp(m: &fs::Metadata) -> (u64, u64, u64, u32, i64, i64, i64, i64) {
+            (
+                m.dev(),
+                m.ino(),
+                m.len(),
+                m.mode(),
+                m.mtime(),
+                m.mtime_nsec(),
+                m.ctime(),
+                m.ctime_nsec(),
+            )
+        }
+        self.check()?;
+        let root = open_root(
+            &self.root_path,
+            self.deadline,
+            &self.operations,
+            &self.root_component_opens,
+        )?;
+        let retained = self.root_dir.metadata()?;
+        let current = root.metadata()?;
+        if (retained.dev(), retained.ino()) != (current.dev(), current.ino()) {
+            return Err(invalid("protected route root replaced"));
+        }
+        let uid = unsafe { libc::geteuid() };
+        let Some(mut file) = self.open_with_owner(value, Some(uid))? else {
+            self.verify_root()?;
+            return Ok(None);
+        };
+        let before = file.metadata()?;
+        if !before.is_file()
+            || before.mode() & 0o7000 != 0
+            || !matches!(before.mode() & 0o777, 0o600 | 0o644)
+            || before.len() > 8192
+        {
+            return Err(invalid(
+                "protected publication control type/mode/byte boundary",
+            ));
+        }
+        let size = before.len() as usize;
+        self.bytes_read = self
+            .bytes_read
+            .checked_add(size)
+            .filter(|n| *n <= MAX_INPUT)
+            .ok_or_else(|| invalid("protected control cumulative read bound"))?;
+        let mut raw = vec![0; size];
+        file.read_exact(&mut raw)?;
+        if file.read(&mut [0; 1])? != 0 || stamp(&before) != stamp(&file.metadata()?) {
+            return Err(invalid("protected publication control changed during read"));
+        }
+        let again = self
+            .open_with_owner(value, Some(uid))?
+            .ok_or_else(|| invalid("protected publication control disappeared"))?;
+        if stamp(&before) != stamp(&again.metadata()?) {
+            return Err(invalid(
+                "protected publication control replaced during read",
+            ));
+        }
+        let root = open_root(
+            &self.root_path,
+            self.deadline,
+            &self.operations,
+            &self.root_component_opens,
+        )?
+        .metadata()?;
+        if (retained.dev(), retained.ino()) != (root.dev(), root.ino()) {
+            return Err(invalid("protected route root replaced during read"));
+        }
+        self.check()?;
+        Ok(Some(raw))
+    }
+    #[cfg(not(target_os = "linux"))]
+    pub fn protected_control_bytes(&mut self, _: &str) -> io::Result<Option<Vec<u8>>> {
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "protected control requires Linux descriptor custody",
+        ))
     }
     pub fn inventory(&mut self) -> io::Result<Value> {
         let source = self
@@ -347,6 +1136,8 @@ impl RouteSources {
         rel: &str,
         paths: &mut BTreeSet<String>,
         all_descendants: bool,
+        selected: &dyn Fn(&str, bool) -> bool,
+        include_links: bool,
     ) -> io::Result<()> {
         let Some(dir) = self.open(rel)? else {
             return Ok(());
@@ -374,15 +1165,18 @@ impl RouteSources {
             }
             let entry = entry?;
             let kind = entry.file_type()?;
-            if kind.is_symlink() {
-                return Err(invalid("route discovery refuses symlinks"));
-            }
             let name = entry
                 .file_name()
                 .into_string()
                 .map_err(|_| invalid("non-UTF-8 route path"))?;
             let name = format!("{rel}/{name}");
             validate_relative(&name)?;
+            if !selected(&name, kind.is_dir()) {
+                continue;
+            }
+            if kind.is_symlink() && !include_links {
+                return Err(invalid("route discovery refuses symlinks"));
+            }
             children.push((name, kind.is_dir(), kind.is_file()));
         }
         children.sort_by(|a, b| a.0.cmp(&b.0));
@@ -391,7 +1185,7 @@ impl RouteSources {
                 paths.insert(name.clone());
             }
             if directory {
-                self.walk(&name, paths, all_descendants)?;
+                self.walk(&name, paths, all_descendants, selected, include_links)?;
             } else if !all_descendants
                 && file
                 && Path::new(&name)
@@ -408,7 +1202,40 @@ impl RouteSources {
     /// route-card discovery; the supplied directory itself is excluded.
     pub fn paths(&mut self, relative: &str) -> io::Result<Vec<String>> {
         let mut paths = BTreeSet::new();
-        self.walk(relative, &mut paths, true)?;
+        self.walk(relative, &mut paths, true, &|_, _| true, false)?;
+        Ok(paths.into_iter().collect())
+    }
+    /// Caller-owned eligibility prunes directories before traversal and files
+    /// before opening. It conveys no source membership or read authority.
+    pub fn selected_paths(
+        &mut self,
+        relative: &str,
+        selected: &dyn Fn(&str, bool) -> bool,
+    ) -> io::Result<Vec<String>> {
+        if !selected(relative, true) {
+            return Err(invalid("selected discovery root is outside caller scope"));
+        }
+        let mut paths = BTreeSet::new();
+        self.walk(relative, &mut paths, true, selected, false)?;
+        Ok(paths.into_iter().collect())
+    }
+    /// Explicit physical inventory. Symlink names are included without
+    /// following their targets or recursing into symlink directories; callers
+    /// classify each selected inode through `metadata` and optionally resolve
+    /// it under their separately selected directory. Existing authored/card
+    /// discovery continues to reject symlinks.
+    pub fn selected_physical_paths(
+        &mut self,
+        relative: &str,
+        selected: &dyn Fn(&str, bool) -> bool,
+    ) -> io::Result<Vec<String>> {
+        if !selected(relative, true) {
+            return Err(invalid("physical discovery root is outside caller scope"));
+        }
+        self.verify_root()?;
+        let mut paths = BTreeSet::new();
+        self.walk(relative, &mut paths, true, selected, true)?;
+        self.verify_root()?;
         Ok(paths.into_iter().collect())
     }
     pub fn discover(&mut self, inventory: &Value) -> io::Result<Vec<String>> {
@@ -420,7 +1247,7 @@ impl RouteSources {
             }
         }
         for root in strings(&discovery["route_roots"])? {
-            self.walk(&root, &mut cards, false)?;
+            self.walk(&root, &mut cards, false, &|_, _| true, false)?;
         }
         Ok(cards.into_iter().collect())
     }
@@ -1604,13 +2431,50 @@ pub fn read_output(path: &Path) -> io::Result<Option<String>> {
     let text = String::from_utf8(raw).map_err(io::Error::other)?;
     Ok(Some(text.replace("\r\n", "\n").replace('\r', "\n")))
 }
+fn charge_operations(operations: &AtomicUsize, count: usize) -> io::Result<()> {
+    operations
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |used| {
+            used.checked_add(count)
+                .filter(|total| *total <= MAX_OPERATIONS)
+        })
+        .map(|_| ())
+        .map_err(|_| invalid("route lookup operation bound exceeded"))
+}
 #[cfg(target_os = "linux")]
-fn open_root(root: &Path) -> io::Result<File> {
+fn open_root(
+    root: &Path,
+    deadline: Instant,
+    operations: &AtomicUsize,
+    component_opens: &Cell<usize>,
+) -> io::Result<File> {
     use std::os::fd::{AsRawFd, FromRawFd};
     use std::os::unix::ffi::OsStrExt;
+    if Instant::now() >= deadline {
+        return Err(invalid("route operation deadline exceeded"));
+    }
+    // The absolute anchor is an actual open too: exhaust/deadline refusal
+    // precedes it rather than allowing an uncharged extra descriptor.
+    charge_operations(operations, 1)?;
+    component_opens.set(
+        component_opens
+            .get()
+            .checked_add(1)
+            .filter(|n| *n <= MAX_OPERATIONS)
+            .ok_or_else(|| invalid("route root component operation bound exceeded"))?,
+    );
     let mut dir = File::open("/")?;
     for part in root.components() {
         if let Component::Normal(part) = part {
+            if Instant::now() >= deadline {
+                return Err(invalid("route operation deadline exceeded"));
+            }
+            charge_operations(operations, 1)?;
+            let count = component_opens
+                .get()
+                .checked_add(1)
+                .filter(|n| *n <= MAX_OPERATIONS)
+                .ok_or_else(|| invalid("route root component operation bound exceeded"))?;
+            component_opens.set(count);
             let name =
                 std::ffi::CString::new(part.as_bytes()).map_err(|_| invalid("NUL root path"))?;
             let fd = unsafe {
@@ -1629,7 +2493,12 @@ fn open_root(root: &Path) -> io::Result<File> {
     Ok(dir)
 }
 #[cfg(not(target_os = "linux"))]
-fn open_root(_root: &Path) -> io::Result<File> {
+fn open_root(
+    _root: &Path,
+    _deadline: Instant,
+    _operations: &AtomicUsize,
+    _component_opens: &Cell<usize>,
+) -> io::Result<File> {
     Err(io::Error::new(
         io::ErrorKind::Unsupported,
         "route source requires Linux descriptor custody",
@@ -1798,4 +2667,158 @@ fn json_preflight(text: &str) -> io::Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod foundation_custody_cases {
+    use super::*;
+    use std::os::unix::fs::symlink;
+
+    #[test]
+    fn related_roots_exhaust_one_allowance_before_another_anchor_open() {
+        let deadline = Instant::now() + Duration::from_secs(1);
+        let primary = RouteSources::new_until(Path::new("/"), deadline).expect("primary root");
+        let related = RouteSources::new_until_related(Path::new("/"), deadline, &primary)
+            .expect("separately held related root");
+        assert!(Arc::ptr_eq(&primary.operations, &related.operations));
+        assert_eq!(primary.operation_count(), 2);
+        assert_eq!(related.operation_count(), 2);
+        let custody = primary.root_custody();
+        let related_opens = related.root_component_open_count();
+        let operations_before = primary.operation_count();
+        assert!(related.verify_custody(&custody).is_err());
+        assert_eq!(related.root_component_open_count(), related_opens);
+        assert_eq!(primary.operation_count(), operations_before);
+        primary
+            .verify_custody(&custody)
+            .expect("original held root");
+        primary
+            .operations
+            .store(MAX_OPERATIONS - 1, Ordering::Relaxed);
+        primary.verify_root().expect("last admitted anchor");
+        let before = related.root_component_open_count();
+        assert!(related.verify_root().is_err());
+        assert_eq!(related.root_component_open_count(), before);
+        assert_eq!(primary.operation_count(), MAX_OPERATIONS);
+        assert_eq!(related.operation_count(), MAX_OPERATIONS);
+        assert!(RouteSources::new_until_related(Path::new("/"), deadline, &primary).is_err());
+        assert_eq!(primary.operation_count(), MAX_OPERATIONS);
+    }
+
+    #[test]
+    fn related_root_cannot_extend_clock_or_receive_a_reset_budget() {
+        let deadline = Instant::now() + Duration::from_secs(1);
+        let primary = RouteSources::new_until(Path::new("/"), deadline).expect("primary root");
+        let before = primary.operation_count();
+        assert!(
+            RouteSources::new_until_related(
+                Path::new("/"),
+                deadline + Duration::from_secs(1),
+                &primary,
+            )
+            .is_err()
+        );
+        assert_eq!(primary.operation_count(), before);
+    }
+
+    #[test]
+    fn exhausted_root_budget_refuses_before_anchor_or_component_open() {
+        let operations = AtomicUsize::new(MAX_OPERATIONS);
+        let opens = Cell::new(0);
+        let error = open_root(
+            Path::new("/tos-route-custody-absent-probe"),
+            Instant::now() + Duration::from_secs(1),
+            &operations,
+            &opens,
+        )
+        .err()
+        .expect("exhausted root walk must refuse");
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert_eq!(operations.load(Ordering::Relaxed), MAX_OPERATIONS);
+        assert_eq!(opens.get(), 0);
+        let operations = AtomicUsize::new(MAX_OPERATIONS - 1);
+        let opens = Cell::new(0);
+        let error = open_root(
+            Path::new("/tos-route-custody-absent-probe"),
+            Instant::now() + Duration::from_secs(1),
+            &operations,
+            &opens,
+        )
+        .err()
+        .expect("component exhaustion must precede absent target open");
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert_eq!(operations.load(Ordering::Relaxed), MAX_OPERATIONS);
+        assert_eq!(opens.get(), 1); // only the admitted absolute anchor
+    }
+
+    #[test]
+    fn expired_root_deadline_refuses_before_anchor_open() {
+        let operations = AtomicUsize::new(0);
+        let opens = Cell::new(0);
+        let error = open_root(
+            Path::new("/tos-route-custody-absent-probe"),
+            Instant::now(),
+            &operations,
+            &opens,
+        )
+        .err()
+        .expect("expired root walk must refuse");
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+        assert_eq!(operations.load(Ordering::Relaxed), 0);
+        assert_eq!(opens.get(), 0);
+    }
+
+    #[test]
+    fn replacement_symlink_changes_topology_even_with_same_endpoint() {
+        struct Root(PathBuf);
+        impl Drop for Root {
+            fn drop(&mut self) {
+                let _ = fs::remove_dir_all(&self.0);
+            }
+        }
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = Root(
+            std::env::temp_dir().join(format!("tos-route-custody-{}-{nonce}", std::process::id())),
+        );
+        fs::create_dir(&root.0).expect("exclusive test root");
+        fs::write(root.0.join("target"), b"bounded fixture").expect("target");
+        symlink("target", root.0.join("selected")).expect("selected link");
+        let absolute = fs::canonicalize(&root.0).expect("absolute test root");
+        let mut sources = RouteSources::new(&absolute).expect("held test root");
+        let before = match sources
+            .resolve_selected_target("selected", None)
+            .expect("resolve")
+        {
+            RouteResolvedTarget::Inside {
+                relative_path,
+                topology_stamp,
+                metadata: Some(m),
+            } => {
+                assert_eq!(relative_path, "target");
+                assert!(m.is_file());
+                topology_stamp
+            }
+            _ => panic!("selected test link must resolve inside"),
+        };
+        fs::remove_file(root.0.join("selected")).expect("replace selected link");
+        symlink("./target", root.0.join("selected")).expect("replacement link");
+        match sources
+            .resolve_selected_target("selected", None)
+            .expect("resolve replacement")
+        {
+            RouteResolvedTarget::Inside {
+                relative_path,
+                topology_stamp,
+                metadata: Some(m),
+            } => {
+                assert_eq!(relative_path, "target");
+                assert!(m.is_file());
+                assert_ne!(before, topology_stamp);
+            }
+            _ => panic!("replacement test link must resolve inside"),
+        }
+    }
 }

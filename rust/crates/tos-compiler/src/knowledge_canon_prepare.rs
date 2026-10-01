@@ -242,7 +242,7 @@ pub(crate) fn prepare_family(
         &["relation_packs", "relation_edges"]
     };
     let registered = stage
-        .exact_receipt()
+        .exact_receipt()?
         .collections
         .iter()
         .filter(|c| c.source_graph == graph)
@@ -264,7 +264,7 @@ pub(crate) fn prepare_family(
         source_graph: graph.clone(),
         input_role: selected.input_role.clone(),
         adapter_profile: profile.into(),
-        source_cut: stage.exact_receipt().binding.source_cut.clone(),
+        source_cut: stage.exact_receipt()?.binding.source_cut.clone(),
         nodes: 0,
         packs: 0,
         relation_edges: 0,

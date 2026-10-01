@@ -180,34 +180,42 @@ impl CommandContext {
                         })?
                         .raw
                 } else {
-                    let member =
-                        components
-                            .member(&input.path)
-                            .ok_or(SourceCommandError::Unsupported(
-                                "software command input absent from selected component subset",
-                            ))?;
-                    if member.sha256 != digest || member.size_bytes != input.raw.len() as u64 {
-                        return Err(SourceCommandError::Conflict(
-                            "software command input binding differs",
-                        ));
-                    }
-                    software
-                        .read_selected_component(
-                            components,
-                            &input.path,
-                            8_388_608,
-                            deadline,
-                            cancelled,
-                        )
-                        .map_err(|_| {
-                            SourceCommandError::Unsupported(
-                                "software command input custody read incomplete",
-                            )
-                        })?
+                    selected_software_input(software, components, input, deadline, cancelled)?
                 };
             if raw != input.raw {
                 return Err(SourceCommandError::Conflict(
                     "selected command input bytes differ",
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    /// Only the bounded software/profile selection is checked here. The
+    /// streamed cold owner must separately verify EVERY authored member and
+    /// EOF; this helper carries no authored completeness or read authority.
+    pub(crate) fn check_selected_software_inputs(
+        &self,
+        software: &SoftwareCaptureReader,
+        components: &SoftwareComponentSelectionV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        self.check()?;
+        if components.capture() != software.selection() {
+            return Err(SourceCommandError::Conflict(
+                "selected software capture differs",
+            ));
+        }
+        for input in self
+            .files
+            .iter()
+            .filter(|input| !input.path.as_str().starts_with("ToS/"))
+        {
+            let raw = selected_software_input(software, components, input, deadline, cancelled)?;
+            if raw != input.raw {
+                return Err(SourceCommandError::Conflict(
+                    "selected software input bytes differ",
                 ));
             }
         }
@@ -333,6 +341,32 @@ pub(crate) fn parse(raw: &[u8]) -> SourceCommandResult<JsonValue> {
     .map(|doc| doc.into_root())
     .map_err(|_| SourceCommandError::Invalid("strict JSON input"))
 }
+
+fn selected_software_input(
+    software: &SoftwareCaptureReader,
+    components: &SoftwareComponentSelectionV1,
+    input: &SourceFile,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<u8>> {
+    let digest = Digest256::of_bytes(&input.raw);
+    let member = components
+        .member(&input.path)
+        .ok_or(SourceCommandError::Unsupported(
+            "software command input absent from selected component subset",
+        ))?;
+    if member.sha256 != digest || member.size_bytes != input.raw.len() as u64 {
+        return Err(SourceCommandError::Conflict(
+            "software command input binding differs",
+        ));
+    }
+    software
+        .read_selected_component(components, &input.path, 8_388_608, deadline, cancelled)
+        .map_err(|_| {
+            SourceCommandError::Unsupported("software command input custody read incomplete")
+        })
+}
+
 pub(crate) fn canonical(value: &JsonValue) -> SourceCommandResult<Vec<u8>> {
     canonical_bytes_v1(
         value,

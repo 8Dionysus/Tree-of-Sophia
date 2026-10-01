@@ -240,7 +240,7 @@ fn prepare_inner(
         .iter()
         .find(|s| s.source_graph_id == source)
         .unwrap();
-    let cut = stage.exact_receipt().binding.source_cut.clone();
+    let cut = stage.exact_receipt()?.binding.source_cut.clone();
     if root.source_cut != cut
         || Digest256::of_bytes(root.material).to_hex() != root.material_sha256
         || root.identity_id.is_empty()
@@ -252,7 +252,7 @@ fn prepare_inner(
         return Err(Error::Invalid("repository selected root/order binding"));
     }
     let entries = stage
-        .exact_receipt()
+        .exact_receipt()?
         .collections
         .iter()
         .filter(|e| e.source_graph == source)
@@ -577,7 +577,7 @@ fn verify(
     limits: TopologyLimits,
 ) -> Result<()> {
     limits.validate()?;
-    if stage.exact_receipt().binding.source_cut != receipt.source_cut {
+    if stage.exact_receipt()?.binding.source_cut != receipt.source_cut {
         return Err(Error::Invalid("repository source cut"));
     }
     let (nodes, relations, root) = prepared_root(stage, receipt, limits)?;

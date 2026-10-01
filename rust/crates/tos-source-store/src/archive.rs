@@ -9,7 +9,7 @@ use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsE
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
-use tos_foundation::Digest256Hasher;
+use tos_foundation::{Digest256Hasher, JsonValue};
 
 #[derive(Clone, Copy, Debug)]
 pub struct CaptureRestoreLimits {
@@ -17,6 +17,26 @@ pub struct CaptureRestoreLimits {
     pub max_archive_bytes: u64,
     pub max_decoded_bytes: u64,
     pub max_source_bytes: u64,
+}
+
+/// Actual successfully consumed bytes in the SAME capture traversal.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct CaptureReadUsage {
+    pub metadata_bytes: u64,
+    pub archive_read_bytes: u64,
+    pub decoded_bytes: u64,
+}
+impl CaptureReadUsage {
+    pub fn total_read_bytes(self) -> Result<u64> {
+        self.metadata_bytes
+            .checked_add(self.archive_read_bytes)
+            .and_then(|n| n.checked_add(self.decoded_bytes))
+            .ok_or_else(|| StoreError::new(Code::BudgetExceeded, "capture read count overflow"))
+    }
+}
+pub struct CaptureVerification {
+    pub manifest: JsonValue,
+    pub usage: CaptureReadUsage,
 }
 
 fn fail(detail: &'static str) -> StoreError {
@@ -38,6 +58,7 @@ fn check(deadline: Instant, cancelled: &AtomicBool) -> io::Result<()> {
 struct Limited<'a, R> {
     inner: R,
     remaining: u64,
+    consumed: u64,
     deadline: Instant,
     cancelled: &'a AtomicBool,
 }
@@ -55,6 +76,10 @@ impl<R: Read> Read for Limited<'_, R> {
             return Err(io::Error::other("capture byte budget exceeded"));
         }
         self.remaining -= n as u64;
+        self.consumed = self
+            .consumed
+            .checked_add(n as u64)
+            .ok_or_else(|| io::Error::other("capture read count overflow"))?;
         Ok(n)
     }
 }
@@ -65,7 +90,12 @@ fn directory(parent: &File, name: &str) -> Result<File> {
     tos_fd_open::open_directory_at(parent, Path::new(name))
         .map_err(|_| fail("unsafe restore directory"))
 }
-fn new_file(root: &File, path: &str, deadline: Instant, cancelled: &AtomicBool) -> Result<File> {
+pub(crate) fn new_file(
+    root: &File,
+    path: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<File> {
     let mut dir = root.try_clone().map_err(io_error)?;
     let mut parts = path.split('/').peekable();
     while let Some(part) = parts.next() {
@@ -94,6 +124,28 @@ fn new_file(root: &File, path: &str, deadline: Instant, cancelled: &AtomicBool) 
     Err(fail("empty restore member path"))
 }
 
+pub(crate) fn fresh_destination(destination: &Path) -> Result<File> {
+    let parent_path = destination
+        .parent()
+        .ok_or_else(|| fail("restore parent absent"))?;
+    let name = destination
+        .file_name()
+        .and_then(|v| v.to_str())
+        .ok_or_else(|| fail("invalid restore name"))?;
+    if matches!(name, "." | ".." | "") {
+        return Err(fail("invalid restore name"));
+    }
+    let parent = tos_fd_open::open_absolute_directory(parent_path)
+        .map_err(|_| fail("unsafe restore parent"))?;
+    fs::DirBuilder::new()
+        .mode(0o700)
+        .create(fd_path(&parent, name))
+        .map_err(io_error)?;
+    parent.sync_all().map_err(io_error)?;
+    let output = directory(&parent, name)?;
+    Ok(output)
+}
+
 /// Restore into a new private directory. On failure it may contain partial bytes,
 /// and must not be consumed. Caller owns cleanup and physical reservation.
 /// Input capture and destination parent must remain exclusively owner-controlled.
@@ -106,6 +158,48 @@ pub fn restore_capture(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<()> {
+    walk_capture(
+        capture_root,
+        Some(destination),
+        selection,
+        limits,
+        deadline,
+        cancelled,
+    )
+    .map(|_| ())
+}
+
+/// Verify the selected capture without creating files or granting source admission.
+pub fn verify_capture(
+    capture_root: &Path,
+    selection: &SoftwareCaptureSelectionV1,
+    limits: CaptureRestoreLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<JsonValue> {
+    verify_capture_with_usage(capture_root, selection, limits, deadline, cancelled)
+        .map(|verified| verified.manifest)
+}
+/// Verify without extraction and report actual consumed read costs. Caps remain
+/// enforced per chunk; usage is not a resource grant and never resets a ledger.
+pub fn verify_capture_with_usage(
+    capture_root: &Path,
+    selection: &SoftwareCaptureSelectionV1,
+    limits: CaptureRestoreLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<CaptureVerification> {
+    walk_capture(capture_root, None, selection, limits, deadline, cancelled)
+}
+
+fn walk_capture(
+    capture_root: &Path,
+    destination: Option<&Path>,
+    selection: &SoftwareCaptureSelectionV1,
+    limits: CaptureRestoreLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<CaptureVerification> {
     let metadata = limits.metadata.validate()?;
     for n in [
         limits.max_archive_bytes,
@@ -142,9 +236,11 @@ pub fn restore_capture(
             "capture totals exceed limits",
         ));
     }
-    if index.members.keys().any(|p| {
-        p.as_str() == "restore-receipt.json" || p.as_str().starts_with("restore-receipt.json/")
-    }) {
+    if destination.is_some()
+        && index.members.keys().any(|p| {
+            p.as_str() == "restore-receipt.json" || p.as_str().starts_with("restore-receipt.json/")
+        })
+    {
         return Err(fail("capture conflicts with restore receipt"));
     }
     let mut archive_file = tos_fd_open::open_regular_at(&capture, Path::new("source.tar.gz"))
@@ -158,6 +254,7 @@ pub fn restore_capture(
     let mut input = Limited {
         inner: &mut archive_file,
         remaining: limits.max_archive_bytes,
+        consumed: 0,
         deadline,
         cancelled,
     };
@@ -171,28 +268,19 @@ pub fn restore_capture(
     if hash.finalize() != index.archive_sha256 {
         return Err(fail("archive digest differs"));
     }
+    let hash_pass_bytes = input.consumed;
+    drop(input);
     archive_file.seek(SeekFrom::Start(0)).map_err(io_error)?;
-    let parent_path = destination
-        .parent()
-        .ok_or_else(|| fail("restore parent absent"))?;
-    let name = destination
-        .file_name()
-        .and_then(|v| v.to_str())
-        .ok_or_else(|| fail("invalid restore name"))?;
-    if matches!(name, "." | ".." | "") {
-        return Err(fail("invalid restore name"));
-    }
-    let parent = tos_fd_open::open_absolute_directory(parent_path)
-        .map_err(|_| fail("unsafe restore parent"))?;
-    fs::DirBuilder::new()
-        .mode(0o700)
-        .create(fd_path(&parent, name))
-        .map_err(io_error)?;
-    parent.sync_all().map_err(io_error)?;
-    let output = directory(&parent, name)?;
+    let output = if let Some(destination) = destination {
+        let output = fresh_destination(destination)?;
+        Some(output)
+    } else {
+        None
+    };
     let compressed = Limited {
         inner: &mut archive_file,
         remaining: limits.max_archive_bytes,
+        consumed: 0,
         deadline,
         cancelled,
     };
@@ -200,6 +288,7 @@ pub fn restore_capture(
     let decoded = Limited {
         inner: gzip,
         remaining: limits.max_decoded_bytes,
+        consumed: 0,
         deadline,
         cancelled,
     };
@@ -218,7 +307,10 @@ pub fn restore_capture(
         {
             return Err(fail("archive member metadata differs"));
         }
-        let mut target = new_file(&output, path.as_str(), deadline, cancelled)?;
+        let mut target = output
+            .as_ref()
+            .map(|output| new_file(output, path.as_str(), deadline, cancelled))
+            .transpose()?;
         let mut sha256 = Digest256Hasher::new();
         let mut sha1 = Sha1::new();
         sha1.update(format!("blob {}\0", member.size_bytes).as_bytes());
@@ -237,7 +329,9 @@ pub fn restore_capture(
             }
             sha256.update(&buffer[..n]);
             sha1.update(&buffer[..n]);
-            target.write_all(&buffer[..n]).map_err(io_error)?;
+            if let Some(target) = &mut target {
+                target.write_all(&buffer[..n]).map_err(io_error)?;
+            }
         }
         if count != member.size_bytes
             || sha256.finalize() != member.sha256
@@ -245,10 +339,12 @@ pub fn restore_capture(
         {
             return Err(fail("member bytes differ"));
         }
-        target
-            .set_permissions(fs::Permissions::from_mode(member.mode))
-            .map_err(io_error)?;
-        target.sync_all().map_err(io_error)?;
+        if let Some(target) = &mut target {
+            target
+                .set_permissions(fs::Permissions::from_mode(member.mode))
+                .map_err(io_error)?;
+            target.sync_all().map_err(io_error)?;
+        }
     }
     if expected.next().is_some() {
         return Err(fail("missing archive member"));
@@ -263,6 +359,14 @@ pub fn restore_capture(
             return Err(fail("nonzero trailing tar bytes"));
         }
     }
+    let usage = CaptureReadUsage {
+        metadata_bytes: index.metadata_read_bytes,
+        archive_read_bytes: hash_pass_bytes
+            .checked_add(decoded.inner.get_ref().consumed)
+            .ok_or_else(|| fail("archive read count overflow"))?,
+        decoded_bytes: decoded.consumed,
+    };
+    usage.total_read_bytes()?;
     drop(decoded);
     let final_meta = archive_file.metadata().map_err(io_error)?;
     if (
@@ -285,6 +389,12 @@ pub fn restore_capture(
         return Err(fail("capture archive changed during restore"));
     }
     check(deadline, cancelled).map_err(io_error)?;
+    let Some(output) = output else {
+        return Ok(CaptureVerification {
+            manifest: index.manifest,
+            usage,
+        });
+    };
     let receipt = format!(
         "{{\"manifest_sha256\":\"{}\",\"member_count\":{},\"schema_version\":\"tos_corpus_restore_receipt_v1\",\"source_bytes\":{},\"source_git_commit\":\"{}\"}}\n",
         selection.capture_manifest_sha256.to_hex(),
@@ -305,7 +415,10 @@ pub fn restore_capture(
         drop(file);
         let _ = fs::remove_file(fd_path(&output, "restore-receipt.json"));
     }
-    result
+    result.map(|()| CaptureVerification {
+        manifest: index.manifest,
+        usage,
+    })
 }
 
 #[cfg(test)]

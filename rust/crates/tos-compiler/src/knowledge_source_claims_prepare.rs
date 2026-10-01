@@ -546,7 +546,7 @@ fn prepare_inner(
     limits: ClaimPrepareLimits,
 ) -> Result<ClaimPrepareReceipt> {
     limits.validate()?;
-    let selected = select(vocabulary, stage.exact_receipt(), limits)?;
+    let selected = select(vocabulary, stage.exact_receipt()?, limits)?;
     create_tables(stage)?;
     let mut work = 0u64;
     let nodes = walk_nodes(stage, &selected, limits, &mut work)?;

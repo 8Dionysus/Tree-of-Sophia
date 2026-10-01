@@ -497,7 +497,7 @@ fn prepare_inner(
     limits: NavigationPrepareLimits,
 ) -> Result<NavigationPrepareReceipt> {
     limits.validate()?;
-    let selected = select(vocabulary, stage.exact_receipt(), limits)?;
+    let selected = select(vocabulary, stage.exact_receipt()?, limits)?;
     let rights = exact_header(header, &selected, limits)?;
     create_tables(stage)?;
     let mut work = header.raw_json.len() as u64;
@@ -568,7 +568,7 @@ fn clear_inner(
     limits: NavigationPrepareLimits,
 ) -> Result<()> {
     limits.validate()?;
-    let selected = select(vocabulary, stage.exact_receipt(), limits)?;
+    let selected = select(vocabulary, stage.exact_receipt()?, limits)?;
     let rights = exact_header(header, &selected, limits)?;
     if prepared.source_graph != selected.source
         || prepared.input_role != selected.role

@@ -7,6 +7,8 @@ license = "Apache-2.0"
 publish = false
 
 [features]
+# Selects the pinned IndexMap allocation envelope for cold raw normalization.
+preserve-order-workspace = ["serde_json/preserve_order"]
 test-fixture = []
 
 [dependencies]

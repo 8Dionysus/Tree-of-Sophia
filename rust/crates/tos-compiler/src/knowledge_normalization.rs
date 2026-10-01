@@ -130,10 +130,119 @@ fn pointer_escape(key: &str) -> String {
     key.replace('~', "~0").replace('/', "~1")
 }
 
+// Pinned serde_json1.0.151: arrays grow geometrically. Under preserve_order,
+// IndexMap2.14.2 uses a Bucket(hash,key,value) vector plus hashbrown0.17.1
+// indices/control bytes; without it, BTreeMap tree nodes are covered by the
+// same conservative envelope. Factors include old/new allocation overlap.
+// This is a logical admitted peak bound, not an allocator/RSS measurement.
+fn serde_input_workspace_upper(
+    root: &tos_foundation::JsonValue,
+    raw_bytes: usize,
+) -> Result<usize> {
+    fn add(total: &mut usize, n: usize) -> Result<()> {
+        *total = total
+            .checked_add(n)
+            .ok_or(Error::Budget("raw input serde workspace"))?;
+        Ok(())
+    }
+    fn slots(n: usize, width: usize) -> Result<usize> {
+        n.checked_mul(width)
+            .ok_or(Error::Budget("raw input serde workspace"))
+    }
+    fn text(total: &mut usize, units: usize) -> Result<()> {
+        // <=3 UTF8 bytes per UTF16 unit; geometric string growth and reallocation.
+        add(total, slots(units, 12)?)?;
+        add(total, 64)
+    }
+    fn walk(v: &tos_foundation::JsonValue, depth: usize, total: &mut usize) -> Result<()> {
+        use tos_foundation::JsonValue;
+        if depth > MAX_JSON_DEPTH {
+            return Err(Error::Budget("raw input serde depth"));
+        }
+        add(total, std::mem::size_of::<Value>())?;
+        match v {
+            JsonValue::String(s) => text(total, s.units().len())?,
+            JsonValue::Number(n) => {
+                add(total, slots(n.lexeme.len(), 4)?)?;
+                add(total, 128)?;
+            }
+            JsonValue::Array(a) => {
+                add(
+                    total,
+                    slots(a.len().max(4), 4 * std::mem::size_of::<Value>())?,
+                )?;
+                for child in a {
+                    walk(child, depth + 1, total)?;
+                }
+            }
+            JsonValue::Object(o) => {
+                add(total, std::mem::size_of::<Map<String, Value>>())?;
+                let entry =
+                    std::mem::size_of::<(String, Value)>() + 2 * std::mem::size_of::<usize>() + 1;
+                // The closed feature forwards serde_json/preserve_order. On this
+                // pinned target serde_json1.0.151 inserts sequentially into
+                // IndexMap2.14.2. inner.rs::reserve_entries reserves EXACTLY
+                // hash capacity; hashbrown0.17.1 raw.rs grows power-of-two
+                // buckets at 7/8 load. Old+new entries/indices allocations
+                // are each <4*max(len,4) slots, including small tables.
+                // 8*(pair+hash+index+control) covers both plus x86_64
+                // 16-byte SIMD/control padding. Keep the original bound for
+                // BTreeMap and targets outside this source-proven envelope.
+                let object_factor = if cfg!(all(
+                    feature = "preserve-order-workspace",
+                    target_pointer_width = "64",
+                    target_arch = "x86_64"
+                )) {
+                    8
+                } else {
+                    16
+                };
+                add(total, slots(o.len().max(4), object_factor * entry)?)?;
+                for (key, child) in o {
+                    text(total, key.units().len())?;
+                    walk(child, depth + 1, total)?;
+                }
+            }
+            _ => (),
+        }
+        Ok(())
+    }
+    // Deserializer escaped-string/numeric scratch plus bounded recursive frames.
+    let mut total = slots(raw_bytes, 8)?;
+    add(
+        &mut total,
+        slots(
+            MAX_JSON_DEPTH + 1,
+            std::mem::size_of::<Value>() + std::mem::size_of::<tos_foundation::JsonValue>() + 512,
+        )?,
+    )?;
+    walk(root, 0, &mut total)?;
+    Ok(total)
+}
+
 impl SourceRow {
     pub fn parse(raw: &[u8], max_bytes: usize) -> Result<Self> {
         if max_bytes == 0 || max_bytes > MAX_SOURCE_ROW_BYTES || raw.len() > max_bytes {
             return Err(Error::Budget("normalization source row bytes"));
+        }
+        Self::parse_inner(raw, max_bytes, false)
+    }
+    /// Computational raw input only; does not widen normalized row semantics.
+    pub(crate) fn parse_raw_input(raw: &[u8], max_bytes: usize) -> Result<Self> {
+        if max_bytes == 0 || max_bytes > 64 * 1024 * 1024 || raw.len() > max_bytes {
+            return Err(Error::Budget("raw input source bytes"));
+        }
+        Self::parse_inner(raw, max_bytes, true)
+    }
+    /// Same strict grammar under a caller-owned temporary workspace ceiling.
+    /// The metered FND tree is dropped before the unchanged serde decode.
+    pub(crate) fn parse_raw_input_with_state_budget(
+        raw: &[u8],
+        max_bytes: usize,
+        available: usize,
+    ) -> Result<(Self, usize)> {
+        if max_bytes == 0 || max_bytes > 64 * 1024 * 1024 || raw.len() > max_bytes {
+            return Err(Error::Budget("raw input source bytes"));
         }
         let limits = JsonLimits::new(
             max_bytes,
@@ -142,8 +251,47 @@ impl SourceRow {
             MAX_INTEGER_DIGITS,
         )
         .map_err(|_| Error::Budget("normalization JSON limits"))?;
-        parse_json(raw, JsonMode::PublishedStrict, limits)
-            .map_err(|error| Error::Source(error.to_string()))?;
+        let document = tos_foundation::parse_json_with_state_budget(
+            raw,
+            JsonMode::PublishedStrict,
+            limits,
+            available,
+        )
+        .map_err(|error| {
+            if error.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
+                Error::Budget("raw input JSON workspace")
+            } else {
+                Error::Source(error.to_string())
+            }
+        })?;
+        let upper = serde_input_workspace_upper(document.root(), raw.len())?;
+        if upper > available {
+            return Err(Error::Budget("raw input serde workspace"));
+        }
+        drop(document);
+        let value: Value =
+            serde_json::from_slice(raw).map_err(|_| Error::Invalid("normalization source JSON"))?;
+        if !value.is_object() {
+            return Err(Error::Invalid("normalization source object"));
+        }
+        Ok((Self { value, max_bytes }, upper))
+    }
+    fn parse_inner(raw: &[u8], max_bytes: usize, classify_budget: bool) -> Result<Self> {
+        let limits = JsonLimits::new(
+            max_bytes,
+            MAX_JSON_DEPTH,
+            MAX_JSON_VISITS,
+            MAX_INTEGER_DIGITS,
+        )
+        .map_err(|_| Error::Budget("normalization JSON limits"))?;
+        parse_json(raw, JsonMode::PublishedStrict, limits).map_err(|error| {
+            if classify_budget && error.code == tos_foundation::FoundationErrorCode::BudgetExceeded
+            {
+                Error::Budget("raw input JSON limits")
+            } else {
+                Error::Source(error.to_string())
+            }
+        })?;
         let value: Value =
             serde_json::from_slice(raw).map_err(|_| Error::Invalid("normalization source JSON"))?;
         if !value.is_object() {

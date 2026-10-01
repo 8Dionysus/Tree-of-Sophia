@@ -13,7 +13,6 @@ pub mod exploration_contracts;
 mod indexed_cursor;
 pub mod knowledge;
 pub mod managed_local;
-pub mod managed_source;
 pub mod persistent_exploration_checkpoints;
 pub mod prepared_local;
 pub mod prepared_maintenance;

@@ -66,6 +66,8 @@ pub struct SoftwareCaptureReader {
 /// Parsed metadata shared by the companion reader and archive transport.
 /// Selection binds the manifest; transport must additionally verify archive bytes.
 pub(crate) struct CaptureIndex {
+    pub(crate) manifest: JsonValue,
+    pub(crate) metadata_read_bytes: u64,
     pub(crate) members: BTreeMap<RelativePath, MemberMetadata>,
     pub(crate) git_blob_oids: BTreeMap<RelativePath, String>,
     pub(crate) includes: Vec<String>,
@@ -216,7 +218,12 @@ pub(crate) fn read_capture_index(
             "software capture membership totals differ",
         ));
     }
+    let metadata_read_bytes = (manifest_raw.len() as u64)
+        .checked_add(index_raw.len() as u64)
+        .ok_or_else(|| error(Code::BudgetExceeded, "capture metadata read count overflow"))?;
     Ok(CaptureIndex {
+        metadata_read_bytes,
+        manifest,
         members,
         git_blob_oids,
         includes,
@@ -242,6 +249,11 @@ impl SoftwareCaptureReader {
     /// Inspecting metadata does not select a component or grant a byte read.
     pub fn members(&self) -> impl Iterator<Item = &MemberMetadata> {
         self.members.values()
+    }
+    /// Exact metadata lookup in the verified capture index; does not authorize
+    /// reading bytes or select an executable component.
+    pub fn member(&self, path: &RelativePath) -> Option<&MemberMetadata> {
+        self.members.get(path)
     }
     pub fn include_prefixes(&self) -> &[String] {
         &self.includes

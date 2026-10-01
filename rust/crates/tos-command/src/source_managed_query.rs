@@ -2,9 +2,9 @@
 //! Source currentness adds to, and never replaces, the caller's original and
 //! projection-carrier disclosure authority.
 
-use crate::source_managed_selection::ManagedCurrentModelLease;
+use crate::source_managed_selection::{ManagedCurrentModelLease, ManagedSelectedProof};
 use std::sync::Arc;
-use tos_compiler::ManagedSourceProofV1;
+use tos_compiler::{ManagedProducerProof, ManagedSourceProofV1, ManagedSourceProofV2};
 use tos_foundation::Digest256;
 use tos_query::search_v2::{CurrentPolicyBinding, SearchV2Error, SearchV2ErrorCode};
 use tos_query::{
@@ -13,9 +13,9 @@ use tos_query::{
     InspectedCarrier, ObservedInspectCarrier,
 };
 
-fn catalog_check(
-    source: &ManagedCurrentModelLease<'_>,
-    proof: &ManagedSourceProofV1,
+fn catalog_check<P: ManagedSelectedProof>(
+    source: &ManagedCurrentModelLease<'_, P>,
+    proof: &P,
 ) -> Result<(), CatalogError> {
     source
         .require_managed_basis(proof)
@@ -24,9 +24,9 @@ fn catalog_check(
             message: "managed source current hold changed",
         })
 }
-fn inspect_check(
-    source: &ManagedCurrentModelLease<'_>,
-    proof: &ManagedSourceProofV1,
+fn inspect_check<P: ManagedSelectedProof>(
+    source: &ManagedCurrentModelLease<'_, P>,
+    proof: &P,
 ) -> Result<(), SearchV2Error> {
     source
         .require_managed_basis(proof)
@@ -36,30 +36,48 @@ fn inspect_check(
         })
 }
 
-pub(crate) struct ManagedCatalogAuthority<'hold, 'source, 'inner> {
+pub(crate) struct ManagedCatalogAuthority<'hold, 'source, 'inner, P: ManagedSelectedProof> {
     pub inner: &'hold mut dyn CatalogCurrentAuthority<'inner>,
-    pub source: &'hold ManagedCurrentModelLease<'source>,
-    pub proof: &'hold ManagedSourceProofV1,
+    pub source: &'hold ManagedCurrentModelLease<'source, P>,
+    pub proof: &'hold P,
 }
-struct ManagedCatalogLease<'hold, 'source> {
+struct ManagedCatalogLease<'hold, 'source, P: ManagedSelectedProof> {
     inner: Box<dyn CatalogDisclosureLease + 'hold>,
-    source: &'hold ManagedCurrentModelLease<'source>,
-    proof: &'hold ManagedSourceProofV1,
+    source: &'hold ManagedCurrentModelLease<'source, P>,
+    proof: &'hold P,
 }
-impl CatalogDisclosureLease for ManagedCatalogLease<'_, '_> {
+impl<P: ManagedSelectedProof> CatalogDisclosureLease for ManagedCatalogLease<'_, '_, P> {
     fn recheck(&mut self) -> Result<(), CatalogError> {
         self.inner.recheck()?;
         catalog_check(self.source, self.proof)
     }
 }
-impl<'hold, 'source: 'hold, 'inner: 'hold> CatalogCurrentAuthority<'hold>
-    for ManagedCatalogAuthority<'hold, 'source, 'inner>
+impl<'hold, 'source: 'hold, 'inner: 'hold, P: ManagedSelectedProof> CatalogCurrentAuthority<'hold>
+    for ManagedCatalogAuthority<'hold, 'source, 'inner, P>
 {
     fn authorize_managed_source_current(
         &mut self,
         proof: &ManagedSourceProofV1,
     ) -> Result<(), CatalogError> {
-        catalog_check(self.source, proof)
+        if self.proof.basis() != proof.basis() {
+            return Err(CatalogError {
+                code: CatalogErrorCode::StaleSelection,
+                message: "managed source proof version/identity differs",
+            });
+        }
+        catalog_check(self.source, self.proof)
+    }
+    fn authorize_managed_source_v2_current(
+        &mut self,
+        proof: &ManagedSourceProofV2,
+    ) -> Result<(), CatalogError> {
+        if self.proof.basis() != proof.basis() {
+            return Err(CatalogError {
+                code: CatalogErrorCode::StaleSelection,
+                message: "managed source proof version/identity differs",
+            });
+        }
+        catalog_check(self.source, self.proof)
     }
     fn abort_probe(&self) -> Option<Arc<dyn tos_query::AbortProbe>> {
         self.inner.abort_probe()
@@ -94,30 +112,48 @@ impl<'hold, 'source: 'hold, 'inner: 'hold> CatalogCurrentAuthority<'hold>
     }
 }
 
-pub(crate) struct ManagedInspectAuthority<'hold, 'source, 'inner> {
+pub(crate) struct ManagedInspectAuthority<'hold, 'source, 'inner, P: ManagedSelectedProof> {
     pub inner: &'hold mut dyn InspectCurrentAuthority<'inner>,
-    pub source: &'hold ManagedCurrentModelLease<'source>,
-    pub proof: &'hold ManagedSourceProofV1,
+    pub source: &'hold ManagedCurrentModelLease<'source, P>,
+    pub proof: &'hold P,
 }
-struct ManagedInspectLease<'hold, 'source> {
+struct ManagedInspectLease<'hold, 'source, P: ManagedSelectedProof> {
     inner: Box<dyn InspectDisclosureLease + 'hold>,
-    source: &'hold ManagedCurrentModelLease<'source>,
-    proof: &'hold ManagedSourceProofV1,
+    source: &'hold ManagedCurrentModelLease<'source, P>,
+    proof: &'hold P,
 }
-impl InspectDisclosureLease for ManagedInspectLease<'_, '_> {
+impl<P: ManagedSelectedProof> InspectDisclosureLease for ManagedInspectLease<'_, '_, P> {
     fn recheck(&mut self) -> Result<(), SearchV2Error> {
         self.inner.recheck()?;
         inspect_check(self.source, self.proof)
     }
 }
-impl<'hold, 'source: 'hold, 'inner: 'hold> InspectCurrentAuthority<'hold>
-    for ManagedInspectAuthority<'hold, 'source, 'inner>
+impl<'hold, 'source: 'hold, 'inner: 'hold, P: ManagedSelectedProof> InspectCurrentAuthority<'hold>
+    for ManagedInspectAuthority<'hold, 'source, 'inner, P>
 {
     fn authorize_managed_source_current(
         &mut self,
         proof: &ManagedSourceProofV1,
     ) -> Result<(), SearchV2Error> {
-        inspect_check(self.source, proof)
+        if self.proof.basis() != proof.basis() {
+            return Err(SearchV2Error {
+                code: SearchV2ErrorCode::StaleSelection,
+                message: "managed source proof version/identity differs",
+            });
+        }
+        inspect_check(self.source, self.proof)
+    }
+    fn authorize_managed_source_v2_current(
+        &mut self,
+        proof: &ManagedSourceProofV2,
+    ) -> Result<(), SearchV2Error> {
+        if self.proof.basis() != proof.basis() {
+            return Err(SearchV2Error {
+                code: SearchV2ErrorCode::StaleSelection,
+                message: "managed source proof version/identity differs",
+            });
+        }
+        inspect_check(self.source, self.proof)
     }
     fn abort_probe(&self) -> Option<Arc<dyn tos_query::AbortProbe>> {
         self.inner.abort_probe()
@@ -211,7 +247,7 @@ impl<'hold, 'source: 'hold, 'inner: 'hold> InspectCurrentAuthority<'hold>
     }
 }
 
-impl crate::source_managed_selection::ManagedAgentSelectedParent {
+impl<P: ManagedSelectedProof> crate::source_managed_selection::ManagedAgentSelectedParent<P> {
     /// Use the existing selected query and transport implementations. Every
     /// packet, original/carrier lease and warm model reader is dropped inside
     /// the held-current callback after the real output flush; only an exit code
@@ -268,10 +304,11 @@ impl crate::source_managed_selection::ManagedAgentSelectedParent {
             deadline,
             cancelled,
             |model, source| {
-                let bound = tos_query::bind_managed_verified_knowledge(
+                let bound = tos_query::bind_managed_proof_verified_knowledge(
                     model,
                     vocabulary,
                     descriptor_raw,
+                    self.source_proof(),
                     |proof| inspect_check(source, proof),
                 )
                 .map_err(|error| ManagedSelectionError::Access(error.into()))?;

@@ -20,8 +20,12 @@ pub struct CorpusOriginalSourceLimits {
     pub max_members: usize,
     pub max_work_bytes: u64,
 }
+enum CaptureReader<'a> {
+    Software(&'a SoftwareCaptureReader),
+    Public(&'a crate::d1_public_capture::PublicCapture),
+}
 struct Source<'a> {
-    reader: &'a SoftwareCaptureReader,
+    reader: CaptureReader<'a>,
     root: &'a RelativePath,
     limits: CorpusOriginalSourceLimits,
     deadline: Instant,
@@ -50,29 +54,50 @@ impl Source<'_> {
     }
     fn read(&mut self, path: &RelativePath, cap: usize) -> Result<Vec<u8>> {
         self.check()?;
-        let selection = self
-            .reader
-            .select_components(&[path.clone()])
-            .map_err(|e| Error::Source(e.to_string()))?;
-        let member = selection
-            .member(path)
-            .ok_or(Error::Invalid("corpus captured member"))?;
         if !self.members.contains_key(path.as_str())
             && self.members.len() >= self.limits.max_members
         {
             return Err(Error::Budget("corpus capture member count"));
         }
-        self.charge(member.size_bytes)?;
-        let raw = self
-            .reader
-            .read_selected_component(&selection, path, cap as u64, self.deadline, self.cancelled)
-            .map_err(|e| Error::Source(e.to_string()))?;
+        let (raw, size_bytes, sha256) = match &self.reader {
+            CaptureReader::Software(reader) => {
+                let selection = reader
+                    .select_components(&[path.clone()])
+                    .map_err(|e| Error::Source(e.to_string()))?;
+                let member = selection
+                    .member(path)
+                    .ok_or(Error::Invalid("corpus captured member"))?;
+                if member.size_bytes > self.limits.max_work_bytes.saturating_sub(self.work) {
+                    return Err(Error::Budget("corpus capture work"));
+                }
+                let raw = reader
+                    .read_selected_component(
+                        &selection,
+                        path,
+                        cap as u64,
+                        self.deadline,
+                        self.cancelled,
+                    )
+                    .map_err(|e| Error::Source(e.to_string()))?;
+                (raw, member.size_bytes, member.sha256.to_hex())
+            }
+            CaptureReader::Public(reader) => {
+                let remaining =
+                    usize::try_from(self.limits.max_work_bytes.saturating_sub(self.work))
+                        .unwrap_or(usize::MAX);
+                let raw = reader.read_retained_input(path.as_str(), cap.min(remaining))?;
+                let size = raw.len() as u64;
+                let sha = Digest256::of_bytes(&raw).to_hex();
+                (raw, size, sha)
+            }
+        };
+        self.charge(size_bytes)?;
         self.members.insert(
             path.as_str().into(),
             CorpusOriginalMember {
                 path: path.as_str().into(),
-                size_bytes: member.size_bytes,
-                sha256: member.sha256.to_hex(),
+                size_bytes,
+                sha256,
             },
         );
         Ok(raw)
@@ -546,7 +571,7 @@ fn captured_source<'a>(
         return Err(Error::Budget("corpus captured source limits"));
     }
     Ok(Source {
-        reader: capture,
+        reader: CaptureReader::Software(capture),
         root: source_path,
         limits,
         deadline,
@@ -578,17 +603,45 @@ fn captured_receipt(
                 .as_bytes(),
         );
     }
-    let pin = source.reader.selection();
+    let (profile, source_git_commit, source_git_tree, capture_manifest_sha256) =
+        match &source.reader {
+            CaptureReader::Software(reader) => {
+                let pin = reader.selection();
+                (
+                    "captured-public-corpus-v1",
+                    Some(pin.source_git_commit.clone()),
+                    Some(pin.source_git_tree.clone()),
+                    pin.capture_manifest_sha256.to_hex(),
+                )
+            }
+            CaptureReader::Public(reader) => {
+                reader.check_custody()?;
+                let entries = members
+                    .iter()
+                    .map(|member| (member.path.clone(), Value::String(member.sha256.clone())))
+                    .collect();
+                let digest = captured_runtime_input_manifest_digest(
+                    &Value::Object(entries),
+                    limits_manifest_cap(source.limits)?,
+                )?;
+                (
+                    "captured-runtime-projection-v1",
+                    None,
+                    None,
+                    digest.to_hex(),
+                )
+            }
+        };
     let mut receipt = CorpusOriginalReceipt {
         profile: CORPUS_ORIGINAL_PROFILE.into(),
         descriptor_sha256: vocab.descriptor_sha256.clone(),
         source_cut: binding.source_cut.clone(),
         membership_root: binding.membership_root.clone(),
         origin: CapturedCorpusOrigin {
-            profile: "captured-public-corpus-v1".into(),
-            source_git_commit: Some(pin.source_git_commit.clone()),
-            source_git_tree: Some(pin.source_git_tree.clone()),
-            capture_manifest_sha256: Some(pin.capture_manifest_sha256.to_hex()),
+            profile: profile.into(),
+            source_git_commit,
+            source_git_tree,
+            capture_manifest_sha256: Some(capture_manifest_sha256),
             native_producer: None,
             source_path: source.root.as_str().into(),
             source_sha256: Digest256::of_bytes(root_raw).to_hex(),
@@ -616,7 +669,53 @@ pub fn prepare_captured_corpus_original(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<CapturedCorpusOriginalPlan> {
-    let mut source = captured_source(capture, source_path, binding, limits, deadline, cancelled)?;
+    let source = captured_source(capture, source_path, binding, limits, deadline, cancelled)?;
+    prepare_original_plan(source, source_path, binding, vocab, limits)
+}
+
+/// Capture-only original projection import. No Git origin or authored producer
+/// identity is invented for an immutable public runtime projection.
+pub(crate) fn prepare_runtime_corpus_original(
+    capture: &crate::d1_public_capture::PublicCapture,
+    source_path: &RelativePath,
+    binding: &SourceBinding,
+    vocab: &QueryVocabulary,
+    limits: CorpusOriginalSourceLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<CapturedCorpusOriginalPlan> {
+    limits.originals.validate()?;
+    if limits.max_members == 0
+        || limits.max_members > 65_536
+        || limits.max_work_bytes == 0
+        || limits.max_work_bytes > crate::knowledge_original_rows::MAX_COLD_WORK
+        || !binding.complete
+    {
+        return Err(Error::Budget("corpus captured source limits"));
+    }
+    capture.check_custody()?;
+    let source = Source {
+        reader: CaptureReader::Public(capture),
+        root: source_path,
+        limits,
+        deadline,
+        cancelled,
+        work: 0,
+        members: BTreeMap::new(),
+    };
+    prepare_original_plan(source, source_path, binding, vocab, limits)
+}
+fn limits_manifest_cap(limits: CorpusOriginalSourceLimits) -> Result<usize> {
+    usize::try_from(limits.originals.max_total_bytes)
+        .map_err(|_| Error::Budget("corpus capture manifest cap"))
+}
+fn prepare_original_plan(
+    mut source: Source<'_>,
+    source_path: &RelativePath,
+    binding: &SourceBinding,
+    vocab: &QueryVocabulary,
+    limits: CorpusOriginalSourceLimits,
+) -> Result<CapturedCorpusOriginalPlan> {
     let raw = source.read(source_path, crate::legacy::PART_CAP)?;
     let root = json(&raw, crate::legacy::PART_CAP)?;
     check_partition_root_size(&root, raw.len())?;
@@ -753,7 +852,7 @@ pub fn retain_captured_corpus_original_from_capture(
     cancelled: &AtomicBool,
 ) -> Result<CorpusOriginalReceipt> {
     let result = (|| {
-        let binding = stage.exact_receipt().binding.clone();
+        let binding = stage.exact_receipt()?.binding.clone();
         let mut source =
             captured_source(capture, source_path, &binding, limits, deadline, cancelled)?;
         let root_raw = source.read(source_path, crate::legacy::PART_CAP)?;

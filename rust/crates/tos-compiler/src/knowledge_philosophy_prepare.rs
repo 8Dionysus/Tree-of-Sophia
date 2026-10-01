@@ -562,7 +562,7 @@ fn prepare_inner(
     projection: bool,
 ) -> Result<PhilosophyPrepareReceipt> {
     limits.validate()?;
-    let selected = select(vocabulary, stage.exact_receipt(), limits)?;
+    let selected = select(vocabulary, stage.exact_receipt()?, limits)?;
     create_tables(stage)?;
     let mut work = 0u64;
     let nodes = walk_nodes(stage, &selected, limits, &mut work, projection)?;
@@ -628,7 +628,7 @@ fn clear_inner(
     final_relation_root: &str,
 ) -> Result<()> {
     limits.validate()?;
-    let selected = select(vocabulary, stage.exact_receipt(), limits)?;
+    let selected = select(vocabulary, stage.exact_receipt()?, limits)?;
     if prepared.source_graph != selected.source
         || prepared.input_role != selected.role
         || prepared.source_cut != selected.cut

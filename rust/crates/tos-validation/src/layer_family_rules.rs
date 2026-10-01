@@ -127,6 +127,62 @@ pub fn inspect_supplied_translation_alignment(
     Ok(rules.finish())
 }
 
+/// Apply the existing semantic-annotation owner predicate to an already
+/// decoded packet. The caller retains source reads and schedules full schema
+/// diagnostics; this function deliberately does not call the bool schema
+/// adapter or claim complete lab coverage.
+pub fn inspect_supplied_semantic_annotation(
+    path: &str,
+    packet: &Value,
+    limits: ItemLimits,
+) -> Result<LayerFamilyReport, ItemRefusal> {
+    let mut rules = LayerFamilyRules::new(limits);
+    rules.semantic_annotation(path, packet)?;
+    Ok(rules.finish())
+}
+
+/// Apply only the existing source-text-unit semantic predicates to an
+/// owner-supplied packet and frozen text. The `schema_checked` execution bit
+/// only releases the text kernel's semantic path here; this function performs
+/// no schema call and returns no schema verdict. The source adapter retains
+/// raw reads and schedules full schema diagnostics separately.
+pub fn inspect_supplied_source_text_unit_semantics(
+    packet_path: &str,
+    raw_packet: &[u8],
+    frozen_text_locator: &str,
+    frozen_text: &[u8],
+    snapshot_generation: &str,
+    limits: ItemLimits,
+) -> Result<TextRuleReport, ItemRefusal> {
+    if raw_packet.len() > limits.max_member_bytes
+        || frozen_text.len() > limits.max_member_bytes
+        || packet_path.is_empty()
+        || frozen_text_locator.is_empty()
+        || snapshot_generation.is_empty()
+    {
+        return Err(ItemRefusal::Budget);
+    }
+    if std::time::Instant::now() >= limits.deadline {
+        return Err(ItemRefusal::Deadline);
+    }
+    let context = text_rules::TextRuleContext {
+        packet_path: packet_path.into(),
+        frozen_text_locator: frozen_text_locator.into(),
+        schema_checked: true,
+        requested_profiles: vec![text_rules::TEXT_UNIT_PROFILE.into()],
+        interval_generation: snapshot_generation.into(),
+        reverse_generation: snapshot_generation.into(),
+    };
+    let report = text_rules::inspect_source_text_unit_v1(raw_packet, frozen_text, &context);
+    if std::time::Instant::now() >= limits.deadline {
+        return Err(ItemRefusal::Deadline);
+    }
+    if report.state == TextRuleState::BudgetExceeded {
+        return Err(ItemRefusal::Budget);
+    }
+    Ok(report)
+}
+
 impl LayerFamilyRules {
     pub fn new(limits: ItemLimits) -> Self {
         Self {
@@ -341,6 +397,7 @@ impl LayerFamilyRules {
         source: &mut impl LayerFamilySource,
         path: &str,
         contract: Option<&str>,
+        schema_enabled: bool,
     ) -> Result<Option<(Value, Vec<u8>)>, ItemRefusal> {
         let Some(raw) = self.bytes(source, path, None)? else {
             return Ok(None);
@@ -378,11 +435,13 @@ impl LayerFamilyRules {
             self.issue(path, "object-required", path)?;
             return Ok(None);
         }
-        if let Some(contract) = contract {
-            if !self.schema(source, path, &raw, contract)? {
-                self.issue(path, "schema", contract)?;
+        if schema_enabled {
+            if let Some(contract) = contract {
+                if !self.schema(source, path, &raw, contract)? {
+                    self.issue(path, "schema", contract)?;
+                }
+                self.checked(path, "Draft2020-12-owner-schema")?;
             }
-            self.checked(path, "Draft2020-12-owner-schema")?;
         }
         self.reserve_named(
             path.len()
@@ -521,16 +580,34 @@ impl LayerFamilyRules {
         &mut self,
         source: &mut impl LayerFamilySource,
     ) -> Result<(), ItemRefusal> {
+        self.inspect_zarathustra_opening_sentence_inner(source, true)
+    }
+
+    /// Run the same named bridge mechanics while leaving full schema
+    /// diagnostics to the caller's scheduled diagnostic-v2 requests.
+    pub fn inspect_zarathustra_opening_sentence_without_schema(
+        &mut self,
+        source: &mut impl LayerFamilySource,
+    ) -> Result<(), ItemRefusal> {
+        self.inspect_zarathustra_opening_sentence_inner(source, false)
+    }
+
+    fn inspect_zarathustra_opening_sentence_inner(
+        &mut self,
+        source: &mut impl LayerFamilySource,
+        schema_enabled: bool,
+    ) -> Result<(), ItemRefusal> {
         let prior = self.named_transient;
-        let result = self.inspect_zarathustra_opening_sentence_inner(source);
+        let result = self.inspect_zarathustra_opening_sentence_inner_body(source, schema_enabled);
         // The named plan and output trees leave scope together, including on
         // an early refusal. Report and read state remain charged by reserve().
         self.named_transient = prior;
         result
     }
-    fn inspect_zarathustra_opening_sentence_inner(
+    fn inspect_zarathustra_opening_sentence_inner_body(
         &mut self,
         source: &mut impl LayerFamilySource,
+        schema_enabled: bool,
     ) -> Result<(), ItemRefusal> {
         source.checkpoint(self.limits.deadline)?;
         if !source.exists(
@@ -543,7 +620,9 @@ impl LayerFamilyRules {
                 "named-opening-sentence-plan-not-selected",
             );
         }
-        let Some((plan, _)) = self.named_object(source, OPENING_SENTENCE_PLAN, None)? else {
+        let Some((plan, _)) =
+            self.named_object(source, OPENING_SENTENCE_PLAN, None, schema_enabled)?
+        else {
             return Ok(());
         };
         if s(&plan, "schema_version") != "tos_zarathustra_opening_sentence_alignment_plan_v1" {
@@ -585,7 +664,9 @@ impl LayerFamilyRules {
                 )?;
                 continue;
             };
-            if let Some((value, raw)) = self.named_object(source, path, Some(contract))? {
+            if let Some((value, raw)) =
+                self.named_object(source, path, Some(contract), schema_enabled)?
+            {
                 outputs.push((path.to_owned(), value, raw));
             }
         }

@@ -6,6 +6,14 @@ use super::*;
 mod addressed_inventory;
 #[path = "addressed_successor.rs"]
 mod addressed_successor;
+#[path = "source_cohort_stream_index.rs"]
+mod source_cohort_stream_index;
+#[path = "source_cohort_streamed.rs"]
+mod source_cohort_streamed;
+#[path = "source_cohort_bootstrap_streamed.rs"]
+mod source_cohort_bootstrap_streamed;
+pub use source_cohort_stream_index::SourceAssessmentWork as StreamedSourceIndexWorkV1;
+pub use source_cohort_streamed::{StreamedColdSourceLimitsV1, StreamedColdSourceWorkV1};
 use crate::source_command::{self as cmd, CommandContext, SourceFile};
 use crate::source_creation::{
     CreationFamily, CreationPackage, ManagedCreationBasis, ManagedCreationInput,
@@ -5738,12 +5746,28 @@ fn cold_source_key_rows(
     count: u64,
     deadline: Instant,
     cancelled: &AtomicBool,
+    consume: impl FnMut(&postgres::Row) -> DurableResult<()>,
+) -> DurableResult<()> {
+    cold_source_key_rows_controlled(tx, None, domain, predicate, count, deadline, cancelled, consume)
+}
+
+fn cold_source_key_rows_controlled(
+    tx: &mut Transaction<'_>,
+    max_statement_ms: Option<u64>,
+    domain: &str,
+    predicate: bool,
+    count: u64,
+    deadline: Instant,
+    cancelled: &AtomicBool,
     mut consume: impl FnMut(&postgres::Row) -> DurableResult<()>,
 ) -> DurableResult<()> {
     let mut after: Option<(String, String, String)> = None;
     let mut seen = 0u64;
     loop {
         active(deadline, cancelled)?;
+        if let Some(milliseconds) = max_statement_ms {
+            source_cohort_streamed::set_streamed_pg_limits(tx, milliseconds, deadline, cancelled)?;
+        }
         let page = match (predicate, after.as_ref()) {
             (false, None) => tx.query(
                 "SELECT * FROM cmd2_source_index WHERE domain=$1

@@ -110,7 +110,7 @@ fn charge(work: &mut u64, bytes: usize, limits: NavigationMaterializeLimits) -> 
     Ok(())
 }
 fn binding(stage: &KnowledgeStage<'_>, prepared: &NavigationPrepareReceipt) -> Result<()> {
-    if prepared.source_cut != stage.exact_receipt().binding.source_cut
+    if prepared.source_cut != stage.exact_receipt()?.binding.source_cut
         || prepared.final_graph_rows_written
         || Digest256::from_hex(&prepared.dependency_root_sha256).is_err()
     {

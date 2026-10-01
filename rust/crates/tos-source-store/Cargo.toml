@@ -13,3 +13,4 @@ tos-fd-open = { path = "../tos-fd-open" }
 flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
 tar = { version = "=0.4.45", default-features = false }
 sha1 = "=0.10.6"
+rusqlite = { version = "0.37", features = ["bundled"] }

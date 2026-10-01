@@ -339,11 +339,16 @@ impl AuditDeltaControl<'_> {
 
     fn bound_statement_timeout(self, tx: &mut Transaction<'_>) -> Result<(), AuditDeltaError> {
         self.check()?;
-        let millis = self
+        let remaining = self
             .deadline
             .saturating_duration_since(Instant::now())
-            .as_millis()
-            .clamp(1, i32::MAX as u128) as i64;
+            .as_millis();
+        if remaining == 0 {
+            return Err(AuditDeltaError::ColdRequired(
+                ColdRequiredReason::CancelledOrExpired,
+            ));
+        }
+        let millis = remaining.min(i32::MAX as u128) as i64;
         tx.query_one(
             "SELECT set_config(
                'statement_timeout',
@@ -358,7 +363,7 @@ impl AuditDeltaControl<'_> {
              )",
             &[&millis],
         )?;
-        Ok(())
+        self.check()
     }
 }
 
@@ -1176,6 +1181,19 @@ pub fn activate_domain(
     expected_generation: u64,
     profile_digest: Digest256,
 ) -> Result<u64, AuditDeltaError> {
+    activate_domain_controlled(tx, domain, expected_generation, profile_digest, None)
+}
+
+pub fn activate_domain_controlled(
+    tx: &mut Transaction<'_>,
+    domain: &str,
+    expected_generation: u64,
+    profile_digest: Digest256,
+    control: Option<AuditDeltaControl<'_>>,
+) -> Result<u64, AuditDeltaError> {
+    if let Some(control) = control {
+        control.bound_statement_timeout(tx)?;
+    }
     require_repeatable_snapshot(tx)?;
     let compiled_profile = audit_delta_schema_digest();
     if profile_digest != compiled_profile {
@@ -1185,6 +1203,9 @@ pub fn activate_domain(
     }
     let digest = profile_digest.to_hex();
     let expected = to_pg_i64(expected_generation)?;
+    if let Some(control) = control {
+        control.bound_statement_timeout(tx)?;
+    }
     let fence = tx.query_opt(
         "SELECT generation,maintenance_state FROM cmd2_audit_fence
          WHERE domain=$1 FOR UPDATE",
@@ -1204,6 +1225,9 @@ pub fn activate_domain(
             ColdRequiredReason::MaintenanceActive,
         ));
     }
+    if let Some(control) = control {
+        control.bound_statement_timeout(tx)?;
+    }
     if let Some(existing) = tx.query_opt(
         "SELECT baseline_generation,profile_digest
          FROM cmd2_audit_delta_v1_domain WHERE domain=$1",
@@ -1221,7 +1245,13 @@ pub fn activate_domain(
                 ColdRequiredReason::InvalidBounds,
             ));
         }
+        if let Some(control) = control {
+            control.check()?;
+        }
         return Ok(expected_generation);
+    }
+    if let Some(control) = control {
+        control.bound_statement_timeout(tx)?;
     }
     let inserted = tx.execute(
         "INSERT INTO cmd2_audit_delta_v1_domain(domain,baseline_generation,profile_digest)
@@ -1232,6 +1262,9 @@ pub fn activate_domain(
         return Err(AuditDeltaError::ColdRequired(
             ColdRequiredReason::ProfileMismatch,
         ));
+    }
+    if let Some(control) = control {
+        control.check()?;
     }
     Ok(expected_generation)
 }

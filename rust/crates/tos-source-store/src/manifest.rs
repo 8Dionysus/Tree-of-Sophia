@@ -107,6 +107,14 @@ impl Snapshot {
             .flatten()
             .map(String::as_str)
     }
+    /// Manifest-index claims for one exact path, without reading member
+    /// content or establishing source identity validity or admission.
+    pub fn indexed_ids_for_path<'a>(
+        &'a self,
+        path: &'a RelativePath,
+    ) -> impl Iterator<Item = &'a str> {
+        self.ids_for_path(path)
+    }
     pub fn revision(&self) -> SourceRevision {
         self.revision
     }
@@ -141,6 +149,13 @@ impl Snapshot {
 }
 
 impl CorpusReader {
+    /// Crate-private access for the bounded source-cut decoder. The returned
+    /// root is the same securely held directory capability used by the full
+    /// reader; this does not expose filesystem paths or choose a revision.
+    pub(crate) fn streamed_cut_root_and_limits(&self) -> (&Arc<StoreRoot>, ReadLimits) {
+        (&self.root, self.limits)
+    }
+
     pub(crate) fn read_retirement_object(
         &self,
         snapshot: &Snapshot,
@@ -267,7 +282,7 @@ impl CorpusReader {
                 path: path.clone(),
                 sha256: digest_field(item, "sha256", Code::InvalidMemberIndex)?,
                 size_bytes: uint_field(item, "size_bytes", Code::InvalidMemberIndex)?,
-                mode: mode_field(item, "mode", Code::InvalidMemberIndex)?,
+                mode: source_mode_field(item, "mode", Code::InvalidMemberIndex)?,
             };
             files.insert(path.clone(), member);
             previous = Some(path);
@@ -478,6 +493,16 @@ pub(crate) fn uint_field(value: &JsonValue, field: &str, code: Code) -> Result<u
         .object_get(field)
         .and_then(JsonValue::as_u64)
         .ok_or_else(|| StoreError::new(code, "corpus unsigned integer field is missing or invalid"))
+}
+
+// Authored source snapshots also preserve private regular-file permissions.
+// Git software captures retain their separate 0644/0755 mode law below.
+fn source_mode_field(value: &JsonValue, field: &str, code: Code) -> Result<u32> {
+    if uint_field(value, field, code)? == 0o600 {
+        Ok(0o600)
+    } else {
+        mode_field(value, field, code)
+    }
 }
 
 pub(crate) fn mode_field(value: &JsonValue, field: &str, code: Code) -> Result<u32> {

@@ -5,13 +5,12 @@ use crate::{
     Error, Limits, Result, SourceBinding, file_digest, safe_open, sqlite_budget, stream_digest,
 };
 use fs2::FileExt;
-use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
+use rusqlite::{Connection, OptionalExtension, params};
 use std::{
     cell::Cell,
     collections::{BTreeMap, BTreeSet},
     fs,
     io::{Read, Seek, SeekFrom, Write},
-    os::fd::AsRawFd,
     os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
     path::{Path, PathBuf},
     rc::Rc,
@@ -21,7 +20,8 @@ use std::{
     },
     time::Instant,
 };
-use tos_foundation::{Digest256, Digest256Hasher};
+use tos_foundation::{Digest256, Digest256Hasher, SourceRevision};
+use tos_source_store::{CorpusCutReader, MetadataPublicationEpoch, SourceMembershipV1};
 
 // A selected descriptor permits up to 4,096 source registrations. A full
 // source family can contribute several independently sealed collections.
@@ -106,29 +106,157 @@ pub struct ExactInputReceipt {
 impl ExactInputReceipt {
     pub(crate) fn validate(&self) -> Result<()> {
         self.binding.validate()?;
-        if self.collections.is_empty() || self.collections.len() > MAX_COLLECTIONS {
-            return Err(Error::Invalid("input collection registration count"));
-        }
-        let mut seen = BTreeSet::new();
-        for entry in &self.collections {
-            for value in [
-                &entry.source_graph,
-                &entry.collection,
-                &entry.input_role,
-                &entry.adapter_profile,
-            ] {
-                if value.is_empty() || value.len() > MAX_NAME_BYTES {
-                    return Err(Error::Invalid("input collection registration field"));
-                }
-            }
-            Digest256::from_hex(&entry.expected_root_sha256)
-                .map_err(|_| Error::Invalid("input collection root digest"))?;
-            if !seen.insert((&entry.source_graph, &entry.collection)) {
-                return Err(Error::Invalid("duplicate input collection registration"));
-            }
-        }
+        validate_input_collections(&self.collections)?;
         Ok(())
     }
+}
+
+fn validate_input_collections(collections: &[InputCollectionReceipt]) -> Result<()> {
+    if collections.is_empty() || collections.len() > MAX_COLLECTIONS {
+        return Err(Error::Invalid("input collection registration count"));
+    }
+    let mut seen = BTreeSet::new();
+    for entry in collections {
+        for value in [
+            &entry.source_graph,
+            &entry.collection,
+            &entry.input_role,
+            &entry.adapter_profile,
+        ] {
+            if value.is_empty() || value.len() > MAX_NAME_BYTES {
+                return Err(Error::Invalid("input collection registration field"));
+            }
+        }
+        Digest256::from_hex(&entry.expected_root_sha256)
+            .map_err(|_| Error::Invalid("input collection root digest"))?;
+        if !seen.insert((&entry.source_graph, &entry.collection)) {
+            return Err(Error::Invalid("duplicate input collection registration"));
+        }
+    }
+    Ok(())
+}
+
+/// A cold authored manifest is a source carrier, never a projected index.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ColdAuthoredBinding {
+    revision: SourceRevision,
+    membership: SourceMembershipV1,
+    source_cut: String,
+    epoch_token: Option<String>,
+    epoch_generation: u64,
+    epoch_member: Option<(Digest256, u64)>,
+}
+impl ColdAuthoredBinding {
+    pub fn from_cut(
+        cut: &CorpusCutReader,
+        revision: SourceRevision,
+        membership: SourceMembershipV1,
+        epoch: &MetadataPublicationEpoch,
+    ) -> Result<Self> {
+        if cut.current().revision() != revision
+            || cut
+                .stream(revision)
+                .map_err(|_| Error::Source("cold authored membership custody refused".into()))?
+                .expectation()
+                != membership
+        {
+            return Err(Error::Invalid("cold authored independently selected cut"));
+        }
+        Ok(Self {
+            revision,
+            membership,
+            source_cut: revision.0.to_hex(),
+            epoch_token: epoch.token().map(str::to_owned),
+            epoch_generation: epoch.generation(),
+            epoch_member: epoch.member_binding().map_err(|_| {
+                Error::Source("cold authored metadata epoch binding refused".into())
+            })?,
+        })
+    }
+    pub fn revision(&self) -> SourceRevision {
+        self.revision
+    }
+    pub fn membership(&self) -> SourceMembershipV1 {
+        self.membership
+    }
+    pub fn source_cut(&self) -> &str {
+        &self.source_cut
+    }
+    pub fn epoch_token(&self) -> Option<&str> {
+        self.epoch_token.as_deref()
+    }
+    pub fn epoch_generation(&self) -> u64 {
+        self.epoch_generation
+    }
+    pub fn epoch_member(&self) -> Option<(Digest256, u64)> {
+        self.epoch_member
+    }
+    pub fn value(&self) -> serde_json::Value {
+        serde_json::json!({"kind":"cold-authored-manifest-v1", "source_revision":self.revision.0.to_hex(),
+            "manifest_body_sha256":self.revision.0.to_hex(), "membership_count":self.membership.count,
+            "membership_sha256":self.membership.digest.to_hex(), "epoch_token":self.epoch_token,
+            "epoch_generation":self.epoch_generation,
+            "epoch_member":self.epoch_member.map(|(sha,bytes)|serde_json::json!({"sha256":sha.to_hex(),"bytes":bytes}))})
+    }
+}
+#[derive(Clone, Debug)]
+pub struct ColdExactInputReceipt {
+    pub binding: ColdAuthoredBinding,
+    pub collections: Vec<InputCollectionReceipt>,
+}
+impl ColdExactInputReceipt {
+    fn validate(&self) -> Result<()> {
+        validate_input_collections(&self.collections)
+    }
+}
+pub trait ColdStageOwner {
+    fn verify_receipt(&self, receipt: &ColdExactInputReceipt) -> Result<()>;
+    fn recheck_sealed_cut(&self, receipt: &ColdExactInputReceipt) -> Result<()>;
+}
+#[derive(Clone)]
+enum StageInputReceipt {
+    Projection(ExactInputReceipt),
+    Cold(ColdExactInputReceipt),
+}
+impl StageInputReceipt {
+    fn validate(&self) -> Result<()> {
+        match self {
+            Self::Projection(r) => r.validate(),
+            Self::Cold(r) => r.validate(),
+        }
+    }
+    fn collections(&self) -> &[InputCollectionReceipt] {
+        match self {
+            Self::Projection(r) => &r.collections,
+            Self::Cold(r) => &r.collections,
+        }
+    }
+}
+enum StageInputOwner<'a> {
+    Projection(&'a dyn StageOwner),
+    Cold(&'a dyn ColdStageOwner),
+}
+impl StageInputOwner<'_> {
+    fn verify_receipt(&self, receipt: &StageInputReceipt) -> Result<()> {
+        match (self, receipt) {
+            (Self::Projection(o), StageInputReceipt::Projection(r)) => o.verify_receipt(r),
+            (Self::Cold(o), StageInputReceipt::Cold(r)) => o.verify_receipt(r),
+            _ => Err(Error::Invalid("stage input owner kind")),
+        }
+    }
+    fn recheck_sealed_cut(&self, receipt: &StageInputReceipt) -> Result<()> {
+        match (self, receipt) {
+            (Self::Projection(o), StageInputReceipt::Projection(r)) => o.recheck_sealed_cut(r),
+            (Self::Cold(o), StageInputReceipt::Cold(r)) => o.recheck_sealed_cut(r),
+            _ => Err(Error::Invalid("stage input owner kind")),
+        }
+    }
+}
+#[derive(Clone, Debug)]
+pub struct ColdStageReceipt {
+    pub binding: ColdAuthoredBinding,
+    pub verified_inputs: Vec<InputCollectionReceipt>,
+    pub input_rows: u64,
 }
 
 pub struct InputRow<'a> {
@@ -211,9 +339,10 @@ pub struct KnowledgeStage<'a> {
     db: Option<Connection>,
     vm_used: Option<Arc<AtomicU64>>,
     limits: StageLimits,
-    receipt: ExactInputReceipt,
+    raw_input_max_bytes: usize,
+    receipt: StageInputReceipt,
     registrations: BTreeMap<String, BTreeSet<String>>,
-    owner: &'a dyn StageOwner,
+    owner: StageInputOwner<'a>,
     isolation: Option<&'a dyn StageIsolation>,
     public_build: bool,
     public_deadline: Option<Instant>,
@@ -249,9 +378,32 @@ impl<'a> KnowledgeStage<'a> {
             .is_some_and(|collections| collections.contains(collection))
     }
 
-    pub(crate) fn exact_receipt(&self) -> &ExactInputReceipt {
-        &self.receipt
+    pub(crate) fn exact_receipt(&self) -> Result<&ExactInputReceipt> {
+        match &self.receipt {
+            StageInputReceipt::Projection(r) => Ok(r),
+            StageInputReceipt::Cold(_) => Err(Error::Invalid(
+                "cold authored stage is not projection input",
+            )),
+        }
     }
+    pub(crate) fn cold_receipt(&self) -> Result<&ColdExactInputReceipt> {
+        match &self.receipt {
+            StageInputReceipt::Cold(r) => Ok(r),
+            StageInputReceipt::Projection(_) => Err(Error::Invalid(
+                "projection stage is not cold authored input",
+            )),
+        }
+    }
+    pub(crate) fn input_collections(&self) -> &[InputCollectionReceipt] {
+        self.receipt.collections()
+    }
+    pub(crate) fn input_source_cut(&self) -> &str {
+        match &self.receipt {
+            StageInputReceipt::Projection(r) => &r.binding.source_cut,
+            StageInputReceipt::Cold(r) => r.binding.source_cut(),
+        }
+    }
+
     pub(crate) fn poison(&mut self) {
         self.poisoned = true;
     }
@@ -280,12 +432,135 @@ impl<'a> KnowledgeStage<'a> {
         Self::create_inner(
             candidate,
             limits,
-            receipt,
-            owner,
+            StageInputReceipt::Projection(receipt),
+            StageInputOwner::Projection(owner),
             Some(isolation),
             None,
             None,
             None,
+        )
+    }
+
+    pub fn create_cold(
+        candidate: &Path,
+        limits: StageLimits,
+        receipt: ColdExactInputReceipt,
+        owner: &'a dyn ColdStageOwner,
+        isolation: &'a dyn StageIsolation,
+    ) -> Result<Self> {
+        Self::create_inner(
+            candidate,
+            limits,
+            StageInputReceipt::Cold(receipt),
+            StageInputOwner::Cold(owner),
+            Some(isolation),
+            None,
+            None,
+            None,
+        )
+    }
+
+    /// Bind the existing connection-wide VM counter and progress callback to
+    /// the caller's absolute operation deadline. Cold input remains a cold
+    /// receipt; no public-build or projection authority is selected here.
+    pub fn create_cold_until(
+        candidate: &Path,
+        limits: StageLimits,
+        receipt: ColdExactInputReceipt,
+        owner: &'a dyn ColdStageOwner,
+        isolation: &'a dyn StageIsolation,
+        deadline: Instant,
+    ) -> Result<Self> {
+        Self::create_cold_until_with_input_cap(
+            candidate,
+            limits,
+            receipt,
+            owner,
+            isolation,
+            deadline,
+            limits.sqlite.max_row_bytes,
+        )
+    }
+    /// Select an authenticated cold raw-input ceiling independently of the
+    /// unchanged normalized/projection row ceiling. All cumulative counters,
+    /// isolation and the original absolute deadline remain shared.
+    pub fn create_cold_until_with_input_cap(
+        candidate: &Path,
+        limits: StageLimits,
+        receipt: ColdExactInputReceipt,
+        owner: &'a dyn ColdStageOwner,
+        isolation: &'a dyn StageIsolation,
+        deadline: Instant,
+        max_input_bytes: usize,
+    ) -> Result<Self> {
+        if max_input_bytes == 0
+            || max_input_bytes as u64 > MAX_STAGE_PAGE_BYTES
+            || max_input_bytes as u128 > limits.sqlite.max_work_bytes as u128
+        {
+            return Err(Error::Budget("cold stage raw input ceiling"));
+        }
+        if Instant::now() >= deadline {
+            return Err(Error::Budget("cold stage deadline"));
+        }
+        let mut stage = Self::create_inner(
+            candidate,
+            limits,
+            StageInputReceipt::Cold(receipt),
+            StageInputOwner::Cold(owner),
+            Some(isolation),
+            Some(Arc::new(AtomicU64::new(0))),
+            None,
+            Some(deadline),
+        )?;
+        stage.raw_input_max_bytes = max_input_bytes;
+        Ok(stage)
+    }
+
+    /// Complete a computational cold candidate. No selected projection or SQLite
+    /// export receipt is emitted; disposal retains existing private-stage cleanup.
+    pub fn finish_cold(mut self) -> Result<ColdStageReceipt> {
+        let result = (|| {
+            self.cold_receipt()?;
+            if self.poisoned || self.write_page.is_some() || !self.db().is_autocommit() {
+                return Err(Error::Invalid("cold stage poisoned or pending write"));
+            }
+            self.owner.recheck_sealed_cut(&self.receipt)?;
+            let rows = self.verified_input_rows()?;
+            self.check(WritePhase::Finalize)?;
+            let receipt = self.cold_receipt()?;
+            Ok(ColdStageReceipt {
+                binding: receipt.binding.clone(),
+                verified_inputs: receipt.collections.clone(),
+                input_rows: rows,
+            })
+        })();
+        self.poisoned |= result.is_err();
+        result
+    }
+
+    pub(crate) fn create_captured_native_snapshot(
+        candidate: &Path,
+        limits: StageLimits,
+        receipt: ExactInputReceipt,
+        owner: &'a dyn StageOwner,
+        isolation: &'a dyn StageIsolation,
+        vm_used: Arc<AtomicU64>,
+        work_used: Rc<Cell<u64>>,
+        max_work_bytes: u64,
+        deadline: Instant,
+    ) -> Result<Self> {
+        if receipt.binding.owner_profile != "tos-native-projection-snapshot-v1" {
+            return Err(Error::Invalid("native snapshot stage profile"));
+        }
+        Self::create_inner(
+            candidate,
+            limits,
+            StageInputReceipt::Projection(receipt),
+            StageInputOwner::Projection(owner),
+            Some(isolation),
+            Some(vm_used),
+            Some((work_used, max_work_bytes)),
+            Some(deadline),
         )
     }
 
@@ -305,8 +580,8 @@ impl<'a> KnowledgeStage<'a> {
         Self::create_inner(
             candidate,
             limits,
-            receipt,
-            owner,
+            StageInputReceipt::Projection(receipt),
+            StageInputOwner::Projection(owner),
             None,
             Some(vm_used),
             Some((work_used, max_work_bytes)),
@@ -317,8 +592,8 @@ impl<'a> KnowledgeStage<'a> {
     fn create_inner(
         candidate: &Path,
         limits: StageLimits,
-        receipt: ExactInputReceipt,
-        owner: &'a dyn StageOwner,
+        receipt: StageInputReceipt,
+        owner: StageInputOwner<'a>,
         isolation: Option<&'a dyn StageIsolation>,
         shared_vm_used: Option<Arc<AtomicU64>>,
         public_work: Option<(Rc<Cell<u64>>, u64)>,
@@ -327,7 +602,7 @@ impl<'a> KnowledgeStage<'a> {
         limits.validate()?;
         receipt.validate()?;
         let mut registrations: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
-        for entry in &receipt.collections {
+        for entry in receipt.collections() {
             registrations
                 .entry(entry.source_graph.clone())
                 .or_default()
@@ -356,6 +631,15 @@ impl<'a> KnowledgeStage<'a> {
         }
         if let Some(isolation) = isolation {
             isolation.verify(candidate, limits, WritePhase::Create)?;
+        }
+        // Receipt and host verification may consume the remaining time. Do
+        // not create a lease or candidate after that selected deadline.
+        if public_deadline.is_some_and(|limit| Instant::now() >= limit) {
+            return Err(Error::Budget(if isolation.is_none() {
+                "public D1 build deadline"
+            } else {
+                "cold stage deadline"
+            }));
         }
         let mut lease = fs::OpenOptions::new()
             .read(true)
@@ -395,6 +679,7 @@ impl<'a> KnowledgeStage<'a> {
             registrations,
             owner,
             isolation,
+            raw_input_max_bytes: limits.sqlite.max_row_bytes,
             public_build: isolation.is_none(),
             public_deadline,
             total_rows: 0,
@@ -467,7 +752,11 @@ impl<'a> KnowledgeStage<'a> {
             .public_deadline
             .is_some_and(|limit| Instant::now() >= limit)
         {
-            return Err(Error::Budget("public D1 build deadline"));
+            return Err(Error::Budget(if self.public_build {
+                "public D1 build deadline"
+            } else {
+                "cold stage deadline"
+            }));
         }
         Self::check_isolation(
             self.isolation,
@@ -666,7 +955,7 @@ impl<'a> KnowledgeStage<'a> {
     fn verified_input_rows(&self) -> Result<u64> {
         self.check(WritePhase::Sort)?;
         let mut input_rows = 0u64;
-        for entry in &self.receipt.collections {
+        for entry in self.receipt.collections() {
             let (count, root) = input_root(self.db(), entry)?;
             self.check(WritePhase::Sort)?;
             if count != entry.expected_count || root != entry.expected_root_sha256 {
@@ -743,8 +1032,14 @@ impl<'a> KnowledgeStage<'a> {
         result
     }
     pub(crate) fn charge(&mut self, payload: &[u8]) -> Result<()> {
+        self.charge_with_row_cap(payload, self.limits.sqlite.max_row_bytes)
+    }
+    fn charge_raw_input(&mut self, payload: &[u8]) -> Result<()> {
+        self.charge_with_row_cap(payload, self.raw_input_max_bytes)
+    }
+    fn charge_with_row_cap(&mut self, payload: &[u8], max_row_bytes: usize) -> Result<()> {
         let result = (|| {
-            if payload.len() > self.limits.sqlite.max_row_bytes {
+            if payload.len() > max_row_bytes {
                 return Err(Error::Budget("stage row bytes"));
             }
             self.total_rows = self
@@ -813,7 +1108,11 @@ impl<'a> KnowledgeStage<'a> {
             .public_deadline
             .is_some_and(|limit| Instant::now() >= limit)
         {
-            return Err(Error::Budget("public D1 build deadline"));
+            return Err(Error::Budget(if self.public_build {
+                "public D1 build deadline"
+            } else {
+                "cold stage deadline"
+            }));
         }
         if let Some((used, limit)) = &self.public_work {
             let next = used
@@ -861,7 +1160,7 @@ impl<'a> KnowledgeStage<'a> {
                     return Err(Error::Invalid("unregistered input collection"));
                 }
                 valid_id(row.id)?;
-                self.charge(row.payload)?;
+                self.charge_raw_input(row.payload)?;
             }
             self.check(WritePhase::Input)?;
             let tx = self
@@ -898,7 +1197,7 @@ impl<'a> KnowledgeStage<'a> {
             return Err(Error::Invalid("unregistered input collection"));
         }
         valid_id(row.id)?;
-        self.charge(row.payload)?;
+        self.charge_raw_input(row.payload)?;
         self.check(WritePhase::Input)?;
         let digest = Digest256::of_bytes(row.payload);
         self.db().execute(
@@ -1024,12 +1323,12 @@ impl<'a> KnowledgeStage<'a> {
                     source_graph,
                     collection,
                     id,
-                    self.limits.sqlite.max_row_bytes as i64
+                    self.raw_input_max_bytes as i64
                 ],
                 read_seek_row,
             )
             .optional()?;
-        row.map(|row| verify_seek_row(row, self.limits.sqlite.max_row_bytes))
+        row.map(|row| verify_seek_row(row, self.raw_input_max_bytes))
             .transpose()
     }
 
@@ -1071,14 +1370,14 @@ impl<'a> KnowledgeStage<'a> {
                 source_graph,
                 collection,
                 id,
-                self.limits.sqlite.max_row_bytes as i64,
+                self.raw_input_max_bytes as i64,
                 lookahead
             ])?
         } else {
             statement.query(params![
                 source_graph,
                 collection,
-                self.limits.sqlite.max_row_bytes as i64,
+                self.raw_input_max_bytes as i64,
                 lookahead
             ])?
         };
@@ -1090,7 +1389,7 @@ impl<'a> KnowledgeStage<'a> {
                 has_more = true;
                 break;
             }
-            let item = verify_seek_row(read_seek_row(row)?, self.limits.sqlite.max_row_bytes)?;
+            let item = verify_seek_row(read_seek_row(row)?, self.raw_input_max_bytes)?;
             let next_bytes = bytes
                 .checked_add(item.payload.len() as u64)
                 .ok_or(Error::Budget("stage seek bytes"))?;
@@ -1189,6 +1488,7 @@ impl<'a> KnowledgeStage<'a> {
     }
 
     pub fn finish(mut self) -> Result<StageReceipt> {
+        self.exact_receipt()?;
         if self.public_build {
             return Err(Error::Invalid("public D1 stage has no selected finish"));
         }
@@ -1323,11 +1623,11 @@ impl<'a> KnowledgeStage<'a> {
         self.remove_lease()?;
         self.keep = true;
         Ok(StageReceipt {
-            binding: self.receipt.binding.clone(),
-            source_cut: self.receipt.binding.source_cut.clone(),
-            membership_root: self.receipt.binding.membership_root.clone(),
-            input_collections: self.receipt.collections.len(),
-            verified_inputs: self.receipt.collections.clone(),
+            binding: self.exact_receipt()?.binding.clone(),
+            source_cut: self.exact_receipt()?.binding.source_cut.clone(),
+            membership_root: self.exact_receipt()?.binding.membership_root.clone(),
+            input_collections: self.receipt.collections().len(),
+            verified_inputs: self.receipt.collections().to_vec(),
             input_rows,
             node_rows,
             relation_rows,
@@ -1573,14 +1873,8 @@ fn verify_fresh_selected(
     {
         return Err(Error::Invalid("fresh selected SQLite sidecar"));
     }
-    let uri = format!(
-        "file:/proc/self/fd/{}?mode=ro&immutable=1",
-        pinned.as_raw_fd()
-    );
-    let db = Connection::open_with_flags(
-        uri,
-        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI,
-    )?;
+    let db = tos_source_store::PinnedSqliteConnection::open_readonly_immutable(pinned)
+        .map_err(|error| Error::Source(error.to_string()))?;
     sqlite_budget::install_progress(&db, limits, used);
     db.pragma_update(None, "cache_size", -(limits.sqlite_cache_kib as i64))?;
     db.execute_batch("PRAGMA temp_store=FILE")?;

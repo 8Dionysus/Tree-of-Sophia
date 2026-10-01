@@ -27,6 +27,45 @@ use tos_source_store::{
 };
 use tos_validation::source_cut::CutWorkerSchemaExecutor;
 
+#[path = "source_foundation_artifact_replay.rs"]
+pub(crate) mod foundation_artifact_replay;
+#[path = "source_foundation_bootstrap.rs"]
+pub(crate) mod foundation_bootstrap;
+#[path = "source_foundation_bootstrap_config.rs"]
+pub(crate) mod foundation_bootstrap_config;
+#[path = "source_foundation_candidate_catalog.rs"]
+pub(crate) mod foundation_candidate_catalog;
+#[path = "source_foundation_capture.rs"]
+pub(crate) mod foundation_capture;
+#[path = "source_foundation_catalog.rs"]
+pub(crate) mod foundation_catalog;
+#[path = "source_foundation_cli.rs"]
+pub(crate) mod foundation_cli;
+#[path = "source_foundation_command.rs"]
+pub mod foundation_command;
+#[path = "source_foundation_entry.rs"]
+pub(crate) mod foundation_entry;
+#[path = "source_foundation_execution_limits.rs"]
+pub(crate) mod foundation_execution_limits;
+#[path = "source_foundation_lab_resolution.rs"]
+pub(crate) mod foundation_lab_resolution;
+#[path = "source_foundation_orchestrator.rs"]
+pub(crate) mod foundation_orchestrator;
+#[path = "source_foundation_output.rs"]
+pub(crate) mod foundation_output;
+#[path = "source_foundation_payload.rs"]
+pub(crate) mod foundation_payload;
+#[path = "source_foundation_physical.rs"]
+pub(crate) mod foundation_physical;
+#[path = "source_foundation_reader.rs"]
+pub(crate) mod foundation_reader;
+#[path = "source_foundation_rule_diagnostics.rs"]
+pub(crate) mod foundation_rule_diagnostics;
+#[path = "source_foundation_run.rs"]
+pub(crate) mod foundation_run;
+#[path = "source_foundation_selection.rs"]
+pub(crate) mod foundation_selection;
+
 /// A verified controlled source generation, never a v1 SourceRevision.
 /// Installed current/history roots bind custody membership; the managed
 /// cohort separately binds the actual Agent identity/home predicate law.
@@ -402,6 +441,44 @@ fn object(
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> Result<()> {
+    object_inner(objects, digest, bytes, uid, 8_388_608, deadline, cancel)
+}
+
+fn object_with_limit(
+    objects: &File,
+    digest: Digest256,
+    bytes: &[u8],
+    uid: u32,
+    max_file_bytes: usize,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> Result<()> {
+    active(deadline, cancel)?;
+    if max_file_bytes == 0 || max_file_bytes == usize::MAX || bytes.len() > max_file_bytes {
+        return Err(Error::Unsupported(
+            "foundation candidate staged file byte limit",
+        ));
+    }
+    object_inner(
+        objects,
+        digest,
+        bytes,
+        uid,
+        max_file_bytes,
+        deadline,
+        cancel,
+    )
+}
+
+fn object_inner(
+    objects: &File,
+    digest: Digest256,
+    bytes: &[u8],
+    uid: u32,
+    max_file_bytes: usize,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> Result<()> {
     active(deadline, cancel)?;
     if Digest256::of_bytes(bytes) != digest {
         return Err(Error::Invalid("current cut object SHA differs"));
@@ -411,7 +488,7 @@ fn object(
     }
     let mut stage = PendingCreation::create(objects, uid, deadline, cancel)?;
     let name = digest.to_hex();
-    stage.write(&name, bytes, deadline, cancel)?;
+    stage.write_with_limit(&name, bytes, max_file_bytes, deadline, cancel)?;
     let file = tos_fd_open::open_regular_at(&stage.directory, Path::new(&name))
         .map_err(|_| Error::Conflict("current cut staged object unavailable"))?;
     file.set_permissions(Permissions::from_mode(0o444))
@@ -543,6 +620,44 @@ fn install_manifest(
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> Result<()> {
+    install_manifest_inner(revisions, revision, bytes, uid, 8_388_608, deadline, cancel)
+}
+
+fn install_manifest_with_limit(
+    revisions: &File,
+    revision: SourceRevision,
+    bytes: &[u8],
+    uid: u32,
+    max_file_bytes: usize,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> Result<()> {
+    active(deadline, cancel)?;
+    if max_file_bytes == 0 || max_file_bytes == usize::MAX || bytes.len() > max_file_bytes {
+        return Err(Error::Unsupported(
+            "foundation candidate staged file byte limit",
+        ));
+    }
+    install_manifest_inner(
+        revisions,
+        revision,
+        bytes,
+        uid,
+        max_file_bytes,
+        deadline,
+        cancel,
+    )
+}
+
+fn install_manifest_inner(
+    revisions: &File,
+    revision: SourceRevision,
+    bytes: &[u8],
+    uid: u32,
+    max_file_bytes: usize,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> Result<()> {
     let name = revision.0.to_hex();
     let existing = match tos_fd_open::open_directory_at(revisions, Path::new(&name)) {
         Ok(existing) => Some(existing),
@@ -570,7 +685,7 @@ fn install_manifest(
         return Ok(());
     }
     let mut stage = PendingCreation::create(revisions, uid, deadline, cancel)?;
-    stage.write("snapshot.json", bytes, deadline, cancel)?;
+    stage.write_with_limit("snapshot.json", bytes, max_file_bytes, deadline, cancel)?;
     let file = tos_fd_open::open_regular_at(&stage.directory, Path::new("snapshot.json"))
         .map_err(|_| Error::Conflict("current cut manifest readback unavailable"))?;
     file.set_permissions(Permissions::from_mode(0o444))
@@ -685,10 +800,31 @@ fn verify_export_chain(
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> Result<()> {
+    verify_named_export_chain(
+        isolated,
+        ".managed-source-cut",
+        export,
+        objects,
+        revisions,
+        uid,
+        deadline,
+        cancel,
+    )
+}
+
+fn verify_named_export_chain(
+    isolated: &IsolatedCreationRoot,
+    name: &str,
+    export: &File,
+    objects: &File,
+    revisions: &File,
+    uid: u32,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> Result<()> {
     let current_root = isolated.verify_current(deadline, cancel)?;
-    let current_export =
-        tos_fd_open::open_directory_at(&current_root, Path::new(".managed-source-cut"))
-            .map_err(|_| Error::Conflict("current source export replaced"))?;
+    let current_export = tos_fd_open::open_directory_at(&current_root, Path::new(name))
+        .map_err(|_| Error::Conflict("current source export replaced"))?;
     let current_objects = tos_fd_open::open_directory_at(&current_export, Path::new("objects"))
         .map_err(|_| Error::Conflict("current source objects replaced"))?;
     let current_revisions = tos_fd_open::open_directory_at(&current_export, Path::new("revisions"))

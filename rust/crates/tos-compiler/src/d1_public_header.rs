@@ -20,8 +20,59 @@ pub(crate) fn build_public_header(
     configuration_digest: Digest256,
     semantic_report: &Value,
 ) -> Result<Value> {
-    if !stage.public_build()
-        || source_revision.len() != 64
+    if !stage.public_build() {
+        return Err(Error::Invalid("public D1 stage required"));
+    }
+    build_public_header_captured(
+        stage,
+        capture,
+        registry,
+        entity_bytes,
+        source_revision,
+        processor_digest,
+        configuration_digest,
+        semantic_report,
+    )
+}
+
+pub(crate) fn build_native_snapshot_header(
+    stage: &mut KnowledgeStage<'_>,
+    capture: &PublicCapture,
+    registry: &KnowledgeRegistry,
+    entity_bytes: &[u8],
+    source_revision: &str,
+    processor_digest: Digest256,
+    configuration_digest: Digest256,
+    semantic_report: &Value,
+) -> Result<Value> {
+    if stage.public_build()
+        || stage.exact_receipt()?.binding.owner_profile != "tos-native-projection-snapshot-v1"
+    {
+        return Err(Error::Invalid("native snapshot stage required"));
+    }
+    build_public_header_captured(
+        stage,
+        capture,
+        registry,
+        entity_bytes,
+        source_revision,
+        processor_digest,
+        configuration_digest,
+        semantic_report,
+    )
+}
+
+fn build_public_header_captured(
+    stage: &mut KnowledgeStage<'_>,
+    capture: &PublicCapture,
+    registry: &KnowledgeRegistry,
+    entity_bytes: &[u8],
+    source_revision: &str,
+    processor_digest: Digest256,
+    configuration_digest: Digest256,
+    semantic_report: &Value,
+) -> Result<Value> {
+    if source_revision.len() != 64
         || !source_revision.bytes().all(|byte| byte.is_ascii_hexdigit())
         || semantic_report.get("valid") != Some(&Value::Bool(true))
         || semantic_report.get("violations") != Some(&json!([]))

@@ -199,6 +199,122 @@ impl AddressedInventoryV2 {
         Ok(result)
     }
 
+    /// Consume a complete, semantically sealed cold assessment cursor. The
+    /// caller owns source verification; this builder grants only STO custody.
+    /// Unlike the compatibility PG traversal, it retains one bounded canonical
+    /// projection at a time and does not impose a whole projection byte cap.
+    pub(super) fn build_from_assessed_projections<I>(
+        store: &SegmentStore,
+        projections: I,
+        expected_count: u64,
+        limits: AuthenticatedTreeLimitsV1,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        work: &mut AuthenticatedTreeWorkV1,
+    ) -> DurableResult<Self>
+    where
+        I: IntoIterator<Item = DurableResult<(String, Vec<u8>)>>,
+    {
+        active(deadline, cancelled)?;
+        if expected_count > limits.max_rows {
+            return Err(DurableError::Refused("streamed inventory row bound"));
+        }
+        let mut projections = projections.into_iter();
+        let mut profiles = BTreeMap::<String, Digest256>::new();
+        let mut after = None::<String>;
+        let mut count = 0u64;
+        let mut failure = None;
+        let mut ended = false;
+        let entries = std::iter::from_fn(|| {
+            if ended {
+                return None;
+            }
+            let input = match projections.next() {
+                Some(input) => input,
+                None => {
+                    ended = true;
+                    return None;
+                }
+            };
+            let entry = (|| -> DurableResult<AuthenticatedTreeEntryV1> {
+                active(deadline, cancelled)?;
+                let (path, raw) = input?;
+                if !path.starts_with("ToS/")
+                    || after.as_ref().is_some_and(|prior| path <= *prior)
+                    || path.len() > limits.max_key_bytes
+                {
+                    return Err(DurableError::Corrupt("streamed inventory path/order"));
+                }
+                let value = parse_projection(&path, &raw, None)?;
+                collect_profiles(&value, &mut profiles)?;
+                count = count
+                    .checked_add(1)
+                    .filter(|n| *n <= expected_count)
+                    .ok_or(DurableError::Corrupt("streamed inventory extra rows"))?;
+                let digest = Digest256::of_bytes(&raw);
+                let key = path.as_bytes().to_vec();
+                after = Some(path);
+                active(deadline, cancelled)?;
+                Ok(AuthenticatedTreeEntryV1 {
+                    key,
+                    value: digest.as_bytes().to_vec(),
+                })
+            })();
+            match entry {
+                Ok(entry) => Some(Ok(entry)),
+                Err(error) => {
+                    ended = true;
+                    failure = Some(error);
+                    Some(Err(SegmentError::new(
+                        SegmentErrorCode::CorruptBytes,
+                        "streamed inventory assessment cursor failed",
+                    )))
+                }
+            }
+        });
+        let result = store.build_authenticated_tree_v2_with_work(
+            PROJECTION_KIND,
+            entries,
+            limits,
+            deadline,
+            cancelled,
+        );
+        if let Some(error) = failure {
+            return Err(error);
+        }
+        let (projection_tree, projection_work) = result.map_err(tree_error)?;
+        add_tree_work(work, projection_work)?;
+        // A partial producer is never a complete selected inventory witness.
+        if !ended || count != expected_count || projection_tree.entries != count {
+            return Err(DurableError::Corrupt(
+                "streamed inventory EOF/count differs",
+            ));
+        }
+        let (profile_tree, profile_work) = store
+            .build_authenticated_tree_v2_with_work(
+                PROFILE_KIND,
+                profiles.into_iter().map(|(path, digest)| {
+                    Ok(AuthenticatedTreeEntryV1 {
+                        key: path.into_bytes(),
+                        value: digest.as_bytes().to_vec(),
+                    })
+                }),
+                limits,
+                deadline,
+                cancelled,
+            )
+            .map_err(tree_error)?;
+        add_tree_work(work, profile_work)?;
+        let result = Self {
+            projections: projection_tree,
+            profiles: profile_tree,
+        };
+        result.require_store(store)?;
+        result.check_descriptor_pair()?;
+        active(deadline, cancelled)?;
+        Ok(result)
+    }
+
     /// Apply only newly inserted current projections. Existing subjects cannot
     /// be rewritten on this controlled creation path. Profile conflicts fail
     /// before either immutable tree is advanced.

@@ -231,7 +231,7 @@ fn prepare_inner(
     limits.validate()?;
     Digest256::from_hex(&seal.relation_root_sha256)
         .map_err(|_| Error::Invalid("inherited relation seal root"))?;
-    if seal.source_cut != stage.exact_receipt().binding.source_cut
+    if seal.source_cut != stage.exact_receipt()?.binding.source_cut
         || seal.relation_count > limits.max_relations
     {
         return Err(Error::Invalid("inherited complete relation seal"));

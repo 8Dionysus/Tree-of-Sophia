@@ -187,7 +187,7 @@ pub fn retain_philosophy_original(
 ) -> Result<PhilosophyOriginalReceipt> {
     let result = (|| {
         input.limits.validate()?;
-        let binding = stage.exact_receipt().binding.clone();
+        let binding = stage.exact_receipt()?.binding.clone();
         let source = vocabulary
             .sources
             .iter()
@@ -277,7 +277,7 @@ pub fn retain_philosophy_original(
         };
         header(input.header, &r, input.limits.max_row_bytes)?;
         r.component_root_sha256 = root(&r)?;
-        validate_producer_receipt(&r, &stage.exact_receipt().collections)?;
+        validate_producer_receipt(&r, &stage.exact_receipt()?.collections)?;
         let receipt = serde_json::to_vec(&r)
             .map_err(|_| Error::Invalid("philosophy original receipt encoding"))?;
         if receipt.len() > JsonLimits::default().max_bytes {
@@ -532,8 +532,8 @@ pub(crate) fn verify_stage(
     stage: &mut KnowledgeStage<'_>,
     descriptor: Option<&str>,
 ) -> Result<Option<PhilosophyOriginalReceipt>> {
-    let binding = stage.exact_receipt().binding.clone();
-    let inputs = stage.exact_receipt().collections.clone();
+    let binding = stage.exact_receipt()?.binding.clone();
+    let inputs = stage.exact_receipt()?.collections.clone();
     stage.with_connection(WritePhase::Finalize, |db| {
         if !present(db)? {
             return Ok(None);

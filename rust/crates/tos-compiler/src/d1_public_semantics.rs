@@ -963,8 +963,33 @@ pub(crate) fn validate_public_semantics(
     relation_bytes: &[u8],
 ) -> Result<Value> {
     if !stage.public_build() {
-        return Err(Error::Invalid("public D1 semantic registry binding"));
+        return Err(Error::Invalid("public D1 stage required"));
     }
+    validate_public_semantics_captured(stage, capture, registry, entity_bytes, relation_bytes)
+}
+
+pub(crate) fn validate_native_snapshot_semantics(
+    stage: &mut KnowledgeStage<'_>,
+    capture: &PublicCapture,
+    registry: &KnowledgeRegistry,
+    entity_bytes: &[u8],
+    relation_bytes: &[u8],
+) -> Result<Value> {
+    if stage.public_build()
+        || stage.exact_receipt()?.binding.owner_profile != "tos-native-projection-snapshot-v1"
+    {
+        return Err(Error::Invalid("native snapshot stage required"));
+    }
+    validate_public_semantics_captured(stage, capture, registry, entity_bytes, relation_bytes)
+}
+
+fn validate_public_semantics_captured(
+    stage: &mut KnowledgeStage<'_>,
+    capture: &PublicCapture,
+    registry: &KnowledgeRegistry,
+    entity_bytes: &[u8],
+    relation_bytes: &[u8],
+) -> Result<Value> {
     capture.charge_work(
         (entity_bytes.len() as u64)
             .checked_add(relation_bytes.len() as u64)

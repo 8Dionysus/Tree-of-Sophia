@@ -148,13 +148,13 @@ fn other_placeholders(
     limits: NavigationMaterializeLimits,
 ) -> Result<String> {
     let entries = stage
-        .exact_receipt()
+        .exact_receipt()?
         .collections
         .iter()
         .filter(|entry| entry.collection == "edges" && entry.source_graph != navigation_source)
         .cloned()
         .collect::<Vec<_>>();
-    let cut = stage.exact_receipt().binding.source_cut.clone();
+    let cut = stage.exact_receipt()?.binding.source_cut.clone();
     let mut evidence = Digest256Hasher::new();
     evidence.update(b"tos-native-other-placeholder-absence-v1\0");
     let mut placeholders = 0u64;
@@ -304,7 +304,7 @@ fn prepared_family_placeholders(
     limits: NavigationMaterializeLimits,
 ) -> Result<String> {
     use crate::knowledge_stage::SeekRow;
-    let cut = stage.exact_receipt().binding.source_cut.clone();
+    let cut = stage.exact_receipt()?.binding.source_cut.clone();
     let mut hash = Digest256Hasher::new();
     hash.update(b"tos-native-prepared-placeholder-absence-v1\0");
     let mut work = 0u64;

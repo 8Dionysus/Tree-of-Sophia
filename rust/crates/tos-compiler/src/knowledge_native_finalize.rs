@@ -149,7 +149,7 @@ where
 {
     let result = (|| {
         limits.validate()?;
-        if inherited.source_cut != stage.exact_receipt().binding.source_cut
+        if inherited.source_cut != stage.exact_receipt()?.binding.source_cut
             || inherited.final_graph_rows_written
         {
             return Err(Error::Invalid("native final inherited cut"));
@@ -235,7 +235,7 @@ where
                             }
                         }
                     }
-                    let precompiled = stage.exact_receipt().collections.iter().any(|entry| {
+                    let precompiled = stage.exact_receipt()?.collections.iter().any(|entry| {
                         entry.source_graph == row.source
                             && entry.adapter_profile == "indexed-node-edge-v1"
                     });
@@ -261,7 +261,7 @@ where
                         )?;
                         let needs_raw = owner.is_none();
                         for collection in collections.iter().filter(|_| needs_raw) {
-                            if !stage.exact_receipt().collections.iter().any(|entry| {
+                            if !stage.exact_receipt()?.collections.iter().any(|entry| {
                                 entry.source_graph == row.source && entry.collection == *collection
                             }) {
                                 continue;
@@ -276,7 +276,7 @@ where
                         let mut owner =
                             owner.ok_or(Error::Invalid("native ordered source witness absent"))?;
                         if table == "knowledge_nodes"
-                            && stage.exact_receipt().collections.iter().any(|entry| {
+                            && stage.exact_receipt()?.collections.iter().any(|entry| {
                                 entry.source_graph == row.source
                                     && entry.collection == "nodes"
                                     && entry.adapter_profile == "reified-bibliographic-claims-v1"
@@ -288,7 +288,7 @@ where
                             )?;
                         }
                         if table == "knowledge_relations"
-                            && stage.exact_receipt().collections.iter().any(|entry| {
+                            && stage.exact_receipt()?.collections.iter().any(|entry| {
                                 entry.source_graph == row.source
                                     && entry.collection == "edges"
                                     && entry.adapter_profile == "reified-bibliographic-claims-v1"

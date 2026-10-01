@@ -364,9 +364,116 @@ pub(crate) fn csv_records<F>(
 where
     F: FnMut(Vec<String>) -> Result<()>,
 {
+    csv_records_with_spans(
+        raw,
+        CsvReadLimits {
+            max_fields: l.max_csv_fields,
+            max_record_bytes: l.max_csv_record_bytes,
+        },
+        deadline,
+        cancelled,
+        |row, _, _| {
+            emit(row)?;
+            Ok(true)
+        },
+    )
+}
+
+/// Exact retained CSV row, parsed by the authored corpus parser. Byte offsets
+/// preserve CR/LF and quoted records; no catalog membership or rights are granted.
+pub fn read_exact_authored_csv_row(
+    raw: &[u8],
+    ordinal: u64,
+    expected: &Value,
+    max_record_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<Value> {
+    if ordinal == 0
+        || ordinal > 9_007_199_254_740_991
+        || raw.len() > 8 * 1024 * 1024
+        || max_record_bytes == 0
+        || max_record_bytes > 1024 * 1024
+    {
+        return Err(Error::Invalid("exact CSV row binding/budget"));
+    }
+    let expected = expected
+        .as_object()
+        .ok_or(Error::Invalid("exact CSV row object"))?;
+    if expected.values().any(|v| !v.is_null() && !v.is_string()) {
+        return Err(Error::Invalid("exact CSV cell"));
+    }
+    let limits = CsvReadLimits {
+        max_fields: 1024,
+        max_record_bytes: 8 * 1024 * 1024,
+    };
+    let mut columns: Option<Vec<String>> = None;
+    let mut count = 0u64;
+    let mut selected = None;
+    csv_records_with_spans(raw, limits, deadline, cancelled, |cells, start, end| {
+        if columns.is_none() {
+            if cells.is_empty()
+                || cells.iter().any(String::is_empty)
+                || cells.iter().collect::<BTreeSet<_>>().len() != cells.len()
+            {
+                return Err(Error::Invalid("exact CSV unique header"));
+            }
+            columns = Some(cells);
+            return Ok(true);
+        }
+        if cells.is_empty() {
+            return Ok(true);
+        }
+        count += 1;
+        let names = columns.as_ref().unwrap();
+        if cells.len() > names.len() {
+            return Err(Error::Invalid("exact CSV unnamed cells"));
+        }
+        if count != ordinal {
+            return Ok(true);
+        }
+        if end - start > max_record_bytes {
+            return Err(Error::Budget("exact CSV record bytes"));
+        }
+        let record: serde_json::Map<String, Value> = names
+            .iter()
+            .enumerate()
+            .map(|(i, n)| (n.clone(), cells.get(i).map_or(Value::Null, |v| json!(v))))
+            .collect();
+        if &record != expected {
+            return Err(Error::Invalid("exact CSV retained record differs"));
+        }
+        let raw_record =
+            std::str::from_utf8(&raw[start..end]).map_err(|_| Error::Invalid("exact CSV UTF-8"))?;
+        selected = Some(
+            json!({"record":record,"columns":names,"source_row":ordinal,"byte_offset":start,
+            "row_bytes":end-start,"raw_record":raw_record,"raw_record_sha256":Digest256::of_bytes(&raw[start..end]).to_hex(),
+            "source_file_sha256":Digest256::of_bytes(raw).to_hex()}),
+        );
+        Ok(false)
+    })?;
+    selected.ok_or(Error::Invalid("exact CSV row absent"))
+}
+
+struct CsvReadLimits {
+    max_fields: usize,
+    max_record_bytes: usize,
+}
+
+fn csv_records_with_spans<F>(
+    raw: &[u8],
+    l: CsvReadLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    mut emit: F,
+) -> Result<()>
+where
+    F: FnMut(Vec<String>, usize, usize) -> Result<bool>,
+{
     let text = std::str::from_utf8(raw).map_err(|_| Error::Invalid("canon relation CSV UTF-8"))?;
     let bytes = text.as_bytes();
     let mut i = 0;
+    let mut record_start = 0;
     let mut field = Vec::new();
     let mut record = Vec::new();
     let mut started = false;
@@ -380,7 +487,7 @@ where
         record_bytes = record_bytes
             .checked_add(1)
             .ok_or(Error::Budget("canon CSV record"))?;
-        if record_bytes > l.max_csv_record_bytes {
+        if record_bytes > l.max_record_bytes {
             return Err(Error::Budget("canon CSV record"));
         }
         if quoted {
@@ -411,7 +518,7 @@ where
                     String::from_utf8(std::mem::take(&mut field))
                         .map_err(|_| Error::Invalid("canon CSV cell UTF-8"))?,
                 );
-                if record.len() >= l.max_csv_fields {
+                if record.len() >= l.max_fields {
                     return Err(Error::Budget("canon CSV fields"));
                 }
                 started = true;
@@ -426,13 +533,18 @@ where
                         String::from_utf8(std::mem::take(&mut field))
                             .map_err(|_| Error::Invalid("canon CSV cell UTF-8"))?,
                     );
-                    emit(std::mem::take(&mut record))?;
+                    if !emit(std::mem::take(&mut record), record_start, i)? {
+                        return Ok(());
+                    }
                 } else {
-                    emit(Vec::new())?;
+                    if !emit(Vec::new(), record_start, i)? {
+                        return Ok(());
+                    }
                 }
                 started = false;
                 closed = false;
                 record_bytes = 0;
+                record_start = i;
             }
             _ => {
                 field.push(b);
@@ -445,7 +557,7 @@ where
     }
     if started || !field.is_empty() || !record.is_empty() {
         record.push(String::from_utf8(field).map_err(|_| Error::Invalid("canon CSV cell UTF-8"))?);
-        emit(record)?;
+        emit(record, record_start, i)?;
     }
     Ok(())
 }
@@ -880,7 +992,7 @@ where
     check(deadline, cancelled)?;
     Ok(CanonSourceReceipt {
         source_revision: revision.0.to_hex(),
-        job_source_cut: stage.exact_receipt().binding.source_cut.clone(),
+        job_source_cut: stage.exact_receipt()?.binding.source_cut.clone(),
         manifest_members: manifest.count,
         manifest_membership_root_sha256: manifest.digest.to_hex(),
         selected_members_read: work.selected,
@@ -970,7 +1082,7 @@ fn source_custody(
     work: &mut u64,
 ) -> Result<Vec<InputCollectionReceipt>> {
     if stage
-        .exact_receipt()
+        .exact_receipt()?
         .collections
         .iter()
         .filter(|c| c.source_graph == CANON_SOURCE_CUSTODY)
@@ -993,7 +1105,7 @@ fn source_custody(
         ),
     ] {
         let entries = stage
-            .exact_receipt()
+            .exact_receipt()?
             .collections
             .iter()
             .filter(|c| {
@@ -1195,7 +1307,7 @@ fn ingest_canon_page(
 fn match_target(stage: &KnowledgeStage<'_>, receipt: &CanonSourceReceipt) -> Result<()> {
     for c in &receipt.collections {
         let entries = stage
-            .exact_receipt()
+            .exact_receipt()?
             .collections
             .iter()
             .filter(|r| r.source_graph == c.source_graph && r.collection == c.collection)
@@ -1218,7 +1330,7 @@ fn match_target(stage: &KnowledgeStage<'_>, receipt: &CanonSourceReceipt) -> Res
         .collect::<BTreeSet<_>>()
     {
         if stage
-            .exact_receipt()
+            .exact_receipt()?
             .collections
             .iter()
             .filter(|c| &c.source_graph == graph)
@@ -1279,7 +1391,7 @@ where
         )?;
         Ok(CanonSourcePlan {
             receipt,
-            planner_binding: binding_snapshot(&planner.exact_receipt().binding),
+            planner_binding: binding_snapshot(&planner.exact_receipt()?.binding),
             source_inputs,
             selected_revision: expected_revision,
             selected_membership: expected_membership,
@@ -1310,14 +1422,14 @@ pub fn render_canon_source_plan(
         selected_cut(cut, expected_revision, expected_membership, limits)?;
         if plan.selected_revision != expected_revision
             || plan.selected_membership != expected_membership
-            || binding_snapshot(&planner.exact_receipt().binding) != plan.planner_binding
+            || binding_snapshot(&planner.exact_receipt()?.binding) != plan.planner_binding
             || plan.receipt.source_revision != expected_revision.0.to_hex()
             || plan.receipt.manifest_members != expected_membership.count
             || plan.receipt.manifest_membership_root_sha256 != expected_membership.digest.to_hex()
         {
             return Err(Error::Invalid("canon frozen source plan binding"));
         }
-        let mut target_binding = binding_snapshot(&target.exact_receipt().binding);
+        let mut target_binding = binding_snapshot(&target.exact_receipt()?.binding);
         // Each stage's projection digest binds its own independent raw input
         // transport. All source-owner identity/currentness fields must agree.
         target_binding["projection_root_sha256"] =
@@ -1502,5 +1614,64 @@ mod tests {
         assert!(exact_node_numbers(&lossy, 8192).is_err());
         cancelled.store(true, Ordering::Relaxed);
         assert!(csv_records(raw, l, deadline, &cancelled, |_| Ok(())).is_err());
+    }
+}
+
+#[cfg(test)]
+mod exact_csv_read_tests {
+    use super::*;
+    #[test]
+    fn exact_csv_spans_preserve_quoted_newlines_and_missing_cells() {
+        let raw = b"edge_id,label,note\r\n\r\ne1,\"alpha\r\nbeta\",\"a\"\"b\"\r\ne2,last\r\n";
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + std::time::Duration::from_secs(1);
+        let first = read_exact_authored_csv_row(
+            raw,
+            1,
+            &json!({"edge_id":"e1","label":"alpha\r\nbeta","note":"a\"b"}),
+            1024,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let start = first["byte_offset"].as_u64().unwrap() as usize;
+        let len = first["row_bytes"].as_u64().unwrap() as usize;
+        assert_eq!(
+            first["raw_record"],
+            std::str::from_utf8(&raw[start..start + len]).unwrap()
+        );
+        assert_eq!(first["raw_record"], "e1,\"alpha\r\nbeta\",\"a\"\"b\"\r\n");
+        let second = read_exact_authored_csv_row(
+            raw,
+            2,
+            &json!({"edge_id":"e2","label":"last","note":null}),
+            1024,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        assert_eq!(second["raw_record"], "e2,last\r\n");
+        assert!(
+            read_exact_authored_csv_row(
+                raw,
+                2,
+                &json!({"edge_id":"e2","label":"last","note":""}),
+                1024,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        assert!(
+            read_exact_authored_csv_row(
+                raw,
+                1,
+                &json!({"edge_id":"e1","label":"alpha\r\nbeta","note":"a\"b"}),
+                4,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
     }
 }

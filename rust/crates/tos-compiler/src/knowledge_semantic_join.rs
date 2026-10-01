@@ -326,14 +326,14 @@ pub fn prepare_semantic_joins(
             .find(|s| s.source_graph_id == source)
             .unwrap();
         let roots = stage.core_roots()?;
-        if base.source_cut != stage.exact_receipt().binding.source_cut
+        if base.source_cut != stage.exact_receipt()?.binding.source_cut
             || base.node_count != roots.nodes
             || base.node_root_sha256 != roots.node_sha256
         {
             return Err(Error::Invalid("semantic complete base node closure"));
         }
         let coverage = stage
-            .exact_receipt()
+            .exact_receipt()?
             .collections
             .iter()
             .filter(|e| e.source_graph == source)
@@ -503,7 +503,7 @@ fn verify(
     limits: TopologyLimits,
 ) -> Result<()> {
     limits.validate()?;
-    if receipt.source_cut != stage.exact_receipt().binding.source_cut {
+    if receipt.source_cut != stage.exact_receipt()?.binding.source_cut {
         return Err(Error::Invalid("semantic join cut"));
     }
     let (count, hash) = root(stage, receipt, limits)?;

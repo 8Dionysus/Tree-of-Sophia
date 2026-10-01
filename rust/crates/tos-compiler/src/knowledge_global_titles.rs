@@ -113,7 +113,7 @@ fn build_inner(
 ) -> Result<GlobalTitleReceipt> {
     limits.validate()?;
     if sealed.source_cut.is_empty()
-        || sealed.source_cut != stage.exact_receipt().binding.source_cut
+        || sealed.source_cut != stage.exact_receipt()?.binding.source_cut
         || sealed.node_count > limits.max_nodes
         || Digest256::from_hex(&sealed.node_root_sha256).is_err()
     {
@@ -249,7 +249,7 @@ pub fn endpoint_title(
     endpoint_id: &str,
     max_title_bytes: usize,
 ) -> Result<Value> {
-    if receipt.source_cut != stage.exact_receipt().binding.source_cut
+    if receipt.source_cut != stage.exact_receipt()?.binding.source_cut
         || endpoint_id.is_empty()
         || endpoint_id.len() > 4096
         || max_title_bytes == 0
@@ -294,7 +294,7 @@ pub fn verify_global_titles(
     max_work_bytes: u64,
 ) -> Result<()> {
     let result = (|| {
-        if receipt.source_cut != stage.exact_receipt().binding.source_cut
+        if receipt.source_cut != stage.exact_receipt()?.binding.source_cut
             || receipt.title_count != receipt.base_node_count
             || max_title_bytes == 0
             || max_title_bytes > 64 * 1024

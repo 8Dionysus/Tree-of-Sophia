@@ -27,7 +27,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
-use tos_foundation::{Digest256, JsonValue, RelativePath};
+use tos_foundation::{Digest256, Digest256Hasher, JsonValue, RelativePath};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
@@ -767,6 +767,1082 @@ impl IsolatedCreationRoot {
         Ok(current)
     }
 }
+
+const DISPOSABLE_CATALOG_PREFIX: &str = "ToS/source-witnesses/catalog/";
+const DISPOSABLE_CATALOG_MANIFEST: &str = "catalog.manifest.json";
+const DISPOSABLE_CATALOG_MANIFEST_REF: &str = "ToS/source-witnesses/catalog/catalog.manifest.json";
+
+/// Explicit caller-owned caps for one disposable render. `max_files` includes
+/// the manifest and `max_inodes` includes the three fixed namespace directories
+/// plus every regular output file. These are invocation limits, not defaults.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct DisposableCatalogTreeLimits {
+    pub(crate) max_total_bytes: usize,
+    pub(crate) max_file_bytes: usize,
+    pub(crate) max_files: usize,
+    pub(crate) max_state_bytes: usize,
+    pub(crate) max_inodes: usize,
+}
+
+/// Logical counters for the private render. Readback bytes are additional I/O;
+/// `peak_state_upper_bound_bytes` is an admitted live-state estimate, not RSS.
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct DisposableCatalogTreeCost {
+    pub(crate) output_files: usize,
+    pub(crate) output_bytes: usize,
+    pub(crate) readback_bytes: usize,
+    pub(crate) created_inodes: usize,
+    pub(crate) peak_state_upper_bound_bytes: usize,
+}
+
+#[derive(Clone, Copy)]
+struct DisposableCatalogFileReceipt {
+    sha256: Digest256,
+    size_bytes: usize,
+    identity: (u64, u64),
+}
+
+struct DisposableCatalogOpenFile {
+    leaf: String,
+    file: File,
+    sha256: Digest256Hasher,
+    size_bytes: usize,
+    state_charge: usize,
+}
+
+/// A fresh generated catalog confined to a unique, private isolated root. It
+/// never replaces authored/current files and removes only its own verified
+/// subtree on drop. The isolated root's link count is deliberately not pinned:
+/// creating these private child directories legitimately changes that count.
+pub(crate) struct DisposableCatalogTree<'a> {
+    isolated: &'a IsolatedCreationRoot,
+    root: File,
+    root_identity: (u64, u64),
+    tos: Option<File>,
+    tos_identity: Option<(u64, u64)>,
+    witness: Option<File>,
+    witness_identity: Option<(u64, u64)>,
+    catalog: Option<File>,
+    catalog_identity: Option<(u64, u64)>,
+    files: BTreeMap<String, DisposableCatalogFileReceipt>,
+    current: Option<DisposableCatalogOpenFile>,
+    limits: DisposableCatalogTreeLimits,
+    internal_state_bytes: usize,
+    external_state_bytes: usize,
+    peak_state_bytes: usize,
+    output_bytes: usize,
+    readback_bytes: usize,
+    created_inodes: usize,
+    manifest_written: bool,
+    eof_verified: bool,
+}
+
+impl<'a> DisposableCatalogTree<'a> {
+    fn directory_chain_scratch_bytes() -> Option<usize> {
+        4usize
+            .checked_mul(std::mem::size_of::<File>())?
+            .checked_add(2usize.checked_mul(std::mem::size_of::<Metadata>())?)?
+            .checked_add(std::mem::size_of::<[&File; 3]>())
+    }
+
+    pub(crate) fn minimum_state_upper_bound() -> Option<usize> {
+        std::mem::size_of::<Self>().checked_add(Self::directory_chain_scratch_bytes()?)
+    }
+
+    pub(crate) fn create(
+        isolated: &'a IsolatedCreationRoot,
+        limits: DisposableCatalogTreeLimits,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Self> {
+        if limits.max_total_bytes == 0
+            || limits.max_file_bytes == 0
+            || limits.max_files == 0
+            || limits.max_inodes < 3
+        {
+            return Err(SourceCommandError::Unsupported(
+                "catalog candidate tree limits",
+            ));
+        }
+        active(deadline, cancelled)?;
+        let root = isolated.verify_current(deadline, cancelled)?;
+        let root_metadata = owned(&root, rustix::process::geteuid().as_raw(), true)?;
+        if root_metadata.mode() & 0o7777 != 0o700 {
+            return Err(SourceCommandError::Denied(
+                "catalog candidate isolated root mode changed",
+            ));
+        }
+        let root_identity = inode(&root_metadata);
+        let path_state = std::mem::size_of::<Self>();
+        if Self::minimum_state_upper_bound().is_none_or(|minimum| minimum > limits.max_state_bytes)
+        {
+            return Err(SourceCommandError::Unsupported(
+                "catalog candidate tree state budget",
+            ));
+        }
+        let mut tree = Self {
+            isolated,
+            root,
+            root_identity,
+            tos: None,
+            tos_identity: None,
+            witness: None,
+            witness_identity: None,
+            catalog: None,
+            catalog_identity: None,
+            files: BTreeMap::new(),
+            current: None,
+            limits,
+            internal_state_bytes: path_state,
+            external_state_bytes: 0,
+            peak_state_bytes: path_state,
+            output_bytes: 0,
+            readback_bytes: 0,
+            created_inodes: 0,
+            manifest_written: false,
+            eof_verified: false,
+        };
+        tree.create_private_directory(None, "ToS", deadline, cancelled)?;
+        tree.create_private_directory(Some("ToS"), "source-witnesses", deadline, cancelled)?;
+        tree.create_private_directory(Some("source-witnesses"), "catalog", deadline, cancelled)?;
+        tree.verify_directory_chain(deadline, cancelled)?;
+        Ok(tree)
+    }
+
+    fn create_private_directory(
+        &mut self,
+        parent_name: Option<&str>,
+        leaf: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        if self.created_inodes >= self.limits.max_inodes {
+            return Err(SourceCommandError::Unsupported(
+                "catalog candidate inode budget",
+            ));
+        }
+        active(deadline, cancelled)?;
+        let uid = rustix::process::geteuid().as_raw();
+        self.check_state(self.external_state_bytes, std::mem::size_of::<File>())?;
+        let parent: File = match parent_name {
+            None => self.root.try_clone(),
+            Some("ToS") => self
+                .tos
+                .as_ref()
+                .ok_or(SourceCommandError::Conflict(
+                    "catalog candidate parent absent",
+                ))?
+                .try_clone(),
+            Some("source-witnesses") => self
+                .witness
+                .as_ref()
+                .ok_or(SourceCommandError::Conflict(
+                    "catalog candidate parent absent",
+                ))?
+                .try_clone(),
+            _ => {
+                return Err(SourceCommandError::Invalid(
+                    "catalog candidate fixed directory route",
+                ));
+            }
+        }
+        .map_err(|_| SourceCommandError::Invalid("catalog candidate parent duplicate"))?;
+        let parent_metadata = owned(&parent, uid, true)?;
+        if parent_metadata.mode() & 0o7777 != 0o700 {
+            return Err(SourceCommandError::Denied(
+                "catalog candidate private parent mode changed",
+            ));
+        }
+        match rustix::fs::mkdirat(&parent, leaf, Mode::from_raw_mode(0o700)) {
+            Ok(()) => {}
+            Err(Errno::EXIST) => {
+                return Err(SourceCommandError::Conflict(
+                    "catalog candidate namespace already exists",
+                ));
+            }
+            Err(_) => {
+                return Err(SourceCommandError::Invalid(
+                    "catalog candidate directory create",
+                ));
+            }
+        }
+        self.created_inodes += 1;
+        let directory = match child(&parent, leaf) {
+            Ok(directory) => directory,
+            // If the name cannot be reopened, its identity is unknown. Leave it
+            // for the outer isolated-root cleanup rather than deleting a name
+            // that can no longer be proven to be ours.
+            Err(error) => return Err(error),
+        };
+        let identity =
+            inode(&directory.metadata().map_err(|_| {
+                SourceCommandError::Invalid("catalog candidate directory metadata")
+            })?);
+        match (parent_name, leaf) {
+            (None, "ToS") => {
+                self.tos_identity = Some(identity);
+                self.tos = Some(directory);
+            }
+            (Some("ToS"), "source-witnesses") => {
+                self.witness_identity = Some(identity);
+                self.witness = Some(directory);
+            }
+            (Some("source-witnesses"), "catalog") => {
+                self.catalog_identity = Some(identity);
+                self.catalog = Some(directory);
+            }
+            _ => {
+                return Err(SourceCommandError::Invalid(
+                    "catalog candidate fixed directory route",
+                ));
+            }
+        }
+        let directory = match (parent_name, leaf) {
+            (None, "ToS") => self.tos.as_mut(),
+            (Some("ToS"), "source-witnesses") => self.witness.as_mut(),
+            (Some("source-witnesses"), "catalog") => self.catalog.as_mut(),
+            _ => None,
+        }
+        .ok_or(SourceCommandError::Invalid(
+            "catalog candidate fixed directory route",
+        ))?;
+        owned(directory, uid, true)?;
+        directory
+            .set_permissions(Permissions::from_mode(0o700))
+            .map_err(|_| SourceCommandError::Invalid("catalog candidate directory mode"))?;
+        directory
+            .sync_all()
+            .map_err(|_| SourceCommandError::Invalid("catalog candidate directory fsync"))?;
+        parent
+            .sync_all()
+            .map_err(|_| SourceCommandError::Invalid("catalog candidate parent fsync"))?;
+        Ok(())
+    }
+
+    fn verify_directory_chain(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        self.check_state(
+            self.external_state_bytes,
+            Self::directory_chain_scratch_bytes().ok_or(SourceCommandError::Unsupported(
+                "catalog candidate chain state overflow",
+            ))?,
+        )?;
+        let uid = rustix::process::geteuid().as_raw();
+        let current_root = self.isolated.verify_current(deadline, cancelled)?;
+        if inode(&owned(&current_root, uid, true)?) != self.root_identity
+            || inode(&owned(&self.root, uid, true)?) != self.root_identity
+            || owned(&current_root, uid, true)?.mode() & 0o7777 != 0o700
+            || owned(&self.root, uid, true)?.mode() & 0o7777 != 0o700
+        {
+            return Err(SourceCommandError::Conflict(
+                "catalog candidate isolated root identity changed",
+            ));
+        }
+        let named_tos = child(&current_root, "ToS")?;
+        let named_tos_identity = self
+            .tos_identity
+            .ok_or(SourceCommandError::Conflict("catalog candidate ToS absent"))?;
+        if inode(&owned(&named_tos, uid, true)?) != named_tos_identity
+            || inode(&owned(
+                self.tos
+                    .as_ref()
+                    .ok_or(SourceCommandError::Conflict("catalog candidate ToS absent"))?,
+                uid,
+                true,
+            )?) != named_tos_identity
+        {
+            return Err(SourceCommandError::Conflict(
+                "catalog candidate ToS identity changed",
+            ));
+        }
+        let named_witness = child(&named_tos, "source-witnesses")?;
+        let named_witness_identity = self.witness_identity.ok_or(SourceCommandError::Conflict(
+            "catalog candidate witness directory absent",
+        ))?;
+        if inode(&owned(&named_witness, uid, true)?) != named_witness_identity
+            || inode(&owned(
+                self.witness.as_ref().ok_or(SourceCommandError::Conflict(
+                    "catalog candidate witness directory absent",
+                ))?,
+                uid,
+                true,
+            )?) != named_witness_identity
+        {
+            return Err(SourceCommandError::Conflict(
+                "catalog candidate witness directory identity changed",
+            ));
+        }
+        let named_catalog = child(&named_witness, "catalog")?;
+        let named_catalog_identity = self.catalog_identity.ok_or(SourceCommandError::Conflict(
+            "catalog candidate output directory absent",
+        ))?;
+        if inode(&owned(&named_catalog, uid, true)?) != named_catalog_identity
+            || inode(&owned(
+                self.catalog.as_ref().ok_or(SourceCommandError::Conflict(
+                    "catalog candidate output directory absent",
+                ))?,
+                uid,
+                true,
+            )?) != named_catalog_identity
+        {
+            return Err(SourceCommandError::Conflict(
+                "catalog candidate output directory identity changed",
+            ));
+        }
+        for directory in [&named_tos, &named_witness, &named_catalog] {
+            if owned(directory, uid, true)?.mode() & 0o7777 != 0o700 {
+                return Err(SourceCommandError::Denied(
+                    "catalog candidate private directory mode changed",
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    /// The sink passes its retained FreshRows state here. The helper and rows
+    /// therefore share one whole-operation ceiling rather than resetting it.
+    pub(crate) fn set_external_state(&mut self, retained_bytes: usize) -> SourceCommandResult<()> {
+        self.check_state(retained_bytes, 0)?;
+        self.external_state_bytes = retained_bytes;
+        Ok(())
+    }
+
+    /// Admit borrowed renderer/parser buffers before they are used or retained.
+    pub(crate) fn check_external_peak(
+        &mut self,
+        retained_bytes: usize,
+        transient_bytes: usize,
+    ) -> SourceCommandResult<()> {
+        self.check_state(retained_bytes, transient_bytes)
+    }
+
+    pub(crate) fn check_active(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        active(deadline, cancelled)
+    }
+
+    fn check_state(
+        &mut self,
+        retained_bytes: usize,
+        transient_bytes: usize,
+    ) -> SourceCommandResult<()> {
+        let peak = self
+            .internal_state_bytes
+            .checked_add(retained_bytes)
+            .and_then(|n| n.checked_add(transient_bytes))
+            .ok_or(SourceCommandError::Unsupported(
+                "catalog candidate state overflow",
+            ))?;
+        if peak > self.limits.max_state_bytes {
+            return Err(SourceCommandError::Unsupported(
+                "catalog candidate state budget",
+            ));
+        }
+        self.peak_state_bytes = self.peak_state_bytes.max(peak);
+        Ok(())
+    }
+
+    pub(crate) fn root_path(&self) -> &Path {
+        self.isolated.path()
+    }
+
+    pub(crate) fn output_file_count(&self) -> usize {
+        self.files.len() + usize::from(self.current.is_some())
+    }
+
+    pub(crate) fn has_file(&self, source_ref: &str) -> bool {
+        source_ref
+            .strip_prefix(DISPOSABLE_CATALOG_PREFIX)
+            .is_some_and(|leaf| self.files.contains_key(leaf))
+    }
+
+    pub(crate) fn begin_file(
+        &mut self,
+        source_ref: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        let leaf = source_ref.strip_prefix(DISPOSABLE_CATALOG_PREFIX).ok_or(
+            SourceCommandError::Denied("catalog candidate output namespace"),
+        )?;
+        self.begin_leaf(leaf, false, deadline, cancelled)
+    }
+
+    fn begin_leaf(
+        &mut self,
+        leaf: &str,
+        manifest: bool,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        if self.current.is_some()
+            || leaf.is_empty()
+            || leaf == "."
+            || leaf == ".."
+            || leaf.starts_with('.')
+            || leaf.contains('/')
+            || !leaf
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
+            || (!manifest && leaf == DISPOSABLE_CATALOG_MANIFEST)
+            || (manifest && leaf != DISPOSABLE_CATALOG_MANIFEST)
+        {
+            return Err(SourceCommandError::Denied(
+                "catalog candidate output basename",
+            ));
+        }
+        if self.files.contains_key(leaf) || self.output_file_count() >= self.limits.max_files {
+            return Err(SourceCommandError::Unsupported(
+                "catalog candidate file count",
+            ));
+        }
+        // The open-file struct is inline in the already charged tree; only
+        // its owned basename adds heap state here.
+        let current_charge = leaf
+            .len()
+            .checked_add(3 * std::mem::size_of::<usize>())
+            .ok_or(SourceCommandError::Unsupported(
+                "catalog candidate state overflow",
+            ))?;
+        let next_state = self
+            .internal_state_bytes
+            .checked_add(current_charge)
+            .ok_or(SourceCommandError::Unsupported(
+                "catalog candidate state overflow",
+            ))?;
+        let peak = next_state.checked_add(self.external_state_bytes).ok_or(
+            SourceCommandError::Unsupported("catalog candidate state overflow"),
+        )?;
+        if peak > self.limits.max_state_bytes {
+            return Err(SourceCommandError::Unsupported(
+                "catalog candidate state budget",
+            ));
+        }
+        if self.created_inodes >= self.limits.max_inodes {
+            return Err(SourceCommandError::Unsupported(
+                "catalog candidate inode budget",
+            ));
+        }
+        active(deadline, cancelled)?;
+        self.verify_directory_chain(deadline, cancelled)?;
+        let catalog = self.catalog.as_ref().ok_or(SourceCommandError::Conflict(
+            "catalog candidate output directory absent",
+        ))?;
+        let file: File = rustix::fs::openat(
+            catalog,
+            leaf,
+            OFlags::RDWR | OFlags::CREATE | OFlags::EXCL | OFlags::NOFOLLOW | OFlags::CLOEXEC,
+            Mode::from_raw_mode(0o600),
+        )
+        .map(File::from)
+        .map_err(|_| SourceCommandError::Conflict("catalog candidate output occupied"))?;
+        self.created_inodes += 1;
+        self.internal_state_bytes = next_state;
+        self.peak_state_bytes = self.peak_state_bytes.max(peak);
+        self.current = Some(DisposableCatalogOpenFile {
+            leaf: leaf.to_owned(),
+            file,
+            sha256: Digest256Hasher::new(),
+            size_bytes: 0,
+            state_charge: current_charge,
+        });
+        Ok(())
+    }
+
+    pub(crate) fn file_bytes(
+        &mut self,
+        bytes: &[u8],
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        let current = self.current.as_ref().ok_or(SourceCommandError::Invalid(
+            "catalog candidate file bytes without begin",
+        ))?;
+        let new_file_size = current
+            .size_bytes
+            .checked_add(bytes.len())
+            .filter(|n| *n <= self.limits.max_file_bytes)
+            .ok_or(SourceCommandError::Unsupported(
+                "catalog candidate file byte budget",
+            ))?;
+        let new_output_size = self
+            .output_bytes
+            .checked_add(bytes.len())
+            .filter(|n| *n <= self.limits.max_total_bytes)
+            .ok_or(SourceCommandError::Unsupported(
+                "catalog candidate total output byte budget",
+            ))?;
+        self.check_state(self.external_state_bytes, bytes.len())?;
+        active(deadline, cancelled)?;
+        let current = self.current.as_mut().ok_or(SourceCommandError::Invalid(
+            "catalog candidate file bytes without begin",
+        ))?;
+        current
+            .file
+            .write_all(bytes)
+            .map_err(|_| SourceCommandError::Invalid("catalog candidate file write"))?;
+        current.sha256.update(bytes);
+        current.size_bytes = new_file_size;
+        self.output_bytes = new_output_size;
+        Ok(())
+    }
+
+    pub(crate) fn end_file(
+        &mut self,
+        source_ref: &str,
+        expected_sha256: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        let leaf = source_ref.strip_prefix(DISPOSABLE_CATALOG_PREFIX).ok_or(
+            SourceCommandError::Denied("catalog candidate end namespace"),
+        )?;
+        self.check_state(
+            self.external_state_bytes,
+            std::mem::size_of::<Digest256Hasher>(),
+        )?;
+        let digest = {
+            let current = self.current.as_ref().ok_or(SourceCommandError::Invalid(
+                "catalog candidate end without begin",
+            ))?;
+            if current.leaf != leaf {
+                return Err(SourceCommandError::Conflict(
+                    "catalog candidate file route changed",
+                ));
+            }
+            current.sha256.clone().finalize()
+        };
+        let expected = Digest256::from_hex(expected_sha256)
+            .map_err(|_| SourceCommandError::Invalid("catalog candidate file digest"))?;
+        if digest != expected {
+            return Err(SourceCommandError::Conflict(
+                "catalog candidate rendered file digest changed",
+            ));
+        }
+        active(deadline, cancelled)?;
+        {
+            let current = self.current.as_mut().ok_or(SourceCommandError::Invalid(
+                "catalog candidate end without begin",
+            ))?;
+            current
+                .file
+                .set_permissions(Permissions::from_mode(0o600))
+                .map_err(|_| SourceCommandError::Invalid("catalog candidate file mode"))?;
+            current
+                .file
+                .sync_all()
+                .map_err(|_| SourceCommandError::Invalid("catalog candidate file fsync"))?;
+        }
+        self.check_state(
+            self.external_state_bytes,
+            std::mem::size_of::<File>() + 2 * std::mem::size_of::<Metadata>(),
+        )?;
+        let current = self.current.as_ref().ok_or(SourceCommandError::Invalid(
+            "catalog candidate end without begin",
+        ))?;
+        let catalog = self.catalog.as_ref().ok_or(SourceCommandError::Conflict(
+            "catalog candidate output directory absent",
+        ))?;
+        let named = tos_fd_open::open_regular_at(catalog, Path::new(leaf))
+            .map_err(|_| SourceCommandError::Conflict("catalog candidate file detached"))?;
+        let named_metadata = owned(&named, rustix::process::geteuid().as_raw(), false)?;
+        let file_metadata = owned(&current.file, rustix::process::geteuid().as_raw(), false)?;
+        let file_identity = inode(&file_metadata);
+        if inode(&named_metadata) != file_identity
+            || named_metadata.len() != current.size_bytes as u64
+            || named_metadata.mode() & 0o7777 != 0o600
+            || named_metadata.nlink() != 1
+            || stamp(&named_metadata) != stamp(&file_metadata)
+        {
+            return Err(SourceCommandError::Conflict(
+                "catalog candidate file custody changed",
+            ));
+        }
+        let ledger_charge = std::mem::size_of::<(String, DisposableCatalogFileReceipt)>()
+            .checked_add(3 * std::mem::size_of::<usize>())
+            .and_then(|n| n.checked_add(current.leaf.len()))
+            .ok_or(SourceCommandError::Unsupported(
+                "catalog candidate file state overflow",
+            ))?;
+        let next_state = self
+            .internal_state_bytes
+            .checked_sub(current.state_charge)
+            .and_then(|n| n.checked_add(ledger_charge))
+            .ok_or(SourceCommandError::Unsupported(
+                "catalog candidate file state overflow",
+            ))?;
+        let allocation_peak = self.internal_state_bytes.checked_add(ledger_charge).ok_or(
+            SourceCommandError::Unsupported("catalog candidate file state overflow"),
+        )?;
+        let peak = allocation_peak
+            .checked_add(self.external_state_bytes)
+            .ok_or(SourceCommandError::Unsupported(
+                "catalog candidate file state overflow",
+            ))?;
+        if peak > self.limits.max_state_bytes {
+            return Err(SourceCommandError::Unsupported(
+                "catalog candidate state budget",
+            ));
+        }
+        let current = self.current.take().ok_or(SourceCommandError::Invalid(
+            "catalog candidate end without begin",
+        ))?;
+        self.files.insert(
+            current.leaf,
+            DisposableCatalogFileReceipt {
+                sha256: digest,
+                size_bytes: current.size_bytes,
+                identity: file_identity,
+            },
+        );
+        self.internal_state_bytes = next_state;
+        self.peak_state_bytes = self.peak_state_bytes.max(peak);
+        Ok(())
+    }
+
+    pub(crate) fn write_manifest(
+        &mut self,
+        exact_bytes: &[u8],
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        if self.manifest_written {
+            return Err(SourceCommandError::Conflict(
+                "catalog candidate manifest repeated",
+            ));
+        }
+        if exact_bytes.len() > self.limits.max_file_bytes
+            || self
+                .output_bytes
+                .checked_add(exact_bytes.len())
+                .is_none_or(|total| total > self.limits.max_total_bytes)
+        {
+            return Err(SourceCommandError::Unsupported(
+                "catalog candidate manifest byte budget",
+            ));
+        }
+        self.check_state(
+            self.external_state_bytes,
+            std::mem::size_of::<Digest256Hasher>(),
+        )?;
+        self.begin_leaf(DISPOSABLE_CATALOG_MANIFEST, true, deadline, cancelled)?;
+        let mut hash = Digest256Hasher::new();
+        for block in exact_bytes.chunks(65_536) {
+            self.file_bytes(block, deadline, cancelled)?;
+            hash.update(block);
+        }
+        let digest = hash.finalize().to_hex();
+        self.end_file(
+            DISPOSABLE_CATALOG_MANIFEST_REF,
+            &digest,
+            deadline,
+            cancelled,
+        )?;
+        self.manifest_written = true;
+        Ok(())
+    }
+
+    fn verify_file_readback(
+        &mut self,
+        leaf: &str,
+        receipt: DisposableCatalogFileReceipt,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        let read_state = 65_536usize
+            .checked_add(std::mem::size_of::<File>())
+            .and_then(|n| n.checked_add(2 * std::mem::size_of::<Metadata>()))
+            .and_then(|n| n.checked_add(std::mem::size_of::<Digest256Hasher>()))
+            .and_then(|n| n.checked_add(std::mem::size_of::<usize>()))
+            .ok_or(SourceCommandError::Unsupported(
+                "catalog candidate readback state overflow",
+            ))?;
+        self.check_state(self.external_state_bytes, read_state)?;
+        active(deadline, cancelled)?;
+        let catalog = self.catalog.as_ref().ok_or(SourceCommandError::Conflict(
+            "catalog candidate output directory absent",
+        ))?;
+        let mut file = tos_fd_open::open_regular_at(catalog, Path::new(leaf))
+            .map_err(|_| SourceCommandError::Conflict("catalog candidate readback path"))?;
+        let before = owned(&file, rustix::process::geteuid().as_raw(), false)?;
+        if inode(&before) != receipt.identity
+            || before.len() != receipt.size_bytes as u64
+            || before.mode() & 0o7777 != 0o600
+            || before.nlink() != 1
+        {
+            return Err(SourceCommandError::Conflict(
+                "catalog candidate readback custody",
+            ));
+        }
+        let mut hash = Digest256Hasher::new();
+        let mut buffer = [0u8; 65_536];
+        let mut total = 0usize;
+        loop {
+            active(deadline, cancelled)?;
+            let read = file
+                .read(&mut buffer)
+                .map_err(|_| SourceCommandError::Invalid("catalog candidate readback"))?;
+            if read == 0 {
+                break;
+            }
+            total = total
+                .checked_add(read)
+                .filter(|n| *n <= self.limits.max_file_bytes)
+                .ok_or(SourceCommandError::Unsupported(
+                    "catalog candidate readback byte budget",
+                ))?;
+            hash.update(&buffer[..read]);
+        }
+        let after = owned(&file, rustix::process::geteuid().as_raw(), false)?;
+        if total != receipt.size_bytes
+            || hash.finalize() != receipt.sha256
+            || stamp(&before) != stamp(&after)
+        {
+            return Err(SourceCommandError::Conflict(
+                "catalog candidate readback content changed",
+            ));
+        }
+        self.readback_bytes =
+            self.readback_bytes
+                .checked_add(total)
+                .ok_or(SourceCommandError::Unsupported(
+                    "catalog candidate readback count overflow",
+                ))?;
+        Ok(())
+    }
+
+    fn verify_exact_directory_entries(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        for (directory, expected) in [
+            ("root", "ToS"),
+            ("ToS", "source-witnesses"),
+            ("source-witnesses", "catalog"),
+        ] {
+            self.check_state(
+                self.external_state_bytes,
+                65_536usize.checked_add(std::mem::size_of::<File>()).ok_or(
+                    SourceCommandError::Unsupported("catalog candidate EOF listing state overflow"),
+                )?,
+            )?;
+            let descriptor = match directory {
+                "root" => &self.root,
+                "ToS" => self.tos.as_ref().ok_or(SourceCommandError::Conflict(
+                    "catalog candidate ToS directory absent",
+                ))?,
+                "source-witnesses" => self.witness.as_ref().ok_or(SourceCommandError::Conflict(
+                    "catalog candidate witness directory absent",
+                ))?,
+                _ => {
+                    return Err(SourceCommandError::Invalid(
+                        "catalog candidate fixed directory route",
+                    ));
+                }
+            }
+            .try_clone()
+            .map_err(|_| SourceCommandError::Invalid("catalog candidate EOF descriptor"))?;
+            self.verify_single_directory_entry(descriptor, expected, deadline, cancelled)?;
+        }
+        self.check_state(
+            self.external_state_bytes,
+            65_536usize.checked_add(std::mem::size_of::<File>()).ok_or(
+                SourceCommandError::Unsupported("catalog candidate EOF listing state overflow"),
+            )?,
+        )?;
+        let catalog = self
+            .catalog
+            .as_ref()
+            .ok_or(SourceCommandError::Conflict(
+                "catalog candidate output directory absent",
+            ))?
+            .try_clone()
+            .map_err(|_| SourceCommandError::Invalid("catalog candidate EOF descriptor"))?;
+        let before = owned(&catalog, rustix::process::geteuid().as_raw(), true)?;
+        let entries = std::fs::read_dir(format!("/proc/self/fd/{}", catalog.as_raw_fd()))
+            .map_err(|_| SourceCommandError::Invalid("catalog candidate EOF listing"))?;
+        let mut count = 0usize;
+        for entry in entries {
+            active(deadline, cancelled)?;
+            self.check_state(self.external_state_bytes, 256)?;
+            count = count
+                .checked_add(1)
+                .filter(|n| *n <= self.files.len())
+                .ok_or(SourceCommandError::Conflict(
+                    "catalog candidate unexpected output entry",
+                ))?;
+            let entry =
+                entry.map_err(|_| SourceCommandError::Invalid("catalog candidate EOF entry"))?;
+            let name = entry.file_name();
+            let name = name.to_str().ok_or(SourceCommandError::Invalid(
+                "catalog candidate non-UTF8 output name",
+            ))?;
+            if !self.files.contains_key(name) {
+                return Err(SourceCommandError::Conflict(
+                    "catalog candidate unexpected output entry",
+                ));
+            }
+        }
+        let after = owned(&catalog, rustix::process::geteuid().as_raw(), true)?;
+        if count != self.files.len() || stamp(&before) != stamp(&after) {
+            return Err(SourceCommandError::Conflict(
+                "catalog candidate output EOF changed",
+            ));
+        }
+        Ok(())
+    }
+
+    fn verify_single_directory_entry(
+        &mut self,
+        directory: File,
+        expected: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        let before = owned(&directory, rustix::process::geteuid().as_raw(), true)?;
+        let entries = std::fs::read_dir(format!("/proc/self/fd/{}", directory.as_raw_fd()))
+            .map_err(|_| SourceCommandError::Invalid("catalog candidate namespace listing"))?;
+        let mut count = 0usize;
+        for entry in entries {
+            active(deadline, cancelled)?;
+            self.check_state(self.external_state_bytes, 256)?;
+            count =
+                count
+                    .checked_add(1)
+                    .filter(|n| *n == 1)
+                    .ok_or(SourceCommandError::Conflict(
+                        "catalog candidate unexpected namespace entry",
+                    ))?;
+            let entry = entry
+                .map_err(|_| SourceCommandError::Invalid("catalog candidate namespace entry"))?;
+            let name = entry.file_name();
+            let name = name.to_str().ok_or(SourceCommandError::Invalid(
+                "catalog candidate non-UTF8 namespace entry",
+            ))?;
+            if name != expected {
+                return Err(SourceCommandError::Conflict(
+                    "catalog candidate unexpected namespace entry",
+                ));
+            }
+        }
+        let after = owned(&directory, rustix::process::geteuid().as_raw(), true)?;
+        if count != 1 || stamp(&before) != stamp(&after) {
+            return Err(SourceCommandError::Conflict(
+                "catalog candidate namespace EOF changed",
+            ));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn finish(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<DisposableCatalogTreeCost> {
+        if self.current.is_some() || !self.manifest_written {
+            return Err(SourceCommandError::Conflict(
+                "catalog candidate render did not reach manifest EOF",
+            ));
+        }
+        active(deadline, cancelled)?;
+        self.verify_directory_chain(deadline, cancelled)?;
+        self.verify_exact_directory_entries(deadline, cancelled)?;
+        let state_for_snapshot = self
+            .files
+            .iter()
+            .try_fold(
+                std::mem::size_of::<Vec<(String, DisposableCatalogFileReceipt)>>(),
+                |sum, (name, _)| {
+                    sum.checked_add(
+                        name.len()
+                            .checked_add(3 * std::mem::size_of::<usize>())?
+                            .checked_add(std::mem::size_of::<(
+                                String,
+                                DisposableCatalogFileReceipt,
+                            )>())?,
+                    )
+                },
+            )
+            .ok_or(SourceCommandError::Unsupported(
+                "catalog candidate readback index state overflow",
+            ))?;
+        self.check_state(self.external_state_bytes, state_for_snapshot)?;
+        let external_before_snapshot = self.external_state_bytes;
+        self.set_external_state(
+            external_before_snapshot
+                .checked_add(state_for_snapshot)
+                .ok_or(SourceCommandError::Unsupported(
+                    "catalog candidate readback index state overflow",
+                ))?,
+        )?;
+        let files = self
+            .files
+            .iter()
+            .map(|(name, receipt)| (name.clone(), *receipt))
+            .collect::<Vec<_>>();
+        for (name, receipt) in &files {
+            self.verify_file_readback(name, *receipt, deadline, cancelled)?;
+        }
+        self.set_external_state(external_before_snapshot)?;
+        self.catalog
+            .as_ref()
+            .ok_or(SourceCommandError::Conflict(
+                "catalog candidate output directory absent",
+            ))?
+            .sync_all()
+            .map_err(|_| SourceCommandError::Invalid("catalog candidate output directory fsync"))?;
+        self.witness
+            .as_ref()
+            .ok_or(SourceCommandError::Conflict(
+                "catalog candidate witness directory absent",
+            ))?
+            .sync_all()
+            .map_err(|_| SourceCommandError::Invalid("catalog candidate witness parent fsync"))?;
+        self.tos
+            .as_ref()
+            .ok_or(SourceCommandError::Conflict(
+                "catalog candidate ToS directory absent",
+            ))?
+            .sync_all()
+            .map_err(|_| SourceCommandError::Invalid("catalog candidate ToS parent fsync"))?;
+        self.root
+            .sync_all()
+            .map_err(|_| SourceCommandError::Invalid("catalog candidate isolated root fsync"))?;
+        self.verify_directory_chain(deadline, cancelled)?;
+        self.verify_exact_directory_entries(deadline, cancelled)?;
+        active(deadline, cancelled)?;
+        self.eof_verified = true;
+        Ok(DisposableCatalogTreeCost {
+            output_files: self.files.len(),
+            output_bytes: self.output_bytes,
+            readback_bytes: self.readback_bytes,
+            created_inodes: self.created_inodes,
+            peak_state_upper_bound_bytes: self.peak_state_bytes,
+        })
+    }
+
+    pub(crate) fn eof_verified(&self) -> bool {
+        self.eof_verified
+    }
+
+    pub(crate) fn manifest_sha256(&self) -> Option<Digest256> {
+        self.files
+            .get(DISPOSABLE_CATALOG_MANIFEST)
+            .map(|receipt| receipt.sha256)
+    }
+
+    fn rollback(&mut self) -> SourceCommandResult<()> {
+        let catalog = self.catalog.as_ref();
+        let current = self.current.take();
+        let mut failure = None;
+        if let Some(catalog) = catalog {
+            if let Some(current) = current.as_ref() {
+                if let Ok(named) = tos_fd_open::open_regular_at(catalog, Path::new(&current.leaf)) {
+                    let named_identity = named.metadata().map(|metadata| inode(&metadata));
+                    let open_identity = current.file.metadata().map(|metadata| inode(&metadata));
+                    if let (Ok(named_identity), Ok(open_identity)) = (named_identity, open_identity)
+                    {
+                        if named_identity == open_identity
+                            && let Err(_) = rustix::fs::unlinkat(
+                                catalog,
+                                current.leaf.as_str(),
+                                AtFlags::empty(),
+                            )
+                        {
+                            failure = Some(SourceCommandError::Invalid(
+                                "catalog candidate current file cleanup",
+                            ));
+                        }
+                    }
+                }
+            }
+            for (leaf, receipt) in &self.files {
+                let current = match tos_fd_open::open_regular_at(catalog, Path::new(leaf)) {
+                    Ok(current) => current,
+                    Err(_) => continue,
+                };
+                if inode(&current.metadata().map_err(|_| {
+                    SourceCommandError::Invalid("catalog candidate cleanup file metadata")
+                })?) == receipt.identity
+                {
+                    if rustix::fs::unlinkat(catalog, leaf.as_str(), AtFlags::empty()).is_err() {
+                        failure = Some(SourceCommandError::Invalid(
+                            "catalog candidate file cleanup",
+                        ));
+                    }
+                }
+            }
+        }
+        drop(current);
+        for (leaf, parent, identity) in [
+            ("catalog", "source-witnesses", self.catalog_identity),
+            ("source-witnesses", "ToS", self.witness_identity),
+            ("ToS", "", self.tos_identity),
+        ] {
+            if let Err(error) = self.remove_private_directory(leaf, parent, identity) {
+                failure.get_or_insert(error);
+            }
+        }
+        failure.map_or(Ok(()), Err)
+    }
+
+    fn remove_private_directory(
+        &mut self,
+        leaf: &str,
+        parent_name: &str,
+        identity: Option<(u64, u64)>,
+    ) -> SourceCommandResult<()> {
+        let Some(identity) = identity else {
+            return Ok(());
+        };
+        let parent = match parent_name {
+            "" => &self.root,
+            "ToS" => match &self.tos {
+                Some(directory) => directory,
+                None => return Ok(()),
+            },
+            "source-witnesses" => match &self.witness {
+                Some(directory) => directory,
+                None => return Ok(()),
+            },
+            _ => {
+                return Err(SourceCommandError::Invalid(
+                    "catalog candidate cleanup parent",
+                ));
+            }
+        };
+        let named = match child(parent, leaf) {
+            Ok(named) => named,
+            Err(_) => return Ok(()),
+        };
+        if inode(&owned(&named, rustix::process::geteuid().as_raw(), true)?) != identity {
+            return Err(SourceCommandError::Conflict(
+                "catalog candidate cleanup directory replaced",
+            ));
+        }
+        drop(named);
+        rustix::fs::unlinkat(parent, leaf, AtFlags::REMOVEDIR)
+            .map_err(|_| SourceCommandError::Conflict("catalog candidate cleanup not empty"))?;
+        parent
+            .sync_all()
+            .map_err(|_| SourceCommandError::Invalid("catalog candidate cleanup parent fsync"))?;
+        Ok(())
+    }
+}
+
+impl Drop for DisposableCatalogTree<'_> {
+    fn drop(&mut self) {
+        let _ = self.rollback();
+    }
+}
+
 impl CreationFilesystem {
     /// Separate-process Item access reuses the existing independently protected
     /// typed grant. This is crate-private and cannot construct other owners.
@@ -3590,9 +4666,28 @@ impl<'a> PendingCreation<'a> {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()> {
+        self.write_with_limit(name, bytes, 8_388_608, deadline, cancelled)
+    }
+
+    /// Same private writer and readback custody as `write`, with a caller
+    /// selected finite byte ceiling for an already admitted whole operation.
+    /// The ordinary creation API continues to use its fixed 8 MiB policy.
+    pub(crate) fn write_with_limit(
+        &mut self,
+        name: &str,
+        bytes: &[u8],
+        max_file_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        if max_file_bytes == 0 || max_file_bytes == usize::MAX {
+            return Err(SourceCommandError::Unsupported(
+                "creation staging selected file byte cap",
+            ));
+        }
         let path = RelativePath::parse(name)
             .map_err(|_| SourceCommandError::Invalid("creation package file name"))?;
-        if path.as_str().contains('/') || self.names.len() >= 40 || bytes.len() > 8_388_608 {
+        if path.as_str().contains('/') || self.names.len() >= 40 || bytes.len() > max_file_bytes {
             return Err(SourceCommandError::Invalid(
                 "creation package leaf/count/byte budget",
             ));
@@ -3618,7 +4713,7 @@ impl<'a> PendingCreation<'a> {
             .map_err(|_| SourceCommandError::Invalid("creation package file fsync"))?;
         let mut check = tos_fd_open::open_regular_at(&self.directory, Path::new(name))
             .map_err(|_| SourceCommandError::Conflict("creation staging readback path"))?;
-        if raw(&mut check, 8_388_608, deadline, cancelled)? != bytes {
+        if raw(&mut check, max_file_bytes, deadline, cancelled)? != bytes {
             return Err(SourceCommandError::Conflict(
                 "creation staging readback differs",
             ));
@@ -3735,3 +4830,6 @@ pub(crate) use work_expression::{
     published_work_materializations, retained_work_request, work_expression_materializations,
     work_expression_owner_result,
 };
+
+#[path = "source_read_filesystem.rs"]
+pub(crate) mod source_read_filesystem;

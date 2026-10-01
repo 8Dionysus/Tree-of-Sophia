@@ -20,7 +20,8 @@ use tos_foundation::{
 };
 use tos_source_store::CorpusCutReader;
 use tos_validation::executor::{
-    BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle,
+    BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget, SharedSchemaWorkerQuota,
+    VerifiedWorkerImageHandle,
 };
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor};
 use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
@@ -190,20 +191,70 @@ struct Contracts {
 }
 
 #[derive(Debug)]
-pub struct SourceCatalogReceipt {
+pub struct SourceCatalogReceipt<B = crate::SourceBinding> {
     pub record_count: u64,
     pub claim_count: u64,
     pub source_slot_count: u64,
     pub manifest: Value,
     pub file_sha256: BTreeMap<String, String>,
     pub row_root_sha256: String,
-    pub input_binding: crate::SourceBinding,
+    pub input_binding: B,
     pub worker_sha256: String,
     // Private seals bind all publicly inspectable summaries to exact inputs.
     input_root: String,
     manifest_sha256: String,
     row_count: u64,
     summary_sha256: String,
+}
+
+pub type ColdSourceCatalogReceipt =
+    SourceCatalogReceipt<crate::knowledge_stage::ColdAuthoredBinding>;
+pub(crate) trait CatalogInputBinding: Clone {
+    fn selected(stage: &KnowledgeStage<'_>) -> Result<Self>;
+    fn value(&self) -> Value;
+    fn validate_plan(&self) -> Result<()>;
+}
+impl CatalogInputBinding for crate::SourceBinding {
+    fn selected(stage: &KnowledgeStage<'_>) -> Result<Self> {
+        Ok(stage.exact_receipt()?.binding.clone())
+    }
+    fn value(&self) -> Value {
+        binding_value(self)
+    }
+    fn validate_plan(&self) -> Result<()> {
+        self.validate()
+    }
+}
+impl CatalogInputBinding for crate::knowledge_stage::ColdAuthoredBinding {
+    fn selected(stage: &KnowledgeStage<'_>) -> Result<Self> {
+        Ok(stage.cold_receipt()?.binding.clone())
+    }
+    fn value(&self) -> Value {
+        crate::knowledge_stage::ColdAuthoredBinding::value(self)
+    }
+    fn validate_plan(&self) -> Result<()> {
+        Ok(())
+    }
+}
+
+/// Observes validated record-profile selection, not catalog output or admission.
+/// Only the completion marker makes the whole selection complete. A later
+/// Claim or record rejection does not retract this already validated selection.
+pub trait SourceCatalogProfileObserver {
+    fn record_profile(&mut self, kind: &str, filename: &str) -> Result<()>;
+    fn completed_record_profiles(&mut self) -> Result<()>;
+    fn native_semantic_identity(&mut self, _id: &str, _packet_ref: &str) -> Result<()> {
+        Ok(())
+    }
+}
+pub(crate) struct IgnoreCatalogProfiles;
+impl SourceCatalogProfileObserver for IgnoreCatalogProfiles {
+    fn record_profile(&mut self, _: &str, _: &str) -> Result<()> {
+        Ok(())
+    }
+    fn completed_record_profiles(&mut self) -> Result<()> {
+        Ok(())
+    }
 }
 
 /// The receiver writes a private candidate only. Calls are streaming and
@@ -333,12 +384,15 @@ fn binding_value(b: &crate::SourceBinding) -> Value {
         "membership_root":b.membership_root,"index_generation":b.index_generation,"route_map_version":b.route_map_version,
         "reader_abi":b.reader_abi,"projection_root_sha256":b.projection_root_sha256,"complete":b.complete})
 }
-fn summary(receipt: &SourceCatalogReceipt, l: SourceCatalogLimits) -> Result<String> {
+fn summary<B: CatalogInputBinding>(
+    receipt: &SourceCatalogReceipt<B>,
+    l: SourceCatalogLimits,
+) -> Result<String> {
     let raw = encode(
         &json!({"records":receipt.record_count,"claims":receipt.claim_count,
         "slots":receipt.source_slot_count,"files":receipt.file_sha256,"rows":receipt.row_count,
         "row_root":receipt.row_root_sha256,"worker":receipt.worker_sha256,
-        "binding":binding_value(&receipt.input_binding),"manifest":receipt.manifest_sha256,
+        "binding":receipt.input_binding.value(),"manifest":receipt.manifest_sha256,
         "inputs":receipt.input_root}),
         l.max_output_row_bytes,
     )?;
@@ -347,19 +401,21 @@ fn summary(receipt: &SourceCatalogReceipt, l: SourceCatalogLimits) -> Result<Str
 
 /// Scan actual capped bytes, not just stored digest metadata, before trusting a
 /// cut. Exact receipts also prevent skipped over-budget rows from looking empty.
-fn input_root(stage: &KnowledgeStage<'_>, l: SourceCatalogLimits) -> Result<String> {
-    let receipt = stage.exact_receipt();
+fn input_root<B: CatalogInputBinding>(
+    stage: &KnowledgeStage<'_>,
+    l: SourceCatalogLimits,
+) -> Result<String> {
+    let collections = stage.input_collections();
     let mut complete = Digest256Hasher::new();
-    if !matches!(receipt.collections.len(), 4 | 5) {
+    if !matches!(collections.len(), 4 | 5) {
         return Err(Error::Invalid("source catalog input collection closure"));
     }
     let mut names = vec![SOURCE_FILES, CONTRACT_FILES, NATIVE_IDENTITIES, NATIVE_TEXT];
-    if receipt.collections.len() == 5 {
+    if collections.len() == 5 {
         names.push(BIBLIOGRAPHIC_FILES);
     }
     for name in names {
-        let entry = receipt
-            .collections
+        let entry = collections
             .iter()
             .find(|e| e.source_graph == CATALOG_SOURCE && e.collection == name)
             .ok_or(Error::Invalid(
@@ -403,7 +459,7 @@ fn input_root(stage: &KnowledgeStage<'_>, l: SourceCatalogLimits) -> Result<Stri
                 .map_err(|_| Error::Invalid("catalog input digest"))?,
         );
     }
-    let binding = encode(&binding_value(&receipt.binding), l.max_output_row_bytes)?;
+    let binding = encode(&B::selected(stage)?.value(), l.max_output_row_bytes)?;
     complete.update(&binding);
     Ok(complete.finalize().to_hex())
 }
@@ -494,6 +550,100 @@ impl<'a> SourceCatalogValidator<'a> {
             budget_pin: budget,
             deadline,
         })
+    }
+
+    /// Prepare the exact same cut closure and worker custody as `from_cut`,
+    /// selecting structured diagnostics-v2 before the first schema request.
+    /// The default constructor and its v1 receipt behavior remain unchanged.
+    pub fn from_cut_diagnostics_v2(
+        cut: &CorpusCutReader,
+        worker: &'a ExactWorkerIdentity,
+        budget: ExecutorBudget,
+        limits: CutWorkerLimits,
+        operation: BatchStreamBudget,
+        diagnostics_limits: tos_validation::source_cut::CutSchemaDiagnosticsLimits,
+        deadline: Instant,
+        cancelled: &'a AtomicBool,
+    ) -> Result<Self> {
+        let validator =
+            Self::from_cut(cut, worker, budget, limits, operation, deadline, cancelled)?;
+        validator
+            .schemas
+            .try_borrow_mut()
+            .map_err(|_| Error::Invalid("catalog executor already in use"))?
+            .enable_diagnostics_v2(diagnostics_limits)
+            .map_err(|_| Error::Budget("catalog schema diagnostics limits"))?;
+        Ok(validator)
+    }
+
+    /// Same diagnostics-v2 catalog operation, sharing only one verified
+    /// immutable worker image; schema closure and counters remain local.
+    pub fn from_cut_with_image_diagnostics_v2(
+        cut: &CorpusCutReader,
+        image: &'a VerifiedWorkerImageHandle,
+        budget: ExecutorBudget,
+        limits: CutWorkerLimits,
+        operation: BatchStreamBudget,
+        diagnostics_limits: tos_validation::source_cut::CutSchemaDiagnosticsLimits,
+        deadline: Instant,
+        cancelled: &'a AtomicBool,
+    ) -> Result<Self> {
+        let validator =
+            Self::from_cut_with_image(cut, image, budget, limits, operation, deadline, cancelled)?;
+        validator
+            .schemas
+            .try_borrow_mut()
+            .map_err(|_| Error::Invalid("catalog executor already in use"))?
+            .enable_diagnostics_v2(diagnostics_limits)
+            .map_err(|_| Error::Budget("catalog schema diagnostics limits"))?;
+        Ok(validator)
+    }
+
+    /// Select the existing bounded legacy raw input lane before any request.
+    /// The original default constructor and scalar probe remain unchanged.
+    pub fn set_diagnostics_v2_legacy_raw_instance_limit(&self, max_bytes: usize) -> Result<()> {
+        self.guard()?;
+        self.schemas
+            .try_borrow_mut()
+            .map_err(|_| Error::Invalid("catalog executor already in use"))?
+            .set_diagnostics_v2_legacy_raw_instance_limit(max_bytes)
+            .map_err(|_| Error::Budget("catalog selected raw instance limit"))
+    }
+
+    /// Attach the catalog's diagnostics-v2 executor to the same invocation
+    /// quota as the other explicitly selected schema workers.
+    pub fn set_shared_schema_worker_quota(&self, quota: SharedSchemaWorkerQuota) -> Result<()> {
+        self.guard()?;
+        self.schemas
+            .try_borrow_mut()
+            .map_err(|_| Error::Invalid("catalog executor already in use"))?
+            .set_shared_schema_worker_quota(quota)
+            .map_err(|_| Error::Budget("catalog shared schema worker quota"))
+    }
+
+    /// Drain the next complete, bound invalid diagnostics-v2 result observed
+    /// through any schema adapter path. Incomplete exchanges are never stored.
+    pub fn take_schema_diagnostic_rejection(
+        &self,
+    ) -> Result<Option<tos_validation::source_cut::CutSchemaDiagnostic>> {
+        self.guard()?;
+        self.schemas
+            .try_borrow_mut()
+            .map_err(|_| Error::Invalid("catalog executor already in use"))
+            .map(|mut schemas| schemas.take_schema_diagnostic_rejection())
+    }
+
+    /// Actual complete v2 exchanges remain charged after a rejected report
+    /// is drained. An unknown or incomplete exchange refuses this observation.
+    pub fn diagnostics_v2_cumulative_cost(
+        &self,
+    ) -> Result<tos_validation::source_cut::CutSchemaDiagnosticsCumulativeCost> {
+        self.guard()?;
+        self.schemas
+            .try_borrow()
+            .map_err(|_| Error::Invalid("catalog executor already in use"))?
+            .diagnostics_v2_cumulative_cost()
+            .map_err(|_| Error::Invalid("catalog schema execution cost unavailable"))
     }
 
     /// Close the shared schema operation before returning successful owner output.
@@ -664,6 +814,7 @@ fn contracts(
     stage: &KnowledgeStage<'_>,
     validator: &SourceCatalogValidator<'_>,
     l: SourceCatalogLimits,
+    observer: &mut impl SourceCatalogProfileObserver,
 ) -> Result<Contracts> {
     let mut c = Contracts {
         values: BTreeMap::new(),
@@ -820,6 +971,10 @@ fn contracts(
         };
         c.records.push((kind.to_owned(), profile));
     }
+    for (kind, profile) in &c.records {
+        observer.record_profile(kind, text(&profile.descriptor, "catalog_filename")?)?;
+    }
+    observer.completed_record_profiles()?;
     let relation = c
         .values
         .get(RELATION)
@@ -1197,6 +1352,7 @@ fn native_inventory(
     c: &Contracts,
     validator: &SourceCatalogValidator<'_>,
     l: SourceCatalogLimits,
+    observer: &mut impl SourceCatalogProfileObserver,
 ) -> Result<()> {
     let mut after = None;
     let mut packet_count = 0usize;
@@ -1234,6 +1390,7 @@ fn native_inventory(
                     )?;
                     Ok(())
                 })?;
+                observer.native_semantic_identity(id, &row.id)?;
             }
         }
         after = page.next_id;
@@ -1541,10 +1698,41 @@ pub fn prepare_source_witness_catalog(
     validator: &SourceCatalogValidator<'_>,
     l: SourceCatalogLimits,
 ) -> Result<SourceCatalogReceipt> {
+    prepare_catalog_receipt(stage, validator, l)
+}
+pub fn prepare_cold_source_witness_catalog(
+    stage: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    l: SourceCatalogLimits,
+) -> Result<ColdSourceCatalogReceipt> {
+    prepare_catalog_receipt(stage, validator, l)
+}
+pub fn prepare_cold_source_witness_catalog_observed(
+    stage: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    l: SourceCatalogLimits,
+    observer: &mut impl SourceCatalogProfileObserver,
+) -> Result<ColdSourceCatalogReceipt> {
+    prepare_catalog_receipt_observed(stage, validator, l, observer)
+}
+pub(crate) fn prepare_catalog_receipt<B: CatalogInputBinding>(
+    stage: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    l: SourceCatalogLimits,
+) -> Result<SourceCatalogReceipt<B>> {
+    prepare_catalog_receipt_observed(stage, validator, l, &mut IgnoreCatalogProfiles)
+}
+pub(crate) fn prepare_catalog_receipt_observed<B: CatalogInputBinding>(
+    stage: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    l: SourceCatalogLimits,
+    observer: &mut impl SourceCatalogProfileObserver,
+) -> Result<SourceCatalogReceipt<B>> {
     let result = (|| {
         l.validate()?;
-        let input = input_root(stage, l)?;
-        let c = contracts(stage, validator, l)?;
+        let selected_binding = B::selected(stage)?;
+        let input = input_root::<B>(stage, l)?;
+        let c = contracts(stage, validator, l, observer)?;
         stage.with_connection(WritePhase::Schema, |db| {
             db.execute_batch("CREATE TABLE source_catalog_rows(category TEXT NOT NULL,kind TEXT NOT NULL,id TEXT NOT NULL,
                 payload_len INTEGER NOT NULL,payload_sha256 BLOB NOT NULL,payload BLOB NOT NULL,
@@ -1552,12 +1740,12 @@ pub fn prepare_source_witness_catalog(
                 CREATE INDEX source_catalog_rows_kind ON source_catalog_rows(category,kind,id);
                 CREATE TABLE source_catalog_reserved(id TEXT PRIMARY KEY) WITHOUT ROWID;")?; Ok(())
         })?;
-        native_inventory(stage, &c, validator, l)?;
+        native_inventory(stage, &c, validator, l, observer)?;
         source_files(stage, &c, validator, l)?;
         let (manifest, file_sha256, record_count, claim_count) = outputs(stage, &c, l)?;
         let source_slot_count = visit_rows(stage, "slots", None, l, |_, _, _| Ok(()))?;
         let (row_count, row_root_sha256) = row_root(stage, l)?;
-        if input_root(stage, l)? != input {
+        if input_root::<B>(stage, l)? != input {
             return Err(Error::Invalid(
                 "catalog input cut changed during preparation",
             ));
@@ -1571,7 +1759,7 @@ pub fn prepare_source_witness_catalog(
             manifest,
             file_sha256,
             row_root_sha256,
-            input_binding: stage.exact_receipt().binding.clone(),
+            input_binding: selected_binding,
             worker_sha256: validator.worker.sha256.to_hex(),
             input_root: input,
             manifest_sha256,
@@ -1594,12 +1782,27 @@ pub fn render_source_witness_catalog(
     l: SourceCatalogLimits,
     sink: &mut impl SourceCatalogSink,
 ) -> Result<()> {
+    render_catalog_receipt(stage, receipt, l, sink)
+}
+pub fn render_cold_source_witness_catalog(
+    stage: &mut KnowledgeStage<'_>,
+    receipt: &ColdSourceCatalogReceipt,
+    l: SourceCatalogLimits,
+    sink: &mut impl SourceCatalogSink,
+) -> Result<()> {
+    render_catalog_receipt(stage, receipt, l, sink)
+}
+fn render_catalog_receipt<B: CatalogInputBinding>(
+    stage: &mut KnowledgeStage<'_>,
+    receipt: &SourceCatalogReceipt<B>,
+    l: SourceCatalogLimits,
+    sink: &mut impl SourceCatalogSink,
+) -> Result<()> {
     let result = (|| {
         l.validate()?;
         if summary(receipt, l)? != receipt.summary_sha256
-            || input_root(stage, l)? != receipt.input_root
-            || binding_value(&stage.exact_receipt().binding)
-                != binding_value(&receipt.input_binding)
+            || input_root::<B>(stage, l)? != receipt.input_root
+            || B::selected(stage)?.value() != receipt.input_binding.value()
             || row_root(stage, l)? != (receipt.row_count, receipt.row_root_sha256.clone())
             || Digest256::of_bytes(&encode(&receipt.manifest, l.max_output_row_bytes)?).to_hex()
                 != receipt.manifest_sha256
@@ -1668,7 +1871,7 @@ pub fn clear_source_witness_catalog(
     let result = (|| {
         l.validate()?;
         if summary(receipt, l)? != receipt.summary_sha256
-            || input_root(stage, l)? != receipt.input_root
+            || input_root::<crate::SourceBinding>(stage, l)? != receipt.input_root
             || row_root(stage, l)? != (receipt.row_count, receipt.row_root_sha256.clone())
         {
             return Err(Error::Invalid("catalog cleanup exact seal mismatch"));
@@ -1687,15 +1890,15 @@ pub fn clear_source_witness_catalog(
 }
 
 /// Recheck the privately sealed preparation before any downstream source read.
-pub(crate) fn verify_catalog(
+pub(crate) fn verify_catalog<B: CatalogInputBinding>(
     stage: &mut KnowledgeStage<'_>,
-    receipt: &SourceCatalogReceipt,
+    receipt: &SourceCatalogReceipt<B>,
     l: SourceCatalogLimits,
 ) -> Result<()> {
     l.validate()?;
     if summary(receipt, l)? != receipt.summary_sha256
-        || input_root(stage, l)? != receipt.input_root
-        || binding_value(&stage.exact_receipt().binding) != binding_value(&receipt.input_binding)
+        || input_root::<B>(stage, l)? != receipt.input_root
+        || B::selected(stage)?.value() != receipt.input_binding.value()
         || row_root(stage, l)? != (receipt.row_count, receipt.row_root_sha256.clone())
     {
         return Err(Error::Invalid("bibliographic catalog exact seal"));
@@ -1743,7 +1946,7 @@ pub(crate) fn check_catalog_schema(
     fragment: &str,
     raw: &[u8],
 ) -> Result<()> {
-    let c = contracts(stage, validator, l)?;
+    let c = contracts(stage, validator, l, &mut IgnoreCatalogProfiles)?;
     validator.check(&c, schema, fragment, raw)
 }
 

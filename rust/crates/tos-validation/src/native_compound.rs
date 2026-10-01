@@ -11,9 +11,10 @@ use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{
     CanonicalProfile, Digest256, JsonEmissionProfile, JsonLimits, JsonMode, JsonValue,
-    RelativePath, canonical_bytes_v1, canonical_count_v1, emit_json_profile, parse_json,
+    RelativePath, SourceRevision, canonical_bytes_v1, canonical_count_v1, emit_json_profile,
+    parse_json,
 };
-use tos_source_store::CorpusCutReader;
+use tos_source_store::{CorpusCutReader, SourceMembershipV1};
 
 const HOME: &str = "ToS/source-witnesses";
 const CONTROL: &str = "ToS/source-witnesses/.metadata-publication.json";
@@ -461,6 +462,395 @@ pub struct NativeCompoundReadObservation {
     pub reads: Vec<PredicateRead>,
     pub bytes_read: u64,
     pub returned_state_bytes: usize,
+}
+
+/// Successful exact-cut observation of one maintained native source record's
+/// current revision chain and the publication transports named by that chain.
+/// The constructor is private to this module so callers cannot manufacture
+/// lineage evidence from a LayerFamilySource read or a copied JSON document.
+#[derive(Debug)]
+pub struct NativeRecordHistoryReadObservation {
+    source_revision: SourceRevision,
+    current_membership: SourceMembershipV1,
+    record_path: String,
+    identity_field: &'static str,
+    identity: String,
+    selected_package: Package,
+    current_record: Value,
+    origin_record_sha256: String,
+    origin_record_byte_size: usize,
+    history_ref: Option<String>,
+    history_sha256: Option<String>,
+    history: Value,
+    transactions: Vec<NativeRecordHistoryTransactionObservation>,
+    reads: Vec<PredicateRead>,
+    bytes_read: u64,
+    returned_state_bytes: usize,
+}
+
+#[derive(Debug)]
+pub struct NativeRecordHistoryTransactionObservation {
+    transaction_id: String,
+    manifest_sha256: String,
+    transport: NativeTransportState,
+}
+
+impl NativeRecordHistoryReadObservation {
+    pub fn source_revision(&self) -> SourceRevision {
+        self.source_revision
+    }
+
+    pub fn current_membership(&self) -> SourceMembershipV1 {
+        self.current_membership
+    }
+
+    pub fn record_path(&self) -> &str {
+        &self.record_path
+    }
+
+    pub fn identity_field(&self) -> &'static str {
+        self.identity_field
+    }
+
+    pub fn identity(&self) -> &str {
+        &self.identity
+    }
+
+    pub fn selected_package(&self) -> &BTreeMap<String, Vec<u8>> {
+        &self.selected_package
+    }
+
+    pub fn current_record(&self) -> &Value {
+        &self.current_record
+    }
+
+    pub fn origin_record_sha256(&self) -> &str {
+        &self.origin_record_sha256
+    }
+
+    pub fn origin_record_byte_size(&self) -> usize {
+        self.origin_record_byte_size
+    }
+
+    pub fn history_ref(&self) -> Option<&str> {
+        self.history_ref.as_deref()
+    }
+
+    pub fn history_sha256(&self) -> Option<&str> {
+        self.history_sha256.as_deref()
+    }
+
+    pub fn history(&self) -> &Value {
+        &self.history
+    }
+
+    pub fn history_receipt_count(&self) -> usize {
+        self.history
+            .get("receipts")
+            .and_then(Value::as_array)
+            .map_or(0, Vec::len)
+    }
+
+    pub fn transactions(&self) -> &[NativeRecordHistoryTransactionObservation] {
+        &self.transactions
+    }
+
+    pub fn reads(&self) -> &[PredicateRead] {
+        &self.reads
+    }
+
+    pub fn bytes_read(&self) -> u64 {
+        self.bytes_read
+    }
+
+    pub fn returned_state_bytes(&self) -> usize {
+        self.returned_state_bytes
+    }
+}
+
+impl NativeRecordHistoryTransactionObservation {
+    pub fn transaction_id(&self) -> &str {
+        &self.transaction_id
+    }
+
+    pub fn manifest_sha256(&self) -> &str {
+        &self.manifest_sha256
+    }
+
+    pub fn transport(&self) -> NativeTransportState {
+        self.transport
+    }
+}
+
+/// Reconstruct one maintained selected record package and its complete native
+/// history from a real source cut. Historical archive custody is delegated to
+/// `history_typed`; transaction, publication-control, and completion custody
+/// are delegated to `transaction`. Unsupported retained operations remain an
+/// exact kernel refusal for the source caller to report as such.
+pub fn selected_record_history_from_cut(
+    cut: &CorpusCutReader,
+    record_path: &str,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<NativeRecordHistoryReadObservation, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    let source_revision = cut.current().revision();
+    let current_membership = cut
+        .stream(source_revision)
+        .map_err(|_| bad("selected native record source-cut membership"))?
+        .expectation();
+    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    let scope = reader.temporary_state;
+    let selected_package = reader.selected(record_path)?;
+    let basename = record_path
+        .rsplit('/')
+        .next()
+        .ok_or_else(|| bad("selected native record basename"))?;
+    let record_raw = selected_package
+        .get(basename)
+        .ok_or_else(|| bad("selected native record bytes"))?;
+    let current_record = reader.decoded(record_raw)?;
+    let (identity_field, expected_kind, expected_schema) =
+        native_record_history_discriminator(record_path, &current_record)?;
+    let schema_matches = match expected_schema {
+        Some(schema) => text(&current_record, "schema_version")? == schema,
+        None => true,
+    };
+    let kind_matches =
+        identity_field != "record_id" || text(&current_record, "record_type")? == expected_kind;
+    if !schema_matches || !kind_matches {
+        return Err(bad("selected native record basename/schema discriminator"));
+    }
+    let identity_ref = text(&current_record, identity_field)?;
+    if identity_ref.is_empty() {
+        return Err(bad("selected native record identity"));
+    }
+    if !typed_id(identity_ref, expected_kind) {
+        return Err(bad("selected native record typed identity"));
+    }
+    if integer(&current_record, "record_version")? == 0 {
+        return Err(bad("selected native record positive version"));
+    }
+    reader.temporary(identity_ref.len())?;
+    let identity = identity_ref.to_owned();
+    let home = parent(record_path)?;
+    let has_history = selected_package.contains_key(HISTORY);
+    if has_history {
+        reader.temporary(
+            home.len()
+                .checked_add(1 + HISTORY.len())
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
+        reader.temporary("sha256:".len() + 64)?;
+    }
+    let history_ref = has_history.then(|| format!("{home}/{HISTORY}"));
+    let history_sha256 = selected_package
+        .get(HISTORY)
+        .map(|raw| Digest256::of_bytes(raw).to_prefixed());
+    let current_record_byte_size = record_raw.len();
+    let (history, origin_record) =
+        reader.history_typed_with_origin(record_path, &selected_package, identity_field, true)?;
+    let (origin_record_sha256, origin_record_byte_size) = match origin_record {
+        Some(origin) => origin,
+        None => (
+            Digest256::of_bytes(record_raw).to_hex(),
+            current_record_byte_size,
+        ),
+    };
+    let origin_record_state = origin_record_sha256
+        .len()
+        .checked_add(std::mem::size_of::<String>())
+        .ok_or(ItemRefusal::Budget)?;
+    reader.temporary(origin_record_state)?;
+    let receipts = array(&history, "receipts")?;
+    let transaction_slots = receipts
+        .len()
+        .checked_mul(std::mem::size_of::<NativeRecordHistoryTransactionObservation>())
+        .ok_or(ItemRefusal::Budget)?;
+    reader.temporary(
+        std::mem::size_of::<BTreeSet<String>>()
+            .checked_add(transaction_slots)
+            .ok_or(ItemRefusal::Budget)?,
+    )?;
+    let mut seen_transactions = BTreeSet::new();
+    let mut transactions = Vec::with_capacity(receipts.len());
+    for receipt in receipts {
+        check(limits.deadline, cancelled)?;
+        let Some(publication) = receipt.get("publication") else {
+            continue;
+        };
+        let transaction_id = text(publication, "transaction_id")?;
+        if !seen_transactions.contains(transaction_id) {
+            reader.temporary(
+                transaction_id
+                    .len()
+                    .checked_add(std::mem::size_of::<String>() * 2)
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
+            seen_transactions.insert(transaction_id.to_owned());
+            let transaction = reader.transaction(transaction_id)?;
+            reader.temporary(
+                transaction_id
+                    .len()
+                    .checked_add(transaction.manifest_sha256.len())
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
+            let transport = match transaction.status.as_str() {
+                "committed" => NativeTransportState::Committed,
+                "rolled-back" => NativeTransportState::RolledBack,
+                "pending" => NativeTransportState::Pending,
+                "orphan" => NativeTransportState::Orphan,
+                _ => return Err(bad("selected native history transaction status")),
+            };
+            transactions.push(NativeRecordHistoryTransactionObservation {
+                transaction_id: transaction_id.to_owned(),
+                manifest_sha256: transaction.manifest_sha256.clone(),
+                transport,
+            });
+        }
+    }
+
+    let current_record_state = crate::record_biblio_cut::decoded_state(&current_record)?
+        .checked_sub(std::mem::size_of::<Value>())
+        .ok_or(ItemRefusal::Budget)?;
+    let history_state = crate::record_biblio_cut::decoded_state(&history)?;
+    reader.temporary(
+        history_state
+            .checked_sub(std::mem::size_of::<Value>())
+            .ok_or(ItemRefusal::Budget)?,
+    )?;
+    let selected_state = package_state(&selected_package)?;
+    reader.temporary(
+        selected_state
+            .checked_sub(std::mem::size_of::<Package>())
+            .ok_or(ItemRefusal::Budget)?,
+    )?;
+    let identity_state = identity
+        .len()
+        .checked_add(record_path.len())
+        .and_then(|n| n.checked_add(std::mem::size_of::<NativeRecordHistoryReadObservation>()))
+        .ok_or(ItemRefusal::Budget)?;
+    reader.temporary(identity_state)?;
+    let history_path_state = history_ref.as_ref().map_or(0, String::len)
+        + history_sha256.as_ref().map_or(0, String::len);
+    reader.temporary(history_path_state)?;
+    let transaction_list_state = transactions
+        .capacity()
+        .checked_mul(std::mem::size_of::<NativeRecordHistoryTransactionObservation>())
+        .and_then(|n| {
+            transactions.iter().try_fold(n, |sum, transaction| {
+                sum.checked_add(transaction.transaction_id.len())?
+                    .checked_add(transaction.manifest_sha256.len())
+            })
+        })
+        .ok_or(ItemRefusal::Budget)?;
+
+    let history = (*history).clone();
+    let bytes_read = reader.bytes;
+    let reads = std::mem::take(&mut reader.reads);
+    let read_state = reads
+        .iter()
+        .try_fold(0usize, |sum, read| {
+            sum.checked_add(crate::record_biblio_cut::predicate_state(read).ok()?)
+        })
+        .ok_or(ItemRefusal::Budget)?;
+    reader.state = reader
+        .state
+        .checked_sub(read_state)
+        .ok_or(ItemRefusal::Budget)?;
+    reader.release_temporary_since(scope);
+    reader.release_raw_cache();
+    let returned_state_bytes = selected_state
+        .checked_sub(std::mem::size_of::<Package>())
+        .and_then(|n| {
+            crate::record_biblio_cut::decoded_state(&history)
+                .ok()?
+                .checked_sub(std::mem::size_of::<Value>())
+                .and_then(|tree| n.checked_add(tree))
+        })
+        .and_then(|n| n.checked_add(current_record_state))
+        .and_then(|n| n.checked_add(transaction_list_state))
+        .and_then(|n| n.checked_add(identity_state))
+        .and_then(|n| n.checked_add(origin_record_state))
+        .and_then(|n| n.checked_add(history_path_state))
+        .and_then(|n| n.checked_add(read_state))
+        .ok_or(ItemRefusal::Budget)?;
+    if reader
+        .retained_state_bytes()
+        .checked_add(returned_state_bytes)
+        .is_none_or(|used| used > limits.max_state_bytes)
+        || returned_state_bytes > limits.max_state_bytes
+    {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "native selected record history observation state",
+            used: Some(returned_state_bytes as u64),
+            limit: Some(limits.max_state_bytes as u64),
+        });
+    }
+
+    Ok(NativeRecordHistoryReadObservation {
+        source_revision,
+        current_membership,
+        record_path: record_path.to_owned(),
+        identity_field,
+        identity,
+        selected_package,
+        current_record,
+        origin_record_sha256,
+        origin_record_byte_size,
+        history_ref,
+        history_sha256,
+        history,
+        transactions,
+        reads,
+        bytes_read,
+        returned_state_bytes,
+    })
+}
+
+fn native_record_history_discriminator(
+    record_path: &str,
+    record: &Value,
+) -> Result<(&'static str, &'static str, Option<&'static str>), ItemRefusal> {
+    if !record_path.starts_with("ToS/source-witnesses/") || record_path.split('/').count() < 4 {
+        return Err(bad("selected native record owner path"));
+    }
+    let owner_group = record_path.split('/').nth(2).unwrap_or("");
+    let basename = record_path.rsplit('/').next().unwrap_or("");
+    let (identity_field, kind, schema) = match basename {
+        "agent.json" => ("record_id", "agent", Some("tos_corpus_record_v1")),
+        "place.json" => ("record_id", "place", Some("tos_corpus_record_v1")),
+        "organization.json" => ("record_id", "organization", Some("tos_corpus_record_v1")),
+        "work.json" => ("record_id", "work", Some("tos_corpus_record_v1")),
+        "expression.json" => ("record_id", "expression", Some("tos_corpus_record_v1")),
+        "edition.json" => ("record_id", "edition", Some("tos_corpus_record_v1")),
+        "collection.json" => ("record_id", "collection", Some("tos_corpus_record_v1")),
+        "item.json" => ("record_id", "item", Some("tos_corpus_record_v1")),
+        "link.json" if owner_group == "links" => ("record_id", "link", Some("tos_source_link_v1")),
+        "artifact-witness.json" if owner_group == "artifacts" => {
+            let schema = match text(record, "schema_version")? {
+                "tos_artifact_source_witness_v1" => "tos_artifact_source_witness_v1",
+                "tos_artifact_source_witness_v2" => "tos_artifact_source_witness_v2",
+                _ => {
+                    return Err(ItemRefusal::Unsupported(
+                        "native artifact history schema".into(),
+                    ));
+                }
+            };
+            ("artifact_id", "artifact", Some(schema))
+        }
+        "composite-witness.json" if owner_group == "scholarly-composites" => (
+            "composite_id",
+            "composite",
+            Some("tos_scholarly_composite_witness_v1"),
+        ),
+        _ => {
+            return Err(ItemRefusal::Unsupported(
+                "native record history carrier".into(),
+            ));
+        }
+    };
+    Ok((identity_field, kind, schema))
 }
 fn measured_compound_observation(
     reader: NativeCompoundReader<'_>,
@@ -3424,17 +3814,30 @@ impl NativeCompoundReader<'_> {
         files: &Package,
         identity_field: &str,
     ) -> Result<std::sync::Arc<Value>, ItemRefusal> {
+        self.history_typed_with_origin(path, files, identity_field, false)
+            .map(|(history, _)| history)
+    }
+
+    fn history_typed_with_origin(
+        &mut self,
+        path: &str,
+        files: &Package,
+        identity_field: &str,
+        capture_origin: bool,
+    ) -> Result<(std::sync::Arc<Value>, Option<(String, usize)>), ItemRefusal> {
         let before = self.temporary_state;
-        let result = self.history_inner(path, files, identity_field);
+        let result = self.history_inner(path, files, identity_field, capture_origin);
         self.release_temporary_since(before);
         result
     }
+
     fn history_inner(
         &mut self,
         path: &str,
         files: &Package,
         identity_field: &str,
-    ) -> Result<std::sync::Arc<Value>, ItemRefusal> {
+        capture_origin: bool,
+    ) -> Result<(std::sync::Arc<Value>, Option<(String, usize)>), ItemRefusal> {
         check(self.limits.deadline, self.cancelled)?;
         // Bind memoized lineage to the whole selected package, not its subject
         // alone: source-copy forms and history bytes participate in revision.
@@ -3445,7 +3848,7 @@ impl NativeCompoundReader<'_> {
             .ok_or(ItemRefusal::Budget)?;
         self.temporary(key_state)?;
         if let Some(history) = self.histories.get(&key) {
-            return Ok(history.clone());
+            return Ok((history.clone(), None));
         }
         let name = path
             .rsplit('/')
@@ -3480,10 +3883,24 @@ impl NativeCompoundReader<'_> {
             &mut |value| self.canonical_observation(value),
         )?;
         self.release_temporary(history_validation_state);
+        let mut origin_record = None;
         for (index, receipt) in array(&history, "receipts")?.iter().enumerate() {
             check(self.limits.deadline, self.cancelled)?;
             let previous_temporary = self.temporary_state;
             let archived = self.archive_typed(path, id, receipt, identity_field)?;
+            if capture_origin && index == 0 {
+                let origin_bytes = archived
+                    .get(name)
+                    .ok_or_else(|| bad("archive origin record absent"))?;
+                let digest = Digest256::of_bytes(origin_bytes).to_hex();
+                self.temporary(
+                    digest
+                        .len()
+                        .checked_add(std::mem::size_of::<String>())
+                        .ok_or(ItemRefusal::Budget)?,
+                )?;
+                origin_record = Some((digest, origin_bytes.len()));
+            }
             let predecessor_record = self.decoded(
                 archived
                     .get(name)
@@ -3523,6 +3940,16 @@ impl NativeCompoundReader<'_> {
             drop(predecessor_record);
             drop(archived);
             self.release_temporary_since(previous_temporary);
+            if capture_origin && index == 0 {
+                let origin_string_state = match origin_record.as_ref() {
+                    Some((digest, _)) => digest
+                        .len()
+                        .checked_add(std::mem::size_of::<String>())
+                        .ok_or(ItemRefusal::Budget)?,
+                    None => 0,
+                };
+                self.temporary(origin_string_state)?;
+            }
         }
         let history_state = crate::record_biblio_cut::decoded_state(&history)?
             .checked_add(
@@ -3538,7 +3965,7 @@ impl NativeCompoundReader<'_> {
         reserve(&mut self.state, history_state, self.limits.max_state_bytes)?;
         let history = std::sync::Arc::new(history);
         self.histories.insert(key, history.clone());
-        Ok(history)
+        Ok((history, origin_record))
     }
 }
 

@@ -506,7 +506,7 @@ impl<'a> NavigationRelationNormalizer<'a> {
         if native_id.is_empty()
             || native_id.len() > 4096
             || native_id.trim() != native_id
-            || stage.exact_receipt().binding.source_cut != prepared.source_cut
+            || stage.exact_receipt()?.binding.source_cut != prepared.source_cut
         {
             return Err(Error::Invalid("navigation indexed relation ID/cut"));
         }
@@ -784,7 +784,7 @@ fn verify_prepared(
     if matches.len() != 1
         || matches[0].source_graph_id != prepared.source_graph
         || matches[0].input_role != prepared.input_role
-        || stage.exact_receipt().binding.source_cut != prepared.source_cut
+        || stage.exact_receipt()?.binding.source_cut != prepared.source_cut
         || prepared.final_graph_rows_written
         || prepared.edges > limits.max_edges
         || Digest256::from_hex(&prepared.dependency_root_sha256).is_err()
@@ -792,7 +792,7 @@ fn verify_prepared(
         return Err(Error::Invalid("navigation relation selected preparation"));
     }
     let entry = stage
-        .exact_receipt()
+        .exact_receipt()?
         .collections
         .iter()
         .find(|entry| entry.source_graph == prepared.source_graph && entry.collection == "edges")
@@ -981,7 +981,7 @@ pub fn clear_navigation_relation_dependencies(
     receipt: &NavigationRelationDependencyReceipt,
     completion: &NavigationRelationCompletionProof,
 ) -> Result<()> {
-    if stage.exact_receipt().binding.source_cut != receipt.source_cut
+    if stage.exact_receipt()?.binding.source_cut != receipt.source_cut
         || prepared.source_cut != receipt.source_cut
         || prepared.source_graph != receipt.source_graph
         || prepared.dependency_root_sha256.is_empty()

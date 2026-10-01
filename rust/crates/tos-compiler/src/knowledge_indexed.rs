@@ -236,7 +236,7 @@ fn materialize_indexed_sources_inner(
     relations: bool,
 ) -> Result<IndexedReceipt> {
     limits.validate()?;
-    let receipt = stage.exact_receipt().clone();
+    let receipt = stage.exact_receipt()?.clone();
     if registry.entity_registry_id != vocabulary.entity_registry_id
         || registry.relation_registry_id != vocabulary.relation_registry_id
     {

@@ -599,7 +599,11 @@ fn finish_fixture_with_limits(
     limits: FullKnowledgeLimits,
     trace_native: bool,
 ) -> FullKnowledgeFixture {
-    let source_binding = stage.exact_receipt().binding.clone();
+    let source_binding = stage
+        .exact_receipt()
+        .expect("projection fixture input")
+        .binding
+        .clone();
     if trace_native {
         native_fixture_phase("full-components-start");
     }

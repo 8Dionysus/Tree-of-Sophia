@@ -14,6 +14,101 @@ const HISTORY_KIND: &[u8] = b"cmd2-history-addressed-v2";
 const CURRENT_KIND: &[u8] = b"cmd2-current-addressed-v2";
 const MAX_DESCRIPTOR: usize = 65536;
 
+// Both compatibility migration and direct streamed cold assessment consume the
+// SAME verified membership carrier. This helper creates no cold/source grant:
+// the caller must already own its complete receipt/history/pin assessment.
+pub(super) fn build_addressed_membership_trees(
+    store: &SegmentStore,
+    membership: &MembershipInstallation<'_>,
+    limits: AuthenticatedTreeLimitsV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeDescriptorV2)> {
+    membership.audited_root.require_store(store)?;
+    let build = |namespace, kind| -> DurableResult<AuthenticatedTreeDescriptorV2> {
+        let mut cursor = membership.cursor(namespace)?;
+        let entries = std::iter::from_fn(|| match cursor.next_row() {
+            Ok(Some(row)) => Some((|| {
+                active(deadline, cancelled)
+                    .map_err(|_| source_tree_error("cold membership deadline"))?;
+                Ok(AuthenticatedTreeEntryV1 {
+                    value: encode_placement_tree_row(&row, limits.max_value_bytes)?,
+                    key: row.key,
+                })
+            })()),
+            Ok(None) => None,
+            Err(_) => Some(Err(source_tree_error(
+                "cold verified membership cursor failed",
+            ))),
+        });
+        let tree = store.build_authenticated_tree_v2(kind, entries, limits, deadline, cancelled)?;
+        cursor.finish()?;
+        if tree.entries != membership.count(namespace) {
+            return Err(DurableError::Corrupt(
+                "addressed bootstrap EOF counts differ",
+            ));
+        }
+        active(deadline, cancelled)?;
+        Ok(tree)
+    };
+    let history = build(GenerationNamespaceV1::History, HISTORY_KIND)?;
+    let current = build(GenerationNamespaceV1::Current, CURRENT_KIND)?;
+    if history.entries != membership.descriptor_cut.historical_members
+        || current.entries != membership.descriptor_cut.current_members
+    {
+        return Err(DurableError::Corrupt(
+            "addressed bootstrap descriptor counts differ",
+        ));
+    }
+    Ok((history, current))
+}
+
+// This is a physical builder only. Its caller owns the same held source/audit
+// snapshot and complete semantic assessment; the tree never grants admission.
+pub(super) fn build_addressed_metadata_tree(
+    tx: &mut Transaction<'_>,
+    store: &SegmentStore,
+    domain: &str,
+    limits: AuthenticatedTreeLimitsV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> DurableResult<AuthenticatedTreeDescriptorV2> {
+    let mut clauses = Vec::new();
+    for table in audit_delta::MetadataTable::ALL {
+        clauses.push(format!(
+            "SELECT {}::smallint AS table_id,cmd2_audit_delta_v1_row_key({}::smallint,row_to_json(t)) AS row_key,cmd2_audit_delta_v1_row_commitment({}::smallint,row_to_json(t)) AS row_commitment FROM {} t WHERE domain=$1",
+            table.id(), table.id(), table.id(), table.sql_name()));
+    }
+    let union = clauses.join(" UNION ALL ");
+    let sql = format!(
+        "SELECT table_id,row_key,row_commitment FROM ({union}) rows ORDER BY table_id,octet_length(row_key),row_key"
+    );
+    let mut rows = tx.query_raw(&sql, &[&domain])?;
+    let entries = std::iter::from_fn(|| match rows.next() {
+        Ok(Some(row)) => Some((|| {
+            active(deadline, cancelled).map_err(|_| source_tree_error("cold metadata deadline"))?;
+            let table = audit_delta::MetadataTable::from_id(row.get(0))
+                .ok_or_else(|| source_tree_error("cold metadata unknown table"))?;
+            let key = metadata_tree_key(table, row.get(1), limits.max_key_bytes)
+                .map_err(|_| source_tree_error("cold metadata stable key"))?;
+            let value: Vec<u8> = row.get(2);
+            if value.len() != 32 {
+                return Err(source_tree_error("cold metadata row commitment"));
+            }
+            Ok(AuthenticatedTreeEntryV1 { key, value })
+        })()),
+        Ok(None) => None,
+        Err(_) => Some(Err(source_tree_error(
+            "cold metadata database cursor failed",
+        ))),
+    });
+    let metadata =
+        store.build_authenticated_tree_v2(METADATA_KIND, entries, limits, deadline, cancelled)?;
+    drop(rows);
+    active(deadline, cancelled)?;
+    Ok(metadata)
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct AddressedCutV2 {
     pub store_id: [u8; 16],
@@ -225,7 +320,7 @@ impl VerifiedAddressedGeneration {
     }
 }
 
-fn delta_error(error: audit_delta::AuditDeltaError) -> DurableError {
+pub(super) fn delta_error(error: audit_delta::AuditDeltaError) -> DurableError {
     match error {
         audit_delta::AuditDeltaError::Database(error) => DurableError::Database(error),
         _ => DurableError::Refused("addressed audit interval lost; explicit cold reopen required"),
@@ -313,93 +408,10 @@ impl DurablePgCoordinator {
         tx.batch_execute("SET LOCAL statement_timeout='60s'; SET LOCAL work_mem='4MB'")?;
         held_generation_metadata(&mut tx, store, generation)?;
         let domain = generation.cohort().domain();
-        let mut clauses = Vec::new();
-        for table in audit_delta::MetadataTable::ALL {
-            clauses.push(format!(
-                "SELECT {}::smallint AS table_id,cmd2_audit_delta_v1_row_key({}::smallint,row_to_json(t)) AS row_key,cmd2_audit_delta_v1_row_commitment({}::smallint,row_to_json(t)) AS row_commitment FROM {} t WHERE domain=$1",
-                table.id(), table.id(), table.id(), table.sql_name()));
-        }
-        let union = clauses.join(" UNION ALL ");
-        let sql = format!(
-            "SELECT table_id,row_key,row_commitment FROM ({union}) rows ORDER BY table_id,octet_length(row_key),row_key"
-        );
-        let mut rows = tx.query_raw(&sql, &[&domain])?;
-        let entries = std::iter::from_fn(|| match rows.next() {
-            Ok(Some(row)) => Some((|| {
-                active(deadline, cancelled)
-                    .map_err(|_| source_tree_error("cold metadata deadline"))?;
-                let table = audit_delta::MetadataTable::from_id(row.get(0))
-                    .ok_or_else(|| source_tree_error("cold metadata unknown table"))?;
-                let key = metadata_tree_key(table, row.get(1), limits.max_key_bytes)
-                    .map_err(|_| source_tree_error("cold metadata stable key"))?;
-                let value: Vec<u8> = row.get(2);
-                if value.len() != 32 {
-                    return Err(source_tree_error("cold metadata row commitment"));
-                }
-                Ok(AuthenticatedTreeEntryV1 { key, value })
-            })()),
-            Ok(None) => None,
-            Err(_) => Some(Err(source_tree_error(
-                "cold metadata database cursor failed",
-            ))),
-        });
-        let metadata = store.build_authenticated_tree_v2(
-            METADATA_KIND,
-            entries,
-            limits,
-            deadline,
-            cancelled,
-        )?;
-        drop(rows);
-        let mut history = legacy.cursor(GenerationNamespaceV1::History)?;
-        let history_entries = std::iter::from_fn(|| match history.next_row() {
-            Ok(Some(row)) => Some(encode_placement_tree_row(&row, limits.max_value_bytes).map(
-                |value| AuthenticatedTreeEntryV1 {
-                    key: row.key,
-                    value,
-                },
-            )),
-            Ok(None) => None,
-            Err(_) => Some(Err(source_tree_error(
-                "cold verified history cursor failed",
-            ))),
-        });
-        let history_tree = store.build_authenticated_tree_v2(
-            HISTORY_KIND,
-            history_entries,
-            limits,
-            deadline,
-            cancelled,
-        )?;
-        history.finish()?;
-        let mut current = legacy.cursor(GenerationNamespaceV1::Current)?;
-        let current_entries = std::iter::from_fn(|| match current.next_row() {
-            Ok(Some(row)) => Some(encode_placement_tree_row(&row, limits.max_value_bytes).map(
-                |value| AuthenticatedTreeEntryV1 {
-                    key: row.key,
-                    value,
-                },
-            )),
-            Ok(None) => None,
-            Err(_) => Some(Err(source_tree_error(
-                "cold verified current cursor failed",
-            ))),
-        });
-        let current_tree = store.build_authenticated_tree_v2(
-            CURRENT_KIND,
-            current_entries,
-            limits,
-            deadline,
-            cancelled,
-        )?;
-        current.finish()?;
-        if history_tree.entries != legacy.descriptor_cut.historical_members
-            || current_tree.entries != legacy.descriptor_cut.current_members
-        {
-            return Err(DurableError::Corrupt(
-                "addressed bootstrap EOF counts differ",
-            ));
-        }
+        let metadata =
+            build_addressed_metadata_tree(&mut tx, store, domain, limits, deadline, cancelled)?;
+        let (history_tree, current_tree) =
+            build_addressed_membership_trees(store, &legacy, limits, deadline, cancelled)?;
         let inventory = super::addressed_inventory::AddressedInventoryV2::build(
             &mut tx,
             store,
@@ -450,7 +462,7 @@ impl DurablePgCoordinator {
         )
     }
 
-    fn install_addressed_selection(
+    pub(super) fn install_addressed_selection(
         &mut self,
         store: &SegmentStore,
         cut: AddressedCutV2,
@@ -497,12 +509,27 @@ impl DurablePgCoordinator {
         })
     }
 
-    fn select_addressed_selection(
+    pub(super) fn select_addressed_selection(
+        &mut self,
+        store: &SegmentStore,
+        candidate: VerifiedAddressedGeneration,
+        cohort: &ManagedSourceCohort,
+        owner: Option<&CreationOwnerFence<'_>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> DurableResult<VerifiedAddressedGeneration> {
+        self.select_addressed_selection_controlled(
+            store, candidate, cohort, owner, None, deadline, cancelled,
+        )
+    }
+
+    pub(super) fn select_addressed_selection_controlled(
         &mut self,
         store: &SegmentStore,
         mut candidate: VerifiedAddressedGeneration,
         cohort: &ManagedSourceCohort,
         owner: Option<&CreationOwnerFence<'_>>,
+        max_statement_ms: Option<u64>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> DurableResult<VerifiedAddressedGeneration> {
@@ -512,7 +539,23 @@ impl DurablePgCoordinator {
         let cut = &candidate.cut;
         let mut tx = self.client.transaction()?;
         tx.batch_execute("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='15s'")?;
+        if let Some(milliseconds) = max_statement_ms {
+            super::source_cohort_streamed::set_streamed_pg_limits(
+                &mut tx,
+                milliseconds,
+                deadline,
+                cancelled,
+            )?;
+        }
         let audit = lock_audit_fence(&mut tx, &cut.domain)?;
+        if let Some(milliseconds) = max_statement_ms {
+            super::source_cohort_streamed::set_streamed_pg_limits(
+                &mut tx,
+                milliseconds,
+                deadline,
+                cancelled,
+            )?;
+        }
         let row = tx.query_one(
             "SELECT * FROM cmd2_domain WHERE domain=$1 FOR UPDATE",
             &[&cut.domain],
@@ -520,7 +563,17 @@ impl DurablePgCoordinator {
         cohort_matches(&row, cohort, true)?;
         if audit != cut.audit_generation
             || as_u64(row.get("head_seq"))? != cut.through_seq
-            || database_oid(&mut tx)? != cut.database_oid
+            || {
+                if let Some(milliseconds) = max_statement_ms {
+                    super::source_cohort_streamed::set_streamed_pg_limits(
+                        &mut tx,
+                        milliseconds,
+                        deadline,
+                        cancelled,
+                    )?;
+                }
+                database_oid(&mut tx)? != cut.database_oid
+            }
             || !row.get::<_, bool>("rights_allowed")
             || row.get::<_, Option<String>>("schema_profile_digest")
                 != Some(cut.schema_profile_digest.to_hex())
@@ -537,9 +590,25 @@ impl DurablePgCoordinator {
         let anticipated = audit
             .checked_add(1)
             .ok_or(DurableError::Corrupt("addressed audit overflow"))?;
+        if let Some(milliseconds) = max_statement_ms {
+            super::source_cohort_streamed::set_streamed_pg_limits(
+                &mut tx,
+                milliseconds,
+                deadline,
+                cancelled,
+            )?;
+        }
         tx.execute("UPDATE cmd2_domain SET published_seq=$2,complete_cut_digest=$3,complete_cut_generation=$4,selected_generation_digest=$5,source_projection_digest=$6 WHERE domain=$1",
             &[&cut.domain,&as_i64(cut.through_seq)?,&candidate.state_digest.to_hex(),&as_i64(anticipated)?,
               &candidate.digest.to_hex(),&cut.inventory.root().to_hex()])?;
+        if let Some(milliseconds) = max_statement_ms {
+            super::source_cohort_streamed::set_streamed_pg_limits(
+                &mut tx,
+                milliseconds,
+                deadline,
+                cancelled,
+            )?;
+        }
         let observed = lock_audit_fence(&mut tx, &cut.domain)?;
         if observed != anticipated {
             return Err(DurableError::Corrupt("addressed publication audit differs"));
@@ -550,6 +619,14 @@ impl DurablePgCoordinator {
                 .map_err(source_error)?;
         }
         active(deadline, cancelled)?;
+        if let Some(milliseconds) = max_statement_ms {
+            super::source_cohort_streamed::set_streamed_pg_limits(
+                &mut tx,
+                milliseconds,
+                deadline,
+                cancelled,
+            )?;
+        }
         tx.commit()?;
         candidate.selected_audit_generation = observed;
         Ok(candidate)

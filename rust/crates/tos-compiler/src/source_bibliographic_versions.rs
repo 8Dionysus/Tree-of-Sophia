@@ -40,16 +40,16 @@ fn path(reference: &str) -> Result<RelativePath> {
     RelativePath::parse(reference).map_err(|_| Error::Invalid("bibliographic cut source path"))
 }
 impl<'a, 'b> Versions<'a, 'b> {
-    pub(crate) fn new(
+    pub(crate) fn new<B: catalog::CatalogInputBinding>(
         input: &'a BibliographicSourceCut<'b>,
         stage: &mut KnowledgeStage<'_>,
         validator: &SourceCatalogValidator<'_>,
-        receipt: &catalog::SourceCatalogReceipt,
+        receipt: &catalog::SourceCatalogReceipt<B>,
         l: BibliographicLimits,
     ) -> Result<Self> {
         catalog::verify_catalog(stage, receipt, l.catalog)?;
         if input.cut.current().revision() != input.expected_revision
-            || stage.exact_receipt().binding.source_cut != input.stage_source_cut
+            || stage.input_source_cut() != input.stage_source_cut
             || input.max_read_files == 0
             || input.max_read_files > 4096
             || input.max_read_bytes == 0
@@ -110,8 +110,7 @@ impl<'a, 'b> Versions<'a, 'b> {
             catalog::BIBLIOGRAPHIC_FILES,
         ] {
             if !stage
-                .exact_receipt()
-                .collections
+                .input_collections()
                 .iter()
                 .any(|c| c.source_graph == catalog::CATALOG_SOURCE && c.collection == collection)
             {
@@ -330,14 +329,14 @@ impl<'a, 'b> Versions<'a, 'b> {
         Ok(CatalogLocation::Legacy(line, sha))
     }
 
-    pub(crate) fn verify_catalog_binding(
+    pub(crate) fn verify_catalog_binding<B: catalog::CatalogInputBinding>(
         &self,
         stage: &mut KnowledgeStage<'_>,
-        receipt: &catalog::SourceCatalogReceipt,
+        receipt: &catalog::SourceCatalogReceipt<B>,
         l: BibliographicLimits,
     ) -> Result<()> {
         if self.catalog_root != receipt.row_root_sha256
-            || stage.exact_receipt().binding.source_cut != self.input.stage_source_cut
+            || stage.input_source_cut() != self.input.stage_source_cut
             || self.input.cut.current().revision() != self.input.expected_revision
         {
             return Err(Error::Invalid(

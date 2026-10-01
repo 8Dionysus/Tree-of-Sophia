@@ -1,13 +1,56 @@
 use std::path::Path;
 
 fn main() {
+    if std::env::args_os()
+        .nth(1)
+        .is_some_and(|arg| arg == "corpus-admit")
+    {
+        // One sentinel preserves the CLI's bounded argument refusal without
+        // collecting an arbitrary process argument sequence.
+        let args = std::env::args_os().skip(2).take(65).collect::<Vec<_>>();
+        let cancelled = std::sync::atomic::AtomicBool::new(false);
+        let git_signal = std::sync::atomic::AtomicI32::new(0);
+        let result = tos_command::source_admission_cli::run(
+            &args,
+            &cancelled,
+            &git_signal,
+            &mut std::io::stdout().lock(),
+            &mut std::io::stderr().lock(),
+        );
+        // The CLI owns its shared bounded output, including refusal context.
+        // Never add a second unbounded printer or a legacy fallback here.
+        std::process::exit(result.unwrap_or(2));
+    }
+    if std::env::args_os()
+        .nth(1)
+        .is_some_and(|arg| arg == "foundation")
+    {
+        // One sentinel beyond the command's 64-argument cap preserves refusal
+        // without allocating a vector for an unbounded argument sequence.
+        let args = std::env::args_os().skip(2).take(65).collect::<Vec<_>>();
+        let cancelled = std::sync::atomic::AtomicBool::new(false);
+        let git_signal = std::sync::atomic::AtomicI32::new(0);
+        let result = tos_command::source_current_cut::foundation_command::run(
+            &args,
+            &cancelled,
+            &git_signal,
+            &mut std::io::stdout().lock(),
+            &mut std::io::stderr().lock(),
+        );
+        match result {
+            Ok(code) => std::process::exit(code),
+            // The foundation boundary already attempted its static refusal
+            // through the same bounded output writer. Never print it again.
+            Err(_) => std::process::exit(2),
+        }
+    }
     if std::env::args_os().len() == 2
         && std::env::args_os()
             .nth(1)
             .is_some_and(|arg| arg == "--help" || arg == "-h")
     {
         println!(
-            "usage: tos-native-owner-command --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command backup|restore --help\n\nSource commands read their request from stdin and require the selected invocation.\nBackup and restore require explicit owner-selected database, store and tool inputs."
+            "usage: tos-native-owner-command --invocation ABSOLUTE_INVOCATION\n       tos-native-owner-command foundation --help\n       tos-native-owner-command backup|restore --help\n\nSource commands read their request from stdin and require the selected invocation.\nFoundation requires an explicit repository root and protected invocation.\nBackup and restore require explicit owner-selected database, store and tool inputs."
         );
         return;
     }

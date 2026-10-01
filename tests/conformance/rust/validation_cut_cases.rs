@@ -6,7 +6,9 @@ use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_source_store::CutReadLimits;
 use tos_validation::FormatProfile;
-use tos_validation::executor::{ExactWorkerIdentity, ExecutorBudget};
+use tos_validation::executor::{
+    BatchBudget, BatchCoverageExpectation, BatchUnit, ExactWorkerIdentity, ExecutorBudget,
+};
 use tos_validation::item_rules::ItemLimits;
 use tos_validation::operation::{
     GeneralOperationLimits, OperationChange, OperationFamilyScope, OperationFamilyState,
@@ -15,10 +17,17 @@ use tos_validation::operation::{
 };
 use tos_validation::record_rules::{RecordFamily, RecordSchema};
 use tos_validation::source_cut::{CutWorkerLimits, CutWorkerSchemaExecutor, MetadataOnlyPayloads};
+use tos_validation::source_foundation_schema::{
+    SOURCE_FOUNDATION_CONTRACT_PATHS, SourceFoundationLegacySchemaInput,
+    SourceFoundationMixedSchemaInput, SourceFoundationSchemaFailure, SourceFoundationSchemaInput,
+    SourceFoundationSchemaLimits, SourceFoundationSchemaOutcome, SourceFoundationSchemaSet,
+    evaluate_source_foundation_mixed_schema_checks,
+};
 
 const REGISTRY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const ENTITY_SCHEMA: &str = "ToS/contracts/semantic-entity-type-registry.schema.json";
 const ITEM: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5";
+const INVENTORY_SCHEMA: &str = "ToS/contracts/source-resource-inventory.schema.json";
 
 pub(super) fn repository() -> PathBuf {
     fixtures().join("../../..")
@@ -170,6 +179,91 @@ pub(super) fn selected_worker_path() -> PathBuf {
         "selected worker must be built before conformance"
     );
     path
+}
+
+fn selected_source_foundation_contracts() -> BTreeMap<String, Vec<u8>> {
+    let root = repository();
+    SOURCE_FOUNDATION_CONTRACT_PATHS
+        .iter()
+        .map(|path| ((*path).to_owned(), fs::read(root.join(path)).unwrap()))
+        .collect()
+}
+
+fn source_foundation_schema_limits(
+    contracts: &BTreeMap<String, Vec<u8>>,
+    max_checks: usize,
+) -> SourceFoundationSchemaLimits {
+    let schema_bytes = contracts
+        .values()
+        .try_fold(0usize, |total, raw| total.checked_add(raw.len()))
+        .unwrap();
+    let max_schema_resource_bytes = contracts.values().map(Vec::len).max().unwrap();
+    let mut batch = BatchBudget::laboratory();
+    batch.max_units = 8;
+    batch.max_total_raw_bytes = 2 * 1024 * 1024;
+    SourceFoundationSchemaLimits {
+        max_schema_resources: contracts.len(),
+        max_schema_resource_bytes,
+        max_total_schema_bytes: schema_bytes,
+        max_checks,
+        max_chunks: 1,
+        max_total_cpu_seconds: batch.cpu_seconds,
+        max_instance_bytes: 1024 * 1024,
+        max_total_instance_bytes: 1024 * 1024,
+        max_total_issues: max_checks * 128,
+        max_total_report_bytes: 1024 * 1024,
+        max_total_worker_wire_bytes: BatchStreamBudget::laboratory().max_total_wire_bytes,
+        batch,
+    }
+}
+
+fn source_foundation_schema_set_from_fixture(
+    store: &Path,
+    revision: SourceRevision,
+    limits: SourceFoundationSchemaLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceFoundationSchemaSet {
+    let reader = CorpusReader::open_existing(
+        store,
+        ReadLimits {
+            max_manifest_bytes: 1_048_576,
+            max_manifest_entries: 128,
+            max_selected_object_bytes: 1_048_576,
+            json: JsonLimits::default(),
+        },
+    )
+    .unwrap();
+    let cut = reader
+        .open_source_cut(
+            revision,
+            CutReadLimits {
+                max_revisions: 4,
+                max_members: 128,
+                max_total_bytes: 2_097_152,
+                max_member_bytes: 1_048_576,
+            },
+            deadline,
+            cancelled,
+        )
+        .unwrap();
+    SourceFoundationSchemaSet::from_cut(
+        &cut,
+        FormatProfile::LegacyPythonObserved20260923,
+        limits,
+        deadline,
+        cancelled,
+    )
+    .unwrap()
+}
+
+fn inventory_json(width_points: &str, height_points: &str, resource_kind_fields: &str) -> Vec<u8> {
+    const TEMPLATE: &str = r#"{"$schema":"https://tree-of-sophia.local/ToS/contracts/source-resource-inventory.schema.json","schema_version":"tos_source_resource_inventory_v1","item_id":"tos.item.fixture","generated_from_manifest_ref":"ToS/source-witnesses/fixture/item.manifest.json","inventory_authority":"mechanical_metadata_only","source_text_included":false,"files":[{"file_id":"tos.file.fixture","file_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","media_type":"application/pdf","profile":"pdf_pages_v1","summary":{"resource_count":1},"resources":[{"resource_id":"page-1",__RESOURCE_KIND_FIELDS__,"locator":{"page_index":1,"width_points":__WIDTH_POINTS__,"height_points":__HEIGHT_POINTS__},"label_fingerprint":{"algorithm":"sha256","normalization":"unicode-nfc-whitespace-collapse","sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","character_count":1},"content_fingerprint":{"algorithm":"sha256","normalization":"unicode-nfc-whitespace-collapse","sha256":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","character_count":1}}]}],"generator":{"name":"build_source_resource_inventories.py","version":"2"},"provenance_event_ref":"tos.event.fixture","inventory_version":1,"authority_boundary":"quoted NaN, Infinity, and -Infinity remain text"}"#;
+    TEMPLATE
+        .replace("__RESOURCE_KIND_FIELDS__", resource_kind_fields)
+        .replace("__WIDTH_POINTS__", width_points)
+        .replace("__HEIGHT_POINTS__", height_points)
+        .into_bytes()
 }
 
 #[test]
@@ -1994,6 +2088,328 @@ fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
             .is_err()
     );
     assert_eq!(schemas.receipts().len(), accepted);
+}
+
+#[test]
+fn actual_source_foundation_inventory_profile2_binds_exceptional_schema_results() {
+    use tos_validation::executor::schema_diagnostics::{PathSegment, Reason, Status};
+
+    let contracts = selected_source_foundation_contracts();
+    assert_eq!(contracts.len(), SOURCE_FOUNDATION_CONTRACT_PATHS.len());
+    let limits = source_foundation_schema_limits(&contracts, 8);
+    assert!(limits.validate());
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(120);
+    let worker_path = selected_worker_path();
+    let worker_sha256 = Digest256::of_bytes(&fs::read(&worker_path).unwrap());
+    let worker = ExactWorkerIdentity {
+        absolute_path: worker_path.clone(),
+        sha256: worker_sha256,
+    };
+    let temporary = tempfile::tempdir().unwrap();
+
+    // The first cut contains only the exact 63 source-foundation contracts
+    // selected by the maintained source API; it never reads corpus members.
+    let original_store = temporary.path().join("original-schema-cut");
+    let original_revision = write_cut_store(&contracts, &original_store);
+    let original_schemas = source_foundation_schema_set_from_fixture(
+        &original_store,
+        original_revision,
+        limits,
+        deadline,
+        &cancelled,
+    );
+    assert_eq!(original_schemas.source_revision(), original_revision);
+
+    let inventory_schema: Value = serde_json::from_slice(&contracts[INVENTORY_SCHEMA]).unwrap();
+    let inventory_uri = inventory_schema["$id"].as_str().unwrap();
+    let finite_raw = inventory_json("12.5", "20.5", r#""resource_kind":"pdf_page""#);
+    let finite_control: Value = serde_json::from_slice(&finite_raw).unwrap();
+    let raw_nan_width = inventory_json("NaN", "20", r#""resource_kind":"pdf_page""#);
+    let raw_nan_height = inventory_json("10", "NaN", r#""resource_kind":"pdf_page""#);
+    let raw_positive_infinity = inventory_json("Infinity", "20", r#""resource_kind":"pdf_page""#);
+    let raw_negative_infinity = inventory_json("10", "-Infinity", r#""resource_kind":"pdf_page""#);
+    let raw_enum_rejection = inventory_json("10", "20", r#""resource_kind":"not-a-schema-enum""#);
+    let raw_last_wins = inventory_json(
+        "10",
+        "20",
+        r#""resource_kind":"not-a-schema-enum","resource_kind":"pdf_page""#,
+    );
+    let locations = [
+        "fixture/inventory/finite-control",
+        "fixture/inventory/nan-width",
+        "fixture/inventory/nan-height",
+        "fixture/inventory/positive-infinity-width",
+        "fixture/inventory/negative-infinity-height",
+        "fixture/inventory/enum-rejection",
+        "fixture/inventory/legacy-last-wins",
+    ];
+    let checks = [
+        SourceFoundationMixedSchemaInput::Decoded(SourceFoundationSchemaInput {
+            location: locations[0],
+            contract: INVENTORY_SCHEMA,
+            decoded_instance: &finite_control,
+        }),
+        SourceFoundationMixedSchemaInput::Legacy(SourceFoundationLegacySchemaInput {
+            location: locations[1],
+            contract: INVENTORY_SCHEMA,
+            raw_instance: &raw_nan_width,
+        }),
+        SourceFoundationMixedSchemaInput::Legacy(SourceFoundationLegacySchemaInput {
+            location: locations[2],
+            contract: INVENTORY_SCHEMA,
+            raw_instance: &raw_nan_height,
+        }),
+        SourceFoundationMixedSchemaInput::Legacy(SourceFoundationLegacySchemaInput {
+            location: locations[3],
+            contract: INVENTORY_SCHEMA,
+            raw_instance: &raw_positive_infinity,
+        }),
+        SourceFoundationMixedSchemaInput::Legacy(SourceFoundationLegacySchemaInput {
+            location: locations[4],
+            contract: INVENTORY_SCHEMA,
+            raw_instance: &raw_negative_infinity,
+        }),
+        SourceFoundationMixedSchemaInput::Legacy(SourceFoundationLegacySchemaInput {
+            location: locations[5],
+            contract: INVENTORY_SCHEMA,
+            raw_instance: &raw_enum_rejection,
+        }),
+        SourceFoundationMixedSchemaInput::Legacy(SourceFoundationLegacySchemaInput {
+            location: locations[6],
+            contract: INVENTORY_SCHEMA,
+            raw_instance: &raw_last_wins,
+        }),
+    ];
+    let expected_units = checks
+        .iter()
+        .enumerate()
+        .map(|(ordinal, check)| {
+            let (location, raw_instance) = match check {
+                SourceFoundationMixedSchemaInput::Decoded(input) => (
+                    input.location,
+                    serde_json::to_vec(input.decoded_instance).unwrap(),
+                ),
+                SourceFoundationMixedSchemaInput::Legacy(input) => {
+                    (input.location, input.raw_instance.to_vec())
+                }
+            };
+            BatchUnit {
+                ordinal: ordinal as u64,
+                member_id: format!("source-foundation-schema:{ordinal}"),
+                relative_path: location.to_owned(),
+                root_uri: inventory_uri.to_owned(),
+                raw_instance,
+            }
+        })
+        .collect::<Vec<_>>();
+    let expected_manifest = BatchCoverageExpectation::from_units(&expected_units).unwrap();
+    let original_report = match evaluate_source_foundation_mixed_schema_checks(
+        &original_schemas,
+        &worker,
+        &checks,
+        limits,
+        deadline,
+        &cancelled,
+    ) {
+        SourceFoundationSchemaOutcome::Complete(report) => report,
+        SourceFoundationSchemaOutcome::Incomplete { report, reason } => {
+            panic!("selected inventory profile-2 batch incomplete: {reason:?}; {report:?}")
+        }
+    };
+    assert!(original_report.is_complete());
+    assert!(!original_report.is_valid());
+    assert_eq!(original_report.source_revision, original_revision);
+    assert_eq!(original_report.worker_sha256, worker_sha256);
+    assert_eq!(
+        original_report.schema_set_sha256,
+        original_schemas.schema_set_sha256()
+    );
+    assert_eq!(original_report.checks.len(), checks.len());
+    assert_eq!(original_report.checkpoints.len(), 1);
+    assert_eq!(
+        original_report.checkpoints[0].completed_count,
+        checks.len() as u64
+    );
+    assert_eq!(
+        original_report.checkpoints[0].ordered_manifest_sha256,
+        expected_manifest.ordered_manifest_sha256
+    );
+    let exceptional_usage = original_report.checkpoints[0]
+        .exceptional_usage
+        .expect("mixed profile-2 report carries actual exceptional work");
+    assert!(exceptional_usage.schema_scan_work > 0);
+    assert!(exceptional_usage.evaluation_work > 0);
+    assert!(exceptional_usage.regex_checks > 0);
+    for (check, location) in original_report.checks.iter().zip(locations) {
+        assert_eq!(check.location, location);
+        assert_eq!(check.contract, INVENTORY_SCHEMA);
+        assert_eq!(check.diagnostic.worker_sha256, worker_sha256);
+    }
+    let issue_vector = |check_index: usize| {
+        original_report.checks[check_index]
+            .diagnostic
+            .issues
+            .iter()
+            .map(|issue| {
+                (
+                    issue.instance_path.clone(),
+                    issue.reason,
+                    issue.schema_keyword.clone(),
+                )
+            })
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(original_report.checks[0].diagnostic.status, Status::Valid);
+    // The maintained Python validator's rejection predicate compares the
+    // value with the bound using <=; NaN makes that comparison false, so both
+    // geometry slots remain schema-valid and emit no exclusiveMinimum issue.
+    assert_eq!(original_report.checks[1].diagnostic.status, Status::Valid);
+    assert!(issue_vector(1).is_empty());
+    assert_eq!(original_report.checks[2].diagnostic.status, Status::Valid);
+    assert!(issue_vector(2).is_empty());
+    assert_eq!(original_report.checks[3].diagnostic.status, Status::Valid);
+    assert_eq!(original_report.checks[4].diagnostic.status, Status::Invalid);
+    assert_eq!(
+        issue_vector(4),
+        vec![(
+            vec![
+                PathSegment::Property("files".into()),
+                PathSegment::Index(0),
+                PathSegment::Property("resources".into()),
+                PathSegment::Index(0),
+                PathSegment::Property("locator".into()),
+                PathSegment::Property("height_points".into()),
+            ],
+            Reason::ExclusiveMinimum,
+            "exclusiveMinimum".into(),
+        )]
+    );
+    assert_eq!(original_report.checks[5].diagnostic.status, Status::Invalid);
+    assert_eq!(
+        issue_vector(5),
+        vec![(
+            vec![
+                PathSegment::Property("files".into()),
+                PathSegment::Index(0),
+                PathSegment::Property("resources".into()),
+                PathSegment::Index(0),
+                PathSegment::Property("resource_kind".into()),
+            ],
+            Reason::Enum,
+            "enum".into(),
+        )]
+    );
+    assert_eq!(original_report.checks[6].diagnostic.status, Status::Valid);
+    assert!(issue_vector(0).is_empty());
+    assert!(issue_vector(3).is_empty());
+    assert!(issue_vector(6).is_empty());
+
+    // Derive a separate adversarial cut from the authentic selected contract.
+    // Its one unknown assertion sits beside a real $ref inside the nested
+    // pdf-profile branch, so the same worker must return Indeterminate rather
+    // than laundering unsupported schema semantics into valid or invalid.
+    let mut unsupported_schema: Value =
+        serde_json::from_slice(&contracts[INVENTORY_SCHEMA]).unwrap();
+    let nested_branch_ref = unsupported_schema
+        .pointer_mut(
+            "/$defs/fileInventory/allOf/1/then/properties/resources/items/properties/label_fingerprint",
+        )
+        .and_then(Value::as_object_mut)
+        .unwrap();
+    assert_eq!(
+        nested_branch_ref.get("$ref").and_then(Value::as_str),
+        Some("#/$defs/fingerprint")
+    );
+    assert!(
+        nested_branch_ref
+            .insert(
+                "x-conformance-unsupported-assertion".into(),
+                Value::Bool(true)
+            )
+            .is_none()
+    );
+    let mut derived_contracts = contracts.clone();
+    derived_contracts.insert(
+        INVENTORY_SCHEMA.into(),
+        serde_json::to_vec(&unsupported_schema).unwrap(),
+    );
+    assert_ne!(
+        Digest256::of_bytes(&contracts[INVENTORY_SCHEMA]),
+        Digest256::of_bytes(&derived_contracts[INVENTORY_SCHEMA])
+    );
+    let derived_store = temporary.path().join("unsupported-schema-cut");
+    let derived_revision = write_cut_store(&derived_contracts, &derived_store);
+    assert_ne!(derived_revision, original_revision);
+    let derived_schemas = source_foundation_schema_set_from_fixture(
+        &derived_store,
+        derived_revision,
+        limits,
+        deadline,
+        &cancelled,
+    );
+    assert_ne!(
+        derived_schemas.schema_set_sha256(),
+        original_schemas.schema_set_sha256()
+    );
+    let indeterminate_location = "fixture/inventory/nested-branch-ref-unsupported";
+    let indeterminate_check = [SourceFoundationMixedSchemaInput::Legacy(
+        SourceFoundationLegacySchemaInput {
+            location: indeterminate_location,
+            contract: INVENTORY_SCHEMA,
+            // NaN forces the exceptional evaluator, so the nested unknown
+            // assertion is examined instead of being ignored by the finite
+            // jsonschema backend.
+            raw_instance: &raw_nan_width,
+        },
+    )];
+    let expected_indeterminate = BatchCoverageExpectation::from_units(&[BatchUnit {
+        ordinal: 0,
+        member_id: "source-foundation-schema:0".into(),
+        relative_path: indeterminate_location.into(),
+        root_uri: inventory_uri.into(),
+        raw_instance: raw_nan_width.clone(),
+    }])
+    .unwrap();
+    let (indeterminate_report, reason) = match evaluate_source_foundation_mixed_schema_checks(
+        &derived_schemas,
+        &worker,
+        &indeterminate_check,
+        limits,
+        deadline,
+        &cancelled,
+    ) {
+        SourceFoundationSchemaOutcome::Incomplete { report, reason } => (report, reason),
+        SourceFoundationSchemaOutcome::Complete(report) => {
+            panic!("unsupported nested schema closure was accepted: {report:?}")
+        }
+    };
+    assert_eq!(
+        reason,
+        SourceFoundationSchemaFailure::UnsupportedInputSemantics
+    );
+    assert!(!indeterminate_report.is_complete());
+    assert!(!indeterminate_report.is_valid());
+    assert_eq!(indeterminate_report.source_revision, derived_revision);
+    assert_eq!(
+        indeterminate_report.schema_set_sha256,
+        derived_schemas.schema_set_sha256()
+    );
+    assert_eq!(indeterminate_report.checkpoints.len(), 1);
+    assert_eq!(indeterminate_report.checkpoints[0].completed_count, 1);
+    assert_eq!(
+        indeterminate_report.checkpoints[0].ordered_manifest_sha256,
+        expected_indeterminate.ordered_manifest_sha256
+    );
+    assert_eq!(indeterminate_report.checks.len(), 1);
+    assert_eq!(
+        indeterminate_report.checks[0].diagnostic.status,
+        Status::Indeterminate
+    );
+    assert_eq!(
+        indeterminate_report.checks[0].diagnostic.failure,
+        tos_validation::executor::schema_diagnostics::Failure::UnsupportedInputSemantics
+    );
 }
 
 #[test]

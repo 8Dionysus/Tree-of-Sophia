@@ -6,11 +6,14 @@
 mod archive;
 mod cut;
 mod error;
+mod git_capture;
 mod limits;
 mod manifest;
 mod object;
+mod pinned_sqlite;
 mod secure_open;
 mod software;
+mod streamed_cut;
 
 pub use cut::{
     CorpusCutReader, CutReadLimits, RetiredSourceMemberV1, SourceMemberStreamV1, SourceMemberV1,
@@ -26,5 +29,24 @@ pub use software::{
     SOFTWARE_COMPANION_PROFILE_V1, SoftwareCaptureReader, SoftwareCaptureSelectionV1,
     SoftwareComponentSelectionV1,
 };
+pub use streamed_cut::{
+    StreamedCorpusCutReaderV1, StreamedCutReadLimitsV1, StreamedRetiredSourceMemberV1,
+    StreamedRevisionV1, StreamedSourceMemberStreamV1, StreamedSourceMemberV1,
+};
 
-pub use archive::{CaptureRestoreLimits, restore_capture};
+pub use archive::{
+    CaptureReadUsage, CaptureRestoreLimits, CaptureVerification, restore_capture, verify_capture,
+    verify_capture_with_usage,
+};
+
+pub use git_capture::{CaptureGitRequest, CaptureGitResult, GitCaptureLimits, capture_git};
+
+mod source_cut_restore;
+pub use source_cut_restore::{SourceCutRestoreResult, restore_source_cut};
+
+pub use git_capture::{GitMemberDescriptor, read_git_member, resolve_git_member};
+
+mod publication;
+pub use publication::{MetadataPublicationEpoch, validate_metadata_publication};
+
+pub use pinned_sqlite::PinnedSqliteConnection;

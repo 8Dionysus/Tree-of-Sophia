@@ -118,12 +118,12 @@ impl<'a> CanonNormalizer<'a> {
         if prepared.source_graph != self.source_graph
             || prepared.adapter_profile != self.profile
             || prepared.final_graph_rows_written
-            || prepared.source_cut != stage.exact_receipt().binding.source_cut
+            || prepared.source_cut != stage.exact_receipt()?.binding.source_cut
         {
             return Err(Error::Invalid("canon materializer cut"));
         }
         let entries = stage
-            .exact_receipt()
+            .exact_receipt()?
             .collections
             .iter()
             .filter(|r| r.source_graph == self.source_graph)
@@ -237,7 +237,7 @@ pub fn source_material(
 ) -> Result<Vec<u8>> {
     if max_bytes == 0
         || max_bytes > 8 * 1024 * 1024
-        || prepared.source_cut != stage.exact_receipt().binding.source_cut
+        || prepared.source_cut != stage.exact_receipt()?.binding.source_cut
     {
         return Err(Error::Invalid("canon source-material binding"));
     }

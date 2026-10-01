@@ -228,7 +228,7 @@ fn custody(
     work: &mut u64,
 ) -> Result<Vec<InputCollectionReceipt>> {
     if stage
-        .exact_receipt()
+        .exact_receipt()?
         .collections
         .iter()
         .filter(|c| c.source_graph == PHILOSOPHY_SOURCE_CUSTODY)
@@ -251,7 +251,7 @@ fn custody(
         ),
     ] {
         let entries = stage
-            .exact_receipt()
+            .exact_receipt()?
             .collections
             .iter()
             .filter(|c| {
@@ -872,7 +872,7 @@ fn collection(
 fn target_receipts(stage: &KnowledgeStage<'_>, receipt: &PhilosophySourceReceipt) -> Result<()> {
     for c in &receipt.raw_collections {
         let entries = stage
-            .exact_receipt()
+            .exact_receipt()?
             .collections
             .iter()
             .filter(|r| r.source_graph == c.source_graph && r.collection == c.collection)
@@ -892,7 +892,7 @@ fn target_receipts(stage: &KnowledgeStage<'_>, receipt: &PhilosophySourceReceipt
         .ok_or(Error::Invalid("philosophy raw plan closure"))?
         .source_graph;
     if stage
-        .exact_receipt()
+        .exact_receipt()?
         .collections
         .iter()
         .filter(|c| &c.source_graph == graph)
@@ -1333,7 +1333,7 @@ pub fn plan_philosophy_source_inputs(
         Ok(PhilosophySourcePlan {
             receipt: PhilosophySourceReceipt {
                 source_revision: expected_revision.0.to_hex(),
-                job_source_cut: planner.exact_receipt().binding.source_cut.clone(),
+                job_source_cut: planner.exact_receipt()?.binding.source_cut.clone(),
                 manifest_members: expected_membership.count,
                 manifest_membership_root_sha256: expected_membership.digest.to_hex(),
                 selected_members_read: read_members.len() as u64,
@@ -1349,7 +1349,7 @@ pub fn plan_philosophy_source_inputs(
                 current_members_only: true,
                 final_graph_rows_written: false,
             },
-            binding: binding(&planner.exact_receipt().binding, true),
+            binding: binding(&planner.exact_receipt()?.binding, true),
             revision: expected_revision,
             membership: expected_membership,
             inputs,
@@ -1379,7 +1379,7 @@ fn verify_plan(
     if plan.revision != revision
         || plan.membership != membership
         || plan.vocabulary != *vocabulary
-        || binding(&planner.exact_receipt().binding, true) != plan.binding
+        || binding(&planner.exact_receipt()?.binding, true) != plan.binding
     {
         return Err(Error::Invalid("philosophy frozen source plan binding"));
     }
@@ -1444,7 +1444,7 @@ pub fn render_philosophy_source_plan(
             cancelled,
             &mut work,
         )?;
-        if binding(&target.exact_receipt().binding, false) != source_fields(&plan.binding) {
+        if binding(&target.exact_receipt()?.binding, false) != source_fields(&plan.binding) {
             return Err(Error::Invalid("philosophy target source identity"));
         }
         target_receipts(target, &plan.receipt)?;
@@ -1531,7 +1531,7 @@ pub fn scan_philosophy_source_material(
     let result = (|| {
         limits.validate()?;
         check(deadline, cancelled)?;
-        if binding(&planner.exact_receipt().binding, true) != plan.binding
+        if binding(&planner.exact_receipt()?.binding, true) != plan.binding
             || !plan
                 .receipt
                 .material_collections

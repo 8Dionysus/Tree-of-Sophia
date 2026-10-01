@@ -6,12 +6,11 @@ use crate::{
     Error, MODEL_ABI, Result, SELECTION_PROFILE, SourceBinding, publication::selected_packet,
     safe_open, stream_digest,
 };
-use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
+use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::Value;
 use std::{
     fs::File,
     io::Seek,
-    os::fd::AsRawFd,
     path::{Path, PathBuf},
     sync::{
         Arc,
@@ -65,7 +64,7 @@ pub struct VerifiedSelection {
 /// Reuse the selected model across requests; digest verification is linear in
 /// model bytes and must not be repeated per query.
 pub struct VerifiedSelectedModel {
-    connection: Connection,
+    connection: tos_source_store::PinnedSqliteConnection,
     pinned: File,
     custody: Arc<dyn ImmutableModelCustody>,
     selection: VerifiedSelection,
@@ -150,20 +149,15 @@ fn metadata(db: &Connection, key: &str, max_bytes: usize) -> Result<String> {
     ))
 }
 
-fn open_sqlite(pinned: &File, max_vm_steps: u64) -> Result<(Connection, Arc<AtomicU64>)> {
+fn open_sqlite(
+    pinned: &File,
+    max_vm_steps: u64,
+) -> Result<(tos_source_store::PinnedSqliteConnection, Arc<AtomicU64>)> {
     if max_vm_steps == 0 {
         return Err(Error::Budget("cold-open SQLite VM steps"));
     }
-    let uri = format!(
-        "file:/proc/self/fd/{}?mode=ro&immutable=1",
-        pinned.as_raw_fd()
-    );
-    let db = Connection::open_with_flags(
-        uri,
-        OpenFlags::SQLITE_OPEN_READ_ONLY
-            | OpenFlags::SQLITE_OPEN_URI
-            | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-    )?;
+    let db = tos_source_store::PinnedSqliteConnection::open_readonly_immutable(pinned)
+        .map_err(|error| Error::Source(error.to_string()))?;
     let used = Arc::new(AtomicU64::new(0));
     let callback_used = Arc::clone(&used);
     db.progress_handler(

@@ -34,10 +34,11 @@ pub mod prepared_maintenance_file;
 pub mod prepared_semantic_index;
 mod prepared_semantic_kernel;
 pub mod prepared_source_binding;
+pub mod private_tmpfs_stage;
 pub use d1_public_build::{
     PublicD1Build, PublicD1BuildLimits, build_public_d1, portable_public_d1_limits,
 };
-pub use d1_public_capture::PublicCaptureLimits;
+pub use d1_public_capture::{PublicCapture, PublicCaptureLimits};
 mod knowledge_base;
 pub mod knowledge_candidates;
 pub mod knowledge_canon_materialize;
@@ -46,13 +47,15 @@ pub mod knowledge_canon_source;
 mod knowledge_catalog_index;
 mod knowledge_corpus_original;
 mod knowledge_corpus_source;
+mod native_snapshot_originals;
 pub use knowledge_corpus_original::{
     CORPUS_ORIGINAL_PROFILE, CapturedCorpusOrigin, CapturedCorpusOriginalPlan,
     CorpusOriginalCollection, CorpusOriginalCollectionReceipt, CorpusOriginalMember,
     CorpusOriginalOrigin, CorpusOriginalPage, CorpusOriginalPlan, CorpusOriginalReceipt,
     CorpusOriginalRow, CorpusOriginalSelector, CorpusOriginalViewIdentity,
     CorpusOriginalViewIdentityPage, KNOWLEDGE_CORPUS_MODEL_ABI, NATIVE_CORPUS_ORIGINAL_PROFILE,
-    retain_captured_corpus_original, retain_corpus_original,
+    captured_runtime_input_manifest_digest, retain_captured_corpus_original,
+    retain_corpus_original,
 };
 pub use knowledge_corpus_source::{
     CorpusOriginalSourceLimits, prepare_captured_corpus_original, prepare_native_corpus_original,
@@ -77,6 +80,7 @@ mod knowledge_navigation_finalize;
 mod knowledge_original_rows;
 mod knowledge_philosophy_original;
 mod knowledge_posting_codec;
+pub mod native_snapshot;
 pub use knowledge_philosophy_original::{
     KNOWLEDGE_PHILOSOPHY_MODEL_ABI, PHILOSOPHY_ORIGINAL_PROFILE, PhilosophyOriginalCollection,
     PhilosophyOriginalInput, PhilosophyOriginalPage, PhilosophyOriginalReceipt,
@@ -122,6 +126,8 @@ pub use managed_model_overlay::{
     prepare_managed_overlay_initial_agent_v2, prepare_managed_overlay_recovery_rebind_v2,
 };
 mod managed_model_manifest;
+/// Bounded verified part decoding; namespace and source selection stay with callers.
+pub use legacy::decode_partition_part;
 mod native_knowledge_selection;
 mod publication;
 mod safe_open;
@@ -248,9 +254,12 @@ pub use selected::{
     open_selected_model,
 };
 pub use source_bibliographic_source::{
-    SourceBibliographicCandidate, SourceCatalogInputLimits, SourceCatalogInputPlan,
-    SourceCatalogRenderWorkV1, plan_source_catalog_inputs, render_source_bibliographic_plan,
-    render_source_bibliographic_plan_with_work,
+    ColdSourceCatalogInputPlan, SourceBibliographicCandidate, SourceCatalogInputLimits,
+    SourceCatalogInputPlan, SourceCatalogRenderWorkV1, plan_cold_source_catalog_inputs,
+    plan_cold_source_catalog_inputs_with_workspace,
+    plan_source_catalog_inputs, prepare_cold_source_catalog_plan,
+    prepare_cold_source_catalog_plan_observed, prepare_source_catalog_plan,
+    render_source_bibliographic_plan, render_source_bibliographic_plan_with_work,
 };
 pub use vocabulary::{QueryVocabulary, RegisteredSource, VocabularyBinding};
 

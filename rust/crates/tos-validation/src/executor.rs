@@ -10,6 +10,7 @@
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use tos_foundation::Digest256;
@@ -36,6 +37,885 @@ const OPERATION_FINAL_BYTES: usize = 8 + 32 + 32 + 8;
 const OPERATION_HEADER_BYTES: usize = 8 + 16 + 32 + 1 + 8 * 8;
 const MAX_MEMBER_ID_BYTES: usize = 512;
 const MAX_PATH_BYTES: usize = 4096;
+const DIAGNOSTIC_REQUEST_MAGIC: &[u8; 8] = b"TOSV2SD2";
+const DIAGNOSTIC_ACK_MAGIC: &[u8; 8] = b"TOSV2DA2";
+const DIAGNOSTIC_UNIT_MAGIC: &[u8; 8] = b"TOSV2DU2";
+const DIAGNOSTIC_FINAL_MAGIC: &[u8; 8] = b"TOSV2DF2";
+const DIAGNOSTIC_ACK_BYTES: usize = 8 + 2 + 32 * 4 + 4;
+const DIAGNOSTIC_UNIT_HEADER_BYTES: usize = 8 + 2 + 8 + 32 + 1 + 1 + 8 + 1 + 4 + 4 + 32;
+const DIAGNOSTIC_FINAL_BYTES: usize = 8 + 2 + 32 * 5 + 4;
+const DIAGNOSTIC_EXCEPTIONAL_COUNTERS_BYTES: usize = 9 * 8;
+const DIAGNOSTIC_FIXED_REQUEST_BYTES: usize = 8 + 2 + 4 + 4 + 2 + 4 + 32 + 32 + 1;
+const MAX_DIAGNOSTIC_REQUEST_BYTES: usize = MAX_BATCH_FRAME_BYTES + 256;
+const DIAGNOSTIC_EXTENDED_INPUT_MARKER: u8 = 0xff;
+const DIAGNOSTIC_INPUT_LEGACY_PYTHON_OBSERVED: u8 = 1;
+const DIAGNOSTIC_INPUT_MIXED_SOURCE_FOUNDATION: u8 = 2;
+const DIAGNOSTIC_INPUT_FINITE_JSON_SELECTED: u8 = 3;
+
+/// Maximum ELF image size accepted by the Linux sealed-worker copier.
+/// Callers that prepare one image for a multi-adapter operation can reserve
+/// this bound before the single source read, then settle against the retained
+/// image length after preparation succeeds.
+pub const MAX_WORKER_IMAGE_BYTES: u64 = 128 * 1024 * 1024;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum DiagnosticsInputProfile {
+    FiniteJson,
+    LegacyPythonObserved,
+    MixedSourceFoundation,
+    FiniteJsonSelected,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum DiagnosticsUnitInputMode {
+    FiniteJson,
+    LegacyPythonObserved,
+    /// Finite JSON using the caller's selected source-foundation ceiling.
+    /// This keeps the standard finite parser and backend; it only raises the
+    /// one-MiB probe admission limit up to the existing batch raw-byte cap.
+    FiniteJsonSelected,
+}
+
+/// Fixed profile-2 exceptional-evaluator budget vector. A request carries the
+/// remaining amounts; the worker returns the amounts actually consumed. This
+/// type also represents those returned per-chunk usage counters.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ExceptionalSchemaUsage {
+    pub schema_scan_work: u64,
+    pub schema_scan_bytes: u64,
+    pub pattern_compile_count: u64,
+    pub pattern_bytes: u64,
+    pub evaluation_work: u64,
+    pub evaluation_bytes: u64,
+    pub reference_steps: u64,
+    pub regex_checks: u64,
+    pub regex_bytes: u64,
+}
+
+impl ExceptionalSchemaUsage {
+    /// The fixed whole-call ceiling bound by the profile-2 capability digest.
+    pub const fn whole() -> Self {
+        Self {
+            schema_scan_work: 300_000,
+            schema_scan_bytes: 32 * 1024 * 1024,
+            pattern_compile_count: 4_096,
+            pattern_bytes: 256 * 1024,
+            evaluation_work: 1_000_000,
+            evaluation_bytes: 64 * 1024 * 1024,
+            reference_steps: 100_000,
+            regex_checks: 100_000,
+            regex_bytes: 64 * 1024 * 1024,
+        }
+    }
+
+    pub(crate) fn fits_within(self, limit: Self) -> bool {
+        self.schema_scan_work <= limit.schema_scan_work
+            && self.schema_scan_bytes <= limit.schema_scan_bytes
+            && self.pattern_compile_count <= limit.pattern_compile_count
+            && self.pattern_bytes <= limit.pattern_bytes
+            && self.evaluation_work <= limit.evaluation_work
+            && self.evaluation_bytes <= limit.evaluation_bytes
+            && self.reference_steps <= limit.reference_steps
+            && self.regex_checks <= limit.regex_checks
+            && self.regex_bytes <= limit.regex_bytes
+    }
+
+    pub(crate) fn checked_sub(self, used: Self) -> Option<Self> {
+        Some(Self {
+            schema_scan_work: self.schema_scan_work.checked_sub(used.schema_scan_work)?,
+            schema_scan_bytes: self.schema_scan_bytes.checked_sub(used.schema_scan_bytes)?,
+            pattern_compile_count: self
+                .pattern_compile_count
+                .checked_sub(used.pattern_compile_count)?,
+            pattern_bytes: self.pattern_bytes.checked_sub(used.pattern_bytes)?,
+            evaluation_work: self.evaluation_work.checked_sub(used.evaluation_work)?,
+            evaluation_bytes: self.evaluation_bytes.checked_sub(used.evaluation_bytes)?,
+            reference_steps: self.reference_steps.checked_sub(used.reference_steps)?,
+            regex_checks: self.regex_checks.checked_sub(used.regex_checks)?,
+            regex_bytes: self.regex_bytes.checked_sub(used.regex_bytes)?,
+        })
+    }
+
+    fn write_be(self, output: &mut Vec<u8>) {
+        for value in [
+            self.schema_scan_work,
+            self.schema_scan_bytes,
+            self.pattern_compile_count,
+            self.pattern_bytes,
+            self.evaluation_work,
+            self.evaluation_bytes,
+            self.reference_steps,
+            self.regex_checks,
+            self.regex_bytes,
+        ] {
+            output.extend_from_slice(&value.to_be_bytes());
+        }
+    }
+
+    fn read_be(bytes: &[u8]) -> Option<Self> {
+        if bytes.len() != DIAGNOSTIC_EXCEPTIONAL_COUNTERS_BYTES {
+            return None;
+        }
+        let mut values = [0u64; 9];
+        for (index, value) in values.iter_mut().enumerate() {
+            let start = index.checked_mul(8)?;
+            *value = u64::from_be_bytes(bytes.get(start..start + 8)?.try_into().ok()?);
+        }
+        Some(Self {
+            schema_scan_work: values[0],
+            schema_scan_bytes: values[1],
+            pattern_compile_count: values[2],
+            pattern_bytes: values[3],
+            evaluation_work: values[4],
+            evaluation_bytes: values[5],
+            reference_steps: values[6],
+            regex_checks: values[7],
+            regex_bytes: values[8],
+        })
+    }
+}
+
+impl DiagnosticsUnitInputMode {
+    const fn wire_byte(self) -> u8 {
+        match self {
+            Self::FiniteJson => 1,
+            Self::LegacyPythonObserved => 2,
+            Self::FiniteJsonSelected => 3,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct MixedDiagnosticsBatchUnit {
+    pub unit: BatchUnit,
+    pub input_mode: DiagnosticsUnitInputMode,
+}
+
+/// Structured, bounded diagnostics are an opt-in worker protocol. The v1
+/// verdict exchange above remains byte-for-byte unchanged.
+pub mod schema_diagnostics {
+    use jsonschema::error::{TypeKind, ValidationErrorKind};
+    use tos_foundation::{Digest256, Digest256Hasher};
+
+    pub const PROTOCOL_VERSION: u16 = 2;
+    pub const MAX_ISSUES_PER_UNIT: u32 = 128;
+    pub const MAX_REPORT_BYTES_PER_UNIT: u32 = 128 * 1024;
+    pub const MAX_PATH_SEGMENTS: u16 = 128;
+    pub const MAX_PATH_BYTES: u32 = 16 * 1024;
+    pub const MAX_RESPONSE_BYTES: usize = 20 * 1024 * 1024;
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct Caps {
+        pub max_issues_per_unit: u32,
+        pub max_report_bytes_per_unit: u32,
+        pub max_path_segments: u16,
+        pub max_path_bytes: u32,
+    }
+
+    impl Caps {
+        pub const CURRENT: Self = Self {
+            max_issues_per_unit: MAX_ISSUES_PER_UNIT,
+            max_report_bytes_per_unit: MAX_REPORT_BYTES_PER_UNIT,
+            max_path_segments: MAX_PATH_SEGMENTS,
+            max_path_bytes: MAX_PATH_BYTES,
+        };
+
+        pub fn digest(self) -> Digest256 {
+            let mut hash = Digest256Hasher::new();
+            hash.update(b"tos-schema-diagnostics-caps-v2\0");
+            hash.update(&PROTOCOL_VERSION.to_be_bytes());
+            hash.update(&self.max_issues_per_unit.to_be_bytes());
+            hash.update(&self.max_report_bytes_per_unit.to_be_bytes());
+            hash.update(&self.max_path_segments.to_be_bytes());
+            hash.update(&self.max_path_bytes.to_be_bytes());
+            hash.finalize()
+        }
+
+        pub(crate) fn validate(self) -> bool {
+            self.max_issues_per_unit > 0
+                && self.max_issues_per_unit <= MAX_ISSUES_PER_UNIT
+                && self.max_report_bytes_per_unit > 0
+                && self.max_report_bytes_per_unit <= MAX_REPORT_BYTES_PER_UNIT
+                && self.max_path_segments > 0
+                && self.max_path_segments <= MAX_PATH_SEGMENTS
+                && self.max_path_bytes > 0
+                && self.max_path_bytes <= MAX_PATH_BYTES
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    pub enum PathSegment {
+        Property(String),
+        Index(u64),
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+    #[repr(u16)]
+    pub enum Reason {
+        AdditionalItems = 1,
+        AdditionalProperties = 2,
+        AnyOf = 3,
+        Pattern = 4,
+        Constant = 5,
+        Contains = 6,
+        ContentEncoding = 7,
+        ContentMediaType = 8,
+        CustomKeyword = 9,
+        Enum = 10,
+        ExclusiveMaximum = 11,
+        ExclusiveMinimum = 12,
+        FalseSchema = 13,
+        Format = 14,
+        MaximumItems = 15,
+        Maximum = 16,
+        MaximumLength = 17,
+        MaximumProperties = 18,
+        MinimumItems = 19,
+        Minimum = 20,
+        MinimumLength = 21,
+        MinimumProperties = 22,
+        MultipleOf = 23,
+        Not = 24,
+        OneOf = 25,
+        PropertyNames = 26,
+        Required = 27,
+        Type = 28,
+        UnevaluatedItems = 29,
+        UnevaluatedProperties = 30,
+        UniqueItems = 31,
+        BacktrackLimit = 32,
+        RegexEngineFailure = 33,
+        ReferenceFailure = 34,
+        UnknownValidationFailure = 35,
+    }
+
+    impl Reason {
+        pub const fn code(self) -> &'static str {
+            match self {
+                Self::AdditionalItems => "additional_items",
+                Self::AdditionalProperties => "additional_properties",
+                Self::AnyOf => "any_of",
+                Self::Pattern => "pattern",
+                Self::Constant => "constant",
+                Self::Contains => "contains",
+                Self::ContentEncoding => "content_encoding",
+                Self::ContentMediaType => "content_media_type",
+                Self::CustomKeyword => "custom_keyword",
+                Self::Enum => "enum",
+                Self::ExclusiveMaximum => "exclusive_maximum",
+                Self::ExclusiveMinimum => "exclusive_minimum",
+                Self::FalseSchema => "false_schema",
+                Self::Format => "format",
+                Self::MaximumItems => "maximum_items",
+                Self::Maximum => "maximum",
+                Self::MaximumLength => "maximum_length",
+                Self::MaximumProperties => "maximum_properties",
+                Self::MinimumItems => "minimum_items",
+                Self::Minimum => "minimum",
+                Self::MinimumLength => "minimum_length",
+                Self::MinimumProperties => "minimum_properties",
+                Self::MultipleOf => "multiple_of",
+                Self::Not => "not",
+                Self::OneOf => "one_of",
+                Self::PropertyNames => "property_names",
+                Self::Required => "required",
+                Self::Type => "type",
+                Self::UnevaluatedItems => "unevaluated_items",
+                Self::UnevaluatedProperties => "unevaluated_properties",
+                Self::UniqueItems => "unique_items",
+                Self::BacktrackLimit => "backtrack_limit",
+                Self::RegexEngineFailure => "regex_engine_failure",
+                Self::ReferenceFailure => "reference_failure",
+                Self::UnknownValidationFailure => "unknown_validation_failure",
+            }
+        }
+
+        pub const fn schema_keyword(self) -> &'static str {
+            match self {
+                Self::AdditionalItems => "additionalItems",
+                Self::AdditionalProperties => "additionalProperties",
+                Self::AnyOf => "anyOf",
+                Self::Pattern | Self::BacktrackLimit | Self::RegexEngineFailure => "pattern",
+                Self::Constant => "const",
+                Self::Contains => "contains",
+                Self::ContentEncoding => "contentEncoding",
+                Self::ContentMediaType => "contentMediaType",
+                Self::CustomKeyword => "custom",
+                Self::Enum => "enum",
+                Self::ExclusiveMaximum => "exclusiveMaximum",
+                Self::ExclusiveMinimum => "exclusiveMinimum",
+                Self::FalseSchema => "false",
+                Self::Format => "format",
+                Self::MaximumItems => "maxItems",
+                Self::Maximum => "maximum",
+                Self::MaximumLength => "maxLength",
+                Self::MaximumProperties => "maxProperties",
+                Self::MinimumItems => "minItems",
+                Self::Minimum => "minimum",
+                Self::MinimumLength => "minLength",
+                Self::MinimumProperties => "minProperties",
+                Self::MultipleOf => "multipleOf",
+                Self::Not => "not",
+                Self::OneOf => "oneOf",
+                Self::PropertyNames => "propertyNames",
+                Self::Required => "required",
+                Self::Type => "type",
+                Self::UnevaluatedItems => "unevaluatedItems",
+                Self::UnevaluatedProperties => "unevaluatedProperties",
+                Self::UniqueItems => "uniqueItems",
+                Self::ReferenceFailure => "$ref",
+                Self::UnknownValidationFailure => "unknown",
+            }
+        }
+
+        pub(crate) fn from_wire(value: u16) -> Option<Self> {
+            Some(match value {
+                1 => Self::AdditionalItems,
+                2 => Self::AdditionalProperties,
+                3 => Self::AnyOf,
+                4 => Self::Pattern,
+                5 => Self::Constant,
+                6 => Self::Contains,
+                7 => Self::ContentEncoding,
+                8 => Self::ContentMediaType,
+                9 => Self::CustomKeyword,
+                10 => Self::Enum,
+                11 => Self::ExclusiveMaximum,
+                12 => Self::ExclusiveMinimum,
+                13 => Self::FalseSchema,
+                14 => Self::Format,
+                15 => Self::MaximumItems,
+                16 => Self::Maximum,
+                17 => Self::MaximumLength,
+                18 => Self::MaximumProperties,
+                19 => Self::MinimumItems,
+                20 => Self::Minimum,
+                21 => Self::MinimumLength,
+                22 => Self::MinimumProperties,
+                23 => Self::MultipleOf,
+                24 => Self::Not,
+                25 => Self::OneOf,
+                26 => Self::PropertyNames,
+                27 => Self::Required,
+                28 => Self::Type,
+                29 => Self::UnevaluatedItems,
+                30 => Self::UnevaluatedProperties,
+                31 => Self::UniqueItems,
+                32 => Self::BacktrackLimit,
+                33 => Self::RegexEngineFailure,
+                34 => Self::ReferenceFailure,
+                35 => Self::UnknownValidationFailure,
+                _ => return None,
+            })
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+    #[repr(u8)]
+    pub enum CompatibilityText {
+        NullIsNotObject = 1,
+        NullIsNotArray = 2,
+    }
+
+    impl CompatibilityText {
+        pub const fn as_str(self) -> &'static str {
+            match self {
+                Self::NullIsNotObject => "None is not of type 'object'",
+                Self::NullIsNotArray => "None is not of type 'array'",
+            }
+        }
+
+        pub(crate) fn from_wire(value: u8) -> Option<Option<Self>> {
+            Some(match value {
+                0 => None,
+                1 => Some(Self::NullIsNotObject),
+                2 => Some(Self::NullIsNotArray),
+                _ => return None,
+            })
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    pub struct Issue {
+        pub instance_path: Vec<PathSegment>,
+        pub schema_keyword: String,
+        pub reason: Reason,
+        pub schema_path: Vec<PathSegment>,
+        pub compatibility_text: Option<CompatibilityText>,
+    }
+
+    impl Issue {
+        pub fn compatibility_text(&self) -> Option<&'static str> {
+            self.compatibility_text.map(CompatibilityText::as_str)
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[repr(u8)]
+    pub enum Status {
+        Valid = 0,
+        Invalid = 1,
+        Truncated = 2,
+        InputRejected = 3,
+        Indeterminate = 4,
+    }
+
+    impl Status {
+        pub(crate) fn from_wire(value: u8) -> Option<Self> {
+            Some(match value {
+                0 => Self::Valid,
+                1 => Self::Invalid,
+                2 => Self::Truncated,
+                3 => Self::InputRejected,
+                4 => Self::Indeterminate,
+                _ => return None,
+            })
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    #[repr(u8)]
+    pub enum Failure {
+        None = 0,
+        InvalidJson = 1,
+        InputBudget = 2,
+        ValidatorRuntime = 3,
+        UnsupportedInputSemantics = 4,
+    }
+
+    impl Failure {
+        pub(crate) fn from_wire(value: u8) -> Option<Self> {
+            Some(match value {
+                0 => Self::None,
+                1 => Self::InvalidJson,
+                2 => Self::InputBudget,
+                3 => Self::ValidatorRuntime,
+                4 => Self::UnsupportedInputSemantics,
+                _ => return None,
+            })
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct Report {
+        pub protocol_version: u16,
+        pub worker_sha256: Digest256,
+        pub request_sha256: Digest256,
+        pub unit_sha256: Digest256,
+        pub schema_set_sha256: Digest256,
+        pub caps: Caps,
+        pub status: Status,
+        pub failure: Failure,
+        pub total_issue_count: u64,
+        pub truncated: bool,
+        pub issues_sha256: Digest256,
+        pub report_sha256: Digest256,
+        pub issues: Vec<Issue>,
+    }
+
+    impl Report {
+        /// Checks the complete structured report envelope, including canonical
+        /// issue ordering and every report digest. This is transport evidence,
+        /// not source admission.
+        pub fn is_well_formed(&self) -> bool {
+            if self.protocol_version != PROTOCOL_VERSION
+                || !self.caps.validate()
+                || !status_is_well_formed(
+                    self.status,
+                    self.failure,
+                    self.total_issue_count,
+                    self.truncated,
+                    self.issues.len(),
+                )
+                || self.issues.windows(2).any(|pair| pair[0] > pair[1])
+                || self.issues.iter().any(|issue| {
+                    issue.schema_keyword != issue.reason.schema_keyword()
+                        || issue.schema_keyword.len() > 64
+                        || !path_within_caps(&issue.instance_path, self.caps)
+                        || !path_within_caps(&issue.schema_path, self.caps)
+                })
+            {
+                return false;
+            }
+            let Some(payload_bytes) = self.issues.iter().try_fold(0usize, |total, issue| {
+                total.checked_add(issue_payload(issue)?.len())
+            }) else {
+                return false;
+            };
+            if payload_bytes
+                .checked_add(super::DIAGNOSTIC_UNIT_HEADER_BYTES)
+                .is_none_or(|bytes| bytes > self.caps.max_report_bytes_per_unit as usize)
+            {
+                return false;
+            }
+            let Some(issues_sha256) = issues_digest(&self.issues) else {
+                return false;
+            };
+            self.issues_sha256 == issues_sha256
+                && self.report_sha256
+                    == report_digest(
+                        self.worker_sha256,
+                        self.request_sha256,
+                        self.unit_sha256,
+                        self.schema_set_sha256,
+                        self.caps,
+                        self.status,
+                        self.failure,
+                        self.total_issue_count,
+                        self.truncated,
+                        self.issues_sha256,
+                    )
+        }
+
+        pub fn is_valid(&self) -> bool {
+            self.is_well_formed()
+                && self.status == Status::Valid
+                && self.failure == Failure::None
+                && !self.truncated
+                && self.total_issue_count == 0
+                && self.issues.is_empty()
+        }
+
+        pub fn caps_sha256(&self) -> Digest256 {
+            self.caps.digest()
+        }
+    }
+
+    fn path_within_caps(path: &[PathSegment], caps: Caps) -> bool {
+        if path.len() > caps.max_path_segments as usize {
+            return false;
+        }
+        path.iter()
+            .try_fold(0usize, |total, segment| {
+                let cost = match segment {
+                    PathSegment::Property(value) => value.len(),
+                    PathSegment::Index(_) => std::mem::size_of::<u64>(),
+                };
+                total.checked_add(cost)
+            })
+            .is_some_and(|bytes| bytes <= caps.max_path_bytes as usize)
+    }
+
+    pub(crate) fn reason_and_keyword(kind: &ValidationErrorKind) -> (Reason, &'static str) {
+        match kind {
+            ValidationErrorKind::AdditionalItems { .. } => {
+                (Reason::AdditionalItems, "additionalItems")
+            }
+            ValidationErrorKind::AdditionalProperties { .. } => {
+                (Reason::AdditionalProperties, "additionalProperties")
+            }
+            ValidationErrorKind::AnyOf { .. } => (Reason::AnyOf, "anyOf"),
+            ValidationErrorKind::BacktrackLimitExceeded { .. } => {
+                (Reason::BacktrackLimit, "pattern")
+            }
+            ValidationErrorKind::RegexEngineFailure { .. } => {
+                (Reason::RegexEngineFailure, "pattern")
+            }
+            ValidationErrorKind::Pattern { .. } => (Reason::Pattern, "pattern"),
+            ValidationErrorKind::Constant { .. } => (Reason::Constant, "const"),
+            ValidationErrorKind::Contains => (Reason::Contains, "contains"),
+            ValidationErrorKind::ContentEncoding { .. } | ValidationErrorKind::FromUtf8 { .. } => {
+                (Reason::ContentEncoding, "contentEncoding")
+            }
+            ValidationErrorKind::ContentMediaType { .. } => {
+                (Reason::ContentMediaType, "contentMediaType")
+            }
+            ValidationErrorKind::Custom { .. } => (Reason::CustomKeyword, "custom"),
+            ValidationErrorKind::Enum { .. } => (Reason::Enum, "enum"),
+            ValidationErrorKind::ExclusiveMaximum { .. } => {
+                (Reason::ExclusiveMaximum, "exclusiveMaximum")
+            }
+            ValidationErrorKind::ExclusiveMinimum { .. } => {
+                (Reason::ExclusiveMinimum, "exclusiveMinimum")
+            }
+            ValidationErrorKind::FalseSchema => (Reason::FalseSchema, "false"),
+            ValidationErrorKind::Format { .. } => (Reason::Format, "format"),
+            ValidationErrorKind::MaxItems { .. } => (Reason::MaximumItems, "maxItems"),
+            ValidationErrorKind::Maximum { .. } => (Reason::Maximum, "maximum"),
+            ValidationErrorKind::MaxLength { .. } => (Reason::MaximumLength, "maxLength"),
+            ValidationErrorKind::MaxProperties { .. } => {
+                (Reason::MaximumProperties, "maxProperties")
+            }
+            ValidationErrorKind::MinItems { .. } => (Reason::MinimumItems, "minItems"),
+            ValidationErrorKind::Minimum { .. } => (Reason::Minimum, "minimum"),
+            ValidationErrorKind::MinLength { .. } => (Reason::MinimumLength, "minLength"),
+            ValidationErrorKind::MinProperties { .. } => {
+                (Reason::MinimumProperties, "minProperties")
+            }
+            ValidationErrorKind::MultipleOf { .. } => (Reason::MultipleOf, "multipleOf"),
+            ValidationErrorKind::Not { .. } => (Reason::Not, "not"),
+            ValidationErrorKind::OneOfMultipleValid { .. }
+            | ValidationErrorKind::OneOfNotValid { .. } => (Reason::OneOf, "oneOf"),
+            ValidationErrorKind::PropertyNames { .. } => (Reason::PropertyNames, "propertyNames"),
+            ValidationErrorKind::Required { .. } => (Reason::Required, "required"),
+            ValidationErrorKind::Type { .. } => (Reason::Type, "type"),
+            ValidationErrorKind::UnevaluatedItems { .. } => {
+                (Reason::UnevaluatedItems, "unevaluatedItems")
+            }
+            ValidationErrorKind::UnevaluatedProperties { .. } => {
+                (Reason::UnevaluatedProperties, "unevaluatedProperties")
+            }
+            ValidationErrorKind::UniqueItems => (Reason::UniqueItems, "uniqueItems"),
+            ValidationErrorKind::Referencing(_) => (Reason::ReferenceFailure, "$ref"),
+            _ => (Reason::UnknownValidationFailure, "unknown"),
+        }
+    }
+
+    pub(crate) fn status_is_well_formed(
+        status: Status,
+        failure: Failure,
+        total_issue_count: u64,
+        truncated: bool,
+        issue_count: usize,
+    ) -> bool {
+        match status {
+            Status::Valid => {
+                failure == Failure::None && total_issue_count == 0 && !truncated && issue_count == 0
+            }
+            Status::Invalid => {
+                failure == Failure::None
+                    && total_issue_count > 0
+                    && !truncated
+                    && total_issue_count == issue_count as u64
+            }
+            Status::Truncated => {
+                failure == Failure::None && truncated && total_issue_count > issue_count as u64
+            }
+            Status::InputRejected => {
+                matches!(failure, Failure::InvalidJson | Failure::InputBudget)
+                    && total_issue_count == 0
+                    && !truncated
+                    && issue_count == 0
+            }
+            Status::Indeterminate => {
+                matches!(
+                    failure,
+                    Failure::ValidatorRuntime | Failure::UnsupportedInputSemantics
+                ) && issue_count as u64 <= total_issue_count
+                    && if total_issue_count == 0 {
+                        issue_count == 0 && !truncated
+                    } else {
+                        truncated || issue_count as u64 == total_issue_count
+                    }
+            }
+        }
+    }
+
+    pub(crate) fn compatibility_text(
+        kind: &ValidationErrorKind,
+        instance: &serde_json::Value,
+    ) -> Option<CompatibilityText> {
+        if !instance.is_null() {
+            return None;
+        }
+        let ValidationErrorKind::Type { kind } = kind else {
+            return None;
+        };
+        let TypeKind::Single(expected) = kind else {
+            return None;
+        };
+        match expected {
+            jsonschema::JsonType::Object => Some(CompatibilityText::NullIsNotObject),
+            jsonschema::JsonType::Array => Some(CompatibilityText::NullIsNotArray),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn path_from_location<'a>(
+        segments: impl Iterator<Item = jsonschema::paths::LocationSegment<'a>>,
+        caps: Caps,
+    ) -> Option<Vec<PathSegment>> {
+        let mut output = Vec::new();
+        let mut bytes = 0usize;
+        for segment in segments {
+            if output.len() >= caps.max_path_segments as usize {
+                return None;
+            }
+            match segment {
+                jsonschema::paths::LocationSegment::Property(property) => {
+                    bytes = bytes.checked_add(property.len())?;
+                    if bytes > caps.max_path_bytes as usize {
+                        return None;
+                    }
+                    output.push(PathSegment::Property(property.into_owned()));
+                }
+                jsonschema::paths::LocationSegment::Index(index) => {
+                    bytes = bytes.checked_add(std::mem::size_of::<u64>())?;
+                    if bytes > caps.max_path_bytes as usize {
+                        return None;
+                    }
+                    output.push(PathSegment::Index(u64::try_from(index).ok()?));
+                }
+            }
+        }
+        Some(output)
+    }
+
+    pub(crate) fn issue_from_validation_error(
+        error: &jsonschema::ValidationError<'_>,
+        caps: Caps,
+    ) -> Option<(Issue, bool)> {
+        let (reason, keyword) = reason_and_keyword(error.kind());
+        let instance_path = path_from_location(error.instance_path().segments(), caps)?;
+        let schema_path = path_from_location(error.schema_path().segments(), caps)?;
+        let indeterminate = matches!(
+            reason,
+            Reason::BacktrackLimit
+                | Reason::RegexEngineFailure
+                | Reason::ReferenceFailure
+                | Reason::UnknownValidationFailure
+        );
+        Some((
+            Issue {
+                instance_path,
+                schema_keyword: keyword.to_owned(),
+                reason,
+                schema_path,
+                compatibility_text: compatibility_text(error.kind(), error.instance().as_ref()),
+            },
+            indeterminate,
+        ))
+    }
+
+    pub(crate) fn issue_payload(issue: &Issue) -> Option<Vec<u8>> {
+        let mut output = Vec::new();
+        encode_path(&mut output, &issue.instance_path)?;
+        put_bytes(&mut output, issue.schema_keyword.as_bytes())?;
+        output.extend_from_slice(&(issue.reason as u16).to_be_bytes());
+        encode_path(&mut output, &issue.schema_path)?;
+        output.push(issue.compatibility_text.map_or(0, |value| value as u8));
+        Some(output)
+    }
+
+    fn put_bytes(output: &mut Vec<u8>, value: &[u8]) -> Option<()> {
+        output.extend_from_slice(&u32::try_from(value.len()).ok()?.to_be_bytes());
+        output.extend_from_slice(value);
+        Some(())
+    }
+
+    fn encode_path(output: &mut Vec<u8>, path: &[PathSegment]) -> Option<()> {
+        output.extend_from_slice(&u16::try_from(path.len()).ok()?.to_be_bytes());
+        for segment in path {
+            match segment {
+                PathSegment::Property(value) => {
+                    output.push(0);
+                    put_bytes(output, value.as_bytes())?;
+                }
+                PathSegment::Index(value) => {
+                    output.push(1);
+                    output.extend_from_slice(&value.to_be_bytes());
+                }
+            }
+        }
+        Some(())
+    }
+
+    pub(crate) fn issues_digest(issues: &[Issue]) -> Option<Digest256> {
+        let mut hash = Digest256Hasher::new();
+        hash.update(b"tos-schema-diagnostics-issues-v2\0");
+        hash.update(&(issues.len() as u64).to_be_bytes());
+        for issue in issues {
+            let bytes = issue_payload(issue)?;
+            hash.update(&(bytes.len() as u64).to_be_bytes());
+            hash.update(&bytes);
+        }
+        Some(hash.finalize())
+    }
+
+    pub(crate) fn report_digest(
+        worker_sha256: Digest256,
+        request_sha256: Digest256,
+        unit_sha256: Digest256,
+        schema_set_sha256: Digest256,
+        caps: Caps,
+        status: Status,
+        failure: Failure,
+        total_issue_count: u64,
+        truncated: bool,
+        issues_sha256: Digest256,
+    ) -> Digest256 {
+        let mut hash = Digest256Hasher::new();
+        hash.update(b"tos-schema-diagnostics-report-v2\0");
+        hash.update(&PROTOCOL_VERSION.to_be_bytes());
+        hash.update(worker_sha256.as_bytes());
+        hash.update(request_sha256.as_bytes());
+        hash.update(unit_sha256.as_bytes());
+        hash.update(schema_set_sha256.as_bytes());
+        hash.update(caps.digest().as_bytes());
+        hash.update(&[status as u8, failure as u8, u8::from(truncated)]);
+        hash.update(&total_issue_count.to_be_bytes());
+        hash.update(issues_sha256.as_bytes());
+        hash.finalize()
+    }
+}
+
+/// One fully bound diagnostics-v2 result. `is_valid()` reports only the local
+/// schema check for this unit; it is not source admission or acceptance.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SchemaDiagnosticUnit {
+    pub ordinal: u64,
+    pub member_id: String,
+    pub relative_path: String,
+    pub root_uri: String,
+    pub raw_sha256: Digest256,
+    pub unit_sha256: Digest256,
+    pub report: schema_diagnostics::Report,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SchemaDiagnosticsCheckpoint {
+    pub worker_sha256: Digest256,
+    pub request_sha256: Digest256,
+    pub profile: FormatProfile,
+    pub schema_set_sha256: Digest256,
+    pub ordered_manifest_sha256: Digest256,
+    pub caps_sha256: Digest256,
+    pub completed_count: u64,
+    pub result_stream_sha256: Digest256,
+    /// Bytes the controller actually wrote to this worker's stdin. Zero means
+    /// no diagnostic request bytes crossed the pipe.
+    pub worker_request_bytes: u64,
+    /// Bytes the controller actually received from this worker's stdout,
+    /// including acknowledgement and terminal records.
+    pub worker_response_bytes: u64,
+    /// Actual wait4 user+system CPU time in microseconds. `None` means the
+    /// worker was not reaped with a complete usage observation.
+    pub worker_cpu_micros: Option<u64>,
+    /// Remaining fixed whole-call allowance sent in this request, `None` for
+    /// the unchanged finite-only and raw-only diagnostics profiles.
+    pub exceptional_remaining: Option<ExceptionalSchemaUsage>,
+    /// Present only when a mixed-profile worker's final record was fully
+    /// parsed; it is actual worker-reported usage, never a parent estimate.
+    pub exceptional_usage: Option<ExceptionalSchemaUsage>,
+}
+
+/// A transport-complete diagnostic batch or a fail-closed incomplete exchange.
+/// Complete transport does not imply that any unit is schema-valid.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SchemaDiagnosticsOutcome {
+    Complete {
+        units: Vec<SchemaDiagnosticUnit>,
+        checkpoint: SchemaDiagnosticsCheckpoint,
+    },
+    Incomplete {
+        checkpoint: SchemaDiagnosticsCheckpoint,
+        reason: ExecutorFailure,
+        exchange: Option<ExchangeFailureContext>,
+    },
+}
+
+/// Bounded accounting returned with one diagnostics-v2 worker exchange.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) struct SchemaDiagnosticsExecutionCost {
+    pub schema_resource_bytes: usize,
+    pub schema_resource_buffer_bytes: usize,
+    pub input_instance_buffer_bytes: usize,
+    pub request_bytes: usize,
+    pub request_buffer_bytes: usize,
+    pub response_bytes: usize,
+    pub response_buffer_bytes: usize,
+    pub worker_cpu_micros: Option<u64>,
+}
 
 #[derive(Debug, Clone)]
 pub struct ExactWorkerIdentity {
@@ -43,9 +923,9 @@ pub struct ExactWorkerIdentity {
     pub sha256: Digest256,
 }
 
-/// One exact sealed image for related adapters within a single bounded caller
-/// operation. It carries no schema receipt, child state, or global cache entry.
-/// Only successful image verification can construct this handle.
+/// One verified immutable worker image shared by related schema adapters in a
+/// single caller-owned operation. The file descriptor refers to the sealed
+/// executable memfd; adapters clone that descriptor and never reopen the path.
 pub struct VerifiedWorkerImageHandle {
     identity: ExactWorkerIdentity,
     operation_deadline: Instant,
@@ -54,6 +934,7 @@ pub struct VerifiedWorkerImageHandle {
 }
 
 impl VerifiedWorkerImageHandle {
+    /// Verify and seal the exact worker once for a caller operation.
     pub fn prepare(
         worker: ExactWorkerIdentity,
         budget: ExecutorBudget,
@@ -72,13 +953,48 @@ impl VerifiedWorkerImageHandle {
         }
     }
 
+    /// Identity whose exact path and digest were checked before sealing.
     pub fn identity(&self) -> &ExactWorkerIdentity {
         &self.identity
     }
 
-    /// Upper bound for any operation that reuses this admitted image.
+    /// Deadline shared by every adapter created from this handle.
     pub fn operation_deadline(&self) -> Instant {
         self.operation_deadline
+    }
+
+    /// Length of the already verified sealed executable image.
+    pub fn image_bytes(&self) -> Result<u64, ExecutorFailure> {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            let metadata = self
+                .file
+                .metadata()
+                .map_err(|_| ExecutorFailure::WorkerIdentity)?;
+            let bytes = metadata.len();
+            if bytes == 0 || bytes > MAX_WORKER_IMAGE_BYTES {
+                return Err(ExecutorFailure::WorkerIdentity);
+            }
+            Ok(bytes)
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        {
+            Err(ExecutorFailure::UnsupportedHost)
+        }
+    }
+
+    /// Conservative retained-state charge for the handle and its sealed image.
+    /// The path capacity and inline handle storage are included explicitly.
+    pub fn retained_state_bytes(&self) -> Result<u64, ExecutorFailure> {
+        let image_bytes = self.image_bytes()?;
+        let metadata_bytes = std::mem::size_of::<Self>()
+            .checked_add(self.identity.absolute_path.capacity())
+            .ok_or(ExecutorFailure::ResourceLimitUnknown)?;
+        image_bytes
+            .checked_add(
+                u64::try_from(metadata_bytes).map_err(|_| ExecutorFailure::ResourceLimitUnknown)?,
+            )
+            .ok_or(ExecutorFailure::ResourceLimitUnknown)
     }
 }
 
@@ -291,7 +1207,8 @@ pub struct BatchStreamBudget {
 }
 
 impl BatchStreamBudget {
-    pub(crate) fn validate(self) -> Result<(), ExecutorFailure> {
+    /// Check the finite operation envelope without launching or granting execution.
+    pub fn validate(self) -> Result<(), ExecutorFailure> {
         let budget = self;
         budget.batch.validate()?;
         if budget.max_chunks == 0
@@ -330,6 +1247,312 @@ impl BatchStreamBudget {
     }
 }
 
+/// Opaque invocation-local budget shared by explicitly attached diagnostics-v2
+/// schema executors. There is no default, global cache, reset, or wire field.
+/// Long-lived owner executors attach before their own first request; a fresh
+/// serial worker image may attach the same still-healthy handle later. Committed
+/// usage is cumulative and attaching never changes it.
+#[derive(Clone)]
+pub struct SharedSchemaWorkerQuota {
+    inner: Arc<Mutex<SharedSchemaWorkerQuotaState>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SharedSchemaWorkerQuotaUsage {
+    pub max_total_cpu_micros: u64,
+    pub max_total_wire_bytes: u64,
+    pub max_total_units: u64,
+    pub worker_cpu_micros: u64,
+    pub worker_wire_bytes: u64,
+    pub worker_units: u64,
+}
+
+struct SharedSchemaWorkerQuotaState {
+    usage: SharedSchemaWorkerQuotaUsage,
+    next_token: u64,
+    in_flight: Option<u64>,
+    poisoned: bool,
+}
+
+impl SharedSchemaWorkerQuota {
+    /// Create the immutable whole-invocation ceilings. All dimensions are
+    /// finite and positive; `max_total_cpu_micros` is exact accounting while
+    /// each child still receives Linux's integer-second rlimit.
+    pub fn new(
+        max_total_cpu_micros: u64,
+        max_total_wire_bytes: u64,
+        max_total_units: u64,
+    ) -> Result<Self, ExecutorFailure> {
+        if max_total_cpu_micros == 0
+            || max_total_cpu_micros > 3_600_000_000
+            || max_total_wire_bytes == 0
+            || max_total_wire_bytes == u64::MAX
+            || max_total_units == 0
+            || max_total_units == u64::MAX
+        {
+            return Err(ExecutorFailure::ResourceLimitUnknown);
+        }
+        Ok(Self {
+            inner: Arc::new(Mutex::new(SharedSchemaWorkerQuotaState {
+                usage: SharedSchemaWorkerQuotaUsage {
+                    max_total_cpu_micros,
+                    max_total_wire_bytes,
+                    max_total_units,
+                    worker_cpu_micros: 0,
+                    worker_wire_bytes: 0,
+                    worker_units: 0,
+                },
+                next_token: 1,
+                in_flight: None,
+                poisoned: false,
+            })),
+        })
+    }
+
+    /// Return actual committed terminal usage. Unknown, poisoned, or
+    /// in-flight executions never appear as a zero-cost snapshot.
+    pub fn usage(&self) -> Result<SharedSchemaWorkerQuotaUsage, ExecutorFailure> {
+        let state = self
+            .inner
+            .lock()
+            .map_err(|_| ExecutorFailure::ResourceLimitUnknown)?;
+        if state.poisoned || state.in_flight.is_some() {
+            return Err(ExecutorFailure::ResourceLimitUnknown);
+        }
+        Ok(state.usage)
+    }
+
+    pub(crate) fn ensure_attachable(&self) -> Result<(), ExecutorFailure> {
+        let state = self
+            .inner
+            .lock()
+            .map_err(|_| ExecutorFailure::ResourceLimitUnknown)?;
+        if state.poisoned || state.in_flight.is_some() {
+            return Err(ExecutorFailure::ResourceLimitUnknown);
+        }
+        Ok(())
+    }
+
+    fn child_cpu_seconds(&self, requested: u64) -> Result<u64, ExecutorFailure> {
+        let mut state = self
+            .inner
+            .lock()
+            .map_err(|_| ExecutorFailure::ResourceLimitUnknown)?;
+        if state.poisoned || state.in_flight.is_some() || requested == 0 {
+            state.poisoned = true;
+            return Err(ExecutorFailure::ResourceLimitUnknown);
+        }
+        let Some(remaining) = state
+            .usage
+            .max_total_cpu_micros
+            .checked_sub(state.usage.worker_cpu_micros)
+        else {
+            state.poisoned = true;
+            return Err(ExecutorFailure::ResourceLimitUnknown);
+        };
+        if remaining == 0 {
+            state.poisoned = true;
+            return Err(ExecutorFailure::CpuLimit);
+        }
+        Ok(requested.min(remaining.div_ceil(1_000_000).max(1)))
+    }
+
+    fn begin(
+        &self,
+        request_bytes: usize,
+        minimum_response_bytes: usize,
+        maximum_response_bytes: usize,
+        requested_child_cpu_seconds: u64,
+        units: u64,
+    ) -> Result<SharedSchemaWorkerReservation, ExecutorFailure> {
+        let request_bytes =
+            u64::try_from(request_bytes).map_err(|_| ExecutorFailure::InputBudget)?;
+        let minimum_response_bytes =
+            u64::try_from(minimum_response_bytes).map_err(|_| ExecutorFailure::InputBudget)?;
+        let maximum_response_bytes =
+            u64::try_from(maximum_response_bytes).map_err(|_| ExecutorFailure::InputBudget)?;
+        let mut state = self
+            .inner
+            .lock()
+            .map_err(|_| ExecutorFailure::ResourceLimitUnknown)?;
+        if state.poisoned || state.in_flight.is_some() {
+            state.poisoned = true;
+            return Err(ExecutorFailure::ResourceLimitUnknown);
+        }
+        if units == 0 {
+            state.poisoned = true;
+            return Err(ExecutorFailure::InputBudget);
+        }
+        let remaining_cpu_micros = state
+            .usage
+            .max_total_cpu_micros
+            .checked_sub(state.usage.worker_cpu_micros);
+        let remaining_wire_bytes = state
+            .usage
+            .max_total_wire_bytes
+            .checked_sub(state.usage.worker_wire_bytes);
+        let remaining_units = state
+            .usage
+            .max_total_units
+            .checked_sub(state.usage.worker_units);
+        let admission_error = if remaining_units.is_none_or(|remaining| remaining < units) {
+            Some(ExecutorFailure::InputBudget)
+        } else if remaining_cpu_micros.is_none_or(|remaining| remaining == 0)
+            || requested_child_cpu_seconds == 0
+        {
+            Some(ExecutorFailure::CpuLimit)
+        } else if remaining_wire_bytes.is_none_or(|remaining| {
+            request_bytes
+                .checked_add(minimum_response_bytes)
+                .and_then(|bytes| bytes.checked_add(1))
+                .is_none_or(|minimum| minimum > remaining)
+        }) {
+            Some(ExecutorFailure::InputBudget)
+        } else {
+            None
+        };
+        if let Some(reason) = admission_error {
+            state.poisoned = true;
+            return Err(reason);
+        }
+        let remaining_cpu_micros = remaining_cpu_micros.unwrap();
+        let remaining_wire_bytes = remaining_wire_bytes.unwrap();
+        let response_capacity = remaining_wire_bytes
+            .checked_sub(request_bytes)
+            .and_then(|bytes| bytes.checked_sub(1))
+            .ok_or(ExecutorFailure::InputBudget)?
+            .min(maximum_response_bytes);
+        if response_capacity < minimum_response_bytes {
+            state.poisoned = true;
+            return Err(ExecutorFailure::InputBudget);
+        }
+        let child_cpu_seconds =
+            requested_child_cpu_seconds.min(remaining_cpu_micros.div_ceil(1_000_000).max(1));
+        let token = state.next_token;
+        let Some(next_token) = token.checked_add(1) else {
+            state.poisoned = true;
+            return Err(ExecutorFailure::ResourceLimitUnknown);
+        };
+        state.next_token = next_token;
+        state.in_flight = Some(token);
+        Ok(SharedSchemaWorkerReservation {
+            quota: self.clone(),
+            token,
+            request_bytes,
+            minimum_response_bytes,
+            maximum_response_bytes: response_capacity,
+            child_cpu_seconds,
+            units,
+            settled: false,
+        })
+    }
+
+    pub(crate) fn poison(&self) {
+        if let Ok(mut state) = self.inner.lock() {
+            state.poisoned = true;
+            state.in_flight = None;
+        }
+    }
+}
+
+struct SharedSchemaWorkerReservation {
+    quota: SharedSchemaWorkerQuota,
+    token: u64,
+    request_bytes: u64,
+    minimum_response_bytes: u64,
+    maximum_response_bytes: u64,
+    child_cpu_seconds: u64,
+    units: u64,
+    settled: bool,
+}
+
+impl SharedSchemaWorkerReservation {
+    fn response_cap(&self) -> usize {
+        usize::try_from(self.maximum_response_bytes).unwrap_or(usize::MAX)
+    }
+
+    fn child_cpu_seconds(&self) -> u64 {
+        self.child_cpu_seconds
+    }
+
+    fn complete(
+        mut self,
+        request_bytes: usize,
+        response_bytes: usize,
+        cpu_micros: Option<u64>,
+        completed_units: u64,
+    ) -> Result<(), ExecutorFailure> {
+        let request_bytes =
+            u64::try_from(request_bytes).map_err(|_| ExecutorFailure::InputBudget)?;
+        let response_bytes =
+            u64::try_from(response_bytes).map_err(|_| ExecutorFailure::InputBudget)?;
+        let mut state = self
+            .quota
+            .inner
+            .lock()
+            .map_err(|_| ExecutorFailure::ResourceLimitUnknown)?;
+        let invalid = state.poisoned
+            || state.in_flight != Some(self.token)
+            || request_bytes != self.request_bytes
+            || response_bytes < self.minimum_response_bytes
+            || response_bytes > self.maximum_response_bytes
+            || cpu_micros.is_none()
+            || completed_units != self.units;
+        if invalid {
+            state.poisoned = true;
+            state.in_flight = None;
+            self.settled = true;
+            return Err(ExecutorFailure::ResourceLimitUnknown);
+        }
+        let cpu_micros = cpu_micros.unwrap();
+        let next_cpu = state
+            .usage
+            .worker_cpu_micros
+            .checked_add(cpu_micros)
+            .filter(|used| *used <= state.usage.max_total_cpu_micros);
+        let next_wire = request_bytes
+            .checked_add(response_bytes)
+            .and_then(|exchange| state.usage.worker_wire_bytes.checked_add(exchange))
+            .filter(|used| *used <= state.usage.max_total_wire_bytes);
+        let next_units = state
+            .usage
+            .worker_units
+            .checked_add(completed_units)
+            .filter(|used| *used <= state.usage.max_total_units);
+        let (Some(next_cpu), Some(next_wire), Some(next_units)) = (next_cpu, next_wire, next_units)
+        else {
+            state.poisoned = true;
+            state.in_flight = None;
+            self.settled = true;
+            return Err(if next_cpu.is_none() {
+                ExecutorFailure::CpuLimit
+            } else {
+                ExecutorFailure::InputBudget
+            });
+        };
+        state.usage.worker_cpu_micros = next_cpu;
+        state.usage.worker_wire_bytes = next_wire;
+        state.usage.worker_units = next_units;
+        state.in_flight = None;
+        self.settled = true;
+        Ok(())
+    }
+}
+
+impl Drop for SharedSchemaWorkerReservation {
+    fn drop(&mut self) {
+        if self.settled {
+            return;
+        }
+        if let Ok(mut state) = self.quota.inner.lock() {
+            if state.in_flight == Some(self.token) {
+                state.in_flight = None;
+                state.poisoned = true;
+            }
+        }
+    }
+}
+
 pub(crate) fn validate_batch_unit(unit: &BatchUnit) -> Result<(), ExecutorFailure> {
     if unit.member_id.is_empty()
         || unit.member_id.len() > MAX_MEMBER_ID_BYTES
@@ -339,6 +1562,45 @@ pub(crate) fn validate_batch_unit(unit: &BatchUnit) -> Result<(), ExecutorFailur
         || unit.relative_path.split('/').any(|part| part == "..")
         || unit.root_uri.len() > MAX_URI_BYTES
         || unit.raw_instance.len() > crate::SchemaBackendProbe::MAX_INSTANCE_BYTES
+    {
+        return Err(ExecutorFailure::InputBudget);
+    }
+    Ok(())
+}
+
+fn validate_diagnostics_batch_unit(
+    unit: &BatchUnit,
+    input_mode: DiagnosticsUnitInputMode,
+) -> Result<(), ExecutorFailure> {
+    validate_diagnostics_batch_unit_fields(
+        &unit.member_id,
+        &unit.relative_path,
+        &unit.root_uri,
+        unit.raw_instance.len(),
+        input_mode,
+    )
+}
+
+fn validate_diagnostics_batch_unit_fields(
+    member_id: &str,
+    relative_path: &str,
+    root_uri: &str,
+    raw_instance_bytes: usize,
+    input_mode: DiagnosticsUnitInputMode,
+) -> Result<(), ExecutorFailure> {
+    let raw_limit = match input_mode {
+        DiagnosticsUnitInputMode::FiniteJson => crate::SchemaBackendProbe::MAX_INSTANCE_BYTES,
+        DiagnosticsUnitInputMode::LegacyPythonObserved
+        | DiagnosticsUnitInputMode::FiniteJsonSelected => MAX_BATCH_RAW_BYTES,
+    };
+    if member_id.is_empty()
+        || member_id.len() > MAX_MEMBER_ID_BYTES
+        || relative_path.is_empty()
+        || relative_path.len() > MAX_PATH_BYTES
+        || relative_path.starts_with('/')
+        || relative_path.split('/').any(|part| part == "..")
+        || root_uri.len() > MAX_URI_BYTES
+        || raw_instance_bytes > raw_limit
     {
         return Err(ExecutorFailure::InputBudget);
     }
@@ -381,12 +1643,100 @@ impl BatchCoverageExpectation {
             ordered_manifest_sha256: manifest.finalize(),
         })
     }
+
+    pub(crate) fn from_diagnostics_units(
+        units: &[BatchUnit],
+        input_profile: DiagnosticsInputProfile,
+        unit_modes: Option<&[DiagnosticsUnitInputMode]>,
+    ) -> Result<Self, ExecutorFailure> {
+        if units.is_empty()
+            || units.len() > MAX_BATCH_UNITS
+            || matches!(
+                input_profile,
+                DiagnosticsInputProfile::MixedSourceFoundation
+            ) != unit_modes.is_some()
+            || unit_modes.is_some_and(|modes| modes.len() != units.len())
+        {
+            return Err(ExecutorFailure::InputBudget);
+        }
+        let mut manifest = tos_foundation::Digest256Hasher::new();
+        manifest.update(b"tos-val2-batch-manifest-v1\0");
+        for (ordinal, unit) in units.iter().enumerate() {
+            if unit.ordinal != ordinal as u64 {
+                return Err(ExecutorFailure::CoverageMismatch);
+            }
+            let input_mode = match input_profile {
+                DiagnosticsInputProfile::FiniteJson => DiagnosticsUnitInputMode::FiniteJson,
+                DiagnosticsInputProfile::FiniteJsonSelected => {
+                    DiagnosticsUnitInputMode::FiniteJsonSelected
+                }
+                DiagnosticsInputProfile::LegacyPythonObserved => {
+                    DiagnosticsUnitInputMode::LegacyPythonObserved
+                }
+                DiagnosticsInputProfile::MixedSourceFoundation => *unit_modes
+                    .and_then(|modes| modes.get(ordinal))
+                    .ok_or(ExecutorFailure::InputBudget)?,
+            };
+            manifest.update(diagnostics_batch_unit_digest(unit, input_mode)?.as_bytes());
+        }
+        Ok(Self {
+            count: units.len() as u64,
+            ordered_manifest_sha256: manifest.finalize(),
+        })
+    }
+}
+
+pub(crate) fn diagnostics_batch_unit_digest(
+    unit: &BatchUnit,
+    input_mode: DiagnosticsUnitInputMode,
+) -> Result<Digest256, ExecutorFailure> {
+    validate_diagnostics_batch_unit(unit, input_mode)?;
+    let mut digest = tos_foundation::Digest256Hasher::new();
+    digest.update(b"tos-val2-batch-unit-v1\0");
+    digest.update(&unit.ordinal.to_be_bytes());
+    for value in [
+        unit.member_id.as_bytes(),
+        unit.relative_path.as_bytes(),
+        unit.root_uri.as_bytes(),
+        unit.raw_instance.as_slice(),
+    ] {
+        digest.update(&(value.len() as u32).to_be_bytes());
+        digest.update(value);
+    }
+    Ok(digest.finalize())
 }
 
 fn unknown(reason: ExecutorFailure, identity: Option<ExecutionIdentity>) -> ExecutorOutcome {
     ExecutorOutcome::Indeterminate {
         reason,
         identity,
+        exchange: None,
+    }
+}
+
+fn empty_diagnostics_outcome(
+    worker_sha256: Digest256,
+    profile: FormatProfile,
+    schema_set_sha256: Digest256,
+    reason: ExecutorFailure,
+) -> SchemaDiagnosticsOutcome {
+    SchemaDiagnosticsOutcome::Incomplete {
+        checkpoint: SchemaDiagnosticsCheckpoint {
+            worker_sha256,
+            request_sha256: Digest256::of_bytes(b""),
+            profile,
+            schema_set_sha256,
+            ordered_manifest_sha256: Digest256::of_bytes(b""),
+            caps_sha256: schema_diagnostics::Caps::CURRENT.digest(),
+            completed_count: 0,
+            result_stream_sha256: Digest256::of_bytes(b""),
+            worker_request_bytes: 0,
+            worker_response_bytes: 0,
+            worker_cpu_micros: None,
+            exceptional_remaining: None,
+            exceptional_usage: None,
+        },
+        reason,
         exchange: None,
     }
 }
@@ -492,6 +1842,629 @@ impl BoundedSchemaExecutor {
         }
     }
 
+    /// Evaluates a bounded batch through the opt-in schema-diagnostics v2
+    /// protocol. A `Valid` unit status is returned only after the exact worker,
+    /// request, schema set, caps, unit order and final result stream all match.
+    pub fn evaluate_batch_with_diagnostics(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        units: impl IntoIterator<Item = BatchUnit>,
+        expected: BatchCoverageExpectation,
+        budget: BatchBudget,
+    ) -> SchemaDiagnosticsOutcome {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            native::evaluate_batch_with_diagnostics(
+                worker,
+                resources,
+                profile,
+                DiagnosticsInputProfile::FiniteJson,
+                units,
+                expected,
+                budget,
+                None,
+                None,
+                None,
+            )
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        {
+            let _ = (resources, units, expected, budget);
+            empty_diagnostics_outcome(
+                worker.sha256,
+                profile,
+                Digest256::of_bytes(b""),
+                ExecutorFailure::UnsupportedHost,
+            )
+        }
+    }
+
+    /// Cancellation-aware variant of [`Self::evaluate_batch_with_diagnostics`].
+    pub fn evaluate_batch_with_diagnostics_cancellable(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        units: impl IntoIterator<Item = BatchUnit>,
+        expected: BatchCoverageExpectation,
+        budget: BatchBudget,
+        cancelled: &AtomicBool,
+    ) -> SchemaDiagnosticsOutcome {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            native::evaluate_batch_with_diagnostics(
+                worker,
+                resources,
+                profile,
+                DiagnosticsInputProfile::FiniteJson,
+                units,
+                expected,
+                budget,
+                None,
+                Some(cancelled),
+                None,
+            )
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        {
+            let _ = (resources, units, expected, budget, cancelled);
+            empty_diagnostics_outcome(
+                worker.sha256,
+                profile,
+                Digest256::of_bytes(b""),
+                ExecutorFailure::UnsupportedHost,
+            )
+        }
+    }
+
+    /// Source-foundation-only variant with one caller-owned remaining IPC byte
+    /// allowance. Before spawning, the controller reserves the exact request,
+    /// the minimum complete response, and one overflow-sentinel byte. It then
+    /// bounds this chunk's response by the smaller of the worker cap and the
+    /// remaining whole-call allowance; a response exceeding that bound is
+    /// incomplete. The checkpoint records exact controller-observed bytes.
+    pub(crate) fn evaluate_batch_with_diagnostics_wire_limited_cancellable(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        units: impl IntoIterator<Item = BatchUnit>,
+        expected: BatchCoverageExpectation,
+        budget: BatchBudget,
+        remaining_worker_wire_bytes: u64,
+        cancelled: &AtomicBool,
+    ) -> SchemaDiagnosticsOutcome {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            native::evaluate_batch_with_diagnostics(
+                worker,
+                resources,
+                profile,
+                DiagnosticsInputProfile::FiniteJson,
+                units,
+                expected,
+                budget,
+                Some(remaining_worker_wire_bytes),
+                Some(cancelled),
+                None,
+            )
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        {
+            let _ = (
+                resources,
+                units,
+                expected,
+                budget,
+                remaining_worker_wire_bytes,
+                cancelled,
+            );
+            empty_diagnostics_outcome(
+                worker.sha256,
+                profile,
+                Digest256::of_bytes(b""),
+                ExecutorFailure::UnsupportedHost,
+            )
+        }
+    }
+
+    /// Source-foundation finite-json profile with an explicitly selected
+    /// per-instance ceiling up to the existing 32 MiB request cap. Ordinary
+    /// finite diagnostics retain their independent one-MiB probe ceiling.
+    pub(crate) fn evaluate_batch_with_selected_finite_diagnostics_wire_limited_cancellable(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        units: impl IntoIterator<Item = BatchUnit>,
+        expected: BatchCoverageExpectation,
+        budget: BatchBudget,
+        remaining_worker_wire_bytes: u64,
+        cancelled: &AtomicBool,
+    ) -> SchemaDiagnosticsOutcome {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            native::evaluate_batch_with_diagnostics(
+                worker,
+                resources,
+                profile,
+                DiagnosticsInputProfile::FiniteJsonSelected,
+                units,
+                expected,
+                budget,
+                Some(remaining_worker_wire_bytes),
+                Some(cancelled),
+                None,
+            )
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        {
+            let _ = (
+                resources,
+                units,
+                expected,
+                budget,
+                remaining_worker_wire_bytes,
+                cancelled,
+            );
+            empty_diagnostics_outcome(
+                worker.sha256,
+                profile,
+                Digest256::of_bytes(b""),
+                ExecutorFailure::UnsupportedHost,
+            )
+        }
+    }
+
+    /// Evaluates exact raw instances using the FND legacy-Python observed
+    /// decoder inside the same diagnostics-v2 worker. The original bytes stay
+    /// the unit payload and digest input; nonfinite or otherwise unrepresentable
+    /// Python values return typed indeterminate diagnostics.
+    pub fn evaluate_batch_with_legacy_python_diagnostics_cancellable(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        units: impl IntoIterator<Item = BatchUnit>,
+        expected: BatchCoverageExpectation,
+        budget: BatchBudget,
+        cancelled: &AtomicBool,
+    ) -> SchemaDiagnosticsOutcome {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            native::evaluate_batch_with_diagnostics(
+                worker,
+                resources,
+                profile,
+                DiagnosticsInputProfile::LegacyPythonObserved,
+                units,
+                expected,
+                budget,
+                None,
+                Some(cancelled),
+                None,
+            )
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        {
+            let _ = (resources, units, expected, budget, cancelled);
+            empty_diagnostics_outcome(
+                worker.sha256,
+                profile,
+                Digest256::of_bytes(b""),
+                ExecutorFailure::UnsupportedHost,
+            )
+        }
+    }
+
+    /// Source-foundation-only raw-input variant with whole-call remaining IPC
+    /// bytes. Existing raw diagnostics callers retain their original signature
+    /// and uncoupled transport envelope.
+    pub(crate) fn evaluate_batch_with_legacy_python_diagnostics_wire_limited_cancellable(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        units: impl IntoIterator<Item = BatchUnit>,
+        expected: BatchCoverageExpectation,
+        budget: BatchBudget,
+        remaining_worker_wire_bytes: u64,
+        cancelled: &AtomicBool,
+    ) -> SchemaDiagnosticsOutcome {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            native::evaluate_batch_with_diagnostics(
+                worker,
+                resources,
+                profile,
+                DiagnosticsInputProfile::LegacyPythonObserved,
+                units,
+                expected,
+                budget,
+                Some(remaining_worker_wire_bytes),
+                Some(cancelled),
+                None,
+            )
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        {
+            let _ = (
+                resources,
+                units,
+                expected,
+                budget,
+                remaining_worker_wire_bytes,
+                cancelled,
+            );
+            empty_diagnostics_outcome(
+                worker.sha256,
+                profile,
+                Digest256::of_bytes(b""),
+                ExecutorFailure::UnsupportedHost,
+            )
+        }
+    }
+
+    /// Evaluates an encounter-ordered finite/raw batch through one diagnostics-v2
+    /// worker and one request clock. Each unit carries a closed input mode inside
+    /// the existing extended frame; finite units retain the ordinary finite
+    /// parser/backend, while raw units use the FND LegacyPythonObserved decoder.
+    pub(crate) fn evaluate_batch_with_mixed_source_foundation_diagnostics_cancellable(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        units: impl IntoIterator<Item = MixedDiagnosticsBatchUnit>,
+        expected: BatchCoverageExpectation,
+        exceptional_remaining: ExceptionalSchemaUsage,
+        budget: BatchBudget,
+        cancelled: &AtomicBool,
+    ) -> SchemaDiagnosticsOutcome {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            native::evaluate_batch_with_mixed_source_foundation_diagnostics(
+                worker,
+                resources,
+                profile,
+                units,
+                expected,
+                exceptional_remaining,
+                budget,
+                None,
+                Some(cancelled),
+                None,
+            )
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        {
+            let _ = (
+                resources,
+                units,
+                expected,
+                exceptional_remaining,
+                budget,
+                cancelled,
+            );
+            empty_diagnostics_outcome(
+                worker.sha256,
+                profile,
+                Digest256::of_bytes(b""),
+                ExecutorFailure::UnsupportedHost,
+            )
+        }
+    }
+
+    /// Mixed source-foundation profile-2 variant consuming the same controller
+    /// wire allowance as the finite and raw-only sibling paths.
+    pub(crate) fn evaluate_batch_with_mixed_source_foundation_diagnostics_wire_limited_cancellable(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        units: impl IntoIterator<Item = MixedDiagnosticsBatchUnit>,
+        expected: BatchCoverageExpectation,
+        exceptional_remaining: ExceptionalSchemaUsage,
+        budget: BatchBudget,
+        remaining_worker_wire_bytes: u64,
+        cancelled: &AtomicBool,
+    ) -> SchemaDiagnosticsOutcome {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            native::evaluate_batch_with_mixed_source_foundation_diagnostics(
+                worker,
+                resources,
+                profile,
+                units,
+                expected,
+                exceptional_remaining,
+                budget,
+                Some(remaining_worker_wire_bytes),
+                Some(cancelled),
+                None,
+            )
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        {
+            let _ = (
+                resources,
+                units,
+                expected,
+                exceptional_remaining,
+                budget,
+                remaining_worker_wire_bytes,
+                cancelled,
+            );
+            empty_diagnostics_outcome(
+                worker.sha256,
+                profile,
+                Digest256::of_bytes(b""),
+                ExecutorFailure::UnsupportedHost,
+            )
+        }
+    }
+
+    /// Source-foundation finite profile with one shared invocation quota.
+    /// Existing callers keep their uncoupled finite API and exact wire bytes.
+    pub(crate) fn evaluate_batch_with_diagnostics_wire_limited_shared_quota_cancellable(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        units: impl IntoIterator<Item = BatchUnit>,
+        expected: BatchCoverageExpectation,
+        budget: BatchBudget,
+        remaining_worker_wire_bytes: u64,
+        quota: &SharedSchemaWorkerQuota,
+        cancelled: &AtomicBool,
+    ) -> SchemaDiagnosticsOutcome {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            native::evaluate_batch_with_diagnostics(
+                worker,
+                resources,
+                profile,
+                DiagnosticsInputProfile::FiniteJson,
+                units,
+                expected,
+                budget,
+                Some(remaining_worker_wire_bytes),
+                Some(cancelled),
+                Some(quota.clone()),
+            )
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        {
+            let _ = (
+                resources,
+                units,
+                expected,
+                budget,
+                remaining_worker_wire_bytes,
+                quota,
+                cancelled,
+            );
+            empty_diagnostics_outcome(
+                worker.sha256,
+                profile,
+                Digest256::of_bytes(b""),
+                ExecutorFailure::UnsupportedHost,
+            )
+        }
+    }
+
+    /// Source-foundation selected-finite profile attached to the shared
+    /// invocation quota. The value remains ordinary finite JSON throughout.
+    pub(crate) fn evaluate_batch_with_selected_finite_diagnostics_wire_limited_shared_quota_cancellable(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        units: impl IntoIterator<Item = BatchUnit>,
+        expected: BatchCoverageExpectation,
+        budget: BatchBudget,
+        remaining_worker_wire_bytes: u64,
+        quota: &SharedSchemaWorkerQuota,
+        cancelled: &AtomicBool,
+    ) -> SchemaDiagnosticsOutcome {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            native::evaluate_batch_with_diagnostics(
+                worker,
+                resources,
+                profile,
+                DiagnosticsInputProfile::FiniteJsonSelected,
+                units,
+                expected,
+                budget,
+                Some(remaining_worker_wire_bytes),
+                Some(cancelled),
+                Some(quota.clone()),
+            )
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        {
+            let _ = (
+                resources,
+                units,
+                expected,
+                budget,
+                remaining_worker_wire_bytes,
+                quota,
+                cancelled,
+            );
+            empty_diagnostics_outcome(
+                worker.sha256,
+                profile,
+                Digest256::of_bytes(b""),
+                ExecutorFailure::UnsupportedHost,
+            )
+        }
+    }
+
+    /// Source-foundation raw profile with one shared invocation quota.
+    pub(crate) fn evaluate_batch_with_legacy_python_diagnostics_wire_limited_shared_quota_cancellable(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        units: impl IntoIterator<Item = BatchUnit>,
+        expected: BatchCoverageExpectation,
+        budget: BatchBudget,
+        remaining_worker_wire_bytes: u64,
+        quota: &SharedSchemaWorkerQuota,
+        cancelled: &AtomicBool,
+    ) -> SchemaDiagnosticsOutcome {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            native::evaluate_batch_with_diagnostics(
+                worker,
+                resources,
+                profile,
+                DiagnosticsInputProfile::LegacyPythonObserved,
+                units,
+                expected,
+                budget,
+                Some(remaining_worker_wire_bytes),
+                Some(cancelled),
+                Some(quota.clone()),
+            )
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        {
+            let _ = (
+                resources,
+                units,
+                expected,
+                budget,
+                remaining_worker_wire_bytes,
+                quota,
+                cancelled,
+            );
+            empty_diagnostics_outcome(
+                worker.sha256,
+                profile,
+                Digest256::of_bytes(b""),
+                ExecutorFailure::UnsupportedHost,
+            )
+        }
+    }
+
+    /// Source-foundation mixed profile with one shared invocation quota.
+    pub(crate) fn evaluate_batch_with_mixed_source_foundation_diagnostics_wire_limited_shared_quota_cancellable(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        units: impl IntoIterator<Item = MixedDiagnosticsBatchUnit>,
+        expected: BatchCoverageExpectation,
+        exceptional_remaining: ExceptionalSchemaUsage,
+        budget: BatchBudget,
+        remaining_worker_wire_bytes: u64,
+        quota: &SharedSchemaWorkerQuota,
+        cancelled: &AtomicBool,
+    ) -> SchemaDiagnosticsOutcome {
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            native::evaluate_batch_with_mixed_source_foundation_diagnostics(
+                worker,
+                resources,
+                profile,
+                units,
+                expected,
+                exceptional_remaining,
+                budget,
+                Some(remaining_worker_wire_bytes),
+                Some(cancelled),
+                Some(quota.clone()),
+            )
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        {
+            let _ = (
+                resources,
+                units,
+                expected,
+                exceptional_remaining,
+                budget,
+                remaining_worker_wire_bytes,
+                quota,
+                cancelled,
+            );
+            empty_diagnostics_outcome(
+                worker.sha256,
+                profile,
+                Digest256::of_bytes(b""),
+                ExecutorFailure::UnsupportedHost,
+            )
+        }
+    }
+
+    /// One source-foundation diagnostics-v2 exchange using the caller's
+    /// already verified immutable worker image and invocation-wide quota.
+    /// Unit order and modes are retained in this single request; the image
+    /// handle contributes no schema closure or protocol identity of its own.
+    pub(crate) fn evaluate_source_foundation_diagnostics_with_image(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        input_profile: DiagnosticsInputProfile,
+        units: Vec<BatchUnit>,
+        unit_modes: Option<Vec<DiagnosticsUnitInputMode>>,
+        exceptional_remaining: Option<ExceptionalSchemaUsage>,
+        expected: BatchCoverageExpectation,
+        budget: BatchBudget,
+        remaining_worker_wire_bytes: u64,
+        quota: &SharedSchemaWorkerQuota,
+        image: &VerifiedWorkerImageHandle,
+        cancelled: &AtomicBool,
+    ) -> SchemaDiagnosticsOutcome {
+        if worker.sha256 != image.identity().sha256
+            || worker.absolute_path != image.identity().absolute_path
+        {
+            quota.poison();
+            return empty_diagnostics_outcome(
+                worker.sha256,
+                profile,
+                Digest256::of_bytes(b""),
+                ExecutorFailure::WorkerIdentity,
+            );
+        }
+        #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+        {
+            let outcome = native::evaluate_batch_with_diagnostics_units(
+                worker,
+                resources,
+                profile,
+                input_profile,
+                units,
+                unit_modes,
+                exceptional_remaining,
+                Some(remaining_worker_wire_bytes),
+                expected,
+                budget,
+                Some(cancelled),
+                Some(quota.clone()),
+                Some(image),
+            );
+            if matches!(&outcome, SchemaDiagnosticsOutcome::Incomplete { .. }) {
+                quota.poison();
+            }
+            outcome
+        }
+        #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
+        {
+            let _ = (
+                resources,
+                input_profile,
+                units,
+                unit_modes,
+                exceptional_remaining,
+                expected,
+                budget,
+                remaining_worker_wire_bytes,
+                quota,
+                image,
+                cancelled,
+            );
+            empty_diagnostics_outcome(
+                worker.sha256,
+                profile,
+                Digest256::of_bytes(b""),
+                ExecutorFailure::UnsupportedHost,
+            )
+        }
+    }
+
     /// Same finite protocol, with cooperative cancellation during parent polls.
     pub fn evaluate_batch_cancellable(
         worker: &ExactWorkerIdentity,
@@ -561,6 +2534,14 @@ pub(crate) use native::{PreparedSchemaWorker, VerifiedWorkerImage};
 pub(crate) struct VerifiedWorkerImage;
 #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
 impl VerifiedWorkerImage {
+    pub(crate) fn from_handle(
+        _: &VerifiedWorkerImageHandle,
+        _: ExecutorBudget,
+        _: Instant,
+        _: &AtomicBool,
+    ) -> Result<Self, ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
     pub(crate) fn exchange_failure(&self) -> Option<ExchangeFailureContext> {
         None
     }
@@ -576,6 +2557,13 @@ impl VerifiedWorkerImage {
     ) -> Result<(), ExecutorFailure> {
         Err(ExecutorFailure::UnsupportedHost)
     }
+    pub(crate) fn set_shared_schema_worker_quota(
+        &mut self,
+        _: SharedSchemaWorkerQuota,
+    ) -> Result<(), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn poison_shared_schema_worker_quota(&self) {}
     pub(crate) fn finish(&mut self, _: Instant, _: &AtomicBool) -> Result<(), ExecutorFailure> {
         Err(ExecutorFailure::UnsupportedHost)
     }
@@ -604,6 +2592,36 @@ impl VerifiedWorkerImage {
     ) -> ExecutorOutcome {
         unknown(ExecutorFailure::UnsupportedHost, None)
     }
+    pub(crate) fn evaluate_with_diagnostics(
+        &mut self,
+        _: &[SchemaResource],
+        _: FormatProfile,
+        _: &str,
+        _: &str,
+        _: &[u8],
+        _: ExecutorBudget,
+        _: Instant,
+        _: &AtomicBool,
+    ) -> Result<(SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    fn evaluate_with_diagnostics_encoded(
+        &mut self,
+        _: &[u8],
+        _: Digest256,
+        _: FormatProfile,
+        _: DiagnosticsInputProfile,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &[u8],
+        _: ExecutorBudget,
+        _: Instant,
+        _: Instant,
+        _: &AtomicBool,
+    ) -> Result<(SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
 }
 
 #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
@@ -615,6 +2633,9 @@ impl PreparedSchemaWorker {
     }
     pub(crate) fn preflight(&mut self, _: Instant, _: &AtomicBool) -> Result<(), ExecutorFailure> {
         Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn poison(&mut self, reason: ExecutorFailure) -> ExecutorFailure {
+        reason
     }
     pub(crate) fn operation_budget(&self) -> BatchStreamBudget {
         BatchStreamBudget::laboratory()
@@ -635,12 +2656,43 @@ impl PreparedSchemaWorker {
     ) -> Result<(u64, u64, u64), ExecutorFailure> {
         Err(ExecutorFailure::UnsupportedHost)
     }
+    pub(crate) fn has_encoded_schema_resource(&self, _: &str, _: &[u8]) -> bool {
+        false
+    }
+    pub(crate) fn max_encoded_schema_uri_bytes(&self) -> Result<usize, ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn encoded_schema_resource_buffer_bytes(&self) -> usize {
+        0
+    }
+    pub(crate) fn diagnostics_v2_request_frame_bytes_upper_bound(
+        &self,
+        _: usize,
+        _: usize,
+        _: usize,
+        _: usize,
+    ) -> Result<usize, ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn diagnostics_v2_request_response_bytes_upper_bound(
+        &self,
+        _: usize,
+    ) -> Result<(usize, usize), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
     pub(crate) fn set_operation_budget(
         &mut self,
         _: BatchStreamBudget,
     ) -> Result<(), ExecutorFailure> {
         Err(ExecutorFailure::UnsupportedHost)
     }
+    pub(crate) fn set_shared_schema_worker_quota(
+        &mut self,
+        _: SharedSchemaWorkerQuota,
+    ) -> Result<(), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn poison_shared_schema_worker_quota(&self) {}
     pub(crate) fn finish(&mut self, _: Instant, _: &AtomicBool) -> Result<(), ExecutorFailure> {
         Err(ExecutorFailure::UnsupportedHost)
     }
@@ -666,7 +2718,6 @@ impl PreparedSchemaWorker {
     ) -> Result<Self, ExecutorFailure> {
         Err(ExecutorFailure::UnsupportedHost)
     }
-
     pub(crate) fn evaluate(
         &mut self,
         _: &str,
@@ -676,6 +2727,42 @@ impl PreparedSchemaWorker {
         _: &AtomicBool,
     ) -> ExecutorOutcome {
         unknown(ExecutorFailure::UnsupportedHost, None)
+    }
+    pub(crate) fn evaluate_with_diagnostics(
+        &mut self,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &[u8],
+        _: ExecutorBudget,
+        _: Instant,
+        _: &AtomicBool,
+    ) -> Result<(SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn evaluate_with_legacy_diagnostics(
+        &mut self,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &[u8],
+        _: ExecutorBudget,
+        _: Instant,
+        _: &AtomicBool,
+    ) -> Result<(SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn evaluate_with_selected_finite_diagnostics(
+        &mut self,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &[u8],
+        _: ExecutorBudget,
+        _: Instant,
+        _: &AtomicBool,
+    ) -> Result<(SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
     }
     pub(crate) fn evaluate_batch(
         &mut self,
@@ -703,6 +2790,7 @@ impl PreparedSchemaWorker {
 }
 
 #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+#[path = "native"]
 mod native {
     use super::*;
     use std::collections::BTreeMap;
@@ -712,12 +2800,18 @@ mod native {
     use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
     use std::thread;
     use std::time::Instant;
-    use tos_foundation::Digest256Hasher;
+    use tos_foundation::{
+        Digest256Hasher, FoundationErrorCode, JsonLimits, JsonMode, JsonNumberKind, JsonValue,
+        parse_json,
+    };
+
+    #[path = "source_foundation_exceptional_schema.rs"]
+    mod exceptional_schema;
 
     // Linux UAPI MFD_EXEC. Requiring this flag fails closed on older kernels
     // or hosts that refuse executable anonymous files.
     const MFD_EXEC_FLAG: u32 = 0x0010;
-    const MAX_WORKER_BYTES: u64 = 128 * 1024 * 1024;
+    const MAX_WORKER_BYTES: u64 = super::MAX_WORKER_IMAGE_BYTES;
 
     #[cfg(test)]
     thread_local! {
@@ -813,6 +2907,29 @@ mod native {
         ordered_manifest_sha256: Digest256,
     }
 
+    struct DiagnosticsPrepared {
+        frame: Vec<u8>,
+        units: Vec<BatchUnitMeta>,
+        worker_sha256: Digest256,
+        profile: FormatProfile,
+        schema_set_sha256: Digest256,
+        request_sha256: Digest256,
+        ordered_manifest_sha256: Digest256,
+        caps: schema_diagnostics::Caps,
+        exceptional_remaining: Option<ExceptionalSchemaUsage>,
+    }
+
+    impl DiagnosticsPrepared {
+        fn final_record_bytes(&self) -> usize {
+            DIAGNOSTIC_FINAL_BYTES
+                + if self.exceptional_remaining.is_some() {
+                    DIAGNOSTIC_EXCEPTIONAL_COUNTERS_BYTES
+                } else {
+                    0
+                }
+        }
+    }
+
     fn empty_batch_outcome(
         worker: Digest256,
         profile: FormatProfile,
@@ -862,6 +2979,24 @@ mod native {
         Ok((encoded, schema_set_digest(resources)?))
     }
 
+    fn take_encoded_resource_field<'a>(
+        encoded: &'a [u8],
+        offset: &mut usize,
+        limit: usize,
+    ) -> Option<&'a [u8]> {
+        let length_end = (*offset).checked_add(4)?;
+        let length_bytes = encoded.get(*offset..length_end)?;
+        let length = u32::from_be_bytes(length_bytes.try_into().ok()?) as usize;
+        if length > limit {
+            return None;
+        }
+        *offset = length_end;
+        let end = offset.checked_add(length)?;
+        let field = encoded.get(*offset..end)?;
+        *offset = end;
+        Some(field)
+    }
+
     /// Exact immutable image owned for one bounded operation; no global cache.
     /// The same FD may launch independent disposable children with different
     /// schema plans. Resource and request identities remain separate.
@@ -870,6 +3005,7 @@ mod native {
         identity: ExactWorkerIdentity,
         operation_deadline: Instant,
         operation_budget: BatchStreamBudget,
+        shared_schema_worker_quota: Option<SharedSchemaWorkerQuota>,
         session: Option<OwnedSchemaSession>,
         poisoned: Option<ExecutorFailure>,
         poison_exchange: Option<ExchangeFailureContext>,
@@ -943,7 +3079,7 @@ mod native {
             }
         }
 
-        fn from_handle(
+        pub(crate) fn from_handle(
             handle: &VerifiedWorkerImageHandle,
             budget: ExecutorBudget,
             operation_deadline: Instant,
@@ -985,6 +3121,7 @@ mod native {
                 identity,
                 operation_deadline,
                 operation_budget,
+                shared_schema_worker_quota: None,
                 session: None,
                 poisoned: None,
                 poison_exchange: None,
@@ -1010,6 +3147,26 @@ mod native {
             self.operation_budget = budget;
             Ok(())
         }
+        pub(crate) fn set_shared_schema_worker_quota(
+            &mut self,
+            quota: SharedSchemaWorkerQuota,
+        ) -> Result<(), ExecutorFailure> {
+            if self.shared_schema_worker_quota.is_some()
+                || self.used_frames != 0
+                || self.session.is_some()
+                || self.poisoned.is_some()
+            {
+                return Err(ExecutorFailure::ResourceLimitUnknown);
+            }
+            quota.ensure_attachable()?;
+            self.shared_schema_worker_quota = Some(quota);
+            Ok(())
+        }
+        pub(crate) fn poison_shared_schema_worker_quota(&self) {
+            if let Some(quota) = &self.shared_schema_worker_quota {
+                quota.poison();
+            }
+        }
         pub(crate) fn exchange_failure(&self) -> Option<ExchangeFailureContext> {
             self.poison_exchange
         }
@@ -1019,6 +3176,7 @@ mod native {
                     reason = cleanup;
                 }
             }
+            self.poison_shared_schema_worker_quota();
             self.poisoned = Some(reason);
             reason
         }
@@ -1274,6 +3432,9 @@ mod native {
                     .unwrap_or(start),
             );
             let refusal = |p, r, why| batch_incomplete(p, Vec::new(), r, why);
+            if self.shared_schema_worker_quota.is_some() {
+                return refusal(prepared, results, self.poison(ExecutorFailure::Protocol));
+            }
             if let Some(reason) = self.poisoned {
                 let mut outcome = refusal(prepared, results, reason);
                 if let BatchOutcome::Incomplete { exchange, .. } = &mut outcome {
@@ -1492,6 +3653,418 @@ mod native {
             preparation_check(Some(deadline), Some(cancelled)).map_err(|reason| self.poison(reason))
         }
 
+        /// Runs one opt-in diagnostics-v2 unit through this exact sealed image
+        /// and this operation's aggregate accounting. Any retained OP1 child
+        /// is finalized before the disposable diagnostics child is started.
+        pub(crate) fn evaluate_with_diagnostics(
+            &mut self,
+            resources: &[SchemaResource],
+            profile: FormatProfile,
+            location: &str,
+            root_uri: &str,
+            raw_instance: &[u8],
+            budget: ExecutorBudget,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<(SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost), ExecutorFailure>
+        {
+            let start = Instant::now();
+            let (encoded_resources, schema_set_sha256) = encode_resources(resources)?;
+            self.evaluate_with_diagnostics_encoded(
+                &encoded_resources,
+                encoded_resources.capacity(),
+                schema_set_sha256,
+                profile,
+                DiagnosticsInputProfile::FiniteJson,
+                "biblio-record-schema-unit",
+                location,
+                root_uri,
+                raw_instance,
+                budget,
+                deadline,
+                start,
+                cancelled,
+            )
+        }
+
+        fn evaluate_with_diagnostics_encoded(
+            &mut self,
+            encoded_resources: &[u8],
+            schema_resource_buffer_bytes: usize,
+            schema_set_sha256: Digest256,
+            profile: FormatProfile,
+            input_profile: DiagnosticsInputProfile,
+            member_id: &str,
+            location: &str,
+            root_uri: &str,
+            raw_instance: &[u8],
+            mut budget: ExecutorBudget,
+            deadline: Instant,
+            start: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<(SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost), ExecutorFailure>
+        {
+            let operation_deadline = deadline.min(self.operation_deadline).min(
+                self.operation_started
+                    .get_or_insert(start)
+                    .checked_add(self.operation_budget.total_execution_wall)
+                    .ok_or(ExecutorFailure::ResourceLimitUnknown)?,
+            );
+            self.preflight(operation_deadline, cancelled)?;
+            scalar_budget(budget)?;
+            budget.execution_wall = budget
+                .execution_wall
+                .min(self.operation_budget.batch.total_execution_wall)
+                .min(operation_deadline.saturating_duration_since(start));
+            if budget.execution_wall.is_zero() {
+                return Err(self.poison(ExecutorFailure::Timeout));
+            }
+            if self
+                .selected_profile
+                .is_some_and(|selected| selected != profile)
+            {
+                return Err(self.poison(ExecutorFailure::Protocol));
+            }
+            if let Err(reason) = self.finish_session(operation_deadline, cancelled) {
+                return Err(reason);
+            }
+            self.preflight(operation_deadline, cancelled)?;
+
+            let input_mode = match input_profile {
+                DiagnosticsInputProfile::FiniteJson => DiagnosticsUnitInputMode::FiniteJson,
+                DiagnosticsInputProfile::FiniteJsonSelected => {
+                    DiagnosticsUnitInputMode::FiniteJsonSelected
+                }
+                DiagnosticsInputProfile::LegacyPythonObserved => {
+                    DiagnosticsUnitInputMode::LegacyPythonObserved
+                }
+                DiagnosticsInputProfile::MixedSourceFoundation => {
+                    return Err(self.poison(ExecutorFailure::InputBudget));
+                }
+            };
+            validate_diagnostics_batch_unit_fields(
+                member_id,
+                location,
+                root_uri,
+                raw_instance.len(),
+                input_mode,
+            )
+            .map_err(|reason| self.poison(reason))?;
+
+            // Admit the borrowed source slice against every raw/frame ceiling
+            // before making the BatchUnit-owned copy. This also keeps callers
+            // of PreparedSchemaWorker on the same bounded path as the cut
+            // adapter's earlier controller-side admission.
+            let batch_raw_limit = self
+                .operation_budget
+                .batch
+                .max_total_raw_bytes
+                .min(MAX_BATCH_RAW_BYTES)
+                .min(match input_mode {
+                    DiagnosticsUnitInputMode::FiniteJson => {
+                        crate::SchemaBackendProbe::MAX_INSTANCE_BYTES
+                    }
+                    DiagnosticsUnitInputMode::LegacyPythonObserved
+                    | DiagnosticsUnitInputMode::FiniteJsonSelected => MAX_BATCH_RAW_BYTES,
+                });
+            if raw_instance.len() > batch_raw_limit {
+                return Err(self.poison(ExecutorFailure::InputBudget));
+            }
+            let raw_instance_bytes = u64::try_from(raw_instance.len())
+                .map_err(|_| self.poison(ExecutorFailure::InputBudget))?;
+            let next_frames = self
+                .used_frames
+                .checked_add(1)
+                .filter(|count| *count <= self.operation_budget.max_chunks)
+                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+            let next_units = self
+                .used_units
+                .checked_add(1)
+                .filter(|count| *count <= self.operation_budget.max_total_units)
+                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+            let next_raw = self
+                .used_raw
+                .checked_add(raw_instance_bytes)
+                .filter(|count| *count <= self.operation_budget.max_total_raw_bytes)
+                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+            let schema_key = schema_set_sha256.to_hex();
+            let is_new_selector = !self
+                .selectors
+                .iter()
+                .any(|(schema, selector)| schema == &schema_key && selector.as_str() == root_uri);
+            if is_new_selector
+                && self.selectors.len() >= self.operation_budget.max_distinct_selectors
+            {
+                return Err(self.poison(ExecutorFailure::InputBudget));
+            }
+            let projected_request_bytes = diagnostics_scalar_request_frame_bytes(
+                encoded_resources.len(),
+                input_profile,
+                member_id.len(),
+                location.len(),
+                root_uri.len(),
+                raw_instance.len(),
+            )
+            .filter(|bytes| *bytes <= MAX_DIAGNOSTIC_REQUEST_BYTES)
+            .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+            let minimum_response_bytes = DIAGNOSTIC_ACK_BYTES
+                .checked_add(DIAGNOSTIC_UNIT_HEADER_BYTES)
+                .and_then(|bytes| bytes.checked_add(DIAGNOSTIC_FINAL_BYTES))
+                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+            let local_remaining_wire = self
+                .operation_budget
+                .max_total_wire_bytes
+                .checked_sub(self.used_wire)
+                .filter(|remaining| *remaining != u64::MAX)
+                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+            let minimum_exchange_wire = u64::try_from(projected_request_bytes)
+                .ok()
+                .and_then(|request| {
+                    u64::try_from(minimum_response_bytes)
+                        .ok()
+                        .and_then(|response| request.checked_add(response))
+                })
+                .and_then(|bytes| bytes.checked_add(1)) // bounded-reader sentinel
+                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+            if minimum_exchange_wire > local_remaining_wire {
+                return Err(self.poison(ExecutorFailure::InputBudget));
+            }
+            if let Some(quota) = &self.shared_schema_worker_quota {
+                let usage = quota.usage().map_err(|reason| self.poison(reason))?;
+                if usage
+                    .max_total_units
+                    .checked_sub(usage.worker_units)
+                    .is_none_or(|remaining| remaining == 0)
+                {
+                    return Err(self.poison(ExecutorFailure::InputBudget));
+                }
+                if usage
+                    .max_total_cpu_micros
+                    .checked_sub(usage.worker_cpu_micros)
+                    .is_none_or(|remaining| remaining == 0)
+                {
+                    return Err(self.poison(ExecutorFailure::CpuLimit));
+                }
+                if usage
+                    .max_total_wire_bytes
+                    .checked_sub(usage.worker_wire_bytes)
+                    .is_none_or(|remaining| minimum_exchange_wire > remaining)
+                {
+                    return Err(self.poison(ExecutorFailure::InputBudget));
+                }
+            }
+
+            let unit = BatchUnit {
+                ordinal: 0,
+                member_id: member_id.to_owned(),
+                relative_path: location.to_owned(),
+                root_uri: root_uri.to_owned(),
+                raw_instance: raw_instance.to_vec(),
+            };
+            validate_diagnostics_batch_unit(&unit, input_mode)
+                .map_err(|reason| self.poison(reason))?;
+            let input_instance_buffer_bytes = unit.raw_instance.capacity();
+            let mut batch = self.operation_budget.batch;
+            batch.max_units = 1;
+            batch.max_total_raw_bytes = batch_raw_limit;
+            batch.total_execution_wall = budget.execution_wall;
+            batch.startup_wall = batch.startup_wall.min(batch.total_execution_wall);
+            batch.per_unit_wall = batch.per_unit_wall.min(batch.total_execution_wall);
+            batch.cleanup_grace = budget.cleanup_grace.min(batch.cleanup_grace);
+            batch.address_space_bytes = budget
+                .address_space_bytes
+                .min(self.operation_budget.operation_address_space_bytes);
+            let local_cpu_limit_micros = self
+                .operation_budget
+                .operation_cpu_seconds
+                .checked_mul(1_000_000)
+                .ok_or_else(|| self.poison(ExecutorFailure::ResourceLimitUnknown))?;
+            let remaining_cpu_micros = local_cpu_limit_micros
+                .checked_sub(self.used_cpu_micros)
+                .ok_or_else(|| self.poison(ExecutorFailure::CpuLimit))?;
+            if remaining_cpu_micros == 0 {
+                return Err(self.poison(ExecutorFailure::CpuLimit));
+            }
+            let remaining_cpu_seconds = remaining_cpu_micros.div_ceil(1_000_000).max(1);
+            batch.cpu_seconds = budget.cpu_seconds.min(remaining_cpu_seconds);
+            let shared_quota = self.shared_schema_worker_quota.clone();
+            if let Some(quota) = &shared_quota {
+                batch.cpu_seconds = quota
+                    .child_cpu_seconds(batch.cpu_seconds)
+                    .map_err(|reason| self.poison(reason))?;
+            }
+            if batch.cpu_seconds == 0 {
+                return Err(self.poison(ExecutorFailure::CpuLimit));
+            }
+            let expected = BatchCoverageExpectation::from_diagnostics_units(
+                std::slice::from_ref(&unit),
+                input_profile,
+                None,
+            )?;
+            let prepared = make_diagnostics_request_encoded(
+                self.identity.sha256,
+                &encoded_resources,
+                schema_set_sha256,
+                profile,
+                input_profile,
+                std::slice::from_ref(&unit),
+                batch,
+                schema_diagnostics::Caps::CURRENT,
+            )?;
+            if prepared.units.len() != 1
+                || prepared.units[0].ordinal != 0
+                || prepared.units[0].member_id != member_id
+                || prepared.units[0].relative_path != location
+                || prepared.units[0].root_uri != root_uri
+                || expected.count != 1
+                || expected.ordered_manifest_sha256 != prepared.ordered_manifest_sha256
+            {
+                return Err(self.poison(ExecutorFailure::CoverageMismatch));
+            }
+            self.preflight(operation_deadline, cancelled)?;
+
+            if prepared.frame.len() != projected_request_bytes {
+                return Err(self.poison(ExecutorFailure::Protocol));
+            }
+            let selector = (schema_key, root_uri.to_owned());
+            let response_limit = DIAGNOSTIC_ACK_BYTES
+                .checked_add(schema_diagnostics::Caps::CURRENT.max_report_bytes_per_unit as usize)
+                .and_then(|bytes| bytes.checked_add(DIAGNOSTIC_FINAL_BYTES))
+                .filter(|bytes| *bytes <= schema_diagnostics::MAX_RESPONSE_BYTES)
+                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+            let request_bytes = prepared.frame.len();
+            let minimum_response = diagnostics_minimum_response_bytes(&prepared)
+                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+            let local_remaining_wire = self
+                .operation_budget
+                .max_total_wire_bytes
+                .checked_sub(self.used_wire)
+                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+            let local_response_cap =
+                diagnostics_response_cap_with_wire_budget(&prepared, local_remaining_wire)
+                    .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+            if local_response_cap > response_limit || local_response_cap < minimum_response {
+                return Err(self.poison(ExecutorFailure::InputBudget));
+            }
+            let shared_reservation = if let Some(quota) = shared_quota {
+                let reservation = quota
+                    .begin(
+                        request_bytes,
+                        minimum_response,
+                        local_response_cap,
+                        batch.cpu_seconds,
+                        1,
+                    )
+                    .map_err(|reason| self.poison(reason))?;
+                if reservation.child_cpu_seconds() != batch.cpu_seconds {
+                    drop(reservation);
+                    return Err(self.poison(ExecutorFailure::ResourceLimitUnknown));
+                }
+                Some(reservation)
+            } else {
+                None
+            };
+            let response_cap = shared_reservation.as_ref().map_or(
+                local_response_cap,
+                SharedSchemaWorkerReservation::response_cap,
+            );
+            if response_cap < minimum_response || response_cap > local_response_cap {
+                drop(shared_reservation);
+                return Err(self.poison(ExecutorFailure::InputBudget));
+            }
+            let reserved_wire = request_bytes
+                .checked_add(response_cap)
+                .and_then(|bytes| u64::try_from(bytes).ok())
+                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+            let next_wire = self
+                .used_wire
+                .checked_add(reserved_wire)
+                .filter(|count| *count <= self.operation_budget.max_total_wire_bytes)
+                .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+
+            self.selected_profile = Some(profile);
+            self.selectors.insert(selector);
+            self.used_frames = next_frames;
+            self.used_units = next_units;
+            self.used_raw = next_raw;
+            self.used_wire = next_wire;
+
+            let argv = [
+                c"tos-schema-worker".as_ptr() as *mut libc::c_char,
+                std::ptr::null_mut(),
+            ];
+            let (outcome, cost) = run_diagnostics_image_with_cost(
+                &self.file,
+                prepared,
+                batch,
+                start,
+                &argv,
+                Some(cancelled),
+                Some(response_cap),
+            );
+            let mut cost = cost;
+            cost.schema_resource_bytes = encoded_resources.len();
+            cost.schema_resource_buffer_bytes = schema_resource_buffer_bytes;
+            cost.input_instance_buffer_bytes = input_instance_buffer_bytes;
+            if let SchemaDiagnosticsOutcome::Complete { .. } = &outcome {
+                let Some(cpu_micros) = cost.worker_cpu_micros else {
+                    return Err(self.poison(ExecutorFailure::ResourceLimitUnknown));
+                };
+                if cost.request_bytes != request_bytes
+                    || cost.response_bytes < minimum_response
+                    || cost.response_bytes > response_cap
+                {
+                    return Err(self.poison(ExecutorFailure::Protocol));
+                }
+                self.used_cpu_micros = self
+                    .used_cpu_micros
+                    .checked_add(cpu_micros)
+                    .ok_or_else(|| self.poison(ExecutorFailure::ResourceLimitUnknown))?;
+                let operation_cpu_micros = self
+                    .operation_budget
+                    .operation_cpu_seconds
+                    .checked_mul(1_000_000)
+                    .ok_or_else(|| self.poison(ExecutorFailure::ResourceLimitUnknown))?;
+                if self.used_cpu_micros > operation_cpu_micros {
+                    return Err(self.poison(ExecutorFailure::CpuLimit));
+                }
+                let actual_response = u64::try_from(cost.response_bytes)
+                    .map_err(|_| self.poison(ExecutorFailure::InputBudget))?;
+                let reserved_response = u64::try_from(response_cap)
+                    .map_err(|_| self.poison(ExecutorFailure::InputBudget))?;
+                self.used_wire = self
+                    .used_wire
+                    .checked_sub(reserved_response)
+                    .and_then(|used| used.checked_add(actual_response))
+                    .filter(|used| *used <= self.operation_budget.max_total_wire_bytes)
+                    .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+                if let Err(reason) = self.preflight(operation_deadline, cancelled) {
+                    return Err(reason);
+                }
+            } else {
+                let reason = match &outcome {
+                    SchemaDiagnosticsOutcome::Incomplete { reason, .. } => *reason,
+                    SchemaDiagnosticsOutcome::Complete { .. } => ExecutorFailure::Protocol,
+                };
+                self.used_cpu_micros = self
+                    .operation_budget
+                    .operation_cpu_seconds
+                    .saturating_mul(1_000_000);
+                self.poison(reason);
+            }
+            if matches!(&outcome, SchemaDiagnosticsOutcome::Complete { .. }) {
+                if let Some(reservation) = shared_reservation {
+                    reservation.complete(
+                        cost.request_bytes,
+                        cost.response_bytes,
+                        cost.worker_cpu_micros,
+                        1,
+                    )?;
+                }
+            }
+            Ok((outcome, cost))
+        }
+
         pub(crate) fn matches(&self, worker: &ExactWorkerIdentity) -> bool {
             self.identity.sha256 == worker.sha256
                 && self.identity.absolute_path == worker.absolute_path
@@ -1669,7 +4242,7 @@ mod native {
                 resources,
                 profile,
                 budget,
-                operation_deadline.min(handle.operation_deadline),
+                operation_deadline.min(handle.operation_deadline()),
                 cancelled,
             )
         }
@@ -1721,6 +4294,15 @@ mod native {
         ) -> Result<(), ExecutorFailure> {
             self.image.set_operation_budget(budget)
         }
+        pub(crate) fn set_shared_schema_worker_quota(
+            &mut self,
+            quota: SharedSchemaWorkerQuota,
+        ) -> Result<(), ExecutorFailure> {
+            self.image.set_shared_schema_worker_quota(quota)
+        }
+        pub(crate) fn poison_shared_schema_worker_quota(&self) {
+            self.image.poison_shared_schema_worker_quota();
+        }
         pub(crate) fn operation_budget(&self) -> BatchStreamBudget {
             self.image.operation_budget
         }
@@ -1733,6 +4315,10 @@ mod native {
             cancelled: &AtomicBool,
         ) -> Result<(), ExecutorFailure> {
             self.image.preflight(deadline, cancelled)
+        }
+
+        pub(crate) fn poison(&mut self, reason: ExecutorFailure) -> ExecutorFailure {
+            self.image.poison(reason)
         }
 
         pub(crate) fn release_child(
@@ -1809,6 +4395,239 @@ mod native {
                 deadline,
                 cancelled,
             )
+        }
+
+        pub(crate) fn evaluate_with_diagnostics(
+            &mut self,
+            member_id: &str,
+            location: &str,
+            root_uri: &str,
+            raw_instance: &[u8],
+            budget: ExecutorBudget,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<(SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost), ExecutorFailure>
+        {
+            self.image.evaluate_with_diagnostics_encoded(
+                &self.encoded_resources,
+                self.encoded_resources.capacity(),
+                self.schema_set_sha256,
+                self.profile,
+                DiagnosticsInputProfile::FiniteJson,
+                member_id,
+                location,
+                root_uri,
+                raw_instance,
+                budget,
+                deadline,
+                Instant::now(),
+                cancelled,
+            )
+        }
+
+        pub(crate) fn evaluate_with_legacy_diagnostics(
+            &mut self,
+            member_id: &str,
+            location: &str,
+            root_uri: &str,
+            raw_instance: &[u8],
+            budget: ExecutorBudget,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<(SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost), ExecutorFailure>
+        {
+            if self.profile != FormatProfile::LegacyPythonObserved20260923 {
+                return Err(ExecutorFailure::InputBudget);
+            }
+            self.image.evaluate_with_diagnostics_encoded(
+                &self.encoded_resources,
+                self.encoded_resources.capacity(),
+                self.schema_set_sha256,
+                self.profile,
+                DiagnosticsInputProfile::LegacyPythonObserved,
+                member_id,
+                location,
+                root_uri,
+                raw_instance,
+                budget,
+                deadline,
+                Instant::now(),
+                cancelled,
+            )
+        }
+
+        pub(crate) fn evaluate_with_selected_finite_diagnostics(
+            &mut self,
+            member_id: &str,
+            location: &str,
+            root_uri: &str,
+            raw_instance: &[u8],
+            budget: ExecutorBudget,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<(SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost), ExecutorFailure>
+        {
+            self.image.evaluate_with_diagnostics_encoded(
+                &self.encoded_resources,
+                self.encoded_resources.capacity(),
+                self.schema_set_sha256,
+                self.profile,
+                DiagnosticsInputProfile::FiniteJsonSelected,
+                member_id,
+                location,
+                root_uri,
+                raw_instance,
+                budget,
+                deadline,
+                Instant::now(),
+                cancelled,
+            )
+        }
+
+        /// Allocation-free upper bound for one diagnostics-v2 request frame
+        /// using this exact retained schema closure. It includes the two
+        /// extended-profile bytes, so it also bounds the Legacy raw lane. This
+        /// does not start a worker or allocate request buffers.
+        pub(crate) fn diagnostics_v2_request_frame_bytes_upper_bound(
+            &self,
+            member_id_bytes: usize,
+            location_bytes: usize,
+            root_uri_bytes: usize,
+            instance_bytes: usize,
+        ) -> Result<usize, ExecutorFailure> {
+            if member_id_bytes == 0
+                || member_id_bytes > MAX_MEMBER_ID_BYTES
+                || location_bytes == 0
+                || location_bytes > MAX_PATH_BYTES
+                || root_uri_bytes > MAX_URI_BYTES
+                || instance_bytes > MAX_BATCH_RAW_BYTES
+            {
+                return Err(ExecutorFailure::InputBudget);
+            }
+            let strings = [
+                member_id_bytes,
+                location_bytes,
+                root_uri_bytes,
+                instance_bytes,
+            ];
+            let base = DIAGNOSTIC_FIXED_REQUEST_BYTES
+                .checked_add(self.encoded_resources.len())
+                .and_then(|bytes| bytes.checked_add(4)) // one-unit count
+                .ok_or(ExecutorFailure::InputBudget)?;
+            strings
+                .iter()
+                .try_fold(base, |total, len| total.checked_add(4)?.checked_add(*len))
+                .and_then(|bytes| bytes.checked_add(8)) // ordinal
+                .and_then(|bytes| bytes.checked_add(2)) // extended profile marker + input mode
+                .filter(|bytes| *bytes <= MAX_DIAGNOSTIC_REQUEST_BYTES)
+                .ok_or(ExecutorFailure::InputBudget)
+        }
+
+        /// Exact raw membership check against the immutable encoded closure.
+        /// The walk is allocation-free and bounded by the selected resource
+        /// count and per-resource byte ceilings.
+        pub(crate) fn has_encoded_schema_resource(&self, uri: &str, raw: &[u8]) -> bool {
+            let bytes = &self.encoded_resources;
+            let Some(count_raw) = bytes.get(..4) else {
+                return false;
+            };
+            let count = u32::from_be_bytes(count_raw.try_into().unwrap()) as usize;
+            if count == 0 || count > crate::SchemaBackendProbe::MAX_RESOURCES {
+                return false;
+            }
+            let mut offset = 4usize;
+            let mut found = false;
+            for _ in 0..count {
+                let Some(resource_uri) =
+                    take_encoded_resource_field(bytes, &mut offset, MAX_URI_BYTES)
+                else {
+                    return false;
+                };
+                let Some(resource_raw) = take_encoded_resource_field(
+                    bytes,
+                    &mut offset,
+                    crate::SchemaBackendProbe::MAX_RESOURCE_BYTES,
+                ) else {
+                    return false;
+                };
+                found |= resource_uri == uri.as_bytes() && resource_raw == raw;
+            }
+            offset == bytes.len() && found
+        }
+
+        /// Maximum selected root-URI byte length from the retained closure.
+        /// No strings are copied while deriving this preflight input bound.
+        pub(crate) fn max_encoded_schema_uri_bytes(&self) -> Result<usize, ExecutorFailure> {
+            let bytes = &self.encoded_resources;
+            let count_raw = bytes.get(..4).ok_or(ExecutorFailure::Protocol)?;
+            let count = u32::from_be_bytes(count_raw.try_into().unwrap()) as usize;
+            if count == 0 || count > crate::SchemaBackendProbe::MAX_RESOURCES {
+                return Err(ExecutorFailure::Protocol);
+            }
+            let mut offset = 4usize;
+            let mut maximum = 0usize;
+            for _ in 0..count {
+                let uri = take_encoded_resource_field(bytes, &mut offset, MAX_URI_BYTES)
+                    .ok_or(ExecutorFailure::Protocol)?;
+                let _raw = take_encoded_resource_field(
+                    bytes,
+                    &mut offset,
+                    crate::SchemaBackendProbe::MAX_RESOURCE_BYTES,
+                )
+                .ok_or(ExecutorFailure::Protocol)?;
+                maximum = maximum.max(uri.len());
+            }
+            if offset != bytes.len() || maximum == 0 {
+                return Err(ExecutorFailure::Protocol);
+            }
+            Ok(maximum)
+        }
+
+        /// Capacity of the exact encoded schema closure already retained by
+        /// this prepared worker. Controller admission counts it separately
+        /// from the additional request-frame copy used during an exchange.
+        pub(crate) fn encoded_schema_resource_buffer_bytes(&self) -> usize {
+            self.encoded_resources.capacity()
+        }
+
+        /// Upper bound for the frame and bounded response buffers that may
+        /// coexist in one finite diagnostics-v2 exchange. A one-byte sentinel
+        /// is reserved exactly as in the controller's bounded reader.
+        pub(crate) fn diagnostics_v2_request_response_bytes_upper_bound(
+            &self,
+            request_bytes: usize,
+        ) -> Result<(usize, usize), ExecutorFailure> {
+            let full_response = DIAGNOSTIC_ACK_BYTES
+                .checked_add(schema_diagnostics::Caps::CURRENT.max_report_bytes_per_unit as usize)
+                .and_then(|bytes| bytes.checked_add(DIAGNOSTIC_FINAL_BYTES))
+                .filter(|bytes| *bytes <= schema_diagnostics::MAX_RESPONSE_BYTES)
+                .ok_or(ExecutorFailure::InputBudget)?;
+            let minimum_response = DIAGNOSTIC_ACK_BYTES
+                .checked_add(DIAGNOSTIC_UNIT_HEADER_BYTES)
+                .and_then(|bytes| bytes.checked_add(DIAGNOSTIC_FINAL_BYTES))
+                .ok_or(ExecutorFailure::InputBudget)?;
+            let response = if self.image.operation_budget.max_total_wire_bytes == u64::MAX {
+                full_response
+            } else {
+                let remaining = self
+                    .image
+                    .operation_budget
+                    .max_total_wire_bytes
+                    .checked_sub(self.image.used_wire)
+                    .ok_or(ExecutorFailure::InputBudget)?;
+                let response_ceiling = remaining
+                    .checked_sub(
+                        u64::try_from(request_bytes).map_err(|_| ExecutorFailure::InputBudget)?,
+                    )
+                    .and_then(|bytes| bytes.checked_sub(1))
+                    .and_then(|bytes| usize::try_from(bytes).ok())
+                    .ok_or(ExecutorFailure::InputBudget)?;
+                full_response.min(response_ceiling)
+            };
+            if response < minimum_response {
+                return Err(ExecutorFailure::InputBudget);
+            }
+            Ok((request_bytes, response))
         }
 
         pub(crate) fn evaluate_batch(
@@ -1923,6 +4742,182 @@ mod native {
         })
     }
 
+    fn put_diagnostic_bytes(output: &mut Vec<u8>, value: &[u8]) -> Result<(), ExecutorFailure> {
+        let size = u32::try_from(value.len()).map_err(|_| ExecutorFailure::InputBudget)?;
+        if output
+            .len()
+            .checked_add(4)
+            .and_then(|len| len.checked_add(value.len()))
+            .filter(|len| *len <= MAX_DIAGNOSTIC_REQUEST_BYTES)
+            .is_none()
+        {
+            return Err(ExecutorFailure::InputBudget);
+        }
+        output.extend_from_slice(&size.to_be_bytes());
+        output.extend_from_slice(value);
+        Ok(())
+    }
+
+    fn make_diagnostics_request_encoded<U: std::borrow::Borrow<BatchUnit>>(
+        worker_sha256: Digest256,
+        encoded_resources: &[u8],
+        schema_set_sha256: Digest256,
+        profile: FormatProfile,
+        input_profile: DiagnosticsInputProfile,
+        units: impl IntoIterator<Item = U>,
+        budget: BatchBudget,
+        caps: schema_diagnostics::Caps,
+    ) -> Result<DiagnosticsPrepared, ExecutorFailure> {
+        make_diagnostics_request_encoded_with_unit_modes(
+            worker_sha256,
+            encoded_resources,
+            schema_set_sha256,
+            profile,
+            input_profile,
+            units,
+            None,
+            None,
+            budget,
+            caps,
+        )
+    }
+
+    fn make_diagnostics_request_encoded_with_unit_modes<U: std::borrow::Borrow<BatchUnit>>(
+        worker_sha256: Digest256,
+        encoded_resources: &[u8],
+        schema_set_sha256: Digest256,
+        profile: FormatProfile,
+        input_profile: DiagnosticsInputProfile,
+        units: impl IntoIterator<Item = U>,
+        unit_modes: Option<&[DiagnosticsUnitInputMode]>,
+        exceptional_remaining: Option<ExceptionalSchemaUsage>,
+        budget: BatchBudget,
+        caps: schema_diagnostics::Caps,
+    ) -> Result<DiagnosticsPrepared, ExecutorFailure> {
+        budget.validate()?;
+        if !caps.validate() {
+            return Err(ExecutorFailure::InputBudget);
+        }
+        if matches!(
+            input_profile,
+            DiagnosticsInputProfile::MixedSourceFoundation
+        ) != unit_modes.is_some()
+            || matches!(
+                input_profile,
+                DiagnosticsInputProfile::MixedSourceFoundation
+            ) != exceptional_remaining.is_some()
+            || exceptional_remaining
+                .is_some_and(|remaining| !remaining.fits_within(ExceptionalSchemaUsage::whole()))
+        {
+            return Err(ExecutorFailure::InputBudget);
+        }
+        let mut frame = Vec::new();
+        frame.extend_from_slice(DIAGNOSTIC_REQUEST_MAGIC);
+        frame.extend_from_slice(&schema_diagnostics::PROTOCOL_VERSION.to_be_bytes());
+        frame.extend_from_slice(&caps.max_issues_per_unit.to_be_bytes());
+        frame.extend_from_slice(&caps.max_report_bytes_per_unit.to_be_bytes());
+        frame.extend_from_slice(&caps.max_path_segments.to_be_bytes());
+        frame.extend_from_slice(&caps.max_path_bytes.to_be_bytes());
+        frame.extend_from_slice(worker_sha256.as_bytes());
+        frame.extend_from_slice(schema_set_sha256.as_bytes());
+        match input_profile {
+            DiagnosticsInputProfile::FiniteJson => frame.push(profile_byte(profile)),
+            DiagnosticsInputProfile::FiniteJsonSelected => {
+                frame.push(DIAGNOSTIC_EXTENDED_INPUT_MARKER);
+                frame.push(profile_byte(profile));
+                frame.push(DIAGNOSTIC_INPUT_FINITE_JSON_SELECTED);
+            }
+            DiagnosticsInputProfile::LegacyPythonObserved => {
+                frame.push(DIAGNOSTIC_EXTENDED_INPUT_MARKER);
+                frame.push(profile_byte(profile));
+                frame.push(DIAGNOSTIC_INPUT_LEGACY_PYTHON_OBSERVED);
+            }
+            DiagnosticsInputProfile::MixedSourceFoundation => {
+                frame.push(DIAGNOSTIC_EXTENDED_INPUT_MARKER);
+                frame.push(profile_byte(profile));
+                frame.push(DIAGNOSTIC_INPUT_MIXED_SOURCE_FOUNDATION);
+                frame.extend_from_slice(exceptional_schema::caps_sha256().as_bytes());
+                exceptional_remaining
+                    .ok_or(ExecutorFailure::InputBudget)?
+                    .write_be(&mut frame);
+            }
+        }
+        frame.extend_from_slice(encoded_resources);
+        let count_offset = frame.len();
+        frame.extend_from_slice(&0u32.to_be_bytes());
+        let mut metas = Vec::new();
+        let mut raw_total = 0usize;
+        let mut manifest = Digest256Hasher::new();
+        manifest.update(b"tos-val2-batch-manifest-v1\0");
+        let mut ordinal = 0usize;
+        for unit in units {
+            let unit = unit.borrow();
+            if metas.len() >= budget.max_units || unit.ordinal != metas.len() as u64 {
+                return Err(ExecutorFailure::InputBudget);
+            }
+            let input_mode = match input_profile {
+                DiagnosticsInputProfile::FiniteJson => DiagnosticsUnitInputMode::FiniteJson,
+                DiagnosticsInputProfile::FiniteJsonSelected => {
+                    DiagnosticsUnitInputMode::FiniteJsonSelected
+                }
+                DiagnosticsInputProfile::LegacyPythonObserved => {
+                    DiagnosticsUnitInputMode::LegacyPythonObserved
+                }
+                DiagnosticsInputProfile::MixedSourceFoundation => *unit_modes
+                    .and_then(|modes| modes.get(ordinal))
+                    .ok_or(ExecutorFailure::InputBudget)?,
+            };
+            validate_diagnostics_batch_unit(unit, input_mode)?;
+            raw_total = raw_total
+                .checked_add(unit.raw_instance.len())
+                .filter(|total| *total <= budget.max_total_raw_bytes)
+                .ok_or(ExecutorFailure::InputBudget)?;
+            frame.extend_from_slice(&unit.ordinal.to_be_bytes());
+            let mode = matches!(
+                input_profile,
+                DiagnosticsInputProfile::MixedSourceFoundation
+            )
+            .then_some(input_mode);
+            if let Some(mode) = mode {
+                frame.push(mode.wire_byte());
+            }
+            put_diagnostic_bytes(&mut frame, unit.member_id.as_bytes())?;
+            put_diagnostic_bytes(&mut frame, unit.relative_path.as_bytes())?;
+            put_diagnostic_bytes(&mut frame, unit.root_uri.as_bytes())?;
+            put_diagnostic_bytes(&mut frame, &unit.raw_instance)?;
+            let unit_sha256 = diagnostics_batch_unit_digest(unit, input_mode)?;
+            manifest.update(unit_sha256.as_bytes());
+            metas.push(BatchUnitMeta {
+                ordinal: unit.ordinal,
+                member_id: unit.member_id.clone(),
+                relative_path: unit.relative_path.clone(),
+                root_uri: unit.root_uri.clone(),
+                raw_sha256: Digest256::of_bytes(&unit.raw_instance),
+                unit_sha256,
+            });
+            ordinal += 1;
+        }
+        if unit_modes.is_some_and(|modes| modes.len() != metas.len()) {
+            return Err(ExecutorFailure::InputBudget);
+        }
+        if metas.is_empty() {
+            return Err(ExecutorFailure::InputBudget);
+        }
+        frame[count_offset..count_offset + 4].copy_from_slice(&(metas.len() as u32).to_be_bytes());
+        let request_sha256 = Digest256::of_bytes(&frame);
+        Ok(DiagnosticsPrepared {
+            frame,
+            units: metas,
+            worker_sha256,
+            profile,
+            schema_set_sha256,
+            request_sha256,
+            ordered_manifest_sha256: manifest.finalize(),
+            caps,
+            exceptional_remaining,
+        })
+    }
+
     pub(super) fn evaluate_batch(
         worker: &ExactWorkerIdentity,
         resources: &[SchemaResource],
@@ -2029,6 +5024,310 @@ mod native {
         }
     }
 
+    pub(super) fn evaluate_batch_with_diagnostics(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        input_profile: DiagnosticsInputProfile,
+        units: impl IntoIterator<Item = BatchUnit>,
+        expected: BatchCoverageExpectation,
+        budget: BatchBudget,
+        remaining_worker_wire_bytes: Option<u64>,
+        cancelled: Option<&AtomicBool>,
+        shared_quota: Option<SharedSchemaWorkerQuota>,
+    ) -> SchemaDiagnosticsOutcome {
+        let units: Vec<_> = units
+            .into_iter()
+            .take(MAX_BATCH_UNITS.saturating_add(1))
+            .collect();
+        let poison_on_failure = shared_quota.clone();
+        let outcome = evaluate_batch_with_diagnostics_units(
+            worker,
+            resources,
+            profile,
+            input_profile,
+            units,
+            None,
+            None,
+            remaining_worker_wire_bytes,
+            expected,
+            budget,
+            cancelled,
+            shared_quota,
+            None,
+        );
+        if matches!(&outcome, SchemaDiagnosticsOutcome::Incomplete { .. }) {
+            if let Some(quota) = poison_on_failure {
+                quota.poison();
+            }
+        }
+        outcome
+    }
+
+    pub(super) fn evaluate_batch_with_mixed_source_foundation_diagnostics(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        units: impl IntoIterator<Item = MixedDiagnosticsBatchUnit>,
+        expected: BatchCoverageExpectation,
+        exceptional_remaining: ExceptionalSchemaUsage,
+        budget: BatchBudget,
+        remaining_worker_wire_bytes: Option<u64>,
+        cancelled: Option<&AtomicBool>,
+        shared_quota: Option<SharedSchemaWorkerQuota>,
+    ) -> SchemaDiagnosticsOutcome {
+        let mixed: Vec<_> = units
+            .into_iter()
+            .take(MAX_BATCH_UNITS.saturating_add(1))
+            .collect();
+        let modes = mixed.iter().map(|unit| unit.input_mode).collect();
+        let units = mixed.into_iter().map(|unit| unit.unit).collect();
+        let poison_on_failure = shared_quota.clone();
+        let outcome = evaluate_batch_with_diagnostics_units(
+            worker,
+            resources,
+            profile,
+            DiagnosticsInputProfile::MixedSourceFoundation,
+            units,
+            Some(modes),
+            Some(exceptional_remaining),
+            remaining_worker_wire_bytes,
+            expected,
+            budget,
+            cancelled,
+            shared_quota,
+            None,
+        );
+        if matches!(&outcome, SchemaDiagnosticsOutcome::Incomplete { .. }) {
+            if let Some(quota) = poison_on_failure {
+                quota.poison();
+            }
+        }
+        outcome
+    }
+
+    pub(super) fn evaluate_batch_with_diagnostics_units(
+        worker: &ExactWorkerIdentity,
+        resources: &[SchemaResource],
+        profile: FormatProfile,
+        input_profile: DiagnosticsInputProfile,
+        units: Vec<BatchUnit>,
+        unit_modes: Option<Vec<DiagnosticsUnitInputMode>>,
+        exceptional_remaining: Option<ExceptionalSchemaUsage>,
+        remaining_worker_wire_bytes: Option<u64>,
+        expected: BatchCoverageExpectation,
+        mut budget: BatchBudget,
+        cancelled: Option<&AtomicBool>,
+        shared_quota: Option<SharedSchemaWorkerQuota>,
+        prepared_image: Option<&VerifiedWorkerImageHandle>,
+    ) -> SchemaDiagnosticsOutcome {
+        let local_cancelled = AtomicBool::new(false);
+        let cancelled = cancelled.unwrap_or(&local_cancelled);
+        let start = Instant::now();
+        let deadline = start
+            .checked_add(budget.total_execution_wall)
+            .unwrap_or(start);
+        if let Some(quota) = &shared_quota {
+            budget.cpu_seconds = match quota.child_cpu_seconds(budget.cpu_seconds.min(60)) {
+                Ok(seconds) => seconds,
+                Err(reason) => {
+                    quota.poison();
+                    return empty_diagnostics_outcome(
+                        worker.sha256,
+                        profile,
+                        Digest256::of_bytes(b""),
+                        reason,
+                    );
+                }
+            };
+        }
+        let (encoded, schema_set) = match encode_resources(resources) {
+            Ok(value) => value,
+            Err(reason) => {
+                return empty_diagnostics_outcome(
+                    worker.sha256,
+                    profile,
+                    Digest256::of_bytes(b""),
+                    reason,
+                );
+            }
+        };
+        let prepared = match make_diagnostics_request_encoded_with_unit_modes(
+            worker.sha256,
+            &encoded,
+            schema_set,
+            profile,
+            input_profile,
+            &units,
+            unit_modes.as_deref(),
+            exceptional_remaining,
+            budget,
+            schema_diagnostics::Caps::CURRENT,
+        ) {
+            Ok(prepared) => prepared,
+            Err(reason) => {
+                return empty_diagnostics_outcome(worker.sha256, profile, schema_set, reason);
+            }
+        };
+        if prepared.units.len() as u64 != expected.count
+            || prepared.ordered_manifest_sha256 != expected.ordered_manifest_sha256
+        {
+            return diagnostics_incomplete(prepared, ExecutorFailure::CoverageMismatch, None);
+        }
+        let response_cap = if let Some(remaining_wire_bytes) = remaining_worker_wire_bytes {
+            let Some(response_cap) =
+                diagnostics_response_cap_with_wire_budget(&prepared, remaining_wire_bytes)
+            else {
+                return diagnostics_incomplete(prepared, ExecutorFailure::InputBudget, None);
+            };
+            Some(response_cap)
+        } else {
+            None
+        };
+        let scalar = ExecutorBudget {
+            execution_wall: budget.total_execution_wall,
+            cleanup_grace: budget.cleanup_grace,
+            cpu_seconds: budget.cpu_seconds.min(60),
+            address_space_bytes: budget.address_space_bytes,
+        };
+        let image_result = match prepared_image {
+            Some(handle) => VerifiedWorkerImage::from_handle(handle, scalar, deadline, cancelled),
+            None => VerifiedWorkerImage::prepare(worker, scalar, deadline, cancelled),
+        };
+        let mut image = match image_result {
+            Ok(image) => image,
+            Err(reason) => {
+                if let Some(quota) = &shared_quota {
+                    quota.poison();
+                }
+                return diagnostics_incomplete(prepared, reason, None);
+            }
+        };
+        if let Some(quota) = &shared_quota {
+            if let Err(reason) = image.set_shared_schema_worker_quota(quota.clone()) {
+                quota.poison();
+                return diagnostics_incomplete(prepared, reason, None);
+            }
+        }
+        let shared_reservation = if let Some(quota) = &shared_quota {
+            let maximum_response = match diagnostics_response_cap(&prepared) {
+                Some(cap) => response_cap.map_or(cap, |local| local.min(cap)),
+                None => {
+                    quota.poison();
+                    return diagnostics_incomplete(prepared, ExecutorFailure::InputBudget, None);
+                }
+            };
+            let minimum_response = match diagnostics_minimum_response_bytes(&prepared) {
+                Some(bytes) => bytes,
+                None => {
+                    quota.poison();
+                    return diagnostics_incomplete(prepared, ExecutorFailure::InputBudget, None);
+                }
+            };
+            match quota.begin(
+                prepared.frame.len(),
+                minimum_response,
+                maximum_response,
+                budget.cpu_seconds,
+                expected.count,
+            ) {
+                Ok(reservation) if reservation.child_cpu_seconds() == budget.cpu_seconds => {
+                    Some(reservation)
+                }
+                Ok(reservation) => {
+                    drop(reservation);
+                    quota.poison();
+                    return diagnostics_incomplete(
+                        prepared,
+                        ExecutorFailure::ResourceLimitUnknown,
+                        None,
+                    );
+                }
+                Err(reason) => {
+                    quota.poison();
+                    return diagnostics_incomplete(prepared, reason, None);
+                }
+            }
+        } else {
+            None
+        };
+        let effective_response_cap = shared_reservation
+            .as_ref()
+            .map_or(response_cap, |reservation| Some(reservation.response_cap()));
+        if effective_response_cap.is_some_and(|cap| {
+            cap < diagnostics_minimum_response_bytes(&prepared).unwrap_or(usize::MAX)
+        }) {
+            drop(shared_reservation);
+            if let Some(quota) = &shared_quota {
+                quota.poison();
+            }
+            return diagnostics_incomplete(prepared, ExecutorFailure::InputBudget, None);
+        }
+        let argv = [
+            c"tos-schema-worker".as_ptr() as *mut libc::c_char,
+            std::ptr::null_mut(),
+        ];
+        let outcome = run_diagnostics_image(
+            &image.file,
+            prepared,
+            budget,
+            start,
+            &argv,
+            Some(cancelled),
+            effective_response_cap,
+        );
+        let outcome = match outcome {
+            SchemaDiagnosticsOutcome::Complete { units, checkpoint } => {
+                match image.finish(deadline, cancelled) {
+                    Ok(()) => SchemaDiagnosticsOutcome::Complete { units, checkpoint },
+                    Err(reason) => {
+                        let mut empty = Digest256Hasher::new();
+                        empty.update(b"tos-schema-diagnostics-results-v2\0");
+                        SchemaDiagnosticsOutcome::Incomplete {
+                            checkpoint: SchemaDiagnosticsCheckpoint {
+                                completed_count: 0,
+                                result_stream_sha256: empty.finalize(),
+                                ..checkpoint
+                            },
+                            reason,
+                            exchange: None,
+                        }
+                    }
+                }
+            }
+            incomplete => incomplete,
+        };
+        match (outcome, shared_reservation) {
+            (SchemaDiagnosticsOutcome::Complete { units, checkpoint }, Some(reservation)) => {
+                if checkpoint.completed_count != expected.count
+                    || checkpoint.worker_request_bytes
+                        != u64::try_from(reservation.request_bytes).unwrap_or(u64::MAX)
+                {
+                    reservation.quota.poison();
+                    diagnostics_incomplete_from_checkpoint(
+                        checkpoint,
+                        ExecutorFailure::CoverageMismatch,
+                    )
+                } else {
+                    match reservation.complete(
+                        usize::try_from(checkpoint.worker_request_bytes).unwrap_or(usize::MAX),
+                        usize::try_from(checkpoint.worker_response_bytes).unwrap_or(usize::MAX),
+                        checkpoint.worker_cpu_micros,
+                        checkpoint.completed_count,
+                    ) {
+                        Ok(()) => SchemaDiagnosticsOutcome::Complete { units, checkpoint },
+                        Err(reason) => diagnostics_incomplete_from_checkpoint(checkpoint, reason),
+                    }
+                }
+            }
+            (incomplete @ SchemaDiagnosticsOutcome::Incomplete { .. }, Some(reservation)) => {
+                drop(reservation);
+                incomplete
+            }
+            (outcome, None) => outcome,
+        }
+    }
+
     fn batch_checkpoint(
         prepared: &BatchPrepared,
         completed_count: usize,
@@ -2058,6 +5357,690 @@ mod native {
             reason,
             exchange: None,
         }
+    }
+
+    fn diagnostics_checkpoint(
+        prepared: &DiagnosticsPrepared,
+        completed_count: usize,
+        result_stream_sha256: Digest256,
+        exceptional_usage: Option<ExceptionalSchemaUsage>,
+    ) -> SchemaDiagnosticsCheckpoint {
+        SchemaDiagnosticsCheckpoint {
+            worker_sha256: prepared.worker_sha256,
+            request_sha256: prepared.request_sha256,
+            profile: prepared.profile,
+            schema_set_sha256: prepared.schema_set_sha256,
+            ordered_manifest_sha256: prepared.ordered_manifest_sha256,
+            caps_sha256: prepared.caps.digest(),
+            completed_count: completed_count as u64,
+            result_stream_sha256,
+            worker_request_bytes: 0,
+            worker_response_bytes: 0,
+            worker_cpu_micros: None,
+            exceptional_remaining: prepared.exceptional_remaining,
+            exceptional_usage,
+        }
+    }
+
+    fn diagnostics_incomplete(
+        prepared: DiagnosticsPrepared,
+        reason: ExecutorFailure,
+        exchange: Option<ExchangeFailureContext>,
+    ) -> SchemaDiagnosticsOutcome {
+        let mut empty = Digest256Hasher::new();
+        empty.update(b"tos-schema-diagnostics-results-v2\0");
+        SchemaDiagnosticsOutcome::Incomplete {
+            checkpoint: diagnostics_checkpoint(&prepared, 0, empty.finalize(), None),
+            reason,
+            exchange,
+        }
+    }
+
+    fn diagnostics_incomplete_with_observed_cost(
+        prepared: DiagnosticsPrepared,
+        reason: ExecutorFailure,
+        exchange: Option<ExchangeFailureContext>,
+        cost: &SchemaDiagnosticsExecutionCost,
+    ) -> SchemaDiagnosticsOutcome {
+        let mut outcome = diagnostics_incomplete(prepared, reason, exchange);
+        if let SchemaDiagnosticsOutcome::Incomplete { checkpoint, .. } = &mut outcome {
+            checkpoint.worker_request_bytes = u64::try_from(cost.request_bytes).unwrap_or(u64::MAX);
+            checkpoint.worker_response_bytes =
+                u64::try_from(cost.response_bytes).unwrap_or(u64::MAX);
+            checkpoint.worker_cpu_micros = cost.worker_cpu_micros;
+        }
+        outcome
+    }
+
+    fn diagnostics_incomplete_from_checkpoint(
+        checkpoint: SchemaDiagnosticsCheckpoint,
+        reason: ExecutorFailure,
+    ) -> SchemaDiagnosticsOutcome {
+        SchemaDiagnosticsOutcome::Incomplete {
+            checkpoint,
+            reason,
+            exchange: None,
+        }
+    }
+
+    fn parse_diagnostic_path(
+        cursor: &mut Cursor<'_>,
+        caps: schema_diagnostics::Caps,
+    ) -> io::Result<Vec<schema_diagnostics::PathSegment>> {
+        let count = u16::from_be_bytes(cursor.take(2)?.try_into().unwrap()) as usize;
+        if count > caps.max_path_segments as usize {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "diagnostic path segments",
+            ));
+        }
+        let mut path = Vec::with_capacity(count);
+        let mut bytes = 0usize;
+        for _ in 0..count {
+            match cursor.take(1)?[0] {
+                0 => {
+                    let raw = cursor.bytes(caps.max_path_bytes as usize)?;
+                    bytes = bytes
+                        .checked_add(raw.len())
+                        .filter(|size| *size <= caps.max_path_bytes as usize)
+                        .ok_or_else(|| {
+                            io::Error::new(io::ErrorKind::InvalidData, "diagnostic path bytes")
+                        })?;
+                    let property = std::str::from_utf8(raw).map_err(|_| {
+                        io::Error::new(io::ErrorKind::InvalidData, "diagnostic path utf8")
+                    })?;
+                    path.push(schema_diagnostics::PathSegment::Property(
+                        property.to_owned(),
+                    ));
+                }
+                1 => {
+                    bytes = bytes
+                        .checked_add(std::mem::size_of::<u64>())
+                        .filter(|size| *size <= caps.max_path_bytes as usize)
+                        .ok_or_else(|| {
+                            io::Error::new(io::ErrorKind::InvalidData, "diagnostic path bytes")
+                        })?;
+                    path.push(schema_diagnostics::PathSegment::Index(u64::from_be_bytes(
+                        cursor.take(8)?.try_into().unwrap(),
+                    )));
+                }
+                _ => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "diagnostic path segment kind",
+                    ));
+                }
+            }
+        }
+        Ok(path)
+    }
+
+    fn parse_diagnostic_issue(
+        cursor: &mut Cursor<'_>,
+        caps: schema_diagnostics::Caps,
+    ) -> io::Result<schema_diagnostics::Issue> {
+        let instance_path = parse_diagnostic_path(cursor, caps)?;
+        let keyword_raw = cursor.bytes(64)?;
+        let schema_keyword = std::str::from_utf8(keyword_raw)
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "diagnostic schema keyword"))?;
+        let reason = schema_diagnostics::Reason::from_wire(u16::from_be_bytes(
+            cursor.take(2)?.try_into().unwrap(),
+        ))
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "diagnostic reason"))?;
+        if schema_keyword != reason.schema_keyword() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "diagnostic keyword binding",
+            ));
+        }
+        let schema_path = parse_diagnostic_path(cursor, caps)?;
+        let compatibility_text =
+            schema_diagnostics::CompatibilityText::from_wire(cursor.take(1)?[0]).ok_or_else(
+                || io::Error::new(io::ErrorKind::InvalidData, "diagnostic compatibility text"),
+            )?;
+        Ok(schema_diagnostics::Issue {
+            instance_path,
+            schema_keyword: schema_keyword.to_owned(),
+            reason,
+            schema_path,
+            compatibility_text,
+        })
+    }
+
+    fn parse_diagnostic_ack(
+        response: &[u8],
+        prepared: &DiagnosticsPrepared,
+    ) -> Result<(), ExecutorFailure> {
+        if response.len() < DIAGNOSTIC_ACK_BYTES {
+            return Err(ExecutorFailure::Protocol);
+        }
+        let ack = &response[..DIAGNOSTIC_ACK_BYTES];
+        if &ack[..8] != DIAGNOSTIC_ACK_MAGIC
+            || u16::from_be_bytes(ack[8..10].try_into().unwrap())
+                != schema_diagnostics::PROTOCOL_VERSION
+            || &ack[10..42] != prepared.request_sha256.as_bytes()
+            || &ack[42..74] != prepared.worker_sha256.as_bytes()
+            || &ack[74..106] != prepared.schema_set_sha256.as_bytes()
+            || &ack[106..138] != prepared.caps.digest().as_bytes()
+            || u32::from_be_bytes(ack[138..142].try_into().unwrap()) as usize
+                != prepared.units.len()
+        {
+            return Err(ExecutorFailure::Protocol);
+        }
+        Ok(())
+    }
+
+    fn parse_diagnostics_response(
+        response: &[u8],
+        prepared: &DiagnosticsPrepared,
+    ) -> Result<(Vec<SchemaDiagnosticUnit>, Option<ExceptionalSchemaUsage>), ExecutorFailure> {
+        if response.len() > schema_diagnostics::MAX_RESPONSE_BYTES {
+            return Err(ExecutorFailure::InputBudget);
+        }
+        parse_diagnostic_ack(response, prepared)?;
+        let mut cursor = Cursor {
+            bytes: response,
+            offset: DIAGNOSTIC_ACK_BYTES,
+        };
+        let mut result_stream = Digest256Hasher::new();
+        result_stream.update(b"tos-schema-diagnostics-results-v2\0");
+        let mut units = Vec::with_capacity(prepared.units.len());
+        for meta in &prepared.units {
+            let fixed = cursor
+                .take(DIAGNOSTIC_UNIT_HEADER_BYTES)
+                .map_err(|_| ExecutorFailure::Protocol)?;
+            if &fixed[..8] != DIAGNOSTIC_UNIT_MAGIC
+                || u16::from_be_bytes(fixed[8..10].try_into().unwrap())
+                    != schema_diagnostics::PROTOCOL_VERSION
+                || u64::from_be_bytes(fixed[10..18].try_into().unwrap()) != meta.ordinal
+                || &fixed[18..50] != meta.unit_sha256.as_bytes()
+            {
+                return Err(ExecutorFailure::Protocol);
+            }
+            let status = schema_diagnostics::Status::from_wire(fixed[50])
+                .ok_or(ExecutorFailure::Protocol)?;
+            let failure = schema_diagnostics::Failure::from_wire(fixed[51])
+                .ok_or(ExecutorFailure::Protocol)?;
+            let total_issue_count = u64::from_be_bytes(fixed[52..60].try_into().unwrap());
+            let truncated = match fixed[60] {
+                0 => false,
+                1 => true,
+                _ => return Err(ExecutorFailure::Protocol),
+            };
+            let issue_count = u32::from_be_bytes(fixed[61..65].try_into().unwrap()) as usize;
+            let payload_len = u32::from_be_bytes(fixed[65..69].try_into().unwrap()) as usize;
+            let issues_sha256 = Digest256::from_bytes(fixed[69..101].try_into().unwrap());
+            if issue_count > prepared.caps.max_issues_per_unit as usize
+                || payload_len
+                    .checked_add(DIAGNOSTIC_UNIT_HEADER_BYTES)
+                    .is_none_or(|size| size > prepared.caps.max_report_bytes_per_unit as usize)
+            {
+                return Err(ExecutorFailure::Protocol);
+            }
+            let payload = cursor
+                .take(payload_len)
+                .map_err(|_| ExecutorFailure::Protocol)?;
+            let mut issue_cursor = Cursor {
+                bytes: payload,
+                offset: 0,
+            };
+            let mut issues = Vec::with_capacity(issue_count);
+            for _ in 0..issue_count {
+                issues.push(
+                    parse_diagnostic_issue(&mut issue_cursor, prepared.caps)
+                        .map_err(|_| ExecutorFailure::Protocol)?,
+                );
+            }
+            if issue_cursor.offset != payload.len()
+                || issues.windows(2).any(|pair| pair[0] > pair[1])
+                || schema_diagnostics::issues_digest(&issues) != Some(issues_sha256)
+                || !schema_diagnostics::status_is_well_formed(
+                    status,
+                    failure,
+                    total_issue_count,
+                    truncated,
+                    issues.len(),
+                )
+            {
+                return Err(ExecutorFailure::Protocol);
+            }
+            let report_sha256 = schema_diagnostics::report_digest(
+                prepared.worker_sha256,
+                prepared.request_sha256,
+                meta.unit_sha256,
+                prepared.schema_set_sha256,
+                prepared.caps,
+                status,
+                failure,
+                total_issue_count,
+                truncated,
+                issues_sha256,
+            );
+            let report = schema_diagnostics::Report {
+                protocol_version: schema_diagnostics::PROTOCOL_VERSION,
+                worker_sha256: prepared.worker_sha256,
+                request_sha256: prepared.request_sha256,
+                unit_sha256: meta.unit_sha256,
+                schema_set_sha256: prepared.schema_set_sha256,
+                caps: prepared.caps,
+                status,
+                failure,
+                total_issue_count,
+                truncated,
+                issues_sha256,
+                report_sha256,
+                issues,
+            };
+            update_diagnostic_result_stream(&mut result_stream, meta.unit_sha256, &report);
+            units.push(SchemaDiagnosticUnit {
+                ordinal: meta.ordinal,
+                member_id: meta.member_id.clone(),
+                relative_path: meta.relative_path.clone(),
+                root_uri: meta.root_uri.clone(),
+                raw_sha256: meta.raw_sha256,
+                unit_sha256: meta.unit_sha256,
+                report,
+            });
+        }
+        let final_bytes = prepared.final_record_bytes();
+        let final_record = cursor
+            .take(final_bytes)
+            .map_err(|_| ExecutorFailure::Protocol)?;
+        let result_sha256 = result_stream.finalize();
+        if &final_record[..8] != DIAGNOSTIC_FINAL_MAGIC
+            || u16::from_be_bytes(final_record[8..10].try_into().unwrap())
+                != schema_diagnostics::PROTOCOL_VERSION
+            || &final_record[10..42] != prepared.request_sha256.as_bytes()
+            || &final_record[42..74] != prepared.worker_sha256.as_bytes()
+            || &final_record[74..106] != prepared.schema_set_sha256.as_bytes()
+            || &final_record[106..138] != prepared.caps.digest().as_bytes()
+            || u32::from_be_bytes(final_record[138..142].try_into().unwrap()) as usize
+                != prepared.units.len()
+            || &final_record[142..174] != result_sha256.as_bytes()
+            || cursor.offset != response.len()
+        {
+            return Err(ExecutorFailure::Protocol);
+        }
+        let exceptional_usage = match prepared.exceptional_remaining {
+            Some(remaining) => {
+                let usage =
+                    ExceptionalSchemaUsage::read_be(&final_record[DIAGNOSTIC_FINAL_BYTES..])
+                        .ok_or(ExecutorFailure::Protocol)?;
+                if !usage.fits_within(remaining) {
+                    return Err(ExecutorFailure::Protocol);
+                }
+                Some(usage)
+            }
+            None => None,
+        };
+        Ok((units, exceptional_usage))
+    }
+
+    fn run_diagnostics_image(
+        image: &File,
+        prepared: DiagnosticsPrepared,
+        budget: BatchBudget,
+        start: Instant,
+        argv: &[*mut libc::c_char],
+        cancelled: Option<&AtomicBool>,
+        response_cap: Option<usize>,
+    ) -> SchemaDiagnosticsOutcome {
+        run_diagnostics_image_with_cost(
+            image,
+            prepared,
+            budget,
+            start,
+            argv,
+            cancelled,
+            response_cap,
+        )
+        .0
+    }
+
+    fn run_diagnostics_image_with_cost(
+        image: &File,
+        prepared: DiagnosticsPrepared,
+        budget: BatchBudget,
+        start: Instant,
+        argv: &[*mut libc::c_char],
+        cancelled: Option<&AtomicBool>,
+        response_cap: Option<usize>,
+    ) -> (SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost) {
+        let mut cost = SchemaDiagnosticsExecutionCost {
+            request_buffer_bytes: prepared.frame.capacity(),
+            ..SchemaDiagnosticsExecutionCost::default()
+        };
+        let outcome = match spawn_operation_child(
+            image,
+            ExecutorBudget {
+                execution_wall: budget.total_execution_wall,
+                cleanup_grace: budget.cleanup_grace,
+                cpu_seconds: budget.cpu_seconds.min(60),
+                address_space_bytes: budget.address_space_bytes,
+            },
+            argv,
+        ) {
+            Ok(mut child) => run_diagnostics_exchange(
+                &mut child,
+                prepared,
+                budget,
+                start,
+                cancelled,
+                response_cap,
+                &mut cost,
+            ),
+            Err(reason) => diagnostics_incomplete(prepared, reason, None),
+        };
+        (diagnostics_with_wire_cost(outcome, &cost), cost)
+    }
+
+    fn diagnostics_with_wire_cost(
+        outcome: SchemaDiagnosticsOutcome,
+        cost: &SchemaDiagnosticsExecutionCost,
+    ) -> SchemaDiagnosticsOutcome {
+        let request_bytes = u64::try_from(cost.request_bytes).unwrap_or(u64::MAX);
+        let response_bytes = u64::try_from(cost.response_bytes).unwrap_or(u64::MAX);
+        match outcome {
+            SchemaDiagnosticsOutcome::Complete {
+                units,
+                mut checkpoint,
+            } => {
+                checkpoint.worker_request_bytes = request_bytes;
+                checkpoint.worker_response_bytes = response_bytes;
+                checkpoint.worker_cpu_micros = cost.worker_cpu_micros;
+                SchemaDiagnosticsOutcome::Complete { units, checkpoint }
+            }
+            SchemaDiagnosticsOutcome::Incomplete {
+                mut checkpoint,
+                reason,
+                exchange,
+            } => {
+                checkpoint.worker_request_bytes = request_bytes;
+                checkpoint.worker_response_bytes = response_bytes;
+                checkpoint.worker_cpu_micros = cost.worker_cpu_micros;
+                SchemaDiagnosticsOutcome::Incomplete {
+                    checkpoint,
+                    reason,
+                    exchange,
+                }
+            }
+        }
+    }
+
+    fn diagnostics_response_cap(prepared: &DiagnosticsPrepared) -> Option<usize> {
+        (prepared.caps.max_report_bytes_per_unit as usize)
+            .checked_mul(prepared.units.len())
+            .and_then(|bytes| bytes.checked_add(DIAGNOSTIC_ACK_BYTES))
+            .and_then(|bytes| bytes.checked_add(prepared.final_record_bytes()))
+            .filter(|bytes| *bytes <= schema_diagnostics::MAX_RESPONSE_BYTES)
+    }
+
+    fn diagnostics_minimum_response_bytes(prepared: &DiagnosticsPrepared) -> Option<usize> {
+        DIAGNOSTIC_UNIT_HEADER_BYTES
+            .checked_mul(prepared.units.len())
+            .and_then(|units| units.checked_add(DIAGNOSTIC_ACK_BYTES))
+            .and_then(|bytes| bytes.checked_add(prepared.final_record_bytes()))
+    }
+
+    fn diagnostics_scalar_request_frame_bytes(
+        encoded_resource_bytes: usize,
+        input_profile: DiagnosticsInputProfile,
+        member_id_bytes: usize,
+        path_bytes: usize,
+        root_uri_bytes: usize,
+        instance_bytes: usize,
+    ) -> Option<usize> {
+        let extended_profile_bytes = match input_profile {
+            DiagnosticsInputProfile::FiniteJson => 0,
+            DiagnosticsInputProfile::LegacyPythonObserved
+            | DiagnosticsInputProfile::FiniteJsonSelected => 2,
+            DiagnosticsInputProfile::MixedSourceFoundation => return None,
+        };
+        let base = DIAGNOSTIC_FIXED_REQUEST_BYTES
+            .checked_add(extended_profile_bytes)?
+            .checked_add(encoded_resource_bytes)?
+            .checked_add(4)? // unit count
+            .checked_add(8)?; // unit ordinal
+        [member_id_bytes, path_bytes, root_uri_bytes, instance_bytes]
+            .into_iter()
+            .try_fold(base, |total, bytes| {
+                total.checked_add(4)?.checked_add(bytes)
+            })
+    }
+
+    fn diagnostics_response_cap_with_wire_budget(
+        prepared: &DiagnosticsPrepared,
+        remaining_wire_bytes: u64,
+    ) -> Option<usize> {
+        if remaining_wire_bytes == u64::MAX {
+            return None;
+        }
+        let full_response_cap = diagnostics_response_cap(prepared)?;
+        let frame_bytes = u64::try_from(prepared.frame.len()).ok()?;
+        let response_bytes_with_sentinel = remaining_wire_bytes.checked_sub(frame_bytes)?;
+        let response_cap_u64 = response_bytes_with_sentinel.checked_sub(1)?;
+        let response_cap = usize::try_from(response_cap_u64).ok()?;
+        let response_cap = full_response_cap.min(response_cap);
+        let minimum_response_bytes = diagnostics_minimum_response_bytes(prepared)?;
+        (response_cap >= minimum_response_bytes).then_some(response_cap)
+    }
+
+    fn run_diagnostics_exchange(
+        child: &mut OperationChild,
+        prepared: DiagnosticsPrepared,
+        budget: BatchBudget,
+        start: Instant,
+        cancelled: Option<&AtomicBool>,
+        response_cap: Option<usize>,
+        cost: &mut SchemaDiagnosticsExecutionCost,
+    ) -> SchemaDiagnosticsOutcome {
+        let mut written = 0usize;
+        let full_response_cap = diagnostics_response_cap(&prepared);
+        let Some(full_response_cap) = full_response_cap else {
+            let _ = child.cleanup();
+            return diagnostics_incomplete(prepared, ExecutorFailure::InputBudget, None);
+        };
+        let response_cap = response_cap.unwrap_or(full_response_cap);
+        if response_cap > full_response_cap
+            || diagnostics_minimum_response_bytes(&prepared)
+                .is_none_or(|minimum| response_cap < minimum)
+        {
+            let _ = child.cleanup();
+            return diagnostics_incomplete(prepared, ExecutorFailure::InputBudget, None);
+        }
+        let mut response = Vec::with_capacity(response_cap);
+        cost.response_buffer_bytes = response.capacity();
+        let mut output_eof = false;
+        let mut status = child.status;
+        let mut input = Some(&child.input);
+        let mut last_progress = start;
+        let mut failure: Option<(ExecutorFailure, &'static str)> = None;
+        let mut ack = false;
+        loop {
+            if cancelled.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
+                failure = Some((ExecutorFailure::Cancelled, "diagnostics-cancellation"));
+                break;
+            }
+            let now = Instant::now();
+            if now.duration_since(start) >= budget.total_execution_wall {
+                failure = Some((ExecutorFailure::Timeout, "diagnostics-total-wall"));
+                break;
+            }
+            if !ack && now.duration_since(start) >= budget.startup_wall {
+                failure = Some((ExecutorFailure::Timeout, "diagnostics-startup-wall"));
+                break;
+            }
+            if ack && now.duration_since(last_progress) >= budget.per_unit_wall {
+                failure = Some((ExecutorFailure::Timeout, "diagnostics-unit-wall"));
+                break;
+            }
+            match poll_exit_with_usage(child.pid, &mut status) {
+                Ok(Some(cpu_micros)) => cost.worker_cpu_micros = Some(cpu_micros),
+                Ok(None) => {}
+                Err(reason) => {
+                    failure = Some((reason, "diagnostics-child-status"));
+                    break;
+                }
+            }
+            if !output_eof && written == prepared.frame.len() {
+                if let Some(fd) = input.take() {
+                    unsafe { libc::shutdown(fd.as_raw_fd(), libc::SHUT_WR) };
+                }
+            }
+            let mut fds = [
+                libc::pollfd {
+                    fd: if written < prepared.frame.len() {
+                        input.map_or(-1, |fd| fd.as_raw_fd())
+                    } else {
+                        -1
+                    },
+                    events: libc::POLLOUT,
+                    revents: 0,
+                },
+                libc::pollfd {
+                    fd: if output_eof {
+                        -1
+                    } else {
+                        child.output.as_raw_fd()
+                    },
+                    events: libc::POLLIN,
+                    revents: 0,
+                },
+            ];
+            if unsafe { libc::poll(fds.as_mut_ptr(), 2, 2) } < 0 {
+                if io::Error::last_os_error().kind() != io::ErrorKind::Interrupted {
+                    failure = Some((ExecutorFailure::Protocol, "diagnostics-poll"));
+                    break;
+                }
+                continue;
+            }
+            if fds[0].revents & libc::POLLOUT != 0 {
+                let count = unsafe {
+                    libc::send(
+                        fds[0].fd,
+                        prepared.frame[written..].as_ptr().cast(),
+                        prepared.frame.len() - written,
+                        libc::MSG_DONTWAIT | libc::MSG_NOSIGNAL,
+                    )
+                };
+                if count > 0 {
+                    written += count as usize;
+                    cost.request_bytes = written;
+                } else if count == 0
+                    || (count < 0 && io::Error::last_os_error().kind() != io::ErrorKind::WouldBlock)
+                {
+                    failure = Some((ExecutorFailure::Protocol, "diagnostics-request-send"));
+                    break;
+                }
+            }
+            if fds[1].revents & (libc::POLLIN | libc::POLLHUP) != 0 {
+                let mut buffer = [0u8; 4096];
+                let remaining_with_overflow = response_cap
+                    .saturating_sub(response.len())
+                    .saturating_add(1)
+                    .min(buffer.len());
+                let count = unsafe {
+                    libc::recv(
+                        fds[1].fd,
+                        buffer.as_mut_ptr().cast(),
+                        remaining_with_overflow,
+                        libc::MSG_DONTWAIT,
+                    )
+                };
+                if count == 0 {
+                    output_eof = true;
+                } else if count > 0 {
+                    response.extend_from_slice(&buffer[..count as usize]);
+                    cost.response_bytes = response.len();
+                    last_progress = Instant::now();
+                    if response.len() > response_cap {
+                        failure = Some((ExecutorFailure::InputBudget, "diagnostics-response-cap"));
+                        break;
+                    }
+                    if !ack && response.len() >= DIAGNOSTIC_ACK_BYTES {
+                        if let Err(reason) = parse_diagnostic_ack(&response, &prepared) {
+                            failure = Some((reason, "diagnostics-ack"));
+                            break;
+                        }
+                        ack = true;
+                        last_progress = Instant::now();
+                    }
+                } else if io::Error::last_os_error().kind() != io::ErrorKind::WouldBlock {
+                    failure = Some((ExecutorFailure::Protocol, "diagnostics-response-receive"));
+                    break;
+                }
+            }
+            if fds
+                .iter()
+                .any(|fd| fd.revents & (libc::POLLERR | libc::POLLNVAL) != 0)
+            {
+                failure = Some((ExecutorFailure::Protocol, "diagnostics-socket-events"));
+                break;
+            }
+            if output_eof && !ack {
+                failure = Some((ExecutorFailure::Protocol, "diagnostics-missing-ack"));
+                break;
+            }
+            if output_eof && written == prepared.frame.len() && status.is_some() {
+                break;
+            }
+            if status.is_some() && written != prepared.frame.len() {
+                failure = Some((ExecutorFailure::Protocol, "diagnostics-early-exit"));
+                break;
+            }
+        }
+        child.status = status;
+        if let Some((reason, boundary)) = failure {
+            let cleanup = if reason == ExecutorFailure::Protocol && output_eof {
+                child.cleanup_after_eof()
+            } else {
+                child.cleanup()
+            };
+            let natural_termination = child.natural_status.map(|status| {
+                let signal = status & 0x7f;
+                if signal == 0 {
+                    ChildTermination::Exited((status >> 8) & 0xff)
+                } else {
+                    ChildTermination::Signalled(signal)
+                }
+            });
+            return diagnostics_incomplete_with_observed_cost(
+                prepared,
+                cleanup
+                    .err()
+                    .unwrap_or_else(|| status.and_then(status_failure).unwrap_or(reason)),
+                Some(ExchangeFailureContext {
+                    boundary,
+                    failure: reason,
+                    natural_termination,
+                }),
+                cost,
+            );
+        }
+        if let Some(reason) = status.and_then(status_failure) {
+            return diagnostics_incomplete_with_observed_cost(prepared, reason, None, cost);
+        }
+        if let Err(reason) = child.cleanup_after_eof() {
+            return diagnostics_incomplete_with_observed_cost(prepared, reason, None, cost);
+        }
+        let (units, exceptional_usage) = match parse_diagnostics_response(&response, &prepared) {
+            Ok(parsed) => parsed,
+            Err(reason) => {
+                return diagnostics_incomplete_with_observed_cost(prepared, reason, None, cost);
+            }
+        };
+        let mut result_stream = Digest256Hasher::new();
+        result_stream.update(b"tos-schema-diagnostics-results-v2\0");
+        for unit in &units {
+            update_diagnostic_result_stream(&mut result_stream, unit.unit_sha256, &unit.report);
+        }
+        let checkpoint = diagnostics_checkpoint(
+            &prepared,
+            units.len(),
+            result_stream.finalize(),
+            exceptional_usage,
+        );
+        SchemaDiagnosticsOutcome::Complete { units, checkpoint }
     }
 
     /// Snapshot the verified worker into an executable, sealed in-memory file.
@@ -2231,6 +6214,37 @@ mod native {
             Ok(())
         } else if observed == 0 {
             Ok(())
+        } else {
+            Err(ExecutorFailure::ResourceLimitUnknown)
+        }
+    }
+
+    fn poll_exit_with_usage(
+        pid: i32,
+        status: &mut Option<i32>,
+    ) -> Result<Option<u64>, ExecutorFailure> {
+        if status.is_some() {
+            return Ok(None);
+        }
+        let mut raw = 0;
+        let mut usage: libc::rusage = unsafe { std::mem::zeroed() };
+        let observed = unsafe { libc::wait4(pid, &mut raw, libc::WNOHANG, &mut usage) };
+        if observed == pid {
+            *status = Some(raw);
+            let micros = |value: libc::timeval| -> Option<u64> {
+                u64::try_from(value.tv_sec)
+                    .ok()?
+                    .checked_mul(1_000_000)?
+                    .checked_add(u64::try_from(value.tv_usec).ok()?)
+            };
+            micros(usage.ru_utime)
+                .and_then(|user| micros(usage.ru_stime).and_then(|system| user.checked_add(system)))
+                .map(Some)
+                .ok_or(ExecutorFailure::ResourceLimitUnknown)
+        } else if observed == 0
+            || (observed < 0 && io::Error::last_os_error().kind() == io::ErrorKind::Interrupted)
+        {
+            Ok(None)
         } else {
             Err(ExecutorFailure::ResourceLimitUnknown)
         }
@@ -2920,16 +6934,776 @@ mod native {
     }
 
     pub(super) fn worker_once() -> io::Result<()> {
+        if unsafe { libc::prctl(libc::PR_SET_DUMPABLE, 0, 0, 0, 0) } != 0 {
+            return Err(io::Error::last_os_error());
+        }
         let mut stdin = io::stdin();
         let mut magic = [0u8; 8];
         stdin.read_exact(&mut magic)?;
-        if &magic != OPERATION_REQUEST_MAGIC {
+        if &magic == OPERATION_REQUEST_MAGIC {
+            operation_worker_once(stdin, io::stdout(), magic)
+        } else if &magic == DIAGNOSTIC_REQUEST_MAGIC {
+            diagnostics_worker_once(stdin, io::stdout())
+        } else {
+            Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "worker protocol version",
+            ))
+        }
+    }
+
+    struct DiagnosticsParsedUnit<'a> {
+        ordinal: u64,
+        member_id: &'a str,
+        relative_path: &'a str,
+        root_uri: &'a str,
+        raw: &'a [u8],
+        input_mode: DiagnosticsUnitInputMode,
+        unit_sha256: Digest256,
+    }
+
+    fn diagnostics_worker_once(mut input: impl Read, mut output: impl Write) -> io::Result<()> {
+        use jsonschema::{Registry, Validator};
+
+        let bad = || io::Error::new(io::ErrorKind::InvalidData, "schema diagnostics request");
+        let mut tail = Vec::new();
+        input
+            .take((MAX_DIAGNOSTIC_REQUEST_BYTES as u64) + 1)
+            .read_to_end(&mut tail)?;
+        if tail.len() + 8 < DIAGNOSTIC_FIXED_REQUEST_BYTES
+            || tail.len() + 8 > MAX_DIAGNOSTIC_REQUEST_BYTES
+        {
+            return Err(bad());
+        }
+        let mut cursor = Cursor {
+            bytes: &tail,
+            offset: 0,
+        };
+        let version = u16::from_be_bytes(cursor.take(2)?.try_into().unwrap());
+        let caps = schema_diagnostics::Caps {
+            max_issues_per_unit: u32::from_be_bytes(cursor.take(4)?.try_into().unwrap()),
+            max_report_bytes_per_unit: u32::from_be_bytes(cursor.take(4)?.try_into().unwrap()),
+            max_path_segments: u16::from_be_bytes(cursor.take(2)?.try_into().unwrap()),
+            max_path_bytes: u32::from_be_bytes(cursor.take(4)?.try_into().unwrap()),
+        };
+        let worker_sha256 = Digest256::from_bytes(cursor.take(32)?.try_into().unwrap());
+        let expected_schema = Digest256::from_bytes(cursor.take(32)?.try_into().unwrap());
+        let profile_byte = cursor.take(1)?[0];
+        let (profile, input_profile, exceptional_remaining) =
+            if profile_byte == DIAGNOSTIC_EXTENDED_INPUT_MARKER {
+                let profile = parse_profile(cursor.take(1)?[0]).ok_or_else(bad)?;
+                let input_profile = cursor.take(1)?[0];
+                let (input_profile, exceptional_remaining) = match input_profile {
+                    DIAGNOSTIC_INPUT_LEGACY_PYTHON_OBSERVED => {
+                        (DiagnosticsInputProfile::LegacyPythonObserved, None)
+                    }
+                    DIAGNOSTIC_INPUT_MIXED_SOURCE_FOUNDATION => {
+                        let received = Digest256::from_bytes(cursor.take(32)?.try_into().unwrap());
+                        if received != exceptional_schema::caps_sha256() {
+                            return Err(bad());
+                        }
+                        let remaining = ExceptionalSchemaUsage::read_be(
+                            cursor.take(DIAGNOSTIC_EXCEPTIONAL_COUNTERS_BYTES)?,
+                        )
+                        .filter(|remaining| remaining.fits_within(ExceptionalSchemaUsage::whole()))
+                        .ok_or_else(bad)?;
+                        (
+                            DiagnosticsInputProfile::MixedSourceFoundation,
+                            Some(remaining),
+                        )
+                    }
+                    DIAGNOSTIC_INPUT_FINITE_JSON_SELECTED => {
+                        (DiagnosticsInputProfile::FiniteJsonSelected, None)
+                    }
+                    _ => return Err(bad()),
+                };
+                if !matches!(
+                    input_profile,
+                    DiagnosticsInputProfile::LegacyPythonObserved
+                        | DiagnosticsInputProfile::MixedSourceFoundation
+                        | DiagnosticsInputProfile::FiniteJsonSelected
+                ) {
+                    return Err(bad());
+                }
+                (profile, input_profile, exceptional_remaining)
+            } else {
+                (
+                    parse_profile(profile_byte).ok_or_else(bad)?,
+                    DiagnosticsInputProfile::FiniteJson,
+                    None,
+                )
+            };
+        if matches!(
+            input_profile,
+            DiagnosticsInputProfile::MixedSourceFoundation
+        ) != exceptional_remaining.is_some()
+        {
+            return Err(bad());
+        }
+        if version != schema_diagnostics::PROTOCOL_VERSION || !caps.validate() {
+            return Err(bad());
+        }
+        let resources = parse_batch_resources(&mut cursor)?;
+        let (units, raw_total) = parse_diagnostics_units(&mut cursor, input_profile)?;
+        if cursor.offset != tail.len() || raw_total > MAX_BATCH_RAW_BYTES {
+            return Err(bad());
+        }
+        let schema_set = schema_set_digest(&resources).map_err(|_| bad())?;
+        if schema_set != expected_schema {
+            return Err(bad());
+        }
+        let probe = crate::SchemaBackendProbe::new(resources, profile).map_err(|_| bad())?;
+        if probe.schema_set_digest() != schema_set {
+            return Err(bad());
+        }
+        let registry = Registry::new()
+            .extend(
+                probe
+                    .resources
+                    .iter()
+                    .map(|(uri, value)| (uri.as_str(), value.clone())),
+            )
+            .map_err(|_| bad())?
+            .prepare()
+            .map_err(|_| bad())?;
+        let mut validators = BTreeMap::<String, Validator>::new();
+        for unit in &units {
+            if !validators.contains_key(unit.root_uri) {
+                validators.insert(
+                    unit.root_uri.to_owned(),
+                    compile_selected_validator(&probe, &registry, profile, unit.root_uri)?,
+                );
+            }
+        }
+        let exceptional_limits =
+            exceptional_remaining.unwrap_or_else(ExceptionalSchemaUsage::whole);
+        let mut exceptional_preparation_budget =
+            exceptional_schema::PreparationBudget::new(exceptional_limits).map_err(|_| bad())?;
+        let mut exceptional_plans = BTreeMap::new();
+
+        let mut request_hash = Digest256Hasher::new();
+        request_hash.update(DIAGNOSTIC_REQUEST_MAGIC);
+        request_hash.update(&tail);
+        let request_sha256 = request_hash.finalize();
+        let caps_sha256 = caps.digest();
+        let mut ack = Vec::with_capacity(DIAGNOSTIC_ACK_BYTES);
+        ack.extend_from_slice(DIAGNOSTIC_ACK_MAGIC);
+        ack.extend_from_slice(&version.to_be_bytes());
+        ack.extend_from_slice(request_sha256.as_bytes());
+        ack.extend_from_slice(worker_sha256.as_bytes());
+        ack.extend_from_slice(schema_set.as_bytes());
+        ack.extend_from_slice(caps_sha256.as_bytes());
+        ack.extend_from_slice(&(units.len() as u32).to_be_bytes());
+        output.write_all(&ack)?;
+        output.flush()?;
+        let mut result_stream = Digest256Hasher::new();
+        result_stream.update(b"tos-schema-diagnostics-results-v2\0");
+        let mut response_bytes = ack.len();
+        let mut exceptional_evaluation_context =
+            exceptional_schema::EvaluationContext::new(exceptional_limits).map_err(|_| bad())?;
+        for unit in &units {
+            let report = match unit.input_mode {
+                DiagnosticsUnitInputMode::FiniteJson => match crate::published_value(
+                    unit.raw,
+                    crate::SchemaBackendProbe::MAX_INSTANCE_BYTES,
+                ) {
+                    Ok(value) => collect_diagnostic_report(
+                        &validators[unit.root_uri],
+                        &value,
+                        worker_sha256,
+                        request_sha256,
+                        unit.unit_sha256,
+                        schema_set,
+                        caps,
+                    )?,
+                    Err(crate::SchemaProbeError::InvalidPublishedJson(_))
+                    | Err(crate::SchemaProbeError::InvalidJson) => diagnostic_input_report(
+                        worker_sha256,
+                        request_sha256,
+                        unit.unit_sha256,
+                        schema_set,
+                        caps,
+                        schema_diagnostics::Status::InputRejected,
+                        schema_diagnostics::Failure::InvalidJson,
+                    )?,
+                    Err(crate::SchemaProbeError::BudgetExceeded) => diagnostic_input_report(
+                        worker_sha256,
+                        request_sha256,
+                        unit.unit_sha256,
+                        schema_set,
+                        caps,
+                        schema_diagnostics::Status::InputRejected,
+                        schema_diagnostics::Failure::InputBudget,
+                    )?,
+                    Err(_) => diagnostic_input_report(
+                        worker_sha256,
+                        request_sha256,
+                        unit.unit_sha256,
+                        schema_set,
+                        caps,
+                        schema_diagnostics::Status::Indeterminate,
+                        schema_diagnostics::Failure::ValidatorRuntime,
+                    )?,
+                },
+                DiagnosticsUnitInputMode::FiniteJsonSelected => {
+                    match crate::published_value(unit.raw, MAX_BATCH_RAW_BYTES) {
+                        Ok(value) => collect_diagnostic_report(
+                            &validators[unit.root_uri],
+                            &value,
+                            worker_sha256,
+                            request_sha256,
+                            unit.unit_sha256,
+                            schema_set,
+                            caps,
+                        )?,
+                        Err(crate::SchemaProbeError::InvalidPublishedJson(_))
+                        | Err(crate::SchemaProbeError::InvalidJson) => diagnostic_input_report(
+                            worker_sha256,
+                            request_sha256,
+                            unit.unit_sha256,
+                            schema_set,
+                            caps,
+                            schema_diagnostics::Status::InputRejected,
+                            schema_diagnostics::Failure::InvalidJson,
+                        )?,
+                        Err(crate::SchemaProbeError::BudgetExceeded) => diagnostic_input_report(
+                            worker_sha256,
+                            request_sha256,
+                            unit.unit_sha256,
+                            schema_set,
+                            caps,
+                            schema_diagnostics::Status::InputRejected,
+                            schema_diagnostics::Failure::InputBudget,
+                        )?,
+                        Err(_) => diagnostic_input_report(
+                            worker_sha256,
+                            request_sha256,
+                            unit.unit_sha256,
+                            schema_set,
+                            caps,
+                            schema_diagnostics::Status::Indeterminate,
+                            schema_diagnostics::Failure::ValidatorRuntime,
+                        )?,
+                    }
+                }
+                DiagnosticsUnitInputMode::LegacyPythonObserved => {
+                    match parse_legacy_python_observed_tree(unit.raw) {
+                        Ok(value) => match legacy_json_value(&value) {
+                            Some(finite_value) => collect_diagnostic_report(
+                                &validators[unit.root_uri],
+                                &finite_value,
+                                worker_sha256,
+                                request_sha256,
+                                unit.unit_sha256,
+                                schema_set,
+                                caps,
+                            )?,
+                            None => {
+                                if !exceptional_plans.contains_key(unit.root_uri) {
+                                    exceptional_plans.insert(
+                                        unit.root_uri.to_owned(),
+                                        exceptional_schema::Plan::prepare(
+                                            &probe.resources,
+                                            unit.root_uri,
+                                            &mut exceptional_preparation_budget,
+                                        ),
+                                    );
+                                }
+                                exceptional_diagnostic_report(
+                                    exceptional_plans.get(unit.root_uri).ok_or_else(bad)?,
+                                    &value,
+                                    worker_sha256,
+                                    request_sha256,
+                                    unit.unit_sha256,
+                                    schema_set,
+                                    caps,
+                                    &mut exceptional_evaluation_context,
+                                )?
+                            }
+                        },
+                        Err(LegacyInputFailure::InvalidJson) => diagnostic_input_report(
+                            worker_sha256,
+                            request_sha256,
+                            unit.unit_sha256,
+                            schema_set,
+                            caps,
+                            schema_diagnostics::Status::InputRejected,
+                            schema_diagnostics::Failure::InvalidJson,
+                        )?,
+                        Err(LegacyInputFailure::InputBudget) => diagnostic_input_report(
+                            worker_sha256,
+                            request_sha256,
+                            unit.unit_sha256,
+                            schema_set,
+                            caps,
+                            schema_diagnostics::Status::InputRejected,
+                            schema_diagnostics::Failure::InputBudget,
+                        )?,
+                    }
+                }
+            };
+            let record =
+                encode_diagnostic_unit(unit.ordinal, unit.unit_sha256, &report).ok_or_else(bad)?;
+            response_bytes = response_bytes
+                .checked_add(record.len())
+                .filter(|bytes| *bytes <= schema_diagnostics::MAX_RESPONSE_BYTES)
+                .ok_or_else(bad)?;
+            update_diagnostic_result_stream(&mut result_stream, unit.unit_sha256, &report);
+            output.write_all(&record)?;
+            output.flush()?;
+        }
+        let result_sha256 = result_stream.finalize();
+        let mut final_record = Vec::with_capacity(DIAGNOSTIC_FINAL_BYTES);
+        final_record.extend_from_slice(DIAGNOSTIC_FINAL_MAGIC);
+        final_record.extend_from_slice(&version.to_be_bytes());
+        final_record.extend_from_slice(request_sha256.as_bytes());
+        final_record.extend_from_slice(worker_sha256.as_bytes());
+        final_record.extend_from_slice(schema_set.as_bytes());
+        final_record.extend_from_slice(caps_sha256.as_bytes());
+        final_record.extend_from_slice(&(units.len() as u32).to_be_bytes());
+        final_record.extend_from_slice(result_sha256.as_bytes());
+        if exceptional_remaining.is_some() {
+            let preparation_usage = exceptional_preparation_budget.usage();
+            let evaluation_usage = exceptional_evaluation_context.usage();
+            ExceptionalSchemaUsage {
+                schema_scan_work: preparation_usage.schema_scan_work,
+                schema_scan_bytes: preparation_usage.schema_scan_bytes,
+                pattern_compile_count: preparation_usage.pattern_compile_count,
+                pattern_bytes: preparation_usage.pattern_bytes,
+                evaluation_work: evaluation_usage.evaluation_work,
+                evaluation_bytes: evaluation_usage.evaluation_bytes,
+                reference_steps: evaluation_usage.reference_steps,
+                regex_checks: evaluation_usage.regex_checks,
+                regex_bytes: evaluation_usage.regex_bytes,
+            }
+            .write_be(&mut final_record);
+        }
+        response_bytes = response_bytes
+            .checked_add(final_record.len())
+            .filter(|bytes| *bytes <= schema_diagnostics::MAX_RESPONSE_BYTES)
+            .ok_or_else(bad)?;
+        output.write_all(&final_record)?;
+        output.flush()?;
+        Ok(())
+    }
+
+    enum LegacyInputFailure {
+        InvalidJson,
+        InputBudget,
+    }
+
+    fn parse_legacy_python_observed_tree(raw: &[u8]) -> Result<JsonValue, LegacyInputFailure> {
+        let limits = JsonLimits::new(MAX_BATCH_RAW_BYTES, 64, 300_000, 4_300)
+            .map_err(|_| LegacyInputFailure::InputBudget)?;
+        let document =
+            parse_json(raw, JsonMode::LegacyPythonObserved, limits).map_err(|error| {
+                if error.code == FoundationErrorCode::BudgetExceeded {
+                    LegacyInputFailure::InputBudget
+                } else {
+                    LegacyInputFailure::InvalidJson
+                }
+            })?;
+        Ok(document.into_root())
+    }
+
+    fn legacy_json_value(value: &JsonValue) -> Option<serde_json::Value> {
+        match value {
+            JsonValue::Null => Some(serde_json::Value::Null),
+            JsonValue::Bool(value) => Some(serde_json::Value::Bool(*value)),
+            JsonValue::Number(number) => {
+                let number = match number.kind {
+                    JsonNumberKind::Int => number.lexeme.parse::<serde_json::Number>().ok()?,
+                    JsonNumberKind::Float => {
+                        let value = number.as_python_float()?;
+                        if !value.is_finite() {
+                            return None;
+                        }
+                        serde_json::Number::from_f64(value)?
+                    }
+                };
+                Some(serde_json::Value::Number(number))
+            }
+            JsonValue::String(value) => Some(serde_json::Value::String(value.as_str()?.to_owned())),
+            JsonValue::Array(items) => items
+                .iter()
+                .map(legacy_json_value)
+                .collect::<Option<Vec<_>>>()
+                .map(serde_json::Value::Array),
+            JsonValue::Object(entries) => {
+                let mut object = serde_json::Map::new();
+                for (key, value) in entries {
+                    object.insert(key.as_str()?.to_owned(), legacy_json_value(value)?);
+                }
+                Some(serde_json::Value::Object(object))
+            }
+        }
+    }
+
+    fn parse_diagnostics_units<'a>(
+        cursor: &mut Cursor<'a>,
+        input_profile: DiagnosticsInputProfile,
+    ) -> io::Result<(Vec<DiagnosticsParsedUnit<'a>>, usize)> {
+        let unit_count = u32::from_be_bytes(cursor.take(4)?.try_into().unwrap()) as usize;
+        if unit_count == 0 || unit_count > MAX_BATCH_UNITS {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                "operation protocol version",
+                "diagnostic unit count",
             ));
         }
-        operation_worker_once(stdin, io::stdout(), magic)
+        let mut units = Vec::with_capacity(unit_count);
+        let mut raw_total = 0usize;
+        for ordinal in 0..unit_count {
+            let start = cursor.offset;
+            let observed_ordinal = u64::from_be_bytes(cursor.take(8)?.try_into().unwrap());
+            let (input_mode, payload_start) = match input_profile {
+                DiagnosticsInputProfile::FiniteJson => {
+                    (DiagnosticsUnitInputMode::FiniteJson, cursor.offset)
+                }
+                DiagnosticsInputProfile::LegacyPythonObserved => (
+                    DiagnosticsUnitInputMode::LegacyPythonObserved,
+                    cursor.offset,
+                ),
+                DiagnosticsInputProfile::FiniteJsonSelected => {
+                    (DiagnosticsUnitInputMode::FiniteJsonSelected, cursor.offset)
+                }
+                DiagnosticsInputProfile::MixedSourceFoundation => {
+                    let mode = match cursor.take(1)?[0] {
+                        1 => DiagnosticsUnitInputMode::FiniteJson,
+                        2 => DiagnosticsUnitInputMode::LegacyPythonObserved,
+                        3 => DiagnosticsUnitInputMode::FiniteJsonSelected,
+                        _ => {
+                            return Err(io::Error::new(
+                                io::ErrorKind::InvalidData,
+                                "diagnostic input mode",
+                            ));
+                        }
+                    };
+                    (mode, cursor.offset)
+                }
+            };
+            let member_id = std::str::from_utf8(cursor.bytes(MAX_MEMBER_ID_BYTES)?)
+                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "diagnostic member id"))?;
+            let relative_path =
+                std::str::from_utf8(cursor.bytes(MAX_PATH_BYTES)?).map_err(|_| {
+                    io::Error::new(io::ErrorKind::InvalidData, "diagnostic member path")
+                })?;
+            let root_uri = std::str::from_utf8(cursor.bytes(MAX_URI_BYTES)?)
+                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "diagnostic root uri"))?;
+            let unit_raw_limit = match input_mode {
+                DiagnosticsUnitInputMode::FiniteJson => {
+                    crate::SchemaBackendProbe::MAX_INSTANCE_BYTES
+                }
+                DiagnosticsUnitInputMode::LegacyPythonObserved
+                | DiagnosticsUnitInputMode::FiniteJsonSelected => MAX_BATCH_RAW_BYTES,
+            };
+            let raw = cursor.bytes(unit_raw_limit)?;
+            raw_total = raw_total
+                .checked_add(raw.len())
+                .filter(|total| *total <= MAX_BATCH_RAW_BYTES)
+                .ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::InvalidData, "diagnostic raw bytes")
+                })?;
+            if observed_ordinal != ordinal as u64
+                || member_id.is_empty()
+                || relative_path.is_empty()
+                || relative_path.starts_with('/')
+                || relative_path.split('/').any(|part| part == "..")
+            {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "diagnostic unit identity",
+                ));
+            }
+            let mut digest = Digest256Hasher::new();
+            digest.update(b"tos-val2-batch-unit-v1\0");
+            // Match the controller's unit digest in every diagnostics-v2
+            // profile. The mixed per-unit mode byte stays request-bound but
+            // is deliberately not part of unit identity.
+            digest.update(&cursor.bytes[start..start + 8]);
+            digest.update(&cursor.bytes[payload_start..cursor.offset]);
+            units.push(DiagnosticsParsedUnit {
+                ordinal: observed_ordinal,
+                member_id,
+                relative_path,
+                root_uri,
+                raw,
+                input_mode,
+                unit_sha256: digest.finalize(),
+            });
+        }
+        Ok((units, raw_total))
+    }
+
+    fn exceptional_diagnostic_report(
+        plan: &Result<exceptional_schema::Plan<'_>, exceptional_schema::PrepareFailure>,
+        instance: &JsonValue,
+        worker_sha256: Digest256,
+        request_sha256: Digest256,
+        unit_sha256: Digest256,
+        schema_set: Digest256,
+        caps: schema_diagnostics::Caps,
+        context: &mut exceptional_schema::EvaluationContext,
+    ) -> io::Result<schema_diagnostics::Report> {
+        let plan = match plan {
+            Ok(plan) => plan,
+            Err(exceptional_schema::PrepareFailure::Unsupported) => {
+                return diagnostic_input_report(
+                    worker_sha256,
+                    request_sha256,
+                    unit_sha256,
+                    schema_set,
+                    caps,
+                    schema_diagnostics::Status::Indeterminate,
+                    schema_diagnostics::Failure::UnsupportedInputSemantics,
+                );
+            }
+            Err(exceptional_schema::PrepareFailure::Budget) => {
+                return diagnostic_input_report(
+                    worker_sha256,
+                    request_sha256,
+                    unit_sha256,
+                    schema_set,
+                    caps,
+                    schema_diagnostics::Status::Indeterminate,
+                    schema_diagnostics::Failure::ValidatorRuntime,
+                );
+            }
+        };
+        let evaluation = plan.evaluate(instance, caps, context);
+        let (status, failure) = match evaluation.failure {
+            Some(exceptional_schema::EvaluationFailure::Unsupported) => (
+                schema_diagnostics::Status::Indeterminate,
+                schema_diagnostics::Failure::UnsupportedInputSemantics,
+            ),
+            Some(exceptional_schema::EvaluationFailure::Budget) => (
+                schema_diagnostics::Status::Indeterminate,
+                schema_diagnostics::Failure::ValidatorRuntime,
+            ),
+            None if evaluation.truncated => (
+                schema_diagnostics::Status::Truncated,
+                schema_diagnostics::Failure::None,
+            ),
+            None if evaluation.total_issue_count == 0 => (
+                schema_diagnostics::Status::Valid,
+                schema_diagnostics::Failure::None,
+            ),
+            None => (
+                schema_diagnostics::Status::Invalid,
+                schema_diagnostics::Failure::None,
+            ),
+        };
+        make_diagnostic_report(
+            worker_sha256,
+            request_sha256,
+            unit_sha256,
+            schema_set,
+            caps,
+            status,
+            failure,
+            evaluation.total_issue_count,
+            evaluation.truncated,
+            evaluation.issues,
+        )
+    }
+
+    fn collect_diagnostic_report(
+        validator: &jsonschema::Validator,
+        instance: &serde_json::Value,
+        worker_sha256: Digest256,
+        request_sha256: Digest256,
+        unit_sha256: Digest256,
+        schema_set: Digest256,
+        caps: schema_diagnostics::Caps,
+    ) -> io::Result<schema_diagnostics::Report> {
+        use std::collections::BinaryHeap;
+
+        let bad = || io::Error::new(io::ErrorKind::InvalidData, "diagnostic report bound");
+        let mut retained = BinaryHeap::<schema_diagnostics::Issue>::new();
+        let mut total = 0u64;
+        let mut truncated = false;
+        let mut indeterminate = false;
+        for error in validator.iter_errors(instance) {
+            total = total.saturating_add(1);
+            let Some((issue, evaluation_failure)) =
+                schema_diagnostics::issue_from_validation_error(&error, caps)
+            else {
+                truncated = true;
+                continue;
+            };
+            indeterminate |= evaluation_failure;
+            if retained.len() < caps.max_issues_per_unit as usize {
+                retained.push(issue);
+            } else {
+                truncated = true;
+                if retained
+                    .peek()
+                    .is_some_and(|largest| issue.cmp(largest) == std::cmp::Ordering::Less)
+                {
+                    let _ = retained.pop();
+                    retained.push(issue);
+                }
+            }
+        }
+        let mut issues = retained.into_vec();
+        issues.sort();
+        let mut kept = Vec::with_capacity(issues.len());
+        let mut report_bytes = DIAGNOSTIC_UNIT_HEADER_BYTES;
+        for issue in issues {
+            let payload = schema_diagnostics::issue_payload(&issue).ok_or_else(bad)?;
+            let next = report_bytes.checked_add(payload.len()).ok_or_else(bad)?;
+            if next > caps.max_report_bytes_per_unit as usize {
+                truncated = true;
+                break;
+            }
+            report_bytes = next;
+            kept.push(issue);
+        }
+        let status = if indeterminate {
+            schema_diagnostics::Status::Indeterminate
+        } else if truncated {
+            schema_diagnostics::Status::Truncated
+        } else if total == 0 {
+            schema_diagnostics::Status::Valid
+        } else {
+            schema_diagnostics::Status::Invalid
+        };
+        let failure = if indeterminate {
+            schema_diagnostics::Failure::ValidatorRuntime
+        } else {
+            schema_diagnostics::Failure::None
+        };
+        make_diagnostic_report(
+            worker_sha256,
+            request_sha256,
+            unit_sha256,
+            schema_set,
+            caps,
+            status,
+            failure,
+            total,
+            truncated,
+            kept,
+        )
+    }
+
+    fn diagnostic_input_report(
+        worker_sha256: Digest256,
+        request_sha256: Digest256,
+        unit_sha256: Digest256,
+        schema_set: Digest256,
+        caps: schema_diagnostics::Caps,
+        status: schema_diagnostics::Status,
+        failure: schema_diagnostics::Failure,
+    ) -> io::Result<schema_diagnostics::Report> {
+        make_diagnostic_report(
+            worker_sha256,
+            request_sha256,
+            unit_sha256,
+            schema_set,
+            caps,
+            status,
+            failure,
+            0,
+            false,
+            Vec::new(),
+        )
+    }
+
+    fn make_diagnostic_report(
+        worker_sha256: Digest256,
+        request_sha256: Digest256,
+        unit_sha256: Digest256,
+        schema_set: Digest256,
+        caps: schema_diagnostics::Caps,
+        status: schema_diagnostics::Status,
+        failure: schema_diagnostics::Failure,
+        total_issue_count: u64,
+        truncated: bool,
+        issues: Vec<schema_diagnostics::Issue>,
+    ) -> io::Result<schema_diagnostics::Report> {
+        if !schema_diagnostics::status_is_well_formed(
+            status,
+            failure,
+            total_issue_count,
+            truncated,
+            issues.len(),
+        ) || issues.windows(2).any(|pair| pair[0] > pair[1])
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "diagnostic report state",
+            ));
+        }
+        let issues_sha256 = schema_diagnostics::issues_digest(&issues)
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "diagnostic issue digest"))?;
+        let report_sha256 = schema_diagnostics::report_digest(
+            worker_sha256,
+            request_sha256,
+            unit_sha256,
+            schema_set,
+            caps,
+            status,
+            failure,
+            total_issue_count,
+            truncated,
+            issues_sha256,
+        );
+        Ok(schema_diagnostics::Report {
+            protocol_version: schema_diagnostics::PROTOCOL_VERSION,
+            worker_sha256,
+            request_sha256,
+            unit_sha256,
+            schema_set_sha256: schema_set,
+            caps,
+            status,
+            failure,
+            total_issue_count,
+            truncated,
+            issues_sha256,
+            report_sha256,
+            issues,
+        })
+    }
+
+    fn encode_diagnostic_unit(
+        ordinal: u64,
+        unit_sha256: Digest256,
+        report: &schema_diagnostics::Report,
+    ) -> Option<Vec<u8>> {
+        let mut payload = Vec::new();
+        for issue in &report.issues {
+            payload.extend_from_slice(&schema_diagnostics::issue_payload(issue)?);
+        }
+        let mut unit = Vec::with_capacity(DIAGNOSTIC_UNIT_HEADER_BYTES + payload.len());
+        unit.extend_from_slice(DIAGNOSTIC_UNIT_MAGIC);
+        unit.extend_from_slice(&report.protocol_version.to_be_bytes());
+        unit.extend_from_slice(&ordinal.to_be_bytes());
+        unit.extend_from_slice(unit_sha256.as_bytes());
+        unit.push(report.status as u8);
+        unit.push(report.failure as u8);
+        unit.extend_from_slice(&report.total_issue_count.to_be_bytes());
+        unit.push(u8::from(report.truncated));
+        unit.extend_from_slice(&(report.issues.len() as u32).to_be_bytes());
+        unit.extend_from_slice(&(payload.len() as u32).to_be_bytes());
+        unit.extend_from_slice(report.issues_sha256.as_bytes());
+        unit.extend_from_slice(&payload);
+        (unit.len() <= report.caps.max_report_bytes_per_unit as usize).then_some(unit)
+    }
+
+    fn update_diagnostic_result_stream(
+        hash: &mut Digest256Hasher,
+        unit_sha256: Digest256,
+        report: &schema_diagnostics::Report,
+    ) {
+        hash.update(unit_sha256.as_bytes());
+        hash.update(&[
+            report.status as u8,
+            report.failure as u8,
+            u8::from(report.truncated),
+        ]);
+        hash.update(&report.total_issue_count.to_be_bytes());
+        hash.update(&(report.issues.len() as u32).to_be_bytes());
+        hash.update(report.report_sha256.as_bytes());
     }
 
     struct BatchParsedUnit<'a> {

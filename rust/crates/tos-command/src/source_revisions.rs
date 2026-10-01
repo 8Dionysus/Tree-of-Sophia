@@ -15,9 +15,12 @@ use tos_foundation::{
     CanonicalProfile, Digest256, JsonLimits, JsonString, JsonValue, RelativePath,
     canonical_count_v1, python_strip_unicode16_v1,
 };
-use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
+use tos_source_store::{
+    CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1, SourceMembershipV1,
+};
 use tos_validation::PredicateRead;
 use tos_validation::item_rules::ItemLimits;
+use tos_validation::native_compound::{NativeRecordHistoryReadObservation, NativeTransportState};
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 const HISTORY: &str = "source-revision-history.json";
@@ -140,10 +143,607 @@ struct Inspection {
     native_text_snapshot: Option<String>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum TransactionReconstructionMode {
+    CurrentOwner,
+    ArtifactHistoryEvidence,
+}
+
+/// Successful-only CMD evidence that the retained Artifact corrections replay
+/// from the exact publication carriers under the maintained evidence context.
+/// The private fields prevent callers from promoting a status-only assertion.
+#[derive(Debug)]
+pub(crate) struct ArtifactCorrectionReplayObservation {
+    source_revision: tos_foundation::SourceRevision,
+    current_membership: SourceMembershipV1,
+    source_root: String,
+    source_path: String,
+    record_id: String,
+    origin_record_sha256: String,
+    origin_record_byte_size: usize,
+    history_sha256: Option<String>,
+    transactions: Vec<ArtifactCorrectionReplayTransactionObservation>,
+    publication_state_bytes: usize,
+    returned_state_bytes: usize,
+}
+
+#[derive(Debug)]
+pub(crate) struct ArtifactCorrectionReplayTransactionObservation {
+    transaction_id: String,
+    manifest_sha256: String,
+    receipt_sha256: String,
+}
+
+impl ArtifactCorrectionReplayObservation {
+    pub(crate) fn source_revision(&self) -> tos_foundation::SourceRevision {
+        self.source_revision
+    }
+
+    pub(crate) fn current_membership(&self) -> SourceMembershipV1 {
+        self.current_membership
+    }
+
+    pub(crate) fn source_root(&self) -> &str {
+        &self.source_root
+    }
+
+    pub(crate) fn source_path(&self) -> &str {
+        &self.source_path
+    }
+
+    pub(crate) fn record_id(&self) -> &str {
+        &self.record_id
+    }
+
+    pub(crate) fn origin_record_sha256(&self) -> &str {
+        &self.origin_record_sha256
+    }
+
+    pub(crate) fn origin_record_byte_size(&self) -> usize {
+        self.origin_record_byte_size
+    }
+
+    pub(crate) fn history_sha256(&self) -> Option<&str> {
+        self.history_sha256.as_deref()
+    }
+
+    pub(crate) fn transactions(&self) -> &[ArtifactCorrectionReplayTransactionObservation] {
+        &self.transactions
+    }
+
+    pub(crate) fn publication_state_bytes(&self) -> usize {
+        self.publication_state_bytes
+    }
+
+    pub(crate) fn returned_state_bytes(&self) -> usize {
+        self.returned_state_bytes
+    }
+}
+
+impl ArtifactCorrectionReplayTransactionObservation {
+    pub(crate) fn transaction_id(&self) -> &str {
+        &self.transaction_id
+    }
+
+    pub(crate) fn manifest_sha256(&self) -> &str {
+        &self.manifest_sha256
+    }
+
+    pub(crate) fn receipt_sha256(&self) -> &str {
+        &self.receipt_sha256
+    }
+}
+
+impl tos_validation::source_foundation_discovery::ArtifactCorrectionReplayEvidence
+    for ArtifactCorrectionReplayObservation
+{
+    fn source_revision(&self) -> tos_foundation::SourceRevision {
+        self.source_revision
+    }
+
+    fn current_membership(&self) -> SourceMembershipV1 {
+        self.current_membership
+    }
+
+    fn source_path(&self) -> &str {
+        &self.source_path
+    }
+
+    fn record_id(&self) -> &str {
+        &self.record_id
+    }
+
+    fn origin_record_sha256(&self) -> &str {
+        &self.origin_record_sha256
+    }
+
+    fn origin_record_byte_size(&self) -> usize {
+        self.origin_record_byte_size
+    }
+
+    fn history_sha256(&self) -> Option<&str> {
+        self.history_sha256.as_deref()
+    }
+
+    fn transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn transaction_at(
+        &self,
+        index: usize,
+    ) -> Option<
+        tos_validation::source_foundation_discovery::ArtifactCorrectionReplayTransactionRef<'_>,
+    > {
+        self.transactions.get(index).map(|transaction| {
+            tos_validation::source_foundation_discovery::ArtifactCorrectionReplayTransactionRef {
+                transaction_id: &transaction.transaction_id,
+                manifest_sha256: &transaction.manifest_sha256,
+                receipt_sha256: &transaction.receipt_sha256,
+            }
+        })
+    }
+
+    fn publication_state_bytes(&self) -> usize {
+        self.publication_state_bytes
+    }
+
+    fn returned_state_bytes(&self) -> usize {
+        self.returned_state_bytes
+    }
+}
+
 fn path(value: &str) -> SourceCommandResult<RelativePath> {
     RelativePath::parse(value).map_err(|_| SourceCommandError::Invalid("unsafe source path"))
 }
-fn required<'a>(ctx: &'a CommandContext, name: &str) -> SourceCommandResult<&'a [u8]> {
+/// Exact selected metadata bytes for a read. No writer request or authority is carried.
+pub struct RecordVersionReadInput<'a> {
+    pub files: &'a [SourceFile],
+    pub source_revision: tos_foundation::SourceRevision,
+    pub effective_uid: u64,
+    pub schema_source_path: &'a str,
+}
+
+/// Transport over one live selected source-root read epoch. The implementor
+/// holds publication/currentness and enforces filesystem custody for every path.
+pub trait ReadonlyRecordFiles {
+    fn read(
+        &mut self,
+        path: &str,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Vec<u8>>;
+    /// Immediate children only; true denotes a directory. Absence observed here
+    /// belongs to the same held epoch as subsequent reads.
+    fn list_directory(
+        &mut self,
+        path: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Vec<(String, bool)>>;
+}
+const READONLY_RECORD_MAX_BYTES: usize = 64 * 1024 * 1024;
+const READONLY_RECORD_MEMBER_BYTES: usize = 8 * 1024 * 1024;
+
+fn selected_metadata_path(location: &str) -> SourceCommandResult<()> {
+    path(location)?;
+    if !location.starts_with("ToS/source-witnesses/")
+        || !location.ends_with(".json")
+        || location.ends_with(".human-forms.json")
+        || location.ends_with(HISTORY)
+        || location.split('/').any(|part| {
+            part.starts_with('.')
+                || matches!(
+                    part,
+                    "owner-local" | "catalog" | "payload" | "local-content" | "private"
+                )
+        })
+    {
+        return Err(SourceCommandError::Denied("selected metadata owner path"));
+    }
+    Ok(())
+}
+
+struct ReadonlyFileCollector<'a, T> {
+    transport: &'a mut T,
+    files: BTreeMap<String, Vec<u8>>,
+    bytes: usize,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+}
+impl<T: ReadonlyRecordFiles> ReadonlyFileCollector<'_, T> {
+    fn read(&mut self, name: &str) -> SourceCommandResult<()> {
+        path(name)?;
+        if self.files.contains_key(name) {
+            return Ok(());
+        }
+        if self.files.len() >= cmd::SELECTED_SOURCE_MAX_FILES
+            || Instant::now() >= self.deadline
+            || self.cancelled.load(std::sync::atomic::Ordering::Relaxed)
+        {
+            return Err(SourceCommandError::Unsupported(
+                "readonly record collection budget or cancellation",
+            ));
+        }
+        let allowance =
+            READONLY_RECORD_MEMBER_BYTES.min(READONLY_RECORD_MAX_BYTES.saturating_sub(self.bytes));
+        let raw = self
+            .transport
+            .read(name, allowance, self.deadline, self.cancelled)?;
+        if raw.len() > allowance {
+            return Err(SourceCommandError::Unsupported(
+                "readonly record collection byte budget",
+            ));
+        }
+        self.bytes = self
+            .bytes
+            .checked_add(raw.len())
+            .filter(|sum| *sum <= READONLY_RECORD_MAX_BYTES)
+            .ok_or(SourceCommandError::Unsupported(
+                "readonly record collection byte budget",
+            ))?;
+        self.files.insert(name.to_owned(), raw);
+        Ok(())
+    }
+    fn parsed(&self, name: &str) -> SourceCommandResult<JsonValue> {
+        cmd::parse(self.files.get(name).ok_or(SourceCommandError::Invalid(
+            "collector selected file absent",
+        ))?)
+    }
+}
+
+fn collect_schema_refs(
+    value: &JsonValue,
+    from: &str,
+    out: &mut BTreeSet<String>,
+    depth: usize,
+) -> SourceCommandResult<()> {
+    if depth > 128 {
+        return Err(SourceCommandError::Unsupported("schema dependency depth"));
+    }
+    if let Some(fields) = value.as_object() {
+        for (key, value) in fields {
+            if matches!(key.as_str(), Some("$ref" | "$dynamicRef")) {
+                let reference = value
+                    .as_str()
+                    .ok_or(SourceCommandError::Invalid("schema reference text"))?;
+                let base = reference.split('#').next().unwrap_or("");
+                if base.is_empty() {
+                    continue;
+                }
+                let selected = if let Some(name) = base
+                    .strip_prefix("https://tree-of-sophia.local/")
+                    .or_else(|| base.strip_prefix("https://treeofsophia.local/"))
+                {
+                    name.to_owned()
+                } else if base.contains(':') || base.starts_with('/') {
+                    return Err(SourceCommandError::Unsupported(
+                        "schema dependency outside selected contracts",
+                    ));
+                } else {
+                    format!("{}/{}", split(from)?.0, base)
+                };
+                path(&selected)?;
+                if !selected.starts_with("ToS/contracts/") || !selected.ends_with(".schema.json") {
+                    return Err(SourceCommandError::Unsupported(
+                        "schema dependency outside selected contracts",
+                    ));
+                }
+                out.insert(selected);
+            }
+            collect_schema_refs(value, from, out, depth + 1)?;
+        }
+    } else if let JsonValue::Array(values) = value {
+        for value in values {
+            collect_schema_refs(value, from, out, depth + 1)?;
+        }
+    }
+    Ok(())
+}
+
+/// Collect only inputs for one catalog-selected subject record. Selection is
+/// navigation, not acceptance: the resolver subsequently verifies schemas,
+/// typed history, manifest bindings and exact successor reconstruction.
+pub fn collect_readonly_record_files(
+    transport: &mut impl ReadonlyRecordFiles,
+    owner_path: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<SourceFile>> {
+    selected_metadata_path(owner_path)?;
+    let (parent, base) = split(owner_path)?;
+    let mut reader = ReadonlyFileCollector {
+        transport,
+        files: BTreeMap::new(),
+        bytes: 0,
+        deadline,
+        cancelled,
+    };
+    reader.read(owner_path)?;
+    reader.read(REGISTRY)?;
+    let record = reader.parsed(owner_path)?;
+    let registry = reader.parsed(REGISTRY)?;
+    let schema_version = cmd::text(&record, "schema_version")?;
+    let mut schemas =
+        BTreeSet::from(["ToS/contracts/semantic-entity-type-registry.schema.json".to_owned()]);
+    match schema_version {
+        "tos_corpus_record_v1" => {
+            schemas.insert(CORPUS_SCHEMA.to_owned());
+        }
+        "tos_historical_record_v1" => {
+            schemas.insert(CORPUS_SCHEMA.to_owned());
+            schemas.insert("ToS/contracts/historical-record.schema.json".to_owned());
+        }
+        "tos_artifact_source_witness_v1" => {
+            schemas.insert("ToS/contracts/artifact-source-witness.schema.json".to_owned());
+        }
+        "tos_artifact_source_witness_v2" => {
+            schemas.insert("ToS/contracts/artifact-source-witness-v2.schema.json".to_owned());
+        }
+        "tos_scholarly_composite_witness_v1" => {
+            schemas.insert("ToS/contracts/scholarly-composite-witness.schema.json".to_owned());
+        }
+        "tos_source_link_v1" => {
+            schemas.insert("ToS/contracts/source-link.schema.json".to_owned());
+        }
+        _ => {
+            let profiles = cmd::array(&registry, "types")?
+                .iter()
+                .filter_map(|entry| entry.object_get("source_record_profile"))
+                .filter(|profile| {
+                    cmd::text(profile, "record_type").ok() == cmd::text(&record, "record_type").ok()
+                })
+                .collect::<Vec<_>>();
+            if profiles.len() != 1 {
+                return Err(SourceCommandError::Unsupported(
+                    "exact metadata schema has no unique declared profile",
+                ));
+            }
+            let routes = cmd::array(profiles[0], "schemas")?
+                .iter()
+                .filter(|route| cmd::text(route, "schema_version").ok() == Some(schema_version))
+                .collect::<Vec<_>>();
+            if routes.len() != 1 {
+                return Err(SourceCommandError::Unsupported(
+                    "metadata source schema not supported",
+                ));
+            }
+            schemas.insert(CORPUS_SCHEMA.to_owned());
+            schemas.insert("ToS/contracts/source-metadata-record.schema.json".to_owned());
+            schemas.insert(cmd::text(routes[0], "schema_ref")?.to_owned());
+            schemas.extend(texts(routes[0], "schema_dependencies", 128)?);
+        }
+    }
+    let mut checked = BTreeSet::new();
+    while let Some(name) = schemas
+        .iter()
+        .find(|name| !checked.contains(*name))
+        .cloned()
+    {
+        if schemas.len() > 128
+            || !name.starts_with("ToS/contracts/")
+            || !name.ends_with(".schema.json")
+        {
+            return Err(SourceCommandError::Unsupported(
+                "selected schema dependency budget or route",
+            ));
+        }
+        reader.read(&name)?;
+        collect_schema_refs(&reader.parsed(&name)?, &name, &mut schemas, 0)?;
+        checked.insert(name);
+    }
+    let children = reader
+        .transport
+        .list_directory(parent, deadline, cancelled)?;
+    if children.len() > cmd::SELECTED_SOURCE_MAX_FILES {
+        return Err(SourceCommandError::Unsupported(
+            "record home directory budget",
+        ));
+    }
+    if children.iter().any(|(name, _)| name == HISTORY) {
+        let history_path = format!("{parent}/{HISTORY}");
+        reader.read(&history_path)?;
+        let history = reader.parsed(&history_path)?;
+        let receipts = cmd::array(&history, "receipts")?;
+        if receipts.len() > 128 {
+            return Err(SourceCommandError::Unsupported(
+                "correction receipt count budget",
+            ));
+        }
+        let subject = source_forms::metadata_subject(&record)?;
+        let route = cmd::object(vec![("record_id", cmd::field(&subject, "id")?.clone())]);
+        for receipt in receipts {
+            let revision = cmd::text(receipt, "previous_revision")?;
+            digest_text(cmd::field(receipt, "previous_revision")?)?;
+            let directory = archive_path(&route, revision)?;
+            if cmd::text(receipt, "archive_path")? != directory {
+                return Err(SourceCommandError::Conflict(
+                    "archive locator differs from exact subject",
+                ));
+            }
+            let manifest_path = format!("{directory}/manifest.json");
+            reader.read(&manifest_path)?;
+            let manifest = reader.parsed(&manifest_path)?;
+            let binding = cmd::field(cmd::field(&manifest, "files")?, base)?;
+            let digest = digest_text(cmd::field(binding, "sha256")?)?;
+            let blob = cmd::text(binding, "blob")?;
+            if blob != format!("{}.blob", &digest[7..]) {
+                return Err(SourceCommandError::Invalid("archive blob locator"));
+            }
+            reader.read(&format!("{directory}/{blob}"))?;
+        }
+    }
+    reader
+        .files
+        .into_iter()
+        .map(|(name, raw)| {
+            Ok(SourceFile {
+                path: path(&name)?,
+                raw,
+            })
+        })
+        .collect()
+}
+
+/// Collect a bounded schema closure from the same held read epoch. This is
+/// used by streamed source consumers whose fixed profile must be checked once
+/// without materializing the whole source cut.
+pub(crate) fn collect_readonly_schema_files(
+    transport: &mut impl ReadonlyRecordFiles,
+    roots: &[&str],
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<SourceFile>> {
+    if roots.is_empty() || roots.len() > 128 {
+        return Err(SourceCommandError::Unsupported(
+            "readonly schema root count budget",
+        ));
+    }
+    let mut reader = ReadonlyFileCollector {
+        transport,
+        files: BTreeMap::new(),
+        bytes: 0,
+        deadline,
+        cancelled,
+    };
+    let mut schemas = BTreeSet::new();
+    for root in roots {
+        if !root.starts_with("ToS/contracts/") || !root.ends_with(".schema.json") {
+            return Err(SourceCommandError::Denied(
+                "readonly schema root outside source contracts",
+            ));
+        }
+        path(root)?;
+        schemas.insert((*root).to_owned());
+    }
+    let mut checked = BTreeSet::new();
+    while let Some(name) = schemas
+        .iter()
+        .find(|name| !checked.contains(*name))
+        .cloned()
+    {
+        if schemas.len() > 128 {
+            return Err(SourceCommandError::Unsupported(
+                "selected schema dependency budget",
+            ));
+        }
+        reader.read(&name)?;
+        collect_schema_refs(&reader.parsed(&name)?, &name, &mut schemas, 0)?;
+        checked.insert(name);
+    }
+    reader
+        .files
+        .into_iter()
+        .map(|(name, raw)| {
+            Ok(SourceFile {
+                path: path(&name)?,
+                raw,
+            })
+        })
+        .collect()
+}
+
+/// Validate one already selected source instance against exact schema bytes
+/// from a bounded read input. The caller still owns complete-cut coverage and
+/// source-root currentness.
+pub(crate) fn validate_readonly_schema(
+    input: &RecordVersionReadInput<'_>,
+    source_path: &str,
+    refs: &[String],
+    root: &str,
+    instance: &JsonValue,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    input.check()?;
+    path(source_path)?;
+    schema_at(
+        worker,
+        deadline,
+        cancelled,
+        input,
+        refs,
+        root,
+        instance,
+        Some(source_path),
+        false,
+    )
+}
+
+pub(crate) trait RecordRead {
+    fn files(&self) -> &[SourceFile];
+    fn source_revision(&self) -> tos_foundation::SourceRevision;
+    fn schema_source_path(&self) -> SourceCommandResult<String>;
+    fn writer(&self) -> Option<&CommandContext> {
+        None
+    }
+    fn check(&self) -> SourceCommandResult<()>;
+    fn file(&self, path: &RelativePath) -> SourceCommandResult<Option<&[u8]>> {
+        let mut selected = self.files().iter().filter(|file| file.path == *path);
+        let raw = selected.next().map(|file| file.raw.as_slice());
+        if selected.next().is_some() {
+            return Err(SourceCommandError::Invalid(
+                "duplicate selected source path",
+            ));
+        }
+        Ok(raw)
+    }
+}
+impl RecordRead for CommandContext {
+    fn files(&self) -> &[SourceFile] {
+        &self.files
+    }
+    fn source_revision(&self) -> tos_foundation::SourceRevision {
+        self.base_revision
+    }
+    fn schema_source_path(&self) -> SourceCommandResult<String> {
+        Ok(cmd::text(&cmd::parse(&self.configuration_raw)?, "source_path")?.to_owned())
+    }
+    fn writer(&self) -> Option<&CommandContext> {
+        Some(self)
+    }
+    fn check(&self) -> SourceCommandResult<()> {
+        CommandContext::check(self)
+    }
+}
+impl RecordRead for RecordVersionReadInput<'_> {
+    fn files(&self) -> &[SourceFile] {
+        self.files
+    }
+    fn source_revision(&self) -> tos_foundation::SourceRevision {
+        self.source_revision
+    }
+    fn schema_source_path(&self) -> SourceCommandResult<String> {
+        path(self.schema_source_path)?;
+        Ok(self.schema_source_path.to_owned())
+    }
+    fn check(&self) -> SourceCommandResult<()> {
+        let total = self
+            .files
+            .iter()
+            .try_fold(0usize, |sum, file| sum.checked_add(file.raw.len()));
+        if self.files.len() > cmd::SELECTED_SOURCE_MAX_FILES
+            || total.is_none_or(|total| total > READONLY_RECORD_MAX_BYTES)
+            || self
+                .files
+                .iter()
+                .map(|file| &file.path)
+                .collect::<BTreeSet<_>>()
+                .len()
+                != self.files.len()
+        {
+            return Err(SourceCommandError::Invalid(
+                "selected source byte budget or duplicate path",
+            ));
+        }
+        self.schema_source_path()?;
+        Ok(())
+    }
+}
+
+fn required<'a>(ctx: &'a impl RecordRead, name: &str) -> SourceCommandResult<&'a [u8]> {
     ctx.file(&path(name)?)?
         .ok_or(SourceCommandError::Unsupported(
             "required exact source contract or retained bytes absent",
@@ -481,7 +1081,7 @@ pub(crate) fn history(files: &Package, record: &JsonValue) -> SourceCommandResul
 }
 
 pub(crate) fn read_archive(
-    ctx: &CommandContext,
+    ctx: &impl RecordRead,
     config: &JsonValue,
     receipt: &JsonValue,
 ) -> SourceCommandResult<(Package, JsonValue)> {
@@ -489,7 +1089,7 @@ pub(crate) fn read_archive(
 }
 
 fn read_archive_bounded(
-    ctx: &CommandContext,
+    ctx: &impl RecordRead,
     config: &JsonValue,
     receipt: &JsonValue,
     remaining_read_bytes: Option<u64>,
@@ -550,6 +1150,10 @@ fn read_archive_bounded(
     if refs.is_empty() || refs.len() > 64 {
         return Err(SourceCommandError::Invalid("archive package file budget"));
     }
+    let readonly = ctx.writer().is_none();
+    let (_, selected_base) = split(cmd::text(config, "source_path")?)?;
+    let mut manifest_bindings = Vec::new();
+    let mut declared_bytes = 0u64;
     let mut files = Package::new();
     let mut locations = Vec::new();
     let mut blobs = BTreeSet::new();
@@ -579,6 +1183,36 @@ fn read_archive_bounded(
         let blob = cmd::text(binding, "blob")?;
         if blob != format!("{}.blob", &digest[7..]) {
             return Err(SourceCommandError::Invalid("archive blob locator"));
+        }
+        let declared = cmd::integer(binding, "bytes")?;
+        declared_bytes = declared_bytes
+            .checked_add(declared)
+            .filter(|sum| declared <= 2_097_152 && *sum <= 8_388_608)
+            .ok_or(SourceCommandError::Unsupported(
+                "archive declared package byte budget",
+            ))?;
+        manifest_bindings.push((
+            JsonString::from_utf8(name),
+            cmd::object(vec![
+                ("sha256", cmd::string(digest)),
+                ("bytes", cmd::number(declared)),
+            ]),
+        ));
+        if readonly
+            && selected
+            && !names(cmd::text(config, "source_path")?)?
+                .iter()
+                .any(|allowed| allowed == name)
+        {
+            return Err(SourceCommandError::Conflict(
+                "selected archive exceeds exact metadata scope",
+            ));
+        }
+        if readonly && (name.contains('\\') || name.contains('\0')) {
+            return Err(SourceCommandError::Invalid("archive basename"));
+        }
+        if readonly && name != selected_base {
+            continue;
         }
         let blob_path = format!("{location}/{blob}");
         let raw = required(ctx, &blob_path)?;
@@ -615,7 +1249,7 @@ fn read_archive_bounded(
         ));
     }
     let prefix = format!("{location}/");
-    for file in &ctx.files {
+    for file in ctx.files().iter().filter(|_| !readonly) {
         if let Some(name) = file.path.as_str().strip_prefix(&prefix) {
             if name != "manifest.json" && !blobs.contains(name) {
                 return Err(SourceCommandError::Conflict(
@@ -637,7 +1271,11 @@ fn read_archive_bounded(
         ));
     }
     if files.values().map(Vec::len).sum::<usize>() > 8_388_608
-        || revision(&files)? != cmd::text(receipt, "previous_revision")?
+        || (if readonly {
+            cmd::record_digest(&JsonValue::Object(manifest_bindings))?.to_prefixed()
+        } else {
+            revision(&files)?
+        }) != cmd::text(receipt, "previous_revision")?
     {
         return Err(SourceCommandError::Conflict(
             "archive package digest or budget",
@@ -670,23 +1308,45 @@ fn read_archive_bounded(
     Ok((files, JsonValue::Object(locations)))
 }
 fn verify_history(
-    ctx: &CommandContext,
+    ctx: &impl RecordRead,
     config: &JsonValue,
     files: &Package,
     record: &JsonValue,
 ) -> SourceCommandResult<JsonValue> {
-    Ok(verify_history_accounted(ctx, config, files, record, None, None)?.0)
+    Ok(verify_history_accounted(ctx, config, files, record, None, None, None)?.0)
 }
 
 fn verify_history_accounted(
-    ctx: &CommandContext,
+    ctx: &impl RecordRead,
     config: &JsonValue,
     files: &Package,
     record: &JsonValue,
     max_read_bytes: Option<u64>,
     max_state_bytes: Option<usize>,
+    operation: Option<(Instant, &AtomicBool)>,
 ) -> SourceCommandResult<(JsonValue, u64)> {
-    let value = history(files, record)?;
+    let value = if ctx.writer().is_none()
+        && cmd::text(record, "schema_version")? == "tos_corpus_record_v1"
+    {
+        let (deadline, cancelled) = operation.ok_or(SourceCommandError::Invalid(
+            "readonly history operation missing",
+        ))?;
+        let raw = cmd::canonical(record)?;
+        let observed = tos_validation::native_compound::inspect_record_history(
+            files, &raw, deadline, cancelled,
+        )
+        .map_err(|reason| SourceCommandError::SchemaExecution {
+            path: ctx.schema_source_path().unwrap_or_default(),
+            root: "selected metadata retained history".into(),
+            reason,
+        })?;
+        cmd::parse(
+            &serde_json::to_vec(&observed)
+                .map_err(|_| SourceCommandError::Invalid("history conversion"))?,
+        )?
+    } else {
+        history(files, record)?
+    };
     let history_state = canonical_count_v1(
         &value,
         CanonicalProfile::SourceCommandInputV1,
@@ -709,6 +1369,93 @@ fn verify_history_accounted(
     let receipts = cmd::array(&value, "receipts")?;
     let mut bytes_read = 0u64;
     for (index, receipt) in receipts.iter().enumerate() {
+        if ctx.writer().is_none() {
+            let request = cmd::field(receipt, "request")?;
+            let operation = cmd::text(request, "operation")?;
+            let parent_kind = match operation {
+                "work.expression.create" => Some(("work", "expression_claim_refs")),
+                "expression.responsibility.attach" => {
+                    Some(("expression", "responsibility_claim_refs"))
+                }
+                "expression.edition.create" => Some(("expression", "embodiment_claim_refs")),
+                "item.adopt" => Some(("edition", "exemplar_claim_refs")),
+                "collection.work.attach" => Some(("collection", "membership_claim_refs")),
+                "record.revise" => None,
+                _ => {
+                    return Err(SourceCommandError::Unsupported(
+                        "retained metadata operation",
+                    ));
+                }
+            };
+            if operation == "record.revise" {
+                let selected = receipt.object_get("publication").is_some();
+                let mut keys = vec![
+                    "schema_version",
+                    "operation",
+                    "fields",
+                    "forms",
+                    "reason",
+                    "command_id",
+                    "expected_configuration",
+                    "expected_source",
+                    "expected_revision",
+                    "expected_dependencies",
+                ];
+                if selected {
+                    keys.push("expected_publication");
+                }
+                cmd::exact_keys(request, &keys)?;
+                if cmd::text(request, "schema_version")? != "tos_local_source_command_v1" {
+                    return Err(SourceCommandError::Invalid(
+                        "retained metadata request schema",
+                    ));
+                }
+                let family = match cmd::text(record, "schema_version")? {
+                    "tos_corpus_record_v1" => RevisionFamily::CorpusSelectedV3,
+                    "tos_historical_record_v1" => RevisionFamily::Historical,
+                    "tos_artifact_source_witness_v1"
+                    | "tos_artifact_source_witness_v2"
+                    | "tos_scholarly_composite_witness_v1"
+                    | "tos_source_link_v1" => RevisionFamily::NativeSelected,
+                    _ => RevisionFamily::PublicProfileScope,
+                };
+                let allowed = allowed_fields(family, config)?;
+                let fields = cmd::field(request, "fields")?
+                    .as_object()
+                    .ok_or(SourceCommandError::Invalid("retained fields"))?;
+                if fields.is_empty()
+                    || fields
+                        .iter()
+                        .any(|(key, _)| key.as_str().is_none_or(|name| !allowed.contains(&name)))
+                {
+                    return Err(SourceCommandError::Invalid(
+                        "retained metadata correction fields",
+                    ));
+                }
+            }
+            if let Some((kind, field)) = parent_kind {
+                if cmd::text(record, "record_type")? != kind
+                    || cmd::field(request, "fields")?
+                        .as_object()
+                        .is_none_or(|fields| {
+                            fields.len() != 1 || fields[0].0.as_str() != Some(field)
+                        })
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "compound history selected parent differs",
+                    ));
+                }
+            }
+            if receipt.object_get("publication").is_some() {
+                let mut expected = names(cmd::text(config, "source_path")?)?;
+                expected.sort();
+                if texts(cmd::field(receipt, "publication")?, "selected_files", 3)? != expected {
+                    return Err(SourceCommandError::Conflict(
+                        "history selected another metadata unit",
+                    ));
+                }
+            }
+        }
         let remaining_read = max_read_bytes.map(|limit| limit.saturating_sub(bytes_read));
         let (archived, _) =
             read_archive_bounded(ctx, config, receipt, remaining_read, archive_state)?;
@@ -733,6 +1480,9 @@ fn verify_history_accounted(
                 .get(base)
                 .ok_or(SourceCommandError::Conflict("archived source missing"))?,
         )?;
+        if ctx.writer().is_none() {
+            continue;
+        }
         let retained = history(&archived, &previous)?;
         let prefix = cmd::array(&retained, "receipts")?;
         let mut same_prefix = prefix.len() == index;
@@ -786,7 +1536,7 @@ fn inspect(
     })
 }
 fn dependencies(
-    ctx: &CommandContext,
+    ctx: &impl RecordRead,
     config: &JsonValue,
     family: RevisionFamily,
     inspection: &Inspection,
@@ -882,7 +1632,7 @@ fn proposal(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &CommandContext,
+    ctx: &impl RecordRead,
     config: &JsonValue,
     family: RevisionFamily,
     inspection: &Inspection,
@@ -983,7 +1733,7 @@ fn validate_forms(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &CommandContext,
+    ctx: &impl RecordRead,
     forms: &JsonValue,
 ) -> SourceCommandResult<()> {
     let refs = [
@@ -992,7 +1742,8 @@ fn validate_forms(
         "ToS/contracts/human-form-set.schema.json",
     ]
     .map(String::from);
-    schema(
+    let schema_source_path = ctx.schema_source_path()?;
+    schema_at(
         worker,
         deadline,
         cancelled,
@@ -1000,6 +1751,8 @@ fn validate_forms(
         &refs,
         "ToS/contracts/human-form-set.schema.json",
         forms,
+        Some(&schema_source_path),
+        false,
     )?;
     tos_validation::source_forms::inspect_lineage_raw(&cmd::published(forms)?)
         .map_err(|_| SourceCommandError::Conflict("human form retained lineage"))?;
@@ -1218,7 +1971,7 @@ fn successor(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &CommandContext,
+    ctx: &impl RecordRead,
     config: &JsonValue,
     family: RevisionFamily,
     inspection: &Inspection,
@@ -1283,18 +2036,25 @@ fn source_changes(
     config: &JsonValue,
     output: &Package,
 ) -> SourceCommandResult<Vec<SourceChange>> {
-    let (parent, _) = split(cmd::text(config, "source_path")?)?;
-    output
-        .iter()
-        .map(|(name, raw)| {
-            let path = path(&format!("{parent}/{name}"))?;
-            Ok(SourceChange {
-                before: ctx.file(&path)?.map(Digest256::of_bytes),
-                path,
-                after: Some(raw.clone()),
-            })
-        })
-        .collect()
+    let source_path = cmd::text(config, "source_path")?;
+    let (parent, _) = split(source_path)?;
+    let selected = names(source_path)?;
+    let mut changes = Vec::new();
+    for (name, raw) in output {
+        let path = path(&format!("{parent}/{name}"))?;
+        let before = ctx.file(&path)?;
+        // Flat packages retain unrelated siblings in their predecessor archive.
+        // Byte-identical siblings are preservation, not publication writes.
+        if !selected.contains(name) && before == Some(raw.as_slice()) {
+            continue;
+        }
+        changes.push(SourceChange {
+            before: before.map(Digest256::of_bytes),
+            path,
+            after: Some(raw.clone()),
+        });
+    }
+    Ok(changes)
 }
 fn retain_archive(
     ctx: &CommandContext,
@@ -1402,17 +2162,142 @@ fn retained_package(
     }
     Ok(result)
 }
+
+fn artifact_history_evidence_config(
+    source_root: &str,
+    source_path: &str,
+    record_id: &str,
+    correction: &JsonValue,
+) -> SourceCommandResult<JsonValue> {
+    if !source_root.starts_with('/') || source_root.len() > 4096 || source_root.contains('\0') {
+        return Err(SourceCommandError::Denied(
+            "Artifact evidence source root must be bounded and absolute",
+        ));
+    }
+    let request = cmd::field(correction, "request")?;
+    let allowed_form_ids = cmd::array(request, "forms")?
+        .iter()
+        .map(|selection| Ok(cmd::string(cmd::text(selection, "form_id")?)))
+        .collect::<SourceCommandResult<Vec<_>>>()?;
+    Ok(cmd::object(vec![
+        (
+            "schema_version",
+            cmd::string("tos_local_native_metadata_revision_owner_v1"),
+        ),
+        ("source_root", cmd::string(source_root)),
+        ("source_path", cmd::string(source_path)),
+        ("record_id", cmd::string(record_id)),
+        ("record_type", cmd::string("artifact")),
+        (
+            "record_schema_version",
+            cmd::string("tos_artifact_source_witness_v2"),
+        ),
+        (
+            "principal_id",
+            cmd::field(correction, "principal_id")?.clone(),
+        ),
+        (
+            "authority_ref",
+            cmd::field(correction, "authority_ref")?.clone(),
+        ),
+        (
+            "allowed_operations",
+            JsonValue::Array(vec![cmd::string("record.revise")]),
+        ),
+        (
+            "allowed_fields",
+            JsonValue::Array(
+                [
+                    "bibliography",
+                    "find_context",
+                    "path_identity",
+                    "physical_description",
+                ]
+                .into_iter()
+                .map(cmd::string)
+                .collect(),
+            ),
+        ),
+        ("allowed_form_ids", JsonValue::Array(allowed_form_ids)),
+    ]))
+}
+
+fn revision_publication_state_bytes(
+    publication: &RevisionPublication,
+) -> SourceCommandResult<usize> {
+    let mut state = std::mem::size_of::<RevisionPublication>()
+        .checked_add(
+            publication
+                .token
+                .as_ref()
+                .map_or(0, |token| token.capacity()),
+        )
+        .and_then(|state| {
+            state.checked_add(
+                publication
+                    .transactions
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<RetainedRevisionTransaction>())?,
+            )
+        })
+        .ok_or(SourceCommandError::Unsupported(
+            "Artifact history publication state overflow",
+        ))?;
+    for transaction in &publication.transactions {
+        state = state
+            .checked_add(transaction.transaction_id.capacity())
+            .and_then(|sum| sum.checked_add(transaction.authorization_raw.capacity()))
+            .and_then(|sum| {
+                sum.checked_add(
+                    transaction
+                        .before
+                        .capacity()
+                        .checked_mul(std::mem::size_of::<SourceFile>())?,
+                )
+            })
+            .and_then(|sum| {
+                sum.checked_add(
+                    transaction
+                        .after
+                        .capacity()
+                        .checked_mul(std::mem::size_of::<SourceFile>())?,
+                )
+            })
+            .ok_or(SourceCommandError::Unsupported(
+                "Artifact history publication state overflow",
+            ))?;
+        for file in transaction.before.iter().chain(&transaction.after) {
+            state = state
+                .checked_add(file.path.as_str().len())
+                .and_then(|sum| sum.checked_add(file.raw.capacity()))
+                .ok_or(SourceCommandError::Unsupported(
+                    "Artifact history publication state overflow",
+                ))?;
+        }
+    }
+    Ok(state)
+}
+
 fn reconstruct_transaction(
     cut: Option<&CorpusCutReader>,
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &CommandContext,
+    ctx: &impl RecordRead,
     config: &JsonValue,
     family: RevisionFamily,
     transaction: &RetainedRevisionTransaction,
+    mode: TransactionReconstructionMode,
     scope_operation: &str,
 ) -> SourceCommandResult<(JsonValue, Inspection, Inspection, JsonValue)> {
+    if mode == TransactionReconstructionMode::ArtifactHistoryEvidence
+        && (family != RevisionFamily::NativeSelected
+            || cmd::text(config, "record_type")? != "artifact")
+    {
+        return Err(SourceCommandError::Denied(
+            "historical evidence replay is restricted to native Artifacts",
+        ));
+    }
     let authorization = cmd::parse(&transaction.authorization_raw)?;
     cmd::exact_keys(
         &authorization,
@@ -1453,7 +2338,10 @@ fn reconstruct_transaction(
         ));
     }
     scope(config, original, scope_operation)?;
-    if cmd::text(original, "expected_configuration")? != cmd::record_digest(config)?.to_prefixed() {
+    if mode == TransactionReconstructionMode::CurrentOwner
+        && cmd::text(original, "expected_configuration")?
+            != cmd::record_digest(config)?.to_prefixed()
+    {
         return Err(SourceCommandError::Conflict(
             "retained transaction configuration changed",
         ));
@@ -1469,7 +2357,15 @@ fn reconstruct_transaction(
         cut, worker, deadline, cancelled, ctx, config, family, &record,
     )?;
     let subject = source_forms::metadata_subject(&record)?;
-    let retained = verify_history(ctx, config, &files, &record)?;
+    let retained = match mode {
+        TransactionReconstructionMode::CurrentOwner => {
+            verify_history(ctx, config, &files, &record)?
+        }
+        // Artifact evidence replay first binds this exact package and history
+        // to the cut-native observation, whose typed reader verifies every
+        // retained archive and predecessor history prefix.
+        TransactionReconstructionMode::ArtifactHistoryEvidence => history(&files, &record)?,
+    };
     let before = Inspection {
         files,
         record,
@@ -1504,8 +2400,9 @@ fn reconstruct_transaction(
     }
     if !cmd::same(cmd::field(original, "expected_source")?, &before.subject)?
         || cmd::text(original, "expected_revision")? != revision(&before.files)?
-        || cmd::text(original, "expected_dependencies")?
-            != dependencies(ctx, config, family, &before)?
+        || (mode == TransactionReconstructionMode::CurrentOwner
+            && cmd::text(original, "expected_dependencies")?
+                != dependencies(ctx, config, family, &before)?)
     {
         return Err(SourceCommandError::Conflict(
             "retained predecessor or dependencies differ",
@@ -1529,12 +2426,359 @@ fn reconstruct_transaction(
             "retained bytes do not reconstruct exact delegated successor",
         ));
     }
-    if read_archive(ctx, config, &reconstructed)?.0 != before.files {
+    // In Artifact evidence mode the caller's same-cut native history read has
+    // already checked the exact predecessor archive package revision/source,
+    // every archive blob, and each archived receipt prefix. The publication
+    // replay below independently binds this request's predecessor revision to
+    // that archive identity, so another archive read here would duplicate the
+    // same custody proof against a different adapter surface.
+    if mode == TransactionReconstructionMode::CurrentOwner
+        && read_archive(ctx, config, &reconstructed)?.0 != before.files
+    {
         return Err(SourceCommandError::Conflict(
             "retained transaction predecessor archive differs",
         ));
     }
     Ok((original.clone(), before, after, reconstructed))
+}
+
+/// Replay every committed selected Artifact correction using the evidence-only
+/// context from the maintained Artifact creation verifier. The active owner
+/// configuration and present dependency freshness remain exclusive to the
+/// ordinary writer/recovery path above.
+pub(crate) fn replay_artifact_corrections_from_cut(
+    input: &RecordVersionReadInput<'_>,
+    source_root: &str,
+    cut: &CorpusCutReader,
+    native_history: &NativeRecordHistoryReadObservation,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ArtifactCorrectionReplayObservation> {
+    input.check()?;
+    if Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(SourceCommandError::Unsupported(
+            "Artifact correction replay deadline or cancellation",
+        ));
+    }
+    if cut.current().revision() != input.source_revision
+        || worker.source_revision() != input.source_revision
+        || native_history.source_revision() != input.source_revision
+    {
+        return Err(SourceCommandError::Conflict(
+            "Artifact correction replay source revisions differ",
+        ));
+    }
+    let current_membership = cut
+        .stream(input.source_revision)
+        .map_err(|_| {
+            SourceCommandError::Unsupported(
+                "Artifact correction replay source-cut membership unavailable",
+            )
+        })?
+        .expectation();
+    if native_history.current_membership() != current_membership {
+        return Err(SourceCommandError::Conflict(
+            "Artifact correction replay membership differs from exact source cut",
+        ));
+    }
+
+    let source_path = native_history.record_path();
+    path(source_path)?;
+    if source_path.len() > 1024
+        || source_path.split('/').count() < 5
+        || !source_path.starts_with("ToS/source-witnesses/artifacts/")
+        || source_path.rsplit('/').next() != Some("artifact-witness.json")
+        || source_path.split('/').any(|part| {
+            part.starts_with('.')
+                || matches!(
+                    part,
+                    "payload" | "private" | "local-content" | "catalog" | "owner-local"
+                )
+        })
+        || native_history.identity_field() != "artifact_id"
+    {
+        return Err(SourceCommandError::Denied(
+            "Artifact correction replay requires its exact public record path",
+        ));
+    }
+    if input.schema_source_path != source_path {
+        return Err(SourceCommandError::Conflict(
+            "Artifact correction replay schema path differs from readonly source input",
+        ));
+    }
+    let expected_names = names(source_path)?;
+    let selected = native_history.selected_package();
+    if selected.len() > expected_names.len()
+        || selected.keys().any(|name| !expected_names.contains(name))
+    {
+        return Err(SourceCommandError::Conflict(
+            "Artifact correction replay selected package exceeds its exact files",
+        ));
+    }
+    for name in &expected_names {
+        let full_path = path(&format!("{}/{}", split(source_path)?.0, name))?;
+        if selected.get(name).map(Vec::as_slice) != input.file(&full_path)? {
+            return Err(SourceCommandError::Conflict(
+                "Artifact correction replay package differs from captured command files",
+            ));
+        }
+    }
+    let (_, base) = split(source_path)?;
+    let current_record_raw = selected.get(base).ok_or(SourceCommandError::Invalid(
+        "Artifact current record missing",
+    ))?;
+    let current_record = cmd::parse(current_record_raw)?;
+    if cmd::text(&current_record, "schema_version")? != "tos_artifact_source_witness_v2"
+        || cmd::text(&current_record, "artifact_id")? != native_history.identity()
+    {
+        return Err(SourceCommandError::Conflict(
+            "Artifact correction replay identity or fixed schema differs",
+        ));
+    }
+    let current_history = history(selected, &current_record)?;
+    let corrections = cmd::array(&current_history, "receipts")?;
+    if corrections.len() != native_history.history_receipt_count()
+        || native_history.transactions().len() != corrections.len()
+    {
+        return Err(SourceCommandError::Conflict(
+            "Artifact correction replay history count differs from native observation",
+        ));
+    }
+    let current_history_sha256 = selected
+        .get(HISTORY)
+        .map(|raw| Digest256::of_bytes(raw).to_prefixed());
+    if current_history_sha256.as_deref() != native_history.history_sha256() {
+        return Err(SourceCommandError::Conflict(
+            "Artifact correction replay history digest differs from exact source bytes",
+        ));
+    }
+    if !corrections.is_empty() && selected.len() != expected_names.len() {
+        return Err(SourceCommandError::Conflict(
+            "Artifact correction replay requires all three selected successor files",
+        ));
+    }
+    if corrections.is_empty()
+        && (native_history.origin_record_sha256()
+            != Digest256::of_bytes(current_record_raw).to_hex()
+            || native_history.origin_record_byte_size() != current_record_raw.len())
+    {
+        return Err(SourceCommandError::Conflict(
+            "Artifact origin bytes differ from exact current record",
+        ));
+    }
+
+    let mut selected_ids = Vec::with_capacity(corrections.len());
+    let mut seen_ids = BTreeSet::new();
+    for (index, correction) in corrections.iter().enumerate() {
+        let publication_ref = cmd::field(correction, "publication")?;
+        let transaction_id = cmd::text(publication_ref, "transaction_id")?;
+        digest_text(&cmd::string(transaction_id))?;
+        let native_transaction =
+            native_history
+                .transactions()
+                .get(index)
+                .ok_or(SourceCommandError::Conflict(
+                    "Artifact correction native transaction order is incomplete",
+                ))?;
+        if native_transaction.transaction_id() != transaction_id
+            || native_transaction.transport() != NativeTransportState::Committed
+            || !seen_ids.insert(transaction_id)
+        {
+            return Err(SourceCommandError::Conflict(
+                "Artifact correction transaction is absent, repeated, or uncommitted",
+            ));
+        }
+        selected_ids.push(transaction_id);
+    }
+    let mut expected_manifest_sha256 = BTreeMap::new();
+    for transaction in native_history.transactions() {
+        if expected_manifest_sha256
+            .insert(transaction.transaction_id(), transaction.manifest_sha256())
+            .is_some()
+        {
+            return Err(SourceCommandError::Conflict(
+                "Artifact native history repeats a selected transaction",
+            ));
+        }
+    }
+    let publication = read_record_revision_publication_inner(
+        input,
+        input.effective_uid,
+        &selected_ids,
+        Some(&expected_manifest_sha256),
+        Some((deadline, cancelled)),
+        false,
+    )?;
+    let publication_state_bytes = revision_publication_state_bytes(&publication)?;
+    let mut publication_by_id = BTreeMap::new();
+    for transaction in &publication.transactions {
+        if publication_by_id
+            .insert(transaction.transaction_id.as_str(), transaction)
+            .is_some()
+        {
+            return Err(SourceCommandError::Invalid(
+                "duplicate Artifact correction publication transaction",
+            ));
+        }
+    }
+
+    let mut evidence_transactions = Vec::with_capacity(corrections.len());
+    let mut previous_after: Option<Package> = None;
+    let mut retained_origin_checked = false;
+    for (index, correction) in corrections.iter().enumerate() {
+        if Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err(SourceCommandError::Unsupported(
+                "Artifact correction replay deadline or cancellation",
+            ));
+        }
+        let transaction_id = selected_ids[index];
+        let retained =
+            publication_by_id
+                .get(transaction_id)
+                .copied()
+                .ok_or(SourceCommandError::Conflict(
+                    "Artifact correction retained publication is absent",
+                ))?;
+        if retained.status != RevisionTransactionStatus::Committed {
+            return Err(SourceCommandError::Conflict(
+                "Artifact correction lacks committed publication evidence",
+            ));
+        }
+        let native_transaction = &native_history.transactions()[index];
+        let config = artifact_history_evidence_config(
+            source_root,
+            source_path,
+            native_history.identity(),
+            correction,
+        )?;
+        let (original, before, after, reconstructed) = reconstruct_transaction(
+            Some(cut),
+            worker,
+            deadline,
+            cancelled,
+            input,
+            &config,
+            RevisionFamily::NativeSelected,
+            retained,
+            TransactionReconstructionMode::ArtifactHistoryEvidence,
+            "record.revise",
+        )?;
+        if !cmd::same(&original, cmd::field(correction, "request")?)?
+            || !cmd::same(&reconstructed, correction)?
+        {
+            return Err(SourceCommandError::Conflict(
+                "Artifact retained publication differs from exact correction receipt",
+            ));
+        }
+        if cmd::array(&before.history, "receipts")?.len() != index
+            || cmd::array(&after.history, "receipts")?.len() != index + 1
+        {
+            return Err(SourceCommandError::Conflict(
+                "Artifact correction transaction does not append its exact history prefix",
+            ));
+        }
+        for (prefix_index, receipt) in cmd::array(&before.history, "receipts")?.iter().enumerate() {
+            if !cmd::same(receipt, &corrections[prefix_index])? {
+                return Err(SourceCommandError::Conflict(
+                    "Artifact correction predecessor history prefix differs",
+                ));
+            }
+        }
+        for (prefix_index, receipt) in cmd::array(&after.history, "receipts")?.iter().enumerate() {
+            if !cmd::same(receipt, &corrections[prefix_index])? {
+                return Err(SourceCommandError::Conflict(
+                    "Artifact correction successor history prefix differs",
+                ));
+            }
+        }
+        if let Some(previous) = &previous_after
+            && previous != &before.files
+        {
+            return Err(SourceCommandError::Conflict(
+                "Artifact correction retained packages are not contiguous",
+            ));
+        }
+        if !retained_origin_checked {
+            let origin = before.files.get(base).ok_or(SourceCommandError::Invalid(
+                "Artifact origin record missing",
+            ))?;
+            if Digest256::of_bytes(origin).to_hex() != native_history.origin_record_sha256()
+                || origin.len() != native_history.origin_record_byte_size()
+            {
+                return Err(SourceCommandError::Conflict(
+                    "Artifact first correction predecessor differs from retained origin",
+                ));
+            }
+            retained_origin_checked = true;
+        }
+        let receipt_sha256 = cmd::record_digest(correction)?.to_prefixed();
+        evidence_transactions.push(ArtifactCorrectionReplayTransactionObservation {
+            transaction_id: transaction_id.to_owned(),
+            manifest_sha256: native_transaction.manifest_sha256().to_owned(),
+            receipt_sha256,
+        });
+        previous_after = Some(after.files);
+    }
+    if let Some(previous) = previous_after
+        && &previous != selected
+    {
+        return Err(SourceCommandError::Conflict(
+            "Artifact correction replay head differs from exact current package",
+        ));
+    }
+
+    let mut observation = ArtifactCorrectionReplayObservation {
+        source_revision: input.source_revision,
+        current_membership,
+        source_root: source_root.to_owned(),
+        source_path: source_path.to_owned(),
+        record_id: native_history.identity().to_owned(),
+        origin_record_sha256: native_history.origin_record_sha256().to_owned(),
+        origin_record_byte_size: native_history.origin_record_byte_size(),
+        history_sha256: current_history_sha256,
+        transactions: evidence_transactions,
+        publication_state_bytes,
+        returned_state_bytes: 0,
+    };
+    observation.returned_state_bytes = artifact_correction_observation_state_bytes(&observation)?;
+    Ok(observation)
+}
+
+fn artifact_correction_observation_state_bytes(
+    observation: &ArtifactCorrectionReplayObservation,
+) -> SourceCommandResult<usize> {
+    let mut state = std::mem::size_of::<ArtifactCorrectionReplayObservation>()
+        .checked_add(observation.source_root.capacity())
+        .and_then(|state| state.checked_add(observation.source_path.capacity()))
+        .and_then(|state| state.checked_add(observation.record_id.capacity()))
+        .and_then(|state| state.checked_add(observation.origin_record_sha256.capacity()))
+        .and_then(|state| {
+            state.checked_add(
+                observation
+                    .history_sha256
+                    .as_ref()
+                    .map_or(0, String::capacity),
+            )
+        })
+        .and_then(|state| {
+            state.checked_add(observation.transactions.capacity().checked_mul(
+                std::mem::size_of::<ArtifactCorrectionReplayTransactionObservation>(),
+            )?)
+        })
+        .ok_or(SourceCommandError::Unsupported(
+            "Artifact correction observation state overflow",
+        ))?;
+    for transaction in &observation.transactions {
+        state = state
+            .checked_add(transaction.transaction_id.capacity())
+            .and_then(|state| state.checked_add(transaction.manifest_sha256.capacity()))
+            .and_then(|state| state.checked_add(transaction.receipt_sha256.capacity()))
+            .ok_or(SourceCommandError::Unsupported(
+                "Artifact correction observation state overflow",
+            ))?;
+    }
+    Ok(state)
 }
 
 /// Prepare the exact maintained record handler selected by protected owner
@@ -1687,6 +2931,7 @@ pub(crate) fn prepare_record_revision_inner(
                 &config,
                 family,
                 transaction,
+                TransactionReconstructionMode::CurrentOwner,
                 if recovery {
                     "record.recover"
                 } else {
@@ -1875,6 +3120,7 @@ pub(crate) fn prepare_record_revision_inner(
                     &config,
                     family,
                     retained,
+                    TransactionReconstructionMode::CurrentOwner,
                     "record.revise",
                 )?;
                 if !cmd::same(&original, &request_value)? || !cmd::same(&reconstructed, receipt)? {
@@ -2010,7 +3256,7 @@ pub(crate) fn state(value: &JsonValue) -> SourceCommandResult<()> {
     }
     Ok(())
 }
-fn control(ctx: &CommandContext) -> SourceCommandResult<Option<JsonValue>> {
+fn control(ctx: &impl RecordRead) -> SourceCommandResult<Option<JsonValue>> {
     let Some(raw) = ctx.file(&path(CONTROL_PATH)?)? else {
         return Ok(None);
     };
@@ -2025,11 +3271,29 @@ fn control(ctx: &CommandContext) -> SourceCommandResult<Option<JsonValue>> {
 }
 /// Read publication observations from explicitly selected owner control,
 /// manifest, completion and immutable blob bytes. IDs select retained carriers;
-/// they grant no admission. An arbitrary status enum cannot pass the command
-/// entrypoint: it is re-derived here and compared with the supplied observation.
+/// they grant no admission. The status is derived from those exact carriers;
+/// the public current-owner entrypoint also includes the selected pending control.
 pub fn read_record_revision_publication(
     ctx: &CommandContext,
     selected_ids: &[&str],
+) -> SourceCommandResult<RevisionPublication> {
+    Ok(read_record_revision_publication_inner(
+        ctx,
+        ctx.effective_uid,
+        selected_ids,
+        None,
+        None,
+        true,
+    )?)
+}
+
+fn read_record_revision_publication_inner(
+    ctx: &impl RecordRead,
+    effective_uid: u64,
+    selected_ids: &[&str],
+    expected_manifest_sha256: Option<&BTreeMap<&str, &str>>,
+    operation: Option<(Instant, &AtomicBool)>,
+    include_current_pending: bool,
 ) -> SourceCommandResult<RevisionPublication> {
     ctx.check()?;
     if selected_ids.len() > 128 {
@@ -2047,13 +3311,25 @@ pub fn read_record_revision_publication(
             "duplicate retained transaction selection",
         ));
     }
-    if let Some(control) = &control {
+    if include_current_pending && let Some(control) = &control {
         if cmd::text(control, "phase")? == "pending" {
             ids.insert(cmd::text(control, "transaction_id")?.into());
         }
     }
+    if ids.len() > 128 {
+        return Err(SourceCommandError::Invalid(
+            "retained publication count budget",
+        ));
+    }
     let mut transactions = Vec::new();
     for id in ids {
+        if operation.is_some_and(|(deadline, cancelled)| {
+            Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Relaxed)
+        }) {
+            return Err(SourceCommandError::Unsupported(
+                "Artifact history publication verification deadline or cancellation",
+            ));
+        }
         digest_text(&cmd::string(&id))?;
         let directory = format!("ToS/source-witnesses/.metadata-transactions/{}", &id[7..]);
         let manifest_raw = required(ctx, &format!("{directory}/manifest.json"))?;
@@ -2102,7 +3378,8 @@ pub fn read_record_revision_publication(
             ));
         }
         let authorization = cmd::field(plan, "authorization")?;
-        if authorization.as_object().is_none() || cmd::canonical(authorization)?.len() > 65_536 {
+        let authorization_raw = cmd::canonical(authorization)?;
+        if authorization.as_object().is_none() || authorization_raw.len() > 65_536 {
             return Err(SourceCommandError::Invalid(
                 "retained transaction authorization budget",
             ));
@@ -2115,6 +3392,13 @@ pub fn read_record_revision_publication(
         let mut changed = false;
         let mut last = "";
         for item in cmd::array(plan, "files")? {
+            if operation.is_some_and(|(deadline, cancelled)| {
+                Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Relaxed)
+            }) {
+                return Err(SourceCommandError::Unsupported(
+                    "Artifact history publication verification deadline or cancellation",
+                ));
+            }
             cmd::exact_keys(item, &["path", "before", "after"])?;
             let source_path = cmd::text(item, "path")?;
             path(source_path)?;
@@ -2219,7 +3503,7 @@ pub fn read_record_revision_publication(
                 || mode & 0o022 != 0
                 || current.is_some_and(|c| cmd::text(c, "phase").ok() == Some("pending"))
                     && uid != 0
-                    && uid != ctx.effective_uid
+                    && uid != effective_uid
             {
                 return Err(SourceCommandError::Denied(
                     "retained protected source parent binding",
@@ -2227,6 +3511,15 @@ pub fn read_record_revision_publication(
             }
         }
         let digest = Digest256::of_bytes(manifest_raw).to_prefixed();
+        if expected_manifest_sha256.is_some_and(|manifests| {
+            manifests
+                .get(id.as_str())
+                .is_none_or(|expected| *expected != digest.as_str())
+        }) {
+            return Err(SourceCommandError::Conflict(
+                "retained publication manifest differs from native history observation",
+            ));
+        }
         let completion_raw = ctx.file(&path(&format!("{directory}/completion.json"))?)?;
         if completion_raw.is_some_and(|raw| raw.len() > 8192) {
             return Err(SourceCommandError::Invalid(
@@ -2294,7 +3587,7 @@ pub fn read_record_revision_publication(
         transactions.push(RetainedRevisionTransaction {
             transaction_id: id,
             status,
-            authorization_raw: cmd::canonical(authorization)?,
+            authorization_raw,
             before,
             after,
         });
@@ -2458,7 +3751,7 @@ fn scope(config: &JsonValue, request: &JsonValue, operation: &str) -> SourceComm
     Ok(())
 }
 pub(crate) fn package(
-    ctx: &CommandContext,
+    ctx: &impl RecordRead,
     source_path: &str,
     selected: bool,
     remaining_state_bytes: Option<usize>,
@@ -2469,8 +3762,11 @@ pub(crate) fn package(
     let mut result = Package::new();
     let mut total_bytes = 0usize;
     let mut state_bytes = std::mem::size_of::<Package>();
-    for file in &ctx.files {
+    for file in ctx.files() {
         if let Some(name) = file.path.as_str().strip_prefix(&prefix) {
+            if ctx.writer().is_none() && name != base && name != HISTORY {
+                continue;
+            }
             if !name.contains('/') && (!selected || selected_names.iter().any(|s| s == name)) {
                 total_bytes = total_bytes
                     .checked_add(file.raw.len())
@@ -2553,7 +3849,7 @@ pub(crate) fn schema(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &CommandContext,
+    ctx: &impl RecordRead,
     refs: &[String],
     root: &str,
     instance: &JsonValue,
@@ -2569,14 +3865,14 @@ fn schema_at(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &CommandContext,
+    ctx: &impl RecordRead,
     refs: &[String],
     root: &str,
     instance: &JsonValue,
     source_path: Option<&str>,
     reuse_scalar: bool,
 ) -> SourceCommandResult<()> {
-    if worker.source_revision() != ctx.base_revision {
+    if worker.source_revision() != ctx.source_revision() {
         return Err(SourceCommandError::Conflict(
             "schema worker and source command cut differ",
         ));
@@ -2602,8 +3898,7 @@ fn schema_at(
     let source_path = match source_path {
         Some(path) => path,
         None => {
-            fallback_path =
-                cmd::text(&cmd::parse(&ctx.configuration_raw)?, "source_path")?.to_owned();
+            fallback_path = ctx.schema_source_path()?;
             &fallback_path
         }
     };
@@ -2631,7 +3926,7 @@ fn profile(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &CommandContext,
+    ctx: &impl RecordRead,
     config: &JsonValue,
     family: RevisionFamily,
     record: &JsonValue,
@@ -2724,8 +4019,16 @@ fn profile(
     if family == RevisionFamily::Historical {
         schemas.push(CORPUS_SCHEMA.into());
     }
-    schema(
-        worker, deadline, cancelled, ctx, &schemas, schema_ref, record,
+    schema_at(
+        worker,
+        deadline,
+        cancelled,
+        ctx,
+        &schemas,
+        schema_ref,
+        record,
+        Some(source_path),
+        false,
     )?;
     if family == RevisionFamily::Historical
         && !matches!(
@@ -2784,7 +4087,7 @@ fn native_identity_inventory(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &CommandContext,
+    ctx: &impl RecordRead,
     record_id: &str,
 ) -> SourceCommandResult<(Option<String>, bool)> {
     if !["occurrence", "lexeme", "sense", "sign", "concept"]
@@ -2796,8 +4099,17 @@ fn native_identity_inventory(
     let cut = cut.ok_or(SourceCommandError::Unsupported(
         "profile native identity reservation needs complete anchored source cut",
     ))?;
-    let (_, snapshot, schema) =
-        selected_native_identity_inventory(ctx, cut, worker, deadline, cancelled, Some(record_id))?;
+    let writer = ctx.writer().ok_or(SourceCommandError::Unsupported(
+        "profile native identity reservation needs complete anchored source cut",
+    ))?;
+    let (_, snapshot, schema) = selected_native_identity_inventory(
+        writer,
+        cut,
+        worker,
+        deadline,
+        cancelled,
+        Some(record_id),
+    )?;
     Ok((Some(snapshot), schema))
 }
 
@@ -3534,7 +4846,7 @@ pub(crate) fn validate_source_profile_registry(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &CommandContext,
+    ctx: &impl RecordRead,
 ) -> SourceCommandResult<JsonValue> {
     let contract = "ToS/contracts/semantic-entity-type-registry.schema.json";
     let registry = cmd::parse(required(ctx, REGISTRY)?)?;
@@ -3688,7 +5000,7 @@ pub(crate) fn public_profile(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &CommandContext,
+    ctx: &impl RecordRead,
     config: &JsonValue,
     record: &JsonValue,
 ) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
@@ -3736,26 +5048,34 @@ pub(crate) fn public_profile(
             "retained composite profile path",
         ));
     }
-    let (native_identity_snapshot, inventory_schema) = native_identity_inventory(
-        cut,
-        worker,
-        deadline,
-        cancelled,
-        ctx,
-        cmd::text(record, "record_id")?,
-    )?;
-    let native_text = if profile.object_get("native_binding_adapter").is_some() {
-        Some(native_text_binding(
-            cut,
-            worker,
-            deadline,
-            cancelled,
-            ctx,
-            cmd::field(record, "native_text_binding")?,
-        )?)
-    } else {
-        None
-    };
+    // Read evidence validates the declared shape only, matching MetadataVersionReader.
+    // Writer preparation retains its stronger identity and native binding checks.
+    let (native_identity_snapshot, inventory_schema, native_text) =
+        if let Some(writer) = ctx.writer() {
+            let (snapshot, inventory_schema) = native_identity_inventory(
+                cut,
+                worker,
+                deadline,
+                cancelled,
+                writer,
+                cmd::text(record, "record_id")?,
+            )?;
+            let native_text = if profile.object_get("native_binding_adapter").is_some() {
+                Some(native_text_binding(
+                    cut,
+                    worker,
+                    deadline,
+                    cancelled,
+                    writer,
+                    cmd::field(record, "native_text_binding")?,
+                )?)
+            } else {
+                None
+            };
+            (snapshot, inventory_schema, native_text)
+        } else {
+            (None, false, None)
+        };
     if profile.object_get("native_binding_adapter").is_none()
         && record.object_get("native_text_binding").is_some()
     {
@@ -3889,7 +5209,7 @@ pub(crate) fn resolve_record_version_from_cut(
 
 /// Evidence produced by the same exact-version read and retained archive
 /// verification. It describes a source version; it grants no current use.
-pub(crate) struct ResolvedRecordVersion {
+pub struct ResolvedRecordVersion {
     pub record: JsonValue,
     pub current_record: Option<JsonValue>,
     pub source_path: String,
@@ -3899,9 +5219,159 @@ pub(crate) struct ResolvedRecordVersion {
     pub history: JsonValue,
     pub transition: JsonValue,
     pub route_profile: JsonValue,
+    /// Present only after the readonly owner-registry descriptor check.
+    pub descriptor: Option<JsonValue>,
     pub bytes_read: u64,
     pub returned_state_bytes: usize,
     pub reads: Vec<PredicateRead>,
+}
+
+impl ResolvedRecordVersion {
+    fn readonly_descriptor(&self, registry: &JsonValue) -> SourceCommandResult<JsonValue> {
+        let kind = cmd::text(&self.route_profile, "record_type")?;
+        let schema_version = cmd::text(&self.record, "schema_version")?;
+        let native_witness = matches!(
+            schema_version,
+            "tos_artifact_source_witness_v1"
+                | "tos_artifact_source_witness_v2"
+                | "tos_scholarly_composite_witness_v1"
+        );
+        let native_link = schema_version == "tos_source_link_v1";
+        let native_corpus = schema_version == "tos_corpus_record_v1";
+        let (adapter, identity_field) = if native_witness {
+            (
+                "native-witness",
+                if kind == "artifact" {
+                    "artifact_id"
+                } else {
+                    "composite_id"
+                },
+            )
+        } else if native_link {
+            ("native-link", "record_id")
+        } else if native_corpus {
+            ("native-corpus", "record_id")
+        } else {
+            ("declared-profile", "record_id")
+        };
+        let entries = cmd::array(registry, "types")?
+            .iter()
+            .filter(|entry| {
+                if native_witness || native_link || native_corpus {
+                    cmd::array(entry, "source_mappings").is_ok_and(|mappings| {
+                        mappings.iter().any(|mapping| {
+                            cmd::text(mapping, "source_graph").ok() == Some("source-navigation")
+                                && cmd::text(mapping, "source_kind_id").ok() == Some(kind)
+                        })
+                    })
+                } else {
+                    entry
+                        .object_get("source_record_profile")
+                        .is_some_and(|profile| cmd::text(profile, "record_type").ok() == Some(kind))
+                }
+            })
+            .collect::<Vec<_>>();
+        if entries.len() != 1 {
+            return Err(SourceCommandError::Conflict(
+                "metadata kind lacks exact owner-registry mapping",
+            ));
+        }
+        let type_id = cmd::text(entries[0], "type_id")?;
+        let schema_ref = if adapter == "declared-profile" {
+            let routes = cmd::array(cmd::field(entries[0], "source_record_profile")?, "schemas")?
+                .iter()
+                .filter(|route| cmd::text(route, "schema_version").ok() == Some(schema_version))
+                .collect::<Vec<_>>();
+            if routes.len() != 1 {
+                return Err(SourceCommandError::Unsupported(
+                    "metadata source schema not supported",
+                ));
+            }
+            cmd::text(routes[0], "schema_ref")?
+        } else {
+            cmd::text(&self.route_profile, "schema_ref")?
+        };
+        // Native Corpus keeps its metadata-only reader contract. Other
+        // adapters preserve the selected record's declared public visibility,
+        // matching the access consumer's descriptor consistency law.
+        let source_scope = if native_corpus {
+            "public_metadata_only"
+        } else if self.record.object_get("visibility").is_some() {
+            let visibility = cmd::text(&self.record, "visibility")?;
+            if !matches!(visibility, "public" | "public_metadata_only") {
+                return Err(SourceCommandError::Denied("metadata descriptor visibility"));
+            }
+            visibility
+        } else {
+            "public_metadata_only"
+        };
+        Ok(cmd::object(vec![
+            ("adapter", cmd::string(adapter)),
+            ("record_type", cmd::string(kind)),
+            ("profile_type_id", cmd::string(type_id)),
+            ("source_schema_ref", cmd::string(schema_ref)),
+            ("source_schema_version", cmd::string(schema_version)),
+            ("source_scope", cmd::string(source_scope)),
+            ("record_kind", cmd::string("subject")),
+            ("identity_field", cmd::string(identity_field)),
+            (
+                "source_basename",
+                cmd::field(&self.route_profile, "source_basename")?.clone(),
+            ),
+            ("schema_version", cmd::string(schema_version)),
+            ("schema_ref", cmd::string(schema_ref)),
+            ("type_id", cmd::string(type_id)),
+        ]))
+    }
+
+    /// Build the maintained MetadataVersionReader provenance envelope from
+    /// verified observations. The transport supplies its checked catalog provenance.
+    pub fn readonly_provenance(&self, catalog: &JsonValue) -> SourceCommandResult<JsonValue> {
+        let descriptor = self
+            .descriptor
+            .as_ref()
+            .ok_or(SourceCommandError::Unsupported(
+                "readonly descriptor absent",
+            ))?;
+        let mut source = self.source.clone();
+        let raw_bytes = cmd::field(&source, "record_bytes")?.clone();
+        // Select exact Python fields without changing internal writer evidence.
+        source = cmd::object(
+            [
+                "source_ref",
+                "record_sha256",
+                "archive_blob_ref",
+                "archive_manifest_ref",
+                "archive_manifest_sha256",
+                "package_revision",
+            ]
+            .iter()
+            .map(|key| Ok((*key, cmd::field(&source, key)?.clone())))
+            .collect::<SourceCommandResult<Vec<_>>>()?,
+        );
+        cmd::set(&mut source, "record_bytes", raw_bytes)?;
+        let history = cmd::object(
+            [
+                "source_ref",
+                "sha256",
+                "receipt_count",
+                "retained_record_chain_verified",
+                "retained_baseline_ref",
+            ]
+            .iter()
+            .map(|key| Ok((*key, cmd::field(&self.history, key)?.clone())))
+            .collect::<SourceCommandResult<Vec<_>>>()?,
+        );
+        Ok(cmd::object(vec![
+            ("verification_scope", cmd::string("selected-record-chain")),
+            ("all_package_bytes_verified", JsonValue::Bool(false)),
+            ("catalog", catalog.clone()),
+            ("descriptor", descriptor.clone()),
+            ("history", history),
+            ("source", source),
+            ("transition", self.transition.clone()),
+        ]))
+    }
 }
 
 pub(crate) fn resolve_record_version_evidence(
@@ -3992,8 +5462,41 @@ pub(crate) fn resolve_record_version_evidence_at_selected(
     )
 }
 
+/// Resolve the exact current or retained metadata version at a catalog-selected
+/// owner path. The caller owns live source-root publication/currentness checks.
+/// This returns evidence only and never prepares a writer operation.
+pub fn resolve_record_version_readonly(
+    input: &RecordVersionReadInput<'_>,
+    owner_path: &str,
+    limits: ItemLimits,
+    exact: &JsonValue,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ResolvedRecordVersion> {
+    input.check()?;
+    if input.schema_source_path != owner_path {
+        return Err(SourceCommandError::Conflict(
+            "read schema locator differs from selected owner",
+        ));
+    }
+    let mut resolved = resolve_record_version_selected(
+        input,
+        None,
+        Some(owner_path),
+        Some(limits),
+        exact,
+        worker,
+        deadline,
+        cancelled,
+    )?;
+    let registry = validate_source_profile_registry(worker, deadline, cancelled, input)?;
+    resolved.descriptor = Some(resolved.readonly_descriptor(&registry)?);
+    Ok(resolved)
+}
+
 fn resolve_record_version_selected(
-    ctx: &CommandContext,
+    ctx: &impl RecordRead,
     cut: Option<&CorpusCutReader>,
     selected_path: Option<&str>,
     collection_limits: Option<ItemLimits>,
@@ -4010,23 +5513,27 @@ fn resolve_record_version_selected(
         ctx.check()?;
     }
     exact_ref(exact)?;
-    if worker.source_revision() != ctx.base_revision {
+    if worker.source_revision() != ctx.source_revision() {
         return Err(SourceCommandError::Conflict(
             "metadata resolver worker and source cut differ",
         ));
     }
     let (location, record, subject) = if let Some(location) = selected_path {
-        if !location.starts_with("ToS/source-witnesses/")
-            || !location.ends_with(".json")
-            || location.split('/').any(|part| {
-                part.starts_with('.')
-                    || matches!(
-                        part,
-                        "owner-local" | "catalog" | "payload" | "local-content" | "private"
-                    )
-            })
-        {
-            return Err(SourceCommandError::Denied("selected metadata owner path"));
+        if ctx.writer().is_some() {
+            if !location.starts_with("ToS/source-witnesses/")
+                || !location.ends_with(".json")
+                || location.split('/').any(|part| {
+                    part.starts_with('.')
+                        || matches!(
+                            part,
+                            "owner-local" | "catalog" | "payload" | "local-content" | "private"
+                        )
+                })
+            {
+                return Err(SourceCommandError::Denied("selected metadata owner path"));
+            }
+        } else {
+            selected_metadata_path(location)?;
         }
         let record = cmd::parse(required(ctx, location)?)?;
         let subject = source_forms::metadata_subject(&record)?;
@@ -4038,7 +5545,7 @@ fn resolve_record_version_selected(
         (location, record, subject)
     } else {
         let mut matches = Vec::new();
-        for file in &ctx.files {
+        for file in ctx.files() {
             let location = file.path.as_str();
             if !location.starts_with("ToS/source-witnesses/")
                 || !location.ends_with(".json")
@@ -4279,6 +5786,10 @@ fn resolve_record_version_selected(
                 cmd::number(observed.history_receipt_count as u64),
             ),
             ("retained_record_chain_verified", JsonValue::Bool(true)),
+            (
+                "all_package_bytes_verified",
+                JsonValue::Bool(ctx.writer().is_some()),
+            ),
             ("retained_baseline_ref", cmd::parse(&baseline_wire)?),
         ]);
         account_conversion(observed.record_raw.len())?;
@@ -4293,6 +5804,7 @@ fn resolve_record_version_selected(
             history,
             transition,
             route_profile,
+            descriptor: None,
             bytes_read: observed.bytes_read,
             returned_state_bytes,
             reads: observed.reads,
@@ -4331,6 +5843,7 @@ fn resolve_record_version_selected(
                 .max_state_bytes
                 .saturating_sub(selected_bytes_read as usize)
         }),
+        ctx.writer().is_none().then_some((deadline, cancelled)),
     )?;
     let bytes_read = selected_bytes_read.checked_add(history_bytes_read).ok_or(
         SourceCommandError::Unsupported("metadata read byte overflow"),
@@ -4358,6 +5871,10 @@ fn resolve_record_version_selected(
         ),
         ("receipt_count", cmd::number(history_receipts.len() as u64)),
         ("retained_record_chain_verified", JsonValue::Bool(true)),
+        (
+            "all_package_bytes_verified",
+            JsonValue::Bool(ctx.writer().is_some()),
+        ),
         ("retained_baseline_ref", baseline.clone()),
     ]);
     let source_evidence = |raw: &[u8], archive: Option<(&str, &str, &str)>| {
@@ -4403,6 +5920,7 @@ fn resolve_record_version_selected(
             history: history_evidence,
             transition: JsonValue::Null,
             route_profile,
+            descriptor: None,
             bytes_read,
             returned_state_bytes: 0,
             reads: Vec::new(),
@@ -4469,11 +5987,26 @@ fn resolve_record_version_selected(
                 history: history_evidence,
                 transition,
                 route_profile,
+                descriptor: None,
                 bytes_read: selected_archive_read_bytes,
                 returned_state_bytes: 0,
                 reads: Vec::new(),
             });
         }
+    }
+    if ctx.writer().is_none() {
+        let requested_version = cmd::integer(exact, "version")?;
+        let present = cmd::integer(&subject, "version")? == requested_version
+            || history_receipts.iter().any(|receipt| {
+                cmd::field(receipt, "previous_source")
+                    .and_then(|reference| cmd::integer(reference, "version"))
+                    .is_ok_and(|version| version == requested_version)
+            });
+        return Err(if present {
+            SourceCommandError::Conflict("exact-version-digest-mismatch")
+        } else {
+            SourceCommandError::Unsupported("exact-version-not-retained")
+        });
     }
     Err(SourceCommandError::Conflict(
         "requested metadata version is not retained in exact owner history",

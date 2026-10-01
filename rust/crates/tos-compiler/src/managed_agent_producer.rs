@@ -400,7 +400,7 @@ fn build_selected<P: ManagedProducerProof>(
         "source_basis".into(),
         serde_json::to_value(proof.basis()).map_err(|e| Error::Source(e.to_string()))?,
     );
-    let source_binding = stage.exact_receipt().binding.clone();
+    let source_binding = stage.exact_receipt()?.binding.clone();
     let full = crate::compile_full_knowledge_components(
         &mut stage,
         &header,

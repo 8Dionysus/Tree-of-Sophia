@@ -958,7 +958,7 @@ fn update_node(stage: &mut KnowledgeStage<'_>, value: &Value, cap: usize) -> Res
 }
 fn verify_stage(stage: &KnowledgeStage<'_>, prepared: &ClaimPrepareReceipt) -> Result<()> {
     if prepared.final_graph_rows_written
-        || stage.exact_receipt().binding.source_cut != prepared.source_cut
+        || stage.exact_receipt()?.binding.source_cut != prepared.source_cut
         || Digest256::from_hex(&prepared.dependency_root_sha256).is_err()
     {
         return Err(Error::Invalid("Claim stage prepared cut"));
@@ -973,7 +973,7 @@ fn verify_stage(stage: &KnowledgeStage<'_>, prepared: &ClaimPrepareReceipt) -> R
         ),
     ] {
         let entries = stage
-            .exact_receipt()
+            .exact_receipt()?
             .collections
             .iter()
             .filter(|r| r.source_graph == prepared.source_graph && r.collection == collection)
@@ -1282,7 +1282,7 @@ pub fn prepare_claim_context_groups(
         }
         let (contexts, root_sha256) = context_root(stage, limits)?;
         Ok(ClaimContextReceipt {
-            source_cut: stage.exact_receipt().binding.source_cut.clone(),
+            source_cut: stage.exact_receipt()?.binding.source_cut.clone(),
             contexts,
             root_sha256,
         })
@@ -1299,7 +1299,7 @@ pub fn verify_claim_context_groups(
 ) -> Result<()> {
     let result = (|| {
         limits.validate()?;
-        if stage.exact_receipt().binding.source_cut != receipt.source_cut
+        if stage.exact_receipt()?.binding.source_cut != receipt.source_cut
             || context_root(stage, limits)? != (receipt.contexts, receipt.root_sha256.clone())
         {
             return Err(Error::Invalid("Claim context group root/cut"));
@@ -1319,7 +1319,7 @@ pub fn claim_contexts(
     limits: ClaimNormalizeLimits,
 ) -> Result<Vec<Value>> {
     limits.validate()?;
-    if stage.exact_receipt().binding.source_cut != receipt.source_cut
+    if stage.exact_receipt()?.binding.source_cut != receipt.source_cut
         || Digest256::from_hex(&receipt.root_sha256).is_err()
     {
         return Err(Error::Invalid("Claim context lookup receipt"));
@@ -1351,7 +1351,7 @@ pub fn claim_context_sources(
     limits: ClaimNormalizeLimits,
 ) -> Result<Vec<Vec<u8>>> {
     limits.validate()?;
-    if stage.exact_receipt().binding.source_cut != receipt.source_cut
+    if stage.exact_receipt()?.binding.source_cut != receipt.source_cut
         || Digest256::from_hex(&receipt.root_sha256).is_err()
     {
         return Err(Error::Invalid("Claim context witness receipt"));
@@ -1374,7 +1374,7 @@ pub fn claim_context_sources(
         if raw.payload.len() > limits.max_raw_bytes {
             return Err(Error::Budget("Claim context witness bytes"));
         }
-        let material = if stage.exact_receipt().collections.iter().any(|entry| {
+        let material = if stage.exact_receipt()?.collections.iter().any(|entry| {
             entry.source_graph == graph
                 && entry.collection == "nodes"
                 && entry.adapter_profile == PROFILE

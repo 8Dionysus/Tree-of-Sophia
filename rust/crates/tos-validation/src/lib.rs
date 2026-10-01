@@ -1232,3 +1232,19 @@ mod tests {
         assert!(matches!(outcome, ValidationOutcome::Indeterminate { .. }));
     }
 }
+
+pub mod source_witness_foundation;
+
+pub mod source_foundation_schema;
+
+pub mod source_foundation_records;
+
+pub mod source_foundation_labs;
+
+pub mod source_foundation_goldsets;
+
+pub mod source_foundation_discovery;
+
+pub mod source_foundation_closure;
+
+pub mod source_foundation_default_rules;

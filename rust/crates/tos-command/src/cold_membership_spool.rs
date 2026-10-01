@@ -104,6 +104,29 @@ impl PrivateGenerationWorkspace {
         .map_err(|_| DurableError::Refused("unnamed cold workspace file unavailable"))
     }
 
+    /// Create a fresh, independently owned unnamed file for a bounded private
+    /// workspace consumer. Each call returns a different O_TMPFILE inode.
+    pub(crate) fn new_private_file(&self) -> DurableResult<File> {
+        self.new_file()
+    }
+
+    pub(crate) fn charge_private_bytes(&self, bytes: u64) -> DurableResult<()> {
+        let bytes = usize::try_from(bytes)
+            .map_err(|_| DurableError::Refused("cold workspace byte count overflow"))?;
+        self.charge(bytes)
+    }
+
+    pub(crate) fn remaining_private_bytes(&self) -> DurableResult<u64> {
+        let written = *self
+            .written
+            .lock()
+            .map_err(|_| DurableError::Corrupt("cold workspace accounting poisoned"))?;
+        self.limits
+            .max_scratch_written_bytes
+            .checked_sub(written)
+            .ok_or(DurableError::Corrupt("cold workspace charge exceeds limit"))
+    }
+
     fn charge(&self, bytes: usize) -> DurableResult<()> {
         let mut written = self
             .written

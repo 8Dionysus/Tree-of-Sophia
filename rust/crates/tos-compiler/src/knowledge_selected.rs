@@ -6,11 +6,10 @@ use crate::{
     Error, MAX_POSTING_DELTA_BYTES, MAX_POSTINGS_PER_BLOCK, Result, decode_posting_block,
     knowledge_stage, safe_open, stream_digest,
 };
-use rusqlite::{Connection, OpenFlags, OptionalExtension, params};
+use rusqlite::{Connection, OptionalExtension, params};
 use std::{
     fs::File,
     io::Seek,
-    os::fd::AsRawFd,
     path::Path,
     sync::{
         Arc,
@@ -129,7 +128,7 @@ impl<'a> std::ops::Deref for CustodyRef<'a> {
 }
 
 pub struct VerifiedKnowledgeModel<'a> {
-    connection: Connection,
+    connection: tos_source_store::PinnedSqliteConnection,
     pinned: File,
     selection: KnowledgeSelectedExpectation,
     source_basis: crate::KnowledgeSourceBasis,
@@ -578,20 +577,12 @@ fn open_sqlite(
     pinned: &File,
     max_vm_steps: u64,
     cache_kib: u64,
-) -> Result<(Connection, Arc<AtomicU64>)> {
+) -> Result<(tos_source_store::PinnedSqliteConnection, Arc<AtomicU64>)> {
     if max_vm_steps == 0 {
         return Err(Error::Budget("knowledge SQLite VM steps"));
     }
-    let uri = format!(
-        "file:/proc/self/fd/{}?mode=ro&immutable=1",
-        pinned.as_raw_fd()
-    );
-    let db = Connection::open_with_flags(
-        uri,
-        OpenFlags::SQLITE_OPEN_READ_ONLY
-            | OpenFlags::SQLITE_OPEN_URI
-            | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-    )?;
+    let db = tos_source_store::PinnedSqliteConnection::open_readonly_immutable(pinned)
+        .map_err(|error| Error::Source(error.to_string()))?;
     let used = Arc::new(AtomicU64::new(0));
     let callback = Arc::clone(&used);
     db.progress_handler(

@@ -135,7 +135,7 @@ impl<'a> PhilosophyNormalizer<'a> {
     fn bind(&self, stage: &KnowledgeStage<'_>, prepared: &PhilosophyPrepareReceipt) -> Result<()> {
         if prepared.source_graph != self.source_graph
             || prepared.final_graph_rows_written
-            || prepared.source_cut != stage.exact_receipt().binding.source_cut
+            || prepared.source_cut != stage.exact_receipt()?.binding.source_cut
         {
             return Err(Error::Invalid("philosophy materializer selected cut"));
         }
@@ -146,7 +146,7 @@ impl<'a> PhilosophyNormalizer<'a> {
             ("edges", prepared.edges, &prepared.edge_input_root_sha256),
         ] {
             let registered = stage
-                .exact_receipt()
+                .exact_receipt()?
                 .collections
                 .iter()
                 .find(|r| r.source_graph == self.source_graph && r.collection == collection)

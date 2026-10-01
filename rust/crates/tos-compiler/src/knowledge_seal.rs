@@ -317,7 +317,7 @@ fn seal_inner(
         &node_root,
         &relation_root,
     );
-    let binding = stage.exact_receipt().binding.clone();
+    let binding = stage.exact_receipt()?.binding.clone();
     let navigation = crate::knowledge_navigation_original::verify_stage(
         stage,
         Some(&vocabulary.descriptor_sha256),

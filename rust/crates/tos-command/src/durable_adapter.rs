@@ -1570,6 +1570,21 @@ impl DurablePgCoordinator {
         request: &CommitShadowAttempt<'_>,
         mode: source_cohort::CommitMode<'_>,
     ) -> DurableResult<(DurableCommitReceipt, DurableTiming)> {
+        self.commit_durable_with_sequence_limit(store, request, mode, MAX_CUT)
+    }
+
+    // A streamed bootstrap carries the validated complete-generation ceiling.
+    // The existing shadow and mutation callers retain their laboratory limit.
+    fn commit_durable_with_sequence_limit(
+        &mut self,
+        store: &SegmentStore,
+        request: &CommitShadowAttempt<'_>,
+        mode: source_cohort::CommitMode<'_>,
+        max_commit_seq: u64,
+    ) -> DurableResult<(DurableCommitReceipt, DurableTiming)> {
+        if max_commit_seq == 0 || max_commit_seq > i64::MAX as u64 {
+            return Err(DurableError::Invalid("invalid commit sequence limit"));
+        }
         if request.attempt_fence == 0
             || request.receipts.is_empty()
             || request.receipts.len() > MAX_MEMBERS
@@ -1647,7 +1662,7 @@ impl DurablePgCoordinator {
             &[&request.domain],
         )?;
         let head = as_u64(domain.get(0))?;
-        if head >= MAX_CUT {
+        if head >= max_commit_seq {
             return Err(DurableError::Refused("shadow cut budget exceeded"));
         }
         let rights_version = as_u64(domain.get(1))?;
@@ -2033,9 +2048,9 @@ impl DurablePgCoordinator {
         let seq = as_u64(row.get::<_, i64>(0))?
             .checked_add(1)
             .ok_or(DurableError::Corrupt("sequence overflow"))?;
-        if seq > MAX_CUT {
-            return Err(DurableError::Refused("shadow cut budget exceeded"));
-        }
+        // Revocation appends one rights event regardless of history size.
+        // The finite cold-cut budget must not prevent withdrawing access to
+        // a larger streamed generation; BIGINT bounds still apply below.
         let rights_version = as_u64(row.get::<_, i64>(1))?
             .checked_add(1)
             .ok_or(DurableError::Corrupt("rights version overflow"))?;

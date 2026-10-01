@@ -1,0 +1,679 @@
+//! Full-rule reader over the authenticated authored cut and separately held
+//! physical auxiliary namespace. Physical observations never extend the cut.
+use std::collections::BTreeMap;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Instant;
+use tos_foundation::{Digest256, RelativePath};
+use tos_ops_mechanics_plan::route_cards::{RouteRootCustody, RouteSources};
+use tos_source_store::{CorpusCutReader, is_authored_source_path_v1};
+use tos_validation::item_rules::ItemRefusal;
+use tos_validation::layer_family_cut::CutLayerPayloadReader;
+use tos_validation::layer_family_rules::{LayerFamilySource, LayerPayload};
+use tos_validation::source_cut::CutSchemaExecutor;
+
+/// Exact, explicitly selected historical evidence. This capability cannot
+/// supply current authored membership or executable software authority.
+/// Usage is monotonic charged I/O and retained logical state, not RSS.
+pub(crate) trait FoundationHistoricalEvidence {
+    fn selected(&self, path: &str) -> bool;
+    fn read(
+        &mut self,
+        path: &str,
+        expected_digest: Option<&str>,
+        max_bytes: usize,
+        max_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> std::io::Result<Option<Vec<u8>>>;
+    fn physical(
+        &mut self,
+        path: &str,
+        max_read_bytes: u64,
+        max_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> std::io::Result<Option<tos_validation::source_foundation_discovery::PhysicalPathFacts>>;
+    fn recheck(
+        &mut self,
+        max_read_bytes: u64,
+        max_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> std::io::Result<()>;
+    fn usage(&self) -> (u64, usize);
+}
+
+pub(crate) struct FoundationRuleReadLimits {
+    pub max_member_bytes: usize,
+    pub max_read_bytes: u64,
+    pub max_auxiliary_paths: usize,
+    pub max_auxiliary_state_bytes: usize,
+    pub deadline: Instant,
+}
+
+/// Successful reads, including the final repeated auxiliary verification.
+/// A refused read does not export a completed cost receipt.
+pub(crate) struct FoundationRuleReadCost {
+    pub bytes_read: u64,
+    pub auxiliary_paths: usize,
+    pub auxiliary_state_bytes: usize,
+}
+
+/// Retained byte custody for separately selected operands. Moving this out of
+/// the rule reader releases its worker/payload borrows without losing the EOF
+/// obligations across later catalog and bibliographic workers.
+pub(crate) struct FoundationAuxiliaryCustody<'cancel> {
+    cancelled: &'cancel AtomicBool,
+    root_custody: RouteRootCustody,
+    limits: FoundationRuleReadLimits,
+    read_bytes: u64,
+    auxiliary: BTreeMap<String, Option<(Digest256, u64)>>,
+    auxiliary_state_bytes: usize,
+}
+
+impl FoundationAuxiliaryCustody<'_> {
+    pub(crate) fn deadline(&self) -> Instant {
+        self.limits.deadline
+    }
+    pub(crate) fn retained_state_bytes(&self) -> usize {
+        self.auxiliary_state_bytes
+    }
+    pub(crate) fn bytes_read(&self) -> u64 {
+        self.read_bytes
+    }
+    pub(crate) fn verify_context(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal> {
+        if !std::ptr::eq(cancelled, self.cancelled) || self.limits.deadline > deadline {
+            return Err(ItemRefusal::Source(
+                "foundation auxiliary operation context differs".into(),
+            ));
+        }
+        reader_checkpoint(self.limits.deadline, self.cancelled)
+    }
+    pub(crate) fn recheck(
+        &mut self,
+        physical: &mut RouteSources,
+        cancelled: &AtomicBool,
+    ) -> Result<FoundationRuleReadCost, ItemRefusal> {
+        let remaining_read_bytes = self
+            .limits
+            .max_read_bytes
+            .checked_sub(self.read_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        self.recheck_until_with_limits(
+            physical,
+            remaining_read_bytes,
+            self.limits.max_auxiliary_state_bytes,
+            self.limits.deadline,
+            cancelled,
+        )
+    }
+
+    /// Recheck selected auxiliary operands under a caller's remaining whole-
+    /// invocation allowance. Both limits narrow monotonically, including on
+    /// failure, so a retry cannot recover spent headroom. The original
+    /// deadline, cancellation signal, and held-root custody remain exact.
+    pub(crate) fn recheck_until_with_limits(
+        &mut self,
+        physical: &mut RouteSources,
+        max_remaining_read_bytes: u64,
+        max_auxiliary_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<FoundationRuleReadCost, ItemRefusal> {
+        if deadline != self.limits.deadline {
+            return Err(ItemRefusal::Source(
+                "foundation auxiliary deadline was changed".into(),
+            ));
+        }
+        self.verify_context(deadline, cancelled)?;
+        if self.auxiliary_state_bytes > max_auxiliary_state_bytes {
+            return Err(ItemRefusal::Budget);
+        }
+        self.limits.max_auxiliary_state_bytes = self
+            .limits
+            .max_auxiliary_state_bytes
+            .min(max_auxiliary_state_bytes);
+        let requested_total = self
+            .read_bytes
+            .checked_add(max_remaining_read_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        self.limits.max_read_bytes = self.limits.max_read_bytes.min(requested_total);
+        physical
+            .verify_custody(&self.root_custody)
+            .map_err(custody)?;
+        recheck_auxiliary_inputs(
+            physical,
+            &self.auxiliary,
+            &self.limits,
+            &mut self.read_bytes,
+            cancelled,
+        )?;
+        Ok(FoundationRuleReadCost {
+            bytes_read: self.read_bytes,
+            auxiliary_paths: self.auxiliary.len(),
+            auxiliary_state_bytes: self.auxiliary_state_bytes,
+        })
+    }
+}
+
+fn recheck_auxiliary_inputs(
+    physical: &mut RouteSources,
+    selected: &BTreeMap<String, Option<(Digest256, u64)>>,
+    limits: &FoundationRuleReadLimits,
+    read_bytes: &mut u64,
+    cancelled: &AtomicBool,
+) -> Result<(), ItemRefusal> {
+    for (path, expected) in selected {
+        reader_checkpoint(limits.deadline, cancelled)?;
+        let present = physical.is_file(path).map_err(custody)?;
+        if present != expected.is_some() {
+            return Err(ItemRefusal::Source(
+                "foundation auxiliary presence changed".into(),
+            ));
+        }
+        if let Some((digest, length)) = expected {
+            let remaining = limits
+                .max_read_bytes
+                .checked_sub(*read_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            let cap = limits
+                .max_member_bytes
+                .min(usize::try_from(remaining).unwrap_or(usize::MAX));
+            if *length > cap as u64 {
+                return Err(ItemRefusal::Budget);
+            }
+            let mut read = 0;
+            let raw = physical
+                .bounded_bytes(path, cap, &mut read, cap)
+                .map_err(custody)?;
+            *read_bytes = read_bytes
+                .checked_add(read as u64)
+                .filter(|n| *n <= limits.max_read_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            if raw.len() as u64 != *length || Digest256::of_bytes(&raw) != *digest {
+                return Err(ItemRefusal::Source(
+                    "foundation auxiliary bytes changed".into(),
+                ));
+            }
+        }
+        reader_checkpoint(limits.deadline, cancelled)?;
+    }
+    reader_checkpoint(limits.deadline, cancelled)?;
+    physical.verify_root().map_err(custody)?;
+    reader_checkpoint(limits.deadline, cancelled)
+}
+
+fn reader_checkpoint(deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
+    if cancelled.load(Ordering::Relaxed) {
+        Err(ItemRefusal::Source(
+            "foundation validation cancelled".into(),
+        ))
+    } else if Instant::now() >= deadline {
+        Err(ItemRefusal::Deadline)
+    } else {
+        Ok(())
+    }
+}
+
+pub(crate) struct FoundationRuleSource<'a, 'cancel> {
+    pub cut: &'a CorpusCutReader,
+    pub physical: &'a mut RouteSources,
+    pub schemas: &'a mut dyn CutSchemaExecutor,
+    pub payloads: &'a mut dyn CutLayerPayloadReader,
+    pub cancelled: &'cancel AtomicBool,
+    pub limits: FoundationRuleReadLimits,
+    read_bytes: u64,
+    auxiliary: BTreeMap<String, Option<(Digest256, u64)>>,
+    auxiliary_state_bytes: usize,
+    history: Option<&'a mut (dyn FoundationHistoricalEvidence + 'static)>,
+}
+
+impl<'a, 'cancel> FoundationRuleSource<'a, 'cancel> {
+    pub(crate) fn into_auxiliary_custody(self) -> FoundationAuxiliaryCustody<'cancel> {
+        FoundationAuxiliaryCustody {
+            cancelled: self.cancelled,
+            root_custody: self.physical.root_custody(),
+            limits: self.limits,
+            read_bytes: self.read_bytes,
+            auxiliary: self.auxiliary,
+            auxiliary_state_bytes: self.auxiliary_state_bytes,
+        }
+    }
+    pub(crate) fn cost(&self) -> FoundationRuleReadCost {
+        FoundationRuleReadCost {
+            bytes_read: self.read_bytes,
+            auxiliary_paths: self.auxiliary.len(),
+            auxiliary_state_bytes: self.auxiliary_state_bytes,
+        }
+    }
+    pub(crate) fn new(
+        cut: &'a CorpusCutReader,
+        physical: &'a mut RouteSources,
+        schemas: &'a mut dyn CutSchemaExecutor,
+        payloads: &'a mut dyn CutLayerPayloadReader,
+        cancelled: &'cancel AtomicBool,
+        limits: FoundationRuleReadLimits,
+    ) -> Result<Self, ItemRefusal> {
+        if limits.max_member_bytes == 0
+            || limits.max_read_bytes == 0
+            || limits.max_auxiliary_paths == 0
+            || limits.max_auxiliary_state_bytes == 0
+        {
+            return Err(ItemRefusal::Budget);
+        }
+        let selected = Self {
+            cut,
+            physical,
+            schemas,
+            payloads,
+            cancelled,
+            limits,
+            read_bytes: 0,
+            auxiliary: BTreeMap::new(),
+            auxiliary_state_bytes: 0,
+            history: None,
+        };
+        selected.checkpoint(selected.limits.deadline)?;
+        Ok(selected)
+    }
+
+    pub(crate) fn with_history(
+        mut self,
+        history: &'a mut (dyn FoundationHistoricalEvidence + 'static),
+    ) -> Result<Self, ItemRefusal> {
+        // A historical capability may never shadow a proposed authored member.
+        for member in self.cut.current().members() {
+            self.checkpoint(self.limits.deadline)?;
+            if history.selected(member.path.as_str()) {
+                return Err(ItemRefusal::Source(
+                    "historical input overlaps candidate".into(),
+                ));
+            }
+        }
+        self.history = Some(history);
+        Ok(self)
+    }
+
+    fn historical_read(
+        &mut self,
+        path: &str,
+        digest: Option<&str>,
+        requested: usize,
+        deadline: Instant,
+    ) -> Result<Option<Vec<u8>>, ItemRefusal> {
+        self.checkpoint(deadline)?;
+        let cap = self.remaining(requested)?;
+        let state = self
+            .limits
+            .max_auxiliary_state_bytes
+            .checked_sub(self.auxiliary_state_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        let history = self.history.as_deref_mut().ok_or(ItemRefusal::Budget)?;
+        let before = history.usage();
+        let result = history.read(
+            path,
+            digest,
+            cap,
+            state,
+            deadline.min(self.limits.deadline),
+            self.cancelled,
+        );
+        let after = history.usage();
+        let delta = after.0.checked_sub(before.0).ok_or(ItemRefusal::Budget)?;
+        // Charge observed provider work even if the selected read refuses.
+        self.read_bytes = self
+            .read_bytes
+            .checked_add(delta)
+            .filter(|n| *n <= self.limits.max_read_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        self.auxiliary_state_bytes = self
+            .auxiliary_state_bytes
+            .checked_add(after.1.checked_sub(before.1).ok_or(ItemRefusal::Budget)?)
+            .filter(|bytes| *bytes <= self.limits.max_auxiliary_state_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        let raw = result.map_err(custody)?;
+        if raw.as_ref().is_some_and(|raw| {
+            raw.len() > cap
+                || digest.is_some_and(|expected| Digest256::of_bytes(raw).to_hex() != expected)
+        }) {
+            return Err(ItemRefusal::Source(
+                "historical input binding differs".into(),
+            ));
+        }
+        self.checkpoint(deadline)?;
+        Ok(raw)
+    }
+
+    fn remaining(&self, requested: usize) -> Result<usize, ItemRefusal> {
+        let remaining = self
+            .limits
+            .max_read_bytes
+            .checked_sub(self.read_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(requested
+            .min(self.limits.max_member_bytes)
+            .min(usize::try_from(remaining).unwrap_or(usize::MAX)))
+    }
+
+    fn auxiliary_read(
+        &mut self,
+        path: &str,
+        requested: usize,
+        deadline: Instant,
+    ) -> Result<Option<Vec<u8>>, ItemRefusal> {
+        self.checkpoint(deadline)?;
+        let cap = self.remaining(requested)?;
+        if !self.auxiliary.contains_key(path) {
+            let state = self
+                .auxiliary_state_bytes
+                .checked_add(path.len())
+                .and_then(|n| {
+                    n.checked_add(std::mem::size_of::<(String, Option<(Digest256, u64)>)>() + 64)
+                })
+                .filter(|n| *n <= self.limits.max_auxiliary_state_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            if self.auxiliary.len() >= self.limits.max_auxiliary_paths {
+                return Err(ItemRefusal::Budget);
+            }
+            self.auxiliary_state_bytes = state;
+        }
+        if !self.physical.is_file(path).map_err(custody)? {
+            if self.auxiliary.get(path).is_some_and(Option::is_some) {
+                return Err(ItemRefusal::Source(
+                    "foundation auxiliary input disappeared".into(),
+                ));
+            }
+            if !self.auxiliary.contains_key(path) {
+                self.auxiliary.insert(path.to_owned(), None);
+            }
+            return Ok(None);
+        }
+        let mut read = 0;
+        let raw = self
+            .physical
+            .bounded_bytes(path, cap, &mut read, cap)
+            .map_err(custody)?;
+        self.read_bytes = self
+            .read_bytes
+            .checked_add(read as u64)
+            .filter(|n| *n <= self.limits.max_read_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        let stamp = Some((Digest256::of_bytes(&raw), raw.len() as u64));
+        if self
+            .auxiliary
+            .get(path)
+            .is_some_and(|before| before != &stamp)
+        {
+            return Err(ItemRefusal::Source(
+                "foundation auxiliary bytes changed".into(),
+            ));
+        }
+        if let Some(selected) = self.auxiliary.get_mut(path) {
+            *selected = stamp;
+        } else {
+            self.auxiliary.insert(path.to_owned(), stamp);
+        }
+        self.checkpoint(deadline)?;
+        Ok(Some(raw))
+    }
+
+    /// Verify every separately selected software/private-content byte operand.
+    /// This repeated physical read belongs in the whole operation envelope.
+    pub(crate) fn recheck_auxiliary(&mut self) -> Result<(), ItemRefusal> {
+        recheck_auxiliary_inputs(
+            self.physical,
+            &self.auxiliary,
+            &self.limits,
+            &mut self.read_bytes,
+            self.cancelled,
+        )
+    }
+}
+
+fn custody(_: std::io::Error) -> ItemRefusal {
+    ItemRefusal::Source("foundation held physical input custody refused".into())
+}
+fn allowed(path: &str) -> Result<(), ItemRefusal> {
+    RelativePath::parse(path)
+        .map_err(|_| ItemRefusal::Source("foundation relative input path".into()))?;
+    if path.starts_with("ToS/") || path.starts_with("scripts/") {
+        Ok(())
+    } else {
+        Err(ItemRefusal::Source(
+            "foundation input owner namespace".into(),
+        ))
+    }
+}
+fn builder_name(path: &str) -> Option<&str> {
+    let name = path.strip_prefix("scripts/")?.strip_suffix(".py")?;
+    if name.as_bytes().first().is_some_and(u8::is_ascii_lowercase)
+        && name
+            .bytes()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'_')
+    {
+        Some(name)
+    } else {
+        None
+    }
+}
+fn contract_name(path: &str) -> bool {
+    let Some(name) = path
+        .strip_prefix("ToS/contracts/")
+        .and_then(|n| n.strip_suffix(".schema.json"))
+    else {
+        return false;
+    };
+    name.as_bytes().first().is_some_and(u8::is_ascii_lowercase)
+        && name
+            .bytes()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-')
+}
+
+impl LayerFamilySource for FoundationRuleSource<'_, '_> {
+    fn current(
+        &mut self,
+        path: &str,
+        requested: usize,
+        deadline: Instant,
+    ) -> Result<Option<Vec<u8>>, ItemRefusal> {
+        self.checkpoint(deadline)?;
+        allowed(path)?;
+        if self
+            .history
+            .as_deref()
+            .is_some_and(|history| history.selected(path))
+        {
+            return self.historical_read(path, None, requested, deadline);
+        }
+        if is_authored_source_path_v1(path) {
+            let relative = RelativePath::parse(path)
+                .map_err(|_| ItemRefusal::Source("foundation current input path".into()))?;
+            let Some(metadata) = self.cut.current().member(&relative) else {
+                return Ok(None);
+            };
+            let cap = self.remaining(requested)?;
+            if metadata.size_bytes > cap as u64 {
+                return Err(ItemRefusal::Budget);
+            }
+            let raw = self
+                .cut
+                .read_member(
+                    self.cut.current().revision(),
+                    &relative,
+                    cap as u64,
+                    deadline.min(self.limits.deadline),
+                    self.cancelled,
+                )
+                .map_err(|_| ItemRefusal::Source("foundation immutable input custody".into()))?
+                .raw;
+            self.read_bytes = self
+                .read_bytes
+                .checked_add(raw.len() as u64)
+                .filter(|n| *n <= self.limits.max_read_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            Ok(Some(raw))
+        } else {
+            // Explicit private text/software operands are physical selections;
+            // their absence is never inferred from the authored cut.
+            self.auxiliary_read(path, requested, deadline)
+        }
+    }
+
+    fn recorded(
+        &mut self,
+        path: &str,
+        digest: &str,
+        requested: usize,
+        deadline: Instant,
+    ) -> Result<Option<Vec<u8>>, ItemRefusal> {
+        allowed(path)?;
+        let Ok(expected) = Digest256::from_hex(digest) else {
+            return Ok(None);
+        };
+        if self
+            .history
+            .as_deref()
+            .is_some_and(|history| history.selected(path))
+        {
+            return self.historical_read(path, Some(digest), requested, deadline);
+        }
+        // Historical scripts may be retired while their exact authored
+        // captures remain. This cold reader selects no current producer
+        // components; current-only components stay in CutProvenanceSource.
+        let current = self.current(path, requested, deadline)?;
+        if let Some(raw) = current.as_ref() {
+            if Digest256::of_bytes(raw) == expected {
+                return Ok(current);
+            }
+        }
+        let (archived, schema) = if let Some(builder) = builder_name(path) {
+            (
+                format!("ToS/research-packets/retained-builder-inputs/{builder}/{digest}.py"),
+                false,
+            )
+        } else if contract_name(path) {
+            // Schema retirement is outside the accepted script-only change.
+            if current.is_none() {
+                return Ok(None);
+            }
+            (format!("ToS/contracts/history/{digest}.json"), true)
+        } else {
+            return Ok(None);
+        };
+        let Some(raw) = self.current(&archived, requested.min(1_048_576), deadline)? else {
+            return Ok(None);
+        };
+        if Digest256::of_bytes(&raw) != expected {
+            return Ok(None);
+        }
+        if schema {
+            let Ok(value) = serde_json::from_slice::<serde_json::Value>(&raw) else {
+                return Ok(None);
+            };
+            if !value.is_object()
+                || value["$id"].as_str()
+                    != Some(format!("https://tree-of-sophia.local/{path}").as_str())
+            {
+                return Ok(None);
+            }
+        }
+        Ok(Some(raw))
+    }
+
+    fn schema(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+    ) -> Result<bool, ItemRefusal> {
+        self.checkpoint(deadline)?;
+        self.schemas.check(
+            path,
+            raw,
+            contract,
+            deadline.min(self.limits.deadline),
+            self.cancelled,
+        )
+    }
+    fn exists(&mut self, path: &str, _: usize, deadline: Instant) -> Result<bool, ItemRefusal> {
+        self.checkpoint(deadline)?;
+        allowed(path)?;
+        let remaining_read = self
+            .limits
+            .max_read_bytes
+            .checked_sub(self.read_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        let remaining_state = self
+            .limits
+            .max_auxiliary_state_bytes
+            .checked_sub(self.auxiliary_state_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        if let Some(history) = self
+            .history
+            .as_deref_mut()
+            .filter(|history| history.selected(path))
+        {
+            let before = history.usage();
+            let result = history.physical(
+                path,
+                remaining_read,
+                remaining_state,
+                deadline.min(self.limits.deadline),
+                self.cancelled,
+            );
+            let after = history.usage();
+            self.read_bytes = self
+                .read_bytes
+                .checked_add(after.0.checked_sub(before.0).ok_or(ItemRefusal::Budget)?)
+                .filter(|n| *n <= self.limits.max_read_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            self.auxiliary_state_bytes = self
+                .auxiliary_state_bytes
+                .checked_add(after.1.checked_sub(before.1).ok_or(ItemRefusal::Budget)?)
+                .filter(|bytes| *bytes <= self.limits.max_auxiliary_state_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            self.checkpoint(deadline)?;
+            return result
+                .map(|facts| facts.is_some_and(|facts| facts.exists))
+                .map_err(custody);
+        }
+        self.physical.exists(path).map_err(custody)
+    }
+    fn payload(
+        &mut self,
+        path: &str,
+        max_bytes: usize,
+        deadline: Instant,
+    ) -> Result<LayerPayload, ItemRefusal> {
+        self.checkpoint(deadline)?;
+        allowed(path)?;
+        self.payloads.inspect(
+            path,
+            max_bytes,
+            deadline.min(self.limits.deadline),
+            self.cancelled,
+        )
+    }
+    fn cancellation(&self) -> &AtomicBool {
+        self.cancelled
+    }
+    fn generation(&self) -> String {
+        self.cut.current().revision().0.to_hex()
+    }
+    fn checkpoint(&self, deadline: Instant) -> Result<(), ItemRefusal> {
+        if self.cancelled.load(Ordering::Relaxed) {
+            Err(ItemRefusal::Source(
+                "foundation validation cancelled".into(),
+            ))
+        } else if Instant::now() >= deadline.min(self.limits.deadline) {
+            Err(ItemRefusal::Deadline)
+        } else {
+            Ok(())
+        }
+    }
+}

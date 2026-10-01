@@ -270,6 +270,32 @@ pub(crate) fn component_root(r: &CorpusOriginalReceipt) -> Result<String> {
     h.update(&canonical);
     Ok(h.finalize().to_hex())
 }
+/// Digest of exactly the captured corpus member closure, not the full public
+/// capture manifest. The preimage is the canonical SourceRecordDigestV1 flat
+/// path-to-SHA256 map; sizes remain independently bound by member_root_sha256.
+pub fn captured_runtime_input_manifest_digest(
+    input_bindings: &Value,
+    cap: usize,
+) -> Result<Digest256> {
+    let entries = input_bindings
+        .as_object()
+        .ok_or(Error::Invalid("runtime capture input bindings"))?;
+    if entries.is_empty() || entries.len() > 65_536 {
+        return Err(Error::Budget("runtime capture member count"));
+    }
+    for (path, sha) in entries {
+        RelativePath::parse(path).map_err(|_| Error::Invalid("runtime capture member path"))?;
+        Digest256::from_hex(
+            sha.as_str()
+                .ok_or(Error::Invalid("runtime capture member SHA"))?,
+        )
+        .map_err(|_| Error::Invalid("runtime capture member SHA"))?;
+    }
+    Ok(Digest256::of_bytes(
+        &crate::knowledge_corpus_source::encode(input_bindings, cap)?,
+    ))
+}
+
 pub(crate) fn validate_receipt(r: &CorpusOriginalReceipt) -> Result<()> {
     if ![CORPUS_ORIGINAL_PROFILE, NATIVE_CORPUS_ORIGINAL_PROFILE].contains(&r.profile.as_str())
         || r.collections.len() != CorpusOriginalCollection::ROWS.len()
@@ -315,6 +341,30 @@ pub(crate) fn validate_receipt(r: &CorpusOriginalReceipt) -> Result<()> {
             || producer.output_bytes != r.origin.source_size_bytes
         {
             return Err(Error::Invalid("native corpus producer selected binding"));
+        }
+    } else if r.origin.profile == "captured-runtime-projection-v1" {
+        if r.profile != CORPUS_ORIGINAL_PROFILE
+            || r.origin.source_git_commit.is_some()
+            || r.origin.source_git_tree.is_some()
+            || r.origin.native_producer.is_some()
+        {
+            return Err(Error::Invalid("mixed runtime corpus capture origin"));
+        }
+        let mut entries = serde_json::Map::new();
+        for member in &r.origin.members {
+            if entries
+                .insert(member.path.clone(), Value::String(member.sha256.clone()))
+                .is_some()
+            {
+                return Err(Error::Invalid("duplicate runtime corpus member"));
+            }
+        }
+        let digest = captured_runtime_input_manifest_digest(
+            &Value::Object(entries),
+            crate::knowledge_original_rows::MAX_TOTAL_BYTES as usize,
+        )?;
+        if r.origin.capture_manifest_sha256.as_deref() != Some(digest.to_hex().as_str()) {
+            return Err(Error::Invalid("runtime corpus capture manifest SHA"));
         }
     } else {
         if r.profile != CORPUS_ORIGINAL_PROFILE
@@ -423,7 +473,7 @@ pub fn retain_corpus_original(
     plan: &CorpusOriginalPlan,
 ) -> Result<CorpusOriginalReceipt> {
     let result = (|| {
-        let binding = &stage.exact_receipt().binding;
+        let binding = &stage.exact_receipt()?.binding;
         if serde_json::to_vec(binding).map_err(|_| Error::Invalid("corpus composition binding"))?
             != serde_json::to_vec(&plan.binding)
                 .map_err(|_| Error::Invalid("corpus plan binding"))?
@@ -813,7 +863,7 @@ pub(crate) fn verify_stage(
     stage: &mut KnowledgeStage<'_>,
     descriptor: Option<&str>,
 ) -> Result<Option<CorpusOriginalReceipt>> {
-    let binding = stage.exact_receipt().binding.clone();
+    let binding = stage.exact_receipt()?.binding.clone();
     stage.with_connection(WritePhase::Finalize, |db| {
         if !present(db)? {
             return Ok(None);

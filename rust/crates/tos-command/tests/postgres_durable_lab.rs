@@ -909,7 +909,7 @@ fn maintained_agent_creation_operation<
             .canonicalize()
             .unwrap(),
     };
-    let cancelled = AtomicBool::new(false);
+    let cancelled = std::sync::Arc::new(AtomicBool::new(false));
     let deadline = Instant::now() + Duration::from_secs(240);
     // Only the two selected-model candidates need the explicitly admitted
     // fs-verity filesystem. Corpus, catalog staging, PG and generation spool
@@ -1203,36 +1203,236 @@ fn maintained_agent_creation_operation<
         worker.finish(deadline, &cancelled).unwrap();
         contexts.push(context);
     }
-    let mut worker = new_worker(&cut);
-    let initial = lab
-        .db
-        .bootstrap_source_cohort(
-            &lab.store,
-            &lab.domain,
-            &cut,
+    let generation_profile = StreamedGenerationProfile {
+        max_commit_seq: 4096,
+        max_members: 512,
+        max_pins: 4096,
+        max_segment_bytes: 64 * 1024 * 1024,
+        max_membership_key_bytes: 16 * 1024 * 1024,
+        max_metadata_rows: 100_000,
+        max_metadata_bytes: 64 * 1024 * 1024,
+        max_elapsed: Duration::from_secs(120),
+        max_pg_temp_bytes: 64 * 1024 * 1024,
+        max_sql_statement_ms: 60_000,
+        generation: GenerationReadLimits {
+            max_descriptor_bytes: 1024 * 1024,
+            shape: GenerationShapeLimits {
+                max_partitions: 128,
+                max_rows_per_partition: 4,
+                max_key_bytes: 4096,
+                max_leaf_bytes: 256 * 1024,
+            },
+            max_stream_rows: 512,
+            max_stream_key_bytes: 16 * 1024 * 1024,
+        },
+        rows_per_leaf: 4,
+    };
+    let tree_limits = tos_segment_store::AuthenticatedTreeLimitsV1 {
+        max_key_bytes: 4096,
+        max_value_bytes: 1_048_576,
+        max_kind_bytes: 128,
+        max_node_bytes: 1_048_576,
+        max_children: 16,
+        max_nodes: 100_000,
+        max_total_bytes: 64 * 1024 * 1024,
+        max_rows: 4096,
+    };
+    let initial_cohort = if std::env::var_os("TOS_CMD2_STREAMED_COLD_V1").as_deref()
+        == Some(std::ffi::OsStr::new("1"))
+    {
+        assert!(
+            addressed,
+            "streamed bootstrap requires the addressed consumer"
+        );
+        let bootstrap_scratch = ScratchRoot::new();
+        let bootstrap_workspace = PrivateGenerationWorkspace::open(
+            &bootstrap_scratch.0,
+            ColdWorkspaceLimits {
+                max_scratch_written_bytes: 64 * 1024 * 1024,
+                max_run_bytes: 16 * 1024,
+                max_runs: 128,
+                merge_fan_in: 4,
+                max_rows: 4096,
+                max_key_bytes: 4096,
+            },
+        )
+        .unwrap();
+        let bootstrap_context = CommandContext {
+            base_revision: revision,
+            configuration_raw: contexts[0].configuration_raw.clone(),
+            request_raw: contexts[0].request_raw.clone(),
+            recorded_at: contexts[0].recorded_at.clone(),
+            effective_uid: contexts[0].effective_uid,
+            files: contexts[0]
+                .files
+                .iter()
+                .filter(|file| !file.path.as_str().starts_with("ToS/"))
+                .cloned()
+                .collect(),
+        };
+        let mut work = tos_command::source_cohort::StreamedColdSourceWorkV1::default();
+        let source_reader = CorpusReader::open_existing(&source_root, read_limits).unwrap();
+        let streamed_original_result = bootstrap_workspace.open_streamed_source_cut(
+            &source_reader,
             revision,
-            membership,
-            &contexts[0],
-            &software,
-            &components,
-            &mut worker,
-            contract_digest(),
+            tos_source_store::StreamedCutReadLimitsV1 {
+                manifest_json: JsonLimits {
+                    max_bytes: 4_194_304,
+                    ..JsonLimits::default()
+                },
+                max_manifest_entries: 2048,
+                cut: CutReadLimits {
+                    max_revisions: 4,
+                    max_members: 2048,
+                    max_total_bytes: 33_554_432,
+                    max_member_bytes: 8_388_608,
+                },
+                max_index_bytes: 16 * 1024 * 1024,
+                max_manifest_row_bytes: 1_048_576,
+                sqlite_cache_bytes: 1_048_576,
+            },
+            deadline,
+            &cancelled,
+            &mut work,
+        );
+        println!(
+            "streamed original cut open: result={:?}; work={work:?}",
+            streamed_original_result.as_ref().map(|_| ())
+        );
+        let streamed_original = streamed_original_result.unwrap();
+        assert!(work.original_index_length_observed > 0);
+        assert!(work.original_index_allocated_observed > 0);
+        assert_eq!(std::fs::read_dir(&bootstrap_scratch.0).unwrap().count(), 0,
+            "streamed SQLite must write only its charged unnamed inode");
+        assert_eq!(
+            streamed_original
+                .revision_at(0)
+                .unwrap()
+                .unwrap()
+                .membership,
+            membership
+        );
+        let image = tos_validation::executor::VerifiedWorkerImageHandle::prepare(
+            worker_identity.clone(),
+            ExecutorBudget::laboratory(),
             deadline,
             &cancelled,
         )
         .unwrap();
-    drop(worker);
-    assert_eq!(initial.current_membership, membership);
-    for original_member in cut.current().members() {
-        assert_eq!(
-            &initial.metadata[original_member.path.as_str()],
-            original_member
+        let mut worker = CutWorkerSchemaExecutor::from_streamed_cut_with_image(
+            &streamed_original,
+            tos_validation::FormatProfile::LegacyPythonObserved20260923,
+            &image,
+            ExecutorBudget::laboratory(),
+            CutWorkerLimits {
+                max_receipts: 128,
+                max_receipt_bytes: 262_144,
+            },
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let mut tree_work = tos_segment_store::AuthenticatedTreeWorkV1::default();
+        let result = lab.db.bootstrap_source_cohort_streamed(
+            &lab.store,
+            &lab.domain,
+            &streamed_original,
+            revision,
+            membership,
+            &bootstrap_context,
+            &software,
+            &components,
+            &mut worker,
+            contract_digest(),
+            2048,
+            33_554_432,
+            1_048_576,
+            "ToS/contracts/corpus-record.schema.json",
+            &bootstrap_workspace,
+            generation_profile,
+            tos_command::source_cohort::StreamedColdSourceLimitsV1 {
+                max_rows: 100_000,
+                max_logical_bytes: 64 * 1024 * 1024,
+                max_key_bytes: 4096,
+                max_value_bytes: 1_048_576,
+                max_placement_bytes: 1_048_576,
+                max_sqlite_file_bytes: 16 * 1024 * 1024,
+                max_vm_steps: 200_000_000,
+            },
+            tos_validation::item_rules::ItemLimits {
+                max_member_bytes: 8_388_608,
+                max_total_bytes: 64 * 1024 * 1024,
+                max_state_bytes: 16 * 1024 * 1024,
+                max_issues: 256,
+                deadline,
+            },
+            tree_limits,
+            &mut work,
+            &mut tree_work,
+            deadline,
+            std::sync::Arc::clone(&cancelled),
         );
-        assert_eq!(
-            initial.dependency_claims[original_member.path.as_str()].as_deref(),
-            cut.current().indexed_dependencies(&original_member.path)
+        eprintln!(
+            "CMD2_STREAMED_BOOTSTRAP result_ok={} source_work={work:?} tree_work={tree_work:?}",
+            result.is_ok()
         );
-    }
+        let initial = result.unwrap();
+        assert!(work.derived_index.sqlite_file_len_high_water > 0);
+        assert!(work.derived_index.sqlite_allocated_bytes_high_water > 0);
+        assert_eq!(std::fs::read_dir(&bootstrap_scratch.0).unwrap().count(), 0,
+            "assessment SQLite must retain only charged unnamed scratch");
+        let cohort = initial.cohort().clone();
+        for expected in cut.current().members() {
+            let observed = initial
+                .read_current_member(
+                    &mut lab.db,
+                    &lab.store,
+                    &expected.path,
+                    8_388_608,
+                    deadline,
+                    &cancelled,
+                )
+                .unwrap();
+            assert_eq!(&observed.metadata, expected);
+            assert_eq!(
+                observed.dependency_claims.as_deref(),
+                cut.current().indexed_dependencies(&expected.path)
+            );
+        }
+        cohort
+    } else {
+        let mut worker = new_worker(&cut);
+        let initial = lab
+            .db
+            .bootstrap_source_cohort(
+                &lab.store,
+                &lab.domain,
+                &cut,
+                revision,
+                membership,
+                &contexts[0],
+                &software,
+                &components,
+                &mut worker,
+                contract_digest(),
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+        drop(worker);
+        assert_eq!(initial.current_membership, membership);
+        for original_member in cut.current().members() {
+            assert_eq!(
+                &initial.metadata[original_member.path.as_str()],
+                original_member
+            );
+            assert_eq!(
+                initial.dependency_claims[original_member.path.as_str()].as_deref(),
+                cut.current().indexed_dependencies(&original_member.path)
+            );
+        }
+        initial.cohort
+    };
     let attempts = packages
         .iter()
         .enumerate()
@@ -1242,7 +1442,7 @@ fn maintained_agent_creation_operation<
                 .db
                 .register_source_creation(
                     &lab.store,
-                    &initial.cohort,
+                    &initial_cohort,
                     format!("agent-{i}").as_bytes(),
                     p,
                     &mut registration_worker,
@@ -1437,7 +1637,7 @@ fn maintained_agent_creation_operation<
         matches!(
             lab.db.reopen_committed_source_creation_attempt(
                 &lab.store,
-                &initial.cohort,
+                &initial_cohort,
                 b"agent-1",
                 &packages[1],
                 &mut new_worker(&cut),
@@ -1560,7 +1760,7 @@ fn maintained_agent_creation_operation<
         lab.db
             .register_source_creation(
                 &lab.store,
-                &initial.cohort,
+                &initial_cohort,
                 b"stale-epoch",
                 &packages[2],
                 &mut new_worker(&cut),
@@ -1584,7 +1784,7 @@ fn maintained_agent_creation_operation<
             &cancelled,
         )
         .unwrap();
-    assert!(verified.cohort.epoch() > initial.cohort.epoch());
+    assert!(verified.cohort.epoch() > initial_cohort.epoch());
     let mut replay_attempt_worker = new_worker(&cut);
     let replay_attempt = reopened_db
         .reopen_committed_source_creation_attempt(
@@ -1631,30 +1831,6 @@ fn maintained_agent_creation_operation<
         },
     )
     .unwrap();
-    let generation_profile = StreamedGenerationProfile {
-        max_commit_seq: 4096,
-        max_members: 512,
-        max_pins: 4096,
-        max_segment_bytes: 64 * 1024 * 1024,
-        max_membership_key_bytes: 16 * 1024 * 1024,
-        max_metadata_rows: 100_000,
-        max_metadata_bytes: 64 * 1024 * 1024,
-        max_elapsed: Duration::from_secs(120),
-        max_pg_temp_bytes: 64 * 1024 * 1024,
-        max_sql_statement_ms: 60_000,
-        generation: GenerationReadLimits {
-            max_descriptor_bytes: 1024 * 1024,
-            shape: GenerationShapeLimits {
-                max_partitions: 128,
-                max_rows_per_partition: 4,
-                max_key_bytes: 4096,
-                max_leaf_bytes: 256 * 1024,
-            },
-            max_stream_rows: 512,
-            max_stream_key_bytes: 16 * 1024 * 1024,
-        },
-        rows_per_leaf: 4,
-    };
     let export = tos_command::source_current_cut::select_current_source_cut(
         &mut reopened_db,
         &reopened_store,
@@ -1680,16 +1856,6 @@ fn maintained_agent_creation_operation<
         &cancelled,
     )
     .unwrap();
-    let tree_limits = tos_segment_store::AuthenticatedTreeLimitsV1 {
-        max_key_bytes: 4096,
-        max_value_bytes: 1_048_576,
-        max_kind_bytes: 128,
-        max_node_bytes: 1_048_576,
-        max_children: 16,
-        max_nodes: 100_000,
-        max_total_bytes: 64 * 1024 * 1024,
-        max_rows: 4096,
-    };
     let export = if addressed {
         tos_command::source_current_cut::migrate_current_source_cut_addressed(
             &mut reopened_db,
@@ -2502,31 +2668,136 @@ fn maintained_agent_creation_operation<
             witness.expect("recognized actual model restore must issue its opaque witness");
         let recovered_store = SegmentStore::open_existing(&recovered_root.0, limits()).unwrap();
         let mut recovered_db = DurablePgCoordinator::connect(&restored_url).unwrap();
-        let current = tos_command::source_current_cut::select_current_source_generation(
-            &mut recovered_db,
-            &recovered_store,
-            &lab.domain,
-            &cut,
-            revision,
-            membership,
-            &contexts[0],
-            &software,
-            &components,
-            &mut new_worker(&cut),
-            Some((&generation_workspace, generation_profile)),
-            deadline,
-            &cancelled,
-        )
-        .unwrap();
-        let current = recovered_db
-            .migrate_current_source_generation_addressed(
-                &recovered_store,
-                &current,
-                tree_limits,
+        let current = if std::env::var_os("TOS_CMD2_STREAMED_COLD_V1").as_deref()
+            == Some(std::ffi::OsStr::new("1"))
+        {
+            let mut work = tos_command::source_cohort::StreamedColdSourceWorkV1::default();
+            let source_reader = CorpusReader::open_existing(&source_root, read_limits).unwrap();
+            let streamed_original_result = generation_workspace.open_streamed_source_cut(
+                &source_reader,
+                revision,
+                tos_source_store::StreamedCutReadLimitsV1 {
+                    manifest_json: JsonLimits {
+                        max_bytes: 4_194_304,
+                        ..JsonLimits::default()
+                    },
+                    max_manifest_entries: 2048,
+                    cut: CutReadLimits {
+                        max_revisions: 4,
+                        max_members: 2048,
+                        max_total_bytes: 33_554_432,
+                        max_member_bytes: 8_388_608,
+                    },
+                    max_index_bytes: 16 * 1024 * 1024,
+                    max_manifest_row_bytes: 1_048_576,
+                    sqlite_cache_bytes: 1_048_576,
+                },
+                deadline,
+                &cancelled,
+                &mut work,
+            );
+            println!(
+                "streamed original cut open: result={:?}; work={work:?}",
+                streamed_original_result.as_ref().map(|_| ())
+            );
+            let streamed_original = streamed_original_result.unwrap();
+            assert_eq!(
+                streamed_original
+                    .revision_at(0)
+                    .unwrap()
+                    .unwrap()
+                    .membership,
+                membership
+            );
+            let image = tos_validation::executor::VerifiedWorkerImageHandle::prepare(
+                worker_identity.clone(),
+                ExecutorBudget::laboratory(),
                 deadline,
                 &cancelled,
             )
             .unwrap();
+            let mut worker = CutWorkerSchemaExecutor::from_streamed_cut_with_image(
+                &streamed_original,
+                tos_validation::FormatProfile::LegacyPythonObserved20260923,
+                &image,
+                ExecutorBudget::laboratory(),
+                CutWorkerLimits {
+                    max_receipts: 128,
+                    max_receipt_bytes: 262_144,
+                },
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+            let mut tree_work = tos_segment_store::AuthenticatedTreeWorkV1::default();
+            let result = recovered_db.select_current_source_generation_addressed_streaming(
+                &recovered_store,
+                &lab.domain,
+                &streamed_original,
+                revision,
+                membership,
+                &contexts[0],
+                &software,
+                &components,
+                &mut worker,
+                "ToS/contracts/corpus-record.schema.json",
+                &generation_workspace,
+                generation_profile,
+                tos_command::source_cohort::StreamedColdSourceLimitsV1 {
+                    max_rows: 100_000,
+                    max_logical_bytes: 64 * 1024 * 1024,
+                    max_key_bytes: 4096,
+                    max_value_bytes: 1_048_576,
+                    max_placement_bytes: 1_048_576,
+                    max_sqlite_file_bytes: 16 * 1024 * 1024,
+                    max_vm_steps: 200_000_000,
+                },
+                tos_validation::item_rules::ItemLimits {
+                    max_member_bytes: 8_388_608,
+                    max_total_bytes: 64 * 1024 * 1024,
+                    max_state_bytes: 16 * 1024 * 1024,
+                    max_issues: 256,
+                    deadline,
+                },
+                tree_limits,
+                &mut work,
+                &mut tree_work,
+                deadline,
+                std::sync::Arc::clone(&cancelled),
+            );
+            eprintln!(
+                "CMD2_STREAMED_COLD result_ok={} source_work={work:?} tree_work={tree_work:?}",
+                result.is_ok()
+            );
+            result.unwrap()
+        } else {
+            let current = tos_command::source_current_cut::select_current_source_generation(
+                &mut recovered_db,
+                &recovered_store,
+                &lab.domain,
+                &cut,
+                revision,
+                membership,
+                &contexts[0],
+                &software,
+                &components,
+                &mut new_worker(&cut),
+                Some((&generation_workspace, generation_profile)),
+                deadline,
+                &cancelled,
+            )
+            .unwrap();
+            let current = recovered_db
+                .migrate_current_source_generation_addressed(
+                    &recovered_store,
+                    &current,
+                    tree_limits,
+                    deadline,
+                    &cancelled,
+                )
+                .unwrap();
+            current
+        };
         let audited = recovered_store.hold_audit_root().unwrap();
         let (cold, cold_work) = tos_compiler::ManagedManifestV2::read_retained_cold(
             &recovered_store,
@@ -3151,7 +3422,7 @@ fn maintained_agent_creation_operation<
     drop(second_selected);
     drop(initial_selected);
     drop(successor_member);
-    drop(initial);
+    drop(initial_cohort);
     drop(verified);
     drop(replay_attempt);
     drop(packages);
@@ -4467,6 +4738,59 @@ fn cancel_during_fenced_seal_retries_after_late_pin_completion() {
     ));
     assert_eq!(lab.count("member"), 0);
     assert_eq!(lab.count("receipt"), 0);
+}
+
+#[test]
+fn rights_revocation_remains_available_beyond_finite_cut_budget() {
+    let url = database_url();
+    for prior_head in [100_000i64, i64::MAX - 1] {
+        let mut lab = Lab::new(&url);
+        let mut client = Client::connect(&url, NoTls).unwrap();
+        // A deliberately sparse sequence fixture isolates the rights
+        // transaction boundary. It is not a valid cold cut or scale result.
+        client
+            .execute(
+                "UPDATE cmd2_domain SET head_seq=$2 WHERE domain=$1",
+                &[&lab.domain, &prior_head],
+            )
+            .unwrap();
+        let next = prior_head + 1;
+        assert_eq!(lab.db.revoke_local(&lab.domain).unwrap(), next as u64);
+        let state = client
+            .query_one(
+                "SELECT head_seq,rights_version,rights_allowed FROM cmd2_domain WHERE domain=$1",
+                &[&lab.domain],
+            )
+            .unwrap();
+        assert_eq!(state.get::<_, i64>(0), next);
+        assert_eq!(state.get::<_, i64>(1), 1);
+        assert!(!state.get::<_, bool>(2));
+        let events: i64 = client
+            .query_one(
+                "SELECT count(*) FROM cmd2_log l JOIN cmd2_outbox o USING(domain,commit_seq) \
+                 WHERE l.domain=$1 AND l.commit_seq=$2 AND l.event_kind='rights'",
+                &[&lab.domain, &next],
+            )
+            .unwrap()
+            .get(0);
+        assert_eq!(events, 1);
+        assert_eq!(lab.count("log"), 1);
+        assert_eq!(lab.count("outbox"), 1);
+        if next == i64::MAX {
+            assert!(lab.db.revoke_local(&lab.domain).is_err());
+            let unchanged = client
+                .query_one(
+                    "SELECT head_seq,rights_version,rights_allowed FROM cmd2_domain WHERE domain=$1",
+                    &[&lab.domain],
+                )
+                .unwrap();
+            assert_eq!(unchanged.get::<_, i64>(0), next);
+            assert_eq!(unchanged.get::<_, i64>(1), 1);
+            assert!(!unchanged.get::<_, bool>(2));
+            assert_eq!(lab.count("log"), 1);
+            assert_eq!(lab.count("outbox"), 1);
+        }
+    }
 }
 
 #[test]

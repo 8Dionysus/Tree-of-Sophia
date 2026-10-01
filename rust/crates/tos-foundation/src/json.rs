@@ -11,6 +11,9 @@ pub enum JsonMode {
     PublishedStrict,
     /// Legacy request/cursor input: last value wins at the first key position.
     RequestLastWins,
+    /// Explicit legacy Python input compatibility. Retains nonfinite float
+    /// lexemes; this does not make them publishable or canonically encodable.
+    LegacyPythonObserved,
 }
 
 impl JsonMode {
@@ -18,6 +21,7 @@ impl JsonMode {
         match self {
             Self::PublishedStrict => "tos_published_json_v1",
             Self::RequestLastWins => "tos_request_last_wins_json_v1",
+            Self::LegacyPythonObserved => "tos_legacy_python_observed_json_v1",
         }
     }
 
@@ -25,6 +29,7 @@ impl JsonMode {
         match profile {
             "tos_published_json_v1" => Ok(Self::PublishedStrict),
             "tos_request_last_wins_json_v1" => Ok(Self::RequestLastWins),
+            "tos_legacy_python_observed_json_v1" => Ok(Self::LegacyPythonObserved),
             _ => Err(FoundationError::new(
                 Code::UnsupportedFormat,
                 "unknown JSON parse profile",
@@ -133,6 +138,23 @@ pub enum JsonNumberKind {
 pub struct JsonNumber {
     pub kind: JsonNumberKind,
     pub lexeme: String,
+}
+
+impl JsonNumber {
+    /// Python float observation for an explicitly decoded legacy value.
+    /// NaN remains non-reflexive; structural `JsonValue` equality is not Python
+    /// numeric equality. Exact identity still belongs to original input bytes.
+    pub fn as_python_float(&self) -> Option<f64> {
+        if self.kind != JsonNumberKind::Float {
+            return None;
+        }
+        match self.lexeme.as_str() {
+            "NaN" => Some(f64::NAN),
+            "Infinity" => Some(f64::INFINITY),
+            "-Infinity" => Some(f64::NEG_INFINITY),
+            _ => self.lexeme.parse().ok(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -409,10 +431,35 @@ impl Parser<'_> {
                 self.literal(b"null")?;
                 Ok(JsonValue::Null)
             }
+            Some(b'N' | b'I') if self.mode == JsonMode::LegacyPythonObserved => {
+                self.python_constant()
+            }
+            Some(b'-')
+                if self.mode == JsonMode::LegacyPythonObserved
+                    && self.raw.get(self.at + 1) == Some(&b'I') =>
+            {
+                self.python_constant()
+            }
             Some(b'-' | b'0'..=b'9') => Ok(JsonValue::Number(self.number()?)),
             _ => Err(self.error(Code::InvalidJson, "expected JSON value")),
         }
     }
+    fn python_constant(&mut self) -> Result<JsonValue> {
+        let expected: &[u8] = match self.raw[self.at] {
+            b'N' => b"NaN",
+            b'I' => b"Infinity",
+            b'-' => b"-Infinity",
+            _ => unreachable!(),
+        };
+        // Charge retained lexeme bytes before allocating, as for finite numbers.
+        self.literal(expected)?;
+        self.charge(expected.len())?;
+        Ok(JsonValue::Number(JsonNumber {
+            kind: JsonNumberKind::Float,
+            lexeme: std::str::from_utf8(expected).unwrap().to_owned(),
+        }))
+    }
+
     fn literal(&mut self, expected: &[u8]) -> Result<()> {
         if self.raw.get(self.at..self.at + expected.len()) != Some(expected) {
             return Err(self.error(Code::InvalidJson, "invalid JSON literal"));
@@ -661,7 +708,10 @@ impl Parser<'_> {
         if kind == JsonNumberKind::Int && integer_digits > self.limits.max_integer_digits {
             return Err(self.error(Code::BudgetExceeded, "integer digit budget exceeded"));
         }
-        if kind == JsonNumberKind::Float && !lexeme.parse::<f64>().is_ok_and(f64::is_finite) {
+        if kind == JsonNumberKind::Float
+            && self.mode != JsonMode::LegacyPythonObserved
+            && !lexeme.parse::<f64>().is_ok_and(f64::is_finite)
+        {
             return Err(self.error(Code::NonfiniteFloat, "nonfinite or unrepresentable float"));
         }
         Ok(JsonNumber { kind, lexeme })
@@ -788,18 +838,24 @@ pub fn canonical_feed_digest_v1(
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum JsonEmissionProfile {
     SourceFormSetPublishedV1,
+    SourceWitnessCatalogPublishedV3,
+    SourceFoundationLabReportV1,
 }
 
 impl JsonEmissionProfile {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::SourceFormSetPublishedV1 => "tos_source_form_set_published_v1",
+            Self::SourceWitnessCatalogPublishedV3 => "tos_source_witness_catalog_published_v3",
+            Self::SourceFoundationLabReportV1 => "tos_source_foundation_lab_report_v1",
         }
     }
 
     pub fn from_profile(profile: &str) -> Result<Self> {
         match profile {
             "tos_source_form_set_published_v1" => Ok(Self::SourceFormSetPublishedV1),
+            "tos_source_witness_catalog_published_v3" => Ok(Self::SourceWitnessCatalogPublishedV3),
+            "tos_source_foundation_lab_report_v1" => Ok(Self::SourceFoundationLabReportV1),
             _ => Err(FoundationError::new(
                 Code::UnsupportedFormat,
                 "unknown JSON emission profile",
@@ -822,14 +878,28 @@ pub fn emit_json_profile(
     limits: JsonLimits,
 ) -> Result<EncodedJson> {
     let bytes = match profile {
-        JsonEmissionProfile::SourceFormSetPublishedV1 => {
+        JsonEmissionProfile::SourceFormSetPublishedV1
+        | JsonEmissionProfile::SourceWitnessCatalogPublishedV3 => {
             if value.as_object().is_none() {
                 return Err(FoundationError::new(
                     Code::InvalidJson,
-                    "form set must be a JSON object",
+                    if profile == JsonEmissionProfile::SourceFormSetPublishedV1 {
+                        "form set must be a JSON object"
+                    } else {
+                        "catalog manifest must be a JSON object"
+                    },
                 ));
             }
             write_document(value, limits, WriteStyle::PythonPretty2Lf)?
+        }
+        JsonEmissionProfile::SourceFoundationLabReportV1 => {
+            if value.as_object().is_none() {
+                return Err(FoundationError::new(
+                    Code::InvalidJson,
+                    "foundation lab report must be a JSON object",
+                ));
+            }
+            write_document(value, limits, WriteStyle::PythonPretty2SortedLf)?
         }
     };
     Ok(EncodedJson {
@@ -875,20 +945,27 @@ enum WriteStyle {
     PythonCompact,
     PythonCompactLf,
     PythonPretty2Lf,
+    PythonPretty2SortedLf,
 }
 
 impl WriteStyle {
     fn sort_keys(self) -> bool {
-        matches!(self, Self::PythonCompact | Self::PythonCompactLf)
+        matches!(
+            self,
+            Self::PythonCompact | Self::PythonCompactLf | Self::PythonPretty2SortedLf
+        )
     }
     fn python_numbers(self) -> bool {
         self != Self::PreservedCompact
     }
     fn pretty(self) -> bool {
-        self == Self::PythonPretty2Lf
+        matches!(self, Self::PythonPretty2Lf | Self::PythonPretty2SortedLf)
     }
     fn newline(self) -> bool {
-        matches!(self, Self::PythonCompactLf | Self::PythonPretty2Lf)
+        matches!(
+            self,
+            Self::PythonCompactLf | Self::PythonPretty2Lf | Self::PythonPretty2SortedLf
+        )
     }
 }
 
