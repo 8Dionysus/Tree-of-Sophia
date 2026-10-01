@@ -1039,7 +1039,7 @@ mod tests {
     fn fixture(relative: &str) -> Vec<u8> {
         std::fs::read(
             std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("../../../..")
+                .join("../../..")
                 .join("ToS/research-packets/foundation-laboratory-2026-07")
                 .join(relative),
         )

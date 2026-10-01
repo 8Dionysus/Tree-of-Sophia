@@ -3430,7 +3430,7 @@ mod tests {
         );
     }
     fn owner_fixture(relative: &str) -> Value {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../..");
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
         serde_json::from_slice(&std::fs::read(root.join(relative)).unwrap()).unwrap()
     }
     #[test]
