@@ -38,4 +38,5 @@ pub mod native_prepare;
 
 pub mod capture_restore;
 
+pub mod evidence_projection;
 pub mod lexical_index_command;

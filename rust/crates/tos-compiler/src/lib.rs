@@ -20,6 +20,7 @@ mod d1_public_schema;
 mod d1_public_semantics;
 mod d1_public_sql;
 mod d1_public_static;
+pub mod epistemic_evidence;
 pub mod local_prepared;
 pub mod local_prepared_aux;
 pub mod local_prepared_bulk;

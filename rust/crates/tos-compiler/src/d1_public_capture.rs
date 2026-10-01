@@ -73,6 +73,7 @@ impl PublicCaptureLimits {
 pub struct PublicCapture {
     root: PathBuf,
     prepared_profile: bool,
+    evidence_profile: bool,
     prepared_state: Vec<(PathBuf, PathBuf, u64, u64, i64, i64, i64, i64)>,
     path: PathBuf,
     inode: (u64, u64),
@@ -175,6 +176,8 @@ pub(crate) fn compact(value: &JsonValue, cap: usize) -> Result<Vec<u8>> {
 
 fn selected_rows(role: &str, collection: &str) -> bool {
     match role {
+        "evidence-corpus" => matches!(collection, "nodes" | "relation_edges"),
+        "evidence-philosophy" => collection == "views",
         CORPUS => matches!(
             collection,
             "diagnostics"
@@ -432,7 +435,14 @@ impl<'de> DeserializeSeed<'de> for ObjectSeed<'_, '_> {
                     } else {
                         format!("{}/{}", self.prefix, key)
                     };
-                    if self.prefix.is_empty()
+                    if self.writer.role.starts_with("evidence-")
+                        && !selected_rows(self.writer.role, &collection)
+                        && collection != "schema_version"
+                    {
+                        self.writer.read_budget.set(self.writer.limits.max_input_bytes.min(usize::MAX as u64) as usize);
+                        map.next_value::<serde::de::IgnoredAny>()?;
+                        self.writer.read_budget.set(MAX_HEADER_BYTES + 65536);
+                    } else if self.prefix.is_empty()
                         && key == "source_navigation"
                         && self.writer.role == CORPUS
                     {
@@ -512,6 +522,11 @@ fn policy(
     role: &str,
     collection: &str,
 ) -> Option<(&'static [&'static str], &'static [&'static str], bool)> {
+    let role = match role {
+        "evidence-corpus" => CORPUS,
+        "evidence-philosophy" => PHILOSOPHY,
+        other => other,
+    };
     let entry = match (role, collection) {
         (CORPUS, "diagnostics") => (&[][..], &[][..], false),
         (CORPUS, "nodes") => (&["node_id"][..], &["source_path"][..], false),
@@ -832,8 +847,8 @@ fn capture_partitioned(root_path: &Path, raw: &[u8], writer: &mut CaptureWriter<
     }
     let schema = field(&root, "logical_schema")?;
     let expected_schema = match writer.role {
-        CORPUS => "tos_corpus_index_v1",
-        PHILOSOPHY => "tos_philosophy_graph_projection_v2",
+        CORPUS | "evidence-corpus" => "tos_corpus_index_v1",
+        PHILOSOPHY | "evidence-philosophy" => "tos_philosophy_graph_projection_v2",
         CLAIMS => "tos_source_witness_bibliographic_graph_v1",
         _ => return Err(Error::Invalid("public projection role")),
     };
@@ -865,6 +880,9 @@ fn capture_partitioned(root_path: &Path, raw: &[u8], writer: &mut CaptureWriter<
         let name = key
             .as_str()
             .ok_or(Error::Invalid("public projection header key"))?;
+        if writer.role.starts_with("evidence-") && name != "schema_version" {
+            continue;
+        }
         if name == "source_navigation" && writer.role == CORPUS {
             let navigation = value
                 .as_object()
@@ -888,6 +906,8 @@ fn capture_partitioned(root_path: &Path, raw: &[u8], writer: &mut CaptureWriter<
         .filter(|collections| !collections.is_empty())
         .ok_or(Error::Invalid("public projection collections"))?;
     let required: &[&str] = match writer.role {
+        "evidence-corpus" => &["nodes", "relation_edges"],
+        "evidence-philosophy" => &["views"],
         CORPUS => &[
             "nodes",
             "resources",
@@ -908,6 +928,9 @@ fn capture_partitioned(root_path: &Path, raw: &[u8], writer: &mut CaptureWriter<
         ));
     }
     for (name, spec) in collections {
+        if writer.role.starts_with("evidence-") && !selected_rows(writer.role, name) {
+            continue;
+        }
         let (key_fields, order_fields, mapping) = policy(writer.role, name).ok_or(
             Error::Invalid("public projection collection outside owner policy"),
         )?;
@@ -960,7 +983,7 @@ impl PublicCapture {
         limits: PublicCaptureLimits,
         deadline: Instant,
     ) -> Result<Self> {
-        Self::create_profile(root, staging, limits, deadline, false)
+        Self::create_profile(root, staging, limits, deadline, false, false)
     }
 
     /// Five maintained prepare input roles. Software contracts are compiled
@@ -971,7 +994,16 @@ impl PublicCapture {
         limits: PublicCaptureLimits,
         deadline: Instant,
     ) -> Result<Self> {
-        Self::create_profile(root, staging, limits, deadline, true)
+        Self::create_profile(root, staging, limits, deadline, true, false)
+    }
+    /// Evidence Lens opens only views and canon node/edge collections.
+    pub(crate) fn create_evidence(
+        root: &Path,
+        staging: &Path,
+        limits: PublicCaptureLimits,
+        deadline: Instant,
+    ) -> Result<Self> {
+        Self::create_profile(root, staging, limits, deadline, false, true)
     }
     fn create_profile(
         root: &Path,
@@ -979,6 +1011,7 @@ impl PublicCapture {
         limits: PublicCaptureLimits,
         deadline: Instant,
         prepared_profile: bool,
+        evidence_profile: bool,
     ) -> Result<Self> {
         limits.validate()?;
         let prepared_state = if prepared_profile {
@@ -1032,6 +1065,18 @@ impl PublicCapture {
                 "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
             ),
         ] {
+            if evidence_profile && role == CLAIMS {
+                continue;
+            }
+            let role = if evidence_profile {
+                if role == CORPUS {
+                    "evidence-corpus"
+                } else {
+                    "evidence-philosophy"
+                }
+            } else {
+                role
+            };
             let path = root.join(relative);
             let mut file = profile_open(&path, limits.max_input_bytes, prepared_profile)?;
             let (digest, len) = source_digest(&mut file, limits.max_input_bytes, |n| {
@@ -1097,8 +1142,8 @@ impl PublicCapture {
                 )
                 .optional()?;
             let expected_schema = match role {
-                CORPUS => "tos_corpus_index_v1",
-                PHILOSOPHY => "tos_philosophy_graph_projection_v2",
+                CORPUS | "evidence-corpus" => "tos_corpus_index_v1",
+                PHILOSOPHY | "evidence-philosophy" => "tos_philosophy_graph_projection_v2",
                 CLAIMS => "tos_source_witness_bibliographic_graph_v1",
                 _ => return Err(Error::Invalid("public D1 source role")),
             };
@@ -1121,7 +1166,7 @@ impl PublicCapture {
             } else if schema.as_ref().and_then(JsonValue::as_str) != Some(expected_schema) {
                 return Err(Error::Invalid("public D1 source schema"));
             }
-            if role == CORPUS {
+            if matches!(role, CORPUS | "evidence-corpus") {
                 corpus_partitioned = Some(partitioned);
             }
             if role == CLAIMS {
@@ -1136,7 +1181,7 @@ impl PublicCapture {
                 len,
             });
         }
-        if !prepared_profile && corpus_partitioned != claims_partitioned {
+        if !prepared_profile && !evidence_profile && corpus_partitioned != claims_partitioned {
             return Err(Error::Invalid("public D1 coupled projection storage mode"));
         }
         for relative in [
@@ -1159,6 +1204,9 @@ impl PublicCapture {
             "ToS/contracts/semantic-entity-type-registry.schema.json",
             "ToS/contracts/semantic-relation-type-registry.schema.json",
         ] {
+            if evidence_profile {
+                continue;
+            }
             if prepared_profile
                 && !matches!(
                     relative,
@@ -1183,7 +1231,7 @@ impl PublicCapture {
                 len,
             });
         }
-        if !prepared_profile {
+        if !prepared_profile && !evidence_profile {
             for relative in [
                 "ToS/derived-exports/epistemic_evidence_projection.min.json",
                 "ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json",
@@ -1268,6 +1316,7 @@ impl PublicCapture {
         Ok(Self {
             root: root.to_owned(),
             prepared_profile,
+            evidence_profile,
             prepared_state,
             path: staging.to_owned(),
             inode: (metadata.dev(), metadata.ino()),
@@ -1380,7 +1429,7 @@ impl PublicCapture {
                 return Err(Error::Invalid("public D1 source changed during build"));
             }
         }
-        if !self.prepared_profile {
+        if !self.prepared_profile && !self.evidence_profile {
             let ledger = self
                 .root
                 .join("ToS/source-witnesses/access-requests/public-ledger");

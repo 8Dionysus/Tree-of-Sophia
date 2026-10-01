@@ -354,7 +354,7 @@ fn insert(
 /// Python csv.DictReader(strict=True), with logical records, blank-record
 /// skipping and exact null missing cells. Quoted CR/LF and doubled quotes are
 /// data; duplicate/empty headers and surplus unnamed cells refuse.
-fn csv_records<F>(
+pub(crate) fn csv_records<F>(
     raw: &[u8],
     l: CanonSourceLimits,
     deadline: Instant,
