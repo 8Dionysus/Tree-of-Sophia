@@ -657,6 +657,7 @@ impl ClaimAdditionPublication {
                 catalog_limits,
                 semantic_limits,
             )?;
+        let native_catalog = transition.final_catalog;
         let native_binding = view(&transition.publication.binding)?;
         dependency.rebind_reviewed(
             state,
@@ -836,7 +837,7 @@ impl ClaimAdditionPublication {
             total_changes: tx.total_changes(),
             schema,
             source: after_source,
-            catalog: after_catalog,
+            catalog: paired.final_catalog,
             receipt: receipt.clone(),
             publication_limits,
         });

@@ -311,7 +311,7 @@ pub(super) fn apply(
         total_changes: tx.total_changes(),
         schema: tx.query_row("PRAGMA main.schema_version", [], |r| r.get(0))?,
         source: after_source,
-        catalog: after,
+        catalog: paired.final_catalog,
         receipt,
         limits,
     })

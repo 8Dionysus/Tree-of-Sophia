@@ -749,8 +749,13 @@ pub(crate) fn publish_committed_initial_metadata_with_precommit(
     progress.verify(&tx)?;
     if selected_changes != tx.total_changes()
         || schema != tx.query_row("PRAGMA main.schema_version", [], |r| r.get::<_, u64>(0))?
-        || read_prepared_source_inputs_transaction(&tx, &typed(&binding)?, &after, publication)?
-            .raw()
+        || read_prepared_source_inputs_transaction(
+            &tx,
+            &typed(&binding)?,
+            &paired.final_catalog,
+            publication,
+        )?
+        .raw()
             != after_source.raw()
     {
         return Err(Error::Invalid("Metadata selection changed before commit"));

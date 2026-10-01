@@ -369,6 +369,8 @@ pub fn read_prepared_source_inputs_transaction(
 #[derive(Clone, Debug)]
 pub struct SourceMaintenanceReceipt {
     pub publication: MaintenanceReceipt,
+    /// Exact finalized header plus the original registry/lens/order inputs.
+    pub final_catalog: CatalogInputs,
     pub source_inputs_sha256: String,
     pub sql_mutations: u64,
     pub roots_paired_in_caller_transaction: bool,
@@ -552,7 +554,15 @@ fn finish_pair(
     let raw =
         std::str::from_utf8(successor.raw()).map_err(|_| Error::Invalid("source inputs UTF8"))?;
     if tx.execute("UPDATE prepared_source_state SET binding=?,inputs=?,sha256=? WHERE singleton=1 AND sha256=?",params![binding,raw,successor.digest(),predecessor.digest()])? != 1 { return Err(Error::Invalid("source state CAS")); }
-    if read_prepared_source_inputs_transaction(tx, &publication.binding, after, limits)?.raw()
+    // Maintenance finalizes catalog/semantic counts; the proposal header is
+    // not the selected descriptor after publication. Preserve its other inputs.
+    let mut final_catalog = after.clone();
+    final_catalog.header = publication
+        .source_header
+        .clone()
+        .ok_or(Error::Invalid("source pairing finalized header absent"))?;
+    if read_prepared_source_inputs_transaction(tx, &publication.binding, &final_catalog, limits)?
+        .raw()
         != successor.raw()
     {
         return Err(Error::Invalid("source state readback"));
@@ -566,6 +576,7 @@ fn finish_pair(
     }
     Ok(SourceMaintenanceReceipt {
         publication,
+        final_catalog,
         source_inputs_sha256: successor.digest().to_owned(),
         sql_mutations: writes,
         roots_paired_in_caller_transaction: true,
