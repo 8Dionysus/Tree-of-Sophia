@@ -339,12 +339,19 @@ finally:
     let mut changed = fs::read(&input).unwrap();
     changed.extend_from_slice(b"changed");
     fs::write(&input, changed).unwrap();
-    let (status, out, _) =
+    let (status, out, err) =
         native_owner_cli_observation(&repository, &owner, &invocation_path, &request, deadline);
     assert_eq!(status.code(), Some(2));
+    // The maintained Python transport wraps nonzero native exits in ValueError.
+    // Require the exact Rust cause as well, so unrelated refusals cannot pass.
     assert_eq!(
         serde_json::from_slice::<Value>(&out).unwrap()["error"],
-        "JournalConflict"
+        "ValueError"
+    );
+    assert!(
+        String::from_utf8_lossy(&err).contains("Conflict(\"public Text input declaration\")"),
+        "public Text changed input refusal: {}",
+        String::from_utf8_lossy(&err)
     );
     for (name, raw) in package {
         assert_eq!(fs::read(home.join(name)).unwrap(), raw);
