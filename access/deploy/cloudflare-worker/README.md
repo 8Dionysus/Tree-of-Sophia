@@ -25,7 +25,7 @@ until the full native output has been compared and accepted. It is not invoked
 by `npm run build:data`.
 
 The maintained `deploy_edge.mjs` entry invokes installed `tos` for bounded
-`edge-sql-chunk` framing and `edge-import-local` offline SQLite bootstrap.
+`edge-sql-stream` framing and `edge-import-local` offline SQLite bootstrap.
 Set `TOS_ACCESS_BIN` to an explicit native executable when it is outside PATH.
 Import never launches Cargo. Node owns Wrangler process invocation and the
 explicit local-store selection; Rust owns SQLite statement completeness,
@@ -33,6 +33,18 @@ byte-exact chunking, statement/value budgets, baseline and target revision
 checks, and the one-transaction import/rollback. Stop the local Worker before
 bootstrap. Remote imports continue through Wrangler and require their own
 publication authority.
+
+For chunked imports, set a positive whole operation
+`TOS_D1_SQL_STREAM_MAX_SECONDS`; it includes the time the consumer holds each
+chunk while Wrangler imports it. The native child holds the original source
+identity, produces one chunk only after the consumer requests it, and checks
+currentness again on resume. EOF cancels the reader; Node reaps that exact
+child before removing its own temporary district. The five-second platform
+cancellation grace is separate from the native operation deadline. Deadline
+expiry never unlinks a handed-off chunk under an active consumer. Direct
+`edge-sql-stream` callers supply an empty directory and `--max-seconds N` and
+own its cleanup after the child exits. `edge-sql-chunk` remains a bounded,
+single-chunk tool for independent parity checks.
 
 `scripts/sql_stream.py` and `scripts/import_local_sqlite.py` remain independent
 parity oracles and are no longer called by the maintained deployment entry.

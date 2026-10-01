@@ -9,6 +9,7 @@ use std::{
     io::{BufRead, BufReader, Read, Seek, SeekFrom, Write},
     os::unix::fs::{MetadataExt, OpenOptionsExt},
     path::Path,
+    time::{Duration, Instant},
 };
 
 const MAX_STATEMENT_BYTES: usize = 100_000;
@@ -18,7 +19,7 @@ type Result<T> = std::result::Result<T, String>;
 fn input(path: &Path) -> Result<File> {
     let file = OpenOptions::new()
         .read(true)
-        .custom_flags(libc::O_NOFOLLOW)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
         .open(path)
         .map_err(|e| e.to_string())?;
     if !file.metadata().map_err(|e| e.to_string())?.is_file() {
@@ -50,6 +51,7 @@ fn unchanged(path: &Path, original: &std::fs::Metadata) -> Result<()> {
 struct Statements<R: BufRead> {
     reader: R,
     done: bool,
+    deadline: Option<Instant>,
 }
 impl<R: BufRead> Statements<R> {
     fn next(&mut self) -> Result<Option<Vec<u8>>> {
@@ -59,6 +61,12 @@ impl<R: BufRead> Statements<R> {
         let envelope = MAX_STATEMENT_BYTES + 2;
         let mut pending = Vec::new();
         loop {
+            if self
+                .deadline
+                .is_some_and(|deadline| Instant::now() >= deadline)
+            {
+                return Err("SQL stream deadline exceeded".into());
+            }
             // Cap allocation even when a corrupt record never contains LF.
             let read = self
                 .reader
@@ -91,6 +99,16 @@ impl<R: BufRead> Statements<R> {
 }
 
 fn chunk(source: &Path, output: &Path, offset: u64, maximum: u64) -> Result<Value> {
+    chunk_until(source, output, offset, maximum, None)
+}
+
+fn chunk_until(
+    source: &Path,
+    output: &Path,
+    offset: u64,
+    maximum: u64,
+    deadline: Option<Instant>,
+) -> Result<Value> {
     if maximum == 0 {
         return Err("SQL chunk size must be positive".into());
     }
@@ -111,6 +129,7 @@ fn chunk(source: &Path, output: &Path, offset: u64, maximum: u64) -> Result<Valu
         let mut statements = Statements {
             reader: BufReader::new(file.take(metadata.len() - offset)),
             done: false,
+            deadline,
         };
         let mut written = 0u64;
         let mut count = 0u64;
@@ -224,6 +243,7 @@ fn import(database: &Path, source: &Path, base: Option<&str>, target: &str) -> R
     let mut statements = Statements {
         reader: BufReader::new(source.take(source_metadata.len())),
         done: false,
+        deadline: None,
     };
     let mut count = 0u64;
     while let Some(statement) = statements.next()? {
@@ -247,13 +267,8 @@ fn import(database: &Path, source: &Path, base: Option<&str>, target: &str) -> R
     Ok(json!({"statements":count,"revision":target,"publication":"local-sqlite-transaction"}))
 }
 
-fn run(args: &[String]) -> Result<Value> {
+fn options<'a>(args: &'a [String], allowed: &[&str]) -> Result<BTreeMap<&'a str, &'a str>> {
     let mut options = BTreeMap::new();
-    let allowed: &[&str] = if args[0] == "edge-sql-chunk" {
-        &["--source", "--output", "--offset", "--maximum-bytes"]
-    } else {
-        &["--database", "--sql", "--base", "--target"]
-    };
     let mut remaining = args.iter().skip(1);
     while let Some(key) = remaining.next() {
         if !allowed.contains(&key.as_str()) {
@@ -266,6 +281,16 @@ fn run(args: &[String]) -> Result<Value> {
             return Err(format!("duplicate option: {key}"));
         }
     }
+    Ok(options)
+}
+
+fn run(args: &[String]) -> Result<Value> {
+    let allowed: &[&str] = if args[0] == "edge-sql-chunk" {
+        &["--source", "--output", "--offset", "--maximum-bytes"]
+    } else {
+        &["--database", "--sql", "--base", "--target"]
+    };
+    let options = options(args, allowed)?;
     let value = |key| {
         options
             .get(key)
@@ -299,26 +324,201 @@ fn run(args: &[String]) -> Result<Value> {
     }
 }
 
+struct OwnedChunk(Option<std::path::PathBuf>, bool);
+impl OwnedChunk {
+    fn clear(&mut self) -> Result<()> {
+        if let Some(path) = self.0.take() {
+            std::fs::remove_file(path).map_err(|e| e.to_string())?;
+        }
+        self.1 = false;
+        Ok(())
+    }
+}
+impl Drop for OwnedChunk {
+    fn drop(&mut self) {
+        // After emitting a chunk, its consumer may still be opening/uploading
+        // it. Deadline/EOF never unlinks those bytes beneath that consumer;
+        // the platform's owned directory closeout handles abandonment.
+        if !self.1 {
+            if let Some(path) = self.0.take() {
+                let _ = std::fs::remove_file(path);
+            }
+        }
+    }
+}
+
+fn next_request(deadline: Instant) -> Result<bool> {
+    let mut word = Vec::new();
+    loop {
+        let now = Instant::now();
+        if now >= deadline {
+            return Err("SQL stream deadline exceeded".into());
+        }
+        let milliseconds =
+            (deadline.duration_since(now).as_millis() + 1).min(i32::MAX as u128) as i32;
+        let mut fd = libc::pollfd {
+            fd: libc::STDIN_FILENO,
+            events: libc::POLLIN,
+            revents: 0,
+        };
+        let ready = unsafe { libc::poll(&mut fd, 1, milliseconds) };
+        if ready == 0 {
+            continue;
+        }
+        if ready < 0 {
+            let error = std::io::Error::last_os_error();
+            if error.kind() == std::io::ErrorKind::Interrupted {
+                continue;
+            }
+            return Err(error.to_string());
+        }
+        let mut byte = 0u8;
+        let read = unsafe { libc::read(libc::STDIN_FILENO, (&mut byte as *mut u8).cast(), 1) };
+        if read == 0 {
+            return if word.is_empty() {
+                Ok(false)
+            } else {
+                Err("incomplete SQL stream request".into())
+            };
+        }
+        if read < 0 {
+            let error = std::io::Error::last_os_error();
+            if error.kind() == std::io::ErrorKind::Interrupted {
+                continue;
+            }
+            return Err(error.to_string());
+        }
+        word.push(byte);
+        if byte == b'\n' {
+            return if word == b"next\n" {
+                Ok(true)
+            } else {
+                Err("unknown SQL stream request".into())
+            };
+        }
+        if word.len() >= 5 {
+            return Err("SQL stream request exceeds budget".into());
+        }
+    }
+}
+
+fn stream(args: &[String], stdout: &mut dyn Write) -> Result<()> {
+    let options = options(
+        args,
+        &[
+            "--source",
+            "--directory",
+            "--maximum-bytes",
+            "--maximum-bytes-type",
+            "--max-seconds",
+        ],
+    )?;
+    let value = |key| {
+        options
+            .get(key)
+            .copied()
+            .ok_or_else(|| format!("{key} is required"))
+    };
+    let maximum = value("--maximum-bytes")?
+        .parse::<u64>()
+        .ok()
+        .filter(|n| *n > 0 && *n <= 9_007_199_254_740_991);
+    if options
+        .get("--maximum-bytes-type")
+        .copied()
+        .unwrap_or("number")
+        != "number"
+        || maximum.is_none()
+    {
+        return Err("SQL import chunk size must be a positive safe integer".into());
+    }
+    let seconds = value("--max-seconds")?
+        .parse::<u64>()
+        .ok()
+        .filter(|n| *n > 0)
+        .ok_or("SQL stream requires a positive --max-seconds or TOS_D1_SQL_STREAM_MAX_SECONDS")?;
+    let deadline = Instant::now()
+        .checked_add(Duration::from_secs(seconds))
+        .ok_or("SQL stream deadline overflow")?;
+    let source = Path::new(value("--source")?);
+    let pin = input(source)?;
+    let metadata = pin.metadata().map_err(|e| e.to_string())?;
+    let directory = Path::new(value("--directory")?);
+    if !std::fs::symlink_metadata(directory)
+        .map_err(|e| e.to_string())?
+        .is_dir()
+        || std::fs::read_dir(directory)
+            .map_err(|e| e.to_string())?
+            .next()
+            .is_some()
+    {
+        return Err("SQL stream requires an empty regular directory".into());
+    }
+    let mut owned = OwnedChunk(None, false);
+    let mut offset = 0;
+    let mut part = 0u64;
+    let mut eof = false;
+    while next_request(deadline)? {
+        owned.clear()?;
+        unchanged(source, &metadata)
+            .map_err(|error| format!("SQL import source changed between chunks: {error}"))?;
+        if eof {
+            writeln!(stdout, "{}", json!({"kind":"done"})).map_err(|e| e.to_string())?;
+            stdout.flush().map_err(|e| e.to_string())?;
+            return Ok(());
+        }
+        let filename = format!("part-{part}.sql");
+        let target = directory.join(&filename);
+        let result = chunk_until(source, &target, offset, maximum.unwrap(), Some(deadline))?;
+        owned.0 = Some(target);
+        if Instant::now() >= deadline {
+            return Err("SQL stream deadline exceeded".into());
+        }
+        unchanged(source, &metadata)?;
+        offset = result["next_offset"]
+            .as_u64()
+            .ok_or("SQL stream progress")?;
+        eof = result["eof"].as_bool().ok_or("SQL stream completion")?;
+        if result["bytes"] == 0 {
+            owned.clear()?;
+            writeln!(stdout, "{}", json!({"kind":"done"})).map_err(|e| e.to_string())?;
+            stdout.flush().map_err(|e| e.to_string())?;
+            return Ok(());
+        }
+        writeln!(stdout, "{}", json!({"kind":"chunk","file":filename}))
+            .map_err(|e| e.to_string())?;
+        stdout.flush().map_err(|e| e.to_string())?;
+        owned.1 = true;
+        part = part.checked_add(1).ok_or("SQL stream part overflow")?;
+    }
+    Ok(())
+}
+
 pub fn run_if_requested(
     args: &[String],
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> Option<i32> {
-    if args
-        .first()
-        .is_none_or(|arg| !matches!(arg.as_str(), "edge-sql-chunk" | "edge-import-local"))
-    {
+    if args.first().is_none_or(|arg| {
+        !matches!(
+            arg.as_str(),
+            "edge-sql-chunk" | "edge-sql-stream" | "edge-import-local"
+        )
+    }) {
         return None;
     }
-    Some(
-        match run(args).and_then(|value| writeln!(stdout, "{value}").map_err(|e| e.to_string())) {
-            Ok(()) => 0,
-            Err(error) => {
-                let _ = writeln!(stderr, "Edge SQL: {error}");
-                2
-            }
-        },
-    )
+    let result = if args[0] == "edge-sql-stream" {
+        stream(args, stdout)
+    } else {
+        run(args).and_then(|value| writeln!(stdout, "{value}").map_err(|e| e.to_string()))
+    };
+    Some(match result {
+        Ok(()) => 0,
+        Err(error) => {
+            let _ = writeln!(stderr, "Edge SQL: {error}");
+            2
+        }
+    })
 }
 
 #[cfg(test)]
@@ -529,5 +729,57 @@ mod tests {
                 Some("new")
             );
         }
+    }
+
+    #[test]
+    fn stream_validates_safe_integer_type_and_deadline_before_input_or_output() {
+        for (value, kind) in [
+            ("0", "number"),
+            ("-1", "number"),
+            ("1.5", "number"),
+            ("Infinity", "number"),
+            ("9007199254740992", "number"),
+            ("40", "bigint"),
+            ("40", "string"),
+        ] {
+            let args = [
+                "edge-sql-stream",
+                "--maximum-bytes",
+                value,
+                "--maximum-bytes-type",
+                kind,
+            ]
+            .map(str::to_owned);
+            let mut output = Vec::new();
+            assert!(
+                stream(&args, &mut output)
+                    .unwrap_err()
+                    .contains("positive safe integer")
+            );
+            assert!(output.is_empty());
+        }
+        let args = [
+            "edge-sql-stream",
+            "--maximum-bytes",
+            "40",
+            "--max-seconds",
+            "0",
+        ]
+        .map(str::to_owned);
+        assert!(
+            stream(&args, &mut Vec::new())
+                .unwrap_err()
+                .contains("positive --max-seconds")
+        );
+        let fixture = Fixture::new();
+        let source = fixture.path("input.sql");
+        let output = fixture.path("part.sql");
+        fs::write(&source, "SELECT 1;\n").unwrap();
+        assert!(
+            chunk_until(&source, &output, 0, 40, Some(Instant::now()))
+                .unwrap_err()
+                .contains("deadline")
+        );
+        assert!(!output.exists());
     }
 }

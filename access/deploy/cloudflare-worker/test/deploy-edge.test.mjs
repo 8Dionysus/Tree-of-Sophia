@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
+// Explicit fixture lifetime; production callers select their own whole budget.
+process.env.TOS_D1_SQL_STREAM_MAX_SECONDS = '30';
 import { mkdtempSync, readFileSync, writeFileSync, renameSync, rmSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
@@ -55,7 +58,7 @@ test('SQL framing rejects incomplete and over-budget records and cleans only own
       assert.deepEqual(readdirSync(directory).sort(), ['input.sql', 'unrelated']);
       assert.equal(readFileSync(marker, 'utf8'), 'keep');
     }
-    for (const maximum of [0, -1, 1.5, Infinity]) {
+    for (const maximum of [0, -1, 1.5, Infinity, 9007199254740992, '40', 40n, null]) {
       await assert.rejects(async () => {
         for await (const file of sqlImportChunks(path, maximum)) readFileSync(file);
       }, /positive safe integer/);
@@ -66,6 +69,26 @@ test('SQL framing rejects incomplete and over-budget records and cleans only own
     assert.deepEqual(Buffer.concat(chunks), readFileSync(path));
     assert.equal(chunks.length, 1);
     assert.equal(chunks[0].length, 100_001); // SQL limit plus producer LF.
+  } finally {
+    rmSync(directory, { recursive: true });
+  }
+});
+
+test('held native deadline preserves the in-use chunk until the platform reaps and cleans its district', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'tos-sql-held-deadline-'));
+  const path = join(directory, 'input.sql');
+  try {
+    writeFileSync(path, 'SELECT 1;\nSELECT 2;\n');
+    const chunks = sqlImportChunks(path, 10, 1);
+    const first = await chunks.next();
+    assert.equal(readFileSync(first.value, 'utf8'), 'SELECT 1;\n');
+    await new Promise(done => setTimeout(done, 1500));
+    // Timeout cannot unlink bytes while an external upload is still opening
+    // them. Native custody ends; the platform owns this exact chunk district.
+    assert.equal(readFileSync(first.value, 'utf8'), 'SELECT 1;\n');
+    assert.deepEqual(readdirSync(dirname(first.value)), [basename(first.value)]);
+    await assert.rejects(chunks.next(), /deadline exceeded/);
+    assert.deepEqual(readdirSync(directory), ['input.sql']);
   } finally {
     rmSync(directory, { recursive: true });
   }

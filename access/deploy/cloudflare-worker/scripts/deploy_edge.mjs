@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { readFileSync, copyFileSync, mkdtempSync, rmSync, statSync, readdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createInterface } from "node:readline";
 import * as deploymentRuntime from '../generated/tos_web_rules.js';
 deploymentRuntime.initSync({module: new WebAssembly.Module(readFileSync(new URL('../generated/tos_web_rules_bg.wasm', import.meta.url)))});
 
@@ -128,52 +129,58 @@ function remoteRevision(location = "--remote") {
   } finally { session.free(); }
 }
 
-// Use the same SQLite framing as local bootstrap. Physical lines may be inside
-// source literals or triggers. One child writes one bounded file; the next is
-// not produced until this generator resumes after the caller imports that file.
-// Input is trusted, immutable producer SQL, not arbitrary caller-supplied SQL.
-export async function* sqlImportChunks(path, maximumBytes = 16 * 1024 * 1024) {
-  if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 1) {
-    throw new Error('SQL import chunk size must be a positive safe integer');
-  }
-  const source = resolve(path);
-  const identity = () => {
-    const stat = statSync(source, { bigint: true });
-    return [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs].join(':');
-  };
-  const initialIdentity = identity();
-  const unchanged = () => {
-    if (identity() !== initialIdentity) throw new Error('SQL import source changed between chunks');
-  };
-  const directory = mkdtempSync(join(dirname(path), '.tos-import-'));
-  let offset = 0;
-  let part = 0;
+// Rust owns SQL framing, sequencing, budget and held source currentness. The
+// platform sends one request after consuming each file; no next file is eager.
+export async function* sqlImportChunks(path, maximumBytes = 16 * 1024 * 1024,
+  maximumSeconds = process.env.TOS_D1_SQL_STREAM_MAX_SECONDS) {
+  const directory = mkdtempSync(join(dirname(resolve(path)), '.tos-import-'));
+  let child;
+  let lines;
+  let closed;
+  let stderr = '';
+  let finished = false;
   try {
+    child = spawn(process.env.TOS_ACCESS_BIN || 'tos', ['edge-sql-stream',
+      '--source', resolve(path), '--directory', directory,
+      '--maximum-bytes', String(maximumBytes), '--maximum-bytes-type', typeof maximumBytes,
+      '--max-seconds', String(maximumSeconds)], {stdio: ['pipe', 'pipe', 'pipe']});
+    closed = new Promise((done) => {
+      child.once('error', (error) => { stderr = error.message; });
+      child.once('close', (code, signal) => done({code, signal}));
+    });
+    child.stderr.on('data', (data) => { stderr = (stderr + data.toString()).slice(-8192); });
+    child.stdin.on('error', () => {}); // Exit/close carries any EPIPE failure.
+    lines = createInterface({input: child.stdout});
+    const frames = lines[Symbol.asyncIterator]();
     while (true) {
-      unchanged();
-      const target = join(directory, `part-${part++}.sql`);
-      const result = edgeSql(['edge-sql-chunk',
-        '--source', source, '--output', target, '--offset', String(offset),
-        '--maximum-bytes', String(maximumBytes)], { encoding: 'utf8', maxBuffer: 8192 });
-      if (result.status !== 0) {
-        throw new Error(`SQL import framing failed: ${result.error?.message ?? result.stderr.trim()}`);
+      child.stdin.write('next\n');
+      const response = await frames.next();
+      if (response.done) {
+        const status = await closed;
+        throw new Error(`SQL import framing failed: ${stderr.trim() || `exit ${status.code}, signal ${status.signal}`}`);
       }
-      unchanged();
-      const chunk = JSON.parse(result.stdout);
-      if (!Number.isSafeInteger(chunk.next_offset) || chunk.next_offset < offset
-          || !Number.isSafeInteger(chunk.bytes) || chunk.bytes < 0
-          || chunk.next_offset - offset !== chunk.bytes || typeof chunk.eof !== 'boolean'
-          || (!chunk.eof && chunk.bytes === 0)) {
-        throw new Error('SQL import framing returned invalid progress');
-      }
-      if (chunk.bytes) yield target;
-      rmSync(target);
-      if (chunk.eof) break;
-      offset = chunk.next_offset;
+      const frame = JSON.parse(response.value);
+      if (frame.kind === 'done') { finished = true; break; }
+      // This validates the local process protocol's path envelope, not SQL.
+      if (frame.kind !== 'chunk' || typeof frame.file !== 'string'
+          || !/^part-[0-9]+\.sql$/.test(frame.file)) throw new Error('SQL import framing returned an invalid file envelope');
+      yield join(directory, frame.file);
     }
   } finally {
-    // Only this invocation's mkdtemp directory, never a caller path.
-    rmSync(directory, { recursive: true });
+    if (child) {
+      child.stdin.end();
+      // EOF releases the held native reader. Reap this exact child before
+      // removing its owned district, with a platform cancellation grace.
+      let timer;
+      const graceful = await Promise.race([closed.then(() => true),
+        new Promise((done) => { timer = setTimeout(() => done(false), 5000); })]);
+      clearTimeout(timer);
+      if (!graceful) child.kill('SIGTERM');
+      const status = await closed;
+      lines?.close();
+      rmSync(directory, { recursive: true });
+      if (finished && status.code !== 0) throw new Error(`SQL import framing failed: ${stderr.trim()}`);
+    } else rmSync(directory, { recursive: true });
   }
 }
 
