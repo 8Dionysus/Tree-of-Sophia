@@ -451,13 +451,40 @@ pub(super) fn native_owner_cli_observation(
         if let Some(status) = child.try_wait().unwrap() {
             break status;
         }
-        if Instant::now() >= step_deadline
-            || output.metadata().unwrap().len() > 1_048_576
-            || errors.metadata().unwrap().len() > 1_048_576
-        {
-            child.kill().unwrap();
-            child.wait().unwrap();
-            panic!("bounded native Alignment CLI refused");
+        let now = Instant::now();
+        let output_len = output.metadata().unwrap().len();
+        let error_len = errors.metadata().unwrap().len();
+        if now >= step_deadline || output_len > 1_048_576 || error_len > 1_048_576 {
+            let reason = if now >= deadline {
+                "whole deadline"
+            } else if now >= step_deadline {
+                "60-second child deadline"
+            } else if output_len > 1_048_576 {
+                "stdout cap"
+            } else {
+                "stderr cap"
+            };
+            let kill = child.kill();
+            let stopped = child.wait();
+            output.seek(SeekFrom::Start(0)).unwrap();
+            errors.seek(SeekFrom::Start(0)).unwrap();
+            let mut out_prefix = Vec::new();
+            let mut err_prefix = Vec::new();
+            (&mut output)
+                .take(16_384)
+                .read_to_end(&mut out_prefix)
+                .unwrap();
+            (&mut errors)
+                .take(16_384)
+                .read_to_end(&mut err_prefix)
+                .unwrap();
+            let operation = request["operation"].as_str().unwrap_or("<absent>");
+            panic!(
+                "bounded native owner CLI refused: operation={} reason={reason} kill={kill:?} post_kill_status={stopped:?} stdout_bytes={output_len} stderr_bytes={error_len} output_prefix={} stderr_prefix={}",
+                operation.chars().take(256).collect::<String>(),
+                String::from_utf8_lossy(&out_prefix),
+                String::from_utf8_lossy(&err_prefix)
+            );
         }
         std::thread::sleep(Duration::from_millis(10));
     };
