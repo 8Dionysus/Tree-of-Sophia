@@ -162,10 +162,12 @@ pub fn build(
         }
         for field in ["nodes", "edges"] {
             for item in array(&view, field)? {
-                let id = item["node_id"]
-                    .as_str()
-                    .filter(|s| !s.is_empty())
-                    .or_else(|| item["edge_id"].as_str());
+                let identity = if crate::source_philosophy_support::truth(&item["node_id"]) {
+                    &item["node_id"]
+                } else {
+                    &item["edge_id"]
+                };
+                let id = identity.as_str();
                 if let Some(id) = id {
                     if wanted.contains(id) {
                         matched.insert(id.to_owned());
@@ -295,9 +297,9 @@ pub fn build(
         }
         let mut source_anchors = Vec::new();
         for id in array(raw_scene, "anchor_edge_ids")? {
-            let edge = string(id)?;
+            let edge = crate::source_philosophy_support::string(id);
             let row = anchors
-                .get(edge)
+                .get(&edge)
                 .ok_or_else(|| err(format!("unknown canonical anchor edge: {edge}")))?;
             let segments: Vec<_> = row
                 .get("anchor_segment_ids")
