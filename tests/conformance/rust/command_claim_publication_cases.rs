@@ -657,7 +657,9 @@ fn agent_publication_cli(
     assert!(
         output.status.success(),
         "actual Agent publication CLI action={} status={}: {}",
-        request["action"].as_str().expect("fixed Agent publication action"),
+        request["action"]
+            .as_str()
+            .expect("fixed Agent publication action"),
         output.status,
         String::from_utf8_lossy(&output.stderr)
     );
