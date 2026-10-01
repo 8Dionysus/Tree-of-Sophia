@@ -840,8 +840,8 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
     let operation_limits = ClaimPublicationLimits::default();
     let initial_binding = typed(&packet["binding"]);
     let initial_catalog = agent_catalog(&packet, &packet["header"]);
-    // Explicit same-fixture native auxiliary index bootstrap. The Python
-    // producer/header identity is retained until the reviewed paired migration.
+    // Rebuild native auxiliary indexes from this fixture's exact prepared rows.
+    // Keep the independent Python catalog, header, and semantic report unchanged.
     {
         let tx = connection.unchecked_transaction().unwrap();
         for table in [
@@ -873,6 +873,27 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
             report_object_order(&report),
             report_object_order(&typed(&packet["baseline_semantic_report"]))
         );
+        for table in [
+            "catalog_heads",
+            "catalog_occurrences",
+            "catalog_contributors",
+            "catalog_totals",
+            "catalog_atoms",
+            "catalog_state",
+        ] {
+            tx.execute(&format!("DROP TABLE {table}"), []).unwrap();
+        }
+        let catalog_receipt =
+            tos_compiler::prepared_maintenance::bootstrap_prepared_catalog_transaction(
+                &tx,
+                &initial_binding,
+                &initial_catalog,
+                publication,
+                catalog_limits,
+            )
+            .unwrap();
+        assert_eq!(catalog_receipt.binding, initial_binding);
+        assert!(!catalog_receipt.publication_changed && !catalog_receipt.consumer_switched);
         tx.commit().unwrap();
     }
     let original_files = agent_authored(&root, deadline);
