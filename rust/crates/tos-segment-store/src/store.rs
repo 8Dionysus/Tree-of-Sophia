@@ -73,6 +73,21 @@ pub struct SegmentStore {
     inner: Arc<Inner>,
 }
 
+/// Explicit owner of a pin-directory flock. Close-on-exec only takes effect
+/// when a child reaches `exec`; a concurrently forked test process may briefly
+/// retain this open-file-description after its owner returns. Unlock on every
+/// Rust scope exit so that transient child inheritance cannot extend a lease.
+#[derive(Debug)]
+pub(crate) struct PinDirectoryLease {
+    file: File,
+}
+
+impl Drop for PinDirectoryLease {
+    fn drop(&mut self) {
+        let _ = flock(&self.file, FlockOperation::Unlock);
+    }
+}
+
 /// Process-local custody of the exact anchored store that a caller audits.
 /// The shared pin lock retains already sealed bytes against STO abort while
 /// the caller carries its audit through candidate installation and selection.
@@ -81,7 +96,7 @@ pub struct SegmentStore {
 #[derive(Clone, Debug)]
 pub struct AuditedStoreRoot {
     inner: Arc<Inner>,
-    _pin_lock: Arc<File>,
+    _pin_lock: Arc<PinDirectoryLease>,
 }
 
 impl PartialEq for AuditedStoreRoot {
@@ -143,10 +158,11 @@ pub struct VerificationBudget {
 
 /// A local, process-held pin lock and the receipts verified beneath it.
 /// The coordinator holds this guard through its short metadata transaction.
-/// Dropping it releases the Linux lock; the durable sealed pins remain.
+/// Dropping it explicitly unlocks even if a concurrently forked child still
+/// has the close-on-exec file description; durable sealed pins remain.
 #[derive(Debug)]
 pub struct VerifiedSealGuard {
-    _pin_lock: File,
+    _pin_lock: PinDirectoryLease,
     receipts: Vec<ByteDurabilityReceipt>,
     prepare_id: Vec<u8>,
 }
@@ -703,7 +719,7 @@ impl SegmentStore {
         })
     }
 
-    pub(crate) fn hold_generation_pin(&self) -> Result<File> {
+    pub(crate) fn hold_generation_pin(&self) -> Result<PinDirectoryLease> {
         self.lock_pin_dir(FlockOperation::NonBlockingLockShared)
     }
 
@@ -1669,7 +1685,7 @@ impl SegmentStore {
         Ok(journal)
     }
 
-    fn lock_pin_dir(&self, operation: FlockOperation) -> Result<File> {
+    fn lock_pin_dir(&self, operation: FlockOperation) -> Result<PinDirectoryLease> {
         // A fresh open description is essential: dup/try_clone share flock
         // ownership on Linux and would not exclude a same-process abort.
         let file = tos_fd_open::reopen_directory(&self.inner.pins).map_err(|error| {
@@ -1682,7 +1698,7 @@ impl SegmentStore {
                 SegmentError::io("cannot lock pin directory", error.into())
             }
         })?;
-        Ok(file)
+        Ok(PinDirectoryLease { file })
     }
 
     fn validated_receipt_journal(&self, receipt: &ByteDurabilityReceipt) -> Result<PinJournal> {
@@ -2748,6 +2764,24 @@ mod tests {
             store.verify_and_hold(&receipts, budget).unwrap_err().code,
             Code::InvalidReceipt
         );
+    }
+
+    #[test]
+    fn pin_directory_lease_unlocks_even_when_open_description_is_duplicated() {
+        let root = PrivateRoot::new();
+        let store = SegmentStore::initialize_empty(&root.0, b"private-domain", limits()).unwrap();
+        let lease = store
+            .lock_pin_dir(FlockOperation::NonBlockingLockShared)
+            .unwrap();
+        // A forked child inherits this same open-file-description until exec;
+        // try_clone exercises the lock lifetime without starting a process.
+        let inherited = lease.file.try_clone().unwrap();
+        drop(lease);
+        let exclusive = store
+            .lock_pin_dir(FlockOperation::NonBlockingLockExclusive)
+            .expect("lease drop explicitly unlocks inherited description");
+        drop(exclusive);
+        drop(inherited);
     }
 
     #[test]

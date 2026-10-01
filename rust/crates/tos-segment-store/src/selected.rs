@@ -13,7 +13,7 @@ use crate::generation::{
     GenerationShapeLimits, KeyComparatorV1, PackedPartitionRefV1, PartitionBoundsV1,
     PlacementGenerationRowV1, PlacementPartitionV1, placement_catalog_shape_root,
 };
-use crate::store::SegmentStore;
+use crate::store::{PinDirectoryLease, SegmentStore};
 
 const MAGIC: &[u8; 8] = b"TOSGEN1\0";
 const PROFILE: &[u8; 24] = b"complete-private-cmd2-v1";
@@ -91,7 +91,7 @@ pub struct InstalledGenerationV1 {
     pub(crate) store: SegmentStore,
     pub(crate) digest: Digest256,
     pub(crate) descriptor: GenerationDescriptorV1,
-    pub(crate) pin_lock: Arc<std::fs::File>,
+    pub(crate) pin_lock: Arc<PinDirectoryLease>,
 }
 
 impl InstalledGenerationV1 {
@@ -228,7 +228,7 @@ pub struct GenerationRowStreamV1 {
     namespace: GenerationNamespaceV1,
     catalog: GenerationCatalogV1,
     limits: GenerationReadLimits,
-    _pin_lock: Arc<std::fs::File>,
+    _pin_lock: Arc<PinDirectoryLease>,
     partition: usize,
     rows: Option<std::vec::IntoIter<PlacementGenerationRowV1>>,
     observed: u64,
