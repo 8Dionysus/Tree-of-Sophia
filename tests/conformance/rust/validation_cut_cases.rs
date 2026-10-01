@@ -1824,6 +1824,7 @@ fn actual_cut_schema_batch_binds_ordered_units_and_refuses_partial_receipts() {
         .unwrap();
     let image =
         super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, &cancelled);
+    let worker_digest = image.identity().sha256;
     let mut schemas = CutWorkerSchemaExecutor::from_cut_with_image(
         &cut,
         FormatProfile::LegacyPythonObserved20260923,
