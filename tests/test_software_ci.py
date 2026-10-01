@@ -164,6 +164,48 @@ class SoftwareSelectionTests(unittest.TestCase):
         self.assertEqual(gate_steps[-1]['run'],'python scripts/software_ci.py gate')
         self.assertEqual(gate_steps[-1]['env']['CI_NEEDS'],'${{ toJSON(needs) }}')
 
+    def test_edge_sql_consumers_use_the_pinned_native_access_product(self):
+        workflow=yaml.safe_load((ROOT/'.github/workflows/repo-validation.yml').read_text())
+        software_checkout=next(
+            step for step in workflow['jobs']['software']['steps']
+            if 'sparse-checkout' in step.get('with',{})
+        )
+        self.assertIn('/.github/workflows/cloudflare-edge.yml',
+                      software_checkout['with']['sparse-checkout'].splitlines())
+        worker_steps=workflow['jobs']['worker']['steps']
+        prepare=next(step for step in worker_steps if step.get('name')=='Prepare pinned Worker rules')
+        self.assertIn(
+            'cargo +1.98.1 build --locked -p tos-access --bin tos-access --target x86_64-unknown-linux-gnu',
+            prepare['run'],
+        )
+        test=next(step for step in worker_steps if step.get('name')=='Test Worker contracts without deployment or production data')
+        self.assertEqual(
+            test['env']['TOS_ACCESS_BIN'],
+            '${{ runner.temp }}/worker-cargo-target/x86_64-unknown-linux-gnu/debug/tos-access',
+        )
+        self.assertIn('test -x "$TOS_ACCESS_BIN"',test['run'])
+
+        historical=yaml.safe_load((ROOT/'.github/workflows/cloudflare-edge.yml').read_text())
+        event=historical.get('on',historical.get(True))['workflow_dispatch']
+        build_seconds=event['inputs']['build_seconds']
+        self.assertTrue(build_seconds['required'])
+        self.assertEqual(build_seconds['type'],'number')
+        self.assertNotIn('default',build_seconds)
+        job=historical['jobs']['contract']
+        self.assertEqual(job['timeout-minutes'],120)
+        steps=job['steps']
+        native=next(step for step in steps if step.get('name')=='Prepare pinned native access product')
+        self.assertIn(
+            'cargo +1.98.1 build --locked -p tos-access --bin tos-access --target x86_64-unknown-linux-gnu',
+            native['run'],
+        )
+        self.assertIn('TOS_ACCESS_BIN=',native['run'])
+        self.assertIn('TOS_BUILD_MAX_SECONDS=',native['run'])
+        check=next(step for step in steps if step.get('name')=='Build and check Worker')
+        self.assertLess(steps.index(native),steps.index(check))
+        self.assertIn('npm run check',check['run'])
+        self.assertIn('npx wrangler deploy --dry-run',steps[-1]['run'])
+
     def test_acquisition_custody_tests_are_in_required_software_validation(self):
         required_tests={
             'tests/test_acquisition_batch.py',

@@ -134,6 +134,7 @@ jobs:
             /requirements-dev.txt
             /pytest.ini
             /.github/workflows/repo-validation.yml
+            /.github/workflows/cloudflare-edge.yml
 
       - name: Fetch same-run native CI executors
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
@@ -379,6 +380,7 @@ jobs:
           CARGO_BUILD_JOBS: "2"
         run: |
           rustup toolchain install 1.98.1 --profile minimal --target wasm32-unknown-unknown
+          cargo +1.98.1 build --locked -p tos-access --bin tos-access --target x86_64-unknown-linux-gnu
           cargo +1.98.1 build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown
           archive="$RUNNER_TEMP/worker-wasm-bindgen.tar.gz"
           curl --fail --location --silent --show-error \
@@ -391,7 +393,10 @@ jobs:
             "$CARGO_TARGET_DIR/wasm32-unknown-unknown/release/tos_web_rules.wasm"
 
       - name: Test Worker contracts without deployment or production data
+        env:
+          TOS_ACCESS_BIN: ${{ runner.temp }}/worker-cargo-target/x86_64-unknown-linux-gnu/debug/tos-access
         run: |
+          test -x "$TOS_ACCESS_BIN"
           npm ci --prefer-offline --no-audit --no-fund --prefix access/deploy/cloudflare-worker
           npm run typecheck --prefix access/deploy/cloudflare-worker
           npm test --prefix access/deploy/cloudflare-worker

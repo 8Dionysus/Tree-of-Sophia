@@ -2,6 +2,11 @@ name: Historical Source-to-edge Audit
 
 on:
   workflow_dispatch:
+    inputs:
+      build_seconds:
+        description: "Maximum seconds for the bounded native public D1 build (1-7200)."
+        required: true
+        type: number
 
 permissions:
   contents: read
@@ -34,6 +39,28 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+      - name: Prepare pinned native access product
+        env:
+          CARGO_HOME: ${{ runner.temp }}/edge-cargo-home
+          CARGO_TARGET_DIR: ${{ runner.temp }}/edge-cargo-target
+          CARGO_BUILD_JOBS: "2"
+          TOS_BUILD_MAX_SECONDS: ${{ inputs.build_seconds }}
+        run: |
+          python - <<'PY'
+          import os
+          try:
+              seconds = int(os.environ['TOS_BUILD_MAX_SECONDS'])
+          except ValueError as error:
+              raise SystemExit('build_seconds must be an integer') from error
+          if not 1 <= seconds <= 7200:
+              raise SystemExit('build_seconds must be between 1 and 7200')
+          PY
+          rustup toolchain install 1.98.1 --profile minimal
+          cargo +1.98.1 build --locked -p tos-access --bin tos-access --target x86_64-unknown-linux-gnu
+          binary="$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-access"
+          test -x "$binary"
+          printf 'TOS_ACCESS_BIN=%s\n' "$binary" >> "$GITHUB_ENV"
+          printf 'TOS_BUILD_MAX_SECONDS=%s\n' "$TOS_BUILD_MAX_SECONDS" >> "$GITHUB_ENV"
       - name: Install dependencies
         run: npm ci && npm run ci:python && npm run ci:web
       - name: Build and check Worker
