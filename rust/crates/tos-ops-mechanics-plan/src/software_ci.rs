@@ -502,13 +502,13 @@ mod tests {
             ),
             (
                 vec!["rust/crates/tos-foundation/src/lib.rs"],
-                "none",
+                "browser",
                 false,
                 true,
             ),
             (
                 vec!["Cargo.toml", "Cargo.lock", "rust-toolchain.toml"],
-                "none",
+                "browser",
                 false,
                 true,
             ),
