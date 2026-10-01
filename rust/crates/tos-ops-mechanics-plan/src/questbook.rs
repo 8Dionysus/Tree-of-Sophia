@@ -711,6 +711,15 @@ fn dispatch_entry(id: &str, quest: &Value) -> io::Result<Value> {
     }))
 }
 
+#[cfg(test)]
+#[test]
+fn dispatch_entry_reports_missing_activation_mode_before_projection_fields() {
+    // Retains the package-local direct-helper assertion independently of the
+    // full surface/schema check above; no unchecked field access may panic.
+    let error = dispatch_entry("TOS-Q-0001", &json!({"activation": {}})).unwrap_err();
+    assert!(error.to_string().contains("activation.mode"));
+}
+
 /// Validate the current package-owned surface. A successful check is only a
 /// mechanics compatibility result, never a quest acceptance or canon grant.
 pub fn validate_surface(root: &Path) -> io::Result<()> {
