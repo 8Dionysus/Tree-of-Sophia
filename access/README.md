@@ -1721,3 +1721,28 @@ root, synthesize an Original catalog, or replace the remaining default Core API.
 `NativeCore.knowledge_exploration_capabilities()` returns the `capabilities`
 object from that same contracts call. It preserves selected availability,
 limits and refusal behavior and does not create another backend or data selection.
+
+Existing imported `ToSAccessCore` callers can select native Word and Reading
+without replacing their other Core methods:
+
+```python
+from tos_access import ToSAccessCore
+core = ToSAccessCore.discover(
+    tos_root='/absolute/source-data',
+    native_prefix='/absolute/installed-prefix',
+    reading_analysis_root='/absolute/reading-output',
+)
+packet = core.zarathustra_reading_search('судьбы', limit=1)
+```
+
+These two methods use the existing authenticated `NativeCore` child and its
+original 50-second deadline. They return the complete native packet, including
+selected availability and authority boundaries. `tos_root` selects local data
+through the native RootFence; it does not turn a local carrier into a managed
+Original selection. The optional analysis root affects Reading only. Larger
+Reading inputs require the explicit paired `reading_max_file_bytes` and
+`reading_max_total_file_bytes`; all other native request limits remain unchanged.
+An older installed image may refuse these selectors. No Python fallback runs
+after a selected native refusal. Omitting `native_prefix` retains the existing
+reference methods and does not retire their imported helpers. This association
+does not replace the other default Core APIs or establish positive data acceptance.
