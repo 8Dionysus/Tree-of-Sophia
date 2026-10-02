@@ -3050,7 +3050,7 @@ fn install_target(
             custody::read_bytes(&path_ref(root, work_ref)?, None, false, false, MAX_JSON)?;
         events.push(event(
             &format!("tos.event.annotation.registry-{}.{}.work-extension",operation_date(target)?.replace('-',""),text(target,"slug")?),"annotation",&started,&ended,
-            vec![json!({"ref":text(field(package,"existing_work")?,"preimage_ref")?,"role":"exact-prior-work-record","sha256":sha256(before)}),*inputs.first().ok_or("manifest input missing")?,*inputs.get(1).ok_or("package input missing")?],
+            vec![json!({"ref":text(field(package,"existing_work")?,"preimage_ref")?,"role":"exact-prior-work-record","sha256":sha256(before)}),inputs.first().ok_or("manifest input missing")?.clone(),inputs.get(1).ok_or("package input missing")?.clone()],
             vec![json!({"ref":work_ref,"role":"existing-work-with-additive-expression-claim","sha256":sha256(&work_after)})],
             "guarded-existing-work-expression-extension",json!({"allowed_fields":["expression_claim_refs","record_version"],"prior_claims_preserved":true,"no_new_work_created":true}),
             &rights_ref,receipt_refs.clone(),
