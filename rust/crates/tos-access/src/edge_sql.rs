@@ -16,6 +16,12 @@ const MAX_STATEMENT_BYTES: usize = 100_000;
 const MAX_VALUE_BYTES: i32 = 2_000_000;
 type Result<T> = std::result::Result<T, String>;
 
+// The retained framing oracle uses bytes.strip(), whose ASCII whitespace
+// includes vertical tab. Rust's WHATWG byte predicate deliberately excludes it.
+fn python_bytes_whitespace(byte: u8) -> bool {
+    matches!(byte, b'\t' | b'\n' | 0x0b | 0x0c | b'\r' | b' ')
+}
+
 fn input(path: &Path) -> Result<File> {
     let file = OpenOptions::new()
         .read(true)
@@ -79,7 +85,7 @@ impl<R: BufRead> Statements<R> {
             }
             if read == 0 {
                 self.done = true;
-                if pending.iter().any(|b| !b.is_ascii_whitespace()) {
+                if pending.iter().any(|b| !python_bytes_whitespace(*b)) {
                     return Err("producer SQL ends with an incomplete statement".into());
                 }
                 return Ok((!pending.is_empty()).then_some(pending));
@@ -158,7 +164,7 @@ fn chunk_held_until(
             }
             target.write_all(&statement).map_err(|e| e.to_string())?;
             written = written.checked_add(length).ok_or("SQL byte overflow")?;
-            count += u64::from(statement.iter().any(|b| !b.is_ascii_whitespace()));
+            count += u64::from(statement.iter().any(|b| !python_bytes_whitespace(*b)));
         }
         drop(statements);
         if identity(&file.metadata().map_err(|e| e.to_string())?) != identity(metadata) {
@@ -624,6 +630,20 @@ mod tests {
             assert!(chunk(&source, &output, 0, 100).is_err());
             assert!(!output.exists());
         }
+    }
+
+    #[test]
+    fn blank_vertical_tab_tail_matches_python_bytes_strip() {
+        let temporary = Fixture::new();
+        let source = temporary.path("source.sql");
+        let output = temporary.path("chunk.sql");
+        let raw = b"\t\n\x0b\x0c\r ";
+        std::fs::write(&source, raw).unwrap();
+        let receipt = chunk(&source, &output, 0, 1).unwrap();
+        assert_eq!(std::fs::read(output).unwrap(), raw);
+        assert_eq!(receipt["statements"], 0);
+        assert_eq!(receipt["eof"], true);
+        assert_eq!(receipt["next_offset"], raw.len());
     }
 
     #[test]

@@ -27,10 +27,10 @@ fn read(root: &ResearchExecution, p: &str) -> Result<Vec<u8>> {
 pub const WORK: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra";
 pub const ROUTE: &str = "ToS/candidate-intake/zarathustra/concept-workbench-v1";
 const GENERATOR: &str = "scripts/build_zarathustra_concept_workbench_v1.py";
-// Exact v1 historical recipe projection. Native invocation identity is separate.
-const GENERATOR_SHA: &str = "36ef1cfbca8a546c9ae7a102616c64b64c310371f23da062aac2034131683dd7";
-const QUERY_SHA: &str = "e2d1124e25dc9fa0165f5617c9913b87dc825515bda013f9ce58c8cee2e80d08";
-const WORD_SHA: &str = "22baa889d2da9f8ef4b361db8402b473f1b72c3eecc229b77c7b1c880c5b60ff";
+// Selected maintained rendering-recipe identity, separate from native execution.
+const GENERATOR_SHA: &str = "c60ef9660b5bbfbc06a3ce2f710f45bd5761f8f8ced55c4352c6f16e90a57a2d";
+const QUERY_SHA: &str = "ca9bb4c046f306acfcbbdd06d1bf95306d3fad1444babfc4cba735276e9832ec";
+const WORD_SHA: &str = "fba47c5368663fe6877b725174ee80b9118294b8af89a78ed2ca041d9839f9fb";
 const QUERY: &str = "scripts/query_zarathustra_concept_workbench_v1.py";
 const WORD: &str = "scripts/prepare_zarathustra_word_analysis_v1.py";
 fn s<'a>(v: &'a Value, k: &str) -> &'a str {

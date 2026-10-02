@@ -16,9 +16,9 @@ const WORK: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-z
 const ROUTE: &str = "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1";
 const ALIGN: &str = "alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1";
 const GENERATOR: &str = "scripts/build_zarathustra_eternal_return_concept_candidate_v1.py";
-// Declared original v1 rendering recipe from its frozen manifest. This field
-// reproduces historical provenance; it does not identify native execution.
-const RECIPE_SHA256: &str = "8eebb793ad3c6fbff416caa183ecfcf35dd510737fbe0a45d92b0f6cefd42596";
+// Selected maintained rendering-recipe identity. Native implementation and
+// invocation identities belong to the independent execution receipt.
+const RECIPE_SHA256: &str = "35f9a992d0f9460baea7649dde7abed4f615188a376b915041ce49c734400c12";
 const OUTPUTS: [(&str, &str); 11] = [
     ("concept", "concept-candidate.v1.json"),
     ("evidence", "evidence-spine.v1.jsonl"),

@@ -1,7 +1,7 @@
 use std::io::{Cursor, Read, Write};
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
-use tos_foundation::{JsonLimits, JsonMode, parse_json};
+use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
 use tos_query::{AbortProbe, AbortReason};
 
 use tos_access::{

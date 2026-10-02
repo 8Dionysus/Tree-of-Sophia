@@ -14,9 +14,9 @@ const PARENT: &str = "ToS/candidate-intake/zarathustra/eternal-return-concept-ca
 const ALIGN_SUFFIX: &str =
     "alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1";
 const GENERATOR: &str = "scripts/build_zarathustra_eternal_return_review_preparation_v1.py";
-// Declared original v1 rendering recipe from its frozen manifest. This field
-// reproduces historical provenance; it does not identify native execution.
-const RECIPE_SHA256: &str = "0e6859ccb4bc9e8eac65c9d63a03e9a7e30d01852f0a1dcf1695175cbb30283e";
+// Selected maintained rendering-recipe identity. Native implementation and
+// invocation identities belong to the independent execution receipt.
+const RECIPE_SHA256: &str = "335df2c5ad52229d449cf6a22cdef4d5dabca49163b3154d85aed1e1a212027b";
 const OUTPUTS: [(&str, &str); 8] = [
     ("gaps", "gap-review-candidates.v1.jsonl"),
     ("speakers", "speaker-attribution-candidates.v1.jsonl"),

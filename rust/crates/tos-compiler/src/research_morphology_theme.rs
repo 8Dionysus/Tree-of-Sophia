@@ -15,8 +15,8 @@ type R<T> = Result<T, String>;
 const ROUTE: &str = "ToS/candidate-intake/zarathustra/dta-antonovsky-morphology-themes-v1";
 const WORK: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra";
 const GENERATOR: &str = "scripts/build_zarathustra_morphology_theme_candidates_v1.py";
-// Retained authored v1 recipe identity. Independent receipt identifies native execution.
-const RECIPE_SHA256: &str = "7d8fc20ffdd3bb6a0440b25159465c170a378f80ba67bdc78459cb735e1f3f30";
+// Selected maintained rendering-recipe identity, separate from native execution.
+const RECIPE_SHA256: &str = "8eebdf809bd5989d6c3aae60796a0be57bc886bf3f0441a6109b9b879954ac49";
 fn route(x: &str) -> String {
     format!("{ROUTE}/{x}")
 }

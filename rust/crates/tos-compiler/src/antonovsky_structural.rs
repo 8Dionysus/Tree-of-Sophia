@@ -17,6 +17,7 @@ use std::{
 };
 use tos_foundation::{Digest256, JsonLimits, JsonMode, emit_python_compact_json, parse_json};
 mod output;
+pub mod technical_markup;
 use output::OutputOwner;
 pub type Result<T> = std::result::Result<T, String>;
 pub const V1: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/technical-markup/antonovsky-1911-pdf-layout-v1";
@@ -487,6 +488,7 @@ struct Block {
     lines: Vec<(String, [f64; 4])>,
     words: usize,
     word_heights: Vec<f64>,
+    line_word_counts: Vec<usize>,
     width: f64,
     height: f64,
 }
@@ -520,22 +522,30 @@ fn xml_attr(
 }
 /// Frozen bbox fixity precedes XML parsing; quick-xml supplies XML event,
 /// entity and attribute primitives. This selects Poppler elements only.
+struct Observation {
+    blocks: Vec<Block>,
+    flow_counts: Vec<usize>,
+    dimensions: Vec<[f64; 2]>,
+}
 fn observation(
     raw: &[u8],
     inventory: &[Value],
-    citations: &[Value],
+    citations: Option<&[Value]>,
     plan: &Value,
     deadline: Instant,
-) -> Result<Vec<Block>> {
+) -> Result<Observation> {
     tick(deadline)?;
     use quick_xml::{Reader, events::Event};
     let by_locator: BTreeMap<_, _> = citations
+        .unwrap_or(&[])
         .iter()
         .filter(|r| s(&r["unit_kind"]) == "paragraph")
         .map(|r| (s(&r["source_locator"]), r))
         .collect();
     let mut reader = Reader::from_reader(raw);
     reader.config_mut().expand_empty_elements = true;
+    let mut flow_counts = Vec::<usize>::new();
+    let mut dimensions = Vec::new();
     let mut page = 0;
     let mut width = 0.;
     let mut height = 0.;
@@ -559,6 +569,7 @@ fn observation(
                 match name.as_str() {
                     "page" => {
                         page += 1;
+                        flow_counts.push(0);
                         if page > inventory.len() {
                             return fail("Poppler and inventory page counts differ");
                         }
@@ -568,6 +579,7 @@ fn observation(
                         height = xml_attr(&e, reader.decoder(), "height")?
                             .parse::<f64>()
                             .map_err(|_| "page height")?;
+                        dimensions.push([width, height]);
                         let loc = &inventory[page - 1]["locator"];
                         if (width - loc["width_points"].as_f64().ok_or("inventory width")?).abs()
                             > 1e-6
@@ -581,6 +593,7 @@ fn observation(
                     }
                     "flow" if parent == Some("page") => {
                         flow += 1;
+                        flow_counts[page - 1] += 1;
                         total_flows += 1;
                         ordinal = 0;
                     }
@@ -589,9 +602,10 @@ fn observation(
                         let b = xml_box(&e, reader.decoder())?;
                         let locator =
                             format!("pdf-page-{page:04}/flow-{flow:04}/block-{ordinal:04}");
-                        let c = by_locator
-                            .get(locator.as_str())
-                            .ok_or("v1 block citation missing")?;
+                        let c = by_locator.get(locator.as_str());
+                        if citations.is_some() && c.is_none() {
+                            return fail("v1 block citation missing");
+                        }
                         block = Some(Block {
                             page,
                             panel: if (b[0] + b[2]) / 2. < width / 2. {
@@ -601,14 +615,15 @@ fn observation(
                             }
                             .into(),
                             locator,
-                            citation: s(&c["display_citation"]).into(),
-                            id: s(&c["unit_id"]).into(),
+                            citation: c.map(|c| s(&c["display_citation"])).unwrap_or("").into(),
+                            id: c.map(|c| s(&c["unit_id"])).unwrap_or("").into(),
                             bbox: b,
                             flow,
                             ordinal,
                             lines: vec![],
                             words: 0,
                             word_heights: vec![],
+                            line_word_counts: vec![],
                             width,
                             height,
                         });
@@ -662,6 +677,7 @@ fn observation(
                     b"line" => {
                         if let (Some(block), Some(b)) = (block.as_mut(), line_box.take()) {
                             block.lines.push((words.join(" "), b));
+                            block.line_word_counts.push(words.len());
                         }
                     }
                     b"block" => {
@@ -722,66 +738,15 @@ fn observation(
     if sha(text.as_bytes()) != TEXT_SHA {
         return fail("private text-layer fixity drift");
     }
-    Ok(blocks)
+    Ok(Observation {
+        blocks,
+        flow_counts,
+        dimensions,
+    })
 }
-fn load_source(deadline: Instant, source: &SourceInput) -> Result<(Vec<Block>, Vec<Value>)> {
+fn poppler_bbox(deadline: Instant, pdf_file: &fs::File, plan: &Value) -> Result<Vec<u8>> {
     tick(deadline)?;
-    let plan = load_until(deadline, source, &format!("{V1}/plan.v1.json"))?;
-    if s(&plan["contract_ref"]) != "ToS/contracts/source-text-unit-packet-v1.schema.json"
-        || s(&plan["route_root"]) != V1
-    {
-        return fail("plan contract or route drift");
-    }
-    let src = &plan["source_item"];
-    let manifest = load_until(deadline, source, s(&src["manifest_ref"]))?;
-    if manifest["item_id"] != src["item_ref"] || manifest["embodiment_ref"] != src["edition_ref"] {
-        return fail("source item or edition binding drift");
-    }
-    let entries: Vec<_> = a(&manifest["payload_files"])
-        .iter()
-        .filter(|r| r["file_id"] == src["file_ref"])
-        .collect();
-    if entries.len() != 1 || entries[0]["sha256"] != src["file_sha256"] {
-        return fail("exact source PDF manifest drift");
-    }
-    let pdf = source
-        .root
-        .join(
-            Path::new(s(&src["manifest_ref"]))
-                .parent()
-                .ok_or("manifest parent")?,
-        )
-        .join(s(&entries[0]["relative_path"]));
-
-    let pdf_ref = pdf.to_str().ok_or("PDF path encoding")?;
-    let mut pdf_file = source.open(pdf_ref)?;
-    let raw = read_held_until(deadline, source, &mut pdf_file, pdf_ref)?;
-    // Poppler opens the retained input inode through the invoking process's
-    // descriptor carrier. No reopened source pathname can redirect extraction.
     let pdf_carrier = format!("/proc/{}/fd/{}", std::process::id(), pdf_file.as_raw_fd());
-    if sha(&raw) != PDF_SHA || s(&src["file_sha256"]) != PDF_SHA {
-        return fail("local PDF digest drift");
-    }
-    let inv = load_until(deadline, source, s(&src["resource_inventory_ref"]))?;
-    if inv["item_id"] != src["item_ref"] {
-        return fail("resource inventory item identity drift");
-    }
-    let files: Vec<_> = a(&inv["files"])
-        .iter()
-        .filter(|r| r["file_id"] == src["file_ref"])
-        .collect();
-    if files.len() != 1 || files[0]["file_sha256"] != src["file_sha256"] {
-        return fail("resource inventory PDF fixity drift");
-    }
-    let pages = a(&files[0]["resources"]);
-    if pages.len() != n(&plan["expected_counts"]["pdf_pages"])
-        || pages
-            .iter()
-            .enumerate()
-            .any(|(i, p)| s(&p["resource_id"]) != format!("pdf-page-{:04}", i + 1))
-    {
-        return fail("resource inventory page identities drift");
-    }
     let policy = &plan["extraction_policy"];
     if s(&policy["software_version"]) != "26.01.0"
         || n(&policy["expected_bbox_bytes"]) != 12_306_305
@@ -849,15 +814,81 @@ fn load_source(deadline: Instant, source: &SourceInput) -> Result<(Vec<Block>, V
     {
         return fail("Poppler warning surface drift");
     }
+    tick(deadline)?;
+    Ok(result.stdout)
+}
+fn load_source(deadline: Instant, source: &SourceInput) -> Result<(Vec<Block>, Vec<Value>)> {
+    tick(deadline)?;
+    let plan = load_until(deadline, source, &format!("{V1}/plan.v1.json"))?;
+    if s(&plan["contract_ref"]) != "ToS/contracts/source-text-unit-packet-v1.schema.json"
+        || s(&plan["route_root"]) != V1
+    {
+        return fail("plan contract or route drift");
+    }
+    let src = &plan["source_item"];
+    let manifest = load_until(deadline, source, s(&src["manifest_ref"]))?;
+    if manifest["item_id"] != src["item_ref"] || manifest["embodiment_ref"] != src["edition_ref"] {
+        return fail("source item or edition binding drift");
+    }
+    let entries: Vec<_> = a(&manifest["payload_files"])
+        .iter()
+        .filter(|r| r["file_id"] == src["file_ref"])
+        .collect();
+    if entries.len() != 1 || entries[0]["sha256"] != src["file_sha256"] {
+        return fail("exact source PDF manifest drift");
+    }
+    let pdf = source
+        .root
+        .join(
+            Path::new(s(&src["manifest_ref"]))
+                .parent()
+                .ok_or("manifest parent")?,
+        )
+        .join(s(&entries[0]["relative_path"]));
+
+    let pdf_ref = pdf.to_str().ok_or("PDF path encoding")?;
+    let mut pdf_file = source.open(pdf_ref)?;
+    let raw = read_held_until(deadline, source, &mut pdf_file, pdf_ref)?;
+    // Poppler opens the retained input inode through the invoking process's
+    // descriptor carrier. No reopened source pathname can redirect extraction.
+
+    if sha(&raw) != PDF_SHA || s(&src["file_sha256"]) != PDF_SHA {
+        return fail("local PDF digest drift");
+    }
+    let inv = load_until(deadline, source, s(&src["resource_inventory_ref"]))?;
+    if inv["item_id"] != src["item_ref"] {
+        return fail("resource inventory item identity drift");
+    }
+    let files: Vec<_> = a(&inv["files"])
+        .iter()
+        .filter(|r| r["file_id"] == src["file_ref"])
+        .collect();
+    if files.len() != 1 || files[0]["file_sha256"] != src["file_sha256"] {
+        return fail("resource inventory PDF fixity drift");
+    }
+    let pages = a(&files[0]["resources"]);
+    if pages.len() != n(&plan["expected_counts"]["pdf_pages"])
+        || pages
+            .iter()
+            .enumerate()
+            .any(|(i, p)| s(&p["resource_id"]) != format!("pdf-page-{:04}", i + 1))
+    {
+        return fail("resource inventory page identities drift");
+    }
+    let bbox = poppler_bbox(deadline, &pdf_file, &plan)?;
     let blocks = observation(
-        &result.stdout,
+        &bbox,
         pages,
-        &loadl_until(deadline, source, &format!("{V1}/citation-spine.v1.jsonl"))?,
+        Some(&loadl_until(
+            deadline,
+            source,
+            &format!("{V1}/citation-spine.v1.jsonl"),
+        )?),
         &plan,
         deadline,
     )?;
     Ok((
-        blocks,
+        blocks.blocks,
         loadl_until(deadline, source, &reference("structure-census.v2.jsonl"))?,
     ))
 }

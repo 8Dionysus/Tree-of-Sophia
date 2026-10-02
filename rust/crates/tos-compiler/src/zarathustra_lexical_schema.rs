@@ -70,10 +70,13 @@ impl<'a> LexicalSchemaExecutor<'a> {
             .checked_duration_since(Instant::now())
             .ok_or("lexical schema deadline")?;
         let unit = Duration::from_secs(l.max_unit_seconds).min(wall);
+        // The existing scalar executor admits at most 60 CPU seconds per child.
+        // Preserve the separately declared cumulative quota across all children.
+        let child_cpu_seconds = l.max_cpu_seconds.min(60);
         let budget = ExecutorBudget {
             execution_wall: unit,
             cleanup_grace: Duration::from_millis(200),
-            cpu_seconds: l.max_cpu_seconds,
+            cpu_seconds: child_cpu_seconds,
             address_space_bytes: l.address_space_bytes,
         };
         let preparation_bytes =
@@ -130,7 +133,7 @@ impl<'a> LexicalSchemaExecutor<'a> {
                     startup_wall: unit,
                     per_unit_wall: unit,
                     cleanup_grace: Duration::from_millis(200),
-                    cpu_seconds: l.max_cpu_seconds,
+                    cpu_seconds: child_cpu_seconds,
                     address_space_bytes: l.address_space_bytes,
                     max_units: 1,
                     max_total_raw_bytes: l.max_instance_bytes,

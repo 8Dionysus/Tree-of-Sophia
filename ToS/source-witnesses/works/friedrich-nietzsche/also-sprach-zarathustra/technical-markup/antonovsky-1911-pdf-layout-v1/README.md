@@ -98,3 +98,43 @@ stays `proposed`, `reviews[]` stays empty, and DE↔RU alignment claims remain
 unopened. The 86-row heading set also remains deliberately recall-incomplete;
 screening every enumerated row does not establish that every Russian heading
 has been found.
+
+## Native whole producer candidate
+
+The installed native route is `tos technical-markup --source-root ABS` with
+exactly one of `--build`, `--check`, or `--validate-tracked`.
+`--build --issue-identities` additionally requests initial issuance; an existing
+issuance is never replaced. Writing requires an explicitly admitted
+`--scratch-bytes N` budget. The default whole deadline is 180 seconds;
+`--max-seconds` accepts 1 through 600. The external Poppler child also owns a
+finite one-second failure cleanup reserve.
+
+The native v1 producer independently creates the original page/panel/block
+packet, citation spine, region and heading candidates, both screening views,
+summaries, provenance, and the two private layers. It shares only the retained
+root/source custody, exact Poppler extraction, XML observation, resource budgets
+and Python-compatible JSON primitives with v2. V2 paragraph/verse output is not
+a replacement for these v1 units.
+
+The historical Python builder bytes remain the provenance binding and parity
+oracle; the native route never executes them. Historical event authorship,
+dates and method labels are retained artifact data, not a claim of native
+execution. A changed packet-schema digest requires explicit review of the
+bounded large-array schema adapter before it can run.
+
+The current maintained recipe is builder digest
+`4c80683124592bc969e0db6ffe0d5696ec28d4079bc522725788aeff44abd8eb`.
+The retained historical capture binds
+`82452bce0c1599925e18ffd08c5d963d1a872da532d9a7aef72b155087aefcb9`;
+five provenance warning strings and the method digest evolved, while extraction
+and unit algorithms did not. Build/check require the current source binding.
+Compare against current Python oracle outputs in separate admitted private
+scratch on the same genuine primitives; keep the historical capture unchanged
+and report its known provenance differences separately. Tracked validation can
+validate the historical packet without extraction or producer execution.
+
+Native source and an explicit full eleven-output current-oracle gate are candidates
+until compilation, byte parity, installed command checks and build/issuance
+boundary checks have actually passed. The maintained Python command remains
+retained pending that evidence; it is not yet retired. These mechanics accept
+no text, segmentation, semantic claim, rights clearance or publication.

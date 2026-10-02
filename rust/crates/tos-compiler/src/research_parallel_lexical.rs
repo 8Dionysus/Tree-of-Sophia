@@ -19,11 +19,11 @@ const ALIGN: &str = "alignments/translation/dta-first-editions-to-antonovsky-191
 const RU_TECH: &str = "technical-markup/antonovsky-1911-structural-paragraph-v2";
 const DE_TECH: &str = "technical-markup/dta-first-editions-parts-1-4-v1";
 const PRIVATE: &str = "gold-sets/foundation-pilot-v1/local-content/parallel-lexical-candidates-v1";
-// Frozen v1 compatibility projection describes the authored recipe, not this invocation.
+// The v1 compatibility projection identifies the selected maintained rendering recipe.
 // Native execution identity belongs to the independent execution receipt.
 const GENERATOR: &str = "scripts/build_zarathustra_parallel_lexical_candidates_v1.py";
-// Retained authored v1 recipe identity. Independent receipt identifies native execution.
-const RECIPE_SHA256: &str = "4a3c0685e93bb7bda9b19db4cf9dc9fe5a3bae7580c8166eef7c8128d139ceba";
+// Selected maintained rendering-recipe identity, separate from native execution.
+const RECIPE_SHA256: &str = "5eeabab845a141f7ee7c34bc7ad4141694f238fde0531c4c0fa282a1ec659f84";
 fn path(s: &str) -> String {
     format!("{WORK}/{s}")
 }

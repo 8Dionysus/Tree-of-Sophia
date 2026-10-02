@@ -50,6 +50,8 @@ pub mod evidence_projection;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod lexical_index_command;
 pub mod structural_paragraph_command;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod technical_markup_command;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod research_builders_command;

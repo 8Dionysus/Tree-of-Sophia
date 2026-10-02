@@ -375,7 +375,7 @@ describe("WebMCP page-command binding", () => {
     const prepare = vi.fn((_input: Record<string, unknown>) => ({
       schema: "tos_zarathustra_word_analysis_capability_v1",
       available: true,
-      task: { source: { language: "de", surface: "Schicksal" } },
+      task: { source: { language: "de", surface: "Schicksal", occurrence_candidate_ref: "candidate-0", existing_occurrence_ref: "old-0", context_unit_ref: "ctx", anchor_refs: ["source-anchor"], reading_ref: "r1" } },
     }));
     const registry = createPageCommandRegistry(() => current, {
       "tos.page.open-view": noop,
@@ -408,6 +408,11 @@ describe("WebMCP page-command binding", () => {
     ) as { content: Array<{ text: string }> };
     expect(prepare).toHaveBeenCalled();
     expect(result.content[0].text).toContain("Schicksal");
+    expect(JSON.parse(result.content[0].text).source).toEqual({
+      occurrence_candidate_ref: "candidate-0", existing_occurrence_ref: "old-0",
+      context_unit_ref: "ctx", anchor_refs: ["source-anchor"], reading_ref: "r1",
+      language: "de", surface: "Schicksal",
+    });
     adapter.stop();
   });
 
