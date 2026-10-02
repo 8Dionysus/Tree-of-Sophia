@@ -812,6 +812,9 @@ fn render_current_agent_projections(
             ));
         }
         if epoch.fresh_sink {
+            // SQL profile_id is TEXT; retain the original byte identity elsewhere.
+            let original_profile = std::str::from_utf8(ORIGINAL)
+                .map_err(|_| DurableError::Corrupt("original source profile is not UTF-8"))?;
             for table in ["cmd2_current", "cmd2_history"] {
                 set_streamed_pg_limits(epoch.tx, epoch.max_statement_ms, deadline, cancelled)?;
                 ManagedSourceWorkV1::charge(
@@ -824,7 +827,7 @@ fn render_current_agent_projections(
                 );
                 let written = epoch.tx.execute(
                     &query,
-                    &[&epoch.domain, &member.path, &projection, &ORIGINAL],
+                    &[&epoch.domain, &member.path, &projection, &original_profile],
                 )?;
                 ManagedSourceWorkV1::charge(&mut epoch.body_work.fresh_pg_rows_written, written)?;
                 if written != 1 {
