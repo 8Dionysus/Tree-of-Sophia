@@ -211,6 +211,27 @@ def _publish_header(db, header, catalog, lens, descriptor, epoch, limits):
     return published_snapshot_binding(metadata[TOP_KEY], epoch)
 
 
+def configure_sqlite_temp_store(db, mode=None):
+    """Explicit computational storage selection; None preserves existing policy."""
+    if mode is None:
+        return
+    if mode != 'MEMORY':
+        raise ValueError('SQLite temp storage profile must be None or MEMORY')
+    selected = []
+    count = 0
+    for (option,) in db.execute('PRAGMA compile_options'):
+        count += 1
+        if count > 256 or not isinstance(option, str) or len(option) > 4096:
+            raise ValueError('SQLite compile-option envelope exceeded')
+        if option.startswith('TEMP_STORE='):
+            selected.append(option)
+    if selected not in (['TEMP_STORE=1'], ['TEMP_STORE=2'], ['TEMP_STORE=3']):
+        raise ValueError('SQLite MEMORY temp capability unavailable')
+    db.execute('PRAGMA temp_store=MEMORY')
+    if db.execute('PRAGMA temp_store').fetchone()[0] != 2:
+        raise ValueError('SQLite MEMORY temp selection differs')
+
+
 def publish_prepared(path: str | Path, *, graph: dict, catalog: dict,
                      limits: PublicationLimits | None = None,
                      search_scratch_path: str | Path | None = None,
@@ -236,7 +257,8 @@ def publish_prepared(path: str | Path, *, graph: dict, catalog: dict,
 def reference_publish_prepared(path: str | Path, *, graph: dict, catalog: dict,
                      limits: PublicationLimits | None = None,
                      search_scratch_path: str | Path | None = None,
-                     search_scratch_limits: BulkBootstrapLimits | None = None) -> dict:
+                     search_scratch_limits: BulkBootstrapLimits | None = None,
+                     sqlite_temp_store: str | None = None) -> dict:
     """Create one exclusive 0600 file; failure removes only that new inode.
 
     Explicit repeatable normalized row lists retain their native source order.
@@ -248,7 +270,8 @@ def reference_publish_prepared(path: str | Path, *, graph: dict, catalog: dict,
                                  if key not in ("nodes", "relations")}, catalog=catalog,
                                  row_factory=lambda kind: iter(graph[kind + "s"]), limits=limits,
                                  search_scratch_path=search_scratch_path,
-                                 search_scratch_limits=search_scratch_limits)
+                                 search_scratch_limits=search_scratch_limits,
+                                 sqlite_temp_store=sqlite_temp_store)
 
 
 def publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dict,
@@ -296,7 +319,7 @@ def reference_publish_prepared_rows(path: str | Path, *, source_header: dict, ca
                           limits: PublicationLimits | None = None,
                           search_scratch_path: str | Path | None = None,
                           search_scratch_limits: BulkBootstrapLimits | None = None,
-                          search_reuse=None) -> dict:
+                          search_reuse=None, sqlite_temp_store: str | None = None) -> dict:
     """Explicit new-file bootstrap; optionally retain a selected search donor.
 
     Search reuse verifies every predecessor carrier/address in one read-only
@@ -305,7 +328,8 @@ def reference_publish_prepared_rows(path: str | Path, *, source_header: dict, ca
     """
     options = dict(source_header=source_header, catalog=catalog, row_factory=row_factory,
                    limits=limits, search_scratch_path=search_scratch_path,
-                   search_scratch_limits=search_scratch_limits)
+                   search_scratch_limits=search_scratch_limits,
+                   sqlite_temp_store=sqlite_temp_store)
     if search_reuse is None:
         return _publish_prepared_rows(path, **options)
     if search_scratch_path is not None or search_scratch_limits is not None:
@@ -320,7 +344,7 @@ def _publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: di
                           limits: PublicationLimits | None = None,
                           search_scratch_path: str | Path | None = None,
                           search_scratch_limits: BulkBootstrapLimits | None = None,
-                          _search_donor=None) -> dict:
+                          _search_donor=None, sqlite_temp_store: str | None = None) -> dict:
     """Bootstrap from two repeatable passes, without retaining transformed rows.
 
     ``row_factory(kind)`` supplies a fresh iterable for ``node`` or ``relation``
@@ -374,6 +398,7 @@ def _publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: di
     db = None
     try:
         db = sqlite3.connect(path, isolation_level=None)
+        configure_sqlite_temp_store(db, sqlite_temp_store)
         db.execute("PRAGMA journal_mode=DELETE")
         maximum = _cap(db, limits)
         db.execute("BEGIN IMMEDIATE")

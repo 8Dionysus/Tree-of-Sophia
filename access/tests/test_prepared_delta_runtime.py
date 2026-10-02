@@ -13,17 +13,21 @@ import prepared_delta_runtime as delta
 import build_runtime as full
 from incremental_runtime import prepare_search_address_indexes_transaction
 from tos_access.prepared_publication import PreparedChange, SOURCE_ORDER_STRIDE
+from tos_access.prepared_publication import configure_sqlite_temp_store
 from tos_access.prepared_source_binding import apply_source_bound_prepared_delta_transaction
 import test_prepared_source_binding as fixtures
 
 
 class PreparedD1DeltaTests(unittest.TestCase):
+    sqlite_temp_store = None
+
     @classmethod
     def setUpClass(cls):
         fixtures.PreparedSourceBindingTests.setUpClass()
 
     def setUp(self):
         self.source = fixtures.PreparedSourceBindingTests()
+        self.source.sqlite_temp_store = getattr(self, 'sqlite_temp_store', None)
         self.source.setUp()
         self.addCleanup(self.source.doCleanups)
         self.source.attach()
@@ -31,6 +35,7 @@ class PreparedD1DeltaTests(unittest.TestCase):
         self.root = Path(self.f.tmp.name)
         self.before = sqlite3.connect(':memory:')
         self.addCleanup(self.before.close)
+        configure_sqlite_temp_store(self.before, getattr(self, 'sqlite_temp_store', None))
         self.f.db.backup(self.before)
         self.d1 = self.full(self.f.graph, self.f.catalog, 'd'*64, 'initial')
         self.d1.execute('BEGIN IMMEDIATE')
@@ -42,9 +47,11 @@ class PreparedD1DeltaTests(unittest.TestCase):
             evidence={}, philosophy_audit={}, word_analysis_capability={'available': False}, carrier_paths={},
             logical_bindings={'source_revision': graph['source_revision']})
         path = self.root / name / 'read-model.sql'
-        full.build_read_model_sql(None, path, revision, carriers, emit_delta_baseline=False)
+        full.build_read_model_sql(None, path, revision, carriers, emit_delta_baseline=False,
+                                  sqlite_temp_store=getattr(self, 'sqlite_temp_store', None))
         db = sqlite3.connect(':memory:')
         self.addCleanup(db.close)
+        configure_sqlite_temp_store(db, getattr(self, 'sqlite_temp_store', None))
         db.executescript(path.read_text())
         db.executescript((ROOT / 'access/deploy/cloudflare-worker/migrations/0001-exploration.sql').read_text())
         return db

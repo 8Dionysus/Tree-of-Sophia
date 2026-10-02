@@ -14,12 +14,15 @@ import test_prepared_semantics as fixtures
 
 
 class PreparedSourceBindingTests(unittest.TestCase):
+    sqlite_temp_store = None
+
     @classmethod
     def setUpClass(cls):
         fixtures.PreparedSemanticTests.setUpClass()
 
     def setUp(self):
         self.f = fixtures.PreparedSemanticTests()
+        self.f.sqlite_temp_store = self.sqlite_temp_store
         self.f.setUp()
         self.addCleanup(self.f.doCleanups)
         self.db = self.f.db

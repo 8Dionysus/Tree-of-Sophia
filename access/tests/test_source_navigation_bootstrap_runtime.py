@@ -44,6 +44,8 @@ import test_source_navigation_delta_runtime as delta_fixture
 class SourceNavigationBootstrapTests(unittest.TestCase):
     """Use one tiny prepared pair and an absent native D1 product."""
 
+    sqlite_temp_store = None
+
     OLD_D1_REVISION = "d" * 64
     NATIVE_TABLES = (
         "source_navigation_nodes",
@@ -60,6 +62,7 @@ class SourceNavigationBootstrapTests(unittest.TestCase):
 
     def setUp(self):
         self.base = delta_fixture.SourceNavigationDeltaTests()
+        self.base.sqlite_temp_store = self.sqlite_temp_store
         self.base.setUp()
         self.addCleanup(self.base.doCleanups)
         self.f = self.base.f

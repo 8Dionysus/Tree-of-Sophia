@@ -849,14 +849,31 @@ def append_batched_inserts(
 class PostingStatsStore:
     """Disk-backed unique n-gram counts for the indexed search carrier."""
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, *, sqlite_temp_store: str | None = None) -> None:
+        if sqlite_temp_store not in (None, 'MEMORY'):
+            raise ValueError('SQLite temp storage profile must be None or MEMORY')
         self.path = path
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.unlink(missing_ok=True)
         self.connection = sqlite3.connect(self.path)
         self.connection.execute("PRAGMA journal_mode=OFF")
         self.connection.execute("PRAGMA synchronous=OFF")
-        self.connection.execute("PRAGMA temp_store=FILE")
+        if sqlite_temp_store is None:
+            self.connection.execute("PRAGMA temp_store=FILE")
+        else:
+            try:
+                from tos_access.prepared_publication import configure_sqlite_temp_store
+                configure_sqlite_temp_store(self.connection, sqlite_temp_store)
+            except BaseException as primary:
+                try:
+                    self.connection.close()
+                except BaseException as cleanup:
+                    primary.add_note('stats connection cleanup: ' + type(cleanup).__name__)
+                try:
+                    self.path.unlink(missing_ok=True)
+                except BaseException as cleanup:
+                    primary.add_note('stats pathname cleanup: ' + type(cleanup).__name__)
+                raise
         self.connection.execute("PRAGMA cache_size=-32768")
         self.connection.execute(
             "CREATE TABLE gram_stats ("
@@ -926,6 +943,7 @@ def build_read_model_sql(
     emit_delta_baseline: bool = True,
     max_lens_auxiliary_bytes: int = 1024**3,
     max_lens_memberships: int = 2_000_000,
+    sqlite_temp_store: str | None = None,
 ) -> dict[str, Any]:
     # Retained exceptions can keep a whole failed frame alive. Close outputs
     # explicitly on every exit, including cancellation; never rely on GC.
@@ -934,7 +952,8 @@ def build_read_model_sql(
             resources=resources, store=store, max_search_postings=max_search_postings,
             emit_delta_baseline=emit_delta_baseline,
             max_lens_auxiliary_bytes=max_lens_auxiliary_bytes,
-            max_lens_memberships=max_lens_memberships)
+            max_lens_memberships=max_lens_memberships,
+            sqlite_temp_store=sqlite_temp_store)
 
 
 def _build_read_model_sql(
@@ -942,6 +961,7 @@ def _build_read_model_sql(
     carrier_set: ProducerCarrierSet | None, *, resources: ExitStack, store,
     max_search_postings: int, emit_delta_baseline: bool,
     max_lens_auxiliary_bytes: int, max_lens_memberships: int,
+    sqlite_temp_store: str | None,
 ) -> dict[str, Any]:
     # These are offline production budgets, not serving limits or changes to
     # searchable content. A full-only bootstrap deliberately does not create
@@ -1582,7 +1602,8 @@ def _build_read_model_sql(
     # legacy v1 compatibility plane and are also used for exact substring
     # verification after a posting candidate is selected.
     search_posting_count = 0
-    with PostingStatsStore(target.with_name('read-model.search-gram-stats.sqlite')) as search_gram_stats:
+    with PostingStatsStore(target.with_name('read-model.search-gram-stats.sqlite'),
+                           sqlite_temp_store=sqlite_temp_store) as search_gram_stats:
         for kind, source_items in (("nodes", knowledge_nodes), ("relations", knowledge_relations)):
             for position, item in enumerate(source_items):
                 normalized = normalize_paths(item, REPO_ROOT)
