@@ -48,8 +48,8 @@ The original plan and its historical outputs remain separate and unchanged.
 
 A profile follows source → proposal → review before use in a fresh carrier.
 It names the exact original plan digest and a distinct versioned identity.
-Only the SHA256 pins for `parallel_lexical_manifest` and
-`morphology_theme_manifest` may change; input references and membership,
+Only the SHA256 pins for `paragraph_alignment_manifest`,
+`parallel_lexical_manifest` and `morphology_theme_manifest` may change; input references and membership,
 `frozen_at`, source scope, selection law, output route, authority boundaries,
 and all other pins must match the original plan. The profile retains the
 existing opaque identity issuance and must pass its complete binding check,

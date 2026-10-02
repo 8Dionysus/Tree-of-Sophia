@@ -77,7 +77,11 @@ fn profile_semantics(original: &Value, value: &Value) -> Result<()> {
     for key in ["plan_id", "status"] {
         fields.insert(key.into(), original[key].clone());
     }
-    for label in ["parallel_lexical_manifest", "morphology_theme_manifest"] {
+    for label in [
+        "paragraph_alignment_manifest",
+        "parallel_lexical_manifest",
+        "morphology_theme_manifest",
+    ] {
         let record = &mut comparable["inputs"][label];
         let hash = s(&record["sha256"])?;
         if hash.len() != 64
@@ -872,6 +876,33 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn technical_profile_accepts_paragraph_sha_and_preserves_source_contract() {
+        let original = json!({"plan_id":"original", "status":"frozen", "frozen_at":"historical", "scope":{"candidate_only":true},"inputs":{
+            "paragraph_alignment_manifest":{"ref":"paragraph/manifest","sha256":"a".repeat(64)},
+            "parallel_lexical_manifest":{"ref":"parallel/manifest","sha256":"a".repeat(64)},
+            "morphology_theme_manifest":{"ref":"morph/manifest","sha256":"a".repeat(64)},
+            "semantic_identity_research":{"ref":"research","sha256":"a".repeat(64)}}});
+        let mut profile = original.clone();
+        profile["plan_id"] = json!("technical-successor");
+        profile["status"] = json!("proposed-technical-input-profile-successor");
+        profile["input_profile_lineage"] = json!({"profile_version":2,"supersedes_plan_ref":route("plan.v1.json"),"supersedes_plan_sha256":DEFAULT_PLAN_SHA256});
+        profile["inputs"]["paragraph_alignment_manifest"]["sha256"] = json!("b".repeat(64));
+        assert!(profile_semantics(&original, &profile).is_ok());
+        let mut invalid = profile.clone();
+        invalid["inputs"]["paragraph_alignment_manifest"]["ref"] = json!("different/manifest");
+        assert!(profile_semantics(&original, &invalid).is_err());
+        invalid = profile.clone();
+        invalid["frozen_at"] = json!("rewritten");
+        assert!(profile_semantics(&original, &invalid).is_err());
+        invalid = profile.clone();
+        invalid["inputs"]["semantic_identity_research"]["sha256"] = json!("c".repeat(64));
+        assert!(profile_semantics(&original, &invalid).is_err());
+        invalid = profile.clone();
+        invalid["scope"]["candidate_only"] = json!(false);
+        assert!(profile_semantics(&original, &invalid).is_err());
+    }
+
     #[test]
     fn contiguous_formula_counts_overlap() {
         let words = vec![
