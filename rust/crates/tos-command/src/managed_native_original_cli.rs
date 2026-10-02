@@ -3,7 +3,7 @@
 //! installed software owner performs pair verification and promotion later.
 
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
     error::Error as StdError,
@@ -16,12 +16,12 @@ use std::{
     time::{Duration, Instant},
 };
 use tos_compiler::{
-    native_snapshot, native_snapshot_manifest as manifest, open_selected_knowledge_model_owned,
-    private_tmpfs_stage::PrivateTmpfsStageIsolation, ColdOpenLimits, ImmutableKnowledgeCustody,
-    KnowledgeSelectedExpectation, LinuxFsVerityCustody, NativeFsVerityMeasurement,
-    NativeKnowledgeSelection, NativeProcessLimits, NativeSelectionPaths, PublicCapture,
+    ColdOpenLimits, ImmutableKnowledgeCustody, KnowledgeSelectedExpectation, LinuxFsVerityCustody,
+    NativeFsVerityMeasurement, NativeKnowledgeSelection, NativeProcessLimits, NativeSelectionPaths,
+    PublicCapture, native_snapshot, native_snapshot_manifest as manifest,
+    open_selected_knowledge_model_owned, private_tmpfs_stage::PrivateTmpfsStageIsolation,
 };
-use tos_foundation::{parse_json, Digest256, Digest256Hasher, JsonLimits, JsonMode, RelativePath};
+use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonMode, RelativePath, parse_json};
 
 const REQUEST_SCHEMA: &str = "tos_native_managed_original_produce_request_v1";
 const RESULT_SCHEMA: &str = "tos_native_managed_original_produce_result_v1";
@@ -806,6 +806,14 @@ fn compiler_json(fingerprint: &manifest::NativeCompilerFingerprint) -> Value {
     })
 }
 
+fn json_object(fields: impl IntoIterator<Item = (&'static str, Value)>) -> Value {
+    let mut object = serde_json::Map::new();
+    for (key, value) in fields {
+        object.insert(key.to_owned(), value);
+    }
+    Value::Object(object)
+}
+
 fn execute(request: Request) -> Result<Value> {
     validate_request(&request)?;
     let started = Instant::now();
@@ -867,7 +875,7 @@ fn execute(request: Request) -> Result<Value> {
     ) {
         Err(rustix::io::Errno::NOENT) => (),
         Ok(_) => {
-            return Err(Refusal("native data destination must be absent before production").into())
+            return Err(Refusal("native data destination must be absent before production").into());
         }
         Err(error) => return Err(io::Error::from(error).into()),
     }
@@ -1117,7 +1125,9 @@ fn execute(request: Request) -> Result<Value> {
     ) {
         Err(rustix::io::Errno::NOENT) => (),
         Ok(_) => {
-            return Err(Refusal("private release destination was created during production").into())
+            return Err(
+                Refusal("private release destination was created during production").into(),
+            );
         }
         Err(error) => return Err(io::Error::from(error).into()),
     }
@@ -1136,105 +1146,181 @@ fn execute(request: Request) -> Result<Value> {
         .map(HeldEvidenceRef::output)
         .collect::<Vec<_>>();
     let source_cut = completed.expectation().source_cut.clone();
-    let result = json!({
-        "schema_version": RESULT_SCHEMA,
-        "outcome": "private-native-data-candidate-ready-for-external-pair-verifier",
-        "current_release_promoted": false,
-        "installed_access_mcp_accepted": false,
-        "authority": {
-            "source_admission": false,
-            "rights_admission": false,
-            "canon_acceptance": false,
-            "semantic_acceptance": false,
-            "publication": false,
-        },
-        "data_root": output.root_path(),
-        "private_release_root": private_release_root,
-        "private_release_root_created": false,
-        "persistent_store": persistent_store_path,
-        "data_manifest": {
-            "path": output.root_path().join("data/manifest.json"),
-            "sha256": manifest_receipt.manifest_sha256,
-            "data_revision": manifest_receipt.data_revision,
-            "bytes": manifest_receipt.manifest_bytes,
-            "member_count": manifest_receipt.member_count,
-            "member_bytes": manifest_receipt.member_bytes,
-            "native_selection_path": manifest::NATIVE_SELECTION_PATH,
-            "native_selection_sha256": selection_digest,
-        },
-        "historical_source": {
-            "runtime_data_root": manifest::HISTORICAL_RUNTIME_DATA_ROOT,
-            "source_manifest_sha256": historical.manifest_sha256(),
-            "corpus_revision": manifest::HISTORICAL_CORPUS_REVISION,
-            "source_members_excluding_old_compiled_sqlite": historical.member_count(),
-            "source_bytes_excluding_old_compiled_sqlite": historical.member_bytes(),
-            "excluded_old_compiled_sqlite": manifest::historical_excluded_source_member().path,
-            "excluded_old_compiled_sqlite_sha256": manifest::historical_excluded_source_member().sha256,
-            "excluded_old_compiled_sqlite_bytes": manifest::historical_excluded_source_member().size_bytes,
-            "capture_member_count": captured_members.len(),
-            "capture_member_bytes": source_bytes,
-            "native_projection_source_revision": completed.source_revision(),
-            "native_projection_source_cut": source_cut,
-        },
-        "source_bindings": source_bindings,
-        "embedded_producer_fingerprint": compiler_json(&fingerprint_before),
-        "evidence_lens_scene": {
-            "path": manifest::EVIDENCE_SCENES_PATH,
-            "sha256": manifest::EVIDENCE_SCENES_SHA256,
-            "custody": "embedded configuration input in this exact executing image",
-            "copied_as_runtime_member": false,
-        },
-        "external_evidence_refs": evidence_outputs,
-        "producer_selection": selection_value,
-        "cold_witness": {
-            "schema_version": COLD_SCHEMA,
-            "actual_cold_open_completed": true,
-            "native_selection_schema": "tos_access_native_knowledge_selection_v3",
-            "native_fs_verity_measurement": fs_verity,
-            "expectation": expectation,
-            "source_basis": source_basis,
-            "cold_source_revision": cold_source_revision,
-            "cold_digest_read_bytes": cold_digest_read_bytes,
-            "cold_validation_charged_bytes": cold_validation_charged_bytes,
-            "cold_open_vm_steps": open_vm_steps,
-            "corpus_original_available": true,
-            "philosophy_original_available": true,
-            "corpus_original_receipt": corpus_original,
-            "philosophy_original_receipt": philosophy_original,
-            "process_limits": request.process_limits,
-            "cold_open_limits": request.cold_open,
-            "model_path": model_path,
-            "named_model_before": stamp_json(named_model_before),
-            "held_model_fd_first": {
-                "stamp": stamp_json(held_fd_first.stamp),
-                "producer_elapsed_ns": held_fd_first.producer_elapsed_ns,
-            },
-            "held_model_fd_last": {
-                "stamp": stamp_json(held_fd_last.stamp),
-                "producer_elapsed_ns": held_fd_last.producer_elapsed_ns,
-            },
-            "named_model_after": stamp_json(named_model_after),
-            "custody_verify_calls": custody_verify_calls,
-            "clock": {
-                "basis": "monotonic elapsed nanoseconds relative to producer entry Instant",
-                "cold_open_start_elapsed_ns": cold_open_start_elapsed_ns,
-                "cold_open_end_elapsed_ns": cold_open_end_elapsed_ns,
-            },
-            "named_and_held_stamps_agree": true,
-        },
-        "resource_envelope": {
-            "tmpfs_quota_bytes": request.tmpfs_quota_bytes,
-            "minimum_composed_tmpfs_quota_bytes": manifest::NATIVE_PRODUCER_MIN_TMPFS_QUOTA_BYTES,
-            "working_ram_bytes": request.working_ram_bytes,
-            "persistent_write_cap_bytes": request.persistent_write_cap_bytes,
-            "candidate_data_cap_bytes": data_cap,
-            "conservative_data_upper_bound_bytes": persistent_candidate_upper,
-            "pre_manifest_output_bytes": output.written_bytes,
-            "whole_deadline_seconds": request.max_build_seconds,
-            "elapsed_seconds": started.elapsed().as_secs(),
-            "limit_interpretation": "ceilings and refusal bounds; not a measured fit or peak-RAM estimate",
-        },
-    });
+    let authority = json_object([
+        ("source_admission", json!(false)),
+        ("rights_admission", json!(false)),
+        ("canon_acceptance", json!(false)),
+        ("semantic_acceptance", json!(false)),
+        ("publication", json!(false)),
+    ]);
+    let data_manifest = json_object([
+        ("path", json!(output.root_path().join("data/manifest.json"))),
+        ("sha256", json!(manifest_receipt.manifest_sha256)),
+        ("data_revision", json!(manifest_receipt.data_revision)),
+        ("bytes", json!(manifest_receipt.manifest_bytes)),
+        ("member_count", json!(manifest_receipt.member_count)),
+        ("member_bytes", json!(manifest_receipt.member_bytes)),
+        (
+            "native_selection_path",
+            json!(manifest::NATIVE_SELECTION_PATH),
+        ),
+        ("native_selection_sha256", json!(selection_digest)),
+    ]);
+    let excluded_source = manifest::historical_excluded_source_member();
+    let historical_source = json_object([
+        (
+            "runtime_data_root",
+            json!(manifest::HISTORICAL_RUNTIME_DATA_ROOT),
+        ),
+        (
+            "source_manifest_sha256",
+            json!(historical.manifest_sha256()),
+        ),
+        (
+            "corpus_revision",
+            json!(manifest::HISTORICAL_CORPUS_REVISION),
+        ),
+        (
+            "source_members_excluding_old_compiled_sqlite",
+            json!(historical.member_count()),
+        ),
+        (
+            "source_bytes_excluding_old_compiled_sqlite",
+            json!(historical.member_bytes()),
+        ),
+        ("excluded_old_compiled_sqlite", json!(excluded_source.path)),
+        (
+            "excluded_old_compiled_sqlite_sha256",
+            json!(excluded_source.sha256),
+        ),
+        (
+            "excluded_old_compiled_sqlite_bytes",
+            json!(excluded_source.size_bytes),
+        ),
+        ("capture_member_count", json!(captured_members.len())),
+        ("capture_member_bytes", json!(source_bytes)),
+        (
+            "native_projection_source_revision",
+            json!(completed.source_revision()),
+        ),
+        ("native_projection_source_cut", json!(source_cut)),
+    ]);
+    let evidence_lens_scene = json_object([
+        ("path", json!(manifest::EVIDENCE_SCENES_PATH)),
+        ("sha256", json!(manifest::EVIDENCE_SCENES_SHA256)),
+        (
+            "custody",
+            json!("embedded configuration input in this exact executing image"),
+        ),
+        ("copied_as_runtime_member", json!(false)),
+    ]);
+    let held_model_fd_first = json_object([
+        ("stamp", stamp_json(held_fd_first.stamp)),
+        (
+            "producer_elapsed_ns",
+            json!(held_fd_first.producer_elapsed_ns),
+        ),
+    ]);
+    let held_model_fd_last = json_object([
+        ("stamp", stamp_json(held_fd_last.stamp)),
+        (
+            "producer_elapsed_ns",
+            json!(held_fd_last.producer_elapsed_ns),
+        ),
+    ]);
+    let clock = json_object([
+        (
+            "basis",
+            json!("monotonic elapsed nanoseconds relative to producer entry Instant"),
+        ),
+        (
+            "cold_open_start_elapsed_ns",
+            json!(cold_open_start_elapsed_ns),
+        ),
+        ("cold_open_end_elapsed_ns", json!(cold_open_end_elapsed_ns)),
+    ]);
+    let cold_witness = json_object([
+        ("schema_version", json!(COLD_SCHEMA)),
+        ("actual_cold_open_completed", json!(true)),
+        (
+            "native_selection_schema",
+            json!("tos_access_native_knowledge_selection_v3"),
+        ),
+        ("native_fs_verity_measurement", json!(fs_verity)),
+        ("expectation", json!(expectation)),
+        ("source_basis", source_basis),
+        ("cold_source_revision", json!(cold_source_revision)),
+        ("cold_digest_read_bytes", json!(cold_digest_read_bytes)),
+        (
+            "cold_validation_charged_bytes",
+            json!(cold_validation_charged_bytes),
+        ),
+        ("cold_open_vm_steps", json!(open_vm_steps)),
+        ("corpus_original_available", json!(true)),
+        ("philosophy_original_available", json!(true)),
+        ("corpus_original_receipt", corpus_original),
+        ("philosophy_original_receipt", philosophy_original),
+        ("process_limits", json!(request.process_limits)),
+        ("cold_open_limits", json!(request.cold_open)),
+        ("model_path", json!(model_path)),
+        ("named_model_before", stamp_json(named_model_before)),
+        ("held_model_fd_first", held_model_fd_first),
+        ("held_model_fd_last", held_model_fd_last),
+        ("named_model_after", stamp_json(named_model_after)),
+        ("custody_verify_calls", json!(custody_verify_calls)),
+        ("clock", clock),
+        ("named_and_held_stamps_agree", json!(true)),
+    ]);
+    let resource_envelope = json_object([
+        ("tmpfs_quota_bytes", json!(request.tmpfs_quota_bytes)),
+        (
+            "minimum_composed_tmpfs_quota_bytes",
+            json!(manifest::NATIVE_PRODUCER_MIN_TMPFS_QUOTA_BYTES),
+        ),
+        ("working_ram_bytes", json!(request.working_ram_bytes)),
+        (
+            "persistent_write_cap_bytes",
+            json!(request.persistent_write_cap_bytes),
+        ),
+        ("candidate_data_cap_bytes", json!(data_cap)),
+        (
+            "conservative_data_upper_bound_bytes",
+            json!(persistent_candidate_upper),
+        ),
+        ("pre_manifest_output_bytes", json!(output.written_bytes)),
+        ("whole_deadline_seconds", json!(request.max_build_seconds)),
+        ("elapsed_seconds", json!(started.elapsed().as_secs())),
+        (
+            "limit_interpretation",
+            json!("ceilings and refusal bounds; not a measured fit or peak-RAM estimate"),
+        ),
+    ]);
+    let result = json_object([
+        ("schema_version", json!(RESULT_SCHEMA)),
+        (
+            "outcome",
+            json!("private-native-data-candidate-ready-for-external-pair-verifier"),
+        ),
+        ("current_release_promoted", json!(false)),
+        ("installed_access_mcp_accepted", json!(false)),
+        ("authority", authority),
+        ("data_root", json!(output.root_path())),
+        ("private_release_root", json!(private_release_root)),
+        ("private_release_root_created", json!(false)),
+        ("persistent_store", json!(persistent_store_path)),
+        ("data_manifest", data_manifest),
+        ("historical_source", historical_source),
+        ("source_bindings", json!(source_bindings)),
+        (
+            "embedded_producer_fingerprint",
+            compiler_json(&fingerprint_before),
+        ),
+        ("evidence_lens_scene", evidence_lens_scene),
+        ("external_evidence_refs", json!(evidence_outputs)),
+        ("producer_selection", selection_value),
+        ("cold_witness", cold_witness),
+        ("resource_envelope", resource_envelope),
+    ]);
     let raw_result = serde_json::to_vec(&result)?;
     if raw_result.len() > MAX_RESULT_BYTES {
         return Err(Refusal("native Original result byte ceiling").into());
