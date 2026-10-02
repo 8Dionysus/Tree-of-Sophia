@@ -1715,7 +1715,10 @@ mod tests {
     use super::*;
     #[test]
     fn technical_profile_preserves_semantics_and_exact_lineage() {
-        let directory = tempfile::tempdir().unwrap();
+        let directory = tempfile::Builder::new()
+            .permissions(std::fs::Permissions::from_mode(0o700))
+            .tempdir()
+            .unwrap();
         let execution =
             ResearchExecution::new_with_scratch(directory.path(), 180, 4 * 1024 * 1024).unwrap();
         let original = json!({"schema_version":"fixture_v1","plan_id":"original","status":"frozen-before-output","frozen_at":"date","inputs":{"a":{"ref":"input.json","sha256":"0".repeat(64)}},"methods":{"gate":8},"authority_boundary":"candidate-only"});
@@ -1731,7 +1734,8 @@ mod tests {
         execution
             .write("profile.json", &pretty(&profile).unwrap(), 0o600, false)
             .unwrap();
-        assert!(select_plan(&execution, "profile.json", "plan.v1.json", &digest).is_ok());
+        select_plan(&execution, "profile.json", "plan.v1.json", &digest)
+            .expect("owned private fixture accepts the exact technical lineage");
         profile["methods"]["gate"] = json!(9);
         execution
             .write("profile.json", &pretty(&profile).unwrap(), 0o600, false)
