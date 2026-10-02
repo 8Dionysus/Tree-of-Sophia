@@ -4,9 +4,9 @@
 //! This emits mechanics and provenance only. It does not admit source, rights,
 //! canon, semantics, publication, or a current release. The host still owns
 //! semantic admission and the outer private pair CAS.
-use crate::{Error, NativeKnowledgeSelection, Result, COMPILER_VERSION};
+use crate::{COMPILER_VERSION, Error, NativeKnowledgeSelection, Result};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     collections::BTreeMap,
     fs::{self, File, OpenOptions},
@@ -16,8 +16,8 @@ use std::{
     time::Instant,
 };
 use tos_foundation::{
-    canonical_bytes_v1, parse_json, CanonicalProfile, Digest256, Digest256Hasher, JsonLimits,
-    JsonMode, RelativePath,
+    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, RelativePath,
+    canonical_bytes_v1, parse_json,
 };
 
 pub const NATIVE_DATA_SCHEMA: &str = "tos_access_native_data_snapshot_v1";

@@ -449,7 +449,7 @@ impl OutputTree {
         )
         .map(File::from)
         .map_err(io::Error::from)?;
-        for component in &parts[1..parts.len() - 1] {
+        for &component in &parts[1..parts.len() - 1] {
             match rustix::fs::mkdirat(
                 &directory,
                 component,
