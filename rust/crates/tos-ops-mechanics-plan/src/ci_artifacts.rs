@@ -642,7 +642,7 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
                 &Value::Object(products),
                 &b,
             )?;
-            append(get("--github-env"),format!("TOS_PREPARED_EXECUTOR={}\nTOS_NATIVE_SOURCE_PREPARE_EXECUTABLE={}\nTOS_PREPARED_MAX_SECONDS=20\nTOS_NATIVE_SOURCE_PREPARE_SECONDS=45\nTOS_NATIVE_SOURCE_PREPARE_LIMITS={{\"max_input_bytes\":1048576,\"max_capture_bytes\":8388608,\"max_stage_bytes\":8388608,\"max_temp_bytes\":8388608}}\n",images.join("tos-access").display(),images.join("tos-access").display()).as_bytes(),&b)?;
+            append(get("--github-env"),format!("TOS_NATIVE_OWNER_COMMAND_BIN={}\nTOS_PREPARED_EXECUTOR={}\nTOS_NATIVE_SOURCE_PREPARE_EXECUTABLE={}\nTOS_PREPARED_MAX_SECONDS=20\nTOS_NATIVE_SOURCE_PREPARE_SECONDS=45\nTOS_NATIVE_SOURCE_PREPARE_LIMITS={{\"max_input_bytes\":1048576,\"max_capture_bytes\":8388608,\"max_stage_bytes\":8388608,\"max_temp_bytes\":8388608}}\n",images.join("tos-native-owner-command").display(),images.join("tos-access").display(),images.join("tos-access").display()).as_bytes(),&b)?;
         }
         "software-limits" => {
             absolute(get("--image-root"))?;

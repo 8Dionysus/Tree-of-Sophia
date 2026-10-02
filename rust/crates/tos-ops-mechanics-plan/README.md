@@ -321,6 +321,10 @@ empty feature selection, native debug profile, and the selected Rust version
 output. They hash held regular files with a fixed 64 KiB buffer and verify file
 identity before returning. Receipt generation describes those completed products;
 it does not establish independent trust in the producer.
+`software-receipts` also binds the verified owner-command image through
+`TOS_NATIVE_OWNER_COMMAND_BIN` before software fixtures run, alongside the
+existing Access preparation bindings. External payload validation consumes
+that native custody product; packaging and installation follow the fixtures.
 
 The workflow authenticates the downloaded verifier and manifest with
 `sha256sum` against outputs from the independent producer job **before** running
