@@ -30,8 +30,11 @@ from test_indexed_lens import lens
 
 
 class SourceClaimPublicationTests(unittest.TestCase):
+    workload = fixtures.PublicationWorkload()
+
     def setUp(self):
         self.base = fixtures.SourceAgentPublicationTests()
+        self.base.workload = self.workload
         self.base.setUp()
         self.addCleanup(self.base.doCleanups)
         self.root, self.db = self.base.root, self.base.db

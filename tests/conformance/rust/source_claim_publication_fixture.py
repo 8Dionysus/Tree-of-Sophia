@@ -17,6 +17,12 @@ MAX_PACKET = 16 * 1024 * 1024
 MAX_FILES = 2048
 MAX_SOURCE_BYTES = 16 * 1024 * 1024
 
+def canonical_row(value):
+    # Same canonical material used by the maintained source row digest, not
+    # reconstruction of ordered raw source bytes or executable identity.
+    from tos_access.projection_store import canonical_bytes
+    return canonical_bytes(value)
+
 def write_fixture(case, packet_path):
     if case.db.in_transaction:
         raise ValueError('native whole caller must receive fixture before BEGIN')
@@ -49,6 +55,33 @@ def write_fixture(case, packet_path):
                                     if row['properties'].get('claim_id') == claim_id)
     relation_id = 'source-claims:' + next(row['edge_id'] for row in raw['edges'].values()
                                         if row.get('claim_ref') == claim_id)
+    if case.workload != maintained.fixtures.PublicationWorkload():
+        changed = {}
+        for kind in ('node', 'relation'):
+            before = {row['id']: canonical_row(row) for row in case.base.graph[kind + 's']}
+            after = {row['id']: canonical_row(row) for row in expected[kind + 's']}
+            if before.keys() - after.keys():
+                raise ValueError('fixed-U Claim addition removed predecessor rows')
+            changed[kind] = sorted(identity for identity, row in after.items() if before.get(identity) != row)
+        # This named fixture adds its Claim, evidence and provenance node plus
+        # five governing relations. Reused identity/maker contributors stay
+        # byte-identical; unrelated predecessor growth must not change U.
+        source_additions = {}
+        for kind, field in (('node', 'nodes'), ('relation', 'edges')):
+            predecessor = {row['id'] for row in case.base.graph[kind + 's']}
+            source_additions[kind] = sorted(graph + ':' + identity
+                for graph, identity in raw[field] if graph + ':' + identity not in predecessor)
+        if (len(source_additions['node']) != 3 or len(source_additions['relation']) != 5
+                or changed != source_additions):
+            raise ValueError('working-set Claim successor changed affected U')
+        print(json.dumps({'phase': 'publication-workload-source',
+                          'requested': vars(case.workload),
+                          'baseline_nodes': len(case.base.graph['nodes']),
+                          'baseline_relations': len(case.base.graph['relations']),
+                          'successor_nodes': len(expected['nodes']),
+                          'successor_relations': len(expected['relations']),
+                          'changed_node_ids': changed['node'], 'changed_relation_ids': changed['relation']},
+                         separators=(',', ':')))
     descriptor = json.loads((REPOSITORY / 'rust/crates/tos-compiler/tests/fixtures/query-vocabulary.v1.json').read_bytes())
     packet = {'db_path': str(case.base.path), 'owner_config': str(case.owner),
               'source_inputs': case.base.source.value(), 'binding': case.base.binding,
@@ -68,7 +101,7 @@ def write_fixture(case, packet_path):
     Path(packet_path).write_bytes(encoded)
 
 
-def export(work, packet_path):
+def export(work, packet_path, *, workload=None):
     # Every fixture temporary directory stays inside the caller-owned disposable
     # workspace, with no copy or relocation of source roots/SQLite namespaces.
     original = tempfile.TemporaryDirectory
@@ -81,6 +114,8 @@ def export(work, packet_path):
         return result
     with patch.object(tempfile, 'TemporaryDirectory', directory):
         case = maintained.SourceClaimPublicationTests()
+        if workload is not None:
+            case.workload = workload
         # This initial Python reference fixture is not a native publication.
         # Bind its maintained preparation explicitly, never backend discovery.
         with patch.object(maintained.fixtures, 'publish_prepared', reference_publish_prepared):
@@ -99,7 +134,7 @@ def export(work, packet_path):
         case.db.close()
     # Rust TempDir owns final cleanup after the whole native operation.
 
-def export_agent(work, packet_path):
+def export_agent(work, packet_path, *, workload=None):
     import test_source_agent_publication as agents
     original = tempfile.TemporaryDirectory
     def directory(*args, **kwargs):
@@ -109,6 +144,8 @@ def export_agent(work, packet_path):
         return result
     with patch.object(tempfile, 'TemporaryDirectory', directory):
         case = agents.SourceAgentPublicationTests()
+        if workload is not None:
+            case.workload = workload
         # Initial reference predecessor only; native Record and publication
         # are executed later by the actual protected product caller.
         with patch.object(agents, 'publish_prepared', reference_publish_prepared):
@@ -228,8 +265,20 @@ if __name__ == '__main__':
     if len(sys.argv) == 5 and sys.argv[1] == 'agent-oracle':
         agent_oracle(*map(Path, sys.argv[2:]))
         raise SystemExit(0)
-    agent = len(sys.argv) == 4 and sys.argv[1] == 'agent'
-    work, packet = map(Path, sys.argv[2:] if agent else sys.argv[1:])
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('work', type=Path)
+    parser.add_argument('packet', type=Path)
+    parser.add_argument('--records', type=int, default=0)
+    parser.add_argument('--claims', type=int, default=0)
+    parser.add_argument('--history', type=int, default=0)
+    parser.add_argument('--skew', choices=('uniform', 'hub'), default='uniform')
+    agent = len(sys.argv) > 1 and sys.argv[1] == 'agent'
+    args = parser.parse_args(sys.argv[2:] if agent else sys.argv[1:])
+    work, packet = args.work, args.packet
     if not work.is_dir() or packet.parent != work:
         raise ValueError('explicit disposable fixture workspace required')
-    (export_agent if agent else export)(work, packet)
+    workload = maintained.fixtures.PublicationWorkload(
+        records=args.records, claims=args.claims, history=args.history, skew=args.skew)
+    workload.validate()
+    (export_agent if agent else export)(work, packet, workload=workload)

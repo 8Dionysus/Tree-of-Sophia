@@ -1,6 +1,8 @@
 """Real tiny owner revision and all-lane prepared publication, no live corpus."""
 from contextlib import closing
 import copy
+from dataclasses import dataclass
+import hashlib
 import json
 from pathlib import Path
 import sqlite3
@@ -14,6 +16,7 @@ for directory in ('scripts', 'access/src', 'access/tests', 'tests', 'mechanics/g
 
 import test_bibliographic_claim_assembler as fixtures
 import source_agent_publication as publication
+import source_commands as commands
 import bibliographic_claim_assembler as assembly
 from source_catalog_projection import SourceSlotLimits
 import build_source_witness_catalog as legacy
@@ -34,7 +37,121 @@ from tos_access.published_lens import PublishedLensService
 from test_indexed_lens import lens
 
 
+@dataclass(frozen=True)
+class PublicationWorkload:
+    """Additional genuine predecessor material; never an admission profile.
+
+    The addressed Claim addition remains unchanged. Extra Claims refer only
+    to extra records. The whole receipt must still verify the same affected U;
+    source parameter counts do not substitute for that measured assertion.
+    History counts real record.revise operations per extra record, not epochs.
+    """
+    records: int = 0
+    claims: int = 0
+    history: int = 0
+    skew: str = 'uniform'
+
+    def validate(self):
+        for name in ('records', 'claims', 'history'):
+            value = getattr(self, name)
+            if type(value) is not int or value < 0:
+                raise ValueError('publication workload exact nonnegative integers')
+        # Existing fixture/slot envelopes remain authoritative; these are only
+        # early source construction ceilings, including baseline/addition
+        # headroom, not a runtime permission.
+        if self.records > 8189 or self.claims > 4093 or self.history > 4096:
+            raise ValueError('publication workload construction ceiling')
+        if self.skew not in ('uniform', 'hub'):
+            raise ValueError('publication workload skew')
+        if (self.claims and self.records < 2) or (self.history and not self.records):
+            raise ValueError('publication workload independent record cohort required')
+
+
+def extend_publication_predecessor(helper, claim, workload):
+    """Run before the maintained rebuild/bootstrap/full normalization.
+
+    Reuses complete Agent metadata, actual selected owner forms and retained
+    revision writer. Claims retain the maintained synthetic-evidence posture;
+    this creates neither historical authority nor an empty normalized row.
+    """
+    workload.validate()
+    if workload == PublicationWorkload():
+        return  # Default fixture bytes and operation schedule are unchanged.
+    fixture = helper.fixture
+    revision = fixture.fixture
+    identities = []
+    for index in range(workload.records):
+        record = copy.deepcopy(fixture.other)
+        identity = f'tos.agent.publication-working-set-{index:06d}'
+        record.update(record_id=identity, record_version=1,
+                      preferred_label=f'Independent synthetic Agent {index}',
+                      notes='Synthetic working-set predecessor; no historical assertion.')
+        record['external_identifiers'] = [dict(value, value=f'working-set-{index:06d}-{ordinal}')
+                                         for ordinal, value in enumerate(record['external_identifiers'])]
+        relative = f'ToS/source-witnesses/agents/publication-working-set-{index:06d}/agent.json'
+        fixture.write(relative, canonical_bytes(record))
+        selections = [dict(selection, form_id=selection['form_id'] + f'.working-set-{index:06d}')
+                      for selection in revision.selections]
+        changes = [commands.prepare_metadata_change(record, None, 'test:author', **selection)
+                   for selection in selections]
+        forms = commands._apply(None, commands.Record.from_payload(identity, 1, record), changes)
+        fixture.write(str(Path(relative).with_name('agent.human-forms.json')), canonical_bytes(forms))
+        owner = fixture.root / f'working-set-{index:06d}-owner.json'
+        config = {**revision.config, 'source_path': relative, 'record_id': identity,
+                  'allowed_form_ids': [selection['form_id'] for selection in selections]}
+        owner.write_bytes(canonical_bytes(config))
+        owner.chmod(0o600)
+        predecessors = []
+        for version in range(workload.history):
+            proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
+                        'fields': {'notes': f'Synthetic retained correction {version + 1} of Agent {index}.'},
+                        'forms': selections, 'reason': 'Synthetic retained working-set history.'}
+            preview = commands.run_legacy_oracle_command(owner, proposal)
+            package = {name: (fixture.root / relative).with_name(name).read_bytes()
+                       for name in ('agent.json', 'agent.human-forms.json')}
+            predecessors.append((preview['source'], package))
+            commands.run_legacy_oracle_command(owner, {**proposal, 'operation': 'record.revise',
+                'command_id': f'synthetic:working-set-{index:06d}-revision-{version:06d}',
+                'expected_source': preview['source'], 'expected_revision': preview['revision'],
+                'expected_configuration': preview['owner_configuration'],
+                'expected_dependencies': preview['expected_dependencies'],
+                'expected_publication': preview['publication_snapshot']})
+        # Reopen every exact predecessor after the entire history is written;
+        # path presence alone cannot establish intact archives or membership.
+        for source, package in predecessors:
+            prior = commands.run_legacy_oracle_command(owner, {
+                'schema_version': 'tos_local_source_command_v1',
+                'operation': 'inspect-version', 'source': source})
+            if prior['record']['record_id'] != identity:
+                raise ValueError('working-set archived identity differs')
+            for name, expected_raw in package.items():
+                archived = fixture.root / prior['files'][name]['archive_path']
+                if archived.read_bytes() != expected_raw:
+                    raise ValueError('working-set archived exact predecessor differs')
+        identities.append(identity)
+    rows, events = [], []
+    for index in range(workload.claims):
+        subject = identities[0 if workload.skew == 'hub' else index % len(identities)]
+        target = identities[(index + 1) % len(identities)]
+        if target == subject:
+            target = identities[1]
+        row = copy.deepcopy(claim)
+        event = copy.deepcopy(helper.event)
+        event['event_id'] = f'tos.event.publication-working-set-{index:06d}'
+        row.update(claim_id=f'tos.claim.publication-working-set-{index:06d}',
+                   subject_ref=subject, object=target, provenance_event_ref=event['event_id'])
+        row['qualifiers']['statement'] = f'Synthetic independent predecessor relationship {index}; not history.'
+        event['outputs'] = [{'ref': row['claim_id'], 'role': 'synthetic-claim-annotation'}]
+        rows.append(canonical_bytes(row))
+        events.append(canonical_bytes(event))
+    if rows:
+        fixture.write('ToS/source-witnesses/relations/publication-working-set/source-claims.jsonl', b''.join(rows))
+        fixture.write('ToS/source-witnesses/relations/publication-working-set/provenance.jsonl', b''.join(events))
+
+
 class SourceAgentPublicationTests(unittest.TestCase):
+    workload = PublicationWorkload()
+
     def setUp(self):
         self.f = fixtures.BibliographicClaimAssemblerTests()
         self.addCleanup(self.f.doCleanups)
@@ -56,9 +173,28 @@ class SourceAgentPublicationTests(unittest.TestCase):
         # Only one schema-real social Claim; no invalid authored-by Agent fixture.
         self.helper.fixture.write(self.helper.claim_ref, b'')
         self.helper.fixture.write(ref, canonical_bytes(self.claim) + canonical_bytes(self.hidden_claim))
+        extend_publication_predecessor(self.helper, self.claim, self.workload)
         self.helper.fixture.rebuild()
         self.root = self.helper.root
         self.snapshot = self.helper.snapshot(self.helper.bootstrap())
+        # Verify actual addressed catalog membership after its real bootstrap.
+        for index in range(self.workload.records):
+            identity = f'tos.agent.publication-working-set-{index:06d}'
+            relative = f'ToS/source-witnesses/agents/publication-working-set-{index:06d}/agent.json'
+            selected = self.snapshot.get(identity)
+            current_raw = (self.root / relative).read_bytes()
+            current_ref = commands.metadata_subject(json.loads(current_raw)).ref
+            if (selected.entry['record_id'] != identity
+                    or selected.source['record_ref']['version'] != self.workload.history + 1
+                    or selected.source['record_ref'] != current_ref
+                    or 'sha256:' + selected.entry['record_sha256'] != current_ref['digest']
+                    or selected.source['raw_sha256'] != hashlib.sha256(current_raw).hexdigest()
+                    or selected.source['raw_bytes'] != len(current_raw)):
+                raise ValueError('working-set catalog current record differs')
+        for index in range(self.workload.claims):
+            identity = f'tos.claim.publication-working-set-{index:06d}'
+            if self.snapshot.get_claim(identity).entry['claim_id'] != identity:
+                raise ValueError('working-set catalog Claim membership differs')
         self.owner = ProgressHandlerOwner()
         self.profile = publication.declaration_profile_sha256()
         self.entities, self.relations = [json.loads((self.root / 'ToS/doctrine/semantic-interchange' / name).read_text())

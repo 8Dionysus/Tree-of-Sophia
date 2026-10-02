@@ -130,3 +130,41 @@ the actual execution namespace mount is readonly. Writable unmounted inputs
 still refuse; full opened-FD/path/stat/SHA checks remain before and after the
 workload. Do not chmod the installed original or copy its ELF to satisfy this
 check. Mount protection is observed inside execution, not inferred on the host.
+
+
+A scheduled actor HTTP workload uses the same driver and exact shared packets:
+`{"actors":["actor-000"],"window_seconds":600,"shared_responses":[PACKET],"requests":[{"actor_id":"actor-000","due_seconds":0,"path":PATH,"status":200,"response_index":0}]}`.
+Supply explicit `--max-actors` as well as the existing request, schedule, response,
+output, concurrency and whole-deadline caps. Labels are bounded client measurement
+labels, not authenticated principals or server threads. Every actor has at least
+one scheduled operation; each actor executes serially, while the existing global
+concurrency cap bounds live futures. The scheduler uses earliest due time with
+stable declared actor order for ties. Due times start after owned HTTP readiness;
+startup, terminal cleanup and input verification still consume the original whole
+deadline. Warmup requires a separately identified schedule; no time is silently
+removed or added.
+
+Per-request `latency_due_to_finish_seconds` includes waiting for the actor lane,
+client concurrency slot, connection, server and complete response. Existing
+`elapsed_seconds` reports worker-entry to response completion. The receipt records
+client wait, scheduled/start/finish times, exact comparison outcome and separately
+`successful_operation` (matching 2xx response). An expected 503 can match its oracle
+while remaining an unsuccessful operation. Actor summaries include sample counts,
+nearest-rank successful latency quantiles, first/last success, maximum success gap,
+zero-success actors, unstarted requests and successful completions inside the
+stated window. These observations do not automatically accept a throughput,
+fairness, latency or server-active-concurrency target. Quantiles include all
+successful completions offered in the schedule; window-only analysis must use the
+per-request finish times explicitly.
+
+Source-only cost for this optional mode adds O(A) actor lanes/heap/counters and
+O(Q) request-index and successful-latency storage, where A and Q have explicit
+input ceilings. Schedule JSON object overhead, Python float/list overhead, up to
+C simultaneous response buffers, JSON escaping, summary bytes and full packet
+JSONL all remain part of the caller's measured RAM/output reservation. The driver
+has no source builder, source authority or physical-capacity grant. Parameterized
+`PublicationWorkload` construction remains the existing fixture exporter; its
+nondefault Claim oracle asserts exact unchanged predecessor rows and affected U.
+Source sizing, an exact read schedule and a successful byte comparison are
+separate evidence. Calibration must retain requested workload counts separately
+from static fixture floors and observed selected rows.

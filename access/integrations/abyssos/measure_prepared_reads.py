@@ -3,6 +3,8 @@
 import argparse
 import concurrent.futures
 import hashlib
+import heapq
+import math
 import http.client
 import urllib.parse
 import json
@@ -95,6 +97,7 @@ def main():
                  'response-cap-bytes', 'schedule-cap-bytes', 'max-requests'):
         parser.add_argument('--' + name, type=positive, required=True)
     parser.add_argument('--transport', choices=('cli', 'http'), default='cli')
+    parser.add_argument('--max-actors', type=positive)
     parser.add_argument('--port', type=positive)
     parser.add_argument('--server-log-cap-bytes', type=positive)
     args = parser.parse_args()
@@ -154,6 +157,40 @@ def main():
         raise ValueError('schedule cap exceeded')
     no_model_sidecars(args.model)
     schedule = json.loads(Path(args.schedule).read_bytes())
+    actors = []
+    actor_metadata = []
+    actor_window = None
+    if isinstance(schedule, dict) and set(schedule) == {'shared_responses', 'requests', 'actors', 'window_seconds'}:
+        if args.transport != 'http' or args.max_actors is None:
+            raise ValueError('actor schedule requires HTTP and explicit max-actors')
+        actors = schedule['actors']
+        actor_window = schedule['window_seconds']
+        if (not isinstance(actors, list) or not 0 < len(actors) <= args.max_actors
+                or any(not isinstance(a, str) or not 1 <= len(a) <= 64
+                       or not a.isascii() or not all(c.isalnum() or c in '-_.' for c in a) for a in actors)
+                or len(set(actors)) != len(actors)
+                or isinstance(actor_window, bool) or not isinstance(actor_window, (int, float))
+                or not math.isfinite(actor_window) or not 0 < actor_window <= args.deadline_seconds):
+            raise ValueError('finite actor labels/window required')
+        requests = schedule['requests']
+        if not isinstance(requests, list) or not 0 < len(requests) <= args.max_requests:
+            raise ValueError('finite actor requests required')
+        last_due = {a: -1 for a in actors}
+        normalized = []
+        for item in requests:
+            if not isinstance(item, dict) or set(item) != {'path', 'status', 'response_index', 'actor_id', 'due_seconds'}:
+                raise ValueError('exact actor request fields required')
+            actor, due = item['actor_id'], item['due_seconds']
+            if (not isinstance(actor, str) or actor not in last_due or isinstance(due, bool)
+                    or not isinstance(due, (int, float)) or not math.isfinite(due)
+                    or not 0 <= due < actor_window or due < last_due[actor]):
+                raise ValueError('actor reference/monotonic due time invalid')
+            last_due[actor] = due
+            actor_metadata.append((actor, due))
+            normalized.append({k: item[k] for k in ('path', 'status', 'response_index')})
+        if any(due < 0 for due in last_due.values()):
+            raise ValueError('every declared actor must have a request')
+        schedule = {'shared_responses': schedule['shared_responses'], 'requests': normalized}
     if args.transport == 'http' and isinstance(schedule, dict):
         shared = set(schedule) == {'shared_response', 'requests'}
         indexed = set(schedule) == {'shared_responses', 'requests'}
@@ -280,6 +317,43 @@ def main():
             finally:
                 selector.close()
 
+        measurement_origin = None
+        actor_results = {a: {'scheduled': 0, 'started': 0, 'successful': 0, 'outcomes': {},
+                              'first_due': None, 'last_due': None, 'first_start': None,
+                              'last_finish': None, 'successful_in_window': 0, 'first_success_finish': None,
+                              'last_success_finish': None, 'max_success_gap_seconds': None, 'latencies': []} for a in actors}
+        for actor, due in actor_metadata:
+            row = actor_results[actor]
+            row['scheduled'] += 1
+            row['first_due'] = due if row['first_due'] is None else row['first_due']
+            row['last_due'] = due
+
+        def measured_fields(index, begin, finish, success, outcome):
+            if not actors:
+                return {}
+            actor, due = actor_metadata[index]
+            scheduled = measurement_origin + due
+            with lock:
+                row = actor_results[actor]
+                row['started'] += 1
+                row['successful'] += int(success)
+                row['outcomes'][outcome] = row['outcomes'].get(outcome, 0) + 1
+                row['first_start'] = begin - measurement_origin if row['first_start'] is None else row['first_start']
+                row['last_finish'] = finish - measurement_origin
+                if success:
+                    relative_finish = finish - measurement_origin
+                    row['successful_in_window'] += int(relative_finish <= actor_window)
+                    if row['last_success_finish'] is not None:
+                        gap = relative_finish - row['last_success_finish']
+                        row['max_success_gap_seconds'] = max(row['max_success_gap_seconds'] or 0, gap)
+                    row['first_success_finish'] = relative_finish if row['first_success_finish'] is None else row['first_success_finish']
+                    row['last_success_finish'] = relative_finish
+                    row['latencies'].append(finish - scheduled)
+            return {'actor_id': actor, 'due_seconds': due,
+                    'start_seconds': begin - measurement_origin, 'finish_seconds': finish - measurement_origin,
+                    'client_wait_seconds': begin - scheduled, 'latency_due_to_finish_seconds': finish - scheduled,
+                    'successful_operation': success}
+
         def run_http(index):
             item = schedule[index]
             begin = time.monotonic()
@@ -315,7 +389,11 @@ def main():
                     outcome = 'server-busy-503'
             except Exception as exc:
                 error = str(exc)
-                if isinstance(exc, ConnectionRefusedError):
+                if isinstance(exc, TimeoutError) or time.monotonic() >= deadline:
+                    outcome = 'timeout'
+                elif stopped.is_set():
+                    outcome = 'cancelled'
+                elif isinstance(exc, ConnectionRefusedError):
                     outcome = 'connect-refused'
                 matches = False
             finally:
@@ -325,7 +403,9 @@ def main():
             outcome = outcome or ('exact-response' if passed else 'error')
             with lock:
                 http_outcomes[outcome] = http_outcomes.get(outcome, 0) + 1
-            emit({'event': 'request', 'index': index, 'path': item['path'],
+            finish = time.monotonic()
+            fields = measured_fields(index, begin, finish, passed and 200 <= status < 300, outcome)
+            emit({'event': 'request', **fields, 'index': index, 'path': item['path'],
                   'elapsed_seconds': time.monotonic() - begin, 'status': status,
                   'passed': passed, 'error': error, 'outcome': outcome,
                   'body': body.decode('utf-8', errors='backslashreplace')})
@@ -409,24 +489,63 @@ def main():
                     stopped.wait(.02)
                 emit({'event': 'server_ready', 'pid': server.pid, 'port': args.port,
                       'startup_seconds': time.monotonic() - started})
+            measurement_origin = time.monotonic()
             # Only C futures live; schedule stays finite and no unbounded executor queue.
-            with concurrent.futures.ThreadPoolExecutor(max_workers=args.concurrency) as pool:
-                next_index = 0
-                pending = set()
-                while pending or next_index < len(schedule):
-                    while (len(pending) < args.concurrency and next_index < len(schedule)
-                           and not stopped.is_set() and time.monotonic() < deadline):
-                        pending.add(pool.submit(run_http if args.transport == 'http' else run, next_index))
-                        next_index += 1
-                    if not pending:
-                        break
-                    done, pending = concurrent.futures.wait(pending, return_when=concurrent.futures.FIRST_COMPLETED)
-                    for future in done:
-                        try:
-                            failures += not future.result()
-                        except Exception:
+            if actors:
+                lanes = {a: [] for a in actors}
+                for index, (actor, due) in enumerate(actor_metadata):
+                    lanes[actor].append(index)
+                positions = {a: 0 for a in actors}
+                ready = [(actor_metadata[lanes[a][0]][1], order, a) for order, a in enumerate(actors)]
+                heapq.heapify(ready)
+                with concurrent.futures.ThreadPoolExecutor(max_workers=args.concurrency) as pool:
+                    pending = {}
+                    while ready or pending:
+                        now = time.monotonic()
+                        if stopped.is_set() or now >= deadline:
                             stopped.set()
-                            raise
+                        while (ready and len(pending) < args.concurrency and not stopped.is_set()
+                               and measurement_origin + ready[0][0] <= now):
+                            _, order, actor = heapq.heappop(ready)
+                            index = lanes[actor][positions[actor]]
+                            pending[pool.submit(run_http, index)] = (order, actor)
+                            next_index += 1
+                        if not pending:
+                            if stopped.is_set() or not ready:
+                                break
+                            stopped.wait(min(.05, max(0, measurement_origin + ready[0][0] - time.monotonic())))
+                            continue
+                        done, _ = concurrent.futures.wait(pending, timeout=.05,
+                            return_when=concurrent.futures.FIRST_COMPLETED)
+                        for future in done:
+                            order, actor = pending.pop(future)
+                            try:
+                                failures += not future.result()
+                            except Exception:
+                                stopped.set()
+                                raise
+                            positions[actor] += 1
+                            if positions[actor] < len(lanes[actor]):
+                                index = lanes[actor][positions[actor]]
+                                heapq.heappush(ready, (actor_metadata[index][1], order, actor))
+            else:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=args.concurrency) as pool:
+                    next_index = 0
+                    pending = set()
+                    while pending or next_index < len(schedule):
+                        while (len(pending) < args.concurrency and next_index < len(schedule)
+                               and not stopped.is_set() and time.monotonic() < deadline):
+                            pending.add(pool.submit(run_http if args.transport == 'http' else run, next_index))
+                            next_index += 1
+                        if not pending:
+                            break
+                        done, pending = concurrent.futures.wait(pending, return_when=concurrent.futures.FIRST_COMPLETED)
+                        for future in done:
+                            try:
+                                failures += not future.result()
+                            except Exception:
+                                stopped.set()
+                                raise
         finally:
             if server is not None:
                 try:
@@ -448,7 +567,31 @@ def main():
         except Exception as exc:
             unchanged = False
             guard_error = str(exc)
-        passed = unchanged and not server_errors and not failures and next_index == len(schedule) and not stopped.is_set()
+        if actors:
+            summary_incomplete = False
+            for actor, row in actor_results.items():
+                samples = row.pop('latencies')
+                row['successful_latency_sample_count'] = len(samples)
+                incomplete = time.monotonic() >= deadline
+                if not incomplete:
+                    samples.sort()
+                    incomplete = time.monotonic() >= deadline
+                summary_incomplete |= incomplete
+                row['summary_incomplete'] = 'whole-deadline' if incomplete else None
+                row['successful_latency_nearest_rank'] = {
+                    key: samples[math.ceil(q * len(samples)) - 1] if samples and not incomplete else None
+                    for key, q in (('p50', .50), ('p95', .95), ('p99', .99), ('max', 1.0))}
+                row['unstarted'] = row['scheduled'] - row['started']
+            counts = [row['successful'] for row in actor_results.values()]
+            emit({'event': 'actors', 'window_seconds': actor_window, 'actors': actor_results,
+                  'summary_incomplete': summary_incomplete,
+                  'successful_in_window_per_second': sum(r['successful_in_window'] for r in actor_results.values()) / actor_window,
+                  'fairness': {'min_successful': min(counts), 'max_successful': max(counts),
+                               'mean_successful': sum(counts) / len(counts),
+                               'zero_successful_actors': sum(n == 0 for n in counts)},
+                  'scope': 'client actor schedules, not server threads or authorization'})
+        passed = (unchanged and not server_errors and not failures and next_index == len(schedule)
+                  and not stopped.is_set() and (not actors or not summary_incomplete))
         emit({'event': 'finish', 'passed': passed, 'input_unchanged': unchanged,
               'guard_error': guard_error, 'model_coordination': coordination,
               'scheduled': len(schedule), 'started': next_index, 'failures': failures,
