@@ -546,7 +546,7 @@ impl SnapshotReader {
             if line.is_empty() {
                 return Err(Error::Invalid("D1 projection empty row framing"));
             }
-            let value = strict_json(line, MAX_PART_BYTES)?;
+            let (value, encoded) = strict_json_with_canonical_record(line, MAX_PART_BYTES)?;
             let object = value
                 .as_object()
                 .ok_or(Error::Invalid("D1 projection row object"))?;
@@ -567,7 +567,6 @@ impl SnapshotReader {
                 &value["value"],
                 uint(&collection["root"], "count")?,
             )?;
-            let encoded = canonical_record(&value)?;
             if encoded.as_slice() != framed {
                 return Err(Error::Invalid("D1 projection canonical row bytes"));
             }
@@ -981,26 +980,58 @@ fn verify_record_key(key_field: &Value, key: &str, value: &Value, total: u64) ->
     Ok(())
 }
 
+#[cfg(test)]
 fn canonical_record(value: &Value) -> Result<Vec<u8>> {
-    let mut raw =
-        serde_json::to_vec(value).map_err(|_| Error::Invalid("D1 projection row JSON"))?;
-    raw.push(b'\n');
-    Ok(raw)
+    let raw = serde_json::to_vec(value).map_err(|_| Error::Invalid("D1 projection row JSON"))?;
+    let limits = tos_foundation::JsonLimits::new(MAX_PART_BYTES, 128, 1_000_000, 4300)
+        .map_err(|_| Error::Budget("D1 projection JSON limits"))?;
+    tos_foundation::canonical_raw_bytes_v1(
+        &raw,
+        tos_foundation::CanonicalProfile::CorpusSnapshotV1,
+        limits,
+    )
+    .map_err(|_| Error::Invalid("D1 projection row JSON"))
 }
 
 fn canonical_json(value: &Value) -> Result<Vec<u8>> {
     serde_json::to_vec(value).map_err(|_| Error::Invalid("D1 projection JSON framing"))
 }
 
-fn strict_json(raw: &[u8], cap: usize) -> Result<Value> {
+fn strict_json_document(
+    raw: &[u8],
+    cap: usize,
+) -> Result<(tos_foundation::JsonDocument, tos_foundation::JsonLimits)> {
     if raw.len() > cap {
         return Err(Error::Budget("D1 projection JSON bytes"));
     }
     let limits = tos_foundation::JsonLimits::new(cap, 128, 1_000_000, 4300)
         .map_err(|_| Error::Budget("D1 projection JSON limits"))?;
-    tos_foundation::parse_json(raw, tos_foundation::JsonMode::PublishedStrict, limits)
-        .map_err(|_| Error::Invalid("D1 projection strict JSON"))?;
+    let document =
+        tos_foundation::parse_json(raw, tos_foundation::JsonMode::PublishedStrict, limits)
+            .map_err(|_| Error::Invalid("D1 projection strict JSON"))?;
+    Ok((document, limits))
+}
+
+fn strict_json(raw: &[u8], cap: usize) -> Result<Value> {
+    let (document, _limits) = strict_json_document(raw, cap)?;
+    drop(document);
     serde_json::from_slice(raw).map_err(|_| Error::Invalid("D1 projection JSON"))
+}
+
+fn strict_json_with_canonical_record(raw: &[u8], cap: usize) -> Result<(Value, Vec<u8>)> {
+    let (document, limits) = strict_json_document(raw, cap)?;
+    // Serde's arbitrary-precision Number preserves lexical tokens, which is
+    // required for large integers but does not impose Python float spelling.
+    // Canonicalize the already strict-parsed source value instead.
+    let canonical = tos_foundation::canonical_bytes_v1(
+        document.root(),
+        tos_foundation::CanonicalProfile::CorpusSnapshotV1,
+        limits,
+    )
+    .map_err(|_| Error::Invalid("D1 projection canonical row bytes"))?;
+    drop(document);
+    let value = serde_json::from_slice(raw).map_err(|_| Error::Invalid("D1 projection JSON"))?;
+    Ok((value, canonical))
 }
 
 fn decode_gzip(stored: &[u8], expected: u64) -> Result<Vec<u8>> {
@@ -1168,6 +1199,29 @@ mod tests {
             snapshot.read_collection("nodes", small),
             Err(Error::Budget(_))
         ));
+    }
+
+    #[test]
+    fn row_number_tokens_follow_the_corpus_snapshot_profile() {
+        let canonical_line = br#"{"key":"a","value":{"big":900719925474099312345678901234567890,"fixed":100000.0,"tiny":1e-05}}"#;
+        let (value, canonical) =
+            strict_json_with_canonical_record(canonical_line, MAX_PART_BYTES).unwrap();
+        let mut expected = canonical_line.to_vec();
+        expected.push(b'\n');
+        assert_eq!(canonical, expected);
+        assert_eq!(
+            value["value"]["big"].to_string(),
+            "900719925474099312345678901234567890"
+        );
+        assert_eq!(value["value"]["tiny"].to_string(), "1e-05");
+
+        let noncanonical_line = br#"{"key":"a","value":{"big":900719925474099312345678901234567890,"fixed":1e+5,"tiny":1e-5}}"#;
+        let (_, normalized) =
+            strict_json_with_canonical_record(noncanonical_line, MAX_PART_BYTES).unwrap();
+        assert_eq!(normalized, expected);
+        let mut noncanonical_framed = noncanonical_line.to_vec();
+        noncanonical_framed.push(b'\n');
+        assert_ne!(normalized, noncanonical_framed);
     }
 
     #[test]
