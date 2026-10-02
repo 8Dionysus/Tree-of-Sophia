@@ -26,8 +26,230 @@ pub struct BibliographicSourceCut<'a> {
     pub max_read_files: usize,
     pub max_read_bytes: usize,
 }
+/// One caller-owned monotone read budget shared by streamed record/history
+/// resolution. Repeated physical reads remain charged; there is no whole-cut cache.
+pub struct StreamedBibliographicReadLedger {
+    max_files: u64,
+    max_bytes: u64,
+    files: u64,
+    bytes: u64,
+    poisoned: bool,
+}
+impl StreamedBibliographicReadLedger {
+    pub fn new(max_files: u64, max_bytes: u64) -> Result<Self> {
+        if max_files == 0 || max_files == u64::MAX || max_bytes == 0 || max_bytes == u64::MAX {
+            return Err(Error::Budget("streamed bibliographic read limits"));
+        }
+        Ok(Self {
+            max_files,
+            max_bytes,
+            files: 0,
+            bytes: 0,
+            poisoned: false,
+        })
+    }
+    fn charge(&mut self, bytes: u64) -> Result<()> {
+        if self.poisoned {
+            return Err(Error::Invalid(
+                "streamed bibliographic read ledger poisoned",
+            ));
+        }
+        self.poisoned = true;
+        self.files = self
+            .files
+            .checked_add(1)
+            .filter(|n| *n <= self.max_files)
+            .ok_or(Error::Budget("streamed bibliographic read files"))?;
+        self.bytes = self
+            .bytes
+            .checked_add(bytes)
+            .filter(|n| *n <= self.max_bytes)
+            .ok_or(Error::Budget("streamed bibliographic read bytes"))?;
+        self.poisoned = false;
+        Ok(())
+    }
+    pub fn observed_reads(&self) -> (u64, u64) {
+        (self.files, self.bytes)
+    }
+}
+pub struct StreamedBibliographicSourceCut<'a> {
+    pub cut: &'a tos_source_store::StreamedCorpusCutReaderV1,
+    pub expected_revision: SourceRevision,
+    pub expected_membership: SourceMembershipV1,
+    pub stage_source_cut: &'a str,
+    pub read_ledger: &'a std::cell::RefCell<StreamedBibliographicReadLedger>,
+    pub max_workspace_bytes: usize,
+}
+#[derive(Clone, Copy)]
+pub(crate) enum SelectedBibliographicSourceCut<'a, 'b> {
+    Resident(&'a BibliographicSourceCut<'b>),
+    Streamed(&'a StreamedBibliographicSourceCut<'b>),
+}
+impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
+    pub(crate) fn revision(self) -> SourceRevision {
+        match self {
+            Self::Resident(i) => i.expected_revision,
+            Self::Streamed(i) => i.expected_revision,
+        }
+    }
+    pub(crate) fn membership(self) -> SourceMembershipV1 {
+        match self {
+            Self::Resident(i) => i.expected_membership,
+            Self::Streamed(i) => i.expected_membership,
+        }
+    }
+    pub(crate) fn stage_source_cut(self) -> &'b str {
+        match self {
+            Self::Resident(i) => i.stage_source_cut,
+            Self::Streamed(i) => i.stage_source_cut,
+        }
+    }
+    pub(crate) fn current_revision(self) -> SourceRevision {
+        match self {
+            Self::Resident(i) => i.cut.current().revision(),
+            Self::Streamed(i) => i.cut.current_revision(),
+        }
+    }
+    fn present(self, path: &RelativePath) -> Result<bool> {
+        match self {
+            Self::Resident(i) => Ok(i.cut.current().member(path).is_some()),
+            Self::Streamed(i) => i
+                .cut
+                .member(i.expected_revision, path)
+                .map(|m| m.is_some())
+                .map_err(|e| Error::Source(e.to_string())),
+        }
+    }
+    pub(crate) fn visit_members(
+        self,
+        validator: &SourceCatalogValidator<'_>,
+        l: BibliographicLimits,
+        mut visit: impl FnMut(&str, u64, Digest256) -> Result<()>,
+    ) -> Result<()> {
+        match self {
+            Self::Resident(i) => {
+                for m in i.cut.current().members() {
+                    visit(m.path.as_str(), m.size_bytes, m.sha256)?;
+                }
+            }
+            Self::Streamed(i) => {
+                let mut after = None;
+                loop {
+                    check(validator, l)?;
+                    let Some(m) = i
+                        .cut
+                        .member_after(i.expected_revision, after.as_ref())
+                        .map_err(|e| Error::Source(e.to_string()))?
+                    else {
+                        break;
+                    };
+                    check(validator, l)?;
+                    visit(m.path.as_str(), m.size_bytes, m.sha256)?;
+                    after = Some(m.path);
+                }
+            }
+        }
+        Ok(())
+    }
+    fn visit_prefix(
+        self,
+        base: &str,
+        validator: &SourceCatalogValidator<'_>,
+        l: BibliographicLimits,
+        mut visit: impl FnMut(&str) -> Result<()>,
+    ) -> Result<()> {
+        let prefix = format!("{base}/");
+        match self {
+            Self::Resident(_) => self.visit_members(validator, l, |reference, _, _| {
+                if let Some(name) = reference.strip_prefix(&prefix) {
+                    visit(name)?;
+                }
+                Ok(())
+            }),
+            Self::Streamed(i) => {
+                let mut after = Some(path(base)?);
+                loop {
+                    check(validator, l)?;
+                    let Some(member) = i
+                        .cut
+                        .member_after(i.expected_revision, after.as_ref())
+                        .map_err(|e| Error::Source(e.to_string()))?
+                    else {
+                        break;
+                    };
+                    check(validator, l)?;
+                    let reference = member.path.as_str();
+                    if reference < prefix.as_str() {
+                        after = Some(member.path);
+                        continue;
+                    }
+                    let Some(name) = reference.strip_prefix(&prefix) else {
+                        break;
+                    };
+                    visit(name)?;
+                    after = Some(member.path);
+                }
+                Ok(())
+            }
+        }
+    }
+    fn read(
+        self,
+        path: &RelativePath,
+        validator: &SourceCatalogValidator<'_>,
+        l: BibliographicLimits,
+    ) -> Result<Vec<u8>> {
+        match self {
+            Self::Resident(i) => i
+                .cut
+                .read_member(
+                    i.expected_revision,
+                    path,
+                    l.catalog.max_file_bytes as u64,
+                    l.deadline,
+                    validator.cancelled,
+                )
+                .map(|m| m.raw)
+                .map_err(|_| Error::Invalid("bibliographic exact current source member read")),
+            Self::Streamed(i) => {
+                check(validator, l)?;
+                let m = i
+                    .cut
+                    .member(i.expected_revision, path)
+                    .map_err(|e| Error::Source(e.to_string()))?
+                    .ok_or(Error::Invalid("streamed bibliographic member absent"))?;
+                usize::try_from(m.size_bytes)
+                    .ok()
+                    .and_then(|n| n.max(8).checked_mul(4))
+                    .and_then(|n| n.checked_add(128 * 1024))
+                    .filter(|n| *n <= i.max_workspace_bytes)
+                    .ok_or(Error::Budget("streamed bibliographic raw workspace"))?;
+                i.read_ledger
+                    .try_borrow_mut()
+                    .map_err(|_| Error::Invalid("streamed bibliographic read ledger in use"))?
+                    .charge(m.size_bytes)?;
+                let raw = i
+                    .cut
+                    .read_member(
+                        i.expected_revision,
+                        path,
+                        l.catalog.max_file_bytes as u64,
+                        l.deadline,
+                        validator.cancelled,
+                    )
+                    .map_err(|e| Error::Source(e.to_string()))?
+                    .raw;
+                if raw.len() as u64 != m.size_bytes || Digest256::of_bytes(&raw) != m.sha256 {
+                    return Err(Error::Invalid("streamed bibliographic raw binding"));
+                }
+                check(validator, l)?;
+                Ok(raw)
+            }
+        }
+    }
+}
 pub(crate) struct Versions<'a, 'b> {
-    input: &'a BibliographicSourceCut<'b>,
+    input: SelectedBibliographicSourceCut<'a, 'b>,
     files: BTreeMap<String, Vec<u8>>,
     bytes: usize,
     catalog_root: String,
@@ -47,47 +269,100 @@ impl<'a, 'b> Versions<'a, 'b> {
         receipt: &catalog::SourceCatalogReceipt<B>,
         l: BibliographicLimits,
     ) -> Result<Self> {
+        Self::new_selected(
+            SelectedBibliographicSourceCut::Resident(input),
+            stage,
+            validator,
+            receipt,
+            l,
+        )
+    }
+    pub(crate) fn new_streamed<B: catalog::CatalogInputBinding>(
+        input: &'a StreamedBibliographicSourceCut<'b>,
+        stage: &mut KnowledgeStage<'_>,
+        validator: &SourceCatalogValidator<'_>,
+        receipt: &catalog::SourceCatalogReceipt<B>,
+        l: BibliographicLimits,
+    ) -> Result<Self> {
+        Self::new_selected(
+            SelectedBibliographicSourceCut::Streamed(input),
+            stage,
+            validator,
+            receipt,
+            l,
+        )
+    }
+    pub(crate) fn new_selected<B: catalog::CatalogInputBinding>(
+        input: SelectedBibliographicSourceCut<'a, 'b>,
+        stage: &mut KnowledgeStage<'_>,
+        validator: &SourceCatalogValidator<'_>,
+        receipt: &catalog::SourceCatalogReceipt<B>,
+        l: BibliographicLimits,
+    ) -> Result<Self> {
         catalog::verify_catalog(stage, receipt, l.catalog)?;
-        if input.cut.current().revision() != input.expected_revision
-            || stage.input_source_cut() != input.stage_source_cut
-            || input.max_read_files == 0
-            || input.max_read_files > 4096
-            || input.max_read_bytes == 0
-            || input.max_read_bytes > 64 * 1024 * 1024
+        if input.current_revision() != input.revision()
+            || stage.input_source_cut() != input.stage_source_cut()
         {
             return Err(Error::Invalid(
                 "bibliographic independently selected source cut",
             ));
         }
-        let stream = input
-            .cut
-            .stream(input.expected_revision)
-            .map_err(|_| Error::Invalid("bibliographic current source membership"))?;
-        if stream.expectation() != input.expected_membership {
-            return Err(Error::Invalid(
-                "bibliographic independent membership expectation",
-            ));
+        match input {
+            SelectedBibliographicSourceCut::Resident(i) => {
+                if i.max_read_files == 0
+                    || i.max_read_files > 4096
+                    || i.max_read_bytes == 0
+                    || i.max_read_bytes > 64 * 1024 * 1024
+                {
+                    return Err(Error::Invalid(
+                        "bibliographic independently selected source cut",
+                    ));
+                }
+                if i.cut
+                    .stream(i.expected_revision)
+                    .map_err(|_| Error::Invalid("bibliographic current source membership"))?
+                    .expectation()
+                    != i.expected_membership
+                {
+                    return Err(Error::Invalid(
+                        "bibliographic independent membership expectation",
+                    ));
+                }
+            }
+            SelectedBibliographicSourceCut::Streamed(i) => {
+                if i.max_workspace_bytes == 0
+                    || i.cut
+                        .revision(i.expected_revision)
+                        .map_err(|e| Error::Source(e.to_string()))?
+                        .is_none_or(|r| r.membership != i.expected_membership)
+                {
+                    return Err(Error::Invalid(
+                        "streamed bibliographic independently selected cut",
+                    ));
+                }
+            }
         }
         // Metadata is authenticated by SourceRevision. Complete traversal to
         // EOF does not read original payloads; those are outside this carrier.
         let mut membership = Digest256Hasher::new();
         membership.update(b"tos-val-full-membership-v1\0");
         let mut count = 0u64;
-        for member in input.cut.current().members() {
+        input.visit_members(validator, l, |reference, size, sha| {
             check(validator, l)?;
-            let reference = member.path.as_str();
             membership.update(&(reference.len() as u64).to_be_bytes());
             membership.update(reference.as_bytes());
-            membership.update(&member.size_bytes.to_be_bytes());
-            membership.update(member.sha256.as_bytes());
+            membership.update(&size.to_be_bytes());
+            membership.update(sha.as_bytes());
             count = count
                 .checked_add(1)
+                .filter(|n| *n <= input.membership().count)
                 .ok_or(Error::Budget("bibliographic cut membership"))?;
-        }
+            Ok(())
+        })?;
         if (SourceMembershipV1 {
             count,
             digest: membership.finalize(),
-        }) != input.expected_membership
+        }) != input.membership()
         {
             return Err(Error::Invalid(
                 "bibliographic complete metadata membership root",
@@ -150,10 +425,10 @@ impl<'a, 'b> Versions<'a, 'b> {
         Ok(result)
     }
     pub(crate) fn binding(&self) -> Value {
-        json!({"source_revision":self.input.expected_revision.0.to_hex(),
-            "membership_count":self.input.expected_membership.count,
-            "membership_sha256":self.input.expected_membership.digest.to_hex(),
-            "stage_source_cut":self.input.stage_source_cut})
+        json!({"source_revision":self.input.revision().0.to_hex(),
+            "membership_count":self.input.membership().count,
+            "membership_sha256":self.input.membership().digest.to_hex(),
+            "stage_source_cut":self.input.stage_source_cut()})
     }
     fn optional(
         &mut self,
@@ -163,36 +438,31 @@ impl<'a, 'b> Versions<'a, 'b> {
     ) -> Result<Option<Vec<u8>>> {
         check(validator, l)?;
         let parsed = path(reference)?;
-        if self.input.cut.current().member(&parsed).is_none() {
+        if !self.input.present(&parsed)? {
             return Ok(None);
         }
-        if let Some(raw) = self.files.get(reference) {
-            return Ok(Some(raw.clone()));
+        if let SelectedBibliographicSourceCut::Resident(input) = self.input {
+            if let Some(raw) = self.files.get(reference) {
+                return Ok(Some(raw.clone()));
+            }
+            if self.files.len() >= input.max_read_files {
+                return Err(Error::Budget("bibliographic version source file count"));
+            }
         }
-        if self.files.len() >= self.input.max_read_files {
-            return Err(Error::Budget("bibliographic version source file count"));
+        let raw = self.input.read(&parsed, validator, l)?;
+        if let SelectedBibliographicSourceCut::Resident(input) = self.input {
+            self.bytes = self
+                .bytes
+                .checked_add(raw.len())
+                .filter(|n| *n <= input.max_read_bytes)
+                .ok_or(Error::Budget(
+                    "bibliographic version aggregate source bytes",
+                ))?;
+            self.files.insert(reference.into(), raw.clone());
         }
-        let member = self
-            .input
-            .cut
-            .read_member(
-                self.input.expected_revision,
-                &parsed,
-                l.catalog.max_file_bytes as u64,
-                l.deadline,
-                validator.cancelled,
-            )
-            .map_err(|_| Error::Invalid("bibliographic exact current source member read"))?;
-        self.bytes = self
-            .bytes
-            .checked_add(member.raw.len())
-            .filter(|n| *n <= self.input.max_read_bytes)
-            .ok_or(Error::Budget(
-                "bibliographic version aggregate source bytes",
-            ))?;
-        self.files.insert(reference.into(), member.raw.clone());
-        Ok(Some(member.raw))
+        Ok(Some(raw))
     }
+
     pub(crate) fn required(
         &mut self,
         reference: &str,
@@ -336,8 +606,8 @@ impl<'a, 'b> Versions<'a, 'b> {
         l: BibliographicLimits,
     ) -> Result<()> {
         if self.catalog_root != receipt.row_root_sha256
-            || stage.input_source_cut() != self.input.stage_source_cut
-            || self.input.cut.current().revision() != self.input.expected_revision
+            || stage.input_source_cut() != self.input.stage_source_cut()
+            || self.input.current_revision() != self.input.revision()
         {
             return Err(Error::Invalid(
                 "navigation version resolver catalog/cut binding",
@@ -784,19 +1054,17 @@ impl<'a, 'b> Versions<'a, 'b> {
         validator: &SourceCatalogValidator<'_>,
         l: BibliographicLimits,
     ) -> Result<Vec<String>> {
-        let prefix = format!("{base}/");
         let mut names = Vec::new();
-        for member in self.input.cut.current().members() {
+        self.input.visit_prefix(base, validator, l, |name| {
             check(validator, l)?;
-            if let Some(name) = member.path.as_str().strip_prefix(&prefix) {
-                if names.len() >= max {
-                    return Err(Error::Budget(
-                        "bibliographic selected package member enumeration",
-                    ));
-                }
-                names.push(name.to_owned());
+            if names.len() >= max {
+                return Err(Error::Budget(
+                    "bibliographic selected package member enumeration",
+                ));
             }
-        }
+            names.push(name.to_owned());
+            Ok(())
+        })?;
         Ok(names)
     }
     fn package(

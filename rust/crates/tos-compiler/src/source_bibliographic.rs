@@ -11,7 +11,9 @@ use crate::source_bibliographic_render::{self as render, array, digest, encode, 
 pub use crate::source_bibliographic_render::{
     ClaimInputs as SuppliedBibliographicClaimInputs, Cohort as SuppliedBibliographicClaimCohort,
 };
-pub use crate::source_bibliographic_versions::BibliographicSourceCut;
+pub use crate::source_bibliographic_versions::{
+    BibliographicSourceCut, StreamedBibliographicReadLedger, StreamedBibliographicSourceCut,
+};
 
 /// Render authenticated ordered metadata/history supplied by the source owner.
 /// This is the existing per-record kernel; inputs are not a source receipt,
@@ -1392,7 +1394,9 @@ pub fn prepare_bibliographic_graph_from_cut(
         validator,
         materializer,
         l,
-        Some(source),
+        Some(
+            crate::source_bibliographic_versions::SelectedBibliographicSourceCut::Resident(source),
+        ),
     )
 }
 pub fn prepare_cold_bibliographic_graph_from_cut(
@@ -1409,7 +1413,28 @@ pub fn prepare_cold_bibliographic_graph_from_cut(
         validator,
         materializer,
         l,
-        Some(source),
+        Some(
+            crate::source_bibliographic_versions::SelectedBibliographicSourceCut::Resident(source),
+        ),
+    )
+}
+pub fn prepare_streamed_cold_bibliographic_graph_from_cut(
+    stage: &mut KnowledgeStage<'_>,
+    catalog_receipt: &catalog::ColdSourceCatalogReceipt,
+    validator: &SourceCatalogValidator<'_>,
+    materializer: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+    source: &StreamedBibliographicSourceCut<'_>,
+) -> Result<BibliographicReceipt> {
+    prepare_impl(
+        stage,
+        catalog_receipt,
+        validator,
+        materializer,
+        l,
+        Some(
+            crate::source_bibliographic_versions::SelectedBibliographicSourceCut::Streamed(source),
+        ),
     )
 }
 fn prepare_impl<B: catalog::CatalogInputBinding>(
@@ -1418,7 +1443,7 @@ fn prepare_impl<B: catalog::CatalogInputBinding>(
     validator: &SourceCatalogValidator<'_>,
     materializer: &mut dyn BibliographicForms,
     l: BibliographicLimits,
-    source: Option<&crate::source_bibliographic_versions::BibliographicSourceCut<'_>>,
+    source: Option<crate::source_bibliographic_versions::SelectedBibliographicSourceCut<'_, '_>>,
 ) -> Result<BibliographicReceipt> {
     let result = (|| {
         l.validate()?;
@@ -1434,7 +1459,7 @@ fn prepare_impl<B: catalog::CatalogInputBinding>(
         }
         let mut versions = source
             .map(|source| {
-                crate::source_bibliographic_versions::Versions::new(
+                crate::source_bibliographic_versions::Versions::new_selected(
                     source,
                     stage,
                     validator,
