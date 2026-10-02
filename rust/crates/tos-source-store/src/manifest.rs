@@ -497,7 +497,7 @@ pub(crate) fn uint_field(value: &JsonValue, field: &str, code: Code) -> Result<u
 
 // Authored source snapshots also preserve private regular-file permissions.
 // Git software captures retain their separate 0644/0755 mode law below.
-fn source_mode_field(value: &JsonValue, field: &str, code: Code) -> Result<u32> {
+pub(crate) fn source_mode_field(value: &JsonValue, field: &str, code: Code) -> Result<u32> {
     if uint_field(value, field, code)? == 0o600 {
         Ok(0o600)
     } else {

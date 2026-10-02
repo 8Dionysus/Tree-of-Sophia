@@ -22,7 +22,7 @@ use crate::{
     CorpusReader, CutReadLimits, MemberMetadata, ReadLimits, Result, RetirementMetadata,
     SourceMembershipV1, SourcePresenceV1, StoreError, StoreErrorCode,
     cut::is_authored_source_path_v1, manifest::digest_field, manifest::exact_keys,
-    manifest::mode_field, manifest::path_field, manifest::uint_field,
+    manifest::path_field, manifest::source_mode_field, manifest::uint_field,
 };
 
 const PAGE_BYTES: u64 = 4096;
@@ -331,7 +331,7 @@ impl StreamedCorpusCutReaderV1 {
         row.map(|(digest, size, mode)| {
             let mode =
                 u32::try_from(mode).map_err(|_| mismatch("private source index mode changed"))?;
-            if !matches!(mode, 0o644 | 0o755) {
+            if !matches!(mode, 0o600 | 0o644 | 0o755) {
                 return Err(mismatch("private source index mode changed"));
             }
             Ok(MemberMetadata {
@@ -1110,7 +1110,11 @@ fn read_exact_manifest(
                             "size_bytes",
                             StoreErrorCode::InvalidMemberIndex,
                         )?,
-                        mode: mode_field(&value, "mode", StoreErrorCode::InvalidMemberIndex)?,
+                        mode: source_mode_field(
+                            &value,
+                            "mode",
+                            StoreErrorCode::InvalidMemberIndex,
+                        )?,
                     };
                     consume_entry(&mut remaining_entries)?;
                     aggregate.members = aggregate
@@ -1937,7 +1941,7 @@ fn member_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<(String, Vec<u8>, Vec
 fn decode_member_row(row: (String, Vec<u8>, Vec<u8>, i64)) -> Result<MemberMetadata> {
     let (path, digest, size, mode) = row;
     let mode = u32::try_from(mode).map_err(|_| mismatch("private source index mode changed"))?;
-    if !matches!(mode, 0o644 | 0o755) {
+    if !matches!(mode, 0o600 | 0o644 | 0o755) {
         return Err(mismatch("private source index mode changed"));
     }
     Ok(MemberMetadata {
