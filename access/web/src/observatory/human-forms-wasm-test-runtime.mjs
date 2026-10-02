@@ -1,3 +1,4 @@
+import {installInterpretationComparisonRules} from '../interpretation-comparison.mjs';
 import {installQueryRequestRules} from '../query-operations.ts';
 // These focused source tests consume the actual generated browser binding.
 // Build ownership and artifact admission remain with the matched OPS lane.
@@ -38,6 +39,7 @@ installClaimReadingRules(runtime);
 import {installKnowledgeSearchRules} from '../knowledge-search.ts';
 installKnowledgeSearchRules(runtime);
 installQueryRequestRules(runtime);
+installInterpretationComparisonRules(runtime);
 
 import {installClientInspectionRules} from './client-inspection-rules.mjs';
 installClientInspectionRules(runtime);

@@ -1,3 +1,4 @@
+import {installInterpretationComparisonRules} from '../src/interpretation-comparison.mjs';
 import {installQueryRequestRules} from '../src/query-operations.ts';
 import {installWebMcpRules} from '../src/webmcp.ts';
 import {installSourceDossierRules} from '../src/observatory/source-dossier-rules.mjs';
@@ -38,6 +39,7 @@ installHumanFormRules(rules);
 installRecordContextRules(rules);
 installKnowledgeSearchRules(rules);
 installQueryRequestRules(rules);
+installInterpretationComparisonRules(rules);
 installClaimReadingRules(rules);
 installClientInspectionRules(rules);
 installSourceDossierRules(rules);

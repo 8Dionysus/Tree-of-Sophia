@@ -990,3 +990,8 @@ pub use path_query::PathQuerySession;
 mod query_request;
 #[cfg(feature = "wasm")]
 pub use query_request::QueryRequestRules;
+
+#[cfg(feature = "wasm")]
+mod interpretation_comparison;
+#[cfg(feature = "wasm")]
+pub use interpretation_comparison::InterpretationComparisonSession;

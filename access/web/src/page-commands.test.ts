@@ -1,3 +1,4 @@
+import {buildInterpretationComparison} from './interpretation-comparison.mjs';
 import {pageCommandInteger, pageCommandOpaqueString, pageCommandDirection} from "./page-input";
 import './observatory/human-forms-wasm-test-runtime.mjs';
 import { describe, expect, it, vi } from "vitest";
@@ -264,5 +265,69 @@ describe("page input guards used by maintained command handlers", () => {
     const failure = {host: true};
     try { pageCommandDirection({get direction() { throw failure; }}); throw new Error("getter did not throw"); }
     catch (error) { expect(error).toBe(failure); }
+  });
+});
+
+
+describe("maintained interpretation comparison projection", () => {
+  it("keeps source reading identities and existing bounded contested review posture", () => {
+    const challenges = Array.from({length: 10}, (_, index) => ({id: `reading:${index}`}));
+    const context = Array.from({length: 11}, (_, index) => ({id: `context:${index}`}));
+    const gaps = Array.from({length: 14}, (_, index) => `gap:${index}`);
+    const selection = {id: "selected", kind: "node"};
+    const result = buildInterpretationComparison({challenge_relations: challenges, context_relations: context,
+      gaps, conclusion: {can_conclude: true}}, selection, () => "en", (value: unknown) => value);
+    expect(result.selection).toBe(selection);
+    expect(result.schema).toBe("tos_interpretation_comparison_v1");
+    expect(result.posture).toBe("contested_review_required");
+    expect(result.can_conclude).toBe(true);
+    expect(result.competing_reading_count).toBe(10);
+    expect(result.competing_readings).toEqual(challenges.slice(0, 8));
+    expect(result.competing_readings[0]).toBe(challenges[0]);
+    expect(result.contextual_readings).toEqual(context.slice(0, 8));
+    expect(result.gaps).toEqual(gaps.slice(0, 12));
+    expect(result.authority_note).toBe("Projected challenge relations are review leads, not adjudicated counterevidence or canon decisions.");
+  });
+  it("preserves lazy posture and localized gap observations and native host exceptions", () => {
+    const reads: string[] = [], ruGaps: string[] = [], authority = {opaque: true};
+    const packet = {
+      get challenge_relations() {reads.push("challenge"); return [];},
+      get context_relations() {reads.push("context"); return [];},
+      get posture() {reads.push("posture"); return "";},
+      get selection_posture() {reads.push("selection"); return {review_posture: "source-review"};},
+      get gaps_ru() {reads.push("gaps_ru"); return ruGaps;},
+      get gaps() {throw new Error("truthy empty localized array must not fall back");},
+      get conclusion() {reads.push("conclusion"); return {can_conclude: 1};},
+      get authority_note() {reads.push("authority"); return authority;},
+    };
+    const result = buildInterpretationComparison(packet, {}, () => {reads.push("language"); return "ru";}, (value: unknown) => value);
+    expect(reads).toEqual(["challenge", "context", "posture", "selection", "language", "gaps_ru", "conclusion", "authority"]);
+    expect(result.posture).toBe("source-review");
+    expect(result.can_conclude).toBe(false);
+    expect(result.gaps).toEqual([]);
+    expect(result.authority_note).toBe(authority);
+    const refusal = {host: "original"};
+    let observed;
+    try {buildInterpretationComparison({get challenge_relations() {throw refusal;}}, {}, () => "en", () => null);}
+    catch (error) {observed = error;}
+    expect(observed).toBe(refusal);
+  });
+  it("keeps retained native map callbacks independent of the freed rule session", () => {
+    let retained: ((value: unknown) => unknown) | undefined;
+    const observations: string[] = [], sliceResult = {opaque: "mapped result"};
+    let lengthReads = 0;
+    const mapped = {
+      get length() {observations.push("length"); return lengthReads++ === 0 ? 0 : 7;},
+      slice(start: number, end: number) {observations.push(`slice:${start}:${end}`); return sliceResult;},
+    };
+    const source = {map(callback: (value: unknown) => unknown) {retained = callback; return mapped;}};
+    const summarize = (value: unknown) => value;
+    const result = buildInterpretationComparison({challenge_relations: source, context_relations: [], gaps: []}, {}, () => "en", summarize);
+    expect(result.posture).toBe("review_status_unresolved");
+    expect(result.competing_reading_count).toBe(7);
+    expect(result.competing_readings).toBe(sliceResult);
+    expect(observations).toEqual(["length", "length", "slice:0:8"]);
+    const original = {id: "later"};
+    expect(retained?.(original)).toBe(original);
   });
 });

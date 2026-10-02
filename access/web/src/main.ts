@@ -1,3 +1,4 @@
+import {buildInterpretationComparison as projectInterpretationComparison} from './interpretation-comparison.mjs';
 import {pageCommandInteger as commandInteger, pageCommandOpaqueString as commandOpaqueString, pageCommandDirection as commandDirection} from "./page-input";
 import type { Graph as CosmosGraph, GraphConfig } from "@cosmos.gl/graph";
 import Graphology from "graphology";
@@ -3768,25 +3769,6 @@ function interpretationComparisonCards(itemIdValue: string): string[] {
   return cards;
 }
 
-function buildInterpretationComparison(packet: EpistemicPayload, selection: PageSelection): InterpretationComparisonPayload {
-  const challengeReadings = (packet.challenge_relations || []).map(readingSummary);
-  const contextReadings = (packet.context_relations || []).map(readingSummary);
-  const posture = challengeReadings.length
-    ? "contested_review_required"
-    : packet.posture || packet.selection_posture?.review_posture || "review_status_unresolved";
-  const localizedGaps = state.language === "ru" ? packet.gaps_ru || packet.gaps : packet.gaps;
-  return {
-    schema: "tos_interpretation_comparison_v1",
-    selection,
-    posture,
-    can_conclude: packet.conclusion?.can_conclude === true,
-    competing_reading_count: challengeReadings.length,
-    competing_readings: challengeReadings.slice(0, 8),
-    contextual_readings: contextReadings.slice(0, 8),
-    gaps: (localizedGaps || []).slice(0, 12),
-    authority_note: packet.authority_note || "Projected challenge relations are review leads, not adjudicated counterevidence or canon decisions.",
-  };
-}
 
 async function compareReadings(itemIdValue: string, limit = 60, signal?: AbortSignal): Promise<InterpretationComparisonPayload> {
   const selected = pageSelection();
@@ -3798,7 +3780,7 @@ async function compareReadings(itemIdValue: string, limit = 60, signal?: AbortSi
     : await showEpistemic(itemIdValue, limit, signal);
   signal?.throwIfAborted();
   if (pageSelection()?.id !== itemIdValue) throw new DOMException("superseded comparison request", "AbortError");
-  const comparison = buildInterpretationComparison(packet, selected);
+  const comparison = projectInterpretationComparison(packet, selected, () => state.language, readingSummary) as InterpretationComparisonPayload;
   state.interpretationComparison = comparison;
   state.inspectorOpen = true;
   renderInspector();
