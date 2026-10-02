@@ -1,4 +1,4 @@
-import {chooseKnowledgeSearchMode} from "./knowledge-search";
+import {chooseKnowledgeSearchMode} from "./knowledge-search.ts";
 
 type WordQuerySession = {query(length: number): boolean; language(value: Uint16Array): boolean; number(value: number): number; free(): void};
 type PathQuerySession = {required(length: number): boolean; depth(value: number): number; direction(value: Uint16Array): boolean; alternatives(value: number): number; filter_empty(length: number): boolean; empty_filter(): string; free(): void};

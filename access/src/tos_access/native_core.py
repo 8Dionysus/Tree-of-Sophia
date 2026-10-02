@@ -64,6 +64,10 @@ class NativeCore:
         """Read the selected Original catalog; no synthesized capability fallback."""
         return self._packet("tos_knowledge_catalog", {}, source_errors=False)
 
+    def knowledge_exploration_contracts(self) -> dict:
+        """Return software schemas with the selected native exploration capability."""
+        return self._packet("tos_knowledge_exploration_contracts", {}, source_errors=False)
+
     def source_read_capabilities(self) -> dict:
         return self._packet("tos_source_read_capabilities", {})
 

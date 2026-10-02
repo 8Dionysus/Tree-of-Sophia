@@ -47,6 +47,22 @@ def copy_software_contracts(root: Path) -> None:
 
 
 class SoftwareBoundaryTests(unittest.TestCase):
+    def test_native_core_exploration_contracts_preserves_zero_argument_packet_contract(self):
+        from tos_access.native_core import NativeCore
+        core = object.__new__(NativeCore)
+        calls = []
+        def packet(tool, request, **options):
+            calls.append((tool, request, options))
+            return {"test_only": "mapping sentinel"}
+        core._packet = packet
+
+        self.assertEqual(core.knowledge_exploration_contracts(),
+                         {"test_only": "mapping sentinel"})
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][0], "tos_knowledge_exploration_contracts")
+        self.assertEqual(calls[0][1], {})
+        self.assertEqual(calls[0][2], {"source_errors": False})
+
     def test_native_core_reading_method_preserves_reference_arguments(self):
         # Mapping only; genuine source-bound packet parity needs the native child.
         from tos_access.native_core import NativeCore

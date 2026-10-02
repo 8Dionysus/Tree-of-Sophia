@@ -1710,3 +1710,10 @@ It uses the selected native Word provider; it does not load a Python provider.
 Native tool refusals remain `ToolError`, distinct from source-read `SourceReadError`.
 This connection awaits a matching positive Word image and selected local data;
 source mapping controls do not establish positive provider parity or default retirement.
+
+`NativeCore.knowledge_exploration_contracts()` returns the complete native
+exploration schema bundle without arguments, using the same authenticated child
+and 50-second deadline. Its `capabilities.available` reflects the selected
+exploration backend; software schemas remain readable when that backend is absent.
+Native refusals remain `ToolError`. This method does not select another data
+root, synthesize an Original catalog, or replace the remaining default Core API.
