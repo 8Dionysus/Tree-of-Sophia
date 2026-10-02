@@ -45,3 +45,14 @@ or hash its active Python entry as a generated manifest input; its static inputs
 are the census, identity issuance and primary challenger. Research oracle
 execution uses separately authenticated private inputs under its own custody;
 archive availability is not permission to execute or a claim of independence.
+
+The paragraph alignment recipe is additionally retained from immutable commit
+`b0703ca53f3d5d8ac8d2a9b3bedd1fab64638389`, original path
+`scripts/build_zarathustra_de_ru_paragraph_alignment_v1.py`, Git blob
+`417f6f586434a701df264525f3a6c3b89fd63943`, SHA256
+`0b3d29bc9a9d8b1aa6bbdbd06cfa68e7bcb46168f188d914243648d90344f329`.
+Its archive is historical rendering-recipe source only: never execute or import
+it as a maintained producer fallback. The active entry dispatches native `tos`.
+Historical packet `software_ref` names the original logical rendering path;
+changed facade bytes do not acquire that recipe identity. Native implementation
+and selected executable identity belong to separate execution receipts.
