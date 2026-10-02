@@ -148,8 +148,9 @@ mechanical validation, not canonical data selection or semantic acceptance.
 Optional private usage and morphology companions are verified only when
 present; a successful absent-companion branch does not verify their bytes.
 
+The retained-control check has also passed on the same source-bound input.
 The original Python builder/validator remains the compatibility oracle while
-the retained-control check and original-output parity are pending. Use
+original-output parity is pending. Use
 `validate-legacy` for an explicit historical control; it does not rebuild or
 retire that control. The original script, archived copies, historical profiles
 and artifacts keep their exact source associations and identities. They are not
