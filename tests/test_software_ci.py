@@ -1,4 +1,8 @@
-"""Check omission must follow the changed surface, and may never hide failure."""
+"""Explicit Python reference oracle and workflow topology contracts.
+
+Native software_ci controls are retained separately; these historical
+assertions do not establish production execution or retirement by themselves.
+"""
 from __future__ import annotations
 
 import json
@@ -33,7 +37,7 @@ class SoftwareSelectionTests(unittest.TestCase):
         ]
         for paths, mode, worker in cases:
             with self.subTest(paths=paths):
-                plan = ci.select(paths)
+                plan = ci.reference_select(paths)
                 self.assertEqual((plan['software_mode'], plan['worker']), (mode, worker))
                 self.assertEqual(plan['rust'], any(path in ('Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml') or path.startswith(('rust/', 'tests/conformance/rust/')) for path in paths))
 
@@ -46,11 +50,11 @@ class SoftwareSelectionTests(unittest.TestCase):
                      'ToS/doctrine/README.md', 'ToS/source-witnesses/record.json',
                      'new-unclassified-directory/input.xyz']:
             with self.subTest(path=path):
-                plan = ci.select([path])
+                plan = ci.reference_select([path])
                 self.assertEqual((plan['software_mode'], plan['worker']), ('full', True))
                 self.assertTrue(plan['rust'])
         for paths, full in [([], False), (['README.md'], True)]:
-            self.assertEqual(ci.select(paths, full)['software_mode'], 'full')
+            self.assertEqual(ci.reference_select(paths, full)['software_mode'], 'full')
 
     def test_renaming_code_to_documentation_still_selects_original_owner(self):
         with tempfile.TemporaryDirectory() as raw:
@@ -69,9 +73,9 @@ class SoftwareSelectionTests(unittest.TestCase):
             old.rename(root / 'README.md')
             git('add', '-A')
             git('commit', '-m', 'move')
-            paths = ci.changed_paths(root, base)
+            paths = ci.reference_changed_paths(root, base)
             self.assertEqual(paths, ['README.md', 'access/src/tos_access/core.py'])
-            self.assertEqual(ci.select(paths)['software_mode'], 'reader')
+            self.assertEqual(ci.reference_select(paths)['software_mode'], 'reader')
 
     def test_required_gate_rejects_failed_cancelled_missing_and_unexpected_skips(self):
         for mode, worker, rust in [('none', False, False), ('none', False, True), ('browser', False, False), ('reader', True, False), ('full', True, True), ('none', True, False)]:
@@ -79,38 +83,38 @@ class SoftwareSelectionTests(unittest.TestCase):
                      'software': {'result':'skipped' if mode == 'none' else 'success'},
                      'worker': {'result':'success' if worker else 'skipped'},
                      'rust': {'result':'success' if rust else 'skipped'}}
-            ci.gate(needs)
+            ci.reference_gate(needs)
             for job in needs:
                 for bad in ['failure', 'cancelled', None]:
                     changed = json.loads(json.dumps(needs)); changed[job]['result'] = bad
                     with self.subTest(mode=mode, worker=worker, rust=rust, job=job, bad=bad), self.assertRaises(ValueError):
-                        ci.gate(changed)
+                        ci.reference_gate(changed)
                 changed = json.loads(json.dumps(needs)); del changed[job]
                 with self.assertRaises(ValueError):
-                    ci.gate(changed)
+                    ci.reference_gate(changed)
             if mode != 'none':
                 needs['software']['result'] = 'skipped'
                 with self.assertRaises(ValueError):
-                    ci.gate(needs)
+                    ci.reference_gate(needs)
         for outputs in [{}, {'software_mode':'none', 'worker':'maybe'}, {'software_mode':'typo', 'worker':'false'}]:
             with self.assertRaises(ValueError):
-                ci.gate({'plan': {'result':'success', 'outputs': outputs}})
+                ci.reference_gate({'plan': {'result':'success', 'outputs': outputs}})
 
     def test_document_links_check_new_repo_targets_without_fetching_external_urls(self):
         with tempfile.TemporaryDirectory() as raw:
             root=Path(raw)
             subprocess.run(['git','init',str(root)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
             (root/'README.md').write_text('[missing](absent.md)\n[web](https://example.invalid/page)\n')
-            errors=ci.check_docs(root,'HEAD',['README.md'])
+            errors=ci.reference_check_docs(root,'HEAD',['README.md'])
             self.assertEqual(len(errors),1)
             self.assertIn('absent.md',errors[0])
             (root/'absent.md').write_text('exists\n')
-            self.assertEqual(ci.check_docs(root,'HEAD',['README.md']),[])
+            self.assertEqual(ci.reference_check_docs(root,'HEAD',['README.md']),[])
             (root/'README.md').write_text('<<<<<<< branch\n')
-            self.assertIn('merge marker',ci.check_docs(root,'HEAD',['README.md'])[0])
+            self.assertIn('merge marker',ci.reference_check_docs(root,'HEAD',['README.md'])[0])
 
     def test_fenced_examples_and_reference_links(self):
-        self.assertEqual(ci.links('```md\n[x](fake.md)\n```\n[x](real.md#part)\n[r]: other.md\n'), {'real.md#part','other.md'})
+        self.assertEqual(ci.reference_links('```md\n[x](fake.md)\n```\n[x](real.md#part)\n[r]: other.md\n'), {'real.md#part','other.md'})
 
     def test_workflow_preserves_selection_and_full_release_entrypoint(self):
         workflow=yaml.safe_load((ROOT/'.github/workflows/repo-validation.yml').read_text())
