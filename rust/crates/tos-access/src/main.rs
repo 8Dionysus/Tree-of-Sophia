@@ -204,7 +204,9 @@ fn main() {
         || reading_max_total_file_bytes.is_some())
         && (!explicit_data_root || prepared_model.is_some() || explicit_release)
     {
-        eprintln!("invalid_request: --reading-analysis-root requires explicit --root without prepared or release selection");
+        eprintln!(
+            "invalid_request: --reading-analysis-root requires explicit --root without prepared or release selection"
+        );
         std::process::exit(2)
     }
     if (source_inputs.is_some() && (prepared_model.is_none() || !explicit_data_root))
