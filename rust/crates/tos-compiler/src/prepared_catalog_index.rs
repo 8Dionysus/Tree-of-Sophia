@@ -354,9 +354,13 @@ impl<'a, 'conn> CatalogIndex<'a, 'conn> {
         before_posts: &Posts,
         after_posts: &Posts,
         old_order: Option<&[u8]>,
+        defer_aggregates: bool,
     ) -> Result<()> {
         let keys: BTreeSet<_> = before.keys().chain(after.keys()).collect();
         for key in keys {
+            if defer_aggregates {
+                continue;
+            }
             let delta =
                 after.get(key).copied().unwrap_or(0) - before.get(key).copied().unwrap_or(0);
             if delta == 0 {
@@ -429,7 +433,9 @@ impl<'a, 'conn> CatalogIndex<'a, 'conn> {
                     params![bucket, value, doc],
                 )?;
             }
-            self.head(bucket, value)?;
+            if !defer_aggregates {
+                self.head(bucket, value)?;
+            }
         }
         Ok(())
     }
@@ -487,12 +493,23 @@ impl<'a, 'conn> CatalogIndex<'a, 'conn> {
             &posts,
             &Vec::new(),
             None,
+            false,
         )?;
         self.tx
             .execute("DELETE FROM catalog_contributors WHERE doc=?", [record.doc])?;
         Ok(())
     }
     fn insert_facts(&mut self, kind: &str, id: &str, order: &[u8], facts: &Facts) -> Result<i64> {
+        self.insert_facts_mode(kind, id, order, facts, false)
+    }
+    fn insert_facts_mode(
+        &mut self,
+        kind: &str,
+        id: &str,
+        order: &[u8],
+        facts: &Facts,
+        defer_aggregates: bool,
+    ) -> Result<i64> {
         let (digest, blob) = self.pack(&facts.counts, &facts.posts)?;
         let summary =
             semantics::encoded_canonical_owner(&facts.summary, self.limits.max_row_bytes)?;
@@ -507,6 +524,7 @@ impl<'a, 'conn> CatalogIndex<'a, 'conn> {
             &Vec::new(),
             &facts.posts,
             None,
+            defer_aggregates,
         )?;
         Ok(doc)
     }
@@ -565,6 +583,10 @@ impl<'a, 'conn> CatalogIndex<'a, 'conn> {
             }
             let entries = &inputs.entity_registry;
             let mut relation_phase = false;
+            // Bootstrap finalizes shared aggregates once. Delta maintenance
+            // continues to update them per changed contributor.
+            let mut totals = Counts::new();
+            let mut totals_state = std::mem::size_of::<Counts>();
             for (index, row) in rows.into_iter().enumerate() {
                 let row = row?;
                 if row.kind == "relation" {
@@ -582,16 +604,62 @@ impl<'a, 'conn> CatalogIndex<'a, 'conn> {
                         self.endpoint(id).map(Some)
                     })?,
                 )?;
-                self.insert_facts(
+                for (key, count) in &facts.counts {
+                    if *count < 0 {
+                        return Err(Error::Invalid("catalog bootstrap negative count"));
+                    }
+                    if let Some(total) = totals.get_mut(key) {
+                        *total = total
+                            .checked_add(*count)
+                            .ok_or(Error::Budget("catalog aggregate count"))?;
+                    } else {
+                        let mut state = 16usize
+                            .checked_mul(
+                                std::mem::size_of::<(Vec<String>, i64)>()
+                                    + std::mem::size_of::<usize>(),
+                            )
+                            .ok_or(Error::Budget("catalog bootstrap totals state"))?;
+                        state = state
+                            .checked_add(
+                                key.len()
+                                    .checked_mul(std::mem::size_of::<String>())
+                                    .ok_or(Error::Budget("catalog bootstrap totals state"))?,
+                            )
+                            .ok_or(Error::Budget("catalog bootstrap totals state"))?;
+                        for part in key {
+                            state = state
+                                .checked_add(part.len())
+                                .ok_or(Error::Budget("catalog bootstrap totals state"))?;
+                        }
+                        totals_state = totals_state
+                            .checked_add(state)
+                            .filter(|n| *n <= self.limits.max_aggregate_bytes)
+                            .ok_or(Error::Budget("catalog bootstrap totals state"))?;
+                        totals.insert(key.clone(), *count);
+                    }
+                }
+                self.insert_facts_mode(
                     &row.kind,
                     &row.id,
                     &semantics::order_key(&row.source_order)?,
                     &facts,
+                    true,
                 )?;
                 if index % 1024 == 0 {
                     self.size()?;
                 }
             }
+            for (key, count) in totals {
+                if count == 0 {
+                    continue;
+                }
+                let atom = self.atom(&semantics::encoded(&json!(key))?)?;
+                self.tx.execute(
+                    "INSERT INTO catalog_totals VALUES(?,?)",
+                    params![atom, count],
+                )?;
+            }
+            self.tx.execute("INSERT INTO catalog_heads SELECT bucket,value,doc,source_order,position FROM (SELECT bucket,value,doc,source_order,position,ROW_NUMBER() OVER (PARTITION BY bucket,value ORDER BY source_order,position) AS first FROM catalog_occurrences) WHERE first=1", [])?;
             let catalog = self.render_unchecked(inputs)?;
             let header = semantics::finalized_header(inputs, &catalog)?;
             self.tx.execute(
@@ -873,6 +941,7 @@ impl<'a, 'conn> CatalogIndex<'a, 'conn> {
                         &old_posts,
                         &facts.posts,
                         Some(&record.order),
+                        false,
                     )?;
                 } else {
                     self.insert_facts(&change.kind, &change.id, &order, &facts)?;
@@ -936,6 +1005,7 @@ impl<'a, 'conn> CatalogIndex<'a, 'conn> {
                         &Vec::new(),
                         &Vec::new(),
                         None,
+                        false,
                     )?;
                 }
             }

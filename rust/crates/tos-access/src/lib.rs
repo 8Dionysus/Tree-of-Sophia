@@ -46,6 +46,7 @@ pub use common::{
 pub mod native_prepare;
 
 pub mod capture_restore;
+pub mod source_cut_restore;
 
 pub mod evidence_projection;
 #[cfg(not(target_arch = "wasm32"))]

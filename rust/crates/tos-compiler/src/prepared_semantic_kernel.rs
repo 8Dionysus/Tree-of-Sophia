@@ -16,8 +16,8 @@ const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
 #[derive(Clone, Debug)]
 pub(crate) struct SemanticCarrier {
-    pub(crate) view: Value,
-    pub(crate) original: JsonValue,
+    pub(crate) view: Rc<Value>,
+    pub(crate) original: Rc<JsonValue>,
 }
 
 impl Deref for SemanticCarrier {
@@ -857,8 +857,8 @@ impl<'a> Kernel<'a> {
         self.validate_endpoints(
             relation_id,
             relation_type_id,
-            left.as_ref().map(|carrier| &carrier.view),
-            right.as_ref().map(|carrier| &carrier.view),
+            left.as_ref().map(|carrier| carrier.view.as_ref()),
+            right.as_ref().map(|carrier| carrier.view.as_ref()),
             lookup,
             &mut violations,
         )?;
@@ -1176,8 +1176,8 @@ impl<'a> Kernel<'a> {
                 python_original_path(original, "semantics.claim.claim_id")?
             ),
             relation_type_id,
-            subject.as_ref().map(|carrier| &carrier.view),
-            object.as_ref().map(|carrier| &carrier.view),
+            subject.as_ref().map(|carrier| carrier.view.as_ref()),
+            object.as_ref().map(|carrier| carrier.view.as_ref()),
             lookup,
             &mut violations,
         )?;

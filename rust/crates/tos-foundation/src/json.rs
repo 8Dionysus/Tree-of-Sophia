@@ -123,6 +123,20 @@ impl JsonString {
     pub fn units(&self) -> &[u16] {
         &self.units
     }
+    /// Retained heap storage of the two existing buffers, excluding the
+    /// inline JsonString slot charged by the owning container.
+    pub fn retained_storage_bytes(&self) -> Result<usize> {
+        self.units
+            .capacity()
+            .checked_mul(std::mem::size_of::<u16>())
+            .and_then(|bytes| bytes.checked_add(self.utf8.as_ref().map_or(0, String::capacity)))
+            .ok_or_else(|| {
+                FoundationError::new(
+                    Code::BudgetExceeded,
+                    "JSON string retained storage overflow",
+                )
+            })
+    }
     pub fn has_lone_surrogate(&self) -> bool {
         self.utf8.is_none()
     }

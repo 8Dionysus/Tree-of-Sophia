@@ -603,21 +603,297 @@ const DDL: [&str; 13] = [
 ];
 type Key = (String, String);
 type Check = (Option<String>, Option<i64>);
+struct BootstrapNode {
+    view: Rc<Value>,
+    original: Rc<JsonValue>,
+    digest: String,
+    order: i64,
+    state_bytes: usize,
+    last_visit: u64,
+}
+
+// Logical retained storage, separate from SQL bytes and allocator/RSS. Arrays
+// use actual capacities; object maps reserve a conservative tree-node envelope.
+fn bootstrap_node_state(
+    view: &Value,
+    original: &JsonValue,
+    max_bytes: usize,
+    max_values: usize,
+) -> Result<(Option<usize>, usize)> {
+    struct State {
+        bytes: usize,
+        values: usize,
+        max_bytes: usize,
+        max_values: usize,
+    }
+    impl State {
+        fn add(&mut self, bytes: usize) -> Result<()> {
+            self.bytes = self
+                .bytes
+                .checked_add(bytes)
+                .ok_or(Error::Budget("semantic bootstrap retained node state"))?;
+            Ok(())
+        }
+        fn slots(&mut self, count: usize, width: usize) -> Result<()> {
+            self.add(
+                count
+                    .checked_mul(width)
+                    .ok_or(Error::Budget("semantic bootstrap retained node state"))?,
+            )
+        }
+        fn visit(&mut self, depth: usize) -> Result<()> {
+            self.values = self
+                .values
+                .checked_add(1)
+                .filter(|n| *n <= self.max_values)
+                .ok_or(Error::Budget("semantic bootstrap retained node values"))?;
+            if depth > 64 {
+                return Err(Error::Budget("semantic bootstrap retained node depth"));
+            }
+            Ok(())
+        }
+        fn view(&mut self, v: &Value, depth: usize) -> Result<()> {
+            self.visit(depth)?;
+            self.add(std::mem::size_of::<Value>())?;
+            match v {
+                Value::String(s) => self.add(s.capacity())?,
+                Value::Array(a) => {
+                    self.slots(a.capacity(), std::mem::size_of::<Value>())?;
+                    for child in a {
+                        self.view(child, depth + 1)?;
+                    }
+                }
+                Value::Object(o) => {
+                    self.slots(
+                        o.len(),
+                        16 * (std::mem::size_of::<(String, Value)>()
+                            + std::mem::size_of::<usize>()),
+                    )?;
+                    for (key, child) in o {
+                        self.add(key.capacity())?;
+                        self.view(child, depth + 1)?;
+                    }
+                }
+                Value::Number(n) => {
+                    // This view originates only in decode() with pinned serde_json
+                    // 1.0.151: de::parse_any_number starts at capacity 16 and
+                    // appends ASCII bytes; Number::from retains that buffer or
+                    // an exact integer-format copy. The pinned Rust 48a229cea
+                    // RawVec grows by doubling and stores the requested capacity.
+                    // Thus 2 * lexeme length + 64 bounds its hidden String
+                    // capacity. This is an upper bound, not a capacity reading;
+                    // as_str borrows and creates no temporary numeric copy.
+                    self.slots(n.as_str().len(), 2)?;
+                    self.add(64)?;
+                }
+                _ => {}
+            }
+            Ok(())
+        }
+        fn original(&mut self, v: &JsonValue, depth: usize) -> Result<()> {
+            self.visit(depth)?;
+            self.add(std::mem::size_of::<JsonValue>())?;
+            match v {
+                JsonValue::String(s) => self.add(
+                    s.retained_storage_bytes()
+                        .map_err(|e| Error::Source(e.to_string()))?,
+                )?,
+                JsonValue::Number(n) => self.add(n.lexeme.capacity())?,
+                JsonValue::Array(a) => {
+                    self.slots(a.capacity(), std::mem::size_of::<JsonValue>())?;
+                    for child in a {
+                        self.original(child, depth + 1)?;
+                    }
+                }
+                JsonValue::Object(o) => {
+                    self.slots(
+                        o.capacity(),
+                        std::mem::size_of::<(tos_foundation::JsonString, JsonValue)>(),
+                    )?;
+                    for (key, child) in o {
+                        self.add(
+                            key.retained_storage_bytes()
+                                .map_err(|e| Error::Source(e.to_string()))?,
+                        )?;
+                        self.original(child, depth + 1)?;
+                    }
+                }
+                _ => {}
+            }
+            Ok(())
+        }
+    }
+    let mut state = State {
+        bytes: 0,
+        values: 0,
+        max_bytes,
+        max_values,
+    };
+    state.view(view, 0)?;
+    state.original(original, 0)?;
+    Ok((
+        (state.bytes <= state.max_bytes).then_some(state.bytes),
+        state.values,
+    ))
+}
+
 struct Context<'a, 't, 'r> {
     b: Budget<'a, 't>,
     kernel: Rc<Kernel<'r>>,
     overlay: BTreeMap<Key, Option<Value>>,
     deps: BTreeSet<Key>,
     checked: BTreeMap<Key, Check>,
-    exact: BTreeMap<Key, JsonValue>,
+    exact: BTreeMap<Key, Rc<JsonValue>>,
+    bootstrap_nodes: Option<BTreeMap<Key, BootstrapNode>>,
+    bootstrap_state: usize,
+    bootstrap_clock: u64,
 }
 impl Context<'_, '_, '_> {
-    fn row(&mut self, kind: &str, id: &str) -> Result<Option<Value>> {
+    fn retain_bootstrap_node(
+        &mut self,
+        kind: &str,
+        id: &str,
+        view: &Rc<Value>,
+        original: &Rc<JsonValue>,
+        digest: &str,
+        order: i64,
+    ) -> Result<()> {
+        if kind != "node" || self.bootstrap_nodes.is_none() {
+            return Ok(());
+        }
+        let remaining_values = self
+            .b
+            .l
+            .max_input_values
+            .checked_sub(self.b.input_values)
+            .ok_or(Error::Budget("semantic input values"))?;
+        let (tree_bytes, values) =
+            bootstrap_node_state(view, original, self.b.l.max_input_bytes, remaining_values)?;
+        self.b.input_values = self
+            .b
+            .input_values
+            .checked_add(values)
+            .filter(|n| *n <= self.b.l.max_input_values)
+            .ok_or(Error::Budget("semantic input values"))?;
+        // An otherwise valid row larger than memo headroom keeps the original
+        // fresh-read path. The sizing walk remains charged even without reuse.
+        let Some(tree_bytes) = tree_bytes else {
+            return Ok(());
+        };
+        let entry = 16usize
+            .checked_mul(std::mem::size_of::<(Key, BootstrapNode)>() + std::mem::size_of::<usize>())
+            .and_then(|n| n.checked_add(kind.len()))
+            .and_then(|n| n.checked_add(id.len()))
+            .and_then(|n| n.checked_add(digest.len()))
+            .and_then(|n| n.checked_add(4 * std::mem::size_of::<usize>()))
+            .and_then(|n| n.checked_add(tree_bytes))
+            .ok_or(Error::Budget("semantic bootstrap retained node state"))?;
+        if entry > self.b.l.max_input_bytes {
+            return Ok(());
+        }
+        let nodes = self
+            .bootstrap_nodes
+            .as_mut()
+            .ok_or(Error::Invalid("semantic bootstrap node memo absent"))?;
+        while self
+            .bootstrap_state
+            .checked_add(entry)
+            .is_none_or(|n| n > self.b.l.max_input_bytes)
+        {
+            // Never credit storage still held by a live semantic borrower.
+            let mut oldest = None;
+            for (key, node) in nodes.iter() {
+                self.b.rows = self
+                    .b
+                    .rows
+                    .checked_add(1)
+                    .filter(|n| *n <= self.b.l.max_rows)
+                    .ok_or(Error::Budget("semantic operation rows"))?;
+                if Rc::strong_count(&node.view) == 1
+                    && Rc::strong_count(&node.original) == 1
+                    && oldest
+                        .as_ref()
+                        .is_none_or(|(_, age)| node.last_visit < *age)
+                {
+                    oldest = Some((key.clone(), node.last_visit));
+                }
+            }
+            let Some((key, _)) = oldest else {
+                return Ok(());
+            };
+            let removed = nodes
+                .remove(&key)
+                .ok_or(Error::Invalid("semantic bootstrap memo eviction"))?;
+            self.bootstrap_state = self
+                .bootstrap_state
+                .checked_sub(removed.state_bytes)
+                .ok_or(Error::Invalid("semantic bootstrap memo state regression"))?;
+            drop(removed);
+        }
+        self.bootstrap_clock = self
+            .bootstrap_clock
+            .checked_add(1)
+            .ok_or(Error::Budget("semantic bootstrap visits"))?;
+        let key = (kind.to_owned(), id.to_owned());
+        if nodes.contains_key(&key) {
+            return Err(Error::Invalid("semantic duplicate bootstrap node memo"));
+        }
+        self.bootstrap_state = self
+            .bootstrap_state
+            .checked_add(entry)
+            .ok_or(Error::Budget("semantic bootstrap retained node state"))?;
+        nodes.insert(
+            key,
+            BootstrapNode {
+                view: view.clone(),
+                original: original.clone(),
+                digest: digest.to_owned(),
+                order,
+                state_bytes: entry,
+                last_visit: self.bootstrap_clock,
+            },
+        );
+        Ok(())
+    }
+    fn row(&mut self, kind: &str, id: &str, allow_reuse: bool) -> Result<Option<Rc<Value>>> {
         let key = (kind.into(), id.into());
         if let Some(v) = self.overlay.get(&key) {
-            return Ok(v.clone());
+            return Ok(v.as_ref().map(|item| Rc::new(item.clone())));
         }
-        let stored = self.b.stored(kind, id)?;
+        self.bootstrap_clock = self
+            .bootstrap_clock
+            .checked_add(1)
+            .ok_or(Error::Budget("semantic bootstrap visits"))?;
+        let reused = if allow_reuse {
+            self.bootstrap_nodes
+                .as_mut()
+                .and_then(|nodes| nodes.get_mut(&key))
+        } else {
+            None
+        };
+        let was_reused = reused.is_some();
+        let stored = if let Some(node) = reused {
+            node.last_visit = self.bootstrap_clock;
+            // A reused semantic visit is not a physical payload read. Keep
+            // it charged under the original logical row-visit ceiling.
+            self.b.rows = self
+                .b
+                .rows
+                .checked_add(1)
+                .ok_or(Error::Budget("semantic operation rows"))?;
+            if self.b.rows > self.b.l.max_rows {
+                return Err(Error::Budget("semantic operation rows"));
+            }
+            Some((
+                node.view.clone(),
+                node.original.clone(),
+                node.digest.clone(),
+            ))
+        } else {
+            self.b
+                .stored(kind, id)?
+                .map(|(view, original, digest)| (Rc::new(view), Rc::new(original), digest))
+        };
         let args = [sv(kind), sv(id)];
         let indexed = self.b.one(
             "SELECT digest,source_order FROM semantic_rows WHERE kind=? AND id=?",
@@ -639,6 +915,18 @@ impl Context<'_, '_, '_> {
         if st(&indexed[0])? != digest || int(&prepared[0])? != int(&indexed[1])? {
             return Err(Error::Invalid("semantic row dependency drift"));
         }
+        if let Some(node) = self
+            .bootstrap_nodes
+            .as_ref()
+            .and_then(|nodes| nodes.get(&key))
+        {
+            if node.order != int(&prepared[0])? || node.digest != digest {
+                return Err(Error::Invalid("semantic bootstrap retained node drift"));
+            }
+        }
+        if allow_reuse && !was_reused {
+            self.retain_bootstrap_node(kind, id, &item, &original, &digest, int(&prepared[0])?)?;
+        }
         self.exact.insert(key.clone(), original);
         self.checked
             .insert(key, (Some(digest), Some(int(&indexed[1])?)));
@@ -648,7 +936,7 @@ impl Context<'_, '_, '_> {
         &mut self,
         kind: &str,
         id: &str,
-        view: Option<Value>,
+        view: Option<Rc<Value>>,
     ) -> Result<Option<SemanticCarrier>> {
         let Some(view) = view else { return Ok(None) };
         let key = (kind.into(), id.into());
@@ -790,7 +1078,7 @@ impl Context<'_, '_, '_> {
         Ok(())
     }
     fn evaluate(&mut self, kind: &str, id: &str) -> Result<[i64; 6]> {
-        let Some(item) = self.row(kind, id)? else {
+        let Some(item) = self.row(kind, id, false)? else {
             return Ok([0; 6]);
         };
         self.deps.clear();
@@ -851,7 +1139,7 @@ impl Context<'_, '_, '_> {
 impl SemanticLookup for Context<'_, '_, '_> {
     fn node(&mut self, id: &str) -> Result<Option<SemanticCarrier>> {
         self.deps.insert(("node".into(), id.into()));
-        let result = self.row("node", id)?;
+        let result = self.row("node", id, true)?;
         self.carrier("node", id, result)
     }
     fn claim(&mut self, id: &str) -> Result<Option<SemanticCarrier>> {
@@ -859,7 +1147,7 @@ impl SemanticLookup for Context<'_, '_, '_> {
         let row=self.b.one("SELECT id FROM semantic_rows INDEXED BY semantic_claim_winner WHERE kind='node' AND type_id='tos.entity.claim' AND entity=? ORDER BY source_order DESC LIMIT 1",&[sv(id)])?;
         if let Some(row) = row {
             let id = st(&row[0])?;
-            let result = self.row("node", id)?;
+            let result = self.row("node", id, true)?;
             self.carrier("node", id, result)
         } else {
             Ok(None)
@@ -1155,6 +1443,9 @@ pub fn bootstrap_semantic_index_transaction(
         deps: BTreeSet::new(),
         checked: BTreeMap::new(),
         exact: BTreeMap::new(),
+        bootstrap_nodes: Some(BTreeMap::new()),
+        bootstrap_state: std::mem::size_of::<BTreeMap<Key, BootstrapNode>>(),
+        bootstrap_clock: 0,
     };
     for kind in ["node", "relation"] {
         let mut last = -1i64;
@@ -1239,6 +1530,24 @@ pub fn bootstrap_semantic_index_transaction(
             add_counts(&mut counts, c.evaluate(kind, st(&row[0])?)?, 1)?
         }
     }
+    drop(c.bootstrap_nodes.take());
+    c.exact.clear();
+    for ((kind, id), (digest, order)) in &c.checked {
+        if kind != "node" {
+            continue;
+        }
+        let current = c.b.stored(kind, id)?;
+        let current_order = c.b.one(
+            "SELECT source_order FROM prepared_documents WHERE kind=? AND id=?",
+            &[sv(kind), sv(id)],
+        )?;
+        match (current, current_order, digest, order) {
+            (Some((_, _, current_digest)), Some(current_order), Some(digest), Some(order))
+                if current_digest == *digest && int(&current_order[0])? == *order => {}
+            (None, None, None, None) => {}
+            _ => return Err(Error::Invalid("semantic bootstrap retained node changed")),
+        }
+    }
     let report = report(&mut c.b, counts, &registry)?;
     let digest = sha(&compact(&report, c.b.l.max_output_bytes)?);
     descriptor(&mut c.b, &binding, &digest, Some(&report))?;
@@ -1298,6 +1607,9 @@ pub fn apply_semantic_delta_transaction(
         deps: BTreeSet::new(),
         checked: BTreeMap::new(),
         exact: BTreeMap::new(),
+        bootstrap_nodes: None,
+        bootstrap_state: 0,
+        bootstrap_clock: 0,
     };
     let mut pending: Vec<(String, String, Option<Value>, Option<u64>, Option<String>)> = Vec::new();
     let mut affected = BTreeSet::new();
@@ -1326,7 +1638,7 @@ pub fn apply_semantic_delta_transaction(
         if found.is_none() != (change.operation == "insert") {
             return Err(Error::Invalid("semantic operation differs from target"));
         }
-        let old = c.row(&change.kind, &change.identifier)?;
+        let old = c.row(&change.kind, &change.identifier, false)?;
         if old.is_none() != (change.operation == "insert") {
             return Err(Error::Invalid("semantic prepared map/carrier differs"));
         }
@@ -1377,7 +1689,7 @@ pub fn apply_semantic_delta_transaction(
         affected.insert(key);
         if change.kind == "node" {
             signals.insert(("node".to_owned(), change.identifier.clone()));
-            for (row, is_old) in [(old.as_ref(), true), (item.as_ref(), false)]
+            for (row, is_old) in [(old.as_deref(), true), (item.as_ref(), false)]
                 .into_iter()
                 .filter_map(|(row, is_old)| row.map(|row| (row, is_old)))
             {
@@ -1389,6 +1701,7 @@ pub fn apply_semantic_delta_transaction(
                                 c.exact
                                     .get(&(change.kind.clone(), change.identifier.clone()))
                                     .ok_or(Error::Invalid("semantic original old row absent"))?
+                                    .as_ref()
                             } else {
                                 change
                                     .item
@@ -1401,7 +1714,7 @@ pub fn apply_semantic_delta_transaction(
                 }
             }
         } else {
-            for (row, is_old) in [(old.as_ref(), true), (item.as_ref(), false)]
+            for (row, is_old) in [(old.as_deref(), true), (item.as_ref(), false)]
                 .into_iter()
                 .filter_map(|(row, is_old)| row.map(|row| (row, is_old)))
             {
@@ -1414,6 +1727,7 @@ pub fn apply_semantic_delta_transaction(
                                     c.exact
                                         .get(&(change.kind.clone(), change.identifier.clone()))
                                         .ok_or(Error::Invalid("semantic original old row absent"))?
+                                        .as_ref()
                                 } else {
                                     change.item.as_ref().ok_or(Error::Invalid(
                                         "semantic candidate original absent",
@@ -1431,7 +1745,7 @@ pub fn apply_semantic_delta_transaction(
         if let Some(original) = &change.item {
             c.exact.insert(
                 (change.kind.clone(), change.identifier.clone()),
-                original.clone(),
+                Rc::new(original.clone()),
             );
         }
         pending.push((
@@ -1702,6 +2016,8 @@ fn bootstrap_add(
             "semantic supplied row differs from prepared digest",
         ));
     }
+    let item = Rc::new(item);
+    let original = Rc::new(original);
     c.exact.insert((kind.into(), id.into()), original);
     c.add(kind, &item, order as u64, &digest)?;
     c.exact.remove(&(kind.into(), id.into()));

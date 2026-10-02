@@ -2,7 +2,7 @@
 //! The same committed DB/binding continues to native CLI, HTTP and MCP readers.
 use super::*;
 use serde_json::json;
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::{
     collections::BTreeMap,
     process::Command,
@@ -308,6 +308,92 @@ fn maintained_claim_addition_whole_transaction_and_access() {
     let source =
         PreparedSourceInputs::parse(&canonical_lf(&packet["source_inputs"]), publication_limits)
             .unwrap();
+    // Explicit retained pre-publication source cut continuation; default fixture unchanged.
+    let retained_source = if std::env::var_os("TOS_NATIVE_CLAIM_RETAINED_SOURCE_CUT").is_some() {
+        let mut files = BTreeMap::new();
+        let mut total = 0usize;
+        for (path, hex) in packet["source_files"].as_object().unwrap() {
+            let raw = decode_hex(hex.as_str().unwrap());
+            total = total.checked_add(raw.len()).unwrap();
+            assert!(total <= 16_777_216 && files.len() < 2048);
+            files.insert(path.clone(), raw);
+        }
+        let manifest_upper = files
+            .keys()
+            .try_fold(512usize, |total, path| {
+                total.checked_add(serde_json::to_vec(path).unwrap().len() + 256)
+            })
+            .unwrap();
+        assert!(manifest_upper <= 4_194_304);
+        let (captured, modes) = agent_authored_capture(&fixture_root, deadline, 16_777_216);
+        assert_eq!(
+            captured, files,
+            "actual authored FS differs from exported packet"
+        );
+        let cut_root = fixture_root.join("e4-source-cut");
+        // A stopped pre-publication attempt may resume with its exact retained cut.
+        // Selection is explicit and proves every manifest mode and object byte;
+        // the receipt supplies only the candidate revision, never source authority.
+        let retained_cut = std::env::var_os("TOS_NATIVE_CLAIM_RETAINED_SOURCE_CUT");
+        assert!(retained_cut.is_some());
+        let revision = if let Some(selected) = retained_cut.as_ref() {
+            let selected = PathBuf::from(selected);
+            assert_eq!(selected, fixture_root.join("e4-source-cut-receipt.json"));
+            let metadata = fs::symlink_metadata(&selected).unwrap();
+            assert!(metadata.is_file() && metadata.len() <= 4_194_304);
+            let receipt = read_packet(&selected);
+            assert_eq!(
+                receipt["store"].as_str().unwrap(),
+                cut_root.to_str().unwrap()
+            );
+            let revision = tos_foundation::SourceRevision(
+                Digest256::from_hex(receipt["revision"].as_str().unwrap()).unwrap(),
+            );
+            let selected_cut =
+                super::command_form_cases::open_cut(&cut_root, revision, deadline, &cancel);
+            assert_eq!(selected_cut.current().member_count(), captured.len());
+            for member in selected_cut.current().members() {
+                let path = member.path.as_str();
+                assert_eq!(member.mode, modes[path]);
+                let selected = selected_cut
+                    .read_member(revision, &member.path, 8_388_608, deadline, &cancel)
+                    .unwrap();
+                assert_eq!(selected.raw, captured[path]);
+            }
+            revision
+        } else {
+            assert!(!cut_root.exists());
+            super::validation_cut_cases::write_cut_store_with_modes(&captured, &cut_root, &modes)
+        };
+        let source_bytes: usize = captured.values().map(Vec::len).sum();
+        let history_members = captured
+            .keys()
+            .filter(|path| path.starts_with("ToS/source-witnesses/.record-revisions/"))
+            .count();
+        let cut_receipt = json!({"store":cut_root,"revision":revision.0.to_hex(),
+        "selected_moment":"source Claim committed; before native prepared bootstrap/profile/publication",
+        "selection":"actual authored source membership; operational writer lock excluded",
+        "source_bytes":source_bytes,"members":captured.len(),"history_members":history_members,
+        "manifest_upper_bytes":manifest_upper,"modes":modes,
+        "derived_database_is_source_member":false});
+        let cut_receipt_raw = canonical_lf(&cut_receipt);
+        assert!(cut_receipt_raw.len() <= 4_194_304);
+        if retained_cut.is_some() {
+            assert_eq!(
+                fs::read(fixture_root.join("e4-source-cut-receipt.json")).unwrap(),
+                cut_receipt_raw
+            );
+        } else {
+            fs::write(
+                fixture_root.join("e4-source-cut-receipt.json"),
+                cut_receipt_raw,
+            )
+            .unwrap();
+        }
+        Some((captured, modes, cut_root, revision, source_bytes))
+    } else {
+        None
+    };
     // Explicit native auxiliary bootstrap over the SAME immutable predecessor.
     // Preserve the original Python semantic rows in a bounded reference packet;
     // no executable hash is relabeled on the imported index.
@@ -435,8 +521,13 @@ fn maintained_claim_addition_whole_transaction_and_access() {
         })
         .unwrap();
     assert!(manifest_upper <= 4_194_304);
-    let cut_root = workspace.path().join("schema-cut");
-    let revision = super::validation_cut_cases::write_cut_store(&files, &cut_root);
+    let (cut_root, revision) = if let Some((_, _, cut_root, revision, _)) = &retained_source {
+        (cut_root.clone(), *revision)
+    } else {
+        let cut_root = workspace.path().join("schema-cut");
+        let revision = super::validation_cut_cases::write_cut_store(&files, &cut_root);
+        (cut_root, revision)
+    };
     drop(files);
     let cut = super::command_form_cases::open_cut(&cut_root, revision, deadline, &cancel);
     let mut worker = super::command_form_cases::schemas(&cut, deadline, &cancel);
@@ -568,6 +659,67 @@ fn maintained_claim_addition_whole_transaction_and_access() {
         "old selected binding must refuse the successor"
     );
     drop(old_executor);
+    if let Some((captured, modes, cut_root, revision, source_bytes)) = retained_source {
+        // Restore the genuine selected pre-publication authored cut through the
+        // existing protected native entry. The prepared DB is a separate retained
+        // artifact; neither its bytes nor writer authority enter this source cut.
+        let restored_root = fixture_root.join("e4-source-restored");
+        assert!(!restored_root.exists());
+        let restore_deadline = deadline.min(Instant::now() + Duration::from_secs(30));
+        let output = native_child::bounded_output_before(
+            Command::new(&consumer)
+                .arg("restore-source-cut")
+                .arg("--corpus-store")
+                .arg(&cut_root)
+                .arg("--source-revision")
+                .arg(revision.0.to_prefixed())
+                .arg("--output")
+                .arg(&restored_root)
+                .args([
+                    "--max-revisions",
+                    "1",
+                    "--max-directories",
+                    "4096",
+                    "--max-members",
+                    "2048",
+                    "--max-member-bytes",
+                    "8388608",
+                    "--max-total-bytes",
+                    "16777216",
+                    "--max-metadata-bytes",
+                    "4194304",
+                    "--max-seconds",
+                    "20",
+                ]),
+            65_536,
+            restore_deadline,
+        );
+        assert!(
+            output.status.success(),
+            "E4 source restore refused: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(output.stderr.is_empty());
+        let restored: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(restored["restored"], true);
+        assert_eq!(restored["writer_grant_transferred"], false);
+        assert_eq!(restored["source_revision"], revision.0.to_prefixed());
+        assert_eq!(restored["member_count"], captured.len());
+        assert_eq!(restored["source_bytes"], source_bytes);
+        let (restored_files, restored_modes) =
+            agent_authored_capture(&restored_root, deadline, 16_777_216);
+        assert_eq!(restored_files, captured, "cold source cut bytes differ");
+        assert_eq!(restored_modes, modes, "cold source cut modes differ");
+        fs::write(
+            fixture_root.join("e4-source-restore-receipt.json"),
+            canonical_lf(&restored),
+        )
+        .unwrap();
+        drop(restored_files);
+        drop(restored_modes);
+
+        drop(modes);
+    }
     claim_publication_access::verify_published_access_until(
         &db_path,
         binding_path,
@@ -592,13 +744,25 @@ pub(super) const AGENT_RECORD_COMPONENTS: &[&str] = &[
     "mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_selected_revisions.py",
 ];
 pub(super) fn agent_authored(root: &Path, deadline: Instant) -> BTreeMap<String, Vec<u8>> {
+    agent_authored_capture(root, deadline, 33_554_432).0
+}
+fn agent_authored_capture(
+    root: &Path,
+    deadline: Instant,
+    max_bytes: usize,
+) -> (BTreeMap<String, Vec<u8>>, BTreeMap<String, u32>) {
+    assert!(max_bytes <= 33_554_432);
     let mut pending = vec![root.join("ToS")];
     let mut files = BTreeMap::new();
+    let mut visited = 0usize;
     let mut total = 0usize;
+    let mut modes = BTreeMap::new();
     while let Some(directory) = pending.pop() {
         assert!(Instant::now() < deadline);
         for entry in fs::read_dir(directory).unwrap() {
             let entry = entry.unwrap();
+            visited += 1;
+            assert!(visited <= 4096 && Instant::now() < deadline);
             let metadata = entry.file_type().unwrap();
             assert!(!metadata.is_symlink());
             if metadata.is_dir() {
@@ -618,14 +782,35 @@ pub(super) fn agent_authored(root: &Path, deadline: Instant) -> BTreeMap<String,
             {
                 continue;
             }
-            assert!(fs::metadata(entry.path()).unwrap().len() <= 8_388_608);
+            let before = fs::symlink_metadata(entry.path()).unwrap();
+            assert!(before.is_file() && before.len() <= 8_388_608 && files.len() < 2048);
+            total = total
+                .checked_add(usize::try_from(before.len()).unwrap())
+                .unwrap();
+            assert!(total <= max_bytes);
+            let stamp = |metadata: &fs::Metadata| {
+                (
+                    metadata.dev(),
+                    metadata.ino(),
+                    metadata.len(),
+                    metadata.mode(),
+                    metadata.mtime(),
+                    metadata.mtime_nsec(),
+                    metadata.ctime(),
+                    metadata.ctime_nsec(),
+                )
+            };
             let raw = fs::read(entry.path()).unwrap();
-            total = total.checked_add(raw.len()).unwrap();
-            assert!(total <= 33_554_432 && files.len() < 2048);
+            let after = fs::symlink_metadata(entry.path()).unwrap();
+            assert!(after.is_file() && stamp(&before) == stamp(&after));
+            assert_eq!(raw.len() as u64, before.len());
+            let mode = before.permissions().mode() & 0o7777;
+            assert_eq!(mode & 0o7000, 0, "source fixture special mode refused");
+            modes.insert(path.clone(), mode);
             files.insert(path, raw);
         }
     }
-    files
+    (files, modes)
 }
 pub(super) fn agent_catalog(packet: &Value, header: &Value) -> CatalogInputs {
     CatalogInputs {
