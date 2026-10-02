@@ -316,6 +316,7 @@ class SoftwareSelectionTests(unittest.TestCase):
             'ToS/doctrine/AGENTS.md',
             'ToS/philosophy/AGENTS.md',
             'ToS/philosophy/philosophy.manifest.json',
+            'ToS/philosophy/graph-workbench/views/evidence-lens-scenes.v1.json',
             'ToS/public-compatibility/AGENTS.md',
             'ToS/public-compatibility/source_node.example.json',
             'ToS/research-packets/AGENTS.md',
