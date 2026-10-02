@@ -62,3 +62,19 @@ semantic, graph, or canon judgments. A successful build/check remains a
 mechanical result; source-visible review and scoped admission retain their
 existing owners. Fresh profile validation is independent of the original
 plan's retained-input validation.
+
+The maintained producer entry dispatches to the native `tos` command. Select
+an exact installed executable with `TOS_NATIVE_PREPARED_CONSUMER_BIN` and pass
+`--source-root` for a separately owned source/carrier root. `--build` produces
+candidate files; `--check` regenerates them and compares the full product.
+Use `--validate-tracked` to validate existing retained products without
+regeneration, provider execution, or writes. This mode checks the original
+default plan, input pins, manifest membership/digests, tracked/private modes,
+existing opaque bindings, private exact return, counts and declared ceilings.
+It reports receipt mechanics, not algorithm equivalence or semantic admission.
+
+The original Python rendering recipes remain independent cold oracle/history
+material with their exact Git identities. Both active Eternal entries are
+native-only; the former Review-to-Concept Python hydration import retires with
+the coordinated family cutover. Historical expected output identities remain
+separate from actual native/oracle equivalence; no prior artifact is retagged.

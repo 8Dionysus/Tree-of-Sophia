@@ -29,7 +29,7 @@ class ZarathustraEternalReturnConceptCandidateV1Tests(unittest.TestCase):
         if not PRIVATE.is_file():
             self.skipTest("private eternal-return source-return analysis is not present")
         result = subprocess.run(
-            ["python", "scripts/build_zarathustra_eternal_return_concept_candidate_v1.py", "--check"],
+            ["python", "scripts/build_zarathustra_eternal_return_concept_candidate_v1.py", "--validate-tracked"],
             cwd=REPO, text=True, capture_output=True,
         )
         self.assertEqual(result.returncode, 0, result.stderr)

@@ -685,6 +685,112 @@ fn prepare_selected(
         summary,
     })
 }
+
+// Shared receipt mechanics; no producer/source regeneration.
+fn validate_tracked(root: &ResearchExecution) -> Result<Value> {
+    let retained = crate::research_eternal_return::retained_products(
+        root,
+        ROUTE,
+        "2ce7877b1c83a83647ca2ab3cc5e57e3ad2ce9c552e4953defeab049a05ca6e9",
+        GENERATOR,
+        RECIPE_SHA256,
+        &OUTPUTS,
+        &private_ref(),
+    )?;
+    let plan_ref = route("plan.v1.json");
+    let tracked = retained.tracked;
+    let private = retained.private;
+    let manifest = retained.manifest;
+    let manifest_raw = retained.manifest_raw;
+    let plan_raw = retained.plan_raw;
+    let evidence = crate::research_eternal_return::retained_json_lines(root, &tracked["evidence"])?;
+    let formulas = crate::research_eternal_return::retained_json_lines(root, &tracked["formulas"])?;
+    let templates =
+        crate::research_eternal_return::retained_json_lines(root, &tracked["templates"])?;
+    let private_rows = indexed(root, a(&private["evidence"])?.clone(), "alignment_ref")?;
+    let mut bindings = vec![("annotation".into(), "eternal-return-dossier-v1".into())];
+    for row in &evidence {
+        root.tick(1)?;
+        let exact = private_rows
+            .get(s(&row["alignment_ref"])?)
+            .ok_or("retained private evidence absent")?;
+        if exact["de_exact_sha256"] != row["de_exact_sha256"]
+            || exact["ru_exact_sha256"] != row["ru_exact_sha256"]
+            || text_digest(&exact["de_text"])? != s(&row["de_exact_sha256"])?
+            || text_digest(&exact["ru_text"])? != s(&row["ru_exact_sha256"])?
+            || exact["evidence_id"] != row["evidence_id"]
+            || exact["reading_ref"] != row["reading_ref"]
+        {
+            return Err("retained exact evidence return drift".into());
+        }
+        bindings.push((
+            "evidence".into(),
+            format!(
+                "{}|{}",
+                s(&row["evidence_class"])?,
+                s(&row["alignment_ref"])?
+            ),
+        ));
+    }
+    if evidence.len() != private_rows.len() {
+        return Err("retained private evidence population drift".into());
+    }
+    for row in &formulas {
+        root.tick(1)?;
+        bindings.push(("formula".into(), s(&row["formula_code"])?.into()));
+    }
+    for row in &templates {
+        root.tick(1)?;
+        bindings.push(("template".into(), s(&row["claim_code"])?.into()));
+    }
+    bindings.sort();
+    let ids = identity_map(root, &bindings)?;
+    for row in &evidence {
+        root.tick(1)?;
+        if row["evidence_id"]
+            != id(
+                &ids,
+                "evidence",
+                &format!(
+                    "{}|{}",
+                    s(&row["evidence_class"])?,
+                    s(&row["alignment_ref"])?
+                ),
+            )?
+            || row["accepted"] != false
+            || row["graph_effect"] != false
+            || row["canon_effect"] != false
+        {
+            return Err("retained evidence identity/authority drift".into());
+        }
+    }
+    let summary: Value = serde_json::from_slice(&tracked["summary"]).map_err(|e| e.to_string())?;
+    root.check()?;
+    let coverage: Value =
+        serde_json::from_slice(&tracked["coverage"]).map_err(|e| e.to_string())?;
+    root.check()?;
+    if summary["evidence_unit_count"] != evidence.len()
+        || coverage["selected_evidence_unit_count"] != evidence.len()
+        || summary["formula_candidate_count"] != formulas.len()
+        || summary["interpretation_template_count"] != templates.len()
+        || coverage["evidence_class_counts"] != count(&evidence, "evidence_class")?
+        || coverage["reading_counts"] != count(&evidence, "reading_ref")?
+    {
+        return Err("retained summary/coverage population drift".into());
+    }
+    for value in [&manifest, &summary] {
+        if value["accepted_candidate_count"] != 0
+            || value["human_review_count"] != 0
+            || value["graph_effect"] != false
+            || value["canon_effect"] != false
+        {
+            return Err("retained authority ceiling drift".into());
+        }
+    }
+    let report = json!({"status":"validated-existing-receipts-no-regeneration","plan_ref":plan_ref,"plan_sha256":digest(&plan_raw),"manifest_sha256":digest(&manifest_raw),"generated_outputs_validated":11,"private_outputs_validated":1,"identity_count":ids.len(),"algorithm_equivalence_asserted":false,"provider_invoked":false,"writes":false});
+    root.check()?;
+    Ok(report)
+}
 pub fn run(root: &Path, args: &[String]) -> Result<Value> {
     let execution = ResearchExecution::new(root, 180)?;
     run_scoped(&execution, args)
@@ -698,7 +804,7 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
     while let Some(arg) = args.next() {
         root.tick(1)?;
         match arg.as_str() {
-            "--build" | "--check" | "--preview" => {
+            "--build" | "--check" | "--preview" | "--validate-tracked" => {
                 if mode.replace(arg.as_str()).is_some() {
                     return Err("exactly one mode required".into());
                 }
@@ -715,9 +821,15 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
             _ => return Err(format!("unknown argument: {arg}")),
         }
     }
-    let mode = mode.ok_or("one of --build, --check, --preview is required")?;
+    let mode = mode.ok_or("one of --build, --check, --preview, --validate-tracked is required")?;
     if issuance && mode != "--build" {
         return Err("--issue-identities is valid only with --build".into());
+    }
+    if mode == "--validate-tracked" {
+        if plan_ref != route("plan.v1.json") || issuance {
+            return Err("retained validator uses original default plan without issuance".into());
+        }
+        return validate_tracked(root);
     }
     let selected = select_concept_plan(root, &plan_ref)?;
     if selected.custom && issuance {

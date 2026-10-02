@@ -741,6 +741,213 @@ pub(crate) fn write(root: &ResearchExecution, p: &str, payload: &[u8], mode: u32
 }
 
 /// Named Access command; source root is explicit and no Python process is started.
+fn retained_regular(root: &ResearchExecution, reference: &str, mode: u32) -> Result<Vec<u8>> {
+    use std::os::unix::fs::PermissionsExt;
+    let mut file = root.source_file(reference, 64 * 1024 * 1024)?;
+    let before = file.metadata().map_err(|e| e.to_string())?;
+    if before.permissions().mode() & 0o7777 != mode {
+        return Err("retained product mode drift".into());
+    }
+    let raw = root.read_file(&mut file, 64 * 1024 * 1024)?;
+    root.verify_file_unchanged(&file, &before)?;
+    root.check()?;
+    Ok(raw)
+}
+pub(crate) fn retained_json_lines(root: &ResearchExecution, raw: &[u8]) -> Result<Vec<Value>> {
+    let mut rows = Vec::new();
+    for line in std::str::from_utf8(raw).map_err(|e| e.to_string())?.lines() {
+        root.tick(1)?;
+        let row = serde_json::from_str(line).map_err(|e| e.to_string())?;
+        root.check()?;
+        rows.push(row);
+    }
+    root.check()?;
+    Ok(rows)
+}
+pub(crate) struct RetainedProducts {
+    pub tracked: BTreeMap<String, Vec<u8>>,
+    pub private: Value,
+    pub manifest: Value,
+    pub manifest_raw: Vec<u8>,
+    pub plan_raw: Vec<u8>,
+}
+pub(crate) fn retained_products(
+    root: &ResearchExecution,
+    route_ref: &str,
+    plan_sha256: &str,
+    generator: &str,
+    recipe_sha256: &str,
+    outputs: &[(&str, &str)],
+    private_ref: &str,
+) -> Result<RetainedProducts> {
+    let plan_ref = format!("{route_ref}/plan.v1.json");
+    let plan_raw = read(root, &plan_ref)?;
+    if digest(&plan_raw) != plan_sha256 {
+        return Err("default retained plan identity drift".into());
+    }
+    let plan: Value = serde_json::from_slice(&plan_raw).map_err(|e| e.to_string())?;
+    root.check()?;
+    verify_inputs(root, &plan)?;
+    let manifest_ref = format!("{route_ref}/manifest.v1.json");
+    let manifest_raw = retained_regular(root, &manifest_ref, 0o644)?;
+    let manifest: Value = serde_json::from_slice(&manifest_raw).map_err(|e| e.to_string())?;
+    root.check()?;
+    if manifest["plan_ref"] != plan_ref
+        || manifest["plan_sha256"] != digest(&plan_raw)
+        || manifest["generator_ref"] != generator
+        || manifest["generator_sha256"] != recipe_sha256
+        || manifest["identity_issuance_ref"] != format!("{route_ref}/identity-issuance.v1.json")
+        || manifest["identity_issuance_sha256"]
+            != digest(&read(
+                root,
+                &format!("{route_ref}/identity-issuance.v1.json"),
+            )?)
+    {
+        return Err("retained manifest input/source identity drift".into());
+    }
+    let mut tracked = BTreeMap::new();
+    let mut roles = BTreeSet::new();
+    for artifact in a(&manifest["artifacts"])? {
+        root.tick(1)?;
+        let role = s(&artifact["role"])?;
+        let expected = outputs
+            .iter()
+            .find(|(r, _)| *r == role && *r != "manifest")
+            .ok_or("unexpected retained artifact role")?;
+        let reference = format!("{route_ref}/{}", expected.1);
+        if artifact["ref"] != reference || !roles.insert(role.to_owned()) {
+            return Err("retained artifact membership drift".into());
+        }
+        let raw = retained_regular(root, &reference, 0o644)?;
+        if digest(&raw) != s(&artifact["sha256"])? {
+            return Err("retained artifact digest drift".into());
+        }
+        tracked.insert(role.to_owned(), raw);
+    }
+    if roles.len() != outputs.len() - 1 {
+        return Err("retained artifact population drift".into());
+    }
+    if manifest["private_artifact"]["ref"] != private_ref.to_owned()
+        || manifest["private_artifact"]["mode"] != "0600"
+        || manifest["private_artifact"]["tracked"] != false
+    {
+        return Err("retained private artifact identity drift".into());
+    }
+    let private_raw = retained_regular(root, private_ref, 0o600)?;
+    if digest(&private_raw) != s(&manifest["private_artifact"]["sha256"])? {
+        return Err("retained private digest drift".into());
+    }
+    let private_value: Value = serde_json::from_slice(&private_raw).map_err(|e| e.to_string())?;
+    root.check()?;
+    Ok(RetainedProducts {
+        tracked,
+        private: private_value,
+        manifest,
+        manifest_raw,
+        plan_raw,
+    })
+}
+
+const REVIEW_DEFAULT_PLAN_SHA256: &str =
+    "d16900b7d259d525da24a8fd2ed1567567872b2e01929f75e5988349f08877ff";
+
+fn validate_tracked(root: &ResearchExecution) -> Result<Value> {
+    let route_ref = format!("{PARENT}/review-preparation-v1");
+    let retained = retained_products(
+        root,
+        &route_ref,
+        REVIEW_DEFAULT_PLAN_SHA256,
+        GENERATOR,
+        RECIPE_SHA256,
+        &OUTPUTS,
+        &private_ref(),
+    )?;
+    let decode = |role: &str| retained_json_lines(root, &retained.tracked[role]);
+    let speakers = decode("speakers")?;
+    let gaps = decode("gaps")?;
+    let expected = bindings(root, &speakers)?;
+    let ids = identity_map(root, &expected)?;
+    let private_speakers = indexed(
+        root,
+        a(&retained.private["speaker_evidence"])?.clone(),
+        "alignment_ref",
+    )?;
+    let private_gaps = indexed(root, a(&retained.private["gaps"])?.clone(), "alignment_ref")?;
+    if speakers.len() != private_speakers.len() || gaps.len() != private_gaps.len() {
+        return Err("retained Review private population drift".into());
+    }
+    for (rows, private_rows, kind, field) in [
+        (
+            &speakers,
+            &private_speakers,
+            "speaker",
+            "speaker_attribution_candidate_id",
+        ),
+        (&gaps, &private_gaps, "gap", "gap_review_candidate_id"),
+    ] {
+        for row in rows {
+            root.tick(1)?;
+            let aid = s(&row["alignment_ref"])?;
+            let exact = private_rows
+                .get(aid)
+                .ok_or("retained Review exact return absent")?;
+            if row[field] != id(&ids, kind, aid)?
+                || exact[field] != row[field]
+                || text_digest(&exact["de_text"])? != s(&row["de_exact_sha256"])?
+                || text_digest(&exact["ru_text"])? != s(&row["ru_exact_sha256"])?
+                || row["accepted"] != false
+                || row["human_judgment"] != false
+                || row["graph_effect"] != false
+                || row["canon_effect"] != false
+            {
+                return Err("retained Review evidence identity/return/ceiling drift".into());
+            }
+        }
+    }
+    let matrix: Value =
+        serde_json::from_slice(&retained.tracked["matrix"]).map_err(|e| e.to_string())?;
+    root.check()?;
+    for axis in a(&matrix["axes"])? {
+        root.tick(1)?;
+        if axis["interpretation_review_candidate_id"] != id(&ids, "axis", s(&axis["axis_code"])?)?
+            || axis["accepted"] != false
+            || axis["materialized_claim"] != false
+            || axis["semantic_fact_asserted"] != false
+            || axis["graph_effect"] != false
+            || axis["canon_effect"] != false
+        {
+            return Err("retained Review axis identity/ceiling drift".into());
+        }
+    }
+    let summary: Value =
+        serde_json::from_slice(&retained.tracked["summary"]).map_err(|e| e.to_string())?;
+    root.check()?;
+    let coverage: Value =
+        serde_json::from_slice(&retained.tracked["coverage"]).map_err(|e| e.to_string())?;
+    root.check()?;
+    if summary["speaker_candidate_count"] != speakers.len()
+        || summary["gap_candidate_count"] != gaps.len()
+        || coverage["speaker_candidates_prepared"] != speakers.len()
+        || coverage["gap_candidates_prepared"] != gaps.len()
+        || coverage["speaker_reading_counts"] != count(&speakers, "reading_ref")?
+        || summary["review_preparation_id"] != id(&ids, "packet", "review-preparation-v1")?
+    {
+        return Err("retained Review count/packet identity drift".into());
+    }
+    for value in [&retained.manifest, &summary] {
+        if value["accepted_candidate_count"] != 0
+            || value["human_review_count"] != 0
+            || value["review_ledger_write_count"] != 0
+            || value["graph_effect"] != false
+            || value["canon_effect"] != false
+        {
+            return Err("retained Review authority ceiling drift".into());
+        }
+    }
+    let report = json!({"status":"validated-existing-receipts-no-regeneration","plan_ref":format!("{route_ref}/plan.v1.json"),"plan_sha256":digest(&retained.plan_raw),"manifest_sha256":digest(&retained.manifest_raw),"generated_outputs_validated":8,"private_outputs_validated":1,"identity_count":ids.len(),"algorithm_equivalence_asserted":false,"provider_invoked":false,"writes":false});
+    root.check()?;
+    Ok(report)
+}
 pub fn run(root: &Path, args: &[String]) -> Result<Value> {
     let execution = ResearchExecution::new(root, 180)?;
     run_scoped(&execution, args)
@@ -751,7 +958,7 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
     for arg in args {
         root.tick(1)?;
         match arg.as_str() {
-            "--build" | "--check" | "--preview" => {
+            "--build" | "--check" | "--preview" | "--validate-tracked" => {
                 if mode.replace(arg.as_str()).is_some() {
                     return Err("exactly one mode required".into());
                 }
@@ -760,9 +967,12 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
             _ => return Err(format!("unknown argument: {arg}")),
         }
     }
-    let mode = mode.ok_or("one of --build, --check, --preview is required")?;
+    let mode = mode.ok_or("one of --build, --check, --preview, --validate-tracked is required")?;
     if issuance && mode != "--build" {
         return Err("--issue-identities is valid only with --build".into());
+    }
+    if mode == "--validate-tracked" {
+        return validate_tracked(root);
     }
     let plan = load(root, &route("plan.v1.json"))?;
     verify_inputs(root, &plan)?;
