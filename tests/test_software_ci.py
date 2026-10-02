@@ -484,12 +484,17 @@ class SoftwareSelectionTests(unittest.TestCase):
             'ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json',
             'ToS/doctrine/semantic-interchange/query-vocabulary.v1.json',
         }
-        for path in software_schemas | worker_schemas:
+        shared_compiled_source_inputs = {
+            'ToS/philosophy/graph-workbench/views/evidence-lens-scenes.v1.json',
+        }
+        for path in software_schemas | worker_schemas | shared_compiled_source_inputs:
             self.assertTrue((ROOT / path).is_file(), path)
         self.assertTrue({f'/{path}' for path in required_sources} <= sparse_paths)
         self.assertTrue({f'/{path}' for path in software_schemas} <= software_sparse_paths)
         self.assertTrue({f'/{path}' for path in generic_xml_inputs} <= software_sparse_paths)
         self.assertTrue({f'/{path}' for path in worker_schemas} <= worker_sparse_paths)
+        for checkout in (sparse_paths, software_sparse_paths, worker_sparse_paths):
+            self.assertTrue({f'/{path}' for path in shared_compiled_source_inputs} <= checkout)
         self.assertIn('!/ToS/source-witnesses/**/payload/', sparse_paths)
         for checkout in (sparse_paths, software_sparse_paths, worker_sparse_paths):
             self.assertNotIn('/ToS/source-witnesses/', checkout)
