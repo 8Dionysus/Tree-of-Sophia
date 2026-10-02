@@ -237,7 +237,7 @@ fn maintained_claim_addition_whole_transaction_and_access() {
     let inventory_roots = if fixture_root.starts_with(&workspace_root) {
         vec![workspace_root]
     } else {
-        vec![workspace_root, fixture_root]
+        vec![workspace_root, fixture_root.clone()]
     };
     let selected_packet = packet_path.canonicalize().unwrap();
     assert!(
