@@ -139,6 +139,13 @@ struct IndexBacking {
     policy: Option<Arc<dyn crate::pinned_sqlite::FdIoPolicy>>,
 }
 
+struct BudgetedReadRequest {
+    io: crate::PinnedSqliteIoBudget,
+    space: crate::PinnedSqliteSpaceBudget,
+    deadline: Instant,
+    cancelled: Arc<AtomicBool>,
+}
+
 /// Exact current revision and retained bases; manifest rows live in a private index.
 pub struct StreamedCorpusCutReaderV1 {
     reader: CorpusReader,
@@ -150,6 +157,7 @@ pub struct StreamedCorpusCutReaderV1 {
     _index_file: File,
     // After every retained backing FD: the same reservation cannot release early.
     _index_policy: Option<Arc<dyn crate::pinned_sqlite::FdIoPolicy>>,
+    budgeted_request: Option<BudgetedReadRequest>,
 }
 
 impl CorpusReader {
@@ -190,21 +198,28 @@ impl CorpusReader {
         let policy = crate::pinned_sqlite_aux::strict_main_policy(
             &index_file,
             io_budget.clone(),
-            space_budget,
+            space_budget.clone(),
             limits.max_index_bytes,
             max_index_allocated_bytes,
             deadline,
             cancelled.clone(),
         )?;
-        self.open_source_cut_streamed_inner(
+        let mut reader = self.open_source_cut_streamed_inner(
             current,
             limits,
             index_file,
             Some(policy),
-            Some(io_budget),
+            Some(io_budget.clone()),
             deadline,
             &cancelled,
-        )
+        )?;
+        reader.budgeted_request = Some(BudgetedReadRequest {
+            io: io_budget,
+            space: space_budget,
+            deadline,
+            cancelled,
+        });
+        Ok(reader)
     }
 
     fn open_source_cut_streamed_inner(
@@ -291,11 +306,29 @@ impl CorpusReader {
             current,
             revision_count: ordinal,
             _index_policy: backing.policy,
+            budgeted_request: None,
         })
     }
 }
 
 impl StreamedCorpusCutReaderV1 {
+    /// Compare the constructor's resource identities, not limits or freshness.
+    /// Legacy readers are never associated with a budgeted request.
+    pub fn shares_budgeted_request(
+        &self,
+        io: &crate::PinnedSqliteIoBudget,
+        space: &crate::PinnedSqliteSpaceBudget,
+        deadline: Instant,
+        cancelled: &Arc<AtomicBool>,
+    ) -> bool {
+        self.budgeted_request.as_ref().is_some_and(|request| {
+            request.io.shares_with(io)
+                && request.space.shares_with(space)
+                && request.deadline == deadline
+                && Arc::ptr_eq(&request.cancelled, cancelled)
+        })
+    }
+
     /// Validated raw manifest-row ceiling for precharging owned locator state.
     pub fn manifest_row_byte_limit(&self) -> usize {
         self.limits.max_manifest_row_bytes

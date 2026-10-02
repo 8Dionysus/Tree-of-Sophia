@@ -71,6 +71,11 @@ struct IoState {
 pub struct PinnedSqliteIoBudget(Arc<IoState>);
 
 impl PinnedSqliteIoBudget {
+    /// Identity of the existing ledger, never numeric-limit equivalence.
+    pub fn shares_with(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+
     pub fn new(max_read_bytes: u64, max_write_bytes: u64) -> Result<Self> {
         if max_read_bytes == 0
             || max_write_bytes == 0
@@ -246,6 +251,11 @@ struct SpaceLedger {
 pub struct PinnedSqliteSpaceBudget(Arc<SpaceLedger>);
 
 impl PinnedSqliteSpaceBudget {
+    /// Identity of the existing ledger; this creates no reservation or grant.
+    pub fn shares_with(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+
     pub fn new(available_declared_bytes: u64) -> Result<Self> {
         if available_declared_bytes == 0 || available_declared_bytes == u64::MAX {
             return Err(budget_error(
