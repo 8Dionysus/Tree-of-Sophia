@@ -183,3 +183,19 @@ If every declared probe is absent, the request remains a valid negative result:
 the graph contains only its concept candidate and sets `empty_result: true`.
 The no-isolated-node invariant applies to evidence-bearing form, occurrence,
 and speaker nodes; absence is recorded rather than padded with invented edges.
+
+The maintained executable entry now dispatches native `tos` before loading the
+reference algorithm or third-party Python imports. Imported helper bodies stay
+unchanged for the live Generic access callers; their retirement awaits genuine
+native API consumer acceptance. The exact c60 recipe is retained separately as
+NONEXECUTED source, never a fallback or the native implementation identity.
+
+An explicit `--plan-ref` selects a bounded technical successor only: a distinct
+plan ID, proposed status and exact predecessor lineage may accompany changes to
+the SHA256 pins for paragraph alignment, parallel lexical, morphology theme,
+eternal-return review preparation and the German exact-occurrence database.
+Every reference, other pin, frozen timestamp and semantic field stays equal to
+the authored default. Custom plans require an owned 0700 carrier and 0600 plan,
+cannot issue identities, and preview checks the full retained identity binding.
+The selected raw plan digest is propagated into the manifest; default input
+pins and candidate-only authority remain unchanged.

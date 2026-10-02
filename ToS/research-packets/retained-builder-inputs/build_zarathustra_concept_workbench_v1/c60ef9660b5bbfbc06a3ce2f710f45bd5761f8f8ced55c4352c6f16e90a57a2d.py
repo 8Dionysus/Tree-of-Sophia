@@ -18,32 +18,6 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Iterable
 
-def _native_main(argv: list[str] | None = None) -> int:
-    import shutil
-    args = list(sys.argv[1:] if argv is None else argv)
-    valued = {"--source-root", "--request", "--max-seconds", "--scratch-bytes", "--plan-ref"}
-    args = [token for arg in args for token in (
-        arg.split("=", 1) if arg.split("=", 1)[0] in valued and "=" in arg else [arg]
-    )]
-    native = os.environ.get("TOS_NATIVE_PREPARED_CONSUMER_BIN") or shutil.which("tos")
-    if not native or not Path(native).is_absolute():
-        print("error: select installed tos through TOS_NATIVE_PREPARED_CONSUMER_BIN or PATH", file=sys.stderr)
-        return 1
-    command = [native, "zarathustra-concept-workbench-v1"]
-    if args not in (["--help"], ["-h"]) and "--source-root" not in args:
-        command += ["--source-root", str(Path(__file__).resolve().parents[1])]
-    command += args
-    try:
-        os.execv(native, command)
-    except OSError as exc:
-        print(f"error: cannot execute native tos: {exc}", file=sys.stderr)
-        return 1
-
-
-# Executable entry must not load retained algorithm or its third-party imports.
-if __name__ == "__main__":
-    raise SystemExit(_native_main())
-
 from jsonschema import Draft202012Validator, ValidationError
 
 
@@ -1236,8 +1210,33 @@ def check() -> dict[str, Any]:
 
 
 def main() -> int:
-    """Maintained entry; imported helper bodies above remain compatibility."""
-    return _native_main()
+    parser = argparse.ArgumentParser()
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--build", action="store_true")
+    mode.add_argument("--check", action="store_true")
+    mode.add_argument("--preview", action="store_true")
+    parser.add_argument("--issue-identities", action="store_true")
+    parser.add_argument("--request", type=Path, default=ROUTE / "requests/fate.concept-request.v2.json",
+                        help="repository-relative concept request JSON")
+    args = parser.parse_args()
+    try:
+        configure_request(args.request)
+        if args.preview:
+            _outputs, _private, expected, result = generate(False)
+            result = {"identity_count": len(expected), **result}
+        elif args.build:
+            result = build(args.issue_identities)
+        else:
+            if args.issue_identities:
+                raise BuildError("--issue-identities is valid only with --build")
+            result = check()
+    except (BuildError, OSError, KeyError, ValueError, sqlite3.Error, json.JSONDecodeError,
+            ValidationError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(result, ensure_ascii=False, sort_keys=True))
+    return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

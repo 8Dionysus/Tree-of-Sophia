@@ -53,8 +53,7 @@ fn load(root: &ResearchExecution, p: &str) -> Result<Value> {
     parse_json(&raw, JsonMode::PublishedStrict, limits()?).map_err(|e| format!("{p}: {e}"))?;
     serde_json::from_slice(&raw).map_err(|e| format!("{p}: {e}"))
 }
-fn plan_input_refs(root: &ResearchExecution) -> Result<Vec<Value>> {
-    let raw = read(root, &format!("{ROUTE}/plan.v1.json"))?;
+fn plan_input_refs(root: &ResearchExecution, raw: &[u8]) -> Result<Vec<Value>> {
     let parsed =
         parse_json(&raw, JsonMode::PublishedStrict, limits()?).map_err(|e| e.to_string())?;
     let rows = parsed
@@ -62,14 +61,133 @@ fn plan_input_refs(root: &ResearchExecution) -> Result<Vec<Value>> {
         .object_get("inputs")
         .and_then(|v| v.as_object())
         .ok_or("plan inputs")?;
-    rows.iter()
+    let refs = rows
+        .iter()
         .map(|(_, v)| {
             v.object_get("ref")
                 .and_then(|v| v.as_str())
                 .map(|s| json!(s))
                 .ok_or("plan input reference".into())
         })
-        .collect()
+        .collect::<Result<Vec<_>>>()?;
+    root.check()?;
+    Ok(refs)
+}
+const DEFAULT_PLAN_SHA: &str = "66558b6f0046c82417204a7b78945035e17c0ae780ff70ef736df43d0882cad6";
+struct ConceptPlan {
+    reference: String,
+    digest: String,
+    raw: Vec<u8>,
+    value: Value,
+    custom: bool,
+}
+fn validate_concept_plan_semantics(
+    value: &Value,
+    original: &Value,
+    default_ref: &str,
+) -> Result<()> {
+    let lineage = &value["input_profile_lineage"];
+    if !lineage.is_object()
+        || lineage["profile_version"].as_u64().is_none_or(|n| n < 2)
+        || lineage["supersedes_plan_ref"] != default_ref
+        || lineage["supersedes_plan_sha256"] != DEFAULT_PLAN_SHA
+        || value["plan_id"].as_str().is_none_or(|id| id.is_empty())
+        || value["plan_id"] == original["plan_id"]
+        || value["status"] != "proposed-technical-input-profile-successor"
+    {
+        return Err("Concept technical plan requires distinct identity, proposal status and exact predecessor".into());
+    }
+    let mut comparable = value.clone();
+    let object = comparable
+        .as_object_mut()
+        .ok_or("Concept plan object required")?;
+    object.remove("input_profile_lineage");
+    for key in ["plan_id", "status"] {
+        object.insert(key.into(), original[key].clone());
+    }
+    for label in [
+        "paragraph_alignment_manifest",
+        "parallel_lexical_manifest",
+        "morphology_theme_manifest",
+        "eternal_return_review_preparation_manifest",
+        "german_exact_occurrence_database",
+    ] {
+        let record = &mut object.get_mut("inputs").ok_or("Concept inputs required")?[label];
+        let digest = s(record, "sha256");
+        if digest.len() != 64
+            || !digest
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        {
+            return Err("Concept technical input SHA256 required".into());
+        }
+        record
+            .as_object_mut()
+            .ok_or("Concept input record required")?
+            .insert("sha256".into(), original["inputs"][label]["sha256"].clone());
+    }
+    if comparable != *original {
+        return Err(
+            "Concept technical plan changes frozen semantics, input references or nonselected pins"
+                .into(),
+        );
+    }
+    Ok(())
+}
+fn select_concept_plan(root: &ResearchExecution, reference: &str) -> Result<ConceptPlan> {
+    use std::os::unix::fs::MetadataExt;
+    let default_ref = format!("{ROUTE}/plan.v1.json");
+    let bounded = |reference: &str, private: bool| -> Result<Vec<u8>> {
+        let mut file = root.source_file(reference, 64 * 1024)?;
+        let meta = file.metadata().map_err(|e| e.to_string())?;
+        if private {
+            let carrier = root
+                .root_directory()
+                .metadata()
+                .map_err(|e| e.to_string())?;
+            let uid = unsafe { libc::geteuid() };
+            if carrier.uid() != uid
+                || carrier.permissions().mode() & 0o7777 != 0o700
+                || meta.uid() != uid
+                || meta.permissions().mode() & 0o7777 != 0o600
+            {
+                return Err("custom Concept plan requires owned 0700 carrier and 0600 plan".into());
+            }
+        }
+        let bytes = root.read_file(&mut file, 64 * 1024)?;
+        root.verify_file_unchanged(&file, &meta)?;
+        root.check()?;
+        parse_json(&bytes, JsonMode::PublishedStrict, limits()?).map_err(|e| e.to_string())?;
+        root.check()?;
+        Ok(bytes)
+    };
+    let original_raw = bounded(&default_ref, false)?;
+    if hash(&original_raw) != DEFAULT_PLAN_SHA {
+        return Err("frozen Concept plan drift".into());
+    }
+    let original: Value = serde_json::from_slice(&original_raw).map_err(|e| e.to_string())?;
+    let custom = reference != default_ref;
+    let raw = if custom {
+        bounded(reference, true)?
+    } else {
+        original_raw
+    };
+    let value: Value = serde_json::from_slice(&raw).map_err(|e| e.to_string())?;
+    root.check()?;
+    if custom {
+        root.tick(5)?;
+        validate_concept_plan_semantics(&value, &original, &default_ref)?;
+        root.check()?;
+    }
+    let digest = hash(&raw);
+    root.check()?;
+    Ok(ConceptPlan {
+        reference: reference.into(),
+        digest,
+        raw,
+        value,
+        custom,
+    })
 }
 fn verify_plan_input(root: &ResearchExecution, r: &Value) -> Result<()> {
     let reference = s(r, "ref");
@@ -1088,6 +1206,8 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
     root.tick(1)?;
     let mut mode = "";
     let mut issue = false;
+    let mut plan_ref = format!("{ROUTE}/plan.v1.json");
+    let mut plan_seen = false;
     let mut request_ref = format!("{ROUTE}/requests/fate.concept-request.v2.json");
     let mut it = args.iter();
     while let Some(a) = it.next() {
@@ -1099,6 +1219,13 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
                 mode = a;
             }
             "--issue-identities" => issue = true,
+            "--plan-ref" => {
+                if plan_seen {
+                    return Err("duplicate --plan-ref".into());
+                }
+                plan_seen = true;
+                plan_ref = it.next().ok_or("--plan-ref value")?.clone();
+            }
             "--request" => request_ref = it.next().ok_or("--request value")?.clone(),
             _ => return Err(format!("unknown argument: {a}")),
         }
@@ -1123,7 +1250,11 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
         &request,
     )?;
     let c = Config::new(request_ref, &request);
-    let plan = load(root, &format!("{ROUTE}/plan.v1.json"))?;
+    let selected_plan = select_concept_plan(root, &plan_ref)?;
+    if selected_plan.custom && issue {
+        return Err("custom Concept plan cannot issue identities".into());
+    }
+    let plan = &selected_plan.value;
     for (label, r) in plan["inputs"].as_object().ok_or("plan inputs")? {
         root.tick(1)?;
         verify_plan_input(root, r).map_err(|e| format!("{label}: {e}"))?;
@@ -1138,7 +1269,16 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
     let maps = source::source_maps(root)?;
     let de = source::de_units(root, &maps)?;
     let (ru, raw) = source::ru_units(root, &maps)?;
-    let all = source::occurrences(root, &de, &ru, &raw)?;
+    let all = source::occurrences(
+        root,
+        &de,
+        &ru,
+        &raw,
+        s(
+            &plan["inputs"]["german_exact_occurrence_database"],
+            "sha256",
+        ),
+    )?;
     let census = source::census(root, &all)?;
     let units: Rows = de.into_iter().chain(ru).collect();
     let speakers = speakers(root, &units)?;
@@ -1159,6 +1299,10 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
     let expected = identity_bindings(root, &request, &speakers, &selected, &occ, &rels, &tasks)?;
     let preview = json!({"identity_count":expected.len(),"witness_context_unit_count":units.len(),"speaker_candidate_count":speakers.len(),"all_exact_occurrence_count":all.len(),"all_analysis_form_count":forms.len(),"selected_form_candidate_count":selected.len(),"occurrence_candidate_count":occ.len(),"english_on_demand_task_count":tasks.len(),"relation_candidate_count":rels.len(),"exclusion_count":excl.len(),"request_output_root":Path::new(c.output("concept")).parent().unwrap().to_string_lossy(),"private_request_ref":c.private_request});
     if mode == "--preview" {
+        if selected_plan.custom {
+            identities(root, &c, &expected, false, s(plan, "frozen_at"))?;
+        }
+        root.check()?;
         return Ok(preview);
     }
     let ids = identities(root, &c, &expected, issue, s(&plan, "frozen_at"))?;
@@ -1170,7 +1314,7 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
     render::manifest(
         root,
         &c,
-        &plan,
+        &selected_plan,
         &request,
         &ids,
         &private_db,
@@ -1418,5 +1562,55 @@ mod tests {
         let forms = form_inventory(&execution, &rows).unwrap();
         assert_eq!(forms.len(), 1);
         assert_eq!(s(&forms[0], "language"), "ru");
+    }
+    #[test]
+    fn technical_plan_only_changes_five_technical_digests() {
+        let original: Value = serde_json::from_str(include_str!(
+            "../../../../ToS/candidate-intake/zarathustra/concept-workbench-v1/plan.v1.json"
+        ))
+        .unwrap();
+        let default_ref = format!("{ROUTE}/plan.v1.json");
+        let mut accepted = original.clone();
+        accepted["plan_id"] = json!("candidate-plan:concept-technical-profile-control");
+        accepted["status"] = json!("proposed-technical-input-profile-successor");
+        accepted["input_profile_lineage"] = json!({"profile_version":2,"supersedes_plan_ref":default_ref,"supersedes_plan_sha256":DEFAULT_PLAN_SHA});
+        for label in [
+            "paragraph_alignment_manifest",
+            "parallel_lexical_manifest",
+            "morphology_theme_manifest",
+            "eternal_return_review_preparation_manifest",
+            "german_exact_occurrence_database",
+        ] {
+            accepted["inputs"][label]["sha256"] = json!("a".repeat(64));
+        }
+        validate_concept_plan_semantics(&accepted, &original, &default_ref).unwrap();
+        for (pointer, replacement) in [
+            ("/inputs/review_checklist/sha256", json!("b".repeat(64))),
+            (
+                "/inputs/german_exact_occurrence_database/ref",
+                json!("other.sqlite3"),
+            ),
+            ("/frozen_at", Value::Null),
+            ("/research_question", json!("different semantic request")),
+            ("/status", json!("accepted")),
+            (
+                "/input_profile_lineage/supersedes_plan_sha256",
+                json!("b".repeat(64)),
+            ),
+            (
+                "/inputs/parallel_lexical_manifest/sha256",
+                json!("not-a-digest"),
+            ),
+        ] {
+            let mut rejected = accepted.clone();
+            *rejected.pointer_mut(pointer).unwrap() = replacement;
+            assert!(
+                validate_concept_plan_semantics(&rejected, &original, &default_ref).is_err(),
+                "{pointer}"
+            );
+        }
+        let mut authority = accepted.clone();
+        authority["accepted_candidate_count"] = json!(1);
+        assert!(validate_concept_plan_semantics(&authority, &original, &default_ref).is_err());
     }
 }

@@ -465,14 +465,15 @@ pub(super) fn render(
 pub(super) fn manifest(
     root: &ResearchExecution,
     c: &Config,
-    plan: &Value,
+    selected_plan: &ConceptPlan,
     request: &Value,
     ids: &Ids,
     db: &[u8],
     private: &[u8],
     outputs: &mut BTreeMap<String, Vec<u8>>,
 ) -> Result<()> {
-    let mut input_refs = plan_input_refs(root)?;
+    let plan = &selected_plan.value;
+    let mut input_refs = plan_input_refs(root, &selected_plan.raw)?;
     for r in [
         format!("{ROUTE}/concept-request.v2.schema.json"),
         format!("{ROUTE}/concept-relation-candidate.v1.schema.json"),
@@ -499,7 +500,7 @@ pub(super) fn manifest(
         .collect();
     let mut manifest = json!({"schema_version":"tos_zarathustra_concept_workbench_manifest_v1","route_id":"zarathustra-concept-workbench-v1","workbench_id":id(ids,"workbench","foundation-v1"),"request_refs":[{"ref":c.request_ref,"sha256":file_hash(root,&c.request_ref)?}],"identity_issuance_ref":c.issuance,"identity_issuance_sha256":file_hash(root,&c.issuance)?,"generator_ref":GENERATOR,"generator_sha256":GENERATOR_SHA,"artifacts":artifacts,"private_artifacts":[{"ref":c.private_db,"sha256":hash(db),"mode":"0600","tracked":false},{"ref":c.private_request,"sha256":hash(private),"mode":"0600","tracked":false}],"accepted_candidate_count":0,"human_review_count":0,"graph_effect":false,"canon_effect":false});
     for (key, p) in [
-        ("plan", format!("{ROUTE}/plan.v1.json")),
+        ("plan", selected_plan.reference.clone()),
         (
             "request_schema",
             format!("{ROUTE}/concept-request.v2.schema.json"),
@@ -529,6 +530,7 @@ pub(super) fn manifest(
     ] {
         manifest[format!("{key}_ref")] = json!(p);
         manifest[format!("{key}_sha256")] = json!(match key {
+            "plan" => selected_plan.digest.clone(),
             "concept_search_query" => QUERY_SHA.to_string(),
             "word_analysis_prepare" => WORD_SHA.to_string(),
             _ => file_hash(root, &p)?,

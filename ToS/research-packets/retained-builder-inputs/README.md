@@ -64,3 +64,15 @@ not imported and never a producer fallback. The maintained entry retains only
 the exact orthographic signature helper required by the current Python Concept
 consumer; its native main and execution identity are separate from this recipe.
 Actual6264 used explicit technical profile4925; original default3252 is not retagged.
+
+Concept c60 rendering recipe is retained as exact 81217-byte historical source,
+SHA256 `c60ef9660b5bbfbc06a3ce2f710f45bd5761f8f8ced55c4352c6f16e90a57a2d`,
+from immutable commit `e3036a947bc403b832d27d3197ef9dc855d11d06`.
+The archive is NONEXECUTED, not imported, and never a maintained fallback.
+The executable main dispatches installed native `tos`; its identity is separate
+from the frozen rendering recipe. Exact importable Concept helper bodies remain
+live Generic access compatibility under SourceRead, with their fate OPEN until
+the genuine native API cutover. An explicit technical plan can change only five
+input digests and technical lineage/ID/status; frozen semantics and timestamp
+remain unchanged. Generated candidates grant no semantic, review, rights or canon
+admission. Native build/check/preview retain generation semantics.

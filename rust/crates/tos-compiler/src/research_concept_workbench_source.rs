@@ -249,7 +249,15 @@ pub(super) fn occurrences(
     de: &[Value],
     ru: &[Value],
     raw: &[Value],
+    expected_db_sha256: &str,
 ) -> Result<Rows> {
+    if expected_db_sha256.len() != 64
+        || !expected_db_sha256
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
+        return Err("German exact-occurrence selected SHA256 required".into());
+    }
     let mut out = vec![];
     let locators: BTreeMap<_, _> = de
         .iter()
@@ -263,9 +271,7 @@ pub(super) fn occurrences(
     if !meta.file_type().is_file() || meta.permissions().mode() & 0o777 != 0o600 {
         return Err("German exact-occurrence database must be regular mode 0600".into());
     }
-    if root.hash_file(&mut dbfile, 128 * 1024 * 1024)?
-        != "c2912a9f481205f0de9a1a0242b26a3419e3d82d44163ab91a2a2ab16ced5736"
-    {
+    if root.hash_file(&mut dbfile, 128 * 1024 * 1024)? != expected_db_sha256 {
         return Err("German exact-occurrence database fixity drift".into());
     }
     let db = root.open_sqlite_readonly(&dbfile)?;
