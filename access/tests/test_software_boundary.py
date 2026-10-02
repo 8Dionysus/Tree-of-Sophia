@@ -47,6 +47,40 @@ def copy_software_contracts(root: Path) -> None:
 
 
 class SoftwareBoundaryTests(unittest.TestCase):
+    def test_native_core_reading_method_preserves_reference_arguments(self):
+        # Mapping only; genuine source-bound packet parity needs the native child.
+        from tos_access.native_core import NativeCore
+        core = object.__new__(NativeCore)
+        calls = []
+        def packet(tool, request, **options):
+            calls.append((tool, request, options))
+            return {"test_only": "mapping sentinel"}
+        core._packet = packet
+        self.assertEqual(core.zarathustra_reading_search(
+            123, "\x1cRU\x1f", " +١_٢ ", "false", ["formula", "speaker", "formula"]),
+            {"test_only": "mapping sentinel"})
+        self.assertEqual(calls[0][0], "tos_zarathustra_reading_search")
+        self.assertEqual(calls[0][1], {"query": "123", "language": "ru", "limit": 12,
+                                     "include_semantic_neighbors": True,
+                                     "group_by": ["formula", "speaker"]})
+        self.assertIs(calls[0][2]["source_errors"], False)
+        self.assertGreater(calls[0][2]["absolute_deadline"], time.monotonic())
+        core.zarathustra_reading_search("q", limit="1.5")
+        self.assertEqual(calls[-1][1]["limit"], 20)
+        self.assertEqual(calls[-1][1]["group_by"], ["speaker", "formula"])
+        core.zarathustra_reading_search("q", limit=-1, group_by=[])
+        self.assertEqual(calls[-1][1]["limit"], 0)
+        self.assertEqual(calls[-1][1]["group_by"], [])
+        core.zarathustra_reading_search("q", limit=10**100)
+        self.assertEqual(calls[-1][1]["limit"], 100)
+        for arguments in [(" ",), ("q" * 257,), ("q", "xx")]:
+            with self.assertRaises(ValueError):
+                core.zarathustra_reading_search(*arguments)
+        for groups in [("speaker",), ["unknown"], [None]]:
+            with self.assertRaises(ValueError):
+                core.zarathustra_reading_search("q", group_by=groups)
+        self.assertEqual(len(calls), 4)
+
     def test_native_core_word_method_preserves_reference_argument_contract(self):
         from tos_access.native_core import NativeCore
         from tos_access.mcp_server import _native_wire_bytes

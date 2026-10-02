@@ -97,3 +97,29 @@ class NativeCore:
             "rank": max(1, min(100, bounded_rank)),
             "include_semantic_neighbors": bool(include_semantic_neighbors),
         }, absolute_deadline=deadline, source_errors=False)
+
+    def zarathustra_reading_search(self, query: str, language: str = "ru",
+                                   limit: int = 20,
+                                   include_semantic_neighbors: bool = False,
+                                   group_by: list[str] | None = None) -> dict:
+        """Return the selected source-bound reading capability and full result."""
+        deadline = time.monotonic() + 50
+        normalized_query = str(query).strip()
+        if not normalized_query or len(normalized_query) > 256:
+            raise ValueError("reading query must have 1..256 characters")
+        normalized_language = str(language).strip().lower()
+        if normalized_language not in {"de", "ru", "en"}:
+            raise ValueError("reading language must be de, ru, or en")
+        try:
+            bounded_limit = int(limit)
+        except (TypeError, ValueError):
+            bounded_limit = 20
+        groups = ["speaker", "formula"] if group_by is None else group_by
+        if not isinstance(groups, list) or any(item not in {"speaker", "formula"} for item in groups):
+            raise ValueError("reading group_by supports speaker and formula only")
+        return self._packet("tos_zarathustra_reading_search", {
+            "query": normalized_query, "language": normalized_language,
+            "limit": max(0, min(100, bounded_limit)),
+            "include_semantic_neighbors": bool(include_semantic_neighbors),
+            "group_by": list(dict.fromkeys(groups)),
+        }, absolute_deadline=deadline, source_errors=False)
