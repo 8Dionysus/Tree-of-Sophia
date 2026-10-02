@@ -39,6 +39,17 @@ class SourceAgentPublicationTests(unittest.TestCase):
         self.f = fixtures.BibliographicClaimAssemblerTests()
         self.addCleanup(self.f.doCleanups)
         self.helper, self.claim, ref = self.f.native_claim_fixture()
+        # The publication fixture consumes a schema-real provenance event.
+        # Preserve the slot fixture's uninterpreted marker inside the allowed
+        # method configuration, without making it an identity lookup.
+        self.helper.event.setdefault('inputs', [])
+        self.helper.event.setdefault('outputs', [
+            {'ref': self.claim['claim_id'], 'role': 'synthetic-claim-annotation'},
+        ])
+        configuration = self.helper.event['method'].setdefault('configuration', {})
+        if 'unknown' in self.helper.event:
+            configuration['uninterpreted_fixture'] = self.helper.event.pop('unknown')
+        self.helper.fixture.write(self.helper.event_ref, b'\r\n' + canonical_bytes(self.helper.event))
         self.hidden_claim = {**copy.deepcopy(self.claim), 'claim_id': 'tos.claim.hidden-maker-fixture',
             'subject_ref': self.helper.fixture.other['record_id'], 'object': self.helper.fixture.other['record_id'],
             'maker': {'maker_type': 'software', 'agent_ref': self.helper.fixture.identity}}
