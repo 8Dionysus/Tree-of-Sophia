@@ -854,18 +854,13 @@ fn verify_public_selected_bytes(
         .ok_or(SourceCommandError::Conflict(
             "assessment public source is outside the selected cut",
         ))?;
-    let matching = ctx
-        .files
-        .iter()
-        .filter(|file| file.path == path)
-        .collect::<Vec<_>>();
-    if matching.len() != 1
-        || raw.len() as u64 != member.size_bytes
-        || Digest256::of_bytes(raw) != member.sha256
-        || matching[0].raw.as_slice() != raw
-    {
+    // `ctx.files` is the selected software-component closure, not the corpus
+    // member set. The selected cut revision and member digest bind these
+    // owner-read public bytes without requiring authored ToS files to be
+    // duplicated as software components.
+    if raw.len() as u64 != member.size_bytes || Digest256::of_bytes(raw) != member.sha256 {
         return Err(SourceCommandError::Conflict(
-            "assessment public source differs from command context and selected cut",
+            "assessment public source differs from selected cut",
         ));
     }
     Ok(())
