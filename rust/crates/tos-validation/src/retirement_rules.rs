@@ -576,7 +576,22 @@ pub fn observed_instant_order(
     Ok(start.0.cmp(&end.0))
 }
 
-pub(crate) fn observed_datetime_order(
+/// Elapsed aware UTC microseconds using the same observed source parser.
+/// This supplies no trusted clock or authorization.
+pub fn observed_instant_elapsed_micros(
+    start: &str,
+    end: &str,
+) -> Result<i128, ObservedDateTimeError> {
+    let start = observed_datetime(start, true)?;
+    let end = observed_datetime(end, true)?;
+    let upper = year_days(10000) * 86_400_000_000;
+    if !start.1 || !end.1 || !(0..upper).contains(&start.0) || !(0..upper).contains(&end.0) {
+        return Err(ObservedDateTimeError::Invalid);
+    }
+    Ok(i128::from(end.0) - i128::from(start.0))
+}
+
+pub fn observed_datetime_order(
     start: &str,
     end: &str,
 ) -> Result<std::cmp::Ordering, ObservedDateTimeError> {

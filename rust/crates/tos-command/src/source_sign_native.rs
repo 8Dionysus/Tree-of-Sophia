@@ -2638,3 +2638,174 @@ pub(crate) fn resolve_owner_metadata_binding<R: SignNativeRead + ?Sized>(
         schema_digests: native.schemas,
     })
 }
+
+/// Exact public/local disclosure over the maintained native binding kernel.
+/// A local selection reviews conditional notices; it cannot open private text.
+pub(crate) fn read_disclosed_unit<R: SignNativeRead + ?Sized>(
+    reader: &mut R,
+    worker: &mut CutWorkerSchemaExecutor,
+    binding: &JsonValue,
+    local: Option<&crate::source_native_text_read::LocalTextReadSelection>,
+    max_return_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<JsonValue> {
+    if !(1..=1_048_576).contains(&max_return_bytes) {
+        return Err(SourceCommandError::Invalid(
+            "native unit return byte budget",
+        ));
+    }
+    // The owned request cannot change through a transport callback.
+    let binding = binding.clone();
+    let mut native = selected_native(reader, worker, deadline, cancelled)?;
+    let (_, layer, summary) =
+        native.resolve_member(&binding, NativeReadScope::MetadataOnly, false)?;
+    if cmd::field(&summary, "public_content_declared")? != &JsonValue::Bool(true) {
+        return Err(SourceCommandError::Denied(
+            "native public unit return requires public content authority",
+        ));
+    }
+    let rep = cmd::field(&layer, "representation")?;
+    let exact = [
+        cmd::text(&layer, "layer_id")?,
+        cmd::text(rep, "content_file_id")?,
+    ];
+    let mut records = Vec::new();
+    for row in cmd::array(rep, "rights_record_refs")? {
+        records.push(
+            native
+                .record(cmd::text(row, "ref")?, Some(cmd::text(row, "sha256")?))?
+                .0,
+        );
+    }
+    let mut applicable = Vec::new();
+    for record in &records {
+        if intersects(record, &exact)? {
+            applicable.push(record);
+        }
+    }
+    if applicable.is_empty() {
+        applicable.extend(records.iter());
+    }
+    for record in applicable {
+        let redistribution = cmd::text(record, "redistribution_posture")?;
+        let derivative = cmd::text(record, "derivative_posture")?;
+        if local.is_none() && (redistribution != "authorized" || derivative != "allowed") {
+            return Err(SourceCommandError::Denied(
+                "native public unit return requires unconditional recorded rights",
+            ));
+        }
+        if local.is_some()
+            && (!["authorized", "authorized_with_conditions"].contains(&redistribution)
+                || !["allowed", "allowed_with_conditions"].contains(&derivative))
+        {
+            return Err(SourceCommandError::Denied(
+                "local text selection cannot override recorded rights",
+            ));
+        }
+    }
+    let conditions = local
+        .map(|selection| {
+            selection.select(
+                native.reader,
+                &binding,
+                cmd::field(rep, "rights_record_refs")?,
+                deadline,
+                cancelled,
+            )
+        })
+        .transpose()?;
+    // All rights and selected conditions precede the first content read.
+    let (packet, layer, summary) =
+        native.resolve_member(&binding, NativeReadScope::PublicContent, false)?;
+    let rep = cmd::field(&layer, "representation")?;
+    let content = native.raw(
+        cmd::text(rep, "content_ref")?,
+        Some(cmd::text(rep, "content_sha256")?),
+        NativeReadKind::Content,
+    )?;
+    let text = std::str::from_utf8(&content)
+        .map_err(|_| SourceCommandError::Invalid("native return UTF8"))?;
+    let mut spans = Vec::new();
+    for anchor_ref in cmd::array(&binding, "ordered_anchor_refs")? {
+        let anchor = cmd::array(&packet, "anchors")?
+            .iter()
+            .find(|row| row.object_get("anchor_ref") == Some(anchor_ref))
+            .ok_or(SourceCommandError::Conflict(
+                "native ordered anchor missing",
+            ))?;
+        let selector = cmd::field(anchor, "selector")?;
+        spans.push(cmd::object(vec![
+            ("anchor_ref", anchor_ref.clone()),
+            ("selector", selector.clone()),
+            ("exact_sha256", cmd::field(anchor, "exact_sha256")?.clone()),
+            (
+                "text",
+                cmd::string(codepoint_span(
+                    text,
+                    cmd::integer(selector, "start")?,
+                    cmd::integer(selector, "end")?,
+                )?),
+            ),
+        ]));
+    }
+    if let Some(selection) = local {
+        let current = selection.select(
+            native.reader,
+            &binding,
+            cmd::field(rep, "rights_record_refs")?,
+            deadline,
+            cancelled,
+        )?;
+        if conditions.as_ref() != Some(&current) {
+            return Err(SourceCommandError::Denied(
+                "local text conditions changed during return",
+            ));
+        }
+    }
+    let snapshot = native.snapshot()?;
+    let mut fields = vec![
+        (
+            "schema_version",
+            cmd::string(if local.is_some() {
+                "tos_native_local_unit_return_v1"
+            } else {
+                "tos_native_public_unit_return_v1"
+            }),
+        ),
+        ("summary", summary),
+        (
+            "packet",
+            cmd::object(vec![
+                ("id", cmd::field(&binding, "packet_id")?.clone()),
+                ("version", cmd::field(&binding, "packet_version")?.clone()),
+                ("sha256", cmd::field(&binding, "packet_sha256")?.clone()),
+            ]),
+        ),
+        (
+            "layer_record_sha256",
+            cmd::field(cmd::field(&binding, "text_layer")?, "record_sha256")?.clone(),
+        ),
+        (
+            "representation_sha256",
+            cmd::field(rep, "content_sha256")?.clone(),
+        ),
+        ("spans", JsonValue::Array(spans)),
+        ("closure_fingerprint", cmd::string(&snapshot)),
+    ];
+    if let Some(conditions) = conditions {
+        fields.push(("local_conditions", conditions));
+    }
+    let result = cmd::object(fields);
+    if cmd::canonical(&result)?.len() > max_return_bytes {
+        return Err(SourceCommandError::Unsupported(
+            "native public unit return exceeds output-byte budget",
+        ));
+    }
+    if let Some(selection) = local {
+        selection.verify(deadline, cancelled)?;
+    }
+    native.reader.verify_current(deadline, cancelled)?;
+    native.tick()?;
+    Ok(result)
+}

@@ -147,7 +147,7 @@ pub struct SourceCatalogLimits {
     pub max_output_row_bytes: usize,
 }
 impl SourceCatalogLimits {
-    pub(crate) fn validate(self) -> Result<()> {
+    pub fn validate(self) -> Result<()> {
         if self.max_files == 0
             || self.max_rows == 0
             || self.max_file_bytes == 0
