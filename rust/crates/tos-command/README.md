@@ -163,3 +163,52 @@ Claim/Metadata publication and exact-source owner reads. A successful native Age
 projection does not authorize removing those consumers. Retire the old module
 only as those operations acquire working replacements and their unique controls
 move to the replacements.
+
+## Private native Original candidate
+
+An installation containing the matching native owner command exposes the explicit
+`native-original-produce` entry. The command consumes one strict JSON request on
+stdin; it does not require a source checkout or a Python producer:
+
+```sh
+"$PREFIX/software/native/bin/tos-native-owner-command" \
+  native-original-produce < "$REQUEST_JSON"
+```
+
+The request schema is `tos_native_managed_original_produce_request_v1`. It declares
+`tmpfs_quota_bytes`, `tmpfs_inode_limit`, `working_ram_bytes`,
+`persistent_write_cap_bytes`, `max_build_seconds`, `cold_open`, `process_limits`,
+`data_directory`, `private_release_directory`, and `evidence_refs`. The latter
+contains exactly one absolute path and SHA-256 for each of `admission`, `built`,
+and `verified`. Held references are evidence inputs, not grants of authority.
+Select fresh disjoint child names under the host-selected private persistent
+store; the command refuses reused destinations.
+
+This initial entry is bound to the admitted historical corpus revision
+`5bf2c949b2cec6c758bda0bc3fbe51d03c89ac70088e2e3e34893600304c5183`
+and the exact retained runtime input census compiled into
+[`native_snapshot_manifest`](../tos-compiler/src/native_snapshot_manifest.rs).
+It excludes the historical SQLite output and builds a new model and two Original
+receipts through the maintained native capture/compiler route. Historical data
+provenance and the executing software fingerprint remain separate identities.
+It is not a general arbitrary-corpus admission command.
+
+The host selects an authentic sealed private-stage ticket with a persistent store
+outside its tmpfs, passes `ABYSS_STAGE_TICKET_FD` and `ABYSS_STAGE_ROOT`, and applies
+the whole-process resource envelope before execution. The request must match the
+selected ticket. The staging quota is at least 2,112 MiB; the complete persistent
+candidate is capped at 512 MiB and its manifest at 1 MiB. These are refusal bounds,
+not measured fit. `working_ram_bytes` is ticket metadata. The declared process
+limits are checked during cold verification and do not install limits for the
+earlier capture/build phases. Use the owned supervisor's whole deadline and
+process-tree cleanup in addition to the cooperative build deadline.
+
+A successful `tos_native_managed_original_produce_result_v1` result identifies
+only a fresh private data candidate, full typed selection and actual fs-verity
+cold-open witness. Capture up to 4 MiB of JSON plus the final LF. The command
+leaves the private release child absent. Verify and promote the pair through the
+existing release holder, then use a matching installed Access product with
+`--release-root` for CLI, HTTP or MCP. The reader must support the produced
+captured-runtime Original profile; an older installed product cannot be relabeled
+as compatible. Production and cold-open success do not select a public release,
+accept source/rights/canon, or establish installed consumer acceptance.
