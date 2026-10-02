@@ -1265,6 +1265,7 @@ class AcquisitionBatchTests(unittest.TestCase):
         claim_path.write_text(
             json.dumps(claim, sort_keys=True) + "\n", encoding="utf-8"
         )
+        claim_path.chmod(0o644)
         selection["records"].append(
             {
                 "ref": claim_ref,

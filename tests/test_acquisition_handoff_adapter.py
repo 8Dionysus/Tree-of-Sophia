@@ -444,6 +444,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             destination = self.accepted_source / record["ref"]
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, destination)
+            destination.chmod(0o644)
 
         body = {
             "schema_version": "tos_corpus_snapshot_v1",
