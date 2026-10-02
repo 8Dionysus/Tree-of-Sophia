@@ -2848,7 +2848,12 @@ pub fn validate_source_claim_from_cut(
         decoded.len() + std::mem::size_of::<Vec<u8>>(),
         limits,
     )?;
-    let first_receipt = worker.receipts().len();
+    if !worker.receipt_range_supported() {
+        return Err(ItemRefusal::Unsupported(
+            "local Claim report requires legacy schema receipts".into(),
+        ));
+    }
+    let first_receipt = worker.receipt_count();
     let mut report = SourceClaimLocalReport {
         source_revision: revision,
         source_input_sha256: Digest256::of_bytes(selected_claim_raw),
@@ -2962,7 +2967,18 @@ pub fn validate_source_claim_from_cut(
     }
     report.logical_state = retained;
     // Only this invocation's concrete executed receipts are exposed.
-    let receipts = &worker.receipts()[first_receipt..];
+    let receipt_end = worker.receipt_count();
+    let receipts = crate::source_cut::collect_schema_receipt_range(
+        worker,
+        first_receipt,
+        receipt_end,
+        limits
+            .max_state_bytes
+            .checked_sub(report.logical_state)
+            .ok_or(ItemRefusal::Budget)?,
+        limits.deadline,
+        cancelled,
+    )?;
     let receipt_state = receipts
         .iter()
         .try_fold(0usize, |sum, r| {
@@ -2978,7 +2994,7 @@ pub fn validate_source_claim_from_cut(
         .logical_state
         .checked_add(receipt_state)
         .ok_or(ItemRefusal::Budget)?;
-    report.schema_receipts = receipts.to_vec();
+    report.schema_receipts = receipts;
     Ok(report)
 }
 

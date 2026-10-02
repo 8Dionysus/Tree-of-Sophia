@@ -49,7 +49,7 @@ use crate::retirement_rules::{
 use crate::rights_rules::{SourceRightsReport, inspect_rights_from_cut};
 use crate::source_cut::{
     CutExecutionBinding, CutPayloadReader, CutSchemaExecutor, CutSchemaReceipt,
-    CutWorkerSchemaExecutor, inspect_items_from_cut,
+    CutSchemaReceiptRange, inspect_items_from_cut,
 };
 use crate::source_shapes::{SourceShapeReport, inspect_source_shapes_from_cut};
 
@@ -528,9 +528,9 @@ impl OperationFamilyReport {
     }
 }
 
-fn worker_matches(
+fn worker_matches<S: CutSchemaReceiptRange>(
     cut: &CorpusCutReader,
-    schemas: &CutWorkerSchemaExecutor,
+    schemas: &S,
 ) -> Result<(), OperationRefusal> {
     if schemas.source_revision() != cut.current().revision() {
         Err(OperationRefusal::InvalidProposal(
@@ -553,10 +553,29 @@ fn item_error(error: ItemRefusal) -> OperationRefusal {
     }
 }
 
+fn collect_schema_receipts<S: CutSchemaReceiptRange>(
+    schemas: &mut S,
+    start: usize,
+    end: usize,
+    max_state_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<Vec<CutSchemaReceipt>, OperationRefusal> {
+    crate::source_cut::collect_schema_receipt_range(
+        schemas,
+        start,
+        end,
+        max_state_bytes,
+        deadline,
+        cancelled,
+    )
+    .map_err(item_error)
+}
+
 /// Actual proposal -> selected raw bytes -> bounded worker -> Item compound
 /// report. The operation owner's remaining general rules and current rights
 /// fences are exposed separately, never implicitly satisfied by this function.
-pub fn inspect_item_operation(
+pub fn inspect_item_operation<S: CutSchemaExecutor + CutSchemaReceiptRange>(
     cut: &CorpusCutReader,
     proposal: &OperationProposal,
     operation_limits: OperationLimits,
@@ -564,12 +583,17 @@ pub fn inspect_item_operation(
     require_local_payloads: bool,
     cancelled: &AtomicBool,
     record_routes: &RecordFamily,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut S,
     payloads: &mut impl CutPayloadReader,
 ) -> Result<OperationFamilyReport, OperationRefusal> {
     worker_matches(cut, schemas)?;
     let binding = bind_operation_from_cut(cut, proposal, operation_limits, cancelled)?;
-    let receipt_start = schemas.receipts().len();
+    if !schemas.receipt_range_supported() {
+        return Err(OperationRefusal::Unsupported(
+            "operation report requires legacy schema receipts".into(),
+        ));
+    }
+    let receipt_start = schemas.receipt_count();
     let result = inspect_items_from_cut(
         cut,
         item_limits,
@@ -598,6 +622,15 @@ pub fn inspect_item_operation(
     schemas
         .finish(operation_limits.deadline, cancelled)
         .map_err(item_error)?;
+    let receipt_end = schemas.receipt_count();
+    let schema_receipts = collect_schema_receipts(
+        schemas,
+        receipt_start,
+        receipt_end,
+        operation_limits.max_state_bytes,
+        operation_limits.deadline,
+        cancelled,
+    )?;
     Ok(OperationFamilyReport {
         binding,
         scope: OperationFamilyScope::ItemCompanions,
@@ -606,8 +639,8 @@ pub fn inspect_item_operation(
         } else {
             OperationFamilyState::Rejected { issues }
         },
-        worker: schemas.execution_binding(),
-        schema_receipts: schemas.receipts()[receipt_start..].to_vec(),
+        worker: CutSchemaReceiptRange::execution_binding(schemas),
+        schema_receipts,
         executed_rules: vec!["tos.val.item-compound.current@1".into()],
         item_family: Some(result.item_family),
     })
@@ -615,17 +648,22 @@ pub fn inspect_item_operation(
 
 /// The exact narrow retirement route preserves the owner's fallback to full
 /// validation. A wider edit becomes MissingRules; no caller flag can opt out.
-pub fn inspect_retirement_operation(
+pub fn inspect_retirement_operation<S: CutSchemaExecutor + CutSchemaReceiptRange>(
     cut: &CorpusCutReader,
     proposal: &OperationProposal,
     operation_limits: OperationLimits,
     retirement_limits: RetirementLimits,
     cancelled: &AtomicBool,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut S,
 ) -> Result<OperationFamilyReport, OperationRefusal> {
     worker_matches(cut, schemas)?;
     let binding = bind_operation_from_cut(cut, proposal, operation_limits, cancelled)?;
-    let receipt_start = schemas.receipts().len();
+    if !schemas.receipt_range_supported() {
+        return Err(OperationRefusal::Unsupported(
+            "operation report requires legacy schema receipts".into(),
+        ));
+    }
+    let receipt_start = schemas.receipt_count();
     let result = inspect_retirements_from_cut(cut, retirement_limits, cancelled, schemas).map_err(
         |error| match error {
             RetirementRefusal::Budget => OperationRefusal::Budget,
@@ -649,12 +687,21 @@ pub fn inspect_retirement_operation(
     schemas
         .finish(operation_limits.deadline, cancelled)
         .map_err(item_error)?;
+    let receipt_end = schemas.receipt_count();
+    let schema_receipts = collect_schema_receipts(
+        schemas,
+        receipt_start,
+        receipt_end,
+        operation_limits.max_state_bytes,
+        operation_limits.deadline,
+        cancelled,
+    )?;
     Ok(OperationFamilyReport {
         binding,
         scope: OperationFamilyScope::RetirementNarrow,
         state,
-        worker: schemas.execution_binding(),
-        schema_receipts: schemas.receipts()[receipt_start..].to_vec(),
+        worker: CutSchemaReceiptRange::execution_binding(schemas),
+        schema_receipts,
         executed_rules: vec!["tos.val.source.retirement@1".into()],
         item_family: None,
     })
@@ -697,14 +744,14 @@ impl GeneralOperationFamilyReport {
 /// actual selected worker. No profile list or permission bool selects rules.
 /// Source catalog parity is owned by the compiler's exact renderer; its
 /// admission/currentness seam remains an explicit missing general rule here.
-pub fn inspect_general_operation(
+pub fn inspect_general_operation<S: CutSchemaExecutor + CutSchemaReceiptRange>(
     cut: &CorpusCutReader,
     proposal: &OperationProposal,
     limits: GeneralOperationLimits,
     cancelled: &AtomicBool,
     record_routes: &RecordFamily,
     record_executor: &mut BiblioRecordExecutor,
-    schemas: &mut CutWorkerSchemaExecutor,
+    schemas: &mut S,
     payloads: &mut impl CutPayloadReader,
     require_local_payloads: bool,
 ) -> Result<GeneralOperationFamilyReport, OperationRefusal> {
@@ -756,7 +803,10 @@ pub fn inspect_general_operation(
             limit: Some(limits.max_composed_read_bytes),
         });
     }
-    if !schemas.receipts().is_empty() || !record_executor.is_unused() {
+    if !schemas.receipt_range_supported()
+        || schemas.receipt_count() != 0
+        || !record_executor.is_unused()
+    {
         return Err(OperationRefusal::InvalidProposal(
             "general operation requires unused executors",
         ));
@@ -806,7 +856,7 @@ pub fn inspect_general_operation(
         });
     }
     worker_matches(cut, schemas)?;
-    let worker = schemas.execution_binding();
+    let worker = CutSchemaReceiptRange::execution_binding(schemas);
     if record_executor.worker.sha256 != worker.worker_sha256
         || record_executor.profile != worker.schema_profile
     {
@@ -835,7 +885,7 @@ pub fn inspect_general_operation(
                 refusal: Box::new(refusal),
             }
         })?;
-    let receipt_start = schemas.receipts().len();
+    let receipt_start = schemas.receipt_count();
     let source_shapes = inspect_source_shapes_from_cut(cut, limits.family, cancelled, schemas)
         .map_err(|refusal| OperationRefusal::FamilyRefusal {
             stage: "source-shapes",
@@ -974,16 +1024,6 @@ pub fn inspect_general_operation(
     for issue in &item.item_family.issues {
         add_issue(&issue.path, issue.code)?;
     }
-    for receipt in &schemas.receipts()[receipt_start..] {
-        let next = report_bytes.checked_add(receipt.path.len() + receipt.contract.len() + 256);
-        report_bytes = next
-            .filter(|n| *n <= limits.max_composed_state_bytes)
-            .ok_or(OperationRefusal::BudgetCheck {
-                check: "composed receipt state bytes",
-                used: next.map(|n| n as u64),
-                limit: Some(limits.max_composed_state_bytes as u64),
-            })?;
-    }
     let state = if issues.is_empty() {
         OperationFamilyState::MissingRules {
             rule_ids: REQUIRED_GENERAL_ROWS
@@ -1001,13 +1041,25 @@ pub fn inspect_general_operation(
             stage: "Cut finalization",
             refusal,
         })?;
+    let receipt_end = schemas.receipt_count();
+    let schema_receipts = collect_schema_receipts(
+        schemas,
+        receipt_start,
+        receipt_end,
+        limits
+            .max_composed_state_bytes
+            .checked_sub(report_bytes)
+            .ok_or(OperationRefusal::Budget)?,
+        limits.operation.deadline,
+        cancelled,
+    )?;
     Ok(GeneralOperationFamilyReport {
         operation: OperationFamilyReport {
             binding,
             scope: OperationFamilyScope::GeneralSource,
             state,
-            worker: schemas.execution_binding(),
-            schema_receipts: schemas.receipts()[receipt_start..].to_vec(),
+            worker: CutSchemaReceiptRange::execution_binding(schemas),
+            schema_receipts,
             executed_rules: vec![
                 "tos.val.record.registry-shape-identity.current@1".into(),
                 "tos.val.source.instance-schema-ref.current@1".into(),
