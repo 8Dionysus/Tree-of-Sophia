@@ -15,7 +15,7 @@ pub enum ManagedKnowledgeWriteError {
 pub trait ManagedKnowledgeWriter {
     fn write_current_knowledge<'authority>(
         &self,
-        coordinator: &mut tos_command::durable_adapter::DurablePgCoordinator,
+        coordinator: &mut tos_command::DurablePgCoordinator,
         store: &tos_segment_store::SegmentStore,
         filesystem: &tos_command::source_creation_store::CreationFilesystem,
         package: &tos_command::source_creation::ManagedSerializedCreation,
@@ -42,7 +42,7 @@ pub trait ManagedKnowledgeWriter {
 impl<P: ManagedSelectedProof> ManagedKnowledgeWriter for ManagedAgentSelectedParent<P> {
     fn write_current_knowledge<'authority>(
         &self,
-        coordinator: &mut tos_command::durable_adapter::DurablePgCoordinator,
+        coordinator: &mut tos_command::DurablePgCoordinator,
         store: &tos_segment_store::SegmentStore,
         filesystem: &tos_command::source_creation_store::CreationFilesystem,
         package: &tos_command::source_creation::ManagedSerializedCreation,
