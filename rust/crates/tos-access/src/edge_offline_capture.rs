@@ -103,6 +103,19 @@ fn write_json_line(stdout: &mut dyn Write, value: &Value) -> Result<(), String> 
     stdout.write_all(b"\n").map_err(|error| error.to_string())
 }
 
+/// Compose a JSON object from already-converted values. Large native receipts
+/// use this shallow builder instead of one deeply nested `json!` invocation,
+/// keeping serde_json's macro expansion below rustc's recursion limit while
+/// preserving its ordinary `Value` conversion for each field.
+fn capture_json_object<const N: usize>(fields: [(&str, Value); N]) -> Value {
+    Value::Object(
+        fields
+            .into_iter()
+            .map(|(key, value)| (key.to_owned(), value))
+            .collect(),
+    )
+}
+
 /// Bounds row/text material retained by a single offline capture before it is
 /// cloned into the SQL-pair transition vector.
 struct RetainedBytes {
@@ -4651,67 +4664,99 @@ fn run_prepared_transition(
             "publication": "private-capture-manifest-last"
         })
     });
-    let result = json!({
-        "schema":"tos_edge_offline_capture_result_v1",
-        "operation":operation,
-        "receipt":{
-            "schema": receipt_schema,
-            "operation": operation,
-            "lineage_schema": lineage_schema,
-            "base_d1_revision": receipt.base_d1_revision,
-            "target_d1_revision": receipt.target_d1_revision,
-            "before_source_revision": spec.before_source_revision,
-            "after_source_revision": spec.after_source_revision,
-            "source_revision": after_source.source_revision(),
-            "before_prepared_binding": before_binding_value,
-            "after_prepared_binding": after_binding_value,
-            "before_source_inputs_sha256": spec.before_source_inputs_sha256,
-            "after_source_inputs_sha256": spec.after_source_inputs_sha256,
-            "before_navigation_sha256": spec.before_navigation_sha256,
-            "after_navigation_sha256": spec.after_navigation_sha256,
-            "before_rights_sha256": spec.before_rights_sha256,
-            "after_rights_sha256": spec.after_rights_sha256,
-            "implementation_sha256": spec.implementation_sha256,
-            "manifest_schema": receipt.schema,
-            "manifest_published_last": true,
-            "changed_prepared_rows": changes.len(),
-            "address_plans": address_plans,
-            "source_navigation_product": nav_product,
-            "projection_usage": {
-                "opened_parts": nav_projection_usage.opened_parts,
-                "stored_bytes": nav_projection_usage.stored_bytes,
-                "decoded_bytes": nav_projection_usage.decoded_bytes,
-                "keys": nav_projection_usage.keys,
-                "changes": nav_projection_usage.changes,
-                "output_bytes": nav_projection_usage.output_bytes
-            },
-            "capture_read_bytes": d1_read_bytes.used,
-            "retained_bytes": retained.used,
-            "posting_rows_observed": posting_count,
-            "digest_manifest_rows_scanned": manifest_rows_scanned,
-            "whole_manifest_reconciliation": operation == "prepared-catchup",
-            "maintained_auxiliary_stores": maintained_auxiliary_stores,
-            "forward": forward_output,
-            "rollback": rollback_output,
-            "forward_sha256": receipt.forward_sha256,
-            "rollback_sha256": receipt.rollback_sha256,
-            "forward_sql_bytes": receipt.forward_bytes,
-            "rollback_sql_bytes": receipt.rollback_bytes,
-            "sql_bytes": sql_bytes,
-            "input_transition_rows": receipt.changed_rows,
-            "prepared_source_pairing_verified": operation != "prepared-catchup",
-            "successor_prepared_source_pairing_verified": true,
-            "predecessor_prepared_source_pairing_verified": before_prepared_pairing_verified,
-            "predecessor_source_admission_external": operation == "prepared-catchup",
-            "held_snapshot_bindings_verified": true,
-            "source_currentness_verified": false,
-            "selected_pair_owner_admitted": receipt.selected_pair_owner_admitted,
-            "rights_admission": false,
-            "semantic_acceptance": false,
-            "d1_applied": receipt.d1_applied,
-            "consumer_switched": receipt.consumer_switched
-        }
-    });
+    let projection_usage = capture_json_object([
+        ("opened_parts", json!(nav_projection_usage.opened_parts)),
+        ("stored_bytes", json!(nav_projection_usage.stored_bytes)),
+        ("decoded_bytes", json!(nav_projection_usage.decoded_bytes)),
+        ("keys", json!(nav_projection_usage.keys)),
+        ("changes", json!(nav_projection_usage.changes)),
+        ("output_bytes", json!(nav_projection_usage.output_bytes)),
+    ]);
+    let receipt_value = capture_json_object([
+        ("schema", json!(receipt_schema)),
+        ("operation", json!(operation)),
+        ("lineage_schema", json!(lineage_schema)),
+        ("base_d1_revision", json!(receipt.base_d1_revision)),
+        ("target_d1_revision", json!(receipt.target_d1_revision)),
+        ("before_source_revision", json!(spec.before_source_revision)),
+        ("after_source_revision", json!(spec.after_source_revision)),
+        ("source_revision", json!(after_source.source_revision())),
+        ("before_prepared_binding", json!(before_binding_value)),
+        ("after_prepared_binding", json!(after_binding_value)),
+        (
+            "before_source_inputs_sha256",
+            json!(spec.before_source_inputs_sha256),
+        ),
+        (
+            "after_source_inputs_sha256",
+            json!(spec.after_source_inputs_sha256),
+        ),
+        (
+            "before_navigation_sha256",
+            json!(spec.before_navigation_sha256),
+        ),
+        (
+            "after_navigation_sha256",
+            json!(spec.after_navigation_sha256),
+        ),
+        ("before_rights_sha256", json!(spec.before_rights_sha256)),
+        ("after_rights_sha256", json!(spec.after_rights_sha256)),
+        ("implementation_sha256", json!(spec.implementation_sha256)),
+        ("manifest_schema", json!(receipt.schema)),
+        ("manifest_published_last", json!(true)),
+        ("changed_prepared_rows", json!(changes.len())),
+        ("address_plans", json!(address_plans)),
+        ("source_navigation_product", json!(nav_product)),
+        ("projection_usage", projection_usage),
+        ("capture_read_bytes", json!(d1_read_bytes.used)),
+        ("retained_bytes", json!(retained.used)),
+        ("posting_rows_observed", json!(posting_count)),
+        ("digest_manifest_rows_scanned", json!(manifest_rows_scanned)),
+        (
+            "whole_manifest_reconciliation",
+            json!(operation == "prepared-catchup"),
+        ),
+        (
+            "maintained_auxiliary_stores",
+            json!(maintained_auxiliary_stores),
+        ),
+        ("forward", forward_output),
+        ("rollback", json!(rollback_output)),
+        ("forward_sha256", json!(receipt.forward_sha256)),
+        ("rollback_sha256", json!(receipt.rollback_sha256)),
+        ("forward_sql_bytes", json!(receipt.forward_bytes)),
+        ("rollback_sql_bytes", json!(receipt.rollback_bytes)),
+        ("sql_bytes", json!(sql_bytes)),
+        ("input_transition_rows", json!(receipt.changed_rows)),
+        (
+            "prepared_source_pairing_verified",
+            json!(operation != "prepared-catchup"),
+        ),
+        ("successor_prepared_source_pairing_verified", json!(true)),
+        (
+            "predecessor_prepared_source_pairing_verified",
+            json!(before_prepared_pairing_verified),
+        ),
+        (
+            "predecessor_source_admission_external",
+            json!(operation == "prepared-catchup"),
+        ),
+        ("held_snapshot_bindings_verified", json!(true)),
+        ("source_currentness_verified", json!(false)),
+        (
+            "selected_pair_owner_admitted",
+            json!(receipt.selected_pair_owner_admitted),
+        ),
+        ("rights_admission", json!(false)),
+        ("semantic_acceptance", json!(false)),
+        ("d1_applied", json!(receipt.d1_applied)),
+        ("consumer_switched", json!(receipt.consumer_switched)),
+    ]);
+    let result = capture_json_object([
+        ("schema", json!("tos_edge_offline_capture_result_v1")),
+        ("operation", json!(operation)),
+        ("receipt", receipt_value),
+    ]);
     write_json_line(stdout, &result)
 }
 
@@ -4999,58 +5044,81 @@ fn run_source_navigation_integrity(
             "publication": "private-capture-manifest-last"
         })
     });
-    let result = json!({
-        "schema": "tos_edge_offline_capture_result_v1",
-        "operation": "source-navigation-integrity",
-        "receipt": {
-            "schema": "tos_edge_native_source_navigation_integrity_receipt_v1",
-            "operation": "source-navigation-integrity",
-            "lineage_schema": "tos_native_navigation_integrity_migration_v1",
-            "header_only": header_only,
-            "base_d1_revision": receipt.base_d1_revision,
-            "target_d1_revision": receipt.target_d1_revision,
-            "source_revision": expected_source_revision,
-            "source_navigation_sha256": navigation.snapshot_sha256(),
-            "source_navigation_header_sha256": digest(source_header_raw.as_bytes()),
-            "rights_sha256": rights.snapshot_sha256(),
-            "source_inputs_sha256": spec.after_source_inputs_sha256,
-            "implementation_sha256": spec.implementation_sha256,
-            "migration_implementation_sha256": migration_implementation_sha256,
-            "manifest_schema": receipt.schema,
-            "manifest_published_last": true,
-            "changed_rows": receipt.changed_rows,
-            "verified_source_rows": verified_source_rows,
-            "verified_header_counts": verified_header_counts,
-            "projection_usage": {
-                "opened_parts": projection_usage.opened_parts,
-                "stored_bytes": projection_usage.stored_bytes,
-                "decoded_bytes": projection_usage.decoded_bytes,
-                "keys": projection_usage.keys,
-                "changes": projection_usage.changes,
-                "output_bytes": projection_usage.output_bytes,
-            },
-            "retained_bytes": retained.used,
-            "capture_read_bytes": read_bytes.used,
-            "maintained_auxiliary_stores": maintained_auxiliary_stores,
-            "forward": forward_output,
-            "rollback": rollback_output,
-            "forward_sha256": receipt.forward_sha256,
-            "rollback_sha256": receipt.rollback_sha256,
-            "forward_sql_bytes": receipt.forward_bytes,
-            "rollback_sql_bytes": receipt.rollback_bytes,
-            "sql_bytes": sql_bytes,
-            "native_rows_changed": 0,
-            "normalized_rows_changed": 0,
-            "source_rights_admission_verified_by_helper": false,
-            "held_snapshot_bindings_verified": true,
-            "source_currentness_verified": false,
-            "selected_pair_owner_admitted": false,
-            "rights_admission": false,
-            "semantic_acceptance": false,
-            "d1_applied": receipt.d1_applied,
-            "consumer_switched": receipt.consumer_switched
-        }
-    });
+    let projection_usage_value = capture_json_object([
+        ("opened_parts", json!(projection_usage.opened_parts)),
+        ("stored_bytes", json!(projection_usage.stored_bytes)),
+        ("decoded_bytes", json!(projection_usage.decoded_bytes)),
+        ("keys", json!(projection_usage.keys)),
+        ("changes", json!(projection_usage.changes)),
+        ("output_bytes", json!(projection_usage.output_bytes)),
+    ]);
+    let receipt_value = capture_json_object([
+        (
+            "schema",
+            json!("tos_edge_native_source_navigation_integrity_receipt_v1"),
+        ),
+        ("operation", json!("source-navigation-integrity")),
+        (
+            "lineage_schema",
+            json!("tos_native_navigation_integrity_migration_v1"),
+        ),
+        ("header_only", json!(header_only)),
+        ("base_d1_revision", json!(receipt.base_d1_revision)),
+        ("target_d1_revision", json!(receipt.target_d1_revision)),
+        ("source_revision", json!(expected_source_revision)),
+        (
+            "source_navigation_sha256",
+            json!(navigation.snapshot_sha256()),
+        ),
+        (
+            "source_navigation_header_sha256",
+            json!(digest(source_header_raw.as_bytes())),
+        ),
+        ("rights_sha256", json!(rights.snapshot_sha256())),
+        (
+            "source_inputs_sha256",
+            json!(spec.after_source_inputs_sha256),
+        ),
+        ("implementation_sha256", json!(spec.implementation_sha256)),
+        (
+            "migration_implementation_sha256",
+            json!(migration_implementation_sha256),
+        ),
+        ("manifest_schema", json!(receipt.schema)),
+        ("manifest_published_last", json!(true)),
+        ("changed_rows", json!(receipt.changed_rows)),
+        ("verified_source_rows", verified_source_rows),
+        ("verified_header_counts", verified_header_counts),
+        ("projection_usage", projection_usage_value),
+        ("retained_bytes", json!(retained.used)),
+        ("capture_read_bytes", json!(read_bytes.used)),
+        (
+            "maintained_auxiliary_stores",
+            json!(maintained_auxiliary_stores),
+        ),
+        ("forward", forward_output),
+        ("rollback", json!(rollback_output)),
+        ("forward_sha256", json!(receipt.forward_sha256)),
+        ("rollback_sha256", json!(receipt.rollback_sha256)),
+        ("forward_sql_bytes", json!(receipt.forward_bytes)),
+        ("rollback_sql_bytes", json!(receipt.rollback_bytes)),
+        ("sql_bytes", json!(sql_bytes)),
+        ("native_rows_changed", json!(0)),
+        ("normalized_rows_changed", json!(0)),
+        ("source_rights_admission_verified_by_helper", json!(false)),
+        ("held_snapshot_bindings_verified", json!(true)),
+        ("source_currentness_verified", json!(false)),
+        ("selected_pair_owner_admitted", json!(false)),
+        ("rights_admission", json!(false)),
+        ("semantic_acceptance", json!(false)),
+        ("d1_applied", json!(receipt.d1_applied)),
+        ("consumer_switched", json!(receipt.consumer_switched)),
+    ]);
+    let result = capture_json_object([
+        ("schema", json!("tos_edge_offline_capture_result_v1")),
+        ("operation", json!("source-navigation-integrity")),
+        ("receipt", receipt_value),
+    ]);
     write_json_line(stdout, &result)
 }
 
@@ -5403,55 +5471,69 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
             "publication": "private-capture-manifest-last"
         })
     });
-    let result = json!({
-        "schema": "tos_edge_offline_capture_result_v1",
-        "operation": operation,
-        "receipt": {
-            "schema": "tos_edge_native_source_navigation_bootstrap_receipt_v1",
-            "operation": operation,
-            "lineage_schema": "tos_source_navigation_bootstrap_d1_v1",
-            "base_d1_revision": receipt.base_d1_revision,
-            "target_d1_revision": receipt.target_d1_revision,
-            "source_revision": after_source.source_revision(),
-            "prepared_binding": request["after_binding"],
-            "source_inputs_sha256": after_source.digest(),
-            "source_navigation_sha256": nav.snapshot_sha256(),
-            "rights_sha256": rights.snapshot_sha256(),
-            "implementation_sha256": spec.implementation_sha256,
-            "manifest_schema": receipt.schema,
-            "manifest_published_last": true,
-            "changed_rows": receipt.changed_rows,
-            "source_navigation_header": header,
-            "source_navigation_header_sha256": header_sha256,
-            "verified_header_counts": header.get("counts"),
-            "projection_usage": {
-                "opened_parts": projection_usage.opened_parts,
-                "stored_bytes": projection_usage.stored_bytes,
-                "decoded_bytes": projection_usage.decoded_bytes,
-                "keys": projection_usage.keys,
-                "changes": projection_usage.changes,
-                "output_bytes": projection_usage.output_bytes,
-            },
-            "capture_read_bytes": d1_read_bytes.used,
-            "retained_bytes": retained_bytes,
-            "maintained_auxiliary_stores": maintained_auxiliary_stores,
-            "forward": forward_output,
-            "rollback": rollback_output,
-            "forward_sha256": receipt.forward_sha256,
-            "rollback_sha256": receipt.rollback_sha256,
-            "forward_sql_bytes": receipt.forward_bytes,
-            "rollback_sql_bytes": receipt.rollback_bytes,
-            "sql_bytes": sql_bytes,
-            "prepared_source_pairing_verified": true,
-            "held_snapshot_bindings_verified": true,
-            "source_currentness_verified": false,
-            "selected_pair_owner_admitted": receipt.selected_pair_owner_admitted,
-            "rights_admission": false,
-            "semantic_acceptance": false,
-            "d1_applied": receipt.d1_applied,
-            "consumer_switched": receipt.consumer_switched
-        }
-    });
+    let projection_usage_value = capture_json_object([
+        ("opened_parts", json!(projection_usage.opened_parts)),
+        ("stored_bytes", json!(projection_usage.stored_bytes)),
+        ("decoded_bytes", json!(projection_usage.decoded_bytes)),
+        ("keys", json!(projection_usage.keys)),
+        ("changes", json!(projection_usage.changes)),
+        ("output_bytes", json!(projection_usage.output_bytes)),
+    ]);
+    let receipt_value = capture_json_object([
+        (
+            "schema",
+            json!("tos_edge_native_source_navigation_bootstrap_receipt_v1"),
+        ),
+        ("operation", json!(operation)),
+        (
+            "lineage_schema",
+            json!("tos_source_navigation_bootstrap_d1_v1"),
+        ),
+        ("base_d1_revision", json!(receipt.base_d1_revision)),
+        ("target_d1_revision", json!(receipt.target_d1_revision)),
+        ("source_revision", json!(after_source.source_revision())),
+        ("prepared_binding", json!(request["after_binding"])),
+        ("source_inputs_sha256", json!(after_source.digest())),
+        ("source_navigation_sha256", json!(nav.snapshot_sha256())),
+        ("rights_sha256", json!(rights.snapshot_sha256())),
+        ("implementation_sha256", json!(spec.implementation_sha256)),
+        ("manifest_schema", json!(receipt.schema)),
+        ("manifest_published_last", json!(true)),
+        ("changed_rows", json!(receipt.changed_rows)),
+        ("source_navigation_header", json!(header)),
+        ("source_navigation_header_sha256", json!(header_sha256)),
+        ("verified_header_counts", json!(header.get("counts"))),
+        ("projection_usage", projection_usage_value),
+        ("capture_read_bytes", json!(d1_read_bytes.used)),
+        ("retained_bytes", json!(retained_bytes)),
+        (
+            "maintained_auxiliary_stores",
+            json!(maintained_auxiliary_stores),
+        ),
+        ("forward", forward_output),
+        ("rollback", json!(rollback_output)),
+        ("forward_sha256", json!(receipt.forward_sha256)),
+        ("rollback_sha256", json!(receipt.rollback_sha256)),
+        ("forward_sql_bytes", json!(receipt.forward_bytes)),
+        ("rollback_sql_bytes", json!(receipt.rollback_bytes)),
+        ("sql_bytes", json!(sql_bytes)),
+        ("prepared_source_pairing_verified", json!(true)),
+        ("held_snapshot_bindings_verified", json!(true)),
+        ("source_currentness_verified", json!(false)),
+        (
+            "selected_pair_owner_admitted",
+            json!(receipt.selected_pair_owner_admitted),
+        ),
+        ("rights_admission", json!(false)),
+        ("semantic_acceptance", json!(false)),
+        ("d1_applied", json!(receipt.d1_applied)),
+        ("consumer_switched", json!(receipt.consumer_switched)),
+    ]);
+    let result = capture_json_object([
+        ("schema", json!("tos_edge_offline_capture_result_v1")),
+        ("operation", json!(operation)),
+        ("receipt", receipt_value),
+    ]);
     write_json_line(stdout, &result)
 }
 
