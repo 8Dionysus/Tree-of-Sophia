@@ -914,6 +914,16 @@ impl SignNativeRead for PinnedOwnerReader<'_> {
     fn owner_local(&self, reference: &str) -> SourceCommandResult<bool> {
         Ok(reference.starts_with(&self.transport.private_prefix))
     }
+
+    fn owner_context_snapshot(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<String>> {
+        Ok(Some(
+            self.owner.snapshot(deadline, cancelled)?.to_prefixed(),
+        ))
+    }
 }
 
 #[derive(Clone)]

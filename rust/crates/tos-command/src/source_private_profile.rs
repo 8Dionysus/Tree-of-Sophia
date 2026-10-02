@@ -2085,6 +2085,14 @@ impl SignNativeRead for ProfileNativeReader<'_> {
     fn owner_local(&self, reference: &str) -> SourceCommandResult<bool> {
         SignNativeRead::owner_local(self.0, reference)
     }
+
+    fn owner_context_snapshot(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<String>> {
+        Ok(Some(self.0.snapshot(deadline, cancelled)?.to_prefixed()))
+    }
 }
 
 fn profile_snapshot(

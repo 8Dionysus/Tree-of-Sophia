@@ -52,6 +52,17 @@ pub trait SignNativeRead {
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<()>;
     fn owner_local(&self, reference: &str) -> SourceCommandResult<bool>;
+
+    /// Owner-local transports bind the derived assessment view to their
+    /// protected context as well as to the exact selected input bytes. Public
+    /// Sign readers retain the historical input-only snapshot by default.
+    fn owner_context_snapshot(
+        &self,
+        _deadline: Instant,
+        _cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<String>> {
+        Ok(None)
+    }
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NativeInput {
@@ -1260,6 +1271,9 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
     fn snapshot(&mut self) -> SourceCommandResult<String> {
         self.tick()?;
         self.reader.verify_current(self.deadline, self.cancelled)?;
+        let owner_context = self
+            .reader
+            .owner_context_snapshot(self.deadline, self.cancelled)?;
         let mut metadata = MAX_METADATA_BYTES;
         let mut content = MAX_CONTENT_BYTES;
         let mut value = Vec::new();
@@ -1283,15 +1297,52 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             } else {
                 metadata -= raw.len();
             }
-            value.push(JsonValue::Array(vec![
-                cmd::string(name),
-                cmd::string(category),
-                cmd::string(&Digest256::of_bytes(&raw).to_hex()),
-            ]));
+            let mut entry = vec![cmd::string(name), cmd::string(category)];
+            if owner_context.is_some() {
+                entry.push(cmd::string(if self.reader.owner_local(name)? {
+                    "owner-local-root"
+                } else {
+                    "source-contract-root"
+                }));
+            }
+            entry.push(cmd::string(&Digest256::of_bytes(&raw).to_hex()));
+            value.push(JsonValue::Array(entry));
         }
         self.reader.verify_current(self.deadline, self.cancelled)?;
+        let current_owner_context = self
+            .reader
+            .owner_context_snapshot(self.deadline, self.cancelled)?;
+        if current_owner_context != owner_context {
+            return Err(SourceCommandError::Conflict(
+                "native owner context changed during exact input snapshot",
+            ));
+        }
         self.tick()?;
-        ascii_snapshot(&JsonValue::Array(value))
+        if let Some(owner_context) = owner_context {
+            // The maintained Python owner-context snapshot preserves this
+            // insertion order (owner_context, then inputs), unlike the
+            // canonical object ordering used by public Sign snapshots.
+            let context = cmd::canonical(&cmd::string(&owner_context))?;
+            let inputs = cmd::canonical(&JsonValue::Array(value))?;
+            let capacity = context
+                .len()
+                .checked_add(inputs.len())
+                .and_then(|size| size.checked_add(b"{\"owner_context\":".len()))
+                .and_then(|size| size.checked_add(b",\"inputs\":".len()))
+                .and_then(|size| size.checked_add(1))
+                .ok_or(SourceCommandError::Invalid(
+                    "native owner-context snapshot byte budget",
+                ))?;
+            let mut raw = Vec::with_capacity(capacity);
+            raw.extend_from_slice(b"{\"owner_context\":");
+            raw.extend_from_slice(&context);
+            raw.extend_from_slice(b",\"inputs\":");
+            raw.extend_from_slice(&inputs);
+            raw.push(b'}');
+            ascii_snapshot_bytes(&raw)
+        } else {
+            ascii_snapshot(&JsonValue::Array(value))
+        }
     }
     fn resolve(
         &mut self,

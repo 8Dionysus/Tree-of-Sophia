@@ -150,6 +150,16 @@ impl SignNativeRead for AlignmentRead<'_> {
     fn owner_local(&self, reference: &str) -> SourceCommandResult<bool> {
         SignNativeRead::owner_local(self.context, reference)
     }
+
+    fn owner_context_snapshot(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<String>> {
+        Ok(Some(
+            self.context.snapshot(deadline, cancelled)?.to_prefixed(),
+        ))
+    }
 }
 
 fn same(left: &JsonValue, right: &JsonValue) -> SourceCommandResult<bool> {

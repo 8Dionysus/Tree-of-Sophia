@@ -229,6 +229,14 @@ impl SignNativeRead for AssessmentClaimScopedReader<'_> {
     fn owner_local(&self, reference: &str) -> SourceCommandResult<bool> {
         self.reader.owner_local(reference)
     }
+
+    fn owner_context_snapshot(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<String>> {
+        self.reader.owner_context_snapshot(deadline, cancelled)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -2060,6 +2068,16 @@ impl crate::source_sign_native::SignNativeRead for OwnerNativeRead<'_> {
 
     fn owner_local(&self, reference: &str) -> SourceCommandResult<bool> {
         private_reference(reference, self.context)
+    }
+
+    fn owner_context_snapshot(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<String>> {
+        Ok(Some(
+            self.owner.snapshot(deadline, cancelled)?.to_prefixed(),
+        ))
     }
 }
 

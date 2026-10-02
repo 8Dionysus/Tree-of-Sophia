@@ -1960,4 +1960,12 @@ impl crate::source_sign_native::SignNativeRead for OwnerTextContext {
         self.physical(reference)
             .map(|(_, confidential)| confidential)
     }
+
+    fn owner_context_snapshot(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Option<String>> {
+        Ok(Some(self.snapshot(deadline, cancelled)?.to_prefixed()))
+    }
 }
