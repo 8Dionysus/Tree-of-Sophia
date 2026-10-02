@@ -3,6 +3,7 @@
 //! The public budgets are deliberately independent of SQLite so callers can
 //! reserve their output/staging lifetime against the same declared envelope.
 
+use crate::pinned_sqlite::FdIoPolicy;
 use crate::{Result, StoreError, StoreErrorCode};
 use rusqlite::ffi;
 use std::fs::OpenOptions;
@@ -951,6 +952,114 @@ impl AuxContext {
         }
         Ok(false)
     }
+}
+
+// Reuse the auxiliary ledger policy for a strict MAIN-only VFS. This holds a
+// descriptor until before its reservation drops; it does not grant aux opens.
+struct MainOnlyPolicy {
+    _file: File,
+    inner: AuxPolicy,
+}
+impl crate::pinned_sqlite::FdIoPolicy for MainOnlyPolicy {
+    fn begin_read(&self, bytes: u64) -> bool {
+        self.inner.begin_read(bytes)
+    }
+    fn record_read(&self, bytes: u64) -> bool {
+        self.inner.record_read(bytes)
+    }
+    fn before_write(&self, file: &File, offset: u64, bytes: u64) -> bool {
+        self.inner.before_write(file, offset, bytes)
+    }
+    fn record_write(&self, bytes: u64) -> bool {
+        self.inner.record_write(bytes)
+    }
+    fn before_truncate(&self, file: &File, size: u64) -> bool {
+        self.inner.before_truncate(file, size)
+    }
+    fn after_mutation(&self, file: &File) -> bool {
+        self.inner.after_mutation(file)
+    }
+    fn check_operation(&self) -> bool {
+        self.inner.check_operation()
+    }
+    fn failed_io(&self) {
+        self.inner.failed_io();
+    }
+}
+
+pub(super) fn strict_main_policy(
+    file: &File,
+    io_budget: PinnedSqliteIoBudget,
+    space_budget: PinnedSqliteSpaceBudget,
+    logical_cap: u64,
+    allocated_cap: u64,
+    deadline: Instant,
+    cancelled: Arc<AtomicBool>,
+) -> Result<Arc<dyn crate::pinned_sqlite::FdIoPolicy>> {
+    if logical_cap == 0
+        || logical_cap == u64::MAX
+        || allocated_cap == 0
+        || allocated_cap == u64::MAX
+    {
+        return Err(budget_error("strict SQLite main envelope is invalid"));
+    }
+    if cancelled.load(Ordering::Acquire) {
+        io_budget.fail(PinnedSqliteIoFailure::Cancelled);
+    } else if deadline <= Instant::now() {
+        io_budget.fail(PinnedSqliteIoFailure::Deadline);
+    }
+    if io_budget.snapshot().failure.is_some() {
+        return Err(budget_error("strict SQLite main request is stopped"));
+    }
+    let metadata = file
+        .metadata()
+        .map_err(|_| invalid("strict SQLite main metadata"))?;
+    validate_unnamed_file(&metadata)?;
+    if metadata.len() != 0 {
+        return Err(invalid("strict SQLite main must be fresh"));
+    }
+    let reservation = space_budget.reserve(allocated_cap).map_err(|error| {
+        io_budget.fail(PinnedSqliteIoFailure::SpaceLimit);
+        error
+    })?;
+    let actual = metadata.blocks().checked_mul(512).ok_or_else(|| {
+        io_budget.fail(PinnedSqliteIoFailure::SpaceLimit);
+        budget_error("strict SQLite allocation overflow")
+    })?;
+    reservation
+        .update_actual_allocated(actual)
+        .map_err(|error| {
+            io_budget.fail(PinnedSqliteIoFailure::SpaceLimit);
+            error
+        })?;
+    let owned = file
+        .try_clone()
+        .map_err(|_| invalid("strict SQLite main descriptor clone"))?;
+    let state = Arc::new(AuxState {
+        class: AuxClass::Main,
+        logical_cap,
+        allocated_cap,
+        reservation: Some(reservation),
+        other: None,
+        io_budget,
+        space_budget,
+        deadline,
+        cancelled,
+        live_aux: Arc::new(AtomicUsize::new(0)),
+        logical_current: AtomicU64::new(0),
+        allocated_current: AtomicU64::new(actual),
+        counted_live: false,
+        open_handles: AtomicUsize::new(0),
+    });
+    Ok(Arc::new(MainOnlyPolicy {
+        _file: owned,
+        inner: AuxPolicy {
+            state,
+            context: Weak::new(),
+            key: Vec::new(),
+            delete_on_close: false,
+        },
+    }))
 }
 
 #[derive(Debug)]

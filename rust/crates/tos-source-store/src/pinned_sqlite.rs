@@ -50,6 +50,13 @@ impl PinnedSqliteConnection {
     /// Open only a fresh private unnamed inode. Scratch ceilings and statement
     /// budgets remain with the existing derived-index caller.
     pub fn open_private_derived(file: &File) -> Result<Self> {
+        Self::open_private_derived_with_policy(file, None)
+    }
+
+    pub(super) fn open_private_derived_with_policy(
+        file: &File,
+        policy: Option<Arc<dyn FdIoPolicy>>,
+    ) -> Result<Self> {
         let before = file
             .metadata()
             .map_err(|_| invalid("private SQLite descriptor metadata"))?;
@@ -63,7 +70,7 @@ impl PinnedSqliteConnection {
                 "private SQLite descriptor must be fresh unnamed regular file",
             ));
         }
-        let db = Self::open(file, false)?;
+        let db = Self::open_with_policy(file, false, policy)?;
         // These precede the first schema/data write. The VFS independently
         // refuses journal/WAL/temp filenames even if a caller changes pragmas.
         db.execute_batch("PRAGMA journal_mode=OFF; PRAGMA synchronous=OFF; PRAGMA temp_store=MEMORY; PRAGMA mmap_size=0;")
