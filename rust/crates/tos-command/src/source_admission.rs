@@ -251,7 +251,7 @@ impl AdmissionBatch {
                 .ok_or_else(|| invalid("source batch aggregate byte limit exceeded"))?;
             let mode = row["mode"]
                 .as_u64()
-                .filter(|n| matches!(*n, 0o644 | 0o755))
+                .filter(|n| matches!(*n, 0o600 | 0o644 | 0o755))
                 .ok_or_else(|| invalid("invalid source update mode"))?
                 as u32;
             let update = SourceUpdate {

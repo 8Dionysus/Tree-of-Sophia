@@ -142,7 +142,7 @@ fn candidate_member(path: &str, row: &CandidateValue) -> Result<Option<(Digest25
     let mode = row
         .get("mode")
         .and_then(CandidateValue::as_u64)
-        .filter(|mode| matches!(*mode, 0o644 | 0o755))
+        .filter(|mode| matches!(*mode, 0o600 | 0o644 | 0o755))
         .and_then(|mode| u32::try_from(mode).ok())
         .ok_or(Error::Invalid("foundation candidate member mode"))?;
     Ok(Some((digest, size, mode)))
