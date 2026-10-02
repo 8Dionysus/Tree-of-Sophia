@@ -4369,12 +4369,12 @@
         "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/manifest.v1.json"
       ],
       "reads": [
-        "the existing exact German lexical database and recurrence projection, the complete rebuilt Russian structural witness, all four private DE/RU paragraph layers, and the frozen paragraph-alignment packets"
+        "native build/check/preview read the existing exact German lexical database and recurrence projection, reconstructed Russian structural witness, private DE/RU paragraph layers and frozen paragraph-alignment packets; --validate-tracked instead reads authenticated declared inputs, retained issuance, exact tracked/private receipts and full private cache bytes without regeneration or SQLite opening; executable compatibility helpers remain imported by Python Concept and Eternal Concept"
       ],
       "writes": [
-        "tracked text-free Russian recurrence, keyword, repeated-sequence, and translation-surface-association projections plus coverage, summary, provenance and manifest; ignored mode-0600 Russian SQLite and readable analysis unless --check is used"
+        "native --build writes tracked text-free recurrence, keyword, repeated-sequence and surface-association projections plus coverage, summary, provenance and manifest, and ignored mode-0600 SQLite/readable analysis; --check/--preview regenerate privately and require admitted scratch; --validate-tracked writes nothing"
       ],
-      "side_effects": "mechanical whole-work lexical observations and proposed/ambiguous/deferred surface-association candidates only; no text acceptance, correction overlay, morphology, lemma, lexeme, translation equivalence, sign, concept, graph/canon effect, publication, or human review",
+      "side_effects": "native-only maintained producer dispatch; original full 5ee rendering source retained as nonexecuted/nonimported archive, authenticated cold oracle separate; read-only --validate-tracked proves existing receipt custody, not regenerated algorithm or typed cache equivalence; exact Python consumer helpers remain executable pending consumer cutovers; mechanical whole-work lexical observations and proposed/ambiguous/deferred surface-association candidates only; no text acceptance, correction overlay, morphology, lemma, lexeme, translation equivalence, sign, concept, graph/canon effect, publication, or human review",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_zarathustra_parallel_lexical_candidates_v1.py",

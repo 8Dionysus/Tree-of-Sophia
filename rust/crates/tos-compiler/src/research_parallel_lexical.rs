@@ -1617,6 +1617,429 @@ fn generate(
         analysis,
     })
 }
+// Existing receipt custody only; no producer, external child, SQL, or writes.
+fn validate_tracked_scoped(root: &ResearchExecution, selected: &SelectedPlan) -> R<V> {
+    root.check()?;
+    for entry in selected.value["inputs"]
+        .as_object()
+        .ok_or("plan inputs required")?
+        .values()
+    {
+        root.tick(1)?;
+        let reference = s(&entry["ref"])?;
+        let mut file = root.source_file(reference, 64 * 1024 * 1024)?;
+        let before = file.metadata().map_err(|e| e.to_string())?;
+        if root.hash_file(&mut file, 64 * 1024 * 1024)? != s(&entry["sha256"])? {
+            return Err(format!("selected input drift: {reference}"));
+        }
+        root.verify_file_unchanged(&file, &before)?;
+    }
+    let mut file = root.source_file(&route("manifest.v1.json"), 512 * 1024)?;
+    let before = file.metadata().map_err(|e| e.to_string())?;
+    if before.permissions().mode() & 0o7777 != 0o644 {
+        return Err("manifest mode drift".into());
+    }
+    let raw = root.read_file(&mut file, 512 * 1024)?;
+    root.verify_file_unchanged(&file, &before)?;
+    root.check()?;
+    let manifest: V = serde_json::from_slice(&raw).map_err(|e| e.to_string())?;
+    root.check()?;
+    if manifest["schema_version"] != "tos_zarathustra_parallel_lexical_candidate_manifest_v1"
+        || manifest["plan_ref"] != selected.reference
+        || manifest["plan_sha256"] != selected.digest
+        || manifest["identity_issuance_ref"] != route("identity-issuance.v1.json")
+    {
+        return Err("manifest plan/issuance binding drift".into());
+    }
+    for key in [
+        "source_text_included",
+        "semantic_equivalence_asserted",
+        "canon_effect",
+    ] {
+        if manifest[key] != false {
+            return Err(format!("manifest authority drift: {key}"));
+        }
+    }
+    if manifest["accepted_candidate_count"] != 0 {
+        return Err("manifest promotion drift".into());
+    }
+    let names = [
+        "russian-recurrence.v1.jsonl",
+        "keyword-candidates.v1.jsonl",
+        "repeated-sequences.v1.jsonl",
+        "translation-surface-association-candidates.v1.jsonl",
+        "coverage-receipt.v1.json",
+        "summary.v1.json",
+        "provenance.jsonl",
+    ];
+    let outputs = manifest["generated_outputs"]
+        .as_object()
+        .ok_or("generated membership required")?;
+    if outputs.keys().cloned().collect::<Set<_>>()
+        != names.iter().map(|x| route(x)).collect::<Set<_>>()
+    {
+        return Err("generated membership drift".into());
+    }
+    let private_ref = private("parallel-candidate-analysis.v1.json");
+    let database_ref = private("antonovsky-1911-lexical-observation-v1.sqlite3");
+    let private_outputs = manifest["private_outputs"]
+        .as_object()
+        .ok_or("private membership required")?;
+    if private_outputs.keys().cloned().collect::<Set<_>>()
+        != Set::from([private_ref.clone(), database_ref.clone()])
+    {
+        return Err("private membership drift".into());
+    }
+    // Stream the full actual cache bytes on its SAME held descriptor. Never open SQLite.
+    let db_entry = &private_outputs[&database_ref];
+    let mut database = root.source_file(&database_ref, 128 * 1024 * 1024)?;
+    let before = database.metadata().map_err(|e| e.to_string())?;
+    if db_entry["required_mode"] != "0600"
+        || before.permissions().mode() & 0o7777 != 0o600
+        || db_entry["byte_size"].as_u64() != Some(before.len())
+    {
+        return Err("cache mode/size drift".into());
+    }
+    let database_digest = root.hash_file(&mut database, 128 * 1024 * 1024)?;
+    root.verify_file_unchanged(&database, &before)?;
+    if database_digest != s(&db_entry["sha256"])? {
+        return Err("actual cache bytes do not match manifest".into());
+    }
+    let entry = &private_outputs[&private_ref];
+    if entry["required_mode"] != "0600" {
+        return Err("private required mode drift".into());
+    }
+    let analysis = bound_json(
+        root,
+        &private_ref,
+        s(&entry["sha256"])?,
+        Some(entry["byte_size"].as_u64().ok_or("private size required")?),
+        Some(0o600),
+        64 * 1024 * 1024,
+    )?;
+    if analysis["schema_version"] != "tos_zarathustra_parallel_lexical_private_analysis_v1"
+        || analysis["source_bearing"] != true
+        || analysis["mode"] != "0600"
+        || analysis["authority_boundary"] != selected.value["authority_boundary"]
+    {
+        return Err("private schema/authority drift".into());
+    }
+    let issuance = bound_json(
+        root,
+        &route("identity-issuance.v1.json"),
+        s(&manifest["identity_issuance_sha256"])?,
+        None,
+        Some(0o644),
+        8 * 1024 * 1024,
+    )?;
+    if issuance["schema_version"]
+        != "tos_zarathustra_parallel_lexical_candidate_identity_issuance_v1"
+        || issuance["issuance_id"]
+            != "tos.identity-issuance.zarathustra-parallel-lexical-candidates-v1"
+        || issuance["issued_on"] != "2026-09-02"
+        || issuance["opaque_identity"] != true
+        || issuance["binding_is_not_identity"] != true
+        || issuance["candidate_count"].as_u64() != Some(arr(&issuance["identities"])?.len() as u64)
+    {
+        return Err("issuance schema/count drift".into());
+    }
+    let mut issued = Map::new();
+    let mut ids = Set::new();
+    for row in arr(&issuance["identities"])? {
+        root.tick(1)?;
+        let id = s(&row["id"])?;
+        let suffix = id
+            .strip_prefix("tos.lexical-association-candidate.sid-")
+            .ok_or("issued prefix drift")?;
+        if suffix.len() != 32
+            || !suffix
+                .bytes()
+                .all(|x| x.is_ascii_digit() || (b'a'..=b'f').contains(&x))
+            || !ids.insert(id.to_owned())
+            || issued
+                .insert(s(&row["binding"])?.to_owned(), id.to_owned())
+                .is_some()
+        {
+            return Err("issuance identity collision/shape drift".into());
+        }
+    }
+    let mut retained = Map::new();
+    for (reference, entry) in outputs {
+        root.tick(1)?;
+        let mut file = root.source_file(reference, 64 * 1024 * 1024)?;
+        let before = file.metadata().map_err(|e| e.to_string())?;
+        if before.permissions().mode() & 0o7777 != 0o644
+            || entry["byte_size"].as_u64() != Some(before.len())
+        {
+            return Err(format!("output size/mode drift: {reference}"));
+        }
+        let bytes = root.read_file(&mut file, 64 * 1024 * 1024)?;
+        root.verify_file_unchanged(&file, &before)?;
+        if hash(&bytes) != s(&entry["sha256"])? {
+            return Err(format!("output digest drift: {reference}"));
+        }
+        retained.insert(reference.clone(), bytes);
+    }
+    let mut rows = Map::new();
+    for name in &names[..4] {
+        let text = std::str::from_utf8(&retained[&route(name)]).map_err(|e| e.to_string())?;
+        let mut parsed = Vec::new();
+        for line in text.lines() {
+            root.tick(1)?;
+            let row: V = serde_json::from_str(line).map_err(|e| e.to_string())?;
+            root.check()?;
+            if !row.is_object() {
+                return Err("candidate row object required".into());
+            }
+            parsed.push(row);
+        }
+        rows.insert(*name, parsed);
+    }
+    let associations = arr(&analysis["translation_surface_associations"])?;
+    let mut bindings = Set::new();
+    let mut public = Vec::new();
+    let mut status = Map::<String, usize>::new();
+    for row in associations {
+        root.tick(1)?;
+        if row["schema_version"] != "tos_translation_surface_association_candidate_v1"
+            || row["candidate_kind"] != "translation_surface_association_candidate"
+            || row["semantic_probe_posture"] != "proposal_not_lexical_equivalence_sign_or_concept"
+            || row["accepted"] != false
+            || row["graph_effect"] != false
+            || row["review_refs"] != json!([])
+            || !matches!(
+                row["status"].as_str(),
+                Some("proposed" | "ambiguous" | "deferred")
+            )
+        {
+            return Err("association schema/authority drift".into());
+        }
+        let de = s(&row["source_form"])?;
+        let ru = s(&row["target_form"])?;
+        let binding = format!("{}|{}", h(de), h(ru));
+        if row["source_form_key_sha256"] != h(de)
+            || row["target_form_key_sha256"] != h(ru)
+            || row["source_language"] != "de"
+            || row["target_language"] != "ru"
+            || !bindings.insert(binding.clone())
+            || issued.get(&binding).map(String::as_str) != Some(s(&row["candidate_id"])?)
+        {
+            return Err("association private/issued binding drift".into());
+        }
+        *status.entry(s(&row["status"])?.into()).or_default() += 1;
+        let mut copy = row.clone();
+        let object = copy.as_object_mut().ok_or("association object required")?;
+        object.remove("source_form");
+        object.remove("target_form");
+        public.push(copy);
+    }
+    if bindings != issued.keys().cloned().collect::<Set<_>>()
+        || lines(&public)? != retained[&route(names[3])]
+    {
+        return Err("association membership/projection drift".into());
+    }
+    root.check()?;
+    let summary: V =
+        serde_json::from_slice(&retained[&route("summary.v1.json")]).map_err(|e| e.to_string())?;
+    let coverage: V = serde_json::from_slice(&retained[&route("coverage-receipt.v1.json")])
+        .map_err(|e| e.to_string())?;
+    root.check()?;
+    if summary != analysis["summary"]
+        || summary["schema_version"] != "tos_zarathustra_parallel_lexical_candidate_summary_v1"
+        || summary["status"] != "completed-mechanical-candidate-observation-no-promotion"
+        || summary["parts"] != 4
+        || summary["accepted_candidate_count"] != 0
+        || summary["review_count"] != 0
+        || summary["graph_effect"] != false
+        || summary["semantic_equivalence_asserted"] != false
+    {
+        return Err("summary schema/authority drift".into());
+    }
+    for (count, name, private_key) in [
+        ("keyword_candidate_count", names[1], "keywords"),
+        ("repeated_sequence_count", names[2], "repeated_sequences"),
+        (
+            "association_candidate_count",
+            names[3],
+            "translation_surface_associations",
+        ),
+    ] {
+        root.tick(1)?;
+        if summary[count].as_u64() != Some(rows[name].len() as u64)
+            || rows[name].len() != arr(&analysis[private_key])?.len()
+        {
+            return Err(format!("summary count drift: {count}"));
+        }
+    }
+    if summary["association_status_counts"] != json!(status) {
+        return Err("association status count drift".into());
+    }
+    for (name, schema, count) in [
+        (
+            names[1],
+            "tos_lexical_keyword_candidate_v1",
+            "keyword_candidates_by_language",
+        ),
+        (
+            names[2],
+            "tos_lexical_repeated_sequence_candidate_v1",
+            "repeated_sequences_by_language",
+        ),
+    ] {
+        let mut languages = Map::<String, usize>::new();
+        for row in &rows[name] {
+            root.tick(1)?;
+            if row["schema_version"] != schema
+                || row["semantic_sufficiency"] != false
+                || !matches!(row["language"].as_str(), Some("de" | "ru"))
+                || !matches!(row["status"].as_str(), Some("proposed" | "deferred"))
+            {
+                return Err("lexical candidate schema/ceiling drift".into());
+            }
+            *languages.entry(s(&row["language"])?.into()).or_default() += 1;
+        }
+        if summary[count] != json!(languages) {
+            return Err("language census drift".into());
+        }
+    }
+    for (name, key, hash_field) in [
+        (names[1], "keywords", "form_key_sha256"),
+        (names[2], "repeated_sequences", "sequence_sha256"),
+    ] {
+        let mut private_index = Map::new();
+        for row in arr(&analysis[key])? {
+            root.tick(1)?;
+            let language = s(&row["language"])?;
+            let digest = if key == "keywords" {
+                h(s(&row["analysis_key"])?)
+            } else {
+                let mut sequence = Vec::new();
+                for token in arr(&row["sequence"])? {
+                    root.tick(1)?;
+                    sequence.push(s(token)?);
+                }
+                h(&sequence.join("\n"))
+            };
+            if row[hash_field] != digest
+                || private_index
+                    .insert((language.to_owned(), digest), row)
+                    .is_some()
+            {
+                return Err("private lexical key collision/drift".into());
+            }
+        }
+        let mut public_seen = Set::new();
+        for row in &rows[name] {
+            root.tick(1)?;
+            let key = (
+                s(&row["language"])?.to_owned(),
+                s(&row[hash_field])?.to_owned(),
+            );
+            if !public_seen.insert(key.clone()) {
+                return Err("public lexical key collision".into());
+            }
+            let private = private_index
+                .get(&key)
+                .ok_or("private lexical membership drift")?;
+            for (field, value) in row.as_object().ok_or("lexical object required")? {
+                root.tick(1)?;
+                if (*private)[field] != *value {
+                    return Err("private/public lexical projection drift".into());
+                }
+            }
+        }
+        if public_seen != private_index.keys().cloned().collect::<Set<_>>() {
+            return Err("lexical exact membership drift".into());
+        }
+    }
+    let mut russian_total = 0u64;
+    for row in &rows[names[0]] {
+        root.tick(1)?;
+        if row["schema_version"] != "tos_russian_exact_form_recurrence_projection_v1" {
+            return Err("recurrence schema drift".into());
+        }
+        russian_total = russian_total
+            .checked_add(
+                row["occurrence_count"]
+                    .as_u64()
+                    .ok_or("occurrence count required")?,
+            )
+            .ok_or("occurrence sum overflow")?;
+    }
+    if summary["russian_exact_token_occurrences"].as_u64() != Some(russian_total)
+        || coverage["schema_version"] != "tos_zarathustra_parallel_lexical_candidate_coverage_v1"
+        || coverage["parts_complete"] != 4
+        || coverage["russian_included_roles"] != selected.value["scope"]["russian_included_roles"]
+        || coverage["private_outputs_mode"] != "0600"
+        || coverage["tracked_source_strings"] != false
+        || coverage["accepted_candidate_count"] != 0
+        || coverage["semantic_equivalence_asserted"] != false
+        || coverage["russian_occurrence_ids_unique"] != true
+    {
+        return Err("coverage schema/count/authority drift".into());
+    }
+    for (a, b) in [
+        (
+            "russian_exact_occurrence_count",
+            "russian_exact_token_occurrences",
+        ),
+        (
+            "german_existing_lexical_occurrence_count",
+            "german_token_occurrences",
+        ),
+        (
+            "paragraph_alignment_units_consumed",
+            "parallel_alignment_units",
+        ),
+        (
+            "quality_deferred_alignment_units",
+            "quality_deferred_alignment_units",
+        ),
+    ] {
+        if coverage[a] != summary[b] {
+            return Err("coverage summary drift".into());
+        }
+    }
+    let mut logical = 0u64;
+    for count in analysis["russian_role_census"]
+        .as_object()
+        .ok_or("role census required")?
+        .values()
+    {
+        root.tick(1)?;
+        logical = logical
+            .checked_add(count.as_u64().ok_or("role count required")?)
+            .ok_or("role count overflow")?;
+    }
+    if coverage["russian_logical_rows_reconstructed"].as_u64() != Some(logical) {
+        return Err("role coverage drift".into());
+    }
+    for (coverage_key, status_key) in [
+        ("ambiguous_risk_units", "ambiguous"),
+        ("deferred_risk_units", "deferred"),
+    ] {
+        if coverage[coverage_key] != summary["parallel_status_counts"][status_key] {
+            return Err("coverage risk census drift".into());
+        }
+    }
+    let proposed = summary["parallel_status_counts"]["proposed"]
+        .as_u64()
+        .ok_or("proposed count required")?;
+    let deferred = coverage["quality_deferred_proposed_units"]
+        .as_u64()
+        .ok_or("quality deferred count required")?;
+    if proposed.checked_sub(deferred) != coverage["proposed_positive_evidence_units"].as_u64() {
+        return Err("coverage positive receipt count drift".into());
+    }
+    let provenance = json!({"schema_version":"tos_provenance_event_v1","event_id":"tos.event.zarathustra-parallel-lexical-candidates-v1.build","event_type":"mechanical_lexical_candidate_materialization","occurred_at":"2026-09-02T00:15:00-06:00","ended_at":"2026-09-02T00:15:00-06:00","agent_ref":"codex-internal-agents.lexical-candidate-v1","software_ref":GENERATOR,"software_sha256":RECIPE_SHA256,"plan_ref":selected.reference,"plan_sha256":selected.digest,"authority_boundary":selected.value["authority_boundary"]});
+    if lines(&[provenance])? != retained[&route("provenance.jsonl")] {
+        return Err("provenance selected plan/recipe drift".into());
+    }
+    let report = json!({"status":"validated-existing-receipts-no-regeneration","plan_ref":selected.reference,"plan_sha256":selected.digest,"manifest_sha256":hash(&raw),"database_sha256":database_digest,"generated_outputs_validated":7,"private_outputs_validated":2,"private_analysis_read":true,"database_bytes_hashed":true,"sqlite_opened":false,"typed_cache_equivalence_asserted":false,"algorithm_equivalence_asserted":false,"provider_invoked":false,"writes":false,"identity_count":issued.len()});
+    root.check()?;
+    Ok(report)
+}
+
 /// Preserves the frozen build/check/preview contract; invocation owns only mechanical artifacts.
 pub fn run(root: &Path, args: &[String]) -> R<V> {
     let execution = ResearchExecution::new(root, 180)?;
@@ -1632,9 +2055,12 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> R<V> {
     while let Some(arg) = arguments.next() {
         root.tick(1)?;
         match arg.as_str() {
-            "--build" | "--check" | "--preview" => {
+            "--build" | "--check" | "--preview" | "--validate-tracked" => {
                 if mode.replace(arg.as_str()).is_some() {
-                    return Err("exactly one of --build, --check, --preview required".into());
+                    return Err(
+                        "exactly one of --build, --check, --preview, --validate-tracked required"
+                            .into(),
+                    );
                 }
             }
             "--issue-identities" => issue_ids = true,
@@ -1652,7 +2078,8 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> R<V> {
             _ => return Err(format!("unrecognized argument: {arg}")),
         }
     }
-    let mode = mode.ok_or("exactly one of --build, --check, --preview required")?;
+    let mode =
+        mode.ok_or("exactly one of --build, --check, --preview, --validate-tracked required")?;
     if issue_ids && mode != "--build" {
         return Err("--issue-identities is valid only with --build".into());
     }
@@ -1664,6 +2091,9 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> R<V> {
     )?;
     if selected.custom && issue_ids {
         return Err("custom technical profile cannot remint v1 identities".into());
+    }
+    if mode == "--validate-tracked" {
+        return validate_tracked_scoped(root, &selected);
     }
     if mode == "--preview" {
         let generated = generate(root, false, &selected)?;

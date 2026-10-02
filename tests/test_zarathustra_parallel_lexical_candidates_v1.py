@@ -21,11 +21,11 @@ def jsonl(name: str):
 
 
 class ParallelLexicalCandidateV1Tests(unittest.TestCase):
-    def test_builder_parity(self):
+    def test_retained_receipts_validate(self):
         if not (PRIVATE / "antonovsky-1911-lexical-observation-v1.sqlite3").is_file():
             self.skipTest("private lexical databases are not present")
         result = subprocess.run(
-            ["python", "scripts/build_zarathustra_parallel_lexical_candidates_v1.py", "--check"],
+            ["python", "scripts/build_zarathustra_parallel_lexical_candidates_v1.py", "--validate-tracked"],
             cwd=REPO, text=True, capture_output=True,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
