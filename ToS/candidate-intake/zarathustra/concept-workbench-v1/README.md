@@ -199,3 +199,16 @@ the authored default. Custom plans require an owned 0700 carrier and 0600 plan,
 cannot issue identities, and preview checks the full retained identity binding.
 The selected raw plan digest is propagated into the manifest; default input
 pins and candidate-only authority remain unchanged.
+
+Tracked request schema and manifest reference assertions remain active without
+private payload presence. Only the legacy producer regeneration subprocess and
+request-variant integration method are explicitly dormant pending an admitted
+owned carrier. Their assertions remain retained; private artifact presence alone
+is not admission to production-root writes, outside-root requests or generation
+without scratch quota. Existing dossier checks/native request units remain
+active. Independent immutable c60 comparison belongs to its selected bounded
+oracle case; the changed maintained facade is never an independent oracle.
+The next necessary producer case may exercise the pinned facade with a root-relative
+request, admitted scratch quota and whole-operation custody. Variant requests
+require disposable owned carrier and explicit issuance policy; no production
+root generation or cleanup. Genuine generated-nine proof remains subsequent.
