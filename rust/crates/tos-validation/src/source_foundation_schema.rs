@@ -340,10 +340,20 @@ impl SourceFoundationSchemaSet {
                     .and_then(|definitions| definitions.get("claim_entry"))
                     .is_some_and(Value::is_object);
             }
+            if value.get("$schema").and_then(Value::as_str)
+                != Some("https://json-schema.org/draft/2020-12/schema")
+            {
+                return Err(SourceFoundationSchemaLoadFailure::SchemaResource);
+            }
             let uri = value
                 .get("$id")
                 .and_then(Value::as_str)
-                .filter(|uri| !uri.is_empty() && uri.len() <= 4096)
+                .filter(|uri| {
+                    !uri.is_empty()
+                        && uri.len() <= 4096
+                        && uri.starts_with("https://")
+                        && !uri.contains('#')
+                })
                 .ok_or(SourceFoundationSchemaLoadFailure::SchemaResource)?
                 .to_owned();
             let digest = Digest256::of_bytes(&member.raw);
@@ -363,9 +373,14 @@ impl SourceFoundationSchemaSet {
             return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
         }
         check_load_active(deadline, cancelled)?;
-        let backend = match SchemaBackendProbe::new(resources.clone(), profile) {
-            Ok(backend) => backend,
-            Err(_) => {
+        // This diagnostics-v2 route must retain and bind exact resources even
+        // when their semantics are outside the exceptional evaluator's closed
+        // subset; that evaluator will return Indeterminate for such a check.
+        // General schema probes still use SchemaBackendProbe::new, whose
+        // keyword gate remains strict for its own owner contract.
+        let schema_set_sha256 = match schema_resource_set_digest(&resources) {
+            Some(digest) => digest,
+            None => {
                 check_load_active(deadline, cancelled)?;
                 return Err(SourceFoundationSchemaLoadFailure::SchemaSet);
             }
@@ -377,7 +392,7 @@ impl SourceFoundationSchemaSet {
             resources,
             contracts,
             contract_selection_sha256: contract_selection_digest(&expected_contracts),
-            schema_set_sha256: backend.schema_set_digest(),
+            schema_set_sha256,
             limits_sha256: limits.digest(),
             schema_bytes: total_bytes,
             catalog_entry_schema_present,
