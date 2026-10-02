@@ -41,7 +41,8 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let deadline = Instant::now() + Duration::from_secs(5);
         let cancel = AtomicBool::new(false);
-        let store = AdmissionStore::create(&tmp.path().join("store"), deadline, &cancel).unwrap();
+        let store_path = tmp.path().join("store");
+        let store = AdmissionStore::create(&store_path, deadline, &cancel).unwrap();
         let json = JsonLimits::new(16384, 32, 4096, 4300).unwrap();
         let admission = AdmissionLimits {
             max_batch_bytes: 16384,
