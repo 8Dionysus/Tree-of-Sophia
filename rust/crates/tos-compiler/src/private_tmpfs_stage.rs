@@ -623,9 +623,10 @@ mod persistent_boundary_controls {
                 Err(Error::Invalid(_))
             ));
         }
-        let parent = std::env::var_os("TMPDIR").expect("control requires admitted TMPDIR");
-        let root = PathBuf::from(parent)
-            .join(format!("native-guard-store-control-{}", std::process::id()));
+        // Identity-only negative fixture: honor TMPDIR or the platform test temp.
+        // No private tmpfs quota or positive kernel admission is claimed here.
+        let root =
+            std::env::temp_dir().join(format!("native-guard-store-control-{}", std::process::id()));
         assert!(!root.exists());
         fs::create_dir(&root).unwrap();
         struct Cleanup(PathBuf);
