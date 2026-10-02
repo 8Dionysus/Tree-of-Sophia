@@ -98,7 +98,37 @@ fn file_hash(root: &ResearchExecution, p: &str) -> Result<String> {
     let mut file = root.source_file(p, 256 * 1024 * 1024)?;
     root.hash_file(&mut file, 256 * 1024 * 1024)
 }
+// Borrow source Values: Python sort_keys=True without duplicating the whole DOM.
+struct OrderedJson<'a>(&'a Value);
+impl serde::Serialize for OrderedJson<'_> {
+    fn serialize<S: serde::Serializer>(
+        &self,
+        serializer: S,
+    ) -> std::result::Result<S::Ok, S::Error> {
+        use serde::ser::{SerializeMap, SerializeSeq};
+        match self.0 {
+            Value::Object(object) => {
+                let ordered: BTreeMap<_, _> = object.iter().collect();
+                let mut map = serializer.serialize_map(Some(ordered.len()))?;
+                for (key, value) in ordered {
+                    map.serialize_entry(key, &OrderedJson(value))?;
+                }
+                map.end()
+            }
+            Value::Array(array) => {
+                let mut seq = serializer.serialize_seq(Some(array.len()))?;
+                for value in array {
+                    seq.serialize_element(&OrderedJson(value))?;
+                }
+                seq.end()
+            }
+            value => serde::Serialize::serialize(value, serializer),
+        }
+    }
+}
 fn encode(v: &Value, pretty: bool) -> Vec<u8> {
+    let ordered = OrderedJson(v);
+    let v = &ordered;
     let mut b = if pretty {
         serde_json::to_vec_pretty(v).unwrap()
     } else {
@@ -1225,6 +1255,39 @@ mod tests {
     fn fixture_request() -> Value {
         json!({"request_key":"fate","request_identity_key":"tos.concept-request-key.sid-0123456789abcdef0123456789abcdef","request_version":2,"lexical_probes":{"de":["Schicksal"],"ru":["судьба"]},"semantic_neighbor_probes":{"de":["Verhängniss"],"ru":[]}})
     }
+    #[test]
+    fn python_recursive_sorted_json_exact_bytes_preserves_array_and_scalars() {
+        // Independent CPython sort_keys=True byte contract; preserve_order feature unification.
+        let value = json!({"z":[{"β":true,"a":null},"Ж",2,-1,1.5],"a":{"z":"Straße","b":false}});
+        assert_eq!(
+            encode(&value, false),
+            r#"{"a":{"b":false,"z":"Straße"},"z":[{"a":null,"β":true},"Ж",2,-1,1.5]}
+"#
+            .as_bytes()
+        );
+        assert_eq!(
+            encode(&value, true),
+            r#"{
+  "a": {
+    "b": false,
+    "z": "Straße"
+  },
+  "z": [
+    {
+      "a": null,
+      "β": true
+    },
+    "Ж",
+    2,
+    -1,
+    1.5
+  ]
+}
+"#
+            .as_bytes()
+        );
+    }
+
     #[test]
     fn reversible_expansion_retains_low_frequency_and_semantic_tier() {
         let r = fixture_request();

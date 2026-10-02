@@ -4,13 +4,17 @@ fn spaced(v: &Value) -> String {
     fn walk(v: &Value) -> String {
         match v {
             Value::Array(a) => format!("[{}]", a.iter().map(walk).collect::<Vec<_>>().join(", ")),
-            Value::Object(o) => format!(
-                "{{{}}}",
-                o.iter()
-                    .map(|(k, v)| format!("{}: {}", serde_json::to_string(k).unwrap(), walk(v)))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
+            Value::Object(o) => {
+                let ordered: BTreeMap<_, _> = o.iter().collect();
+                format!(
+                    "{{{}}}",
+                    ordered
+                        .iter()
+                        .map(|(k, v)| format!("{}: {}", serde_json::to_string(k).unwrap(), walk(v)))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
             _ => serde_json::to_string(v).unwrap(),
         }
     }
