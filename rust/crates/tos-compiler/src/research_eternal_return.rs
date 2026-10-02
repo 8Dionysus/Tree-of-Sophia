@@ -118,6 +118,16 @@ pub(crate) fn indexed(
     }
     Ok(m)
 }
+// The selected Python rendering recipe interpolates a nullable ordinal as None,
+// rather than the JSON spelling null. This label does not assign an ordinal.
+fn reading_ref(part: usize, ordinal: &Value) -> String {
+    let ordinal = if ordinal.is_null() {
+        "None".to_owned()
+    } else {
+        ordinal.to_string()
+    };
+    format!("p{part}.r{ordinal}")
+}
 pub(crate) fn count(rows: &[Value], key: &str) -> Result<Value> {
     let mut m = BTreeMap::<String, usize>::new();
     for r in rows {
@@ -166,7 +176,7 @@ pub fn source_ordered_rows(
             let aid = s(&al["alignment_id"])?;
             let Some(p) = public.get(aid) else { continue };
             let sp = spine.get(aid).ok_or("missing alignment spine")?;
-            let reading = format!("p{part}.r{}", sp["reading_ordinal_within_part"]);
+            let reading = reading_ref(part, &sp["reading_ordinal_within_part"]);
             if !["p3.r2", "p3.r13", "p3.r16", "p4.r19"].contains(&reading.as_str())
                 || !["core", "supporting"].contains(&s(&p["evidence_class"])?)
             {
@@ -686,7 +696,7 @@ pub fn hydrate_units(root: &ResearchExecution) -> Result<BTreeMap<String, Value>
                 texts.push(selected.join("\n"));
             }
             let sp = spine.get(aid).ok_or("missing alignment spine")?;
-            let row = json!({"alignment_id":aid,"part":part,"reading":format!("p{part}.r{}",sp["reading_ordinal_within_part"]),"status":alignment["status"],"shape":alignment["correspondence_shape"],"source_anchor_refs":alignment["ordered_source_anchor_refs"],"target_anchor_refs":alignment["ordered_target_anchor_refs"],"de_text":texts[0],"ru_text":texts[1]});
+            let row = json!({"alignment_id":aid,"part":part,"reading":reading_ref(part, &sp["reading_ordinal_within_part"]),"status":alignment["status"],"shape":alignment["correspondence_shape"],"source_anchor_refs":alignment["ordered_source_anchor_refs"],"target_anchor_refs":alignment["ordered_target_anchor_refs"],"de_text":texts[0],"ru_text":texts[1]});
             if units.insert(aid.into(), row).is_some() {
                 return Err("duplicate alignment identity".into());
             }
