@@ -658,6 +658,7 @@ fn pdf_page_geometry(
         if let Some(rest) = line.strip_prefix("Page ") {
             if let Some((index, value)) = rest.split_once(" size:") {
                 let index = index
+                    .trim()
                     .parse::<usize>()
                     .map_err(|_| SourceCommandError::Invalid("pdfinfo page index"))?;
                 let dimensions = value
@@ -688,6 +689,7 @@ fn pdf_page_geometry(
                 }
             } else if let Some((index, value)) = rest.split_once(" rot:") {
                 let index = index
+                    .trim()
                     .parse::<usize>()
                     .map_err(|_| SourceCommandError::Invalid("pdfinfo rotation page index"))?;
                 let value = value
@@ -2258,8 +2260,7 @@ mod tests {
 
     #[test]
     fn pdfinfo_geometry_parser_requires_every_page_and_preserves_rotation() {
-        let output =
-            "Page 1 size: 612 x 792 pts (letter)\nPage 1 rot: 90\nPage 2 size: 612.5 x 792 pts\n";
+        let output = "Page    1 size: 612 x 792 pts (letter)\nPage   1 rot: 90\nPage 2 size: 612.5 x 792 pts\n";
         let (sizes, rotations) = pdf_page_geometry(output, 2).expect("page geometries");
         assert_eq!(sizes[&1], (612.0, 792.0));
         assert_eq!(sizes[&2], (612.5, 792.0));

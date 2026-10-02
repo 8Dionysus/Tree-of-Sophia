@@ -316,11 +316,19 @@ fn expected_records(context: &batch::BatchContext) -> Result<BTreeMap<String, (V
     Ok(result)
 }
 
-fn payload_key(payload: &Value) -> Result<(String, String, String)> {
+fn selected_payload_key(payload: &Value) -> Result<(String, String, String)> {
     Ok((
         required_text(payload, "item_ref")?.to_owned(),
         required_text(payload, "file_ref")?.to_owned(),
         batch::destination_ref(payload)?,
+    ))
+}
+
+fn receipt_payload_key(row: &Value) -> Result<(String, String, String)> {
+    Ok((
+        required_text(row, "item_ref")?.to_owned(),
+        required_text(row, "file_ref")?.to_owned(),
+        required_text(row, "destination_ref")?.to_owned(),
     ))
 }
 
@@ -329,7 +337,7 @@ fn expected_payloads(
 ) -> Result<BTreeMap<(String, String, String), Value>> {
     let mut result = BTreeMap::new();
     for payload in batch::payloads(context)? {
-        let key = payload_key(&payload)?;
+        let key = selected_payload_key(&payload)?;
         if result.insert(key, payload).is_some() {
             return Err("manifest repeats an Item/File/destination binding".into());
         }
@@ -611,7 +619,7 @@ fn verify_fixity_and_custody(
     }
     let mut seen = BTreeSet::new();
     for row in &fixity_rows {
-        let key = payload_key(row).map_err(|_| "fixity contains an unselected payload")?;
+        let key = receipt_payload_key(row).map_err(|_| "fixity contains an unselected payload")?;
         if !seen.insert(key.clone()) {
             return Err("fixity rows do not close over selected payloads".into());
         }
@@ -674,8 +682,8 @@ fn verify_fixity_and_custody(
     }
     let mut custody_seen = BTreeSet::new();
     for row in custody_rows {
-        let key =
-            payload_key(row).map_err(|_| "handoff payload custody contains an unselected file")?;
+        let key = receipt_payload_key(row)
+            .map_err(|_| "handoff payload custody contains an unselected file")?;
         if !custody_seen.insert(key.clone()) {
             return Err("handoff payload custody closure differs from manifest".into());
         }
