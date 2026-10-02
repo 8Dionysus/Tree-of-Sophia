@@ -3335,14 +3335,19 @@ fn run_prepared_transition(
         .connection
         .transaction_with_behavior(TransactionBehavior::Deferred)
         .map_err(|error| error.to_string())?;
-    let before_tx = before_db
-        .as_mut()
-        .map(|db| {
-            db.connection
-                .transaction_with_behavior(TransactionBehavior::Deferred)
-        })
-        .transpose()
-        .map_err(|error| error.to_string())?;
+    // Split the optional holder once so its connection transaction and file
+    // identity can remain borrowed together through final SQL emission.
+    let (before_identity, before_tx) = match before_db.as_mut() {
+        Some(db) => (
+            Some(&db.identity),
+            Some(
+                db.connection
+                    .transaction_with_behavior(TransactionBehavior::Deferred)
+                    .map_err(|error| error.to_string())?,
+            ),
+        ),
+        None => (None, None),
+    };
     for tx in std::iter::once(&d1_tx)
         .chain(std::iter::once(&after_tx))
         .chain(before_tx.iter())
@@ -4183,8 +4188,8 @@ fn run_prepared_transition(
     let transitions = row_transitions(before_capture, after_capture, limits, &mut retained)?;
     d1.identity.verify_selected_file_identity()?;
     after_db.identity.verify_selected_file_identity()?;
-    if let Some(before_db) = before_db.as_ref() {
-        before_db.identity.verify_selected_file_identity()?;
+    if let Some(identity) = before_identity {
+        identity.verify_selected_file_identity()?;
     }
     let receipt = emit_d1_pair(&spec, transitions, &forward, &rollback, &manifest)
         .map_err(|error| format!("offline private capture: {error:?}"))?;
