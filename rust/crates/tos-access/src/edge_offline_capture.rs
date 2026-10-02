@@ -210,6 +210,13 @@ fn string<'a>(value: &'a Value, key: &str) -> Result<&'a str, String> {
         .ok_or_else(|| invalid("request string field"))
 }
 
+fn foundation_string<'a>(value: &'a JsonValue, key: &str) -> Result<&'a str, String> {
+    value
+        .object_get(key)
+        .and_then(JsonValue::as_str)
+        .ok_or_else(|| invalid("request string field"))
+}
+
 fn positive(value: &Value, key: &str) -> Result<u64, String> {
     value
         .get(key)
@@ -3789,7 +3796,7 @@ fn run_prepared_transition(
     let after_source =
         prepared_source_inputs_held(&after_tx, &after_binding_value, limits, &mut d1_read_bytes)
             .map_err(|error| error.to_string())?;
-    let after_data_revision = string(&after_binding_value, "data_revision")?;
+    let after_data_revision = foundation_string(&after_binding_value, "data_revision")?;
     let (after_persisted_revision, _, _) =
         parse_meta_accounted(&after_tx, "data_revision", limits, &mut d1_read_bytes)?;
     if after_persisted_revision != json!({"sha256": after_data_revision}) {
@@ -3909,7 +3916,7 @@ fn run_prepared_transition(
                 tx,
                 limits,
                 &mut d1_read_bytes,
-                string(binding, "data_revision")?,
+                foundation_string(binding, "data_revision")?,
             )
         })
         .transpose()?;
@@ -4248,6 +4255,7 @@ fn run_prepared_transition(
     let mut before_capture = BTreeMap::new();
     let mut after_capture = BTreeMap::new();
     let mut gram_deltas = BTreeMap::<(String, i64, String), i64>::new();
+    let mut posting_count = 0usize;
     let mut projected_count = 0u64;
     let repo_root = repository_root()?;
     for (kind, id) in affected {
@@ -4338,8 +4346,9 @@ fn run_prepared_transition(
         } else if new.is_some() {
             return Err(invalid("selected successor search address absent"));
         }
-        for row in old_projected.values() {
-            if row.len() == 4
+        for ((table, _), row) in &old_projected {
+            if *table == D1Table::KnowledgeSearchGrams
+                && row.len() == 4
                 && row[0]
                     == D1Cell::Text(if kind == "node" {
                         "nodes".into()
@@ -4352,6 +4361,10 @@ fn run_prepared_transition(
                     D1Cell::Text(value) => value.as_str(),
                     _ => return Err(invalid("search gram type")),
                 };
+                posting_count = posting_count
+                    .checked_add(1)
+                    .filter(|count| *count <= limits.max_postings)
+                    .ok_or_else(|| invalid("D1 changed posting budget exceeded"))?;
                 let plural = if kind == "node" { "nodes" } else { "relations" };
                 retained.key(plural, gram)?;
                 *gram_deltas
@@ -4359,8 +4372,9 @@ fn run_prepared_transition(
                     .or_default() -= 1;
             }
         }
-        for row in new_projected.values() {
-            if row.len() == 4
+        for ((table, _), row) in &new_projected {
+            if *table == D1Table::KnowledgeSearchGrams
+                && row.len() == 4
                 && row[0]
                     == D1Cell::Text(if kind == "node" {
                         "nodes".into()
@@ -4373,6 +4387,10 @@ fn run_prepared_transition(
                     D1Cell::Text(value) => value.as_str(),
                     _ => return Err(invalid("search gram type")),
                 };
+                posting_count = posting_count
+                    .checked_add(1)
+                    .filter(|count| *count <= limits.max_postings)
+                    .ok_or_else(|| invalid("D1 changed posting budget exceeded"))?;
                 let plural = if kind == "node" { "nodes" } else { "relations" };
                 retained.key(plural, gram)?;
                 *gram_deltas
@@ -4681,8 +4699,8 @@ fn run_prepared_transition(
         ("before_source_revision", json!(spec.before_source_revision)),
         ("after_source_revision", json!(spec.after_source_revision)),
         ("source_revision", json!(after_source.source_revision())),
-        ("before_prepared_binding", json!(before_binding_value)),
-        ("after_prepared_binding", json!(after_binding_value)),
+        ("before_prepared_binding", json!(request["before_binding"])),
+        ("after_prepared_binding", json!(request["after_binding"])),
         (
             "before_source_inputs_sha256",
             json!(spec.before_source_inputs_sha256),
@@ -5252,7 +5270,7 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
     let mut d1_read_bytes = D1ReadBytes::new(limits);
     let after_source =
         prepared_source_inputs_held(&after_tx, &binding, limits, &mut d1_read_bytes)?;
-    let binding_revision = string(&binding, "data_revision")?;
+    let binding_revision = foundation_string(&binding, "data_revision")?;
     let (prepared_data_revision, _, _) =
         parse_meta_accounted(&after_tx, "data_revision", limits, &mut d1_read_bytes)?;
     if prepared_data_revision != json!({"sha256": binding_revision}) {
