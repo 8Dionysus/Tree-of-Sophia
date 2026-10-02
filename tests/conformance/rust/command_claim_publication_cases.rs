@@ -318,6 +318,12 @@ fn maintained_claim_addition_whole_transaction_and_access() {
             assert!(total <= 16_777_216 && files.len() < 2048);
             files.insert(path.clone(), raw);
         }
+        // The source packet retains weak catalog/control carriers for its caller.
+        // The selected restore cut follows the same existing authored membership law.
+        files.retain(|path, _| {
+            path != "ToS/source-witnesses/.historical-create.writer.lock"
+                && tos_source_store::is_authored_source_path_v1(path)
+        });
         let manifest_upper = files
             .keys()
             .try_fold(512usize, |total, path| {
@@ -326,10 +332,7 @@ fn maintained_claim_addition_whole_transaction_and_access() {
             .unwrap();
         assert!(manifest_upper <= 4_194_304);
         let (captured, modes) = agent_authored_capture(&fixture_root, deadline, 16_777_216);
-        assert_eq!(
-            captured, files,
-            "actual authored FS differs from exported packet"
-        );
+        assert_authored_bytes_equal(&captured, &files, deadline, "actual authored FS vs packet");
         let cut_root = fixture_root.join("e4-source-cut");
         // A stopped pre-publication attempt may resume with its exact retained cut.
         // Selection is explicit and proves every manifest mode and object byte;
@@ -358,7 +361,12 @@ fn maintained_claim_addition_whole_transaction_and_access() {
                 let selected = selected_cut
                     .read_member(revision, &member.path, 8_388_608, deadline, &cancel)
                     .unwrap();
-                assert_eq!(selected.raw, captured[path]);
+                assert!(
+                    selected.raw == captured[path],
+                    "selected authored member differs: path={path:?} bytes={} sha256={}",
+                    selected.raw.len(),
+                    Digest256::of_bytes(&selected.raw).to_prefixed()
+                );
             }
             revision
         } else {
@@ -708,7 +716,12 @@ fn maintained_claim_addition_whole_transaction_and_access() {
         assert_eq!(restored["source_bytes"], source_bytes);
         let (restored_files, restored_modes) =
             agent_authored_capture(&restored_root, deadline, 16_777_216);
-        assert_eq!(restored_files, captured, "cold source cut bytes differ");
+        assert_authored_bytes_equal(
+            &restored_files,
+            &captured,
+            deadline,
+            "cold source cut bytes",
+        );
         assert_eq!(restored_modes, modes, "cold source cut modes differ");
         fs::write(
             fixture_root.join("e4-source-restore-receipt.json"),
@@ -746,6 +759,45 @@ pub(super) const AGENT_RECORD_COMPONENTS: &[&str] = &[
 pub(super) fn agent_authored(root: &Path, deadline: Instant) -> BTreeMap<String, Vec<u8>> {
     agent_authored_capture(root, deadline, 33_554_432).0
 }
+fn assert_authored_bytes_equal(
+    left: &BTreeMap<String, Vec<u8>>,
+    right: &BTreeMap<String, Vec<u8>>,
+    deadline: Instant,
+    context: &str,
+) {
+    assert!(left.len() <= 2048 && right.len() <= 2048 && Instant::now() < deadline);
+    if left == right {
+        return;
+    }
+    let mut changed = 0usize;
+    let mut details = Vec::new();
+    let keys: std::collections::BTreeSet<_> = left.keys().chain(right.keys()).collect();
+    for path in keys {
+        assert!(Instant::now() < deadline);
+        if left.get(path) == right.get(path) {
+            continue;
+        }
+        changed += 1;
+        if details.len() < 8 {
+            let describe = |bytes: Option<&Vec<u8>>| {
+                bytes.map(|raw| (raw.len(), Digest256::of_bytes(raw).to_prefixed()))
+            };
+            details.push(format!(
+                "path={:?} path_sha256={} actual={:?} expected={:?}",
+                path.chars().take(256).collect::<String>(),
+                Digest256::of_bytes(path.as_bytes()).to_prefixed(),
+                describe(left.get(path)),
+                describe(right.get(path))
+            ));
+        }
+    }
+    panic!(
+        "{context}: members actual={} expected={} differing={changed}; first8={details:?}",
+        left.len(),
+        right.len()
+    );
+}
+
 fn agent_authored_capture(
     root: &Path,
     deadline: Instant,
