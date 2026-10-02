@@ -16,13 +16,16 @@ use tos_validation::{
     },
     source_cut::{
         CutSchemaDiagnosticsLimits, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
-        cut_schema_preparation_state_upper_bound,
+        LegacySelectedDiagnosticsLimits, cut_schema_preparation_state_upper_bound,
     },
 };
 #[derive(Clone, Copy, Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LexicalSchemaLimits {
     pub max_instance_bytes: usize,
+    pub max_visits: u32,
+    pub parser_state_bytes: u64,
+    pub conversion_state_bytes: u64,
     pub max_units: usize,
     pub max_raw_bytes: u64,
     pub max_wire_bytes: u64,
@@ -57,6 +60,9 @@ impl<'a> LexicalSchemaExecutor<'a> {
     ) -> Result<Self> {
         if l.max_instance_bytes == 0
             || l.max_instance_bytes > 32 * 1024 * 1024
+            || l.max_visits == 0
+            || l.parser_state_bytes == 0
+            || l.conversion_state_bytes == 0
             || l.max_units == 0
             || l.max_units > 1024
             || l.max_state_bytes == 0
@@ -136,7 +142,12 @@ impl<'a> LexicalSchemaExecutor<'a> {
             })
             .map_err(|e| format!("lexical diagnostics: {e:?}"))?;
         executor
-            .set_diagnostics_v2_legacy_raw_instance_limit(l.max_instance_bytes)
+            .set_diagnostics_v2_legacy_selected_limits(LegacySelectedDiagnosticsLimits {
+                max_instance_bytes: l.max_instance_bytes,
+                max_visits: l.max_visits,
+                parser_state_bytes: l.parser_state_bytes,
+                conversion_state_bytes: l.conversion_state_bytes,
+            })
             .map_err(|e| format!("lexical instance profile: {e:?}"))?;
         let quota = SharedSchemaWorkerQuota::new(
             l.max_cpu_seconds
@@ -202,7 +213,7 @@ impl LexicalSchema for LexicalSchemaExecutor<'_> {
             .ok_or("lexical schema units")?;
         let d = self
             .executor
-            .check_diagnostics_v2(
+            .check_diagnostics_v2_legacy_selected(
                 &format!("lexical-private-candidate-unit-{}", self.units),
                 raw,
                 contract,

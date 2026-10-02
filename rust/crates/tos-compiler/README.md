@@ -88,6 +88,12 @@ capture, the four existing fixity-bound private TEI payloads, an exact verified
 schema worker and finite JSON resource declarations. The native diagnostics-v2
 adapter evaluates the complete projection under its existing 32 MiB raw-instance
 profile; it never substitutes a small projection probe.
+The selected legacy sibling declares finite `schema.max_visits`,
+`schema.parser_state_bytes` and `schema.conversion_state_bytes`. It meters the
+existing Foundation legacy parser and conversion before allocations, preserving
+the historical raw legacy profile and its 300,000-visit ceiling. Selected parser,
+conversion, schema/request/image terms and separate runtime headroom must fit the
+child address-space declaration; this logical check does not prove process RSS.
 
 `build` requires a fresh private candidate root and writes the plan-declared
 relative projection and SQLite paths below that root, plus
