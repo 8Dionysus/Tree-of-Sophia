@@ -1128,7 +1128,16 @@ impl Reader<'_, '_> {
                     "Agent cold resolver current addressed binding",
                 ));
             }
-            let history_evidence = view(&resolved.history, self.limits.catalog.max_row_bytes)?;
+            let owner_history = view(&resolved.history, self.limits.catalog.max_row_bytes)?;
+            // The public Versions history DTO is distinct from private owner
+            // evidence. Package verification remains on the outer provenance.
+            let history_evidence = json!({
+                "source_ref": owner_history["source_ref"],
+                "sha256": owner_history["sha256"],
+                "receipt_count": owner_history["receipt_count"],
+                "retained_record_chain_verified": owner_history["retained_record_chain_verified"],
+                "retained_baseline_ref": owner_history["retained_baseline_ref"],
+            });
             base_provenance = json!({"verification_scope":"selected-record-chain","all_package_bytes_verified":false,"catalog":address,"descriptor":descriptor,"history":history_evidence});
             let mut provenance = base_provenance.clone();
             provenance["source"] = view(&resolved.source, self.limits.catalog.max_row_bytes)?;
