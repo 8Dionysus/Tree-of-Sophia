@@ -1948,10 +1948,21 @@ def run_local_command(owner_config: Path, request: dict[str, Any], *,
 def main() -> int:
     import argparse
     import sys
-    parser = argparse.ArgumentParser(description='Local source-owner assessment commands; JSON on stdin.')
+    parser = argparse.ArgumentParser(
+        description=(
+            'Retained Python assessment oracle. Owned commands use source_commands.py '
+            'with an explicit native invocation.'
+        )
+    )
     parser.add_argument('--owner-config', type=Path, required=True,
                         help='operator-selected protected configuration; never take this path from the request')
+    parser.add_argument('--legacy-oracle', action='store_true',
+                        help='explicitly run the retained Python reference engine; never use as the installed owner command')
     args = parser.parse_args()
+    if not args.legacy_oracle:
+        print(json.dumps({'schema_version': 'tos_local_assessment_error_v1',
+                          'error': 'PermissionError'}))
+        return 2
     try:
         encoded = sys.stdin.buffer.read(MAX_RECORD_BYTES + 1)
         if len(encoded) > MAX_RECORD_BYTES:

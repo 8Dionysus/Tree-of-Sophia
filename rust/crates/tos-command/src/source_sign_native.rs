@@ -1715,6 +1715,53 @@ pub fn resolve_assessment<R: SignNativeRead + ?Sized>(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<ResolvedSignNative> {
+    resolve_assessment_route(
+        reader,
+        worker,
+        binding,
+        origin,
+        scope,
+        NativeRoute::Sign,
+        deadline,
+        cancelled,
+    )
+}
+
+/// Construct the same maintained TextUnit/layer assessment records through
+/// the separately selected confidential owner-local transport. The route is
+/// fixed here rather than selected by request data, and still requires the
+/// caller's protected `native_text_units` read scope.
+pub(crate) fn resolve_owner_assessment<R: SignNativeRead + ?Sized>(
+    reader: &mut R,
+    worker: &mut CutWorkerSchemaExecutor,
+    binding: &JsonValue,
+    origin: &str,
+    scope: NativeReadScope,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ResolvedSignNative> {
+    resolve_assessment_route(
+        reader,
+        worker,
+        binding,
+        origin,
+        scope,
+        NativeRoute::OwnerText,
+        deadline,
+        cancelled,
+    )
+}
+
+fn resolve_assessment_route<R: SignNativeRead + ?Sized>(
+    reader: &mut R,
+    worker: &mut CutWorkerSchemaExecutor,
+    binding: &JsonValue,
+    origin: &str,
+    scope: NativeReadScope,
+    route_profile: NativeRoute,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ResolvedSignNative> {
     if python_strip_unicode16_v1(origin, MAX_METADATA_FILE_BYTES)
         .map_err(|_| SourceCommandError::Invalid("native assessment origin budget"))?
         .is_empty()
@@ -1723,8 +1770,15 @@ pub fn resolve_assessment<R: SignNativeRead + ?Sized>(
             "native assessment requires explicit evidence origin",
         ));
     }
-    let (mut native, packet, layer, summary) =
-        selected_binding(reader, worker, binding, scope, deadline, cancelled)?;
+    let (mut native, packet, layer, summary) = selected_binding_with_route(
+        reader,
+        worker,
+        binding,
+        scope,
+        route_profile,
+        deadline,
+        cancelled,
+    )?;
     let layer_ref = cmd::object(vec![
         ("id", cmd::field(&layer, "layer_id")?.clone()),
         ("version", cmd::field(&layer, "layer_version")?.clone()),
@@ -1802,7 +1856,28 @@ fn selected_binding<'a, R: SignNativeRead + ?Sized>(
     deadline: Instant,
     cancelled: &'a AtomicBool,
 ) -> SourceCommandResult<(Native<'a, R>, JsonValue, JsonValue, JsonValue)> {
+    selected_binding_with_route(
+        reader,
+        worker,
+        binding,
+        scope,
+        NativeRoute::Sign,
+        deadline,
+        cancelled,
+    )
+}
+
+fn selected_binding_with_route<'a, R: SignNativeRead + ?Sized>(
+    reader: &'a mut R,
+    worker: &'a mut CutWorkerSchemaExecutor,
+    binding: &JsonValue,
+    scope: NativeReadScope,
+    route_profile: NativeRoute,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+) -> SourceCommandResult<(Native<'a, R>, JsonValue, JsonValue, JsonValue)> {
     let mut native = selected_native(reader, worker, deadline, cancelled)?;
+    native.route_profile = route_profile;
     let (packet, layer, summary) = native.resolve(binding, scope)?;
     Ok((native, packet, layer, summary))
 }
@@ -2808,4 +2883,41 @@ pub(crate) fn read_disclosed_unit<R: SignNativeRead + ?Sized>(
     native.reader.verify_current(deadline, cancelled)?;
     native.tick()?;
     Ok(result)
+}
+
+/// Resolve one exact binding through the owner-local Text transport under an
+/// explicitly selected read scope. The v4-v6 confidential assessment adapter
+/// uses this to derive the same packet/layer/schema closure as other native
+/// owner consumers; it does not route through Sign or infer a positive review.
+pub(crate) fn resolve_owner_binding<R: SignNativeRead + ?Sized>(
+    reader: &mut R,
+    worker: &mut CutWorkerSchemaExecutor,
+    binding: &JsonValue,
+    scope: NativeReadScope,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ResolvedSignBinding> {
+    reader.verify_current(deadline, cancelled)?;
+    let mut native = Native {
+        reader,
+        worker,
+        deadline,
+        cancelled,
+        cache: BTreeMap::new(),
+        schemas: BTreeMap::new(),
+        remaining_metadata: MAX_METADATA_BYTES,
+        remaining_content: MAX_CONTENT_BYTES,
+        route_profile: NativeRoute::OwnerText,
+    };
+    let (packet, layer, summary) = native.resolve(binding, scope)?;
+    let input_snapshot = native.snapshot()?;
+    let inputs = selected_inputs(&native);
+    Ok(ResolvedSignBinding {
+        packet,
+        layer,
+        summary,
+        inputs,
+        input_snapshot,
+        schema_digests: native.schemas,
+    })
 }

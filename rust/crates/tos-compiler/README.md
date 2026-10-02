@@ -109,7 +109,18 @@ All three actions require `--source-store`, `--source-revision`,
 `--event-time`; `validate` requires `--candidate-root`; `validate-legacy`
 requires `--projection`. Paths must be absolute. The limits JSON has explicit
 `max_seconds`, manifest/cut read ceilings, a `lexical` object matching
-`LexicalLimits`, and a `schema` object matching `LexicalSchemaLimits`. These are
+`LexicalLimits`, and a `schema` object matching `LexicalSchemaLimits`.
+This native limits declaration remains provisional and bound to the selected
+software source; it has no stable external schema version yet. Historical runtime
+profiles retain their original source binding. A newly selected profile must
+explicitly include the working database ceiling; acceptance of the producer and
+its installed consumer remains separate from accepting this source interface.
+`lexical.max_working_database_bytes` bounds the main SQLite file during row and
+index construction; it must be page-aligned, at least `max_database_bytes`, and
+within the same supported one-GiB ceiling. `max_database_bytes` remains the
+post-`VACUUM` candidate and validator ceiling. The caller must separately admit
+the working file, `VACUUM` temporary space, and all other live outputs and memory;
+these two file ceilings do not grant that whole-operation budget.
 `schema.max_preparation_bytes` admits the metadata-derived schema/parser/image
 preparation upper bound before constructing the worker; `max_state_bytes`
 separately admits diagnostics controller state. These are finite computational refusal boundaries; the host launcher separately admits

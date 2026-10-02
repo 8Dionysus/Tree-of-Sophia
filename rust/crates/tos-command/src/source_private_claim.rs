@@ -15,6 +15,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonLimits, JsonValue, RelativePath, emit_python_compact_json};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
+use tos_validation::assessment::MAX_RECORD_BYTES;
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 pub(crate) const CONFIG_V1: &str = "tos_local_owner_claim_command_v1";
@@ -36,6 +37,7 @@ const BASE_PACKAGE_FILES: &[&str] = &[
 ];
 const MAX_CLAIM_ROWS: usize = 1024;
 const MAX_CLAIM_BYTES: usize = 1_048_576;
+const MAX_ASSESSMENT_CLAIM_FILE_BYTES: usize = 16_777_216;
 const MAX_PACKAGE_FILES: usize = 64;
 const MAX_PACKAGE_BYTES: usize = 8_388_608;
 const MAX_REVISIONS: usize = 128;
@@ -153,6 +155,82 @@ struct NativeSelection {
     source_ids: BTreeSet<String>,
 }
 
+/// One explicitly selected owner-local Claim and its bounded evidence closure
+/// for a read-only assessment. This is deliberately separate from `Selection`
+/// and `Grant`: assessment source access carries no caller-authored grant or
+/// transaction authority.
+#[derive(Clone, Debug)]
+pub(crate) struct AssessmentClaimSelection {
+    pub(crate) path: String,
+    pub(crate) claim_id: String,
+    pub(crate) relation_type_id: String,
+    pub(crate) origin_id: String,
+    pub(crate) source_access: JsonValue,
+    pub(crate) source_records: Vec<JsonValue>,
+    pub(crate) native_bindings: Vec<JsonValue>,
+    pub(crate) verify_content: bool,
+    pub(crate) form_ids: Vec<String>,
+}
+
+/// Read-only Claim closure returned to the assessment source adapter. Raw
+/// bytes stay on the owner-private path; the journal receives envelopes,
+/// exact source references, language requirements and snapshot inputs.
+pub(crate) struct AssessmentClaimSources {
+    pub(crate) records: Vec<JsonValue>,
+    pub(crate) native_records: Vec<JsonValue>,
+    pub(crate) required_source_refs: BTreeMap<String, Vec<JsonValue>>,
+    pub(crate) required_languages: BTreeMap<String, Vec<String>>,
+    pub(crate) native_summaries: Vec<JsonValue>,
+    pub(crate) native_inputs: Vec<crate::source_sign_native::NativeInput>,
+    pub(crate) native_snapshots: Vec<String>,
+    pub(crate) schema_digests: BTreeMap<String, Digest256>,
+    pub(crate) snapshots: Vec<String>,
+    pub(crate) source_files: BTreeMap<String, Vec<u8>>,
+    pub(crate) form_sets: BTreeMap<String, JsonValue>,
+    pub(crate) form_paths: BTreeMap<String, String>,
+    pub(crate) source_paths: BTreeMap<String, String>,
+    /// Public semantic-annotation packet membership used by the selected
+    /// Claim identity closure. `None` means no selected endpoint triggered
+    /// the maintained native-identity reservation scan.
+    pub(crate) public_native_identity_paths: Option<BTreeSet<String>>,
+}
+
+struct AssessmentClaimScopedReader<'a> {
+    reader: &'a mut dyn SignNativeRead,
+    allow_content: bool,
+}
+
+impl SignNativeRead for AssessmentClaimScopedReader<'_> {
+    fn read(
+        &mut self,
+        reference: &str,
+        kind: crate::source_sign_native::NativeReadKind,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<Vec<u8>> {
+        if kind == crate::source_sign_native::NativeReadKind::Content && !self.allow_content {
+            return Err(SourceCommandError::Denied(
+                "metadata-only private Claim cannot read native content",
+            ));
+        }
+        self.reader
+            .read(reference, kind, max_bytes, deadline, cancelled)
+    }
+
+    fn verify_current(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        self.reader.verify_current(deadline, cancelled)
+    }
+
+    fn owner_local(&self, reference: &str) -> SourceCommandResult<bool> {
+        self.reader.owner_local(reference)
+    }
+}
+
 #[derive(Clone, Debug)]
 struct Grant {
     raw: Vec<u8>,
@@ -233,6 +311,213 @@ fn source_access(value: &JsonValue, allow_exact: bool) -> SourceCommandResult<()
         ));
     }
     Ok(())
+}
+
+/// Parse the maintained v4 assessment Claim selector shape and preflight every
+/// nested source-access grant and path before the caller opens any selected
+/// source. `exact_owner_local` remains an explicit selection; it does not
+/// authorize content reads unless `verify_content` is also true.
+pub(crate) fn preflight_assessment_claim_selections(
+    value: &JsonValue,
+    context: &JsonValue,
+) -> SourceCommandResult<Vec<AssessmentClaimSelection>> {
+    let rows = value.as_array().ok_or(SourceCommandError::Invalid(
+        "private assessment Claim selection array",
+    ))?;
+    if rows.len() > 32 {
+        return Err(SourceCommandError::Invalid(
+            "private assessment Claim selection count budget",
+        ));
+    }
+    let mut identities = BTreeSet::new();
+    let mut claim_ids = BTreeSet::new();
+    let mut selections = Vec::with_capacity(rows.len());
+    for row in rows {
+        cmd::exact_keys(
+            row,
+            &[
+                "path",
+                "claim_id",
+                "relation_type_id",
+                "origin_id",
+                "source_access",
+                "source_records",
+                "native_bindings",
+                "verify_content",
+                "form_ids",
+            ],
+        )?;
+        let path = cmd::text(row, "path")?.to_owned();
+        owner_path_claim_stream(&path, context)?;
+        let claim = cmd::text(row, "claim_id")?.to_owned();
+        let relation = cmd::text(row, "relation_type_id")?.to_owned();
+        let origin = cmd::text(row, "origin_id")?.to_owned();
+        let verify_content =
+            cmd::field(row, "verify_content")?
+                .as_bool()
+                .ok_or(SourceCommandError::Invalid(
+                    "private assessment Claim content mode",
+                ))?;
+        if !claim_id(&claim)
+            || !cmd::nonblank(&relation)
+            || !cmd::nonblank(&origin)
+            || !claim_ids.insert(claim.clone())
+        {
+            return Err(SourceCommandError::Invalid(
+                "private assessment Claim selection identity",
+            ));
+        }
+        let source_access_value = cmd::field(row, "source_access")?.clone();
+        source_access(&source_access_value, true)?;
+        if verify_content && cmd::text(&source_access_value, "read_scope")? != "exact_owner_local" {
+            return Err(SourceCommandError::Denied(
+                "exact Claim evidence is outside the selected source access scope",
+            ));
+        }
+        let source_records = cmd::array(row, "source_records")?;
+        let native_bindings = cmd::array(row, "native_bindings")?;
+        if source_records.len() > MAX_SOURCE_RECORDS || native_bindings.len() > MAX_NATIVE_BINDINGS
+        {
+            return Err(SourceCommandError::Invalid(
+                "private assessment Claim closure budget",
+            ));
+        }
+        for selector in source_records {
+            cmd::exact_keys(
+                selector,
+                &[
+                    "path",
+                    "record_id",
+                    "profile_type_id",
+                    "origin_id",
+                    "source_access",
+                    "source_binding",
+                ],
+            )?;
+            for key in ["path", "record_id", "profile_type_id", "origin_id"] {
+                if !cmd::nonblank(cmd::text(selector, key)?) {
+                    return Err(SourceCommandError::Invalid(
+                        "private assessment Claim endpoint selector",
+                    ));
+                }
+            }
+            let source_path = cmd::text(selector, "path")?;
+            RelativePath::parse(source_path)
+                .map_err(|_| SourceCommandError::Invalid("private Claim endpoint path"))?;
+            let private = private_reference(source_path, context)?;
+            if !source_path.starts_with("ToS/source-witnesses/")
+                || source_path.split('/').any(|part| {
+                    part.starts_with('.') || matches!(part, "catalog" | "payload" | "local-content")
+                })
+                || private && !source_path.starts_with(cmd::text(context, "private_prefix")?)
+                || !private && source_path.starts_with("ToS/source-witnesses/owner-local/")
+            {
+                return Err(SourceCommandError::Denied(
+                    "private Claim endpoint leaves selected metadata source scope",
+                ));
+            }
+            let binding = cmd::field(selector, "source_binding")?;
+            if !binding.is_null() && binding.as_object().is_none() {
+                return Err(SourceCommandError::Invalid(
+                    "private Claim native source binding",
+                ));
+            }
+            let access = cmd::field(selector, "source_access")?;
+            source_access(access, true)?;
+            if binding.is_null() && cmd::text(access, "read_scope")? != "metadata_only" {
+                return Err(SourceCommandError::Denied(
+                    "ordinary Claim endpoint selection is metadata-only",
+                ));
+            }
+            if verify_content
+                && !binding.is_null()
+                && cmd::text(access, "read_scope")? != "exact_owner_local"
+            {
+                return Err(SourceCommandError::Denied(
+                    "exact bound Claim evidence is outside its source selection access scope",
+                ));
+            }
+        }
+        for selector in native_bindings {
+            cmd::exact_keys(selector, &["binding", "origin_id", "source_access"])?;
+            if cmd::field(selector, "binding")?.as_object().is_none()
+                || !cmd::nonblank(cmd::text(selector, "origin_id")?)
+            {
+                return Err(SourceCommandError::Invalid(
+                    "private Claim native binding selector",
+                ));
+            }
+            let access = cmd::field(selector, "source_access")?;
+            source_access(access, true)?;
+            if verify_content && cmd::text(access, "read_scope")? != "exact_owner_local" {
+                return Err(SourceCommandError::Denied(
+                    "exact native Claim evidence is outside its selected access scope",
+                ));
+            }
+        }
+        let form_values = cmd::array(row, "form_ids")?;
+        if form_values.len() > 32 {
+            return Err(SourceCommandError::Invalid(
+                "private assessment Claim form selection budget",
+            ));
+        }
+        let mut form_ids = Vec::with_capacity(form_values.len());
+        for form in form_values {
+            let id = form
+                .as_str()
+                .filter(|value| form_id(value))
+                .ok_or(SourceCommandError::Invalid(
+                    "private assessment Claim form identity",
+                ))?
+                .to_owned();
+            if !identities.insert(id.clone()) {
+                return Err(SourceCommandError::Invalid(
+                    "private assessment Claim or form identity repeats",
+                ));
+            }
+            form_ids.push(id);
+        }
+        if !identities.insert(claim.clone()) {
+            return Err(SourceCommandError::Invalid(
+                "private assessment Claim or form identity repeats",
+            ));
+        }
+        if !form_ids.is_empty() {
+            let parent = path
+                .rsplit_once('/')
+                .map(|(parent, _)| parent)
+                .ok_or(SourceCommandError::Invalid("private Claim form path"))?;
+            let form_path = format!("{parent}/{}", claim_form_filename(&claim));
+            RelativePath::parse(&form_path)
+                .map_err(|_| SourceCommandError::Invalid("private Claim form path"))?;
+            if !form_path.starts_with(cmd::text(context, "private_prefix")?)
+                || form_path.split('/').any(|part| {
+                    part.starts_with('.') || matches!(part, "catalog" | "payload" | "local-content")
+                })
+            {
+                return Err(SourceCommandError::Denied(
+                    "private Claim forms leave the selected owner package",
+                ));
+            }
+        }
+        selections.push(AssessmentClaimSelection {
+            path,
+            claim_id: claim,
+            relation_type_id: relation,
+            origin_id: origin,
+            source_access: source_access_value,
+            source_records: source_records.to_vec(),
+            native_bindings: native_bindings.to_vec(),
+            verify_content,
+            form_ids,
+        });
+    }
+    if identities.len() > tos_validation::assessment::MAX_ASSESSMENTS {
+        return Err(SourceCommandError::Invalid(
+            "private assessment Claim identity budget",
+        ));
+    }
+    Ok(selections)
 }
 fn parse_selection(value: &JsonValue, verify_all: bool) -> SourceCommandResult<Selection> {
     cmd::exact_keys(
@@ -591,6 +876,33 @@ fn parse_claims(raw: &[u8]) -> SourceCommandResult<BTreeMap<String, JsonValue>> 
     Ok(records)
 }
 
+fn parse_assessment_claim_stream(raw: &[u8]) -> SourceCommandResult<BTreeMap<String, JsonValue>> {
+    if raw.len() > MAX_ASSESSMENT_CLAIM_FILE_BYTES {
+        return Err(SourceCommandError::Invalid(
+            "private assessment Claim stream byte budget",
+        ));
+    }
+    let mut records = BTreeMap::new();
+    for line in raw.split(|byte| *byte == b'\n') {
+        if crate::source_claims::python_bytes_blank(line) {
+            continue;
+        }
+        if line.len() > MAX_RECORD_BYTES {
+            return Err(SourceCommandError::Invalid(
+                "private assessment Claim row byte budget",
+            ));
+        }
+        let row = cmd::parse(line)?;
+        let id = cmd::text(&row, "claim_id")?.to_owned();
+        if !claim_id(&id) || records.insert(id, row).is_some() || records.len() > MAX_CLAIM_ROWS {
+            return Err(SourceCommandError::Conflict(
+                "private assessment Claim stream has duplicate or excessive rows",
+            ));
+        }
+    }
+    Ok(records)
+}
+
 fn encode(value: &JsonValue) -> SourceCommandResult<Vec<u8>> {
     let mut raw = cmd::canonical(value)?;
     raw.push(b'\n');
@@ -828,6 +1140,31 @@ impl ExactReads {
             })
             .collect()
     }
+}
+
+fn retain_assessment_native_inputs(
+    reader: &mut dyn SignNativeRead,
+    reads: &mut ExactReads,
+    inputs: &[crate::source_sign_native::NativeInput],
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    for input in inputs {
+        let raw = reader.read(
+            &input.reference,
+            input.kind,
+            input.raw_size.max(1),
+            deadline,
+            cancelled,
+        )?;
+        if raw.len() != input.raw_size || Digest256::of_bytes(&raw) != input.raw_sha256 {
+            return Err(SourceCommandError::Conflict(
+                "private Claim native input differs from its resolved bytes",
+            ));
+        }
+        reads.retain(&input.reference, raw)?;
+    }
+    Ok(())
 }
 
 fn private_reference(reference: &str, context: &JsonValue) -> SourceCommandResult<bool> {
@@ -1154,7 +1491,10 @@ impl ClaimGrammar {
             let reader = cmd::text(profile, "reader")?;
             if !matches!(
                 reader,
-                "semantic-relation-v1" | "identity-relation-v1" | "structured-reference-value-v1"
+                "semantic-relation-v1"
+                    | "identity-relation-v1"
+                    | "structured-reference-value-v1"
+                    | "historical-temporal-v1"
             ) || cmd::integer(profile, "profile_version")? != 1
             {
                 continue;
@@ -1205,6 +1545,26 @@ impl ClaimGrammar {
                         ));
                     }
                     _ => (),
+                }
+            }
+            if reader == "historical-temporal-v1" {
+                for endpoint in &domain {
+                    let ancestry =
+                        crate::source_claims::ancestry(cmd::array(&entities, "types")?, endpoint)?;
+                    if !ancestry.contains("tos.entity.historical-situation") {
+                        return Err(SourceCommandError::Conflict(
+                            "private Claim temporal profile domain family",
+                        ));
+                    }
+                }
+                for endpoint in &range {
+                    let ancestry =
+                        crate::source_claims::ancestry(cmd::array(&entities, "types")?, endpoint)?;
+                    if !ancestry.contains("tos.entity.temporal-assertion") {
+                        return Err(SourceCommandError::Conflict(
+                            "private Claim temporal profile value family",
+                        ));
+                    }
                 }
             }
             if routes.contains_key(&predicate) {
@@ -1411,6 +1771,109 @@ fn public_native_identity_member(reference: &str) -> bool {
             .any(|part| matches!(part, "payload" | "local-content" | "catalog"))
 }
 
+fn native_identity_inventory_context(
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<CommandContext> {
+    if cut.current().revision() != ctx.base_revision {
+        return Err(SourceCommandError::Conflict(
+            "private Claim native identity cut differs from command context",
+        ));
+    }
+    let mut selected = ctx.clone();
+    let mut packet_count = 0usize;
+    let mut packet_bytes = 0usize;
+    for member in cut.current().members() {
+        let reference = member.path.as_str();
+        if reference == "ToS/source-witnesses/owner-local"
+            || reference.starts_with("ToS/source-witnesses/owner-local/")
+        {
+            return Err(SourceCommandError::Denied(
+                "reserved owner-local namespace cannot enter public native identity inventory",
+            ));
+        }
+        if !public_native_identity_member(reference) {
+            continue;
+        }
+        packet_count = packet_count
+            .checked_add(1)
+            .filter(|count| *count <= 1024)
+            .ok_or(SourceCommandError::Invalid(
+                "private Claim native identity packet-count budget",
+            ))?;
+        let remaining = 8_388_608usize.saturating_sub(packet_bytes);
+        let max_bytes = remaining.min(1_048_576);
+        let size = usize::try_from(member.size_bytes).map_err(|_| {
+            SourceCommandError::Invalid("private Claim native identity packet byte budget")
+        })?;
+        if size > max_bytes {
+            return Err(SourceCommandError::Invalid(
+                "private Claim native identity packet byte budget",
+            ));
+        }
+        if let Some(existing) = selected.files.iter().find(|file| file.path == member.path) {
+            if existing.raw.len() as u64 != member.size_bytes
+                || Digest256::of_bytes(&existing.raw) != member.sha256
+            {
+                return Err(SourceCommandError::Conflict(
+                    "private Claim native identity context differs from selected cut",
+                ));
+            }
+            packet_bytes =
+                packet_bytes
+                    .checked_add(existing.raw.len())
+                    .ok_or(SourceCommandError::Invalid(
+                        "private Claim native identity packet byte budget",
+                    ))?;
+            continue;
+        }
+        let observed = cut
+            .read_member(
+                ctx.base_revision,
+                &member.path,
+                max_bytes as u64,
+                deadline,
+                cancelled,
+            )
+            .map_err(|_| {
+                SourceCommandError::Unsupported(
+                    "exact private Claim native identity member read unavailable",
+                )
+            })?;
+        if observed.raw.len() as u64 != member.size_bytes
+            || Digest256::of_bytes(&observed.raw) != member.sha256
+        {
+            return Err(SourceCommandError::Conflict(
+                "private Claim native identity member differs from selected cut",
+            ));
+        }
+        packet_bytes = packet_bytes
+            .checked_add(observed.raw.len())
+            .filter(|total| *total <= 8_388_608)
+            .ok_or(SourceCommandError::Invalid(
+                "private Claim native identity packet byte budget",
+            ))?;
+        selected.files.push(SourceFile {
+            path: member.path.clone(),
+            raw: observed.raw,
+        });
+    }
+    if selected.files.len() > SELECTED_SOURCE_MAX_FILES
+        || selected
+            .files
+            .iter()
+            .try_fold(0usize, |total, file| total.checked_add(file.raw.len()))
+            .is_none_or(|total| total > SELECTED_SOURCE_MAX_BYTES)
+    {
+        return Err(SourceCommandError::Invalid(
+            "private Claim native identity helper context budget",
+        ));
+    }
+    Ok(selected)
+}
+
 fn identity_inventory(
     grant: &Grant,
     owner: &OwnerTextContext,
@@ -1600,7 +2063,7 @@ impl crate::source_sign_native::SignNativeRead for OwnerNativeRead<'_> {
     }
 }
 
-fn owner_metadata_snapshot(
+pub(crate) fn owner_metadata_snapshot(
     owner: &OwnerTextContext,
     context: &JsonValue,
     inputs: &[crate::source_sign_native::NativeInput],
@@ -1918,6 +2381,189 @@ fn preflight_claim_source_selectors(
     Ok(())
 }
 
+fn preflight_assessment_claim_sources(
+    ctx: &CommandContext,
+    owner: &OwnerTextContext,
+    cut: &CorpusCutReader,
+    context: &JsonValue,
+    grammar: &ClaimGrammar,
+    selections: &[AssessmentClaimSelection],
+    worker: &CutWorkerSchemaExecutor,
+    reads: &mut ExactReads,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    let mut required_schemas = BTreeSet::new();
+    for selection in selections {
+        for selector in &selection.source_records {
+            let path = cmd::text(selector, "path")?;
+            let private = private_reference(path, context)?;
+            let profile_type_id = cmd::text(selector, "profile_type_id")?;
+            if let Some(profile) = grammar.profile_by_type.get(profile_type_id) {
+                let kind = cmd::text(profile, "record_type")?;
+                let reader = cmd::text(profile, "reader")?;
+                if !matches!(reader, "semantic-metadata-v1" | "corpus-metadata-v1")
+                    || private && reader != "semantic-metadata-v1"
+                    || path.rsplit('/').next() != Some(cmd::text(profile, "source_basename")?)
+                    || grammar.type_by_kind.get(kind).map(String::as_str) != Some(profile_type_id)
+                {
+                    return Err(SourceCommandError::Denied(
+                        "private Claim endpoint does not match its exact selected source profile",
+                    ));
+                }
+                for route in cmd::array(profile, "schemas")? {
+                    required_schemas.insert(CORPUS_SCHEMA.to_owned());
+                    required_schemas.insert(SOURCE_METADATA_SCHEMA.to_owned());
+                    required_schemas.insert(cmd::text(route, "schema_ref")?.to_owned());
+                    required_schemas.extend(field_texts(route, "schema_dependencies", 128)?);
+                }
+                if !cmd::field(selector, "source_binding")?.is_null() {
+                    if cmd::text(profile, "native_binding_adapter")? != "source-text-unit-v1" {
+                        return Err(SourceCommandError::Denied(
+                            "Claim endpoint binding lacks its exact source-profile adapter",
+                        ));
+                    }
+                    required_schemas
+                        .insert("ToS/contracts/native-text-unit-binding.schema.json".to_owned());
+                    required_schemas.insert(
+                        "ToS/contracts/native-text-unit-assessment-subject.schema.json".to_owned(),
+                    );
+                }
+            } else {
+                let kind = profile_type_id
+                    .strip_prefix("tos.entity.")
+                    .ok_or(SourceCommandError::Denied("Claim native endpoint type"))?;
+                let entity =
+                    grammar
+                        .entity_by_id
+                        .get(profile_type_id)
+                        .ok_or(SourceCommandError::Denied(
+                            "Claim native endpoint type is undeclared",
+                        ))?;
+                let ancestry = crate::source_claims::ancestry(
+                    cmd::array(&grammar.entities, "types")?,
+                    profile_type_id,
+                )?;
+                if !NATIVE_CORPUS_KINDS.contains(&kind)
+                    || grammar.type_by_kind.get(kind).map(String::as_str) != Some(profile_type_id)
+                    || cmd::field(entity, "abstract")? != &JsonValue::Bool(false)
+                    || cmd::text(entity, "object_role")? != "identity"
+                    || !ancestry.contains("tos.entity.identity")
+                    || private
+                    || path.rsplit('/').next() != Some(format!("{kind}.json").as_str())
+                    || cmd::text(cmd::field(selector, "source_access")?, "read_scope")?
+                        != "metadata_only"
+                    || !cmd::field(selector, "source_binding")?.is_null()
+                {
+                    return Err(SourceCommandError::Denied(
+                        "Claim native Corpus endpoint needs its exact public identity mapping",
+                    ));
+                }
+                required_schemas.insert(CORPUS_SCHEMA.to_owned());
+            }
+        }
+        if !selection.native_bindings.is_empty() {
+            required_schemas
+                .insert("ToS/contracts/native-text-unit-binding.schema.json".to_owned());
+            required_schemas
+                .insert("ToS/contracts/native-text-unit-assessment-subject.schema.json".to_owned());
+        }
+    }
+    for reference in required_schemas {
+        let raw = selected_authored(
+            ctx, owner, cut, context, &reference, 1_048_576, reads, deadline, cancelled,
+        )?;
+        let schema = cmd::parse(&raw)?;
+        if cmd::text(&schema, "$id")? != format!("https://tree-of-sophia.local/{reference}")
+            && cmd::text(&schema, "$id")? != format!("https://treeofsophia.local/{reference}")
+        {
+            return Err(SourceCommandError::Conflict(
+                "Claim endpoint schema identity differs from its owner path",
+            ));
+        }
+        require_contract_digest(worker, &reference, &raw)?;
+    }
+    Ok(())
+}
+
+fn assessment_claim_route(
+    grammar: &ClaimGrammar,
+    selection: &AssessmentClaimSelection,
+    claim: &JsonValue,
+) -> SourceCommandResult<ClaimRoute> {
+    let identity = cmd::text(claim, "claim_id")?;
+    let predicate = cmd::text(claim, "predicate")?;
+    let route = grammar.route(predicate, cmd::text(claim, "schema_version")?)?;
+    let maker = cmd::field(claim, "maker")?;
+    let maker_type = cmd::text(maker, "maker_type")?;
+    if identity != selection.claim_id
+        || route.relation_type_id != selection.relation_type_id
+        || cmd::text(claim, "claim_type")? != "relation"
+        || cmd::text(claim, "visibility")? != "local_only"
+        || !event_id(cmd::text(claim, "provenance_event_ref")?)
+        || !cmd::nonblank(cmd::text(maker, "agent_ref")?)
+        || !matches!(maker_type, "human" | "software" | "model")
+        || !matches!(
+            route.reader.as_str(),
+            "semantic-relation-v1"
+                | "identity-relation-v1"
+                | "structured-reference-value-v1"
+                | "historical-temporal-v1"
+        )
+        || selection.source_access.as_object().is_none()
+        || !route
+            .assertion_layers
+            .contains(&cmd::text(claim, "assertion_layer")?.to_owned())
+        || COMPOUND_PREDICATES.contains(&predicate)
+        || cmd::text(claim, "subject_ref")? == identity
+        || cmd::field(claim, "object")?.as_str() == Some(identity)
+    {
+        return Err(SourceCommandError::Denied(
+            "private assessment Claim is outside its selected reified relation profile",
+        ));
+    }
+    Ok(route)
+}
+
+fn assessment_reader_read(
+    owner: &OwnerTextContext,
+    cut: &CorpusCutReader,
+    context: &JsonValue,
+    reader: &mut dyn SignNativeRead,
+    reference: &str,
+    max_bytes: usize,
+    reads: &mut ExactReads,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<u8>> {
+    let raw = reader.read(
+        reference,
+        crate::source_sign_native::NativeReadKind::Metadata,
+        max_bytes,
+        deadline,
+        cancelled,
+    )?;
+    if !private_reference(reference, context)? {
+        let path = RelativePath::parse(reference)
+            .map_err(|_| SourceCommandError::Invalid("private Claim selected source path"))?;
+        let member = cut
+            .current()
+            .member(&path)
+            .ok_or(SourceCommandError::Conflict(
+                "private Claim public source is outside the current cut",
+            ))?;
+        if raw.len() as u64 != member.size_bytes || Digest256::of_bytes(&raw) != member.sha256 {
+            return Err(SourceCommandError::Conflict(
+                "private Claim public source differs from current cut",
+            ));
+        }
+    }
+    // Keep OwnerTextContext currentness coupled to every callback read too.
+    let _ = owner.snapshot(deadline, cancelled)?;
+    reads.retain(reference, raw.clone())?;
+    Ok(raw)
+}
+
 fn validate_endpoint_record(
     ctx: &CommandContext,
     cut: &CorpusCutReader,
@@ -1930,6 +2576,7 @@ fn validate_endpoint_record(
     reads: &mut ExactReads,
     deadline: Instant,
     cancelled: &AtomicBool,
+    mut pinned_reader: Option<&mut dyn SignNativeRead>,
 ) -> SourceCommandResult<GroundRecord> {
     let path = cmd::text(selector, "path")?;
     let selected_id = cmd::text(selector, "record_id")?;
@@ -1946,9 +2593,38 @@ fn validate_endpoint_record(
             "private Claim endpoint leaves selected metadata source scope",
         ));
     }
-    let raw = selected_owner_read(
-        owner, cut, context, path, 1_048_576, reads, deadline, cancelled,
-    )?;
+    let raw = if let Some(reader) = pinned_reader.as_deref_mut() {
+        let raw = reader.read(
+            path,
+            crate::source_sign_native::NativeReadKind::Metadata,
+            1_048_576,
+            deadline,
+            cancelled,
+        )?;
+        if !private {
+            let member_path = RelativePath::parse(path)
+                .map_err(|_| SourceCommandError::Invalid("private Claim selected source path"))?;
+            let metadata =
+                cut.current()
+                    .member(&member_path)
+                    .ok_or(SourceCommandError::Conflict(
+                        "private Claim public source is outside the current cut",
+                    ))?;
+            if raw.len() as u64 != metadata.size_bytes
+                || Digest256::of_bytes(&raw) != metadata.sha256
+            {
+                return Err(SourceCommandError::Conflict(
+                    "private Claim public source differs from current cut",
+                ));
+            }
+        }
+        reads.retain(path, raw.clone())?;
+        raw
+    } else {
+        selected_owner_read(
+            owner, cut, context, path, 1_048_576, reads, deadline, cancelled,
+        )?
+    };
     let record = cmd::parse(&raw)?;
     let mut profile_dependencies = BTreeMap::new();
     let mut private_native_metadata = None;
@@ -2072,58 +2748,69 @@ fn validate_endpoint_record(
                 }
             }
             if !selected_binding.is_null() {
-                if !verify_content
-                    || cmd::text(cmd::field(selector, "source_access")?, "read_scope")?
-                        != "exact_owner_local"
-                {
-                    return Err(SourceCommandError::Denied(
-                        "private Claim source binding requires exact delegated verification",
-                    ));
-                }
-                let mut native_reader = OwnerNativeRead {
-                    owner,
-                    cut,
-                    context,
-                    reads,
-                };
-                let resolved = crate::source_sign_native::resolve_owner_metadata_binding(
-                    &mut native_reader,
-                    worker,
-                    &selected_binding,
-                    deadline,
-                    cancelled,
-                )?;
-                for (reference, schema_digest) in &resolved.schema_digests {
-                    let digest = schema_digest.to_hex();
-                    if profile_dependencies
-                        .insert(reference.clone(), digest.clone())
-                        .is_some_and(|previous| previous != digest)
+                if pinned_reader.is_some() {
+                    if verify_content
+                        && cmd::text(cmd::field(selector, "source_access")?, "read_scope")?
+                            != "exact_owner_local"
                     {
-                        return Err(SourceCommandError::Conflict(
-                            "private Claim native profile grammar changed during validation",
+                        return Err(SourceCommandError::Denied(
+                            "exact private Claim binding is outside its selected source access",
                         ));
                     }
+                } else {
+                    if !verify_content
+                        || cmd::text(cmd::field(selector, "source_access")?, "read_scope")?
+                            != "exact_owner_local"
+                    {
+                        return Err(SourceCommandError::Denied(
+                            "private Claim source binding requires exact delegated verification",
+                        ));
+                    }
+                    let mut native_reader = OwnerNativeRead {
+                        owner,
+                        cut,
+                        context,
+                        reads,
+                    };
+                    let resolved = crate::source_sign_native::resolve_owner_metadata_binding(
+                        &mut native_reader,
+                        worker,
+                        &selected_binding,
+                        deadline,
+                        cancelled,
+                    )?;
+                    for (reference, schema_digest) in &resolved.schema_digests {
+                        let digest = schema_digest.to_hex();
+                        if profile_dependencies
+                            .insert(reference.clone(), digest.clone())
+                            .is_some_and(|previous| previous != digest)
+                        {
+                            return Err(SourceCommandError::Conflict(
+                                "private Claim native profile grammar changed during validation",
+                            ));
+                        }
+                    }
+                    let metadata_inputs = resolved
+                        .inputs
+                        .iter()
+                        .filter(|input| input.category != "content")
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    private_native_metadata = Some(owner_metadata_snapshot(
+                        owner,
+                        context,
+                        &metadata_inputs,
+                        deadline,
+                        cancelled,
+                    )?);
+                    private_native_exact = Some(owner_metadata_snapshot(
+                        owner,
+                        context,
+                        &resolved.inputs,
+                        deadline,
+                        cancelled,
+                    )?);
                 }
-                let metadata_inputs = resolved
-                    .inputs
-                    .iter()
-                    .filter(|input| input.category != "content")
-                    .cloned()
-                    .collect::<Vec<_>>();
-                private_native_metadata = Some(owner_metadata_snapshot(
-                    owner,
-                    context,
-                    &metadata_inputs,
-                    deadline,
-                    cancelled,
-                )?);
-                private_native_exact = Some(owner_metadata_snapshot(
-                    owner,
-                    context,
-                    &resolved.inputs,
-                    deadline,
-                    cancelled,
-                )?);
             }
         }
     } else {
@@ -2974,18 +3661,28 @@ fn claim_identity_refs(claim: &JsonValue) -> SourceCommandResult<BTreeSet<String
     refs.insert(cmd::text(claim, "subject_ref")?.to_owned());
     if let Some(object) = cmd::field(claim, "object")?.as_str() {
         refs.insert(object.to_owned());
-    } else if let Some(members) = cmd::field(claim, "object")?.object_get("members") {
-        for member in members.as_array().ok_or(SourceCommandError::Invalid(
-            "private Claim reference member list",
-        ))? {
-            refs.insert(
-                member
-                    .as_str()
-                    .ok_or(SourceCommandError::Invalid(
-                        "private Claim reference member identity",
-                    ))?
-                    .to_owned(),
-            );
+    } else {
+        let object = cmd::field(claim, "object")?;
+        if let Some(members) = object.object_get("members") {
+            for member in members.as_array().ok_or(SourceCommandError::Invalid(
+                "private Claim reference member list",
+            ))? {
+                refs.insert(
+                    member
+                        .as_str()
+                        .ok_or(SourceCommandError::Invalid(
+                            "private Claim reference member identity",
+                        ))?
+                        .to_owned(),
+                );
+            }
+        }
+        if let Some(anchor) = object
+            .object_get("relative")
+            .and_then(|relative| relative.object_get("anchor_ref"))
+            .and_then(JsonValue::as_str)
+        {
+            refs.insert(anchor.to_owned());
         }
     }
     for key in ["evidence_refs", "counterevidence_refs"] {
@@ -3490,6 +4187,7 @@ fn ground_claims(
                 &mut reads,
                 deadline,
                 cancelled,
+                None,
             )?;
             let profile = grammar.profile_by_type.get(&source.profile_type_id);
             let bound = cmd::field(selector, "source_binding")?;
@@ -4088,6 +4786,1184 @@ fn ground_claims(
         snapshots,
         reads: reads.into_source_files()?,
     })
+}
+
+fn assessment_claim_endpoint_closure(
+    grammar: &ClaimGrammar,
+    route: &ClaimRoute,
+    claim: &JsonValue,
+    records: &BTreeMap<String, GroundRecord>,
+) -> SourceCommandResult<()> {
+    let subject = cmd::text(claim, "subject_ref")?;
+    let subject_record = records.get(subject).ok_or(SourceCommandError::Unsupported(
+        "private Claim exact subject metadata selection",
+    ))?;
+    if !source_type_allowed(grammar, &subject_record.profile_type_id, &route.domain)? {
+        return Err(SourceCommandError::Invalid(
+            "private Claim subject violates selected relation domain",
+        ));
+    }
+    if let Some(object) = cmd::field(claim, "object")?.as_str() {
+        let object_record = records.get(object).ok_or(SourceCommandError::Unsupported(
+            "private Claim exact object metadata selection",
+        ))?;
+        if !source_type_allowed(grammar, &object_record.profile_type_id, &route.range)? {
+            return Err(SourceCommandError::Invalid(
+                "private Claim object violates selected relation range",
+            ));
+        }
+    } else if route.reader == "structured-reference-value-v1"
+        && route.profile.object_get("object_reference_set").is_some()
+    {
+        let object = cmd::field(claim, "object")?;
+        let members = cmd::array(object, "members")?;
+        let constraint = cmd::field(&route.profile, "object_reference_set")?;
+        let min_items = cmd::integer(constraint, "min_items")? as usize;
+        let max_items = cmd::integer(constraint, "max_items")? as usize;
+        if members.len() < min_items || members.len() > max_items {
+            return Err(SourceCommandError::Invalid(
+                "private Claim reference value member budget",
+            ));
+        }
+        let allowed = field_texts(constraint, "member_type_ids", 32)?;
+        let mut seen = BTreeSet::new();
+        for member in members {
+            let id = member.as_str().ok_or(SourceCommandError::Invalid(
+                "private Claim reference member identity",
+            ))?;
+            if !seen.insert(id) || id == cmd::text(claim, "claim_id")? {
+                return Err(SourceCommandError::Invalid(
+                    "private Claim reference member repeats",
+                ));
+            }
+            let row = records.get(id).ok_or(SourceCommandError::Unsupported(
+                "private Claim exact reference member selection",
+            ))?;
+            if !source_type_allowed(grammar, &row.profile_type_id, &allowed)? {
+                return Err(SourceCommandError::Invalid(
+                    "private Claim reference member violates selected type set",
+                ));
+            }
+        }
+        if cmd::field(constraint, "subject_is_member")? == &JsonValue::Bool(true)
+            && !seen.contains(subject)
+        {
+            return Err(SourceCommandError::Invalid(
+                "private Claim reference value omits its required subject member",
+            ));
+        }
+    } else if route.reader == "historical-temporal-v1"
+        && cmd::field(cmd::field(claim, "object")?, "kind")?.as_str() == Some("relative-order")
+    {
+        let object = cmd::field(claim, "object")?;
+        let relative = cmd::field(object, "relative")?;
+        let anchor = cmd::text(relative, "anchor_ref")?;
+        let anchor_record = records.get(anchor).ok_or(SourceCommandError::Invalid(
+            "private Claim relative-order anchor is not selected",
+        ))?;
+        if !source_type_allowed(
+            grammar,
+            &anchor_record.profile_type_id,
+            &["tos.entity.historical-situation".to_owned()],
+        )? {
+            return Err(SourceCommandError::Invalid(
+                "private Claim relative-order anchor violates the historical-situation profile",
+            ));
+        }
+    } else if cmd::field(claim, "object")?
+        .object_get("relative")
+        .and_then(|value| value.object_get("anchor_ref"))
+        .and_then(JsonValue::as_str)
+        .is_some()
+    {
+        return Err(SourceCommandError::Invalid(
+            "private Claim relative-order anchor is outside the historical-temporal profile",
+        ));
+    }
+    for key in ["evidence_refs", "counterevidence_refs"] {
+        for reference in optional_array(claim, key)? {
+            let reference = reference.as_str().ok_or(SourceCommandError::Invalid(
+                "private Claim evidence identity",
+            ))?;
+            if reference.starts_with("ToS/") {
+                let path = RelativePath::parse(reference)
+                    .map_err(|_| SourceCommandError::Invalid("private Claim evidence path"))?;
+                if path.as_str().split('/').any(|part| {
+                    part.starts_with('.') || matches!(part, "catalog" | "payload" | "local-content")
+                }) {
+                    return Err(SourceCommandError::Denied(
+                        "private Claim evidence excludes hidden and content carriers",
+                    ));
+                }
+            } else if !cmd::nonblank(reference) {
+                return Err(SourceCommandError::Invalid(
+                    "private Claim evidence identity",
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn assessment_native_ref(record: &JsonValue) -> SourceCommandResult<JsonValue> {
+    Ok(cmd::object(vec![
+        ("id", cmd::field(record, "id")?.clone()),
+        ("version", cmd::field(record, "version")?.clone()),
+        (
+            "digest",
+            cmd::string(&cmd::record_digest(cmd::field(record, "payload")?)?.to_prefixed()),
+        ),
+    ]))
+}
+
+fn assessment_languages(
+    claim: &JsonValue,
+    route: &ClaimRoute,
+    sources: &BTreeMap<String, GroundRecord>,
+    native_summaries: &[JsonValue],
+) -> SourceCommandResult<Vec<String>> {
+    let mut languages = BTreeSet::new();
+    let mut add = |value: Option<&str>| {
+        if let Some(value) = value.filter(|value| cmd::nonblank(value)) {
+            languages.insert(value.to_lowercase());
+        }
+    };
+    if let Some(language) = claim
+        .object_get("qualifiers")
+        .and_then(|value| value.object_get("statement_language"))
+        .and_then(JsonValue::as_str)
+    {
+        add(Some(language));
+    }
+    if route.reader == "structured-reference-value-v1" {
+        if let Some(language) = claim
+            .object_get("object")
+            .and_then(|value| value.object_get("source_wording"))
+            .and_then(|value| value.object_get("language"))
+            .and_then(JsonValue::as_str)
+        {
+            add(Some(language));
+        }
+    }
+    for source in sources.values() {
+        let payload = &source.value;
+        if let Some(fields) = payload.object_get("field_languages") {
+            for (_, field) in fields
+                .as_object()
+                .ok_or(SourceCommandError::Invalid("private Claim field languages"))?
+            {
+                add(field.object_get("language").and_then(JsonValue::as_str));
+            }
+        }
+        for field in ["semantic_scope", "semantic_content", "form_identity"] {
+            add(payload
+                .object_get(field)
+                .and_then(|value| value.object_get("language"))
+                .and_then(JsonValue::as_str));
+        }
+    }
+    for summary in native_summaries {
+        add(cmd::field(summary, "language")
+            .ok()
+            .and_then(JsonValue::as_str));
+    }
+    Ok(languages.into_iter().collect())
+}
+
+fn assessment_payload_languages(payload: &JsonValue) -> SourceCommandResult<Vec<String>> {
+    let mut languages = BTreeSet::new();
+    let mut add = |value: Option<&str>| {
+        if let Some(value) = value.filter(|value| cmd::nonblank(value)) {
+            languages.insert(value.to_lowercase());
+        }
+    };
+    add(payload.object_get("language").and_then(JsonValue::as_str));
+    if let Some(fields) = payload.object_get("field_languages") {
+        for (_, field) in fields
+            .as_object()
+            .ok_or(SourceCommandError::Invalid("private Claim field languages"))?
+        {
+            add(field.object_get("language").and_then(JsonValue::as_str));
+        }
+    }
+    for field in ["semantic_scope", "semantic_content", "form_identity"] {
+        add(payload
+            .object_get(field)
+            .and_then(|value| value.object_get("language"))
+            .and_then(JsonValue::as_str));
+    }
+    Ok(languages.into_iter().collect())
+}
+
+/// Resolve selected owner-local Claims into assessment-only record envelopes
+/// and exact source closure. All storage reads are read-only; native sources
+/// use the caller's pinned `SignNativeRead` transport and configured scope.
+pub(crate) fn resolve_assessment_claim_sources(
+    owner: &OwnerTextContext,
+    context: &JsonValue,
+    selections: &[AssessmentClaimSelection],
+    ctx: &CommandContext,
+    cut: &CorpusCutReader,
+    worker: &mut CutWorkerSchemaExecutor,
+    reader: &mut dyn SignNativeRead,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<AssessmentClaimSources> {
+    if selections.is_empty() {
+        return Ok(AssessmentClaimSources {
+            records: Vec::new(),
+            native_records: Vec::new(),
+            required_source_refs: BTreeMap::new(),
+            required_languages: BTreeMap::new(),
+            native_summaries: Vec::new(),
+            native_inputs: Vec::new(),
+            native_snapshots: Vec::new(),
+            schema_digests: BTreeMap::new(),
+            snapshots: Vec::new(),
+            source_files: BTreeMap::new(),
+            form_sets: BTreeMap::new(),
+            form_paths: BTreeMap::new(),
+            source_paths: BTreeMap::new(),
+            public_native_identity_paths: None,
+        });
+    }
+    if selections.len() > 32
+        || cut.current().revision() != ctx.base_revision
+        || worker.source_revision() != ctx.base_revision
+    {
+        return Err(SourceCommandError::Conflict(
+            "private assessment Claim worker and source cut differ",
+        ));
+    }
+    let mut claim_ids = BTreeSet::new();
+    for selection in selections {
+        owner_path_claim_stream(&selection.path, context)?;
+        source_access(&selection.source_access, true)?;
+        if selection.verify_content
+            && cmd::text(&selection.source_access, "read_scope")? != "exact_owner_local"
+        {
+            return Err(SourceCommandError::Denied(
+                "exact Claim evidence is outside its selected source access scope",
+            ));
+        }
+        if !claim_ids.insert(selection.claim_id.clone()) {
+            return Err(SourceCommandError::Invalid(
+                "private assessment Claim selection repeats",
+            ));
+        }
+    }
+    let mut reads = ExactReads::default();
+    let grammar = ClaimGrammar::load(
+        ctx, owner, cut, context, worker, &mut reads, deadline, cancelled,
+    )?;
+    preflight_assessment_claim_sources(
+        ctx, owner, cut, context, &grammar, selections, worker, &mut reads, deadline, cancelled,
+    )?;
+    let form_grammar = super::profile::form_grammar_digests(ctx, worker, deadline, cancelled)?;
+    let mut claims = BTreeMap::<String, JsonValue>::new();
+    let mut routes = BTreeMap::<String, ClaimRoute>::new();
+    let mut claim_streams = BTreeMap::<String, String>::new();
+    for selection in selections {
+        crate::source_creation_store::active(deadline, cancelled)?;
+        let raw = assessment_reader_read(
+            owner,
+            cut,
+            context,
+            reader,
+            &selection.path,
+            MAX_ASSESSMENT_CLAIM_FILE_BYTES,
+            &mut reads,
+            deadline,
+            cancelled,
+        )?;
+        let all_claims = parse_assessment_claim_stream(&raw)?;
+        let claim = all_claims
+            .get(&selection.claim_id)
+            .ok_or(SourceCommandError::Invalid(
+                "selected private Claim is absent from its source stream",
+            ))?
+            .clone();
+        let route = assessment_claim_route(&grammar, selection, &claim)?;
+        check_claim_schema(
+            ctx, owner, cut, context, &grammar, &claim, &route, worker, &mut reads, deadline,
+            cancelled,
+        )?;
+        let stream_digest = Digest256::of_bytes(&raw).to_hex();
+        if claim_streams
+            .insert(selection.path.clone(), stream_digest.clone())
+            .is_some_and(|prior| prior != stream_digest)
+        {
+            return Err(SourceCommandError::Conflict(
+                "private Claim stream changed between selections",
+            ));
+        }
+        claims.insert(selection.claim_id.clone(), claim);
+        routes.insert(selection.claim_id.clone(), route);
+    }
+
+    let mut records = Vec::new();
+    let mut native_records = Vec::new();
+    let mut required_source_refs = BTreeMap::new();
+    let mut required_languages = BTreeMap::new();
+    let mut native_summaries = Vec::new();
+    let mut native_snapshots = Vec::new();
+    let mut native_inputs =
+        BTreeMap::<(String, String, &'static str), crate::source_sign_native::NativeInput>::new();
+    let mut schema_digests = BTreeMap::<String, Digest256>::new();
+    let mut claim_snapshots = Vec::new();
+    let mut form_sets = BTreeMap::new();
+    let mut form_paths = BTreeMap::new();
+    let mut source_paths = BTreeMap::new();
+    let mut public_native_identity_paths: Option<BTreeSet<String>> = None;
+    let mut seen_record_bodies = BTreeMap::<String, JsonValue>::new();
+
+    for selection in selections {
+        crate::source_creation_store::active(deadline, cancelled)?;
+        let claim = claims
+            .get(&selection.claim_id)
+            .ok_or(SourceCommandError::Invalid("private Claim row absent"))?;
+        let route = routes
+            .get(&selection.claim_id)
+            .ok_or(SourceCommandError::Invalid("private Claim route absent"))?;
+        if source_paths
+            .insert(selection.claim_id.clone(), selection.path.clone())
+            .is_some_and(|previous| previous != selection.path)
+        {
+            return Err(SourceCommandError::Conflict(
+                "private Claim identity has conflicting selected paths",
+            ));
+        }
+        let used_refs = claim_identity_refs(claim)?;
+        let mut source_records = BTreeMap::<String, GroundRecord>::new();
+        let mut seen_paths = BTreeSet::new();
+        let mut native_entries = Vec::<NativeSelection>::new();
+        let mut native_entry_indexes = BTreeMap::<String, usize>::new();
+        for selector in &selection.source_records {
+            let source_id = cmd::text(selector, "record_id")?;
+            let path = cmd::text(selector, "path")?;
+            if !used_refs.contains(source_id) && !used_refs.contains(path) {
+                return Err(SourceCommandError::Denied(
+                    "private Claim selected an unrelated source record",
+                ));
+            }
+            if !seen_paths.insert(path.to_owned()) || source_records.contains_key(source_id) {
+                return Err(SourceCommandError::Conflict(
+                    "private Claim source record selection repeats",
+                ));
+            }
+            if source_paths
+                .insert(source_id.to_owned(), path.to_owned())
+                .is_some_and(|previous| previous != path)
+            {
+                return Err(SourceCommandError::Conflict(
+                    "private Claim endpoint has conflicting selected paths",
+                ));
+            }
+            let source = validate_endpoint_record(
+                ctx,
+                cut,
+                owner,
+                context,
+                &grammar,
+                selector,
+                selection.verify_content,
+                worker,
+                &mut reads,
+                deadline,
+                cancelled,
+                Some(&mut *reader),
+            )?;
+            let bound = cmd::field(selector, "source_binding")?;
+            if !bound.is_null() {
+                let profile = grammar.profile_by_type.get(&source.profile_type_id).ok_or(
+                    SourceCommandError::Denied(
+                        "native Claim binding cannot attach to an implicit Corpus profile",
+                    ),
+                )?;
+                if cmd::text(profile, "native_binding_adapter")? != "source-text-unit-v1"
+                    || selection.verify_content
+                        && cmd::text(cmd::field(selector, "source_access")?, "read_scope")?
+                            != "exact_owner_local"
+                {
+                    return Err(SourceCommandError::Denied(
+                        "Claim endpoint native binding needs its exact declared adapter and access",
+                    ));
+                }
+                let key = String::from_utf8(cmd::canonical(bound)?)
+                    .map_err(|_| SourceCommandError::Invalid("Claim native binding encoding"))?;
+                native_entries.push(NativeSelection {
+                    key,
+                    binding: bound.clone(),
+                    origin_id: cmd::text(selector, "origin_id")?.to_owned(),
+                    source_access: cmd::field(selector, "source_access")?.clone(),
+                    source_ids: BTreeSet::from([source_id.to_owned()]),
+                });
+            }
+            source_records.insert(source_id.to_owned(), source);
+        }
+        for selector in &selection.native_bindings {
+            let binding = cmd::field(selector, "binding")?;
+            let access = cmd::field(selector, "source_access")?;
+            if selection.verify_content && cmd::text(access, "read_scope")? != "exact_owner_local" {
+                return Err(SourceCommandError::Denied(
+                    "Claim native evidence needs exact selected content verification",
+                ));
+            }
+            let key = String::from_utf8(cmd::canonical(binding)?)
+                .map_err(|_| SourceCommandError::Invalid("Claim native binding encoding"))?;
+            native_entries.push(NativeSelection {
+                key,
+                binding: binding.clone(),
+                origin_id: cmd::text(selector, "origin_id")?.to_owned(),
+                source_access: access.clone(),
+                source_ids: BTreeSet::new(),
+            });
+        }
+        let candidates = std::mem::take(&mut native_entries);
+        for entry in candidates {
+            if let Some(index) = native_entry_indexes.get(&entry.key).copied() {
+                let prior = native_entries
+                    .get_mut(index)
+                    .ok_or(SourceCommandError::Invalid(
+                        "private Claim native selection index",
+                    ))?;
+                if prior.origin_id != entry.origin_id || prior.source_access != entry.source_access
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "one native Claim binding has conflicting origins or access scopes",
+                    ));
+                }
+                prior.source_ids.extend(entry.source_ids);
+            } else {
+                native_entry_indexes.insert(entry.key.clone(), native_entries.len());
+                native_entries.push(entry);
+            }
+        }
+        assessment_claim_endpoint_closure(&grammar, route, claim, &source_records)?;
+
+        let evidence_refs = optional_array(claim, "evidence_refs")?
+            .iter()
+            .chain(optional_array(claim, "counterevidence_refs")?.iter())
+            .map(|item| {
+                item.as_str()
+                    .map(str::to_owned)
+                    .ok_or(SourceCommandError::Invalid(
+                        "private Claim evidence identity",
+                    ))
+            })
+            .collect::<SourceCommandResult<BTreeSet<_>>>()?;
+        let quote_anchors = optional_array(claim, "supporting_quotes")?
+            .iter()
+            .map(|quote| cmd::text(quote, "anchor_ref").map(str::to_owned))
+            .collect::<SourceCommandResult<BTreeSet<_>>>()?;
+        if evidence_refs.len() + quote_anchors.len() > MAX_EVIDENCE_REFS {
+            return Err(SourceCommandError::Invalid(
+                "private Claim evidence reference budget",
+            ));
+        }
+        let source_aliases = source_records
+            .iter()
+            .flat_map(|(identity, record)| [identity.clone(), record.path.clone()])
+            .collect::<BTreeSet<_>>();
+        let mut native_aliases = BTreeMap::<String, BTreeSet<String>>::new();
+        let mut native_anchors = BTreeMap::<String, BTreeSet<String>>::new();
+        for entry in &native_entries {
+            for alias in binding_identities(&entry.binding)? {
+                native_aliases
+                    .entry(alias)
+                    .or_default()
+                    .insert(entry.key.clone());
+            }
+            for anchor in cmd::array(&entry.binding, "ordered_anchor_refs")? {
+                let anchor = anchor.as_str().ok_or(SourceCommandError::Invalid(
+                    "private Claim binding anchor identity",
+                ))?;
+                native_anchors
+                    .entry(anchor.to_owned())
+                    .or_default()
+                    .insert(entry.key.clone());
+            }
+        }
+        let mut used_native = BTreeSet::new();
+        for entry in &native_entries {
+            let aliases = binding_identities(&entry.binding)?;
+            let evidence_used = evidence_refs
+                .iter()
+                .any(|reference| aliases.contains(reference));
+            let quote_used = entry
+                .binding
+                .object_get("ordered_anchor_refs")
+                .and_then(JsonValue::as_array)
+                .is_some_and(|anchors| {
+                    anchors
+                        .iter()
+                        .filter_map(JsonValue::as_str)
+                        .any(|anchor| quote_anchors.contains(anchor))
+                });
+            if !entry.source_ids.is_empty() || evidence_used || quote_used {
+                used_native.insert(entry.key.clone());
+            } else {
+                return Err(SourceCommandError::Denied(
+                    "private Claim native selection is outside its exact evidence closure",
+                ));
+            }
+            if entry
+                .source_ids
+                .iter()
+                .any(|identity| !source_records.contains_key(identity))
+            {
+                return Err(SourceCommandError::Denied(
+                    "private Claim native selection lacks its exact source-record carrier",
+                ));
+            }
+        }
+        for reference in &evidence_refs {
+            let source_match = source_aliases.contains(reference);
+            let native_match = native_aliases.get(reference).map_or(0, BTreeSet::len);
+            if source_match {
+                if native_match != 0 {
+                    return Err(SourceCommandError::Conflict(
+                        "private Claim evidence alias is ambiguous across source and native adapters",
+                    ));
+                }
+            } else if native_match == 0 {
+                return Err(SourceCommandError::Unsupported(
+                    "private Claim evidence source is not in its exact selected closure",
+                ));
+            } else if native_match != 1 {
+                return Err(SourceCommandError::Conflict(
+                    "private Claim native evidence alias is ambiguous",
+                ));
+            } else if let Some(keys) = native_aliases.get(reference) {
+                used_native.extend(keys.iter().cloned());
+            }
+        }
+        for anchor in &quote_anchors {
+            let keys = native_anchors
+                .get(anchor)
+                .ok_or(SourceCommandError::Denied(
+                    "private Claim quote anchor requires exactly one selected native binding",
+                ))?;
+            if keys.len() != 1 {
+                return Err(SourceCommandError::Denied(
+                    "private Claim quote anchor requires exactly one selected native binding",
+                ));
+            }
+            used_native.extend(keys.iter().cloned());
+        }
+        if used_native.len() != native_entries.len() {
+            return Err(SourceCommandError::Denied(
+                "private Claim native selection is outside its exact evidence closure",
+            ));
+        }
+
+        let mut claim_native_summaries = Vec::new();
+        let mut claim_native_snapshots = Vec::new();
+        let mut claim_required = BTreeMap::<String, JsonValue>::new();
+        for source in source_records.values() {
+            let envelope = cmd::object(vec![
+                ("id", cmd::field(&source.reference, "id")?.clone()),
+                ("version", cmd::field(&source.reference, "version")?.clone()),
+                ("payload", source.value.clone()),
+                ("origin_id", cmd::string(&source.origin)),
+            ]);
+            insert_claim_dependency(&mut claim_required, &selection.claim_id, envelope)?;
+        }
+        let mut metadata_resolutions = Vec::with_capacity(native_entries.len());
+        for entry in &native_entries {
+            let resolved = {
+                let mut scoped_reader = AssessmentClaimScopedReader {
+                    reader,
+                    allow_content: false,
+                };
+                crate::source_sign_native::resolve_owner_assessment(
+                    &mut scoped_reader,
+                    worker,
+                    &entry.binding,
+                    &entry.origin_id,
+                    crate::source_sign_native::NativeReadScope::MetadataOnly,
+                    deadline,
+                    cancelled,
+                )?
+            };
+            if cmd::field(&resolved.summary, "content_verified")? != &JsonValue::Bool(false) {
+                return Err(SourceCommandError::Conflict(
+                    "metadata-only private Claim preflight disclosed native content",
+                ));
+            }
+            let metadata_inputs = resolved
+                .inputs
+                .iter()
+                .filter(|input| input.category != "content")
+                .cloned()
+                .collect::<Vec<_>>();
+            let metadata_snapshot =
+                owner_metadata_snapshot(owner, context, &metadata_inputs, deadline, cancelled)?;
+            for source_id in &entry.source_ids {
+                let source =
+                    source_records
+                        .get_mut(source_id)
+                        .ok_or(SourceCommandError::Invalid(
+                            "private Claim native binding source record is absent",
+                        ))?;
+                source.private_native_metadata = Some(metadata_snapshot.clone());
+            }
+            metadata_resolutions.push((entry.clone(), resolved));
+        }
+
+        // The maintained private reader closes every binding's metadata and
+        // rights before exact content is opened for any selected binding.
+        for (entry, metadata) in metadata_resolutions {
+            let resolved = if selection.verify_content {
+                let mut scoped_reader = AssessmentClaimScopedReader {
+                    reader,
+                    allow_content: true,
+                };
+                crate::source_sign_native::resolve_owner_assessment(
+                    &mut scoped_reader,
+                    worker,
+                    &entry.binding,
+                    &entry.origin_id,
+                    crate::source_sign_native::NativeReadScope::ExactOwnerLocal,
+                    deadline,
+                    cancelled,
+                )?
+            } else {
+                metadata
+            };
+            let verified = cmd::field(&resolved.summary, "content_verified")?;
+            if verified != &JsonValue::Bool(selection.verify_content) {
+                return Err(SourceCommandError::Conflict(
+                    "private Claim native content observation differs from selected verify mode",
+                ));
+            }
+            retain_assessment_native_inputs(
+                reader,
+                &mut reads,
+                &resolved.inputs,
+                deadline,
+                cancelled,
+            )?;
+            let refs = resolved
+                .records
+                .iter()
+                .map(assessment_native_ref)
+                .collect::<SourceCommandResult<Vec<_>>>()?;
+            if selection.verify_content {
+                let exact_snapshot =
+                    owner_metadata_snapshot(owner, context, &resolved.inputs, deadline, cancelled)?;
+                for source_id in &entry.source_ids {
+                    let source =
+                        source_records
+                            .get_mut(source_id)
+                            .ok_or(SourceCommandError::Invalid(
+                                "private Claim native binding source record is absent",
+                            ))?;
+                    source.private_native_exact = Some(exact_snapshot.clone());
+                }
+            }
+            let mut summary = resolved.summary.clone();
+            cmd::set(&mut summary, "origin_id", cmd::string(&entry.origin_id))?;
+            cmd::set(
+                &mut summary,
+                "read_scope",
+                cmd::field(&entry.source_access, "read_scope")?.clone(),
+            )?;
+            cmd::set(&mut summary, "record_refs", JsonValue::Array(refs))?;
+            cmd::set(&mut summary, "supporting_only", JsonValue::Bool(true))?;
+            claim_native_summaries.push(summary.clone());
+            native_summaries.push(summary);
+            claim_native_snapshots.push(resolved.input_snapshot.clone());
+            native_snapshots.push(resolved.input_snapshot);
+            for input in &resolved.inputs {
+                let kind = match input.kind {
+                    crate::source_sign_native::NativeReadKind::Metadata => "metadata",
+                    crate::source_sign_native::NativeReadKind::Schema => "schema",
+                    crate::source_sign_native::NativeReadKind::Support => "support",
+                    crate::source_sign_native::NativeReadKind::Content => "content",
+                }
+                .to_owned();
+                let key = (input.reference.clone(), kind, input.category);
+                if native_inputs
+                    .insert(key, input.clone())
+                    .is_some_and(|prior| prior.raw_sha256 != input.raw_sha256)
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "private Claim native input changed during selection",
+                    ));
+                }
+            }
+            for (reference, digest) in resolved.schema_digests {
+                if schema_digests
+                    .insert(reference, digest)
+                    .is_some_and(|prior| prior != digest)
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "private Claim native schema dependency changed",
+                    ));
+                }
+            }
+            for native in resolved.records {
+                insert_claim_dependency(&mut claim_required, &selection.claim_id, native.clone())?;
+                native_records.push(native);
+            }
+        }
+        for source in source_records.values() {
+            if !used_refs.contains(cmd::text(&source.value, "record_id")?)
+                && !used_refs.contains(&source.path)
+            {
+                return Err(SourceCommandError::Denied(
+                    "private Claim source selection is outside its exact endpoint/evidence closure",
+                ));
+            }
+        }
+
+        let claim_envelope = cmd::object(vec![
+            ("id", cmd::text(claim, "claim_id").map(cmd::string)?),
+            ("version", cmd::field(claim, "claim_version")?.clone()),
+            ("payload", claim.clone()),
+            ("origin_id", cmd::string(&selection.origin_id)),
+        ]);
+        let claim_reference = record_ref(&claim_envelope)?;
+        for source in source_records.values() {
+            let envelope = cmd::object(vec![
+                ("id", cmd::field(&source.reference, "id")?.clone()),
+                ("version", cmd::field(&source.reference, "version")?.clone()),
+                ("payload", source.value.clone()),
+                ("origin_id", cmd::string(&source.origin)),
+            ]);
+            let identity = cmd::text(&envelope, "id")?.to_owned();
+            retain_assessment_record(&mut seen_record_bodies, &mut records, identity, envelope)?;
+        }
+        retain_assessment_record(
+            &mut seen_record_bodies,
+            &mut records,
+            selection.claim_id.clone(),
+            claim_envelope.clone(),
+        )?;
+        let mut languages =
+            assessment_languages(claim, route, &source_records, &claim_native_summaries)?;
+        required_languages.insert(selection.claim_id.clone(), languages.clone());
+        let mut dependency_refs = claim_required
+            .values()
+            .map(record_ref)
+            .collect::<SourceCommandResult<Vec<_>>>()?;
+        dependency_refs.sort_by(|left, right| {
+            left.object_get("id")
+                .and_then(JsonValue::as_str)
+                .cmp(&right.object_get("id").and_then(JsonValue::as_str))
+        });
+        required_source_refs.insert(selection.claim_id.clone(), dependency_refs.clone());
+
+        if !selection.form_ids.is_empty() {
+            let parent = selection
+                .path
+                .rsplit_once('/')
+                .map(|(parent, _)| parent)
+                .ok_or(SourceCommandError::Invalid("private Claim form path"))?;
+            let form_path = format!("{parent}/{}", claim_form_filename(&selection.claim_id));
+            let raw = assessment_reader_read(
+                owner,
+                cut,
+                context,
+                reader,
+                &form_path,
+                2 * MAX_RECORD_BYTES,
+                &mut reads,
+                deadline,
+                cancelled,
+            )?;
+            let forms = cmd::parse(&raw)?;
+            if cmd::canonical(&forms)?.len() > MAX_RECORD_BYTES {
+                return Err(SourceCommandError::Invalid(
+                    "private Claim form-set canonical byte budget",
+                ));
+            }
+            super::profile::validate_form_set(
+                ctx, worker, &form_path, &forms, deadline, cancelled,
+            )?;
+            let subject = record_ref(&claim_envelope)?;
+            if cmd::canonical(cmd::field(&forms, "subject")?)? != cmd::canonical(&subject)? {
+                return Err(SourceCommandError::Conflict(
+                    "private Claim form set binds a different source snapshot",
+                ));
+            }
+            tos_validation::source_forms::source_copy_kernel::validate_history(&forms, &subject)
+                .map_err(|_| SourceCommandError::Invalid("private Claim form history"))?;
+            form_sets.insert(form_path.clone(), forms.clone());
+            form_paths.insert(selection.claim_id.clone(), form_path.clone());
+            let current_forms = cmd::array(&forms, "forms")?;
+            for identifier in &selection.form_ids {
+                if form_paths
+                    .insert(identifier.clone(), form_path.clone())
+                    .is_some_and(|previous| previous != form_path)
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "private Claim form identity has conflicting adjacent form paths",
+                    ));
+                }
+                let matching = current_forms
+                    .iter()
+                    .filter(|form| cmd::text(form, "form_id").ok() == Some(identifier.as_str()))
+                    .collect::<Vec<_>>();
+                if matching.len() != 1 {
+                    return Err(SourceCommandError::Invalid(
+                        "private Claim selected form is absent or not current",
+                    ));
+                }
+                let form = matching[0];
+                if cmd::canonical(cmd::field(form, "subject")?)? != cmd::canonical(&subject)? {
+                    return Err(SourceCommandError::Conflict(
+                        "private Claim selected form binds another source snapshot",
+                    ));
+                }
+                let form_envelope = cmd::object(vec![
+                    ("id", cmd::string(identifier)),
+                    ("version", cmd::field(form, "form_version")?.clone()),
+                    ("payload", form.clone()),
+                    ("origin_id", cmd::string(&selection.origin_id)),
+                ]);
+                retain_assessment_record(
+                    &mut seen_record_bodies,
+                    &mut records,
+                    identifier.clone(),
+                    form_envelope.clone(),
+                )?;
+                let mut form_refs = Vec::with_capacity(dependency_refs.len() + 1);
+                form_refs.push(claim_reference.clone());
+                form_refs.extend(dependency_refs.clone());
+                required_source_refs.insert(identifier.clone(), form_refs);
+                let mut form_languages = languages.clone();
+                form_languages.extend(assessment_payload_languages(form)?);
+                required_languages.insert(identifier.clone(), form_languages);
+            }
+        }
+
+        // The per-Claim digest follows the maintained owner-local Claim source
+        // snapshot fields; the adapter separately binds all raw bytes and held
+        // descriptors for post-lock currentness.
+        let mut source_map = BTreeMap::new();
+        let mut private_records = Vec::new();
+        for selector in &selection.source_records {
+            let path = cmd::text(selector, "path")?;
+            let raw = reads.files.get(path).ok_or(SourceCommandError::Conflict(
+                "private Claim selected endpoint is absent from its exact read closure",
+            ))?;
+            let digest = Digest256::of_bytes(raw).to_hex();
+            if source_map
+                .insert(path.to_owned(), digest.clone())
+                .is_some_and(|previous| previous != digest)
+            {
+                return Err(SourceCommandError::Conflict(
+                    "private Claim selected endpoint changed in its snapshot",
+                ));
+            }
+        }
+        let mut private_profiles = BTreeMap::<String, &GroundRecord>::new();
+        for source in source_records.values().filter(|source| source.private) {
+            private_profiles.insert(source.path.clone(), source);
+        }
+        for source in private_profiles.values() {
+            private_records.push(private_profile_snapshot(
+                source,
+                &owner.snapshot(deadline, cancelled)?.to_prefixed(),
+                &reads,
+            )?);
+        }
+        private_records.sort();
+
+        let native_identity_subjects = source_records
+            .values()
+            .filter(|source| !source.private)
+            .filter_map(|source| {
+                source
+                    .value
+                    .object_get("record_id")
+                    .and_then(JsonValue::as_str)
+                    .filter(|identity| native_identity_subject(identity))
+                    .map(str::to_owned)
+            })
+            .collect::<BTreeSet<_>>();
+        let public_native_identity = if native_identity_subjects.is_empty() {
+            JsonValue::Null
+        } else {
+            let inventory_context =
+                native_identity_inventory_context(ctx, cut, deadline, cancelled)?;
+            let (identities, snapshot, schema_used) =
+                crate::source_revisions::native_identity_inventory_from_cut(
+                    &inventory_context,
+                    cut,
+                    worker,
+                    deadline,
+                    cancelled,
+                )?;
+            if native_identity_subjects
+                .iter()
+                .any(|identity| identities.contains_key(identity))
+            {
+                return Err(SourceCommandError::Denied(
+                    "Claim source identity is already owned by a native semantic packet; explicit owner migration required",
+                ));
+            }
+            let mut inventory_paths = BTreeSet::new();
+            for member in cut.current().members() {
+                let reference = member.path.as_str();
+                if public_native_identity_member(reference) {
+                    selected_owner_read(
+                        owner, cut, context, reference, 1_048_576, &mut reads, deadline, cancelled,
+                    )?;
+                    inventory_paths.insert(reference.to_owned());
+                }
+            }
+            if schema_used {
+                let reference = "ToS/contracts/semantic-annotation-packet-v2.schema.json";
+                let raw = selected_authored(
+                    ctx, owner, cut, context, reference, 1_048_576, &mut reads, deadline, cancelled,
+                )?;
+                require_contract_digest(worker, reference, &raw)?;
+                let digest = Digest256::of_bytes(&raw);
+                if schema_digests
+                    .insert(reference.to_owned(), digest)
+                    .is_some_and(|previous| previous != digest)
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "private Claim native identity schema dependency changed",
+                    ));
+                }
+            }
+            public_native_identity_paths
+                .get_or_insert_with(BTreeSet::new)
+                .extend(inventory_paths);
+            cmd::string(&snapshot)
+        };
+
+        let public_bindings = source_records
+            .values()
+            .filter(|source| !source.private)
+            .filter_map(|source| source.source_binding.clone())
+            .collect::<Vec<_>>();
+        let public_native = if public_bindings.is_empty() {
+            JsonValue::Null
+        } else {
+            let resolved = crate::source_sign_native::resolve_bindings(
+                reader,
+                worker,
+                &public_bindings,
+                crate::source_sign_native::NativeReadScope::MetadataOnly,
+                deadline,
+                cancelled,
+            )?;
+            for summary in &resolved.summaries {
+                if cmd::field(summary, "public_content_declared")? != &JsonValue::Bool(true) {
+                    return Err(SourceCommandError::Denied(
+                        "public Claim source binding does not declare public content",
+                    ));
+                }
+            }
+            retain_assessment_native_inputs(
+                reader,
+                &mut reads,
+                &resolved.inputs,
+                deadline,
+                cancelled,
+            )?;
+            for input in &resolved.inputs {
+                let kind = match input.kind {
+                    crate::source_sign_native::NativeReadKind::Metadata => "metadata",
+                    crate::source_sign_native::NativeReadKind::Schema => "schema",
+                    crate::source_sign_native::NativeReadKind::Support => "support",
+                    crate::source_sign_native::NativeReadKind::Content => "content",
+                }
+                .to_owned();
+                let key = (input.reference.clone(), kind, input.category);
+                if native_inputs
+                    .insert(key, input.clone())
+                    .is_some_and(|previous| previous.raw_sha256 != input.raw_sha256)
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "private Claim public native input changed during selection",
+                    ));
+                }
+            }
+            for (reference, digest) in resolved.schema_digests {
+                if schema_digests
+                    .insert(reference, digest)
+                    .is_some_and(|previous| previous != digest)
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "private Claim public native schema dependency changed",
+                    ));
+                }
+            }
+            cmd::string(&resolved.input_snapshot)
+        };
+
+        let mut contracts = BTreeMap::<String, String>::new();
+        for (path, value) in &grammar.schema_digests {
+            let digest = value.strip_prefix("sha256:").unwrap_or(value).to_owned();
+            if contracts
+                .insert(path.clone(), digest.clone())
+                .is_some_and(|previous| previous != digest)
+            {
+                return Err(SourceCommandError::Conflict(
+                    "private Claim grammar digest conflicts in its snapshot",
+                ));
+            }
+        }
+        for source in source_records.values() {
+            for (path, digest) in &source.profile_dependencies {
+                if contracts
+                    .insert(path.clone(), digest.clone())
+                    .is_some_and(|previous| previous != *digest)
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "private Claim endpoint grammar digest conflicts in its snapshot",
+                    ));
+                }
+            }
+        }
+        for (path, digest) in &schema_digests {
+            let value = digest.to_hex();
+            if contracts
+                .insert(path.clone(), value.clone())
+                .is_some_and(|previous| previous != value)
+            {
+                return Err(SourceCommandError::Conflict(
+                    "private Claim native grammar digest conflicts in its snapshot",
+                ));
+            }
+        }
+        for (path, value) in &contracts {
+            let parsed = if let Some(hex) = value.strip_prefix("sha256:") {
+                Digest256::from_hex(hex).ok()
+            } else {
+                Digest256::from_hex(value).ok()
+            };
+            if let Some(digest) = parsed {
+                if schema_digests
+                    .insert(path.clone(), digest)
+                    .is_some_and(|previous| previous != digest)
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "private Claim schema dependency changed",
+                    ));
+                }
+            }
+        }
+        let source_map_value = hash_map(source_map);
+        let contract_map = hash_map(
+            contracts
+                .iter()
+                .map(|(path, value)| (path.clone(), value.clone()))
+                .collect(),
+        );
+        let selection_value = JsonValue::Array(vec![
+            cmd::string(&selection.path),
+            cmd::string(&selection.claim_id),
+            cmd::string(&selection.origin_id),
+            cmd::string(&selection.relation_type_id),
+        ]);
+        let claim_stream = JsonValue::Array(vec![
+            cmd::string(&selection.path),
+            cmd::string(
+                claim_streams
+                    .get(&selection.path)
+                    .ok_or(SourceCommandError::Invalid("private Claim stream snapshot"))?,
+            ),
+        ]);
+        claim_native_snapshots.sort();
+        let basis = cmd::object(vec![
+            (
+                "context",
+                cmd::string(&owner.snapshot(deadline, cancelled)?.to_prefixed()),
+            ),
+            ("selection", selection_value),
+            ("source_access", selection.source_access.clone()),
+            (
+                "source_selections",
+                JsonValue::Array(selection.source_records.clone()),
+            ),
+            (
+                "native_selections",
+                JsonValue::Array(selection.native_bindings.clone()),
+            ),
+            ("verify_content", JsonValue::Bool(selection.verify_content)),
+            ("contracts", contract_map),
+            ("sources", source_map_value),
+            ("claim_stream", claim_stream),
+            (
+                "native",
+                JsonValue::Array(
+                    claim_native_snapshots
+                        .iter()
+                        .map(|s| cmd::string(s))
+                        .collect(),
+                ),
+            ),
+            (
+                "private_records",
+                JsonValue::Array(private_records.iter().map(|s| cmd::string(s)).collect()),
+            ),
+            ("public_native_identity", public_native_identity),
+            ("public_native", public_native),
+        ]);
+        claim_snapshots.push(cmd::record_digest(&basis)?.to_prefixed());
+    }
+
+    if records.len() + native_records.len() > tos_validation::assessment::MAX_ASSESSMENTS {
+        return Err(SourceCommandError::Invalid(
+            "private assessment Claim source record budget",
+        ));
+    }
+    let mut final_schema_digests = schema_digests;
+    for (path, raw) in &reads.files {
+        if path.starts_with("ToS/contracts/") || path == RELATIONS || path == ENTITIES {
+            let digest = Digest256::of_bytes(raw);
+            if final_schema_digests
+                .insert(path.clone(), digest)
+                .is_some_and(|previous| previous != digest)
+            {
+                return Err(SourceCommandError::Conflict(
+                    "private Claim schema dependency changed during source selection",
+                ));
+            }
+        }
+    }
+    Ok(AssessmentClaimSources {
+        records,
+        native_records,
+        required_source_refs,
+        required_languages,
+        native_summaries,
+        native_inputs: native_inputs.into_values().collect(),
+        native_snapshots,
+        schema_digests: final_schema_digests,
+        snapshots: claim_snapshots,
+        source_files: reads.files,
+        form_sets,
+        form_paths,
+        source_paths,
+        public_native_identity_paths,
+    })
+}
+
+fn retain_assessment_record(
+    seen: &mut BTreeMap<String, JsonValue>,
+    output: &mut Vec<JsonValue>,
+    identity: String,
+    record: JsonValue,
+) -> SourceCommandResult<()> {
+    if let Some(previous) = seen.get(&identity) {
+        if !same_json(previous, &record)? {
+            return Err(SourceCommandError::Conflict(
+                "private assessment record identity resolves to different envelopes",
+            ));
+        }
+    } else {
+        seen.insert(identity, record.clone());
+        output.push(record);
+    }
+    Ok(())
 }
 
 struct PackageState {

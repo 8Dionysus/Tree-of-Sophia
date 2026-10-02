@@ -328,6 +328,12 @@ class AssessmentPolicyTests(unittest.TestCase):
         request['operation'] = 'inspect'
         command = [sys.executable, str(ROOT / 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py'),
                    '--owner-config', str(path)]
+        default = subprocess.run(command, input=json.dumps(request), capture_output=True, text=True, timeout=10)
+        self.assertEqual(default.returncode, 2, default.stderr)
+        self.assertEqual(json.loads(default.stdout), {
+            'schema_version': 'tos_local_assessment_error_v1', 'error': 'PermissionError'})
+        self.assertEqual(list((path.parent / 'journal').iterdir()), [])
+        command.append('--legacy-oracle')
         result = subprocess.run(command, input=json.dumps(request), capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         self.assertEqual(json.loads(result.stdout)['result']['batch_count'], 0)
@@ -374,7 +380,7 @@ class AssessmentPolicyTests(unittest.TestCase):
         path, config, request, records, fixity = self.real_source_command_fixture()
         before = [(ROOT / binding['path']).read_bytes() for binding in config['source_records']]
         command = [sys.executable, str(ROOT / 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py'),
-                   '--owner-config', str(path)]
+                   '--owner-config', str(path), '--legacy-oracle']
         reply = subprocess.run(command, input=json.dumps(request), capture_output=True, text=True, timeout=10)
         self.assertEqual(reply.returncode, 0, reply.stderr + reply.stdout)
         result = json.loads(reply.stdout)
@@ -403,7 +409,13 @@ class AssessmentPolicyTests(unittest.TestCase):
 
     def assessed_form_fixture(self, *, source_copy=False):
         """Synthetic wording over a copied source; no real language calibration."""
+        from datetime import datetime
         from assessment_journal import _source_records
+        # Direct graph reads and run_local's append must observe the same
+        # fixture instant. Nested expiry probes still select their later clock.
+        clock = patch('assessment_journal.datetime', wraps=datetime)
+        self.addCleanup(clock.stop)
+        clock.start().now.return_value = datetime.fromisoformat(NOW.replace('Z', '+00:00'))
         path, config, _, records, fixity = self.real_source_command_fixture()
         root = path.parent / 'sources'
         for item in fixity:
@@ -549,7 +561,7 @@ class AssessmentPolicyTests(unittest.TestCase):
         with self.assertRaises(JournalConflict):
             self.run_local(path, {**request, 'expected_snapshot': 'sha256:' + '0' * 64})
         command = [sys.executable, str(ROOT / 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py'),
-                   '--owner-config', str(path)]
+                   '--owner-config', str(path), '--legacy-oracle']
         result = subprocess.run(command, input=json.dumps(request), capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         packet = json.loads(result.stdout)

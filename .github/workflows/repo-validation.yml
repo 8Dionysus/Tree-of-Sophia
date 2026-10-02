@@ -93,6 +93,9 @@ jobs:
             /tests/test_validation_lanes.py
             /tests/test_acquisition_batch.py
             /tests/test_acquisition_handoff_adapter.py
+            /tests/oracles/acquisition/acquisition_batch.py
+            /tests/oracles/acquisition/acquisition_handoff_adapter.py
+            /tests/oracles/acquisition/source_payload_custody.py
             /tests/test_file_membership.py
             /tests/test_software_ci.py
             /tests/test_corpus_*.py

@@ -45,6 +45,8 @@ pub mod source_forms_compiler;
 mod source_item_deposit;
 pub(crate) mod source_item_inventory;
 pub mod source_operation;
+mod source_private_assessment_layers;
+mod source_private_assessment_sources;
 pub mod source_revisions;
 mod source_serialization;
 mod source_sign;

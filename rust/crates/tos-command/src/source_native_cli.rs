@@ -44,8 +44,10 @@ mod metadata_publication;
 mod object_link;
 #[path = "source_native_prepared_transport.rs"]
 mod prepared_transport;
+#[path = "source_native_private_assessment_cli.rs"]
+mod private_assessment;
 #[path = "source_native_private_cli.rs"]
-mod private_owner;
+pub(crate) mod private_owner;
 #[path = "source_native_public_text_cli.rs"]
 mod public_text;
 #[path = "source_native_responsibility_cli.rs"]
@@ -406,6 +408,20 @@ pub fn run(invocation_path: &Path, input: impl Read) -> SourceCommandResult<Valu
         // This protected hint routes code only. Each family independently
         // reselects its full grant/current owner boundary before any use.
         match cmd::text(&hint, "schema_version")? {
+            "tos_local_assessment_owner_v4"
+            | "tos_local_assessment_owner_v5"
+            | "tos_local_assessment_owner_v6" => {
+                return private_assessment::run(
+                    &invocation,
+                    &request_raw,
+                    &store,
+                    &cut,
+                    &software,
+                    &components,
+                    deadline,
+                    &cancelled,
+                );
+            }
             "tos_local_text_unit_create_owner_v1"
             | "tos_local_text_unit_create_owner_v2"
             | "tos_local_text_layer_create_owner_v1"

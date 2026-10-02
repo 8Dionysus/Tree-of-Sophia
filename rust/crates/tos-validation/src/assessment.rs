@@ -49,6 +49,22 @@ pub struct AssessmentSubmissionInput {
     pub committed_scope: Option<Vec<u8>>,
 }
 
+/// Current source-layer comparison observations supplied by the selected
+/// native owner adapter after the exact private source comparison and its
+/// currentness recheck. These values are never accepted from a command
+/// request or read as caller-provided readiness/eligibility from configuration.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AssessmentLayerQualityObservation {
+    /// The selected source contract requires an exact source comparison.
+    pub source_comparison_required: bool,
+    /// That required comparison is present in the current selected source cut.
+    pub source_comparison_present: bool,
+    /// Current exact source comparison and layer policy permit positive use.
+    /// The native adapter derives this; assessment prose and request fields do
+    /// not grant it.
+    pub positive_use_allowed: bool,
+}
+
 #[derive(Debug, Clone)]
 pub struct AssessmentReadInput {
     /// Independently selected current authored source/schema cut. Protected
@@ -72,6 +88,10 @@ pub struct AssessmentReadInput {
     /// Existing owner-derived quality basis envelopes, with their actual
     /// `can_use`/`limits` observations. A caller cannot substitute a bool.
     pub required_admission_bases: Vec<AssessmentRecordInput>,
+    /// Present only for the selected native LayerQuality adapter after exact
+    /// comparison and currentness recheck. Never supplied by the command
+    /// request/configuration or inferred from assessment prose.
+    pub layer_quality: Option<AssessmentLayerQualityObservation>,
     /// Content-ready is derived from the separate `native_records` and their
     /// entire native_binding/content_verified observations. The private owner
     /// resolver must produce these after an actual content read; authored or
@@ -85,9 +105,9 @@ pub struct AssessmentReadInput {
 pub enum AssessmentSourceRoute {
     SelectedSource,
     SourceBoundClaim,
-    /// The wider quality assembly needs its actual source-layer/comparison
-    /// reader and dependency journal evaluation. It must not silently become
-    /// the Sign v2/v3 route or obtain eligibility from assessment prose.
+    /// A selected native adapter supplies current layer/comparison
+    /// observations and derived quality bases. It does not obtain eligibility
+    /// from assessment prose or command-request booleans.
     LayerQuality,
 }
 
@@ -122,6 +142,8 @@ pub struct AssessmentMechanicsReport {
     input_sha256: Digest256,
     schema_binding: CutExecutionBinding,
     observed_now: String,
+    work_used: usize,
+    input_bytes_used: usize,
 }
 impl AssessmentMechanicsReport {
     pub fn current_admission(&self) -> &Value {
@@ -153,6 +175,15 @@ impl AssessmentMechanicsReport {
     }
     pub fn observed_now(&self) -> &str {
         &self.observed_now
+    }
+    /// Consumption by this exact evaluation. A protected native caller can
+    /// subtract it from one operation-wide budget before evaluating another
+    /// subject; reports do not reset the caller's shared budget.
+    pub fn work_used(&self) -> usize {
+        self.work_used
+    }
+    pub fn input_bytes_used(&self) -> usize {
+        self.input_bytes_used
     }
 }
 
@@ -379,10 +410,19 @@ pub fn evaluate_current_assessment(
         bytes: 0,
         work: 0,
     };
-    if input.source_route == AssessmentSourceRoute::LayerQuality {
-        return Err(unsupported(
-            "quality-layer comparison/read assembly and dependency journal evaluation required",
-        ));
+    match (input.source_route, input.layer_quality) {
+        (AssessmentSourceRoute::LayerQuality, None) => {
+            return Err(unsupported(
+                "layer quality requires selected native comparison observations",
+            ));
+        }
+        (
+            AssessmentSourceRoute::SelectedSource | AssessmentSourceRoute::SourceBoundClaim,
+            Some(_),
+        ) => {
+            return invalid("layer quality observation is outside the selected source route");
+        }
+        _ => (),
     }
     compare_time(&input.observed_now, &input.observed_now)?;
     work.charge(input.subject_id.len())?;
@@ -563,7 +603,7 @@ pub fn evaluate_current_assessment(
         // is checked by the existing materialization route when consumed;
         // imposing that assertion here would strengthen the maintained read.
     }
-    let (source_read_required, source_ready) = native_source_ready(
+    let (native_source_read_required, native_source_ready) = native_source_ready(
         &subject,
         &required,
         &sourced,
@@ -571,7 +611,23 @@ pub fn evaluate_current_assessment(
         input.source_route,
         &mut work,
     )?;
-    let positive = true; // exact v2/v3 source route; wider quality refuses above
+    let (source_read_required, source_ready, positive) = match input.source_route {
+        AssessmentSourceRoute::SelectedSource | AssessmentSourceRoute::SourceBoundClaim => {
+            (native_source_read_required, native_source_ready, true)
+        }
+        AssessmentSourceRoute::LayerQuality => {
+            let observation = input.layer_quality.ok_or_else(|| {
+                unsupported("layer quality requires selected native comparison observations")
+            })?;
+            let comparison_ready =
+                !observation.source_comparison_required || observation.source_comparison_present;
+            (
+                native_source_read_required || observation.source_comparison_required,
+                native_source_ready && comparison_ready,
+                observation.positive_use_allowed,
+            )
+        }
+    };
     let context = Context {
         languages: strings(&scope, "languages")?,
         subject,
@@ -611,6 +667,8 @@ pub fn evaluate_current_assessment(
         input_sha256: input_binding,
         schema_binding: schemas.execution_binding(),
         observed_now: input.observed_now.clone(),
+        work_used: work.work,
+        input_bytes_used: work.bytes,
     })
 }
 
@@ -1052,7 +1110,12 @@ fn input_binding(input: &AssessmentReadInput) -> Digest256 {
         }
     }
     let mut hash = Digest256Hasher::new();
-    hash.update(b"tos-current-assessment-input-v1\0");
+    hash.update(match input.source_route {
+        AssessmentSourceRoute::LayerQuality => b"tos-current-assessment-input-v2\0",
+        AssessmentSourceRoute::SelectedSource | AssessmentSourceRoute::SourceBoundClaim => {
+            b"tos-current-assessment-input-v1\0"
+        }
+    });
     hash.update(input.source_revision.0.as_bytes());
     push(&mut hash, &input.policy.envelope);
     records(&mut hash, &input.authorities);
@@ -1072,6 +1135,13 @@ fn input_binding(input: &AssessmentReadInput) -> Digest256 {
         push(&mut hash, reference);
     }
     records(&mut hash, &input.required_admission_bases);
+    if let Some(observation) = input.layer_quality {
+        hash.update(&[
+            u8::from(observation.source_comparison_required),
+            u8::from(observation.source_comparison_present),
+            u8::from(observation.positive_use_allowed),
+        ]);
+    }
     submissions(&mut hash, &input.reviews);
     submissions(&mut hash, &input.trusted_history);
     push(&mut hash, input.observed_now.as_bytes());

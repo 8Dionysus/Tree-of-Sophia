@@ -152,10 +152,19 @@ Build/Check resolve only those exact recipe bytes, not the changed facade digest
 The source reference/digest identify the recipe; the installed image and runtime
 receipt identify current execution. No retained archive is executed.
 
-V2 still imports extraction helpers from the active Python module. Those helpers
-and the old non-entry definitions remain temporarily retained for that exact
-caller, pending the separately owned actual v2 producer/caller closure; the
-whole Python family is not retired. This facade/retained-input successor needs
-matching native source installation and the focused new caller check before
-claiming its own cutover. These mechanics accept no text, segmentation, semantic
-claim, rights clearance or publication.
+Installed `2402bd87760cde0e55ea86a74adbaaa0714f4ca9` subsequently passed
+the focused new facade/archive route: read-only Check matched the existing
+current-recipe outputs, facade and maintained native tracked validation passed,
+and dirty archive plus missing active-original source controls were refused.
+The original archive remained nonexecuted and all selected input/output bytes
+were restored and checked. This closes the standalone v1 caller cutover in the
+same technical scope as the earlier composite eleven-output acceptance.
+
+The v2 standalone producer and maintained caller have also passed their scoped
+native checks. Four research producers still import v2 read-only reconstruction
+helpers, which in turn import extraction helpers from this active v1 module.
+Those helper definitions remain retained until each research producer's native
+parity and downstream caller acceptance closes; their native replacements are
+already owned by the research routes. The whole Python helper family is not
+retired. These mechanics accept no text, segmentation, semantic claim, rights
+clearance or publication.

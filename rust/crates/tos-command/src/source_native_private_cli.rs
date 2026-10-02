@@ -49,7 +49,7 @@ fn verify_selected_software(
 pub(crate) mod profile;
 
 #[path = "source_private_claim.rs"]
-mod claim;
+pub(crate) mod claim;
 
 struct SelectedPrivateInvocation {
     owner: OwnerTextContext,

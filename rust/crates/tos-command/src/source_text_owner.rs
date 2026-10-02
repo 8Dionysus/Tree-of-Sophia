@@ -4,9 +4,11 @@
 
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
 use crate::source_creation_store::{active, protected_configuration_parents, raw};
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::fs::{File, Metadata};
 use std::os::fd::AsRawFd;
+use std::os::unix::fs::FileExt;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::AtomicBool;
@@ -21,6 +23,7 @@ const OWNER_HOME: &str = "ToS/source-witnesses/owner-local/";
 const MAX_CONTEXT_BYTES: usize = 1_048_576;
 const MAX_PRIVATE_PACKAGE_FILES: usize = 12;
 const MAX_PRIVATE_PACKAGE_BYTES: usize = 12 * 1024 * 1024;
+const MAX_HELD_OWNER_READS: usize = 256;
 
 pub(crate) fn normalized_absolute(value: &str) -> SourceCommandResult<PathBuf> {
     let path = Path::new(value);
@@ -57,6 +60,176 @@ fn stamp(meta: &Metadata) -> (u64, u64, u64, i64, i64, i64, i64) {
         meta.ctime(),
         meta.ctime_nsec(),
     )
+}
+
+fn held_file_identity(meta: &Metadata) -> (u64, u64, u32, u32, u64, u64, i64, i64, i64, i64) {
+    (
+        meta.dev(),
+        meta.ino(),
+        meta.uid(),
+        meta.mode() & 0o7777,
+        meta.nlink(),
+        meta.size(),
+        meta.mtime(),
+        meta.mtime_nsec(),
+        meta.ctime(),
+        meta.ctime_nsec(),
+    )
+}
+
+fn read_held_fd(
+    file: &File,
+    max: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<u8>> {
+    let mut raw = Vec::new();
+    let mut offset = 0u64;
+    let mut block = [0u8; 65_536];
+    loop {
+        active(deadline, cancelled)?;
+        let limit = max
+            .checked_add(1)
+            .ok_or(SourceCommandError::Invalid("owner-local file byte budget"))?
+            .saturating_sub(raw.len())
+            .min(block.len());
+        if limit == 0 {
+            return Err(SourceCommandError::Invalid("owner-local file byte budget"));
+        }
+        let count = file
+            .read_at(&mut block[..limit], offset)
+            .map_err(|_| SourceCommandError::Denied("owner-local retained file read"))?;
+        if count == 0 {
+            break;
+        }
+        raw.extend_from_slice(&block[..count]);
+        offset = offset
+            .checked_add(count as u64)
+            .ok_or(SourceCommandError::Invalid(
+                "owner-local file size overflow",
+            ))?;
+        if raw.len() > max {
+            return Err(SourceCommandError::Invalid("owner-local file byte budget"));
+        }
+    }
+    Ok(raw)
+}
+
+struct HeldOwnerFile {
+    path: PathBuf,
+    parent_path: PathBuf,
+    parent: File,
+    parent_identity: (u64, u64, u32, u32),
+    name: String,
+    file: File,
+    file_identity: (u64, u64, u32, u32, u64, u64, i64, i64, i64, i64),
+    raw_sha256: Digest256,
+    size: usize,
+    confidential: bool,
+}
+
+fn select_held_file(
+    path: &Path,
+    uid: u32,
+    confidential: bool,
+    max: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(HeldOwnerFile, Vec<u8>)> {
+    active(deadline, cancelled)?;
+    protected_configuration_parents(path, uid)?;
+    let parent_path = path
+        .parent()
+        .ok_or(SourceCommandError::Invalid("owner-local selected parent"))?;
+    let name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or(SourceCommandError::Invalid("owner-local selected filename"))?
+        .to_owned();
+    let parent = tos_fd_open::open_absolute_directory(parent_path)
+        .map_err(|_| SourceCommandError::Denied("owner-local selected parent"))?;
+    let parent_meta = checked_directory(&parent, uid, confidential)?;
+    let parent_identity = identity(&parent_meta);
+    let mut file = tos_fd_open::open_regular_at(&parent, Path::new(&name))
+        .map_err(|_| SourceCommandError::Denied("owner-local selected file"))?;
+    let before = checked_file(&file, uid, confidential)?;
+    let raw = raw(&mut file, max, deadline, cancelled)?;
+    let after = checked_file(&file, uid, confidential)?;
+    let current = tos_fd_open::open_regular_at(&parent, Path::new(&name))
+        .map_err(|_| SourceCommandError::Conflict("owner-local selected file changed"))?;
+    let at_path = checked_file(&current, uid, confidential)?;
+    if stamp(&before) != stamp(&after)
+        || held_file_identity(&before) != held_file_identity(&at_path)
+        || read_held_fd(&current, max, deadline, cancelled)? != raw
+    {
+        return Err(SourceCommandError::Conflict(
+            "owner-local selected file changed during read",
+        ));
+    }
+    let held = HeldOwnerFile {
+        path: path.to_path_buf(),
+        parent_path: parent_path.to_path_buf(),
+        parent,
+        parent_identity,
+        name,
+        file,
+        file_identity: held_file_identity(&before),
+        raw_sha256: Digest256::of_bytes(&raw),
+        size: raw.len(),
+        confidential,
+    };
+    Ok((held, raw))
+}
+
+fn verify_held_file(
+    held: &HeldOwnerFile,
+    uid: u32,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    active(deadline, cancelled)?;
+    let parent_meta = checked_directory(&held.parent, uid, held.confidential)?;
+    if identity(&parent_meta) != held.parent_identity {
+        return Err(SourceCommandError::Conflict(
+            "owner-local retained parent identity changed",
+        ));
+    }
+    let current_parent = tos_fd_open::open_absolute_directory(&held.parent_path)
+        .map_err(|_| SourceCommandError::Conflict("owner-local selected parent changed"))?;
+    if identity(&checked_directory(&current_parent, uid, held.confidential)?)
+        != held.parent_identity
+    {
+        return Err(SourceCommandError::Conflict(
+            "owner-local selected parent identity changed",
+        ));
+    }
+    let retained_meta = checked_file(&held.file, uid, held.confidential)?;
+    if held_file_identity(&retained_meta) != held.file_identity {
+        return Err(SourceCommandError::Conflict(
+            "owner-local retained file identity changed",
+        ));
+    }
+    let current = tos_fd_open::open_regular_at(&held.parent, Path::new(&held.name))
+        .map_err(|_| SourceCommandError::Conflict("owner-local selected file changed"))?;
+    let current_meta = checked_file(&current, uid, held.confidential)?;
+    let named_current = tos_fd_open::open_regular_at(&current_parent, Path::new(&held.name))
+        .map_err(|_| SourceCommandError::Conflict("owner-local file path changed"))?;
+    let named_current_meta = named_current
+        .metadata()
+        .map_err(|_| SourceCommandError::Conflict("owner-local file identity changed"))?;
+    let retained_raw = read_held_fd(&held.file, held.size, deadline, cancelled)?;
+    let current_raw = read_held_fd(&current, held.size, deadline, cancelled)?;
+    if held_file_identity(&current_meta) != held.file_identity
+        || held_file_identity(&current_meta) != held_file_identity(&named_current_meta)
+        || retained_raw != current_raw
+        || current_raw.len() != held.size
+        || Digest256::of_bytes(&current_raw) != held.raw_sha256
+    {
+        return Err(SourceCommandError::Conflict(
+            "owner-local selected file bytes or identity changed",
+        ));
+    }
+    Ok(())
 }
 
 fn checked_file(file: &File, uid: u32, confidential: bool) -> SourceCommandResult<Metadata> {
@@ -120,13 +293,18 @@ pub(crate) fn read_absolute(
 pub(crate) struct OwnerTextContext {
     configuration_path: PathBuf,
     configuration_raw: Vec<u8>,
+    configuration_held: HeldOwnerFile,
     schema_raw: Vec<u8>,
+    schema_held: HeldOwnerFile,
     public_root: PathBuf,
     private_root: PathBuf,
     private_prefix: String,
+    public_root_file: File,
+    private_root_file: File,
     public_identity: (u64, u64, u32, u32),
     private_identity: (u64, u64, u32, u32),
     uid: u32,
+    held_reads: RefCell<BTreeMap<PathBuf, HeldOwnerFile>>,
 }
 
 /// One protected initial-layer delegation. It selects an operation and exact
@@ -1256,9 +1434,26 @@ impl OwnerTextContext {
     pub(crate) fn public_root_handle(&self) -> SourceCommandResult<File> {
         let root = tos_fd_open::open_absolute_directory(&self.public_root)
             .map_err(|_| SourceCommandError::Conflict("owner-local public root changed"))?;
-        if identity(&checked_directory(&root, self.uid, false)?) != self.public_identity {
+        if identity(&checked_directory(&root, self.uid, false)?) != self.public_identity
+            || identity(&checked_directory(&self.public_root_file, self.uid, false)?)
+                != self.public_identity
+        {
             return Err(SourceCommandError::Conflict(
                 "owner-local public root changed",
+            ));
+        }
+        Ok(root)
+    }
+
+    pub(crate) fn private_root_handle(&self) -> SourceCommandResult<File> {
+        let root = tos_fd_open::open_absolute_directory(&self.private_root)
+            .map_err(|_| SourceCommandError::Conflict("owner-local private root changed"))?;
+        if identity(&checked_directory(&root, self.uid, true)?) != self.private_identity
+            || identity(&checked_directory(&self.private_root_file, self.uid, true)?)
+                != self.private_identity
+        {
+            return Err(SourceCommandError::Conflict(
+                "owner-local private root changed",
             ));
         }
         Ok(root)
@@ -1330,8 +1525,8 @@ impl OwnerTextContext {
                 .to_str()
                 .ok_or(SourceCommandError::Denied("owner-local configuration path"))?,
         )?;
-        let configuration_raw =
-            read_absolute(&path, uid, true, MAX_CONTEXT_BYTES, deadline, cancelled)?;
+        let (configuration_held, configuration_raw) =
+            select_held_file(&path, uid, true, MAX_CONTEXT_BYTES, deadline, cancelled)?;
         let config = cmd::parse(&configuration_raw)?;
         cmd::exact_keys(
             &config,
@@ -1381,7 +1576,7 @@ impl OwnerTextContext {
             ));
         }
         let schema_path = public_root.join(CONTEXT_SCHEMA);
-        let schema_raw = read_absolute(
+        let (schema_held, schema_raw) = select_held_file(
             &schema_path,
             uid,
             false,
@@ -1420,13 +1615,18 @@ impl OwnerTextContext {
             Self {
                 configuration_path: path,
                 configuration_raw,
+                configuration_held,
                 schema_raw,
+                schema_held,
                 public_root,
                 private_root,
                 private_prefix,
+                public_root_file: public,
+                private_root_file: private,
                 public_identity,
                 private_identity,
                 uid,
+                held_reads: RefCell::new(BTreeMap::new()),
             },
             config,
         ))
@@ -1482,7 +1682,35 @@ impl OwnerTextContext {
         if confidential {
             self.check_private_parents(reference)?;
         }
-        read_absolute(&path, self.uid, confidential, max, deadline, cancelled)
+        self.verify_context_base(deadline, cancelled)?;
+        let (selected, bytes) =
+            select_held_file(&path, self.uid, confidential, max, deadline, cancelled)?;
+        {
+            let mut reads = self
+                .held_reads
+                .try_borrow_mut()
+                .map_err(|_| SourceCommandError::Invalid("owner-local read lease state"))?;
+            if let Some(previous) = reads.get(&path) {
+                if previous.file_identity != selected.file_identity
+                    || previous.raw_sha256 != selected.raw_sha256
+                    || previous.size != selected.size
+                    || previous.parent_identity != selected.parent_identity
+                {
+                    return Err(SourceCommandError::Conflict(
+                        "owner-local source identity changed during operation",
+                    ));
+                }
+            } else {
+                if reads.len() >= MAX_HELD_OWNER_READS {
+                    return Err(SourceCommandError::Unsupported(
+                        "owner-local held source file-count budget",
+                    ));
+                }
+                reads.insert(path, selected);
+            }
+        }
+        self.verify_context_base(deadline, cancelled)?;
+        Ok(bytes)
     }
 
     /// Read an exact already selected private package. The caller chooses the
@@ -1584,42 +1812,20 @@ impl OwnerTextContext {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> SourceCommandResult<Digest256> {
-        if read_absolute(
-            &self.configuration_path,
-            self.uid,
-            true,
-            MAX_CONTEXT_BYTES,
-            deadline,
-            cancelled,
-        )? != self.configuration_raw
-            || read_absolute(
-                &self.public_root.join(CONTEXT_SCHEMA),
-                self.uid,
-                false,
-                MAX_CONTEXT_BYTES,
-                deadline,
-                cancelled,
-            )? != self.schema_raw
+        self.verify_context_base(deadline, cancelled)?;
         {
-            return Err(SourceCommandError::Conflict(
-                "owner-local configuration or contract changed",
-            ));
-        }
-        let public = tos_fd_open::open_absolute_directory(&self.public_root)
-            .map_err(|_| SourceCommandError::Conflict("owner-local public root changed"))?;
-        let private = tos_fd_open::open_absolute_directory(&self.private_root)
-            .map_err(|_| SourceCommandError::Conflict("owner-local private root changed"))?;
-        if identity(&checked_directory(&public, self.uid, false)?) != self.public_identity
-            || identity(&checked_directory(&private, self.uid, true)?) != self.private_identity
-            || self
-                .public_root
-                .join(OWNER_HOME.trim_end_matches('/'))
-                .symlink_metadata()
-                .is_ok()
-        {
-            return Err(SourceCommandError::Conflict(
-                "owner-local context root changed",
-            ));
+            let reads = self
+                .held_reads
+                .try_borrow()
+                .map_err(|_| SourceCommandError::Invalid("owner-local read lease state"))?;
+            if reads.len() > MAX_HELD_OWNER_READS {
+                return Err(SourceCommandError::Unsupported(
+                    "owner-local held source file-count budget",
+                ));
+            }
+            for selected in reads.values() {
+                verify_held_file(selected, self.uid, deadline, cancelled)?;
+            }
         }
         let tuple = |(dev, ino, uid, mode): (u64, u64, u32, u32)| {
             JsonValue::Array(vec![
@@ -1683,6 +1889,47 @@ impl OwnerTextContext {
             ),
         ]);
         Ok(Digest256::of_bytes(&cmd::canonical(&binding)?))
+    }
+
+    fn verify_context_base(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> SourceCommandResult<()> {
+        verify_held_file(&self.configuration_held, self.uid, deadline, cancelled)?;
+        verify_held_file(&self.schema_held, self.uid, deadline, cancelled)?;
+        if read_held_fd(
+            &self.configuration_held.file,
+            MAX_CONTEXT_BYTES,
+            deadline,
+            cancelled,
+        )? != self.configuration_raw
+            || read_held_fd(
+                &self.schema_held.file,
+                MAX_CONTEXT_BYTES,
+                deadline,
+                cancelled,
+            )? != self.schema_raw
+        {
+            return Err(SourceCommandError::Conflict(
+                "owner-local configuration or contract changed",
+            ));
+        }
+        let public = self.public_root_handle()?;
+        let private = self.private_root_handle()?;
+        if identity(&checked_directory(&public, self.uid, false)?) != self.public_identity
+            || identity(&checked_directory(&private, self.uid, true)?) != self.private_identity
+            || self
+                .public_root
+                .join(OWNER_HOME.trim_end_matches('/'))
+                .symlink_metadata()
+                .is_ok()
+        {
+            return Err(SourceCommandError::Conflict(
+                "owner-local context root changed",
+            ));
+        }
+        Ok(())
     }
 }
 

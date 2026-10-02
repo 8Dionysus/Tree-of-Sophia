@@ -733,6 +733,242 @@ fn source_envelopes(
     }
     Ok(rows)
 }
+
+/// Exact public source snapshot selected by the private v4-v6 assessment
+/// owner. This reuses the public metadata profile, Claim grounding, publication
+/// epoch, and retained source-root checks already used by the Sign reader; it
+/// does not turn public records into a private access grant.
+pub(crate) struct OwnerAssessmentPublicSources<'a> {
+    reader: SignSourceReader<'a>,
+    pub(crate) rows: Vec<JsonValue>,
+    pub(crate) claim_dependencies: BTreeMap<String, Vec<JsonValue>>,
+    pub(crate) fixity: Vec<JsonValue>,
+    pub(crate) identity_snapshots: BTreeMap<String, JsonValue>,
+    pub(crate) record_paths: BTreeMap<String, String>,
+    pub(crate) form_paths: BTreeMap<String, String>,
+    pub(crate) form_sets: BTreeMap<String, JsonValue>,
+}
+
+impl OwnerAssessmentPublicSources<'_> {
+    pub(crate) fn input_bytes(&self) -> Result<usize> {
+        self.reader
+            .observed
+            .values()
+            .map(Vec::len)
+            .chain(std::iter::once(self.reader.native_bytes))
+            .chain(std::iter::once(
+                self.reader.publication.as_ref().map_or(0, Vec::len),
+            ))
+            .try_fold(0usize, |total, size| {
+                total
+                    .checked_add(size)
+                    .ok_or(Error::Invalid("assessment public input byte overflow"))
+            })
+    }
+
+    pub(crate) fn verify_current(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> crate::source_command::SourceCommandResult<()> {
+        self.reader.verify_current(deadline, cancelled)
+    }
+
+    pub(crate) fn validate_form_set(
+        &mut self,
+        path: &str,
+        worker: &mut CutWorkerSchemaExecutor,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> crate::source_command::SourceCommandResult<()> {
+        let (reader, form_sets) = (&mut self.reader, &self.form_sets);
+        let Some(form_set) = form_sets.get(path) else {
+            return Err(Error::Denied(
+                "private assessment form set is outside selected public inputs",
+            ));
+        };
+        schema(
+            reader,
+            worker,
+            "ToS/contracts/human-form-set.schema.json",
+            form_set,
+            deadline,
+            cancelled,
+        )?;
+        let subject = cmd::field(form_set, "subject")?;
+        tos_validation::source_forms::source_copy_kernel::validate_history(form_set, subject)
+            .map_err(|_| Error::Invalid("private assessment public form-set history"))?;
+        Ok(())
+    }
+}
+
+pub(crate) fn select_owner_assessment_public_sources<'a>(
+    public_root: &Path,
+    cut: &'a CorpusCutReader,
+    base: &CommandContext,
+    config: &JsonValue,
+    worker: &mut CutWorkerSchemaExecutor,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> crate::source_command::SourceCommandResult<OwnerAssessmentPublicSources<'a>> {
+    if cut.current().revision() != base.base_revision
+        || worker.source_revision() != base.base_revision
+    {
+        return Err(Error::Conflict(
+            "private assessment public source cut differs from its selected context",
+        ));
+    }
+    let mut reader = SignSourceReader::select(public_root, cut, deadline, cancelled)?;
+    let rows = source_envelopes(&mut reader, base, config, worker, deadline, cancelled)?;
+    let mut record_paths = BTreeMap::new();
+    let mut form_paths = BTreeMap::new();
+    let mut form_sets = BTreeMap::new();
+    let selected_rows = rows
+        .iter()
+        .map(|row| Ok((cmd::text(row, "id")?.to_owned(), row)))
+        .collect::<Result<BTreeMap<_, _>>>()?;
+    for binding in cmd::array(config, "source_records")? {
+        let path = cmd::text(binding, "path")?.to_owned();
+        let identity = cmd::text(binding, "record_id")?.to_owned();
+        if record_paths
+            .insert(identity.clone(), path.clone())
+            .is_some()
+        {
+            return Err(Error::Invalid(
+                "private assessment public source identity path duplicate",
+            ));
+        }
+        let Some(row) = selected_rows.get(&identity) else {
+            return Err(Error::Invalid(
+                "private assessment public selected source row absent",
+            ));
+        };
+        if cmd::text(cmd::field(row, "payload")?, "schema_version")? != "tos_human_form_v1" {
+            continue;
+        }
+        let raw = reader.observed.get(&path).ok_or(Error::Invalid(
+            "private assessment public form bytes absent",
+        ))?;
+        let package = cmd::parse(raw)?;
+        if cmd::text(&package, "schema_version")? != "tos_human_form_set_v1" {
+            // A stand-alone form is a valid metadata selection, but it has no
+            // adjacent current form-set and therefore cannot be materialized.
+            continue;
+        }
+        form_paths.insert(identity, path.clone());
+        form_sets.insert(path, package);
+    }
+    if !form_sets.is_empty() {
+        let name = "ToS/contracts/human-form-set.schema.json";
+        reader.source_dependencies.insert(name.to_owned());
+        reader.source(name, 1_048_576, deadline, cancelled)?;
+    }
+    let has_claims = rows.iter().any(|row| {
+        row.object_get("payload")
+            .and_then(|payload| payload.object_get("claim_id"))
+            .is_some()
+    });
+    let mut claim_dependencies = if has_claims {
+        claim_ground_refs(&mut reader, &rows, config, worker, deadline, cancelled)?
+    } else {
+        BTreeMap::new()
+    };
+    // A selected source form whose exact parent is a declared public Claim
+    // carries that same frozen Claim closure. An inline or stale parent cannot
+    // supply it.
+    for form in rows.iter().filter(|row| {
+        row.object_get("payload")
+            .and_then(|payload| payload.object_get("schema_version"))
+            .and_then(JsonValue::as_str)
+            == Some("tos_human_form_v1")
+    }) {
+        let payload = cmd::field(form, "payload")?;
+        let Some(parent_ref) = payload.object_get("subject").filter(|reference| {
+            reference
+                .object_get("id")
+                .and_then(JsonValue::as_str)
+                .is_some()
+        }) else {
+            continue;
+        };
+        let parent_id = cmd::text(parent_ref, "id")?;
+        let Some(parent_dependencies) = claim_dependencies.get(parent_id).cloned() else {
+            continue;
+        };
+        let parent = rows
+            .iter()
+            .find(|row| row.object_get("id").and_then(JsonValue::as_str) == Some(parent_id))
+            .ok_or(Error::Conflict(
+                "private assessment source form Claim parent is not selected",
+            ))?;
+        if !cmd::same(&envelope_ref(parent)?, parent_ref)? {
+            return Err(Error::Conflict(
+                "private assessment source form Claim parent snapshot differs",
+            ));
+        }
+        let mut closure = vec![parent_ref.clone()];
+        closure.extend(parent_dependencies);
+        claim_dependencies.insert(cmd::text(form, "id")?.to_owned(), closure);
+    }
+    let mut fixity = Vec::new();
+    let mut seen = BTreeSet::new();
+    for name in reader
+        .source_carriers
+        .iter()
+        .chain(reader.source_dependencies.iter())
+    {
+        if !seen.insert(name.as_str()) {
+            continue;
+        }
+        let raw = reader.observed.get(name).ok_or(Error::Invalid(
+            "private assessment public source snapshot input absent",
+        ))?;
+        fixity.push(cmd::object(vec![
+            ("path", cmd::string(name)),
+            (
+                "digest",
+                cmd::string(&Digest256::of_bytes(raw).to_prefixed()),
+            ),
+        ]));
+    }
+    let mut identity_snapshots = BTreeMap::new();
+    if let Some(identity) = &reader.identity_snapshot {
+        identity_snapshots.insert(
+            "native_semantic_identity_snapshot".to_owned(),
+            cmd::string(identity),
+        );
+    }
+    if !reader.profile_native_inputs.is_empty() {
+        let tuples = JsonValue::Array(
+            reader
+                .profile_native_inputs
+                .iter()
+                .map(|((name, category), digest)| {
+                    JsonValue::Array(vec![
+                        cmd::string(name),
+                        cmd::string(category),
+                        cmd::string(&digest.to_hex()),
+                    ])
+                })
+                .collect(),
+        );
+        identity_snapshots.insert(
+            "native_text_binding_snapshot".to_owned(),
+            cmd::string(&crate::source_revisions::python_ascii_digest(&tuples)?),
+        );
+    }
+    reader.verify_current(deadline, cancelled)?;
+    Ok(OwnerAssessmentPublicSources {
+        reader,
+        rows,
+        claim_dependencies,
+        fixity,
+        identity_snapshots,
+        record_paths,
+        form_paths,
+        form_sets,
+    })
+}
 fn validate_source_profile(
     reader: &mut SignSourceReader<'_>,
     base: &CommandContext,
@@ -1848,6 +2084,7 @@ fn current_promotion(
         configured_scope: assembly.scope_raw.clone(),
         required_source_refs: assembly.required.clone(),
         required_admission_bases: vec![],
+        layer_quality: None,
         reviews: history.submissions.clone(),
         trusted_history: history.submissions.clone(),
         observed_now: crate::source_serialization::instant()?,

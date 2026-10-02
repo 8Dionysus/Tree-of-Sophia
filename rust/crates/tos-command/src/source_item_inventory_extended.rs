@@ -2356,7 +2356,7 @@ mod tests {
             LEGACY_AUTHORITY_BOUNDARY_V1
         );
 
-        let mut wrong_fixity = entry;
+        let mut wrong_fixity = entry.clone();
         wrong_fixity["sha256"] = json!("0".repeat(64));
         assert!(
             invoke(&json!({

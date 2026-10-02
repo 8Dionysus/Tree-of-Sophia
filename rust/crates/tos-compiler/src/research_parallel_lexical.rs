@@ -1267,9 +1267,22 @@ fn ru_db(root: &ResearchExecution, occs: &[Occ], plan_digest: &str) -> R<Vec<u8>
             .scope_mut()
             .open_connection()
             .map_err(|e| format!("parallel Russian database open: {e}"))?;
-        db.execute_batch("PRAGMA journal_mode=DELETE; CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL) WITHOUT ROWID; CREATE TABLE occurrences(occurrence_id TEXT PRIMARY KEY,unit_id TEXT NOT NULL,reading_ref TEXT NOT NULL,part_order INTEGER NOT NULL,role TEXT NOT NULL,token_ordinal INTEGER NOT NULL,start_offset INTEGER NOT NULL,end_offset INTEGER NOT NULL,exact_form TEXT NOT NULL,exact_form_sha256 TEXT NOT NULL,normalized_form TEXT NOT NULL,normalized_form_sha256 TEXT NOT NULL,analysis_key TEXT NOT NULL,analysis_key_sha256 TEXT NOT NULL) WITHOUT ROWID; CREATE INDEX occurrence_analysis_idx ON occurrences(analysis_key); CREATE INDEX occurrence_unit_idx ON occurrences(unit_id,token_ordinal); CREATE VIRTUAL TABLE unit_fts USING fts5(unit_id UNINDEXED, exact_text, normalized_text, tokenize='unicode61 remove_diacritics 0');").map_err(|e|format!("parallel Russian database schema: {e}"))?;
         let deadline = root.deadline();
         db.progress_handler(10_000, Some(move || std::time::Instant::now() >= deadline));
+        root.check()?;
+        // Keep the bounded 80 MiB main database hot during random indexed
+        // inserts. This is a suggested pager target, not a total heap cap;
+        // the shared read meter and outer memory envelope still apply.
+        db.execute_batch("PRAGMA main.cache_size=-98304")
+            .map_err(|e| format!("parallel Russian cache policy: {e}"))?;
+        let cache_kib: i64 = db
+            .query_row("PRAGMA main.cache_size", [], |row| row.get(0))
+            .map_err(|e| format!("parallel Russian cache readback: {e}"))?;
+        if cache_kib != -98304 {
+            return Err("parallel Russian cache policy readback drift".into());
+        }
+        root.check()?;
+        db.execute_batch("PRAGMA journal_mode=DELETE; CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL) WITHOUT ROWID; CREATE TABLE occurrences(occurrence_id TEXT PRIMARY KEY,unit_id TEXT NOT NULL,reading_ref TEXT NOT NULL,part_order INTEGER NOT NULL,role TEXT NOT NULL,token_ordinal INTEGER NOT NULL,start_offset INTEGER NOT NULL,end_offset INTEGER NOT NULL,exact_form TEXT NOT NULL,exact_form_sha256 TEXT NOT NULL,normalized_form TEXT NOT NULL,normalized_form_sha256 TEXT NOT NULL,analysis_key TEXT NOT NULL,analysis_key_sha256 TEXT NOT NULL) WITHOUT ROWID; CREATE INDEX occurrence_analysis_idx ON occurrences(analysis_key); CREATE INDEX occurrence_unit_idx ON occurrences(unit_id,token_ordinal); CREATE VIRTUAL TABLE unit_fts USING fts5(unit_id UNINDEXED, exact_text, normalized_text, tokenize='unicode61 remove_diacritics 0');").map_err(|e|format!("parallel Russian database schema: {e}"))?;
         let tx = db
             .transaction()
             .map_err(|e| format!("parallel Russian database transaction: {e}"))?;

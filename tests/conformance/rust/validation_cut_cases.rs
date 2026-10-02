@@ -2648,6 +2648,7 @@ print(json.dumps(rows,ensure_ascii=False,allow_nan=False,separators=(',',':')))
                 .map(|r| serde_json::to_vec(r).unwrap())
                 .collect(),
             required_admission_bases: records(&case["required_admission_bases"]),
+            layer_quality: None,
             reviews: submissions(&case["reviews"]),
             trusted_history: submissions(&case["trusted_history"]),
             observed_now: required(case, "observed_now").into(),
