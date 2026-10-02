@@ -394,9 +394,9 @@ fn resolved(reference: &Value, version: Version) -> Value {
 /// already been sealed by the catalog owner; Versions additionally proves the
 /// independent current cut and every selected retained source read. Global
 /// navigation incidence, publication and admission remain caller-owned.
-pub(crate) fn prepare_navigation_record_from_catalog(
+pub(crate) fn prepare_navigation_record_from_catalog<B: catalog::CatalogInputBinding>(
     stage: &mut KnowledgeStage<'_>,
-    receipt: &SourceCatalogReceipt,
+    receipt: &SourceCatalogReceipt<B>,
     versions: &mut Versions<'_, '_>,
     id: &str,
     entities: &Value,

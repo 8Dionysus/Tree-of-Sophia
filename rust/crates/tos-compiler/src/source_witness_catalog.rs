@@ -946,6 +946,25 @@ impl<'a> SourceCatalogValidator<'a> {
         }
     }
 
+    /// Borrow the selected executor without exposing a resident receipt slice.
+    pub(crate) fn with_selected_schemas<T>(
+        &self,
+        revision: SourceRevision,
+        f: impl FnOnce(&mut dyn CutSchemaExecutor) -> Result<T>,
+    ) -> Result<T> {
+        self.verify_schema_binding(revision)?;
+        let mut schemas = self
+            .schemas
+            .try_borrow_mut()
+            .map_err(|_| Error::Invalid("catalog executor already in use"))?;
+        let result = match &mut *schemas {
+            CatalogSchemas::Resident(s) => f(s),
+            CatalogSchemas::Spooling(s) => f(s),
+        };
+        self.guard()?;
+        result
+    }
+
     fn guard(&self) -> Result<()> {
         if self.worker.sha256 != self.worker_pin.sha256
             || self.worker.absolute_path != self.worker_pin.absolute_path

@@ -5,7 +5,12 @@ use crate::source_bibliographic::{
     BibliographicForms, BibliographicLimits, BibliographicSourceCut,
 };
 use crate::source_bibliographic_render::{array, encode, text};
-use crate::source_bibliographic_versions::Versions;
+use crate::source_bibliographic_versions::{
+    SelectedBibliographicSourceCut, StreamedBibliographicSourceCut, Versions,
+};
+use crate::source_navigation_storage::{
+    NavigationList, NavigationMap, NavigationPaths, NavigationStorage, SharedNavigationStorage,
+};
 use crate::source_witness_catalog::{
     self as catalog, SourceCatalogReceipt, SourceCatalogValidator,
 };
@@ -13,16 +18,19 @@ use crate::{Error, Result};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
+pub use crate::source_navigation_storage::NavigationStorageLimits;
+
 // Only exact immutable source results enter these maps. The caller's aggregate
 // row/byte caps bound retained memory as well as final JSON serialization.
 struct Projection<'a> {
-    nodes: BTreeMap<String, Value>,
-    edges: BTreeMap<String, Value>,
-    rights: Vec<Value>,
-    diagnostics: Vec<Value>,
+    nodes: NavigationMap<'a>,
+    edges: NavigationMap<'a>,
+    rights: NavigationList<'a>,
+    diagnostics: NavigationList<'a>,
     bytes: usize,
     limits: BibliographicLimits,
     cancelled: &'a std::sync::atomic::AtomicBool,
+    storage: Option<SharedNavigationStorage<'a>>,
 }
 impl Projection<'_> {
     fn charge(&mut self, row: &Value) -> Result<()> {
@@ -37,9 +45,14 @@ impl Projection<'_> {
             .checked_add(size)
             .filter(|n| *n as u64 <= self.limits.max_output_bytes)
             .ok_or(Error::Budget("navigation whole projection bytes"))?;
-        if (self.nodes.len() + self.edges.len() + self.rights.len() + self.diagnostics.len()) as u64
-            >= self.limits.max_output_rows
-        {
+        let rows = self
+            .nodes
+            .len()
+            .checked_add(self.edges.len())
+            .and_then(|n| n.checked_add(self.rights.len()))
+            .and_then(|n| n.checked_add(self.diagnostics.len()))
+            .ok_or(Error::Budget("navigation whole projection rows"))?;
+        if rows as u64 >= self.limits.max_output_rows {
             return Err(Error::Budget("navigation whole projection rows"));
         }
         Ok(())
@@ -47,13 +60,13 @@ impl Projection<'_> {
     fn diagnostic(&mut self, level: &str, path: &str, message: String) -> Result<()> {
         let row = json!({"level":level,"path":path,"message":message});
         self.charge(&row)?;
-        self.diagnostics.push(row);
+        self.diagnostics.push(row)?;
         Ok(())
     }
     fn node(&mut self, row: Value) -> Result<()> {
         let id = text(&row, "node_id")?.to_owned();
-        if let Some(existing) = self.nodes.get(&id) {
-            if existing != &row {
+        if let Some(existing) = self.nodes.get(&id)? {
+            if existing.as_ref() != &row {
                 return self.diagnostic(
                     "error",
                     text(&row, "source_ref")?,
@@ -63,13 +76,13 @@ impl Projection<'_> {
             return Ok(());
         }
         self.charge(&row)?;
-        self.nodes.insert(id, row);
+        self.nodes.insert(id, row)?;
         Ok(())
     }
     fn edge(&mut self, row: Value) -> Result<()> {
         let id = text(&row, "edge_id")?.to_owned();
-        if let Some(existing) = self.edges.get(&id) {
-            if existing != &row {
+        if let Some(existing) = self.edges.get(&id)? {
+            if existing.as_ref() != &row {
                 let path = row["source_refs"]
                     .as_array()
                     .and_then(|r| r.first())
@@ -77,14 +90,14 @@ impl Projection<'_> {
                     .unwrap_or("ToS");
                 return self.diagnostic(
                     "error",
-                    path,
+                    &path,
                     format!("source-navigation edge {id} has conflicting projections"),
                 );
             }
             return Ok(());
         }
         self.charge(&row)?;
-        self.edges.insert(id, row);
+        self.edges.insert(id, row)?;
         Ok(())
     }
     fn rights(&mut self, record: &Value, source: &str) -> Result<()> {
@@ -152,7 +165,7 @@ impl Projection<'_> {
                 .cloned()
                 .unwrap_or(json!([]));
             self.charge(&row)?;
-            self.rights.push(row);
+            self.rights.push(row)?;
         }
         Ok(())
     }
@@ -280,12 +293,146 @@ fn project_source_navigation_with_epoch(
         if receipt.worker_sha256 != validator.worker.sha256.to_hex() {
             return Err(Error::Invalid("navigation exact catalog worker identity"));
         }
-        let mut versions = match epoch {
+        let versions = match epoch {
             Some((epoch, expected, limits)) => Versions::new_with_catalog_epoch(
                 source, stage, validator, receipt, l, epoch, expected, limits,
             )?,
             None => Versions::new(source, stage, validator, receipt, l)?,
         };
+        project_navigation_kernel(
+            stage,
+            receipt,
+            SelectedBibliographicSourceCut::Resident(source),
+            versions,
+            validator,
+            entities,
+            forms,
+            l,
+            epoch.is_some(),
+            None,
+            None,
+        )
+        .and_then(|output| match output {
+            NavigationKernelOutput::Resident(value) => Ok(value),
+            NavigationKernelOutput::Streamed { .. } => {
+                Err(Error::Invalid("navigation resident result kind"))
+            }
+        })
+    })();
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+
+pub trait NavigationSourceSink {
+    fn header(&mut self, header: &Value) -> Result<()>;
+    fn row(&mut self, collection: &str, key: &str, raw: &[u8]) -> Result<()>;
+}
+
+pub struct StreamedNavigationSourceReceipt {
+    pub counts: Value,
+    pub input_binding: crate::knowledge_stage::ColdAuthoredBinding,
+    pub catalog_root_sha256: String,
+    pub annotation_report: tos_validation::layer_family_rules::LayerFamilyReport,
+}
+
+enum NavigationKernelOutput {
+    Resident(NavigationSourceProjection),
+    Streamed {
+        counts: Value,
+        catalog_root_sha256: String,
+        annotation_report: tos_validation::layer_family_rules::LayerFamilyReport,
+    },
+}
+
+/// Authenticated streamed source, the same Navigation renderer, and one private
+/// quota-held operation-local row store. This does not grant source admission.
+pub fn project_streamed_source_navigation_from_cut(
+    stage: &mut KnowledgeStage<'_>,
+    receipt: &catalog::ColdSourceCatalogReceipt,
+    source: &StreamedBibliographicSourceCut<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    entities: &Value,
+    forms: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+    workspace_dir: std::fs::File,
+    request: tos_source_store::PinnedSqliteAuxRequest,
+    storage_limits: NavigationStorageLimits,
+    sink: &mut dyn NavigationSourceSink,
+) -> Result<StreamedNavigationSourceReceipt> {
+    let result = (|| {
+        l.validate()?;
+        if receipt.worker_sha256 != validator.worker.sha256.to_hex() {
+            return Err(Error::Invalid("navigation exact catalog worker identity"));
+        }
+        let versions = Versions::new_streamed(source, stage, validator, receipt, l)?;
+        let storage = std::rc::Rc::new(std::cell::RefCell::new(NavigationStorage::create(
+            workspace_dir,
+            request,
+            storage_limits,
+            l.deadline,
+            validator.cancelled,
+        )?));
+        match project_navigation_kernel(
+            stage,
+            receipt,
+            SelectedBibliographicSourceCut::Streamed(source),
+            versions,
+            validator,
+            entities,
+            forms,
+            l,
+            false,
+            Some(storage.clone()),
+            Some(sink),
+        )? {
+            NavigationKernelOutput::Streamed {
+                counts,
+                catalog_root_sha256,
+                annotation_report,
+            } => {
+                storage.borrow().guard()?;
+                std::rc::Rc::try_unwrap(storage)
+                    .map_err(|_| Error::Invalid("navigation storage still borrowed"))?
+                    .into_inner()
+                    .close()?;
+                Ok(StreamedNavigationSourceReceipt {
+                    counts,
+                    input_binding: receipt.input_binding.clone(),
+                    catalog_root_sha256,
+                    annotation_report,
+                })
+            }
+            NavigationKernelOutput::Resident(_) => {
+                Err(Error::Invalid("navigation streamed result kind"))
+            }
+        }
+    })();
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
+
+fn project_navigation_kernel<'storage, 'v: 'storage, B: catalog::CatalogInputBinding>(
+    stage: &mut KnowledgeStage<'_>,
+    receipt: &SourceCatalogReceipt<B>,
+    source: SelectedBibliographicSourceCut<'_, '_>,
+    mut versions: Versions<'_, '_>,
+    validator: &SourceCatalogValidator<'v>,
+    entities: &Value,
+    forms: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+    catalog_epoch: bool,
+    storage: Option<SharedNavigationStorage<'storage>>,
+    mut sink: Option<&mut dyn NavigationSourceSink>,
+) -> Result<NavigationKernelOutput> {
+    let result = (|| {
+        l.validate()?;
+        if receipt.worker_sha256 != validator.worker.sha256.to_hex() {
+            return Err(Error::Invalid("navigation exact catalog worker identity"));
+        }
         let selected_entities = original(
             &versions.required(
                 "ToS/doctrine/semantic-interchange/entity-types.v1.json",
@@ -298,35 +445,46 @@ fn project_source_navigation_with_epoch(
             return Err(Error::Invalid("navigation exact selected entity registry"));
         }
         let mut projection = Projection {
-            nodes: BTreeMap::new(),
-            edges: BTreeMap::new(),
-            rights: Vec::new(),
-            diagnostics: Vec::new(),
+            nodes: NavigationMap::new(storage.as_ref(), "nodes"),
+            edges: NavigationMap::new(storage.as_ref(), "edges"),
+            rights: NavigationList::new(storage.as_ref(), "rights"),
+            diagnostics: NavigationList::new(storage.as_ref(), "diagnostics"),
             bytes: 0,
             limits: l,
             cancelled: validator.cancelled,
+            storage: storage.clone(),
         };
-        let mut paths = Vec::new();
+        let mut paths = NavigationPaths::new(storage.as_ref());
         let mut path_bytes = 0usize;
-        for member in source.cut.current().members() {
-            if paths.len() >= source.max_read_files {
-                return Err(Error::Budget("navigation current inventory rows"));
+        source.visit_members(validator, l, |path, _, _| {
+            if let SelectedBibliographicSourceCut::Resident(input) = source {
+                if paths.len() >= input.max_read_files {
+                    return Err(Error::Budget("navigation current inventory rows"));
+                }
+                path_bytes = path_bytes
+                    .checked_add(path.len())
+                    .filter(|n| *n <= input.max_read_bytes)
+                    .ok_or(Error::Budget("navigation current inventory bytes"))?;
             }
-            path_bytes = path_bytes
-                .checked_add(member.path.as_str().len())
-                .filter(|n| *n <= source.max_read_bytes)
-                .ok_or(Error::Budget("navigation current inventory bytes"))?;
-            paths.push(member.path.as_str().to_owned());
-        }
-        if paths.len() as u64 != source.expected_membership.count {
+            paths.push(path.to_owned())
+        })?;
+        if paths.len() as u64 != source.membership().count {
             return Err(Error::Invalid("navigation complete selected inventory"));
         }
-        let annotation_report = inspect_annotation_owner(source, &paths, validator, l)?;
-        let mut branches = BTreeMap::<String, Value>::new();
-        for path in paths.iter().filter(|p| {
+        let annotation_report = match source {
+            SelectedBibliographicSourceCut::Resident(input) => {
+                inspect_annotation_owner(input, &paths, validator, l)?
+            }
+            SelectedBibliographicSourceCut::Streamed(input) => {
+                inspect_streamed_annotation_owner(input, &paths, validator, l)?
+            }
+        };
+        let mut branches = NavigationMap::new(projection.storage.as_ref(), "branches");
+        for path in paths.selected(|p| {
             p.starts_with("ToS/philosophy/eras/") && p.ends_with("/branch.manifest.json")
         }) {
-            let manifest = original(&versions.required(path, validator, l)?, l)?;
+            let path = path?;
+            let manifest = original(&versions.required(&path, validator, l)?, l)?;
             let (Some(id), Some(branch)) =
                 (field(&manifest, "branch_id"), field(&manifest, "path"))
             else {
@@ -343,17 +501,22 @@ fn project_source_navigation_with_epoch(
                             .replace('-', " "),
                     )
                 });
-            projection.node(node(id,branch_kind(branch),&label,path,"not_applicable",
+            projection.node(node(id,branch_kind(branch),&label,&path,"not_applicable",
                 json!({"branch_path":branch,"role":manifest.get("role").and_then(Value::as_str).unwrap_or("")})))?;
-            branches.insert(branch.into(), manifest);
+            branches.insert(branch.into(), manifest)?;
         }
-        for (child, manifest) in &branches {
+        let mut after_branch = None;
+        while let Some(child) = branches.next(after_branch.as_deref())? {
+            let manifest = branches
+                .get(&child)?
+                .ok_or(Error::Invalid("navigation branch disappeared"))?;
+            after_branch = Some(child.clone());
             let mut parent = child.as_str();
             while let Some((next, _)) = parent.rsplit_once('/') {
                 parent = next;
-                if let Some(owner) = branches.get(parent) {
-                    let left = text(owner, "branch_id")?;
-                    let right = text(manifest, "branch_id")?;
+                if let Some(owner) = branches.get(parent)? {
+                    let left = text(&owner, "branch_id")?;
+                    let right = text(&manifest, "branch_id")?;
                     projection.edge(edge(
                         &format!("source-navigation:branch:{left}:{right}"),
                         left,
@@ -387,14 +550,15 @@ fn project_source_navigation_with_epoch(
             }
             for row in output.diagnostics {
                 projection.charge(&row)?;
-                projection.diagnostics.push(row);
+                projection.diagnostics.push(row)?;
             }
             after = Some(id);
         }
-        for path in paths.iter().filter(|p| {
+        for path in paths.selected(|p| {
             p.starts_with("ToS/philosophy/eras/") && p.ends_with("/source-planting.json")
         }) {
-            let planting = original(&versions.required(path, validator, l)?, l)?;
+            let path = path?;
+            let planting = original(&versions.required(&path, validator, l)?, l)?;
             let (Some(id), Some(branch), Some(witness)) = (
                 field(&planting, "planting_id"),
                 field(&planting, "branch_path"),
@@ -420,24 +584,24 @@ fn project_source_navigation_with_epoch(
                 .and_then(Value::as_str)
                 .filter(|s| !s.is_empty())
                 .unwrap_or("unknown");
-            projection.node(node(id,"source_planting",label,path,status,json!({"status":planting["status"],"discovery_ref":planting["discovery_ref"],"research_ref":planting["research_ref"]})))?;
-            if let Some(owner) = branches.get(branch) {
-                let branch_id = text(owner, "branch_id")?;
+            projection.node(node(id,"source_planting",label,&path,status,json!({"status":planting["status"],"discovery_ref":planting["discovery_ref"],"research_ref":planting["research_ref"]})))?;
+            if let Some(owner) = branches.get(branch)? {
+                let branch_id = text(&owner, "branch_id")?;
                 projection.edge(edge(
                     &format!("source-navigation:planting:{branch_id}:{id}"),
                     branch_id,
                     "has_source_planting",
                     id,
                     "authored_source_planting",
-                    &[path],
+                    &[&path],
                 ))?;
             }
             if let Some(witness_id) = ["work_id", "artifact_id", "composite_id", "item_id"]
                 .into_iter()
                 .find_map(|key| field(witness, key))
             {
-                let witness_ref = field(witness, "record_ref").unwrap_or(path);
-                if !projection.nodes.contains_key(witness_id) {
+                let witness_ref = field(witness, "record_ref").unwrap_or(&path);
+                if !projection.nodes.contains(witness_id)? {
                     projection.node(node(
                         witness_id,
                         "source_witness",
@@ -453,7 +617,7 @@ fn project_source_navigation_with_epoch(
                     field(witness, "relationship").unwrap_or("references_source_witness"),
                     witness_id,
                     "authored_source_planting",
-                    &[path, witness_ref],
+                    &[&path, witness_ref],
                 ))?;
             }
         }
@@ -464,10 +628,11 @@ fn project_source_navigation_with_epoch(
             "object-link-claims.jsonl",
             "responsibility-claims.jsonl",
         ] {
-            for path in paths.iter().filter(|p| {
+            for path in paths.selected(|p| {
                 p.starts_with("ToS/source-witnesses/") && p.rsplit('/').next() == Some(basename)
             }) {
-                let raw = versions.required(path, validator, l)?;
+                let path = path?;
+                let raw = versions.required(&path, validator, l)?;
                 let lines = claim_lines(
                     &raw,
                     path == "ToS/source-witnesses/relations/object-link/object-link-claims.jsonl",
@@ -490,11 +655,10 @@ fn project_source_navigation_with_epoch(
                     ) else {
                         continue;
                     };
-                    if !projection.nodes.contains_key(left) || !projection.nodes.contains_key(right)
-                    {
+                    if !projection.nodes.contains(left)? || !projection.nodes.contains(right)? {
                         projection.diagnostic(
                             "error",
-                            path,
+                            &path,
                             format!("source-navigation claim {id} has an unresolved endpoint"),
                         )?;
                         continue;
@@ -541,21 +705,19 @@ fn project_source_navigation_with_epoch(
             }
         }
         project_files(stage, &mut projection, &mut versions, &paths, validator, l)?;
-        for path in paths
-            .iter()
-            .filter(|p| p.starts_with("ToS/source-witnesses/") && packet_name(p))
-        {
+        for path in paths.selected(|p| p.starts_with("ToS/source-witnesses/") && packet_name(p)) {
+            let path = path?;
             if path
                 .split('/')
                 .any(|p| matches!(p, "payload" | "local-content"))
             {
                 continue;
             }
-            let raw = versions.required(path, validator, l)?;
+            let raw = versions.required(&path, validator, l)?;
             let packet = crate::source_navigation_packets::project_packet(
                 stage,
                 &raw,
-                path,
+                &path,
                 validator,
                 l.catalog,
                 l.catalog.max_row_bytes,
@@ -570,10 +732,10 @@ fn project_source_navigation_with_epoch(
             for row in packet.edges {
                 let left = text(&row, "from_id")?;
                 let right = text(&row, "to_id")?;
-                if !projection.nodes.contains_key(left) || !projection.nodes.contains_key(right) {
+                if !projection.nodes.contains(left)? || !projection.nodes.contains(right)? {
                     projection.diagnostic(
                         "warning",
-                        path,
+                        &path,
                         format!(
                             "text spine endpoint not projected: {}",
                             text(&row, "edge_id")?
@@ -585,10 +747,10 @@ fn project_source_navigation_with_epoch(
             }
         }
         for path in paths
-            .iter()
-            .filter(|p| p.starts_with("ToS/source-witnesses/") && p.ends_with("/rights.json"))
+            .selected(|p| p.starts_with("ToS/source-witnesses/") && p.ends_with("/rights.json"))
         {
-            let raw = versions.required(path, validator, l)?;
+            let path = path?;
+            let raw = versions.required(&path, validator, l)?;
             let rights = original(&raw, l)?;
             if visible(&rights) {
                 catalog::check_catalog_schema(
@@ -599,29 +761,57 @@ fn project_source_navigation_with_epoch(
                     "",
                     &raw,
                 )?;
-                projection.rights(&rights, path)?;
+                projection.rights(&rights, &path)?;
             }
         }
         versions.verify_catalog_binding(stage, receipt, l)?;
-        projection
-            .rights
-            .sort_by(|a, b| a["rights_id"].as_str().cmp(&b["rights_id"].as_str()));
+        projection.rights.sort_rights();
         let counts = json!({"nodes":projection.nodes.len(),"edges":projection.edges.len(),"rights":projection.rights.len()});
-        let value = json!({"schema_version":if epoch.is_some() {"tos_source_navigation_v2"} else {"tos_source_navigation_v1"},"authority_boundary":"generated read-only navigation; authored branch manifests, source records, claims, item manifests, and rights records retain authority",
-            "counts":counts,"nodes":projection.nodes.into_values().collect::<Vec<_>>(),
-            "edges":projection.edges.into_values().collect::<Vec<_>>(),"rights":projection.rights});
+        if let Some(storage) = storage.as_ref() {
+            let sink = sink
+                .as_deref_mut()
+                .ok_or(Error::Invalid("navigation streamed sink absent"))?;
+            storage.borrow().guard()?;
+            sink.header(&json!({"schema_version":"tos_source_navigation_v1",
+                "authority_boundary":"generated read-only navigation; authored branch manifests, source records, claims, item manifests, and rights records retain authority", "counts":counts}))?;
+            for (collection, expected) in [
+                ("nodes", projection.nodes.len()),
+                ("edges", projection.edges.len()),
+                ("rights", projection.rights.len()),
+                ("diagnostics", projection.diagnostics.len()),
+            ] {
+                let actual = storage
+                    .borrow()
+                    .visit_rows(collection, |key, raw| sink.row(collection, key, raw))?;
+                if actual != expected as u64 {
+                    return Err(Error::Invalid("navigation streamed collection count"));
+                }
+            }
+            versions.verify_catalog_binding(stage, receipt, l)?;
+            storage.borrow().guard()?;
+            return Ok(NavigationKernelOutput::Streamed {
+                counts,
+                catalog_root_sha256: receipt.row_root_sha256.clone(),
+                annotation_report,
+            });
+        }
+        let value = json!({"schema_version":if catalog_epoch {"tos_source_navigation_v2"} else {"tos_source_navigation_v1"},"authority_boundary":"generated read-only navigation; authored branch manifests, source records, claims, item manifests, and rights records retain authority",
+            "counts":counts,"nodes":projection.nodes.into_values()?,
+            "edges":projection.edges.into_values()?,"rights":projection.rights.into_values()?});
         encode(
             &value,
             usize::try_from(l.max_output_bytes)
                 .map_err(|_| Error::Budget("navigation output usize"))?,
         )?;
-        Ok(NavigationSourceProjection {
-            value,
-            diagnostics: projection.diagnostics,
-            source_binding: versions.binding(),
-            catalog_root_sha256: receipt.row_root_sha256.clone(),
-            annotation_report,
-        })
+        Ok(NavigationKernelOutput::Resident(
+            NavigationSourceProjection {
+                value,
+                diagnostics: projection.diagnostics.into_values()?,
+                source_binding: versions.binding(),
+                catalog_root_sha256: receipt.row_root_sha256.clone(),
+                annotation_report,
+            },
+        ))
     })();
     if result.is_err() {
         stage.poison();
@@ -650,12 +840,13 @@ fn packet_name(path: &str) -> bool {
     {
         return false;
     }
-    let name = path.rsplit('/').next().unwrap_or(path);
+    let name = path.rsplit('/').next().unwrap_or(&path);
     (name.starts_with("source-text-unit") && name.ends_with(".json"))
         || name.ends_with(".source-text-unit.v1.json")
         || (name.starts_with("semantic-annotation") && name.ends_with(".json"))
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 struct FileGroup {
     digest: Value,
     size: Value,
@@ -664,30 +855,98 @@ struct FileGroup {
     memberships: BTreeMap<String, BTreeMap<String, Value>>,
     invalid: bool,
 }
+enum FileGroups<'a> {
+    Resident(BTreeMap<String, FileGroup>),
+    Disk(NavigationMap<'a>),
+}
+impl<'a> FileGroups<'a> {
+    fn new(storage: Option<&SharedNavigationStorage<'a>>) -> Self {
+        match storage {
+            None => Self::Resident(BTreeMap::new()),
+            Some(_) => Self::Disk(NavigationMap::new(storage, "file_groups")),
+        }
+    }
+    fn contains(&self, id: &str) -> Result<bool> {
+        match self {
+            Self::Resident(m) => Ok(m.contains_key(id)),
+            Self::Disk(m) => m.contains(id),
+        }
+    }
+    fn update(
+        &mut self,
+        id: &str,
+        new: impl FnOnce() -> FileGroup,
+        update: impl FnOnce(&mut FileGroup) -> Result<()>,
+    ) -> Result<()> {
+        match self {
+            Self::Resident(m) => update(m.entry(id.to_owned()).or_insert_with(new)),
+            Self::Disk(m) => {
+                let mut group = match m.get(id)? {
+                    Some(value) => serde_json::from_value(value.into_owned())
+                        .map_err(|_| Error::Invalid("navigation retained file group"))?,
+                    None => new(),
+                };
+                update(&mut group)?;
+                m.insert(
+                    id.to_owned(),
+                    serde_json::to_value(group)
+                        .map_err(|_| Error::Invalid("navigation file group encoding"))?,
+                )
+            }
+        }
+    }
+    fn next(&self, after: Option<&str>) -> Result<Option<String>> {
+        match self {
+            Self::Resident(m) => Ok(match after {
+                None => m.keys().next().cloned(),
+                Some(after) => m
+                    .range::<str, _>((std::ops::Bound::Excluded(after), std::ops::Bound::Unbounded))
+                    .next()
+                    .map(|(k, _)| k.clone()),
+            }),
+            Self::Disk(m) => m.next(after),
+        }
+    }
+    fn take(&mut self, id: &str) -> Result<FileGroup> {
+        match self {
+            Self::Resident(m) => m
+                .remove(id)
+                .ok_or(Error::Invalid("navigation file group disappeared")),
+            Self::Disk(m) => serde_json::from_value(
+                m.get(id)?
+                    .ok_or(Error::Invalid("navigation file group disappeared"))?
+                    .into_owned(),
+            )
+            .map_err(|_| Error::Invalid("navigation retained file group")),
+        }
+    }
+}
+
 fn project_files(
     stage: &KnowledgeStage<'_>,
     projection: &mut Projection,
     versions: &mut Versions<'_, '_>,
-    paths: &[String],
+    paths: &NavigationPaths<'_>,
     validator: &SourceCatalogValidator<'_>,
     l: BibliographicLimits,
 ) -> Result<()> {
-    let mut files = BTreeMap::<String, FileGroup>::new();
-    let mut diagnostics = Vec::new();
+    let mut files = FileGroups::new(projection.storage.as_ref());
+    let mut diagnostics = NavigationList::new(projection.storage.as_ref(), "file_diagnostics");
     let mut report = |path: &str, message: String| {
-        diagnostics.push(json!({"level":"error","path":path,"message":message}));
+        diagnostics.push(json!({"level":"error","path":path,"message":message}))
     };
     for path in paths
-        .iter()
-        .filter(|p| p.starts_with("ToS/source-witnesses/") && p.ends_with("/item.manifest.json"))
+        .selected(|p| p.starts_with("ToS/source-witnesses/") && p.ends_with("/item.manifest.json"))
     {
-        let raw = versions.required(path, validator, l)?;
+        let path = path?;
+        let raw = versions.required(&path, validator, l)?;
         let manifest = original(&raw, l)?;
-        let Some(item) =
-            field(&manifest, "item_id").filter(|id| projection.nodes.contains_key(*id))
-        else {
+        let Some(item) = field(&manifest, "item_id") else {
             continue;
         };
+        if !projection.nodes.contains(item)? {
+            continue;
+        }
         catalog::check_catalog_schema(
             stage,
             validator,
@@ -700,24 +959,24 @@ fn project_files(
         let rights = field(&manifest, "rights_ref");
         if acquisition.is_none() {
             report(
-                path,
+                &path,
                 "source-navigation Item manifest has no acquisition event reference".into(),
-            );
+            )?;
         }
         if rights.is_none() {
             report(
-                path,
+                &path,
                 "source-navigation Item manifest has no rights reference".into(),
-            );
+            )?;
         }
         let entries = match manifest.get("payload_files") {
             None => &[][..],
             Some(Value::Array(entries)) => entries.as_slice(),
             _ => {
                 report(
-                    path,
+                    &path,
                     "source-navigation Item manifest payload_files is not an array".into(),
-                );
+                )?;
                 continue;
             }
         };
@@ -729,9 +988,9 @@ fn project_files(
         for (_, entry) in entries {
             if !entry.is_object() {
                 report(
-                    path,
+                    &path,
                     "source-navigation Item manifest payload entry is not an object".into(),
-                );
+                )?;
                 continue;
             }
             let (Some(id), Some(digest), Some(media)) = (
@@ -740,125 +999,120 @@ fn project_files(
                 field(entry, "media_type"),
             ) else {
                 report(
-                    path,
+                    &path,
                     "source-navigation Item manifest payload entry has incomplete File identity"
                         .into(),
-                );
+                )?;
                 continue;
             };
             let Some(size) = entry.get("byte_size") else {
                 report(
-                    path,
+                    &path,
                     format!("source-navigation File {id} has invalid byte_size"),
-                );
+                )?;
                 continue;
             };
-            if !files.contains_key(id) {
+            if !files.contains(id)? {
                 projection.charge(entry)?;
             }
-            let group = files.entry(id.into()).or_insert_with(|| FileGroup {
-                digest: json!(digest),
-                size: size.clone(),
-                media: json!(media),
-                refs: BTreeSet::new(),
-                memberships: BTreeMap::new(),
-                invalid: false,
-            });
-            if id != format!("tos.file.sha256.{digest}") {
-                report(
-                    path,
-                    format!("source-navigation File ID {id} differs from its payload digest"),
-                );
-                group.invalid = true;
-            }
-            if !size
-                .as_number()
-                .is_some_and(|n| n.to_string().bytes().all(|c| c.is_ascii_digit()))
-            {
-                report(
-                    path,
-                    format!("source-navigation File {id} has invalid byte_size"),
-                );
-                group.invalid = true;
-            }
-            for (field, expected) in [
-                ("sha256", &group.digest),
-                ("byte_size", &group.size),
-                ("media_type", &group.media),
-            ] {
-                if entry.get(field) != Some(expected) {
+            files.update(id, || FileGroup {
+                digest:json!(digest),size:size.clone(),media:json!(media),
+                refs:BTreeSet::new(),memberships:BTreeMap::new(),invalid:false,
+            }, |group| {
+                if id != format!("tos.file.sha256.{digest}") {
                     report(
-                        path,
-                        format!("source-navigation File {id} has conflicting {field}"),
-                    );
+                        &path,
+                        format!("source-navigation File ID {id} differs from its payload digest"),
+                    )?;
                     group.invalid = true;
                 }
-            }
-            group.refs.insert(path.clone());
-            let (Some(acquisition), Some(rights)) = (acquisition, rights) else {
-                group.invalid = true;
-                continue;
-            };
-            let (Some(relative), Some(basename), Some(fixity)) = (
-                field(entry, "relative_path"),
-                field(entry, "original_basename"),
-                field(entry, "fixity_verified_at"),
-            ) else {
-                report(
-                    path,
-                    format!("source-navigation File {id} has incomplete Item membership context"),
-                );
-                group.invalid = true;
-                continue;
-            };
-            let container = entry
-                .get("container_member")
-                .cloned()
-                .unwrap_or(json!(false));
-            if !container.is_boolean() {
-                report(
-                    path,
-                    format!("source-navigation File {id} has incomplete Item membership context"),
-                );
-                group.invalid = true;
-                continue;
-            }
-            let context=group.memberships.entry(item.into()).or_default().entry(path.clone()).or_insert_with(||json!({"acquisition_event_ref":acquisition,"rights_ref":rights,"payload_entries":[]}));
-            if context["acquisition_event_ref"] != json!(acquisition)
-                || context["rights_ref"] != json!(rights)
-            {
-                report(
-                    path,
-                    format!(
-                        "source-navigation Item manifest {path} has conflicting acquisition or rights references"
-                    ),
-                );
-                group.invalid = true;
-            }
-            let membership = json!({"relative_path":relative,"original_basename":basename,"fixity_verified_at":fixity,"container_member":container});
-            projection.charge(&membership)?;
-            context["payload_entries"]
-                .as_array_mut()
-                .ok_or(Error::Invalid("navigation private file context"))?
-                .push(membership);
+                if !size
+                    .as_number()
+                    .is_some_and(|n| n.to_string().bytes().all(|c| c.is_ascii_digit()))
+                {
+                    report(
+                        &path,
+                        format!("source-navigation File {id} has invalid byte_size"),
+                    )?;
+                    group.invalid = true;
+                }
+                for (field, expected) in [
+                    ("sha256", &group.digest),
+                    ("byte_size", &group.size),
+                    ("media_type", &group.media),
+                ] {
+                    if entry.get(field) != Some(expected) {
+                        report(
+                            &path,
+                            format!("source-navigation File {id} has conflicting {field}"),
+                        )?;
+                        group.invalid = true;
+                    }
+                }
+                group.refs.insert(path.clone());
+                let (Some(acquisition), Some(rights)) = (acquisition, rights) else {
+                    group.invalid = true;
+                    return Ok(());
+                };
+                let (Some(relative), Some(basename), Some(fixity)) = (
+                    field(entry, "relative_path"),
+                    field(entry, "original_basename"),
+                    field(entry, "fixity_verified_at"),
+                ) else {
+                    report(
+                        &path,
+                        format!(
+                            "source-navigation File {id} has incomplete Item membership context"
+                        ),
+                    )?;
+                    group.invalid = true;
+                    return Ok(());
+                };
+                let container = entry
+                    .get("container_member")
+                    .cloned()
+                    .unwrap_or(json!(false));
+                if !container.is_boolean() {
+                    report(
+                        &path,
+                        format!(
+                            "source-navigation File {id} has incomplete Item membership context"
+                        ),
+                    )?;
+                    group.invalid = true;
+                    return Ok(());
+                }
+                let context=group.memberships.entry(item.into()).or_default().entry(path.clone()).or_insert_with(||json!({"acquisition_event_ref":acquisition,"rights_ref":rights,"payload_entries":[]}));
+                if context["acquisition_event_ref"] != json!(acquisition)
+                    || context["rights_ref"] != json!(rights)
+                {
+                    report(
+                        &path,
+                        format!(
+                            "source-navigation Item manifest {path} has conflicting acquisition or rights references"
+                        ),
+                    )?;
+                    group.invalid = true;
+                }
+                let membership = json!({"relative_path":relative,"original_basename":basename,"fixity_verified_at":fixity,"container_member":container});
+                projection.charge(&membership)?;
+                context["payload_entries"]
+                    .as_array_mut()
+                    .ok_or(Error::Invalid("navigation private file context"))?
+                    .push(membership);
+                Ok(())
+            })?;
         }
     }
     drop(report);
-    diagnostics.sort_by(|a, b| {
-        ["path", "message", "level"]
-            .iter()
-            .map(|key| a[*key].as_str())
-            .cmp(
-                ["path", "message", "level"]
-                    .iter()
-                    .map(|key| b[*key].as_str()),
-            )
-    });
-    for diagnostic in diagnostics {
+    diagnostics.drain_file_diagnostics(|diagnostic| {
         projection.charge(&diagnostic)?;
-        projection.diagnostics.push(diagnostic);
-    }
-    for (id, group) in files {
+        projection.diagnostics.push(diagnostic)
+    })?;
+    let mut after_file = None;
+    while let Some(id) = files.next(after_file.as_deref())? {
+        let group = files.take(&id)?;
+        after_file = Some(id.clone());
         if group.invalid {
             continue;
         }
@@ -957,7 +1211,7 @@ fn claim_lines(raw: &[u8], byte_lines: bool) -> Result<Vec<(u64, &str)>> {
 }
 fn inspect_annotation_owner(
     source: &BibliographicSourceCut<'_>,
-    paths: &[String],
+    paths: &NavigationPaths<'_>,
     validator: &SourceCatalogValidator<'_>,
     l: BibliographicLimits,
 ) -> Result<tos_validation::layer_family_rules::LayerFamilyReport> {
@@ -986,11 +1240,9 @@ fn inspect_annotation_owner(
         payloads: &mut payloads,
     };
     let mut rules = LayerFamilyRules::new(limits);
-    for path in paths
-        .iter()
-        .filter(|p| p.starts_with("ToS/source-witnesses/") && packet_name(p))
-    {
-        let relative = tos_foundation::RelativePath::parse(path)
+    for path in paths.selected(|p| p.starts_with("ToS/source-witnesses/") && packet_name(p)) {
+        let path = path?;
+        let relative = tos_foundation::RelativePath::parse(&path)
             .map_err(|_| Error::Invalid("navigation annotation path"))?;
         let member = source
             .cut
@@ -1004,7 +1256,7 @@ fn inspect_annotation_owner(
             .map_err(|e| Error::Source(e.to_string()))?;
         let value = original(&member.raw, l)?;
         if value["schema_version"] == "tos_semantic_annotation_packet_v2" {
-            rules.inspect(&mut adapter, path).map_err(|e| {
+            rules.inspect(&mut adapter, &path).map_err(|e| {
                 Error::Source(format!("navigation owner annotation predicates:{e:?}"))
             })?;
         }
@@ -1017,4 +1269,87 @@ fn inspect_annotation_owner(
         )));
     }
     Ok(report)
+}
+
+fn inspect_streamed_annotation_owner(
+    source: &StreamedBibliographicSourceCut<'_>,
+    paths: &NavigationPaths<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    l: BibliographicLimits,
+) -> Result<tos_validation::layer_family_rules::LayerFamilyReport> {
+    use tos_validation::layer_family_cut::{
+        StreamedCutLayerFamilySource, UnavailableLayerPayloads,
+    };
+    use tos_validation::layer_family_rules::LayerFamilyRules;
+    validator.with_selected_schemas(source.expected_revision, |schemas| {
+        let (_, remaining_bytes) = source
+            .read_ledger
+            .try_borrow()
+            .map_err(|_| Error::Invalid("navigation annotation read ledger in use"))?
+            .remaining()?;
+        let limits = tos_validation::item_rules::ItemLimits {
+            max_member_bytes: l.catalog.max_file_bytes,
+            max_total_bytes: remaining_bytes,
+            max_state_bytes: l.max_claim_cohort_bytes,
+            max_issues: l.max_claim_cohort_rows,
+            deadline: l.deadline,
+        };
+        let mut payloads = UnavailableLayerPayloads;
+        let mut adapter = StreamedCutLayerFamilySource {
+            cut: source.cut,
+            schemas,
+            cancelled: validator.cancelled,
+            max_read_bytes: 0,
+            read_bytes: 0,
+            max_read_files: 0,
+            read_files: 0,
+            payloads: &mut payloads,
+        };
+        let mut rules = LayerFamilyRules::new(limits);
+        for path in paths.selected(|p| p.starts_with("ToS/source-witnesses/") && packet_name(p)) {
+            let path = path?;
+            let relative = tos_foundation::RelativePath::parse(&path)
+                .map_err(|_| Error::Invalid("navigation annotation path"))?;
+            let raw =
+                SelectedBibliographicSourceCut::Streamed(source).read(&relative, validator, l)?;
+            let value = original(&raw, l)?;
+            if value["schema_version"] == "tos_semantic_annotation_packet_v2" {
+                let (files, bytes) = source
+                    .read_ledger
+                    .try_borrow()
+                    .map_err(|_| Error::Invalid("navigation annotation read ledger in use"))?
+                    .remaining()?;
+                adapter.max_read_files = adapter
+                    .read_files
+                    .checked_add(files)
+                    .ok_or(Error::Budget("navigation annotation read files"))?;
+                adapter.max_read_bytes = adapter
+                    .read_bytes
+                    .checked_add(bytes)
+                    .ok_or(Error::Budget("navigation annotation read bytes"))?;
+                let before = (adapter.read_files, adapter.read_bytes);
+                let result = rules.inspect(&mut adapter, &path);
+                // Attempted reads remain charged even when owner validation refuses.
+                source
+                    .read_ledger
+                    .try_borrow_mut()
+                    .map_err(|_| Error::Invalid("navigation annotation read ledger in use"))?
+                    .charge_observed(
+                        adapter.read_files - before.0,
+                        adapter.read_bytes - before.1,
+                    )?;
+                result.map_err(|e| {
+                    Error::Source(format!("navigation owner annotation predicates:{e:?}"))
+                })?;
+            }
+        }
+        let report = rules.finish();
+        if !report.issues.is_empty() || !report.unsupported.is_empty() {
+            return Err(Error::Source(format!(
+                "navigation owner annotation report issues={:?} unsupported={:?}",
+                report.issues, report.unsupported
+            )));
+        }
+        Ok(report)
+    })
 }

@@ -49,6 +49,17 @@ impl StreamedBibliographicReadLedger {
         })
     }
     fn charge(&mut self, bytes: u64) -> Result<()> {
+        self.charge_observed(1, bytes)
+    }
+    pub(crate) fn remaining(&self) -> Result<(u64, u64)> {
+        if self.poisoned {
+            return Err(Error::Invalid(
+                "streamed bibliographic read ledger poisoned",
+            ));
+        }
+        Ok((self.max_files - self.files, self.max_bytes - self.bytes))
+    }
+    pub(crate) fn charge_observed(&mut self, files: u64, bytes: u64) -> Result<()> {
         if self.poisoned {
             return Err(Error::Invalid(
                 "streamed bibliographic read ledger poisoned",
@@ -57,7 +68,7 @@ impl StreamedBibliographicReadLedger {
         self.poisoned = true;
         self.files = self
             .files
-            .checked_add(1)
+            .checked_add(files)
             .filter(|n| *n <= self.max_files)
             .ok_or(Error::Budget("streamed bibliographic read files"))?;
         self.bytes = self
@@ -193,7 +204,7 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
             }
         }
     }
-    fn read(
+    pub(crate) fn read(
         self,
         path: &RelativePath,
         validator: &SourceCatalogValidator<'_>,

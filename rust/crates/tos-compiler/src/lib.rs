@@ -154,6 +154,7 @@ pub use versions_catalog_epoch::VersionsCatalogEpochV2;
 pub mod source_corpus;
 mod source_navigation_packets;
 pub mod source_navigation_source;
+mod source_navigation_storage;
 pub mod source_philosophy;
 pub mod source_philosophy_atlas;
 pub mod source_philosophy_graph;
