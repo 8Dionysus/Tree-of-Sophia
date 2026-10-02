@@ -351,10 +351,32 @@ pub fn read_prepared_source_inputs_transaction(
     let binding = binding.ok_or(Error::Invalid("source binding bytes"))?;
     let inputs = inputs.ok_or(Error::Invalid("source inputs bytes"))?;
     let digest = digest.ok_or(Error::Invalid("source digest"))?;
-    if rows.next()?.is_some() || binding.as_bytes() != canonical(expected, cap)? {
+    if rows.next()?.is_some() {
         return invalid();
     }
-    let parsed = PreparedSourceInputs::parse(inputs.as_bytes(), limits)?;
+    validate_prepared_source_state(
+        expected,
+        binding.as_bytes(),
+        inputs.as_bytes(),
+        &digest,
+        limits,
+    )
+}
+
+/// Shared writer/reader validation of the exact private source-state row.
+/// SQL admission and transaction/currentness remain with the caller.
+pub fn validate_prepared_source_state(
+    expected: &JsonValue,
+    binding: &[u8],
+    inputs: &[u8],
+    digest: &str,
+    limits: prepared::PublicationLimits,
+) -> Result<PreparedSourceInputs> {
+    let cap = MAX_STATE_BYTES.min(limits.max_metadata_bytes);
+    if binding.len() > cap || inputs.len() > cap || binding != canonical(expected, cap)? {
+        return invalid();
+    }
+    let parsed = PreparedSourceInputs::parse(inputs, limits)?;
     if parsed.digest() != digest
         || expected
             .object_get("source_revision")

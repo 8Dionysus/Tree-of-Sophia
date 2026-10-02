@@ -15,6 +15,7 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use postgres::{Client, NoTls};
+use tos_access::managed_source_query::ManagedKnowledgeWriter;
 use tos_command::{
     AttemptResolution, CancelOutcome, ColdWorkspaceLimits, CommitShadowAttempt, DurableError,
     DurablePgCoordinator, DurableShadowMember, PrivateGenerationWorkspace, RegisterShadowAttempt,
@@ -3211,7 +3212,7 @@ fn maintained_agent_creation_operation<
         )
         .unwrap_err();
     match withdrawn {
-        tos_command::source_managed_selection::ManagedSelectionError::Access(error) => {
+        tos_access::managed_source_query::ManagedKnowledgeWriteError::Access(error) => {
             assert_eq!(error.code, tos_access::AccessErrorCode::PolicyDenied);
             assert_eq!(error.message, "finite projection hold withdrawn");
         }

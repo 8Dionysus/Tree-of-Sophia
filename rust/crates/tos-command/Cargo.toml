@@ -22,7 +22,6 @@ tos-source-store = { path = "../tos-source-store" }
 tos-validation = { path = "../tos-validation" }
 tos-compiler = { path = "../tos-compiler", features = ["preserve-order-workspace"] }
 tos-query = { path = "../tos-query" }
-tos-access = { path = "../tos-access" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["arbitrary_precision"] }
 postgres = "0.19"
@@ -32,6 +31,7 @@ unicode-normalization = "=0.1.24"
 xml = "=1.4.0"
 
 [dev-dependencies]
+tos-access = { path = "../tos-access" }
 tos-compiler = { path = "../tos-compiler", features = ["test-fixture"] }
 tempfile = "3"
 

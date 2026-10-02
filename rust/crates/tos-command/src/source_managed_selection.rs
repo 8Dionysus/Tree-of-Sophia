@@ -27,7 +27,7 @@ pub enum ManagedSelectionError {
     Source(SourceCommandError),
     Durable(DurableError),
     Compiler(tos_compiler::Error),
-    Access(tos_access::AccessError),
+    Query(tos_query::search_v2::SearchV2Error),
 }
 pub type ManagedSelectionResult<T> = Result<T, ManagedSelectionError>;
 

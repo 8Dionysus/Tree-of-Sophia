@@ -241,6 +241,48 @@ impl<'a> PreparedSearchSession<'a> {
         self.read.check_abort()?;
         result
     }
+    /// Admit the schema and independent binding without reading catalog or search rows.
+    /// Used before an exact-source operation paired with this publication.
+    pub fn admit_binding(&mut self, binding: &JsonValue) -> Result<()> {
+        self.read.check_abort()?;
+        let view = PreparedReadTransaction::admit(self.read.db, binding, self.read.limits)
+            .map_err(|e| {
+                self.read
+                    .check_abort()
+                    .err()
+                    .unwrap_or_else(|| prepared_error(e))
+            })?;
+        let result = self.read.absorb_owner(&view);
+        drop(view);
+        self.read.reset_owner();
+        result
+    }
+    /// Pair the selected exact-source vector with the publication in this snapshot.
+    pub fn source_binding(&mut self, binding: &JsonValue, expected_digest: &str) -> Result<()> {
+        let cap = 1_048_576_i64;
+        let rows: Vec<(Option<String>, Option<String>, Option<String>)> = self.read.query(
+            "SELECT CASE WHEN typeof(binding)='text' AND length(CAST(binding AS BLOB))<=? THEN binding END,CASE WHEN typeof(inputs)='text' AND length(CAST(inputs AS BLOB))<=? THEN inputs END,CASE WHEN typeof(sha256)='text' AND length(sha256)=64 THEN sha256 END FROM prepared_source_state WHERE singleton=1 LIMIT 2",
+            &[&cap, &cap], true, |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )?;
+        let [(Some(stored_binding), Some(inputs), Some(digest))] = rows.as_slice() else {
+            return Err(unavailable("prepared source state missing or invalid"));
+        };
+        let parsed = tos_compiler::prepared_source_binding::validate_prepared_source_state(
+            binding,
+            stored_binding.as_bytes(),
+            inputs.as_bytes(),
+            digest,
+            Default::default(),
+        )
+        .map_err(|_| unavailable("prepared source state binding invalid"))?;
+        if parsed.digest() != expected_digest {
+            return Err(err(
+                CompressedSearchErrorCode::StaleBinding,
+                "selected source vector differs from publication",
+            ));
+        }
+        self.read.check_abort()
+    }
     pub fn recheck_binding(&mut self, binding: &JsonValue) -> Result<()> {
         self.read.check_abort()?;
         let view =

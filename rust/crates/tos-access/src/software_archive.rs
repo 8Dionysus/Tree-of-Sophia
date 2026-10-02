@@ -479,7 +479,7 @@ fn proof_kind(p: &JsonValue, source_ref: &str, command: bool) -> Result<()> {
     }
     Ok(())
 }
-fn command_proof(p: &JsonValue, access: &JsonValue) -> Result<()> {
+pub(crate) fn command_proof(p: &JsonValue, access: &JsonValue) -> Result<()> {
     proof_kind(p, string(access, "source_commit")?, true)?;
     for key in ["source_tree", "lock_sha256", "toolchain", "target"] {
         if field(p, key)? != field(access, key)? {

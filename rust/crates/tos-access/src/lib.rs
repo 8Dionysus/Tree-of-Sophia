@@ -13,6 +13,8 @@ pub mod exploration_contracts;
 mod indexed_cursor;
 pub mod knowledge;
 pub mod managed_local;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod managed_source_query;
 pub mod persistent_exploration_checkpoints;
 pub mod prepared_local;
 pub mod prepared_maintenance;
@@ -45,5 +47,6 @@ pub mod native_prepare;
 pub mod capture_restore;
 
 pub mod evidence_projection;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod lexical_index_command;
 pub mod structural_paragraph_command;

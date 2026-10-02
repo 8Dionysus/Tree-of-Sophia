@@ -248,11 +248,12 @@ impl<'hold, 'source: 'hold, 'inner: 'hold, P: ManagedSelectedProof> InspectCurre
 }
 
 impl<P: ManagedSelectedProof> crate::source_managed_selection::ManagedAgentSelectedParent<P> {
-    /// Use the existing selected query and transport implementations. Every
-    /// packet, original/carrier lease and warm model reader is dropped inside
-    /// the held-current callback after the real output flush; only an exit code
-    /// can return. This does not publish a model or authorize additional scopes.
-    pub fn write_current_knowledge<'authority>(
+    /// Bind the genuine selected query under the current source hold. The
+    /// transport owner executes and flushes inside `consume`; reader, bound
+    /// selection and disclosure leases cannot escape that callback. Callback
+    /// errors retain their original type without adding a transport dependency.
+    #[allow(clippy::too_many_arguments)]
+    pub fn with_current_knowledge<'authority, 'vocabulary, T, E>(
         &self,
         coordinator: &mut crate::durable_adapter::DurablePgCoordinator,
         store: &tos_segment_store::SegmentStore,
@@ -263,34 +264,21 @@ impl<P: ManagedSelectedProof> crate::source_managed_selection::ManagedAgentSelec
         rights_version: u64,
         job_id: &str,
         job_fence: u64,
-        vocabulary: &tos_compiler::QueryVocabulary,
+        vocabulary: &'vocabulary tos_compiler::QueryVocabulary,
         descriptor_raw: &[u8],
         catalog: &mut dyn CatalogCurrentAuthority<'authority>,
         inspect: &mut dyn InspectCurrentAuthority<'authority>,
-        checkpoints: &mut dyn tos_query::knowledge_exploration::ExplorationCheckpoints,
-        request: tos_access::KnowledgeRequest,
-        budgets: tos_access::knowledge::SelectedKnowledgeBudgets,
-        profile: tos_access::AccessProfile,
-        stdout: &mut dyn std::io::Write,
-        stderr: &mut dyn std::io::Write,
+        open_steps: u64,
         deadline: std::time::Instant,
         cancelled: &std::sync::atomic::AtomicBool,
-    ) -> crate::source_managed_selection::ManagedSelectionResult<i32> {
+        consume: impl for<'hold> FnOnce(
+            &mut tos_compiler::VerifiedKnowledgeModel<'hold>,
+            &tos_query::BoundCmpKnowledge<'vocabulary>,
+            &mut dyn CatalogCurrentAuthority<'hold>,
+            &mut dyn InspectCurrentAuthority<'hold>,
+        ) -> Result<T, E>,
+    ) -> crate::source_managed_selection::ManagedSelectionResult<Result<T, E>> {
         use crate::source_managed_selection::ManagedSelectionError;
-        use tos_access::KnowledgeRequest;
-        let open_steps = match &request {
-            KnowledgeRequest::Catalog => budgets.catalog.max_open_vm_steps,
-            KnowledgeRequest::Node { .. } | KnowledgeRequest::Relation { .. } => {
-                budgets.inspect.max_open_vm_steps
-            }
-            _ => {
-                return Err(ManagedSelectionError::Source(
-                    crate::source_command::SourceCommandError::Unsupported(
-                        "managed selected consumer is catalog and navigation node/relation only",
-                    ),
-                ));
-            }
-        };
         self.with_current_model(
             coordinator,
             store,
@@ -311,7 +299,7 @@ impl<P: ManagedSelectedProof> crate::source_managed_selection::ManagedAgentSelec
                     self.source_proof(),
                     |proof| inspect_check(source, proof),
                 )
-                .map_err(|error| ManagedSelectionError::Access(error.into()))?;
+                .map_err(ManagedSelectionError::Query)?;
                 let mut reader = model
                     .fork_reader_with_vm_budget(open_steps)
                     .map_err(ManagedSelectionError::Compiler)?;
@@ -325,22 +313,7 @@ impl<P: ManagedSelectedProof> crate::source_managed_selection::ManagedAgentSelec
                     source,
                     proof: self.source_proof(),
                 };
-                let packet = tos_access::checked_execute(profile.deadline_probe(), |probe| {
-                    tos_access::knowledge::execute_selected_knowledge(
-                        &mut reader,
-                        &bound,
-                        &mut catalog,
-                        &mut inspect,
-                        checkpoints,
-                        request,
-                        budgets,
-                        probe,
-                    )
-                })
-                .map_err(ManagedSelectionError::Access)?;
-                Ok(tos_access::cli::write_packet(
-                    packet, profile, stdout, stderr,
-                ))
+                Ok(consume(&mut reader, &bound, &mut catalog, &mut inspect))
             },
         )
     }
