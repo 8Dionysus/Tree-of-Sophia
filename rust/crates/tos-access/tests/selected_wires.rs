@@ -4225,11 +4225,17 @@ with tempfile.TemporaryDirectory() as d:
                         || executor.knowledge_search_compressed_available()
                 } else if descriptor.operation_id == tos_access::reading::OPERATION_ID {
                     executor.reading_search_available()
+                } else if let Some(operation) =
+                    tos_access::source_read::Operation::from_id(&descriptor.operation_id)
+                {
+                    operation.software_only() || executor.source_read_available()
                 } else {
                     O::from_id(&descriptor.operation_id).is_some_and(|op| {
                         op == O::ExplorationContracts || executor.knowledge_available(op)
                     })
-                }
+                },
+                "advertised tool {name} operation {} lacks its selected capability",
+                descriptor.operation_id
             );
             assert_eq!(
                 tool.object_get("inputSchema").unwrap(),
@@ -4246,6 +4252,10 @@ with tempfile.TemporaryDirectory() as d:
                         || executor.knowledge_search_compressed_available()
                 } else if op.operation_id == tos_access::reading::OPERATION_ID {
                     executor.reading_search_available()
+                } else if let Some(operation) =
+                    tos_access::source_read::Operation::from_id(&op.operation_id)
+                {
+                    operation.software_only() || executor.source_read_available()
                 } else {
                     O::from_id(&op.operation_id).is_some_and(|op| {
                         op == O::ExplorationContracts || executor.knowledge_available(op)
