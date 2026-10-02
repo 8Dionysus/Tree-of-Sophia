@@ -7,6 +7,7 @@
 pub mod cli;
 pub mod concept_search;
 pub mod doctor;
+pub mod edge_offline_capture;
 pub mod edge_sql;
 pub mod exploration_checkpoints;
 pub mod exploration_contracts;

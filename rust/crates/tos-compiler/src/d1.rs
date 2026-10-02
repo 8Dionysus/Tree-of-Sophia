@@ -5,11 +5,15 @@
 //! search, lens and metadata companions. This module verifies selected old
 //! rows at publication, but does not certify affected dependency closure.
 //! A local SQLite candidate cannot supply those grants.
+//! The caller exclusively owns the artifact directory throughout emission and
+//! cleanup. Path identity checks detect replacements; they are not a lock
+//! against active concurrent writers between filesystem operations.
 use serde_json::{Value, json};
 use std::{
     collections::BTreeMap,
     fs::{self, File, OpenOptions},
     io::{BufWriter, Write},
+    os::unix::fs::{MetadataExt, OpenOptionsExt},
     path::{Path, PathBuf},
 };
 use tos_foundation::{Digest256, Digest256Hasher};
@@ -40,6 +44,10 @@ impl Default for D1PairLimits {
 /// producer checks shape and emitted SQL guards, not independent admission.
 #[derive(Clone, Debug)]
 pub struct D1PairInput {
+    /// Exact mechanical lineage form. Catch-up has no predecessor prepared
+    /// database or binding, so it must name its retained source-input proof
+    /// instead of filling that gap with the successor binding.
+    pub predecessor_mode: D1PredecessorMode,
     pub base_d1_revision: String,
     pub before_source_revision: String,
     pub after_source_revision: String,
@@ -52,18 +60,61 @@ pub struct D1PairInput {
     pub before_rights_sha256: Option<String>,
     pub after_rights_sha256: Option<String>,
     pub implementation_sha256: String,
-    /// Installed optional compact/membership stores require their own state
-    /// guard and epoch seal. This first pair profile refuses that case.
-    pub auxiliary_installed: bool,
+    /// Exact Rust source digest for a one-time source-navigation integrity
+    /// migration. Existing prepared-pair lineages leave this absent.
+    pub migration_implementation_sha256: Option<String>,
+    /// Exact installed optional derived stores. Each named store has its own
+    /// predecessor state guard and successor epoch seal in both SQL directions.
+    pub auxiliary_stores: Vec<D1AuxiliaryStore>,
     /// Exact admitted edge_meta JSON, including its original member order.
     pub before_reader_top: String,
     pub after_reader_top: String,
     pub limits: D1PairLimits,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum D1PredecessorMode {
+    PreparedDelta,
+    SourceInputsCatchup,
+    Bootstrap,
+    /// Add native navigation integrity companions to a present product. The
+    /// header-only form retains, but does not re-audit, existing row companions.
+    SourceNavigationIntegrity {
+        header_only: bool,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum D1AuxiliaryStore {
+    CompactLens,
+    LensMemberships,
+}
+impl D1AuxiliaryStore {
+    pub fn identity(self) -> (&'static str, &'static str, D1Table) {
+        match self {
+            Self::CompactLens => (
+                "knowledge_compact_lens",
+                "knowledge_compact_lens_state",
+                D1Table::KnowledgeCompactLens,
+            ),
+            Self::LensMemberships => (
+                "knowledge_lens_memberships",
+                "knowledge_lens_membership_state",
+                D1Table::KnowledgeLensMemberships,
+            ),
+        }
+    }
+    pub fn schema(self) -> &'static str {
+        match self {
+            Self::CompactLens => "tos_compact_lens_carrier_v1",
+            Self::LensMemberships => "tos_lens_membership_index_v1",
+        }
+    }
+}
+
 /// Fixed, published v9 table shapes. Every transition must include the full
 /// row; SQL compares the selected predecessor before touching serving rows.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum D1Table {
     KnowledgeNodes,
     KnowledgeRelations,
@@ -77,10 +128,12 @@ pub enum D1Table {
     SourceNavigationEdgePayload,
     SourceNavigationRights,
     SourceNavigationRightsPayload,
+    KnowledgeCompactLens,
+    KnowledgeLensMemberships,
     EdgeMeta,
 }
 impl D1Table {
-    const ALL: [Self; 13] = [
+    const CORE: [Self; 13] = [
         Self::KnowledgeNodes,
         Self::KnowledgeRelations,
         Self::KnowledgeSearchDocuments,
@@ -95,7 +148,12 @@ impl D1Table {
         Self::SourceNavigationRightsPayload,
         Self::EdgeMeta,
     ];
-    fn shape(
+    fn selected(spec: &D1PairInput) -> Vec<Self> {
+        let mut tables = Self::CORE.to_vec();
+        tables.extend(spec.auxiliary_stores.iter().map(|store| store.identity().2));
+        tables
+    }
+    pub fn shape(
         self,
     ) -> (
         &'static str,
@@ -218,6 +276,16 @@ impl D1Table {
                 &["id", "part", "json_chunk"],
                 &["id", "part"],
             ),
+            Self::KnowledgeCompactLens => (
+                "knowledge_compact_lens",
+                &["kind", "id", "source_sha256", "seed_sha256", "json"],
+                &["kind", "id"],
+            ),
+            Self::KnowledgeLensMemberships => (
+                "knowledge_lens_memberships",
+                &["kind", "field", "value", "id", "sort_key"],
+                &["kind", "field", "value", "id"],
+            ),
             Self::EdgeMeta => (
                 "edge_meta",
                 &["key", "part", "json_chunk"],
@@ -227,7 +295,7 @@ impl D1Table {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum D1Cell {
     Null,
     Integer(i64),
@@ -251,6 +319,12 @@ pub struct D1PairReceipt {
     pub rollback_bytes: u64,
     pub changed_rows: u64,
     pub pair_manifest: PathBuf,
+    /// Digest of the exact source-owner receipt packet captured by the
+    /// selected-pair holder. This is absent for mechanical-only emission.
+    pub owner_admission_sha256: Option<String>,
+    /// True only for the exact selected-pair/currentness hold. This is not
+    /// affected-row closure, semantic, D1-application or consumer admission.
+    pub selected_pair_owner_admitted: bool,
     pub d1_applied: bool,
     pub consumer_switched: bool,
 }
@@ -277,6 +351,33 @@ fn digest(raw: &[u8]) -> String {
 }
 fn valid_digest(raw: &str) -> bool {
     Digest256::from_hex(raw).is_ok()
+}
+
+/// Exact predecessor bindings accepted by the private lens stores. The
+/// Python byte profile is retained only for a previously maintained reader;
+/// both candidates bind the caller-selected top and live exploration epoch.
+pub fn auxiliary_binding_candidates(top_raw: &str, epoch: u64) -> D1PairResult<Vec<String>> {
+    if epoch > 9_007_199_254_740_991 || top_raw.len() > 32_000 {
+        return Err(D1PairFailure::Invalid("D1 auxiliary binding epoch/top"));
+    }
+    let top: Value = serde_json::from_str(top_raw)
+        .map_err(|_| D1PairFailure::Invalid("D1 auxiliary binding top JSON"))?;
+    let mut result = Vec::new();
+    for parts in [
+        crate::d1_public_metadata::reader_binding_parts(&top),
+        crate::d1_public_metadata::python_reader_binding_parts(&top),
+    ] {
+        if let Ok((_, prefix, suffix)) = parts {
+            let binding = format!("{prefix}{epoch}{suffix}");
+            if !result.contains(&binding) {
+                result.push(binding);
+            }
+        }
+    }
+    if result.is_empty() {
+        return Err(D1PairFailure::Invalid("D1 auxiliary reader top"));
+    }
+    Ok(result)
 }
 fn quote(value: &str) -> String {
     format!("'{}'", value.replace('\'', "''"))
@@ -392,8 +493,12 @@ fn selected_binding(raw: &str, source_revision: &str) -> D1PairResult<()> {
 /// The versioned target identity can be determined before successor reader
 /// metadata is framed. It does not establish source or D1 admission.
 pub fn target_d1_revision(spec: &D1PairInput) -> D1PairResult<String> {
-    if spec.auxiliary_installed {
-        return Err(D1PairFailure::FullOnlyAuxiliaryTransition);
+    if spec
+        .auxiliary_stores
+        .windows(2)
+        .any(|pair| pair[0] >= pair[1])
+    {
+        return Err(D1PairFailure::Invalid("D1 auxiliary store selection"));
     }
     for value in [
         &spec.base_d1_revision,
@@ -409,37 +514,128 @@ pub fn target_d1_revision(spec: &D1PairInput) -> D1PairResult<String> {
             return Err(D1PairFailure::Invalid("D1 binding digest"));
         }
     }
+    if let Some(migration) = spec.migration_implementation_sha256.as_deref() {
+        if !valid_digest(migration) {
+            return Err(D1PairFailure::Invalid("D1 migration implementation digest"));
+        }
+    }
+    if matches!(
+        spec.predecessor_mode,
+        D1PredecessorMode::SourceNavigationIntegrity { .. }
+    ) != spec.migration_implementation_sha256.is_some()
+    {
+        return Err(D1PairFailure::Invalid(
+            "D1 migration implementation digest presence",
+        ));
+    }
     let (Some(before_rights), Some(after_rights)) =
         (&spec.before_rights_sha256, &spec.after_rights_sha256)
     else {
         return Err(D1PairFailure::FullOnlyRightsTransition);
     };
-    if !valid_digest(before_rights) || !valid_digest(after_rights) || before_rights != after_rights
-    {
+    if !valid_digest(before_rights) || !valid_digest(after_rights) {
         return Err(D1PairFailure::FullOnlyRightsTransition);
     }
-    selected_binding(&spec.before_prepared_binding, &spec.before_source_revision)?;
-    selected_binding(&spec.after_prepared_binding, &spec.after_source_revision)?;
+    match spec.predecessor_mode {
+        D1PredecessorMode::PreparedDelta => {
+            selected_binding(&spec.before_prepared_binding, &spec.before_source_revision)?;
+            selected_binding(&spec.after_prepared_binding, &spec.after_source_revision)?;
+        }
+        D1PredecessorMode::SourceInputsCatchup => {
+            if !spec.before_prepared_binding.is_empty() {
+                return Err(D1PairFailure::Invalid(
+                    "catch-up has no predecessor prepared binding",
+                ));
+            }
+            selected_binding(&spec.after_prepared_binding, &spec.after_source_revision)?;
+        }
+        D1PredecessorMode::Bootstrap => {
+            selected_binding(&spec.before_prepared_binding, &spec.before_source_revision)?;
+            selected_binding(&spec.after_prepared_binding, &spec.after_source_revision)?;
+            if spec.before_prepared_binding != spec.after_prepared_binding
+                || spec.before_source_revision != spec.after_source_revision
+            {
+                return Err(D1PairFailure::Invalid(
+                    "bootstrap must retain one prepared snapshot",
+                ));
+            }
+        }
+        D1PredecessorMode::SourceNavigationIntegrity { .. } => {
+            if !spec.before_prepared_binding.is_empty()
+                || !spec.after_prepared_binding.is_empty()
+                || spec.before_source_revision != spec.after_source_revision
+                || spec.before_source_inputs_sha256 != spec.after_source_inputs_sha256
+                || spec.before_navigation_sha256 != spec.after_navigation_sha256
+                || spec.before_rights_sha256 != spec.after_rights_sha256
+            {
+                return Err(D1PairFailure::Invalid(
+                    "source-navigation integrity retained inputs",
+                ));
+            }
+        }
+    }
     if spec.limits.max_transitions == 0
         || spec.limits.max_work_bytes == 0
         || spec.limits.max_sql_bytes == 0
     {
         return Err(D1PairFailure::Budget("D1 pair limits"));
     }
-    let lineage = json!({
-        "schema": D1_PAIR_SCHEMA,
-        "base_d1_revision": spec.base_d1_revision,
-        "before_source_revision": spec.before_source_revision,
-        "after_source_revision": spec.after_source_revision,
-        "before_prepared_binding": spec.before_prepared_binding,
-        "after_prepared_binding": spec.after_prepared_binding,
-        "before_source_inputs_sha256": spec.before_source_inputs_sha256,
-        "after_source_inputs_sha256": spec.after_source_inputs_sha256,
-        "before_navigation_sha256": spec.before_navigation_sha256,
-        "after_navigation_sha256": spec.after_navigation_sha256,
-        "rights_sha256": before_rights,
-        "implementation_sha256": spec.implementation_sha256,
-    });
+    let lineage = match spec.predecessor_mode {
+        D1PredecessorMode::PreparedDelta => json!({
+            "schema": D1_PAIR_SCHEMA,
+            "base_d1_revision": spec.base_d1_revision,
+            "before_source_revision": spec.before_source_revision,
+            "after_source_revision": spec.after_source_revision,
+            "before_prepared_binding": spec.before_prepared_binding,
+            "after_prepared_binding": spec.after_prepared_binding,
+            "before_source_inputs_sha256": spec.before_source_inputs_sha256,
+            "after_source_inputs_sha256": spec.after_source_inputs_sha256,
+            "before_navigation_sha256": spec.before_navigation_sha256,
+            "after_navigation_sha256": spec.after_navigation_sha256,
+            "before_rights_sha256": before_rights,
+            "after_rights_sha256": after_rights,
+            "auxiliary_stores": spec.auxiliary_stores.iter().map(|store| store.identity().0).collect::<Vec<_>>(),
+            "implementation_sha256": spec.implementation_sha256,
+        }),
+        D1PredecessorMode::SourceInputsCatchup => json!({
+            "schema": "tos_prepared_source_d1_manifest_reconciliation_v1",
+            "base_d1_revision": spec.base_d1_revision,
+            "before_d1_source_revision": spec.before_source_revision,
+            "after_source_revision": spec.after_source_revision,
+            "after_prepared_binding": spec.after_prepared_binding,
+            "before_source_inputs_sha256": spec.before_source_inputs_sha256,
+            "after_source_inputs_sha256": spec.after_source_inputs_sha256,
+            "before_navigation_sha256": spec.before_navigation_sha256,
+            "after_navigation_sha256": spec.after_navigation_sha256,
+            "before_rights_sha256": before_rights,
+            "after_rights_sha256": after_rights,
+            "auxiliary_stores": spec.auxiliary_stores.iter().map(|store| store.identity().0).collect::<Vec<_>>(),
+            "implementation_sha256": spec.implementation_sha256,
+        }),
+        D1PredecessorMode::Bootstrap => json!({
+            "schema": "tos_source_navigation_bootstrap_d1_v1",
+            "base_d1_revision": spec.base_d1_revision,
+            "source_revision": spec.after_source_revision,
+            "prepared_binding": spec.after_prepared_binding,
+            "source_inputs_sha256": spec.after_source_inputs_sha256,
+            "navigation_sha256": spec.after_navigation_sha256,
+            "rights_sha256": after_rights,
+            "auxiliary_stores": spec.auxiliary_stores.iter().map(|store| store.identity().0).collect::<Vec<_>>(),
+            "implementation_sha256": spec.implementation_sha256,
+        }),
+        D1PredecessorMode::SourceNavigationIntegrity { header_only } => json!({
+            "schema": "tos_native_navigation_integrity_migration_v1",
+            "header_only": header_only,
+            "base_d1_revision": spec.base_d1_revision,
+            "source_revision": spec.after_source_revision,
+            "source_inputs_sha256": spec.after_source_inputs_sha256,
+            "source_navigation_sha256": spec.after_navigation_sha256,
+            "rights_sha256": after_rights,
+            "implementation_sha256": spec.implementation_sha256,
+            "migration_implementation_sha256": spec.migration_implementation_sha256,
+            "auxiliary_stores": spec.auxiliary_stores.iter().map(|store| store.identity().0).collect::<Vec<_>>(),
+        }),
+    };
     Ok(digest(
         &serde_json::to_vec(&lineage).map_err(|_| D1PairFailure::Invalid("lineage JSON"))?,
     ))
@@ -470,6 +666,65 @@ fn selection(spec: &D1PairInput) -> D1PairResult<String> {
     Ok(target)
 }
 
+/// Only files created by this invocation may be removed after refusal.
+#[derive(Default)]
+struct OwnedOutputs(Vec<(PathBuf, u64, u64)>);
+impl OwnedOutputs {
+    fn record(&mut self, path: &Path, file: &File) -> D1PairResult<()> {
+        let metadata = file.metadata()?;
+        self.0
+            .push((path.to_owned(), metadata.dev(), metadata.ino()));
+        Ok(())
+    }
+    fn publish(&mut self, pending: &Path, target: &Path) -> D1PairResult<()> {
+        let expected = self
+            .0
+            .iter()
+            .find(|(path, _, _)| path == pending)
+            .map(|(_, dev, ino)| (*dev, *ino))
+            .ok_or(D1PairFailure::Invalid("unowned D1 pending output"))?;
+        let metadata = fs::symlink_metadata(pending)?;
+        if !metadata.is_file() || (metadata.dev(), metadata.ino()) != expected {
+            return Err(D1PairFailure::Invalid("D1 pending output identity changed"));
+        }
+        // hard_link never replaces a target which appeared after preflight.
+        fs::hard_link(pending, target)?;
+        // The link can only belong to the pending inode we held. Never adopt
+        // a replacement observed through the target pathname as our output.
+        self.0.push((target.to_owned(), expected.0, expected.1));
+        let published = fs::symlink_metadata(target)?;
+        if !published.is_file() || (published.dev(), published.ino()) != expected {
+            return Err(D1PairFailure::Invalid(
+                "D1 published output identity changed",
+            ));
+        }
+        self.remove_owned(pending)?;
+        Ok(())
+    }
+    fn remove_owned(&self, path: &Path) -> D1PairResult<()> {
+        let (_, dev, ino) = self
+            .0
+            .iter()
+            .find(|(owned, _, _)| owned == path)
+            .ok_or(D1PairFailure::Invalid("unowned D1 cleanup path"))?;
+        let metadata = match fs::symlink_metadata(path) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(error) => return Err(error.into()),
+        };
+        if !metadata.is_file() || (metadata.dev(), metadata.ino()) != (*dev, *ino) {
+            return Err(D1PairFailure::Invalid("D1 cleanup path identity changed"));
+        }
+        fs::remove_file(path)?;
+        Ok(())
+    }
+    fn cleanup(&self) {
+        for (path, _, _) in &self.0 {
+            let _ = self.remove_owned(path);
+        }
+    }
+}
+
 struct SqlSink {
     writer: BufWriter<File>,
     hash: Digest256Hasher,
@@ -477,9 +732,15 @@ struct SqlSink {
     max_bytes: u64,
 }
 impl SqlSink {
-    fn new(path: &Path, max_bytes: u64) -> D1PairResult<Self> {
+    fn new(path: &Path, max_bytes: u64, owned: &mut OwnedOutputs) -> D1PairResult<Self> {
+        let file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(path)?;
+        owned.record(path, &file)?;
         Ok(Self {
-            writer: BufWriter::new(OpenOptions::new().write(true).create_new(true).open(path)?),
+            writer: BufWriter::new(file),
             hash: Digest256Hasher::new(),
             bytes: 0,
             max_bytes,
@@ -626,6 +887,8 @@ fn publication(
     base: &str,
     target: &str,
     counts: &BTreeMap<&'static str, u64>,
+    spec: &D1PairInput,
+    reverse: bool,
 ) -> D1PairResult<()> {
     let current = "(SELECT json_extract(group_concat(json_chunk,''),'$.sha256') FROM (SELECT json_chunk FROM edge_meta WHERE key='data_revision' ORDER BY part))";
     sink.line("CREATE TABLE IF NOT EXISTS tos_delta_publications (revision TEXT PRIMARY KEY, base_revision TEXT NOT NULL);")?;
@@ -639,7 +902,52 @@ fn publication(
         quote(base)
     ));
     body.push("SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM knowledge_exploration_clock WHERE singleton=1 AND typeof(epoch)='integer' AND epoch>=0 AND epoch<=9007199254740989) OR (SELECT count(*) FROM sqlite_master WHERE type='trigger' AND name IN ('knowledge_exploration_revision_insert','knowledge_exploration_revision_update','knowledge_exploration_revision_delete'))!=3 THEN RAISE(ABORT,'D1 publication clock unavailable') END;".into());
-    for table in D1Table::ALL {
+    let mut auxiliary_guards = Vec::new();
+    let mut auxiliary_seals = Vec::new();
+    if !spec.auxiliary_stores.is_empty() {
+        let (prior_top, next_top) = if reverse {
+            (&spec.after_reader_top, &spec.before_reader_top)
+        } else {
+            (&spec.before_reader_top, &spec.after_reader_top)
+        };
+        let prior_top: Value = serde_json::from_str(prior_top)
+            .map_err(|_| D1PairFailure::Invalid("auxiliary predecessor top JSON"))?;
+        let next_top: Value = serde_json::from_str(next_top)
+            .map_err(|_| D1PairFailure::Invalid("auxiliary successor top JSON"))?;
+        let clock = "(SELECT epoch FROM knowledge_exploration_clock WHERE singleton=1)";
+        let (_, old_prefix, old_suffix) =
+            crate::d1_public_metadata::reader_binding_parts(&prior_top)
+                .map_err(|_| D1PairFailure::Invalid("auxiliary predecessor binding"))?;
+        let old_binding = format!("{}||{clock}||{}", quote(&old_prefix), quote(&old_suffix));
+        let old_python = crate::d1_public_metadata::python_reader_binding_parts(&prior_top)
+            .ok()
+            .filter(|(_, prefix, suffix)| prefix != &old_prefix || suffix != &old_suffix)
+            .map(|(_, prefix, suffix)| {
+                format!(
+                    " OR binding=({}||{clock}||{})",
+                    quote(&prefix),
+                    quote(&suffix)
+                )
+            })
+            .unwrap_or_default();
+        let (_, new_prefix, new_suffix) =
+            crate::d1_public_metadata::reader_binding_parts(&next_top)
+                .map_err(|_| D1PairFailure::Invalid("auxiliary successor binding"))?;
+        for store in &spec.auxiliary_stores {
+            let (_, state, _) = store.identity();
+            let schema = store.schema();
+            auxiliary_guards.push(format!(
+                "SELECT CASE WHEN typeof({clock})!='integer' OR {clock}<0 OR {clock}>9007199254740991 OR NOT EXISTS(SELECT 1 FROM {state} WHERE singleton=1 AND schema={} AND (binding=({old_binding}){old_python}) AND valid=1) THEN RAISE(ABORT,'stale lens auxiliary publication') END;",
+                quote(schema)
+            ));
+            auxiliary_seals.push(format!(
+                "SELECT CASE WHEN typeof({clock})!='integer' OR {clock}<0 OR {clock}>9007199254740991 THEN RAISE(ABORT,'invalid auxiliary successor epoch') END; UPDATE {state} SET binding=({}||{clock}||{}),valid=1 WHERE singleton=1;",
+                quote(&new_prefix), quote(&new_suffix)
+            ));
+        }
+    }
+    body.extend(auxiliary_guards);
+    for table in D1Table::selected(spec) {
         let (serving, columns, keys) = table.shape();
         let count = counts.get(serving).copied().unwrap_or(0);
         if count == 0 {
@@ -665,6 +973,7 @@ fn publication(
         body.push(format!("INSERT INTO {serving} SELECT * FROM {new_stage};"));
     }
     body.push(format!("SELECT CASE WHEN {current} IS NOT {} THEN RAISE(ABORT,'D1 successor revision differs') END;", quote(target)));
+    body.extend(auxiliary_seals);
     // Keep each serving transition inside one trigger invocation. Plain INSERT
     // and UPDATE preserve nested edge_meta writes and their clock triggers;
     // OR REPLACE can silently stop this body before its revision seal.
@@ -687,7 +996,7 @@ fn publication(
     ))?;
     sink.line(&format!("DROP TRIGGER {trigger};"))?;
     sink.line(&format!("DROP TRIGGER {retry_trigger};"))?;
-    for table in D1Table::ALL {
+    for table in D1Table::selected(spec) {
         for suffix in ["keys", "before", "after"] {
             sink.line(&format!(
                 "DROP TABLE {};",
@@ -770,6 +1079,19 @@ pub fn emit_d1_pair<I>(
 where
     I: IntoIterator<Item = D1RowTransition>,
 {
+    emit_d1_pair_inner(spec, rows, forward, rollback, manifest)
+}
+
+fn emit_d1_pair_inner<I>(
+    spec: &D1PairInput,
+    rows: I,
+    forward: &Path,
+    rollback: &Path,
+    manifest: &Path,
+) -> D1PairResult<D1PairReceipt>
+where
+    I: IntoIterator<Item = D1RowTransition>,
+{
     let target = selection(spec)?;
     let paths = [forward, rollback, manifest];
     let pending = paths.map(|path| {
@@ -812,11 +1134,13 @@ where
             .parent()
             .ok_or(D1PairFailure::Invalid("D1 pair parent"))?,
     )?;
+    let mut owned = OwnedOutputs::default();
+    let selected_tables = D1Table::selected(spec);
     let result = (|| -> D1PairResult<D1PairReceipt> {
-        let mut fw = SqlSink::new(&pending[0], spec.limits.max_sql_bytes)?;
-        let mut rv = SqlSink::new(&pending[1], spec.limits.max_sql_bytes)?;
+        let mut fw = SqlSink::new(&pending[0], spec.limits.max_sql_bytes, &mut owned)?;
+        let mut rv = SqlSink::new(&pending[1], spec.limits.max_sql_bytes, &mut owned)?;
         let mut counts = BTreeMap::new();
-        for table in D1Table::ALL {
+        for table in D1Table::selected(spec) {
             stage_schema(&mut fw, &target, table)?;
             stage_schema(&mut rv, &spec.base_d1_revision, table)?;
         }
@@ -824,11 +1148,8 @@ where
         let mut work = 0u64;
         let mut changed = 0u64;
         for row in rows {
-            if matches!(
-                row.table,
-                D1Table::SourceNavigationRights | D1Table::SourceNavigationRightsPayload
-            ) {
-                return Err(D1PairFailure::FullOnlyRightsTransition);
+            if !selected_tables.contains(&row.table) {
+                return Err(D1PairFailure::Invalid("unselected D1 auxiliary transition"));
             }
             let key = validate_row(&row)?;
             changed += 1;
@@ -875,13 +1196,23 @@ where
             true,
         )?;
         combined_sql(&fw, &rv, spec.limits.max_sql_bytes)?;
-        publication(&mut fw, &target, &spec.base_d1_revision, &target, &counts)?;
+        publication(
+            &mut fw,
+            &target,
+            &spec.base_d1_revision,
+            &target,
+            &counts,
+            spec,
+            false,
+        )?;
         publication(
             &mut rv,
             &spec.base_d1_revision,
             &target,
             &spec.base_d1_revision,
             &counts,
+            spec,
+            true,
         )?;
         combined_sql(&fw, &rv, spec.limits.max_sql_bytes)?;
         let (forward_hash, forward_bytes) = fw.finish()?;
@@ -899,8 +1230,13 @@ where
             "forward": {"name": forward.file_name().unwrap().to_string_lossy(), "sha256": forward_hash, "bytes": forward_bytes},
             "rollback": {"name": rollback.file_name().unwrap().to_string_lossy(), "sha256": rollback_hash, "bytes": rollback_bytes},
             "changed_rows": changed,
-            "rights_sha256": spec.before_rights_sha256,
+            "before_rights_sha256": spec.before_rights_sha256,
+            "after_rights_sha256": spec.after_rights_sha256,
+            "auxiliary_stores": spec.auxiliary_stores.iter().map(|store| store.identity().0).collect::<Vec<_>>(),
             "publication": "private-pair-manifest-last",
+            "selected_pair_owner_admitted": false,
+            "source_currentness_verified": false,
+            "semantic_acceptance": false,
             "d1_applied": false,
             "consumer_switched": false,
         });
@@ -909,14 +1245,16 @@ where
         let mut file = OpenOptions::new()
             .write(true)
             .create_new(true)
+            .mode(0o600)
             .open(&pending[2])?;
+        owned.record(&pending[2], &file)?;
         file.write_all(&raw)?;
         file.write_all(b"\n")?;
         file.sync_all()?;
-        fs::rename(&pending[0], forward)?;
-        fs::rename(&pending[1], rollback)?;
+        owned.publish(&pending[0], forward)?;
+        owned.publish(&pending[1], rollback)?;
         File::open(forward.parent().expect("pair directory"))?.sync_all()?;
-        fs::rename(&pending[2], manifest)?;
+        owned.publish(&pending[2], manifest)?;
         File::open(forward.parent().expect("pair directory"))?.sync_all()?;
         Ok(D1PairReceipt {
             schema: D1_PAIR_SCHEMA,
@@ -928,18 +1266,14 @@ where
             rollback_bytes,
             changed_rows: changed,
             pair_manifest: manifest.into(),
+            owner_admission_sha256: None,
+            selected_pair_owner_admitted: false,
             d1_applied: false,
             consumer_switched: false,
         })
     })();
     if result.is_err() {
-        for path in pending
-            .iter()
-            .map(PathBuf::as_path)
-            .chain(paths.iter().copied())
-        {
-            let _ = fs::remove_file(path);
-        }
+        owned.cleanup();
     }
     result
 }
@@ -964,13 +1298,15 @@ mod tests {
             "metadata_sha256":hash("after-top"),"publication_epoch":2})
         .to_string();
         let mut spec = D1PairInput {
+            predecessor_mode: D1PredecessorMode::PreparedDelta,
             base_d1_revision: base.clone(), before_source_revision: source.clone(), after_source_revision: source,
             before_prepared_binding: before_binding, after_prepared_binding: after_binding,
             before_source_inputs_sha256: hash("before-inputs"), after_source_inputs_sha256: hash("after-inputs"),
             before_navigation_sha256: hash("before-nav"), after_navigation_sha256: hash("after-nav"),
             before_rights_sha256: Some(hash("rights")), after_rights_sha256: Some(hash("rights")),
             implementation_sha256: hash("implementation"),
-            auxiliary_installed: false,
+            migration_implementation_sha256: None,
+            auxiliary_stores: Vec::new(),
             before_reader_top: json!({"data_revision":base,"source_revision":hash("source"),"read_model_schema":READ_MODEL_SCHEMA}).to_string(),
             after_reader_top: json!({"data_revision":"","source_revision":hash("source"),"read_model_schema":READ_MODEL_SCHEMA}).to_string(),
             limits: D1PairLimits::default(),
@@ -981,14 +1317,14 @@ mod tests {
         spec
     }
     #[test]
-    fn rights_only_or_missing_forces_full_only() {
+    fn rights_changes_are_mechanical_and_missing_roots_stay_full_only() {
         let mut spec = selected();
         spec.after_navigation_sha256 = spec.before_navigation_sha256.clone();
         spec.after_rights_sha256 = Some(hash("changed"));
-        assert!(matches!(
-            selection(&spec),
-            Err(D1PairFailure::FullOnlyRightsTransition)
-        ));
+        let mut after: Value = serde_json::from_str(&spec.after_reader_top).unwrap();
+        after["data_revision"] = target_d1_revision(&spec).unwrap().into();
+        spec.after_reader_top = after.to_string();
+        assert!(matches!(selection(&spec), Ok(_)));
         spec.after_rights_sha256 = None;
         assert!(matches!(
             selection(&spec),
@@ -996,12 +1332,18 @@ mod tests {
         ));
     }
     #[test]
-    fn installed_auxiliary_requires_wider_publication() {
+    fn installed_auxiliary_is_part_of_the_pair_identity() {
         let mut spec = selected();
-        spec.auxiliary_installed = true;
+        let original = target_d1_revision(&spec).unwrap();
+        spec.auxiliary_stores = vec![D1AuxiliaryStore::CompactLens];
+        assert_ne!(target_d1_revision(&spec).unwrap(), original);
+        spec.auxiliary_stores = vec![
+            D1AuxiliaryStore::LensMemberships,
+            D1AuxiliaryStore::CompactLens,
+        ];
         assert!(matches!(
             target_d1_revision(&spec),
-            Err(D1PairFailure::FullOnlyAuxiliaryTransition)
+            Err(D1PairFailure::Invalid("D1 auxiliary store selection"))
         ));
     }
     #[test]
@@ -1057,7 +1399,7 @@ mod tests {
         assert!(forward.contains("stale D1 predecessor"));
         assert!(forward.contains("knowledge_nodes"));
         let db = rusqlite::Connection::open_in_memory().unwrap();
-        for table in D1Table::ALL {
+        for table in D1Table::selected(&selected) {
             let (name, columns, _) = table.shape();
             let definition = columns
                 .iter()
@@ -1189,5 +1531,83 @@ mod tests {
             fs::remove_file(path).unwrap();
         }
         fs::remove_dir(root).unwrap();
+    }
+    #[test]
+    fn fresh_output_races_preserve_files_not_created_by_capture() {
+        for collision in ["pending-manifest", "final-forward"] {
+            let spec = selected();
+            let directory = tempfile::tempdir().unwrap();
+            let forward = directory.path().join("forward.sql");
+            let rollback = directory.path().join("rollback.sql");
+            let manifest = directory.path().join("pair.json");
+            let foreign = if collision == "pending-manifest" {
+                manifest.with_extension("jsonnext")
+            } else {
+                forward.clone()
+            };
+            let rows = std::iter::once_with(|| {
+                fs::write(&foreign, b"independent writer").unwrap();
+                D1RowTransition {
+                    table: D1Table::EdgeMeta,
+                    before: None,
+                    after: Some(vec![
+                        D1Cell::Text("fixture-race".into()),
+                        D1Cell::Integer(0),
+                        D1Cell::Text("{}".into()),
+                    ]),
+                }
+            });
+            assert!(emit_d1_pair(&spec, rows, &forward, &rollback, &manifest).is_err());
+            assert_eq!(fs::read(&foreign).unwrap(), b"independent writer");
+            assert!(!rollback.exists() && !manifest.exists());
+            assert!(!forward.with_extension("sqlnext").exists());
+            assert!(!rollback.with_extension("sqlnext").exists());
+        }
+    }
+    #[test]
+    fn cleanup_preserves_a_replaced_published_path() {
+        let directory = tempfile::tempdir().unwrap();
+        let pending = directory.path().join("pending.sql");
+        let target = directory.path().join("published.sql");
+        let held = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&pending)
+            .unwrap();
+        let mut owned = OwnedOutputs::default();
+        owned.record(&pending, &held).unwrap();
+        owned.publish(&pending, &target).unwrap();
+        fs::remove_file(&target).unwrap();
+        fs::write(&target, b"foreign successor").unwrap();
+        assert!(owned.remove_owned(&target).is_err());
+        owned.cleanup();
+        assert_eq!(fs::read(&target).unwrap(), b"foreign successor");
+    }
+
+    #[test]
+    fn unselected_auxiliary_rows_refuse_before_pair_publication() {
+        let spec = selected();
+        let directory = tempfile::tempdir().unwrap();
+        let forward = directory.path().join("forward.sql");
+        let rollback = directory.path().join("rollback.sql");
+        let manifest = directory.path().join("pair.json");
+        let rows = [D1RowTransition {
+            table: D1Table::KnowledgeCompactLens,
+            before: None,
+            after: Some(vec![
+                D1Cell::Text("node".into()),
+                D1Cell::Text("x".into()),
+                D1Cell::Text(hash("source")),
+                D1Cell::Text(hash("seed")),
+                D1Cell::Text("{}".into()),
+            ]),
+        }];
+        assert!(matches!(
+            emit_d1_pair(&spec, rows, &forward, &rollback, &manifest),
+            Err(D1PairFailure::Invalid("unselected D1 auxiliary transition"))
+        ));
+        assert!(!forward.exists() && !rollback.exists() && !manifest.exists());
+        assert!(!forward.with_extension("sqlnext").exists());
+        assert!(!rollback.with_extension("sqlnext").exists());
     }
 }

@@ -158,3 +158,19 @@ its optional posture. AbyssOS configuration reports only the selected
 `TOS_ABYSSOS_ROOT/abyss-stack` directory, and the packaged paused integration
 posture still blocks the abyssos profile. No directory/configuration check
 proves running integration or authorizes its activation.
+
+## Offline Edge capture
+
+The native source provides `PREFIX/bin/tos edge-offline-capture --request
+ABS.json` for bounded private captures: prepared delta, prepared-source
+catch-up, initial native-navigation bootstrap, native-navigation delta, and
+source-navigation integrity migration. Integrity mode has an explicit
+`header_only` form that adds only the separately verified header checksum and
+does not repeat or claim a row audit. The request schema, required finite
+limits, held SQLite input identity checks, operation-specific fields, output
+contract and false owner-admission boundary are documented in the
+[Cloudflare Worker source route](../../../access/deploy/cloudflare-worker/README.md#native-offline-prepared-pair-capture).
+This command emits unapplied local artifacts and performs no D1 import,
+consumer switch or remote publication. The retained Python capture modules
+remain documented API and parity-oracle sources; the native command does not
+load Python at runtime.

@@ -4,6 +4,8 @@ use std::{
     io::{Read, Write},
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
+    sync::Arc,
+    time::{Duration, Instant},
 };
 use tos_foundation::{
     Digest256, JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue,
@@ -12,6 +14,7 @@ use tos_foundation::{
 use tos_query::{
     AbortProbe, InspectBudget,
     philosophy_read::{PhilosophyReadBudget, compute_source_philosophy_view_diagnostic},
+    source_diagnostic::{self, LegacyStore},
 };
 const SOURCE_BYTES: usize = 4 * 1024 * 1024;
 const REPORT_BYTES: usize = 65536;
@@ -140,11 +143,50 @@ fn partitioned(value: &JsonValue) -> bool {
         .iter()
         .any(|key| field(value, key).as_str() == Some("tos_partitioned_projection_v1"))
 }
-struct NeverAbort;
-impl AbortProbe for NeverAbort {
+struct DiagnosticDeadline(Instant);
+impl AbortProbe for DiagnosticDeadline {
     fn reason(&self) -> Option<tos_query::AbortReason> {
-        None
+        (Instant::now() >= self.0).then_some(tos_query::AbortReason::DeadlineExceeded)
     }
+}
+fn diagnostic_limits() -> source_diagnostic::Limits {
+    source_diagnostic::Limits {
+        max_input_bytes: SOURCE_BYTES as u64,
+        max_json_bytes: SOURCE_BYTES,
+        max_rows: 100_000,
+        max_work_steps: 1_000_000,
+        max_sql_vm_steps: 1_000_000,
+        sqlite_cache_kib: 8192,
+    }
+}
+fn diagnostic_value(value: &serde_json::Value) -> Result<JsonValue, String> {
+    // The library bounds decoded JSON before returning it. Keep the same
+    // bound when translating into the existing report representation.
+    struct Bounded(Vec<u8>);
+    impl Write for Bounded {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            if bytes.len() > SOURCE_BYTES.saturating_sub(self.0.len()) {
+                return Err(std::io::Error::other("diagnostic JSON byte bound exceeded"));
+            }
+            self.0.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let mut bytes = Bounded(Vec::new());
+    serde_json::to_writer(&mut bytes, value).map_err(|e| e.to_string())?;
+    document(&bytes.0)
+}
+fn projection_header(
+    path: &Path,
+    deadline: Instant,
+    abort: &dyn AbortProbe,
+) -> Result<JsonValue, String> {
+    source_diagnostic::projection_header(path, diagnostic_limits(), deadline, abort)
+        .map_err(|e| e.to_string())
+        .and_then(|value| diagnostic_value(&value))
 }
 
 pub fn doctor_report(
@@ -157,6 +199,8 @@ pub fn doctor_report(
         return Err(format!("unknown access profile: {profile}"));
     }
     let root = absolute(root)?;
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let abort = Arc::new(DiagnosticDeadline(deadline));
     // Explicit source-backed selection never searches another repository.
     let index = selected_path(
         &root,
@@ -206,26 +250,62 @@ pub fn doctor_report(
         && read(&bibliographic)
             .and_then(|raw| document(&raw))
             .is_ok_and(|value| partitioned(&value));
-    if std::env::var_os("TOS_QUERY_STORE_PATH").is_some_and(|raw| !raw.is_empty())
+    let store_required = std::env::var_os("TOS_QUERY_STORE_PATH")
+        .is_some_and(|raw| !raw.is_empty())
         || store.is_file()
         || source_partitioned
-        || bibliography_partitioned
-    {
-        check(
-            &mut checks,
-            "query-store",
-            false,
-            true,
-            vec![
-                ("path", text(&store.to_string_lossy())),
-                (
-                    "error",
-                    text(
-                        "legacy Python query store is unsupported by the native source-backed diagnostic; no build is performed",
-                    ),
+        || bibliography_partitioned;
+    let mut query_store = None;
+    if store_required {
+        let inputs = [
+            (
+                "ToS/derived-exports/tos_corpus_index.min.json".to_owned(),
+                index.clone(),
+            ),
+            (
+                "ToS/derived-exports/philosophy_graph_projection.min.json".to_owned(),
+                graph.clone(),
+            ),
+            (
+                "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json".to_owned(),
+                bibliographic,
+            ),
+            (
+                "ToS/doctrine/semantic-interchange/entity-types.v1.json".to_owned(),
+                selected_path(
+                    &root,
+                    "TOS_ENTITY_TYPE_REGISTRY_PATH",
+                    "ToS/doctrine/semantic-interchange/entity-types.v1.json",
                 ),
-            ],
-        );
+            ),
+            (
+                "ToS/doctrine/semantic-interchange/relation-types.v1.json".to_owned(),
+                selected_path(
+                    &root,
+                    "TOS_RELATION_TYPE_REGISTRY_PATH",
+                    "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+                ),
+            ),
+        ];
+        match LegacyStore::open(
+            &store,
+            &inputs,
+            diagnostic_limits(),
+            deadline,
+            abort.clone(),
+        ) {
+            Ok(opened) => query_store = Some(opened),
+            Err(error) => check(
+                &mut checks,
+                "query-store",
+                false,
+                true,
+                vec![
+                    ("path", text(&store.to_string_lossy())),
+                    ("error", text(&error.to_string())),
+                ],
+            ),
+        }
     }
     check(
         &mut checks,
@@ -237,19 +317,26 @@ pub fn doctor_report(
     if let Some(raw) = index_raw {
         match raw {
             Ok((raw, value)) => {
-                let header = if partitioned(&value) {
-                    field(&value, "header")
+                let header = if let Some(store) = query_store.as_ref() {
+                    diagnostic_value(&store.corpus_header)
+                } else if partitioned(&value) {
+                    projection_header(&index, deadline, abort.as_ref())
                 } else {
-                    &value
+                    Ok(value)
+                };
+                let header = match header {
+                    Ok(header) => header,
+                    Err(error) => object(vec![("error", text(&error))]),
                 };
                 check(
                     &mut checks,
                     "corpus-index-schema",
-                    field(header, "schema_version").as_str() == Some("tos_corpus_index_v1"),
+                    field(&header, "schema_version").as_str() == Some("tos_corpus_index_v1"),
                     true,
                     vec![
-                        ("schema_version", field(header, "schema_version").clone()),
+                        ("schema_version", field(&header, "schema_version").clone()),
                         ("sha256", text(&Digest256::of_bytes(&raw).to_hex())),
+                        ("error", field(&header, "error").clone()),
                     ],
                 );
             }
@@ -271,7 +358,16 @@ pub fn doctor_report(
     );
     if let Some(raw) = graph_raw {
         match raw {
-            Ok((raw, value)) => {
+            Ok((raw, source_value)) => {
+                let header = if partitioned(&source_value) {
+                    projection_header(&graph, deadline, abort.as_ref())
+                } else {
+                    Ok(source_value)
+                };
+                let value = match header {
+                    Ok(header) => header,
+                    Err(error) => object(vec![("error", text(&error))]),
+                };
                 let schema = field(&value, "schema_version");
                 let supported = matches!(
                     schema.as_str(),
@@ -287,6 +383,7 @@ pub fn doctor_report(
                     vec![
                         ("schema_version", schema.clone()),
                         ("sha256", text(&Digest256::of_bytes(&raw).to_hex())),
+                        ("error", field(&value, "error").clone()),
                     ],
                 );
                 if supported {
@@ -295,32 +392,36 @@ pub fn doctor_report(
                             field(view, "view_id").as_str().filter(|id| !id.is_empty())
                         })
                     });
-                    let packet = first
-                        .ok_or_else(|| "projection has no graph views".to_owned())
-                        .and_then(|view| {
-                            let inspect = InspectBudget {
-                                max_open_vm_steps: 1_000_000,
-                                max_read_vm_steps: 1_000_000,
-                                max_response_bytes: 1_048_576,
-                                max_decoded_bytes: SOURCE_BYTES as u64,
-                                max_matches: 100000,
-                                max_rows: 100000,
-                                max_field_bytes: 4096,
-                                max_payload_bytes: SOURCE_BYTES,
-                                json: limits(),
-                            };
-                            compute_source_philosophy_view_diagnostic(
-                                &raw,
-                                view,
-                                PhilosophyReadBudget {
-                                    inspect,
-                                    max_work_steps: 1_000_000,
-                                },
-                                &NeverAbort,
-                            )
-                            .map_err(|e| e.message.to_owned())
-                            .and_then(|bytes| document(&bytes))
-                        });
+                    let budget = PhilosophyReadBudget {
+                        inspect: InspectBudget {
+                            max_open_vm_steps: 1_000_000,
+                            max_read_vm_steps: 1_000_000,
+                            max_response_bytes: 1_048_576,
+                            max_decoded_bytes: SOURCE_BYTES as u64,
+                            max_matches: 100_000,
+                            max_rows: 100_000,
+                            max_field_bytes: 4096,
+                            max_payload_bytes: SOURCE_BYTES,
+                            json: limits(),
+                        },
+                        max_work_steps: 1_000_000,
+                    };
+                    let packet = if let Some(store) = query_store.as_mut() {
+                        store.first_view_packet(budget).map_err(|e| e.to_string())
+                    } else {
+                        first
+                            .ok_or_else(|| "projection has no graph views".to_owned())
+                            .and_then(|view| {
+                                compute_source_philosophy_view_diagnostic(
+                                    &raw,
+                                    view,
+                                    budget,
+                                    abort.as_ref(),
+                                )
+                                .map_err(|e| e.message.to_owned())
+                            })
+                    }
+                    .and_then(|bytes| document(&bytes));
                     match packet {
                         Ok(value) => {
                             let nodes = field(&value, "node_count");
@@ -536,6 +637,42 @@ pub fn doctor_report(
                     },
                 ),
             ],
+        );
+    }
+    if let Some(store_reader) = query_store.as_ref() {
+        match store_reader.verify_currentness() {
+            Ok(()) => check(
+                &mut checks,
+                "query-store",
+                true,
+                true,
+                vec![
+                    ("path", text(&store.to_string_lossy())),
+                    ("revision", text(&store_reader.revision)),
+                ],
+            ),
+            Err(error) => check(
+                &mut checks,
+                "query-store",
+                false,
+                true,
+                vec![
+                    ("path", text(&store.to_string_lossy())),
+                    ("error", text(&error.to_string())),
+                ],
+            ),
+        }
+    }
+    if abort.reason().is_some() {
+        check(
+            &mut checks,
+            "diagnostic-deadline",
+            false,
+            true,
+            vec![(
+                "error",
+                text("source-backed diagnostic exceeded its whole-operation deadline"),
+            )],
         );
     }
     let failures = checks

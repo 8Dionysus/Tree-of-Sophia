@@ -190,8 +190,8 @@ class ValidationLaneTests(unittest.TestCase):
             [(workspace_label, 900000), *[(label, 900000) for label in family_labels]],
         )
         self.assertEqual(
-            workspace[:7],
-            ['cargo', 'test', '--workspace', '--locked', '--exclude', 'tos-conformance', '--'],
+            workspace[:8],
+            ['cargo', 'test', '--workspace', '--locked', '--no-fail-fast', '--exclude', 'tos-conformance', '--'],
         )
         self.assertIn('--nocapture', workspace)
         self.assertEqual(

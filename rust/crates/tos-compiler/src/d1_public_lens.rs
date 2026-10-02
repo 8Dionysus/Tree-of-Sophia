@@ -3,12 +3,13 @@
 
 use crate::{
     Error, Result,
+    d1::{D1Cell, D1RowTransition, D1Table},
     d1_public_capture::{MAX_ROW_BYTES, PublicCapture, compact},
     d1_public_rows::{lower_search, quoted},
     d1_public_sql::SqlSink,
 };
 use std::collections::BTreeSet;
-use tos_foundation::{Digest256, JsonValue};
+use tos_foundation::{Digest256, JsonValue, python_lower_unicode16_v1};
 
 const MAX_SEED_BYTES: usize = 1_048_576;
 const MAX_MEMBERS: usize = 256;
@@ -69,6 +70,66 @@ fn member_values(item: &JsonValue, field: &str) -> Result<BTreeSet<String>> {
         result.insert(value.to_owned());
     }
     Ok(result)
+}
+
+/// Project the exact optional D1 lens rows for one already selected normalized
+/// source row. The surrounding capture must still prove predecessor rows and
+/// the independently clock-bound store state before emitting SQL.
+pub fn project_private_lens_auxiliary_rows(
+    kind: &str,
+    id: &str,
+    source_json: &str,
+    item: &JsonValue,
+    compact_installed: bool,
+    membership_installed: bool,
+) -> Result<Vec<D1RowTransition>> {
+    if !matches!(kind, "node" | "relation")
+        || id.is_empty()
+        || id.len() > 4096
+        || item.object_get("id").and_then(JsonValue::as_str) != Some(id)
+        || source_json.len() > 8 * 1024 * 1024
+    {
+        return Err(Error::Invalid("private D1 lens source identity/bytes"));
+    }
+    let mut rows = Vec::new();
+    if compact_installed {
+        let seed = compact_seed(item)?;
+        let seed = String::from_utf8(compact(&seed, MAX_SEED_BYTES)?)
+            .map_err(|_| Error::Invalid("private D1 compact lens UTF-8"))?;
+        let source_sha = Digest256::of_bytes(source_json.as_bytes()).to_hex();
+        let seed_sha = Digest256::of_bytes(seed.as_bytes()).to_hex();
+        rows.push(D1RowTransition {
+            table: D1Table::KnowledgeCompactLens,
+            before: None,
+            after: Some(vec![
+                D1Cell::Text(kind.to_owned()),
+                D1Cell::Text(id.to_owned()),
+                D1Cell::Text(source_sha),
+                D1Cell::Text(seed_sha),
+                D1Cell::Text(seed),
+            ]),
+        });
+    }
+    if membership_installed {
+        let sort_key = python_lower_unicode16_v1(id, 4096, 12_288, 12_288)
+            .map_err(|error| Error::Source(error.to_string()))?;
+        for field in ["view_ids", "graph_layers"] {
+            for value in member_values(item, field)? {
+                rows.push(D1RowTransition {
+                    table: D1Table::KnowledgeLensMemberships,
+                    before: None,
+                    after: Some(vec![
+                        D1Cell::Text(kind.to_owned()),
+                        D1Cell::Text(field.to_owned()),
+                        D1Cell::Text(value),
+                        D1Cell::Text(id.to_owned()),
+                        D1Cell::Text(sort_key.clone()),
+                    ]),
+                });
+            }
+        }
+    }
+    Ok(rows)
 }
 
 #[derive(Default)]

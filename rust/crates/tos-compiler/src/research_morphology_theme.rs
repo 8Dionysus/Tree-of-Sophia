@@ -1,7 +1,8 @@
 //! Frozen v1 morphology/theme candidate producer. Dictionary stems remain proposals.
 use crate::research_execution::ResearchExecution;
 use crate::research_parallel_lexical::{
-    arr, base_key, h, hash, lines, load, load_parallel, n, pretty, read, round, s, write,
+    SelectedPlan, arr, base_key, bound_json, h, hash, lines, load, load_parallel, n, pretty, read,
+    round, s, select_plan, write,
 };
 use serde_json::{Value as V, json};
 use std::{
@@ -1112,9 +1113,9 @@ struct Generated {
     bindings: Vec<Identity>,
     analysis: V,
 }
-fn generate(root: &ResearchExecution, with_ids: bool) -> R<Generated> {
+fn generate(root: &ResearchExecution, with_ids: bool, selected: &SelectedPlan) -> R<Generated> {
     root.check()?;
-    let plan = load(root, &route("plan.v1.json"))?;
+    let plan = &selected.value;
     for (name, record) in plan["inputs"]
         .as_object()
         .ok_or("plan inputs object required")?
@@ -1125,16 +1126,46 @@ fn generate(root: &ResearchExecution, with_ids: bool) -> R<Generated> {
             return Err(format!("input drift: {name}"));
         }
     }
+    let manifest_input = &plan["inputs"]["parallel_lexical_manifest"];
+    let manifest = bound_json(
+        root,
+        s(&manifest_input["ref"])?,
+        s(&manifest_input["sha256"])?,
+        None,
+        None,
+        512 * 1024,
+    )?;
     let p = private_previous();
-    if root
-        .source_file(&p, 64 * 1024 * 1024)
-        .and_then(|f| f.metadata().map_err(|e| e.to_string()))
-        .map(|m| m.permissions().mode() & 0o777 != 0o600)
-        .unwrap_or(true)
-    {
-        return Err("previous private lexical analysis missing or not 0600".into());
+    let entry = &manifest["private_outputs"][&p];
+    if entry["required_mode"] != "0600" {
+        return Err("previous private analysis manifest requires 0600".into());
     }
-    let previous = load(root, &p)?;
+    let previous = bound_json(
+        root,
+        &p,
+        s(&entry["sha256"])?,
+        Some(
+            entry["byte_size"]
+                .as_u64()
+                .ok_or("previous analysis byte_size required")?,
+        ),
+        Some(0o600),
+        64 * 1024 * 1024,
+    )?;
+    let coverage_ref = previous_ref("coverage-receipt.v1.json");
+    let entry = &manifest["generated_outputs"][&coverage_ref];
+    let previous_coverage = bound_json(
+        root,
+        &coverage_ref,
+        s(&entry["sha256"])?,
+        Some(
+            entry["byte_size"]
+                .as_u64()
+                .ok_or("previous coverage byte_size required")?,
+        ),
+        Some(0o644),
+        64 * 1024,
+    )?;
     let (families, forms, provider) = surface_families(root, &previous, &plan)?;
     let families = challengers(root, families, &forms, &previous, &plan)?;
     let bridges = bridges(root, &families, &previous, &plan)?;
@@ -1143,6 +1174,9 @@ fn generate(root: &ResearchExecution, with_ids: bool) -> R<Generated> {
     let relations = relations(root, &families, &bridges, &co, &clusters)?;
     let bindings = bindings(root, &families, &clusters, &relations)?;
     if !with_ids {
+        if selected.custom {
+            identities(root, &bindings)?;
+        }
         return Ok(Generated {
             outputs: Map::new(),
             private: None,
@@ -1181,15 +1215,15 @@ fn generate(root: &ResearchExecution, with_ids: bool) -> R<Generated> {
         })
         .collect::<Set<_>>()
         .len();
-    let coverage = json!({"schema_version":"tos_zarathustra_morphology_theme_candidate_coverage_v1","parts_complete":4,"languages":["de","ru"],"input_keyword_form_candidates":forms.len(),"forms_with_family_membership":forms_with_membership,"positive_alignment_units_used_for_co_recurrence":load(root,&previous_ref("coverage-receipt.v1.json"))?["proposed_positive_evidence_units"],"german_provider_census_token_coverage":load(root,s(&plan["inputs"]["german_morphology_census_receipt"]["ref"] )?)?["coverage"]["token_weighted_coverage"],"provider_output_used_as_accepted_morphology":false,"russian_provider":provider,"tracked_source_strings":false,"private_output_mode":"0600","competing_memberships_preserved":true,"zero_review_refs":true,"accepted_candidate_count":0,"graph_effect":false});
+    let coverage = json!({"schema_version":"tos_zarathustra_morphology_theme_candidate_coverage_v1","parts_complete":4,"languages":["de","ru"],"input_keyword_form_candidates":forms.len(),"forms_with_family_membership":forms_with_membership,"positive_alignment_units_used_for_co_recurrence":previous_coverage["proposed_positive_evidence_units"],"german_provider_census_token_coverage":load(root,s(&plan["inputs"]["german_morphology_census_receipt"]["ref"] )?)?["coverage"]["token_weighted_coverage"],"provider_output_used_as_accepted_morphology":false,"russian_provider":provider,"tracked_source_strings":false,"private_output_mode":"0600","competing_memberships_preserved":true,"zero_review_refs":true,"accepted_candidate_count":0,"graph_effect":false});
     outputs.insert(route("coverage-receipt.v1.json"), pretty(&coverage)?);
-    outputs.insert(route("provenance.jsonl"),lines(&[json!({"schema_version":"tos_provenance_event_v1","event_id":"tos.event.zarathustra-morphology-theme-candidates-v1.build","event_type":"agent_candidate_morphology_theme_materialization","occurred_at":"2026-09-02T03:00:00-06:00","agent_ref":"codex-internal-agents.morphology-theme-candidate-v1","software_ref":GENERATOR,"software_sha256":RECIPE_SHA256,"plan_ref":route("plan.v1.json"),"plan_sha256":hash(&read(root,&route("plan.v1.json"))?),"authority_boundary":plan["authority_boundary"]})])?);
+    outputs.insert(route("provenance.jsonl"),lines(&[json!({"schema_version":"tos_provenance_event_v1","event_id":"tos.event.zarathustra-morphology-theme-candidates-v1.build","event_type":"agent_candidate_morphology_theme_materialization","occurred_at":"2026-09-02T03:00:00-06:00","agent_ref":"codex-internal-agents.morphology-theme-candidate-v1","software_ref":GENERATOR,"software_sha256":RECIPE_SHA256,"plan_ref":selected.reference,"plan_sha256":selected.digest,"authority_boundary":plan["authority_boundary"]})])?);
     let private = pretty(&analysis)?;
     let output_meta: Map<String, V> = outputs
         .iter()
         .map(|(p, raw)| (p.clone(), json!({"sha256":hash(raw),"byte_size":raw.len()})))
         .collect();
-    let manifest = json!({"schema_version":"tos_zarathustra_morphology_theme_candidate_manifest_v1","plan_ref":route("plan.v1.json"),"plan_sha256":hash(&read(root,&route("plan.v1.json"))?),"identity_issuance_ref":route("identity-issuance.v1.json"),"identity_issuance_sha256":hash(&read(root,&route("identity-issuance.v1.json"))?),"generated_outputs":output_meta,"private_outputs":{(self::private()):{"sha256":hash(&private),"byte_size":private.len(),"required_mode":"0600"}},"source_text_included":false,"accepted_candidate_count":0,"semantic_relation_asserted":false,"concept_identity_asserted":false,"graph_effect":false,"canon_effect":false});
+    let manifest = json!({"schema_version":"tos_zarathustra_morphology_theme_candidate_manifest_v1","plan_ref":selected.reference,"plan_sha256":selected.digest,"identity_issuance_ref":route("identity-issuance.v1.json"),"identity_issuance_sha256":hash(&read(root,&route("identity-issuance.v1.json"))?),"generated_outputs":output_meta,"private_outputs":{(self::private()):{"sha256":hash(&private),"byte_size":private.len(),"required_mode":"0600"}},"source_text_included":false,"accepted_candidate_count":0,"semantic_relation_asserted":false,"concept_identity_asserted":false,"graph_effect":false,"canon_effect":false});
     outputs.insert(route("manifest.v1.json"), pretty(&manifest)?);
     Ok(Generated {
         outputs,
@@ -1206,7 +1240,10 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> R<V> {
     root.check()?;
     let mut mode = None;
     let mut issue_ids = false;
-    for arg in args {
+    let mut plan_ref = route("plan.v1.json");
+    let mut selected_flag = false;
+    let mut arguments = args.iter();
+    while let Some(arg) = arguments.next() {
         root.tick(1)?;
         match arg.as_str() {
             "--build" | "--check" | "--preview" => {
@@ -1215,6 +1252,17 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> R<V> {
                 }
             }
             "--issue-identities" => issue_ids = true,
+            "--plan-ref" => {
+                if selected_flag {
+                    return Err("duplicate --plan-ref".into());
+                }
+                selected_flag = true;
+                root.tick(1)?;
+                plan_ref = arguments
+                    .next()
+                    .ok_or("--plan-ref requires ROOT_RELATIVE ref")?
+                    .clone();
+            }
             _ => return Err(format!("unrecognized argument: {arg}")),
         }
     }
@@ -1222,17 +1270,26 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> R<V> {
     if issue_ids && mode != "--build" {
         return Err("--issue-identities is valid only with --build".into());
     }
+    let selected = select_plan(
+        root,
+        &plan_ref,
+        &route("plan.v1.json"),
+        "3252e93ba6fc46ee7d25808872c4a08fe724aeb6b69a2583b15ef9cba9d90988",
+    )?;
+    if selected.custom && issue_ids {
+        return Err("custom technical profile cannot remint v1 identities".into());
+    }
     if mode == "--preview" {
-        let g = generate(root, false)?;
+        let g = generate(root, false, &selected)?;
         return Ok(
             json!({"identity_count":g.bindings.len(),"family_count":arr(&g.analysis["families"] )?.len(),"cluster_count":arr(&g.analysis["clusters"] )?.len(),"relation_count":arr(&g.analysis["relations"] )?.len()}),
         );
     }
     if mode == "--build" && issue_ids {
-        let g = generate(root, false)?;
+        let g = generate(root, false, &selected)?;
         issue(root, &g.bindings)?;
     }
-    let g = generate(root, true)?;
+    let g = generate(root, true, &selected)?;
     if mode == "--build" {
         for (p, raw) in &g.outputs {
             root.tick(1)?;

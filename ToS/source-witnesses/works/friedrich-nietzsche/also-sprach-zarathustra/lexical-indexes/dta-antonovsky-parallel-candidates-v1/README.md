@@ -40,3 +40,11 @@ establish morphology, lemma, lexeme, sense, sign, concept, translation
 equivalence, graph relation, canon, publication, or human review. Promotion
 must return to exact occurrences and pass the separate semantic annotation and
 review route.
+
+## Native technical input profiles
+
+The native `tos zarathustra-parallel-lexical-candidates-v1 --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --plan-ref ROOT_RELATIVE --build` route selects an explicit technical input profile; omitting `--plan-ref` retains the authenticated v1 plan. Custom profiles require a current-user-owned mode-`0700` carrier root and mode-`0600` plan. Use a separate private carrier and preserve the old plan, outputs and issuance in their original custody. The scratch value is an explicitly reserved remaining quota after the carrier baseline, retained outputs and metadata; it does not grant storage. The selector grants no source, semantic, rights or canon admission.
+
+A profile requires a distinct `plan_id`, `status: proposed-technical-input-profile-successor`, `frozen_at: null`, and `input_profile_lineage` with `profile_version >= 2`, `supersedes_plan_ref` and `supersedes_plan_sha256` matching the authentic v1 plan. Only input `sha256` values may change; input membership, refs and all semantic fields, methods, thresholds, output declarations and authority remain exact. Unknown changes fail closed. Selected plan ref and digest are emitted in provenance and manifest. Full bindings must match the retained v1 issuance, including in preview; custom profiles reject `--issue-identities`. Outputs retain the existing filenames inside the selected carrier. Technical profile proposal and boundary review precede scoped mechanical admission; execution does not perform that admission.
+
+The local `0700`/`0600` privacy guard does not prove distinct custody. The controller and explicit admission must fence the selected carrier from original source and historical output custody.

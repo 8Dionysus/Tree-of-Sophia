@@ -11,7 +11,7 @@ import re
 import time
 from urllib.request import Request, urlopen
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[3]
 HERE = ROOT / "ToS/source-witnesses/discovery/registry-first-planting-2026-09-08"
 REL = HERE.relative_to(ROOT).as_posix()
 MORPH = "3d15126fb1ef74867fc1434be1942e837932691f"

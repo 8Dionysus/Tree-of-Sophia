@@ -54,6 +54,8 @@ pub mod search_index;
 pub mod search_v2;
 mod source_descend;
 #[cfg(not(target_arch = "wasm32"))]
+pub mod source_diagnostic;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod source_dossier;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod source_gap;

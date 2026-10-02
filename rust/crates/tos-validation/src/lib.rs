@@ -481,12 +481,18 @@ impl SchemaBackendProbe {
     /// profile before schema evaluation. This remains a probe, not admission.
     pub fn is_valid_raw(&self, root_uri: &str, raw: &[u8]) -> Result<bool, SchemaProbeError> {
         let instance = published_value(raw, Self::MAX_INSTANCE_BYTES)?;
-        self.is_valid(root_uri, &instance)
+        self.is_valid_value(root_uri, &instance)
     }
 
-    /// Internal structural probe. Public callers enter through `is_valid_raw`
-    /// so an already-collapsed JSON object cannot bypass `PublishedStrict`.
-    fn is_valid(&self, root_uri: &str, instance: &Value) -> Result<bool, SchemaProbeError> {
+    /// Validate an already-decoded value with this exact local schema set.
+    /// Callers must first decode source bytes with `PublishedStrict`; this
+    /// entry point exists for owner routes whose strict decoder produced the
+    /// `Value` before selecting a schema.
+    pub fn is_valid_value(
+        &self,
+        root_uri: &str,
+        instance: &Value,
+    ) -> Result<bool, SchemaProbeError> {
         let schema = self.selected_schema(root_uri)?;
         let registry = Registry::new()
             .extend(
@@ -513,6 +519,12 @@ impl SchemaBackendProbe {
             .build(schema.as_ref())
             .map_err(|error| SchemaProbeError::Backend(error.to_string()))?;
         Ok(validator.is_valid(instance))
+    }
+
+    /// Compatibility name for existing in-crate callers. New source routes
+    /// should use `is_valid_value` to make strict-decoding responsibility clear.
+    fn is_valid(&self, root_uri: &str, instance: &Value) -> Result<bool, SchemaProbeError> {
+        self.is_valid_value(root_uri, instance)
     }
 
     /// Keep fragment resolution inside the original registry and its $id scopes.

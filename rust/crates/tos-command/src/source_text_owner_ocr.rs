@@ -11,7 +11,7 @@ use base64::alphabet::STANDARD as BASE64_ALPHABET;
 use base64::engine::general_purpose::{GeneralPurpose, GeneralPurposeConfig};
 use serde_json::Value;
 use std::collections::BTreeMap;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -66,10 +66,25 @@ fn sha(value: &str) -> bool {
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
 }
 
-fn bounded_process(
+pub(crate) fn bounded_process(
     program: &str,
     args: &[&str],
     cwd: Option<&Path>,
+    stdout_limit: usize,
+    end: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<Vec<u8>> {
+    bounded_process_with_stdin(program, args, cwd, None, stdout_limit, end, cancelled)
+}
+
+/// Run the existing bounded verifier with optional exact stdin bytes. The
+/// caller already owns and has validated those bytes; a concurrent writer
+/// keeps large inputs from blocking output drains or the shared deadline.
+pub(crate) fn bounded_process_with_stdin(
+    program: &str,
+    args: &[&str],
+    cwd: Option<&Path>,
+    stdin: Option<&[u8]>,
     stdout_limit: usize,
     end: Instant,
     cancelled: &AtomicBool,
@@ -78,7 +93,11 @@ fn bounded_process(
     let mut command = Command::new(program);
     command
         .args(args)
-        .stdin(Stdio::null())
+        .stdin(if stdin.is_some() {
+            Stdio::piped()
+        } else {
+            Stdio::null()
+        })
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .env_clear()
@@ -125,9 +144,31 @@ fn bounded_process(
             let _ = sender.send((index, bytes));
         });
     }
+    let stdin_failed = Arc::new(AtomicBool::new(false));
+    if let Some(input) = stdin {
+        let mut pipe = child.stdin.take().ok_or(invalid())?;
+        let input = input.to_vec();
+        let sender = sender.clone();
+        let stdin_failed = Arc::clone(&stdin_failed);
+        thread::spawn(move || {
+            if pipe.write_all(&input).is_err() {
+                stdin_failed.store(true, Ordering::Relaxed);
+            }
+            drop(pipe);
+            let _ = sender.send((2usize, Vec::new()));
+        });
+    }
     drop(sender);
     let mut status = None;
-    let mut streams = [None, None];
+    let mut streams = [
+        None,
+        None,
+        if stdin.is_none() {
+            Some(Vec::new())
+        } else {
+            None
+        },
+    ];
     let mut failed = None;
     while status.is_none() || streams.iter().any(Option::is_none) {
         if let Err(error) = active(end, cancelled) {
@@ -137,6 +178,12 @@ fn bounded_process(
         if overflow.load(Ordering::Relaxed) {
             failed = Some(SourceCommandError::Unsupported(
                 "native owner verifier output budget",
+            ));
+            break;
+        }
+        if stdin_failed.load(Ordering::Relaxed) {
+            failed = Some(SourceCommandError::Denied(
+                "native owner verifier stdin was incomplete",
             ));
             break;
         }

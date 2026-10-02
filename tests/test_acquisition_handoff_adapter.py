@@ -15,8 +15,8 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-import acquisition_batch as acquisition  # noqa: E402
-import acquisition_handoff_adapter as adapter  # noqa: E402
+from tests.oracles.acquisition import acquisition_batch as acquisition  # noqa: E402
+from tests.oracles.acquisition import acquisition_handoff_adapter as adapter  # noqa: E402
 import corpus_admit  # noqa: E402
 from corpus_source_validation import SourceValidator  # noqa: E402
 from corpus_store import CorpusStore, canonical  # noqa: E402

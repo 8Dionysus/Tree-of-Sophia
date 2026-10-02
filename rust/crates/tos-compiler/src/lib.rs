@@ -4,6 +4,7 @@
 pub mod catalog;
 pub mod d1;
 pub mod d1_prepared_pair;
+pub mod d1_projection_snapshot;
 mod d1_public_baseline;
 mod d1_public_build;
 mod d1_public_capture;
@@ -39,6 +40,9 @@ pub use d1_public_build::{
     PublicD1Build, PublicD1BuildLimits, build_public_d1, portable_public_d1_limits,
 };
 pub use d1_public_capture::{PublicCapture, PublicCaptureLimits};
+pub use d1_public_knowledge::project_private_knowledge_row;
+pub use d1_public_lens::project_private_lens_auxiliary_rows;
+pub use d1_public_rows::project_private_navigation_row;
 mod knowledge_base;
 pub mod knowledge_candidates;
 pub mod knowledge_canon_materialize;

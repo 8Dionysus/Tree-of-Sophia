@@ -31,3 +31,13 @@ The implementation and focused validation are owned by
 `scripts/build_zarathustra_morphology_theme_candidates_v1.py` and
 `tests/test_zarathustra_morphology_theme_candidates_v1.py`; execute them
 through the [ToS validation routes](../../../VALIDATION.md).
+
+## Native technical input profiles
+
+The native `tos zarathustra-morphology-theme-candidates-v1 --source-root PRIVATE_CARRIER --scratch-bytes RESERVED_REMAINING_BYTES --plan-ref ROOT_RELATIVE --build` route selects an explicit technical input profile; omitting `--plan-ref` retains the authenticated v1 plan. Custom profiles require a current-user-owned mode-`0700` carrier root and mode-`0600` plan. Use a separate private carrier and preserve the old plan, outputs and issuance in their original custody. The scratch value is an explicitly reserved remaining quota after the carrier baseline, retained outputs and metadata; it does not grant storage. The selector grants no source, semantic, rights or canon admission.
+
+A profile requires a distinct `plan_id`, `status: proposed-technical-input-profile-successor`, `frozen_at: null`, and `input_profile_lineage` with `profile_version >= 2`, `supersedes_plan_ref` and `supersedes_plan_sha256` matching the authentic v1 plan. Only input `sha256` values may change; input membership, refs and all semantic fields, methods, thresholds, output declarations and authority remain exact. Unknown changes fail closed. Selected plan ref and digest are emitted in provenance and manifest. Full bindings must match the retained v1 issuance, including in preview; custom profiles reject `--issue-identities`. Outputs retain the existing filenames inside the selected carrier. Technical profile proposal and boundary review precede scoped mechanical admission; execution does not perform that admission.
+
+The previous private Parallel analysis and coverage receipt must match the digest and byte size declared by the authenticated selected Parallel manifest. The private analysis requires mode `0600`; coverage requires `0644`. Each is checked and parsed through one retained file descriptor. Missing or stale unmanifested analysis is refused.
+
+The local `0700`/`0600` privacy guard does not prove distinct custody. The controller and explicit admission must fence the selected carrier from original source and historical output custody.

@@ -2982,6 +2982,535 @@ pub fn validate_source_claim_from_cut(
     Ok(report)
 }
 
+/// Validate a selected prepared `source-claims.jsonl` carrier using the same
+/// native route compiler and maintained local Claim profile predicates as the
+/// source-cut validator. This checks local row shape/schema only; endpoints,
+/// history, review and admission remain outside this transfer preflight. The
+/// caller supplies rooted reads for local dependencies; one bounded cache pins
+/// each dependency's bytes for this entire validation operation.
+pub fn validate_acquisition_source_claims(
+    source_ref: &str,
+    raw: &[u8],
+    dependency_reader: &mut impl FnMut(&str, usize) -> Result<Vec<u8>, String>,
+) -> Result<Vec<(usize, String)>, String> {
+    use crate::{FormatProfile, SchemaBackendProbe, SchemaResource};
+    use std::sync::atomic::AtomicBool;
+    use std::time::{Duration, Instant};
+
+    const MAX_CARRIER_BYTES: usize = 16 * 1024 * 1024;
+    const MAX_ROW_BYTES: usize = 1024 * 1024;
+
+    if raw.len() > MAX_CARRIER_BYTES {
+        return Err(format!(
+            "selected source Claim carrier exceeds 16 MiB: {source_ref}"
+        ));
+    }
+    let path = tos_foundation::RelativePath::parse(source_ref).map_err(|_| {
+        format!("selected source Claim path is outside its metadata home: {source_ref}")
+    })?;
+    if !tos_source_store::is_authored_source_path_v1(source_ref)
+        || source_ref.split('/').any(|part| {
+            matches!(
+                part,
+                "catalog" | "payload" | "local-content" | "owner-local"
+            )
+        })
+        || path.as_str().rsplit('/').next() != Some("source-claims.jsonl")
+    {
+        return Err(format!(
+            "selected source Claim path is outside its metadata home: {source_ref}"
+        ));
+    }
+
+    const MAX_DEPENDENCY_CACHE_BYTES: usize =
+        SchemaBackendProbe::MAX_TOTAL_BYTES + 2 * MAX_RECORD_BYTES;
+    const MAX_DEPENDENCY_CACHE_RESOURCES: usize = SchemaBackendProbe::MAX_RESOURCES + 2;
+
+    fn read_local(
+        cache: &mut BTreeMap<String, Vec<u8>>,
+        reader: &mut impl FnMut(&str, usize) -> Result<Vec<u8>, String>,
+        reference: &str,
+        cap: usize,
+    ) -> Result<Vec<u8>, String> {
+        if !is_contract_path(reference)
+            && !reference.starts_with("ToS/doctrine/semantic-interchange/")
+        {
+            return Err(format!(
+                "local Claim dependency path is unsupported: {reference}"
+            ));
+        }
+        if let Some(bytes) = cache.get(reference) {
+            if bytes.len() > cap {
+                return Err(format!("local Claim dependency exceeds bound: {reference}"));
+            }
+            return Ok(bytes.clone());
+        }
+        if cache.len() >= MAX_DEPENDENCY_CACHE_RESOURCES {
+            return Err("local Claim dependency cache resource count exceeds native bound".into());
+        }
+        let bytes = reader(reference, cap)?;
+        if bytes.len() > cap {
+            return Err(format!("local Claim dependency exceeds bound: {reference}"));
+        }
+        let used = cache
+            .values()
+            .try_fold(bytes.len(), |sum, existing| sum.checked_add(existing.len()))
+            .ok_or("local Claim dependency cache byte count overflow")?;
+        if used > MAX_DEPENDENCY_CACHE_BYTES {
+            return Err("local Claim dependency cache bytes exceed native bound".into());
+        }
+        cache.insert(reference.to_owned(), bytes.clone());
+        Ok(bytes)
+    }
+
+    fn read_value(
+        cache: &mut BTreeMap<String, Vec<u8>>,
+        reader: &mut impl FnMut(&str, usize) -> Result<Vec<u8>, String>,
+        reference: &str,
+        cap: usize,
+    ) -> Result<Value, String> {
+        let bytes = read_local(cache, reader, reference, cap)?;
+        crate::published_value(&bytes, cap).map_err(|error| {
+            format!("local Claim dependency is not strict JSON: {reference}: {error:?}")
+        })
+    }
+
+    fn refs(value: &Value, output: &mut Vec<String>) {
+        let mut stack = vec![value];
+        while let Some(current) = stack.pop() {
+            match current {
+                Value::Object(object) => {
+                    for (key, child) in object {
+                        if matches!(key.as_str(), "$ref" | "$dynamicRef") {
+                            if let Some(reference) = child.as_str() {
+                                output.push(reference.to_owned());
+                            }
+                        }
+                        stack.push(child);
+                    }
+                }
+                Value::Array(values) => stack.extend(values),
+                _ => {}
+            }
+        }
+    }
+
+    fn dependency(reference: &str, current: &str) -> Result<Option<String>, String> {
+        let base = reference.split('#').next().unwrap_or("");
+        if base.is_empty() {
+            return Ok(None);
+        }
+        let path = if let Some(value) = base.strip_prefix("https://tree-of-sophia.local/") {
+            value.to_owned()
+        } else if let Some(value) = base.strip_prefix("https://treeofsophia.local/") {
+            value.to_owned()
+        } else if base.contains("://") || base.starts_with('/') {
+            return Err(format!(
+                "local Claim schema dependency is outside ToS contracts: {reference}"
+            ));
+        } else {
+            let parent = current
+                .rsplit_once('/')
+                .map(|(parent, _)| parent)
+                .unwrap_or("");
+            if parent.is_empty() {
+                base.to_owned()
+            } else {
+                format!("{parent}/{base}")
+            }
+        };
+        let parsed = tos_foundation::RelativePath::parse(&path)
+            .map_err(|_| format!("unsafe local Claim schema dependency: {reference}"))?;
+        if !is_contract_path(parsed.as_str()) {
+            return Err(format!(
+                "local Claim schema dependency leaves contract home: {reference}"
+            ));
+        }
+        Ok(Some(path))
+    }
+
+    fn make_probe(
+        cache: &mut BTreeMap<String, Vec<u8>>,
+        reader: &mut impl FnMut(&str, usize) -> Result<Vec<u8>, String>,
+        roots: &[String],
+    ) -> Result<(SchemaBackendProbe, BTreeMap<String, String>), String> {
+        let mut pending = roots.to_vec();
+        let mut seen = BTreeSet::new();
+        let mut resources = Vec::new();
+        let mut uri_by_path = BTreeMap::new();
+        let mut total = 0usize;
+        while let Some(current_path) = pending.pop() {
+            if !seen.insert(current_path.clone()) {
+                continue;
+            }
+            if seen.len() > SchemaBackendProbe::MAX_RESOURCES {
+                return Err("local Claim schema resource count exceeds native bound".into());
+            }
+            let raw = read_local(
+                cache,
+                reader,
+                &current_path,
+                SchemaBackendProbe::MAX_RESOURCE_BYTES,
+            )?;
+            total = total
+                .checked_add(raw.len())
+                .filter(|n| *n <= SchemaBackendProbe::MAX_TOTAL_BYTES)
+                .ok_or("local Claim schema bytes exceed native bound")?;
+            let schema = crate::published_value(&raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
+                .map_err(|e| {
+                    format!("local Claim schema is not strict JSON: {current_path}: {e:?}")
+                })?;
+            let uri = schema_uri(&current_path, &schema)
+                .map_err(|e| format!("local Claim schema identity: {e:?}"))?;
+            uri_by_path.insert(current_path.clone(), uri.clone());
+            let mut dependencies = Vec::new();
+            refs(&schema, &mut dependencies);
+            for reference in dependencies {
+                if let Some(path) = dependency(&reference, &current_path)? {
+                    pending.push(path);
+                }
+            }
+            resources.push(SchemaResource { uri, raw });
+        }
+        let probe = SchemaBackendProbe::new(resources, FormatProfile::LegacyPythonObserved20260923)
+            .map_err(|e| format!("local Claim schema set is invalid: {e:?}"))?;
+        probe
+            .compile_all()
+            .map_err(|e| format!("local Claim schema compilation failed: {e:?}"))?;
+        Ok((probe, uri_by_path))
+    }
+
+    fn check_declared_schema_refs(
+        cache: &mut BTreeMap<String, Vec<u8>>,
+        reader: &mut impl FnMut(&str, usize) -> Result<Vec<u8>, String>,
+        roots: &[String],
+        uris: &BTreeMap<String, String>,
+    ) -> Result<(), String> {
+        let allowed = roots
+            .iter()
+            .filter_map(|root| uris.get(root).map(String::as_str))
+            .collect::<BTreeSet<_>>();
+        for path in roots {
+            let schema = read_value(cache, reader, path, SchemaBackendProbe::MAX_RESOURCE_BYTES)?;
+            local_schema_walk(&schema, true, &mut |key, value| {
+                if matches!(key, "$ref" | "$dynamicRef") {
+                    let reference = value.as_str().ok_or_else(|| {
+                        crate::item_rules::ItemRefusal::Unsupported(
+                            "local Claim schema ref representation".into(),
+                        )
+                    })?;
+                    let base = reference.split('#').next().unwrap_or("");
+                    if !base.is_empty() && !allowed.contains(base) {
+                        return Err(crate::item_rules::ItemRefusal::Unsupported(format!(
+                            "local Claim undeclared schema dependency: {path}: {reference}"
+                        )));
+                    }
+                }
+                Ok(())
+            })
+            .map_err(|error| format!("local Claim schema dependency check failed: {error:?}"))?;
+        }
+        Ok(())
+    }
+
+    // This is the exact local no-format constructor closure already used by
+    // the source-cut Claim route; malformed/changed registries fail closed.
+    let mut dependency_cache = BTreeMap::<String, Vec<u8>>::new();
+    let entity_raw = read_value(
+        &mut dependency_cache,
+        dependency_reader,
+        ENTITY_REGISTRY,
+        MAX_RECORD_BYTES,
+    )?;
+    let relation_raw = read_value(
+        &mut dependency_cache,
+        dependency_reader,
+        LOCAL_CLAIM_REGISTRY,
+        MAX_RECORD_BYTES,
+    )?;
+    let registry_roots = [ENTITY_CONTRACT.to_owned(), LOCAL_CLAIM_CONTRACT.to_owned()];
+    for contract in &registry_roots {
+        let schema = read_value(
+            &mut dependency_cache,
+            dependency_reader,
+            contract,
+            SchemaBackendProbe::MAX_RESOURCE_BYTES,
+        )?;
+        local_registry_schema(&schema).map_err(|error| {
+            format!("local Claim registry schema changed its supported closure: {error:?}")
+        })?;
+    }
+    let (registry_probe, registry_uris) =
+        make_probe(&mut dependency_cache, dependency_reader, &registry_roots)?;
+    check_declared_schema_refs(
+        &mut dependency_cache,
+        dependency_reader,
+        &registry_roots,
+        &registry_uris,
+    )?;
+    for (registry, contract) in [
+        (&entity_raw, ENTITY_CONTRACT),
+        (&relation_raw, LOCAL_CLAIM_CONTRACT),
+    ] {
+        let uri = registry_uris
+            .get(contract)
+            .ok_or("local Claim registry schema absent")?;
+        if !registry_probe
+            .is_valid_value(uri, registry)
+            .map_err(|e| format!("local Claim registry schema execution failed: {e:?}"))?
+        {
+            return Err(format!(
+                "local Claim registry violates its contract: {contract}"
+            ));
+        }
+    }
+    drop(registry_probe);
+    drop(registry_uris);
+    let limits = crate::item_rules::ItemLimits {
+        max_member_bytes: MAX_ROW_BYTES,
+        max_total_bytes: MAX_CARRIER_BYTES as u64 + 64 * 1024 * 1024,
+        max_state_bytes: 128 * 1024 * 1024,
+        max_issues: 1,
+        deadline: Instant::now() + Duration::from_secs(60),
+    };
+    let cancelled = AtomicBool::new(false);
+    let routes = compile_local_claim_routes(&entity_raw, &relation_raw, 0, limits, &cancelled)
+        .map_err(|error| format!("local Claim relation profile is invalid: {error:?}"))?;
+
+    let mut rows = Vec::new();
+    let mut route_probes =
+        BTreeMap::<(String, String, bool), (SchemaBackendProbe, BTreeMap<String, String>)>::new();
+    let mut line_number = 1usize;
+    let mut start = 0usize;
+    let mut index = 0usize;
+    while index <= raw.len() {
+        if index != raw.len() && raw[index] != b'\n' && raw[index] != b'\r' {
+            index += 1;
+            continue;
+        }
+        let mut line = &raw[start..index];
+        if line.len() > MAX_ROW_BYTES {
+            return Err(format!(
+                "selected source Claim row exceeds 1 MiB: {source_ref}:{line_number}"
+            ));
+        }
+        if line.last() == Some(&b'\r') {
+            line = &line[..line.len() - 1];
+        }
+        if !std::str::from_utf8(line).is_ok_and(|text| text.trim().is_empty()) {
+            let claim = crate::published_value(line, MAX_ROW_BYTES)
+                .map_err(|e| format!("selected source Claim row is not strict JSON: {source_ref}:{line_number}: {e:?}"))?;
+            if !claim.is_object() {
+                return Err(format!(
+                    "selected source Claim row must be an object: {source_ref}:{line_number}"
+                ));
+            }
+            let predicate = local_string(&claim, "predicate").ok_or_else(|| format!("selected source Claim requires a string predicate and version: {source_ref}:{line_number}"))?;
+            let version = local_string(&claim, "schema_version").ok_or_else(|| format!("selected source Claim requires a string predicate and version: {source_ref}:{line_number}"))?;
+            let route = routes.get(&(predicate.to_owned(), version.to_owned()))
+                .ok_or_else(|| format!("selected source Claim has unrecognized predicate/version: {source_ref}:{line_number}"))?;
+            let profile = &relation_raw["relations"][route.relation]["source_claim_profile"];
+            let schema_route = &profile["schemas"][route.schema];
+            let reader = local_string(profile, "reader")
+                .ok_or("local Claim compiled route has no reader")?;
+            let selected_schema = local_string(schema_route, "schema_ref")
+                .ok_or("local Claim selected schema is missing")?;
+            let mut schema_roots = vec![
+                "ToS/contracts/claim-packet.schema.json".to_owned(),
+                "ToS/contracts/knowledge-assessment.schema.json".to_owned(),
+                LOCAL_CLAIM_BASE.to_owned(),
+                selected_schema.to_owned(),
+            ];
+            schema_roots.extend(
+                local_strings(schema_route, "schema_dependencies")
+                    .into_iter()
+                    .map(str::to_owned),
+            );
+            if local_is_temporal(reader) {
+                schema_roots.push(
+                    if reader == "document-catalogue-temporal-v1" {
+                        LOCAL_DOCUMENT
+                    } else {
+                        LOCAL_TEMPORAL
+                    }
+                    .to_owned(),
+                );
+            }
+            if local_is_structured(reader) {
+                schema_roots.extend([CORPUS_CONTRACT.to_owned(), LOCAL_STRUCTURED.to_owned()]);
+            }
+            let scoped = local_string(&profile["object_reference_set"], "structure_adapter")
+                == Some("scoped-members-v1");
+            if scoped {
+                schema_roots.push(LOCAL_MEMBERS.to_owned());
+            }
+            let qualifiers = &claim["qualifiers"];
+            let display = qualifiers["display_fields"].is_object()
+                && local_string(&qualifiers["display_fields"], "schema_version")
+                    == Some("tos_claim_display_fields_v1");
+            if display {
+                schema_roots.extend([CORPUS_CONTRACT.to_owned(), LOCAL_DISPLAY.to_owned()]);
+            }
+            schema_roots.sort();
+            schema_roots.dedup();
+            let probe_key = (predicate.to_owned(), version.to_owned(), display);
+            if !route_probes.contains_key(&probe_key) {
+                if route_probes.len() >= MAX_COMPILED_ROUTES * 2 {
+                    return Err("local Claim schema route count exceeds native bound".into());
+                }
+                let (probe, uris) =
+                    make_probe(&mut dependency_cache, dependency_reader, &schema_roots)?;
+                check_declared_schema_refs(
+                    &mut dependency_cache,
+                    dependency_reader,
+                    &schema_roots,
+                    &uris,
+                )?;
+                route_probes.insert(probe_key.clone(), (probe, uris));
+            }
+            let (probe, uris) = route_probes
+                .get(&probe_key)
+                .ok_or("local Claim schema route absent")?;
+            let valid = |path: &str, value: &Value| -> Result<bool, String> {
+                let uri = uris
+                    .get(path)
+                    .ok_or_else(|| format!("local Claim schema absent: {path}"))?;
+                probe
+                    .is_valid_value(uri, value)
+                    .map_err(|e| format!("local Claim schema execution failed: {e:?}"))
+            };
+            if !matches!(
+                local_string(&claim, "visibility"),
+                Some("public" | "public_metadata_only")
+            ) || local_string(&claim, "claim_type") != Some("relation")
+                || local_string(&claim, "subject_ref").is_none()
+                || !(if local_is_temporal(reader) || local_is_structured(reader) {
+                    claim["object"].is_object()
+                } else {
+                    claim["object"].is_string()
+                })
+                || local_string(&claim, "assertion_layer").is_none_or(|layer| {
+                    !local_strings(profile, "assertion_layers").contains(&layer)
+                })
+                || claim["claim_id"] == claim["subject_ref"]
+                || claim["claim_id"] == claim["object"]
+            {
+                return Err(format!(
+                    "selected source Claim identity, endpoints or layer violate its profile: {source_ref}:{line_number}"
+                ));
+            }
+            if !valid(selected_schema, &claim)? || !valid(LOCAL_CLAIM_BASE, &claim)? {
+                return Err(format!(
+                    "selected source Claim violates its exact schema or shared record contract: {source_ref}:{line_number}"
+                ));
+            }
+            if local_is_temporal(reader) {
+                let (schema, definition) = if reader == "document-catalogue-temporal-v1" {
+                    (LOCAL_DOCUMENT, "documentDate")
+                } else {
+                    (LOCAL_TEMPORAL, "historicalDate")
+                };
+                let root = format!(
+                    "{}#/$defs/{definition}",
+                    uris.get(schema)
+                        .ok_or("local Claim temporal schema absent")?
+                );
+                if !probe
+                    .is_valid_value(&root, &claim["object"])
+                    .map_err(|e| format!("local Claim temporal schema execution failed: {e:?}"))?
+                {
+                    return Err(format!(
+                        "selected source Claim violates temporal value contract: {source_ref}:{line_number}"
+                    ));
+                }
+            }
+            if local_is_structured(reader)
+                && (!valid(LOCAL_STRUCTURED, &claim["object"])?
+                    || claim["object"]["kind"] != profile["value_kind"])
+            {
+                return Err(format!(
+                    "selected source Claim violates structured value contract: {source_ref}:{line_number}"
+                ));
+            }
+            if display && !valid(LOCAL_DISPLAY, &qualifiers)? {
+                return Err(format!(
+                    "selected source Claim display fields violate their contract: {source_ref}:{line_number}"
+                ));
+            }
+            if let Some(role) = local_document_role(predicate) {
+                let attribution = &qualifiers["catalogue_attribution"];
+                if local_string(attribution, "field_role") != Some(role)
+                    || !claim["evidence_refs"]
+                        .as_array()
+                        .is_some_and(|items| items.contains(&attribution["evidence_ref"]))
+                    || predicate == "document_catalogue_date"
+                        && attribution["source_wording"] != claim["object"]["source_wording"]
+                {
+                    return Err(format!(
+                        "selected source Claim document attribution is invalid: {source_ref}:{line_number}"
+                    ));
+                }
+            }
+            if local_is_proposal(reader) {
+                local_proposal_participants(&claim).map_err(|code| format!("selected source Claim violates proposal structure ({code}): {source_ref}:{line_number}"))?;
+            } else if reader == "structured-reference-value-v1" {
+                let constraint = &profile["object_reference_set"];
+                let members = claim["object"]["members"].as_array();
+                let valid_members = members.is_some_and(|members| {
+                    let ids = members.iter().filter_map(Value::as_str).collect::<Vec<_>>();
+                    constraint["min_items"]
+                        .as_u64()
+                        .zip(constraint["max_items"].as_u64())
+                        .is_some_and(|(min, max)| {
+                            min <= members.len() as u64 && members.len() as u64 <= max
+                        })
+                        && ids.len() == members.len()
+                        && ids.iter().all(|id| local_tos_id(id, false))
+                        && ids.iter().copied().collect::<BTreeSet<_>>().len() == members.len()
+                        && !members.contains(&claim["claim_id"])
+                        && (constraint["subject_is_member"] != true
+                            || members.contains(&claim["subject_ref"]))
+                });
+                if !valid_members {
+                    return Err(format!(
+                        "selected source Claim reference members violate profile: {source_ref}:{line_number}"
+                    ));
+                }
+            }
+            if scoped {
+                if !valid(LOCAL_MEMBERS, &claim["object"])? {
+                    return Err(format!(
+                        "selected source Claim violates scoped-member schema: {source_ref}:{line_number}"
+                    ));
+                }
+                if let Err(code) = local_scoped_member_structure(&claim, limits, &cancelled)
+                    .map_err(|error| {
+                        format!("selected source Claim structure check unavailable: {error:?}")
+                    })?
+                {
+                    return Err(format!(
+                        "selected source Claim violates scoped-member structure ({code}): {source_ref}:{line_number}"
+                    ));
+                }
+            }
+            let claim_id = local_string(&claim, "claim_id").ok_or_else(|| {
+                format!("selected source Claim ID is missing: {source_ref}:{line_number}")
+            })?;
+            rows.push((line_number, claim_id.to_owned()));
+        }
+        if index == raw.len() {
+            break;
+        }
+        if raw[index] == b'\r' && raw.get(index + 1) == Some(&b'\n') {
+            index += 1;
+        }
+        index += 1;
+        start = index;
+        line_number += 1;
+    }
+    Ok(rows)
+}
+
 fn local_claim_checkpoint(
     limits: crate::item_rules::ItemLimits,
     cancelled: &std::sync::atomic::AtomicBool,

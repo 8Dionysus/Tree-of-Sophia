@@ -836,11 +836,39 @@ fn source_item(
 fn db<T>(r: rusqlite::Result<T>) -> Result<T> {
     r.map_err(|e| format!("lexical SQLite: {e}"))
 }
+// Terminal diagnostics match the existing static-stage/extended-code shape.
+// This plain-path connection has no shared write-VFS budget ledger.
+fn db_stage<T>(
+    c: &Connection,
+    stage: &'static str,
+    result: rusqlite::Result<T>,
+    max_database_bytes: u64,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<T> {
+    result.map_err(|error| {
+        let pager = |sql: &str| -> Option<u64> {
+            if active(deadline, cancelled).is_err() {
+                return None;
+            }
+            c.query_row(sql, [], |row| row.get(0)).ok()
+        };
+        // Best-effort post-error state: SQLite may already have rolled back.
+        // These observations do not reconstruct a previous high-water mark.
+        let page_size = pager("PRAGMA page_size");
+        let page_count = pager("PRAGMA page_count");
+        let max_page_count = pager("PRAGMA max_page_count");
+        format!(
+            "lexical SQLite: {error}; sqlite_stage={stage}; sqlite_extended_code={:?}; page_size={page_size:?}; page_count={page_count:?}; max_page_count={max_page_count:?}; selected_database_bytes={max_database_bytes}; execution_budget=not-attached",
+            error.sqlite_error().map(|error| error.extended_code),
+        )
+    })
+}
 fn nullable<'a>(v: &'a Value, key: &str) -> Option<&'a str> {
     v.get(key).and_then(Value::as_str)
 }
-fn scalar_count(c: &Connection, sql: &str, p: &[&dyn rusqlite::ToSql]) -> Result<u64> {
-    db(c.query_row(sql, p, |r| r.get(0)))
+fn scalar_count(c: &Connection, sql: &str, p: &[&dyn rusqlite::ToSql]) -> rusqlite::Result<u64> {
+    c.query_row(sql, p, |r| r.get(0))
 }
 fn database(
     path: &Path,
@@ -855,31 +883,59 @@ fn database(
         path,
         rusqlite::OpenFlags::SQLITE_OPEN_READ_WRITE | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
     ))?;
-    db(c.execute_batch(include_str!("zarathustra_lexical_schema.sql")))?;
-    db(c.pragma_update(None, "max_page_count", l.max_database_bytes / 4096))?;
+    db_stage(
+        &c,
+        "schema",
+        c.execute_batch(include_str!("zarathustra_lexical_schema.sql")),
+        l.max_database_bytes,
+        deadline,
+        cancelled,
+    )?;
+    db_stage(
+        &c,
+        "page-cap",
+        c.pragma_update(None, "max_page_count", l.max_database_bytes / 4096),
+        l.max_database_bytes,
+        deadline,
+        cancelled,
+    )?;
     c.progress_handler(10000, Some(move || Instant::now() >= deadline));
     // Match Python sqlite3 implicit DML transaction: metadata and all rows
     // commit together after schema/PRAGMA setup.
-    db(c.execute_batch("BEGIN"))?;
+    db_stage(
+        &c,
+        "begin",
+        c.execute_batch("BEGIN"),
+        l.max_database_bytes,
+        deadline,
+        cancelled,
+    )?;
     for (k, v) in [
         ("plan_id", text(plan, "plan_id")?),
         ("plan_sha256", plan_sha),
         ("authority_boundary", text(plan, "authority_boundary")?),
     ] {
-        db(c.execute(
-            "INSERT INTO metadata(key,value) VALUES (?,?)",
-            params![k, v],
-        ))?;
+        db_stage(
+            &c,
+            "metadata-insert",
+            c.execute(
+                "INSERT INTO metadata(key,value) VALUES (?,?)",
+                params![k, v],
+            ),
+            l.max_database_bytes,
+            deadline,
+            cancelled,
+        )?;
     }
     let mut forms: BTreeMap<String, u64> = BTreeMap::new();
     let mut all = vec![];
     for r in results {
         active(deadline, cancelled)?;
         let s = &r.receipt;
-        db(c.execute("INSERT INTO source_items(item_ref,part_order,file_id,file_sha256,language,edition_ref,manifest_ref,resource_inventory_ref,rights_ref) VALUES (?,?,?,?,?,?,?,?,?)",params![text(s,"item_ref")?,number(s,"part_order")?,text(s,"file_id")?,text(s,"file_sha256")?,text(s,"language")?,text(s,"edition_ref")?,text(s,"manifest_ref")?,text(s,"resource_inventory_ref")?,text(s,"rights_ref")?]))?;
+        db_stage(&c, "source_items-insert", c.execute("INSERT INTO source_items(item_ref,part_order,file_id,file_sha256,language,edition_ref,manifest_ref,resource_inventory_ref,rights_ref) VALUES (?,?,?,?,?,?,?,?,?)",params![text(s,"item_ref")?,number(s,"part_order")?,text(s,"file_id")?,text(s,"file_sha256")?,text(s,"language")?,text(s,"edition_ref")?,text(s,"manifest_ref")?,text(s,"resource_inventory_ref")?,text(s,"rights_ref")?]), l.max_database_bytes, deadline, cancelled)?;
         for p in &r.pages {
             active(deadline, cancelled)?;
-            db(c.execute("INSERT INTO pages(item_ref,resource_id,tei_path,facs_ref,page_label) VALUES (?,?,?,?,?)",params![text(p,"item_ref")?,text(p,"resource_id")?,text(p,"tei_path")?,nullable(p,"facs_ref"),nullable(p,"page_label")]))?;
+            db_stage(&c, "pages-insert", c.execute("INSERT INTO pages(item_ref,resource_id,tei_path,facs_ref,page_label) VALUES (?,?,?,?,?)",params![text(p,"item_ref")?,text(p,"resource_id")?,text(p,"tei_path")?,nullable(p,"facs_ref"),nullable(p,"page_label")]), l.max_database_bytes, deadline, cancelled)?;
             let sec = array(p, "section_refs")?
                 .iter()
                 .map(|v| v.as_str().ok_or("section ref"))
@@ -889,11 +945,11 @@ fn database(
             let page = nullable(p, "page_label")
                 .filter(|s| !s.is_empty())
                 .unwrap_or(text(p, "resource_id")?);
-            db(c.execute("INSERT INTO page_fts(item_ref,page_resource_id,section_refs,exact_text,normalized_text,lemma,phrase,prefix,section,page,language,edition,translation,sign_candidate) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",params![text(p,"item_ref")?,text(p,"resource_id")?,sec,text(p,"exact_text")?,normal,"",normal,normal,sec,page,text(s,"language")?,text(s,"edition_ref")?,"",""]))?;
+            db_stage(&c, "page_fts-insert", c.execute("INSERT INTO page_fts(item_ref,page_resource_id,section_refs,exact_text,normalized_text,lemma,phrase,prefix,section,page,language,edition,translation,sign_candidate) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",params![text(p,"item_ref")?,text(p,"resource_id")?,sec,text(p,"exact_text")?,normal,"",normal,normal,sec,page,text(s,"language")?,text(s,"edition_ref")?,"",""]), l.max_database_bytes, deadline, cancelled)?;
         }
         for p in &r.sections {
             active(deadline, cancelled)?;
-            db(c.execute("INSERT INTO sections(item_ref,resource_id,tei_path,tei_depth,page_label,tei_n,tei_type,parent_resource_id) VALUES (?,?,?,?,?,?,?,?)",params![text(p,"item_ref")?,text(p,"resource_id")?,text(p,"tei_path")?,p["tei_depth"].as_i64(),nullable(p,"page_label"),nullable(p,"tei_n"),nullable(p,"tei_type"),nullable(p,"parent_resource_id")]))?;
+            db_stage(&c, "sections-insert", c.execute("INSERT INTO sections(item_ref,resource_id,tei_path,tei_depth,page_label,tei_n,tei_type,parent_resource_id) VALUES (?,?,?,?,?,?,?,?)",params![text(p,"item_ref")?,text(p,"resource_id")?,text(p,"tei_path")?,p["tei_depth"].as_i64(),nullable(p,"page_label"),nullable(p,"tei_n"),nullable(p,"tei_type"),nullable(p,"parent_resource_id")]), l.max_database_bytes, deadline, cancelled)?;
         }
         for o in &r.occurrences {
             active(deadline, cancelled)?;
@@ -909,7 +965,7 @@ fn database(
             return Err("exact form SHA collision".into());
         }
         let normal = normalize_form(exact, l)?;
-        db(c.execute("INSERT INTO forms(form_key,exact_form,normalized_form,exact_form_sha256,normalized_form_sha256,occurrence_count) VALUES (?,?,?,?,?,?)",params![format!("lexical-form:sha256:{hash}"),exact,normal,hash,sha(normal.as_bytes()),count]))?;
+        db_stage(&c, "forms-insert", c.execute("INSERT INTO forms(form_key,exact_form,normalized_form,exact_form_sha256,normalized_form_sha256,occurrence_count) VALUES (?,?,?,?,?,?)",params![format!("lexical-form:sha256:{hash}"),exact,normal,hash,sha(normal.as_bytes()),count]), l.max_database_bytes, deadline, cancelled)?;
     }
     all.sort_by(|a, b| {
         text(a, "item_ref")
@@ -923,16 +979,23 @@ fn database(
     });
     for o in &all {
         active(deadline, cancelled)?;
-        db(c.execute("INSERT INTO occurrences(occurrence_id,item_ref,token_ordinal,form_key,exact_form,normalized_form,exact_form_sha256,normalized_form_sha256,page_resource_id,section_resource_id,text_node_path,start_offset,end_offset,editorial_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",params![text(o,"occurrence_id")?,text(o,"item_ref")?,number(o,"token_ordinal")?,format!("lexical-form:sha256:{}",text(o,"exact_form_sha256")?),text(o,"exact_form")?,text(o,"normalized_form")?,text(o,"exact_form_sha256")?,text(o,"normalized_form_sha256")?,text(o,"page_resource_id")?,nullable(o,"section_resource_id"),text(o,"text_node_path")?,number(o,"start_offset")?,number(o,"end_offset")?,text(o,"editorial_status")?]))?;
+        db_stage(&c, "occurrences-insert", c.execute("INSERT INTO occurrences(occurrence_id,item_ref,token_ordinal,form_key,exact_form,normalized_form,exact_form_sha256,normalized_form_sha256,page_resource_id,section_resource_id,text_node_path,start_offset,end_offset,editorial_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",params![text(o,"occurrence_id")?,text(o,"item_ref")?,number(o,"token_ordinal")?,format!("lexical-form:sha256:{}",text(o,"exact_form_sha256")?),text(o,"exact_form")?,text(o,"normalized_form")?,text(o,"exact_form_sha256")?,text(o,"normalized_form_sha256")?,text(o,"page_resource_id")?,nullable(o,"section_resource_id"),text(o,"text_node_path")?,number(o,"start_offset")?,number(o,"end_offset")?,text(o,"editorial_status")?]), l.max_database_bytes, deadline, cancelled)?;
     }
-    db(c.execute_batch("COMMIT"))?;
-    let first=db(c.query_row("SELECT exact_form,normalized_form,item_ref,page_resource_id,section_resource_id FROM occurrences ORDER BY item_ref,token_ordinal LIMIT 1",[],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,String>(3)?,r.get::<_,Option<String>>(4)?))))?;
-    let section: String = db(c.query_row(
+    db_stage(
+        &c,
+        "commit",
+        c.execute_batch("COMMIT"),
+        l.max_database_bytes,
+        deadline,
+        cancelled,
+    )?;
+    let first=db_stage(&c, "probe-query", c.query_row("SELECT exact_form,normalized_form,item_ref,page_resource_id,section_resource_id FROM occurrences ORDER BY item_ref,token_ordinal LIMIT 1",[],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,String>(3)?,r.get::<_,Option<String>>(4)?))), l.max_database_bytes, deadline, cancelled)?;
+    let section: String = db_stage(&c, "probe-query", c.query_row(
         "SELECT section_resource_id FROM occurrences WHERE section_resource_id IS NOT NULL LIMIT 1",
         [],
         |r| r.get(0),
-    ))?;
-    let phrase:String=db(c.query_row("SELECT normalized_text FROM page_fts WHERE length(normalized_text)>0 ORDER BY item_ref,page_resource_id",[],|r|r.get(0)))?;
+    ), l.max_database_bytes, deadline, cancelled)?;
+    let phrase:String=db_stage(&c, "probe-query", c.query_row("SELECT normalized_text FROM page_fts WHERE length(normalized_text)>0 ORDER BY item_ref,page_resource_id",[],|r|r.get(0)), l.max_database_bytes, deadline, cancelled)?;
     let tokens: Vec<_> = phrase.split_whitespace().take(2).collect();
     if tokens.len() != 2 {
         return Err("local index lacks two-token phrase".into());
@@ -980,7 +1043,14 @@ fn database(
     ];
     let mut probes = serde_json::Map::new();
     for (field, sql, param) in queries {
-        let count = scalar_count(&c, sql, &[param])?;
+        let count = db_stage(
+            &c,
+            "probe-count",
+            scalar_count(&c, sql, &[param]),
+            l.max_database_bytes,
+            deadline,
+            cancelled,
+        )?;
         if count == 0 {
             return Err(format!("lexical probe returned zero: {field}"));
         }
@@ -1001,7 +1071,14 @@ fn database(
             vec![],
         ),
     ] {
-        let count = scalar_count(&c, sql, &p)?;
+        let count = db_stage(
+            &c,
+            "probe-count",
+            scalar_count(&c, sql, &p),
+            l.max_database_bytes,
+            deadline,
+            cancelled,
+        )?;
         if count == 0 {
             return Err(format!("lexical probe returned zero: {field}"));
         }
@@ -1020,22 +1097,39 @@ fn database(
     for table in ["source_items", "pages", "sections", "occurrences", "forms"] {
         counts.insert(
             table.into(),
-            json!(scalar_count(
+            json!(db_stage(
                 &c,
-                &format!("SELECT count(*) FROM {table}"),
-                &[]
+                "probe-count",
+                scalar_count(&c, &format!("SELECT count(*) FROM {table}"), &[]),
+                l.max_database_bytes,
+                deadline,
+                cancelled
             )?),
         );
     }
-    let enabled: u64 = scalar_count(
+    let enabled: u64 = db_stage(
         &c,
-        "SELECT count(*) FROM pragma_compile_options WHERE compile_options LIKE '%ENABLE_FTS5%'",
-        &[],
+        "probe-count",
+        scalar_count(
+            &c,
+            "SELECT count(*) FROM pragma_compile_options WHERE compile_options LIKE '%ENABLE_FTS5%'",
+            &[],
+        ),
+        l.max_database_bytes,
+        deadline,
+        cancelled,
     )?;
     if enabled == 0 {
         return Err("SQLite lacks FTS5".into());
     }
-    db(c.execute_batch("VACUUM"))?;
+    db_stage(
+        &c,
+        "vacuum",
+        c.execute_batch("VACUUM"),
+        l.max_database_bytes,
+        deadline,
+        cancelled,
+    )?;
     active(deadline, cancelled)?;
     let size = std::fs::metadata(path).map_err(|e| e.to_string())?.len();
     if size > l.max_database_bytes {

@@ -1,11 +1,13 @@
-//! Typed, fail-closed selected-pair boundary for the private D1 SQL emitter.
+//! Typed, fail-closed mechanics for an explicitly supplied private D1 pair.
 //!
-//! The present compiler can check shape and lineage. It cannot mint or retain
-//! the source/rights/currentness and selected-D1 owner grants required to
-//! promote an addressed pair. `try_emit_selected_pair` therefore refuses
-//! before touching paths until a STO/CMD guarded receipt is implemented.
+//! The compiler checks local snapshot shape and lineage. A local holder keeps
+//! caller-owned SQLite snapshots open through capture, but cannot establish
+//! Release selection, source currentness, rights admission or publication.
 
-use crate::d1::{D1PairFailure, D1PairInput, D1PairReceipt, D1RowTransition, target_d1_revision};
+use crate::d1::{
+    D1PairFailure, D1PairInput, D1PairLimits, D1PairReceipt, D1PredecessorMode, D1RowTransition,
+    emit_d1_pair, target_d1_revision,
+};
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -24,17 +26,12 @@ const MAX_NAME_BYTES: usize = 4096;
 const MAX_ADDRESS: u64 = 9_007_199_254_740_991;
 
 #[derive(Clone, Debug)]
-pub struct D1OwnerRootClaim {
-    /// Digest of exact immutable projection-root JSON bytes, not admission.
+pub struct D1ProjectionRootBinding {
+    /// Digest of exact immutable projection-root JSON bytes.
     pub snapshot_sha256: String,
-    /// Caller-supplied locator for the missing independent owner receipt.
-    pub owner_receipt_sha256: String,
     pub bound_prepared_source_revision: String,
-    pub source_cut: String,
     pub logical_schema: String,
     pub collections: Vec<String>,
-    pub owner_epoch: u64,
-    pub withdrawn: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -47,12 +44,13 @@ pub struct D1PreparedSide {
     pub generation: String,
     pub route_map_version: String,
     pub reader_abi: String,
-    pub navigation: D1OwnerRootClaim,
-    pub rights: D1OwnerRootClaim,
+    pub navigation: D1ProjectionRootBinding,
+    pub rights: D1ProjectionRootBinding,
 }
 
 #[derive(Clone, Debug)]
 pub struct D1SelectedPredecessor {
+    /// Revision read from the caller-held D1 transaction; not a Release lease.
     pub d1_revision: String,
     pub d1_publication_epoch: u64,
     pub selected_generation: String,
@@ -61,8 +59,6 @@ pub struct D1SelectedPredecessor {
     pub reader_top_sha256: String,
     pub catalog_sha256: String,
     pub lens_sha256: String,
-    /// External selected-D1 receipt identity, still unverified by CMP.
-    pub owner_receipt_sha256: String,
 }
 
 #[derive(Clone, Debug)]
@@ -93,12 +89,45 @@ pub struct D1PairPreview {
     pub owner_admitted: bool,
 }
 
+/// A local capture lease keeps the caller's SQLite snapshots and projection
+/// roots open through capture. It supplies mechanics only; successful capture
+/// never establishes owner admission or global source currentness.
+pub trait D1LocalSnapshotLease {
+    /// Recheck that the same local snapshot inputs remain held.
+    fn verify_held_snapshot(
+        &mut self,
+        spec: &D1PairInput,
+        pair: &D1PreparedPair,
+        preview: &D1PairPreview,
+    ) -> D1GateResult<()>;
+
+    /// Read the held snapshots and derive the bounded transition rows in Rust.
+    fn capture_transitions(
+        &mut self,
+        spec: &D1PairInput,
+        pair: &D1PreparedPair,
+        limits: D1PairLimits,
+    ) -> D1GateResult<Vec<D1RowTransition>>;
+}
+
+/// Local provider for an explicitly supplied offline pair. This adapter is
+/// not a Release selection, source-rights grant or runtime-currentness lease.
+pub trait D1LocalSnapshotHolder {
+    fn hold_local_snapshots<'a>(
+        &'a mut self,
+        spec: &D1PairInput,
+        pair: &D1PreparedPair,
+        preview: &D1PairPreview,
+    ) -> D1GateResult<Box<dyn D1LocalSnapshotLease + 'a>>;
+}
+
 #[derive(Debug)]
 pub enum D1GateFailure {
     Pair(D1PairFailure),
     Invalid(&'static str),
     Budget(&'static str),
     OwnerAdmissionUnavailable,
+    LocalSnapshotUnavailable,
 }
 impl From<D1PairFailure> for D1GateFailure {
     fn from(value: D1PairFailure) -> Self {
@@ -111,9 +140,10 @@ fn digest(value: &[u8]) -> String {
     Digest256::of_bytes(value).to_hex()
 }
 fn exact_digest(value: &str) -> D1GateResult<()> {
-    Digest256::from_hex(value).map_err(|_| D1GateFailure::Invalid("D1 owner digest"))?;
+    Digest256::from_hex(value).map_err(|_| D1GateFailure::Invalid("D1 snapshot digest"))?;
     Ok(())
 }
+
 fn bounded_name(value: &str) -> D1GateResult<()> {
     if value.is_empty() || value.len() > MAX_NAME_BYTES || value.contains('\0') {
         return Err(D1GateFailure::Budget("D1 owner name bytes"));
@@ -154,20 +184,13 @@ fn verify_binding(side: &D1PreparedSide) -> D1GateResult<()> {
 }
 
 fn verify_root(
-    root: &D1OwnerRootClaim,
+    root: &D1ProjectionRootBinding,
     side: &D1PreparedSide,
     navigation: bool,
 ) -> D1GateResult<()> {
-    for value in [&root.snapshot_sha256, &root.owner_receipt_sha256] {
-        exact_digest(value)?;
-    }
-    bounded_name(&root.source_cut)?;
-    if root.bound_prepared_source_revision != side.source_revision
-        || root.owner_epoch == 0
-        || root.owner_epoch > MAX_ADDRESS
-        || root.withdrawn
-    {
-        return Err(D1GateFailure::Invalid("D1 root owner claim binding"));
+    exact_digest(&root.snapshot_sha256)?;
+    if root.bound_prepared_source_revision != side.source_revision {
+        return Err(D1GateFailure::Invalid("D1 projection root binding"));
     }
     let expected = if navigation {
         &["nodes", "edges"][..]
@@ -196,21 +219,23 @@ fn verify_root(
     Ok(())
 }
 
-fn verify_inputs(
-    side: &D1PreparedSide,
+fn verify_inputs_raw(
+    raw: &[u8],
+    source_revision: &str,
+    navigation_sha256: &str,
     expected_sha: &str,
 ) -> D1GateResult<(BTreeMap<String, String>, BTreeMap<String, String>)> {
     exact_digest(expected_sha)?;
-    if digest(&side.source_inputs_raw) != expected_sha {
+    if digest(raw) != expected_sha {
         return Err(D1GateFailure::Invalid(
             "exact prepared source inputs digest",
         ));
     }
-    let value = parse_json(&side.source_inputs_raw, MAX_SOURCE_INPUTS_BYTES)?;
+    let value = parse_json(raw, MAX_SOURCE_INPUTS_BYTES)?;
     let mut canonical = serde_json::to_vec(&value)
         .map_err(|_| D1GateFailure::Invalid("source inputs canonical JSON"))?;
     canonical.push(b'\n');
-    if canonical != side.source_inputs_raw {
+    if canonical != raw {
         return Err(D1GateFailure::Invalid("source inputs canonical bytes"));
     }
     let object = value
@@ -225,7 +250,7 @@ fn verify_inputs(
             "roots",
         ])
         || field(&value, "schema")? != SOURCE_INPUTS_SCHEMA
-        || field(&value, "source_revision")? != side.source_revision
+        || field(&value, "source_revision")? != source_revision
     {
         return Err(D1GateFailure::Invalid("source inputs identity"));
     }
@@ -278,10 +303,22 @@ fn verify_inputs(
         }
         selected.insert(name.clone(), sha.to_owned());
     }
-    if selected.get("source-navigation") != Some(&side.navigation.snapshot_sha256) {
+    if selected.get("source-navigation").map(String::as_str) != Some(navigation_sha256) {
         return Err(D1GateFailure::Invalid("paired navigation root differs"));
     }
     Ok((selected, deps))
+}
+
+fn verify_inputs(
+    side: &D1PreparedSide,
+    expected_sha: &str,
+) -> D1GateResult<(BTreeMap<String, String>, BTreeMap<String, String>)> {
+    verify_inputs_raw(
+        &side.source_inputs_raw,
+        &side.source_revision,
+        &side.navigation.snapshot_sha256,
+        expected_sha,
+    )
 }
 
 fn verify_reader_top(raw: &str, revision: &str, source_revision: &str) -> D1GateResult<()> {
@@ -291,6 +328,100 @@ fn verify_reader_top(raw: &str, revision: &str, source_revision: &str) -> D1Gate
         || field(&value, "source_revision")? != source_revision
     {
         return Err(D1GateFailure::Invalid("selected D1 reader top"));
+    }
+    Ok(())
+}
+
+/// Reuse the pair module's exact source-input and reader-lineage checks for a
+/// local offline capture. The bytes are still caller-held snapshots; this
+/// function deliberately returns no selection lease or owner admission.
+pub fn inspect_offline_source_inputs(
+    spec: &D1PairInput,
+    before_inputs_raw: Option<&[u8]>,
+    after_inputs_raw: &[u8],
+) -> D1GateResult<()> {
+    let target = target_d1_revision(spec)?;
+    verify_reader_top(
+        &spec.before_reader_top,
+        &spec.base_d1_revision,
+        &spec.before_source_revision,
+    )?;
+    verify_reader_top(&spec.after_reader_top, &target, &spec.after_source_revision)?;
+    if matches!(
+        spec.predecessor_mode,
+        D1PredecessorMode::SourceNavigationIntegrity { .. }
+    ) {
+        if before_inputs_raw.is_some()
+            || !after_inputs_raw.is_empty()
+            || spec.before_source_revision != spec.after_source_revision
+            || spec.before_source_inputs_sha256 != spec.after_source_inputs_sha256
+            || spec.before_navigation_sha256 != spec.after_navigation_sha256
+            || spec.before_rights_sha256 != spec.after_rights_sha256
+            || !spec.before_prepared_binding.is_empty()
+            || !spec.after_prepared_binding.is_empty()
+            || spec.migration_implementation_sha256.is_none()
+        {
+            return Err(D1GateFailure::Invalid(
+                "offline source-navigation integrity lineage",
+            ));
+        }
+        return Ok(());
+    }
+    let (after_roots, after_dependencies) = verify_inputs_raw(
+        after_inputs_raw,
+        &spec.after_source_revision,
+        &spec.after_navigation_sha256,
+        &spec.after_source_inputs_sha256,
+    )?;
+    if spec.predecessor_mode == D1PredecessorMode::Bootstrap {
+        if before_inputs_raw.is_some()
+            || spec.before_source_revision != spec.after_source_revision
+            || spec.before_source_inputs_sha256 != spec.after_source_inputs_sha256
+        {
+            return Err(D1GateFailure::Invalid(
+                "offline bootstrap source predecessor",
+            ));
+        }
+        return Ok(());
+    }
+    let before_inputs_raw = before_inputs_raw.ok_or(D1GateFailure::Invalid(
+        "offline predecessor source inputs absent",
+    ))?;
+    let (before_roots, before_dependencies) = verify_inputs_raw(
+        before_inputs_raw,
+        &spec.before_source_revision,
+        &spec.before_navigation_sha256,
+        &spec.before_source_inputs_sha256,
+    )?;
+    if before_roots.keys().ne(after_roots.keys())
+        || before_roots.iter().any(|(name, sha)| {
+            !matches!(
+                name.as_str(),
+                "source-catalog" | "bibliographic-claims" | "source-navigation"
+            ) && after_roots.get(name) != Some(sha)
+        })
+        || before_dependencies.keys().ne(after_dependencies.keys())
+        || before_dependencies.iter().any(|(name, sha)| {
+            !matches!(
+                name.as_str(),
+                "claim-publication-profile" | "metadata-addition-publication-profile"
+            ) && after_dependencies.get(name) != Some(sha)
+        })
+    {
+        return Err(D1GateFailure::Invalid(
+            "offline nonparticipating source scope changed",
+        ));
+    }
+    for (roots, expected) in [
+        (&before_roots, spec.before_rights_sha256.as_deref()),
+        (&after_roots, spec.after_rights_sha256.as_deref()),
+    ] {
+        let source_rights = roots
+            .get("source-navigation-rights")
+            .or_else(|| roots.get("source-navigation"));
+        if expected.is_none_or(|expected| source_rights.map(String::as_str) != Some(expected)) {
+            return Err(D1GateFailure::Invalid("offline source rights root differs"));
+        }
     }
     Ok(())
 }
@@ -313,7 +444,6 @@ pub fn inspect_prepared_pair(
         &selected.reader_top_sha256,
         &selected.catalog_sha256,
         &selected.lens_sha256,
-        &selected.owner_receipt_sha256,
     ] {
         exact_digest(value)?;
     }
@@ -397,9 +527,6 @@ pub fn inspect_prepared_pair(
             "nonparticipating D1 source scope changed",
         ));
     }
-    if pair.before.rights.snapshot_sha256 != pair.after.rights.snapshot_sha256 {
-        return Err(D1GateFailure::Pair(D1PairFailure::FullOnlyRightsTransition));
-    }
     let rollback = &pair.rollback;
     bounded_name(&rollback.rollback_generation)?;
     if rollback.predecessor_d1_revision != spec.base_d1_revision
@@ -418,7 +545,6 @@ pub fn inspect_prepared_pair(
         "schema":"tos_d1_prepared_pair_gate_v1",
         "selected_d1_revision":selected.d1_revision,
         "selected_d1_publication_epoch":selected.d1_publication_epoch,
-        "selected_owner_receipt_sha256":selected.owner_receipt_sha256,
         "selected_reader_top_sha256":selected.reader_top_sha256,
         "selected_catalog_sha256":selected.catalog_sha256,
         "selected_lens_sha256":selected.lens_sha256,
@@ -429,12 +555,8 @@ pub fn inspect_prepared_pair(
         "after_source_inputs_sha256":spec.after_source_inputs_sha256,
         "before_navigation_sha256":pair.before.navigation.snapshot_sha256,
         "after_navigation_sha256":pair.after.navigation.snapshot_sha256,
-        "before_navigation_owner_receipt_sha256":pair.before.navigation.owner_receipt_sha256,
-        "after_navigation_owner_receipt_sha256":pair.after.navigation.owner_receipt_sha256,
         "before_rights_sha256":pair.before.rights.snapshot_sha256,
         "after_rights_sha256":pair.after.rights.snapshot_sha256,
-        "before_rights_owner_receipt_sha256":pair.before.rights.owner_receipt_sha256,
-        "after_rights_owner_receipt_sha256":pair.after.rights.owner_receipt_sha256,
         "route_map_version":pair.before.route_map_version,
         "reader_abi":pair.before.reader_abi,
         "before_generation":pair.before.generation,
@@ -454,28 +576,33 @@ pub fn inspect_prepared_pair(
     })
 }
 
-/// Explicit fail-closed selected entry. Neither a self-described receipt hash
-/// nor the mechanical `d1::emit_d1_pair` proves an admitted live pair, complete
-/// affected closure, rights currentness, or reverse publication epoch.
-pub fn try_emit_selected_pair<I>(
+/// Capture and emit an offline pair while caller-owned SQLite snapshots stay
+/// held. Transitions are derived by the local holder, and the manifest keeps
+/// owner admission and global currentness false. This does not apply SQL,
+/// switch a consumer or authorize remote publication.
+pub fn try_emit_local_pair<H>(
     spec: &D1PairInput,
     pair: &D1PreparedPair,
-    _rows: I,
+    holder: &mut H,
     _forward: &Path,
     _rollback: &Path,
     _manifest: &Path,
 ) -> D1GateResult<D1PairReceipt>
 where
-    I: IntoIterator<Item = D1RowTransition>,
+    H: D1LocalSnapshotHolder,
 {
-    inspect_prepared_pair(spec, pair)?;
-    Err(D1GateFailure::OwnerAdmissionUnavailable)
+    let preview = inspect_prepared_pair(spec, pair)?;
+    let mut lease = holder.hold_local_snapshots(spec, pair, &preview)?;
+    lease.verify_held_snapshot(spec, pair, &preview)?;
+    let transitions = lease.capture_transitions(spec, pair, spec.limits)?;
+    lease.verify_held_snapshot(spec, pair, &preview)?;
+    emit_d1_pair(spec, transitions, _forward, _rollback, _manifest).map_err(Into::into)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::d1::D1PairLimits;
+    use crate::d1::{D1Cell, D1PairLimits, D1Table};
     use std::path::PathBuf;
 
     fn sha(s: &str) -> String {
@@ -487,16 +614,10 @@ mod tests {
             "publication_epoch":epoch})
         .to_string()
     }
-    fn root(source: &str, snapshot: &str, navigation: bool) -> D1OwnerRootClaim {
-        D1OwnerRootClaim {
+    fn root(source: &str, snapshot: &str, navigation: bool) -> D1ProjectionRootBinding {
+        D1ProjectionRootBinding {
             snapshot_sha256: snapshot.into(),
-            owner_receipt_sha256: sha(if navigation {
-                "navigation-owner"
-            } else {
-                "rights-owner"
-            }),
             bound_prepared_source_revision: source.into(),
-            source_cut: "sealed-cut".into(),
             logical_schema: if navigation {
                 "tos_agent_source_navigation_rows_v1"
             } else {
@@ -508,8 +629,6 @@ mod tests {
             } else {
                 vec!["rights".into()]
             },
-            owner_epoch: 1,
-            withdrawn: false,
         }
     }
     fn source_inputs(source: &str, nav_root: &str) -> Vec<u8> {
@@ -537,6 +656,7 @@ mod tests {
         let after_binding = binding(&after_source, &after_data, 2);
         let base = sha("selected-d1");
         let mut spec = D1PairInput {
+            predecessor_mode: D1PredecessorMode::PreparedDelta,
             base_d1_revision: base.clone(),
             before_source_revision: before_source.clone(),
             after_source_revision: after_source.clone(),
@@ -549,7 +669,8 @@ mod tests {
             before_rights_sha256: Some(rights.clone()),
             after_rights_sha256: Some(rights.clone()),
             implementation_sha256: sha("implementation"),
-            auxiliary_installed: false,
+            migration_implementation_sha256: None,
+            auxiliary_stores: Vec::new(),
             before_reader_top: json!({"data_revision":base,"source_revision":before_source,
                 "read_model_schema":D1_READER_SCHEMA,"catalog_sha256":sha("catalog"),
                 "lens_sha256":sha("lens")})
@@ -595,7 +716,6 @@ mod tests {
                 reader_top_sha256: digest(spec.before_reader_top.as_bytes()),
                 catalog_sha256: sha("catalog"),
                 lens_sha256: sha("lens"),
-                owner_receipt_sha256: sha("selected-owner-receipt"),
             },
             before,
             after,
@@ -613,6 +733,72 @@ mod tests {
     }
 
     #[test]
+    fn source_navigation_integrity_has_its_own_mechanical_lineage() {
+        let base = sha("integrity-base");
+        let source = sha("integrity-source");
+        let navigation = sha("integrity-navigation");
+        let rights = sha("integrity-rights");
+        let source_inputs = sha("integrity-source-inputs");
+        let mut spec = D1PairInput {
+            predecessor_mode: D1PredecessorMode::SourceNavigationIntegrity { header_only: false },
+            base_d1_revision: base.clone(),
+            before_source_revision: source.clone(),
+            after_source_revision: source.clone(),
+            before_prepared_binding: String::new(),
+            after_prepared_binding: String::new(),
+            before_source_inputs_sha256: source_inputs.clone(),
+            after_source_inputs_sha256: source_inputs,
+            before_navigation_sha256: navigation.clone(),
+            after_navigation_sha256: navigation,
+            before_rights_sha256: Some(rights.clone()),
+            after_rights_sha256: Some(rights),
+            implementation_sha256: sha("integrity-implementation"),
+            migration_implementation_sha256: Some(sha("integrity-migration")),
+            auxiliary_stores: Vec::new(),
+            before_reader_top: String::new(),
+            after_reader_top: String::new(),
+            limits: D1PairLimits::default(),
+        };
+        let full_target = target_d1_revision(&spec).unwrap();
+        spec.before_reader_top = json!({
+            "data_revision": base,
+            "source_revision": source,
+            "read_model_schema": D1_READER_SCHEMA,
+        })
+        .to_string();
+        spec.after_reader_top = json!({
+            "data_revision": full_target,
+            "source_revision": source,
+            "read_model_schema": D1_READER_SCHEMA,
+        })
+        .to_string();
+        assert!(matches!(
+            inspect_offline_source_inputs(&spec, None, &[]),
+            Ok(())
+        ));
+        assert!(matches!(
+            inspect_offline_source_inputs(&spec, Some(b"unexpected"), &[]),
+            Err(D1GateFailure::Invalid(
+                "offline source-navigation integrity lineage"
+            ))
+        ));
+
+        spec.predecessor_mode = D1PredecessorMode::SourceNavigationIntegrity { header_only: true };
+        let header_target = target_d1_revision(&spec).unwrap();
+        assert_ne!(full_target, header_target);
+        spec.after_reader_top = json!({
+            "data_revision": header_target,
+            "source_revision": source,
+            "read_model_schema": D1_READER_SCHEMA,
+        })
+        .to_string();
+        assert!(matches!(
+            inspect_offline_source_inputs(&spec, None, &[]),
+            Ok(())
+        ));
+    }
+
+    #[test]
     fn exact_pair_preview_is_mechanical_only() {
         let (spec, pair) = selected();
         let a = inspect_prepared_pair(&spec, &pair).unwrap();
@@ -623,15 +809,18 @@ mod tests {
     }
 
     #[test]
-    fn unchanged_navigation_changed_rights_is_full_only() {
+    fn changed_rights_root_stays_mechanical_only() {
         let (mut spec, mut pair) = selected();
         let changed = sha("withdrawn-rights");
         spec.after_rights_sha256 = Some(changed.clone());
         pair.after.rights.snapshot_sha256 = changed;
-        assert!(matches!(
-            inspect_prepared_pair(&spec, &pair),
-            Err(D1GateFailure::Pair(D1PairFailure::FullOnlyRightsTransition))
-        ));
+        let target = target_d1_revision(&spec).unwrap();
+        let mut after: Value = serde_json::from_str(&spec.after_reader_top).unwrap();
+        after["data_revision"] = target.clone().into();
+        spec.after_reader_top = after.to_string();
+        let preview = inspect_prepared_pair(&spec, &pair).unwrap();
+        assert_eq!(preview.target_d1_revision, target);
+        assert!(!preview.owner_admitted);
     }
 
     #[test]
@@ -682,19 +871,140 @@ mod tests {
     fn selected_emit_refuses_before_files_and_iterator_use() {
         let (spec, pair) = selected();
         let root = PathBuf::from("/definitely-not-created/tos-d1-selected-gate");
-        let rows = std::iter::once_with(|| -> D1RowTransition {
-            panic!("selected gate must not consume rows")
-        });
-        let error = try_emit_selected_pair(
+        struct MissingOwner;
+        impl D1LocalSnapshotHolder for MissingOwner {
+            fn hold_local_snapshots<'a>(
+                &'a mut self,
+                _: &D1PairInput,
+                _: &D1PreparedPair,
+                _: &D1PairPreview,
+            ) -> D1GateResult<Box<dyn D1LocalSnapshotLease + 'a>> {
+                Err(D1GateFailure::LocalSnapshotUnavailable)
+            }
+        }
+        let error = try_emit_local_pair(
             &spec,
             &pair,
-            rows,
+            &mut MissingOwner,
             &root.join("forward.sql"),
             &root.join("reverse.sql"),
             &root.join("pair.json"),
         )
         .unwrap_err();
-        assert!(matches!(error, D1GateFailure::OwnerAdmissionUnavailable));
+        assert!(matches!(error, D1GateFailure::LocalSnapshotUnavailable));
         assert!(!root.exists());
+    }
+
+    struct FixtureOwner {
+        verification_count: usize,
+        fail_second_verification: bool,
+    }
+
+    struct FixtureLease<'a> {
+        verification_count: &'a mut usize,
+        fail_second_verification: bool,
+    }
+
+    impl D1LocalSnapshotLease for FixtureLease<'_> {
+        fn verify_held_snapshot(
+            &mut self,
+            spec: &D1PairInput,
+            pair: &D1PreparedPair,
+            preview: &D1PairPreview,
+        ) -> D1GateResult<()> {
+            *self.verification_count += 1;
+            if preview.base_d1_revision != spec.base_d1_revision
+                || pair.selected.d1_revision != spec.base_d1_revision
+                || (self.fail_second_verification && *self.verification_count == 2)
+            {
+                return Err(D1GateFailure::Invalid("fixture held snapshot drift"));
+            }
+            Ok(())
+        }
+
+        fn capture_transitions(
+            &mut self,
+            _: &D1PairInput,
+            _: &D1PreparedPair,
+            limits: D1PairLimits,
+        ) -> D1GateResult<Vec<D1RowTransition>> {
+            if limits.max_transitions == 0 {
+                return Err(D1GateFailure::Budget("fixture transitions"));
+            }
+            Ok(vec![D1RowTransition {
+                table: D1Table::EdgeMeta,
+                before: None,
+                after: Some(vec![
+                    D1Cell::Text("fixture-owner-capture".into()),
+                    D1Cell::Integer(0),
+                    D1Cell::Text("{}".into()),
+                ]),
+            }])
+        }
+    }
+
+    impl D1LocalSnapshotHolder for FixtureOwner {
+        fn hold_local_snapshots<'a>(
+            &'a mut self,
+            spec: &D1PairInput,
+            pair: &D1PreparedPair,
+            preview: &D1PairPreview,
+        ) -> D1GateResult<Box<dyn D1LocalSnapshotLease + 'a>> {
+            if preview.base_d1_revision != spec.base_d1_revision
+                || preview.target_d1_revision != target_d1_revision(spec)?
+                || pair.selected.d1_revision != spec.base_d1_revision
+            {
+                return Err(D1GateFailure::Invalid("fixture owner selected pair"));
+            }
+            Ok(Box::new(FixtureLease {
+                verification_count: &mut self.verification_count,
+                fail_second_verification: self.fail_second_verification,
+            }))
+        }
+    }
+
+    #[test]
+    fn local_capture_never_claims_owner_admission_and_keeps_publication_offline() {
+        let (spec, pair) = selected();
+        let directory = tempfile::tempdir().unwrap();
+        let forward = directory.path().join("forward.sql");
+        let rollback = directory.path().join("rollback.sql");
+        let manifest = directory.path().join("pair.json");
+        let mut owner = FixtureOwner {
+            verification_count: 0,
+            fail_second_verification: false,
+        };
+        let receipt =
+            try_emit_local_pair(&spec, &pair, &mut owner, &forward, &rollback, &manifest).unwrap();
+        let packet: Value = serde_json::from_slice(&std::fs::read(&manifest).unwrap()).unwrap();
+        assert!(!receipt.selected_pair_owner_admitted);
+        assert!(receipt.owner_admission_sha256.is_none());
+        assert_eq!(owner.verification_count, 2);
+        assert_eq!(packet["selected_pair_owner_admitted"], false);
+        assert_eq!(packet["source_currentness_verified"], false);
+        assert_eq!(packet["semantic_acceptance"], false);
+        assert!(packet.get("owner_admission").is_none());
+        assert!(!receipt.d1_applied);
+        assert!(!receipt.consumer_switched);
+        assert!(forward.is_file() && rollback.is_file());
+    }
+
+    #[test]
+    fn selected_capture_discards_stale_pair_before_creating_artifacts() {
+        let (spec, pair) = selected();
+        let directory = tempfile::tempdir().unwrap();
+        let forward = directory.path().join("forward.sql");
+        let rollback = directory.path().join("rollback.sql");
+        let manifest = directory.path().join("pair.json");
+        let mut owner = FixtureOwner {
+            verification_count: 0,
+            fail_second_verification: true,
+        };
+        assert!(matches!(
+            try_emit_local_pair(&spec, &pair, &mut owner, &forward, &rollback, &manifest,),
+            Err(D1GateFailure::Invalid("fixture held snapshot drift"))
+        ));
+        assert_eq!(owner.verification_count, 2);
+        assert!(!forward.exists() && !rollback.exists() && !manifest.exists());
     }
 }

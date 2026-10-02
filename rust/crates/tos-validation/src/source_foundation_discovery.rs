@@ -123,6 +123,12 @@ pub struct Issue {
     pub detail: String,
 }
 
+/// Expose the existing record-local discovery predicate to bounded consumers.
+/// Schema validation and cross-record provenance binding remain separate.
+pub fn material_discovery_semantic_issues(value: &Value) -> Vec<String> {
+    discovery_semantic_issues(value)
+}
+
 /// Scheduled for the caller's diagnostic-v2 schema worker. `before_issue`
 /// points to the insertion position for diagnostics belonging to this document.
 #[derive(Debug, Clone, PartialEq)]

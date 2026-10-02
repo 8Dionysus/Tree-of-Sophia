@@ -399,7 +399,7 @@
         "label": "test Rust workspace remainder excluding conformance and isolated process-cold fixtures",
         "command_timeout_ms": 900000,
         "command": [
-          "cargo", "test", "--workspace", "--locked", "--exclude", "tos-conformance", "--",
+          "cargo", "test", "--workspace", "--locked", "--no-fail-fast", "--exclude", "tos-conformance", "--",
           "--nocapture",
           "--skip", "source_creation_store::revision_publication::tests::native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery",
           "--skip", "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",

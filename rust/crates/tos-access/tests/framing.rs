@@ -1391,14 +1391,6 @@ fn exploration_software_contracts_survive_unrelated_data_selection_and_all_nativ
         )
         .unwrap(),
     );
-    output.clear();
-    run_io(
-        Cursor::new(input.as_bytes()),
-        &mut output,
-        &executor,
-        mcp_profile,
-    )
-    .unwrap();
     // A valid unrelated data selection cannot replace software-owned schemas.
     let data_root = std::env::temp_dir().join(format!(
         "tos-unrelated-empty-data-{}-{}",
@@ -1409,6 +1401,16 @@ fn exploration_software_contracts_survive_unrelated_data_selection_and_all_nativ
             .as_nanos()
     ));
     std::fs::create_dir(&data_root).unwrap();
+    let reading_executor =
+        tos_access::reading::ReadingLocalExecutor::open(data_root.clone()).unwrap();
+    output.clear();
+    run_io(
+        Cursor::new(input.as_bytes()),
+        &mut output,
+        &reading_executor,
+        mcp_profile,
+    )
+    .unwrap();
     let mut child = std::process::Command::new(env!("CARGO_BIN_EXE_tos-access"))
         .arg("mcp")
         .env_remove("TOS_RELEASE_ROOT")

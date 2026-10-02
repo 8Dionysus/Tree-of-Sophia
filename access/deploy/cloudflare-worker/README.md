@@ -955,3 +955,181 @@ host.
 The former Cloudflare Tunnel profile remains a temporary recovery and local
 preview route only. It is not the production availability architecture because
 it requires a continuously powered origin machine.
+
+## Native offline prepared-pair capture
+
+The native access source exposes `PREFIX/bin/tos edge-offline-capture
+--request ABS.json` as a bounded offline SQL-capture entry. The exact request
+schema is `tos_edge_offline_capture_request_v1`; it has no defaults for resource
+limits. All selected SQLite inputs and output paths are absolute. Input files
+must be regular, non-symlink files whose held SQLite identity matches the
+selected path. Pair operations hold D1 and prepared transactions; integrity
+operations hold the D1 transaction and explicit navigation/rights snapshots.
+Immediately before SQL emission, each held SQLite descriptor, identity guard
+and selected path are checked against the same file identity. This check does
+not establish a live selection lease. The three distinct output paths
+(`forward_sql`, `rollback_sql`, `manifest_json`) must be fresh members of one
+directory. Capture only returns unapplied artifacts; it does not mutate D1,
+switch a consumer or publish to Cloudflare.
+
+The exact top-level request keys for the four existing pair/bootstrap/navigation
+operations are `schema`, `operation`, `d1_database`,
+`before_prepared_database`, `after_prepared_database`,
+`expected_d1_revision`, `before_binding`, `after_binding`, `before_catalog`,
+`after_catalog`, `before_source_inputs_json`, `rights_root`, `forward_sql`,
+`rollback_sql`, `manifest_json` and `limits`; their request ABI remains
+unchanged. `source-navigation-integrity` instead requires exactly `schema`,
+`operation`, `d1_database`, `expected_d1_revision`,
+`expected_source_revision`, `navigation_root`, `rights_root`, `header_only`,
+`forward_sql`, `rollback_sql`, `manifest_json` and `limits`. It takes no
+prepared database or catalog. Each integrity root object has exactly
+`expected_sha256`, `namespace_path` and `root_json`; the expected digest must
+match those exact root bytes. `header_only` is a required boolean for this
+operation and is rejected from the other four request shapes. The limits object
+requires all of these positive finite values: `prepared` (`max_changes`, `max_row_bytes`,
+`max_metadata_bytes`, `max_read_bytes`, `max_rows`, `max_retained_bytes`,
+`max_sql_bytes`, `max_postings`, `max_manifest_rows`), `projection`
+(`max_opened_parts`, `max_read_bytes`, `max_keys`, `max_rows`, `max_changes`,
+`max_output_bytes`) and `pair` (`max_transitions`, `max_work_bytes`,
+`max_sql_bytes`). Hard native caps also bound row and metadata bytes to 8 MiB,
+retained/read/SQL/output bytes to 1 TiB, rows, keys and manifest rows to
+2,000,000, postings to 20,000,000, changes/transitions to 1,000,000 and opened
+parts to 1,000,000. Projection read, part, key, change and output limits accrue
+across the entire navigation operation. Unknown or missing request fields
+refuse before artifact creation.
+
+`operation` selects one of five source routes:
+
+- `prepared-delta` and `source-navigation-delta` require the held predecessor
+  and successor prepared snapshots plus their exact bindings and catalogs.
+- `prepared-catchup` omits the predecessor prepared file, binding and catalog;
+  it requires the exact predecessor `before_source_inputs_json` and the held
+  successor prepared snapshot.
+- `source-navigation-bootstrap` omits all predecessor prepared/source fields
+  and requires exactly the native `nodes`/`edges` root plus a separate
+  `rights_root` containing only `rights`; collection key/order fields must
+  match their source identities. The rights root must carry the complete
+  `navigation_header` with schema, authority boundary and counts. Its request
+  object contains `namespace_path`, exact `root_json`, `snapshot_sha256`, and
+  explicit matching `expected_sha256`/`trusted_sha256` values. These digests
+  check bytes and do not assess or admit rights.
+- `source-navigation-integrity` requires the held D1 source/revision, explicit
+  complete navigation `nodes`/`edges` and separate `rights` snapshots, and the
+  existing native navigation product. Full mode refuses any existing row or
+  header digest companion, compares every native base row and payload with the
+  source snapshots, checks table counts for orphan rows, and emits per-row plus
+  header checksums. With `header_only: true`, it compares the complete header
+  policy and counts and requires the existing row-digest inventory count to
+  match those counts. It deliberately does not read source rows, inspect row
+  digest contents, or repeat their audit; the result reports
+  `verified_source_rows: {}`. Both modes emit only checksum and reader-revision
+  metadata, leaving navigation rows unchanged.
+  Native capture additionally rejects a multipart row-digest companion inventory.
+  A complete `tos_source_navigation_v1` root header must equal the persisted
+  header; an Agent row root instead requires its exact minimal schema-only
+  header, as specified by the selected-Agent source contract. These checks
+  close shared gaps in the retained Python oracle and are explicit native
+  refusal boundaries, without reading row companions or granting authority.
+
+Every operation requires `expected_d1_revision` to match the held D1
+predecessor. Bootstrap additionally requires the native navigation product to
+be wholly absent. Transitions reuse the maintained D1 row, knowledge, Lens and
+metadata producers, including auxiliary-store guards, exact changed-row
+predecessors, search posting counts and reversible row closure. The command's
+stdout result reports held-snapshot binding checks, while
+`selected_pair_owner_admitted`, `source_currentness_verified`,
+`rights_admission`, `semantic_acceptance`, `d1_applied` and
+`consumer_switched` remain false. Offline source-input equality is not a live
+selection or owner lease.
+
+The Rust emitter binds target revisions to its private `d1.rs` lineage and
+included Rust implementation bytes. Integrity lineage identifies its mode,
+source revision, navigation/rights root digests and native implementation
+digests. That identity is distinct from the retained Python modules'
+`execution_profile()` digest and lineage packet; equal logical rows do not
+imply equal revision or audit metadata bytes. Native/Python fixture comparison
+must therefore retain and report complete metadata and audit-row differences
+rather than normalizing them away.
+
+Example invocation:
+
+```sh
+/absolute/prefix/bin/tos edge-offline-capture --request /absolute/scratch/request.json
+```
+
+For an addressed delta, `request.json` has this shape; each binding and catalog
+must be the complete value read from the selected prepared snapshots, and the
+revision must be read from the held D1 predecessor:
+
+```json
+{
+  "schema": "tos_edge_offline_capture_request_v1",
+  "operation": "prepared-delta",
+  "d1_database": "/absolute/scratch/selected-d1.sqlite",
+  "before_prepared_database": "/absolute/scratch/before.sqlite",
+  "after_prepared_database": "/absolute/scratch/after.sqlite",
+  "expected_d1_revision": "<64 lowercase hex characters>",
+  "before_binding": { "exact": "selected predecessor binding object" },
+  "after_binding": { "exact": "selected successor binding object" },
+  "before_catalog": { "exact": "selected predecessor catalog object" },
+  "after_catalog": { "exact": "selected successor catalog object" },
+  "before_source_inputs_json": null,
+  "rights_root": null,
+  "forward_sql": "/absolute/scratch/capture/forward.sql",
+  "rollback_sql": "/absolute/scratch/capture/rollback.sql",
+  "manifest_json": "/absolute/scratch/capture/manifest.json",
+  "limits": {
+    "prepared": {
+      "max_changes": 10000,
+      "max_row_bytes": 2097152,
+      "max_metadata_bytes": 2097152,
+      "max_read_bytes": 67108864,
+      "max_rows": 10000,
+      "max_retained_bytes": 33554432,
+      "max_sql_bytes": 67108864,
+      "max_postings": 100000,
+      "max_manifest_rows": 10000
+    },
+    "projection": {
+      "max_opened_parts": 1024,
+      "max_read_bytes": 67108864,
+      "max_keys": 10000,
+      "max_rows": 10000,
+      "max_changes": 10000,
+      "max_output_bytes": 33554432
+    },
+    "pair": {
+      "max_transitions": 10000,
+      "max_work_bytes": 67108864,
+      "max_sql_bytes": 67108864
+    }
+  }
+}
+```
+
+Both `prepared.max_sql_bytes` and `pair.max_sql_bytes` bound the combined
+forward/reverse SQL bytes; the smaller value governs emission. Projection
+`max_rows` bounds explicit full collection reads; addressed diffs use cumulative
+`max_keys`, `max_changes` and `max_output_bytes` across their collections.
+
+The `exact` values above are explanatory placeholders, not accepted binding or
+catalog schemas. The output directory must already exist and be freshly created
+for this invocation. Keep it exclusively owned for the full invocation; do not
+allow concurrent writers to create or replace output paths. The three output
+files must not exist before invocation. Inode checks protect cleanup within this
+custody boundary and are not an interprocess lock.
+
+The Python APIs remain in `scripts/prepared_delta_runtime.py`,
+`scripts/source_navigation_bootstrap_runtime.py` and
+`scripts/source_navigation_delta_runtime.py`. Their functions remain the
+maintained documented API and are available to fixtures as independent parity
+oracles; the native command does not import them. The documented
+`build_source_navigation_integrity_sql` and its `header_only` continuation now
+have a native offline capture route, while the Python function remains the
+independent oracle and documented API. No application caller migration or API
+retirement is claimed. Any later removal needs a separate source-owner decision
+after every non-test caller has migrated and the installed six-route/mode
+differential has reviewed complete metadata/audit rows. The maintained fixtures
+keep Python as the oracle. This source candidate claims no cutover or owner
+admission, and neither entry authenticates an owner-selected D1 pair or
+establishes publication/currentness by itself.

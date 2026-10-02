@@ -41,7 +41,8 @@ queue or resource inventory does not accept source text, translation, semantics,
 canon, public transfer or deployment.
 
 The implemented bounded acquisition entrypoint is
-`scripts/acquire_registry_sources.py`: `verify-preparation` checks the frozen
+the native registry acquisition owner, reached through the thin
+`scripts/acquire_registry_sources.py` facade: `verify-preparation` checks the frozen
 manifest and retained evidence; `acquire` requires the actual preparation
 checkpoint receipt; `verify-local` opens and verifies the exact installed files.
 New acquisitions must explicitly select `--payload-source-root`, the durable
@@ -49,8 +50,16 @@ source-witness root whose relative Item paths contain `payload/`. Metadata and
 review records stay in the source checkout; payload custody must survive its
 worktree. Pass that same root to `verify-local` and to the foundation validator
 with `--require-local-payloads`. Existing retained files can be copied and
-independently verified with `scripts/source_payload_custody.py`; a verified
-copy preserves its source and never overwrites conflicting destination bytes.
+independently verified with the native custody owner behind the thin
+`scripts/source_payload_custody.py` compatibility facade. The `verify` and
+`copy` commands and imported API require the selected
+`tos-native-owner-command`; there is no maintained Python fallback. Copying
+uses explicit manifest or inventory selection, verifies source fixity, and
+publishes read-only payloads without replacing conflicting destination bytes.
+Its immutable `0600` receipts contain custody metadata only, not payload bytes.
+The frozen Python reference is test-only at
+`tests/oracles/acquisition/source_payload_custody.py`. Custody and fixity do
+not admit an Item, assess rights, or authorize publication.
 
 For a growing provider queue, use the versioned batch route in
 `scripts/acquisition_batch.py` with the

@@ -625,6 +625,184 @@ fn navigation_selection(item: &JsonValue, field: &str, keys: &[&str]) -> JsonVal
     }
 }
 
+/// Project one already-addressed private source-navigation value through the
+/// same row/overflow/digest kernel used by the full D1 producer.  The caller
+/// owns the snapshot and order proof; this function only derives carrier rows.
+pub fn project_private_navigation_row(
+    kind: &str,
+    ordinal: i64,
+    item: &mut JsonValue,
+    repo_root: &str,
+) -> Result<Vec<crate::d1::D1RowTransition>> {
+    use crate::d1::{D1Cell as C, D1RowTransition as T, D1Table as D};
+
+    if ordinal < 0 || !matches!(kind, "nodes" | "edges" | "rights") {
+        return Err(Error::Invalid("private navigation row identity/order"));
+    }
+    portable(item, repo_root);
+    let json = String::from_utf8(compact(item, MAX_ROW_BYTES)?)
+        .map_err(|_| Error::Invalid("private navigation row UTF-8"))?;
+    let text = |key: &str| {
+        item.object_get(key)
+            .and_then(JsonValue::as_str)
+            .unwrap_or("")
+    };
+    let (id, table, payload_table, selection, mut values, base_columns, selection_column) =
+        match kind {
+            "nodes" => (
+                text("node_id"),
+                D::SourceNavigationNodes,
+                D::SourceNavigationNodePayload,
+                String::from_utf8(compact(
+                    &navigation_selection(item, "properties", &["packet_id", "access_status"]),
+                    MAX_ROW_BYTES,
+                )?)
+                .map_err(|_| Error::Invalid("private navigation properties UTF-8"))?,
+                vec![
+                    text("node_id").to_owned(),
+                    ordinal.to_string(),
+                    text("node_kind").to_owned(),
+                    text("source_ref").to_owned(),
+                    text("label").to_owned(),
+                    text("identity_status").to_owned(),
+                ],
+                vec![
+                    "node_id",
+                    "ord",
+                    "node_kind",
+                    "source_ref",
+                    "label",
+                    "identity_status",
+                ],
+                "properties_json",
+            ),
+            "edges" => (
+                text("edge_id"),
+                D::SourceNavigationEdges,
+                D::SourceNavigationEdgePayload,
+                String::from_utf8(compact(
+                    &navigation_selection(item, "source_refs", &[]),
+                    MAX_ROW_BYTES,
+                )?)
+                .map_err(|_| Error::Invalid("private navigation source refs UTF-8"))?,
+                vec![
+                    text("edge_id").to_owned(),
+                    ordinal.to_string(),
+                    text("from_id").to_owned(),
+                    text("to_id").to_owned(),
+                    text("edge_kind").to_owned(),
+                    text("predicate_id").to_owned(),
+                    text("review_status").to_owned(),
+                ],
+                vec![
+                    "edge_id",
+                    "ord",
+                    "from_id",
+                    "to_id",
+                    "edge_kind",
+                    "predicate_id",
+                    "review_status",
+                ],
+                "source_refs_json",
+            ),
+            "rights" => (
+                text("rights_id"),
+                D::SourceNavigationRights,
+                D::SourceNavigationRightsPayload,
+                String::from_utf8(compact(
+                    &navigation_selection(item, "scope_refs", &[]),
+                    MAX_ROW_BYTES,
+                )?)
+                .map_err(|_| Error::Invalid("private navigation scope refs UTF-8"))?,
+                vec![text("rights_id").to_owned(), ordinal.to_string()],
+                vec!["rights_id", "ord"],
+                "scope_refs_json",
+            ),
+            _ => unreachable!(),
+        };
+    if id.is_empty() || id.len() > 4096 {
+        return Err(Error::Invalid("private navigation row key"));
+    }
+    let quote_len = |value: &str| -> Result<usize> { crate::d1_public_sql::quote_len(value) };
+    let base = base_columns.iter().try_fold(1024usize, |sum, value| {
+        sum.checked_add(quote_len(value)?)
+            .ok_or(Error::Budget("private navigation row bytes"))
+    })?;
+    let inline = base
+        .checked_add(quote_len(&selection)?)
+        .and_then(|size| size.checked_add(quote_len(&json).ok()?))
+        .is_some_and(|size| size <= crate::d1_public_sql::MAX_ROW_VALUE_BYTES);
+    let selection_retained = base
+        .checked_add(quote_len(&selection)?)
+        .and_then(|size| size.checked_add(2))
+        .is_some_and(|size| size <= crate::d1_public_sql::MAX_ROW_VALUE_BYTES);
+    if !inline
+        && !base
+            .checked_add(4)
+            .is_some_and(|size| size <= crate::d1_public_sql::MAX_ROW_VALUE_BYTES)
+    {
+        return Err(Error::Budget("private navigation selection bytes"));
+    }
+    let retained_selection = if inline || selection_retained {
+        selection
+    } else {
+        String::new()
+    };
+    let retained_json = if inline { json.clone() } else { String::new() };
+    let mut row = base_columns
+        .iter()
+        .enumerate()
+        .map(|(index, value)| {
+            if index == 1 {
+                C::Integer(ordinal)
+            } else {
+                C::Text(value.clone())
+            }
+        })
+        .collect::<Vec<_>>();
+    row.push(C::Text(retained_selection));
+    row.push(C::Text(retained_json));
+    let mut result = vec![T {
+        table,
+        before: None,
+        after: Some(row),
+    }];
+    if !inline {
+        let chunks = crate::d1_public_sql::chunks(&json)
+            .enumerate()
+            .map(|(part, chunk)| T {
+                table: payload_table,
+                before: None,
+                after: Some(vec![
+                    C::Text(id.to_owned()),
+                    C::Integer(part as i64),
+                    C::Text(chunk.to_owned()),
+                ]),
+            })
+            .collect::<Vec<_>>();
+        result.extend(chunks);
+    }
+    let digest_key = format!(
+        "source_navigation_row_digest:{kind}:{}",
+        tos_foundation::Digest256::of_bytes(id.as_bytes()).to_hex()
+    );
+    let digest_row = format!(
+        "{{\"sha256\":\"{}\"}}",
+        tos_foundation::Digest256::of_bytes(json.as_bytes()).to_hex()
+    );
+    result.push(T {
+        table: D::EdgeMeta,
+        before: None,
+        after: Some(vec![
+            C::Text(digest_key),
+            C::Integer(0),
+            C::Text(digest_row),
+        ]),
+    });
+    let _ = selection_column;
+    Ok(result)
+}
+
 fn bounded_quote(capture: &PublicCapture, value: &str) -> Result<String> {
     quoted(capture, value)
 }

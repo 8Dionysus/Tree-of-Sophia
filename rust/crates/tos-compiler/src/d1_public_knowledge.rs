@@ -4,6 +4,7 @@
 
 use crate::{
     Error, Result,
+    d1::{D1Cell, D1RowTransition, D1Table},
     d1_public_capture::{MAX_ROW_BYTES, PublicCapture, compact, json},
     d1_public_lens::{LensCounts, emit_lens_auxiliary},
     d1_public_rows::{encoded, lower_search, portable, preflight_large_fields},
@@ -14,7 +15,7 @@ use crate::{
 };
 use rusqlite::{Statement, params};
 use std::{collections::VecDeque, path::Path};
-use tos_foundation::{Digest256, JsonValue};
+use tos_foundation::{Digest256, JsonValue, python_lower_unicode16_v1};
 
 #[derive(Default)]
 pub(crate) struct KnowledgeSqlCounts {
@@ -121,6 +122,281 @@ fn display<'a>(value: &'a JsonValue, field: &str) -> &'a str {
         .and_then(JsonValue::as_str)
         .unwrap_or("")
 }
+
+/// Reuse the maintained Rust public row/search kernels for one exact
+/// normalized prepared row. Position is the selected D1 posting address;
+/// predecessor comparison and complete tie-group allocation belong to the
+/// caller-held D1 snapshot capture.
+pub fn project_private_knowledge_row(
+    kind: &str,
+    position: i64,
+    raw: &str,
+    repo_root: &str,
+    limits: SearchBuildLimits,
+) -> Result<Vec<D1RowTransition>> {
+    limits.validate()?;
+    if !matches!(kind, "node" | "relation") || position < 0 || raw.len() > limits.max_payload_bytes
+    {
+        return Err(Error::Invalid("private D1 normalized row profile/bytes"));
+    }
+    if raw.len() as u64 > limits.max_work_bytes {
+        return Err(Error::Budget("private D1 search projection work"));
+    }
+    let mut item = crate::d1_public_capture::json(raw.as_bytes(), MAX_ROW_BYTES)?;
+    portable(&mut item, repo_root);
+    if String::from_utf8(compact(&item, MAX_ROW_BYTES)?)
+        .map_err(|_| Error::Invalid("private D1 normalized row UTF-8"))?
+        != raw
+    {
+        return Err(Error::Invalid(
+            "private D1 normalized row requires portable-path migration",
+        ));
+    }
+    let field = |name: &str| {
+        item.object_get(name)
+            .and_then(JsonValue::as_str)
+            .unwrap_or("")
+    };
+    let id = field("id");
+    let source_graph = field("source_graph");
+    let term_id = field(if kind == "node" {
+        "kind_id"
+    } else {
+        "predicate_id"
+    });
+    if id.is_empty() || source_graph.is_empty() || term_id.is_empty() {
+        return Err(Error::Invalid("private D1 normalized row identity"));
+    }
+    let native_id = item
+        .object_get("native_id")
+        .and_then(JsonValue::as_str)
+        .map(str::to_owned);
+    let row = SourceRow {
+        position,
+        id: id.to_owned(),
+        source_graph: source_graph.to_owned(),
+        native_id,
+        term_id: term_id.to_owned(),
+        payload_len: raw.len() as i64,
+        payload_sha256: Digest256::of_bytes(raw.as_bytes()).as_bytes().to_vec(),
+        payload: Some(raw.as_bytes().to_vec()),
+    };
+    let plural = if kind == "node" { "nodes" } else { "relations" };
+    let doc = document(&row, plural, raw.as_bytes(), limits)?;
+    let lower = |value: &str, cap: usize| {
+        python_lower_unicode16_v1(value, cap, cap, cap)
+            .map_err(|error| Error::Source(error.to_string()))
+    };
+    let primary_name = if kind == "node" { "title" } else { "label" };
+    let secondary_name = if kind == "node" {
+        "summary"
+    } else {
+        "explanation"
+    };
+    let primary = lower(display(&item, primary_name), limits.max_rank_field_bytes)?;
+    let secondary = display(&item, secondary_name).to_owned();
+    let mut result = Vec::new();
+    let text = |value: &str| D1Cell::Text(value.to_owned());
+    let integer = |value: i64| D1Cell::Integer(value);
+    if kind == "node" {
+        result.push(D1RowTransition {
+            table: D1Table::KnowledgeNodes,
+            before: None,
+            after: Some(vec![
+                text(id),
+                text(field("entity_id")),
+                text(field("native_id")),
+                text(source_graph),
+                text(field("kind_id")),
+                text(field("type_id")),
+                text(&primary),
+                text(&secondary),
+                text(&doc.text),
+                text(raw),
+            ]),
+        });
+    } else {
+        result.push(D1RowTransition {
+            table: D1Table::KnowledgeRelations,
+            before: None,
+            after: Some(vec![
+                text(id),
+                text(field("native_id")),
+                text(source_graph),
+                text(field("from_id")),
+                text(field("to_id")),
+                text(field("predicate_id")),
+                text(field("relation_type_id")),
+                text(&primary),
+                text(&secondary),
+                text(&doc.text),
+                text(raw),
+            ]),
+        });
+    }
+    // Match the maintained producer's quoted-value threshold and overflow
+    // companions; the D1 base row cannot retain both oversized fields.
+    let base_row = result[0]
+        .after
+        .as_mut()
+        .ok_or(Error::Invalid("private D1 base row"))?;
+    let field_count = base_row.len();
+    let base_bytes = base_row[..field_count - 2]
+        .iter()
+        .try_fold(1024usize, |used, cell| {
+            let D1Cell::Text(value) = cell else {
+                return Err(Error::Invalid("private D1 base field"));
+            };
+            used.checked_add(quote_len(value)?)
+                .ok_or(Error::Budget("private D1 selection fields"))
+        })?;
+    let inline = base_bytes
+        .checked_add(quote_len(&doc.text)?)
+        .and_then(|used| used.checked_add(quote_len(raw).ok()?))
+        .is_some_and(|used| used <= MAX_ROW_VALUE_BYTES);
+    if !inline {
+        if base_bytes
+            .checked_add(4)
+            .is_none_or(|used| used > MAX_ROW_VALUE_BYTES)
+        {
+            return Err(Error::Budget("private D1 selection fields"));
+        }
+        base_row[field_count - 2] = text("");
+        base_row[field_count - 1] = text("");
+        let payload_key = format!("knowledge_{kind}_payload:{id}");
+        for (part, chunk) in chunks(raw).enumerate() {
+            result.push(D1RowTransition {
+                table: D1Table::EdgeMeta,
+                before: None,
+                after: Some(vec![text(&payload_key), integer(part as i64), text(chunk)]),
+            });
+        }
+        let search_key = format!("knowledge_{kind}_search:{id}");
+        visit_search_fragments(&doc.text, |part, fragment| {
+            result.push(D1RowTransition {
+                table: D1Table::EdgeMeta,
+                before: None,
+                after: Some(vec![
+                    text(&search_key),
+                    integer(part as i64),
+                    text(fragment),
+                ]),
+            });
+            Ok(())
+        })?;
+    }
+    result.push(D1RowTransition {
+        table: D1Table::KnowledgeSearchDocuments,
+        before: None,
+        after: Some(vec![
+            text(if kind == "node" { "nodes" } else { "relations" }),
+            integer(position),
+            text(id),
+            text(source_graph),
+            text(if kind == "node" { field("kind_id") } else { "" }),
+            text(if kind == "node" {
+                ""
+            } else {
+                field("predicate_id")
+            }),
+            text(&doc.id_lower),
+            text(&doc.native_id_lower),
+            text(&doc.identity_values),
+            text(&doc.visible_values),
+            integer(doc.text.chars().count() as i64),
+            text(&doc.digest.to_hex()),
+        ]),
+    });
+    let mut work = (raw.len() as u64)
+        .checked_add(doc.text.len() as u64)
+        .filter(|bytes| *bytes <= limits.max_work_bytes)
+        .ok_or(Error::Budget("private D1 search projection work"))?;
+    let mut grams = std::collections::BTreeSet::new();
+    let mut window = VecDeque::with_capacity(3);
+    for scalar in doc.text.chars() {
+        if window.len() == 3 {
+            window.pop_front();
+        }
+        window.push_back(scalar);
+        if window.len() < 3 {
+            continue;
+        }
+        let gram = window.iter().collect::<String>();
+        // Charge every attempted window before retaining another unique gram.
+        work = work
+            .checked_add(gram.len() as u64 + 8)
+            .filter(|bytes| *bytes <= limits.max_work_bytes)
+            .ok_or(Error::Budget("private D1 search projection work"))?;
+        if !grams.contains(&gram) {
+            if grams.len() as u64 >= limits.max_postings {
+                return Err(Error::Budget("private D1 search projection postings"));
+            }
+            grams.insert(gram);
+        }
+    }
+    for gram in grams {
+        work = work
+            .checked_add(gram.len() as u64 + 16)
+            .filter(|bytes| *bytes <= limits.max_work_bytes)
+            .ok_or(Error::Budget("private D1 search projection work"))?;
+        result.push(D1RowTransition {
+            table: D1Table::KnowledgeSearchGrams,
+            before: None,
+            after: Some(vec![
+                text(if kind == "node" { "nodes" } else { "relations" }),
+                integer(3),
+                text(&gram),
+                integer(position),
+            ]),
+        });
+    }
+    result.push(D1RowTransition {
+        table: D1Table::KnowledgeLensOrder,
+        before: None,
+        after: Some(vec![
+            text(kind),
+            text(id),
+            text(&lower(id, limits.max_rank_field_bytes)?),
+            text(if kind == "relation" {
+                field("from_id")
+            } else {
+                ""
+            }),
+            text(if kind == "relation" {
+                field("to_id")
+            } else {
+                ""
+            }),
+        ]),
+    });
+    let digest_key = format!("knowledge_{kind}_digest:{id}");
+    let digest_raw = format!(
+        "{{\"sha256\":\"{}\"}}",
+        Digest256::of_bytes(raw.as_bytes()).to_hex()
+    );
+    result.push(D1RowTransition {
+        table: D1Table::EdgeMeta,
+        before: None,
+        after: Some(vec![text(&digest_key), integer(0), text(&digest_raw)]),
+    });
+    let retained_bytes = result
+        .iter()
+        .filter_map(|row| row.after.as_ref())
+        .flat_map(|row| row.iter())
+        .try_fold(0u64, |used, value| {
+            let bytes = match value {
+                D1Cell::Text(text) => text.len() as u64,
+                D1Cell::Integer(_) => 8,
+                D1Cell::Null => 0,
+            };
+            used.checked_add(bytes)
+                .ok_or(Error::Budget("private D1 projected bytes"))
+        })?;
+    if retained_bytes > limits.max_work_bytes {
+        return Err(Error::Budget("private D1 projected bytes"));
+    }
+    Ok(result)
+}
 fn bounded_quote(capture: &PublicCapture, value: &str) -> Result<String> {
     let len = quote_len(value)?;
     if len > MAX_ROW_VALUE_BYTES {
@@ -150,6 +426,24 @@ fn search_fragments(
     key: &str,
     search: &str,
 ) -> Result<()> {
+    visit_search_fragments(search, |part, fragment| {
+        sink.insert(
+            "edge_meta_next",
+            &["key", "part", "json_chunk"],
+            &[
+                bounded_quote(capture, key)?,
+                part.to_string(),
+                bounded_quote(capture, fragment)?,
+            ],
+        )
+    })
+}
+
+// Shared by full public SQL emission and private transition projection.
+fn visit_search_fragments(
+    search: &str,
+    mut emit: impl FnMut(usize, &str) -> Result<()>,
+) -> Result<()> {
     let mut recent = VecDeque::with_capacity(1023);
     let mut start = 0usize;
     let mut count = 0usize;
@@ -162,16 +456,7 @@ fn search_fragments(
         count += 1;
         if count % 8192 == 0 {
             let end = byte + scalar.len_utf8();
-            let fragment = &search[start..end];
-            sink.insert(
-                "edge_meta_next",
-                &["key", "part", "json_chunk"],
-                &[
-                    bounded_quote(capture, key)?,
-                    part.to_string(),
-                    bounded_quote(capture, fragment)?,
-                ],
-            )?;
+            emit(part, &search[start..end])?;
             part += 1;
             start = *recent
                 .front()
@@ -179,15 +464,7 @@ fn search_fragments(
         }
     }
     if count % 8192 != 0 {
-        sink.insert(
-            "edge_meta_next",
-            &["key", "part", "json_chunk"],
-            &[
-                bounded_quote(capture, key)?,
-                part.to_string(),
-                bounded_quote(capture, &search[start..])?,
-            ],
-        )?;
+        emit(part, &search[start..])?;
     }
     Ok(())
 }
@@ -528,4 +805,99 @@ fn emit_search(
         if sum!=counts.postings {return Err(Error::Invalid("public D1 posting/stat coverage"));}
         Ok(())
     })
+}
+
+#[cfg(test)]
+mod private_projection_tests {
+    use super::*;
+    fn limits() -> SearchBuildLimits {
+        SearchBuildLimits {
+            max_payload_bytes: 1_000_000,
+            max_document_chars: 1_000_000,
+            max_document_bytes: 4_000_000,
+            max_rank_field_bytes: 1_000_000,
+            max_postings: 100_000,
+            max_work_bytes: 8_000_000,
+            gram_batch_rows: 128,
+        }
+    }
+    #[test]
+    fn private_overflow_uses_maintained_payload_chunks_and_search_overlap() {
+        let raw = serde_json::json!({"id":"overflow", "source_graph":"fixture", "kind_id":"concept",
+            "display":{"title":{"default":"Overflow"}}, "attributes":{"padding":"'".repeat(1_010_000)}}).to_string();
+        let mut caps = limits();
+        caps.max_payload_bytes = 3_000_000;
+        caps.max_document_chars = 4_000_000;
+        caps.max_document_bytes = 16_000_000;
+        caps.max_work_bytes = 128_000_000;
+        let projected = project_private_knowledge_row("node", 0, &raw, "/fixture", caps).unwrap();
+        let base = projected
+            .iter()
+            .find(|row| row.table == D1Table::KnowledgeNodes)
+            .unwrap()
+            .after
+            .as_ref()
+            .unwrap();
+        assert_eq!(
+            &base[8..],
+            &[D1Cell::Text(String::new()), D1Cell::Text(String::new())]
+        );
+        let payload = projected
+            .iter()
+            .filter(|row| row.table == D1Table::EdgeMeta)
+            .filter_map(|row| row.after.as_ref())
+            .filter(|row| row[0] == D1Cell::Text("knowledge_node_payload:overflow".into()))
+            .map(|row| match &row[2] {
+                D1Cell::Text(value) => value.as_str(),
+                _ => panic!("payload type"),
+            })
+            .collect::<String>();
+        assert_eq!(payload, raw);
+        let search_parts = projected
+            .iter()
+            .filter(|row| row.table == D1Table::EdgeMeta)
+            .filter_map(|row| row.after.as_ref())
+            .filter(|row| row[0] == D1Cell::Text("knowledge_node_search:overflow".into()))
+            .map(|row| match &row[2] {
+                D1Cell::Text(value) => value.as_str(),
+                _ => panic!("search type"),
+            })
+            .collect::<Vec<_>>();
+        assert!(!search_parts.is_empty());
+        for pair in search_parts.windows(2) {
+            let trailing = pair[0]
+                .chars()
+                .rev()
+                .take(1023)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+                .collect::<String>();
+            assert!(pair[1].starts_with(&trailing));
+        }
+    }
+    #[test]
+    fn private_postings_and_work_caps_are_enforced_by_the_projector() {
+        let raw =
+            serde_json::json!({"id":"node-abcdef","source_graph":"fixture", "kind_id":"concept",
+            "display":{"title":{"default":"Finite indexed source"}}, "attributes":{}})
+            .to_string();
+        let rows = project_private_knowledge_row("node", 0, &raw, "/fixture", limits()).unwrap();
+        assert!(
+            rows.iter()
+                .any(|row| row.table == D1Table::KnowledgeSearchGrams)
+        );
+        let mut posting_limit = limits();
+        posting_limit.max_postings = 1;
+        assert!(matches!(
+            project_private_knowledge_row("node", 0, &raw, "/fixture", posting_limit),
+            Err(Error::Budget("private D1 search projection postings"))
+        ));
+        let mut work_limit = limits();
+        work_limit.max_work_bytes = 1;
+        assert!(matches!(
+            project_private_knowledge_row("node", 0, &raw, "/fixture", work_limit),
+            Err(Error::Budget("private D1 search projection work"))
+        ));
+    }
 }

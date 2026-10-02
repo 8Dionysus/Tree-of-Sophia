@@ -127,7 +127,8 @@ pub fn run_if_requested(
                 tos_compiler::research_eternal_return_concept::run_scoped(&root, &producer)
             }
             _ => unreachable!("recognized research producer"),
-        }?;
+        }
+        .map_err(|error| format!("{error}; execution_budget={}", root.budget_report()))?;
         Ok((value, root.budget_report()))
     });
     Some(match result {

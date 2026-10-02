@@ -49,6 +49,140 @@ pub(crate) fn load(root: &ResearchExecution, p: &str) -> R<V> {
     root.check()?;
     result
 }
+/// Exact authenticated technical profile; algorithms never branch on input hashes.
+#[derive(Debug)]
+pub(crate) struct SelectedPlan {
+    pub reference: String,
+    pub digest: String,
+    pub value: V,
+    pub custom: bool,
+}
+pub(crate) fn bound_json(
+    root: &ResearchExecution,
+    reference: &str,
+    digest: &str,
+    size: Option<u64>,
+    mode: Option<u32>,
+    max_bytes: u64,
+) -> R<V> {
+    let mut file = root.source_file(reference, max_bytes)?;
+    let before = file.metadata().map_err(|e| e.to_string())?;
+    if size.is_some_and(|n| n != before.len())
+        || mode.is_some_and(|m| before.permissions().mode() & 0o7777 != m)
+    {
+        return Err(format!("bound input size/mode drift: {reference}"));
+    }
+    let bytes = root.read_file(&mut file, max_bytes)?;
+    root.verify_file_unchanged(&file, &before)?;
+    if hash(&bytes) != digest {
+        return Err(format!("bound input digest drift: {reference}"));
+    }
+    root.check()?;
+    let result = serde_json::from_slice(&bytes).map_err(|e| format!("{reference}: {e}"));
+    root.check()?;
+    result
+}
+pub(crate) fn select_plan(
+    root: &ResearchExecution,
+    reference: &str,
+    default_ref: &str,
+    default_digest: &str,
+) -> R<SelectedPlan> {
+    let original = bound_json(root, default_ref, default_digest, None, None, 64 * 1024)?;
+    let custom = reference != default_ref;
+    if !custom {
+        return Ok(SelectedPlan {
+            reference: reference.into(),
+            digest: default_digest.into(),
+            value: original,
+            custom,
+        });
+    }
+    use std::os::unix::fs::MetadataExt;
+    let root_metadata = root
+        .root_directory()
+        .metadata()
+        .map_err(|e| e.to_string())?;
+    let mut profile_file = root.source_file(reference, 64 * 1024)?;
+    let profile_metadata = profile_file.metadata().map_err(|e| e.to_string())?;
+    let uid = unsafe { libc::geteuid() };
+    if root_metadata.permissions().mode() & 0o7777 != 0o700
+        || root_metadata.uid() != uid
+        || profile_metadata.permissions().mode() & 0o7777 != 0o600
+        || profile_metadata.uid() != uid
+    {
+        return Err("custom profile requires owned private 0700 carrier and 0600 plan".into());
+    }
+    let bytes = root.read_file(&mut profile_file, 64 * 1024)?;
+    root.verify_file_unchanged(&profile_file, &profile_metadata)?;
+    root.check()?;
+    let value: V = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
+    root.check()?;
+    let lineage = &value["input_profile_lineage"];
+    if !lineage.is_object()
+        || lineage["profile_version"].as_u64().is_none_or(|n| n < 2)
+        || lineage["supersedes_plan_ref"] != default_ref
+        || lineage["supersedes_plan_sha256"] != default_digest
+        || value["plan_id"].as_str().is_none_or(|id| id.is_empty())
+        || value["plan_id"] == original["plan_id"]
+    {
+        return Err(
+            "technical profile requires distinct identity and exact predecessor lineage".into(),
+        );
+    }
+    if value["status"] != "proposed-technical-input-profile-successor"
+        || !value
+            .as_object()
+            .is_some_and(|o| o.contains_key("frozen_at"))
+        || !value["frozen_at"].is_null()
+    {
+        return Err("technical profile requires explicit proposal status".into());
+    }
+    let mut comparable = value.clone();
+    let object = comparable.as_object_mut().ok_or("plan object required")?;
+    object.remove("input_profile_lineage");
+    for key in ["plan_id", "status", "frozen_at"] {
+        object.insert(key.into(), original[key].clone());
+    }
+    let inputs = object
+        .get_mut("inputs")
+        .and_then(V::as_object_mut)
+        .ok_or("plan inputs object required")?;
+    let old_inputs = original["inputs"]
+        .as_object()
+        .ok_or("default inputs object required")?;
+    if inputs.len() != old_inputs.len() {
+        return Err("technical profile input membership differs".into());
+    }
+    for (key, record) in inputs {
+        root.tick(1)?;
+        let old = old_inputs.get(key).ok_or("technical profile added input")?;
+        let digest = s(&record["sha256"])?;
+        if digest.len() != 64
+            || !digest
+                .bytes()
+                .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
+        {
+            return Err("technical profile input SHA256 required".into());
+        }
+        record
+            .as_object_mut()
+            .ok_or("input record object required")?
+            .insert("sha256".into(), old["sha256"].clone());
+    }
+    root.check()?;
+    if comparable != original {
+        return Err("technical profile changes semantic fields or input references".into());
+    }
+    let digest = hash(&bytes);
+    root.check()?;
+    Ok(SelectedPlan {
+        reference: reference.into(),
+        digest,
+        value,
+        custom,
+    })
+}
 pub(crate) fn loadl(root: &ResearchExecution, p: &str) -> R<Vec<V>> {
     String::from_utf8(read(root, p)?)
         .map_err(|e| e.to_string())?
@@ -1112,7 +1246,7 @@ fn associations(
     }
     Ok((tracked, private, bindings))
 }
-fn ru_db(root: &ResearchExecution, occs: &[Occ]) -> R<Vec<u8>> {
+fn ru_db(root: &ResearchExecution, occs: &[Occ], plan_digest: &str) -> R<Vec<u8>> {
     root.check()?;
     const MIB: u64 = 1024 * 1024;
     let mut workspace = root.sqlite_scope(tos_source_store::PinnedSqliteAuxLimits {
@@ -1142,7 +1276,12 @@ fn ru_db(root: &ResearchExecution, occs: &[Occ]) -> R<Vec<u8>> {
         {
             let mut stmt = tx
                 .prepare("INSERT INTO occurrences VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
-                .map_err(|e| format!("parallel Russian database populate: {e}"))?;
+                .map_err(|e| {
+                    format!(
+                        "parallel Russian occurrence prepare: {e}; sqlite_extended_code={:?}",
+                        e.sqlite_error().map(|error| error.extended_code)
+                    )
+                })?;
             for o in occs {
                 root.tick(1)?;
                 stmt.execute(params![
@@ -1161,7 +1300,12 @@ fn ru_db(root: &ResearchExecution, occs: &[Occ]) -> R<Vec<u8>> {
                     o.analysis,
                     h(&o.analysis)
                 ])
-                .map_err(|e| format!("parallel Russian database populate: {e}"))?;
+                .map_err(|e| {
+                    format!(
+                        "parallel Russian occurrence insert: {e}; sqlite_extended_code={:?}",
+                        e.sqlite_error().map(|error| error.extended_code)
+                    )
+                })?;
             }
         }
         let mut grouped: Map<&str, Vec<&Occ>> = Map::new();
@@ -1185,9 +1329,14 @@ fn ru_db(root: &ResearchExecution, occs: &[Occ]) -> R<Vec<u8>> {
                         .join(" ")
                 ],
             )
-            .map_err(|e| format!("parallel Russian database populate: {e}"))?;
+            .map_err(|e| {
+                format!(
+                    "parallel Russian FTS insert: {e}; sqlite_extended_code={:?}",
+                    e.sqlite_error().map(|error| error.extended_code)
+                )
+            })?;
         }
-        for(k,v)in[("authority_boundary","Private mechanical occurrence search over the selected source layers, preserving the recorded textual and semantic assessment status.".to_owned()),("plan_sha256",hash(&read(root,&route("plan.v1.json"))?)),("occurrence_count",occs.len().to_string())]{tx.execute("INSERT INTO metadata VALUES(?,?)",params![k,v]).map_err(|e|format!("parallel Russian database metadata: {e}"))?;}
+        for(k,v)in[("authority_boundary","Private mechanical occurrence search over the selected source layers, preserving the recorded textual and semantic assessment status.".to_owned()),("plan_sha256",plan_digest.to_owned()),("occurrence_count",occs.len().to_string())]{tx.execute("INSERT INTO metadata VALUES(?,?)",params![k,v]).map_err(|e|format!("parallel Russian database metadata: {e}"))?;}
         tx.commit()
             .map_err(|e| format!("parallel Russian database commit: {e}"))?;
         db.execute_batch("VACUUM")
@@ -1251,9 +1400,13 @@ fn issue(root: &ResearchExecution, bindings: &[String]) -> R<()> {
         0o644,
     )
 }
-fn generate(root: &ResearchExecution, with_issuance: bool) -> R<Generated> {
+fn generate(
+    root: &ResearchExecution,
+    with_issuance: bool,
+    selected: &SelectedPlan,
+) -> R<Generated> {
     root.check()?;
-    let plan = load(root, &route("plan.v1.json"))?;
+    let plan = &selected.value;
     for (label, r) in plan["inputs"]
         .as_object()
         .ok_or("plan inputs object required")?
@@ -1305,7 +1458,7 @@ fn generate(root: &ResearchExecution, with_issuance: bool) -> R<Generated> {
     let (de_ph, de_ph_private) = phrases(root, "de", &de_units)?;
     let (ru_ph, ru_ph_private) = phrases(root, "ru", &ru_phrase)?;
     let (_, _, bindings) = associations(root, &parallel, None)?;
-    let issuance = if with_issuance {
+    let issuance = if with_issuance || selected.custom {
         Some(issuance(root, &bindings)?)
     } else {
         None
@@ -1391,7 +1544,7 @@ fn generate(root: &ResearchExecution, with_issuance: bool) -> R<Generated> {
     let mut private_outputs = Map::new();
     private_outputs.insert(
         private("antonovsky-1911-lexical-observation-v1.sqlite3"),
-        ru_db(root, &occ)?,
+        ru_db(root, &occ, &selected.digest)?,
     );
     private_outputs.insert(
         private("parallel-candidate-analysis.v1.json"),
@@ -1399,7 +1552,7 @@ fn generate(root: &ResearchExecution, with_issuance: bool) -> R<Generated> {
     );
     let coverage = json!({"schema_version":"tos_zarathustra_parallel_lexical_candidate_coverage_v1","parts_complete":4,"russian_logical_rows_reconstructed":ru_meta["role_counts"].as_object().unwrap().values().map(n).sum::<usize>(),"russian_included_roles":plan["scope"]["russian_included_roles"],"russian_exact_occurrence_count":occ.len(),"russian_occurrence_ids_unique":true,"german_existing_lexical_occurrence_count":de_meta["token_count"],"paragraph_alignment_units_consumed":parallel.len(),"proposed_positive_evidence_units":parallel.iter().filter(|x|x.status=="proposed"&&x.positive).count(),"quality_deferred_alignment_units":quality_deferred,"quality_deferred_proposed_units":parallel.iter().filter(|x|x.status=="proposed"&&!x.positive).count(),"ambiguous_risk_units":parallel.iter().filter(|x|x.status=="ambiguous").count(),"deferred_risk_units":parallel.iter().filter(|x|x.status=="deferred").count(),"private_layer_refs_read":private_layers,"private_outputs_mode":"0600","tracked_source_strings":false,"accepted_candidate_count":0,"semantic_equivalence_asserted":false});
     outputs.insert(route("coverage-receipt.v1.json"), pretty(&coverage)?);
-    let provenance = json!({"schema_version":"tos_provenance_event_v1","event_id":"tos.event.zarathustra-parallel-lexical-candidates-v1.build","event_type":"mechanical_lexical_candidate_materialization","occurred_at":"2026-09-02T00:15:00-06:00","ended_at":"2026-09-02T00:15:00-06:00","agent_ref":"codex-internal-agents.lexical-candidate-v1","software_ref":GENERATOR,"software_sha256":RECIPE_SHA256,"plan_ref":route("plan.v1.json"),"plan_sha256":hash(&read(root,&route("plan.v1.json"))?),"authority_boundary":plan["authority_boundary"]});
+    let provenance = json!({"schema_version":"tos_provenance_event_v1","event_id":"tos.event.zarathustra-parallel-lexical-candidates-v1.build","event_type":"mechanical_lexical_candidate_materialization","occurred_at":"2026-09-02T00:15:00-06:00","ended_at":"2026-09-02T00:15:00-06:00","agent_ref":"codex-internal-agents.lexical-candidate-v1","software_ref":GENERATOR,"software_sha256":RECIPE_SHA256,"plan_ref":selected.reference,"plan_sha256":selected.digest,"authority_boundary":plan["authority_boundary"]});
     outputs.insert(route("provenance.jsonl"), lines(&[provenance])?);
     let output_meta: Map<&str, V> = outputs
         .iter()
@@ -1417,7 +1570,7 @@ fn generate(root: &ResearchExecution, with_issuance: bool) -> R<Generated> {
     let issuance_digest = read(root, &route("identity-issuance.v1.json"))
         .ok()
         .map(|b| hash(&b));
-    let manifest = json!({"schema_version":"tos_zarathustra_parallel_lexical_candidate_manifest_v1","plan_ref":route("plan.v1.json"),"plan_sha256":hash(&read(root,&route("plan.v1.json"))?),"identity_issuance_ref":route("identity-issuance.v1.json"),"identity_issuance_sha256":issuance_digest,"generated_outputs":output_meta,"private_outputs":private_meta,"source_text_included":false,"semantic_equivalence_asserted":false,"accepted_candidate_count":0,"canon_effect":false});
+    let manifest = json!({"schema_version":"tos_zarathustra_parallel_lexical_candidate_manifest_v1","plan_ref":selected.reference,"plan_sha256":selected.digest,"identity_issuance_ref":route("identity-issuance.v1.json"),"identity_issuance_sha256":issuance_digest,"generated_outputs":output_meta,"private_outputs":private_meta,"source_text_included":false,"semantic_equivalence_asserted":false,"accepted_candidate_count":0,"canon_effect":false});
     outputs.insert(route("manifest.v1.json"), pretty(&manifest)?);
     Ok(Generated {
         outputs,
@@ -1435,7 +1588,10 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> R<V> {
     root.check()?;
     let mut mode = None;
     let mut issue_ids = false;
-    for arg in args {
+    let mut plan_ref = route("plan.v1.json");
+    let mut selected_flag = false;
+    let mut arguments = args.iter();
+    while let Some(arg) = arguments.next() {
         root.tick(1)?;
         match arg.as_str() {
             "--build" | "--check" | "--preview" => {
@@ -1444,6 +1600,17 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> R<V> {
                 }
             }
             "--issue-identities" => issue_ids = true,
+            "--plan-ref" => {
+                if selected_flag {
+                    return Err("duplicate --plan-ref".into());
+                }
+                selected_flag = true;
+                root.tick(1)?;
+                plan_ref = arguments
+                    .next()
+                    .ok_or("--plan-ref requires ROOT_RELATIVE ref")?
+                    .clone();
+            }
             _ => return Err(format!("unrecognized argument: {arg}")),
         }
     }
@@ -1451,8 +1618,17 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> R<V> {
     if issue_ids && mode != "--build" {
         return Err("--issue-identities is valid only with --build".into());
     }
+    let selected = select_plan(
+        root,
+        &plan_ref,
+        &route("plan.v1.json"),
+        "09f29b6442ce0634dde77c0945f8c559d1b4dad3f0563aab2868e87591f8c3a7",
+    )?;
+    if selected.custom && issue_ids {
+        return Err("custom technical profile cannot remint v1 identities".into());
+    }
     if mode == "--preview" {
-        let generated = generate(root, false)?;
+        let generated = generate(root, false, &selected)?;
         let mut top = arr(&generated.analysis["translation_surface_associations"])?.clone();
         top.sort_by(|a, b| {
             n(&b["support"])
@@ -1480,10 +1656,10 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> R<V> {
         return Ok(json!({"summary":generated.analysis["summary"],"top_associations":top}));
     }
     if mode == "--build" && issue_ids {
-        let generated = generate(root, false)?;
+        let generated = generate(root, false, &selected)?;
         issue(root, &generated.bindings)?;
     }
-    let generated = generate(root, true)?;
+    let generated = generate(root, true, &selected)?;
     issuance(root, &generated.bindings)?;
     if mode == "--build" {
         for (p, v) in &generated.outputs {
@@ -1525,6 +1701,45 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> R<V> {
 mod tests {
     use super::*;
     #[test]
+    fn technical_profile_preserves_semantics_and_exact_lineage() {
+        let directory = tempfile::tempdir().unwrap();
+        let execution =
+            ResearchExecution::new_with_scratch(directory.path(), 180, 4 * 1024 * 1024).unwrap();
+        let original = json!({"schema_version":"fixture_v1","plan_id":"original","status":"frozen-before-output","frozen_at":"date","inputs":{"a":{"ref":"input.json","sha256":"0".repeat(64)}},"methods":{"gate":8},"authority_boundary":"candidate-only"});
+        let raw = pretty(&original).unwrap();
+        let digest = hash(&raw);
+        execution.write("plan.v1.json", &raw, 0o644, false).unwrap();
+        let mut profile = original.clone();
+        profile["plan_id"] = json!("successor");
+        profile["status"] = json!("proposed-technical-input-profile-successor");
+        profile["frozen_at"] = V::Null;
+        profile["inputs"]["a"]["sha256"] = json!("1".repeat(64));
+        profile["input_profile_lineage"] = json!({"profile_version":2,"supersedes_plan_ref":"plan.v1.json","supersedes_plan_sha256":digest});
+        execution
+            .write("profile.json", &pretty(&profile).unwrap(), 0o600, false)
+            .unwrap();
+        assert!(select_plan(&execution, "profile.json", "plan.v1.json", &digest).is_ok());
+        profile["methods"]["gate"] = json!(9);
+        execution
+            .write("profile.json", &pretty(&profile).unwrap(), 0o600, false)
+            .unwrap();
+        assert!(
+            select_plan(&execution, "profile.json", "plan.v1.json", &digest)
+                .unwrap_err()
+                .contains("semantic fields")
+        );
+        profile["methods"]["gate"] = json!(8);
+        profile["input_profile_lineage"]["supersedes_plan_sha256"] = json!("2".repeat(64));
+        execution
+            .write("profile.json", &pretty(&profile).unwrap(), 0o600, false)
+            .unwrap();
+        assert!(
+            select_plan(&execution, "profile.json", "plan.v1.json", &digest)
+                .unwrap_err()
+                .contains("predecessor lineage")
+        );
+    }
+    #[test]
     fn scoped_deadline_fails_before_source_reads_or_outputs() {
         let directory = tempfile::tempdir().unwrap();
         let execution = ResearchExecution::new(directory.path(), 1).unwrap();
@@ -1556,7 +1771,7 @@ mod tests {
             normalized: "свет".into(),
             analysis: "свет".into(),
         };
-        let bytes = ru_db(&execution, &[occ]).unwrap();
+        let bytes = ru_db(&execution, &[occ], &hash(b"{}\n")).unwrap();
         assert!(fs::read_dir(directory.path()).unwrap().all(|entry| {
             !entry
                 .unwrap()

@@ -22,8 +22,8 @@ from jsonschema import Draft202012Validator, FormatChecker
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-import acquisition_batch as acquisition  # noqa: E402
-import source_payload_custody as custody  # noqa: E402
+from tests.oracles.acquisition import acquisition_batch as acquisition  # noqa: E402
+from tests.oracles.acquisition import source_payload_custody as custody  # noqa: E402
 
 
 class AcquisitionBatchTests(unittest.TestCase):
@@ -2616,7 +2616,7 @@ class AcquisitionBatchTests(unittest.TestCase):
 import sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[2])
-import acquisition_batch as acquisition
+from tests.oracles.acquisition import acquisition_batch as acquisition
 journal = Path(sys.argv[1])
 try:
     acquisition._journal_rows(journal)
@@ -2649,7 +2649,7 @@ else:
 import sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[2])
-import acquisition_batch as acquisition
+from tests.oracles.acquisition import acquisition_batch as acquisition
 payload = Path(sys.argv[1])
 try:
     acquisition._verify_destination(
@@ -2677,7 +2677,7 @@ else:
 import sys
 from pathlib import Path
 sys.path.insert(0, sys.argv[6])
-import acquisition_batch as acquisition
+from tests.oracles.acquisition import acquisition_batch as acquisition
 operation, manifest, metadata, output, expected_sha = sys.argv[1:6]
 try:
     if operation == "prepare":

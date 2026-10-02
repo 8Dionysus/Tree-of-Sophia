@@ -216,7 +216,9 @@ class NativeItemTests(unittest.TestCase):
 
     def test_retained_inventory_v1_replays_after_current_prose_revision(self):
         before = self.edition_path.read_bytes()
-        with patch.object(item, 'INVENTORY_GENERATOR_VERSION', '1'):
+        inventory_metadata = copy.deepcopy(item.inventory_metadata())
+        inventory_metadata['generator_version'] = '1'
+        with patch.object(item, 'inventory_metadata', return_value=inventory_metadata):
             request = self.request()
             commands.run_legacy_oracle_command(self.owner, request)
         self.rebuild()
@@ -224,8 +226,8 @@ class NativeItemTests(unittest.TestCase):
         self.assertFalse(kept['grants_admission'])
         inventory = json.loads((self.root / self.config['item_source_path']).with_name('resource-inventory.json').read_bytes())
         self.assertEqual(inventory['generator']['version'], '1')
-        self.assertEqual(inventory['authority_boundary'], item.inventory_authority_boundary('1'))
-        self.assertNotEqual(inventory['authority_boundary'], item.inventory_authority_boundary('2'))
+        self.assertEqual(inventory['authority_boundary'], inventory_metadata['authority_boundaries']['1'])
+        self.assertNotEqual(inventory['authority_boundary'], inventory_metadata['authority_boundaries']['2'])
         from metadata_version_reader import MetadataVersionReader
         from validate_source_witness_foundation import _recorded_provenance_matches
         reader = MetadataVersionReader(self.root)

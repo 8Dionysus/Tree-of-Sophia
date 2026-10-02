@@ -1,6 +1,13 @@
 use std::path::Path;
 
 fn main() {
+    if std::env::args_os().len() == 2
+        && std::env::args_os()
+            .nth(1)
+            .is_some_and(|a| a == "acquisition")
+    {
+        std::process::exit(tos_command::source_acquisition_cli::run());
+    }
     if std::env::args_os()
         .nth(1)
         .is_some_and(|arg| arg == "corpus-admit")
