@@ -491,13 +491,189 @@ pub struct Prepared {
     pub private: Vec<u8>,
     pub summary: Value,
 }
+struct SelectedReviewPlan {
+    reference: String,
+    raw: Vec<u8>,
+    digest: String,
+    value: Value,
+    custom: bool,
+}
+fn parse_plan(root: &ResearchExecution, raw: &[u8]) -> Result<Value> {
+    root.tick(raw.len() as u64)?;
+    tos_foundation::parse_json(
+        raw,
+        tos_foundation::JsonMode::PublishedStrict,
+        tos_foundation::JsonLimits::new(64 * 1024, 64, 2_000_000, 4300)
+            .map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    root.check()?;
+    let value = serde_json::from_slice(raw).map_err(|e| e.to_string());
+    root.check()?;
+    value
+}
+fn profile_semantics(original: &Value, value: &Value) -> Result<()> {
+    let lineage = &value["input_profile_lineage"];
+    if !lineage.is_object()
+        || lineage["profile_version"].as_u64().is_none_or(|v| v < 2)
+        || lineage["supersedes_plan_ref"] != route("plan.v1.json")
+        || lineage["supersedes_plan_sha256"] != REVIEW_DEFAULT_PLAN_SHA256
+        || value["plan_id"].as_str().is_none_or(|v| v.is_empty())
+        || value["plan_id"] == original["plan_id"]
+        || value["status"] != "proposed-technical-input-profile-successor"
+    {
+        return Err("technical profile requires distinct identity, proposal status and exact predecessor lineage".into());
+    }
+    let changed = [
+        "parent_candidate_manifest",
+        "parent_interpretation_templates",
+        "parent_private_exact_analysis",
+        "paragraph_alignment_manifest",
+    ]
+    .iter()
+    .any(|label| value["inputs"][*label]["sha256"] != original["inputs"][*label]["sha256"]);
+    if !changed {
+        return Err("technical profile requires a selected input SHA change".into());
+    }
+    let mut comparable = value.clone();
+    let fields = comparable.as_object_mut().ok_or("plan object required")?;
+    fields.remove("input_profile_lineage");
+    for key in ["plan_id", "status"] {
+        fields.insert(key.into(), original[key].clone());
+    }
+    for label in [
+        "parent_candidate_manifest",
+        "parent_interpretation_templates",
+        "parent_private_exact_analysis",
+        "paragraph_alignment_manifest",
+    ] {
+        let record = &mut comparable["inputs"][label];
+        let hash = s(&record["sha256"])?;
+        if hash.len() != 64
+            || !hash
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        {
+            return Err("technical profile input SHA256 required".into());
+        }
+        record
+            .as_object_mut()
+            .ok_or("plan input object required")?
+            .insert("sha256".into(), original["inputs"][label]["sha256"].clone());
+    }
+    if comparable != *original {
+        return Err(
+            "technical profile changed source semantics, input membership or unselected pins"
+                .into(),
+        );
+    }
+    Ok(())
+}
+fn select_review_plan(root: &ResearchExecution, reference: &str) -> Result<SelectedReviewPlan> {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    let default_ref = route("plan.v1.json");
+    let mut original_file = root.source_file(&default_ref, 64 * 1024)?;
+    let original_metadata = original_file.metadata().map_err(|e| e.to_string())?;
+    let original_raw = root.read_file(&mut original_file, 64 * 1024)?;
+    root.verify_file_unchanged(&original_file, &original_metadata)?;
+    if digest(&original_raw) != REVIEW_DEFAULT_PLAN_SHA256 {
+        return Err("default plan identity drift".into());
+    }
+    let original = parse_plan(root, &original_raw)?;
+    let custom = reference != default_ref;
+    if !custom {
+        return Ok(SelectedReviewPlan {
+            reference: reference.into(),
+            raw: original_raw,
+            digest: REVIEW_DEFAULT_PLAN_SHA256.into(),
+            value: original,
+            custom,
+        });
+    }
+    let path = Path::new(reference);
+    if path.is_absolute()
+        || path
+            .components()
+            .any(|p| !matches!(p, std::path::Component::Normal(_)))
+    {
+        return Err("profile must be a normal repository relative path".into());
+    }
+    let root_metadata = root
+        .root_directory()
+        .metadata()
+        .map_err(|e| e.to_string())?;
+    let mut file = root.source_file(reference, 64 * 1024)?;
+    let before = file.metadata().map_err(|e| e.to_string())?;
+    let uid = unsafe { libc::geteuid() };
+    if root_metadata.permissions().mode() & 0o7777 != 0o700
+        || root_metadata.uid() != uid
+        || before.permissions().mode() & 0o7777 != 0o600
+        || before.uid() != uid
+    {
+        return Err("custom profile requires owned private 0700 carrier and 0600 plan".into());
+    }
+    let raw = root.read_file(&mut file, 64 * 1024)?;
+    root.verify_file_unchanged(&file, &before)?;
+    let value = parse_plan(root, &raw)?;
+    profile_semantics(&original, &value)?;
+    root.tick(7)?;
+    root.check()?;
+    Ok(SelectedReviewPlan {
+        reference: reference.into(),
+        digest: digest(&raw),
+        raw,
+        value,
+        custom,
+    })
+}
+fn selected_input_refs(
+    root: &ResearchExecution,
+    selected: &SelectedReviewPlan,
+) -> Result<Vec<Value>> {
+    root.tick(selected.raw.len() as u64)?;
+    let doc = tos_foundation::parse_json(
+        &selected.raw,
+        tos_foundation::JsonMode::PublishedStrict,
+        tos_foundation::JsonLimits::new(64 * 1024, 64, 2_000_000, 4300)
+            .map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    root.check()?;
+    let rows = doc
+        .root()
+        .object_get("inputs")
+        .and_then(|v| v.as_object())
+        .ok_or("plan inputs object required")?;
+    let refs = rows
+        .iter()
+        .map(|(_, row)| {
+            root.tick(1)?;
+            row.object_get("ref")
+                .and_then(|v| v.as_str())
+                .map(|r| json!(r))
+                .ok_or("input ref required".into())
+        })
+        .collect::<Result<Vec<Value>>>()?;
+    root.check()?;
+    Ok(refs)
+}
+
 pub fn prepare(
     root: &ResearchExecution,
     units: &BTreeMap<String, Value>,
     verse: &Value,
 ) -> Result<Prepared> {
-    let plan = load(root, &route("plan.v1.json"))?;
-    verify_inputs(root, &plan)?;
+    let selected = select_review_plan(root, &route("plan.v1.json"))?;
+    verify_inputs(root, &selected.value)?;
+    prepare_selected(root, units, verse, &selected)
+}
+fn prepare_selected(
+    root: &ResearchExecution,
+    units: &BTreeMap<String, Value>,
+    verse: &Value,
+    selected: &SelectedReviewPlan,
+) -> Result<Prepared> {
+    let plan = &selected.value;
     let rows = source_ordered_rows(root, units)?;
     let expected = bindings(root, &rows)?;
     let ids = identity_map(root, &expected)?;
@@ -540,7 +716,7 @@ pub fn prepare(
     let worklist = json!({"schema_version":"tos_zarathustra_eternal_return_review_worklist_v1","review_preparation_ref":packet,"work_items":items,"work_item_count":items.len(),"speaker_candidate_population":speakers.len(),"compression_law":"all candidates remain inspectable; future human attention is routed to grouped exceptions rather than every candidate row","review_outcome_recorded":false,"review_ledger_ref":null});
     let coverage = json!({"schema_version":"tos_zarathustra_eternal_return_review_preparation_coverage_v1","gap_population":5,"gap_candidates_prepared":gaps.len(),"gap_exact_source_return_count":private_gaps.len(),"alignment_scope_gap_with_related_ru_verse_count":gaps.iter().filter(|r|r["related_witness_units"].as_array().is_some_and(|a|!a.is_empty())).count(),"speaker_population":rows.len(),"speaker_candidates_prepared":speakers.len(),"speaker_reading_counts":count(&speakers,"reading_ref")?,"speaker_status_counts":count(&speakers,"attribution_status")?,"speaker_primary_role_counts":count(&speakers,"primary_role")?,"speaker_exception_group_count":groups.len(),"interpretation_axis_count":a(&matrix["axes"])?.len(),"five_primary_axes_prepared":a(&matrix["axes"])?.iter().take(5).all(|r|r["status"]=="prepared_for_review"),"amor_fati_cross_work_blocked":a(&matrix["axes"])?.last().is_some_and(|r|r["status"]=="blocked_cross_work"),"source_return_verified":true,"complete_for_declared_scope":gaps.len()==5&&speakers.len()==159});
     let summary = json!({"schema_version":"tos_zarathustra_eternal_return_review_preparation_summary_v1","review_preparation_id":packet,"gap_candidate_count":gaps.len(),"speaker_candidate_count":speakers.len(),"speaker_exception_group_count":groups.len(),"interpretation_review_candidate_count":a(&matrix["axes"])?.len(),"future_review_work_item_count":items.len(),"witness_correction_count":0,"alignment_mutation_count":0,"accepted_candidate_count":0,"human_review_count":0,"materialized_claim_count":0,"review_ledger_write_count":0,"graph_effect":false,"canon_effect":false});
-    let input_refs = ordered_input_refs(root, &route("plan.v1.json"))?;
+    let input_refs = selected_input_refs(root, selected)?;
     let mut output_refs: Vec<String> = OUTPUTS.iter().map(|(_, n)| route(n)).collect();
     output_refs.push(private_ref());
     let provenance = json!({"schema_version":"tos_zarathustra_eternal_return_review_preparation_event_v1","event_id":"tos.event.zarathustra-eternal-return-review-preparation-v1.build","event_type":"candidate_review_preparation_built","event_at":plan["frozen_at"],"input_refs":input_refs,"output_refs":output_refs,"authority_effect":"candidate_only_no_human_review_graph_or_canon_effect"});
@@ -583,7 +759,7 @@ pub fn prepare(
         .filter(|(role, _)| *role != "manifest")
         .map(|(role, n)| json!({"role":role,"ref":route(n),"sha256":digest(&outputs[&route(n)])}))
         .collect();
-    let manifest = json!({"schema_version":"tos_zarathustra_eternal_return_review_preparation_manifest_v1","route_id":"zarathustra-eternal-return-review-preparation-v1","review_preparation_id":packet,"plan_ref":route("plan.v1.json"),"plan_sha256":digest(&read(root,&route("plan.v1.json"))?),"identity_issuance_ref":route("identity-issuance.v1.json"),"identity_issuance_sha256":digest(&read(root,&route("identity-issuance.v1.json"))?),"generator_ref":GENERATOR,"generator_sha256":RECIPE_SHA256,"artifacts":artifacts,"private_artifact":{"ref":private_ref(),"sha256":digest(&private),"mode":"0600","tracked":false},"accepted_candidate_count":0,"human_review_count":0,"review_ledger_write_count":0,"graph_effect":false,"canon_effect":false});
+    let manifest = json!({"schema_version":"tos_zarathustra_eternal_return_review_preparation_manifest_v1","route_id":"zarathustra-eternal-return-review-preparation-v1","review_preparation_id":packet,"plan_ref":selected.reference,"plan_sha256":selected.digest,"identity_issuance_ref":route("identity-issuance.v1.json"),"identity_issuance_sha256":digest(&read(root,&route("identity-issuance.v1.json"))?),"generator_ref":GENERATOR,"generator_sha256":RECIPE_SHA256,"artifacts":artifacts,"private_artifact":{"ref":private_ref(),"sha256":digest(&private),"mode":"0600","tracked":false},"accepted_candidate_count":0,"human_review_count":0,"review_ledger_write_count":0,"graph_effect":false,"canon_effect":false});
     outputs.insert(route(OUTPUTS[7].1), bytes(&manifest, true)?);
     root.tick(private.len() as u64 + outputs.values().map(|v| v.len() as u64).sum::<u64>())?;
     Ok(Prepared {
@@ -955,7 +1131,10 @@ pub fn run(root: &Path, args: &[String]) -> Result<Value> {
 pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
     let mut mode = None;
     let mut issuance = false;
-    for arg in args {
+    let mut plan_ref = route("plan.v1.json");
+    let mut plan_seen = false;
+    let mut args = args.iter();
+    while let Some(arg) = args.next() {
         root.tick(1)?;
         match arg.as_str() {
             "--build" | "--check" | "--preview" | "--validate-tracked" => {
@@ -964,6 +1143,13 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
                 }
             }
             "--issue-identities" => issuance = true,
+            "--plan-ref" => {
+                if plan_seen {
+                    return Err("duplicate --plan-ref".into());
+                }
+                plan_seen = true;
+                plan_ref = args.next().ok_or("--plan-ref needs a reference")?.clone();
+            }
             _ => return Err(format!("unknown argument: {arg}")),
         }
     }
@@ -972,22 +1158,32 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
         return Err("--issue-identities is valid only with --build".into());
     }
     if mode == "--validate-tracked" {
+        if plan_ref != route("plan.v1.json") || issuance {
+            return Err("retained validator uses original default plan without issuance".into());
+        }
         return validate_tracked(root);
     }
-    let plan = load(root, &route("plan.v1.json"))?;
-    verify_inputs(root, &plan)?;
+    let selected = select_review_plan(root, &plan_ref)?;
+    if selected.custom && issuance {
+        return Err("custom profile cannot issue identities".into());
+    }
+    verify_inputs(root, &selected.value)?;
     let units = hydrate_units(root)?;
     let rows = source_ordered_rows(root, &units)?;
     let expected = bindings(root, &rows)?;
+    if selected.custom {
+        identity_map(root, &expected)?;
+    }
     if mode == "--preview" {
+        root.check()?;
         return Ok(json!({"identity_count":expected.len(),"speaker_candidate_count":rows.len()}));
     }
     if issuance {
-        issue(root, &expected, &plan)?
+        issue(root, &expected, &selected.value)?
     }
     identity_map(root, &expected)?;
     let verse = return_ru_verse(root)?;
-    let prepared = prepare(root, &units, &verse)?;
+    let prepared = prepare_selected(root, &units, &verse, &selected)?;
     if mode == "--build" {
         for (p, b) in &prepared.outputs {
             root.tick(1)?;
@@ -1012,6 +1208,42 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn technical_profile_preserves_review_semantics_and_unselected_pins() {
+        let hash = "a".repeat(64);
+        let original = json!({"plan_id":"original","status":"frozen","frozen_at":"historical","scope":{"speaker_count":159},"inputs":{
+            "parent_candidate_manifest":{"ref":"parent/manifest","sha256":hash},
+            "parent_interpretation_templates":{"ref":"parent/templates","sha256":hash},
+            "parent_private_exact_analysis":{"ref":"parent/private","sha256":hash},
+            "paragraph_alignment_manifest":{"ref":"paragraph/manifest","sha256":hash},
+            "russian_structural_manifest":{"ref":"structural/manifest","sha256":hash},
+            "semantic_identity_research":{"ref":"research","sha256":hash},
+            "review_checklist":{"ref":"checklist","sha256":hash}}});
+        let mut successor = original.clone();
+        successor["plan_id"] = json!("technical-successor");
+        successor["status"] = json!("proposed-technical-input-profile-successor");
+        successor["input_profile_lineage"] = json!({"profile_version":2,"supersedes_plan_ref":route("plan.v1.json"),"supersedes_plan_sha256":REVIEW_DEFAULT_PLAN_SHA256});
+        successor["inputs"]["parent_candidate_manifest"]["sha256"] = json!("b".repeat(64));
+        assert!(profile_semantics(&original, &successor).is_ok());
+        for (field, value) in [
+            ("scope", json!({"speaker_count":158})),
+            ("frozen_at", json!("rewritten")),
+        ] {
+            let mut invalid = successor.clone();
+            invalid[field] = value;
+            assert!(profile_semantics(&original, &invalid).is_err());
+        }
+        let mut invalid = successor.clone();
+        invalid["inputs"]["review_checklist"]["sha256"] = json!("c".repeat(64));
+        assert!(profile_semantics(&original, &invalid).is_err());
+        invalid = successor.clone();
+        invalid["inputs"]["parent_candidate_manifest"]["ref"] = json!("different/manifest");
+        assert!(profile_semantics(&original, &invalid).is_err());
+        invalid = successor.clone();
+        invalid["inputs"]["parent_candidate_manifest"]["sha256"] = json!("a".repeat(64));
+        assert!(profile_semantics(&original, &invalid).is_err());
+    }
+
     #[test]
     fn dramatic_voice_boundaries() {
         assert_eq!(speaker_rule("p3.r2", 14).unwrap()["primary_role"], "dwarf");

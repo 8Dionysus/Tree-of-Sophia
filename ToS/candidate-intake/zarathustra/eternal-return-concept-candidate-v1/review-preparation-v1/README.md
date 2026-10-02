@@ -47,3 +47,23 @@ material with their exact Git identities. Both active Eternal entries are
 native-only; the former Review-to-Concept Python hydration import retires with
 the coordinated family cutover. Historical expected output identities remain
 separate from actual native/oracle equivalence; no prior artifact is retagged.
+
+For a future fresh producer chain, `--plan-ref` may select an explicit technical
+input profile at a normal root-relative path. Proposed profiles use
+`local-content/research-native-input-profiles/` by convention; this prefix is
+not an enforced selector restriction. The profile is a source proposal with a
+distinct plan ID, proposal status and versioned lineage to the exact original default plan. Only the SHA256 pins of the parent
+manifest, parent interpretation templates, parent private analysis and Paragraph
+manifest may change. All seven input refs and remaining pins, frozen timestamp,
+semantic scope, methods, outputs and authority ceilings remain identical. The
+carrier must be owned mode0700 and the bounded profile owned mode0600.
+
+Custom profiles cannot issue or remint opaque identities. Every custom operation,
+including preview, must match the complete existing issuance bindings.
+`--validate-tracked` remains an original-default receipt consumer and refuses
+custom profiles; `--check` continues full regeneration. Use the genuine complete
+parent twelve-product bundle with authenticated manifest membership and custody,
+including its evidence spine and concept candidate, rather than substituting
+isolated files. A technical selector is not acceptance of fresh source or
+semantics. Fresh-chain applicability and execution remain future owner review
+and actual checks; prior plans, artifacts and cold oracles retain their identity.
