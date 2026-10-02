@@ -213,6 +213,7 @@ pub(crate) trait CatalogInputBinding: Clone {
     fn selected(stage: &KnowledgeStage<'_>) -> Result<Self>;
     fn value(&self) -> Value;
     fn validate_plan(&self) -> Result<()>;
+    fn matches_source(&self, other: &Self) -> bool;
 }
 impl CatalogInputBinding for crate::SourceBinding {
     fn selected(stage: &KnowledgeStage<'_>) -> Result<Self> {
@@ -224,6 +225,16 @@ impl CatalogInputBinding for crate::SourceBinding {
     fn validate_plan(&self) -> Result<()> {
         self.validate()
     }
+    fn matches_source(&self, other: &Self) -> bool {
+        self.owner_profile == other.owner_profile
+            && self.source_cut == other.source_cut
+            && self.through_commit_seq == other.through_commit_seq
+            && self.membership_root == other.membership_root
+            && self.index_generation == other.index_generation
+            && self.route_map_version == other.route_map_version
+            && self.reader_abi == other.reader_abi
+            && self.complete == other.complete
+    }
 }
 impl CatalogInputBinding for crate::knowledge_stage::ColdAuthoredBinding {
     fn selected(stage: &KnowledgeStage<'_>) -> Result<Self> {
@@ -234,6 +245,9 @@ impl CatalogInputBinding for crate::knowledge_stage::ColdAuthoredBinding {
     }
     fn validate_plan(&self) -> Result<()> {
         Ok(())
+    }
+    fn matches_source(&self, other: &Self) -> bool {
+        self.value() == other.value()
     }
 }
 

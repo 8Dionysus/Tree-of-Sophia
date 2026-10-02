@@ -820,7 +820,7 @@ fn prepare_catalog_plan<B: catalog::CatalogInputBinding>(
         )?;
         if plan.revision != expected_revision
             || plan.membership != expected_membership
-            || plan.receipt.binding.value() != B::selected(target)?.value()
+            || !plan.receipt.binding.matches_source(&B::selected(target)?)
         {
             return Err(Error::Invalid("cold catalog plan source binding"));
         }
