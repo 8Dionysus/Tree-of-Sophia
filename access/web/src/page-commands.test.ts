@@ -1,3 +1,4 @@
+import {pageCommandInteger, pageCommandOpaqueString, pageCommandDirection} from "./page-input";
 import './observatory/human-forms-wasm-test-runtime.mjs';
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -228,5 +229,40 @@ describe("page command registry", () => {
     await expect(invocation).rejects.toMatchObject({ name: "AbortError" });
     expect(registry.context().pending_command_ids).toEqual([]);
     expect(registry.context().revision).toBe(0);
+  });
+});
+
+
+describe("page input guards used by maintained command handlers", () => {
+  it("preserves page input numeric profiles and native coercion", () => {
+    expect(pageCommandInteger({limit: 99.9}, "limit", "page-knowledge-limit")).toBe(40);
+    expect(pageCommandInteger({}, "limit", "gaps-limit")).toBe(20);
+    expect(pageCommandInteger({}, "rank", "page-word-rank")).toBe(1);
+    expect(pageCommandInteger({}, "depth", "neighborhood-depth")).toBe(1);
+    expect(pageCommandInteger({}, "max_depth", "page-path-depth")).toBe(6);
+    expect(pageCommandInteger({}, "alternative_limit", "page-path-alternatives")).toBe(1);
+    expect(pageCommandInteger({}, "alternative_limit", "page-reroute-alternatives")).toBe(3);
+    expect(pageCommandInteger({}, "limit", "epistemic-limit")).toBe(80);
+    expect(pageCommandInteger({}, "limit", "page-compare-limit")).toBe(60);
+    const valueOf = vi.fn(() => -1.9);
+    const getter = vi.fn(() => ({valueOf}));
+    expect(pageCommandInteger({get rank() { return getter(); }}, "rank", "page-word-rank")).toBe(1);
+    expect(getter).toHaveBeenCalledTimes(1);
+    expect(valueOf).toHaveBeenCalledTimes(1);
+    expect(() => pageCommandInteger({rank: Symbol("rank")}, "rank", "page-word-rank")).toThrow(TypeError);
+  });
+  it("preserves page input opaque cursor identity and empty omission", () => {
+    for (const cursor of [undefined, null, ""]) expect(pageCommandOpaqueString({cursor}, "cursor")).toBeUndefined();
+    const cursor = "  \ud800opaque  ";
+    expect(pageCommandOpaqueString({cursor}, "cursor")).toBe(cursor);
+    expect(() => pageCommandOpaqueString({cursor: 1}, "cursor")).toThrow("cursor must be a string");
+  });
+  it("preserves page input case-sensitive direction and host exceptions", () => {
+    expect(pageCommandDirection({})).toBe("outgoing");
+    expect(pageCommandDirection({direction: " incoming "})).toBe("incoming");
+    expect(() => pageCommandDirection({direction: "Outgoing"})).toThrow("direction must be outgoing, incoming, or either");
+    const failure = {host: true};
+    try { pageCommandDirection({get direction() { throw failure; }}); throw new Error("getter did not throw"); }
+    catch (error) { expect(error).toBe(failure); }
   });
 });

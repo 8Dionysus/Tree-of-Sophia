@@ -20,6 +20,18 @@ impl QueryRequestRules {
             _ => 2,
         }
     }
+    pub fn page_cursor_action(tag: u8, length: usize) -> u8 {
+        if tag == 1 && length == 0 {
+            0
+        } else {
+            Self::cursor_action(tag)
+        }
+    }
+    pub fn page_direction(value: &[u16]) -> bool {
+        value == [111, 117, 116, 103, 111, 105, 110, 103]
+            || value == [105, 110, 99, 111, 109, 105, 110, 103]
+            || value == [101, 105, 116, 104, 101, 114]
+    }
     pub fn search_mode_allowed(tag: u8) -> bool {
         tag < 3
     }
@@ -33,6 +45,12 @@ impl QueryRequestRules {
         let (fallback, maximum) = match field {
             "search-limit" | "gaps-limit" => (20.0, 100.0),
             "knowledge-limit" => (40.0, 100.0),
+            "page-knowledge-limit" => (40.0, 40.0),
+            "page-word-rank" => (1.0, 100.0),
+            "page-path-depth" => (6.0, 8.0),
+            "page-path-alternatives" => (1.0, 5.0),
+            "page-reroute-alternatives" => (3.0, 5.0),
+            "page-compare-limit" => (60.0, 80.0),
             "descent-depth" => (8.0, 8.0),
             "source-limit" => (300.0, 300.0),
             "view-corpus" => (100.0, 1000.0),

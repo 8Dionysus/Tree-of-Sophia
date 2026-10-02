@@ -1896,7 +1896,7 @@ pub(crate) fn select_owner_local_sources(
             let name = dependency.path.as_str().to_owned();
             let digest = dependency.raw_sha256.to_prefixed();
             if source_dependencies
-                .insert(name, digest.clone())
+                .insert(name.clone(), digest.clone())
                 .is_some_and(|previous| previous != digest)
             {
                 return Err(SourceCommandError::Conflict(
@@ -2266,7 +2266,7 @@ pub(crate) fn select_owner_local_sources(
     }
     for (identity, path) in claim_sources.form_paths {
         if form_paths
-            .insert(identity, path)
+            .insert(identity, path.clone())
             .is_some_and(|previous| previous != path)
         {
             return Err(SourceCommandError::Conflict(
@@ -2276,7 +2276,7 @@ pub(crate) fn select_owner_local_sources(
     }
     for (identity, path) in claim_sources.source_paths {
         if source_paths
-            .insert(identity, path)
+            .insert(identity, path.clone())
             .is_some_and(|previous| previous != path)
         {
             return Err(SourceCommandError::Conflict(

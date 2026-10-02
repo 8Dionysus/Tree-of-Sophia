@@ -2,7 +2,7 @@ import {chooseKnowledgeSearchMode} from "./knowledge-search";
 
 type WordQuerySession = {query(length: number): boolean; language(value: Uint16Array): boolean; number(value: number): number; free(): void};
 type PathQuerySession = {required(length: number): boolean; depth(value: number): number; direction(value: Uint16Array): boolean; alternatives(value: number): number; filter_empty(length: number): boolean; empty_filter(): string; free(): void};
-type QueryRequestRules = {mode(corpus: boolean): string; required(length: number): boolean; optional(length: number): boolean; cursor_action(tag: number): number; search_mode_allowed(tag: number): boolean; filter_empty(length: number): boolean; empty_filter(): string; number(field: string, value: number): number};
+type QueryRequestRules = {mode(corpus: boolean): string; required(length: number): boolean; optional(length: number): boolean; cursor_action(tag: number): number; page_cursor_action(tag: number, length: number): number; page_direction(value: Uint16Array): boolean; search_mode_allowed(tag: number): boolean; filter_empty(length: number): boolean; empty_filter(): string; number(field: string, value: number): number};
 let RequestRules: QueryRequestRules | undefined;
 function requestRules(): QueryRequestRules {
   if (!RequestRules) throw new Error("Query request Rust runtime is required");
@@ -17,6 +17,16 @@ export function installQueryRequestRules(runtime: {WordQuerySession?: new () => 
   PathQueryRules = runtime.PathQuerySession;
   if (!runtime.QueryRequestRules) throw new Error("Query request Rust runtime is required");
   RequestRules = runtime.QueryRequestRules;
+}
+
+export function pageIntegerRule(value: number, profile: string): number {
+  return requestRules().number(profile, value);
+}
+export function pageCursorRule(tag: number, length: number): number {
+  return requestRules().page_cursor_action(tag, length);
+}
+export function pageDirectionRule(value: Uint16Array): boolean {
+  return requestRules().page_direction(value);
 }
 
 export type ToSMode = "philosophy" | "corpus";

@@ -91,7 +91,7 @@ pub(crate) fn reconcile(
         .ok_or(Error::Invalid("Agent recovery source catalog"))?;
     let header = &snapshot.manifest["header"];
     let transition = json!({"transaction_id": observation.transaction_id(),
-        "manifest_sha256": observation.manifest_sha256().to_hex(),
+        "manifest_sha256": observation.manifest_sha256().to_prefixed(),
         "record_id": observation.record_id()});
     if header["last_transition"] != transition
         || header["source_publication"] != view(observation.source_publication())?

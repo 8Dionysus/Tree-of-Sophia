@@ -1251,7 +1251,7 @@ pub(super) fn assemble(
     let new_row = json!({"record_id":observation.record_id(),"entry":entry,"source":{"source_ref":binding.source_path.as_str(),"raw_sha256":binding.current.sha256.to_hex(),"raw_bytes":binding.current.raw.len(),"record_ref":view(&binding.current.subject,1_048_576)?}});
     let mut after_header = header.clone();
     after_header["source_publication"] = view(observation.source_publication(), 1_048_576)?;
-    after_header["last_transition"] = json!({"transaction_id":observation.transaction_id(),"manifest_sha256":observation.manifest_sha256().to_hex(),"record_id":observation.record_id()});
+    after_header["last_transition"] = json!({"transaction_id":observation.transaction_id(),"manifest_sha256":observation.manifest_sha256().to_prefixed(),"record_id":observation.record_id()});
     let (old, new) = {
         let mut old = Reader {
             observation,
