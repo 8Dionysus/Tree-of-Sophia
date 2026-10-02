@@ -480,6 +480,7 @@ class SoftwareSelectionTests(unittest.TestCase):
             self.assertTrue((ROOT / path).is_file(), path)
         self.assertTrue({f'/{path}' for path in required_sources} <= sparse_paths)
         self.assertTrue({f'/{path}' for path in software_schemas} <= software_sparse_paths)
+        self.assertTrue({f'/{path}' for path in generic_xml_inputs} <= software_sparse_paths)
         self.assertTrue({f'/{path}' for path in worker_schemas} <= worker_sparse_paths)
         self.assertIn('!/ToS/source-witnesses/**/payload/', sparse_paths)
         for checkout in (sparse_paths, software_sparse_paths, worker_sparse_paths):
@@ -487,6 +488,7 @@ class SoftwareSelectionTests(unittest.TestCase):
             self.assertNotIn('/ToS/', checkout)
             self.assertNotIn('/ToS/candidate-intake/', checkout)
         self.assertNotIn(f'/{generic_xml_fixture_root}', sparse_paths)
+        self.assertNotIn(f'/{generic_xml_fixture_root}', software_sparse_paths)
 
 
 if __name__ == '__main__':
