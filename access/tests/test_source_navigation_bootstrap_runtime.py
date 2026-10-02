@@ -151,7 +151,7 @@ class SourceNavigationBootstrapTests(unittest.TestCase):
         for db in (self.d1, self.f.db):
             db.execute("BEGIN")
         try:
-            return bootstrap.build_source_navigation_bootstrap_sql(
+            return bootstrap.build_source_navigation_bootstrap_sql_oracle(
                 self.d1,
                 self.f.db,
                 self.root / target_name,
@@ -340,7 +340,7 @@ class SourceNavigationBootstrapTests(unittest.TestCase):
     def _integrity_capture(self, revision, *, limits=None, name='integrity', header_only=False):
         self.d1.execute('BEGIN')
         try:
-            return bootstrap.build_source_navigation_integrity_sql(self.d1, self.root / (name + '.sql'),
+            return bootstrap.build_source_navigation_integrity_sql_oracle(self.d1, self.root / (name + '.sql'),
                 expected_d1_revision=revision, expected_source_revision=self.old_binding['source_revision'],
                 navigation_view=self.navigation_view, expected_navigation_sha256=self.navigation_view.snapshot_digest,
                 rights_view=self.rights_view, expected_rights_sha256=self.rights_view.snapshot_digest,
@@ -434,7 +434,7 @@ class SourceNavigationBootstrapTests(unittest.TestCase):
         for db in (self.d1, before_db, self.f.db):
             db.execute("BEGIN")
         try:
-            result = delta.build_prepared_delta_sql(
+            result = delta.build_prepared_delta_sql_oracle(
                 self.d1,
                 before_db,
                 self.f.db,

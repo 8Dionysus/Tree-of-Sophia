@@ -967,42 +967,57 @@ selected path. Pair operations hold D1 and prepared transactions; integrity
 operations hold the D1 transaction and explicit navigation/rights snapshots.
 Immediately before SQL emission, each held SQLite descriptor, identity guard
 and selected path are checked against the same file identity. This check does
-not establish a live selection lease. The three distinct output paths
-(`forward_sql`, `rollback_sql`, `manifest_json`) must be fresh members of one
-directory. Capture only returns unapplied artifacts; it does not mutate D1,
+not establish a live selection lease. The selected output paths (`forward_sql`, optional `rollback_sql`, and
+`manifest_json`) must be distinct and fresh. SQL and manifest targets may have
+different exclusively owned parents. Delta and catch-up may omit rollback;
+bootstrap and integrity require it. Capture only returns unapplied artifacts; it does not mutate D1,
 switch a consumer or publish to Cloudflare.
 
-The exact top-level request keys for the four existing pair/bootstrap/navigation
-operations are `schema`, `operation`, `d1_database`,
-`before_prepared_database`, `after_prepared_database`,
-`expected_d1_revision`, `before_binding`, `after_binding`, `before_catalog`,
-`after_catalog`, `before_source_inputs_json`, `rights_root`, `forward_sql`,
-`rollback_sql`, `manifest_json` and `limits`; their request ABI remains
-unchanged. `source-navigation-integrity` instead requires exactly `schema`,
-`operation`, `d1_database`, `expected_d1_revision`,
-`expected_source_revision`, `navigation_root`, `rights_root`, `header_only`,
-`forward_sql`, `rollback_sql`, `manifest_json` and `limits`. It takes no
-prepared database or catalog. Each integrity root object has exactly
-`expected_sha256`, `namespace_path` and `root_json`; the expected digest must
-match those exact root bytes. `header_only` is a required boolean for this
-operation and is rejected from the other four request shapes. The limits object
-requires all of these positive finite values: `prepared` (`max_changes`, `max_row_bytes`,
-`max_metadata_bytes`, `max_read_bytes`, `max_rows`, `max_retained_bytes`,
-`max_sql_bytes`, `max_postings`, `max_manifest_rows`), `projection`
-(`max_opened_parts`, `max_read_bytes`, `max_keys`, `max_rows`, `max_changes`,
-`max_output_bytes`) and `pair` (`max_transitions`, `max_work_bytes`,
-`max_sql_bytes`). Hard native caps also bound row and metadata bytes to 8 MiB,
-retained/read/SQL/output bytes to 1 TiB, rows, keys and manifest rows to
-2,000,000, postings to 20,000,000, changes/transitions to 1,000,000 and opened
-parts to 1,000,000. Projection read, part, key, change and output limits accrue
-across the entire navigation operation. Unknown or missing request fields
-refuse before artifact creation.
+The transition/bootstrap request has exactly `schema`, `operation`,
+`d1_database`, `before_prepared_database`, `after_prepared_database`,
+`expected_d1_revision`, `before_binding`, `after_binding`,
+`before_source_inputs_json`, `rights_root`, `forward_sql`, `rollback_sql`,
+`manifest_json` and `limits`. It does not receive source-maintenance catalog
+inputs: the held prepared database supplies its persisted source state and
+reader/catalog/lens metadata, checked against the exact caller binding.
+`source-navigation-integrity` instead requires exactly `schema`, `operation`,
+`d1_database`, `expected_d1_revision`, `expected_source_revision`,
+`navigation_root`, `rights_root`, `header_only`, `forward_sql`, `rollback_sql`,
+`manifest_json` and `limits`. Each integrity root has `expected_sha256`,
+`namespace_path` and `root_json`; that digest must match the exact root bytes.
+`header_only` is a required boolean only on the integrity route.
+
+The request file is bounded by 10 MiB before decoding. Each selected prepared
+binding is bounded by the existing 1 MiB source-state law. Catch-up source-input
+JSON is at most 1 MiB before outer-string escaping; each retained projection
+root is at most 256 KiB. Strict JSON preflight rejects duplicate members and
+bounds depth at 128, visits at 6,500,000, integer digits at 4,300 and logical
+parser state at 2 GiB before constructing the request tree. The preflight tree
+is released before the serde request tree is built. This is not an allocator
+or RSS guarantee; native capture JSON conversion also has the visit limit.
+
+`limits.prepared` contains the nine positive `PreparedD1DeltaLimits` fields:
+`max_changes`, `max_row_bytes`, `max_metadata_bytes`, `max_read_bytes`,
+`max_rows`, `max_retained_bytes`, `max_sql_bytes`, `max_postings` and
+`max_manifest_rows`. Existing API defaults include a 4 MiB row-read ceiling and
+32 MiB metadata ceiling. Emitted SQL retains the independent 2,000,000-byte
+SQL-literal row boundary, including quote escaping and fixed framing.
+Bootstrap and integrity also accept `limits.projection`, containing the ten
+nonnegative `MutationLimits` fields: `max_changes`, `max_input_bytes`,
+`max_opened_parts`, `max_stored_read_bytes`, `max_decoded_bytes`, `max_keys`,
+`max_written_parts`, `max_written_decoded_bytes`, `max_written_stored_bytes`
+and `max_result_bytes`. Read dimensions accrue across the complete operation;
+zero permits no work in that dimension. These routes do not stage COW parts or
+a projection delta, so COW-only dimensions are validated without charging
+nonexistent writes. Transition routes derive their addressed projection budget
+from prepared limits and do not take a caller `projection` or `pair` object.
+Unknown or missing request fields refuse before capture artifacts are created.
 
 `operation` selects one of five source routes:
 
 - `prepared-delta` and `source-navigation-delta` require the held predecessor
-  and successor prepared snapshots plus their exact bindings and catalogs.
-- `prepared-catchup` omits the predecessor prepared file, binding and catalog;
+  and successor prepared snapshots plus their exact bindings.
+- `prepared-catchup` omits the predecessor prepared file and binding;
   it requires the exact predecessor `before_source_inputs_json` and the held
   successor prepared snapshot.
 - `source-navigation-bootstrap` omits all predecessor prepared/source fields
@@ -1010,7 +1025,7 @@ refuse before artifact creation.
   `rights_root` containing only `rights`; collection key/order fields must
   match their source identities. The rights root must carry the complete
   `navigation_header` with schema, authority boundary and counts. Its request
-  object contains `namespace_path`, exact `root_json`, `snapshot_sha256`, and
+  object contains `namespace_path`, exact `root_json`, and
   explicit matching `expected_sha256`/`trusted_sha256` values. These digests
   check bytes and do not assess or admit rights.
 - `source-navigation-integrity` requires the held D1 source/revision, explicit
@@ -1036,7 +1051,19 @@ predecessor. Bootstrap additionally requires the native navigation product to
 be wholly absent. Transitions reuse the maintained D1 row, knowledge, Lens and
 metadata producers, including auxiliary-store guards, exact changed-row
 predecessors, search posting counts and reversible row closure. The command's
-stdout result reports held-snapshot binding checks, while
+stdout is a `tos_edge_offline_capture_result_v1` envelope containing the
+selected `operation` and its actual `receipt`. The receipt schemas are
+`tos_edge_native_prepared_delta_receipt_v1`,
+`tos_edge_native_prepared_catchup_receipt_v1`,
+`tos_edge_native_source_navigation_delta_receipt_v1`,
+`tos_edge_native_source_navigation_bootstrap_receipt_v1` and
+`tos_edge_native_source_navigation_integrity_receipt_v1` (both integrity modes).
+Each receipt retains source/revision bindings, actual artifact hashes and bytes,
+native accounting, auxiliary-store facts and its explicit lineage schema.
+Transition address plans identify actual before/after positions and high-water
+marks; `changed_ids` describes changed addresses. These versioned native fields
+do not relabel Python recorder metrics or promise the old Python receipt shape.
+The receipt reports held-snapshot binding checks, while
 `selected_pair_owner_admitted`, `source_currentness_verified`,
 `rights_admission`, `semantic_acceptance`, `d1_applied` and
 `consumer_switched` remain false. Offline source-input equality is not a live
@@ -1057,7 +1084,7 @@ Example invocation:
 /absolute/prefix/bin/tos edge-offline-capture --request /absolute/scratch/request.json
 ```
 
-For an addressed delta, `request.json` has this shape; each binding and catalog
+For an addressed delta, `request.json` has this shape; each binding
 must be the complete value read from the selected prepared snapshots, and the
 revision must be read from the held D1 predecessor:
 
@@ -1071,8 +1098,6 @@ revision must be read from the held D1 predecessor:
   "expected_d1_revision": "<64 lowercase hex characters>",
   "before_binding": { "exact": "selected predecessor binding object" },
   "after_binding": { "exact": "selected successor binding object" },
-  "before_catalog": { "exact": "selected predecessor catalog object" },
-  "after_catalog": { "exact": "selected successor catalog object" },
   "before_source_inputs_json": null,
   "rights_root": null,
   "forward_sql": "/absolute/scratch/capture/forward.sql",
@@ -1089,47 +1114,52 @@ revision must be read from the held D1 predecessor:
       "max_sql_bytes": 67108864,
       "max_postings": 100000,
       "max_manifest_rows": 10000
-    },
-    "projection": {
-      "max_opened_parts": 1024,
-      "max_read_bytes": 67108864,
-      "max_keys": 10000,
-      "max_rows": 10000,
-      "max_changes": 10000,
-      "max_output_bytes": 33554432
-    },
-    "pair": {
-      "max_transitions": 10000,
-      "max_work_bytes": 67108864,
-      "max_sql_bytes": 67108864
     }
   }
 }
 ```
 
-Both `prepared.max_sql_bytes` and `pair.max_sql_bytes` bound the combined
-forward/reverse SQL bytes; the smaller value governs emission. Projection
-`max_rows` bounds explicit full collection reads; addressed diffs use cumulative
-`max_keys`, `max_changes` and `max_output_bytes` across their collections.
+`prepared.max_sql_bytes` bounds the combined forward/reverse SQL bytes. With
+no reverse target it bounds forward SQL alone; no hidden reverse artifact is
+created. The `exact` binding values above are explanatory placeholders, not an
+accepted binding schema. Keep each selected output parent exclusively owned
+through the invocation. Output targets and the legacy `.next` names must be
+fresh and distinct. Inode checks protect held output custody; they are not an
+interprocess lock or a retained directory identity check. The caller owns each
+parent exclusively; newly created empty parent directories may remain after a
+failed capture.
 
-The `exact` values above are explanatory placeholders, not accepted binding or
-catalog schemas. The output directory must already exist and be freshly created
-for this invocation. Keep it exclusively owned for the full invocation; do not
-allow concurrent writers to create or replace output paths. The three output
-files must not exist before invocation. Inode checks protect cleanup within this
-custody boundary and are not an interprocess lock.
+The returning Python APIs live in `scripts/prepared_delta_runtime.py` and
+`scripts/source_navigation_bootstrap_runtime.py`. Their four public functions
+select the Rust capture operation through an explicit `native_capture` keyword.
+Supply a `tos_access.native_edge_capture.NativeCaptureContext` containing an
+absolute installed `prefix`, an exclusively owned existing `scratch` directory,
+one original absolute monotonic `deadline`, a cumulative `max_snapshot_bytes`
+budget and a per-stream `max_stream_bytes` budget. Missing context refuses;
+there is no automatic software discovery or Python fallback. Algorithmic limits
+keep their existing defaults. Delta and catch-up still permit
+`rollback_target=None`; bootstrap and integrity require a reverse target.
 
-The Python APIs remain in `scripts/prepared_delta_runtime.py`,
-`scripts/source_navigation_bootstrap_runtime.py` and
-`scripts/source_navigation_delta_runtime.py`. Their functions remain the
-maintained documented API and are available to fixtures as independent parity
-oracles; the native command does not import them. The documented
-`build_source_navigation_integrity_sql` and its `header_only` continuation now
-have a native offline capture route, while the Python function remains the
-independent oracle and documented API. No application caller migration or API
-retirement is claimed. Any later removal needs a separate source-owner decision
-after every non-test caller has migrated and the installed six-route/mode
-differential has reviewed complete metadata/audit rows. The maintained fixtures
-keep Python as the oracle. This source candidate claims no cutover or owner
-admission, and neither entry authenticates an owner-selected D1 pair or
-establishes publication/currentness by itself.
+These functions are host source adapters, not members of the standard native
+software archive. Keep the exact Python source package and script district
+available to the caller. The bridge runs the existing installed-prefix verifier
+in an owned child, then executes its verified ELF. It serializes each borrowed
+SQLite transaction through that same connection, including its selected
+uncommitted view; it does not reopen the current database pathname or modify the
+caller transaction. The bridge returns the actual native operation receipt and
+removes only its internal manifest and temporary snapshot files after bounded
+child cleanup. An unreleased child/group retains its selected input directory
+and reports a custody error. WAL and dirty-view interpretation, default limits,
+optional rollback and complete receipts require the corresponding installed
+consumer checks; a source candidate or direct CLI run does not establish them.
+
+The retained reference functions are `build_prepared_delta_sql_oracle`,
+`build_prepared_catchup_sql_oracle`,
+`build_source_navigation_bootstrap_sql_oracle` and
+`build_source_navigation_integrity_sql_oracle`. Their bodies remain independent
+Python implementations, and fixtures select these names explicitly. The
+internal `scripts/source_navigation_delta_runtime.py` composition remains an
+independent reference helper. No Python oracle retirement, accepted API cutover,
+owner-selected D1 pair, global currentness or publication authority is claimed
+by this source candidate. Review the complete six-mode differential and real
+returning callers before changing that disposition.

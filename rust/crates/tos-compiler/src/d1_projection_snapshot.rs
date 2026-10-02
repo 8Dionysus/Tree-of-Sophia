@@ -26,6 +26,10 @@ const MAX_KEY_BYTES: usize = 4096;
 pub struct D1ProjectionLimits {
     pub max_opened_parts: u64,
     pub max_read_bytes: u64,
+    /// Independent physical bytes accepted from compressed/stored parts.
+    pub max_stored_read_bytes: u64,
+    /// Independent bytes accepted after decoding parts and retaining roots.
+    pub max_decoded_bytes: u64,
     pub max_keys: u64,
     /// Maximum rows retained by an explicit full collection read.
     pub max_rows: u64,
@@ -38,6 +42,8 @@ impl Default for D1ProjectionLimits {
         Self {
             max_opened_parts: 256,
             max_read_bytes: 128 * 1024 * 1024,
+            max_stored_read_bytes: 128 * 1024 * 1024,
+            max_decoded_bytes: 128 * 1024 * 1024,
             max_keys: 4096,
             max_rows: 200_000,
             max_changes: 512,
@@ -269,6 +275,8 @@ impl Work {
             output_bytes: self.used.output_bytes,
         };
         if next.opened_parts > self.limits.max_opened_parts
+            || next.stored_bytes > self.limits.max_stored_read_bytes
+            || next.decoded_bytes > self.limits.max_decoded_bytes
             || add(next.stored_bytes, next.decoded_bytes)? > self.limits.max_read_bytes
             || next.keys > self.limits.max_keys
         {
@@ -881,15 +889,10 @@ fn descriptor_identity(value: &Value) -> Result<Vec<u8>> {
 }
 
 fn validate_limits(limits: D1ProjectionLimits) -> Result<()> {
-    if limits.max_opened_parts == 0
-        || limits.max_read_bytes == 0
-        || limits.max_keys == 0
-        || limits.max_rows == 0
-        || limits.max_changes == 0
-        || limits.max_output_bytes == 0
-    {
-        return Err(Error::Budget("D1 projection limits"));
-    }
+    // Zero is a meaningful caller limit: empty selections may still fit,
+    // while the first charge to that resource refuses before reading or
+    // retaining the over-budget projection item.
+    let _ = limits;
     Ok(())
 }
 

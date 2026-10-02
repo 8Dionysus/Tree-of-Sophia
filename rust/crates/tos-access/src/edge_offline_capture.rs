@@ -24,23 +24,35 @@ use tos_compiler::{
     SearchBuildLimits,
     d1::{
         D1AuxiliaryStore, D1Cell, D1PairInput, D1PairLimits, D1PredecessorMode, D1RowTransition,
-        D1Table, auxiliary_binding_candidates, emit_d1_pair, target_d1_revision,
+        D1Table, MAX_D1_SQL_ROW_VALUE_BYTES, auxiliary_binding_candidates, emit_d1_capture,
+        target_d1_revision,
     },
     d1_prepared_pair::inspect_offline_source_inputs,
     d1_projection_snapshot::{D1ProjectionAccounting, D1ProjectionLimits, D1ProjectionSnapshot},
     local_prepared::PublicationLimits,
-    prepared_catalog_semantics::{CatalogInputs, SourceOrderProfile},
-    prepared_source_binding::{PreparedSourceInputs, read_prepared_source_inputs_transaction},
+    prepared_source_binding::{PreparedSourceInputs, validate_prepared_source_state},
     project_private_knowledge_row, project_private_lens_auxiliary_rows,
     project_private_navigation_row,
 };
 use tos_foundation::{
     CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonString, JsonValue,
-    canonical_bytes_v1, emit_python_compact_json, parse_json,
+    canonical_bytes_v1, emit_python_compact_json, parse_json, parse_json_with_state_budget,
 };
 
 const REQUEST_SCHEMA: &str = "tos_edge_offline_capture_request_v1";
-const REQUEST_BYTES: usize = 1_048_576;
+// Prepared bindings are each capped at 1 MiB by the source binding validator;
+// catch-up source inputs are capped at 1 MiB, and each projection root at
+// 256 KiB. Outer string escaping plus fixed paths/fields fit inside this
+// catalog-free request envelope. This is a request-file cap, not a heap claim.
+const REQUEST_BYTES: usize = 10 * 1024 * 1024;
+const REQUEST_JSON_VISITS: usize = 6_500_000;
+// Foundation's state budget prices its retained values, strings, vectors,
+// object indexes and recursive stack slots. The preflight tree is dropped
+// before the serde request tree is constructed; allocator overhead/RSS are a
+// separate process resource bound.
+const REQUEST_JSON_STATE_BYTES: usize = 2 * 1024 * 1024 * 1024;
+const CAPTURE_JSON_VISITS: usize = 6_500_000;
+const PREPARED_SOURCE_BYTES: usize = 1_048_576;
 const PREPARED_SCHEMA: &str = "tos_local_prepared_read_model_v1";
 const D1_SCHEMA: &str = "tos_cloudflare_edge_read_model_v9";
 
@@ -188,19 +200,28 @@ fn positive(value: &Value, key: &str) -> Result<u64, String> {
         .ok_or_else(|| invalid("request finite positive limit"))
 }
 
-fn limits(value: &Value) -> Result<Limits, String> {
-    exact(
-        value,
-        &["prepared", "projection", "pair"],
-        "capture limits shape",
-    )?;
+fn nonnegative(value: &Value, key: &str) -> Result<u64, String> {
+    value
+        .get(key)
+        .and_then(Value::as_u64)
+        .ok_or_else(|| invalid("request finite nonnegative limit"))
+}
+
+fn limits(value: &Value, operation: &str) -> Result<Limits, String> {
+    let has_projection = matches!(
+        operation,
+        "source-navigation-bootstrap" | "source-navigation-integrity"
+    );
+    let fields: &[&str] = if has_projection {
+        &["prepared", "projection"]
+    } else {
+        &["prepared"]
+    };
+    exact(value, fields, "capture limits shape")?;
     let prepared = value
         .get("prepared")
         .ok_or_else(|| invalid("prepared limits"))?;
-    let projection = value
-        .get("projection")
-        .ok_or_else(|| invalid("projection limits"))?;
-    let pair = value.get("pair").ok_or_else(|| invalid("pair limits"))?;
+    let projection = value.get("projection");
     exact(
         prepared,
         &[
@@ -215,23 +236,6 @@ fn limits(value: &Value) -> Result<Limits, String> {
             "max_manifest_rows",
         ],
         "prepared limit fields",
-    )?;
-    exact(
-        projection,
-        &[
-            "max_opened_parts",
-            "max_read_bytes",
-            "max_keys",
-            "max_rows",
-            "max_changes",
-            "max_output_bytes",
-        ],
-        "projection limit fields",
-    )?;
-    exact(
-        pair,
-        &["max_transitions", "max_work_bytes", "max_sql_bytes"],
-        "pair limit fields",
     )?;
     let max_changes = usize::try_from(positive(prepared, "max_changes")?)
         .map_err(|_| invalid("prepared max_changes"))?;
@@ -249,22 +253,99 @@ fn limits(value: &Value) -> Result<Limits, String> {
         .map_err(|_| invalid("prepared posting limit"))?;
     let max_manifest_rows = usize::try_from(positive(prepared, "max_manifest_rows")?)
         .map_err(|_| invalid("prepared manifest limit"))?;
-    let projection_limits = D1ProjectionLimits {
-        max_opened_parts: positive(projection, "max_opened_parts")?,
-        max_read_bytes: positive(projection, "max_read_bytes")?,
-        max_keys: positive(projection, "max_keys")?,
-        max_rows: positive(projection, "max_rows")?,
-        max_changes: positive(projection, "max_changes")?,
-        max_output_bytes: positive(projection, "max_output_bytes")?,
+    let projection_limits = if let Some(projection) = projection {
+        exact(
+            projection,
+            &[
+                "max_changes",
+                "max_input_bytes",
+                "max_opened_parts",
+                "max_stored_read_bytes",
+                "max_decoded_bytes",
+                "max_keys",
+                "max_written_parts",
+                "max_written_decoded_bytes",
+                "max_written_stored_bytes",
+                "max_result_bytes",
+            ],
+            "projection limit fields",
+        )?;
+        // MutationLimits describes read and COW-output dimensions. This
+        // producer reads immutable roots and emits SQL, so its read ceilings
+        // are preserved independently; COW write/result ceilings do not
+        // constrain an operation that creates no projection parts or delta.
+        let max_opened_parts = nonnegative(projection, "max_opened_parts")?;
+        let max_stored_read_bytes = nonnegative(projection, "max_stored_read_bytes")?;
+        let max_decoded_bytes = nonnegative(projection, "max_decoded_bytes")?;
+        let max_read_bytes = max_stored_read_bytes
+            .checked_add(max_decoded_bytes)
+            .ok_or_else(|| invalid("projection read byte limit overflow"))?;
+        let max_keys = nonnegative(projection, "max_keys")?;
+        for key in [
+            "max_changes",
+            "max_input_bytes",
+            "max_written_parts",
+            "max_written_decoded_bytes",
+            "max_written_stored_bytes",
+            "max_result_bytes",
+        ] {
+            let _ = nonnegative(projection, key)?;
+        }
+        D1ProjectionLimits {
+            max_opened_parts,
+            max_read_bytes,
+            max_stored_read_bytes,
+            max_decoded_bytes,
+            max_keys,
+            max_rows: max_rows as u64,
+            max_changes: max_changes as u64,
+            max_output_bytes: max_retained_bytes as u64,
+        }
+    } else {
+        // The maintained source-navigation delta derives its snapshot-diff
+        // limits from PreparedD1DeltaLimits; there is no separate caller
+        // MutationLimits argument on that API.
+        let max_opened_parts = max_changes.saturating_mul(4).min(256) as u64;
+        let max_stored_read_bytes = max_opened_parts.saturating_mul(8 * 1024 * 1024);
+        let max_decoded_bytes = max_read_bytes;
+        D1ProjectionLimits {
+            max_opened_parts,
+            max_read_bytes: max_stored_read_bytes.saturating_add(max_decoded_bytes),
+            max_stored_read_bytes,
+            max_decoded_bytes,
+            max_keys: (max_changes as u64).saturating_mul(16),
+            max_rows: max_rows as u64,
+            max_changes: max_changes as u64,
+            max_output_bytes: max_retained_bytes as u64,
+        }
     };
-    let mut pair_limits = D1PairLimits {
-        max_transitions: positive(pair, "max_transitions")?,
-        max_work_bytes: positive(pair, "max_work_bytes")?,
-        max_sql_bytes: positive(pair, "max_sql_bytes")?,
+    // Derive internal emitter bounds from the maintained capture counters;
+    // these are not another caller-selected budget. The source API separately
+    // bounds changed rows, retained projections, search postings and manifest
+    // scanning. Two serialized row sides plus SQL quoting and fixed row
+    // framing fit under this conservative mechanical work allowance.
+    let pair_transition_bound = (max_rows as u64)
+        .checked_add(max_postings as u64)
+        .and_then(|value| value.checked_add(max_manifest_rows as u64))
+        .and_then(|value| value.checked_add(max_changes as u64))
+        .ok_or_else(|| invalid("private pair transition limit overflow"))?;
+    let max_work_bytes = u64::try_from(max_retained_bytes)
+        .ok()
+        .and_then(|bytes| bytes.checked_mul(2))
+        .and_then(|bytes| bytes.checked_add(max_sql_bytes.checked_mul(2)?))
+        .and_then(|bytes| bytes.checked_add(pair_transition_bound.checked_mul(2048)?))
+        .ok_or_else(|| invalid("private pair work limit overflow"))?;
+    let pair_limits = D1PairLimits {
+        max_transitions: pair_transition_bound,
+        max_work_bytes,
+        max_sql_bytes,
+        // Prepared row reads allow 4 MiB by default; the maintained SQL
+        // producer independently caps emitted literal rows at 2,000,000 bytes.
+        max_row_bytes: MAX_D1_SQL_ROW_VALUE_BYTES,
     };
     if max_changes > 1_000_000
         || max_row_bytes > 8 * 1024 * 1024
-        || max_metadata_bytes > 8 * 1024 * 1024
+        || max_metadata_bytes > 32 * 1024 * 1024
         || max_read_bytes > (1u64 << 40)
         || u64::try_from(max_retained_bytes).map_or(true, |bytes| bytes > (1u64 << 40))
         || max_rows > 2_000_000
@@ -277,14 +358,9 @@ fn limits(value: &Value) -> Result<Limits, String> {
         || projection_limits.max_rows > 2_000_000
         || projection_limits.max_changes > 1_000_000
         || projection_limits.max_output_bytes > (1u64 << 40)
-        || pair_limits.max_transitions > 1_000_000
-        || pair_limits.max_work_bytes > (1u64 << 40)
-        || pair_limits.max_sql_bytes > (1u64 << 40)
     {
         return Err(invalid("capture limits exceed native portable caps"));
     }
-    // Both declared SQL budgets bound the same emitted forward/reverse pair.
-    pair_limits.max_sql_bytes = pair_limits.max_sql_bytes.min(max_sql_bytes);
     Ok(Limits {
         prepared: PublicationLimits {
             max_bytes: max_read_bytes,
@@ -316,18 +392,84 @@ fn input_path(value: &str) -> Result<PathBuf, String> {
 }
 
 fn output_path(value: &str) -> Result<PathBuf, String> {
-    let path = Path::new(value);
-    if !path.is_absolute() || path.exists() || path.is_symlink() || path.file_name().is_none() {
+    let supplied = Path::new(value);
+    if !supplied.is_absolute() || supplied.file_name().is_none() {
         return Err(invalid("capture output must be a fresh absolute path"));
     }
-    let parent = path
+    let supplied_parent = supplied
         .parent()
         .ok_or_else(|| invalid("capture output parent"))?;
-    let parent = fs::canonicalize(parent).map_err(|error| error.to_string())?;
-    let name = path
+    let name = supplied
         .file_name()
+        .filter(|name| !name.is_empty())
         .ok_or_else(|| invalid("capture output name"))?;
-    Ok(parent.join(name))
+
+    // The maintained API creates target parents after selecting both SQL
+    // destinations. Canonicalize the nearest existing ancestor, then append
+    // only normalized, not-yet-existing directory components. This accepts
+    // fresh nested parents without accepting a final symlink or `..` escape.
+    let mut normalized_parent = PathBuf::new();
+    for component in supplied_parent.components() {
+        match component {
+            std::path::Component::RootDir => normalized_parent.push("/"),
+            std::path::Component::Normal(part) => normalized_parent.push(part),
+            std::path::Component::ParentDir => {
+                normalized_parent.pop();
+            }
+            std::path::Component::CurDir => {}
+            std::path::Component::Prefix(_) => {
+                return Err(invalid("capture output path prefix"));
+            }
+        }
+    }
+    let mut missing = Vec::new();
+    let mut ancestor = normalized_parent.as_path();
+    let canonical_parent = loop {
+        match fs::canonicalize(ancestor) {
+            Ok(canonical) => {
+                if !canonical.is_dir() {
+                    return Err(invalid("capture output parent is not a directory"));
+                }
+                break canonical;
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                let component = ancestor
+                    .file_name()
+                    .filter(|component| !component.is_empty())
+                    .ok_or_else(|| invalid("capture output parent is unavailable"))?;
+                missing.push(component.to_owned());
+                ancestor = ancestor
+                    .parent()
+                    .ok_or_else(|| invalid("capture output parent is unavailable"))?;
+            }
+            Err(error) => return Err(error.to_string()),
+        }
+    };
+    let mut parent = canonical_parent;
+    for component in missing.iter().rev() {
+        parent.push(component);
+    }
+    let path = parent.join(name);
+    match fs::symlink_metadata(&path) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(path),
+        Ok(_) => Err(invalid("capture output must be fresh and not a symlink")),
+        Err(error) => Err(error.to_string()),
+    }
+}
+
+fn validate_capture_outputs(
+    forward: &Path,
+    rollback: Option<&Path>,
+    manifest: &Path,
+) -> Result<(), String> {
+    let mut paths = vec![forward.to_owned(), manifest.to_owned()];
+    if let Some(rollback) = rollback {
+        paths.push(rollback.to_owned());
+    }
+    if paths.iter().collect::<BTreeSet<_>>().len() != paths.len() {
+        return Err(invalid("capture output paths must be distinct"));
+    }
+    Ok(())
 }
 
 struct HeldSqlite {
@@ -379,7 +521,11 @@ fn process_fds() -> Result<BTreeSet<i32>, String> {
         .collect()
 }
 
-fn open_read_only(path: &Path, vm_steps: u64) -> Result<HeldSqlite, String> {
+fn open_read_only(
+    path: &Path,
+    vm_steps: u64,
+    max_value_bytes: usize,
+) -> Result<HeldSqlite, String> {
     let descriptors_before = process_fds()?;
     let identity_guard = tos_fd_open::open_absolute_regular(path, u64::MAX)
         .map_err(|error| format!("pin selected SQLite input: {error}"))?;
@@ -405,7 +551,7 @@ fn open_read_only(path: &Path, vm_steps: u64) -> Result<HeldSqlite, String> {
     );
     db.set_limit(
         rusqlite::limits::Limit::SQLITE_LIMIT_LENGTH,
-        8 * 1024 * 1024,
+        i32::try_from(max_value_bytes).map_err(|_| invalid("SQLite value byte limit"))?,
     )
     .map_err(|error| error.to_string())?;
     db.set_limit(rusqlite::limits::Limit::SQLITE_LIMIT_SQL_LENGTH, 1_000_000)
@@ -454,24 +600,68 @@ fn open_read_only(path: &Path, vm_steps: u64) -> Result<HeldSqlite, String> {
 
 fn foundation(value: &Value, cap: usize) -> Result<JsonValue, String> {
     let raw = serde_json::to_vec(value).map_err(|error| error.to_string())?;
-    let limits = JsonLimits::new(cap, 128, 1_000_000, 4300).map_err(|error| error.to_string())?;
+    let limits =
+        JsonLimits::new(cap, 128, CAPTURE_JSON_VISITS, 4300).map_err(|error| error.to_string())?;
     parse_json(&raw, JsonMode::PublishedStrict, limits)
         .map(|document| document.into_root())
         .map_err(|error| error.to_string())
 }
 
 fn foundation_raw(raw: &[u8], cap: usize) -> Result<JsonValue, String> {
-    let limits = JsonLimits::new(cap, 128, 1_000_000, 4300).map_err(|error| error.to_string())?;
+    let limits =
+        JsonLimits::new(cap, 128, CAPTURE_JSON_VISITS, 4300).map_err(|error| error.to_string())?;
     parse_json(raw, JsonMode::PublishedStrict, limits)
         .map(|document| document.into_root())
         .map_err(|error| error.to_string())
+}
+
+/// Read the maintained source pairing through its exact persisted binding.
+/// The Python prepared-delta/bootstrap APIs accept this binding, not the
+/// compiler's source-maintenance CatalogInputs; reader/catalog/lens metadata
+/// are checked independently against the held D1 and prepared snapshots.
+fn prepared_source_inputs_held(
+    tx: &Transaction<'_>,
+    expected: &JsonValue,
+    limits: Limits,
+    read_bytes: &mut D1ReadBytes,
+) -> Result<PreparedSourceInputs, String> {
+    let cap = PREPARED_SOURCE_BYTES.min(limits.prepared.max_metadata_bytes);
+    let mut statement = tx
+        .prepare("SELECT CASE WHEN typeof(binding)='text' AND length(CAST(binding AS BLOB))<=?1 THEN binding END,CASE WHEN typeof(inputs)='text' AND length(CAST(inputs AS BLOB))<=?1 THEN inputs END,CASE WHEN typeof(sha256)='text' AND length(sha256)=64 THEN sha256 END,length(CAST(json_array(binding,inputs,sha256) AS BLOB)) FROM prepared_source_state WHERE singleton=1 LIMIT 2")
+        .map_err(|error| error.to_string())?;
+    let mut rows = statement.query([cap]).map_err(|error| error.to_string())?;
+    let row = rows
+        .next()
+        .map_err(|error| error.to_string())?
+        .ok_or_else(|| invalid("prepared source selection absent"))?;
+    let encoded_bytes: i64 = row.get(3).map_err(|error| error.to_string())?;
+    let encoded_bytes = usize::try_from(encoded_bytes)
+        .map_err(|_| invalid("prepared source selection byte count"))?;
+    read_bytes.charge(encoded_bytes)?;
+    let binding: Option<String> = row.get(0).map_err(|error| error.to_string())?;
+    let inputs: Option<String> = row.get(1).map_err(|error| error.to_string())?;
+    let digest: Option<String> = row.get(2).map_err(|error| error.to_string())?;
+    if rows.next().map_err(|error| error.to_string())?.is_some() {
+        return Err(invalid("prepared source selection is not unique"));
+    }
+    let binding = binding.ok_or_else(|| invalid("prepared source binding bytes"))?;
+    let inputs = inputs.ok_or_else(|| invalid("prepared source inputs bytes"))?;
+    let digest = digest.ok_or_else(|| invalid("prepared source digest"))?;
+    validate_prepared_source_state(
+        expected,
+        binding.as_bytes(),
+        inputs.as_bytes(),
+        &digest,
+        limits.prepared,
+    )
+    .map_err(|error| error.to_string())
 }
 
 fn compact(value: &Value, cap: usize) -> Result<String, String> {
     let typed = foundation(value, cap)?;
     let raw = emit_python_compact_json(
         &typed,
-        JsonLimits::new(cap, 128, 1_000_000, 4300).map_err(|error| error.to_string())?,
+        JsonLimits::new(cap, 128, CAPTURE_JSON_VISITS, 4300).map_err(|error| error.to_string())?,
     )
     .map_err(|error| error.to_string())?;
     String::from_utf8(raw).map_err(|error| error.to_string())
@@ -480,7 +670,7 @@ fn compact(value: &Value, cap: usize) -> Result<String, String> {
 fn compact_foundation(value: &JsonValue, cap: usize) -> Result<String, String> {
     let raw = emit_python_compact_json(
         value,
-        JsonLimits::new(cap, 128, 1_000_000, 4300).map_err(|error| error.to_string())?,
+        JsonLimits::new(cap, 128, CAPTURE_JSON_VISITS, 4300).map_err(|error| error.to_string())?,
     )
     .map_err(|error| error.to_string())?;
     String::from_utf8(raw).map_err(|error| error.to_string())
@@ -493,45 +683,10 @@ fn compact_ordered_metadata(fields: Vec<(&str, Value)>, cap: usize) -> Result<St
     }
     let raw = emit_python_compact_json(
         &JsonValue::Object(ordered),
-        JsonLimits::new(cap, 128, 1_000_000, 4300).map_err(|error| error.to_string())?,
+        JsonLimits::new(cap, 128, CAPTURE_JSON_VISITS, 4300).map_err(|error| error.to_string())?,
     )
     .map_err(|error| error.to_string())?;
     String::from_utf8(raw).map_err(|error| error.to_string())
-}
-
-fn catalog(value: &Value, cap: usize) -> Result<CatalogInputs, String> {
-    exact(
-        value,
-        &[
-            "header",
-            "entity_registry",
-            "relation_registry",
-            "lenses",
-            "source_order_profile",
-        ],
-        "catalog inputs shape",
-    )?;
-    let profile = match string(value, "source_order_profile")? {
-        "owner-sequence-v1" => SourceOrderProfile::OwnerSequence,
-        "source-graph-id-v1" => SourceOrderProfile::SourceGraphId,
-        _ => return Err(invalid("catalog source-order profile")),
-    };
-    let lenses = value
-        .get("lenses")
-        .and_then(Value::as_array)
-        .ok_or_else(|| invalid("catalog lenses"))?
-        .iter()
-        .map(|item| foundation(item, cap))
-        .collect::<Result<Vec<_>, _>>()?;
-    let inputs = CatalogInputs {
-        header: foundation(&value["header"], cap)?,
-        entity_registry: foundation(&value["entity_registry"], cap)?,
-        relation_registry: foundation(&value["relation_registry"], cap)?,
-        lenses,
-        source_order_profile: profile,
-    };
-    inputs.validate().map_err(|error| error.to_string())?;
-    Ok(inputs)
 }
 
 fn digest(raw: &[u8]) -> String {
@@ -566,18 +721,11 @@ fn implementation_digest() -> String {
     hasher.finalize().to_hex()
 }
 
-fn parse_meta(
-    db: &Transaction<'_>,
-    key: &str,
-    limits: Limits,
-) -> Result<(Value, Vec<D1RowTransition>, String), String> {
-    parse_meta_accounted(db, key, limits, None)
-}
 fn parse_meta_accounted(
     db: &Transaction<'_>,
     key: &str,
     limits: Limits,
-    mut read_bytes: Option<&mut D1ReadBytes>,
+    read_bytes: &mut D1ReadBytes,
 ) -> Result<(Value, Vec<D1RowTransition>, String), String> {
     let mut statement = db.prepare("SELECT part,CASE WHEN typeof(json_chunk)='text' AND length(CAST(json_chunk AS BLOB))<=?1 THEN json_chunk END FROM edge_meta WHERE key=?2 ORDER BY part LIMIT ?3")
         .map_err(|error| error.to_string())?;
@@ -607,9 +755,7 @@ fn parse_meta_accounted(
         {
             return Err(invalid("D1 metadata bytes budget"));
         }
-        if let Some(account) = read_bytes.as_deref_mut() {
-            account.charge(chunk_bytes)?;
-        }
+        read_bytes.charge(chunk_bytes)?;
         let chunk: String = row.get(1).map_err(|error| error.to_string())?;
         if part != expected {
             return Err(invalid("D1 metadata chunk sequence"));
@@ -1227,22 +1373,40 @@ fn root_for<'a>(
         .ok_or_else(|| invalid("prepared source-navigation root absent"))
 }
 
-fn prepared_descriptor(db: &Transaction<'_>, limits: Limits) -> Result<Value, String> {
+fn prepared_descriptor(
+    db: &Transaction<'_>,
+    limits: Limits,
+    read_bytes: &mut D1ReadBytes,
+    expected_data_revision: &str,
+) -> Result<Value, String> {
+    let max_bytes = limits
+        .prepared
+        .max_metadata_bytes
+        .min(read_bytes.remaining()?);
     let mut statement = db
-        .prepare("SELECT descriptor FROM prepared_state WHERE singleton=1 LIMIT 2")
+        .prepare("SELECT CASE WHEN typeof(descriptor)='text' AND length(CAST(descriptor AS BLOB))<=?1 THEN descriptor END FROM prepared_state WHERE singleton=1 LIMIT 2")
         .map_err(|error| error.to_string())?;
-    let mut rows = statement.query([]).map_err(|error| error.to_string())?;
+    let mut rows = statement
+        .query([max_bytes])
+        .map_err(|error| error.to_string())?;
     let row = rows
         .next()
         .map_err(|error| error.to_string())?
         .ok_or_else(|| invalid("prepared descriptor absent"))?;
-    let raw: Option<String> = row.get(0).map_err(|error| error.to_string())?;
+    let descriptor_bytes = match row.get_ref(0).map_err(|error| error.to_string())? {
+        ValueRef::Text(value) => value.len(),
+        _ => return Err(invalid("prepared descriptor bytes")),
+    };
+    read_bytes.charge(descriptor_bytes)?;
+    let raw: String = row.get(0).map_err(|error| error.to_string())?;
     if rows.next().map_err(|error| error.to_string())?.is_some() {
         return Err(invalid("prepared descriptor is not unique"));
     }
-    let raw = raw.ok_or_else(|| invalid("prepared descriptor bytes"))?;
-    if raw.len() > limits.prepared.max_metadata_bytes {
+    if raw.len() > max_bytes {
         return Err(invalid("prepared descriptor byte budget"));
+    }
+    if digest(raw.as_bytes()) != expected_data_revision {
+        return Err(invalid("prepared descriptor digest differs from binding"));
     }
     let value: Value =
         serde_json::from_str(&raw).map_err(|_| invalid("prepared descriptor JSON"))?;
@@ -1303,16 +1467,7 @@ fn exact_prepared_item(
     kind: &str,
     id: &str,
     limits: Limits,
-) -> Result<Option<String>, String> {
-    exact_prepared_item_accounted(db, kind, id, limits, None)
-}
-
-fn exact_prepared_item_accounted(
-    db: &Transaction<'_>,
-    kind: &str,
-    id: &str,
-    limits: Limits,
-    mut read_bytes: Option<&mut D1ReadBytes>,
+    read_bytes: &mut D1ReadBytes,
 ) -> Result<Option<String>, String> {
     if !matches!(kind, "node" | "relation") || id.is_empty() || id.len() > 4096 {
         return Err(invalid("prepared row identity"));
@@ -1322,10 +1477,7 @@ fn exact_prepared_item_accounted(
     } else {
         "knowledge_relations"
     };
-    let row_cap = match read_bytes.as_deref() {
-        Some(account) => account.remaining()?.min(limits.prepared.max_row_bytes),
-        None => limits.prepared.max_row_bytes,
-    };
+    let row_cap = read_bytes.remaining()?.min(limits.prepared.max_row_bytes);
     let mut statement = db
         .prepare(&format!("SELECT CASE WHEN typeof(json)='text' AND length(CAST(json AS BLOB))<=?1 THEN json END,length(CAST(json AS BLOB)) FROM {table} WHERE id=?2 LIMIT 2"))
         .map_err(|error| error.to_string())?;
@@ -1335,15 +1487,13 @@ fn exact_prepared_item_accounted(
     let Some(row) = rows.next().map_err(|error| error.to_string())? else {
         return Ok(None);
     };
-    if let Some(account) = read_bytes.as_deref_mut() {
-        let raw_bytes: i64 = row.get(1).map_err(|error| error.to_string())?;
-        let raw_bytes =
-            usize::try_from(raw_bytes).map_err(|_| invalid("prepared row JSON byte count"))?;
-        if raw_bytes > limits.prepared.max_row_bytes {
-            return Err(invalid("prepared row byte budget"));
-        }
-        account.charge(raw_bytes)?;
+    let raw_bytes: i64 = row.get(1).map_err(|error| error.to_string())?;
+    let raw_bytes =
+        usize::try_from(raw_bytes).map_err(|_| invalid("prepared row JSON byte count"))?;
+    if raw_bytes > limits.prepared.max_row_bytes {
+        return Err(invalid("prepared row byte budget"));
     }
+    read_bytes.charge(raw_bytes)?;
     let raw: Option<String> = row.get(0).map_err(|error| error.to_string())?;
     if rows.next().map_err(|error| error.to_string())?.is_some() {
         return Err(invalid("prepared row identity is not unique"));
@@ -1461,7 +1611,7 @@ fn private_manifest(
     kind: &str,
     limits: Limits,
     retained: &mut RetainedBytes,
-    mut read_bytes: Option<&mut D1ReadBytes>,
+    read_bytes: &mut D1ReadBytes,
 ) -> Result<BTreeMap<String, String>, String> {
     let prefix = format!("knowledge_{kind}_digest:");
     let upper = format!("knowledge_{kind}_digest;");
@@ -1471,11 +1621,7 @@ fn private_manifest(
     let raw_expr = format!(
         "CASE WHEN typeof(json_chunk)='text' AND length(CAST(json_chunk AS BLOB))<=?2 THEN json_chunk END"
     );
-    let json_size = if read_bytes.is_some() {
-        format!(",length(CAST(json_array({key_expr},part,{raw_expr}) AS BLOB))")
-    } else {
-        String::new()
-    };
+    let json_size = format!(",length(CAST(json_array({key_expr},part,{raw_expr}) AS BLOB))");
     let mut statement = db
         .prepare(&format!("SELECT {key_expr},part,{raw_expr}{json_size} FROM edge_meta WHERE key>=?3 AND key<?4 ORDER BY key,part LIMIT ?5"))
         .map_err(|error| error.to_string())?;
@@ -1493,15 +1639,13 @@ fn private_manifest(
         if output.len() >= limits.max_manifest_rows {
             return Err(invalid("prepared digest manifest row budget"));
         }
-        if let Some(account) = read_bytes.as_deref_mut() {
-            account_json_row(
-                row,
-                3,
-                limits.prepared.max_row_bytes,
-                account,
-                "prepared digest manifest row byte budget",
-            )?;
-        }
+        account_json_row(
+            row,
+            3,
+            limits.prepared.max_row_bytes,
+            read_bytes,
+            "prepared digest manifest row byte budget",
+        )?;
         let key: Option<String> = row.get(0).map_err(|error| error.to_string())?;
         let key = key.ok_or_else(|| invalid("prepared digest manifest key size"))?;
         let part: i64 = row.get(1).map_err(|error| error.to_string())?;
@@ -1556,7 +1700,7 @@ fn all_row_ids(
     kind: &str,
     limits: Limits,
     retained: &mut RetainedBytes,
-    mut read_bytes: Option<&mut D1ReadBytes>,
+    read_bytes: &mut D1ReadBytes,
 ) -> Result<BTreeSet<String>, String> {
     let table = if kind == "node" {
         "knowledge_nodes"
@@ -1574,13 +1718,11 @@ fn all_row_ids(
         if ids.len() >= limits.max_manifest_rows {
             return Err(invalid("prepared row inventory limit"));
         }
-        if let Some(account) = read_bytes.as_deref_mut() {
-            let bytes = match row.get_ref(0).map_err(|error| error.to_string())? {
-                ValueRef::Text(value) => value.len(),
-                _ => return Err(invalid("prepared row inventory identity size")),
-            };
-            account.charge(bytes)?;
-        }
+        let bytes = match row.get_ref(0).map_err(|error| error.to_string())? {
+            ValueRef::Text(value) => value.len(),
+            _ => return Err(invalid("prepared row inventory identity size")),
+        };
+        read_bytes.charge(bytes)?;
         let id: Option<String> = row.get(0).map_err(|error| error.to_string())?;
         let id = id.ok_or_else(|| invalid("prepared row inventory identity size"))?;
         if id.is_empty() {
@@ -1933,6 +2075,8 @@ fn navigation_delta_transitions(
             BTreeMap<(D1Table, String), Vec<D1Cell>>,
         ),
         Option<String>,
+        u64,
+        D1ProjectionAccounting,
     ),
     String,
 > {
@@ -1991,7 +2135,7 @@ fn navigation_delta_transitions(
         return Err(invalid("source-navigation header policy changed"));
     }
     let (top, top_rows, top_raw) =
-        parse_meta_accounted(db, "source_navigation_top", limits, Some(&mut *read_bytes))?;
+        parse_meta_accounted(db, "source_navigation_top", limits, &mut *read_bytes)?;
     let collections = ["nodes", "edges", "rights"];
     if top == json!({}) {
         for table in [
@@ -2017,8 +2161,15 @@ fn navigation_delta_transitions(
         if meta_exists(db, "source_navigation_header_digest")? {
             return Err(invalid("unavailable navigation has a header digest"));
         }
+        let (changed_rows, accounting) =
+            navigation_snapshot_diff_usage(before, after, &before_specs, limits)?;
         let _ = top_rows;
-        return Ok(((BTreeMap::new(), BTreeMap::new()), None));
+        return Ok((
+            (BTreeMap::new(), BTreeMap::new()),
+            None,
+            changed_rows,
+            accounting,
+        ));
     }
     if top.get("schema_version").and_then(Value::as_str) != Some("tos_source_navigation_v1") {
         return Err(invalid("unsupported native source-navigation D1 product"));
@@ -2044,7 +2195,7 @@ fn navigation_delta_transitions(
         db,
         "source_navigation_header_digest",
         limits,
-        Some(&mut *read_bytes),
+        &mut *read_bytes,
     )?;
     let prior_raw = top_rows
         .iter()
@@ -2069,24 +2220,23 @@ fn navigation_delta_transitions(
         u64::try_from(limits.prepared.max_change_bytes)
             .map_err(|_| invalid("private capture retained byte limit"))?,
     );
+    let mut projection_usage = D1ProjectionAccounting::default();
+    let mut changed_rows = 0u64;
     for collection in collections {
         if !before_specs.contains_key(collection) {
             continue;
-        }
-        if remaining_projection.max_opened_parts == 0
-            || remaining_projection.max_read_bytes == 0
-            || remaining_projection.max_keys == 0
-            || remaining_projection.max_changes == 0
-            || remaining_projection.max_output_bytes == 0
-        {
-            return Err(invalid(
-                "cumulative source-navigation diff budget exhausted",
-            ));
         }
         let diff = before
             .diff_collection(after, collection, remaining_projection)
             .map_err(|error| error.to_string())?;
         let used = diff.accounting;
+        add_projection_accounting(&mut projection_usage, used)?;
+        changed_rows = changed_rows
+            .checked_add(
+                u64::try_from(diff.changes.len())
+                    .map_err(|_| invalid("source-navigation diff row count"))?,
+            )
+            .ok_or_else(|| invalid("source-navigation diff row count overflow"))?;
         remaining_projection.max_opened_parts = remaining_projection
             .max_opened_parts
             .checked_sub(used.opened_parts)
@@ -2095,6 +2245,14 @@ fn navigation_delta_transitions(
             .max_read_bytes
             .checked_sub(used.stored_bytes.saturating_add(used.decoded_bytes))
             .ok_or_else(|| invalid("cumulative source-navigation read budget"))?;
+        remaining_projection.max_stored_read_bytes = remaining_projection
+            .max_stored_read_bytes
+            .checked_sub(used.stored_bytes)
+            .ok_or_else(|| invalid("cumulative source-navigation stored budget"))?;
+        remaining_projection.max_decoded_bytes = remaining_projection
+            .max_decoded_bytes
+            .checked_sub(used.decoded_bytes)
+            .ok_or_else(|| invalid("cumulative source-navigation decoded budget"))?;
         remaining_projection.max_keys = remaining_projection
             .max_keys
             .checked_sub(used.keys)
@@ -2188,7 +2346,7 @@ fn navigation_delta_transitions(
                     return Err(invalid("native navigation predecessor source row differs"));
                 }
                 let (row_digest, rows, _) =
-                    parse_meta_accounted(db, &digest_key, limits, Some(&mut *read_bytes))?;
+                    parse_meta_accounted(db, &digest_key, limits, &mut *read_bytes)?;
                 if row_digest != json!({"sha256":digest(raw.as_bytes())}) {
                     return Err(invalid("native navigation predecessor row digest differs"));
                 }
@@ -2258,6 +2416,9 @@ fn navigation_delta_transitions(
             }
         }
     }
+    if changed_rows == 0 || changed_rows as usize > limits.prepared.max_changes {
+        return Err(invalid("native source-navigation change budget"));
+    }
     for row in top_rows.iter().filter_map(|item| item.before.as_ref()) {
         let key = (D1Table::EdgeMeta, row_key(D1Table::EdgeMeta, row)?);
         clone_capture_row(&mut before_rows, key, row, &mut retained)?;
@@ -2272,7 +2433,110 @@ fn navigation_delta_transitions(
     let next_top_raw = navigation_top_raw_from_predecessor(&top_raw, after.root_bytes(), limits)?;
     // The metadata transitions are retained together with projected rows.
     // Their bytes are charged by the caller when merged into the capture.
-    Ok(((before_rows, after_rows), Some(next_top_raw)))
+    Ok((
+        (before_rows, after_rows),
+        Some(next_top_raw),
+        changed_rows,
+        projection_usage,
+    ))
+}
+
+fn add_projection_accounting(
+    total: &mut D1ProjectionAccounting,
+    used: D1ProjectionAccounting,
+) -> Result<(), String> {
+    total.opened_parts = total
+        .opened_parts
+        .checked_add(used.opened_parts)
+        .ok_or_else(|| invalid("projection opened-part accounting overflow"))?;
+    total.stored_bytes = total
+        .stored_bytes
+        .checked_add(used.stored_bytes)
+        .ok_or_else(|| invalid("projection stored-byte accounting overflow"))?;
+    total.decoded_bytes = total
+        .decoded_bytes
+        .checked_add(used.decoded_bytes)
+        .ok_or_else(|| invalid("projection decoded-byte accounting overflow"))?;
+    total.keys = total
+        .keys
+        .checked_add(used.keys)
+        .ok_or_else(|| invalid("projection key accounting overflow"))?;
+    total.changes = total
+        .changes
+        .checked_add(used.changes)
+        .ok_or_else(|| invalid("projection change accounting overflow"))?;
+    total.output_bytes = total
+        .output_bytes
+        .checked_add(used.output_bytes)
+        .ok_or_else(|| invalid("projection output accounting overflow"))?;
+    Ok(())
+}
+
+fn navigation_snapshot_diff_usage(
+    before: &D1ProjectionSnapshot,
+    after: &D1ProjectionSnapshot,
+    specs: &Map<String, Value>,
+    limits: Limits,
+) -> Result<(u64, D1ProjectionAccounting), String> {
+    let mut remaining = limits.projection;
+    remaining.max_output_bytes = remaining.max_output_bytes.min(
+        u64::try_from(limits.prepared.max_change_bytes)
+            .map_err(|_| invalid("private capture retained byte limit"))?,
+    );
+    let mut changed_rows = 0u64;
+    let mut total = D1ProjectionAccounting::default();
+    for collection in ["nodes", "edges", "rights"] {
+        if !specs.contains_key(collection) {
+            continue;
+        }
+        let diff = before
+            .diff_collection(after, collection, remaining)
+            .map_err(|error| error.to_string())?;
+        let used = diff.accounting;
+        add_projection_accounting(&mut total, used)?;
+        changed_rows = changed_rows
+            .checked_add(
+                u64::try_from(diff.changes.len())
+                    .map_err(|_| invalid("source-navigation diff row count"))?,
+            )
+            .ok_or_else(|| invalid("source-navigation diff row count overflow"))?;
+        remaining.max_opened_parts = remaining
+            .max_opened_parts
+            .checked_sub(used.opened_parts)
+            .ok_or_else(|| invalid("cumulative source-navigation part budget"))?;
+        let read = used
+            .stored_bytes
+            .checked_add(used.decoded_bytes)
+            .ok_or_else(|| invalid("source-navigation read accounting overflow"))?;
+        remaining.max_read_bytes = remaining
+            .max_read_bytes
+            .checked_sub(read)
+            .ok_or_else(|| invalid("cumulative source-navigation read budget"))?;
+        remaining.max_stored_read_bytes = remaining
+            .max_stored_read_bytes
+            .checked_sub(used.stored_bytes)
+            .ok_or_else(|| invalid("cumulative source-navigation stored budget"))?;
+        remaining.max_decoded_bytes = remaining
+            .max_decoded_bytes
+            .checked_sub(used.decoded_bytes)
+            .ok_or_else(|| invalid("cumulative source-navigation decoded budget"))?;
+        remaining.max_keys = remaining
+            .max_keys
+            .checked_sub(used.keys)
+            .ok_or_else(|| invalid("cumulative source-navigation key budget"))?;
+        remaining.max_changes = remaining
+            .max_changes
+            .checked_sub(used.changes)
+            .ok_or_else(|| invalid("cumulative source-navigation change budget"))?;
+        remaining.max_output_bytes = remaining
+            .max_output_bytes
+            .checked_sub(used.output_bytes)
+            .ok_or_else(|| invalid("cumulative source-navigation output budget"))?;
+    }
+    if changed_rows == 0 || changed_rows as usize > limits.prepared.max_changes {
+        return Err(invalid("native source-navigation change budget"));
+    }
+    Ok((changed_rows, total))
 }
 
 fn bootstrap_transitions(
@@ -2282,11 +2546,21 @@ fn bootstrap_transitions(
     rights: &D1ProjectionSnapshot,
     limits: Limits,
     read_bytes: &mut D1ReadBytes,
-) -> Result<(Vec<D1RowTransition>, Value), String> {
+) -> Result<
+    (
+        Vec<D1RowTransition>,
+        Value,
+        D1ProjectionAccounting,
+        usize,
+        String,
+    ),
+    String,
+> {
     let mut counts = Map::new();
     let mut before_rows = BTreeMap::new();
     let mut after_rows = BTreeMap::new();
     let mut retained = RetainedBytes::new(limits);
+    let mut projection_usage = D1ProjectionAccounting::default();
     let mut remaining_projection = limits.projection;
     remaining_projection.max_output_bytes = remaining_projection.max_output_bytes.min(
         u64::try_from(limits.prepared.max_change_bytes)
@@ -2294,14 +2568,6 @@ fn bootstrap_transitions(
     );
     let mut total_source_rows = 0u64;
     for (collection, table) in [("nodes", "nodes"), ("edges", "edges"), ("rights", "rights")] {
-        if remaining_projection.max_opened_parts == 0
-            || remaining_projection.max_read_bytes == 0
-            || remaining_projection.max_keys == 0
-            || remaining_projection.max_rows == 0
-            || remaining_projection.max_output_bytes == 0
-        {
-            return Err(invalid("cumulative bootstrap projection budget exhausted"));
-        }
         let selected = if collection == "rights" { rights } else { nav };
         let collection_data = selected
             .read_collection(collection, remaining_projection)
@@ -2323,6 +2589,7 @@ fn bootstrap_transitions(
             return Err(invalid("private bootstrap source row budget"));
         }
         let used = collection_data.accounting;
+        add_projection_accounting(&mut projection_usage, used)?;
         remaining_projection.max_opened_parts = remaining_projection
             .max_opened_parts
             .checked_sub(used.opened_parts)
@@ -2331,6 +2598,14 @@ fn bootstrap_transitions(
             .max_read_bytes
             .checked_sub(used.stored_bytes.saturating_add(used.decoded_bytes))
             .ok_or_else(|| invalid("cumulative bootstrap read budget"))?;
+        remaining_projection.max_stored_read_bytes = remaining_projection
+            .max_stored_read_bytes
+            .checked_sub(used.stored_bytes)
+            .ok_or_else(|| invalid("cumulative bootstrap stored-byte budget"))?;
+        remaining_projection.max_decoded_bytes = remaining_projection
+            .max_decoded_bytes
+            .checked_sub(used.decoded_bytes)
+            .ok_or_else(|| invalid("cumulative bootstrap decoded-byte budget"))?;
         remaining_projection.max_keys = remaining_projection
             .max_keys
             .checked_sub(used.keys)
@@ -2396,7 +2671,7 @@ fn bootstrap_transitions(
         ));
     }
     let (prior_top, prior_top_rows, _) =
-        parse_meta_accounted(db, "source_navigation_top", limits, Some(read_bytes))?;
+        parse_meta_accounted(db, "source_navigation_top", limits, read_bytes)?;
     if prior_top != json!({}) {
         return Err(invalid("native navigation product already present"));
     }
@@ -2433,7 +2708,13 @@ fn bootstrap_transitions(
         return Err(invalid("empty private bootstrap product"));
     }
     let _ = after_source;
-    Ok((transitions, header))
+    Ok((
+        transitions,
+        header,
+        projection_usage,
+        retained.used,
+        digest(header_raw.as_bytes()),
+    ))
 }
 
 fn private_projection_root(value: &Value) -> Result<D1ProjectionSnapshot, String> {
@@ -2454,6 +2735,32 @@ fn private_projection_root(value: &Value) -> Result<D1ProjectionSnapshot, String
         return Err(invalid("integrity projection root digest differs"));
     }
     Ok(snapshot)
+}
+
+fn private_trusted_projection_root(
+    value: &Value,
+) -> Result<(D1ProjectionSnapshot, String, String), String> {
+    exact(
+        value,
+        &[
+            "expected_sha256",
+            "namespace_path",
+            "root_json",
+            "trusted_sha256",
+        ],
+        "trusted rights projection root fields",
+    )?;
+    let expected = string(value, "expected_sha256")?.to_owned();
+    let trusted = string(value, "trusted_sha256")?.to_owned();
+    if expected != trusted {
+        return Err(invalid("rights expected and trusted digests differ"));
+    }
+    let root = private_projection_root(&json!({
+        "expected_sha256": expected.clone(),
+        "namespace_path": string(value, "namespace_path")?,
+        "root_json": string(value, "root_json")?,
+    }))?;
+    Ok((root, expected, trusted))
 }
 
 fn projection_collection_count(root: &Value, collection: &str) -> Result<u64, String> {
@@ -2677,6 +2984,14 @@ fn read_navigation_integrity_rows(
             .max_read_bytes
             .checked_sub(used.stored_bytes.saturating_add(used.decoded_bytes))
             .ok_or_else(|| invalid("cumulative integrity read budget"))?;
+        remaining.max_stored_read_bytes = remaining
+            .max_stored_read_bytes
+            .checked_sub(used.stored_bytes)
+            .ok_or_else(|| invalid("cumulative integrity stored-byte budget"))?;
+        remaining.max_decoded_bytes = remaining
+            .max_decoded_bytes
+            .checked_sub(used.decoded_bytes)
+            .ok_or_else(|| invalid("cumulative integrity decoded-byte budget"))?;
         remaining.max_keys = remaining
             .max_keys
             .checked_sub(used.keys)
@@ -2859,8 +3174,13 @@ fn reader_top_raw_from_predecessor(
     let root = JsonValue::Object(updated);
     let raw = emit_python_compact_json(
         &root,
-        JsonLimits::new(limits.prepared.max_metadata_bytes, 128, 1_000_000, 4300)
-            .map_err(|error| error.to_string())?,
+        JsonLimits::new(
+            limits.prepared.max_metadata_bytes,
+            128,
+            CAPTURE_JSON_VISITS,
+            4300,
+        )
+        .map_err(|error| error.to_string())?,
     )
     .map_err(|error| error.to_string())?;
     String::from_utf8(raw).map_err(|error| error.to_string())
@@ -2944,8 +3264,13 @@ fn navigation_top_raw_from_predecessor(
     }
     let raw = emit_python_compact_json(
         &JsonValue::Object(updated_fields),
-        JsonLimits::new(limits.prepared.max_metadata_bytes, 128, 1_000_000, 4300)
-            .map_err(|error| error.to_string())?,
+        JsonLimits::new(
+            limits.prepared.max_metadata_bytes,
+            128,
+            CAPTURE_JSON_VISITS,
+            4300,
+        )
+        .map_err(|error| error.to_string())?,
     )
     .map_err(|error| error.to_string())?;
     String::from_utf8(raw).map_err(|error| error.to_string())
@@ -3017,6 +3342,81 @@ fn add_change(
     Ok(())
 }
 
+fn native_address_plans(
+    expected_revision: &str,
+    positions_before: &BTreeMap<(String, String), i64>,
+    positions_after: &BTreeMap<(String, String), i64>,
+    high_water_before: &BTreeMap<String, i64>,
+    high_water_after: &BTreeMap<String, i64>,
+    retained: &mut RetainedBytes,
+) -> Result<Vec<Value>, String> {
+    let mut plans = Vec::new();
+    for (kind, plural) in [("node", "nodes"), ("relation", "relations")] {
+        let has_positions = positions_before
+            .keys()
+            .any(|(selected, _)| selected == kind)
+            || positions_after.keys().any(|(selected, _)| selected == kind);
+        if !has_positions {
+            continue;
+        }
+        let mut before = Map::new();
+        for ((selected, id), position) in positions_before {
+            if selected == kind {
+                retained.text(id)?;
+                before.insert(id.clone(), json!(position));
+            }
+        }
+        let mut after = Map::new();
+        for ((selected, id), position) in positions_after {
+            if selected == kind {
+                retained.text(id)?;
+                after.insert(id.clone(), json!(position));
+            }
+        }
+        let mut changed_ids = Vec::new();
+        for ((selected, id), position) in positions_before {
+            if selected == kind
+                && positions_after.get(&(kind.to_owned(), id.clone())) != Some(position)
+            {
+                retained.text(id)?;
+                changed_ids.push(id.clone());
+            }
+        }
+        for ((selected, id), position) in positions_after {
+            if selected == kind
+                && positions_before.get(&(kind.to_owned(), id.clone())) != Some(position)
+                && !changed_ids.iter().any(|changed| changed == id)
+            {
+                retained.text(id)?;
+                changed_ids.push(id.clone());
+            }
+        }
+        changed_ids.sort();
+        let initial = high_water_before
+            .get(kind)
+            .copied()
+            .ok_or_else(|| invalid("native address plan initial high-water absent"))?;
+        let final_high = high_water_after
+            .get(kind)
+            .copied()
+            .ok_or_else(|| invalid("native address plan final high-water absent"))?;
+        retained.text(kind)?;
+        plans.push(json!({
+            "schema": "tos_rust_d1_search_address_plan_v1",
+            "base_revision": expected_revision,
+            "kind": plural,
+            "high_water_before": initial,
+            "high_water_after": final_high,
+            "before": before,
+            "after": after,
+            "changed_ids": changed_ids,
+            "source_closure_verified": false,
+            "committed": false
+        }));
+    }
+    Ok(plans)
+}
+
 fn selected_manifest(
     d1_tx: &Transaction<'_>,
     after_tx: &Transaction<'_>,
@@ -3027,7 +3427,7 @@ fn selected_manifest(
     limits: Limits,
     retained: &mut RetainedBytes,
     read_bytes: &mut D1ReadBytes,
-) -> Result<BTreeMap<(String, String), CapturedChange>, String> {
+) -> Result<(BTreeMap<(String, String), CapturedChange>, usize), String> {
     let mut changes = BTreeMap::new();
     if operation != "prepared-catchup" {
         let frames = after_descriptor
@@ -3073,16 +3473,19 @@ fn selected_manifest(
                 retained,
             )?;
         }
-        return Ok(changes);
+        return Ok((changes, 0));
     }
 
-    let mut bytes = 0usize;
+    let mut manifest_rows_scanned = 0usize;
     for kind in ["node", "relation"] {
-        let before_manifest =
-            private_manifest(d1_tx, kind, limits, retained, Some(&mut *read_bytes))?;
-        let after_manifest = private_manifest(after_tx, kind, limits, retained, None)?;
-        let before_ids = all_row_ids(d1_tx, kind, limits, retained, Some(&mut *read_bytes))?;
-        let after_ids = all_row_ids(after_tx, kind, limits, retained, None)?;
+        let before_manifest = private_manifest(d1_tx, kind, limits, retained, &mut *read_bytes)?;
+        let after_manifest = private_manifest(after_tx, kind, limits, retained, &mut *read_bytes)?;
+        manifest_rows_scanned = manifest_rows_scanned
+            .checked_add(before_manifest.len())
+            .and_then(|count| count.checked_add(after_manifest.len()))
+            .ok_or_else(|| invalid("prepared digest manifest row count overflow"))?;
+        let before_ids = all_row_ids(d1_tx, kind, limits, retained, &mut *read_bytes)?;
+        let after_ids = all_row_ids(after_tx, kind, limits, retained, &mut *read_bytes)?;
         if before_manifest.len() != before_ids.len()
             || before_manifest.keys().any(|id| !before_ids.contains(id))
             || after_manifest.len() != after_ids.len()
@@ -3091,23 +3494,16 @@ fn selected_manifest(
             return Err(invalid("manifest identities do not cover prepared rows"));
         }
         for id in &before_ids {
-            let raw =
-                exact_prepared_item_accounted(d1_tx, kind, id, limits, Some(&mut *read_bytes))?
-                    .ok_or_else(|| invalid("manifest row disappeared"))?;
-            bytes = bytes.saturating_add(raw.len());
-            if u64::try_from(bytes).map_or(true, |bytes| bytes > limits.prepared.max_bytes)
-                || before_manifest.get(id) != Some(&digest(raw.as_bytes()))
-            {
+            let raw = exact_prepared_item(d1_tx, kind, id, limits, &mut *read_bytes)?
+                .ok_or_else(|| invalid("manifest row disappeared"))?;
+            if before_manifest.get(id) != Some(&digest(raw.as_bytes())) {
                 return Err(invalid("manifest row digest or read budget"));
             }
         }
         for id in &after_ids {
-            let raw = exact_prepared_item(after_tx, kind, id, limits)?
+            let raw = exact_prepared_item(after_tx, kind, id, limits, &mut *read_bytes)?
                 .ok_or_else(|| invalid("manifest row disappeared"))?;
-            bytes = bytes.saturating_add(raw.len());
-            if u64::try_from(bytes).map_or(true, |bytes| bytes > limits.prepared.max_bytes)
-                || after_manifest.get(id) != Some(&digest(raw.as_bytes()))
-            {
+            if after_manifest.get(id) != Some(&digest(raw.as_bytes())) {
                 return Err(invalid("manifest row digest or read budget"));
             }
         }
@@ -3219,7 +3615,7 @@ fn selected_manifest(
                 .collect::<Result<Vec<_>, _>>()?;
             if successor != retained_ids {
                 for id in successor {
-                    let raw = exact_prepared_item(after_tx, kind, &id, limits)?
+                    let raw = exact_prepared_item(after_tx, kind, &id, limits, &mut *read_bytes)?
                         .ok_or_else(|| invalid("catch-up reordered row absent"))?;
                     if !changes.contains_key(&(kind.to_owned(), id.clone())) {
                         let after_digest = digest(raw.as_bytes());
@@ -3238,7 +3634,7 @@ fn selected_manifest(
         }
     }
     let _ = (after_source, expected_revision);
-    Ok(changes)
+    Ok((changes, manifest_rows_scanned))
 }
 
 fn run_prepared_transition(
@@ -3259,23 +3655,11 @@ fn run_prepared_transition(
         &request["after_binding"],
         limits.prepared.max_metadata_bytes,
     )?;
-    let after_catalog = catalog(
-        &request["after_catalog"],
-        limits.prepared.max_metadata_bytes,
-    )?;
     let before_binding_value = if request["before_binding"].is_null() {
         None
     } else {
         Some(foundation(
             &request["before_binding"],
-            limits.prepared.max_metadata_bytes,
-        )?)
-    };
-    let before_catalog = if request["before_catalog"].is_null() {
-        None
-    } else {
-        Some(catalog(
-            &request["before_catalog"],
             limits.prepared.max_metadata_bytes,
         )?)
     };
@@ -3286,16 +3670,12 @@ fn run_prepared_transition(
         None
     };
     if operation == "prepared-catchup" {
-        if before_prepared_path.is_some()
-            || before_binding_value.is_some()
-            || before_catalog.is_some()
-        {
+        if before_prepared_path.is_some() || before_binding_value.is_some() {
             return Err(invalid("catch-up request carries a prepared predecessor"));
         }
     } else if operation == "prepared-delta" || operation == "source-navigation-delta" {
         if before_prepared_path.is_none()
             || before_binding_value.is_none()
-            || before_catalog.is_none()
             || !request["before_source_inputs_json"].is_null()
         {
             return Err(invalid("prepared transition predecessor fields"));
@@ -3310,22 +3690,23 @@ fn run_prepared_transition(
     }
 
     let forward = output_path(string(request, "forward_sql")?)?;
-    let rollback = output_path(string(request, "rollback_sql")?)?;
+    let rollback = if request["rollback_sql"].is_null() {
+        None
+    } else {
+        Some(output_path(string(request, "rollback_sql")?)?)
+    };
     let manifest = output_path(string(request, "manifest_json")?)?;
-    if forward.parent() != rollback.parent()
-        || forward.parent() != manifest.parent()
-        || BTreeSet::from([forward.clone(), rollback.clone(), manifest.clone()]).len() != 3
-    {
-        return Err(invalid(
-            "capture outputs must be distinct in one fresh directory",
-        ));
-    }
+    validate_capture_outputs(&forward, rollback.as_deref(), &manifest)?;
     let vm_steps = limits.pair.max_work_bytes.min(100_000_000).max(100_000);
-    let mut d1 = open_read_only(&d1_path, vm_steps)?;
-    let mut after_db = open_read_only(&after_path, vm_steps)?;
+    let sqlite_value_bytes = limits
+        .prepared
+        .max_row_bytes
+        .max(limits.prepared.max_metadata_bytes);
+    let mut d1 = open_read_only(&d1_path, vm_steps, sqlite_value_bytes)?;
+    let mut after_db = open_read_only(&after_path, vm_steps, sqlite_value_bytes)?;
     let mut before_db = before_prepared_path
         .as_ref()
-        .map(|path| open_read_only(path, vm_steps))
+        .map(|path| open_read_only(path, vm_steps, sqlite_value_bytes))
         .transpose()?;
     let d1_tx = d1
         .connection
@@ -3357,22 +3738,34 @@ fn run_prepared_transition(
             .map_err(|error| error.to_string())?;
     }
     let mut d1_read_bytes = D1ReadBytes::new(limits);
-    let after_source = read_prepared_source_inputs_transaction(
+    let after_source =
+        prepared_source_inputs_held(&after_tx, &after_binding_value, limits, &mut d1_read_bytes)
+            .map_err(|error| error.to_string())?;
+    let after_data_revision = string(&after_binding_value, "data_revision")?;
+    let (after_persisted_revision, _, _) =
+        parse_meta_accounted(&after_tx, "data_revision", limits, &mut d1_read_bytes)?;
+    if after_persisted_revision != json!({"sha256": after_data_revision}) {
+        return Err(invalid(
+            "prepared successor data revision differs from binding",
+        ));
+    }
+    let after_descriptor =
+        prepared_descriptor(&after_tx, limits, &mut d1_read_bytes, after_data_revision)?;
+    let (after_reader_top, _, _) = parse_meta_accounted(
         &after_tx,
-        &after_binding_value,
-        &after_catalog,
-        limits.prepared,
-    )
-    .map_err(|error| error.to_string())?;
-    let after_descriptor = prepared_descriptor(&after_tx, limits)?;
-    let (after_reader_top, _, _) = parse_meta(&after_tx, "knowledge_reader_top", limits)?;
-    let (after_header, _, after_header_raw) = parse_meta(&after_tx, "knowledge_top", limits)?;
-    let (_, _, after_catalog_raw) = parse_meta(&after_tx, "knowledge_catalog", limits)?;
-    let (after_lens, _, after_lens_raw) = parse_meta(&after_tx, "knowledge_lens_top", limits)?;
-    // `after_catalog` is the caller's CatalogInputs binding. The selected
-    // prepared-source API validates it against the held transaction; the
-    // rendered knowledge_catalog row is a separate owner output whose bytes
-    // are retained below and checked against the selected reader metadata.
+        "knowledge_reader_top",
+        limits,
+        &mut d1_read_bytes,
+    )?;
+    let (after_header, _, after_header_raw) =
+        parse_meta_accounted(&after_tx, "knowledge_top", limits, &mut d1_read_bytes)?;
+    let (_, _, after_catalog_raw) =
+        parse_meta_accounted(&after_tx, "knowledge_catalog", limits, &mut d1_read_bytes)?;
+    let (after_lens, _, after_lens_raw) =
+        parse_meta_accounted(&after_tx, "knowledge_lens_top", limits, &mut d1_read_bytes)?;
+    // The exact held source binding is validated against prepared_source_state.
+    // The rendered knowledge_catalog row is a separate owner output whose
+    // bytes are checked against its persisted reader digest below.
     if after_reader_top
         .get("read_model_schema")
         .and_then(Value::as_str)
@@ -3403,16 +3796,13 @@ fn run_prepared_transition(
         let before_binding = before_binding_value
             .as_ref()
             .ok_or_else(|| invalid("prepared predecessor binding"))?;
-        let before_catalog = before_catalog
-            .as_ref()
-            .ok_or_else(|| invalid("prepared predecessor catalog"))?;
-        read_prepared_source_inputs_transaction(
+        prepared_source_inputs_held(
             before_tx
                 .as_ref()
                 .ok_or_else(|| invalid("prepared predecessor snapshot"))?,
             before_binding,
-            before_catalog,
-            limits.prepared,
+            limits,
+            &mut d1_read_bytes,
         )
         .map_err(|error| error.to_string())?
     };
@@ -3432,28 +3822,16 @@ fn run_prepared_transition(
         .map(|root| root.snapshot_sha256.clone())
         .unwrap_or_else(|| after_nav_sha.clone());
 
-    let (base_top, _, base_top_raw) = parse_meta_accounted(
-        &d1_tx,
-        "knowledge_reader_top",
-        limits,
-        Some(&mut d1_read_bytes),
-    )?;
+    let (base_top, _, base_top_raw) =
+        parse_meta_accounted(&d1_tx, "knowledge_reader_top", limits, &mut d1_read_bytes)?;
     let (base_header, _, _) =
-        parse_meta_accounted(&d1_tx, "knowledge_top", limits, Some(&mut d1_read_bytes))?;
-    let (base_catalog, _, base_catalog_raw) = parse_meta_accounted(
-        &d1_tx,
-        "knowledge_catalog",
-        limits,
-        Some(&mut d1_read_bytes),
-    )?;
-    let (base_lens, _, base_lens_raw) = parse_meta_accounted(
-        &d1_tx,
-        "knowledge_lens_top",
-        limits,
-        Some(&mut d1_read_bytes),
-    )?;
+        parse_meta_accounted(&d1_tx, "knowledge_top", limits, &mut d1_read_bytes)?;
+    let (base_catalog, _, base_catalog_raw) =
+        parse_meta_accounted(&d1_tx, "knowledge_catalog", limits, &mut d1_read_bytes)?;
+    let (base_lens, _, base_lens_raw) =
+        parse_meta_accounted(&d1_tx, "knowledge_lens_top", limits, &mut d1_read_bytes)?;
     let expected_data_revision: Value = serde_json::from_str(
-        &parse_meta_accounted(&d1_tx, "data_revision", limits, Some(&mut d1_read_bytes))?.2,
+        &parse_meta_accounted(&d1_tx, "data_revision", limits, &mut d1_read_bytes)?.2,
     )
     .map_err(|_| invalid("D1 data revision metadata"))?;
     if expected_data_revision != json!({"sha256":expected_revision})
@@ -3475,7 +3853,24 @@ fn run_prepared_transition(
         .ok_or_else(|| invalid("prepared successor descriptor header"))?;
     let before_descriptor = before_tx
         .as_ref()
-        .map(|tx| prepared_descriptor(tx, limits))
+        .map(|tx| {
+            let binding = before_binding_value
+                .as_ref()
+                .ok_or_else(|| invalid("prepared predecessor binding"))?;
+            prepared_descriptor(
+                tx,
+                limits,
+                &mut d1_read_bytes,
+                string(binding, "data_revision")?,
+            )
+        })
+        .transpose()?;
+    let before_data_revision = before_tx
+        .as_ref()
+        .map(|tx| {
+            parse_meta_accounted(tx, "data_revision", limits, &mut d1_read_bytes)
+                .map(|(value, _, _)| value)
+        })
         .transpose()?;
     let before_header = if let Some(descriptor) = &before_descriptor {
         descriptor
@@ -3502,6 +3897,14 @@ fn run_prepared_transition(
         let before_binding = request
             .get("before_binding")
             .ok_or_else(|| invalid("prepared predecessor binding"))?;
+        let expected_before_revision = json!({
+            "sha256": string(before_binding, "data_revision")?
+        });
+        if before_data_revision.as_ref() != Some(&expected_before_revision) {
+            return Err(invalid(
+                "prepared predecessor data revision differs from binding",
+            ));
+        }
         if after_descriptor.get("mode").and_then(Value::as_str) != Some("delta-history")
             || after_descriptor
                 .get("parent_data_revision")
@@ -3513,21 +3916,23 @@ fn run_prepared_transition(
             ));
         }
         if base_catalog
-            != parse_meta(
+            != parse_meta_accounted(
                 before_tx
                     .as_ref()
                     .ok_or_else(|| invalid("prepared predecessor snapshot"))?,
                 "knowledge_catalog",
                 limits,
+                &mut d1_read_bytes,
             )?
             .0
             || base_lens
-                != parse_meta(
+                != parse_meta_accounted(
                     before_tx
                         .as_ref()
                         .ok_or_else(|| invalid("prepared predecessor snapshot"))?,
                     "knowledge_lens_top",
                     limits,
+                    &mut d1_read_bytes,
                 )?
                 .0
         {
@@ -3535,7 +3940,7 @@ fn run_prepared_transition(
         }
     }
     let before_top_local = if let Some(tx) = before_tx.as_ref() {
-        parse_meta(tx, "knowledge_reader_top", limits)?.0
+        parse_meta_accounted(tx, "knowledge_reader_top", limits, &mut d1_read_bytes)?.0
     } else {
         base_top.clone()
     };
@@ -3549,21 +3954,9 @@ fn run_prepared_transition(
     }
     if expected_base_top != local_base_top
         || base_catalog
-            != parse_meta_accounted(
-                &d1_tx,
-                "knowledge_catalog",
-                limits,
-                Some(&mut d1_read_bytes),
-            )?
-            .0
+            != parse_meta_accounted(&d1_tx, "knowledge_catalog", limits, &mut d1_read_bytes)?.0
         || base_lens
-            != parse_meta_accounted(
-                &d1_tx,
-                "knowledge_lens_top",
-                limits,
-                Some(&mut d1_read_bytes),
-            )?
-            .0
+            != parse_meta_accounted(&d1_tx, "knowledge_lens_top", limits, &mut d1_read_bytes)?.0
             && operation != "prepared-catchup"
     {
         return Err(invalid(
@@ -3574,7 +3967,7 @@ fn run_prepared_transition(
     let installed_auxiliary =
         auxiliary_stores_accounted(&d1_tx, &base_top_raw, limits, &mut d1_read_bytes)?;
     let mut retained = RetainedBytes::new(limits);
-    let mut changes = selected_manifest(
+    let (mut changes, manifest_rows_scanned) = selected_manifest(
         &d1_tx,
         &after_tx,
         &after_source,
@@ -3586,7 +3979,6 @@ fn run_prepared_transition(
         &mut d1_read_bytes,
     )?;
     let before_database = before_tx.as_ref().unwrap_or(&d1_tx);
-    let mut frame_bytes = 0usize;
     let mut old_rows = BTreeMap::new();
     let mut new_rows = BTreeMap::new();
     let mut positions_before = BTreeMap::<(String, String), i64>::new();
@@ -3595,18 +3987,8 @@ fn run_prepared_transition(
     let mut groups = BTreeSet::<(String, String)>::new();
     let mut source_lower = BTreeMap::<(String, String), (Option<String>, Option<String>)>::new();
     for ((kind, id), change) in &changes {
-        let old = if operation == "prepared-catchup" {
-            exact_prepared_item_accounted(
-                before_database,
-                kind,
-                id,
-                limits,
-                Some(&mut d1_read_bytes),
-            )?
-        } else {
-            exact_prepared_item(before_database, kind, id, limits)?
-        };
-        let new = exact_prepared_item(&after_tx, kind, id, limits)?;
+        let old = exact_prepared_item(before_database, kind, id, limits, &mut d1_read_bytes)?;
+        let new = exact_prepared_item(&after_tx, kind, id, limits, &mut d1_read_bytes)?;
         let old_digest = old.as_ref().map(|raw| digest(raw.as_bytes()));
         let new_digest = new.as_ref().map(|raw| digest(raw.as_bytes()));
         match (change.operation.as_deref(), old.as_ref(), new.as_ref()) {
@@ -3622,15 +4004,6 @@ fn run_prepared_transition(
                     "prepared change frame differs from exact row sides",
                 ));
             }
-        }
-        if let Some(raw) = &old {
-            frame_bytes = frame_bytes.saturating_add(raw.len());
-        }
-        if let Some(raw) = &new {
-            frame_bytes = frame_bytes.saturating_add(raw.len());
-        }
-        if u64::try_from(frame_bytes).map_or(true, |bytes| bytes > limits.prepared.max_bytes) {
-            return Err(invalid("prepared changed row read budget"));
         }
         let old_lower = old
             .as_deref()
@@ -3683,9 +4056,26 @@ fn run_prepared_transition(
     if !changes.is_empty() {
         read_search_indexes(&d1_tx)?;
     }
+    let mut initial_high_water_by_kind = BTreeMap::<String, i64>::new();
     let mut high_water_by_kind = BTreeMap::<String, i64>::new();
     for (kind, lower) in groups {
         let plural = if kind == "node" { "nodes" } else { "relations" };
+        if !initial_high_water_by_kind.contains_key(&kind) {
+            let high: Option<i64> = d1_tx
+                .query_row(
+                    "SELECT max(position) FROM knowledge_search_documents WHERE kind=?1",
+                    [plural],
+                    |row| row.get(0),
+                )
+                .map_err(|error| error.to_string())?;
+            let high = high.unwrap_or(-1);
+            if high < -1 || high > 9_007_199_254_740_991_i64 {
+                return Err(invalid("D1 search address high-water"));
+            }
+            retained.text(&kind)?;
+            initial_high_water_by_kind.insert(kind.clone(), high);
+            high_water_by_kind.insert(kind.clone(), high);
+        }
         let mut statement = d1_tx
             .prepare("SELECT CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB))<=4096 THEN id END,position,length(CAST(json_quote(CASE WHEN typeof(id)='text' AND length(CAST(id AS BLOB))<=4096 THEN id END) AS BLOB))+1+length(CAST(position AS TEXT)) FROM knowledge_search_documents WHERE kind=?1 AND id_lower=?2 ORDER BY position LIMIT ?3")
             .map_err(|error| error.to_string())?;
@@ -3751,7 +4141,7 @@ fn run_prepared_transition(
                 .optional()
                 .map_err(|error| error.to_string())?;
             let order = order.ok_or_else(|| invalid("successor tie row has no source order"))?;
-            let _ = exact_prepared_item(&after_tx, &kind, &id, limits)?
+            let _ = exact_prepared_item(&after_tx, &kind, &id, limits, &mut d1_read_bytes)?
                 .ok_or_else(|| invalid("successor tie row has no normalized row"))?;
             successor_order.push((order, id));
         }
@@ -3777,21 +4167,9 @@ fn run_prepared_transition(
                 }
             }
         } else {
-            let high = if let Some(high) = high_water_by_kind.get(&kind) {
-                *high
-            } else {
-                let high: Option<i64> = d1_tx
-                    .query_row(
-                        "SELECT max(position) FROM knowledge_search_documents WHERE kind=?1",
-                        [plural],
-                        |row| row.get(0),
-                    )
-                    .map_err(|error| error.to_string())?;
-                let high = high.unwrap_or(-1);
-                retained.text(&kind)?;
-                high_water_by_kind.insert(kind.clone(), high);
-                high
-            };
+            let high = *high_water_by_kind
+                .get(&kind)
+                .ok_or_else(|| invalid("D1 search address high-water absent"))?;
             let mut position = high;
             if position < -1 || position > 9_007_199_254_740_991_i64 {
                 return Err(invalid("D1 search address high-water"));
@@ -3829,24 +4207,16 @@ fn run_prepared_transition(
             Some(Some(raw)) => Some(Cow::Borrowed(raw.as_str())),
             Some(None) => None,
             None => {
-                let raw = if operation == "prepared-catchup" {
-                    exact_prepared_item_accounted(
-                        before_database,
-                        &kind,
-                        &id,
-                        limits,
-                        Some(&mut d1_read_bytes),
-                    )?
-                } else {
-                    exact_prepared_item(before_database, &kind, &id, limits)?
-                };
+                let raw =
+                    exact_prepared_item(before_database, &kind, &id, limits, &mut d1_read_bytes)?;
                 raw.map(Cow::Owned)
             }
         };
         let new = match new_rows.get(&(kind.clone(), id.clone())) {
             Some(Some(raw)) => Some(Cow::Borrowed(raw.as_str())),
             Some(None) => None,
-            None => exact_prepared_item(&after_tx, &kind, &id, limits)?.map(Cow::Owned),
+            None => exact_prepared_item(&after_tx, &kind, &id, limits, &mut d1_read_bytes)?
+                .map(Cow::Owned),
         };
         let old_position = positions_before.get(&(kind.clone(), id.clone())).copied();
         let new_position = positions_after.get(&(kind.clone(), id.clone())).copied();
@@ -4038,8 +4408,10 @@ fn run_prepared_transition(
     let nav_before = parsed_root(root_for(&before_source, "source-navigation")?)?;
     let nav_after = parsed_root(root_for(&after_source, "source-navigation")?)?;
     let mut nav_top_update = None;
+    let mut nav_product = json!({"state":"unchanged","changed_rows":0});
+    let mut nav_projection_usage = D1ProjectionAccounting::default();
     if nav_before.snapshot_sha256() != nav_after.snapshot_sha256() {
-        let (nav_rows, next_top) = navigation_delta_transitions(
+        let (nav_rows, next_top, nav_changed_rows, usage) = navigation_delta_transitions(
             &d1_tx,
             &nav_before,
             &nav_after,
@@ -4048,7 +4420,12 @@ fn run_prepared_transition(
         )?;
         merge_projected(&mut before_capture, nav_rows.0, &mut retained)?;
         merge_projected(&mut after_capture, nav_rows.1, &mut retained)?;
+        nav_product = json!({
+            "state": if next_top.is_some() { "maintained" } else { "unavailable" },
+            "changed_rows": nav_changed_rows
+        });
         nav_top_update = next_top;
+        nav_projection_usage = usage;
     }
 
     // Compute the single producer-owned lineage identity, then reuse the
@@ -4100,12 +4477,8 @@ fn run_prepared_transition(
     spec.after_reader_top = next_top_raw.clone();
     inspect_offline_source_inputs(&spec, Some(before_source.raw()), after_source.raw())
         .map_err(|error| format!("offline prepared source pair: {error:?}"))?;
-    let (prior_top_value, _, _) = parse_meta_accounted(
-        &d1_tx,
-        "knowledge_reader_top",
-        limits,
-        Some(&mut d1_read_bytes),
-    )?;
+    let (prior_top_value, _, _) =
+        parse_meta_accounted(&d1_tx, "knowledge_reader_top", limits, &mut d1_read_bytes)?;
     if prior_top_value != base_top {
         return Err(invalid("D1 reader top changed inside held snapshot"));
     }
@@ -4153,14 +4526,10 @@ fn run_prepared_transition(
             &d1_tx,
             "source_navigation_header_digest",
             limits,
-            Some(&mut d1_read_bytes),
+            &mut d1_read_bytes,
         )?;
-        let (_, nav_chunks, prior_nav_raw) = parse_meta_accounted(
-            &d1_tx,
-            "source_navigation_top",
-            limits,
-            Some(&mut d1_read_bytes),
-        )?;
+        let (_, nav_chunks, prior_nav_raw) =
+            parse_meta_accounted(&d1_tx, "source_navigation_top", limits, &mut d1_read_bytes)?;
         if prior_digest != json!({"sha256":digest(prior_nav_raw.as_bytes())}) {
             return Err(invalid("source-navigation header digest differs"));
         }
@@ -4177,7 +4546,7 @@ fn run_prepared_transition(
         ));
     }
     for (key, raw) in metadata_after {
-        let (_, old_rows, _) = parse_meta_accounted(&d1_tx, key, limits, Some(&mut d1_read_bytes))?;
+        let (_, old_rows, _) = parse_meta_accounted(&d1_tx, key, limits, &mut d1_read_bytes)?;
         capture_transition_rows(
             &mut before_capture,
             &mut after_capture,
@@ -4185,30 +4554,128 @@ fn run_prepared_transition(
             &mut retained,
         )?;
     }
+    let address_plans = native_address_plans(
+        expected_revision,
+        &positions_before,
+        &positions_after,
+        &initial_high_water_by_kind,
+        &high_water_by_kind,
+        &mut retained,
+    )?;
     let transitions = row_transitions(before_capture, after_capture, limits, &mut retained)?;
     d1.identity.verify_selected_file_identity()?;
     after_db.identity.verify_selected_file_identity()?;
     if let Some(identity) = before_identity {
         identity.verify_selected_file_identity()?;
     }
-    let receipt = emit_d1_pair(&spec, transitions, &forward, &rollback, &manifest)
+    let receipt = emit_d1_capture(&spec, transitions, &forward, rollback.as_deref(), &manifest)
         .map_err(|error| format!("offline private capture: {error:?}"))?;
+    let sql_bytes = receipt
+        .forward_bytes
+        .checked_add(receipt.rollback_bytes)
+        .ok_or_else(|| invalid("private SQL byte count overflow"))?;
+    let receipt_schema = match operation {
+        "prepared-delta" => "tos_edge_native_prepared_delta_receipt_v1",
+        "prepared-catchup" => "tos_edge_native_prepared_catchup_receipt_v1",
+        "source-navigation-delta" => "tos_edge_native_source_navigation_delta_receipt_v1",
+        _ => return Err(invalid("private transition receipt operation")),
+    };
+    let lineage_schema = match spec.predecessor_mode {
+        D1PredecessorMode::PreparedDelta => "tos_rust_prepared_d1_sql_pair_v1",
+        D1PredecessorMode::SourceInputsCatchup => {
+            "tos_prepared_source_d1_manifest_reconciliation_v1"
+        }
+        D1PredecessorMode::Bootstrap => "tos_source_navigation_bootstrap_d1_v1",
+        D1PredecessorMode::SourceNavigationIntegrity { .. } => {
+            "tos_native_navigation_integrity_migration_v1"
+        }
+    };
+    let before_prepared_pairing_verified = operation != "prepared-catchup";
+    let maintained_auxiliary_stores = spec
+        .auxiliary_stores
+        .iter()
+        .map(|store| store.identity().0)
+        .collect::<Vec<_>>();
+    let forward_output = json!({
+        "available": true,
+        "sha256": receipt.forward_sha256,
+        "bytes": receipt.forward_bytes,
+        "base_revision": receipt.base_d1_revision,
+        "target_revision": receipt.target_d1_revision,
+        "published": true,
+        "publication": "private-capture-manifest-last"
+    });
+    let rollback_output = receipt.rollback_sha256.as_ref().map(|sha256| {
+        json!({
+            "available": true,
+            "sha256": sha256,
+            "bytes": receipt.rollback_bytes,
+            "base_revision": receipt.target_d1_revision,
+            "target_revision": receipt.base_d1_revision,
+            "published": true,
+            "publication": "private-capture-manifest-last"
+        })
+    });
     let result = json!({
         "schema":"tos_edge_offline_capture_result_v1",
         "operation":operation,
-        "base_d1_revision":receipt.base_d1_revision,
-        "target_d1_revision":receipt.target_d1_revision,
-        "forward_sha256":receipt.forward_sha256,
-        "rollback_sha256":receipt.rollback_sha256,
-        "changed_rows":receipt.changed_rows,
-        "held_snapshot_bindings_verified":true,
-        "source_currentness_verified":false,
-        "selected_pair_owner_admitted":false,
-        "rights_admission":false,
-        "semantic_acceptance":false,
-        "d1_applied":false,
-        "consumer_switched":false,
-        "capture_scope":operation
+        "receipt":{
+            "schema": receipt_schema,
+            "operation": operation,
+            "lineage_schema": lineage_schema,
+            "base_d1_revision": receipt.base_d1_revision,
+            "target_d1_revision": receipt.target_d1_revision,
+            "before_source_revision": spec.before_source_revision,
+            "after_source_revision": spec.after_source_revision,
+            "source_revision": after_source.source_revision(),
+            "before_prepared_binding": before_binding_value,
+            "after_prepared_binding": after_binding_value,
+            "before_source_inputs_sha256": spec.before_source_inputs_sha256,
+            "after_source_inputs_sha256": spec.after_source_inputs_sha256,
+            "before_navigation_sha256": spec.before_navigation_sha256,
+            "after_navigation_sha256": spec.after_navigation_sha256,
+            "before_rights_sha256": spec.before_rights_sha256,
+            "after_rights_sha256": spec.after_rights_sha256,
+            "implementation_sha256": spec.implementation_sha256,
+            "manifest_schema": receipt.schema,
+            "manifest_published_last": true,
+            "changed_prepared_rows": changes.len(),
+            "address_plans": address_plans,
+            "source_navigation_product": nav_product,
+            "projection_usage": {
+                "opened_parts": nav_projection_usage.opened_parts,
+                "stored_bytes": nav_projection_usage.stored_bytes,
+                "decoded_bytes": nav_projection_usage.decoded_bytes,
+                "keys": nav_projection_usage.keys,
+                "changes": nav_projection_usage.changes,
+                "output_bytes": nav_projection_usage.output_bytes
+            },
+            "capture_read_bytes": d1_read_bytes.used,
+            "retained_bytes": retained.used,
+            "posting_rows_observed": posting_count,
+            "digest_manifest_rows_scanned": manifest_rows_scanned,
+            "whole_manifest_reconciliation": operation == "prepared-catchup",
+            "maintained_auxiliary_stores": maintained_auxiliary_stores,
+            "forward": forward_output,
+            "rollback": rollback_output,
+            "forward_sha256": receipt.forward_sha256,
+            "rollback_sha256": receipt.rollback_sha256,
+            "forward_sql_bytes": receipt.forward_bytes,
+            "rollback_sql_bytes": receipt.rollback_bytes,
+            "sql_bytes": sql_bytes,
+            "input_transition_rows": receipt.changed_rows,
+            "prepared_source_pairing_verified": operation != "prepared-catchup",
+            "successor_prepared_source_pairing_verified": true,
+            "predecessor_prepared_source_pairing_verified": before_prepared_pairing_verified,
+            "predecessor_source_admission_external": operation == "prepared-catchup",
+            "held_snapshot_bindings_verified": true,
+            "source_currentness_verified": false,
+            "selected_pair_owner_admitted": receipt.selected_pair_owner_admitted,
+            "rights_admission": false,
+            "semantic_acceptance": false,
+            "d1_applied": receipt.d1_applied,
+            "consumer_switched": receipt.consumer_switched
+        }
     });
     writeln!(
         stdout,
@@ -4277,16 +4744,13 @@ fn run_source_navigation_integrity(
     let forward = output_path(string(request, "forward_sql")?)?;
     let rollback = output_path(string(request, "rollback_sql")?)?;
     let manifest = output_path(string(request, "manifest_json")?)?;
-    if forward.parent() != rollback.parent()
-        || forward.parent() != manifest.parent()
-        || BTreeSet::from([forward.clone(), rollback.clone(), manifest.clone()]).len() != 3
-    {
-        return Err(invalid(
-            "capture outputs must be distinct in one fresh directory",
-        ));
-    }
+    validate_capture_outputs(&forward, Some(&rollback), &manifest)?;
     let vm_steps = limits.pair.max_work_bytes.min(100_000_000).max(100_000);
-    let mut d1 = open_read_only(&d1_path, vm_steps)?;
+    let sqlite_value_bytes = limits
+        .prepared
+        .max_row_bytes
+        .max(limits.prepared.max_metadata_bytes);
+    let mut d1 = open_read_only(&d1_path, vm_steps, sqlite_value_bytes)?;
     let d1_tx = d1
         .connection
         .transaction_with_behavior(TransactionBehavior::Deferred)
@@ -4296,14 +4760,10 @@ fn run_source_navigation_integrity(
         .map_err(|error| error.to_string())?;
 
     let mut read_bytes = D1ReadBytes::new(limits);
-    let (base_top, base_top_rows, base_top_raw) = parse_meta_accounted(
-        &d1_tx,
-        "knowledge_reader_top",
-        limits,
-        Some(&mut read_bytes),
-    )?;
+    let (base_top, base_top_rows, base_top_raw) =
+        parse_meta_accounted(&d1_tx, "knowledge_reader_top", limits, &mut read_bytes)?;
     let (base_revision, base_revision_rows, _) =
-        parse_meta_accounted(&d1_tx, "data_revision", limits, Some(&mut read_bytes))?;
+        parse_meta_accounted(&d1_tx, "data_revision", limits, &mut read_bytes)?;
     let base_revision_row = base_revision_rows
         .first()
         .and_then(|transition| transition.before.as_ref())
@@ -4320,12 +4780,8 @@ fn run_source_navigation_integrity(
     {
         return Err(invalid("selected D1 source or revision differs"));
     }
-    let (persisted_header, _, persisted_header_raw) = parse_meta_accounted(
-        &d1_tx,
-        "source_navigation_top",
-        limits,
-        Some(&mut read_bytes),
-    )?;
+    let (persisted_header, _, persisted_header_raw) =
+        parse_meta_accounted(&d1_tx, "source_navigation_top", limits, &mut read_bytes)?;
     let counts =
         validate_navigation_integrity_inputs(&navigation, &rights, &persisted_header, limits)?;
     if meta_exists(&d1_tx, "source_navigation_header_digest")? {
@@ -4445,7 +4901,7 @@ fn run_source_navigation_integrity(
         .map_err(|error| format!("offline navigation integrity pair: {error:?}"))?;
 
     let (_, data_revision_rows, _) =
-        parse_meta_accounted(&d1_tx, "data_revision", limits, Some(&mut read_bytes))?;
+        parse_meta_accounted(&d1_tx, "data_revision", limits, &mut read_bytes)?;
     let target_revision_raw = compact(
         &json!({"sha256": target_revision}),
         limits.prepared.max_metadata_bytes,
@@ -4472,7 +4928,7 @@ fn run_source_navigation_integrity(
 
     let transitions = row_transitions(before_rows, after_rows, limits, &mut retained)?;
     d1.identity.verify_selected_file_identity()?;
-    let receipt = emit_d1_pair(&spec, transitions, &forward, &rollback, &manifest)
+    let receipt = emit_d1_capture(&spec, transitions, &forward, Some(&rollback), &manifest)
         .map_err(|error| format!("offline navigation integrity capture: {error:?}"))?;
     let sql_bytes = receipt
         .forward_bytes
@@ -4488,45 +4944,82 @@ fn run_source_navigation_integrity(
     } else {
         json!(verified_rows)
     };
+    let maintained_auxiliary_stores = spec
+        .auxiliary_stores
+        .iter()
+        .map(|store| store.identity().0)
+        .collect::<Vec<_>>();
+    let forward_output = json!({
+        "available": true,
+        "sha256": receipt.forward_sha256,
+        "bytes": receipt.forward_bytes,
+        "base_revision": receipt.base_d1_revision,
+        "target_revision": receipt.target_d1_revision,
+        "published": true,
+        "publication": "private-capture-manifest-last"
+    });
+    let rollback_output = receipt.rollback_sha256.as_ref().map(|sha256| {
+        json!({
+            "available": true,
+            "sha256": sha256,
+            "bytes": receipt.rollback_bytes,
+            "base_revision": receipt.target_d1_revision,
+            "target_revision": receipt.base_d1_revision,
+            "published": true,
+            "publication": "private-capture-manifest-last"
+        })
+    });
     let result = json!({
         "schema": "tos_edge_offline_capture_result_v1",
         "operation": "source-navigation-integrity",
-        "header_only": header_only,
-        "base_d1_revision": receipt.base_d1_revision,
-        "target_d1_revision": receipt.target_d1_revision,
-        "source_navigation_sha256": navigation.snapshot_sha256(),
-        "rights_sha256": rights.snapshot_sha256(),
-        "implementation_sha256": spec.implementation_sha256,
-        "migration_implementation_sha256": migration_implementation_sha256,
-        "forward_sha256": receipt.forward_sha256,
-        "rollback_sha256": receipt.rollback_sha256,
-        "changed_rows": receipt.changed_rows,
-        "verified_source_rows": verified_source_rows,
-        "verified_header_counts": verified_header_counts,
-        "projection_usage": {
-            "opened_parts": projection_usage.opened_parts,
-            "stored_bytes": projection_usage.stored_bytes,
-            "decoded_bytes": projection_usage.decoded_bytes,
-            "keys": projection_usage.keys,
-            "changes": projection_usage.changes,
-            "output_bytes": projection_usage.output_bytes,
-        },
-        "retained_bytes": retained.used,
-        "capture_read_bytes": read_bytes.used,
-        "forward_sql_bytes": receipt.forward_bytes,
-        "rollback_sql_bytes": receipt.rollback_bytes,
-        "sql_bytes": sql_bytes,
-        "native_rows_changed": 0,
-        "normalized_rows_changed": 0,
-        "source_rights_admission_verified_by_helper": false,
-        "held_snapshot_bindings_verified": true,
-        "source_currentness_verified": false,
-        "selected_pair_owner_admitted": false,
-        "rights_admission": false,
-        "semantic_acceptance": false,
-        "d1_applied": false,
-        "consumer_switched": false,
-        "capture_scope": "source-navigation-integrity"
+        "receipt": {
+            "schema": "tos_edge_native_source_navigation_integrity_receipt_v1",
+            "operation": "source-navigation-integrity",
+            "lineage_schema": "tos_native_navigation_integrity_migration_v1",
+            "header_only": header_only,
+            "base_d1_revision": receipt.base_d1_revision,
+            "target_d1_revision": receipt.target_d1_revision,
+            "source_revision": expected_source_revision,
+            "source_navigation_sha256": navigation.snapshot_sha256(),
+            "source_navigation_header_sha256": digest(source_header_raw.as_bytes()),
+            "rights_sha256": rights.snapshot_sha256(),
+            "source_inputs_sha256": spec.after_source_inputs_sha256,
+            "implementation_sha256": spec.implementation_sha256,
+            "migration_implementation_sha256": migration_implementation_sha256,
+            "manifest_schema": receipt.schema,
+            "manifest_published_last": true,
+            "changed_rows": receipt.changed_rows,
+            "verified_source_rows": verified_source_rows,
+            "verified_header_counts": verified_header_counts,
+            "projection_usage": {
+                "opened_parts": projection_usage.opened_parts,
+                "stored_bytes": projection_usage.stored_bytes,
+                "decoded_bytes": projection_usage.decoded_bytes,
+                "keys": projection_usage.keys,
+                "changes": projection_usage.changes,
+                "output_bytes": projection_usage.output_bytes,
+            },
+            "retained_bytes": retained.used,
+            "capture_read_bytes": read_bytes.used,
+            "maintained_auxiliary_stores": maintained_auxiliary_stores,
+            "forward": forward_output,
+            "rollback": rollback_output,
+            "forward_sha256": receipt.forward_sha256,
+            "rollback_sha256": receipt.rollback_sha256,
+            "forward_sql_bytes": receipt.forward_bytes,
+            "rollback_sql_bytes": receipt.rollback_bytes,
+            "sql_bytes": sql_bytes,
+            "native_rows_changed": 0,
+            "normalized_rows_changed": 0,
+            "source_rights_admission_verified_by_helper": false,
+            "held_snapshot_bindings_verified": true,
+            "source_currentness_verified": false,
+            "selected_pair_owner_admitted": false,
+            "rights_admission": false,
+            "semantic_acceptance": false,
+            "d1_applied": receipt.d1_applied,
+            "consumer_switched": receipt.consumer_switched
+        }
     });
     writeln!(
         stdout,
@@ -4540,6 +5033,20 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
     if raw.is_empty() || raw.len() > REQUEST_BYTES {
         return Err(invalid("capture request byte budget"));
     }
+    // Preflight exact duplicate-key, depth, visit and logical-state bounds
+    // before building the serde request tree. The Foundation tree is dropped
+    // first; the logical state budget is not an RSS promise.
+    let preflight_limits = JsonLimits::new(REQUEST_BYTES, 128, REQUEST_JSON_VISITS, 4300)
+        .map_err(|error| error.to_string())?;
+    drop(
+        parse_json_with_state_budget(
+            raw,
+            JsonMode::PublishedStrict,
+            preflight_limits,
+            REQUEST_JSON_STATE_BYTES,
+        )
+        .map_err(|error| error.to_string())?,
+    );
     let request: Value =
         serde_json::from_slice(raw).map_err(|_| invalid("capture request JSON"))?;
     let operation = string(&request, "operation")?;
@@ -4574,8 +5081,6 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
                 "expected_d1_revision",
                 "before_binding",
                 "after_binding",
-                "before_catalog",
-                "after_catalog",
                 "before_source_inputs_json",
                 "rights_root",
                 "forward_sql",
@@ -4599,7 +5104,7 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
     ) {
         return Err(invalid("unsupported private Edge capture operation"));
     }
-    let limits = limits(&request["limits"])?;
+    let limits = limits(&request["limits"], operation)?;
     if operation == "source-navigation-integrity" {
         let header_only = request["header_only"]
             .as_bool()
@@ -4613,7 +5118,6 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
     let after_path = input_path(string(&request, "after_prepared_database")?)?;
     if !request["before_prepared_database"].is_null()
         || !request["before_binding"].is_null()
-        || !request["before_catalog"].is_null()
         || !request["before_source_inputs_json"].is_null()
     {
         return Err(invalid(
@@ -4624,72 +5128,19 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
         &request["after_binding"],
         limits.prepared.max_metadata_bytes,
     )?;
-    let catalog = catalog(
-        &request["after_catalog"],
-        limits.prepared.max_metadata_bytes,
-    )?;
-    let mut rights_object = request
-        .get("rights_root")
-        .and_then(Value::as_object)
-        .cloned()
-        .ok_or_else(|| invalid("bootstrap rights root required"))?;
-    let rights_expected = rights_object
-        .remove("expected_sha256")
-        .and_then(|v| v.as_str().map(str::to_owned))
-        .ok_or_else(|| invalid("rights expected digest"))?;
-    let rights_trusted = rights_object
-        .remove("trusted_sha256")
-        .and_then(|v| v.as_str().map(str::to_owned))
-        .ok_or_else(|| invalid("rights trusted digest"))?;
-    let rights_root_json = rights_object
-        .remove("root_json")
-        .and_then(|v| v.as_str().map(str::to_owned))
-        .ok_or_else(|| invalid("rights root bytes"))?;
-    let rights_namespace = rights_object
-        .remove("namespace_path")
-        .and_then(|v| v.as_str().map(str::to_owned))
-        .ok_or_else(|| invalid("rights namespace path"))?;
-    let rights_snapshot = rights_object
-        .remove("snapshot_sha256")
-        .and_then(|v| v.as_str().map(str::to_owned))
-        .ok_or_else(|| invalid("rights root snapshot digest"))?;
-    if !rights_object.is_empty()
-        || rights_expected != rights_trusted
-        || rights_snapshot != rights_expected
-        || digest(rights_root_json.as_bytes()) != rights_expected
-    {
-        return Err(invalid(
-            "rights root and supplied expected/trusted digests differ",
-        ));
-    }
-    let rights = D1ProjectionSnapshot::new(
-        rights_root_json.into_bytes(),
-        PathBuf::from(rights_namespace),
-    )
-    .map_err(|error| error.to_string())?;
-    if rights.snapshot_sha256() != rights_expected {
-        return Err(invalid("rights root digest mismatch"));
-    }
+    let (rights, rights_expected, _rights_trusted) =
+        private_trusted_projection_root(&request["rights_root"])?;
     let forward = output_path(string(&request, "forward_sql")?)?;
     let rollback = output_path(string(&request, "rollback_sql")?)?;
     let manifest = output_path(string(&request, "manifest_json")?)?;
-    if forward.parent() != rollback.parent()
-        || forward.parent() != manifest.parent()
-        || BTreeMap::from([
-            (forward.clone(), ()),
-            (rollback.clone(), ()),
-            (manifest.clone(), ()),
-        ])
-        .len()
-            != 3
-    {
-        return Err(invalid(
-            "capture outputs must be distinct in one fresh directory",
-        ));
-    }
+    validate_capture_outputs(&forward, Some(&rollback), &manifest)?;
     let vm_steps = limits.pair.max_work_bytes.min(100_000_000).max(100_000);
-    let mut d1 = open_read_only(&d1_path, vm_steps)?;
-    let mut after_db = open_read_only(&after_path, vm_steps)?;
+    let sqlite_value_bytes = limits
+        .prepared
+        .max_row_bytes
+        .max(limits.prepared.max_metadata_bytes);
+    let mut d1 = open_read_only(&d1_path, vm_steps, sqlite_value_bytes)?;
+    let mut after_db = open_read_only(&after_path, vm_steps, sqlite_value_bytes)?;
     let d1_tx = d1
         .connection
         .transaction_with_behavior(TransactionBehavior::Deferred)
@@ -4705,9 +5156,19 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
     let _: i64 = after_tx
         .query_row("SELECT count(*) FROM sqlite_master", [], |row| row.get(0))
         .map_err(|error| error.to_string())?;
+    let mut d1_read_bytes = D1ReadBytes::new(limits);
     let after_source =
-        read_prepared_source_inputs_transaction(&after_tx, &binding, &catalog, limits.prepared)
-            .map_err(|error| error.to_string())?;
+        prepared_source_inputs_held(&after_tx, &binding, limits, &mut d1_read_bytes)?;
+    let binding_revision = string(&binding, "data_revision")?;
+    let (prepared_data_revision, _, _) =
+        parse_meta_accounted(&after_tx, "data_revision", limits, &mut d1_read_bytes)?;
+    if prepared_data_revision != json!({"sha256": binding_revision}) {
+        return Err(invalid(
+            "prepared bootstrap data revision differs from binding",
+        ));
+    }
+    let _prepared_descriptor =
+        prepared_descriptor(&after_tx, limits, &mut d1_read_bytes, binding_revision)?;
     let nav_root = root_for(&after_source, "source-navigation")?;
     let nav = parsed_root(nav_root)?;
     let nav_root_json: Value =
@@ -4754,30 +5215,24 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
     {
         return Err(invalid("bootstrap rights identity/order profile"));
     }
-    let mut d1_read_bytes = D1ReadBytes::new(limits);
-    let (base_top, _, base_top_raw) = parse_meta_accounted(
-        &d1_tx,
+    let (base_top, _, base_top_raw) =
+        parse_meta_accounted(&d1_tx, "knowledge_reader_top", limits, &mut d1_read_bytes)?;
+    let (prepared_top, _, _) = parse_meta_accounted(
+        &after_tx,
         "knowledge_reader_top",
         limits,
-        Some(&mut d1_read_bytes),
+        &mut d1_read_bytes,
     )?;
-    let (prepared_top, _, _) = parse_meta(&after_tx, "knowledge_reader_top", limits)?;
     let (base_data_revision, _, _) =
-        parse_meta_accounted(&d1_tx, "data_revision", limits, Some(&mut d1_read_bytes))?;
-    let (base_catalog, _, base_catalog_raw) = parse_meta_accounted(
-        &d1_tx,
-        "knowledge_catalog",
-        limits,
-        Some(&mut d1_read_bytes),
-    )?;
-    let (after_catalog, _, after_catalog_raw) = parse_meta(&after_tx, "knowledge_catalog", limits)?;
-    let (base_lens, _, base_lens_raw) = parse_meta_accounted(
-        &d1_tx,
-        "knowledge_lens_top",
-        limits,
-        Some(&mut d1_read_bytes),
-    )?;
-    let (after_lens, _, after_lens_raw) = parse_meta(&after_tx, "knowledge_lens_top", limits)?;
+        parse_meta_accounted(&d1_tx, "data_revision", limits, &mut d1_read_bytes)?;
+    let (base_catalog, _, base_catalog_raw) =
+        parse_meta_accounted(&d1_tx, "knowledge_catalog", limits, &mut d1_read_bytes)?;
+    let (after_catalog, _, after_catalog_raw) =
+        parse_meta_accounted(&after_tx, "knowledge_catalog", limits, &mut d1_read_bytes)?;
+    let (base_lens, _, base_lens_raw) =
+        parse_meta_accounted(&d1_tx, "knowledge_lens_top", limits, &mut d1_read_bytes)?;
+    let (after_lens, _, after_lens_raw) =
+        parse_meta_accounted(&after_tx, "knowledge_lens_top", limits, &mut d1_read_bytes)?;
     let expected_revision = string(&request, "expected_d1_revision")?;
     let mut base_top_profile = base_top.clone();
     let mut prepared_top_profile = prepared_top.clone();
@@ -4810,12 +5265,8 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
     }
     let installed_auxiliary =
         auxiliary_stores_accounted(&d1_tx, &base_top_raw, limits, &mut d1_read_bytes)?;
-    let (existing_top, _, _) = parse_meta_accounted(
-        &d1_tx,
-        "source_navigation_top",
-        limits,
-        Some(&mut d1_read_bytes),
-    )?;
+    let (existing_top, _, _) =
+        parse_meta_accounted(&d1_tx, "source_navigation_top", limits, &mut d1_read_bytes)?;
     if existing_top != json!({}) {
         return Err(invalid("native navigation product is not absent"));
     }
@@ -4837,14 +5288,15 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
             return Err(invalid("native navigation tables are not empty"));
         }
     }
-    let (mut transitions, header) = bootstrap_transitions(
-        &d1_tx,
-        &after_source,
-        &nav,
-        &rights,
-        limits,
-        &mut d1_read_bytes,
-    )?;
+    let (mut transitions, header, projection_usage, retained_bytes, header_sha256) =
+        bootstrap_transitions(
+            &d1_tx,
+            &after_source,
+            &nav,
+            &rights,
+            limits,
+            &mut d1_read_bytes,
+        )?;
     if transitions.len() as u64 > limits.pair.max_transitions {
         return Err(invalid("private D1 transition limit"));
     }
@@ -4889,25 +5341,91 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
         .map_err(|error| format!("offline bootstrap source pair: {error:?}"))?;
     d1.identity.verify_selected_file_identity()?;
     after_db.identity.verify_selected_file_identity()?;
-    let receipt = emit_d1_pair(&spec, transitions.drain(..), &forward, &rollback, &manifest)
-        .map_err(|error| format!("offline private capture: {error:?}"))?;
+    let receipt = emit_d1_capture(
+        &spec,
+        transitions.drain(..),
+        &forward,
+        Some(&rollback),
+        &manifest,
+    )
+    .map_err(|error| format!("offline private capture: {error:?}"))?;
+    let sql_bytes = receipt
+        .forward_bytes
+        .checked_add(receipt.rollback_bytes)
+        .ok_or_else(|| invalid("bootstrap SQL byte count overflow"))?;
+    let maintained_auxiliary_stores = spec
+        .auxiliary_stores
+        .iter()
+        .map(|store| store.identity().0)
+        .collect::<Vec<_>>();
+    let forward_output = json!({
+        "available": true,
+        "sha256": receipt.forward_sha256,
+        "bytes": receipt.forward_bytes,
+        "base_revision": receipt.base_d1_revision,
+        "target_revision": receipt.target_d1_revision,
+        "published": true,
+        "publication": "private-capture-manifest-last"
+    });
+    let rollback_output = receipt.rollback_sha256.as_ref().map(|sha256| {
+        json!({
+            "available": true,
+            "sha256": sha256,
+            "bytes": receipt.rollback_bytes,
+            "base_revision": receipt.target_d1_revision,
+            "target_revision": receipt.base_d1_revision,
+            "published": true,
+            "publication": "private-capture-manifest-last"
+        })
+    });
     let result = json!({
         "schema": "tos_edge_offline_capture_result_v1",
         "operation": operation,
-        "base_d1_revision": receipt.base_d1_revision,
-        "target_d1_revision": receipt.target_d1_revision,
-        "forward_sha256": receipt.forward_sha256,
-        "rollback_sha256": receipt.rollback_sha256,
-        "changed_rows": receipt.changed_rows,
-        "held_snapshot_bindings_verified": true,
-        "source_currentness_verified": false,
-        "selected_pair_owner_admitted": false,
-        "rights_admission": false,
-        "semantic_acceptance": false,
-        "d1_applied": false,
-        "consumer_switched": false,
-        "source_navigation_header": header,
-        "capture_scope": "source-navigation-bootstrap"
+        "receipt": {
+            "schema": "tos_edge_native_source_navigation_bootstrap_receipt_v1",
+            "operation": operation,
+            "lineage_schema": "tos_source_navigation_bootstrap_d1_v1",
+            "base_d1_revision": receipt.base_d1_revision,
+            "target_d1_revision": receipt.target_d1_revision,
+            "source_revision": after_source.source_revision(),
+            "prepared_binding": request["after_binding"],
+            "source_inputs_sha256": after_source.digest(),
+            "source_navigation_sha256": nav.snapshot_sha256(),
+            "rights_sha256": rights.snapshot_sha256(),
+            "implementation_sha256": spec.implementation_sha256,
+            "manifest_schema": receipt.schema,
+            "manifest_published_last": true,
+            "changed_rows": receipt.changed_rows,
+            "source_navigation_header": header,
+            "source_navigation_header_sha256": header_sha256,
+            "verified_header_counts": header.get("counts"),
+            "projection_usage": {
+                "opened_parts": projection_usage.opened_parts,
+                "stored_bytes": projection_usage.stored_bytes,
+                "decoded_bytes": projection_usage.decoded_bytes,
+                "keys": projection_usage.keys,
+                "changes": projection_usage.changes,
+                "output_bytes": projection_usage.output_bytes,
+            },
+            "capture_read_bytes": d1_read_bytes.used,
+            "retained_bytes": retained_bytes,
+            "maintained_auxiliary_stores": maintained_auxiliary_stores,
+            "forward": forward_output,
+            "rollback": rollback_output,
+            "forward_sha256": receipt.forward_sha256,
+            "rollback_sha256": receipt.rollback_sha256,
+            "forward_sql_bytes": receipt.forward_bytes,
+            "rollback_sql_bytes": receipt.rollback_bytes,
+            "sql_bytes": sql_bytes,
+            "prepared_source_pairing_verified": true,
+            "held_snapshot_bindings_verified": true,
+            "source_currentness_verified": false,
+            "selected_pair_owner_admitted": receipt.selected_pair_owner_admitted,
+            "rights_admission": false,
+            "semantic_acceptance": false,
+            "d1_applied": receipt.d1_applied,
+            "consumer_switched": receipt.consumer_switched
+        }
     });
     writeln!(
         stdout,

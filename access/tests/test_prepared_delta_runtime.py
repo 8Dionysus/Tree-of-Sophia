@@ -73,7 +73,7 @@ class PreparedD1DeltaTests(unittest.TestCase):
             if not db.in_transaction:
                 db.execute('BEGIN')
         try:
-            return delta.build_prepared_delta_sql(self.d1, self.before, self.f.db, self.root / name,
+            return delta.build_prepared_delta_sql_oracle(self.d1, self.before, self.f.db, self.root / name,
                 expected_d1_revision='d'*64, before_binding=self.f.binding, after_binding=result['binding'], **options)
         finally:
             for db in (self.d1, self.before, self.f.db):

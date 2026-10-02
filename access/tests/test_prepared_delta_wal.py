@@ -103,7 +103,7 @@ class PreparedDeltaWalSnapshotTests(unittest.TestCase):
         # All three read transactions are caller-held, as required by the
         # existing capture API. It emits SQL but does not mutate the D1 oracle.
         self.d1.execute("BEGIN")
-        receipt = delta.build_prepared_delta_sql(
+        receipt = delta.build_prepared_delta_sql_oracle(
             self.d1,
             before_reader,
             after_reader,

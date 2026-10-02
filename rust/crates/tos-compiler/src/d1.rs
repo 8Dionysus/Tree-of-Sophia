@@ -20,7 +20,7 @@ use tos_foundation::{Digest256, Digest256Hasher};
 
 pub const D1_PAIR_SCHEMA: &str = "tos_rust_prepared_d1_sql_pair_v1";
 const MAX_STATEMENT_BYTES: usize = 100_000;
-const MAX_ROW_BYTES: usize = 2_000_000;
+pub const MAX_D1_SQL_ROW_VALUE_BYTES: usize = 2_000_000;
 const TEXT_CHUNK_BYTES: usize = 16_000;
 const READ_MODEL_SCHEMA: &str = "tos_cloudflare_edge_read_model_v9";
 
@@ -29,6 +29,10 @@ pub struct D1PairLimits {
     pub max_transitions: u64,
     pub max_work_bytes: u64,
     pub max_sql_bytes: u64,
+    /// Maximum rendered SQL literal row size including its fixed margin.
+    /// Existing callers keep the published 2 MB bound; the offline prepared
+    /// adapter can pass its separately declared 4 MB row allowance.
+    pub max_row_bytes: usize,
 }
 impl Default for D1PairLimits {
     fn default() -> Self {
@@ -36,6 +40,7 @@ impl Default for D1PairLimits {
             max_transitions: 512,
             max_work_bytes: 128 * 1024 * 1024,
             max_sql_bytes: 128 * 1024 * 1024,
+            max_row_bytes: MAX_D1_SQL_ROW_VALUE_BYTES,
         }
     }
 }
@@ -329,6 +334,25 @@ pub struct D1PairReceipt {
     pub consumer_switched: bool,
 }
 
+/// Result for the maintained offline Edge adapter. Unlike D1PairReceipt, its
+/// reverse SQL is optional and its independently owned SQL/manifest targets
+/// may live in different directories. It still proves mechanics only.
+#[derive(Clone, Debug)]
+pub struct D1CaptureReceipt {
+    pub schema: &'static str,
+    pub base_d1_revision: String,
+    pub target_d1_revision: String,
+    pub forward_sha256: String,
+    pub rollback_sha256: Option<String>,
+    pub forward_bytes: u64,
+    pub rollback_bytes: u64,
+    pub changed_rows: u64,
+    pub manifest_path: PathBuf,
+    pub selected_pair_owner_admitted: bool,
+    pub d1_applied: bool,
+    pub consumer_switched: bool,
+}
+
 #[derive(Debug)]
 pub enum D1PairFailure {
     FullOnlyRightsTransition,
@@ -389,27 +413,35 @@ fn cell_sql(value: &D1Cell) -> String {
         D1Cell::Text(text) => quote(text),
     }
 }
-fn row_bytes(values: &[D1Cell]) -> D1PairResult<usize> {
+fn row_bytes(values: &[D1Cell], limit: usize) -> D1PairResult<usize> {
     let mut total = 0usize;
     for value in values {
         let bytes = match value {
-            D1Cell::Null => 0,
+            D1Cell::Null => 4,
             D1Cell::Integer(value) => value.to_string().len(),
             D1Cell::Text(value) => {
                 if value.contains('\0') {
                     return Err(D1PairFailure::Invalid("NUL in D1 SQL text"));
                 }
-                value.len()
+                2usize
+                    .checked_add(value.len())
+                    .and_then(|size| {
+                        size.checked_add(
+                            value
+                                .as_bytes()
+                                .iter()
+                                .filter(|byte| **byte == b'\'')
+                                .count(),
+                        )
+                    })
+                    .ok_or(D1PairFailure::Budget("row bytes"))?
             }
         };
         total = total
             .checked_add(bytes)
             .ok_or(D1PairFailure::Budget("row bytes"))?;
     }
-    if total
-        .checked_add(1024)
-        .is_none_or(|size| size > MAX_ROW_BYTES)
-    {
+    if total.checked_add(1024).is_none_or(|size| size > limit) {
         return Err(D1PairFailure::Budget("D1 row bytes"));
     }
     Ok(total)
@@ -436,13 +468,13 @@ fn row_key(table: D1Table, values: &[D1Cell]) -> D1PairResult<Vec<D1Cell>> {
     }
     Ok(result)
 }
-fn validate_row(change: &D1RowTransition) -> D1PairResult<Vec<D1Cell>> {
+fn validate_row(change: &D1RowTransition, max_row_bytes: usize) -> D1PairResult<Vec<D1Cell>> {
     if change.before.is_none() && change.after.is_none() {
         return Err(D1PairFailure::Invalid("empty D1 transition"));
     }
     let mut key = None;
     for row in [&change.before, &change.after].into_iter().flatten() {
-        row_bytes(row)?;
+        row_bytes(row, max_row_bytes)?;
         let current = row_key(change.table, row)?;
         if key.as_ref().is_some_and(|prior| prior != &current) {
             return Err(D1PairFailure::Invalid("D1 transition key changed"));
@@ -1151,7 +1183,7 @@ where
             if !selected_tables.contains(&row.table) {
                 return Err(D1PairFailure::Invalid("unselected D1 auxiliary transition"));
             }
-            let key = validate_row(&row)?;
+            let key = validate_row(&row, spec.limits.max_row_bytes)?;
             changed += 1;
             if changed > spec.limits.max_transitions {
                 return Err(D1PairFailure::Budget("D1 transition count"));
@@ -1159,7 +1191,7 @@ where
             let mut size = 0usize;
             for cells in row.before.iter().chain(row.after.iter()) {
                 size = size
-                    .checked_add(row_bytes(cells)?)
+                    .checked_add(row_bytes(cells, spec.limits.max_row_bytes)?)
                     .ok_or(D1PairFailure::Budget("D1 work bytes"))?;
             }
             work = work
@@ -1267,6 +1299,249 @@ where
             changed_rows: changed,
             pair_manifest: manifest.into(),
             owner_admission_sha256: None,
+            selected_pair_owner_admitted: false,
+            d1_applied: false,
+            consumer_switched: false,
+        })
+    })();
+    if result.is_err() {
+        owned.cleanup();
+    }
+    result
+}
+
+/// Emit a bounded private capture with optional rollback and independently
+/// owned SQL/manifest destinations. The manifest is always published last;
+/// the caller must keep each destination directory exclusive for the call.
+pub fn emit_d1_capture<I>(
+    spec: &D1PairInput,
+    rows: I,
+    forward: &Path,
+    rollback: Option<&Path>,
+    manifest: &Path,
+) -> D1PairResult<D1CaptureReceipt>
+where
+    I: IntoIterator<Item = D1RowTransition>,
+{
+    let target = selection(spec)?;
+    let mut destinations = vec![forward];
+    if let Some(rollback) = rollback {
+        destinations.push(rollback);
+    }
+    destinations.push(manifest);
+    let pending = destinations
+        .iter()
+        .map(|path| {
+            let name = path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .ok_or(D1PairFailure::Invalid("D1 capture filename"))?;
+            Ok(path.with_file_name(format!("{name}.next")))
+        })
+        .collect::<D1PairResult<Vec<_>>>()?;
+    let all_paths = destinations
+        .iter()
+        .copied()
+        .chain(pending.iter().map(PathBuf::as_path))
+        .collect::<std::collections::BTreeSet<_>>();
+    if all_paths.len() != destinations.len() + pending.len()
+        || destinations
+            .iter()
+            .copied()
+            .chain(pending.iter().map(PathBuf::as_path))
+            .any(|path| {
+                !path.is_absolute()
+                    || path.exists()
+                    || fs::symlink_metadata(path).is_ok()
+                    || path
+                        .file_name()
+                        .and_then(|name| name.to_str())
+                        .is_none_or(|name| name.is_empty() || name.len() > 255)
+            })
+    {
+        return Err(D1PairFailure::Invalid(
+            "distinct fresh absolute D1 capture paths",
+        ));
+    }
+    let mut parent_dirs = destinations
+        .iter()
+        .map(|path| {
+            path.parent()
+                .ok_or(D1PairFailure::Invalid("D1 capture parent"))
+        })
+        .collect::<D1PairResult<Vec<_>>>()?;
+    parent_dirs.sort();
+    parent_dirs.dedup();
+    for parent in &parent_dirs {
+        fs::create_dir_all(parent)?;
+    }
+
+    let forward_pending = &pending[0];
+    let manifest_pending = pending.last().expect("manifest pending path");
+    let rollback_pending = rollback.map(|_| &pending[1]);
+    let mut owned = OwnedOutputs::default();
+    let selected_tables = D1Table::selected(spec);
+    let result = (|| -> D1PairResult<D1CaptureReceipt> {
+        let mut fw = SqlSink::new(forward_pending, spec.limits.max_sql_bytes, &mut owned)?;
+        let mut rv = rollback_pending
+            .map(|path| SqlSink::new(path, spec.limits.max_sql_bytes, &mut owned))
+            .transpose()?;
+        let mut counts = BTreeMap::new();
+        for table in D1Table::selected(spec) {
+            stage_schema(&mut fw, &target, table)?;
+            if let Some(rv) = rv.as_mut() {
+                stage_schema(rv, &spec.base_d1_revision, table)?;
+            }
+        }
+        if let Some(rv) = rv.as_ref() {
+            combined_sql(&fw, rv, spec.limits.max_sql_bytes)?;
+        }
+        let mut work = 0u64;
+        let mut changed = 0u64;
+        for row in rows {
+            if !selected_tables.contains(&row.table) {
+                return Err(D1PairFailure::Invalid("unselected D1 auxiliary transition"));
+            }
+            let key = validate_row(&row, spec.limits.max_row_bytes)?;
+            changed = changed
+                .checked_add(1)
+                .ok_or(D1PairFailure::Budget("D1 transition count"))?;
+            if changed > spec.limits.max_transitions {
+                return Err(D1PairFailure::Budget("D1 transition count"));
+            }
+            let mut size = 0usize;
+            for cells in row.before.iter().chain(row.after.iter()) {
+                size = size
+                    .checked_add(row_bytes(cells, spec.limits.max_row_bytes)?)
+                    .ok_or(D1PairFailure::Budget("D1 work bytes"))?;
+            }
+            work = work
+                .checked_add(size as u64)
+                .ok_or(D1PairFailure::Budget("D1 work bytes"))?;
+            if work > spec.limits.max_work_bytes {
+                return Err(D1PairFailure::Budget("D1 work bytes"));
+            }
+            *counts.entry(row.table.shape().0).or_insert(0u64) += 1;
+            stage_change(&mut fw, &target, &row, &key, false)?;
+            if let Some(rv) = rv.as_mut() {
+                stage_change(rv, &spec.base_d1_revision, &row, &key, true)?;
+                combined_sql(&fw, rv, spec.limits.max_sql_bytes)?;
+            }
+        }
+        if changed == 0 {
+            return Err(D1PairFailure::Invalid("empty D1 transition"));
+        }
+        *counts.entry("edge_meta").or_insert(0) += 2;
+        stage_meta(
+            &mut fw,
+            &target,
+            &spec.base_d1_revision,
+            &target,
+            &spec.before_reader_top,
+            &spec.after_reader_top,
+            false,
+        )?;
+        if let Some(rv) = rv.as_mut() {
+            stage_meta(
+                rv,
+                &spec.base_d1_revision,
+                &spec.base_d1_revision,
+                &target,
+                &spec.before_reader_top,
+                &spec.after_reader_top,
+                true,
+            )?;
+            combined_sql(&fw, rv, spec.limits.max_sql_bytes)?;
+        }
+        publication(
+            &mut fw,
+            &target,
+            &spec.base_d1_revision,
+            &target,
+            &counts,
+            spec,
+            false,
+        )?;
+        if let Some(rv) = rv.as_mut() {
+            publication(
+                rv,
+                &spec.base_d1_revision,
+                &target,
+                &spec.base_d1_revision,
+                &counts,
+                spec,
+                true,
+            )?;
+            combined_sql(&fw, rv, spec.limits.max_sql_bytes)?;
+        }
+        let (forward_sha256, forward_bytes) = fw.finish()?;
+        let (rollback_sha256, rollback_bytes) = match rv {
+            Some(rv) => {
+                let (digest, bytes) = rv.finish()?;
+                (Some(digest), bytes)
+            }
+            None => (None, 0),
+        };
+        if rollback_sha256.is_some()
+            && forward_bytes
+                .checked_add(rollback_bytes)
+                .is_none_or(|bytes| bytes > spec.limits.max_sql_bytes)
+        {
+            return Err(D1PairFailure::Budget("combined D1 SQL bytes"));
+        }
+        let packet = json!({
+            "schema": "tos_rust_private_d1_capture_manifest_v1",
+            "base_d1_revision": spec.base_d1_revision,
+            "target_d1_revision": target,
+            "forward": {"name": forward.file_name().unwrap().to_string_lossy(), "sha256": forward_sha256, "bytes": forward_bytes},
+            "rollback": rollback.zip(rollback_sha256.as_ref()).map(|(path, hash)| json!({"name": path.file_name().unwrap().to_string_lossy(), "sha256": hash, "bytes": rollback_bytes})),
+            "changed_rows": changed,
+            "before_rights_sha256": spec.before_rights_sha256,
+            "after_rights_sha256": spec.after_rights_sha256,
+            "auxiliary_stores": spec.auxiliary_stores.iter().map(|store| store.identity().0).collect::<Vec<_>>(),
+            "publication": "private-capture-manifest-last",
+            "selected_pair_owner_admitted": false,
+            "source_currentness_verified": false,
+            "semantic_acceptance": false,
+            "d1_applied": false,
+            "consumer_switched": false,
+        });
+        let raw = serde_json::to_vec(&packet)
+            .map_err(|_| D1PairFailure::Invalid("capture manifest JSON"))?;
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(manifest_pending)?;
+        owned.record(manifest_pending, &file)?;
+        file.write_all(&raw)?;
+        file.write_all(b"\n")?;
+        file.sync_all()?;
+        if let Some(rollback) = rollback {
+            owned.publish(rollback_pending.expect("rollback pending path"), rollback)?;
+        }
+        owned.publish(forward_pending, forward)?;
+        for parent in destinations
+            .iter()
+            .filter_map(|path| path.parent())
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .filter(|parent| *parent != manifest.parent().expect("manifest parent"))
+        {
+            File::open(parent)?.sync_all()?;
+        }
+        owned.publish(manifest_pending, manifest)?;
+        File::open(manifest.parent().expect("manifest parent"))?.sync_all()?;
+        Ok(D1CaptureReceipt {
+            schema: "tos_rust_private_d1_capture_manifest_v1",
+            base_d1_revision: spec.base_d1_revision.clone(),
+            target_d1_revision: target,
+            forward_sha256,
+            rollback_sha256,
+            forward_bytes,
+            rollback_bytes,
+            changed_rows: changed,
+            manifest_path: manifest.into(),
             selected_pair_owner_admitted: false,
             d1_applied: false,
             consumer_switched: false,

@@ -234,7 +234,76 @@ def execution_profile():
     return _sha(_compact(values))
 
 
+def _native_receipt(native_capture, request, snapshots, expected_schema):
+    from tos_access.native_edge_capture import NativeCaptureContext
+    if not isinstance(native_capture, NativeCaptureContext):
+        raise ValueError('explicit finite installed native capture context required')
+    result = native_capture.run(request, snapshots)
+    receipt = result.get('receipt')
+    if (result.get('operation') != request['operation'] or type(receipt) is not dict
+            or receipt.get('schema') != expected_schema):
+        raise ValueError('native capture maintained receipt differs')
+    return receipt
+
+
+def _native_transition_request(operation, target, rollback_target, revision,
+                               before_binding, after_binding, limits, *,
+                               source_inputs=None, rights_root=None):
+    forward, reverse = _native_output_paths(target, rollback_target)
+    return {'schema': 'tos_edge_offline_capture_request_v1', 'operation': operation,
+        'd1_database': 'borrowed', 'before_prepared_database': None,
+        'after_prepared_database': 'borrowed', 'expected_d1_revision': revision,
+        'before_binding': before_binding, 'after_binding': after_binding,
+        'before_source_inputs_json': None if source_inputs is None else source_inputs.raw.decode('utf-8'),
+        'rights_root': rights_root, 'forward_sql': str(forward),
+        'rollback_sql': None if reverse is None else str(reverse),
+        'manifest_json': None, 'limits': {'prepared': dict(vars(limits))}}
+
+
+def _native_output_paths(target, rollback_target):
+    paths = [Path(target)] + ([] if rollback_target is None else [Path(rollback_target)])
+    # Resolve only parents: final names remain selected names for native
+    # no-follow custody. Include the maintained .next collision law even when
+    # the native emitter chooses a different private pending-file name.
+    selected = [path.parent.resolve() / path.name for path in paths]
+    all_paths = [p.resolve() for path in selected
+                 for p in (path, path.with_name(path.name + '.next'))]
+    if len(set(all_paths)) != len(all_paths) or any(p.exists() for p in all_paths):
+        raise ValueError('distinct fresh delta SQL targets required')
+    return selected[0], None if len(selected) == 1 else selected[1]
+
+
 def build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_revision,
+                            before_binding, after_binding, limits=None, rollback_target=None,
+                            native_capture=None):
+    """Return the selected native receipt; requires explicit finite transport.
+
+    Source/pair admission and borrowed transactions remain caller-owned.
+    The explicit reference implementation is build_prepared_delta_sql_oracle.
+    """
+    request = _native_transition_request('prepared-delta', target, rollback_target,
+        expected_d1_revision, before_binding, after_binding, limits or PreparedD1DeltaLimits())
+    request['before_prepared_database'] = 'borrowed'
+    return _native_receipt(native_capture, request,
+        {'d1_database': db, 'before_prepared_database': before_db,
+         'after_prepared_database': after_db}, 'tos_edge_native_prepared_delta_receipt_v1')
+
+
+def build_prepared_catchup_sql(db, after_db, target, *, expected_d1_revision,
+                             before_source_inputs, after_binding, limits=None, rollback_target=None,
+                             native_capture=None):
+    """Reconcile through the selected native process, without an oracle fallback."""
+    if not isinstance(before_source_inputs, PreparedSourceInputs):
+        raise TypeError('exact admitted D1 predecessor source inputs required')
+    request = _native_transition_request('prepared-catchup', target, rollback_target,
+        expected_d1_revision, None, after_binding, limits or PreparedD1DeltaLimits(),
+        source_inputs=before_source_inputs)
+    return _native_receipt(native_capture, request,
+        {'d1_database': db, 'after_prepared_database': after_db},
+        'tos_edge_native_prepared_catchup_receipt_v1')
+
+
+def build_prepared_delta_sql_oracle(db, before_db, after_db, target, *, expected_d1_revision,
                             before_binding, after_binding, limits=None, rollback_target=None):
     """Capture one exact committed prepared parent/successor; never apply SQL."""
     return _build_prepared_delta_sql(db, before_db, after_db, target,
@@ -242,7 +311,7 @@ def build_prepared_delta_sql(db, before_db, after_db, target, *, expected_d1_rev
         after_binding=after_binding, limits=limits, rollback_target=rollback_target)
 
 
-def build_prepared_catchup_sql(db, after_db, target, *, expected_d1_revision,
+def build_prepared_catchup_sql_oracle(db, after_db, target, *, expected_d1_revision,
                              before_source_inputs, after_binding, limits=None, rollback_target=None):
     """Explicit offline manifest reconciliation, not an addressed single delta.
 
