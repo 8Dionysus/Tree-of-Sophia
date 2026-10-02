@@ -581,7 +581,7 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
                 .map(|n| {
                     format!(
                         "{}_EXECUTOR={}\n",
-                        n.to_uppercase().replace('-', '_'),
+                        n.to_uppercase().replace('-', "_"),
                         artifacts.join(n).display()
                     )
                 })
