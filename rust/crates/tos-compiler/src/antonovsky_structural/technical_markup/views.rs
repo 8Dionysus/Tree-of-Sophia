@@ -64,7 +64,7 @@ fn emit(
         .iter()
         .map(|loc| {
             ids.get(loc)
-                .ok_or("child identity")
+                .ok_or_else(|| "child identity".to_string())
                 .map(|id| id["unit_id"].clone())
         })
         .collect::<Result<Vec<_>>>()?;
