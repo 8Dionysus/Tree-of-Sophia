@@ -690,8 +690,26 @@ fn legacy_navigation(capture: &PublicCapture, root: &str) -> Result<Value> {
     })?;
     let node_count = nodes.len();
     let edge_count = edges.len();
+    // Bibliographic filtering changes nodes and their connecting edges only.
+    // The maintained static packet preserves every captured rights record;
+    // copying it does not admit rights or authorize publication.
+    let mut rights = Vec::new();
+    rows(
+        capture,
+        "corpus",
+        "source_navigation/rights",
+        root,
+        |record| {
+            if rights.len() >= 100_000 {
+                return Err(Error::Budget("public D1 static navigation rights"));
+            }
+            rights.push(record);
+            Ok(())
+        },
+    )?;
     header["nodes"] = json!(nodes);
     header["edges"] = json!(edges);
+    header["rights"] = json!(rights);
     header["counts"]["nodes"] = json!(node_count);
     header["counts"]["edges"] = json!(edge_count);
     Ok(header)
