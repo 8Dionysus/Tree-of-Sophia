@@ -925,6 +925,35 @@ fn verify_payload_unchanged(
     Ok(())
 }
 
+fn observation_config(
+    entry: &Value,
+    size: u64,
+    media_type: &str,
+    relative_path: &str,
+) -> SourceCommandResult<Value> {
+    let payload_basename = relative_path
+        .rsplit('/')
+        .next()
+        .filter(|name| !name.is_empty())
+        .ok_or(SourceCommandError::Invalid("inventory payload basename"))?;
+    let original_basename = match entry.get("original_basename") {
+        None => payload_basename,
+        Some(Value::String(name)) if !name.is_empty() => name.as_str(),
+        Some(_) => {
+            return Err(SourceCommandError::Invalid("inventory original_basename"));
+        }
+    };
+    Ok(json!({
+        "byte_size": size,
+        "file_id": file_field(entry, "file_id")?,
+        "sha256": file_field(entry, "sha256")?,
+        "media_type": media_type,
+        "relative_path": relative_path,
+        "payload_basename": payload_basename,
+        "original_basename": original_basename
+    }))
+}
+
 fn legacy_file_inventory(
     path: &Path,
     raw: &[u8],
@@ -962,9 +991,7 @@ fn legacy_file_inventory(
         "text/plain" if plain_text_profile == "plain_text_v1" => plain_text_inventory(raw, entry),
         "application/epub+zip" => {
             let (mut file, metadata) = open_verified_payload(path, entry)?;
-            let config = json!({"byte_size":size,"file_id":entry["file_id"],
-                "sha256":entry["sha256"],"media_type":media_type,
-                "relative_path":relative_path});
+            let config = observation_config(entry, size, media_type, relative_path)?;
             let mut authorize = || active(deadline, cancelled);
             let inventory =
                 super::observe(&mut file, &config, deadline, cancelled, &mut authorize)?;
@@ -972,9 +999,7 @@ fn legacy_file_inventory(
             Ok(inventory)
         }
         "text/plain" | "text/markdown" => {
-            let config = json!({"byte_size":size,"file_id":entry["file_id"],
-                "sha256":entry["sha256"],"media_type":media_type,
-                "relative_path":relative_path});
+            let config = observation_config(entry, size, media_type, relative_path)?;
             let mut file = tos_fd_open::open_absolute_regular(path, size)
                 .map_err(|_| SourceCommandError::Unsupported("Item inventory payload access"))?;
             let mut authorize = || active(deadline, cancelled);
