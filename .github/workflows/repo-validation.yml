@@ -33,9 +33,15 @@ jobs:
           CARGO_BUILD_JOBS: "2"
         run: |
           rustup toolchain install 1.98.1 --profile minimal
-          cargo +1.98.1 build --locked --no-default-features -p tos-ops-mechanics-plan \
+          if cargo +1.98.1 build --locked --no-default-features -p tos-ops-mechanics-plan \
             --bin tos-release-check --bin tos-validation-lanes --bin tos-software-ci \
-            --target x86_64-unknown-linux-gnu --message-format=json > "$RUNNER_TEMP/plan-cargo-messages.jsonl"
+            --target x86_64-unknown-linux-gnu --message-format=json > "$RUNNER_TEMP/plan-cargo-messages.jsonl"; then
+            :
+          else
+            cargo_status=$?
+            cat "$RUNNER_TEMP/plan-cargo-messages.jsonl" >&2 || true
+            exit "$cargo_status"
+          fi
           mkdir "$RUNNER_TEMP/tos-ci-executors"
           cp "$CARGO_TARGET_DIR"/x86_64-unknown-linux-gnu/debug/tos-{release-check,validation-lanes,software-ci} "$RUNNER_TEMP/tos-ci-executors/"
           rustc +1.98.1 --version > "$RUNNER_TEMP/plan-rustc-version.txt"
