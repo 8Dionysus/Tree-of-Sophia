@@ -16,6 +16,30 @@ fn spaced(v: &Value) -> String {
     }
     walk(v)
 }
+// Bounded scalar diagnostics preserve the first SQL failure before scope cleanup.
+// These control observations contain no SQL text, parameters, or source payload.
+fn phase_budget(root: &ResearchExecution, stage: &'static str) -> Result<Value> {
+    root.check()?;
+    let budget = root.budget_report();
+    eprintln!("concept private database phase {stage}: {budget}");
+    root.check()?;
+    Ok(budget)
+}
+fn sql_failure(
+    root: &ResearchExecution,
+    stage: &'static str,
+    before: &Value,
+    error: rusqlite::Error,
+) -> String {
+    let extended_code = match &error {
+        rusqlite::Error::SqliteFailure(code, _) => Some(code.extended_code),
+        _ => None,
+    };
+    format!(
+        "concept private database {stage}: {error}; sqlite_extended_code={extended_code:?}; phase_budget_before={before}; phase_budget_failure={}",
+        root.budget_report()
+    )
+}
 pub(super) fn build(
     root: &ResearchExecution,
     _c: &Config,
@@ -39,18 +63,36 @@ pub(super) fn build(
         max_live_aux: 8,
     })?;
     let result = (|| -> Result<()> {
+        let before = phase_budget(root, "open")?;
         let mut db = scope
             .scope_mut()
             .open_connection()
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("concept private database open: {e}; phase_budget_before={before}; phase_budget_failure={}", root.budget_report()))?;
         let deadline = root.deadline();
         db.progress_handler(1000, Some(move || std::time::Instant::now() >= deadline));
-        db.execute_batch("PRAGMA max_page_count=65536;")
-            .map_err(|e| e.to_string())?;
+        let before = phase_budget(root, "cache policy")?;
+        // A 200 MiB suggested main-cache target may reduce indexed-insert rereads.
+        // VACUUM can copy this target to its temporary pager: two suggested
+        // targets total 400 MiB, plus overhead; the outer RAM limit remains binding.
+        db.execute_batch("PRAGMA main.cache_size=-204800; PRAGMA max_page_count=65536;")
+            .map_err(|e| sql_failure(root, "cache policy", &before, e))?;
+        let cache_kib: i64 = db
+            .query_row("PRAGMA main.cache_size", [], |row| row.get(0))
+            .map_err(|e| sql_failure(root, "cache readback", &before, e))?;
+        root.check()?;
+        if cache_kib != -204800 {
+            return Err("concept private database cache policy readback mismatch".into());
+        }
+        let before = phase_budget(root, "schema")?;
         db.execute_batch(include_str!("research_concept_workbench.sql"))
-            .map_err(|e| e.to_string())?;
-        let tx = db.transaction().map_err(|e| e.to_string())?;
+            .map_err(|e| sql_failure(root, "schema", &before, e))?;
+        let before = phase_budget(root, "transaction")?;
+        let tx = db
+            .transaction()
+            .map_err(|e| sql_failure(root, "transaction", &before, e))?;
+        let _before = phase_budget(root, "form inventory")?;
         let forms = form_inventory(root, occ)?;
+        let before = phase_budget(root, "metadata insert")?;
         for (k, v) in [
             (
                 "schema_version",
@@ -66,16 +108,17 @@ pub(super) fn build(
         ] {
             root.tick(1)?;
             tx.execute("INSERT INTO metadata VALUES(?1,?2)", params![k, v])
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| sql_failure(root, "metadata insert", &before, e))?;
         }
         let by: BTreeMap<_, _> = speakers
             .iter()
             .map(|v| (s(v, "context_unit_ref"), v))
             .collect();
         {
+            let before = phase_budget(root, "context units insert")?;
             let mut stmt = tx
                 .prepare("INSERT INTO context_units VALUES(?,?,?,?,?,?,?,?,?,?,?,?)")
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| sql_failure(root, "context units insert", &before, e))?;
             for r in units {
                 root.tick(1)?;
                 let speaker = by[s(r, "context_unit_ref")];
@@ -93,15 +136,16 @@ pub(super) fn build(
                     s(speaker, "primary_role"),
                     s(speaker, "attribution_status")
                 ])
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| sql_failure(root, "context units insert", &before, e))?;
             }
         }
         {
+            let before = phase_budget(root, "exact occurrences insert")?;
             let mut stmt = tx
                 .prepare(
                     "INSERT INTO exact_occurrences VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 )
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| sql_failure(root, "exact occurrences insert", &before, e))?;
             for r in occ {
                 root.tick(1)?;
                 let scope = r["in_work_scope"] == true;
@@ -135,7 +179,7 @@ pub(super) fn build(
                         Some("appended_separate_work_part4_div21")
                     }
                 ])
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| sql_failure(root, "exact occurrences insert", &before, e))?;
             }
         }
         let mut forms = forms;
@@ -143,9 +187,10 @@ pub(super) fn build(
             (s(a, "language"), s(a, "analysis_key")).cmp(&(s(b, "language"), s(b, "analysis_key")))
         });
         {
+            let before = phase_budget(root, "analysis forms insert")?;
             let mut stmt = tx
                 .prepare("INSERT INTO analysis_forms VALUES(?,?,?,?,?,?)")
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| sql_failure(root, "analysis forms insert", &before, e))?;
             for r in forms {
                 root.tick(1)?;
                 stmt.execute(params![
@@ -156,12 +201,19 @@ pub(super) fn build(
                     arr(&r["exact_hashes"]).len(),
                     "unresolved_candidate_available_for_request_expansion"
                 ])
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| sql_failure(root, "analysis forms insert", &before, e))?;
             }
         }
-        tx.commit().map_err(|e| e.to_string())?;
-        db.execute_batch("VACUUM;").map_err(|e| e.to_string())?;
-        db.close().map_err(|(_retained, error)| error.to_string())?;
+        let before = phase_budget(root, "commit")?;
+        tx.commit()
+            .map_err(|e| sql_failure(root, "commit", &before, e))?;
+        let before = phase_budget(root, "vacuum")?;
+        db.execute_batch("VACUUM;")
+            .map_err(|e| sql_failure(root, "vacuum", &before, e))?;
+        let before = phase_budget(root, "close")?;
+        db.close()
+            .map_err(|(_retained, error)| sql_failure(root, "close", &before, error))?;
+        let _after = phase_budget(root, "closed")?;
         Ok(())
     })();
     scope.complete(result, 200 * MIB)
