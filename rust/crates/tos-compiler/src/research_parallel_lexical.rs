@@ -1270,9 +1270,9 @@ fn ru_db(root: &ResearchExecution, occs: &[Occ], plan_digest: &str) -> R<Vec<u8>
         let deadline = root.deadline();
         db.progress_handler(10_000, Some(move || std::time::Instant::now() >= deadline));
         root.check()?;
-        // Keep the bounded 80 MiB main database hot during random indexed
-        // inserts. This is a suggested pager target, not a total heap cap;
-        // the shared read meter and outer memory envelope still apply.
+        // Use a 96 MiB suggested pager target during random indexed inserts.
+        // The bounded main database remains 80 MiB; this is not a total heap
+        // cap, and the shared read meter and outer memory envelope still apply.
         db.execute_batch("PRAGMA main.cache_size=-98304")
             .map_err(|e| format!("parallel Russian cache policy: {e}"))?;
         let cache_kib: i64 = db
