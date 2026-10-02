@@ -256,6 +256,7 @@ class AcquisitionBatchTests(unittest.TestCase):
                 path = self.metadata / ref
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(body)
+                path.chmod(0o644)
                 records.append({"ref": ref, "sha256": hashlib.sha256(body).hexdigest(), "kind": kind})
                 all_record_refs.append(ref)
             url = f"https://provider.example/{slug}/r1/{slug}.txt"
