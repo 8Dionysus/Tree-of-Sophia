@@ -192,6 +192,10 @@ pub(crate) fn emit_lens_auxiliary(
         .checked_add(1)
         .ok_or(Error::Budget("public compact lens rows"))?;
     let sort_key = lower_search(capture, id)?;
+    let mut memberships = sink.insert_batch(
+        "knowledge_lens_memberships_next",
+        &["kind", "field", "value", "id", "sort_key"],
+    )?;
     for field in ["view_ids", "graph_layers"] {
         for value in member_values(item, field)? {
             let row = serde_json::to_vec(&(kind, field, &value, id, &sort_key))
@@ -207,18 +211,16 @@ pub(crate) fn emit_lens_auxiliary(
                 .checked_add(1)
                 .filter(|n| *n <= max_memberships)
                 .ok_or(Error::Budget("public lens memberships"))?;
-            sink.insert(
-                "knowledge_lens_memberships_next",
-                &["kind", "field", "value", "id", "sort_key"],
-                &[
-                    quoted(capture, kind)?,
-                    quoted(capture, field)?,
-                    quoted(capture, &value)?,
-                    quoted(capture, id)?,
-                    quoted(capture, &sort_key)?,
-                ],
-            )?;
+            let row = [
+                quoted(capture, kind)?,
+                quoted(capture, field)?,
+                quoted(capture, &value)?,
+                quoted(capture, id)?,
+                quoted(capture, &sort_key)?,
+            ];
+            memberships.push(&row)?;
         }
     }
+    memberships.finish()?;
     Ok(())
 }

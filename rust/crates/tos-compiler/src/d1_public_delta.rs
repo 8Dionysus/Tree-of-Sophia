@@ -7,7 +7,9 @@ use crate::{
     d1_public_baseline::{PublicRowIndex, TABLES},
     d1_public_capture::PublicCapture,
     d1_public_metadata::{python_reader_binding_parts, reader_binding_parts},
-    d1_public_sql::{MAX_INSERT_ROWS, MAX_ROW_VALUE_BYTES, MAX_STATEMENT_BYTES, quote},
+    d1_public_sql::{
+        MAX_INSERT_ROWS, MAX_ROW_VALUE_BYTES, MAX_STATEMENT_BYTES, quote, single_insert_body_digest,
+    },
     safe_open,
 };
 use rusqlite::{Connection, params};
@@ -21,6 +23,7 @@ use std::{
     fmt,
     fs::{self, File, OpenOptions},
     io::{self, BufReader, BufWriter, Read, Seek, SeekFrom, Write},
+    ops::Range,
     os::unix::fs::MetadataExt,
     os::unix::fs::OpenOptionsExt,
     path::{Path, PathBuf},
@@ -848,10 +851,7 @@ fn segment(file: &mut File, offset: u64, length: u64, capture: &PublicCapture) -
     String::from_utf8(bytes).map_err(|e| Error::Source(e.to_string()))
 }
 fn stage_insert<'a>(statement: &'a str, table: &str) -> Result<(&'a str, &'a str)> {
-    let prefix = format!("INSERT INTO {table}_next (");
-    let rest = statement
-        .strip_prefix(&prefix)
-        .ok_or(Error::Invalid("public D1 delta source INSERT"))?;
+    let rest = source_insert_rest(statement, table)?;
     let (columns, values) = rest
         .split_once(") VALUES (")
         .ok_or(Error::Invalid("public D1 delta INSERT shape"))?;
@@ -862,6 +862,462 @@ fn stage_insert<'a>(statement: &'a str, table: &str) -> Result<(&'a str, &'a str
         return Err(Error::Invalid("public D1 delta INSERT fields"));
     }
     Ok((columns, values))
+}
+
+fn source_insert_rest<'a>(statement: &'a str, table: &str) -> Result<&'a str> {
+    statement
+        .strip_prefix("INSERT INTO ")
+        .and_then(|rest| rest.strip_prefix(table))
+        .and_then(|rest| rest.strip_prefix("_next ("))
+        .ok_or(Error::Invalid("public D1 delta source INSERT"))
+}
+
+fn parse_decimal(bytes: &[u8], cursor: &mut usize) -> Result<u64> {
+    let start = *cursor;
+    let mut value = 0u64;
+    while let Some(byte) = bytes.get(*cursor).filter(|byte| byte.is_ascii_digit()) {
+        value = value
+            .checked_mul(10)
+            .and_then(|number| number.checked_add((*byte - b'0') as u64))
+            .ok_or(Error::Invalid("public D1 delta segment number"))?;
+        *cursor += 1;
+    }
+    if *cursor == start {
+        return Err(Error::Invalid("public D1 delta segment number"));
+    }
+    if *cursor - start > 1 && bytes[start] == b'0' {
+        return Err(Error::Invalid("public D1 delta segment number"));
+    }
+    Ok(value)
+}
+
+/// Inspect the compact numeric segment JSON without allocating. The row
+/// index writes this exact serde form; a multi-segment chunked row returns
+/// `None` and follows its established extraction path only when changed.
+fn single_segment_json(value: &str) -> Result<Option<(u64, u64)>> {
+    let bytes = value.as_bytes();
+    if bytes.first() != Some(&b'[') {
+        return Err(Error::Invalid("public D1 delta SQL segments"));
+    }
+    let mut cursor = 1usize;
+    let mut count = 0usize;
+    let mut single = None;
+    loop {
+        if bytes.get(cursor) != Some(&b'[') {
+            return Err(Error::Invalid("public D1 delta SQL segments"));
+        }
+        cursor += 1;
+        let offset = parse_decimal(bytes, &mut cursor)?;
+        if bytes.get(cursor) != Some(&b',') {
+            return Err(Error::Invalid("public D1 delta SQL segments"));
+        }
+        cursor += 1;
+        let length = parse_decimal(bytes, &mut cursor)?;
+        if bytes.get(cursor) != Some(&b']') || length == 0 || length > MAX_STATEMENT_BYTES as u64 {
+            return Err(Error::Invalid("public D1 delta SQL segments"));
+        }
+        offset
+            .checked_add(length)
+            .ok_or(Error::Invalid("public D1 delta SQL segment range"))?;
+        cursor += 1;
+        count = count
+            .checked_add(1)
+            .filter(|count| *count <= MAX_INSERT_ROWS)
+            .ok_or(Error::Invalid("public D1 delta SQL segment count"))?;
+        if count == 1 {
+            single = Some((offset, length));
+        }
+        match bytes.get(cursor) {
+            Some(b',') => cursor += 1,
+            Some(b']') => {
+                cursor += 1;
+                break;
+            }
+            _ => return Err(Error::Invalid("public D1 delta SQL segments")),
+        }
+    }
+    if count == 0 || cursor != bytes.len() {
+        return Err(Error::Invalid("public D1 delta SQL segments"));
+    }
+    Ok((count == 1).then_some(single.expect("one SQL segment")))
+}
+
+fn batch_columns(table: &str) -> Option<&'static [&'static str]> {
+    match table {
+        "knowledge_lens_memberships" => Some(&["kind", "field", "value", "id", "sort_key"]),
+        "knowledge_search_grams" => Some(&["kind", "n", "gram", "position"]),
+        "knowledge_search_gram_stats" => Some(&["kind", "n", "gram", "postings"]),
+        _ => None,
+    }
+}
+
+fn joined_fields_match(text: &str, fields: &[&str]) -> bool {
+    let mut cursor = 0usize;
+    for (index, field) in fields.iter().enumerate() {
+        if index != 0 {
+            if text.as_bytes().get(cursor) != Some(&b',') {
+                return false;
+            }
+            cursor += 1;
+        }
+        let Some(end) = cursor.checked_add(field.len()) else {
+            return false;
+        };
+        if text.get(cursor..end) != Some(*field) {
+            return false;
+        }
+        cursor = end;
+    }
+    cursor == text.len()
+}
+
+struct CachedInsertBatch {
+    offset: u64,
+    length: u64,
+    statement: String,
+    columns: Range<usize>,
+    rows: Vec<Range<usize>>,
+}
+
+fn scan_tuple(statement: &str, open: usize) -> Result<(Range<usize>, usize)> {
+    let bytes = statement.as_bytes();
+    if bytes.get(open) != Some(&b'(') {
+        return Err(Error::Invalid("public D1 delta batch tuple"));
+    }
+    let mut cursor = open + 1;
+    let start = cursor;
+    let mut nested = 0usize;
+    let mut quoted = false;
+    while let Some(byte) = bytes.get(cursor).copied() {
+        if byte == b'\'' {
+            if quoted && bytes.get(cursor + 1) == Some(&b'\'') {
+                cursor += 2;
+                continue;
+            }
+            quoted = !quoted;
+        } else if !quoted {
+            match byte {
+                b'(' => {
+                    nested = nested
+                        .checked_add(1)
+                        .ok_or(Error::Invalid("public D1 delta batch nesting"))?;
+                }
+                b')' if nested == 0 => return Ok((start..cursor, cursor + 1)),
+                b')' => nested -= 1,
+                _ => {}
+            }
+        }
+        cursor += 1;
+    }
+    Err(Error::Invalid("public D1 delta batch tuple end"))
+}
+
+fn parse_insert_batch(
+    statement: String,
+    table: &str,
+    offset: u64,
+    length: u64,
+    capture: &PublicCapture,
+) -> Result<CachedInsertBatch> {
+    let expected = batch_columns(table).ok_or(Error::Invalid("public D1 delta batch table"))?;
+    let parser_state = MAX_INSERT_ROWS
+        .checked_mul(std::mem::size_of::<Range<usize>>())
+        .ok_or(Error::Budget("public D1 delta batch parser state"))?;
+    capture.charge_work(
+        (statement.len() as u64)
+            .checked_add(parser_state as u64)
+            .ok_or(Error::Budget("public D1 delta batch parser state"))?,
+    )?;
+    let prefix_bytes = "INSERT INTO "
+        .len()
+        .checked_add(table.len())
+        .and_then(|bytes| bytes.checked_add("_next (".len()))
+        .ok_or(Error::Budget("public D1 delta batch prefix"))?;
+    let rest = source_insert_rest(&statement, table)
+        .map_err(|_| Error::Invalid("public D1 delta batch INSERT"))?;
+    let (columns, tuples) = rest
+        .split_once(") VALUES ")
+        .ok_or(Error::Invalid("public D1 delta batch columns"))?;
+    if !joined_fields_match(columns, expected) || !statement.ends_with(';') {
+        return Err(Error::Invalid("public D1 delta batch columns"));
+    }
+    if statement
+        .len()
+        .checked_add(1)
+        .filter(|bytes| *bytes <= MAX_STATEMENT_BYTES)
+        .is_none()
+    {
+        return Err(Error::Budget("public D1 delta batch statement bytes"));
+    }
+    let columns_start = prefix_bytes;
+    let columns_end = columns_start
+        .checked_add(columns.len())
+        .ok_or(Error::Budget("public D1 delta batch columns"))?;
+    let columns = columns_start..columns_end;
+    let mut rows = Vec::with_capacity(MAX_INSERT_ROWS);
+    let mut cursor = statement.len() - tuples.len();
+    loop {
+        if rows.len() >= MAX_INSERT_ROWS {
+            return Err(Error::Invalid("public D1 delta batch row count"));
+        }
+        let (row, after_tuple) = scan_tuple(&statement, cursor)?;
+        rows.push(row);
+        match statement.as_bytes().get(after_tuple) {
+            Some(b',') => cursor = after_tuple + 1,
+            Some(b';') if after_tuple + 1 == statement.len() => break,
+            _ => return Err(Error::Invalid("public D1 delta batch separator")),
+        }
+    }
+    Ok(CachedInsertBatch {
+        offset,
+        length,
+        statement,
+        columns,
+        rows,
+    })
+}
+
+struct ActiveSegmentGroup {
+    offset: u64,
+    length: u64,
+    rows: usize,
+    cached: Option<CachedInsertBatch>,
+}
+
+fn finish_segment_group(group: &mut Option<ActiveSegmentGroup>) -> Result<()> {
+    if let Some(group) = group.take() {
+        if group
+            .cached
+            .as_ref()
+            .is_some_and(|cached| cached.rows.len() != group.rows)
+        {
+            return Err(Error::Invalid("public D1 delta batch index cardinality"));
+        }
+    }
+    Ok(())
+}
+
+fn add_segment_row(
+    group: &mut Option<ActiveSegmentGroup>,
+    segment: Option<(u64, u64)>,
+) -> Result<Option<usize>> {
+    if group
+        .as_ref()
+        .is_some_and(|active| segment != Some((active.offset, active.length)))
+    {
+        finish_segment_group(group)?;
+    }
+    let Some((offset, length)) = segment else {
+        return Ok(None);
+    };
+    if group.is_none() {
+        *group = Some(ActiveSegmentGroup {
+            offset,
+            length,
+            rows: 0,
+            cached: None,
+        });
+    }
+    let active = group.as_mut().expect("active SQL segment group");
+    let ordinal = active.rows;
+    active.rows = active
+        .rows
+        .checked_add(1)
+        .filter(|count| *count <= MAX_INSERT_ROWS)
+        .ok_or(Error::Invalid("public D1 delta batch index cardinality"))?;
+    Ok(Some(ordinal))
+}
+
+fn scan_fields(text: &str, capture: &PublicCapture) -> Result<Vec<Range<usize>>> {
+    let bytes = text.as_bytes();
+    capture.charge_work(
+        (bytes.len() as u64)
+            .checked_mul(2)
+            .ok_or(Error::Budget("public D1 delta row parser work"))?,
+    )?;
+    let mut count = 1usize;
+    let mut nested = 0usize;
+    let mut quoted = false;
+    let mut cursor = 0usize;
+    while cursor < bytes.len() {
+        match bytes[cursor] {
+            b'\'' => {
+                if quoted && bytes.get(cursor + 1) == Some(&b'\'') {
+                    cursor += 2;
+                    continue;
+                }
+                quoted = !quoted;
+            }
+            b'(' if !quoted => {
+                nested = nested
+                    .checked_add(1)
+                    .ok_or(Error::Invalid("public D1 delta row nesting"))?;
+            }
+            b')' if !quoted => {
+                nested = nested
+                    .checked_sub(1)
+                    .ok_or(Error::Invalid("public D1 delta row nesting"))?;
+            }
+            b',' if !quoted && nested == 0 => {
+                count = count
+                    .checked_add(1)
+                    .filter(|count| *count <= 128)
+                    .ok_or(Error::Invalid("public D1 delta row field count"))?;
+            }
+            _ => {}
+        }
+        cursor += 1;
+    }
+    if quoted || nested != 0 || text.is_empty() {
+        return Err(Error::Invalid("public D1 delta row fields"));
+    }
+    let range_state = count
+        .checked_mul(std::mem::size_of::<Range<usize>>())
+        .ok_or(Error::Budget("public D1 delta row field state"))?;
+    capture.charge_work(range_state as u64)?;
+    let mut ranges = Vec::with_capacity(count);
+    let mut start = 0usize;
+    nested = 0;
+    quoted = false;
+    cursor = 0;
+    while cursor < bytes.len() {
+        match bytes[cursor] {
+            b'\'' => {
+                if quoted && bytes.get(cursor + 1) == Some(&b'\'') {
+                    cursor += 2;
+                    continue;
+                }
+                quoted = !quoted;
+            }
+            b'(' if !quoted => {
+                nested = nested
+                    .checked_add(1)
+                    .ok_or(Error::Invalid("public D1 delta row nesting"))?;
+            }
+            b')' if !quoted => {
+                nested = nested
+                    .checked_sub(1)
+                    .ok_or(Error::Invalid("public D1 delta row nesting"))?;
+            }
+            b',' if !quoted && nested == 0 => {
+                if start == cursor {
+                    return Err(Error::Invalid("public D1 delta empty row field"));
+                }
+                ranges.push(start..cursor);
+                start = cursor + 1;
+            }
+            _ => {}
+        }
+        cursor += 1;
+    }
+    if start == bytes.len() {
+        return Err(Error::Invalid("public D1 delta empty row field"));
+    }
+    ranges.push(start..bytes.len());
+    if ranges.len() != count {
+        return Err(Error::Invalid("public D1 delta row field count"));
+    }
+    Ok(ranges)
+}
+
+fn validate_indexed_row(
+    table: &str,
+    columns: &str,
+    values: &str,
+    values_json: &str,
+    digest: &str,
+    capture: &PublicCapture,
+) -> Result<()> {
+    if !hex_digest(digest) {
+        return Err(Error::Invalid("public D1 delta row digest"));
+    }
+    if let Some(expected) = batch_columns(table)
+        && !joined_fields_match(columns, expected)
+    {
+        return Err(Error::Invalid("public D1 delta batch columns"));
+    }
+    let column_ranges = scan_fields(columns, capture)?;
+    let value_ranges = scan_fields(values, capture)?;
+    if column_ranges.len() != value_ranges.len() {
+        return Err(Error::Invalid("public D1 delta row shape"));
+    }
+    let value_bytes = value_ranges.iter().try_fold(1024usize, |total, range| {
+        total
+            .checked_add(range.len())
+            .ok_or(Error::Budget("public D1 delta row value bytes"))
+    })?;
+    if value_bytes > MAX_ROW_VALUE_BYTES {
+        return Err(Error::Budget("public D1 delta row value bytes"));
+    }
+    capture.charge_work(
+        (values_json.len() as u64)
+            .checked_add((4 * std::mem::size_of::<String>()) as u64)
+            .ok_or(Error::Budget("public D1 delta indexed row state"))?,
+    )?;
+    let indexed = serde_json::from_str::<PriorValues>(values_json)
+        .map_err(|e| Error::Source(e.to_string()))?;
+    let keys = TABLES
+        .iter()
+        .find(|(name, _)| *name == table)
+        .map(|(_, keys)| *keys)
+        .ok_or(Error::Invalid("public D1 delta row table"))?;
+    if indexed.0.len() != keys.len() {
+        return Err(Error::Invalid("public D1 delta row key count"));
+    }
+    for (key, expected) in keys.iter().zip(indexed.0.iter()) {
+        if !key_literal(expected) {
+            return Err(Error::Invalid("public D1 delta key literal"));
+        }
+        let mut found = None;
+        for (index, column) in column_ranges.iter().enumerate() {
+            let field = &columns[column.clone()];
+            if !field
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
+            {
+                return Err(Error::Invalid("public D1 delta column name"));
+            }
+            if field == *key {
+                if found.replace(index).is_some() {
+                    return Err(Error::Invalid("public D1 delta duplicate key column"));
+                }
+            }
+        }
+        let position = found.ok_or(Error::Invalid("public D1 delta key column"))?;
+        let actual = &values[value_ranges[position].clone()];
+        if actual != expected.as_str() || !key_literal(actual) {
+            return Err(Error::Invalid("public D1 delta row identity"));
+        }
+    }
+    if batch_columns(table).is_some() {
+        let statement_bytes = "INSERT INTO "
+            .len()
+            .checked_add(table.len())
+            .and_then(|size| size.checked_add("_next (".len()))
+            .and_then(|size| size.checked_add(columns.len()))
+            .and_then(|size| size.checked_add(") VALUES (".len()))
+            .and_then(|size| size.checked_add(values.len()))
+            .and_then(|size| size.checked_add(");\n".len()))
+            .ok_or(Error::Budget("public D1 delta batch row bytes"))?;
+        if statement_bytes > MAX_STATEMENT_BYTES {
+            return Err(Error::Budget("public D1 delta batch row statement bytes"));
+        }
+    }
+    let digest_work = "INSERT INTO "
+        .len()
+        .checked_add(table.len())
+        .and_then(|size| size.checked_add("_next (".len()))
+        .and_then(|size| size.checked_add(columns.len()))
+        .and_then(|size| size.checked_add(") VALUES (".len()))
+        .and_then(|size| size.checked_add(values.len()))
+        .and_then(|size| size.checked_add(");".len()))
+        .ok_or(Error::Budget("public D1 delta row digest work"))?;
+    capture.charge_work(digest_work as u64)?;
+    let actual_digest = single_insert_body_digest(table, columns, values).to_hex();
+    if actual_digest.as_str() != digest {
+        return Err(Error::Invalid("public D1 delta row digest mismatch"));
+    }
+    Ok(())
 }
 fn binding_expr(top: &Value) -> Result<String> {
     let (_, prefix, suffix) = reader_binding_parts(top)?;
@@ -955,6 +1411,7 @@ pub(crate) fn produce(
         ))?;
         let mut stmt=db.prepare("SELECT length(CAST(n.digest AS BLOB)),length(CAST(n.values_json AS BLOB)),length(CAST(n.segments_json AS BLOB)),coalesce(length(CAST(p.digest AS BLOB)),0),n.digest,n.values_json,n.segments_json,p.digest FROM rows AS n LEFT JOIN prior_rows AS p ON p.table_name=n.table_name AND p.row_key=n.row_key WHERE n.table_name=?1 ORDER BY n.sequence")?;
         let mut rows = stmt.query(params![*table])?;
+        let mut active_segment_group = None;
         while let Some(row) = rows.next()? {
             let mut lookup_bytes = (4 * std::mem::size_of::<String>() + 128) as u64;
             for column in 0..4 {
@@ -971,6 +1428,8 @@ pub(crate) fn produce(
             let values_json: String = row.get(5)?;
             let segments_json: String = row.get(6)?;
             let old: Option<String> = row.get(7)?;
+            let indexed_segment = single_segment_json(&segments_json)?;
+            let row_ordinal = add_segment_row(&mut active_segment_group, indexed_segment)?;
             if values_json.len() > MAX_STATEMENT_BYTES {
                 return Ok(None);
             }
@@ -981,30 +1440,64 @@ pub(crate) fn produce(
             changed += 1;
             changed_counts[number] += 1;
             key_counts[number] += 1;
-            if !writer.key(&stage, &values_json)? {
-                return Ok(None);
-            }
-            // The captured row index contains only numeric [offset,length]
-            // pairs. Admit the tuple slots before serde allocates the Vec.
-            let segment_slots = segments_json.bytes().filter(|byte| *byte == b'[').count();
-            capture.charge_work(
-                (segment_slots as u64)
-                    .checked_mul(std::mem::size_of::<(u64, u64)>() as u64)
-                    .ok_or(Error::Budget("public D1 delta segment state"))?,
-            )?;
-            let segments: Vec<(u64, u64)> =
-                serde_json::from_str(&segments_json).map_err(|e| Error::Source(e.to_string()))?;
-            if segments.is_empty() {
-                return Err(Error::Invalid("public D1 delta row SQL absent"));
-            }
-            if segments.len() == 1 {
-                let statement = segment(&mut sql, segments[0].0, segments[0].1, capture)?;
-                let (columns, values) = stage_insert(&statement, table)?;
-                let prefix_bytes = "INSERT INTO ".len()
-                    + stage.len()
-                    + " (".len()
-                    + columns.len()
-                    + ") VALUES ".len();
+            if let Some((offset, length)) = indexed_segment {
+                let (columns, values) = if batch_columns(table).is_some() {
+                    let ordinal =
+                        row_ordinal.ok_or(Error::Invalid("public D1 delta batch row ordinal"))?;
+                    let active = active_segment_group
+                        .as_mut()
+                        .ok_or(Error::Invalid("public D1 delta batch group absent"))?;
+                    if active.offset != offset || active.length != length {
+                        return Err(Error::Invalid("public D1 delta batch group identity"));
+                    }
+                    if active.cached.is_none() {
+                        let statement = segment(&mut sql, offset, length, capture)?;
+                        let cached = parse_insert_batch(statement, table, offset, length, capture)?;
+                        if ordinal >= cached.rows.len() {
+                            return Err(Error::Invalid("public D1 delta batch row ordinal"));
+                        }
+                        active.cached = Some(cached);
+                    }
+                    let cached = active
+                        .cached
+                        .as_ref()
+                        .ok_or(Error::Invalid("public D1 delta batch cache absent"))?;
+                    let row_range = cached
+                        .rows
+                        .get(ordinal)
+                        .ok_or(Error::Invalid("public D1 delta batch row ordinal"))?;
+                    let columns = &cached.statement[cached.columns.clone()];
+                    let values = &cached.statement[row_range.clone()];
+                    validate_indexed_row(table, columns, values, &values_json, &digest, capture)?;
+                    let retained = columns
+                        .len()
+                        .checked_add(values.len())
+                        .and_then(|bytes| bytes.checked_add(2))
+                        .ok_or(Error::Budget("public D1 delta row materialization"))?;
+                    capture.charge_work(retained as u64)?;
+                    (columns.to_owned(), values.to_owned())
+                } else {
+                    let statement = segment(&mut sql, offset, length, capture)?;
+                    let (columns, values) = stage_insert(&statement, table)?;
+                    validate_indexed_row(table, columns, values, &values_json, &digest, capture)?;
+                    let retained = columns
+                        .len()
+                        .checked_add(values.len())
+                        .and_then(|bytes| bytes.checked_add(2))
+                        .ok_or(Error::Budget("public D1 delta row materialization"))?;
+                    capture.charge_work(retained as u64)?;
+                    (columns.to_owned(), values.to_owned())
+                };
+                if !writer.key(&stage, &values_json)? {
+                    return Ok(None);
+                }
+                let prefix_bytes = "INSERT INTO "
+                    .len()
+                    .checked_add(stage.len())
+                    .and_then(|bytes| bytes.checked_add(" (".len()))
+                    .and_then(|bytes| bytes.checked_add(columns.len()))
+                    .and_then(|bytes| bytes.checked_add(") VALUES ".len()))
+                    .ok_or(Error::Budget("public D1 delta row bytes"))?;
                 let row_bytes = values
                     .len()
                     .checked_add(2)
@@ -1023,6 +1516,22 @@ pub(crate) fn produce(
                     format!("({values})"),
                 )?;
             } else {
+                if !writer.key(&stage, &values_json)? {
+                    return Ok(None);
+                }
+                // The captured row index contains only numeric [offset,length]
+                // pairs. Admit the tuple slots before serde allocates the Vec.
+                let segment_slots = segments_json.bytes().filter(|byte| *byte == b'[').count();
+                capture.charge_work(
+                    (segment_slots as u64)
+                        .checked_mul(std::mem::size_of::<(u64, u64)>() as u64)
+                        .ok_or(Error::Budget("public D1 delta segment state"))?,
+                )?;
+                let segments: Vec<(u64, u64)> = serde_json::from_str(&segments_json)
+                    .map_err(|e| Error::Source(e.to_string()))?;
+                if segments.len() < 2 {
+                    return Err(Error::Invalid("public D1 delta row SQL absent"));
+                }
                 writer.flush()?;
                 for (index, (offset, length)) in segments.into_iter().enumerate() {
                     let statement = segment(&mut sql, offset, length, capture)?;
@@ -1051,6 +1560,7 @@ pub(crate) fn produce(
                 }
             }
         }
+        finish_segment_group(&mut active_segment_group)?;
         drop(rows);
         drop(stmt);
         let mut stmt=db.prepare("SELECT length(CAST(p.values_json AS BLOB)),p.values_json FROM prior_rows AS p LEFT JOIN rows AS n ON n.table_name=p.table_name AND n.row_key=p.row_key WHERE p.table_name=?1 AND n.row_key IS NULL ORDER BY p.sequence")?;
@@ -1154,4 +1664,74 @@ pub(crate) fn produce(
         summary,
         prior,
     }))
+}
+
+#[cfg(test)]
+mod batch_delta_parser_tests {
+    use super::*;
+
+    #[test]
+    fn segment_groups_reject_trailing_commas_and_keep_ordinals() {
+        assert_eq!(single_segment_json("[[10,90]]").unwrap(), Some((10, 90)));
+        assert_eq!(single_segment_json("[[10,90],[100,80]]").unwrap(), None);
+        assert!(single_segment_json("[[10,90],]").is_err());
+
+        let mut complete = None;
+        assert_eq!(
+            add_segment_row(&mut complete, Some((10, 90))).unwrap(),
+            Some(0)
+        );
+        assert_eq!(
+            add_segment_row(&mut complete, Some((10, 90))).unwrap(),
+            Some(1)
+        );
+        complete.as_mut().unwrap().cached = Some(CachedInsertBatch {
+            offset: 10,
+            length: 90,
+            statement: String::new(),
+            columns: 0..0,
+            rows: vec![0..1, 1..2],
+        });
+        assert!(finish_segment_group(&mut complete).is_ok());
+
+        let mut short_index = None;
+        add_segment_row(&mut short_index, Some((10, 90))).unwrap();
+        short_index.as_mut().unwrap().cached = Some(CachedInsertBatch {
+            offset: 10,
+            length: 90,
+            statement: String::new(),
+            columns: 0..0,
+            rows: vec![0..1, 1..2],
+        });
+        assert!(finish_segment_group(&mut short_index).is_err());
+    }
+
+    #[test]
+    fn tuple_scanner_keeps_quoted_commas_and_doubled_quotes_inside_each_row() {
+        let statement = "('node',3,'comma, doubled ''quote'' value',7),('relation',3,'x',8);";
+        let (first, after_first) = scan_tuple(statement, 0).unwrap();
+        assert_eq!(
+            &statement[first],
+            "'node',3,'comma, doubled ''quote'' value',7"
+        );
+        assert_eq!(statement.as_bytes()[after_first], b',');
+        let (second, after_second) = scan_tuple(statement, after_first + 1).unwrap();
+        assert_eq!(&statement[second], "'relation',3,'x',8");
+        assert_eq!(statement.as_bytes()[after_second], b';');
+    }
+
+    #[test]
+    fn indexed_row_digest_matches_the_exact_single_insert_form() {
+        let digest = single_insert_body_digest(
+            "knowledge_search_grams",
+            "kind,n,gram,position",
+            "'nodes',3,'a,b''c',12",
+        )
+        .to_hex();
+        let expected = Digest256::of_bytes(
+            b"INSERT INTO knowledge_search_grams_next (kind,n,gram,position) VALUES ('nodes',3,'a,b''c',12);",
+        )
+        .to_hex();
+        assert_eq!(digest, expected);
+    }
 }

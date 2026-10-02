@@ -8,7 +8,7 @@ use crate::{
     d1_public_capture::{MAX_ROW_BYTES, PublicCapture, compact, json},
     d1_public_lens::{LensCounts, emit_lens_auxiliary},
     d1_public_rows::{encoded, lower_search, portable, preflight_large_fields},
-    d1_public_sql::{MAX_ROW_VALUE_BYTES, SqlSink, chunks, quote, quote_len},
+    d1_public_sql::{MAX_ROW_VALUE_BYTES, SqlSink, bounded_decimal, chunks, quote, quote_len},
     knowledge_posting_codec::{MAX_POSTING_DELTA_BYTES, decode_posting_block},
     knowledge_search::{SearchBuildLimits, SourceRow, document},
     knowledge_stage::{KnowledgeStage, WritePhase},
@@ -768,6 +768,10 @@ fn emit_search(
         let mut posting = db.prepare("SELECT kind,n,gram,first_position,last_position,postings,CASE WHEN length(deltas)<=?1 THEN deltas ELSE NULL END FROM search_posting_blocks ORDER BY kind,n,gram,last_position")?;
         let mut rows = posting.query([MAX_POSTING_DELTA_BYTES as i64])?;
         let mut previous:Option<(String,Vec<u8>,u64)>=None;
+        let mut posting_batch = sink.insert_batch(
+            "knowledge_search_grams_next",
+            &["kind", "n", "gram", "position"],
+        )?;
         while let Some(row)=rows.next()? {
             let kind:String=row.get(0)?; let n:i64=row.get(1)?; let gram:Vec<u8>=row.get(2)?;
             let first:i64=row.get(3)?; let last:i64=row.get(4)?; let count:i64=row.get(5)?;
@@ -783,25 +787,41 @@ fn emit_search(
                 if old_kind==&kind && old_gram==&gram && *old_last>=positions[0] {return Err(Error::Invalid("public D1 posting order"));}
             }
             for position in positions {
-                sink.insert("knowledge_search_grams_next", &["kind","n","gram","position"],
-                    &[bounded_quote(capture,&kind)?,"3".to_owned(),bounded_quote(capture,gram_text)?,position.to_string()])?;
+                let values = [
+                    bounded_quote(capture,&kind)?,
+                    bounded_decimal(capture, 3)?,
+                    bounded_quote(capture,gram_text)?,
+                    bounded_decimal(capture, position)?,
+                ];
+                posting_batch.push(&values)?;
                 counts.postings=counts.postings.checked_add(1).ok_or(Error::Budget("public D1 postings"))?;
             }
             previous=Some((kind,gram,last as u64));
         }
         drop(rows); drop(posting);
+        posting_batch.finish()?;
         let mut stats=db.prepare("SELECT kind,n,gram,postings FROM search_gram_stats ORDER BY kind,n,gram")?;
         let mut rows=stats.query([])?;
         let mut sum=0u64;
+        let mut stats_batch = sink.insert_batch(
+            "knowledge_search_gram_stats_next",
+            &["kind", "n", "gram", "postings"],
+        )?;
         while let Some(row)=rows.next()? {
             let kind:String=row.get(0)?; let n:i64=row.get(1)?; let gram:Vec<u8>=row.get(2)?; let postings:i64=row.get(3)?;
             if n!=3 || postings<1 {return Err(Error::Invalid("public D1 gram stats"));}
             let gram=std::str::from_utf8(&gram).map_err(|_|Error::Invalid("public D1 gram UTF-8"))?;
-            sink.insert("knowledge_search_gram_stats_next", &["kind","n","gram","postings"],
-                &[bounded_quote(capture,&kind)?,"3".to_owned(),bounded_quote(capture,gram)?,postings.to_string()])?;
+            let values = [
+                bounded_quote(capture,&kind)?,
+                bounded_decimal(capture, 3)?,
+                bounded_quote(capture,gram)?,
+                bounded_decimal(capture, postings)?,
+            ];
+            stats_batch.push(&values)?;
             counts.distinct_grams=counts.distinct_grams.checked_add(1).ok_or(Error::Budget("public D1 distinct grams"))?;
             sum=sum.checked_add(postings as u64).ok_or(Error::Budget("public D1 gram total"))?;
         }
+        stats_batch.finish()?;
         if sum!=counts.postings {return Err(Error::Invalid("public D1 posting/stat coverage"));}
         Ok(())
     })
