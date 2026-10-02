@@ -764,6 +764,7 @@ jobs:
           CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target
           CARGO_BUILD_JOBS: "2"
           TOS_NATIVE_OWNER_COMMAND_PATH: ${{ runner.temp }}/cargo-target/debug/tos-native-owner-command
+          TOS_NATIVE_OWNER_COMMAND_BIN: ${{ runner.temp }}/cargo-target/debug/tos-native-owner-command
           TOS_NATIVE_PREPARED_CONSUMER_BIN: ${{ runner.temp }}/cargo-target/debug/tos-access
           TOS_SCHEMA_WORKER_PATH: ${{ runner.temp }}/cargo-target/debug/tos-schema-worker
         run: python scripts/validation_lanes.py --run rust_workspace

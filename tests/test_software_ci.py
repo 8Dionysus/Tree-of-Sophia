@@ -151,6 +151,11 @@ class SoftwareSelectionTests(unittest.TestCase):
         self.assertEqual(len(command_lab), 1)
         self.assertTrue(command_lab[0]['env']['TOS_CMD_POSTGRES_URL'])
         self.assertIn('postgres', jobs['rust']['services'])
+        native_owner = next(s for s in jobs['rust']['steps']
+                            if s.get('run') == 'python scripts/validation_lanes.py --run rust_workspace')
+        native_owner_path = '${{ runner.temp }}/cargo-target/debug/tos-native-owner-command'
+        self.assertEqual(native_owner['env']['TOS_NATIVE_OWNER_COMMAND_PATH'], native_owner_path)
+        self.assertEqual(native_owner['env']['TOS_NATIVE_OWNER_COMMAND_BIN'], native_owner_path)
         # The entry wrappers execute native products before Cargo lanes can run.
         plan_runs = [step.get('run', '') for step in jobs['plan']['steps']]
         prepare = next(i for i, run in enumerate(plan_runs) if '--bin tos-software-ci' in run)
