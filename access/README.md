@@ -1717,3 +1717,7 @@ and 50-second deadline. Its `capabilities.available` reflects the selected
 exploration backend; software schemas remain readable when that backend is absent.
 Native refusals remain `ToolError`. This method does not select another data
 root, synthesize an Original catalog, or replace the remaining default Core API.
+
+`NativeCore.knowledge_exploration_capabilities()` returns the `capabilities`
+object from that same contracts call. It preserves selected availability,
+limits and refusal behavior and does not create another backend or data selection.
