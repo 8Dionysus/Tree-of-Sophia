@@ -1610,14 +1610,16 @@ fn maintained_agent_record_correction_whole_transaction_and_access() {
         .unwrap()
         .iter()
         .find(|r| {
-            r["properties"]["source_record"]["record_id"] == agent_id
-                && r["properties"]["source_record"]["record_version"] == 2
+            r["source_graph"] == "source-navigation"
+                && r["attributes"]["source_record"]["record_id"] == agent_id
+                && r["attributes"]["source_record"]["record_version"] == 2
         })
         .expect("independent current Agent node");
     let relation = expected["relations"]
         .as_array()
         .unwrap()
-        .first()
+        .iter()
+        .find(|r| r["source_graph"] == "semantic-interchange" && r["to_id"] == node["id"])
         .expect("maintained Agent related claim relation");
     claim_publication_access::verify_published_access_until(
         &db_path,
