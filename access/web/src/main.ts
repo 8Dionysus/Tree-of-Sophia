@@ -4624,33 +4624,12 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     const query = commandString(input, "query");
     if (!query) throw new Error("query is required");
     const language = commandString(input, "language", "ru");
-    let result: Record<string, unknown>;
-    try {
-      result = await queryOperations.invoke("tos.zarathustra.word-analysis.prepare", {
-        query,
-        language,
-        rank: commandInteger(input, "rank", 1, 1, 100),
-        include_semantic_neighbors: input.include_semantic_neighbors === true,
-      }, { signal: execution.signal });
-    } catch {
-      execution.signal.throwIfAborted();
-      result = {
-        schema: "tos_zarathustra_word_analysis_capability_v1",
-        available: false,
-        reason: "the local source-bound word-analysis capability failed its integrity check",
-        provider_ref: "scripts/prepare_zarathustra_word_analysis_v1.py",
-        publication_posture: "excluded_from_public_bundle",
-        task: null,
-        authority: {
-          source_owner: "Tree-of-Sophia",
-          access_plane_is_source: false,
-          is_semantic_truth: false,
-          writes_to_tree: false,
-          reviewed: false,
-          canon: false,
-        },
-      };
-    }
+    const result = await queryOperations.invoke("tos.zarathustra.word-analysis.prepare", {
+      query,
+      language,
+      rank: commandInteger(input, "rank", 1, 1, 100),
+      include_semantic_neighbors: input.include_semantic_neighbors === true,
+    }, { signal: execution.signal });
     execution.signal.throwIfAborted();
     const task = result.task && typeof result.task === "object" ? result.task as Record<string, unknown> : null;
     const source = task?.source && typeof task.source === "object" ? task.source as Record<string, unknown> : null;

@@ -7287,6 +7287,7 @@ mod native {
         Ok(())
     }
 
+    #[derive(Debug)]
     enum LegacyInputFailure {
         InvalidJson,
         InputBudget,

@@ -2,7 +2,7 @@
 //! Only requested identities are retained while selected graph collections stream.
 use crate::{
     Error, PublicCaptureLimits, Result,
-    d1_public_capture::{PublicCapture, compact, json},
+    d1_public_capture::{PublicCapture, compact, json, source_digest},
     safe_open,
 };
 use serde_json::{Value, json as value};
@@ -49,8 +49,7 @@ fn guard(deadline: Instant) -> Result<()> {
         Ok(())
     }
 }
-fn read(root: &Path, reference: &str, deadline: Instant) -> Result<Vec<u8>> {
-    guard(deadline)?;
+fn reference_path(root: &Path, reference: &str) -> Result<std::path::PathBuf> {
     let p = Path::new(reference);
     if reference.is_empty()
         || p.is_absolute()
@@ -61,11 +60,32 @@ fn read(root: &Path, reference: &str, deadline: Instant) -> Result<Vec<u8>> {
             "unsafe Evidence Lens route ref: {reference:?}"
         )));
     }
-    let mut file = safe_open::open_regular(&root.join(p), CAP as u64)?;
+    Ok(root.join(p))
+}
+fn read(root: &Path, reference: &str, deadline: Instant) -> Result<Vec<u8>> {
+    guard(deadline)?;
+    let mut file = safe_open::open_regular(&reference_path(root, reference)?, CAP as u64)?;
     let mut raw = Vec::new();
     file.read_to_end(&mut raw)?;
     guard(deadline)?;
     Ok(raw)
+}
+/// Routes contribute only byte identity; never retain or parse their body.
+fn route_digest(
+    root: &Path,
+    reference: &str,
+    capture: &PublicCapture,
+    limits: PublicCaptureLimits,
+    deadline: Instant,
+) -> Result<Digest256> {
+    guard(deadline)?;
+    let mut file =
+        safe_open::open_regular(&reference_path(root, reference)?, limits.max_input_bytes)?;
+    let (digest, _) = source_digest(&mut file, limits.max_input_bytes, |bytes| {
+        capture.charge_work(bytes as u64)
+    })?;
+    guard(deadline)?;
+    Ok(digest)
 }
 fn rendered(v: &Value, deadline: Instant) -> Result<Vec<u8>> {
     guard(deadline)?;
@@ -294,15 +314,11 @@ pub fn build(
                 .ok_or(Error::Invalid("Evidence Lens routes must be objects"))?
                 .clone();
             let reference = string(&raw_route["ref"])?;
-            let raw = read(root, reference, deadline)?;
+            let digest = route_digest(root, reference, &capture, limits, deadline)?;
             route.insert("exists".into(), Value::Bool(true));
-            route.insert(
-                "sha256".into(),
-                Value::String(Digest256::of_bytes(&raw).to_hex()),
-            );
-            capture.charge_work(raw.len() as u64)?;
-            if let Some(old) = opened.insert(reference.to_owned(), Digest256::of_bytes(&raw)) {
-                if old != Digest256::of_bytes(&raw) {
+            route.insert("sha256".into(), Value::String(digest.to_hex()));
+            if let Some(old) = opened.insert(reference.to_owned(), digest) {
+                if old != digest {
                     return Err(Error::Invalid("Evidence Lens source changed during build"));
                 }
             }
@@ -339,9 +355,7 @@ pub fn build(
     validate_payload(root, &payload, deadline)?;
     capture.verify_inputs(limits)?;
     for (reference, digest) in opened {
-        let raw = read(root, &reference, deadline)?;
-        capture.charge_work(raw.len() as u64)?;
-        if Digest256::of_bytes(&raw) != digest {
+        if route_digest(root, &reference, &capture, limits, deadline)? != digest {
             return Err(Error::Invalid("Evidence Lens source changed during build"));
         }
     }
@@ -393,7 +407,9 @@ mod tests {
             CANON_REF,
             b"edge_id,anchor_segment_ids,witness_scope\r\ne,seg-a|seg-b,\"scope, quoted\"\r\n",
         );
-        put(root, "docs/witness.md", "Источник Ω\n".as_bytes());
+        let mut witness = "Источник Ω\n".as_bytes().to_vec();
+        witness.resize(1_598_518, b'x');
+        put(root, "docs/witness.md", &witness);
         let corpus = value!({"schema_version":"tos_corpus_index_v1","nodes":[{"node_id":"n"}],"relation_edges":[{"edge_id":"e","owner_branch":"ToS/canon"}],"source_navigation":"x".repeat(3*1024*1024)});
         put(
             root,

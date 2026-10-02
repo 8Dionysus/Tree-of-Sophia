@@ -478,7 +478,7 @@ impl<'de> DeserializeSeed<'de> for ObjectSeed<'_, '_> {
     }
 }
 
-fn source_digest(
+pub(crate) fn source_digest(
     file: &mut File,
     cap: u64,
     mut charge: impl FnMut(usize) -> Result<()>,
