@@ -2863,7 +2863,15 @@ class AuthoredContractTests(unittest.TestCase):
     def test_browser_preserves_empty_filters_and_hides_unsupported_routes(self) -> None:
         actions = (ACCESS_ROOT / "web/src/query-operations.ts").read_text(encoding="utf-8")
         page = (ACCESS_ROOT / "web/src/main.ts").read_text(encoding="utf-8")
-        self.assertIn('["__tos_none__"]', actions)
+        request_rules = (REPO_ROOT / "rust/crates/tos-web-rules/src/query_request.rs").read_text(encoding="utf-8")
+        path_rules = (REPO_ROOT / "rust/crates/tos-web-rules/src/path_query.rs").read_text(encoding="utf-8")
+        # The no-match sentinel is owned by the installed Rust rules; the
+        # browser forwards it for explicit empty filters rather than omitting them.
+        self.assertIn("requestRules().filter_empty(selected.length) ? [requestRules().empty_filter()]", actions)
+        self.assertIn("rules.filter_empty(selected.length) ? [rules.empty_filter()]", actions)
+        for rules in (request_rules, path_rules):
+            empty_filter = rules.split("pub fn empty_filter", 1)[1].split("}", 1)[0]
+            self.assertIn('"__tos_none__"', empty_filter)
         self.assertIn('state.mode === "philosophy"', page)
         self.assertGreaterEqual(page.count("state.activeLayers.size === 0"), 1)
         self.assertGreaterEqual(page.count("state.activePredicates.size === 0"), 1)
