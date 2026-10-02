@@ -975,3 +975,18 @@ pub use worker_source_navigation::{WorkerSourceRights, WorkerSourceWalk};
 mod deploy_sync;
 #[cfg(feature = "wasm")]
 pub use deploy_sync::{DeployRevisionSession, DeploySyncSession};
+
+#[cfg(feature = "wasm")]
+mod word_query;
+#[cfg(feature = "wasm")]
+pub use word_query::WordQuerySession;
+
+#[cfg(feature = "wasm")]
+mod path_query;
+#[cfg(feature = "wasm")]
+pub use path_query::PathQuerySession;
+
+#[cfg(feature = "wasm")]
+mod query_request;
+#[cfg(feature = "wasm")]
+pub use query_request::QueryRequestRules;

@@ -55,6 +55,14 @@ describe("ToS query operations", () => {
       alternatives: "3",
       max_depth: "7",
     });
+    await expect(operations.invoke("tos.path.find", {
+      from_id: "  ", get to_id() { throw new Error("to must remain unread"); },
+    })).rejects.toThrow("from_id is required");
+    await expect(operations.invoke("tos.path.find", {
+      from_id: "a", to_id: "b", direction: " sideways ",
+      get view_id() { throw new Error("view must remain unread"); },
+    })).rejects.toThrow("unsupported value: sideways");
+    expect(calls).toHaveLength(1);
   });
 
   it("preserves explicit empty filters as a no-match request", async () => {
@@ -137,6 +145,20 @@ describe("ToS query operations", () => {
       rank: "2",
       include_semantic_neighbors: "true",
     });
+    const reads: string[] = [];
+    await expect(operations.invoke("tos.zarathustra.word-analysis.prepare", {
+      get query() { reads.push("query"); return "  "; },
+      get language() { throw new Error("language must remain unread"); },
+    })).rejects.toThrow("query is required");
+    expect(reads).toEqual(["query"]);
+    await expect(operations.invoke("tos.zarathustra.word-analysis.prepare", {
+      query: "x", language: " FR ",
+      get rank() { throw new Error("rank must remain unread"); },
+    })).rejects.toThrow("unsupported value: fr");
+    await operations.invoke("tos.zarathustra.word-analysis.prepare", {
+      query: " x ", language: " RU ", rank: {valueOf: () => 101.9},
+    }, {signal: controller.signal});
+    expect(new URL(requestedUrl, "http://tos.local").searchParams.get("rank")).toBe("100");
   });
 
   it("routes source descent and dossiers through their backend surfaces", async () => {

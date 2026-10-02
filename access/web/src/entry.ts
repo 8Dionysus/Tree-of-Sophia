@@ -1,3 +1,4 @@
+import {installQueryRequestRules} from './query-operations';
 import {installWebMcpRules} from './webmcp';
 import {installSourceDossierRules} from './observatory/source-dossier-rules.mjs';
 import {installClientPacketRules} from './observatory/client-packet-rules.mjs';
@@ -27,6 +28,7 @@ installClaimReferenceRules(rules);
 installHumanFormRules(rules);
 installRecordContextRules(rules);
 installKnowledgeSearchRules(rules);
+installQueryRequestRules(rules);
 installClaimReadingRules(rules);
 installClientInspectionRules(rules);
 installSourceDossierRules(rules);

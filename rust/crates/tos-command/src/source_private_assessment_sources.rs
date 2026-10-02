@@ -928,6 +928,7 @@ struct SourceSelection {
     profile_type_id: String,
     origin_id: String,
     read_scope: String,
+    source_access: JsonValue,
     source_binding: Option<JsonValue>,
     form_ids: Vec<String>,
 }
@@ -1099,7 +1100,7 @@ fn owner_local_sources_snapshot(
     let source_rows = JsonValue::Object(
         sources
             .into_iter()
-            .map(|(path, digest)| (JsonString::from_utf8(path), cmd::string(&digest)))
+            .map(|(path, digest)| (JsonString::from_utf8(&path), cmd::string(&digest)))
             .collect(),
     );
     let basis = cmd::object(vec![
@@ -1128,7 +1129,7 @@ fn owner_profile_reader_snapshot(
     let contract_rows = JsonValue::Object(
         contracts
             .iter()
-            .map(|(path, digest)| (JsonString::from_utf8(path.clone()), cmd::string(digest)))
+            .map(|(path, digest)| (JsonString::from_utf8(path), cmd::string(digest)))
             .collect(),
     );
     let source_rows = cmd::object(vec![(
@@ -1392,6 +1393,7 @@ fn parse_selections(
             profile_type_id,
             origin_id,
             read_scope,
+            source_access,
             source_binding,
             form_ids,
         });

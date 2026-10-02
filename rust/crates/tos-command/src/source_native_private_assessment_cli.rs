@@ -12,24 +12,23 @@ use crate::source_assessment_journal::{
 use crate::source_command::{
     self as cmd, CommandContext, SourceCommandError, SourceCommandResult, SourceFile,
 };
-use crate::source_creation_store::{active, protected_configuration_parents};
+use crate::source_creation_store::protected_configuration_parents;
 use crate::source_private_assessment_sources::PrivateAssessmentSources;
 use crate::source_text_owner::OwnerTextContext;
-use serde_json::{Value, json};
+use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{Digest256, JsonString, JsonValue, RelativePath};
 use tos_source_store::{
-    CorpusCutReader, CorpusReader, CutReadLimits, SoftwareCaptureReader,
-    SoftwareComponentSelectionV1,
+    CorpusCutReader, CorpusReader, SoftwareCaptureReader, SoftwareComponentSelectionV1,
 };
 use tos_validation::assessment::{
     AssessmentLayerQualityObservation, AssessmentLimits, AssessmentMechanicsReport,
     AssessmentReadInput, AssessmentRecordInput, AssessmentRefusal, AssessmentSourceRoute,
     AssessmentSubmissionInput, MAX_ASSESSMENTS, MAX_RECORD_BYTES, evaluate_current_assessment,
 };
-use tos_validation::source_cut::CutWorkerSchemaExecutor;
+use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 const OWNER_CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 const BATCH_SCHEMA: &str = "ToS/contracts/knowledge-assessment-batch.schema.json";
@@ -409,7 +408,17 @@ fn parse_request(raw: &[u8], version: OwnerVersion) -> SourceCommandResult<Parse
         let revision = cmd::field(&request, "expected_revision")?;
         let expected_revision = match revision {
             JsonValue::Null => None,
-            JsonValue::String(value) if digest(value).is_ok() => Some(value.clone()),
+            JsonValue::String(value) => {
+                let text = value.as_str().ok_or(SourceCommandError::Invalid(
+                    "assessment expected journal revision UTF-8",
+                ))?;
+                if digest(text).is_err() {
+                    return Err(SourceCommandError::Invalid(
+                        "assessment expected journal revision",
+                    ));
+                }
+                Some(text.to_owned())
+            }
             _ => {
                 return Err(SourceCommandError::Invalid(
                     "assessment expected journal revision",
@@ -804,13 +813,13 @@ fn run_selected(
             "selected native layer assessment target is absent from source closure",
         ));
     }
-    let required_source_refs = required_source_refs(
+    let subject_required_source_refs = required_source_refs(
         &selected.request.subject_id,
         &public_sources.claim_dependencies,
         selected.private_sources.required_source_refs(),
         selected_layer,
     )?;
-    let required_sources = resolve_required_sources(&required_source_refs, &all_by_id)?;
+    let required_sources = resolve_required_sources(&subject_required_source_refs, &all_by_id)?;
     let source_route = if selected_layer.is_some() {
         AssessmentSourceRoute::LayerQuality
     } else if public_sources
@@ -826,9 +835,9 @@ fn run_selected(
         AssessmentSourceRoute::SelectedSource
     };
     let mut current_snapshot = base_snapshot.clone();
-    let mut quality_requirements = Vec::new();
+    let mut subject_quality_requirements = Vec::new();
     if selected.version.has_layer_quality() {
-        quality_requirements = quality_requirements(
+        subject_quality_requirements = quality_requirements(
             &current,
             &required_sources,
             &all_by_id,
@@ -876,7 +885,7 @@ fn run_selected(
         )?;
         if parent_quality_requirements
             .iter()
-            .any(|entry| !quality_requirements.contains(entry))
+            .any(|entry| !subject_quality_requirements.contains(entry))
         {
             return Err(SourceCommandError::Denied(
                 "parent Claim quality is outside the selected form closure",
@@ -884,7 +893,7 @@ fn run_selected(
         }
     }
     let mut lock_subjects = vec![selected.request.subject_id.clone()];
-    let roots = quality_requirements
+    let roots = subject_quality_requirements
         .iter()
         .chain(parent_quality_requirements.iter())
         .map(|requirement| requirement.layer_id.clone())
@@ -923,7 +932,7 @@ fn run_selected(
             deadline,
             cancelled,
         )?;
-        budget.charge_bytes(history.input_bytes())?;
+        budget.charge_bytes(history.input_bytes()?)?;
         budget.charge_work(
             history
                 .submissions
@@ -950,7 +959,7 @@ fn run_selected(
         cancelled,
     )?;
     let owner_record_rows = record_rows(&config, &[])?;
-    for requirement in &quality_requirements {
+    for requirement in &subject_quality_requirements {
         let layer = layers
             .as_ref()
             .and_then(|layers| layers.layers.get(&requirement.layer_id))
@@ -1060,7 +1069,7 @@ fn run_selected(
         &source_records,
         &native_records,
         &record_rows,
-        &required_source_refs,
+        &subject_required_source_refs,
         &admission_bases
             .iter()
             .map(|(_, basis, _, _)| basis.clone())
@@ -1082,7 +1091,7 @@ fn run_selected(
             &source_records,
             &native_records,
             &record_rows,
-            &required_source_refs,
+            &subject_required_source_refs,
             &admission_bases
                 .iter()
                 .map(|(_, basis, _, _)| basis.clone())
@@ -1218,7 +1227,7 @@ fn run_selected(
         append_report.as_ref(),
         &admission_bases,
         &quality_bases,
-        &quality_requirements,
+        &subject_quality_requirements,
         &parent_assessment,
         &all_by_id,
         &required_sources,
@@ -1274,7 +1283,10 @@ fn run_selected(
         ));
     }
     fence.verify_current(deadline, cancelled)?;
-    Ok(result)
+    let result_bytes = cmd::canonical(&result)?;
+    budget.charge_bytes(result_bytes.len())?;
+    serde_json::from_slice(&result_bytes)
+        .map_err(|_| SourceCommandError::Invalid("assessment result transport JSON"))
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -1317,6 +1329,41 @@ fn record_input(row: &JsonValue) -> SourceCommandResult<AssessmentRecordInput> {
             ),
         ]))?,
     })
+}
+
+fn append_submissions(
+    config: &JsonValue,
+    scope: &JsonValue,
+    assessments: &[JsonValue],
+) -> SourceCommandResult<Vec<AssessmentSubmissionInput>> {
+    let principal_id = cmd::text(config, "principal_id")?.to_owned();
+    let execution_profile = cmd::canonical(cmd::field(config, "execution_profile")?)?;
+    let committed_scope = cmd::canonical(&cmd::object(vec![
+        (
+            "assertion_layer",
+            cmd::field(scope, "assertion_layer")?.clone(),
+        ),
+        ("risk", cmd::field(scope, "risk")?.clone()),
+        ("languages", cmd::field(scope, "languages")?.clone()),
+        ("maker_id", cmd::field(scope, "maker_id")?.clone()),
+        ("requested_use", cmd::field(scope, "requested_use")?.clone()),
+    ]))?;
+    assessments
+        .iter()
+        .map(|assessment| {
+            if assessment.as_object().is_none() {
+                return Err(SourceCommandError::Invalid(
+                    "assessment submitted record must be an object",
+                ));
+            }
+            Ok(AssessmentSubmissionInput {
+                assessment: cmd::canonical(assessment)?,
+                principal_id: principal_id.clone(),
+                execution_profile: execution_profile.clone(),
+                committed_scope: Some(committed_scope.clone()),
+            })
+        })
+        .collect()
 }
 
 fn push_resolved(
@@ -1511,8 +1558,8 @@ fn evaluate_selected_subject(
     config: &JsonValue,
     subject_id: &str,
     scope: &JsonValue,
-    source_records: &[AssessmentRecordInput],
-    native_records: &[AssessmentRecordInput],
+    source_records: &[JsonValue],
+    native_records: &[JsonValue],
     record_rows: &[JsonValue],
     required_refs: &[JsonValue],
     required_admission_bases: &[AssessmentRecordInput],
@@ -1540,8 +1587,14 @@ fn evaluate_selected_subject(
             .iter()
             .map(record_input)
             .collect::<SourceCommandResult<Vec<_>>>()?,
-        source_records: source_records.to_vec(),
-        native_records: native_records.to_vec(),
+        source_records: source_records
+            .iter()
+            .map(record_input)
+            .collect::<SourceCommandResult<Vec<_>>>()?,
+        native_records: native_records
+            .iter()
+            .map(record_input)
+            .collect::<SourceCommandResult<Vec<_>>>()?,
         source_route,
         subject_id: subject_id.to_owned(),
         configured_scope: cmd::canonical(scope)?,
@@ -1651,7 +1704,7 @@ fn owner_snapshot(
     let snapshot = JsonValue::Object(
         entries
             .into_iter()
-            .map(|(key, value)| (JsonString::from_utf8(key), value))
+            .map(|(key, value)| (JsonString::from_utf8(&key), value))
             .collect(),
     );
     Ok(format!(
@@ -3070,22 +3123,22 @@ fn materialize_selected_form(
                     "materialization form set is absent from the current selected source closure",
                 ),
             )?;
-            (path.as_str(), form_set, false)
-        } else if let Some(path) = public_sources.form_paths.get(form_id) {
-            if public_sources.record_paths.get(form_id) != Some(path) {
+            (path.clone(), form_set, false)
+        } else if let Some(path) = public_sources.form_paths.get(form_id).cloned() {
+            if public_sources.record_paths.get(form_id) != Some(&path) {
                 return Err(SourceCommandError::Denied(
                     "materialization public form path is not exact-selected",
                 ));
             }
+            public_sources.validate_form_set(&path, worker, deadline, cancelled)?;
             let form_set =
                 public_sources
                     .form_sets
-                    .get(path)
+                    .get(&path)
                     .ok_or(SourceCommandError::Conflict(
                         "materialization public form set is absent from current selected sources",
                     ))?;
-            public_sources.validate_form_set(path, worker, deadline, cancelled)?;
-            (path.as_str(), form_set, true)
+            (path, form_set, true)
         } else {
             return Err(SourceCommandError::Denied(
                 "materialization form path is not source-selected",
@@ -3603,7 +3656,7 @@ fn materialize_selected_form(
             "schema_version",
             cmd::string("tos_human_form_materialization_v1"),
         ),
-        ("form", form_ref),
+        ("form", form_ref.clone()),
         ("subject", subject_ref.clone()),
         ("state", cmd::string("ready")),
         ("display_text", cmd::string(&wording)),

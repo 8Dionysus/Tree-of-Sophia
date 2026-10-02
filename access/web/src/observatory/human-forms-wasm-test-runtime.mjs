@@ -1,3 +1,4 @@
+import {installQueryRequestRules} from '../query-operations.ts';
 // These focused source tests consume the actual generated browser binding.
 // Build ownership and artifact admission remain with the matched OPS lane.
 import {readFileSync} from 'node:fs';
@@ -36,6 +37,7 @@ installClaimReadingRules(runtime);
 
 import {installKnowledgeSearchRules} from '../knowledge-search.ts';
 installKnowledgeSearchRules(runtime);
+installQueryRequestRules(runtime);
 
 import {installClientInspectionRules} from './client-inspection-rules.mjs';
 installClientInspectionRules(runtime);

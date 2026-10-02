@@ -535,7 +535,6 @@ pub(crate) fn select_owner_local_layers(
             "private assessment native original-byte budget",
         ));
     }
-    let selection_digest = preflight.selection_digest;
     let context_snapshot = owner.snapshot(deadline, cancelled)?.to_prefixed();
     for selection in selections {
         let payload = cmd::field(selection, "payload_access")?;
@@ -1151,7 +1150,7 @@ fn read_target(
         ));
     }
     let layer = cmd::parse(&layer_raw)?;
-    validate_schema(
+    validate_schema_payload(
         worker,
         &reference,
         &layer,
@@ -1273,7 +1272,7 @@ fn validate_layer_metadata(
     use tos_validation::text_metadata_rules::{
         self as rules, TextMetadataLimits, TextMetadataState,
     };
-    let report = rules::inspect_source_text_layer_v1_metadata(
+    let report = rules::inspect_source_text_layer_metadata(
         raw,
         reference,
         TextMetadataLimits {
@@ -2016,6 +2015,17 @@ fn validate_schema(
 ) -> SourceCommandResult<()> {
     let envelope = cmd::parse(&record.envelope)?;
     let payload = cmd::field(&envelope, "payload")?;
+    validate_schema_payload(worker, reference, payload, schema, deadline, cancelled)
+}
+
+fn validate_schema_payload(
+    worker: &mut CutWorkerSchemaExecutor,
+    reference: &str,
+    payload: &JsonValue,
+    schema: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
     let raw = cmd::canonical(payload)?;
     match worker.check_reusing_scalar(reference, &raw, schema, deadline, cancelled) {
         Ok(true) => Ok(()),
@@ -2028,6 +2038,24 @@ fn validate_schema(
             reason,
         }),
     }
+}
+
+fn layer_source_scope(layer: &JsonValue) -> SourceCommandResult<JsonValue> {
+    let binding = cmd::field(layer, "source_binding")?;
+    Ok(cmd::object(vec![
+        ("work_ref", cmd::field(binding, "work_ref")?.clone()),
+        (
+            "expression_ref",
+            cmd::field(binding, "expression_ref")?.clone(),
+        ),
+        ("edition_ref", cmd::field(binding, "edition_ref")?.clone()),
+        ("item_ref", cmd::field(binding, "item_ref")?.clone()),
+        ("file_ref", cmd::field(binding, "source_file_ref")?.clone()),
+        (
+            "file_sha256",
+            cmd::field(binding, "source_file_sha256")?.clone(),
+        ),
+    ]))
 }
 
 fn envelope(
@@ -2323,7 +2351,7 @@ fn source_snapshot(
 }
 
 fn read_whole_text_layer(
-    owner: &OwnerTextContext,
+    owner: &mut OwnerTextContext,
     worker: &mut CutWorkerSchemaExecutor,
     binding: &JsonValue,
     expected_layer: &JsonValue,
@@ -2692,6 +2720,7 @@ fn compare_initial_extraction(
     );
     cmd::set(&mut body, "comparison_id", cmd::string(&comparison_id))?;
     let comparison = envelope(&comparison_id, &cmd::number(1), &body, &target.origin_id)?;
+    let source_file_identity = format!("{:?}", acquired.identity);
     let pin = CurrentnessPin::Epub {
         config: access_config,
         config_raw: target.config_raw.clone(),
@@ -2709,10 +2738,7 @@ fn compare_initial_extraction(
             "comparison_sha256",
             cmd::string(&Digest256::of_bytes(&comparison.envelope).to_hex()),
         ),
-        (
-            "source_file",
-            cmd::string(&format!("{:?}", acquired.identity)),
-        ),
+        ("source_file", cmd::string(&source_file_identity)),
     ]))?)
     .to_prefixed();
     let input_cost = source_input_bytes
@@ -3323,6 +3349,7 @@ fn compare_derived_layer(
     );
     cmd::set(&mut body, "comparison_id", cmd::string(&comparison_id))?;
     let comparison = envelope(&comparison_id, &cmd::number(1), &body, &target.origin_id)?;
+    let source_file_identity = format!("{:?}", acquired.identity);
     let pin = CurrentnessPin::Epub {
         config: payload_config,
         config_raw: root.config_raw.clone(),
@@ -3340,10 +3367,7 @@ fn compare_derived_layer(
             "comparison_sha256",
             cmd::string(&Digest256::of_bytes(&comparison.envelope).to_hex()),
         ),
-        (
-            "source_file",
-            cmd::string(&format!("{:?}", acquired.identity)),
-        ),
+        ("source_file", cmd::string(&source_file_identity)),
     ]))?)
     .to_prefixed();
     let input_cost = source_input_bytes
