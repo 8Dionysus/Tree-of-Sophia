@@ -90,10 +90,29 @@ fn charge(work: &mut u64, bytes: usize, limits: CanonPrepareLimits) -> Result<()
 /// Verify the exact retained authored source, including Python native grammar.
 /// Digest canonicalization reads the original nested JSON number spellings.
 pub(crate) fn canonical_digest(raw: &[u8], item: &Value, max: usize) -> Result<Option<String>> {
-    let props = item
-        .get("properties")
-        .filter(|v| v.is_object())
-        .ok_or(Error::Invalid("canon properties"))?;
+    canonical_digest_with_optional_properties(raw, item, max, false)
+}
+
+pub(crate) fn canonical_digest_for_prepared_projection(
+    raw: &[u8],
+    item: &Value,
+    max: usize,
+) -> Result<Option<String>> {
+    canonical_digest_with_optional_properties(raw, item, max, true)
+}
+
+fn canonical_digest_with_optional_properties(
+    raw: &[u8],
+    item: &Value,
+    max: usize,
+    optional_properties: bool,
+) -> Result<Option<String>> {
+    let Some(props) = item.get("properties").filter(|v| v.is_object()) else {
+        if optional_properties {
+            return Ok(None);
+        }
+        return Err(Error::Invalid("canon properties"));
+    };
     if props.get("node_id").is_some()
         && (props.get("node_id") != item.get("node_id")
             || props.get("node_type") != item.get("node_type"))
@@ -159,11 +178,54 @@ fn init(stage: &mut KnowledgeStage<'_>) -> Result<()> {
     stage.with_connection(WritePhase::Schema,|db| { db.execute_batch(r#"
 CREATE TABLE IF NOT EXISTS knowledge_canon_nodes(source_graph TEXT NOT NULL,node_id TEXT NOT NULL,source_path TEXT NOT NULL,raw_sha256 BLOB NOT NULL,PRIMARY KEY(source_graph,node_id)) WITHOUT ROWID;
 CREATE INDEX IF NOT EXISTS knowledge_canon_source_paths ON knowledge_canon_nodes(source_path,node_id);
-CREATE TABLE IF NOT EXISTS knowledge_canon_packs(source_graph TEXT NOT NULL,pack_id TEXT NOT NULL,path TEXT NOT NULL,owner_branch TEXT NOT NULL,edge_count INTEGER NOT NULL,raw_sha256 BLOB NOT NULL,PRIMARY KEY(source_graph,pack_id)) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS knowledge_canon_packs(source_graph TEXT NOT NULL,pack_id TEXT NOT NULL,path TEXT NOT NULL,owner_branch TEXT,edge_count INTEGER,raw_sha256 BLOB NOT NULL,PRIMARY KEY(source_graph,pack_id)) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS knowledge_canon_proposals(source_graph TEXT NOT NULL,identity_id TEXT NOT NULL,native_id TEXT NOT NULL,origin_collection TEXT NOT NULL,origin_id TEXT NOT NULL,pack_id TEXT,material BLOB NOT NULL,material_sha256 BLOB NOT NULL,origin_sha256 BLOB NOT NULL,PRIMARY KEY(source_graph,identity_id)) WITHOUT ROWID;
 CREATE INDEX IF NOT EXISTS knowledge_canon_proposal_packs ON knowledge_canon_proposals(source_graph,pack_id);
 "#)?; Ok(()) })
 }
+
+pub(crate) fn verify_public_projection_stage(stage: &KnowledgeStage<'_>) -> Result<()> {
+    let binding = &stage.exact_receipt()?.binding;
+    if !stage.public_build()
+        || binding.owner_profile != "tos-public-projection-snapshot-v1"
+        || !binding
+            .source_cut
+            .strip_prefix("public-projection:")
+            .is_some_and(|revision| !revision.is_empty())
+        || binding.through_commit_seq != 0
+        || binding.index_generation != "public-d1-v9"
+        || binding.route_map_version != "public-d1-v9"
+        || binding.reader_abi != "public-d1-v9"
+        || !binding.complete
+    {
+        return Err(Error::Invalid("canon prepared public projection binding"));
+    }
+    Ok(())
+}
+
+fn python_truthy(value: Option<&Value>) -> bool {
+    match value {
+        None | Some(Value::Null) | Some(Value::Bool(false)) => false,
+        Some(Value::String(value)) => !value.is_empty(),
+        Some(Value::Number(value)) => value.as_f64().is_some_and(|number| number != 0.0),
+        Some(Value::Array(value)) => !value.is_empty(),
+        Some(Value::Object(value)) => !value.is_empty(),
+        Some(Value::Bool(true)) => true,
+    }
+}
+
+fn add_owner_relation_view(views: &mut std::collections::BTreeSet<String>, owner: Option<&str>) {
+    match owner {
+        Some("ToS/canon") => {
+            views.insert("route-graph".into());
+        }
+        Some("ToS/candidate-intake") => {
+            views.insert("promotion-flow".into());
+        }
+        _ => {}
+    }
+}
+
 fn insert_proposal(
     stage: &mut KnowledgeStage<'_>,
     graph: &str,
@@ -206,7 +268,7 @@ pub(crate) fn dependency_root(stage: &mut KnowledgeStage<'_>, graph: &str) -> Re
         let mut hash=Digest256Hasher::new(); hash.update(b"tos-canon-prepared-v1\0"); framed(&mut hash,graph);
         for (tag,sql,columns) in [
             ("nodes","SELECT node_id,hex(raw_sha256),source_path FROM knowledge_canon_nodes WHERE source_graph=?1 ORDER BY node_id",3),
-            ("packs","SELECT pack_id,hex(raw_sha256),path,owner_branch,CAST(edge_count AS TEXT) FROM knowledge_canon_packs WHERE source_graph=?1 ORDER BY pack_id",5),
+            ("packs","SELECT pack_id,hex(raw_sha256),path,coalesce(owner_branch,''),coalesce(CAST(edge_count AS TEXT),'') FROM knowledge_canon_packs WHERE source_graph=?1 ORDER BY pack_id",5),
             ("proposals","SELECT identity_id,hex(material_sha256),native_id,origin_collection,origin_id,coalesce(pack_id,''),hex(origin_sha256) FROM knowledge_canon_proposals WHERE source_graph=?1 ORDER BY identity_id",7),
         ] { framed(&mut hash,tag); let mut statement=db.prepare(sql)?; let mut rows=statement.query([graph])?;
             while let Some(row)=rows.next()? { for i in 0..columns { let s:String=row.get(i)?; framed(&mut hash,&s); } }
@@ -219,7 +281,20 @@ pub(crate) fn prepare_family(
     profile: &str,
     limits: CanonPrepareLimits,
 ) -> Result<CanonPrepareReceipt> {
+    prepare_family_mode(stage, vocabulary, profile, limits, false)
+}
+
+fn prepare_family_mode(
+    stage: &mut KnowledgeStage<'_>,
+    vocabulary: &QueryVocabulary,
+    profile: &str,
+    limits: CanonPrepareLimits,
+    prepared_projection: bool,
+) -> Result<CanonPrepareReceipt> {
     limits.validate()?;
+    if prepared_projection {
+        verify_public_projection_stage(stage)?;
+    }
     let sources = vocabulary
         .sources
         .iter()
@@ -314,9 +389,26 @@ pub(crate) fn prepare_family(
                         if id != raw.id {
                             return Err(Error::Invalid("canon raw node identity"));
                         }
-                        required(item, "node_type")?;
-                        let path = required(item, "source_path")?;
-                        canonical_digest(&raw.payload, item, limits.max_row_bytes)?;
+                        if !prepared_projection {
+                            required(item, "node_type")?;
+                        }
+                        let path = if prepared_projection {
+                            text(item.get("source_path")).unwrap_or("")
+                        } else {
+                            required(item, "source_path")?
+                        };
+                        if path.len() > 4096 || path.contains('\0') {
+                            return Err(Error::Invalid("canon source path"));
+                        }
+                        if prepared_projection {
+                            canonical_digest_for_prepared_projection(
+                                &raw.payload,
+                                item,
+                                limits.max_row_bytes,
+                            )?;
+                        } else {
+                            canonical_digest(&raw.payload, item, limits.max_row_bytes)?;
+                        }
                         stage.charge_materialized(1, (id.len() + path.len() + 32) as u64)?;
                         stage.with_connection(WritePhase::Normalized, |db| {
                             db.execute(
@@ -355,7 +447,12 @@ pub(crate) fn prepare_family(
                             let framed = format!("{id}\0{field}\0{order}\0{predicate}\0{target}");
                             let digest = Digest256::of_bytes(framed.as_bytes()).to_hex();
                             let edge = format!("node-relation:{}", &digest[..24]);
-                            let material = json!({"edge_id":edge,"from_id":id,"to_id":target,"predicate_id":predicate,"source_ref":path,"graph_layers":["authored-node-relation"],"authority_layer":text(item.get("authority_layer")).unwrap_or("canon"),"properties":{"relation_label":crate::knowledge_philosophy_display::humanize(predicate),"derivation":"authored-node-contract-relation","source_field":format!("{field}[{order}]"),"review_status":"source-recorded"}});
+                            let source_ref = if path.is_empty() {
+                                Value::Null
+                            } else {
+                                json!(path)
+                            };
+                            let material = json!({"edge_id":edge,"from_id":id,"to_id":target,"predicate_id":predicate,"source_ref":source_ref,"graph_layers":["authored-node-relation"],"authority_layer":text(item.get("authority_layer")).unwrap_or("canon"),"properties":{"relation_label":crate::knowledge_philosophy_display::humanize(predicate),"derivation":"authored-node-contract-relation","source_field":format!("{field}[{order}]"),"review_status":"source-recorded"}});
                             insert_proposal(
                                 stage,
                                 &graph,
@@ -372,21 +469,47 @@ pub(crate) fn prepare_family(
                         }
                     }
                     "relation_packs" => {
-                        let id = exact_id(item, "pack_id")?;
-                        if id != raw.id || required(item, "owner_branch")? != owner {
-                            return Err(Error::Invalid("canon pack identity/owner"));
-                        }
-                        let path = required(item, "path")?;
-                        let edges = item
-                            .get("edge_count")
-                            .and_then(Value::as_u64)
-                            .filter(|n| *n <= limits.max_edges && *n <= i64::MAX as u64)
-                            .ok_or(Error::Invalid("canon pack edge count"))?;
-                        Digest256::from_hex(required(item, "sha256")?)
-                            .map_err(|_| Error::Invalid("canon pack source digest"))?;
+                        let (id, path, pack_owner, edges) = if prepared_projection {
+                            let id = item
+                                .get("pack_id")
+                                .and_then(Value::as_str)
+                                .filter(|value| !value.trim().is_empty())
+                                .ok_or(Error::Invalid("canon prepared pack identity"))?;
+                            let path = item
+                                .get("path")
+                                .and_then(Value::as_str)
+                                .filter(|value| !value.trim().is_empty())
+                                .ok_or(Error::Invalid("canon prepared pack path"))?;
+                            if id != raw.id || path.len() > limits.max_row_bytes {
+                                return Err(Error::Invalid("canon prepared pack binding"));
+                            }
+                            let owner_branch = item.get("owner_branch").and_then(Value::as_str);
+                            let edge_count = item
+                                .get("edge_count")
+                                .and_then(Value::as_u64)
+                                .filter(|count| {
+                                    *count <= limits.max_edges && *count <= i64::MAX as u64
+                                })
+                                .map(|count| count as i64);
+                            (id, path, owner_branch, edge_count)
+                        } else {
+                            let id = exact_id(item, "pack_id")?;
+                            if id != raw.id || required(item, "owner_branch")? != owner {
+                                return Err(Error::Invalid("canon pack identity/owner"));
+                            }
+                            let path = required(item, "path")?;
+                            let edges = item
+                                .get("edge_count")
+                                .and_then(Value::as_u64)
+                                .filter(|n| *n <= limits.max_edges && *n <= i64::MAX as u64)
+                                .ok_or(Error::Invalid("canon pack edge count"))?;
+                            Digest256::from_hex(required(item, "sha256")?)
+                                .map_err(|_| Error::Invalid("canon pack source digest"))?;
+                            (id, path, Some(owner), Some(edges as i64))
+                        };
                         stage.charge_materialized(
                             1,
-                            (id.len() + path.len() + owner.len() + 40) as u64,
+                            (id.len() + path.len() + pack_owner.map_or(0, str::len) + 40) as u64,
                         )?;
                         stage.with_connection(WritePhase::Normalized, |db| {
                             db.execute(
@@ -395,8 +518,8 @@ pub(crate) fn prepare_family(
                                     graph,
                                     id,
                                     path,
-                                    owner,
-                                    edges as i64,
+                                    pack_owner,
+                                    edges,
                                     sha.as_bytes().as_slice()
                                 ],
                             )?;
@@ -404,25 +527,70 @@ pub(crate) fn prepare_family(
                         })?;
                     }
                     _ => {
-                        let edge = required(item, "edge_id")?;
-                        let pack = exact_id(item, "pack_id")?;
-                        let identity = format!("{pack}:{edge}");
+                        let edge = if prepared_projection {
+                            text(item.get("edge_id"))
+                                .or_else(|| text(item.get("id")))
+                                .ok_or(Error::Invalid("canon prepared edge identity"))?
+                        } else {
+                            required(item, "edge_id")?
+                        };
+                        let pack_value = if prepared_projection {
+                            if item
+                                .get("pack_id")
+                                .is_some_and(|pack| !pack.is_null() && !pack.is_string())
+                            {
+                                return Err(Error::Invalid("canon prepared relation pack ID type"));
+                            }
+                            item.get("pack_id")
+                                .and_then(Value::as_str)
+                                .filter(|value| !value.trim().is_empty())
+                        } else {
+                            Some(exact_id(item, "pack_id")?)
+                        };
+                        let pack = pack_value.map(str::trim);
+                        let identity = pack
+                            .map(|pack| format!("{pack}:{edge}"))
+                            .unwrap_or_else(|| edge.to_owned());
                         // Staging may use bare IDs if globally unique, or pack-qualified IDs.
-                        if raw.id != edge && raw.id != identity {
+                        if (prepared_projection && raw.id != identity)
+                            || (!prepared_projection && raw.id != edge && raw.id != identity)
+                        {
                             return Err(Error::Invalid("canon staged edge identity"));
                         }
-                        if required(item, "owner_branch")? != owner {
+                        if !prepared_projection && required(item, "owner_branch")? != owner {
                             return Err(Error::Invalid("canon edge owner"));
                         }
-                        let path:String=stage.with_connection(WritePhase::Sort,|db| {db.query_row("SELECT path FROM knowledge_canon_packs WHERE source_graph=?1 AND pack_id=?2",params![graph,pack],|r|r.get(0)).optional()?.ok_or(Error::Invalid("canon unknown relation pack"))})?;
+                        let path: Option<String> = if let Some(pack_key) = pack_value {
+                            stage.with_connection(WritePhase::Sort, |db| {
+                                db.query_row(
+                                    "SELECT path FROM knowledge_canon_packs WHERE source_graph=?1 AND pack_id=?2",
+                                    params![graph, pack_key],
+                                    |r| r.get(0),
+                                )
+                                .optional()
+                                .map_err(Error::from)
+                            })?
+                        } else {
+                            None
+                        };
+                        if !prepared_projection && path.is_none() {
+                            return Err(Error::Invalid("canon unknown relation pack"));
+                        }
                         let mut material = item.clone();
-                        if !item.get("source_ref").is_some_and(|v| match v {
-                            Value::Null => false,
-                            Value::String(s) => !s.is_empty(),
-                            Value::Bool(b) => *b,
-                            _ => true,
-                        }) {
-                            material["source_ref"] = json!(path);
+                        let source_ref_is_falsey = if prepared_projection {
+                            !python_truthy(item.get("source_ref"))
+                        } else {
+                            !item.get("source_ref").is_some_and(|value| match value {
+                                Value::Null => false,
+                                Value::String(value) => !value.is_empty(),
+                                Value::Bool(value) => *value,
+                                _ => true,
+                            })
+                        };
+                        if source_ref_is_falsey {
+                            if let Some(path) = path.as_ref().filter(|path| !path.is_empty()) {
+                                material["source_ref"] = json!(path);
+                            }
                         }
                         let mut views = item
                             .get("view_ids")
@@ -433,13 +601,9 @@ pub(crate) fn prepare_family(
                             .filter(|v| !v.is_empty())
                             .map(str::to_owned)
                             .collect::<std::collections::BTreeSet<_>>();
-                        views.insert(
-                            if canonical {
-                                "route-graph"
-                            } else {
-                                "promotion-flow"
-                            }
-                            .into(),
+                        add_owner_relation_view(
+                            &mut views,
+                            item.get("owner_branch").and_then(Value::as_str),
                         );
                         material["view_ids"] = json!(views);
                         insert_proposal(
@@ -449,7 +613,7 @@ pub(crate) fn prepare_family(
                             edge,
                             collection,
                             &raw.id,
-                            Some(pack),
+                            pack,
                             &material,
                             sha.as_bytes(),
                             &mut work,
@@ -478,10 +642,19 @@ pub(crate) fn prepare_family(
             root_sha256: digest,
         });
     }
-    stage.with_connection(WritePhase::Sort,|db| {
-        let mismatch:bool=db.query_row("SELECT EXISTS(SELECT 1 FROM knowledge_canon_packs p WHERE source_graph=?1 AND edge_count!=(SELECT count(*) FROM knowledge_canon_proposals e WHERE e.source_graph=p.source_graph AND e.pack_id=p.pack_id))",[&graph],|r|r.get(0))?;
-        if mismatch {return Err(Error::Invalid("canon pack edge-count closure"));} Ok(())
-    })?;
+    if !prepared_projection {
+        stage.with_connection(WritePhase::Sort, |db| {
+            let mismatch: bool = db.query_row(
+                "SELECT EXISTS(SELECT 1 FROM knowledge_canon_packs p WHERE source_graph=?1 AND edge_count!=(SELECT count(*) FROM knowledge_canon_proposals e WHERE e.source_graph=p.source_graph AND e.pack_id=p.pack_id))",
+                [&graph],
+                |r| r.get(0),
+            )?;
+            if mismatch {
+                return Err(Error::Invalid("canon pack edge-count closure"));
+            }
+            Ok(())
+        })?;
+    }
     receipt.dependency_root_sha256 = dependency_root(stage, &graph)?;
     Ok(receipt)
 }
@@ -496,7 +669,42 @@ pub fn prepare_canon_inputs(
     }
     result
 }
+
+pub(crate) fn prepare_public_projection_family(
+    stage: &mut KnowledgeStage<'_>,
+    vocabulary: &QueryVocabulary,
+    profile: &str,
+    limits: CanonPrepareLimits,
+) -> Result<CanonPrepareReceipt> {
+    let result = if profile == CANON_PROFILE || profile == CANDIDATE_PROFILE {
+        prepare_family_mode(stage, vocabulary, profile, limits, true)
+    } else {
+        Err(Error::Invalid("canon prepared projection profile"))
+    };
+    if result.is_err() {
+        stage.poison();
+    }
+    result
+}
 /// Private index cleanup follows all-source normalization/finalization.
 pub fn clear_canon_prepare(stage: &mut KnowledgeStage<'_>) -> Result<()> {
     stage.with_connection(WritePhase::Finalize,|db|{db.execute_batch("DROP TABLE knowledge_canon_proposals;DROP TABLE knowledge_canon_packs;DROP TABLE knowledge_canon_nodes;")?;Ok(())})
+}
+
+#[cfg(test)]
+mod tests {
+    use super::add_owner_relation_view;
+    use std::collections::BTreeSet;
+
+    #[test]
+    fn relation_views_follow_exact_declared_owner() {
+        let mut views = BTreeSet::new();
+        add_owner_relation_view(&mut views, Some("ToS/future"));
+        add_owner_relation_view(&mut views, None);
+        assert!(views.is_empty());
+
+        add_owner_relation_view(&mut views, Some("ToS/candidate-intake"));
+        assert_eq!(views.len(), 1);
+        assert!(views.contains("promotion-flow"));
+    }
 }

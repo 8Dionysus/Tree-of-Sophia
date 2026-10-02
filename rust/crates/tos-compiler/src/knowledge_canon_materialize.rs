@@ -2,8 +2,9 @@
 //! The complete assembler supplies endpoint titles, placeholders and finalizers.
 use crate::knowledge_base::{BaseNodeOverrides, BaseNormalizationLimits, KnowledgeBaseNormalizer};
 use crate::knowledge_canon_prepare::{
-    CANDIDATE_PROFILE, CANON_PROFILE, CanonPrepareReceipt, canonical_digest, dependency_root,
-    required, text,
+    CANDIDATE_PROFILE, CANON_PROFILE, CanonPrepareReceipt, canonical_digest,
+    canonical_digest_for_prepared_projection, dependency_root, required, text,
+    verify_public_projection_stage,
 };
 use crate::knowledge_normalization::{SourceRow, stamp_content_revision};
 use crate::knowledge_stage::{KnowledgeStage, NodeRow, RelationRow, WritePhase};
@@ -51,6 +52,7 @@ pub struct CanonNormalizer<'a> {
     profile: String,
     shared: KnowledgeBaseNormalizer<'a>,
     limits: CanonMaterializeLimits,
+    prepared_projection: bool,
 }
 impl<'a> CanonNormalizer<'a> {
     pub fn new(
@@ -79,6 +81,50 @@ impl<'a> CanonNormalizer<'a> {
         descriptor_bytes: &[u8],
         limits: CanonMaterializeLimits,
         profile: &str,
+    ) -> Result<Self> {
+        Self::family_mode(
+            registry,
+            entity_bytes,
+            relation_bytes,
+            vocabulary,
+            descriptor_bytes,
+            limits,
+            profile,
+            false,
+        )
+    }
+    pub(crate) fn public_projection_family(
+        registry: &'a KnowledgeRegistry,
+        entity_bytes: &[u8],
+        relation_bytes: &[u8],
+        vocabulary: &QueryVocabulary,
+        descriptor_bytes: &[u8],
+        limits: CanonMaterializeLimits,
+        profile: &str,
+    ) -> Result<Self> {
+        if profile != CANON_PROFILE && profile != CANDIDATE_PROFILE {
+            return Err(Error::Invalid("canon prepared projection profile"));
+        }
+        Self::family_mode(
+            registry,
+            entity_bytes,
+            relation_bytes,
+            vocabulary,
+            descriptor_bytes,
+            limits,
+            profile,
+            true,
+        )
+    }
+    fn family_mode(
+        registry: &'a KnowledgeRegistry,
+        entity_bytes: &[u8],
+        relation_bytes: &[u8],
+        vocabulary: &QueryVocabulary,
+        descriptor_bytes: &[u8],
+        limits: CanonMaterializeLimits,
+        profile: &str,
+        prepared_projection: bool,
     ) -> Result<Self> {
         limits.validate()?;
         vocabulary.verify_authored_bytes(descriptor_bytes)?;
@@ -109,12 +155,16 @@ impl<'a> CanonNormalizer<'a> {
             profile: profile.into(),
             shared,
             limits,
+            prepared_projection,
         })
     }
     pub fn source_graph(&self) -> &str {
         &self.source_graph
     }
     fn bind(&self, stage: &KnowledgeStage<'_>, prepared: &CanonPrepareReceipt) -> Result<()> {
+        if self.prepared_projection {
+            verify_public_projection_stage(stage)?;
+        }
         if prepared.source_graph != self.source_graph
             || prepared.adapter_profile != self.profile
             || prepared.final_graph_rows_written
@@ -165,7 +215,15 @@ impl<'a> CanonNormalizer<'a> {
             self.limits.max_raw_bytes,
         )?;
         let source = SourceRow::parse(&raw, self.limits.max_raw_bytes)?;
-        let digest = canonical_digest(&raw, source.value(), self.limits.max_raw_bytes)?;
+        let digest = if self.prepared_projection {
+            canonical_digest_for_prepared_projection(
+                &raw,
+                source.value(),
+                self.limits.max_raw_bytes,
+            )?
+        } else {
+            canonical_digest(&raw, source.value(), self.limits.max_raw_bytes)?
+        };
         let mut value = self.shared.normalize_node(
             &source,
             &self.source_graph,
@@ -202,6 +260,18 @@ impl<'a> CanonNormalizer<'a> {
         left: &Value,
         right: &Value,
     ) -> Result<Value> {
+        let mut work = 0;
+        self.normalize_relation_with_work(stage, prepared, identity, left, right, &mut work)
+    }
+    fn normalize_relation_with_work(
+        &self,
+        stage: &mut KnowledgeStage<'_>,
+        prepared: &CanonPrepareReceipt,
+        identity: &str,
+        left: &Value,
+        right: &Value,
+        work: &mut u64,
+    ) -> Result<Value> {
         self.bind(stage, prepared)?;
         let material = source_material(
             stage,
@@ -211,17 +281,80 @@ impl<'a> CanonNormalizer<'a> {
             self.limits.max_raw_bytes,
         )?;
         let source = SourceRow::parse(&material, self.limits.max_raw_bytes)?;
+        let authority = if self.profile == CANON_PROFILE {
+            "canon"
+        } else {
+            "derived-export"
+        };
+        if self.prepared_projection {
+            let value = source.value();
+            let edge_id = text(value.get("edge_id")).or_else(|| text(value.get("id")));
+            let edge_id = edge_id.ok_or(Error::Invalid("canon prepared edge identity"))?;
+            let current = value.get("edge_id").and_then(Value::as_str);
+            if current != Some(edge_id) {
+                if material
+                    .len()
+                    .checked_add(edge_id.len())
+                    .and_then(|n| n.checked_add(16))
+                    .is_none_or(|n| n > self.limits.max_raw_bytes)
+                {
+                    return Err(Error::Budget("canon prepared edge identity bytes"));
+                }
+                // Bound the added compact payload by the raw row plus a fully
+                // escaped copy of the identity, then charge clone, write, parse,
+                // and restored source-record work before allocating them.
+                let raw_work = u64::try_from(material.len())
+                    .map_err(|_| Error::Budget("canon prepared edge work"))?;
+                let identity_work = u64::try_from(edge_id.len())
+                    .map_err(|_| Error::Budget("canon prepared edge work"))?;
+                let copy_work = raw_work
+                    .checked_mul(4)
+                    .and_then(|bytes| {
+                        identity_work
+                            .checked_mul(12)
+                            .and_then(|extra| bytes.checked_add(extra))
+                    })
+                    .and_then(|bytes| bytes.checked_add(32))
+                    .ok_or(Error::Budget("canon prepared edge work"))?;
+                let next_work = work
+                    .checked_add(copy_work)
+                    .ok_or(Error::Budget("canon materialize work"))?;
+                if next_work > self.limits.max_work_bytes {
+                    return Err(Error::Budget("canon materialize work"));
+                }
+                *work = next_work;
+                let mut adapted = value.clone();
+                adapted["edge_id"] = json!(edge_id);
+                let adapted_raw = serde_json::to_vec(&adapted)
+                    .map_err(|_| Error::Invalid("canon prepared edge JSON"))?;
+                if adapted_raw.len() > self.limits.max_raw_bytes {
+                    return Err(Error::Budget("canon prepared edge identity bytes"));
+                }
+                let adapted_source = SourceRow::parse(&adapted_raw, self.limits.max_raw_bytes)?;
+                let mut normalized = self.shared.normalize_relation(
+                    &adapted_source,
+                    &self.source_graph,
+                    Some(identity),
+                    left,
+                    right,
+                    authority,
+                )?;
+                let attributes = normalized["attributes"]
+                    .as_object()
+                    .ok_or(Error::Invalid("canon prepared relation attributes"))?;
+                let source_record = source.source_record(attributes)?;
+                normalized["source_record"] = source_record;
+                stamp_content_revision(&mut normalized, self.limits.max_output_bytes)?;
+                return Ok(normalized);
+            }
+        }
         self.shared.normalize_relation(
             &source,
             &self.source_graph,
             Some(identity),
             left,
             right,
-            if self.profile == CANON_PROFILE {
-                "canon"
-            } else {
-                "derived-export"
-            },
+            authority,
         )
     }
 }
@@ -437,12 +570,13 @@ where
                 for row in batch {
                     let value = if relation {
                         let (left, right) = titles(stage, &row.from_id, &row.to_id)?;
-                        normalizer.normalize_relation(
+                        normalizer.normalize_relation_with_work(
                             stage,
                             prepared,
                             &row.identity_id,
                             &left,
                             &right,
+                            &mut work,
                         )?
                     } else {
                         normalizer.normalize_node(stage, prepared, &row.native_id)?
@@ -611,6 +745,27 @@ mod tests {
         let bytes = serde_json::to_vec(&bad).unwrap();
         assert!(canonical_digest(&bytes, &bad, 8192).is_err());
     }
+
+    #[test]
+    fn prepared_projection_allows_missing_properties_but_keeps_nested_canon_checks() {
+        let minimal = json!({
+            "node_id": "tos.concept.alpha",
+            "label": "Alpha",
+            "source_ref": "ToS/canon/concept/alpha/node.json"
+        });
+        let raw = serde_json::to_vec(&minimal).unwrap();
+        assert!(canonical_digest(&raw, &minimal, 8192).is_err());
+        assert_eq!(
+            canonical_digest_for_prepared_projection(&raw, &minimal, 8192).unwrap(),
+            None
+        );
+
+        let mut mismatched = fixture_node();
+        mismatched["node_type"] = json!("source");
+        let raw = serde_json::to_vec(&mismatched).unwrap();
+        assert!(canonical_digest_for_prepared_projection(&raw, &mismatched, 8192).is_err());
+    }
+
     /// One focused raw-fixture test covers the durable family boundary: exact
     /// collection roots, zero-edge packs, canonical wording, node-local order,
     /// pack identity, candidate views, and finalizer material lookup.

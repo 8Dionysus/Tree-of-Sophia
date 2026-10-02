@@ -153,22 +153,51 @@ fn id_field(collection: &str) -> &'static str {
 
 fn row_id(value: &Value, collection: &str, ordinal: u64) -> Result<String> {
     let field = id_field(collection);
-    let id = value
-        .get(field)
-        .and_then(Value::as_str)
-        .or_else(|| {
-            if matches!(collection, "branches" | "resources" | "manifests") {
-                value.get("path").and_then(Value::as_str)
-            } else {
-                None
-            }
-        })
-        .map(str::to_owned)
-        .or_else(|| {
-            matches!(collection, "branches" | "resources" | "manifests")
-                .then(|| format!("{collection}:{ordinal}"))
-        })
-        .ok_or(Error::Invalid("public D1 family authored row ID"))?;
+    let id = if collection == "relation_edges" {
+        if value
+            .get("pack_id")
+            .is_some_and(|pack| !pack.is_null() && !pack.is_string())
+        {
+            return Err(Error::Invalid("public D1 relation pack ID type"));
+        }
+        let edge = value
+            .get("edge_id")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .or_else(|| {
+                value
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+            })
+            .ok_or(Error::Invalid("public D1 relation edge ID"))?;
+        value
+            .get("pack_id")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(|pack| format!("{pack}:{edge}"))
+            .unwrap_or_else(|| edge.to_owned())
+    } else {
+        value
+            .get(field)
+            .and_then(Value::as_str)
+            .or_else(|| {
+                if matches!(collection, "branches" | "resources" | "manifests") {
+                    value.get("path").and_then(Value::as_str)
+                } else {
+                    None
+                }
+            })
+            .map(str::to_owned)
+            .or_else(|| {
+                matches!(collection, "branches" | "resources" | "manifests")
+                    .then(|| format!("{collection}:{ordinal}"))
+            })
+            .ok_or(Error::Invalid("public D1 family authored row ID"))?
+    };
     if id.is_empty() || id.len() > 4096 || id.contains('\0') {
         return Err(Error::Invalid("public D1 family row ID"));
     }
@@ -178,11 +207,19 @@ fn row_id(value: &Value, collection: &str, ordinal: u64) -> Result<String> {
 fn family_filter(value: &Value, source: &str, collection: &str) -> bool {
     match (source, collection) {
         ("canon", "nodes") => true,
-        ("canon", "relation_packs" | "relation_edges") => {
+        ("canon", "relation_edges") => {
             value.get("owner_branch").and_then(Value::as_str) == Some("ToS/canon")
         }
-        ("candidate-intake", "relation_packs" | "relation_edges") => {
-            value.get("owner_branch").and_then(Value::as_str) == Some("ToS/candidate-intake")
+        ("canon" | "candidate-intake", "relation_packs") => {
+            ["pack_id", "path"].into_iter().all(|field| {
+                value
+                    .get(field)
+                    .and_then(Value::as_str)
+                    .is_some_and(|text| !text.trim().is_empty())
+            })
+        }
+        ("candidate-intake", "relation_edges") => {
+            value.get("owner_branch").and_then(Value::as_str) != Some("ToS/canon")
         }
         _ => true,
     }
@@ -277,7 +314,9 @@ pub(crate) fn prepare_family_rows(
                         if let (Some(id), Some(path)) = (
                             value.get("pack_id").and_then(Value::as_str),
                             value.get("path").and_then(Value::as_str),
-                        ) {
+                        ) && !id.trim().is_empty()
+                            && !path.trim().is_empty()
+                        {
                             pack_page.push((id.to_owned(), path.to_owned()));
                         }
                     }
@@ -537,4 +576,61 @@ pub(crate) fn ingest_family_rows(
     }
     flush(stage, &mut batch)?;
     Ok(count)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{family_filter, row_id};
+    use serde_json::json;
+
+    #[test]
+    fn prepared_family_classifies_unknown_relation_owners_as_candidates() {
+        let canonical = json!({"owner_branch":"ToS/canon"});
+        let candidate = json!({"owner_branch":"ToS/candidate-intake"});
+        let unknown = json!({"owner_branch":"ToS/future"});
+        let missing = json!({});
+
+        assert!(family_filter(&canonical, "canon", "relation_edges"));
+        assert!(!family_filter(
+            &canonical,
+            "candidate-intake",
+            "relation_edges"
+        ));
+        for value in [&candidate, &unknown, &missing] {
+            assert!(!family_filter(value, "canon", "relation_edges"));
+            assert!(family_filter(value, "candidate-intake", "relation_edges"));
+        }
+    }
+
+    #[test]
+    fn prepared_family_uses_python_pack_map_and_edge_identity_rules() {
+        assert!(family_filter(
+            &json!({"pack_id":" p ","path":" pack.json "}),
+            "canon",
+            "relation_packs"
+        ));
+        assert!(!family_filter(
+            &json!({"pack_id":"p","path":"  "}),
+            "candidate-intake",
+            "relation_packs"
+        ));
+        assert_eq!(
+            row_id(
+                &json!({"edge_id":" ","id":" edge-a ","pack_id":" pack-a "}),
+                "relation_edges",
+                0
+            )
+            .unwrap(),
+            "pack-a:edge-a"
+        );
+        assert_eq!(
+            row_id(&json!({"id":"edge-a"}), "relation_edges", 0).unwrap(),
+            "edge-a"
+        );
+        assert_eq!(
+            row_id(&json!({"id":"edge-a","pack_id":null}), "relation_edges", 0).unwrap(),
+            "edge-a"
+        );
+        assert!(row_id(&json!({"id":"edge-a","pack_id":false}), "relation_edges", 0).is_err());
+    }
 }

@@ -9,7 +9,7 @@ use crate::knowledge_canon_materialize::{
     scan_canon_relations, source_material,
 };
 use crate::knowledge_canon_prepare::{
-    CanonPrepareLimits, clear_canon_prepare, prepare_canon_inputs,
+    CanonPrepareLimits, clear_canon_prepare, prepare_canon_inputs, prepare_public_projection_family,
 };
 use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_source_claims::{
@@ -33,6 +33,8 @@ use tos_foundation::{Digest256, Digest256Hasher};
 pub struct NativeFamilyInputs<'a> {
     /// Explicit maintained prepared projection profile; sealed/D1 callers default false.
     pub prepared_philosophy_projection: bool,
+    /// Public computational canon/candidate carriers; managed callers default false.
+    pub prepared_canon_projection: bool,
     pub repository_root: Option<RepositoryRootInput<'a>>,
     pub navigation_original: Option<NavigationOriginalInput<'a>>,
     pub philosophy_original: Option<crate::PhilosophyOriginalInput<'a>>,
@@ -47,6 +49,7 @@ impl NativeFamilyInputs<'_> {
     pub fn bounded_from(limits: NativeProducerLimits) -> Self {
         Self {
             prepared_philosophy_projection: false,
+            prepared_canon_projection: false,
             repository_root: None,
             navigation_original: None,
             philosophy_original: None,
@@ -742,30 +745,72 @@ pub fn materialize_native_sources_with_inputs(
             ));
         }
         let canon = if selected("canon-node-relation-v1")? {
-            let prepared = prepare_canon_inputs(stage, vocabulary, additional.canon_prepare)?;
-            let normalizer = CanonNormalizer::new(
-                registry,
-                entity_bytes,
-                relation_bytes,
-                vocabulary,
-                descriptor_bytes,
-                additional.canon,
-            )?;
+            let prepared = if additional.prepared_canon_projection {
+                prepare_public_projection_family(
+                    stage,
+                    vocabulary,
+                    crate::knowledge_canon_prepare::CANON_PROFILE,
+                    additional.canon_prepare,
+                )?
+            } else {
+                prepare_canon_inputs(stage, vocabulary, additional.canon_prepare)?
+            };
+            let normalizer = if additional.prepared_canon_projection {
+                CanonNormalizer::public_projection_family(
+                    registry,
+                    entity_bytes,
+                    relation_bytes,
+                    vocabulary,
+                    descriptor_bytes,
+                    additional.canon,
+                    crate::knowledge_canon_prepare::CANON_PROFILE,
+                )?
+            } else {
+                CanonNormalizer::new(
+                    registry,
+                    entity_bytes,
+                    relation_bytes,
+                    vocabulary,
+                    descriptor_bytes,
+                    additional.canon,
+                )?
+            };
             materialize_canon_nodes(stage, &normalizer, &prepared)?;
             Some((prepared, normalizer))
         } else {
             None
         };
         let candidates = if selected("candidate-relation-v1")? {
-            let prepared = prepare_candidate_inputs(stage, vocabulary, additional.canon_prepare)?;
-            let normalizer = candidate_normalizer(
-                registry,
-                entity_bytes,
-                relation_bytes,
-                vocabulary,
-                descriptor_bytes,
-                additional.canon,
-            )?;
+            let prepared = if additional.prepared_canon_projection {
+                prepare_public_projection_family(
+                    stage,
+                    vocabulary,
+                    crate::knowledge_canon_prepare::CANDIDATE_PROFILE,
+                    additional.canon_prepare,
+                )?
+            } else {
+                prepare_candidate_inputs(stage, vocabulary, additional.canon_prepare)?
+            };
+            let normalizer = if additional.prepared_canon_projection {
+                CanonNormalizer::public_projection_family(
+                    registry,
+                    entity_bytes,
+                    relation_bytes,
+                    vocabulary,
+                    descriptor_bytes,
+                    additional.canon,
+                    crate::knowledge_canon_prepare::CANDIDATE_PROFILE,
+                )?
+            } else {
+                candidate_normalizer(
+                    registry,
+                    entity_bytes,
+                    relation_bytes,
+                    vocabulary,
+                    descriptor_bytes,
+                    additional.canon,
+                )?
+            };
             Some((prepared, normalizer))
         } else {
             None
