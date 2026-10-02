@@ -149,11 +149,19 @@ Optional private usage and morphology companions are verified only when
 present; a successful absent-companion branch does not verify their bytes.
 
 The retained-control check has also passed on the same source-bound input.
-The original Python builder/validator remains the compatibility oracle while
-original-output parity is pending. Use
+The original-output comparison also passes: the full projection agrees apart
+from six declared generator/runtime identity fields, and all typed rows in the
+seven logical SQLite tables agree in primary-key or rowid order. Complete stored
+table SQL agrees apart from terminal ASCII whitespace; schema columns, indexes,
+collations and foreign keys agree. The maintained bounded phrase query agrees.
+This does not establish physical database byte identity or full internal FTS
+index validity.
+
+The original Python builder/validator is retained as the historical compatibility
+oracle; maintained operations use the native route above. Use
 `validate-legacy` for an explicit historical control; it does not rebuild or
 retire that control. The original script, archived copies, historical profiles
 and artifacts keep their exact source associations and identities. They are not
 the default native maintainer route, and are not deleted, rewritten or relabelled
-as native results. A native build or validator pass alone does not complete
-oracle parity, approve a data cutover, or migrate another consumer's frozen pins.
+as native results. The scoped parity acceptance does not approve a data cutover
+or migrate another consumer's frozen pins.
