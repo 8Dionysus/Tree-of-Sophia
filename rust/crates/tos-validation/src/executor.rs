@@ -13,7 +13,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use tos_foundation::Digest256;
+use tos_foundation::{Digest256, Digest256Hasher};
 
 use crate::{FormatProfile, SchemaResource};
 
@@ -51,6 +51,10 @@ const DIAGNOSTIC_EXTENDED_INPUT_MARKER: u8 = 0xff;
 const DIAGNOSTIC_INPUT_LEGACY_PYTHON_OBSERVED: u8 = 1;
 const DIAGNOSTIC_INPUT_MIXED_SOURCE_FOUNDATION: u8 = 2;
 const DIAGNOSTIC_INPUT_FINITE_JSON_SELECTED: u8 = 3;
+const DIAGNOSTIC_INPUT_LEGACY_PYTHON_OBSERVED_SELECTED: u8 = 4;
+const LEGACY_SELECTED_DIAGNOSTIC_MAX_VISITS: u32 = 2_000_000;
+const LEGACY_SELECTED_DIAGNOSTIC_MAX_STATE_BYTES: u64 = 384 * 1024 * 1024;
+const LEGACY_SELECTED_DIAGNOSTIC_RUNTIME_HEADROOM_BYTES: u64 = 512 * 1024 * 1024;
 
 /// Maximum ELF image size accepted by the Linux sealed-worker copier.
 /// Callers that prepare one image for a multi-adapter operation can reserve
@@ -64,6 +68,7 @@ pub(crate) enum DiagnosticsInputProfile {
     LegacyPythonObserved,
     MixedSourceFoundation,
     FiniteJsonSelected,
+    LegacyPythonObservedSelected,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -74,6 +79,106 @@ pub(crate) enum DiagnosticsUnitInputMode {
     /// This keeps the standard finite parser and backend; it only raises the
     /// one-MiB probe admission limit up to the existing batch raw-byte cap.
     FiniteJsonSelected,
+    /// Legacy Python-compatible grammar with request-bound parser and
+    /// conversion state ceilings. Historical raw mode 2 remains unchanged.
+    LegacyPythonObservedSelected,
+}
+
+/// Caller-selected finite limits for the LegacyPythonObserved diagnostics-v2
+/// sibling. This does not change the historical 300,000-visit raw lane.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LegacySelectedDiagnosticsLimits {
+    pub max_instance_bytes: usize,
+    pub max_visits: u32,
+    pub parser_state_bytes: u64,
+    pub conversion_state_bytes: u64,
+}
+
+impl LegacySelectedDiagnosticsLimits {
+    pub const MAX_INSTANCE_BYTES: usize = MAX_BATCH_RAW_BYTES;
+    pub const MAX_VISITS: u32 = LEGACY_SELECTED_DIAGNOSTIC_MAX_VISITS;
+    pub const MAX_STATE_BYTES: u64 = LEGACY_SELECTED_DIAGNOSTIC_MAX_STATE_BYTES;
+    pub const MAX_DEPTH: usize = 64;
+    pub const MAX_INTEGER_DIGITS: usize = 4_300;
+    pub const RUNTIME_HEADROOM_BYTES: u64 = LEGACY_SELECTED_DIAGNOSTIC_RUNTIME_HEADROOM_BYTES;
+
+    pub(crate) fn validate(self) -> Result<(), ExecutorFailure> {
+        if self.max_instance_bytes == 0
+            || self.max_instance_bytes > Self::MAX_INSTANCE_BYTES
+            || self.max_visits == 0
+            || self.max_visits > Self::MAX_VISITS
+            || self.parser_state_bytes == 0
+            || self.parser_state_bytes > Self::MAX_STATE_BYTES
+            || self.conversion_state_bytes == 0
+            || self.conversion_state_bytes > Self::MAX_STATE_BYTES
+        {
+            return Err(ExecutorFailure::InputBudget);
+        }
+        Ok(())
+    }
+
+    fn update_digest(self, digest: &mut Digest256Hasher) {
+        digest.update(&(self.max_instance_bytes as u64).to_be_bytes());
+        digest.update(&self.max_visits.to_be_bytes());
+        digest.update(&self.parser_state_bytes.to_be_bytes());
+        digest.update(&self.conversion_state_bytes.to_be_bytes());
+    }
+}
+
+/// Full selected-Legacy child address-space admission, computed by the
+/// controller before request/input copies and spawn at both source-cut
+/// admission and sealed-image request preparation. The existing OS child
+/// address-space limit remains the enforcement boundary. The resource
+/// component comes from the shared ToS resource-only preparation kernel; RSS
+/// and allocator metadata are separate.
+pub(crate) fn legacy_selected_child_address_space_required(
+    resource_preparation_state_bytes: usize,
+    request_frame_bytes: usize,
+    response_buffer_bytes: usize,
+    member_id_bytes: usize,
+    path_bytes: usize,
+    root_uri_bytes: usize,
+    instance_bytes: usize,
+    actual_worker_image_bytes: u64,
+    limits: LegacySelectedDiagnosticsLimits,
+) -> Result<u64, ExecutorFailure> {
+    limits.validate()?;
+    if actual_worker_image_bytes == 0 || actual_worker_image_bytes > MAX_WORKER_IMAGE_BYTES {
+        return Err(ExecutorFailure::WorkerIdentity);
+    }
+    let unit_metadata_bytes = std::mem::size_of::<BatchUnit>()
+        .checked_mul(2)
+        .and_then(|bytes| bytes.checked_add(member_id_bytes.checked_mul(2)?))
+        .and_then(|bytes| bytes.checked_add(path_bytes.checked_mul(2)?))
+        .and_then(|bytes| bytes.checked_add(root_uri_bytes.checked_mul(2)?))
+        .ok_or(ExecutorFailure::InputBudget)?;
+    let input_buffers = instance_bytes
+        .checked_mul(2)
+        .ok_or(ExecutorFailure::InputBudget)?;
+    // Frame construction uses sequential Vec extensions. Count a conservative
+    // three-frame envelope for the completed frame plus the old/new Vec
+    // allocations that can overlap during growth.
+    let request_buffers = request_frame_bytes
+        .checked_mul(3)
+        .ok_or(ExecutorFailure::InputBudget)?;
+    let response_buffers = response_buffer_bytes
+        .checked_mul(2)
+        .ok_or(ExecutorFailure::InputBudget)?;
+    [
+        u64::try_from(resource_preparation_state_bytes)
+            .map_err(|_| ExecutorFailure::InputBudget)?,
+        u64::try_from(unit_metadata_bytes).map_err(|_| ExecutorFailure::InputBudget)?,
+        u64::try_from(input_buffers).map_err(|_| ExecutorFailure::InputBudget)?,
+        u64::try_from(request_buffers).map_err(|_| ExecutorFailure::InputBudget)?,
+        u64::try_from(response_buffers).map_err(|_| ExecutorFailure::InputBudget)?,
+        actual_worker_image_bytes,
+        limits.parser_state_bytes,
+        limits.conversion_state_bytes,
+        LEGACY_SELECTED_DIAGNOSTIC_RUNTIME_HEADROOM_BYTES,
+    ]
+    .into_iter()
+    .try_fold(0u64, u64::checked_add)
+    .ok_or(ExecutorFailure::InputBudget)
 }
 
 /// Fixed profile-2 exceptional-evaluator budget vector. A request carries the
@@ -181,6 +286,7 @@ impl DiagnosticsUnitInputMode {
             Self::FiniteJson => 1,
             Self::LegacyPythonObserved => 2,
             Self::FiniteJsonSelected => 3,
+            Self::LegacyPythonObservedSelected => 4,
         }
     }
 }
@@ -911,6 +1017,8 @@ pub(crate) struct SchemaDiagnosticsExecutionCost {
     pub schema_resource_buffer_bytes: usize,
     pub input_instance_buffer_bytes: usize,
     pub request_bytes: usize,
+    /// Final encoded frame Vec capacity observed after construction. Selected
+    /// Legacy peak admission separately uses a conservative three-frame bound.
     pub request_buffer_bytes: usize,
     pub response_bytes: usize,
     pub response_buffer_bytes: usize,
@@ -1591,7 +1699,8 @@ fn validate_diagnostics_batch_unit_fields(
     let raw_limit = match input_mode {
         DiagnosticsUnitInputMode::FiniteJson => crate::SchemaBackendProbe::MAX_INSTANCE_BYTES,
         DiagnosticsUnitInputMode::LegacyPythonObserved
-        | DiagnosticsUnitInputMode::FiniteJsonSelected => MAX_BATCH_RAW_BYTES,
+        | DiagnosticsUnitInputMode::FiniteJsonSelected
+        | DiagnosticsUnitInputMode::LegacyPythonObservedSelected => MAX_BATCH_RAW_BYTES,
     };
     if member_id.is_empty()
         || member_id.len() > MAX_MEMBER_ID_BYTES
@@ -1651,6 +1760,7 @@ impl BatchCoverageExpectation {
     ) -> Result<Self, ExecutorFailure> {
         if units.is_empty()
             || units.len() > MAX_BATCH_UNITS
+            || input_profile == DiagnosticsInputProfile::LegacyPythonObservedSelected
             || matches!(
                 input_profile,
                 DiagnosticsInputProfile::MixedSourceFoundation
@@ -1673,11 +1783,37 @@ impl BatchCoverageExpectation {
                 DiagnosticsInputProfile::LegacyPythonObserved => {
                     DiagnosticsUnitInputMode::LegacyPythonObserved
                 }
+                DiagnosticsInputProfile::LegacyPythonObservedSelected => {
+                    return Err(ExecutorFailure::InputBudget);
+                }
                 DiagnosticsInputProfile::MixedSourceFoundation => *unit_modes
                     .and_then(|modes| modes.get(ordinal))
                     .ok_or(ExecutorFailure::InputBudget)?,
             };
             manifest.update(diagnostics_batch_unit_digest(unit, input_mode)?.as_bytes());
+        }
+        Ok(Self {
+            count: units.len() as u64,
+            ordered_manifest_sha256: manifest.finalize(),
+        })
+    }
+
+    pub(crate) fn from_selected_legacy_diagnostics_units(
+        units: &[BatchUnit],
+        limits: LegacySelectedDiagnosticsLimits,
+    ) -> Result<Self, ExecutorFailure> {
+        limits.validate()?;
+        if units.is_empty() || units.len() > MAX_BATCH_UNITS {
+            return Err(ExecutorFailure::InputBudget);
+        }
+        let mut manifest = Digest256Hasher::new();
+        manifest.update(b"tos-val2-batch-manifest-v1\0");
+        for (ordinal, unit) in units.iter().enumerate() {
+            if unit.ordinal != ordinal as u64 {
+                return Err(ExecutorFailure::CoverageMismatch);
+            }
+            manifest
+                .update(selected_legacy_diagnostics_batch_unit_digest(unit, limits)?.as_bytes());
         }
         Ok(Self {
             count: units.len() as u64,
@@ -1690,6 +1826,9 @@ pub(crate) fn diagnostics_batch_unit_digest(
     unit: &BatchUnit,
     input_mode: DiagnosticsUnitInputMode,
 ) -> Result<Digest256, ExecutorFailure> {
+    if input_mode == DiagnosticsUnitInputMode::LegacyPythonObservedSelected {
+        return Err(ExecutorFailure::InputBudget);
+    }
     validate_diagnostics_batch_unit(unit, input_mode)?;
     let mut digest = tos_foundation::Digest256Hasher::new();
     digest.update(b"tos-val2-batch-unit-v1\0");
@@ -1704,6 +1843,56 @@ pub(crate) fn diagnostics_batch_unit_digest(
         digest.update(value);
     }
     Ok(digest.finalize())
+}
+
+pub(crate) fn selected_legacy_diagnostics_batch_unit_digest(
+    unit: &BatchUnit,
+    limits: LegacySelectedDiagnosticsLimits,
+) -> Result<Digest256, ExecutorFailure> {
+    limits.validate()?;
+    validate_diagnostics_batch_unit_fields(
+        &unit.member_id,
+        &unit.relative_path,
+        &unit.root_uri,
+        unit.raw_instance.len(),
+        DiagnosticsUnitInputMode::LegacyPythonObservedSelected,
+    )?;
+    if unit.raw_instance.len() > limits.max_instance_bytes {
+        return Err(ExecutorFailure::InputBudget);
+    }
+    Ok(selected_legacy_diagnostics_unit_digest_fields(
+        unit.ordinal,
+        &unit.member_id,
+        &unit.relative_path,
+        &unit.root_uri,
+        &unit.raw_instance,
+        limits,
+    ))
+}
+
+fn selected_legacy_diagnostics_unit_digest_fields(
+    ordinal: u64,
+    member_id: &str,
+    relative_path: &str,
+    root_uri: &str,
+    raw_instance: &[u8],
+    limits: LegacySelectedDiagnosticsLimits,
+) -> Digest256 {
+    let mut digest = Digest256Hasher::new();
+    digest.update(b"tos-val2-batch-unit-legacy-selected-v1\0");
+    digest.update(&ordinal.to_be_bytes());
+    digest.update(&[DiagnosticsUnitInputMode::LegacyPythonObservedSelected.wire_byte()]);
+    limits.update_digest(&mut digest);
+    for value in [
+        member_id.as_bytes(),
+        relative_path.as_bytes(),
+        root_uri.as_bytes(),
+        raw_instance,
+    ] {
+        digest.update(&(value.len() as u32).to_be_bytes());
+        digest.update(value);
+    }
+    digest.finalize()
 }
 
 fn unknown(reason: ExecutorFailure, identity: Option<ExecutionIdentity>) -> ExecutorOutcome {
@@ -2534,6 +2723,9 @@ pub(crate) use native::{PreparedSchemaWorker, VerifiedWorkerImage};
 pub(crate) struct VerifiedWorkerImage;
 #[cfg(not(all(target_os = "linux", target_pointer_width = "64")))]
 impl VerifiedWorkerImage {
+    pub(crate) fn image_bytes(&self) -> Result<u64, ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
     pub(crate) fn from_handle(
         _: &VerifiedWorkerImageHandle,
         _: ExecutorBudget,
@@ -2611,6 +2803,8 @@ impl VerifiedWorkerImage {
         _: Digest256,
         _: FormatProfile,
         _: DiagnosticsInputProfile,
+        _: Option<LegacySelectedDiagnosticsLimits>,
+        _: Option<usize>,
         _: &str,
         _: &str,
         _: &str,
@@ -2678,6 +2872,23 @@ impl PreparedSchemaWorker {
         &self,
         _: usize,
     ) -> Result<(usize, usize), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn diagnostics_v2_selected_legacy_request_frame_bytes_upper_bound(
+        &self,
+        _: usize,
+        _: usize,
+        _: usize,
+        _: usize,
+    ) -> Result<usize, ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn worker_image_bytes(&self) -> Result<u64, ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
+    pub(crate) fn diagnostics_v2_selected_legacy_response_buffer_bytes_upper_bound(
+        &self,
+    ) -> Result<usize, ExecutorFailure> {
         Err(ExecutorFailure::UnsupportedHost)
     }
     pub(crate) fn set_operation_budget(
@@ -2752,6 +2963,20 @@ impl PreparedSchemaWorker {
     ) -> Result<(SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost), ExecutorFailure> {
         Err(ExecutorFailure::UnsupportedHost)
     }
+    pub(crate) fn evaluate_with_selected_legacy_diagnostics(
+        &mut self,
+        _: &str,
+        _: &str,
+        _: &str,
+        _: &[u8],
+        _: LegacySelectedDiagnosticsLimits,
+        _: usize,
+        _: ExecutorBudget,
+        _: Instant,
+        _: &AtomicBool,
+    ) -> Result<(SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost), ExecutorFailure> {
+        Err(ExecutorFailure::UnsupportedHost)
+    }
     pub(crate) fn evaluate_with_selected_finite_diagnostics(
         &mut self,
         _: &str,
@@ -2802,7 +3027,7 @@ mod native {
     use std::time::Instant;
     use tos_foundation::{
         Digest256Hasher, FoundationErrorCode, JsonLimits, JsonMode, JsonNumberKind, JsonValue,
-        parse_json,
+        parse_json, parse_json_with_state_budget,
     };
 
     #[path = "source_foundation_exceptional_schema.rs"]
@@ -3048,6 +3273,18 @@ mod native {
     }
 
     impl VerifiedWorkerImage {
+        pub(crate) fn image_bytes(&self) -> Result<u64, ExecutorFailure> {
+            let bytes = self
+                .file
+                .metadata()
+                .map_err(|_| ExecutorFailure::WorkerIdentity)?
+                .len();
+            if bytes == 0 || bytes > MAX_WORKER_BYTES {
+                return Err(ExecutorFailure::WorkerIdentity);
+            }
+            Ok(bytes)
+        }
+
         pub(crate) fn prepare(
             worker: &ExactWorkerIdentity,
             budget: ExecutorBudget,
@@ -3676,6 +3913,8 @@ mod native {
                 schema_set_sha256,
                 profile,
                 DiagnosticsInputProfile::FiniteJson,
+                None,
+                None,
                 "biblio-record-schema-unit",
                 location,
                 root_uri,
@@ -3694,6 +3933,8 @@ mod native {
             schema_set_sha256: Digest256,
             profile: FormatProfile,
             input_profile: DiagnosticsInputProfile,
+            selected_limits: Option<LegacySelectedDiagnosticsLimits>,
+            selected_resource_preparation_state_bytes: Option<usize>,
             member_id: &str,
             location: &str,
             root_uri: &str,
@@ -3738,10 +3979,27 @@ mod native {
                 DiagnosticsInputProfile::LegacyPythonObserved => {
                     DiagnosticsUnitInputMode::LegacyPythonObserved
                 }
+                DiagnosticsInputProfile::LegacyPythonObservedSelected => {
+                    DiagnosticsUnitInputMode::LegacyPythonObservedSelected
+                }
                 DiagnosticsInputProfile::MixedSourceFoundation => {
                     return Err(self.poison(ExecutorFailure::InputBudget));
                 }
             };
+            let selected_legacy =
+                input_profile == DiagnosticsInputProfile::LegacyPythonObservedSelected;
+            if selected_legacy != selected_limits.is_some()
+                || selected_legacy != selected_resource_preparation_state_bytes.is_some()
+                || (selected_legacy && profile != FormatProfile::LegacyPythonObserved20260923)
+            {
+                return Err(self.poison(ExecutorFailure::InputBudget));
+            }
+            if let Some(limits) = selected_limits {
+                limits.validate().map_err(|reason| self.poison(reason))?;
+                if raw_instance.len() > limits.max_instance_bytes {
+                    return Err(self.poison(ExecutorFailure::InputBudget));
+                }
+            }
             validate_diagnostics_batch_unit_fields(
                 member_id,
                 location,
@@ -3766,6 +4024,11 @@ mod native {
                     }
                     DiagnosticsUnitInputMode::LegacyPythonObserved
                     | DiagnosticsUnitInputMode::FiniteJsonSelected => MAX_BATCH_RAW_BYTES,
+                    DiagnosticsUnitInputMode::LegacyPythonObservedSelected => {
+                        selected_limits
+                            .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?
+                            .max_instance_bytes
+                    }
                 });
             if raw_instance.len() > batch_raw_limit {
                 return Err(self.poison(ExecutorFailure::InputBudget));
@@ -3807,6 +4070,37 @@ mod native {
             )
             .filter(|bytes| *bytes <= MAX_DIAGNOSTIC_REQUEST_BYTES)
             .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+            if let (Some(limits), Some(resource_state_bytes)) =
+                (selected_limits, selected_resource_preparation_state_bytes)
+            {
+                let response_buffer_bytes = DIAGNOSTIC_ACK_BYTES
+                    .checked_add(
+                        schema_diagnostics::Caps::CURRENT.max_report_bytes_per_unit as usize,
+                    )
+                    .and_then(|bytes| bytes.checked_add(DIAGNOSTIC_FINAL_BYTES))
+                    .ok_or_else(|| self.poison(ExecutorFailure::InputBudget))?;
+                let required = legacy_selected_child_address_space_required(
+                    resource_state_bytes,
+                    projected_request_bytes,
+                    response_buffer_bytes,
+                    member_id.len(),
+                    location.len(),
+                    root_uri.len(),
+                    raw_instance.len(),
+                    self.image
+                        .image_bytes()
+                        .map_err(|reason| self.poison(reason))?,
+                    limits,
+                )
+                .map_err(|reason| self.poison(reason))?;
+                let effective_child_limit = budget
+                    .address_space_bytes
+                    .min(self.operation_budget.batch.address_space_bytes)
+                    .min(self.operation_budget.operation_address_space_bytes);
+                if required > effective_child_limit {
+                    return Err(self.poison(ExecutorFailure::InputBudget));
+                }
+            }
             let minimum_response_bytes = DIAGNOSTIC_ACK_BYTES
                 .checked_add(DIAGNOSTIC_UNIT_HEADER_BYTES)
                 .and_then(|bytes| bytes.checked_add(DIAGNOSTIC_FINAL_BYTES))
@@ -3896,18 +4190,28 @@ mod native {
             if batch.cpu_seconds == 0 {
                 return Err(self.poison(ExecutorFailure::CpuLimit));
             }
-            let expected = BatchCoverageExpectation::from_diagnostics_units(
-                std::slice::from_ref(&unit),
-                input_profile,
-                None,
-            )?;
-            let prepared = make_diagnostics_request_encoded(
+            let expected = if let Some(limits) = selected_limits {
+                BatchCoverageExpectation::from_selected_legacy_diagnostics_units(
+                    std::slice::from_ref(&unit),
+                    limits,
+                )?
+            } else {
+                BatchCoverageExpectation::from_diagnostics_units(
+                    std::slice::from_ref(&unit),
+                    input_profile,
+                    None,
+                )?
+            };
+            let prepared = make_diagnostics_request_encoded_with_options(
                 self.identity.sha256,
                 &encoded_resources,
                 schema_set_sha256,
                 profile,
                 input_profile,
                 std::slice::from_ref(&unit),
+                None,
+                None,
+                selected_limits,
                 batch,
                 schema_diagnostics::Caps::CURRENT,
             )?;
@@ -4414,6 +4718,8 @@ mod native {
                 self.schema_set_sha256,
                 self.profile,
                 DiagnosticsInputProfile::FiniteJson,
+                None,
+                None,
                 member_id,
                 location,
                 root_uri,
@@ -4445,6 +4751,8 @@ mod native {
                 self.schema_set_sha256,
                 self.profile,
                 DiagnosticsInputProfile::LegacyPythonObserved,
+                None,
+                None,
                 member_id,
                 location,
                 root_uri,
@@ -4473,6 +4781,43 @@ mod native {
                 self.schema_set_sha256,
                 self.profile,
                 DiagnosticsInputProfile::FiniteJsonSelected,
+                None,
+                None,
+                member_id,
+                location,
+                root_uri,
+                raw_instance,
+                budget,
+                deadline,
+                Instant::now(),
+                cancelled,
+            )
+        }
+
+        pub(crate) fn evaluate_with_selected_legacy_diagnostics(
+            &mut self,
+            member_id: &str,
+            location: &str,
+            root_uri: &str,
+            raw_instance: &[u8],
+            selected_limits: LegacySelectedDiagnosticsLimits,
+            resource_preparation_state_bytes: usize,
+            budget: ExecutorBudget,
+            deadline: Instant,
+            cancelled: &AtomicBool,
+        ) -> Result<(SchemaDiagnosticsOutcome, SchemaDiagnosticsExecutionCost), ExecutorFailure>
+        {
+            if self.profile != FormatProfile::LegacyPythonObserved20260923 {
+                return Err(ExecutorFailure::InputBudget);
+            }
+            self.image.evaluate_with_diagnostics_encoded(
+                &self.encoded_resources,
+                self.encoded_resources.capacity(),
+                self.schema_set_sha256,
+                self.profile,
+                DiagnosticsInputProfile::LegacyPythonObservedSelected,
+                Some(selected_limits),
+                Some(resource_preparation_state_bytes),
                 member_id,
                 location,
                 root_uri,
@@ -4520,6 +4865,42 @@ mod native {
                 .and_then(|bytes| bytes.checked_add(8)) // ordinal
                 .and_then(|bytes| bytes.checked_add(2)) // extended profile marker + input mode
                 .filter(|bytes| *bytes <= MAX_DIAGNOSTIC_REQUEST_BYTES)
+                .ok_or(ExecutorFailure::InputBudget)
+        }
+
+        /// Encoded frame-length bound for the selected Legacy sibling,
+        /// including its four request-bound ceilings after the extended-profile
+        /// marker. Whole-operation selected Legacy admission separately counts
+        /// a conservative three-frame growth envelope.
+        pub(crate) fn diagnostics_v2_selected_legacy_request_frame_bytes_upper_bound(
+            &self,
+            member_id_bytes: usize,
+            location_bytes: usize,
+            root_uri_bytes: usize,
+            instance_bytes: usize,
+        ) -> Result<usize, ExecutorFailure> {
+            self.diagnostics_v2_request_frame_bytes_upper_bound(
+                member_id_bytes,
+                location_bytes,
+                root_uri_bytes,
+                instance_bytes,
+            )?
+            .checked_add(8 + 4 + 8 + 8)
+            .filter(|bytes| *bytes <= MAX_DIAGNOSTIC_REQUEST_BYTES)
+            .ok_or(ExecutorFailure::InputBudget)
+        }
+
+        pub(crate) fn worker_image_bytes(&self) -> Result<u64, ExecutorFailure> {
+            self.image.image_bytes()
+        }
+
+        pub(crate) fn diagnostics_v2_selected_legacy_response_buffer_bytes_upper_bound(
+            &self,
+        ) -> Result<usize, ExecutorFailure> {
+            DIAGNOSTIC_ACK_BYTES
+                .checked_add(schema_diagnostics::Caps::CURRENT.max_report_bytes_per_unit as usize)
+                .and_then(|bytes| bytes.checked_add(DIAGNOSTIC_FINAL_BYTES))
+                .filter(|bytes| *bytes <= schema_diagnostics::MAX_RESPONSE_BYTES)
                 .ok_or(ExecutorFailure::InputBudget)
         }
 
@@ -4794,6 +5175,34 @@ mod native {
         budget: BatchBudget,
         caps: schema_diagnostics::Caps,
     ) -> Result<DiagnosticsPrepared, ExecutorFailure> {
+        make_diagnostics_request_encoded_with_options(
+            worker_sha256,
+            encoded_resources,
+            schema_set_sha256,
+            profile,
+            input_profile,
+            units,
+            unit_modes,
+            exceptional_remaining,
+            None,
+            budget,
+            caps,
+        )
+    }
+
+    fn make_diagnostics_request_encoded_with_options<U: std::borrow::Borrow<BatchUnit>>(
+        worker_sha256: Digest256,
+        encoded_resources: &[u8],
+        schema_set_sha256: Digest256,
+        profile: FormatProfile,
+        input_profile: DiagnosticsInputProfile,
+        units: impl IntoIterator<Item = U>,
+        unit_modes: Option<&[DiagnosticsUnitInputMode]>,
+        exceptional_remaining: Option<ExceptionalSchemaUsage>,
+        selected_limits: Option<LegacySelectedDiagnosticsLimits>,
+        budget: BatchBudget,
+        caps: schema_diagnostics::Caps,
+    ) -> Result<DiagnosticsPrepared, ExecutorFailure> {
         budget.validate()?;
         if !caps.validate() {
             return Err(ExecutorFailure::InputBudget);
@@ -4806,10 +5215,23 @@ mod native {
                 input_profile,
                 DiagnosticsInputProfile::MixedSourceFoundation
             ) != exceptional_remaining.is_some()
+            || matches!(
+                input_profile,
+                DiagnosticsInputProfile::LegacyPythonObservedSelected
+            ) != selected_limits.is_some()
             || exceptional_remaining
                 .is_some_and(|remaining| !remaining.fits_within(ExceptionalSchemaUsage::whole()))
         {
             return Err(ExecutorFailure::InputBudget);
+        }
+        if let Some(limits) = selected_limits {
+            limits.validate()?;
+            if profile != FormatProfile::LegacyPythonObserved20260923
+                || unit_modes.is_some()
+                || exceptional_remaining.is_some()
+            {
+                return Err(ExecutorFailure::InputBudget);
+            }
         }
         let mut frame = Vec::new();
         frame.extend_from_slice(DIAGNOSTIC_REQUEST_MAGIC);
@@ -4831,6 +5253,20 @@ mod native {
                 frame.push(DIAGNOSTIC_EXTENDED_INPUT_MARKER);
                 frame.push(profile_byte(profile));
                 frame.push(DIAGNOSTIC_INPUT_LEGACY_PYTHON_OBSERVED);
+            }
+            DiagnosticsInputProfile::LegacyPythonObservedSelected => {
+                frame.push(DIAGNOSTIC_EXTENDED_INPUT_MARKER);
+                frame.push(profile_byte(profile));
+                frame.push(DIAGNOSTIC_INPUT_LEGACY_PYTHON_OBSERVED_SELECTED);
+                let limits = selected_limits.ok_or(ExecutorFailure::InputBudget)?;
+                frame.extend_from_slice(
+                    &u64::try_from(limits.max_instance_bytes)
+                        .map_err(|_| ExecutorFailure::InputBudget)?
+                        .to_be_bytes(),
+                );
+                frame.extend_from_slice(&limits.max_visits.to_be_bytes());
+                frame.extend_from_slice(&limits.parser_state_bytes.to_be_bytes());
+                frame.extend_from_slice(&limits.conversion_state_bytes.to_be_bytes());
             }
             DiagnosticsInputProfile::MixedSourceFoundation => {
                 frame.push(DIAGNOSTIC_EXTENDED_INPUT_MARKER);
@@ -4863,11 +5299,19 @@ mod native {
                 DiagnosticsInputProfile::LegacyPythonObserved => {
                     DiagnosticsUnitInputMode::LegacyPythonObserved
                 }
+                DiagnosticsInputProfile::LegacyPythonObservedSelected => {
+                    DiagnosticsUnitInputMode::LegacyPythonObservedSelected
+                }
                 DiagnosticsInputProfile::MixedSourceFoundation => *unit_modes
                     .and_then(|modes| modes.get(ordinal))
                     .ok_or(ExecutorFailure::InputBudget)?,
             };
             validate_diagnostics_batch_unit(unit, input_mode)?;
+            if selected_limits
+                .is_some_and(|limits| unit.raw_instance.len() > limits.max_instance_bytes)
+            {
+                return Err(ExecutorFailure::InputBudget);
+            }
             raw_total = raw_total
                 .checked_add(unit.raw_instance.len())
                 .filter(|total| *total <= budget.max_total_raw_bytes)
@@ -4885,7 +5329,11 @@ mod native {
             put_diagnostic_bytes(&mut frame, unit.relative_path.as_bytes())?;
             put_diagnostic_bytes(&mut frame, unit.root_uri.as_bytes())?;
             put_diagnostic_bytes(&mut frame, &unit.raw_instance)?;
-            let unit_sha256 = diagnostics_batch_unit_digest(unit, input_mode)?;
+            let unit_sha256 = if let Some(limits) = selected_limits {
+                selected_legacy_diagnostics_batch_unit_digest(unit, limits)?
+            } else {
+                diagnostics_batch_unit_digest(unit, input_mode)?
+            };
             manifest.update(unit_sha256.as_bytes());
             metas.push(BatchUnitMeta {
                 ordinal: unit.ordinal,
@@ -5794,6 +6242,7 @@ mod native {
             DiagnosticsInputProfile::FiniteJson => 0,
             DiagnosticsInputProfile::LegacyPythonObserved
             | DiagnosticsInputProfile::FiniteJsonSelected => 2,
+            DiagnosticsInputProfile::LegacyPythonObservedSelected => 2 + 8 + 4 + 8 + 8,
             DiagnosticsInputProfile::MixedSourceFoundation => return None,
         };
         let base = DIAGNOSTIC_FIXED_REQUEST_BYTES
@@ -6989,50 +7438,81 @@ mod native {
         let worker_sha256 = Digest256::from_bytes(cursor.take(32)?.try_into().unwrap());
         let expected_schema = Digest256::from_bytes(cursor.take(32)?.try_into().unwrap());
         let profile_byte = cursor.take(1)?[0];
-        let (profile, input_profile, exceptional_remaining) =
-            if profile_byte == DIAGNOSTIC_EXTENDED_INPUT_MARKER {
-                let profile = parse_profile(cursor.take(1)?[0]).ok_or_else(bad)?;
-                let input_profile = cursor.take(1)?[0];
-                let (input_profile, exceptional_remaining) = match input_profile {
-                    DIAGNOSTIC_INPUT_LEGACY_PYTHON_OBSERVED => {
-                        (DiagnosticsInputProfile::LegacyPythonObserved, None)
-                    }
-                    DIAGNOSTIC_INPUT_MIXED_SOURCE_FOUNDATION => {
-                        let received = Digest256::from_bytes(cursor.take(32)?.try_into().unwrap());
-                        if received != exceptional_schema::caps_sha256() {
-                            return Err(bad());
-                        }
-                        let remaining = ExceptionalSchemaUsage::read_be(
-                            cursor.take(DIAGNOSTIC_EXCEPTIONAL_COUNTERS_BYTES)?,
-                        )
-                        .filter(|remaining| remaining.fits_within(ExceptionalSchemaUsage::whole()))
-                        .ok_or_else(bad)?;
-                        (
-                            DiagnosticsInputProfile::MixedSourceFoundation,
-                            Some(remaining),
-                        )
-                    }
-                    DIAGNOSTIC_INPUT_FINITE_JSON_SELECTED => {
-                        (DiagnosticsInputProfile::FiniteJsonSelected, None)
-                    }
-                    _ => return Err(bad()),
-                };
-                if !matches!(
-                    input_profile,
-                    DiagnosticsInputProfile::LegacyPythonObserved
-                        | DiagnosticsInputProfile::MixedSourceFoundation
-                        | DiagnosticsInputProfile::FiniteJsonSelected
-                ) {
-                    return Err(bad());
+        let (profile, input_profile, exceptional_remaining, selected_limits) = if profile_byte
+            == DIAGNOSTIC_EXTENDED_INPUT_MARKER
+        {
+            let profile = parse_profile(cursor.take(1)?[0]).ok_or_else(bad)?;
+            let input_profile = cursor.take(1)?[0];
+            let (input_profile, exceptional_remaining, selected_limits) = match input_profile {
+                DIAGNOSTIC_INPUT_LEGACY_PYTHON_OBSERVED => {
+                    (DiagnosticsInputProfile::LegacyPythonObserved, None, None)
                 }
-                (profile, input_profile, exceptional_remaining)
-            } else {
-                (
-                    parse_profile(profile_byte).ok_or_else(bad)?,
-                    DiagnosticsInputProfile::FiniteJson,
-                    None,
-                )
+                DIAGNOSTIC_INPUT_MIXED_SOURCE_FOUNDATION => {
+                    let received = Digest256::from_bytes(cursor.take(32)?.try_into().unwrap());
+                    if received != exceptional_schema::caps_sha256() {
+                        return Err(bad());
+                    }
+                    let remaining = ExceptionalSchemaUsage::read_be(
+                        cursor.take(DIAGNOSTIC_EXCEPTIONAL_COUNTERS_BYTES)?,
+                    )
+                    .filter(|remaining| remaining.fits_within(ExceptionalSchemaUsage::whole()))
+                    .ok_or_else(bad)?;
+                    (
+                        DiagnosticsInputProfile::MixedSourceFoundation,
+                        Some(remaining),
+                        None,
+                    )
+                }
+                DIAGNOSTIC_INPUT_FINITE_JSON_SELECTED => {
+                    (DiagnosticsInputProfile::FiniteJsonSelected, None, None)
+                }
+                DIAGNOSTIC_INPUT_LEGACY_PYTHON_OBSERVED_SELECTED => {
+                    let max_instance_bytes =
+                        usize::try_from(u64::from_be_bytes(cursor.take(8)?.try_into().unwrap()))
+                            .map_err(|_| bad())?;
+                    let limits = LegacySelectedDiagnosticsLimits {
+                        max_instance_bytes,
+                        max_visits: u32::from_be_bytes(cursor.take(4)?.try_into().unwrap()),
+                        parser_state_bytes: u64::from_be_bytes(cursor.take(8)?.try_into().unwrap()),
+                        conversion_state_bytes: u64::from_be_bytes(
+                            cursor.take(8)?.try_into().unwrap(),
+                        ),
+                    };
+                    limits.validate().map_err(|_| bad())?;
+                    if profile != FormatProfile::LegacyPythonObserved20260923 {
+                        return Err(bad());
+                    }
+                    (
+                        DiagnosticsInputProfile::LegacyPythonObservedSelected,
+                        None,
+                        Some(limits),
+                    )
+                }
+                _ => return Err(bad()),
             };
+            if !matches!(
+                input_profile,
+                DiagnosticsInputProfile::LegacyPythonObserved
+                    | DiagnosticsInputProfile::MixedSourceFoundation
+                    | DiagnosticsInputProfile::FiniteJsonSelected
+                    | DiagnosticsInputProfile::LegacyPythonObservedSelected
+            ) {
+                return Err(bad());
+            }
+            (
+                profile,
+                input_profile,
+                exceptional_remaining,
+                selected_limits,
+            )
+        } else {
+            (
+                parse_profile(profile_byte).ok_or_else(bad)?,
+                DiagnosticsInputProfile::FiniteJson,
+                None,
+                None,
+            )
+        };
         if matches!(
             input_profile,
             DiagnosticsInputProfile::MixedSourceFoundation
@@ -7040,11 +7520,26 @@ mod native {
         {
             return Err(bad());
         }
+        if matches!(
+            input_profile,
+            DiagnosticsInputProfile::LegacyPythonObservedSelected
+        ) != selected_limits.is_some()
+        {
+            return Err(bad());
+        }
         if version != schema_diagnostics::PROTOCOL_VERSION || !caps.validate() {
             return Err(bad());
         }
         let resources = parse_batch_resources(&mut cursor)?;
-        let (units, raw_total) = parse_diagnostics_units(&mut cursor, input_profile)?;
+        let (units, raw_total) =
+            parse_diagnostics_units(&mut cursor, input_profile, selected_limits)?;
+        if matches!(
+            input_profile,
+            DiagnosticsInputProfile::LegacyPythonObservedSelected
+        ) && units.len() != 1
+        {
+            return Err(bad());
+        }
         if cursor.offset != tail.len() || raw_total > MAX_BATCH_RAW_BYTES {
             return Err(bad());
         }
@@ -7241,6 +7736,49 @@ mod native {
                         )?,
                     }
                 }
+                DiagnosticsUnitInputMode::LegacyPythonObservedSelected => {
+                    let limits = selected_limits.ok_or_else(bad)?;
+                    match parse_convert_selected_legacy(unit.raw, limits) {
+                        Ok(value) => collect_diagnostic_report(
+                            &validators[unit.root_uri],
+                            &value,
+                            worker_sha256,
+                            request_sha256,
+                            unit.unit_sha256,
+                            schema_set,
+                            caps,
+                        )?,
+                        Err(LegacySelectedFailure::InvalidJson) => diagnostic_input_report(
+                            worker_sha256,
+                            request_sha256,
+                            unit.unit_sha256,
+                            schema_set,
+                            caps,
+                            schema_diagnostics::Status::InputRejected,
+                            schema_diagnostics::Failure::InvalidJson,
+                        )?,
+                        Err(LegacySelectedFailure::InputBudget) => diagnostic_input_report(
+                            worker_sha256,
+                            request_sha256,
+                            unit.unit_sha256,
+                            schema_set,
+                            caps,
+                            schema_diagnostics::Status::InputRejected,
+                            schema_diagnostics::Failure::InputBudget,
+                        )?,
+                        Err(LegacySelectedFailure::UnsupportedInputSemantics) => {
+                            diagnostic_input_report(
+                                worker_sha256,
+                                request_sha256,
+                                unit.unit_sha256,
+                                schema_set,
+                                caps,
+                                schema_diagnostics::Status::Indeterminate,
+                                schema_diagnostics::Failure::UnsupportedInputSemantics,
+                            )?
+                        }
+                    }
+                }
             };
             let record =
                 encode_diagnostic_unit(unit.ordinal, unit.unit_sha256, &report).ok_or_else(bad)?;
@@ -7340,9 +7878,382 @@ mod native {
         }
     }
 
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum LegacySelectedFailure {
+        InvalidJson,
+        InputBudget,
+        UnsupportedInputSemantics,
+    }
+
+    #[derive(Default)]
+    struct LegacySelectedConversionShape {
+        values: usize,
+        object_entries: usize,
+        array_elements: usize,
+        cloned_text_bytes: usize,
+        number_storage_bytes: usize,
+    }
+
+    impl LegacySelectedConversionShape {
+        fn total_state_bytes(&self) -> Result<usize, LegacySelectedFailure> {
+            let map_nodes = self
+                .object_entries
+                .checked_mul(768)
+                .ok_or(LegacySelectedFailure::InputBudget)?;
+            let value_slots = self
+                .values
+                .checked_mul(std::mem::size_of::<serde_json::Value>())
+                .ok_or(LegacySelectedFailure::InputBudget)?;
+            let frame_bytes = std::mem::size_of::<JsonValue>()
+                .checked_add(std::mem::size_of::<serde_json::Value>())
+                .and_then(|bytes| bytes.checked_add(64))
+                .ok_or(LegacySelectedFailure::InputBudget)?;
+            let conversion_stack = (LegacySelectedDiagnosticsLimits::MAX_DEPTH + 1)
+                .checked_mul(frame_bytes)
+                .ok_or(LegacySelectedFailure::InputBudget)?;
+            [
+                map_nodes,
+                self.cloned_text_bytes,
+                self.number_storage_bytes,
+                value_slots,
+                conversion_stack,
+            ]
+            .into_iter()
+            .try_fold(0usize, usize::checked_add)
+            .ok_or(LegacySelectedFailure::InputBudget)
+        }
+    }
+
+    fn legacy_selected_conversion_shape(
+        value: &JsonValue,
+        depth: usize,
+        shape: &mut LegacySelectedConversionShape,
+    ) -> Result<(), LegacySelectedFailure> {
+        if depth > LegacySelectedDiagnosticsLimits::MAX_DEPTH {
+            return Err(LegacySelectedFailure::InputBudget);
+        }
+        shape.values = shape
+            .values
+            .checked_add(1)
+            .ok_or(LegacySelectedFailure::InputBudget)?;
+        match value {
+            JsonValue::Null | JsonValue::Bool(_) => {}
+            JsonValue::Number(number) => {
+                // Integer Numbers may retain their arbitrary-precision lexeme;
+                // float conversion has a bounded shortest representation.
+                let bytes = number
+                    .lexeme
+                    .len()
+                    .checked_add(if number.kind == JsonNumberKind::Float {
+                        32
+                    } else {
+                        0
+                    })
+                    .ok_or(LegacySelectedFailure::InputBudget)?;
+                shape.number_storage_bytes = shape
+                    .number_storage_bytes
+                    .checked_add(bytes)
+                    .ok_or(LegacySelectedFailure::InputBudget)?;
+            }
+            JsonValue::String(string) => {
+                let value = string
+                    .as_str()
+                    .ok_or(LegacySelectedFailure::UnsupportedInputSemantics)?;
+                shape.cloned_text_bytes = shape
+                    .cloned_text_bytes
+                    .checked_add(value.len())
+                    .ok_or(LegacySelectedFailure::InputBudget)?;
+            }
+            JsonValue::Array(items) => {
+                shape.array_elements = shape
+                    .array_elements
+                    .checked_add(items.len())
+                    .ok_or(LegacySelectedFailure::InputBudget)?;
+                for item in items {
+                    legacy_selected_conversion_shape(item, depth + 1, shape)?;
+                }
+            }
+            JsonValue::Object(entries) => {
+                shape.object_entries = shape
+                    .object_entries
+                    .checked_add(entries.len())
+                    .ok_or(LegacySelectedFailure::InputBudget)?;
+                for (key, item) in entries {
+                    let key = key
+                        .as_str()
+                        .ok_or(LegacySelectedFailure::UnsupportedInputSemantics)?;
+                    shape.cloned_text_bytes = shape
+                        .cloned_text_bytes
+                        .checked_add(key.len())
+                        .ok_or(LegacySelectedFailure::InputBudget)?;
+                    legacy_selected_conversion_shape(item, depth + 1, shape)?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    struct LegacySelectedConversionMeter {
+        max_bytes: u64,
+        shape: LegacySelectedConversionShape,
+        used_bytes: u64,
+        values_seen: usize,
+        entries_charged: usize,
+        arrays_reserved: usize,
+        text_bytes_charged: usize,
+        number_bytes_charged: usize,
+    }
+
+    impl LegacySelectedConversionMeter {
+        fn new(
+            shape: LegacySelectedConversionShape,
+            max_bytes: u64,
+        ) -> Result<Self, LegacySelectedFailure> {
+            let value_slots = shape
+                .values
+                .checked_mul(std::mem::size_of::<serde_json::Value>())
+                .ok_or(LegacySelectedFailure::InputBudget)?;
+            let frame_bytes = std::mem::size_of::<JsonValue>()
+                .checked_add(std::mem::size_of::<serde_json::Value>())
+                .and_then(|bytes| bytes.checked_add(64))
+                .ok_or(LegacySelectedFailure::InputBudget)?;
+            let stack_bytes = (LegacySelectedDiagnosticsLimits::MAX_DEPTH + 1)
+                .checked_mul(frame_bytes)
+                .ok_or(LegacySelectedFailure::InputBudget)?;
+            let reserved = u64::try_from(
+                value_slots
+                    .checked_add(stack_bytes)
+                    .ok_or(LegacySelectedFailure::InputBudget)?,
+            )
+            .map_err(|_| LegacySelectedFailure::InputBudget)?;
+            if reserved > max_bytes {
+                return Err(LegacySelectedFailure::InputBudget);
+            }
+            Ok(Self {
+                max_bytes,
+                shape,
+                used_bytes: reserved,
+                values_seen: 0,
+                entries_charged: 0,
+                arrays_reserved: 0,
+                text_bytes_charged: 0,
+                number_bytes_charged: 0,
+            })
+        }
+
+        fn charge(&mut self, bytes: usize) -> Result<(), LegacySelectedFailure> {
+            self.used_bytes = self
+                .used_bytes
+                .checked_add(u64::try_from(bytes).map_err(|_| LegacySelectedFailure::InputBudget)?)
+                .filter(|used| *used <= self.max_bytes)
+                .ok_or(LegacySelectedFailure::InputBudget)?;
+            Ok(())
+        }
+
+        fn visit_value(&mut self) -> Result<(), LegacySelectedFailure> {
+            self.values_seen = self
+                .values_seen
+                .checked_add(1)
+                .filter(|seen| *seen <= self.shape.values)
+                .ok_or(LegacySelectedFailure::InputBudget)?;
+            Ok(())
+        }
+
+        fn charge_text(&mut self, bytes: usize) -> Result<(), LegacySelectedFailure> {
+            self.text_bytes_charged = self
+                .text_bytes_charged
+                .checked_add(bytes)
+                .filter(|charged| *charged <= self.shape.cloned_text_bytes)
+                .ok_or(LegacySelectedFailure::InputBudget)?;
+            self.charge(bytes)
+        }
+
+        fn charge_number(
+            &mut self,
+            number: &tos_foundation::JsonNumber,
+        ) -> Result<(), LegacySelectedFailure> {
+            let bytes = number
+                .lexeme
+                .len()
+                .checked_add(if number.kind == JsonNumberKind::Float {
+                    32
+                } else {
+                    0
+                })
+                .ok_or(LegacySelectedFailure::InputBudget)?;
+            self.number_bytes_charged = self
+                .number_bytes_charged
+                .checked_add(bytes)
+                .filter(|charged| *charged <= self.shape.number_storage_bytes)
+                .ok_or(LegacySelectedFailure::InputBudget)?;
+            self.charge(bytes)
+        }
+
+        fn before_array_reserve(&mut self, elements: usize) -> Result<(), LegacySelectedFailure> {
+            self.arrays_reserved = self
+                .arrays_reserved
+                .checked_add(elements)
+                .filter(|reserved| *reserved <= self.shape.array_elements)
+                .ok_or(LegacySelectedFailure::InputBudget)?;
+            Ok(())
+        }
+
+        fn charge_map_entry(&mut self) -> Result<(), LegacySelectedFailure> {
+            self.entries_charged = self
+                .entries_charged
+                .checked_add(1)
+                .filter(|charged| *charged <= self.shape.object_entries)
+                .ok_or(LegacySelectedFailure::InputBudget)?;
+            self.charge(768)
+        }
+
+        fn finish(&self) -> Result<(), LegacySelectedFailure> {
+            if self.values_seen != self.shape.values
+                || self.entries_charged != self.shape.object_entries
+                || self.arrays_reserved != self.shape.array_elements
+                || self.text_bytes_charged != self.shape.cloned_text_bytes
+                || self.number_bytes_charged != self.shape.number_storage_bytes
+            {
+                return Err(LegacySelectedFailure::InputBudget);
+            }
+            let planned = self.shape.total_state_bytes()?;
+            if u64::try_from(planned).map_err(|_| LegacySelectedFailure::InputBudget)?
+                != self.used_bytes
+            {
+                return Err(LegacySelectedFailure::InputBudget);
+            }
+            Ok(())
+        }
+    }
+
+    fn clone_legacy_selected_string(
+        value: &str,
+        meter: &mut LegacySelectedConversionMeter,
+    ) -> Result<String, LegacySelectedFailure> {
+        meter.charge_text(value.len())?;
+        let mut cloned = String::new();
+        cloned
+            .try_reserve_exact(value.len())
+            .map_err(|_| LegacySelectedFailure::InputBudget)?;
+        cloned.push_str(value);
+        Ok(cloned)
+    }
+
+    fn convert_legacy_selected_value(
+        value: &JsonValue,
+        meter: &mut LegacySelectedConversionMeter,
+    ) -> Result<serde_json::Value, LegacySelectedFailure> {
+        meter.visit_value()?;
+        match value {
+            JsonValue::Null => Ok(serde_json::Value::Null),
+            JsonValue::Bool(value) => Ok(serde_json::Value::Bool(*value)),
+            JsonValue::Number(number) => {
+                meter.charge_number(number)?;
+                let number = match number.kind {
+                    JsonNumberKind::Int => number
+                        .lexeme
+                        .parse::<serde_json::Number>()
+                        .map_err(|_| LegacySelectedFailure::UnsupportedInputSemantics)?,
+                    JsonNumberKind::Float => {
+                        let value = number
+                            .as_python_float()
+                            .ok_or(LegacySelectedFailure::UnsupportedInputSemantics)?;
+                        if !value.is_finite() {
+                            return Err(LegacySelectedFailure::UnsupportedInputSemantics);
+                        }
+                        serde_json::Number::from_f64(value)
+                            .ok_or(LegacySelectedFailure::UnsupportedInputSemantics)?
+                    }
+                };
+                Ok(serde_json::Value::Number(number))
+            }
+            JsonValue::String(value) => {
+                let value = value
+                    .as_str()
+                    .ok_or(LegacySelectedFailure::UnsupportedInputSemantics)?;
+                Ok(serde_json::Value::String(clone_legacy_selected_string(
+                    value, meter,
+                )?))
+            }
+            JsonValue::Array(items) => {
+                // The complete tree's `values * size_of::<Value>()` slots are
+                // prepaid by the meter before conversion. Reserve exactly
+                // this array's share before visiting its children, so Vec
+                // growth cannot exceed that already-admitted slot budget.
+                meter.before_array_reserve(items.len())?;
+                let mut converted = Vec::new();
+                converted
+                    .try_reserve_exact(items.len())
+                    .map_err(|_| LegacySelectedFailure::InputBudget)?;
+                for item in items {
+                    converted.push(convert_legacy_selected_value(item, meter)?);
+                }
+                Ok(serde_json::Value::Array(converted))
+            }
+            JsonValue::Object(entries) => {
+                let mut converted = serde_json::Map::new();
+                for (key, item) in entries {
+                    let key = key
+                        .as_str()
+                        .ok_or(LegacySelectedFailure::UnsupportedInputSemantics)?;
+                    let key = clone_legacy_selected_string(key, meter)?;
+                    let item = convert_legacy_selected_value(item, meter)?;
+                    meter.charge_map_entry()?;
+                    converted.insert(key, item);
+                }
+                Ok(serde_json::Value::Object(converted))
+            }
+        }
+    }
+
+    fn parse_convert_selected_legacy(
+        raw: &[u8],
+        limits: LegacySelectedDiagnosticsLimits,
+    ) -> Result<serde_json::Value, LegacySelectedFailure> {
+        if raw.len() > limits.max_instance_bytes {
+            return Err(LegacySelectedFailure::InputBudget);
+        }
+        let parser_state_bytes = usize::try_from(limits.parser_state_bytes)
+            .map_err(|_| LegacySelectedFailure::InputBudget)?;
+        let json_limits = JsonLimits::new(
+            limits.max_instance_bytes,
+            LegacySelectedDiagnosticsLimits::MAX_DEPTH,
+            limits.max_visits as usize,
+            LegacySelectedDiagnosticsLimits::MAX_INTEGER_DIGITS,
+        )
+        .map_err(|_| LegacySelectedFailure::InputBudget)?;
+        let document = parse_json_with_state_budget(
+            raw,
+            JsonMode::LegacyPythonObserved,
+            json_limits,
+            parser_state_bytes,
+        )
+        .map_err(|error| {
+            if error.code == FoundationErrorCode::BudgetExceeded {
+                LegacySelectedFailure::InputBudget
+            } else {
+                LegacySelectedFailure::InvalidJson
+            }
+        })?;
+        let value = document.into_root();
+        let mut shape = LegacySelectedConversionShape::default();
+        legacy_selected_conversion_shape(&value, 0, &mut shape)?;
+        let conversion_state_bytes = shape.total_state_bytes()?;
+        if u64::try_from(conversion_state_bytes).map_err(|_| LegacySelectedFailure::InputBudget)?
+            > limits.conversion_state_bytes
+        {
+            return Err(LegacySelectedFailure::InputBudget);
+        }
+        let mut meter = LegacySelectedConversionMeter::new(shape, limits.conversion_state_bytes)?;
+        let converted = convert_legacy_selected_value(&value, &mut meter)?;
+        meter.finish()?;
+        Ok(converted)
+    }
+
     fn parse_diagnostics_units<'a>(
         cursor: &mut Cursor<'a>,
         input_profile: DiagnosticsInputProfile,
+        selected_limits: Option<LegacySelectedDiagnosticsLimits>,
     ) -> io::Result<(Vec<DiagnosticsParsedUnit<'a>>, usize)> {
         let unit_count = u32::from_be_bytes(cursor.take(4)?.try_into().unwrap()) as usize;
         if unit_count == 0 || unit_count > MAX_BATCH_UNITS {
@@ -7367,6 +8278,10 @@ mod native {
                 DiagnosticsInputProfile::FiniteJsonSelected => {
                     (DiagnosticsUnitInputMode::FiniteJsonSelected, cursor.offset)
                 }
+                DiagnosticsInputProfile::LegacyPythonObservedSelected => (
+                    DiagnosticsUnitInputMode::LegacyPythonObservedSelected,
+                    cursor.offset,
+                ),
                 DiagnosticsInputProfile::MixedSourceFoundation => {
                     let mode = match cursor.take(1)?[0] {
                         1 => DiagnosticsUnitInputMode::FiniteJson,
@@ -7396,6 +8311,13 @@ mod native {
                 }
                 DiagnosticsUnitInputMode::LegacyPythonObserved
                 | DiagnosticsUnitInputMode::FiniteJsonSelected => MAX_BATCH_RAW_BYTES,
+                DiagnosticsUnitInputMode::LegacyPythonObservedSelected => {
+                    selected_limits
+                        .ok_or_else(|| {
+                            io::Error::new(io::ErrorKind::InvalidData, "selected Legacy limits")
+                        })?
+                        .max_instance_bytes
+                }
             };
             let raw = cursor.bytes(unit_raw_limit)?;
             raw_total = raw_total
@@ -7415,13 +8337,27 @@ mod native {
                     "diagnostic unit identity",
                 ));
             }
-            let mut digest = Digest256Hasher::new();
-            digest.update(b"tos-val2-batch-unit-v1\0");
-            // Match the controller's unit digest in every diagnostics-v2
-            // profile. The mixed per-unit mode byte stays request-bound but
-            // is deliberately not part of unit identity.
-            digest.update(&cursor.bytes[start..start + 8]);
-            digest.update(&cursor.bytes[payload_start..cursor.offset]);
+            let unit_sha256 =
+                if input_mode == DiagnosticsUnitInputMode::LegacyPythonObservedSelected {
+                    selected_legacy_diagnostics_unit_digest_fields(
+                        observed_ordinal,
+                        member_id,
+                        relative_path,
+                        root_uri,
+                        raw,
+                        selected_limits.ok_or_else(|| {
+                            io::Error::new(io::ErrorKind::InvalidData, "selected Legacy limits")
+                        })?,
+                    )
+                } else {
+                    let mut digest = Digest256Hasher::new();
+                    digest.update(b"tos-val2-batch-unit-v1\0");
+                    // Preserve the historical mixed-mode digest: its mode byte is
+                    // request-bound but deliberately absent from unit identity.
+                    digest.update(&cursor.bytes[start..start + 8]);
+                    digest.update(&cursor.bytes[payload_start..cursor.offset]);
+                    digest.finalize()
+                };
             units.push(DiagnosticsParsedUnit {
                 ordinal: observed_ordinal,
                 member_id,
@@ -7429,7 +8365,7 @@ mod native {
                 root_uri,
                 raw,
                 input_mode,
-                unit_sha256: digest.finalize(),
+                unit_sha256,
             });
         }
         Ok((units, raw_total))
