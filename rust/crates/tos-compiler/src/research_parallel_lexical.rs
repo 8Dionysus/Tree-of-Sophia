@@ -633,6 +633,16 @@ fn ru_observations(root: &ResearchExecution) -> R<(Vec<Occ>, Vec<Unit>, V, Vec<U
     .map_err(|e| e.to_string())?;
     let mut charged = 0;
     root.charge_structural(&model, &mut charged)?;
+    ru_observations_from_model(root, &model, &mut charged)
+}
+
+fn ru_observations_from_model(
+    root: &ResearchExecution,
+    model: &crate::antonovsky_structural::Model,
+    charged: &mut u64,
+) -> R<(Vec<Occ>, Vec<Unit>, V, Vec<Unit>)> {
+    root.check()?;
+    root.charge_structural(model, charged)?;
     let bound = loadl(
         root,
         &path(&format!("{RU_TECH}/logical-row-spine.v2.jsonl")),
@@ -751,6 +761,8 @@ fn ru_observations(root: &ResearchExecution) -> R<(Vec<Occ>, Vec<Unit>, V, Vec<U
             .cloned(),
     );
     let meta = json!({"role_counts":roles,"included_unit_count":units.len()});
+    root.check()?;
+    root.charge_structural(model, charged)?;
     Ok((occurrences, units, meta, phrases))
 }
 fn reading_part(r: &str) -> R<usize> {
@@ -1052,6 +1064,19 @@ fn phrases(root: &ResearchExecution, lang: &str, units: &[Unit]) -> R<(Vec<V>, V
 pub fn build_ru_observations(root: &ResearchExecution) -> R<Vec<V>> {
     root.check()?;
     let (occs, _, _, _) = ru_observations(root)?;
+    render_ru_observations(root, &occs)
+}
+
+pub(crate) fn build_ru_observations_from_model(
+    root: &ResearchExecution,
+    model: &crate::antonovsky_structural::Model,
+    charged: &mut u64,
+) -> R<Vec<V>> {
+    let (occs, _, _, _) = ru_observations_from_model(root, model, charged)?;
+    render_ru_observations(root, &occs)
+}
+
+fn render_ru_observations(root: &ResearchExecution, occs: &[Occ]) -> R<Vec<V>> {
     occs.iter().map(|o|{root.tick(1)?; Ok(json!({"occurrence_id":o.id,"unit_id":o.unit,"reading":o.reading,"part":o.part,"role":o.role,"ordinal":o.ordinal,"start":o.start,"end":o.end,"surface":o.surface,"exact_sha256":h(&o.surface),"normalized":o.normalized,"normalized_sha256":h(&o.normalized),"analysis_key":o.analysis,"analysis_key_sha256":h(&o.analysis)}))}).collect()
 }
 type Pair = (String, String);

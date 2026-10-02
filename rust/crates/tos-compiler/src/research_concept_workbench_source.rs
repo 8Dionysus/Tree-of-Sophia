@@ -230,7 +230,11 @@ pub(super) fn ru_units(root: &ResearchExecution, m: &Maps) -> Result<(Rows, Rows
     if count(&result, "unit_kind") != json!({"paragraph":3569,"verse_line":359}) {
         return Err("Russian witness-unit census drift".into());
     }
-    let mut raw = crate::research_parallel_lexical::build_ru_observations(root)?;
+    let mut raw = crate::research_parallel_lexical::build_ru_observations_from_model(
+        root,
+        &model,
+        &mut charged,
+    )?;
     for r in &mut raw {
         root.tick(1)?;
         r["context_unit_ref"] = owner
