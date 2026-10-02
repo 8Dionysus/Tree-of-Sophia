@@ -560,7 +560,7 @@ impl SnapshotReader {
                 uint(&collection["root"], "count")?,
             )?;
             let encoded = canonical_record(&value)?;
-            if encoded.as_slice() != line {
+            if encoded.as_slice() != framed {
                 return Err(Error::Invalid("D1 projection canonical row bytes"));
             }
             previous = Some(key.to_owned());
