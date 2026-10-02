@@ -718,6 +718,8 @@ pub fn checked_execute<'hold>(
     probe: Arc<dyn AbortProbe>,
     execute: impl FnOnce(Arc<dyn AbortProbe>) -> Result<PreparedPacket<'hold>, AccessError>,
 ) -> Result<PreparedPacket<'hold>, AccessError> {
+    #[cfg(not(target_arch = "wasm32"))]
+    let mut observation = crate::http_observation::KernelOperation::enter();
     crate::knowledge::check_abort(&probe)?;
     let mut packet = execute(Arc::clone(&probe))?;
     crate::knowledge::check_abort(&probe)?;
@@ -725,6 +727,10 @@ pub fn checked_execute<'hold>(
         inner: packet.fence,
         probe,
     });
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Some(operation) = observation.as_mut() {
+        operation.success();
+    }
     Ok(packet)
 }
 struct AbortFence<'hold> {

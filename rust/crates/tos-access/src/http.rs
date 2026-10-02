@@ -1146,11 +1146,11 @@ fn drain_rejected_request(stream: &mut TcpStream, max_bytes: usize) {
 
 /// Loopback-only serving. At most 32 active connections; a full slot pool
 /// refuses immediately rather than accumulating unbounded work.
-pub fn serve(
+fn installed_listener(
     addr: &str,
-    executor: Arc<dyn AccessExecutor>,
     profile: AccessProfile,
-) -> std::io::Result<()> {
+    startup_probe: Option<Arc<dyn AbortProbe>>,
+) -> std::io::Result<(TcpListener, Option<Arc<crate::site::SoftwareSite>>)> {
     let addresses = addr.to_socket_addrs()?.collect::<Vec<_>>();
     if addresses.is_empty() || addresses.iter().any(|address| !address.ip().is_loopback()) {
         return Err(std::io::Error::new(
@@ -1161,13 +1161,22 @@ pub fn serve(
     // Missing/unassembled software refuses only site routes; existing APIs
     // retain their independent explicit selected owner behavior.
     // Software admission uses one startup deadline; each request owns a fresh probe.
-    let site = crate::site::SoftwareSite::installed_for_mcp(
+    let site = crate::site::SoftwareSite::installed_for_mcp(startup_probe.unwrap_or_else(|| {
         profile
             .with_query_timeout(std::time::Duration::from_secs(30))
-            .deadline_probe(),
-    )
+            .deadline_probe()
+    }))
     .map_err(|error| std::io::Error::other(format!("{}: {}", error.code_str(), error.message)))?;
     let listener = TcpListener::bind(addresses.as_slice())?;
+    Ok((listener, site))
+}
+
+pub fn serve(
+    addr: &str,
+    executor: Arc<dyn AccessExecutor>,
+    profile: AccessProfile,
+) -> std::io::Result<()> {
+    let (listener, site) = installed_listener(addr, profile, None)?;
     let active = Arc::new(AtomicUsize::new(0));
     for accepted in listener.incoming() {
         let mut stream = accepted?;
@@ -1192,6 +1201,150 @@ pub fn serve(
         });
     }
     Ok(())
+}
+
+/// Owner-only measurement mode. Ordinary serve keeps its existing listener,
+/// admission, packet and cleanup contract. EOF is control, never a request.
+#[cfg(not(target_arch = "wasm32"))]
+pub fn serve_observed(
+    addr: &str,
+    executor: Arc<dyn AccessExecutor>,
+    profile: AccessProfile,
+    deadline: crate::http_observation::OwnerDeadline,
+) -> std::io::Result<()> {
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = (addr, executor, profile, deadline);
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "HTTP observation requires Linux",
+        ))
+    }
+    #[cfg(target_os = "linux")]
+    {
+        use crate::http_observation::{
+            Observation, WorkerObservation, poll_control, require_control_pipe,
+        };
+        use std::os::fd::AsRawFd;
+        require_control_pipe()?;
+        deadline.remaining()?;
+        let startup_probe = deadline.startup_probe(
+            profile
+                .with_query_timeout(Duration::from_secs(30))
+                .deadline_probe(),
+        );
+        let (listener, site) = installed_listener(addr, profile, Some(startup_probe))?;
+        deadline.remaining()?;
+        listener.set_nonblocking(true)?;
+        let observation = Arc::new(Observation::default());
+        let active = Arc::new(AtomicUsize::new(0));
+        let mut workers: Vec<std::thread::JoinHandle<()>> = Vec::with_capacity(MAX_CONCURRENT);
+        let mut worker_failed = false;
+        fn reap(workers: &mut Vec<std::thread::JoinHandle<()>>, failed: &mut bool) {
+            let mut at = 0;
+            while at < workers.len() {
+                if workers[at].is_finished() {
+                    if workers.swap_remove(at).join().is_err() {
+                        *failed = true;
+                    }
+                } else {
+                    at += 1;
+                }
+            }
+        }
+        let result = (|| -> std::io::Result<()> {
+            loop {
+                deadline.remaining()?;
+                reap(&mut workers, &mut worker_failed);
+                let (eof, ready) = poll_control(listener.as_raw_fd(), deadline)?;
+                if eof {
+                    break;
+                }
+                if !ready {
+                    continue;
+                }
+                // Return to control/deadline polling after a finite burst.
+                for _ in 0..MAX_CONCURRENT {
+                    deadline.remaining()?;
+                    reap(&mut workers, &mut worker_failed);
+                    let mut stream = match listener.accept() {
+                        Ok((stream, _)) => stream,
+                        Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => break,
+                        Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+                        Err(error) => return Err(error),
+                    };
+                    if workers.len() >= MAX_CONCURRENT {
+                        observation.refused();
+                        if stream.set_nonblocking(true).is_ok() {
+                            let _ = write_response(
+                                &mut stream,
+                                HttpResponse::error(503, "server busy"),
+                            );
+                        }
+                        continue;
+                    }
+                    // The handle census bounds at most 32 owned workers; the
+                    // existing slot also stays inside the closure through drop.
+                    active.fetch_add(1, Ordering::AcqRel);
+                    let slot = ConnectionSlot(Arc::clone(&active));
+                    let observed_slot = observation.connection();
+                    let worker_observation = Arc::clone(&observation);
+                    let worker_executor = Arc::clone(&executor);
+                    let worker_site = site.clone();
+                    match std::thread::Builder::new().spawn(move || {
+                        let _slot = slot;
+                        let _observed_slot = observed_slot;
+                        let _scope = WorkerObservation::enter(worker_observation);
+                        serve_connection_with_software(
+                            stream,
+                            worker_executor,
+                            profile,
+                            worker_site,
+                        );
+                    }) {
+                        Ok(worker) => workers.push(worker),
+                        Err(_) => observation.spawn_failed(),
+                    }
+                }
+            }
+            // Stop accepts on EOF, then drain only under the SAME work clock.
+            while !workers.is_empty() {
+                deadline.remaining()?;
+                reap(&mut workers, &mut worker_failed);
+                if !workers.is_empty() {
+                    std::thread::sleep(Duration::from_nanos(deadline.remaining()?.min(1_000_000)));
+                }
+            }
+            if worker_failed {
+                return Err(std::io::Error::other("HTTP observation worker unwound"));
+            }
+            deadline.remaining()?;
+            Ok(())
+        })();
+        // Stop accepts on every exit, including invalid control/error paths.
+        // All owned workers still get only the remaining original work clock.
+        drop(listener);
+        while !workers.is_empty() && deadline.remaining().is_ok() {
+            reap(&mut workers, &mut worker_failed);
+            if !workers.is_empty() {
+                if let Ok(remaining) = deadline.remaining() {
+                    std::thread::sleep(Duration::from_nanos(remaining.min(1_000_000)));
+                }
+            }
+        }
+        let summary = observation.emit(
+            result.is_ok() && !worker_failed && workers.is_empty(),
+            deadline,
+        );
+        match result {
+            Err(primary) => Err(primary),
+            Ok(()) => match summary {
+                Ok(true) => Ok(()),
+                Ok(false) => Err(std::io::Error::other("HTTP observation incomplete")),
+                Err(error) => Err(error),
+            },
+        }
+    }
 }
 
 fn philosophy_http_request(

@@ -27,6 +27,8 @@ pub mod word_analysis;
 pub use knowledge::{KnowledgeOperation, KnowledgeRequest};
 mod common;
 pub mod http;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod http_observation;
 pub mod mcp;
 pub mod mcp_http;
 mod mcp_prompts;
