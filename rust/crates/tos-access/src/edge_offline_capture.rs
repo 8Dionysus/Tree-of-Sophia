@@ -98,6 +98,11 @@ impl D1ReadBytes {
     }
 }
 
+fn write_json_line(stdout: &mut dyn Write, value: &Value) -> Result<(), String> {
+    serde_json::to_writer(&mut *stdout, value).map_err(|error| error.to_string())?;
+    stdout.write_all(b"\n").map_err(|error| error.to_string())
+}
+
 /// Bounds row/text material retained by a single offline capture before it is
 /// cloned into the SQL-pair transition vector.
 struct RetainedBytes {
@@ -556,6 +561,7 @@ fn open_read_only(
     .map_err(|error| error.to_string())?;
     db.set_limit(rusqlite::limits::Limit::SQLITE_LIMIT_SQL_LENGTH, 1_000_000)
         .map_err(|error| error.to_string())?;
+    require_memory_temp_store(&db)?;
     let _: i64 = db
         .query_row("SELECT count(*) FROM sqlite_master", [], |row| row.get(0))
         .map_err(|error| error.to_string())?;
@@ -596,6 +602,35 @@ fn open_read_only(
             sqlite_fd,
         },
     })
+}
+
+/// Keep SQLite's transient tables, indices, and sort runs in memory for these
+/// reads. This is placement only: it caps neither SQLite memory nor main-file
+/// WAL/SHM sidecars.
+fn require_memory_temp_store(db: &Connection) -> Result<(), String> {
+    let can_force_memory: i64 = db
+        .query_row(
+            "SELECT sqlite_compileoption_used('TEMP_STORE=1') OR sqlite_compileoption_used('TEMP_STORE=2') OR sqlite_compileoption_used('TEMP_STORE=3')",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|error| format!("SQLite temp-store compile mode unavailable: {error}"))?;
+    if can_force_memory != 1 {
+        return Err(invalid(
+            "SQLite temp-store compile mode cannot prove memory placement",
+        ));
+    }
+    db.execute_batch("PRAGMA temp_store=MEMORY;")
+        .map_err(|error| error.to_string())?;
+    let mode: i64 = db
+        .query_row("PRAGMA temp_store", [], |row| row.get(0))
+        .map_err(|error| error.to_string())?;
+    if mode != 2 {
+        return Err(invalid(
+            "SQLite temp-store memory placement did not take effect",
+        ));
+    }
+    Ok(())
 }
 
 fn foundation(value: &Value, cap: usize) -> Result<JsonValue, String> {
@@ -4677,12 +4712,7 @@ fn run_prepared_transition(
             "consumer_switched": receipt.consumer_switched
         }
     });
-    writeln!(
-        stdout,
-        "{}",
-        serde_json::to_string(&result).map_err(|error| error.to_string())?
-    )
-    .map_err(|error| error.to_string())
+    write_json_line(stdout, &result)
 }
 
 fn navigation_row_digest_count(db: &Transaction<'_>, cap: u64) -> Result<u64, String> {
@@ -5021,12 +5051,7 @@ fn run_source_navigation_integrity(
             "consumer_switched": receipt.consumer_switched
         }
     });
-    writeln!(
-        stdout,
-        "{}",
-        serde_json::to_string(&result).map_err(|error| error.to_string())?
-    )
-    .map_err(|error| error.to_string())
+    write_json_line(stdout, &result)
 }
 
 fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
@@ -5427,12 +5452,7 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
             "consumer_switched": receipt.consumer_switched
         }
     });
-    writeln!(
-        stdout,
-        "{}",
-        serde_json::to_string(&result).map_err(|error| error.to_string())?
-    )
-    .map_err(|error| error.to_string())
+    write_json_line(stdout, &result)
 }
 
 fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
