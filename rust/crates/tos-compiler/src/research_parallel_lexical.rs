@@ -655,7 +655,20 @@ fn german(root: &ResearchExecution, plan: &V) -> R<(V, Counts, Ranges, Surfaces)
     let db = root.open_sqlite_readonly(&held_db)?;
     let deadline = root.deadline();
     db.progress_handler(10_000, Some(move || std::time::Instant::now() >= deadline));
-    let mut stmt=db.prepare("SELECT o.normalized_form,o.exact_form,s.part_order,o.section_resource_id,count(*) FROM occurrences o JOIN source_items s USING(item_ref) GROUP BY o.normalized_form,o.exact_form,s.part_order,o.section_resource_id").map_err(|e|e.to_string())?;
+    // This grouped readonly scan may sort. The exact-FD VFS deliberately
+    // refuses filesystem temp objects; keep its sorter in caller-owned RAM.
+    // The enclosing finite execution envelope owns the full RAM limit.
+    root.check()?;
+    db.execute_batch("PRAGMA temp_store=MEMORY")
+        .map_err(|e| format!("parallel German readonly sorter policy: {e}"))?;
+    let temp_store: i64 = db
+        .query_row("PRAGMA temp_store", [], |row| row.get(0))
+        .map_err(|e| format!("parallel German readonly sorter policy check: {e}"))?;
+    if temp_store != 2 {
+        return Err("parallel German readonly sorter requires memory temp storage".into());
+    }
+    root.check()?;
+    let mut stmt=db.prepare("SELECT o.normalized_form,o.exact_form,s.part_order,o.section_resource_id,count(*) FROM occurrences o JOIN source_items s USING(item_ref) GROUP BY o.normalized_form,o.exact_form,s.part_order,o.section_resource_id").map_err(|e|format!("parallel German grouped scan prepare: {e}"))?;
     let rows = stmt
         .query_map([], |r| {
             Ok((
@@ -666,13 +679,14 @@ fn german(root: &ResearchExecution, plan: &V) -> R<(V, Counts, Ranges, Surfaces)
                 r.get::<_, usize>(4)?,
             ))
         })
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("parallel German grouped scan start: {e}"))?;
     let mut counts: Counts = Map::new();
     let mut ranges: Ranges = Map::new();
     let mut surfaces: Surfaces = Map::new();
     for row in rows {
         root.tick(1)?;
-        let (k, surface, part, section, count) = row.map_err(|e| e.to_string())?;
+        let (k, surface, part, section, count) =
+            row.map_err(|e| format!("parallel German grouped scan row: {e}"))?;
         *counts
             .entry(k.clone())
             .or_default()
@@ -1118,15 +1132,17 @@ fn ru_db(root: &ResearchExecution, occs: &[Occ]) -> R<Vec<u8>> {
         let mut db = workspace
             .scope_mut()
             .open_connection()
-            .map_err(|e| e.to_string())?;
-        db.execute_batch("PRAGMA journal_mode=DELETE; CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL) WITHOUT ROWID; CREATE TABLE occurrences(occurrence_id TEXT PRIMARY KEY,unit_id TEXT NOT NULL,reading_ref TEXT NOT NULL,part_order INTEGER NOT NULL,role TEXT NOT NULL,token_ordinal INTEGER NOT NULL,start_offset INTEGER NOT NULL,end_offset INTEGER NOT NULL,exact_form TEXT NOT NULL,exact_form_sha256 TEXT NOT NULL,normalized_form TEXT NOT NULL,normalized_form_sha256 TEXT NOT NULL,analysis_key TEXT NOT NULL,analysis_key_sha256 TEXT NOT NULL) WITHOUT ROWID; CREATE INDEX occurrence_analysis_idx ON occurrences(analysis_key); CREATE INDEX occurrence_unit_idx ON occurrences(unit_id,token_ordinal); CREATE VIRTUAL TABLE unit_fts USING fts5(unit_id UNINDEXED, exact_text, normalized_text, tokenize='unicode61 remove_diacritics 0');").map_err(|e|e.to_string())?;
+            .map_err(|e| format!("parallel Russian database open: {e}"))?;
+        db.execute_batch("PRAGMA journal_mode=DELETE; CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL) WITHOUT ROWID; CREATE TABLE occurrences(occurrence_id TEXT PRIMARY KEY,unit_id TEXT NOT NULL,reading_ref TEXT NOT NULL,part_order INTEGER NOT NULL,role TEXT NOT NULL,token_ordinal INTEGER NOT NULL,start_offset INTEGER NOT NULL,end_offset INTEGER NOT NULL,exact_form TEXT NOT NULL,exact_form_sha256 TEXT NOT NULL,normalized_form TEXT NOT NULL,normalized_form_sha256 TEXT NOT NULL,analysis_key TEXT NOT NULL,analysis_key_sha256 TEXT NOT NULL) WITHOUT ROWID; CREATE INDEX occurrence_analysis_idx ON occurrences(analysis_key); CREATE INDEX occurrence_unit_idx ON occurrences(unit_id,token_ordinal); CREATE VIRTUAL TABLE unit_fts USING fts5(unit_id UNINDEXED, exact_text, normalized_text, tokenize='unicode61 remove_diacritics 0');").map_err(|e|format!("parallel Russian database schema: {e}"))?;
         let deadline = root.deadline();
         db.progress_handler(10_000, Some(move || std::time::Instant::now() >= deadline));
-        let tx = db.transaction().map_err(|e| e.to_string())?;
+        let tx = db
+            .transaction()
+            .map_err(|e| format!("parallel Russian database transaction: {e}"))?;
         {
             let mut stmt = tx
                 .prepare("INSERT INTO occurrences VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| format!("parallel Russian database populate: {e}"))?;
             for o in occs {
                 root.tick(1)?;
                 stmt.execute(params![
@@ -1145,7 +1161,7 @@ fn ru_db(root: &ResearchExecution, occs: &[Occ]) -> R<Vec<u8>> {
                     o.analysis,
                     h(&o.analysis)
                 ])
-                .map_err(|e| e.to_string())?;
+                .map_err(|e| format!("parallel Russian database populate: {e}"))?;
             }
         }
         let mut grouped: Map<&str, Vec<&Occ>> = Map::new();
@@ -1169,12 +1185,15 @@ fn ru_db(root: &ResearchExecution, occs: &[Occ]) -> R<Vec<u8>> {
                         .join(" ")
                 ],
             )
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("parallel Russian database populate: {e}"))?;
         }
-        for(k,v)in[("authority_boundary","Private mechanical occurrence search over the selected source layers, preserving the recorded textual and semantic assessment status.".to_owned()),("plan_sha256",hash(&read(root,&route("plan.v1.json"))?)),("occurrence_count",occs.len().to_string())]{tx.execute("INSERT INTO metadata VALUES(?,?)",params![k,v]).map_err(|e|e.to_string())?;}
-        tx.commit().map_err(|e| e.to_string())?;
-        db.execute_batch("VACUUM").map_err(|e| e.to_string())?;
-        db.close().map_err(|(_retained, error)| error.to_string())?;
+        for(k,v)in[("authority_boundary","Private mechanical occurrence search over the selected source layers, preserving the recorded textual and semantic assessment status.".to_owned()),("plan_sha256",hash(&read(root,&route("plan.v1.json"))?)),("occurrence_count",occs.len().to_string())]{tx.execute("INSERT INTO metadata VALUES(?,?)",params![k,v]).map_err(|e|format!("parallel Russian database metadata: {e}"))?;}
+        tx.commit()
+            .map_err(|e| format!("parallel Russian database commit: {e}"))?;
+        db.execute_batch("VACUUM")
+            .map_err(|e| format!("parallel Russian database vacuum: {e}"))?;
+        db.close()
+            .map_err(|(_retained, error)| format!("parallel Russian database close: {error}"))?;
         Ok(())
     })();
     workspace.complete(result, 80 * MIB)

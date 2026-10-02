@@ -67,7 +67,7 @@ pub(crate) fn list(templates: bool) -> Vec<u8> {
         out.extend_from_slice(b",\"name\":");
         out.extend(json_string(name));
         // Maintained FastMCP functions return strings, whose MIME is text/plain.
-        out.extend_from_slice(b",\"mimeType\":\"text/plain\"}");
+        out.extend_from_slice(b",\"description\":\"\",\"mimeType\":\"text/plain\"}");
     }
     out.extend_from_slice(b"]}");
     out

@@ -105,27 +105,7 @@ impl<'a> LexicalSchemaExecutor<'a> {
             cancelled,
         )
         .map_err(|e| format!("lexical schema closure: {e:?}"))?;
-        executor
-            .enable_diagnostics_v2(CutSchemaDiagnosticsLimits {
-                max_total_issues: l.max_issues,
-                max_total_report_bytes: l.max_report_bytes,
-                max_total_state_bytes: l.max_state_bytes,
-            })
-            .map_err(|e| format!("lexical diagnostics: {e:?}"))?;
-        executor
-            .set_diagnostics_v2_legacy_raw_instance_limit(l.max_instance_bytes)
-            .map_err(|e| format!("lexical instance profile: {e:?}"))?;
-        let quota = SharedSchemaWorkerQuota::new(
-            l.max_cpu_seconds
-                .checked_mul(1_000_000)
-                .ok_or("lexical CPU overflow")?,
-            l.max_wire_bytes,
-            l.max_units as u64,
-        )
-        .map_err(|e| format!("lexical quota: {e:?}"))?;
-        executor
-            .set_shared_schema_worker_quota(quota)
-            .map_err(|e| format!("lexical shared quota: {e:?}"))?;
+        // Diagnostics are admitted against this selected whole operation envelope.
         executor
             .set_operation_budget(BatchStreamBudget {
                 batch: BatchBudget {
@@ -148,6 +128,27 @@ impl<'a> LexicalSchemaExecutor<'a> {
                 max_distinct_selectors: l.max_units,
             })
             .map_err(|e| format!("lexical operation budget: {e:?}"))?;
+        executor
+            .enable_diagnostics_v2(CutSchemaDiagnosticsLimits {
+                max_total_issues: l.max_issues,
+                max_total_report_bytes: l.max_report_bytes,
+                max_total_state_bytes: l.max_state_bytes,
+            })
+            .map_err(|e| format!("lexical diagnostics: {e:?}"))?;
+        executor
+            .set_diagnostics_v2_legacy_raw_instance_limit(l.max_instance_bytes)
+            .map_err(|e| format!("lexical instance profile: {e:?}"))?;
+        let quota = SharedSchemaWorkerQuota::new(
+            l.max_cpu_seconds
+                .checked_mul(1_000_000)
+                .ok_or("lexical CPU overflow")?,
+            l.max_wire_bytes,
+            l.max_units as u64,
+        )
+        .map_err(|e| format!("lexical quota: {e:?}"))?;
+        executor
+            .set_shared_schema_worker_quota(quota)
+            .map_err(|e| format!("lexical shared quota: {e:?}"))?;
         let controller_bytes = executor
             .diagnostics_v2_controller_state_upper_bound(l.max_instance_bytes, 4096)
             .map_err(|e| format!("lexical controller bound: {e:?}"))?;

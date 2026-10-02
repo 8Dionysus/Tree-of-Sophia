@@ -1981,6 +1981,16 @@ fn mcp_maintained_resources_prompts_and_packet_associations() {
             .len(),
         3
     );
+    // FastMCP keeps an empty description for functions without docstrings;
+    // absence (None) changes the complete imported Resource packet.
+    for (id, field) in [(1, "resources"), (2, "resourceTemplates")] {
+        for resource in result(id).object_get(field).unwrap().as_array().unwrap() {
+            assert_eq!(
+                resource.object_get("description").and_then(|v| v.as_str()),
+                Some("")
+            );
+        }
+    }
     let prompt = |id| {
         result(id)
             .object_get("messages")

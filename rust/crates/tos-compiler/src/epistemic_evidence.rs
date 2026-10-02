@@ -13,7 +13,7 @@ use std::{
     sync::atomic::AtomicBool,
     time::Instant,
 };
-use tos_foundation::Digest256;
+use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, canonical_bytes_v1};
 use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
 
 pub const SOURCE_REF: &str = "ToS/philosophy/graph-workbench/views/evidence-lens-scenes.v1.json";
@@ -90,8 +90,15 @@ fn route_digest(
 fn rendered(v: &Value, deadline: Instant) -> Result<Vec<u8>> {
     guard(deadline)?;
     let raw = serde_json::to_vec(v).map_err(|e| err(e.to_string()))?;
-    let mut result = compact(&json(&raw, CAP)?, CAP)?;
-    result.push(b'\n');
+    // The donor sorts every object, independently of serde's unified map feature.
+    // This existing byte profile supplies Python compact spelling and the final LF.
+    let result = canonical_bytes_v1(
+        &json(&raw, CAP)?,
+        CanonicalProfile::CorpusSnapshotV1,
+        JsonLimits::new(CAP, 96, 1_000_000, 4096)
+            .map_err(|_| Error::Budget("Evidence Lens JSON output"))?,
+    )
+    .map_err(|e| err(e.to_string()))?;
     guard(deadline)?;
     Ok(result)
 }
@@ -381,6 +388,15 @@ pub fn check(
 mod tests {
     use super::*;
     use std::fs;
+    #[test]
+    fn donor_bytes_sort_nested_objects_independently_of_map_features() {
+        let payload: Value =
+            serde_json::from_str(r#"{"z":{"я":"Ω","a":1.0},"a":[{"z":false,"a":"é"}]}"#).unwrap();
+        assert_eq!(
+            rendered(&payload, Instant::now() + std::time::Duration::from_secs(1)).unwrap(),
+            "{\"a\":[{\"a\":\"é\",\"z\":false}],\"z\":{\"a\":1.0,\"я\":\"Ω\"}}\n".as_bytes()
+        );
+    }
     fn put(root: &Path, reference: &str, raw: &[u8]) {
         let path = root.join(reference);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
