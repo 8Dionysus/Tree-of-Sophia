@@ -1,0 +1,872 @@
+//! Candidate-only eternal-return review preparation. Exact witness text stays private.
+use crate::research_execution::ResearchExecution;
+use serde_json::{Value, json};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fs,
+    path::Path,
+};
+use tos_foundation::Digest256;
+
+type Result<T> = std::result::Result<T, String>;
+const WORK: &str = "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra";
+const PARENT: &str = "ToS/candidate-intake/zarathustra/eternal-return-concept-candidate-v1";
+const ALIGN_SUFFIX: &str =
+    "alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1";
+const GENERATOR: &str = "scripts/build_zarathustra_eternal_return_review_preparation_v1.py";
+// Declared original v1 rendering recipe from its frozen manifest. This field
+// reproduces historical provenance; it does not identify native execution.
+const RECIPE_SHA256: &str = "0e6859ccb4bc9e8eac65c9d63a03e9a7e30d01852f0a1dcf1695175cbb30283e";
+const OUTPUTS: [(&str, &str); 8] = [
+    ("gaps", "gap-review-candidates.v1.jsonl"),
+    ("speakers", "speaker-attribution-candidates.v1.jsonl"),
+    ("matrix", "interpretation-review-matrix.v1.json"),
+    ("worklist", "review-worklist.v1.json"),
+    ("coverage", "coverage-receipt.v1.json"),
+    ("summary", "summary.v1.json"),
+    ("provenance", "provenance.jsonl"),
+    ("manifest", "manifest.v1.json"),
+];
+fn route(name: &str) -> String {
+    format!("{PARENT}/review-preparation-v1/{name}")
+}
+fn private_ref() -> String {
+    format!(
+        "{WORK}/gold-sets/foundation-pilot-v1/local-content/eternal-return-concept-candidate-v1/review-preparation-v1/review-preparation-analysis.v1.json"
+    )
+}
+fn constants() -> Value {
+    serde_json::from_str(include_str!("research_eternal_return_constants.json"))
+        .expect("checked static constants")
+}
+pub(crate) fn s(v: &Value) -> Result<&str> {
+    v.as_str().ok_or_else(|| "string required".into())
+}
+pub(crate) fn a(v: &Value) -> Result<&Vec<Value>> {
+    v.as_array().ok_or_else(|| "array required".into())
+}
+pub(crate) fn object(v: &Value) -> Result<&serde_json::Map<String, Value>> {
+    v.as_object().ok_or_else(|| "object required".into())
+}
+pub(crate) fn read(root: &ResearchExecution, p: &str) -> Result<Vec<u8>> {
+    tos_foundation::RelativePath::parse(p).map_err(|e| e.to_string())?;
+    root.read(p)
+}
+
+pub(crate) fn load(root: &ResearchExecution, p: &str) -> Result<Value> {
+    let raw = read(root, p)?;
+    root.tick(raw.len() as u64)?;
+    // Reject duplicate published keys before converting into the working JSON representation.
+    tos_foundation::parse_json(
+        &raw,
+        tos_foundation::JsonMode::PublishedStrict,
+        tos_foundation::JsonLimits::new(raw.len().max(1), 64, 2_000_000, 4300)
+            .map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    let value = serde_json::from_slice(&raw).map_err(|e| format!("{p}: {e}"))?;
+    root.tick(1)?;
+    Ok(value)
+}
+pub(crate) fn load_lines(root: &ResearchExecution, p: &str) -> Result<Vec<Value>> {
+    String::from_utf8(read(root, p)?)
+        .map_err(|e| e.to_string())?
+        .lines()
+        .map(|l| {
+            root.tick(l.len() as u64)?;
+            serde_json::from_str(l).map_err(|e| format!("{p}: {e}"))
+        })
+        .collect()
+}
+pub(crate) fn digest(b: &[u8]) -> String {
+    Digest256::of_bytes(b).to_hex()
+}
+pub(crate) fn text_digest(v: &Value) -> Result<String> {
+    Ok(digest(s(v)?.as_bytes()))
+}
+pub(crate) fn bytes(v: &Value, pretty: bool) -> Result<Vec<u8>> {
+    let mut sorted = v.clone();
+    sorted.sort_all_objects();
+    let mut b = if pretty {
+        serde_json::to_vec_pretty(&sorted)
+    } else {
+        serde_json::to_vec(&sorted)
+    }
+    .map_err(|e| e.to_string())?;
+    b.push(b'\n');
+    Ok(b)
+}
+pub(crate) fn lines(rows: &[Value]) -> Result<Vec<u8>> {
+    let mut b = Vec::new();
+    for r in rows {
+        b.extend(bytes(r, false)?)
+    }
+    Ok(b)
+}
+pub(crate) fn indexed(rows: Vec<Value>, key: &str) -> Result<BTreeMap<String, Value>> {
+    let mut m = BTreeMap::new();
+    for row in rows {
+        root.tick(1)?;
+        let k = s(&row[key])?.to_owned();
+        if m.insert(k, row).is_some() {
+            return Err(format!("duplicate {key}"));
+        }
+    }
+    Ok(m)
+}
+pub(crate) fn count(rows: &[Value], key: &str) -> Result<Value> {
+    let mut m = BTreeMap::<String, usize>::new();
+    for r in rows {
+        *m.entry(s(&r[key])?.into()).or_default() += 1;
+    }
+    Ok(json!(m))
+}
+pub(crate) fn verify_inputs(root: &ResearchExecution, plan: &Value) -> Result<()> {
+    for (name, r) in object(&plan["inputs"])? {
+        root.tick(1)?;
+        if digest(&read(root, s(&r["ref"])?)?) != s(&r["sha256"])? {
+            return Err(format!("input drift: {name}"));
+        }
+    }
+    Ok(())
+}
+
+/// The parent native producer supplies source-returned, alignment-keyed units.
+pub fn source_ordered_rows(
+    root: &ResearchExecution,
+    units: &BTreeMap<String, Value>,
+) -> Result<Vec<Value>> {
+    let public = indexed(
+        load_lines(root, &format!("{PARENT}/evidence-spine.v1.jsonl"))?,
+        "alignment_ref",
+    )?;
+    let private=indexed(a(&load(root,&format!("{WORK}/gold-sets/foundation-pilot-v1/local-content/eternal-return-concept-candidate-v1/eternal-return-analysis.v1.json"))?["evidence"] )?.clone(),"alignment_ref")?;
+    let spine = indexed(
+        load_lines(
+            root,
+            &format!("{WORK}/{ALIGN_SUFFIX}/alignment-spine.v1.jsonl"),
+        )?,
+        "alignment_id",
+    )?;
+    let mut out = Vec::new();
+    for part in 1..=4 {
+        root.tick(1)?;
+        let packet = load(
+            root,
+            &format!("{WORK}/{ALIGN_SUFFIX}/part-{part}.translation-alignment-packet.v1.json"),
+        )?;
+        for al in a(&packet["alignments"])? {
+            root.tick(1)?;
+            let aid = s(&al["alignment_id"])?;
+            let Some(p) = public.get(aid) else { continue };
+            let sp = spine.get(aid).ok_or("missing alignment spine")?;
+            let reading = format!("p{part}.r{}", sp["reading_ordinal_within_part"]);
+            if !["p3.r2", "p3.r13", "p3.r16", "p4.r19"].contains(&reading.as_str())
+                || !["core", "supporting"].contains(&s(&p["evidence_class"])?)
+            {
+                continue;
+            }
+            let exact = private.get(aid).ok_or("missing parent exact return")?;
+            if text_digest(&exact["de_text"])? != s(&p["de_exact_sha256"])?
+                || text_digest(&exact["ru_text"])? != s(&p["ru_exact_sha256"])?
+            {
+                return Err(format!("parent exact-text digest drift: {aid}"));
+            }
+            let mut row = units.get(aid).ok_or("missing hydrated alignment")?.clone();
+            object(&row)?;
+            for (k, v) in object(p)? {
+                row[k] = v.clone()
+            }
+            row["de_text"] = exact["de_text"].clone();
+            row["ru_text"] = exact["ru_text"].clone();
+            out.push(row);
+        }
+    }
+    if count(&out, "reading_ref")? != json!({"p3.r2":31,"p3.r13":50,"p3.r16":34,"p4.r19":44}) {
+        return Err("speaker population drift".into());
+    }
+    Ok(out)
+}
+
+pub fn speaker_rule(reading: &str, p: usize) -> Result<Value> {
+    let mut r = json!({"status":"proposed","alternative_roles":[],"exception_group":null});
+    let (role, cue) = match reading {
+        "p3.r2" => match p {
+            1 => (
+                "external_narrator",
+                "chapter framing introduces Zarathustra's speech",
+            ),
+            3 | 4 => {
+                r["alternative_roles"] = json!(["zarathustra_quoting_internal_voice"]);
+                r["status"] = json!("ambiguous");
+                r["exception_group"] = json!("p3.r2.embedded_gravity_voice");
+                (
+                    "spirit_of_gravity_as_dwarf_voice",
+                    "embedded second-person taunt inside Zarathustra's narration",
+                )
+            }
+            14 => ("dwarf", "explicit speech report names the dwarf"),
+            _ => (
+                "zarathustra_as_storyteller",
+                "first-person address or narrated vision within Zarathustra's announced speech",
+            ),
+        },
+        "p3.r13" => match p {
+            1 => {
+                r["alternative_roles"] = json!(["external_narrator", "zarathustra"]);
+                r["status"] = json!("ambiguous");
+                r["exception_group"] = json!("p3.r13.opening_transition");
+                (
+                    "mixed_external_narrator_and_zarathustra",
+                    "narrator frame ends in direct Zarathustra speech",
+                )
+            }
+            5 | 6 | 50 => (
+                "external_narrator",
+                "explicit narrative report outside quoted exchange",
+            ),
+            7..=9 | 16..=19 | 36 | 39..=49 => {
+                if (39..=49).contains(&p) {
+                    r["alternative_roles"] = json!(["animals_voicing_a_hypothetical_zarathustra"]);
+                    r["status"] = json!("ambiguous");
+                    r["exception_group"] = json!("p3.r13.animals_voice_zarathustra_formula")
+                }
+                (
+                    "animals_eagle_and_serpent",
+                    "animals' reply, including their representation of what Zarathustra teaches or would say",
+                )
+            }
+            _ => ("zarathustra", "Zarathustra's direct answer to the animals"),
+        },
+        "p3.r16" => {
+            if p == 1 {
+                r["status"] = json!("ambiguous");
+                r["alternative_roles"] = json!(["editorial_or_authorial_subtitle"]);
+                r["exception_group"] = json!("p3.r16.heading_voice");
+                (
+                    "paratext_heading",
+                    "parenthetical alternate title, not a dramatic utterance",
+                )
+            } else {
+                (
+                    "zarathustra_song_voice",
+                    "first-person refrain within the Yes-and-Amen song",
+                )
+            }
+        }
+        "p4.r19" => match p {
+            1 | 2 | 7 => ("external_narrator", "explicit narrative report"),
+            3..=6 => (
+                "ugliest_man",
+                "speech explicitly introduced and closed as the ugliest man's",
+            ),
+            8 | 9 => {
+                r["alternative_roles"] = json!(["external_narrator", "zarathustra"]);
+                r["status"] = json!("ambiguous");
+                r["exception_group"] = json!("p4.r19.narrator_to_midnight_transition");
+                (
+                    "mixed_external_narrator_and_zarathustra",
+                    "narrator frame transitions into Zarathustra's altered voice",
+                )
+            }
+            10 => (
+                "zarathustra",
+                "explicit narrator report followed by Zarathustra's direct command",
+            ),
+            _ => {
+                r["alternative_roles"] = json!(["personified_midnight_or_bell_voice"]);
+                r["status"] = json!("ambiguous");
+                r["exception_group"] = json!("p4.r19.performative_midnight_voice");
+                (
+                    "zarathustra_midnight_song_voice",
+                    "Zarathustra performs a midnight song while attributing speech to midnight, bell, pain, or joy",
+                )
+            }
+        },
+        _ => return Err(format!("unknown reading: {reading}")),
+    };
+    r["primary_role"] = json!(role);
+    r["cue"] = json!(cue);
+    Ok(r)
+}
+type Ids = BTreeMap<(String, String), String>;
+fn bindings(root: &ResearchExecution, rows: &[Value]) -> Result<Vec<(String, String)>> {
+    let c = constants();
+    let mut out = vec![("packet".into(), "review-preparation-v1".into())];
+    for g in a(&c["gaps"])? {
+        root.tick(1)?;
+        out.push(("gap".into(), s(&g["alignment_ref"])?.into()))
+    }
+    for r in rows {
+        root.tick(1)?;
+        out.push(("speaker".into(), s(&r["alignment_ref"])?.into()))
+    }
+    for axis in a(&c["axes"])? {
+        root.tick(1)?;
+        out.push(("axis".into(), s(axis)?.into()))
+    }
+    out.sort();
+    Ok(out)
+}
+fn identity_map(root: &ResearchExecution, expected: &[(String, String)]) -> Result<Ids> {
+    let v = load(root, &route("identity-issuance.v1.json"))?;
+    let mut ids = Ids::new();
+    let mut unique = BTreeSet::new();
+    for r in a(&v["records"])? {
+        root.tick(1)?;
+        let k = (s(&r["kind"])?.into(), s(&r["binding"])?.into());
+        let id = s(&r["id"])?.to_owned();
+        if ids.insert(k, id.clone()).is_some() || !unique.insert(id) {
+            return Err("identity issuance mismatch".into());
+        }
+    }
+    if ids.keys().cloned().collect::<Vec<_>>() != expected {
+        return Err("identity issuance mismatch".into());
+    }
+    Ok(ids)
+}
+fn id(ids: &Ids, kind: &str, binding: &str) -> Result<String> {
+    ids.get(&(kind.into(), binding.into()))
+        .cloned()
+        .ok_or_else(|| format!("identity missing: {kind}:{binding}"))
+}
+fn issue(root: &ResearchExecution, expected: &[(String, String)], plan: &Value) -> Result<()> {
+    let path = route("identity-issuance.v1.json");
+    if root.join(&path).exists() {
+        return Err("identity issuance already exists; refusing to remint".into());
+    }
+    let mut entropy = fs::File::open("/dev/urandom").map_err(|e| e.to_string())?;
+    let mut records = Vec::new();
+    for (k, b) in expected {
+        root.tick(1)?;
+        let prefix = match k.as_str() {
+            "packet" => "review-preparation",
+            "gap" => "gap-review-candidate",
+            "speaker" => "speaker-attribution-candidate",
+            "axis" => "interpretation-review-candidate",
+            _ => return Err("unknown identity kind".into()),
+        };
+        let mut raw = [0u8; 16];
+        root.read_exact(&mut entropy, &mut raw)?;
+        let token = raw.iter().map(|v| format!("{v:02x}")).collect::<String>();
+        records
+            .push(json!({"kind":k,"binding":b,"id":format!("tos.annotation.{prefix}.sid-{token}")}))
+    }
+    write(
+        root,
+        &path,
+        &bytes(
+            &json!({"schema_version":"tos_zarathustra_eternal_return_review_preparation_identity_issuance_v1","identity_policy":"opaque-id-independent-of-source-text-label-speaker-name-and-current-interpretation","issued_at":plan["frozen_at"],"records":records}),
+            true,
+        )?,
+        0o644,
+    )
+}
+fn gap_rows(
+    root: &ResearchExecution,
+    units: &BTreeMap<String, Value>,
+    ids: &Ids,
+    verse: &Value,
+) -> Result<(Vec<Value>, Vec<Value>)> {
+    let c = constants();
+    let parent = load(root, &format!("{PARENT}/concept-candidate.v1.json"))?;
+    let mut public = Vec::new();
+    let mut private = Vec::new();
+    for spec in a(&c["gaps"])? {
+        root.tick(1)?;
+        let aid = s(&spec["alignment_ref"])?;
+        let row = units.get(aid).ok_or("missing gap alignment")?;
+        if row["reading"] != spec["reading_ref"] {
+            return Err(format!("gap reading drift: {aid}"));
+        }
+        let code = s(&spec["gap_code"])?;
+        let related = if code == "machine_target_gap_not_translation_omission" {
+            json!([{"text_unit_ref":verse["text_unit_ref"],"text_sha256":verse["text_sha256"],"relation":"related_verse_line_outside_paragraph_alignment_scope_not_accepted_translation_mapping"}])
+        } else {
+            json!([])
+        };
+        let mut tracked = json!({"schema_version":"tos_zarathustra_eternal_return_gap_review_candidate_v1","gap_review_candidate_id":id(ids,"gap",aid)?,"parent_annotation_ref":parent["annotation_id"],"alignment_shape":row["shape"],"alignment_status":row["status"],"source_anchor_refs":row["source_anchor_refs"],"target_anchor_refs":row["target_anchor_refs"],"de_exact_sha256":text_digest(&row["de_text"])?,"ru_exact_sha256":text_digest(&row["ru_text"])?,"related_witness_units":related,"observed_text_preserved":true,"proposal_applied_to_witness":false,"proposal_applied_to_alignment":false,"review_status":"unreviewed","accepted":false,"human_judgment":false,"translation_equivalence_asserted":false,"graph_effect":false,"canon_effect":false,"source_text_included":false});
+        for (k, v) in object(spec)? {
+            tracked[k] = v.clone()
+        }
+        let proposal = match code {
+            "ru_formula_broken_by_letterspacing" => {
+                json!({"language":"ru","candidate_tokens":["вѣчнаго","возвращенія"],"operation":"collapse_letterspacing_for_search_index_only"})
+            }
+            "ru_formula_blocked_by_ocr_substitution" => {
+                json!({"language":"ru","observed_token":"вЪчное","candidate_token":"вѣчное","operation":"single_token_ocr_correction_candidate_requires_page_image_review"})
+            }
+            _ => Value::Null,
+        };
+        let mut p = tracked.clone();
+        p["de_text"] = row["de_text"].clone();
+        p["ru_text"] = row["ru_text"].clone();
+        p["reversible_proposal"] = proposal;
+        p["related_ru_verse"] = if code == "machine_target_gap_not_translation_omission" {
+            verse.clone()
+        } else {
+            Value::Null
+        };
+        public.push(tracked);
+        private.push(p);
+    }
+    Ok((public, private))
+}
+fn speakers(root: &ResearchExecution, rows: &[Value], ids: &Ids) -> Result<Vec<Value>> {
+    let mut counts = BTreeMap::<String, usize>::new();
+    let mut out = Vec::new();
+    for row in rows {
+        root.tick(1)?;
+        let reading = s(&row["reading_ref"])?;
+        let position = counts.entry(reading.into()).or_default();
+        *position += 1;
+        let r = speaker_rule(reading, *position)?;
+        out.push(json!({"schema_version":"tos_zarathustra_speaker_attribution_candidate_v1","speaker_attribution_candidate_id":id(ids,"speaker",s(&row["alignment_ref"])?)?,"parent_annotation_ref":row["annotation_ref"],"evidence_ref":row["evidence_id"],"alignment_ref":row["alignment_ref"],"reading_ref":reading,"source_order_within_selected_reading":position,"primary_role":r["primary_role"],"alternative_roles":r["alternative_roles"],"attribution_status":r["status"],"attribution_cue":r["cue"],"exception_group":r["exception_group"],"source_anchor_refs":row["source_anchor_refs"],"target_anchor_refs":row["target_anchor_refs"],"de_exact_sha256":row["de_exact_sha256"],"ru_exact_sha256":row["ru_exact_sha256"],"accepted":false,"review_status":"unreviewed","human_judgment":false,"materialized_claim":false,"graph_effect":false,"canon_effect":false}))
+    }
+    Ok(out)
+}
+fn matrix(root: &ResearchExecution, speakers: &[Value], ids: &Ids) -> Result<Value> {
+    let c = constants();
+    let templates = indexed(
+        load_lines(root, &format!("{PARENT}/interpretation-templates.v1.jsonl"))?,
+        "claim_code",
+    )?;
+    let evidence = indexed(
+        load_lines(root, &format!("{PARENT}/evidence-spine.v1.jsonl"))?,
+        "alignment_ref",
+    )?;
+    let by_evidence = indexed(speakers.to_vec(), "evidence_ref")?;
+    let mut axes = Vec::new();
+    for codev in a(&c["axes"])? {
+        root.tick(1)?;
+        let code = s(codev)?;
+        let template = templates.get(code).ok_or("missing axis template")?;
+        let mut counter = Vec::new();
+        for aid in a(&c["counterpressure"][code])? {
+            root.tick(1)?;
+            counter.push(
+                evidence
+                    .get(s(aid)?)
+                    .ok_or("missing counterpressure evidence")?["evidence_id"]
+                    .clone(),
+            )
+        }
+        let mut roles = BTreeMap::<String, usize>::new();
+        let mut missing = 0;
+        for ev in a(&template["evidence_refs"])? {
+            root.tick(1)?;
+            if let Some(sp) = by_evidence.get(s(ev)?) {
+                *roles.entry(s(&sp["primary_role"])?.into()).or_default() += 1
+            } else {
+                missing += 1
+            }
+        }
+        axes.push(json!({"interpretation_review_candidate_id":id(ids,"axis",code)?,"interpretation_template_ref":template["interpretation_template_id"],"axis_code":code,"status":if code=="amor_fati_cross_work"{"blocked_cross_work"}else{"prepared_for_review"},"positive_evidence_refs":template["evidence_refs"],"counterpressure_evidence_refs":counter,"speaker_role_counts_within_core_readings":roles,"positive_evidence_without_core_reading_speaker_candidate_count":missing,"candidate_synthesis":c["axis_analysis"][code]["candidate_synthesis"],"counterpressure_summary":c["axis_analysis"][code]["counterpressure_summary"],"speaker_dependency":c["axis_analysis"][code]["speaker_dependency"],"review_questions":c["questions"][code],"accepted":false,"human_judgment":false,"materialized_claim":false,"semantic_fact_asserted":false,"graph_effect":false,"canon_effect":false}));
+    }
+    Ok(
+        json!({"schema_version":"tos_zarathustra_eternal_return_interpretation_review_matrix_v1","parent_annotation_ref":load(root,&format!("{PARENT}/concept-candidate.v1.json"))?["annotation_id"],"axes":axes,"comparison_law":"Positive evidence and counterpressure coexist; counts describe their occurrence, while assessment weighs their meaning.","accepted_axis_count":0,"human_review_count":0,"graph_effect":false,"canon_effect":false}),
+    )
+}
+/// Outputs contain all public bytes; private bytes are returned separately for mode-0600 storage.
+pub struct Prepared {
+    pub outputs: BTreeMap<String, Vec<u8>>,
+    pub private: Vec<u8>,
+    pub summary: Value,
+}
+pub fn prepare(
+    root: &ResearchExecution,
+    units: &BTreeMap<String, Value>,
+    verse: &Value,
+) -> Result<Prepared> {
+    let plan = load(root, &route("plan.v1.json"))?;
+    verify_inputs(root, &plan)?;
+    let rows = source_ordered_rows(root, units)?;
+    let expected = bindings(root, &rows)?;
+    let ids = identity_map(root, &expected)?;
+    if s(&verse["text_unit_ref"])? != "tos.text-unit.sid-d523bc897647d01030f767c2faf5266b"
+        || s(&verse["text_sha256"])?
+            != "0627928ac02cab8159b250950b4a9b23088c9fe5886ebedf86634be3488da558"
+        || text_digest(&verse["text"])? != s(&verse["text_sha256"])?
+    {
+        return Err("related Russian verse text drift".into());
+    }
+    let (gaps, private_gaps) = gap_rows(root, units, &ids, verse)?;
+    let speakers = speakers(root, &rows, &ids)?;
+    let matrix = matrix(root, &speakers, &ids)?;
+    let mut groups = BTreeSet::<String>::new();
+    for row in &speakers {
+        root.tick(1)?;
+        if !row["exception_group"].is_null() {
+            groups.insert(s(&row["exception_group"])?.into());
+        }
+    }
+    let mut items = Vec::new();
+    for (n, row) in gaps.iter().enumerate() {
+        root.tick(1)?;
+        items.push(json!({"work_item_code":format!("gap.{}",n+1),"kind":"gap_exception_bundle","candidate_refs":[row["gap_review_candidate_id"]],"review_status":"unreviewed"}))
+    }
+    for group in &groups {
+        root.tick(1)?;
+        let refs: Vec<Value> = speakers
+            .iter()
+            .filter(|r| r["exception_group"] == json!(group))
+            .map(|r| r["speaker_attribution_candidate_id"].clone())
+            .collect();
+        items.push(json!({"work_item_code":format!("speaker.{group}"),"kind":"speaker_boundary_bundle","candidate_refs":refs,"review_status":"unreviewed"}))
+    }
+    for axis in a(&matrix["axes"])? {
+        root.tick(1)?;
+        items.push(json!({"work_item_code":format!("axis.{}",s(&axis["axis_code"])?),"kind":"interpretation_axis_bundle","candidate_refs":[axis["interpretation_review_candidate_id"]],"review_status":"unreviewed"}))
+    }
+    let packet = id(&ids, "packet", "review-preparation-v1")?;
+    let worklist = json!({"schema_version":"tos_zarathustra_eternal_return_review_worklist_v1","review_preparation_ref":packet,"work_items":items,"work_item_count":items.len(),"speaker_candidate_population":speakers.len(),"compression_law":"all candidates remain inspectable; future human attention is routed to grouped exceptions rather than every candidate row","review_outcome_recorded":false,"review_ledger_ref":null});
+    let coverage = json!({"schema_version":"tos_zarathustra_eternal_return_review_preparation_coverage_v1","gap_population":5,"gap_candidates_prepared":gaps.len(),"gap_exact_source_return_count":private_gaps.len(),"alignment_scope_gap_with_related_ru_verse_count":gaps.iter().filter(|r|r["related_witness_units"].as_array().is_some_and(|a|!a.is_empty())).count(),"speaker_population":rows.len(),"speaker_candidates_prepared":speakers.len(),"speaker_reading_counts":count(&speakers,"reading_ref")?,"speaker_status_counts":count(&speakers,"attribution_status")?,"speaker_primary_role_counts":count(&speakers,"primary_role")?,"speaker_exception_group_count":groups.len(),"interpretation_axis_count":a(&matrix["axes"])?.len(),"five_primary_axes_prepared":a(&matrix["axes"])?.iter().take(5).all(|r|r["status"]=="prepared_for_review"),"amor_fati_cross_work_blocked":a(&matrix["axes"])?.last().is_some_and(|r|r["status"]=="blocked_cross_work"),"source_return_verified":true,"complete_for_declared_scope":gaps.len()==5&&speakers.len()==159});
+    let summary = json!({"schema_version":"tos_zarathustra_eternal_return_review_preparation_summary_v1","review_preparation_id":packet,"gap_candidate_count":gaps.len(),"speaker_candidate_count":speakers.len(),"speaker_exception_group_count":groups.len(),"interpretation_review_candidate_count":a(&matrix["axes"])?.len(),"future_review_work_item_count":items.len(),"witness_correction_count":0,"alignment_mutation_count":0,"accepted_candidate_count":0,"human_review_count":0,"materialized_claim_count":0,"review_ledger_write_count":0,"graph_effect":false,"canon_effect":false});
+    let input_refs = ordered_input_refs(root, &route("plan.v1.json"))?;
+    let mut output_refs: Vec<String> = OUTPUTS.iter().map(|(_, n)| route(n)).collect();
+    output_refs.push(private_ref());
+    let provenance = json!({"schema_version":"tos_zarathustra_eternal_return_review_preparation_event_v1","event_id":"tos.event.zarathustra-eternal-return-review-preparation-v1.build","event_type":"candidate_review_preparation_built","event_at":plan["frozen_at"],"input_refs":input_refs,"output_refs":output_refs,"authority_effect":"candidate_only_no_human_review_graph_or_canon_effect"});
+    let mut outputs = BTreeMap::new();
+    outputs.insert(route(OUTPUTS[0].1), lines(&gaps)?);
+    outputs.insert(route(OUTPUTS[1].1), lines(&speakers)?);
+    for (n, v) in [
+        (OUTPUTS[2].1, &matrix),
+        (OUTPUTS[3].1, &worklist),
+        (OUTPUTS[4].1, &coverage),
+        (OUTPUTS[5].1, &summary),
+    ] {
+        outputs.insert(route(n), bytes(v, true)?);
+    }
+    outputs.insert(route(OUTPUTS[6].1), lines(&[provenance])?);
+    let private_rows = indexed(rows.clone(), "alignment_ref")?;
+    let speaker_evidence:Vec<Value>=speakers.iter().map(|sp|{let row=&private_rows[sp["alignment_ref"].as_str().unwrap()];json!({"speaker_attribution_candidate_id":sp["speaker_attribution_candidate_id"],"alignment_ref":sp["alignment_ref"],"de_text":row["de_text"],"ru_text":row["ru_text"]})}).collect();
+    let c = constants();
+    let mut counter_refs = BTreeSet::new();
+    for vals in object(&c["counterpressure"])?.values() {
+        for aid in a(vals)? {
+            counter_refs.insert(s(aid)?.to_owned());
+        }
+    }
+    let mut counter_return = Vec::new();
+    for aid in counter_refs {
+        root.tick(1)?;
+        let row = units
+            .get(&aid)
+            .ok_or("missing counterpressure source return")?;
+        counter_return
+            .push(json!({"alignment_ref":aid,"de_text":row["de_text"],"ru_text":row["ru_text"]}))
+    }
+    let private = bytes(
+        &json!({"schema_version":"tos_zarathustra_eternal_return_review_preparation_private_analysis_v1","review_preparation_id":packet,"content_posture":"private_exact_source_return_and_reversible_analysis_not_semantic_authority","gaps":private_gaps,"speaker_evidence":speaker_evidence,"counterpressure_source_return":counter_return}),
+        true,
+    )?;
+    let artifacts: Vec<Value> = OUTPUTS
+        .iter()
+        .filter(|(role, _)| *role != "manifest")
+        .map(|(role, n)| json!({"role":role,"ref":route(n),"sha256":digest(&outputs[&route(n)])}))
+        .collect();
+    let manifest = json!({"schema_version":"tos_zarathustra_eternal_return_review_preparation_manifest_v1","route_id":"zarathustra-eternal-return-review-preparation-v1","review_preparation_id":packet,"plan_ref":route("plan.v1.json"),"plan_sha256":digest(&read(root,&route("plan.v1.json"))?),"identity_issuance_ref":route("identity-issuance.v1.json"),"identity_issuance_sha256":digest(&read(root,&route("identity-issuance.v1.json"))?),"generator_ref":GENERATOR,"generator_sha256":RECIPE_SHA256,"artifacts":artifacts,"private_artifact":{"ref":private_ref(),"sha256":digest(&private),"mode":"0600","tracked":false},"accepted_candidate_count":0,"human_review_count":0,"review_ledger_write_count":0,"graph_effect":false,"canon_effect":false});
+    outputs.insert(route(OUTPUTS[7].1), bytes(&manifest, true)?);
+    root.tick(private.len() as u64 + outputs.values().map(|v| v.len() as u64).sum::<u64>())?;
+    Ok(Prepared {
+        outputs,
+        private,
+        summary,
+    })
+}
+pub(crate) fn mode600(root: &ResearchExecution, p: &str) -> Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    root.tick(1)?;
+    tos_foundation::RelativePath::parse(p).map_err(|e| e.to_string())?;
+    let file = root.source_file(p, 64 * 1024 * 1024)?;
+    if file
+        .metadata()
+        .map_err(|e| e.to_string())?
+        .permissions()
+        .mode()
+        & 0o777
+        != 0o600
+    {
+        return Err(format!("private text layer is not 0600: {p}"));
+    }
+    Ok(())
+}
+
+/// Hydrate only fields consumed by this review producer, returning exact anchor slices.
+pub fn hydrate_units(root: &ResearchExecution) -> Result<BTreeMap<String, Value>> {
+    let spine = indexed(
+        load_lines(
+            root,
+            &format!("{WORK}/{ALIGN_SUFFIX}/alignment-spine.v1.jsonl"),
+        )?,
+        "alignment_id",
+    )?;
+    root.tick(1)?;
+    let mut cache = BTreeMap::<String, (String, Vec<usize>, String)>::new();
+    let mut units = BTreeMap::new();
+    for part in 1..=4 {
+        root.tick(1)?;
+        let packet = load(
+            root,
+            &format!("{WORK}/{ALIGN_SUFFIX}/part-{part}.translation-alignment-packet.v1.json"),
+        )?;
+        let source_anchors = indexed(a(&packet["source_side"]["anchors"])?.clone(), "anchor_ref")?;
+        let target_anchors = indexed(a(&packet["target_side"]["anchors"])?.clone(), "anchor_ref")?;
+        for alignment in a(&packet["alignments"])? {
+            root.tick(1)?;
+            let aid = s(&alignment["alignment_id"])?;
+            let mut texts = Vec::new();
+            for (side, refs) in [
+                ("source_side", "ordered_source_anchor_refs"),
+                ("target_side", "ordered_target_anchor_refs"),
+            ] {
+                let anchors = if side == "source_side" {
+                    &source_anchors
+                } else {
+                    &target_anchors
+                };
+                let mut selected = Vec::new();
+                for r in a(&alignment[refs])? {
+                    root.tick(1)?;
+                    let reference = s(r)?;
+                    let anchor = anchors.get(reference).ok_or("missing anchor")?;
+                    let layer_ref = s(&anchor["text_layer_ref"])?;
+                    if !cache.contains_key(layer_ref) {
+                        mode600(root, layer_ref)?;
+                        let raw = read(root, layer_ref)?;
+                        if digest(&raw) != s(&anchor["text_layer_sha256"])? {
+                            return Err(format!("private text layer drift: {layer_ref}"));
+                        }
+                        root.tick(raw.len() as u64)?;
+                        let text = String::from_utf8(raw).map_err(|e| e.to_string())?;
+                        let mut offsets: Vec<usize> = text.char_indices().map(|(i, _)| i).collect();
+                        offsets.push(text.len());
+                        cache.insert(
+                            layer_ref.into(),
+                            (text, offsets, s(&anchor["text_layer_sha256"])?.to_owned()),
+                        );
+                    }
+                    let (layer, offsets, layer_digest) = &cache[layer_ref];
+                    if layer_digest != s(&anchor["text_layer_sha256"])? {
+                        return Err(format!("private text layer drift: {layer_ref}"));
+                    }
+                    let start = anchor["selector"]["start"]
+                        .as_u64()
+                        .ok_or("invalid anchor start")? as usize;
+                    let end = anchor["selector"]["end"]
+                        .as_u64()
+                        .ok_or("invalid anchor end")? as usize;
+                    let chars = offsets.len() - 1;
+                    if start > end || end > chars {
+                        return Err("anchor range exceeds source".into());
+                    }
+                    let text = layer[offsets[start]..offsets[end]].to_owned();
+                    if digest(text.as_bytes()) != s(&anchor["exact_sha256"])? {
+                        return Err(format!("anchor return mismatch: {reference}"));
+                    }
+                    selected.push(text);
+                }
+                texts.push(selected.join("\n"));
+            }
+            let sp = spine.get(aid).ok_or("missing alignment spine")?;
+            let row = json!({"alignment_id":aid,"part":part,"reading":format!("p{part}.r{}",sp["reading_ordinal_within_part"]),"status":alignment["status"],"shape":alignment["correspondence_shape"],"source_anchor_refs":alignment["ordered_source_anchor_refs"],"target_anchor_refs":alignment["ordered_target_anchor_refs"],"de_text":texts[0],"ru_text":texts[1]});
+            if units.insert(aid.into(), row).is_some() {
+                return Err("duplicate alignment identity".into());
+            }
+        }
+    }
+    Ok(units)
+}
+pub fn return_ru_verse(root: &ResearchExecution) -> Result<Value> {
+    root.reserve_structural_reads()?;
+    let model = crate::antonovsky_structural::reconstruct_from_directory(
+        root.root(),
+        root.root_directory(),
+        root.deadline(),
+    )?;
+    let mut charged = 0;
+    root.charge_structural(&model, &mut charged)?;
+    let ids = crate::antonovsky_structural::load_identities(root.root(), &model)?;
+    root.charge_structural(&model, &mut charged)?;
+    let wanted = "tos.text-unit.sid-d523bc897647d01030f767c2faf5266b";
+    for row in &model.rows {
+        root.tick(1)?;
+        let binding = crate::antonovsky_structural::row_binding(row, &model.lines);
+        if ids["logical_rows"][&binding] == wanted {
+            if row.digest != "0627928ac02cab8159b250950b4a9b23088c9fe5886ebedf86634be3488da558" {
+                return Err("related Russian verse text drift".into());
+            }
+            let refs: Vec<String> = row
+                .lines
+                .iter()
+                .map(|i| model.lines[*i].source_line_ref.clone())
+                .collect();
+            return Ok(
+                json!({"text_unit_ref":wanted,"text":row.text,"text_sha256":row.digest,"physical_line_refs":refs}),
+            );
+        }
+    }
+    Err("related Russian verse row not found".into())
+}
+pub(crate) fn write(root: &ResearchExecution, p: &str, payload: &[u8], mode: u32) -> Result<()> {
+    tos_foundation::RelativePath::parse(p).map_err(|e| e.to_string())?;
+    root.write(p, payload, mode, p.ends_with("/identity-issuance.v1.json"))
+}
+
+/// Named Access command; source root is explicit and no Python process is started.
+pub fn run(root: &Path, args: &[String]) -> Result<Value> {
+    let execution = ResearchExecution::new(root, 180)?;
+    run_scoped(&execution, args)
+}
+pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
+    let mut mode = None;
+    let mut issuance = false;
+    for arg in args {
+        root.tick(1)?;
+        match arg.as_str() {
+            "--build" | "--check" | "--preview" => {
+                if mode.replace(arg.as_str()).is_some() {
+                    return Err("exactly one mode required".into());
+                }
+            }
+            "--issue-identities" => issuance = true,
+            _ => return Err(format!("unknown argument: {arg}")),
+        }
+    }
+    let mode = mode.ok_or("one of --build, --check, --preview is required")?;
+    if issuance && mode != "--build" {
+        return Err("--issue-identities is valid only with --build".into());
+    }
+    let plan = load(root, &route("plan.v1.json"))?;
+    verify_inputs(root, &plan)?;
+    let units = hydrate_units(root)?;
+    let rows = source_ordered_rows(root, &units)?;
+    let expected = bindings(root, &rows)?;
+    if mode == "--preview" {
+        return Ok(json!({"identity_count":expected.len(),"speaker_candidate_count":rows.len()}));
+    }
+    if issuance {
+        issue(root, &expected, &plan)?
+    }
+    identity_map(root, &expected)?;
+    let verse = return_ru_verse(root)?;
+    let prepared = prepare(root, &units, &verse)?;
+    if mode == "--build" {
+        for (p, b) in &prepared.outputs {
+            root.tick(1)?;
+            write(root, p, b, 0o644)?
+        }
+        write(root, &private_ref(), &prepared.private, 0o600)?;
+    } else {
+        for (p, b) in &prepared.outputs {
+            root.tick(1)?;
+            if read(root, p)? != *b {
+                return Err(format!("tracked parity mismatch: {p}"));
+            }
+        }
+        if read(root, &private_ref())? != prepared.private {
+            return Err(format!("private parity mismatch: {}", private_ref()));
+        }
+        mode600(root, &private_ref())?;
+    }
+    root.tick(1)?;
+    Ok(prepared.summary)
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn dramatic_voice_boundaries() {
+        assert_eq!(speaker_rule("p3.r2", 14).unwrap()["primary_role"], "dwarf");
+        assert_eq!(
+            speaker_rule("p3.r13", 39).unwrap()["alternative_roles"],
+            json!(["animals_voicing_a_hypothetical_zarathustra"])
+        );
+        assert_eq!(speaker_rule("p4.r19", 11).unwrap()["status"], "ambiguous");
+        assert!(speaker_rule("p9.r9", 1).is_err());
+    }
+    #[test]
+    fn full_voice_population_preserves_ambiguity() {
+        let mut rows = Vec::new();
+        for (reading, n) in [
+            ("p3.r2", 31),
+            ("p3.r13", 50),
+            ("p3.r16", 34),
+            ("p4.r19", 44),
+        ] {
+            for p in 1..=n {
+                rows.push(speaker_rule(reading, p).unwrap())
+            }
+        }
+        assert_eq!(
+            count(&rows, "status").unwrap(),
+            json!({"ambiguous":51,"proposed":108})
+        );
+        assert_eq!(
+            rows.iter()
+                .filter(|r| r["primary_role"] == "animals_eagle_and_serpent")
+                .count(),
+            19
+        );
+    }
+    #[test]
+    fn exact_json_bytes_with_unicode() {
+        assert_eq!(
+            bytes(&json!({"z":null,"a":"ѣ"}), true).unwrap(),
+            "{\n  \"a\": \"ѣ\",\n  \"z\": null\n}\n".as_bytes()
+        );
+    }
+    #[test]
+    fn identity_publication_never_replaces_existing_issuance() {
+        let dir = tempfile::tempdir().unwrap();
+        let execution =
+            ResearchExecution::new_with_scratch(dir.path(), 180, 16 * 1024 * 1024).unwrap();
+        let ref_ = "route/identity-issuance.v1.json";
+        write(&execution, ref_, b"first", 0o644).unwrap();
+        assert!(write(&execution, ref_, b"second", 0o644).is_err());
+        assert_eq!(read(&execution, ref_).unwrap(), b"first");
+    }
+    #[test]
+    fn selected_source_rejects_path_escape_and_symlink() {
+        use std::os::unix::fs::symlink;
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("source"), b"source").unwrap();
+        symlink(dir.path().join("source"), dir.path().join("alias")).unwrap();
+        let execution =
+            ResearchExecution::new_with_scratch(dir.path(), 180, 16 * 1024 * 1024).unwrap();
+        assert!(read(&execution, "../source").is_err());
+        assert!(read(&execution, "alias").is_err());
+    }
+    #[test]
+    fn duplicate_identity_binding_fails() {
+        let rows = vec![json!({"alignment_ref":"a"}), json!({"alignment_ref":"a"})];
+        assert!(indexed(rows, "alignment_ref").is_err());
+    }
+}
+
+/// Frozen provenance retains authored input order separately from sorted output keys.
+pub(crate) fn ordered_input_refs(root: &ResearchExecution, p: &str) -> Result<Vec<Value>> {
+    let raw = read(root, p)?;
+    root.tick(raw.len() as u64)?;
+    let doc = tos_foundation::parse_json(
+        &raw,
+        tos_foundation::JsonMode::PublishedStrict,
+        tos_foundation::JsonLimits::new(raw.len().max(1), 64, 2_000_000, 4300)
+            .map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    let entries = doc
+        .root()
+        .object_get("inputs")
+        .and_then(|v| v.as_object())
+        .ok_or("plan inputs object required")?;
+    entries
+        .iter()
+        .map(|(_, r)| {
+            r.object_get("ref")
+                .and_then(|v| v.as_str())
+                .map(|s| json!(s))
+                .ok_or_else(|| "input ref required".into())
+        })
+        .collect()
+}
