@@ -21,9 +21,12 @@ jobs:
       software_mode: ${{ steps.select.outputs.software_mode }}
       worker: ${{ steps.select.outputs.worker }}
       rust: ${{ steps.select.outputs.rust }}
+      executor_sha256: ${{ steps.executors.outputs.executor_sha256 }}
+      executor_manifest_sha256: ${{ steps.executors.outputs.executor_manifest_sha256 }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - name: Prepare exact native CI executors
+        id: executors
         env:
           CARGO_HOME: ${{ runner.temp }}/plan-cargo-home
           CARGO_TARGET_DIR: ${{ runner.temp }}/plan-cargo-target
@@ -32,25 +35,15 @@ jobs:
           rustup toolchain install 1.98.1 --profile minimal
           cargo +1.98.1 build --locked --no-default-features -p tos-ops-mechanics-plan \
             --bin tos-release-check --bin tos-validation-lanes --bin tos-software-ci \
-            --target x86_64-unknown-linux-gnu
+            --target x86_64-unknown-linux-gnu --message-format=json > "$RUNNER_TEMP/plan-cargo-messages.jsonl"
           mkdir "$RUNNER_TEMP/tos-ci-executors"
           cp "$CARGO_TARGET_DIR"/x86_64-unknown-linux-gnu/debug/tos-{release-check,validation-lanes,software-ci} "$RUNNER_TEMP/tos-ci-executors/"
-          python - <<'PY_OPS'
-          import hashlib, json, os, subprocess
-          from pathlib import Path
-          root = Path(os.environ['RUNNER_TEMP']) / 'tos-ci-executors'
-          binaries = {}
-          for name in ('tos-release-check', 'tos-validation-lanes', 'tos-software-ci'):
-              path = root / name
-              with path.open('rb') as stream:
-                  digest = hashlib.file_digest(stream, 'sha256').hexdigest()
-              binaries[name] = {'sha256': digest, 'size_bytes': path.stat().st_size}
-          manifest = {'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
-                      'source_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
-                      'lock_sha256': hashlib.sha256(Path('Cargo.lock').read_bytes()).hexdigest(),
-                      'toolchain': '1.98.1', 'target': 'x86_64-unknown-linux-gnu', 'profile': 'debug', 'features': [], 'binaries': binaries}
-          (root / 'manifest.json').write_text(json.dumps(manifest) + '\n')
-          PY_OPS
+          rustc +1.98.1 --version > "$RUNNER_TEMP/plan-rustc-version.txt"
+          "$RUNNER_TEMP/tos-ci-executors/tos-software-ci" executor-manifest \
+            --repo-root "$GITHUB_WORKSPACE" --artifact-root "$RUNNER_TEMP/tos-ci-executors" \
+            --image-root "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug" \
+            --cargo-messages "$RUNNER_TEMP/plan-cargo-messages.jsonl" \
+            --rustc-version "$RUNNER_TEMP/plan-rustc-version.txt" --github-output "$GITHUB_OUTPUT"
           printf 'TOS_SOFTWARE_CI_EXECUTOR=%s\n' "$RUNNER_TEMP/tos-ci-executors/tos-software-ci" >> "$GITHUB_ENV"
       - name: Preserve same-run native CI executors
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -144,36 +137,19 @@ jobs:
           name: tos-ci-executors-${{ github.sha }}
           path: ${{ runner.temp }}/tos-ci-executors
       - name: Verify and bind exact native CI executors
+        env:
+          TOS_CI_EXECUTOR_SHA256: ${{ needs.plan.outputs.executor_sha256 }}
+          TOS_CI_MANIFEST_SHA256: ${{ needs.plan.outputs.executor_manifest_sha256 }}
         run: |
-          python - <<'PY_OPS'
-          import hashlib, json, os, subprocess
-          from pathlib import Path
-          root = Path(os.environ['RUNNER_TEMP']) / 'tos-ci-executors'
-          manifest = json.loads((root / 'manifest.json').read_text())
-          expected = {'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
-                      'source_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
-                      'lock_sha256': hashlib.sha256(Path('Cargo.lock').read_bytes()).hexdigest(),
-                      'toolchain': '1.98.1', 'target': 'x86_64-unknown-linux-gnu', 'profile': 'debug', 'features': []}
-          for key, value in expected.items():
-              if manifest.get(key) != value:
-                  raise SystemExit('native CI executor identity mismatch: ' + key)
-          names = ('tos-release-check', 'tos-validation-lanes', 'tos-software-ci')
-          if set(manifest['binaries']) != set(names):
-              raise SystemExit('native CI executor set mismatch')
-          with open(os.environ['GITHUB_ENV'], 'a') as env:
-              for name in names:
-                  path = root / name
-                  if path.is_symlink() or not path.is_file():
-                      raise SystemExit('native CI executor is not a regular file: ' + name)
-                  with path.open('rb') as stream:
-                      digest = hashlib.file_digest(stream, 'sha256').hexdigest()
-                  if manifest['binaries'][name] != {'sha256': digest, 'size_bytes': path.stat().st_size}:
-                      raise SystemExit('native CI executor bytes mismatch: ' + name)
-                  path.chmod(0o500)
-                  env.write(name.upper().replace('-', '_') + '_EXECUTOR=' + str(path) + '\n')
-          with open(os.environ['GITHUB_PATH'], 'a') as path_env:
-              path_env.write(str(root) + '\n')
-          PY_OPS
+          root="$RUNNER_TEMP/tos-ci-executors"
+          # Authenticate the verifier BEFORE executing downloaded code. These
+          # digests come from the independent producer job, never its own manifest.
+          printf '%s  %s\n' "$TOS_CI_EXECUTOR_SHA256" "$root/tos-software-ci" | sha256sum --check --status
+          printf '%s  %s\n' "$TOS_CI_MANIFEST_SHA256" "$root/manifest.json" | sha256sum --check --status
+          chmod 0500 "$root/tos-software-ci"
+          "$root/tos-software-ci" executor-bind --repo-root "$GITHUB_WORKSPACE" \
+            --artifact-root "$root" --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH"
+          chmod 0500 "$root/tos-release-check" "$root/tos-validation-lanes"
 
       - name: Setup Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
@@ -202,11 +178,11 @@ jobs:
         run: |
           rustup toolchain install 1.98.1 --profile minimal --target wasm32-unknown-unknown
           rustup default 1.98.1
-          cargo build --locked -p tos-access --bin tos-access --target x86_64-unknown-linux-gnu
-          cargo build --locked -p tos-command --bin tos-native-owner-command --target x86_64-unknown-linux-gnu
-          cargo build --locked -p tos-validation --bin tos-schema-worker --target x86_64-unknown-linux-gnu
+          cargo build --locked -p tos-access --bin tos-access --target x86_64-unknown-linux-gnu --message-format=json > "$RUNNER_TEMP/software-cargo-messages.jsonl"
+          cargo build --locked -p tos-command --bin tos-native-owner-command --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
+          cargo build --locked -p tos-validation --bin tos-schema-worker --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked --no-default-features -p tos-ops-mechanics-plan \
-            --bin tos-validation-lanes --bin tos-release-check --bin tos-software-ci --target x86_64-unknown-linux-gnu
+            --bin tos-validation-lanes --bin tos-release-check --bin tos-software-ci --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown
           archive="$RUNNER_TEMP/software-wasm-bindgen.tar.gz"
           curl --fail --location --silent --show-error \
@@ -217,40 +193,11 @@ jobs:
           "$RUNNER_TEMP/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl/wasm-bindgen" \
             --target web --out-name tos_web_rules --out-dir access/deploy/cloudflare-worker/generated \
             "$CARGO_TARGET_DIR/wasm32-unknown-unknown/release/tos_web_rules.wasm"
-          python - <<'PY_RECEIPT'
-          import hashlib, json, os, subprocess
-          from pathlib import Path
-          binary = Path(os.environ['CARGO_TARGET_DIR']) / 'x86_64-unknown-linux-gnu/debug/tos-access'
-          with binary.open('rb') as stream:
-              digest = hashlib.file_digest(stream, 'sha256').hexdigest()
-          receipt = {'schema_version': 'tos_native_access_build_v1', 'sha256': digest,
-                     'size_bytes': binary.stat().st_size, 'target': 'x86_64-unknown-linux-gnu',
-                     'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
-                     'source_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
-                     'lock_sha256': hashlib.sha256(Path('Cargo.lock').read_bytes()).hexdigest(),
-                     'toolchain': '1.98.1', 'profile': 'debug'}
-          Path(os.environ['RUNNER_TEMP'], 'tos-native-build.json').write_text(json.dumps(receipt) + '\n')
-          products = {}
-          for name in ('tos-native-owner-command', 'tos-schema-worker', 'tos-validation-lanes',
-                       'tos-release-check', 'tos-software-ci'):
-              command = binary.parent / name
-              with command.open('rb') as stream:
-                  command_digest = hashlib.file_digest(stream, 'sha256').hexdigest()
-              proof = dict(receipt, schema_version='tos_native_software_command_build_v1',
-                           sha256=command_digest, size_bytes=command.stat().st_size, features=[])
-              proof_path = Path(os.environ['RUNNER_TEMP']) / (name + '-build.json')
-              proof_path.write_text(json.dumps(proof) + '\n')
-              products[name] = {'binary': str(command), 'receipt': str(proof_path)}
-          Path(os.environ['RUNNER_TEMP'], 'tos-native-command-products.json').write_text(json.dumps(products) + '\n')
-          # Public prepare/publication defaults require this same-run native product.
-          with open(os.environ['GITHUB_ENV'], 'a') as env:
-              env.write('TOS_PREPARED_EXECUTOR=' + str(binary) + '\n')
-              env.write('TOS_NATIVE_SOURCE_PREPARE_EXECUTABLE=' + str(binary) + '\n')
-              env.write('TOS_PREPARED_MAX_SECONDS=20\n')
-              # CI fixture allowance; the native product still defaults to 20 seconds.
-              env.write('TOS_NATIVE_SOURCE_PREPARE_SECONDS=45\n')
-              env.write('TOS_NATIVE_SOURCE_PREPARE_LIMITS={"max_input_bytes":1048576,"max_capture_bytes":8388608,"max_stage_bytes":8388608,"max_temp_bytes":8388608}\n')
-          PY_RECEIPT
+          rustc +1.98.1 --version > "$RUNNER_TEMP/software-rustc-version.txt"
+          "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-software-ci" software-receipts \
+            --repo-root "$GITHUB_WORKSPACE" --image-root "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug" \
+            --receipt-root "$RUNNER_TEMP" --cargo-messages "$RUNNER_TEMP/software-cargo-messages.jsonl" \
+            --rustc-version "$RUNNER_TEMP/software-rustc-version.txt" --github-env "$GITHUB_ENV"
 
       - name: Validate software contracts and build browser assets
         run: python scripts/release_check.py --phase checks
@@ -274,29 +221,8 @@ jobs:
           root="$GITHUB_WORKSPACE"
           archive="$root/dist/tree-of-sophia-software.zip"
           # Bound the complete six-image input closure, plus generated manifest/README.
-          python - <<'PY_LIMITS'
-          import json, os
-          from pathlib import Path
-          root = Path.cwd()
-          products = json.loads(Path(os.environ['RUNNER_TEMP'], 'tos-native-command-products.json').read_text())
-          images = [Path(os.environ['CARGO_TARGET_DIR']) / 'x86_64-unknown-linux-gnu/debug/tos-access']
-          images.extend(Path(value['binary']) for value in products.values())
-          web = list((root / 'access/web/dist').rglob('*'))
-          access_json = [p for folder in ('access/contracts', 'access/profiles')
-                         for p in (root / folder).rglob('*.json')]
-          # All contract JSON is a conservative upper envelope for the builder's three schemas.
-          source = [root / 'access/README.md', root / 'Cargo.lock', root / 'rust-toolchain.toml']
-          source.extend((root / 'ToS/contracts').rglob('*.json'))
-          files = images + [p for p in web if p.is_file()] + access_json * 2 + source
-          if any(p.is_symlink() or not p.is_file() for p in files):
-              raise SystemExit('software input envelope requires regular files')
-          total = sum(p.stat().st_size for p in files) + 1048576
-          members = len(files) + 2
-          if members > 1024:
-              raise SystemExit('software input envelope exceeds member cap')
-          Path(os.environ['RUNNER_TEMP'], 'tos-native-package-limits.txt').write_text(
-              f'{total} {total + 16777216} 1024 4194304\n')
-          PY_LIMITS
+          "$TOS_SOFTWARE_CI_EXECUTOR" software-limits --repo-root "$root" \
+            --image-root "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug" --receipt-root "$RUNNER_TEMP"
           read -r total_cap archive_cap member_cap metadata_cap < "$RUNNER_TEMP/tos-native-package-limits.txt"
           limits=(--max-total-bytes "$total_cap" --max-archive-bytes "$archive_cap" --max-members "$member_cap" --max-metadata-bytes "$metadata_cap")
           mkdir -p -- "$root/dist"
@@ -725,36 +651,19 @@ jobs:
           name: tos-ci-executors-${{ github.sha }}
           path: ${{ runner.temp }}/tos-ci-executors
       - name: Verify and bind exact native CI executors
+        env:
+          TOS_CI_EXECUTOR_SHA256: ${{ needs.plan.outputs.executor_sha256 }}
+          TOS_CI_MANIFEST_SHA256: ${{ needs.plan.outputs.executor_manifest_sha256 }}
         run: |
-          python - <<'PY_OPS'
-          import hashlib, json, os, subprocess
-          from pathlib import Path
-          root = Path(os.environ['RUNNER_TEMP']) / 'tos-ci-executors'
-          manifest = json.loads((root / 'manifest.json').read_text())
-          expected = {'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
-                      'source_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
-                      'lock_sha256': hashlib.sha256(Path('Cargo.lock').read_bytes()).hexdigest(),
-                      'toolchain': '1.98.1', 'target': 'x86_64-unknown-linux-gnu', 'profile': 'debug', 'features': []}
-          for key, value in expected.items():
-              if manifest.get(key) != value:
-                  raise SystemExit('native CI executor identity mismatch: ' + key)
-          names = ('tos-release-check', 'tos-validation-lanes', 'tos-software-ci')
-          if set(manifest['binaries']) != set(names):
-              raise SystemExit('native CI executor set mismatch')
-          with open(os.environ['GITHUB_ENV'], 'a') as env:
-              for name in names:
-                  path = root / name
-                  if path.is_symlink() or not path.is_file():
-                      raise SystemExit('native CI executor is not a regular file: ' + name)
-                  with path.open('rb') as stream:
-                      digest = hashlib.file_digest(stream, 'sha256').hexdigest()
-                  if manifest['binaries'][name] != {'sha256': digest, 'size_bytes': path.stat().st_size}:
-                      raise SystemExit('native CI executor bytes mismatch: ' + name)
-                  path.chmod(0o500)
-                  env.write(name.upper().replace('-', '_') + '_EXECUTOR=' + str(path) + '\n')
-          with open(os.environ['GITHUB_PATH'], 'a') as path_env:
-              path_env.write(str(root) + '\n')
-          PY_OPS
+          root="$RUNNER_TEMP/tos-ci-executors"
+          # Authenticate the verifier BEFORE executing downloaded code. These
+          # digests come from the independent producer job, never its own manifest.
+          printf '%s  %s\n' "$TOS_CI_EXECUTOR_SHA256" "$root/tos-software-ci" | sha256sum --check --status
+          printf '%s  %s\n' "$TOS_CI_MANIFEST_SHA256" "$root/manifest.json" | sha256sum --check --status
+          chmod 0500 "$root/tos-software-ci"
+          "$root/tos-software-ci" executor-bind --repo-root "$GITHUB_WORKSPACE" \
+            --artifact-root "$root" --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH"
+          chmod 0500 "$root/tos-release-check" "$root/tos-validation-lanes"
       - name: Setup Python for Unicode 16 differential oracles
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
@@ -816,36 +725,19 @@ jobs:
           name: tos-ci-executors-${{ github.sha }}
           path: ${{ runner.temp }}/tos-ci-executors
       - name: Verify and bind exact native CI executors
+        env:
+          TOS_CI_EXECUTOR_SHA256: ${{ needs.plan.outputs.executor_sha256 }}
+          TOS_CI_MANIFEST_SHA256: ${{ needs.plan.outputs.executor_manifest_sha256 }}
         run: |
-          python - <<'PY_OPS'
-          import hashlib, json, os, subprocess
-          from pathlib import Path
-          root = Path(os.environ['RUNNER_TEMP']) / 'tos-ci-executors'
-          manifest = json.loads((root / 'manifest.json').read_text())
-          expected = {'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
-                      'source_tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
-                      'lock_sha256': hashlib.sha256(Path('Cargo.lock').read_bytes()).hexdigest(),
-                      'toolchain': '1.98.1', 'target': 'x86_64-unknown-linux-gnu', 'profile': 'debug', 'features': []}
-          for key, value in expected.items():
-              if manifest.get(key) != value:
-                  raise SystemExit('native CI executor identity mismatch: ' + key)
-          names = ('tos-release-check', 'tos-validation-lanes', 'tos-software-ci')
-          if set(manifest['binaries']) != set(names):
-              raise SystemExit('native CI executor set mismatch')
-          with open(os.environ['GITHUB_ENV'], 'a') as env:
-              for name in names:
-                  path = root / name
-                  if path.is_symlink() or not path.is_file():
-                      raise SystemExit('native CI executor is not a regular file: ' + name)
-                  with path.open('rb') as stream:
-                      digest = hashlib.file_digest(stream, 'sha256').hexdigest()
-                  if manifest['binaries'][name] != {'sha256': digest, 'size_bytes': path.stat().st_size}:
-                      raise SystemExit('native CI executor bytes mismatch: ' + name)
-                  path.chmod(0o500)
-                  env.write(name.upper().replace('-', '_') + '_EXECUTOR=' + str(path) + '\n')
-          with open(os.environ['GITHUB_PATH'], 'a') as path_env:
-              path_env.write(str(root) + '\n')
-          PY_OPS
+          root="$RUNNER_TEMP/tos-ci-executors"
+          # Authenticate the verifier BEFORE executing downloaded code. These
+          # digests come from the independent producer job, never its own manifest.
+          printf '%s  %s\n' "$TOS_CI_EXECUTOR_SHA256" "$root/tos-software-ci" | sha256sum --check --status
+          printf '%s  %s\n' "$TOS_CI_MANIFEST_SHA256" "$root/manifest.json" | sha256sum --check --status
+          chmod 0500 "$root/tos-software-ci"
+          "$root/tos-software-ci" executor-bind --repo-root "$GITHUB_WORKSPACE" \
+            --artifact-root "$root" --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH"
+          chmod 0500 "$root/tos-release-check" "$root/tos-validation-lanes"
       - name: Require every selected check to pass
         env:
           CI_NEEDS: ${{ toJSON(needs) }}

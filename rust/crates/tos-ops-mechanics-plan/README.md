@@ -311,3 +311,35 @@ keeps that feature enabled. The three CI prerequisite executors
 paths do not depend on `tos-compiler`. Such a build does not provide the
 compiler-backed validator flag. This is a dependency boundary, not a measured
 performance or whole-validator acceptance claim.
+
+The same `tos-software-ci` executable owns the CI artifact operations
+`executor-manifest`, `executor-bind`, `software-receipts`, and `software-limits`.
+They retain the existing three-executor manifest and access/command build receipt
+shapes consumed by native software packaging. Producer operations require the
+successful same-run Cargo JSON artifact stream, exact executable package/path,
+empty feature selection, native debug profile, and the selected Rust version
+output. They hash held regular files with a fixed 64 KiB buffer and verify file
+identity before returning. Receipt generation describes those completed products;
+it does not establish independent trust in the producer.
+
+The workflow authenticates the downloaded verifier and manifest with
+`sha256sum` against outputs from the independent producer job **before** running
+that verifier. Rust then checks the exact three-file executable set plus
+manifest, current commit/tree/lock, toolchain/target/profile/features, and each
+image's SHA and length before publishing GitHub environment/path bindings.
+Transport, executable permission changes, and GitHub's environment files remain
+platform operations. The removed inline Python artifact rules are replaced by
+these native operations; the Python software-selection API remains reference
+evidence for its separate maintained selection contract.
+
+Each operation has one 120-second deadline and cancellation guard, including
+its existing owned Git capture and final source check. Images are capped at
+1 GiB each; metadata and each Cargo line at 1 MiB; the complete Cargo stream at
+32 MiB. Package limits enumerate at most 1024 members with directory depth 64,
+reject symlinks, and preserve the previous double accounting for access JSON
+(source plus exported copy), 1 MiB manifest/README allowance, and 16 MiB archive
+overhead. They preserve the existing 1024-member and 4 MiB metadata selections.
+The software archive owner still independently verifies all images/receipts and
+source identities at build, verify, and install. These source changes require
+matching native tests and the actual producer/download/package CI consumers;
+formatting or wrapper assertions alone do not establish that acceptance.

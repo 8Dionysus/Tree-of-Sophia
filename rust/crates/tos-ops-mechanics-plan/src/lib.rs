@@ -2,6 +2,7 @@
 //! Lane selection and the planned tools retain their own authority.
 
 pub mod active_naming;
+pub mod ci_artifacts;
 #[cfg(target_os = "linux")]
 mod conformance_products;
 pub mod derived_kag;

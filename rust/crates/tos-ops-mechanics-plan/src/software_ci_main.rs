@@ -13,7 +13,7 @@ extern "C" fn cancelled(signal: i32) {
 }
 
 fn usage() -> &'static str {
-    "usage: tos-software-ci plan --repo-root ABSOLUTE_PATH --base REF [--full] | tos-software-ci gate"
+    "usage: tos-software-ci plan --repo-root ABSOLUTE_PATH --base REF [--full] | tos-software-ci gate | tos-software-ci {executor-manifest|executor-bind|software-receipts|software-limits} --repo-root ABSOLUTE_PATH [operation paths]"
 }
 
 fn github_output(path: &Path, selection: &software_ci::Selection) -> io::Result<()> {
@@ -46,6 +46,32 @@ fn run() -> Result<(), String> {
     if mode == "--help" || mode == "-h" {
         println!("{}", usage());
         return Ok(());
+    }
+    if [
+        "executor-manifest",
+        "executor-bind",
+        "software-receipts",
+        "software-limits",
+    ]
+    .contains(&mode.as_str())
+    {
+        #[cfg(target_os = "linux")]
+        unsafe {
+            let mut action: libc::sigaction = std::mem::zeroed();
+            action.sa_sigaction = cancelled as *const () as usize;
+            libc::sigemptyset(&mut action.sa_mask);
+            for signal in [libc::SIGINT, libc::SIGTERM] {
+                if libc::sigaction(signal, &action, std::ptr::null_mut()) != 0 {
+                    return Err(io::Error::last_os_error().to_string());
+                }
+            }
+        }
+        return tos_ops_mechanics_plan::ci_artifacts::run(
+            &mode,
+            &args.collect::<Vec<_>>(),
+            &CANCEL,
+        )
+        .map_err(|e| e.to_string());
     }
     if mode == "gate" {
         if args.next().is_some() {

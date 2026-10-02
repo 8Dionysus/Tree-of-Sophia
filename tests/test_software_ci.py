@@ -159,8 +159,20 @@ class SoftwareSelectionTests(unittest.TestCase):
             caller = next(i for i, step in enumerate(steps) if any(command in step.get('run', '') for command in
                           ('python scripts/release_check.py', 'python scripts/validation_lanes.py', 'python scripts/software_ci.py gate')))
             self.assertLess(bind, caller)
-            self.assertIn("manifest['binaries'][name]", steps[bind]['run'])
-            self.assertIn('lock_sha256', steps[bind]['run'])
+            run = steps[bind]['run']
+            self.assertIn('executor-bind --repo-root', run)
+            self.assertEqual(steps[bind]['env']['TOS_CI_EXECUTOR_SHA256'], '${{ needs.plan.outputs.executor_sha256 }}')
+            self.assertEqual(steps[bind]['env']['TOS_CI_MANIFEST_SHA256'], '${{ needs.plan.outputs.executor_manifest_sha256 }}')
+            self.assertLess(run.index('sha256sum --check --status'), run.index('"$root/tos-software-ci" executor-bind'))
+            self.assertNotIn('PY_OPS', run)
+        self.assertIn('executor-manifest', plan_runs[prepare])
+        self.assertIn('--message-format=json', plan_runs[prepare])
+        self.assertIn('--github-output "$GITHUB_OUTPUT"', plan_runs[prepare])
+        native_receipts = next(step['run'] for step in jobs['software']['steps'] if 'software-receipts' in step.get('run', ''))
+        self.assertEqual(native_receipts.count('--message-format=json'), 4)
+        self.assertNotIn('PY_RECEIPT', native_receipts)
+        self.assertIn('software-limits --repo-root', native_package[0]['run'])
+        self.assertNotIn('PY_LIMITS', native_package[0]['run'])
         gate_steps=jobs['required_gate']['steps']
         self.assertEqual(gate_steps[-1]['run'],'python scripts/software_ci.py gate')
         self.assertEqual(gate_steps[-1]['env']['CI_NEEDS'],'${{ toJSON(needs) }}')
