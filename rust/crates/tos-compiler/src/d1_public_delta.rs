@@ -95,6 +95,7 @@ struct PriorHeader {
     auxiliary: Option<Value>,
     rows: bool,
     count: u64,
+    tables: std::collections::BTreeSet<String>,
 }
 struct HeaderSeed<'a> {
     db: &'a Connection,
@@ -156,7 +157,6 @@ impl<'de> Visitor<'de> for HeaderVisitor<'_> {
                             .revision
                             .as_deref()
                             .is_none_or(|v| !hex_digest(v))
-                        || self.header.auxiliary.is_none()
                     {
                         return Err(M::Error::custom("incompatible public D1 prior baseline"));
                     }
@@ -233,9 +233,21 @@ impl<'de> Visitor<'de> for TablesVisitor<'_> {
                 header: &mut *self.header,
             })?;
         }
-        if seen.len() != TABLES.len() {
+        // Historical base-only v9 indexes can omit the two optional stores.
+        // This profile is mechanically parsed only; load_prior never grants
+        // it a PriorProof or delta without auxiliary publication metadata.
+        let historical = self.header.auxiliary.as_ref().is_none_or(Value::is_null);
+        if TABLES.iter().any(|(name, _)| {
+            !seen.contains(*name)
+                && !(historical
+                    && matches!(
+                        *name,
+                        "knowledge_compact_lens" | "knowledge_lens_memberships"
+                    ))
+        }) {
             return Err(M::Error::custom("incomplete public D1 prior tables"));
         }
+        self.header.tables = seen;
         Ok(())
     }
 }
@@ -536,12 +548,18 @@ fn hash_file(
     Ok((hash.finalize(), size, before))
 }
 
+#[derive(Default)]
+pub(crate) struct PriorLoad {
+    pub proof: Option<PriorProof>,
+    pub auxiliary_migration: bool,
+}
+
 pub(crate) fn load_prior(
     index: &PublicRowIndex,
     runtime: &Path,
     capture: &PublicCapture,
     max_bytes: u64,
-) -> Result<Option<PriorProof>> {
+) -> Result<PriorLoad> {
     let deployed = runtime.join("read-model.deployed.rows.json");
     let current = runtime.join("read-model.rows.json");
     let path = if deployed.exists() || deployed.is_symlink() {
@@ -550,14 +568,14 @@ pub(crate) fn load_prior(
         current
     };
     if !path.exists() || path.is_symlink() {
-        return Ok(None);
+        return Ok(PriorLoad::default());
     }
     if identity(&path)?.size > max_bytes {
-        return Ok(None);
+        return Ok(PriorLoad::default());
     }
     let (digest, size, source_identity) = hash_file(&path, capture, max_bytes)?;
     if size == 0 {
-        return Ok(None);
+        return Ok(PriorLoad::default());
     }
     let file = safe_open::open_regular(&path, max_bytes)?;
     let opened = file.metadata()?;
@@ -597,15 +615,39 @@ pub(crate) fn load_prior(
         }
         db.execute_batch("DROP TABLE IF EXISTS prior_rows")?;
         capture.charge_work(0)?;
-        return Ok(None);
+        return Ok(PriorLoad::default());
     }
     db.execute_batch("COMMIT")?;
     let revision = header
         .revision
         .ok_or(Error::Invalid("public D1 prior revision"))?;
-    let auxiliary = header
-        .auxiliary
-        .ok_or(Error::Invalid("public D1 prior auxiliary"))?;
+    let (again, again_size, again_identity) = hash_file(&path, capture, max_bytes)?;
+    if again != digest || again_size != size || again_identity != source_identity {
+        return Err(Error::Invalid(
+            "public D1 prior baseline changed during import",
+        ));
+    }
+    // A mechanically valid historical v9 row baseline cannot admit a delta
+    // without the optional-store publication proof. Preserve full SQL fallback
+    // and report the maintained initial-migration disposition explicitly.
+    let auxiliary = match header.auxiliary {
+        None | Some(Value::Null) => {
+            db.execute_batch("DROP TABLE prior_rows")?;
+            return Ok(PriorLoad {
+                proof: None,
+                auxiliary_migration: true,
+            });
+        }
+        Some(value) => value,
+    };
+    // JSON member order cannot turn the historical parse allowance into a
+    // complete optional-store proof: auxiliary metadata may follow rows.
+    if header.tables.len() != TABLES.len() {
+        db.execute_batch("DROP TABLE prior_rows")?;
+        return Err(Error::Invalid(
+            "public D1 prior auxiliary table completeness",
+        ));
+    }
     let stores = serde_json::json!({"knowledge_compact_lens":"tos_compact_lens_carrier_v1",
         "knowledge_lens_memberships":"tos_lens_membership_index_v1"});
     let top = auxiliary.get("reader_top").cloned().unwrap_or(Value::Null);
@@ -640,22 +682,19 @@ pub(crate) fn load_prior(
         || reader_binding_parts(&top).is_err()
     {
         db.execute_batch("DROP TABLE prior_rows")?;
-        return Ok(None);
+        return Err(Error::Invalid("public D1 prior auxiliary publication"));
     }
-    let (again, again_size, again_identity) = hash_file(&path, capture, max_bytes)?;
-    if again != digest || again_size != size || again_identity != source_identity {
-        return Err(Error::Invalid(
-            "public D1 prior baseline changed during import",
-        ));
-    }
-    Ok(Some(PriorProof {
-        path,
-        digest,
-        size,
-        identity: source_identity,
-        revision,
-        top,
-    }))
+    Ok(PriorLoad {
+        proof: Some(PriorProof {
+            path,
+            digest,
+            size,
+            identity: source_identity,
+            revision,
+            top,
+        }),
+        auxiliary_migration: false,
+    })
 }
 
 pub(crate) struct DeltaOutput {

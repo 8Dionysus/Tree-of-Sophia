@@ -13,14 +13,12 @@ use rusqlite::{
 use serde_json::{Map, Value, json};
 use std::{
     borrow::Cow,
-    cell::Cell,
     collections::{BTreeMap, BTreeSet},
     fs::{self, File},
     io::{Read, Write},
     os::fd::AsRawFd,
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
-    rc::Rc,
 };
 use tos_compiler::{
     SearchBuildLimits,
@@ -397,14 +395,12 @@ fn open_read_only(path: &Path, vm_steps: u64) -> Result<HeldSqlite, String> {
             | OpenFlags::SQLITE_OPEN_NOFOLLOW,
     )
     .map_err(|error| error.to_string())?;
-    let used = Rc::new(Cell::new(0u64));
-    let counter = Rc::clone(&used);
+    let mut used = 0u64;
     db.progress_handler(
         1000,
         Some(move || {
-            let next = counter.get().saturating_add(1000);
-            counter.set(next);
-            next > vm_steps
+            used = used.saturating_add(1000);
+            used > vm_steps
         }),
     );
     db.set_limit(
@@ -1713,7 +1709,7 @@ fn verify_and_add_knowledge_side(
             }
         }
     }
-    for ((table, _), row) in &projected {
+    for ((table, _), row) in projected {
         if *table == D1Table::EdgeMeta {
             continue;
         }
@@ -1727,7 +1723,7 @@ fn verify_and_add_knowledge_side(
         }
         let key = selected_key(*table, row)?;
         let actual = selected_tuple_accounted(db, *table, &key, limits, read_bytes)?;
-        if present && actual.as_ref() != Some(row) {
+        if present && actual.as_deref() != Some(row.as_slice()) {
             return Err(invalid("D1 predecessor projected row differs"));
         }
         if !present && actual.is_some() {
@@ -2316,7 +2312,7 @@ fn bootstrap_transitions(
             "rights" => "rights_id",
             _ => return Err(invalid("bootstrap source collection")),
         };
-        if collection_data.key_field.as_str() != key_field {
+        if collection_data.key_field.as_str() != Some(key_field) {
             return Err(invalid("bootstrap projection key field differs"));
         }
         let row_count = collection_data.rows.len() as u64;
@@ -3889,7 +3885,7 @@ fn run_prepared_transition(
             }
             verify_and_add_knowledge_side(
                 &d1_tx,
-                BTreeMap::new(),
+                &BTreeMap::new(),
                 &kind,
                 &id,
                 false,
@@ -4054,10 +4050,11 @@ fn run_prepared_transition(
     // exact predecessor member order when updating the reader top.
     let before_binding_raw = before_binding_value
         .as_ref()
-        .map(|value| compact(value, limits.prepared.max_metadata_bytes))
+        .map(|value| compact_foundation(value, limits.prepared.max_metadata_bytes))
         .transpose()?
         .unwrap_or_default();
-    let after_binding_raw = compact(&after_binding_value, limits.prepared.max_metadata_bytes)?;
+    let after_binding_raw =
+        compact_foundation(&after_binding_value, limits.prepared.max_metadata_bytes)?;
     let mode = if operation == "prepared-catchup" {
         D1PredecessorMode::SourceInputsCatchup
     } else {

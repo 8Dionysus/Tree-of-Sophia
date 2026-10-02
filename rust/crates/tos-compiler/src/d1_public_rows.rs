@@ -192,12 +192,15 @@ pub(crate) struct SourceSqlCounts {
     pub corpus_items: u64,
     pub corpus_edges: u64,
     pub corpus_packs: u64,
+    pub philosophy_clusters: u64,
     pub cluster_node_memberships: u64,
     pub cluster_edge_memberships: u64,
     pub navigation_nodes: u64,
     pub navigation_edges: u64,
     pub navigation_rights: u64,
-    pub navigation_payload_chunks: u64,
+    pub navigation_node_payload_chunks: u64,
+    pub navigation_edge_payload_chunks: u64,
+    pub navigation_rights_payload_chunks: u64,
 }
 
 /// The caller passes its resolved repository root and owns the single SQL
@@ -355,6 +358,10 @@ pub(crate) fn emit_philosophy(
                 )?;
             }
             if collection == "clusters" {
+                counts.philosophy_clusters = counts
+                    .philosophy_clusters
+                    .checked_add(1)
+                    .ok_or(Error::Budget("public D1 philosophy clusters"))?;
                 let cluster_id = default_text(&item, "cluster_id");
                 let whole = encoded(capture, &item)?;
                 let sort_key = format!(
@@ -1001,8 +1008,12 @@ pub(crate) fn emit_navigation(
                                 bounded_quote(capture, chunk)?,
                             ],
                         )?;
-                        counts.navigation_payload_chunks = counts
-                            .navigation_payload_chunks
+                        let counter = match kind {
+                            "nodes" => &mut counts.navigation_node_payload_chunks,
+                            "edges" => &mut counts.navigation_edge_payload_chunks,
+                            _ => &mut counts.navigation_rights_payload_chunks,
+                        };
+                        *counter = counter
                             .checked_add(1)
                             .ok_or(Error::Budget("public D1 navigation payload chunks"))?;
                     }

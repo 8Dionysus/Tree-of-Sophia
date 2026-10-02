@@ -604,12 +604,12 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
     // The normalized Stage is disposable. Release its DB, journal and TEMP
     // lifetime before copying web assets and assembling static companions.
     drop(stage);
-    let delta = match crate::d1_public_delta::load_prior(
-        &index,
-        runtime,
-        &capture,
-        limits.max_baseline_bytes,
-    )? {
+    let prior =
+        crate::d1_public_delta::load_prior(&index, runtime, &capture, limits.max_baseline_bytes)?;
+    let auxiliary_migration = prior
+        .auxiliary_migration
+        .then_some("lens-auxiliary-initial-migration-required");
+    let delta = match prior.proof {
         Some(prior) => crate::d1_public_delta::produce(
             &index,
             prior,
@@ -639,7 +639,9 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
     )?;
     let counts = json!({
         "philosophy_nodes":source_counts.philosophy_nodes,"philosophy_edges":source_counts.philosophy_edges,
-        "philosophy_clusters":source_counts.cluster_node_memberships,
+        "philosophy_clusters":source_counts.philosophy_clusters,
+        "philosophy_cluster_node_memberships":source_counts.cluster_node_memberships,
+        "philosophy_cluster_edge_memberships":source_counts.cluster_edge_memberships,
         "corpus_items":source_counts.corpus_items,"corpus_edges":source_counts.corpus_edges,
         "corpus_packs":source_counts.corpus_packs,
         "knowledge_nodes":knowledge_counts.nodes,"knowledge_relations":knowledge_counts.relations,
@@ -648,9 +650,13 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
         "knowledge_compact_rows":lens_counts.compact_rows,
         "knowledge_lens_memberships":lens_counts.membership_rows,
         "knowledge_lens_auxiliary_bytes":lens_counts.auxiliary_bytes,
+        "auxiliary_migration":auxiliary_migration,
         "source_navigation_nodes":source_counts.navigation_nodes,
+        "source_navigation_node_payload_chunks":source_counts.navigation_node_payload_chunks,
         "source_navigation_edges":source_counts.navigation_edges,
+        "source_navigation_edge_payload_chunks":source_counts.navigation_edge_payload_chunks,
         "source_navigation_rights":source_counts.navigation_rights,
+        "source_navigation_rights_payload_chunks":source_counts.navigation_rights_payload_chunks,
         "sql_statements":statements,"delta":delta.as_ref().map(|value|&value.summary)
     });
     let native_derived_rows = native
