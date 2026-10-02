@@ -1232,6 +1232,326 @@ fn generate(root: &ResearchExecution, with_ids: bool, selected: &SelectedPlan) -
         analysis,
     })
 }
+// Receipt validation only: no generate, providers, child process, or writes.
+fn validate_tracked_scoped(root: &ResearchExecution, selected: &SelectedPlan) -> R<V> {
+    root.check()?;
+    // Authenticate the plan's declared primitive closure, without interpreting it.
+    for record in selected.value["inputs"]
+        .as_object()
+        .ok_or("plan inputs required")?
+        .values()
+    {
+        root.tick(1)?;
+        let reference = s(&record["ref"])?;
+        let mut file = root.source_file(reference, 64 * 1024 * 1024)?;
+        let before = file.metadata().map_err(|e| e.to_string())?;
+        if root.hash_file(&mut file, 64 * 1024 * 1024)? != s(&record["sha256"])? {
+            return Err(format!("validation input drift: {reference}"));
+        }
+        root.verify_file_unchanged(&file, &before)?;
+    }
+    // The manifest is a local receipt, not an independent source of authority.
+    let reference = route("manifest.v1.json");
+    let mut file = root.source_file(&reference, 512 * 1024)?;
+    let before = file.metadata().map_err(|e| e.to_string())?;
+    if before.permissions().mode() & 0o7777 != 0o644 {
+        return Err("manifest mode drift".into());
+    }
+    let bytes = root.read_file(&mut file, 512 * 1024)?;
+    root.verify_file_unchanged(&file, &before)?;
+    root.check()?;
+    let manifest: V = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
+    root.check()?;
+    if manifest["schema_version"] != "tos_zarathustra_morphology_theme_candidate_manifest_v1"
+        || manifest["plan_ref"] != selected.reference
+        || manifest["plan_sha256"] != selected.digest
+        || manifest["identity_issuance_ref"] != route("identity-issuance.v1.json")
+    {
+        return Err("validation manifest/selected-plan binding drift".into());
+    }
+    for key in [
+        "source_text_included",
+        "semantic_relation_asserted",
+        "concept_identity_asserted",
+        "graph_effect",
+        "canon_effect",
+    ] {
+        if manifest[key] != false {
+            return Err(format!("validation authority drift: {key}"));
+        }
+    }
+    if manifest["accepted_candidate_count"] != 0 {
+        return Err("validation accepted count drift".into());
+    }
+    let names = [
+        "morphological-family-candidates.v1.jsonl",
+        "typed-relation-candidates.v1.jsonl",
+        "thematic-cluster-candidates.v1.jsonl",
+        "summary.v1.json",
+        "coverage-receipt.v1.json",
+        "provenance.jsonl",
+    ];
+    let expected: Set<String> = names.iter().map(|x| route(x)).collect();
+    let entries = manifest["generated_outputs"]
+        .as_object()
+        .ok_or("generated output membership required")?;
+    if entries.keys().cloned().collect::<Set<_>>() != expected {
+        return Err("generated output membership drift".into());
+    }
+    let private_entries = manifest["private_outputs"]
+        .as_object()
+        .ok_or("private output membership required")?;
+    if private_entries.keys().cloned().collect::<Set<_>>() != Set::from([private()]) {
+        return Err("private output membership drift".into());
+    }
+    let mut tracked = Map::new();
+    for (reference, entry) in entries {
+        root.tick(1)?;
+        let mut file = root.source_file(reference, 64 * 1024 * 1024)?;
+        let before = file.metadata().map_err(|e| e.to_string())?;
+        if before.permissions().mode() & 0o7777 != 0o644
+            || entry["byte_size"].as_u64() != Some(before.len())
+        {
+            return Err(format!("output size/mode drift: {reference}"));
+        }
+        let raw = root.read_file(&mut file, 64 * 1024 * 1024)?;
+        root.verify_file_unchanged(&file, &before)?;
+        if hash(&raw) != s(&entry["sha256"])? {
+            return Err(format!("output digest drift: {reference}"));
+        }
+        tracked.insert(reference.clone(), raw);
+    }
+    let entry = &private_entries[&private()];
+    if entry["required_mode"] != "0600" {
+        return Err("private required mode drift".into());
+    }
+    let analysis = bound_json(
+        root,
+        &private(),
+        s(&entry["sha256"])?,
+        Some(
+            entry["byte_size"]
+                .as_u64()
+                .ok_or("private byte size required")?,
+        ),
+        Some(0o600),
+        64 * 1024 * 1024,
+    )?;
+    if analysis["schema_version"] != "tos_zarathustra_morphology_theme_private_analysis_v1"
+        || analysis["source_bearing"] != true
+        || analysis["required_mode"] != "0600"
+    {
+        return Err("private analysis schema/mode drift".into());
+    }
+    let issuance = bound_json(
+        root,
+        &route("identity-issuance.v1.json"),
+        s(&manifest["identity_issuance_sha256"])?,
+        None,
+        Some(0o644),
+        8 * 1024 * 1024,
+    )?;
+    if issuance["schema_version"]
+        != "tos_zarathustra_morphology_theme_candidate_identity_issuance_v1"
+        || issuance["issuance_id"] != "tos.identity-issuance.zarathustra-morphology-themes-v1"
+        || issuance["issued_on"] != "2026-09-02"
+        || issuance["opaque_identity"] != true
+        || issuance["binding_is_not_identity_or_linguistic_judgment"] != true
+        || issuance["candidate_count"].as_u64() != Some(arr(&issuance["identities"])?.len() as u64)
+    {
+        return Err("issuance schema/count/authority drift".into());
+    }
+    let mut ids = Map::new();
+    for row in arr(&issuance["identities"])? {
+        root.tick(1)?;
+        let kind = field(row, "kind")?;
+        let prefix = match kind.as_str() {
+            "family" => "tos.annotation.morph-family-candidate.sid-",
+            "cluster" => "tos.annotation.theme-cluster-candidate.sid-",
+            "relation" => "tos.claim.typed-relation-candidate.sid-",
+            _ => return Err("invalid issued identity kind".into()),
+        };
+        let id = field(row, "id")?;
+        let suffix = id.strip_prefix(prefix).ok_or("issued ID prefix drift")?;
+        if suffix.len() != 32
+            || !suffix
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        {
+            return Err("issued ID shape drift".into());
+        }
+        if ids.insert((kind, field(row, "binding")?), id).is_some() {
+            return Err("duplicate issued binding".into());
+        }
+    }
+    if ids.values().collect::<Set<_>>().len() != ids.len() {
+        return Err("issued identity collision".into());
+    }
+    let mut seen = Set::new();
+    for (kind, key, output, extra) in [
+        ("family", "families", names[0], "forms"),
+        ("relation", "typed_relations", names[1], ""),
+        ("cluster", "clusters", names[2], "display_hint"),
+    ] {
+        let mut rows = Vec::new();
+        for original in arr(&analysis[key])? {
+            root.tick(1)?;
+            let binding = (kind.to_owned(), field(original, "binding")?);
+            if !seen.insert(binding.clone())
+                || ids.get(&binding) != Some(&field(original, &format!("{kind}_id"))?)
+            {
+                return Err("private/issuance binding drift".into());
+            }
+            if original["accepted"] != false
+                || original["graph_effect"] != false
+                || original["review_refs"] != json!([])
+            {
+                return Err("candidate authority drift".into());
+            }
+            let mut row = original.clone();
+            row.as_object_mut()
+                .ok_or("candidate object required")?
+                .remove(extra);
+            rows.push(row);
+        }
+        if lines(&publicize(root, &rows, kind, &ids)?)? != tracked[&route(output)] {
+            return Err(format!("private/public identity projection drift: {kind}"));
+        }
+    }
+    if seen != ids.keys().cloned().collect::<Set<_>>() {
+        return Err("issuance membership drift".into());
+    }
+    root.check()?;
+    let summary: V =
+        serde_json::from_slice(&tracked[&route("summary.v1.json")]).map_err(|e| e.to_string())?;
+    root.check()?;
+    if summary != analysis["summary"] {
+        return Err("private/public summary drift".into());
+    }
+    for key in [
+        "semantic_relation_asserted",
+        "concept_identity_asserted",
+        "graph_effect",
+        "canon_effect",
+    ] {
+        if summary[key] != false {
+            return Err(format!("summary authority drift: {key}"));
+        }
+    }
+    for key in ["accepted_candidate_count", "human_review_count"] {
+        if summary[key] != 0 {
+            return Err(format!("summary review/count drift: {key}"));
+        }
+    }
+    if summary["schema_version"] != "tos_zarathustra_morphology_theme_candidate_summary_v1"
+        || summary["status"] != "completed-agent-candidate-pass-no-promotion"
+        || summary["parts"] != 4
+    {
+        return Err("summary schema/status/part drift".into());
+    }
+    for (count, key) in [
+        ("morphological_family_candidate_count", "families"),
+        ("thematic_cluster_candidate_count", "clusters"),
+        ("typed_relation_candidate_count", "typed_relations"),
+    ] {
+        root.tick(1)?;
+        if summary[count].as_u64() != Some(arr(&analysis[key])?.len() as u64) {
+            return Err(format!("summary count drift: {count}"));
+        }
+    }
+    for (count, key, field) in [
+        ("families_by_language", "families", "language"),
+        ("family_status_counts", "families", "status"),
+        ("cluster_status_counts", "clusters", "status"),
+        ("relation_type_counts", "typed_relations", "relation_type"),
+    ] {
+        if summary[count] != json!(census(root, arr(&analysis[key])?, field)?) {
+            return Err(format!("summary census drift: {count}"));
+        }
+    }
+    let mut forms = Set::new();
+    let mut challengers = 0usize;
+    for family in arr(&analysis["families"])? {
+        root.tick(1)?;
+        if family["candidate_kind"] == "alignment_neighborhood_family_challenger" {
+            challengers += 1;
+        }
+        for member in arr(&family["member_keys"])? {
+            root.tick(1)?;
+            forms.insert(s(member)?.to_owned());
+        }
+    }
+    if summary["alignment_challenger_family_count"].as_u64() != Some(challengers as u64) {
+        return Err("challenger count drift".into());
+    }
+    root.check()?;
+    let coverage: V = serde_json::from_slice(&tracked[&route("coverage-receipt.v1.json")])
+        .map_err(|e| e.to_string())?;
+    root.check()?;
+    if coverage["schema_version"] != "tos_zarathustra_morphology_theme_candidate_coverage_v1"
+        || coverage["parts_complete"] != 4
+        || coverage["languages"] != json!(["de", "ru"])
+        || coverage["private_output_mode"] != "0600"
+        || coverage["competing_memberships_preserved"] != true
+        || coverage["zero_review_refs"] != true
+        || coverage["provider_output_used_as_accepted_morphology"] != false
+        || coverage["tracked_source_strings"] != false
+        || coverage["accepted_candidate_count"] != 0
+        || coverage["graph_effect"] != false
+        || coverage["input_keyword_form_candidates"] != summary["input_form_candidate_count"]
+        || coverage["forms_with_family_membership"].as_u64() != Some(forms.len() as u64)
+        || coverage["russian_provider"] != analysis["russian_morphology_provider"]
+    {
+        return Err("coverage schema/count/provider/authority drift".into());
+    }
+    let predecessor = &selected.value["inputs"]["parallel_lexical_manifest"];
+    let predecessor_manifest = bound_json(
+        root,
+        s(&predecessor["ref"])?,
+        s(&predecessor["sha256"])?,
+        None,
+        None,
+        512 * 1024,
+    )?;
+    let coverage_ref = previous_ref("coverage-receipt.v1.json");
+    let entry = &predecessor_manifest["generated_outputs"][&coverage_ref];
+    let previous_coverage = bound_json(
+        root,
+        &coverage_ref,
+        s(&entry["sha256"])?,
+        Some(
+            entry["byte_size"]
+                .as_u64()
+                .ok_or("previous coverage size required")?,
+        ),
+        Some(0o644),
+        64 * 1024,
+    )?;
+    let census_input = &selected.value["inputs"]["german_morphology_census_receipt"];
+    let provider_census = bound_json(
+        root,
+        s(&census_input["ref"])?,
+        s(&census_input["sha256"])?,
+        None,
+        None,
+        64 * 1024,
+    )?;
+    if coverage["positive_alignment_units_used_for_co_recurrence"]
+        != previous_coverage["proposed_positive_evidence_units"]
+        || coverage["german_provider_census_token_coverage"]
+            != provider_census["coverage"]["token_weighted_coverage"]
+    {
+        return Err("coverage selected input applicability drift".into());
+    }
+    let expected_event = json!({"schema_version":"tos_provenance_event_v1","event_id":"tos.event.zarathustra-morphology-theme-candidates-v1.build","event_type":"agent_candidate_morphology_theme_materialization","occurred_at":"2026-09-02T03:00:00-06:00","agent_ref":"codex-internal-agents.morphology-theme-candidate-v1","software_ref":GENERATOR,"software_sha256":RECIPE_SHA256,"plan_ref":selected.reference,"plan_sha256":selected.digest,"authority_boundary":selected.value["authority_boundary"]});
+    if lines(&[expected_event])? != tracked[&route("provenance.jsonl")] {
+        return Err("provenance selected recipe/plan/authority drift".into());
+    }
+    let report = json!({"status":"validated-existing-receipts-no-regeneration","plan_ref":selected.reference,"plan_sha256":selected.digest,"manifest_sha256":hash(&bytes),"generated_outputs_validated":6,"private_outputs_validated":1,"private_analysis_read":true,"identity_count":ids.len(),"algorithm_equivalence_asserted":false,"provider_invoked":false,"writes":false} );
+    root.check()?;
+    Ok(report)
+}
+
 pub fn run(root: &Path, args: &[String]) -> R<V> {
     let execution = ResearchExecution::new(root, 180)?;
     run_scoped(&execution, args)
@@ -1246,9 +1566,12 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> R<V> {
     while let Some(arg) = arguments.next() {
         root.tick(1)?;
         match arg.as_str() {
-            "--build" | "--check" | "--preview" => {
+            "--build" | "--check" | "--preview" | "--validate-tracked" => {
                 if mode.replace(arg.as_str()).is_some() {
-                    return Err("exactly one of --build, --check, --preview required".into());
+                    return Err(
+                        "exactly one of --build, --check, --preview, --validate-tracked required"
+                            .into(),
+                    );
                 }
             }
             "--issue-identities" => issue_ids = true,
@@ -1266,7 +1589,8 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> R<V> {
             _ => return Err(format!("unrecognized argument: {arg}")),
         }
     }
-    let mode = mode.ok_or("exactly one of --build, --check, --preview required")?;
+    let mode =
+        mode.ok_or("exactly one of --build, --check, --preview, --validate-tracked required")?;
     if issue_ids && mode != "--build" {
         return Err("--issue-identities is valid only with --build".into());
     }
@@ -1278,6 +1602,9 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> R<V> {
     )?;
     if selected.custom && issue_ids {
         return Err("custom technical profile cannot remint v1 identities".into());
+    }
+    if mode == "--validate-tracked" {
+        return validate_tracked_scoped(root, &selected);
     }
     if mode == "--preview" {
         let g = generate(root, false, &selected)?;

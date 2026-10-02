@@ -80,6 +80,11 @@ def signatures(value: str, language: str) -> list[tuple[str, str, int]]:
 
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
+    # The dedicated native research parser accepts separate option/value tokens.
+    args = [token for arg in args for token in (
+        ["--source-root", arg.split("=", 1)[1]]
+        if arg.startswith("--source-root=") else [arg]
+    )]
     native = os.environ.get("TOS_NATIVE_PREPARED_CONSUMER_BIN") or shutil.which("tos")
     if not native or not Path(native).is_absolute():
         print("error: select installed tos through TOS_NATIVE_PREPARED_CONSUMER_BIN or PATH", file=sys.stderr)
