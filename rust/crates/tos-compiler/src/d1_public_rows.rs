@@ -756,7 +756,7 @@ pub fn project_private_navigation_row(
             if index == 1 {
                 C::Integer(ordinal)
             } else {
-                C::Text(value.clone())
+                C::Text((*value).to_owned())
             }
         })
         .collect::<Vec<_>>();

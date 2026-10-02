@@ -700,6 +700,7 @@ fn branches(
     for (key, value) in rows {
         let digest = sha256(key.as_bytes());
         let digit = digest
+            .as_bytes()
             .get(prefix.len()..prefix.len() + 1)
             .ok_or(Error::Invalid("D1 projection key hash depth"))?;
         let digit =
@@ -1016,7 +1017,7 @@ fn decode_gzip(stored: &[u8], expected: u64) -> Result<Vec<u8>> {
     if decoded.len() as u64 != expected {
         return Err(Error::Invalid("D1 projection gzip length"));
     }
-    let inner = decoder.into_inner();
+    let mut inner = decoder.into_inner();
     let position = inner
         .stream_position()
         .map_err(|_| Error::Invalid("D1 projection gzip position"))?;
