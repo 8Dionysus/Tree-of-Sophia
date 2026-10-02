@@ -7,7 +7,8 @@ use std::time::{Duration, Instant};
 use tos_source_store::CutReadLimits;
 use tos_validation::FormatProfile;
 use tos_validation::executor::{
-    BatchBudget, BatchCoverageExpectation, BatchUnit, ExactWorkerIdentity, ExecutorBudget,
+    BatchBudget, BatchCoverageExpectation, BatchStreamBudget, BatchUnit, ExactWorkerIdentity,
+    ExecutorBudget,
 };
 use tos_validation::item_rules::ItemLimits;
 use tos_validation::operation::{

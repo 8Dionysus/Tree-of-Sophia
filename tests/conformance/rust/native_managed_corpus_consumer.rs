@@ -107,7 +107,7 @@ fn http(address: &str, method: &str, target: &str) -> (u16, usize, Vec<u8>) {
 fn arguments(request: &R) -> serde_json::Value {
     use serde_json::json;
     match request {
-        R::Status | R::Summary => json!({}),
+        R::Status | R::Summary | R::GraphViews => json!({}),
         R::Search {
             query,
             limit,
@@ -130,7 +130,7 @@ fn arguments(request: &R) -> serde_json::Value {
 }
 fn http_target(request: &R, path: &str) -> Option<String> {
     Some(match request {
-        R::Status | R::Summary => path.to_owned(),
+        R::Status | R::Summary | R::GraphViews => path.to_owned(),
         R::Search {
             query,
             limit,
@@ -145,7 +145,12 @@ fn http_target(request: &R, path: &str) -> Option<String> {
             path.split('{').next().unwrap(),
             encoded(view_id)
         ),
-        _ => return None,
+        R::Search {
+            resource_kind: Some(_),
+            ..
+        }
+        | R::Resources { .. }
+        | R::Packet { .. } => return None,
     })
 }
 fn display_context(value: &mut JsonValue, root: &Path, index: &Path) {
@@ -363,7 +368,13 @@ pub(super) fn exercise_managed_native_corpus(
                     &output,
                 );
             }
-            _ => {}
+            R::GraphViews
+            | R::Search { .. }
+            | R::Resources { .. }
+            | R::Node { .. }
+            | R::RelationPack { .. }
+            | R::GraphView { .. }
+            | R::Packet { .. } => {}
         }
         expected.push(
             canonical_bytes_v1(

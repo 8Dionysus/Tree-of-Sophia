@@ -1119,12 +1119,11 @@ fn presentation(entity_registry: &Value) -> Result<Value> {
     let Some(value) = entity_registry.get("context_presentation") else {
         return Ok(Value::Null);
     };
-    let encoded =
-        serde_json::to_vec(value).map_err(|_| Error::Invalid("context presentation JSON"))?;
+    let encoded = crate::prepared_catalog_semantics::encoded(value)?;
     Ok(json!({"id":text(value,"presentation_id")?,
         "version":value.get("presentation_version").ok_or(Error::Invalid("presentation version"))?,
         "source_ref":"ToS/doctrine/semantic-interchange/entity-types.v1.json",
-        "digest":format!("sha256:{}",Digest256::of_bytes(&encoded).to_hex()),"payload":value}))
+        "digest":format!("sha256:{}",Digest256::of_bytes(encoded.as_bytes()).to_hex()),"payload":value}))
 }
 
 fn capabilities(
