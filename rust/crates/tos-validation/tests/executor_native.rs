@@ -4,6 +4,7 @@
 #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
 mod linux {
     use std::path::PathBuf;
+    use std::time::{Duration, Instant};
 
     use tos_foundation::Digest256;
     use tos_validation::executor::{
@@ -11,13 +12,16 @@ mod linux {
     };
     use tos_validation::{FormatProfile, SchemaResource};
 
-    fn worker() -> ExactWorkerIdentity {
+    fn worker() -> (ExactWorkerIdentity, usize, Duration) {
         let path = PathBuf::from(env!("CARGO_BIN_EXE_tos-schema-worker"));
+        let started = Instant::now();
         let image = std::fs::read(&path).expect("Cargo-built dedicated worker");
-        ExactWorkerIdentity {
+        let image_bytes = image.len();
+        let identity = ExactWorkerIdentity {
             absolute_path: path,
             sha256: Digest256::of_bytes(&image),
-        }
+        };
+        (identity, image_bytes, started.elapsed())
     }
 
     fn resources() -> Vec<SchemaResource> {
@@ -29,14 +33,25 @@ mod linux {
 
     #[test]
     fn dedicated_worker_evaluates_exact_raw_instances_and_rejects_duplicate_members() {
-        let worker = worker();
+        let (worker, image_bytes, identity_elapsed) = worker();
         let resources = resources();
         let profile = FormatProfile::AssertedSourceCandidateV1;
         let root_uri = resources[0].uri.as_str();
         let budget = ExecutorBudget::laboratory();
+        let evaluation_started = Instant::now();
         let valid =
             BoundedSchemaExecutor::evaluate(&worker, &resources, profile, root_uri, b"7", budget);
+        let evaluation_elapsed = evaluation_started.elapsed();
         let ExecutorOutcome::SchemaValid(valid_identity) = valid else {
+            eprintln!(
+                "worker probe failure: image_bytes={image_bytes} identity_read_hash_ms={} evaluation_ms={} profile={profile:?} execution_wall_ms={} cleanup_grace_ms={} cpu_seconds={} address_space_bytes={}",
+                identity_elapsed.as_millis(),
+                evaluation_elapsed.as_millis(),
+                budget.execution_wall.as_millis(),
+                budget.cleanup_grace.as_millis(),
+                budget.cpu_seconds,
+                budget.address_space_bytes,
+            );
             panic!("real worker did not complete valid instance: {valid:?}");
         };
         assert_eq!(valid_identity.worker_sha256, worker.sha256);
