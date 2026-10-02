@@ -4087,9 +4087,7 @@ mod native {
                     location.len(),
                     root_uri.len(),
                     raw_instance.len(),
-                    self.image
-                        .image_bytes()
-                        .map_err(|reason| self.poison(reason))?,
+                    self.image_bytes().map_err(|reason| self.poison(reason))?,
                     limits,
                 )
                 .map_err(|reason| self.poison(reason))?;
