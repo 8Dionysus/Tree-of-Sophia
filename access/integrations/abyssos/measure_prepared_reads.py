@@ -89,6 +89,36 @@ def final_model_coordination(model, output):
     return artifacts
 
 
+def parse_server_observation(raw):
+    def unique_pairs(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError('duplicate native observation field')
+            result[key] = value
+        return result
+
+    value = json.loads(raw.decode('utf-8'), object_pairs_hook=unique_pairs)
+    if (not isinstance(value, dict) or set(value) !=
+            {'schema', 'complete', 'connections', 'operations', 'queue', 'overflowed'} or
+            value['schema'] != 'tos_http_observation_v1' or
+            type(value['complete']) is not bool or type(value['overflowed']) is not bool):
+        raise ValueError('invalid native observation shape/version')
+    for field, keys in (('connections', {'accepted', 'refused_capacity', 'spawn_failed', 'live', 'peak'}),
+                        ('operations', {'entered', 'completed_ok', 'completed_error', 'live', 'peak'})):
+        counters = value[field]
+        if (not isinstance(counters, dict) or set(counters) != keys or
+                any(type(n) is not int or not 0 <= n <= 2**64 - 1 for n in counters.values())):
+            raise ValueError('invalid native observation counters')
+        if counters['live'] > counters['peak'] or (value['complete'] and counters['live'] != 0):
+            raise ValueError('inconsistent native observation live counters')
+    queue = value['queue']
+    if (not isinstance(queue, dict) or set(queue) != {'supported', 'depth'} or
+            queue['supported'] is not False or type(queue['depth']) is not int or queue['depth'] != 0):
+        raise ValueError('invalid native observation queue')
+    return value
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('binary', 'model', 'binding', 'schedule', 'output', 'unit'):
@@ -99,12 +129,18 @@ def main():
     parser.add_argument('--transport', choices=('cli', 'http'), default='cli')
     parser.add_argument('--max-actors', type=positive)
     parser.add_argument('--port', type=positive)
+    parser.add_argument('--observe-http', action='store_true',
+                        help='require owned stdin-EOF shutdown and fixed native server observation')
     parser.add_argument('--server-log-cap-bytes', type=positive)
     args = parser.parse_args()
     if args.transport == 'http' and (args.port is None or args.port > 65535 or args.server_log_cap_bytes is None):
         parser.error('HTTP requires explicit port1..65535 and server-log-cap-bytes')
-    started = time.monotonic()
-    deadline = started + args.deadline_seconds
+    if args.observe_http and (args.transport != 'http' or args.deadline_seconds > 3600):
+        parser.error('observed HTTP requires transport=http and whole deadline <=3600 seconds')
+    started_ns = time.monotonic_ns()
+    deadline_ns = started_ns + args.deadline_seconds * 1_000_000_000
+    started = started_ns / 1_000_000_000
+    deadline = deadline_ns / 1_000_000_000
     target = Path(args.output)
     if not target.is_absolute() or target.is_symlink() or not target.is_dir():
         raise ValueError('output must be an existing absolute owned directory')
@@ -265,6 +301,38 @@ def main():
         server = None
         server_reader = None
         server_errors = []
+        server_observations = []
+        observation_errors = []
+        observation_line = bytearray()
+        observation_discard = False
+
+        def observe_stderr(raw):
+            # Bound control parsing separately from the already capped full raw log.
+            nonlocal observation_discard
+            marker = b'TOS_HTTP_OBSERVATION '
+            for piece in raw.splitlines(keepends=True):
+                newline = piece.endswith(b'\n')
+                if not observation_discard:
+                    if len(observation_line) + len(piece) > 1024:
+                        prefix = (bytes(observation_line[:len(marker)]) + piece[:len(marker)])[:len(marker)]
+                        if prefix == marker:
+                            if not observation_errors:
+                                observation_errors.append('oversize native observation')
+                        observation_discard = True
+                        observation_line.clear()
+                    else:
+                        observation_line.extend(piece)
+                if newline:
+                    if not observation_discard and observation_line.startswith(marker):
+                        try:
+                            server_observations.append(parse_server_observation(bytes(observation_line[len(marker):])))
+                        except (ValueError, UnicodeError) as exc:
+                            if not observation_errors:
+                                observation_errors.append(str(exc))
+                        if len(server_observations) > 1:
+                            raise ValueError('duplicate native observation')
+                    observation_line.clear()
+                    observation_discard = False
 
         def owns_listener():
             if server.poll() is not None:
@@ -305,6 +373,8 @@ def main():
                             total += len(raw)
                             if total > args.server_log_cap_bytes:
                                 raise ValueError('server log cap exceeded')
+                            if args.observe_http and key.data == 'stderr':
+                                observe_stderr(raw)
                             emit({'event': 'server_log', 'stream': key.data,
                                   'text': raw.decode('utf-8', errors='backslashreplace')})
             except Exception as exc:
@@ -477,9 +547,13 @@ def main():
         next_index = 0
         try:
             if args.transport == 'http':
-                server = subprocess.Popen([args.binary, '--prepared-read-model', args.model,
-                    '--prepared-binding', args.binding, 'serve', f'127.0.0.1:{args.port}'],
-                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                server_argv = [args.binary, '--prepared-read-model', args.model,
+                    '--prepared-binding', args.binding, 'serve', f'127.0.0.1:{args.port}']
+                if args.observe_http:
+                    server_argv += ['--observe-stdin-eof-deadline-ns', str(deadline_ns)]
+                server = subprocess.Popen(server_argv,
+                    stdin=subprocess.PIPE if args.observe_http else subprocess.DEVNULL,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     start_new_session=True, cwd=target)
                 server_reader = threading.Thread(target=drain_server)
                 server_reader.start()
@@ -548,6 +622,13 @@ def main():
                                 raise
         finally:
             if server is not None:
+                if args.observe_http:
+                    # Sole control writer: EOF only, never a command or renewed clock.
+                    server.stdin.close()
+                    while server.poll() is None and not stopped.is_set() and time.monotonic_ns() < deadline_ns:
+                        time.sleep(min(.02, max(0, (deadline_ns - time.monotonic_ns()) / 1_000_000_000)))
+                # Reap the whole owned group even if its leader has exited;
+                # surviving descendants must not retain drain pipe endpoints.
                 try:
                     os.killpg(server.pid, signal.SIGKILL)
                 except ProcessLookupError:
@@ -557,8 +638,20 @@ def main():
                     server_reader.join()
                 server.stdout.close()
                 server.stderr.close()
+                if args.observe_http:
+                    if observation_line.startswith(b'TOS_HTTP_OBSERVATION '):
+                        observation_errors.append('unterminated native observation')
+                    if len(server_observations) != 1:
+                        observation_errors.append('exactly one native observation required')
+                    if server.returncode != 0:
+                        observation_errors.append('native observed shutdown failed')
+                    if server_observations and (not server_observations[0]['complete'] or server_observations[0]['overflowed']):
+                        observation_errors.append('native observation incomplete')
+                    server_errors.extend(observation_errors)
                 emit({'event': 'server_terminal', 'exit_code': server.returncode,
-                      'errors': server_errors})
+                      'errors': server_errors,
+                      **({'observation': server_observations[0] if len(server_observations) == 1 else None,
+                          'observation_available': not observation_errors} if args.observe_http else {})})
         guard_error = None
         coordination = []
         try:

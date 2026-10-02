@@ -168,3 +168,31 @@ nondefault Claim oracle asserts exact unchanged predecessor rows and affected U.
 Source sizing, an exact read schedule and a successful byte comparison are
 separate evidence. Calibration must retain requested workload counts separately
 from static fixture floors and observed selected rows.
+
+
+Optional `--observe-http` requires the corresponding native observed-serve source
+and matching product; it does not infer capability from an older executable. It
+is HTTP-only and limits the original whole deadline to3600 seconds. The driver
+captures CLOCK_MONOTONIC nanoseconds once and passes the same absolute deadline
+as `serve --observe-stdin-eof-deadline-ns N`; EOF never renews the clock. The owned
+stdin pipe has one writer and receives no bytes. After requests finish, closing
+it stops acceptance and permits bounded native draining only until that original
+deadline. Cancellation, timeout or log-cap refusal still kills and reaps the
+owned process group through existing terminal cleanup. Legacy serving keeps its
+original DEVNULL/kill behavior.
+
+The native server emits exactly one `TOS_HTTP_OBSERVATION ` JSON line of at most
+1024 bytes on stderr. The driver keeps the already capped raw log and validates
+the fixed `tos_http_observation_v1` counters. Missing, duplicate, malformed,
+oversize, unterminated or incomplete summaries, overflow, nonzero exit or live
+counters on a claimed complete snapshot make opted-in observation unavailable
+and the whole result unsuccessful. Queue support remains false/depth0. Connection
+and kernel-operation counters are server observations; kernel completion is not
+a packet-disclosure or output-flush count, and neither counter authenticates
+client actor labels. No server admission cap or business response changes.
+
+This optional control adds a bounded1024-byte line buffer, one fixed summary DOM
+(and at most a second rejected duplicate), constant parser counters and one pipe;
+raw server log plus JSON escaping and the summary record count against the same
+explicit log/output limits. No additional time, source copy, corpus carrier,
+physical quota, native build or load admission is implied by this source option.
