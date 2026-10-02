@@ -1088,7 +1088,7 @@ mod tests {
         sorted.sort_by(|a, b| a.0.cmp(&b.0));
         let decoded = sorted
             .iter()
-            .flat_map(|(_, row)| canonical_record(row).unwrap())
+            .flat_map(|(key, row)| canonical_record(&json!({"key":key,"value":row})).unwrap())
             .collect::<Vec<_>>();
         let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
         encoder.write_all(&decoded).unwrap();

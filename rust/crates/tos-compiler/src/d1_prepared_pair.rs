@@ -818,6 +818,7 @@ mod tests {
         let mut after: Value = serde_json::from_str(&spec.after_reader_top).unwrap();
         after["data_revision"] = target.clone().into();
         spec.after_reader_top = after.to_string();
+        pair.rollback.successor_d1_revision = target.clone();
         let preview = inspect_prepared_pair(&spec, &pair).unwrap();
         assert_eq!(preview.target_d1_revision, target);
         assert!(!preview.owner_admitted);
