@@ -859,6 +859,7 @@
         "command": [
           "python",
           "scripts/build_epistemic_evidence_projection.py",
+          "--native",
           "--check"
         ]
       },
@@ -866,7 +867,8 @@
         "label": "validate epistemic evidence projection",
         "command": [
           "python",
-          "scripts/validate_epistemic_evidence_projection.py"
+          "scripts/validate_epistemic_evidence_projection.py",
+          "--native"
         ]
       },
       {
@@ -1076,6 +1078,7 @@
         "command": [
           "python",
           "scripts/build_epistemic_evidence_projection.py",
+          "--native",
           "--check"
         ]
       },
@@ -1083,7 +1086,8 @@
         "label": "validate epistemic evidence projection",
         "command": [
           "python",
-          "scripts/validate_epistemic_evidence_projection.py"
+          "scripts/validate_epistemic_evidence_projection.py",
+          "--native"
         ]
       },
       {
