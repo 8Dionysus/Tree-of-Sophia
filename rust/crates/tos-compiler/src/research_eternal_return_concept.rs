@@ -1,7 +1,7 @@
 //! Source-addressed bilingual concept dossier; generated candidates have no admission effect.
 use crate::research_eternal_return::{
-    a, bytes, count, digest, indexed, lines, load, load_lines, mode600, object, ordered_input_refs,
-    read, s, text_digest, verify_inputs, write,
+    a, bytes, count, digest, indexed, lines, load, load_lines, mode600, object, read, s,
+    text_digest, verify_inputs, write,
 };
 use crate::research_execution::ResearchExecution;
 use serde_json::{Value, json};
@@ -34,6 +34,158 @@ const OUTPUTS: [(&str, &str); 11] = [
 ];
 fn route(n: &str) -> String {
     format!("{ROUTE}/{n}")
+}
+
+const DEFAULT_PLAN_SHA256: &str =
+    "2ce7877b1c83a83647ca2ab3cc5e57e3ad2ce9c552e4953defeab049a05ca6e9";
+struct SelectedConceptPlan {
+    reference: String,
+    raw: Vec<u8>,
+    digest: String,
+    value: Value,
+    custom: bool,
+}
+fn parse_plan(root: &ResearchExecution, raw: &[u8]) -> Result<Value> {
+    root.tick(raw.len() as u64)?;
+    tos_foundation::parse_json(
+        raw,
+        tos_foundation::JsonMode::PublishedStrict,
+        tos_foundation::JsonLimits::new(64 * 1024, 64, 2_000_000, 4300)
+            .map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    root.check()?;
+    let value = serde_json::from_slice(raw).map_err(|e| e.to_string());
+    root.check()?;
+    value
+}
+fn profile_semantics(original: &Value, value: &Value) -> Result<()> {
+    let lineage = &value["input_profile_lineage"];
+    if !lineage.is_object()
+        || lineage["profile_version"].as_u64().is_none_or(|v| v < 2)
+        || lineage["supersedes_plan_ref"] != route("plan.v1.json")
+        || lineage["supersedes_plan_sha256"] != DEFAULT_PLAN_SHA256
+        || value["plan_id"].as_str().is_none_or(|v| v.is_empty())
+        || value["plan_id"] == original["plan_id"]
+        || value["status"] != "proposed-technical-input-profile-successor"
+    {
+        return Err("technical profile requires distinct identity, proposal status and exact predecessor lineage".into());
+    }
+    let mut comparable = value.clone();
+    let fields = comparable.as_object_mut().ok_or("plan object required")?;
+    fields.remove("input_profile_lineage");
+    for key in ["plan_id", "status"] {
+        fields.insert(key.into(), original[key].clone());
+    }
+    for label in ["parallel_lexical_manifest", "morphology_theme_manifest"] {
+        let record = &mut comparable["inputs"][label];
+        let hash = s(&record["sha256"])?;
+        if hash.len() != 64
+            || !hash
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        {
+            return Err("technical profile input SHA256 required".into());
+        }
+        record
+            .as_object_mut()
+            .ok_or("plan input object required")?
+            .insert("sha256".into(), original["inputs"][label]["sha256"].clone());
+    }
+    if comparable != *original {
+        return Err(
+            "technical profile changed source semantics, input membership or unselected pins"
+                .into(),
+        );
+    }
+    Ok(())
+}
+fn select_concept_plan(root: &ResearchExecution, reference: &str) -> Result<SelectedConceptPlan> {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    let default_ref = route("plan.v1.json");
+    let mut original_file = root.source_file(&default_ref, 64 * 1024)?;
+    let original_metadata = original_file.metadata().map_err(|e| e.to_string())?;
+    let original_raw = root.read_file(&mut original_file, 64 * 1024)?;
+    root.verify_file_unchanged(&original_file, &original_metadata)?;
+    if digest(&original_raw) != DEFAULT_PLAN_SHA256 {
+        return Err("default plan identity drift".into());
+    }
+    let original = parse_plan(root, &original_raw)?;
+    let custom = reference != default_ref;
+    if !custom {
+        return Ok(SelectedConceptPlan {
+            reference: reference.into(),
+            raw: original_raw,
+            digest: DEFAULT_PLAN_SHA256.into(),
+            value: original,
+            custom,
+        });
+    }
+    let path = Path::new(reference);
+    if path.is_absolute()
+        || path
+            .components()
+            .any(|p| !matches!(p, std::path::Component::Normal(_)))
+    {
+        return Err("profile must be a normal repository relative path".into());
+    }
+    let root_metadata = root
+        .root_directory()
+        .metadata()
+        .map_err(|e| e.to_string())?;
+    let mut file = root.source_file(reference, 64 * 1024)?;
+    let before = file.metadata().map_err(|e| e.to_string())?;
+    let uid = unsafe { libc::geteuid() };
+    if root_metadata.permissions().mode() & 0o7777 != 0o700
+        || root_metadata.uid() != uid
+        || before.permissions().mode() & 0o7777 != 0o600
+        || before.uid() != uid
+    {
+        return Err("custom profile requires owned private 0700 carrier and 0600 plan".into());
+    }
+    let raw = root.read_file(&mut file, 64 * 1024)?;
+    root.verify_file_unchanged(&file, &before)?;
+    let value = parse_plan(root, &raw)?;
+    profile_semantics(&original, &value)?;
+    root.tick(7)?;
+    root.check()?;
+    Ok(SelectedConceptPlan {
+        reference: reference.into(),
+        digest: digest(&raw),
+        raw,
+        value,
+        custom,
+    })
+}
+fn selected_input_refs(
+    root: &ResearchExecution,
+    selected: &SelectedConceptPlan,
+) -> Result<Vec<Value>> {
+    root.tick(selected.raw.len() as u64)?;
+    let doc = tos_foundation::parse_json(
+        &selected.raw,
+        tos_foundation::JsonMode::PublishedStrict,
+        tos_foundation::JsonLimits::new(64 * 1024, 64, 2_000_000, 4300)
+            .map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    let rows = doc
+        .root()
+        .object_get("inputs")
+        .and_then(|v| v.as_object())
+        .ok_or("plan inputs object required")?;
+    let refs = rows
+        .iter()
+        .map(|(_, row)| {
+            root.tick(1)?;
+            row.object_get("ref")
+                .and_then(|v| v.as_str())
+                .map(|r| json!(r))
+                .ok_or("input ref required".into())
+        })
+        .collect::<Result<Vec<Value>>>()?;
+    root.check()?;
+    Ok(refs)
 }
 fn private_ref() -> String {
     format!(
@@ -441,8 +593,16 @@ pub struct Prepared {
     pub summary: Value,
 }
 pub fn prepare(root: &ResearchExecution, units: &[Value]) -> Result<Prepared> {
-    let plan = load(root, &route("plan.v1.json"))?;
-    verify_inputs(root, &plan)?;
+    let selected = select_concept_plan(root, &route("plan.v1.json"))?;
+    verify_inputs(root, &selected.value)?;
+    prepare_selected(root, units, &selected)
+}
+fn prepare_selected(
+    root: &ResearchExecution,
+    units: &[Value],
+    selected: &SelectedConceptPlan,
+) -> Result<Prepared> {
+    let plan = &selected.value;
     let bindings = identity_bindings(root, units)?;
     let ids = identity_map(root, &bindings)?;
     let analysis = build_analysis(root, units, &ids)?;
@@ -486,8 +646,8 @@ pub fn prepare(root: &ResearchExecution, units: &[Value]) -> Result<Prepared> {
     let mut output_refs: Vec<String> = OUTPUTS.iter().map(|(_, n)| route(n)).collect();
     output_refs.push(private_ref());
     let provenance = vec![
-        json!({"schema_version":"tos_zarathustra_eternal_return_provenance_event_v1","event_id":"tos.event.zarathustra-eternal-return-concept-candidate-v1.plan","event_type":"plan_frozen","event_at":plan["frozen_at"],"input_refs":ordered_input_refs(root,&route("plan.v1.json"))?,"output_refs":[route("plan.v1.json")],"authority_effect":"none"}),
-        json!({"schema_version":"tos_zarathustra_eternal_return_provenance_event_v1","event_id":"tos.event.zarathustra-eternal-return-concept-candidate-v1.build","event_type":"candidate_dossier_built","event_at":plan["frozen_at"],"input_refs":[route("plan.v1.json"),route("identity-issuance.v1.json"),format!("{WORK}/{ALIGN}/manifest.v1.json")],"output_refs":output_refs,"authority_effect":"candidate_only_zero_graph_and_canon_effect"}),
+        json!({"schema_version":"tos_zarathustra_eternal_return_provenance_event_v1","event_id":"tos.event.zarathustra-eternal-return-concept-candidate-v1.plan","event_type":"plan_frozen","event_at":plan["frozen_at"],"input_refs":selected_input_refs(root,selected)?,"output_refs":[selected.reference],"authority_effect":"none"}),
+        json!({"schema_version":"tos_zarathustra_eternal_return_provenance_event_v1","event_id":"tos.event.zarathustra-eternal-return-concept-candidate-v1.build","event_type":"candidate_dossier_built","event_at":plan["frozen_at"],"input_refs":[selected.reference,route("identity-issuance.v1.json"),format!("{WORK}/{ALIGN}/manifest.v1.json")],"output_refs":output_refs,"authority_effect":"candidate_only_zero_graph_and_canon_effect"}),
     ];
     let mut outputs = BTreeMap::new();
     outputs.insert(route(OUTPUTS[0].1), bytes(&analysis["concept"], true)?);
@@ -516,7 +676,7 @@ pub fn prepare(root: &ResearchExecution, units: &[Value]) -> Result<Prepared> {
         .filter(|(role, _)| *role != "manifest")
         .map(|(role, n)| json!({"role":role,"ref":route(n),"sha256":digest(&outputs[&route(n)])}))
         .collect();
-    let manifest = json!({"schema_version":"tos_zarathustra_eternal_return_candidate_manifest_v1","route_id":"zarathustra-eternal-return-concept-candidate-v1","plan_ref":route("plan.v1.json"),"plan_sha256":digest(&read(root,&route("plan.v1.json"))?),"identity_issuance_ref":route("identity-issuance.v1.json"),"identity_issuance_sha256":digest(&read(root,&route("identity-issuance.v1.json"))?),"generator_ref":GENERATOR,"generator_sha256":RECIPE_SHA256,"artifacts":artifacts,"private_artifact":{"ref":private_ref(),"sha256":digest(&private),"mode":"0600","tracked":false},"accepted_candidate_count":0,"human_review_count":0,"graph_effect":false,"canon_effect":false});
+    let manifest = json!({"schema_version":"tos_zarathustra_eternal_return_candidate_manifest_v1","route_id":"zarathustra-eternal-return-concept-candidate-v1","plan_ref":selected.reference,"plan_sha256":selected.digest,"identity_issuance_ref":route("identity-issuance.v1.json"),"identity_issuance_sha256":digest(&read(root,&route("identity-issuance.v1.json"))?),"generator_ref":GENERATOR,"generator_sha256":RECIPE_SHA256,"artifacts":artifacts,"private_artifact":{"ref":private_ref(),"sha256":digest(&private),"mode":"0600","tracked":false},"accepted_candidate_count":0,"human_review_count":0,"graph_effect":false,"canon_effect":false});
     outputs.insert(route(OUTPUTS[10].1), bytes(&manifest, true)?);
     root.tick(private.len() as u64 + outputs.values().map(|v| v.len() as u64).sum::<u64>())?;
     Ok(Prepared {
@@ -532,7 +692,10 @@ pub fn run(root: &Path, args: &[String]) -> Result<Value> {
 pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
     let mut mode = None;
     let mut issuance = false;
-    for arg in args {
+    let mut plan_ref = route("plan.v1.json");
+    let mut seen_plan_ref = false;
+    let mut args = args.iter();
+    while let Some(arg) = args.next() {
         root.tick(1)?;
         match arg.as_str() {
             "--build" | "--check" | "--preview" => {
@@ -541,6 +704,14 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
                 }
             }
             "--issue-identities" => issuance = true,
+            "--plan-ref" => {
+                if seen_plan_ref {
+                    return Err("duplicate --plan-ref".into());
+                }
+                seen_plan_ref = true;
+                root.tick(1)?;
+                plan_ref = args.next().ok_or("--plan-ref needs a reference")?.clone();
+            }
             _ => return Err(format!("unknown argument: {arg}")),
         }
     }
@@ -548,17 +719,23 @@ pub fn run_scoped(root: &ResearchExecution, args: &[String]) -> Result<Value> {
     if issuance && mode != "--build" {
         return Err("--issue-identities is valid only with --build".into());
     }
-    let plan = load(root, &route("plan.v1.json"))?;
-    verify_inputs(root, &plan)?;
+    let selected = select_concept_plan(root, &plan_ref)?;
+    if selected.custom && issuance {
+        return Err("custom profile cannot issue identities".into());
+    }
+    verify_inputs(root, &selected.value)?;
     let units = hydrate_units(root)?;
     let bindings = identity_bindings(root, &units)?;
+    if selected.custom {
+        identity_map(root, &bindings)?;
+    }
     if mode == "--preview" {
         return Ok(json!({"identity_count":bindings.len(),"unit_count":units.len()}));
     }
     if issuance {
-        issue(root, &bindings, &plan)?
+        issue(root, &bindings, &selected.value)?
     }
-    let prepared = prepare(root, &units)?;
+    let prepared = prepare_selected(root, &units, &selected)?;
     if mode == "--build" {
         for (p, b) in &prepared.outputs {
             root.tick(1)?;
