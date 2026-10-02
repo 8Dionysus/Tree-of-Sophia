@@ -507,6 +507,50 @@ impl StreamedCorpusCutReaderV1 {
         path.map(decode_path).transpose()
     }
 
+    /// Look up an identity without allocating an owned path before checking
+    /// its caller allowance. This covers the requested path bytes and inline
+    /// RelativePath state, not SQLite pager or allocator/RSS overhead.
+    pub fn identity_path_bounded(
+        &self,
+        revision: SourceRevision,
+        id: &str,
+        max_owned_state_bytes: usize,
+    ) -> Result<Option<RelativePath>> {
+        self.require_revision(revision)?;
+        let path = self
+            .index
+            .query_row(
+                "SELECT path FROM identities WHERE revision=?1 AND id=?2",
+                params![revision.0.as_bytes().as_slice(), id],
+                |row| {
+                    let value = row.get_ref(0)?;
+                    Ok(match value {
+                        rusqlite::types::ValueRef::Text(bytes) => {
+                            let state =
+                                bytes.len().checked_add(std::mem::size_of::<RelativePath>());
+                            if state.is_none_or(|state| state > max_owned_state_bytes) {
+                                Err(refusal(
+                                    "private source identity path exceeds owned-state allowance",
+                                ))
+                            } else {
+                                std::str::from_utf8(bytes)
+                                    .map_err(|_| mismatch("private source index path changed"))
+                                    .and_then(|path| {
+                                        RelativePath::parse(path).map_err(|_| {
+                                            mismatch("private source index path changed")
+                                        })
+                                    })
+                            }
+                        }
+                        _ => Err(mismatch("private source index path changed")),
+                    })
+                },
+            )
+            .optional()
+            .map_err(sql_error)?;
+        path.transpose()
+    }
+
     pub fn identity_after(
         &self,
         revision: SourceRevision,
