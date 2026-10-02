@@ -134,8 +134,25 @@ storage and process resources. No command writes the canonical projection or
 source provenance, changes data selection, accepts German, supplies a lemma or
 sign, clears rights, admits canon, or grants publication.
 
-The Python builder/validator remains the distinct compatibility oracle until
-real-input parity and the installed native producer/validator consumer have been
-accepted. Archived source copies and historical lexical artifacts retain their
-original identities. The native reading/word-search API is a consumer of reading
-data and does not replace this lexical producer.
+The maintained native route is `tos lexical-index build`, followed by
+`tos lexical-index validate` on that private candidate. The producer also runs
+the existing private SQLite query probes for exact and normalized forms,
+prefixes, phrases, sections, source items/pages, language and edition; their
+counts belong to the projection's local receipt. This is the DTA maintainer
+consumer. Word/Concept and Reading use their own workbench contracts and do not
+accept this DTA database or projection as an overlay.
+
+The installed source-bound mode-4 producer and complete native validator have
+passed on the authenticated prior `5bf2` Parts 1–4 input. This is private
+mechanical validation, not canonical data selection or semantic acceptance.
+Optional private usage and morphology companions are verified only when
+present; a successful absent-companion branch does not verify their bytes.
+
+The original Python builder/validator remains the compatibility oracle while
+the retained-control check and original-output parity are pending. Use
+`validate-legacy` for an explicit historical control; it does not rebuild or
+retire that control. The original script, archived copies, historical profiles
+and artifacts keep their exact source associations and identities. They are not
+the default native maintainer route, and are not deleted, rewritten or relabelled
+as native results. A native build or validator pass alone does not complete
+oracle parity, approve a data cutover, or migrate another consumer's frozen pins.
