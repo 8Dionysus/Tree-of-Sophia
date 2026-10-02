@@ -103,7 +103,11 @@ pub(crate) fn lines(rows: &[Value]) -> Result<Vec<u8>> {
     }
     Ok(b)
 }
-pub(crate) fn indexed(rows: Vec<Value>, key: &str) -> Result<BTreeMap<String, Value>> {
+pub(crate) fn indexed(
+    root: &ResearchExecution,
+    rows: Vec<Value>,
+    key: &str,
+) -> Result<BTreeMap<String, Value>> {
     let mut m = BTreeMap::new();
     for row in rows {
         root.tick(1)?;
@@ -137,11 +141,13 @@ pub fn source_ordered_rows(
     units: &BTreeMap<String, Value>,
 ) -> Result<Vec<Value>> {
     let public = indexed(
+        root,
         load_lines(root, &format!("{PARENT}/evidence-spine.v1.jsonl"))?,
         "alignment_ref",
     )?;
-    let private=indexed(a(&load(root,&format!("{WORK}/gold-sets/foundation-pilot-v1/local-content/eternal-return-concept-candidate-v1/eternal-return-analysis.v1.json"))?["evidence"] )?.clone(),"alignment_ref")?;
+    let private=indexed(root, a(&load(root,&format!("{WORK}/gold-sets/foundation-pilot-v1/local-content/eternal-return-concept-candidate-v1/eternal-return-analysis.v1.json"))?["evidence"] )?.clone(),"alignment_ref")?;
     let spine = indexed(
+        root,
         load_lines(
             root,
             &format!("{WORK}/{ALIGN_SUFFIX}/alignment-spine.v1.jsonl"),
@@ -428,14 +434,16 @@ fn speakers(root: &ResearchExecution, rows: &[Value], ids: &Ids) -> Result<Vec<V
 fn matrix(root: &ResearchExecution, speakers: &[Value], ids: &Ids) -> Result<Value> {
     let c = constants();
     let templates = indexed(
+        root,
         load_lines(root, &format!("{PARENT}/interpretation-templates.v1.jsonl"))?,
         "claim_code",
     )?;
     let evidence = indexed(
+        root,
         load_lines(root, &format!("{PARENT}/evidence-spine.v1.jsonl"))?,
         "alignment_ref",
     )?;
-    let by_evidence = indexed(speakers.to_vec(), "evidence_ref")?;
+    let by_evidence = indexed(root, speakers.to_vec(), "evidence_ref")?;
     let mut axes = Vec::new();
     for codev in a(&c["axes"])? {
         root.tick(1)?;
@@ -538,7 +546,7 @@ pub fn prepare(
         outputs.insert(route(n), bytes(v, true)?);
     }
     outputs.insert(route(OUTPUTS[6].1), lines(&[provenance])?);
-    let private_rows = indexed(rows.clone(), "alignment_ref")?;
+    let private_rows = indexed(root, rows.clone(), "alignment_ref")?;
     let speaker_evidence:Vec<Value>=speakers.iter().map(|sp|{let row=&private_rows[sp["alignment_ref"].as_str().unwrap()];json!({"speaker_attribution_candidate_id":sp["speaker_attribution_candidate_id"],"alignment_ref":sp["alignment_ref"],"de_text":row["de_text"],"ru_text":row["ru_text"]})}).collect();
     let c = constants();
     let mut counter_refs = BTreeSet::new();
@@ -595,6 +603,7 @@ pub(crate) fn mode600(root: &ResearchExecution, p: &str) -> Result<()> {
 /// Hydrate only fields consumed by this review producer, returning exact anchor slices.
 pub fn hydrate_units(root: &ResearchExecution) -> Result<BTreeMap<String, Value>> {
     let spine = indexed(
+        root,
         load_lines(
             root,
             &format!("{WORK}/{ALIGN_SUFFIX}/alignment-spine.v1.jsonl"),
@@ -610,8 +619,16 @@ pub fn hydrate_units(root: &ResearchExecution) -> Result<BTreeMap<String, Value>
             root,
             &format!("{WORK}/{ALIGN_SUFFIX}/part-{part}.translation-alignment-packet.v1.json"),
         )?;
-        let source_anchors = indexed(a(&packet["source_side"]["anchors"])?.clone(), "anchor_ref")?;
-        let target_anchors = indexed(a(&packet["target_side"]["anchors"])?.clone(), "anchor_ref")?;
+        let source_anchors = indexed(
+            root,
+            a(&packet["source_side"]["anchors"])?.clone(),
+            "anchor_ref",
+        )?;
+        let target_anchors = indexed(
+            root,
+            a(&packet["target_side"]["anchors"])?.clone(),
+            "anchor_ref",
+        )?;
         for alignment in a(&packet["alignments"])? {
             root.tick(1)?;
             let aid = s(&alignment["alignment_id"])?;
@@ -840,7 +857,9 @@ mod tests {
     #[test]
     fn duplicate_identity_binding_fails() {
         let rows = vec![json!({"alignment_ref":"a"}), json!({"alignment_ref":"a"})];
-        assert!(indexed(rows, "alignment_ref").is_err());
+        let directory = tempfile::tempdir().unwrap();
+        let root = ResearchExecution::new(directory.path(), 180).unwrap();
+        assert!(indexed(&root, rows, "alignment_ref").is_err());
     }
 }
 

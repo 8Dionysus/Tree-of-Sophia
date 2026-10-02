@@ -194,6 +194,7 @@ pub fn hydrate_units(root: &ResearchExecution) -> Result<Vec<Value>> {
     let source = crate::research_eternal_return::hydrate_units(root)?;
     let mut rows = crate::research_parallel_lexical::load_parallel(root)?;
     let spine = indexed(
+        root,
         load_lines(root, &format!("{WORK}/{ALIGN}/alignment-spine.v1.jsonl"))?,
         "alignment_id",
     )?;

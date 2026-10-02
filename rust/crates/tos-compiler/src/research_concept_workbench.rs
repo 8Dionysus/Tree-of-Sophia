@@ -716,11 +716,13 @@ fn english_tasks(
         }
     }
     let mut out = vec![];
-    for o in occ.iter().filter(|o| {
+    for o in occ {
         root.tick(1)?;
-        s(o, "language") == s(&request["english_generation"], "source_language")
-            && !o["context_unit_ref"].is_null()
-    }) {
+        if s(o, "language") != s(&request["english_generation"], "source_language")
+            || o["context_unit_ref"].is_null()
+        {
+            continue;
+        }
         let unit = by[s(o, "context_unit_ref")];
         let alignment = unique(
             arr(&unit["alignment_links"])
@@ -909,10 +911,14 @@ fn exclusions(
         } else {
             crate::research_parallel_lexical::base_key(s(control, "form"))
         };
-        for o in all.iter().filter(|o| {
+        for o in all {
             root.tick(1)?;
-            o["in_work_scope"] == true && s(o, "language") == lang && s(o, "analysis_key") == norm
-        }) {
+            if !(o["in_work_scope"] == true
+                && s(o, "language") == lang
+                && s(o, "analysis_key") == norm)
+            {
+                continue;
+            }
             out.push(json!({"schema_version":"tos_zarathustra_concept_exclusion_candidate_v1","control_code":control["control_code"],"language":lang,"existing_occurrence_ref":o["existing_occurrence_ref"],"context_unit_ref":o["context_unit_ref"],"exact_form_sha256":o["exact_sha256"],"exclusion_status":"request_declared_negative_control","review_status":"unreviewed","accepted":false,"graph_effect":false,"canon_effect":false}));
         }
     }
@@ -920,10 +926,12 @@ fn exclusions(
         .iter()
         .map(|f| (s(f, "language"), s(f, "analysis_key")))
         .collect();
-    for o in all.iter().filter(|o| {
+    for o in all {
         root.tick(1)?;
-        o["in_work_scope"] != true && keys.contains(&(s(o, "language"), s(o, "analysis_key")))
-    }) {
+        if !(o["in_work_scope"] != true && keys.contains(&(s(o, "language"), s(o, "analysis_key"))))
+        {
+            continue;
+        }
         out.push(json!({"schema_version":"tos_zarathustra_concept_exclusion_candidate_v1","control_code":"outside_zarathustra_work_scope","language":o["language"],"existing_occurrence_ref":o["existing_occurrence_ref"],"context_unit_ref":null,"exact_form_sha256":o["exact_sha256"],"exclusion_status":"separate_appended_work","review_status":"source_scope_verified","accepted":false,"graph_effect":false,"canon_effect":false}));
     }
     Ok(out)
