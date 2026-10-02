@@ -601,8 +601,19 @@ impl ReleaseLease {
         }
         // Native produced output and captured public input have disjoint
         // provenance. Neither selection nor this check grants authored rights.
+        let runtime_capture = receipt.origin.profile == "captured-runtime-projection-v1";
         let native = match receipt.origin.profile.as_str() {
             "captured-public-corpus-v1" if receipt.origin.native_producer.is_none() => None,
+            // A held runtime projection has no invented Git or authored producer origin.
+            // The compiler's typed receipt decoder verifies its complete member digest.
+            "captured-runtime-projection-v1"
+                if receipt.origin.native_producer.is_none()
+                    && receipt.origin.source_git_commit.is_none()
+                    && receipt.origin.source_git_tree.is_none()
+                    && receipt.origin.capture_manifest_sha256.is_some() =>
+            {
+                None
+            }
             "native-corpus-producer-v1" => {
                 let proof = receipt
                     .origin
@@ -647,6 +658,18 @@ impl ReleaseLease {
             if size != member.size_bytes
                 || sha.to_hex() != member.sha256
                 || match native {
+                    None if runtime_capture => {
+                        // The selected component root authenticates the complete captured
+                        // member digest; DataGuard still binds every part below. Only the
+                        // declared root needs a redundant source binding. Any supplied
+                        // part binding must agree rather than silently overriding custody.
+                        (member.path == receipt.origin.source_path
+                            && release.source_bindings.get(&member.path) != Some(&sha))
+                            || release
+                                .source_bindings
+                                .get(&member.path)
+                                .is_some_and(|bound| bound != &sha)
+                    }
                     None => release.source_bindings.get(&member.path) != Some(&sha),
                     Some(proof) => {
                         release.source_bindings.contains_key(&member.path)

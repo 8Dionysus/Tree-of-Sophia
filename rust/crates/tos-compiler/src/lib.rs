@@ -85,6 +85,7 @@ mod knowledge_original_rows;
 mod knowledge_philosophy_original;
 mod knowledge_posting_codec;
 pub mod native_snapshot;
+pub mod native_snapshot_manifest;
 pub use knowledge_philosophy_original::{
     KNOWLEDGE_PHILOSOPHY_MODEL_ABI, PHILOSOPHY_ORIGINAL_PROFILE, PhilosophyOriginalCollection,
     PhilosophyOriginalInput, PhilosophyOriginalPage, PhilosophyOriginalReceipt,
