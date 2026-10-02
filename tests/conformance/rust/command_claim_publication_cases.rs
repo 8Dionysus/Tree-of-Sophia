@@ -992,31 +992,33 @@ fn agent_sql_snapshot(
             .collect::<Vec<_>>()
             .join(",");
         let mut statement = connection
-            .prepare(&format!(
-                "SELECT * FROM \"{name}\" ORDER BY {order} LIMIT 16385"
-            ))
+            .prepare(&format!("SELECT * FROM \"{name}\" ORDER BY {order}"))
             .unwrap();
-        let values = statement
-            .query_map([], |r| {
-                (0..columns)
-                    .map(|column| r.get::<_, rusqlite::types::Value>(column))
-                    .collect::<rusqlite::Result<Vec<_>>>()
-            })
-            .unwrap()
-            .map(Result::unwrap)
-            .collect::<Vec<_>>();
-        assert!(values.len() <= 16384);
-        for row in &values {
-            for value in row {
-                let size = match value {
-                    rusqlite::types::Value::Text(v) => v.len(),
-                    rusqlite::types::Value::Blob(v) => v.len(),
+        let mut rows = statement.query([]).unwrap();
+        let mut values = Vec::new();
+        while let Some(row) = rows.next().unwrap() {
+            assert!(Instant::now() < deadline);
+            // Charge owned cell state and outer Vec growth before retaining a row.
+            // Four row slots cover Vec's initial allocation and later doubling.
+            let mut row_bytes = 4 * std::mem::size_of::<Vec<rusqlite::types::Value>>()
+                + columns * std::mem::size_of::<rusqlite::types::Value>();
+            for column in 0..columns {
+                let size = match row.get_ref(column).unwrap() {
+                    rusqlite::types::ValueRef::Text(v) | rusqlite::types::ValueRef::Blob(v) => {
+                        v.len()
+                    }
                     _ => 16,
                 };
                 assert!(size <= 16_777_216);
-                bytes = bytes.checked_add(size).unwrap();
-                assert!(bytes <= 33_554_432);
+                row_bytes = row_bytes.checked_add(size).unwrap();
             }
+            bytes = bytes.checked_add(row_bytes).unwrap();
+            assert!(bytes <= 33_554_432);
+            let mut owned = Vec::with_capacity(columns);
+            for column in 0..columns {
+                owned.push(row.get::<_, rusqlite::types::Value>(column).unwrap());
+            }
+            values.push(owned);
         }
         result.insert(name, values);
     }
