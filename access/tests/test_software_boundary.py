@@ -63,6 +63,49 @@ class SoftwareBoundaryTests(unittest.TestCase):
         self.assertEqual(calls[0][1], {})
         self.assertEqual(calls[0][2], {"source_errors": False})
 
+    def test_native_access_factory_keeps_generic_and_source_selections_independent(self):
+        from tos_access.native_access_core import NativeAccessCore
+        core = NativeAccessCore.discover('/owned/source', native_prefix='/owned/software',
+            release_root='/owned/release', reading_analysis_root='/owned/reading',
+            reading_max_file_bytes=100, reading_max_total_file_bytes=200)
+        self.assertEqual(core._server.arguments, ('--release-root', '/owned/release'))
+        self.assertEqual(core._word_core._server.arguments, ('--root', '/owned/source'))
+        self.assertEqual(core._reading_core._server.arguments,
+            ('--root', '/owned/source', '--reading-analysis-root', '/owned/reading',
+             '--reading-max-file-bytes', '100', '--reading-max-total-file-bytes', '200'))
+        prepared = NativeAccessCore.discover('/owned/source', native_prefix='/owned/software',
+            published_read_model_path='/owned/model', published_read_model_binding_path='/owned/binding',
+            published_exploration_checkpoint_path='/owned/checkpoints', source_inputs_path='/owned/inputs')
+        self.assertEqual(prepared._server.arguments,
+            ('--prepared-read-model', '/owned/model', '--prepared-binding', '/owned/binding',
+             '--root', '/owned/source', '--exploration-checkpoints', '/owned/checkpoints',
+             '--source-inputs', '/owned/inputs'))
+        with self.assertRaisesRegex(ValueError, 'explicit native_prefix'):
+            NativeAccessCore.discover('/owned/source')
+        with self.assertRaisesRegex(ValueError, 'model and owner-selected binding'):
+            NativeAccessCore('/owned/software', published_read_model_path='/owned/model')
+        with self.assertRaises(TypeError):
+            NativeAccessCore.discover('/owned/source', native_prefix='/owned/software', source_read_service=object())
+
+    def test_native_core_forwarding_preserves_raw_rule_inputs_and_packet_identity(self):
+        from tos_access.native_core import NativeCore
+        core = object.__new__(NativeCore)
+        calls = []
+        sentinel = {'full': {'opaque': 'packet'}, 'source_ref': 'owned'}
+        def packet(tool, request, **options):
+            calls.append((tool, request, options))
+            return sentinel
+        core._packet = packet
+        request = {'left': {'opaque': 'left'}, 'right': {'opaque': 'right'}}
+        self.assertIs(core.knowledge_temporal_compare(request), sentinel)
+        self.assertIs(calls[-1][1]['request'], request)
+        self.assertEqual(calls[-1][0], 'tos_knowledge_temporal_compare')
+        self.assertIs(core.knowledge_search_indexed('  Я  ', kind_ids=['owned'], limit=103), sentinel)
+        self.assertEqual(calls[-1][1], {'query': '  Я  ', 'sources': None, 'kind_ids': ['owned'],
+            'predicate_ids': None, 'cursor': None, 'limit': 103, 'mode': 'indexed'})
+        self.assertIs(core.philosophy_path_between('owned:left', 'owned:right'), sentinel)
+        self.assertEqual(calls[-1][1]['excluded_edge_ids'], [])
+
     def test_native_core_reading_method_preserves_reference_arguments(self):
         # Mapping only; genuine source-bound packet parity needs the native child.
         from tos_access.native_core import NativeCore

@@ -156,7 +156,13 @@ class NativeMCPServer:
         request_cap = 65_536
         # Fixed native main profile: 1MiB packet, worst-case escaped duplicate
         # carrier and request-sized RPC id, plus bounded framing punctuation.
-        frame_cap = 7 * 1_048_576 + 6 * request_cap + 1024
+        # The explicit prepared profile declares 4MiB packets; other fixed
+        # native profiles declare 1MiB. This is transport framing capacity,
+        # never a data admission or query-budget grant.
+        prepared = any(arg == "--prepared-read-model" or
+                       arg.startswith("--prepared-read-model=") for arg in self.arguments)
+        packet_cap = 4 * 1_048_576 if prepared else 1_048_576
+        frame_cap = 7 * packet_cap + 6 * request_cap + 1024
         if arguments is not None:
             encoded = _native_wire_bytes(arguments)
             if len(encoded) + 256 > request_cap:

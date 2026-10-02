@@ -1746,3 +1746,44 @@ An older installed image may refuse these selectors. No Python fallback runs
 after a selected native refusal. Omitting `native_prefix` retains the existing
 reference methods and does not retire their imported helpers. This association
 does not replace the other default Core APIs or establish positive data acceptance.
+
+
+### Imported native query core
+
+`NativeAccessCore` frames synchronous calls to the installed native MCP ABI.
+It returns the complete native packet. Rust owns query normalization, bounds,
+selected-source compatibility and disclosure fences; Python owns argv, the
+bounded child lifetime and typed packet delivery.
+
+```python
+from tos_access import NativeAccessCore
+
+core = NativeAccessCore.discover(
+    native_prefix="/absolute/installed/software",
+    release_root="/absolute/owner-selected/release",
+)
+packet = core.knowledge_node("an-exact-owned-node-id")
+```
+
+A local prepared reader instead takes `published_read_model_path` and
+`published_read_model_binding_path`, each an explicit absolute path. The latter
+is the owner-selected binding consumed by native `--prepared-binding`.
+`published_exploration_checkpoint_path` selects native persistent exploration
+checkpoints. `source_inputs_path` and optional
+`source_local_text_selection_path` select the native exact-source descriptor;
+they require the prepared pair and a separately declared `tos_root`.
+
+`tos_root` independently selects the private Reading/Word source root. Optional
+`reading_analysis_root` and the paired `reading_max_file_bytes` /
+`reading_max_total_file_bytes` apply to Reading only. A generic release or
+prepared publication does not supply local source authority, and a local source
+root does not supply generic publication authority. Missing capabilities keep
+the native unavailable result. Python `SourceReadService` objects and callback
+providers are not accepted as native descriptors.
+
+The native facade serves the established knowledge, corpus, philosophy, lens,
+evidence, bounded source-navigation and exact-source MCP operations plus native
+resource reads. Full mutable graph/snapshot builders and reference-only carrier
+access are outside this facade. The current `ToSAccessCore` default remains the
+reference implementation pending migration of its remaining maintained callers;
+selecting `NativeAccessCore` never falls back to it.

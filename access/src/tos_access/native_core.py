@@ -1,12 +1,13 @@
-"""Explicit installed native implementation of the imported source-read methods.
+"""Synchronous imported access over the established installed native MCP ABI.
 
-The reference ToSAccessCore and default discovery remain separate. Software and
-selected data are supplied to the existing native association, never inferred.
+Python owns child lifecycle and typed packet delivery. Rust owns query rules and
+currentness. Software and selected data are explicit independent selections.
 """
 from __future__ import annotations
 
 import time
 from pathlib import Path
+from typing import Any
 from concurrent.futures import ThreadPoolExecutor
 
 from .mcp_server import NativeMCPServer
@@ -24,7 +25,7 @@ class NativeCore:
     def __init__(self, native_prefix: str | Path, arguments=()):
         self._server = NativeMCPServer(native_prefix, arguments)
 
-    def _packet(self, tool: str, request: dict, *, absolute_deadline=None, source_errors=True):
+    def _native_result(self, operation: str, arguments, *, absolute_deadline=None):
         start = time.monotonic()
         if absolute_deadline is not None:
             import math
@@ -38,7 +39,7 @@ class NativeCore:
 
             async def call():
                 return await self._server._native_api(
-                    "call", (tool, request), absolute_deadline=deadline)
+                    operation, arguments, absolute_deadline=deadline)
 
             return anyio.run(call)
 
@@ -46,6 +47,12 @@ class NativeCore:
         # method. All native child work uses the deadline established above.
         with ThreadPoolExecutor(max_workers=1, thread_name_prefix="tos-native-core") as owned:
             result = owned.submit(invoke).result()
+        if time.monotonic() >= deadline:
+            raise TimeoutError("Native Core deadline expired before returning the packet")
+        return result
+
+    def _packet(self, tool: str, request: dict, *, absolute_deadline=None, source_errors=True):
+        result = self._native_result("call", (tool, request), absolute_deadline=absolute_deadline)
         if result.isError:
             message = " ".join(item.text for item in result.content if hasattr(item, "text"))
             if source_errors:
@@ -56,8 +63,6 @@ class NativeCore:
             raise ToolError(message)
         if type(result.structuredContent) is not dict:
             raise ValueError("Native source operation did not return a full object packet")
-        if time.monotonic() >= deadline:
-            raise TimeoutError("Native Core deadline expired before returning the packet")
         return result.structuredContent
 
     def knowledge_catalog(self) -> dict:
@@ -131,3 +136,148 @@ class NativeCore:
             "include_semantic_neighbors": bool(include_semantic_neighbors),
             "group_by": list(dict.fromkeys(groups)),
         }, absolute_deadline=deadline, source_errors=False)
+
+    # These methods only frame the established native MCP contract. Rust owns
+    # selection, normalization, bounds, query rules and disclosure fences.
+
+    def knowledge_explore(self, request: dict[str, Any]) -> dict:
+        return self._packet('tos_knowledge_explore', {'request': request}, source_errors=False)
+
+    def knowledge_contracts(self) -> dict:
+        return self._packet('tos_knowledge_contracts', {}, source_errors=False)
+
+    def knowledge_search_capabilities(self) -> dict:
+        return self._packet('tos_knowledge_search_capabilities', {}, source_errors=False)
+
+    def knowledge_node(self, node_id: str, relation_limit: int=200) -> dict:
+        return self._packet('tos_knowledge_node', {'node_id': node_id, 'relation_limit': relation_limit}, source_errors=False)
+
+    def knowledge_relation(self, relation_id: str) -> dict:
+        return self._packet('tos_knowledge_relation', {'relation_id': relation_id}, source_errors=False)
+
+    def knowledge_temporal_compare(self, request: dict[str, Any]) -> dict:
+        return self._packet('tos_knowledge_temporal_compare', {'request': request}, source_errors=False)
+
+    def knowledge_focus(self, node_id: str, *, sources: list[str] | None=None, depth: int=1, direction: str='either', predicate_ids: list[str] | None=None, node_limit: int=200, relation_limit: int=400, profile: str='overview') -> dict:
+        return self._packet('tos_knowledge_focus', {'node_id': node_id, 'sources': sources, 'depth': depth, 'direction': direction, 'predicate_ids': predicate_ids, 'node_limit': node_limit, 'relation_limit': relation_limit, 'profile': profile}, source_errors=False)
+
+    def compile_knowledge_lens(self, spec: dict[str, Any]) -> dict:
+        return self._packet('tos_knowledge_lens_compile', {'spec': spec}, source_errors=False)
+
+    def stored_knowledge_lens(self, lens_id: str) -> dict:
+        return self._packet('tos_knowledge_lens_open', {'lens_id': lens_id}, source_errors=False)
+
+    def source_descend(self, node_id: str, max_depth: int=8, limit: int=300) -> dict:
+        return self._packet('tos_source_descend', {'node_id': node_id, 'max_depth': max_depth, 'limit': limit}, source_errors=False)
+
+    def source_dossier(self, object_id: str, limit: int=300) -> dict:
+        return self._packet('tos_dossier_inspect', {'object_id': object_id, 'limit': limit}, source_errors=False)
+
+    def status(self) -> dict:
+        return self._packet('tos_corpus_status', {}, source_errors=False)
+
+    def summary(self) -> dict:
+        return self._packet('tos_corpus_summary', {}, source_errors=False)
+
+    def search(self, query: str, limit: int=20, resource_kind: str | None=None) -> dict:
+        return self._packet('tos_corpus_search', {'query': query, 'limit': limit, 'resource_kind': resource_kind}, source_errors=False)
+
+    def resources(self, resource_kind: str | None=None, owner_branch: str | None=None, limit: int=100) -> dict:
+        return self._packet('tos_corpus_resources', {'resource_kind': resource_kind, 'owner_branch': owner_branch, 'limit': limit}, source_errors=False)
+
+    def node(self, node_id: str) -> dict:
+        return self._packet('tos_corpus_node', {'node_id': node_id}, source_errors=False)
+
+    def relation_pack(self, pack_id: str) -> dict:
+        return self._packet('tos_corpus_relation_pack', {'pack_id': pack_id}, source_errors=False)
+
+    def graph_view(self, view_id: str, limit: int=100) -> dict:
+        return self._packet('tos_corpus_graph_view', {'view_id': view_id, 'limit': limit}, source_errors=False)
+
+    def packet(self, query: str='', view_id: str | None=None, limit: int=20) -> dict:
+        return self._packet('tos_corpus_packet', {'query': query, 'view_id': view_id, 'limit': limit}, source_errors=False)
+
+    def philosophy_status(self) -> dict:
+        return self._packet('tos_philosophy_graph_status', {}, source_errors=False)
+
+    def philosophy_views(self) -> dict:
+        return self._packet('tos_philosophy_graph_views', {}, source_errors=False)
+
+    def philosophy_layers(self) -> dict:
+        return self._packet('tos_philosophy_graph_layers', {}, source_errors=False)
+
+    def philosophy_contracts(self) -> dict:
+        return self._packet('tos_philosophy_graph_contracts', {}, source_errors=False)
+
+    def philosophy_view(self, view_id: str, limit: int=1000) -> dict:
+        return self._packet('tos_philosophy_graph_view', {'view_id': view_id, 'limit': limit}, source_errors=False)
+
+    def philosophy_clusters(self, view_id: str | None=None, cluster_kind: str | None=None, limit: int=80) -> dict:
+        return self._packet('tos_philosophy_graph_clusters', {'view_id': view_id, 'cluster_kind': cluster_kind, 'limit': limit}, source_errors=False)
+
+    def philosophy_scale_manifest(self, view_id: str | None=None, layers: list[str] | None=None) -> dict:
+        return self._packet('tos_philosophy_graph_scale_manifest', {'view_id': view_id, 'layers': [] if layers is None else layers}, source_errors=False)
+
+    def philosophy_scale_packet(self, table: str, view_id: str | None=None, layers: list[str] | None=None, offset: int=0, limit: int=1000) -> dict:
+        return self._packet('tos_philosophy_graph_scale_rows', {'table': table, 'view_id': view_id, 'layers': [] if layers is None else layers, 'offset': offset, 'limit': limit}, source_errors=False)
+
+    def philosophy_review_packet(self, view_id: str='chronology') -> dict:
+        return self._packet('tos_philosophy_graph_review_packet', {'view_id': view_id}, source_errors=False)
+
+    def philosophy_snapshot(self) -> dict:
+        return self._packet('tos_philosophy_graph_snapshot', {}, source_errors=False)
+
+    def philosophy_audit(self) -> dict:
+        return self._packet('tos_philosophy_graph_audit', {}, source_errors=False)
+
+    def philosophy_unresolved(self, view_id: str | None=None) -> dict:
+        return self._packet('tos_philosophy_graph_unresolved', {'view_id': view_id}, source_errors=False)
+
+    def philosophy_node(self, node_id: str) -> dict:
+        return self._packet('tos_philosophy_graph_node', {'node_id': node_id}, source_errors=False)
+
+    def philosophy_edge(self, edge_id: str) -> dict:
+        return self._packet('tos_philosophy_graph_edge', {'edge_id': edge_id}, source_errors=False)
+
+    def philosophy_epistemic_packet(self, item_id: str, view_id: str | None=None, limit: int=80) -> dict:
+        return self._packet('tos_philosophy_epistemic_packet', {'item_id': item_id, 'view_id': view_id, 'limit': limit}, source_errors=False)
+
+    def evidence_lens_packet(self, mode: str, item_id: str, view_id: str | None=None, limit: int=80) -> dict:
+        return self._packet('tos_evidence_lens', {'mode': mode, 'item_id': item_id, 'view_id': view_id, 'limit': limit}, source_errors=False)
+
+    def philosophy_neighborhood(self, node_id: str, depth: int=1, layers: list[str] | None=None, predicates: list[str] | None=None, limit: int=80) -> dict:
+        return self._packet('tos_philosophy_graph_neighborhood', {'node_id': node_id, 'depth': depth, 'layers': [] if layers is None else layers, 'predicates': [] if predicates is None else predicates, 'limit': limit}, source_errors=False)
+
+    def philosophy_path_between(self, from_id: str, to_id: str, layers: list[str] | None=None, predicates: list[str] | None=None, max_depth: int=6, direction: str='outgoing', view_id: str | None=None, excluded_edge_ids: list[str] | None=None, alternative_limit: int=1) -> dict:
+        return self._packet('tos_philosophy_graph_path', {'from_id': from_id, 'to_id': to_id, 'layers': [] if layers is None else layers, 'predicates': [] if predicates is None else predicates, 'max_depth': max_depth, 'direction': direction, 'view_id': view_id, 'excluded_edge_ids': [] if excluded_edge_ids is None else excluded_edge_ids, 'alternative_limit': alternative_limit}, source_errors=False)
+
+    def philosophy_search(self, query: str, limit: int=20) -> dict:
+        return self._packet('tos_philosophy_graph_search', {'query': query, 'limit': limit}, source_errors=False)
+
+    def philosophy_packet(self, query: str='', view_id: str | None=None, limit: int=20) -> dict:
+        return self._packet('tos_philosophy_graph_packet', {'query': query, 'view_id': view_id, 'limit': limit}, source_errors=False)
+
+    def knowledge_search(self, query: str='', *, sources: list[str] | None=None, kind_ids: list[str] | None=None, predicate_ids: list[str] | None=None, offset: int=0, limit: int=40) -> dict:
+        return self._packet("tos_knowledge_search", {'query': query, 'sources': sources, 'kind_ids': kind_ids, 'predicate_ids': predicate_ids, 'offset': offset, 'limit': limit, 'mode': 'legacy'}, source_errors=False)
+
+    def knowledge_search_indexed(self, query: str='', *, sources: list[str] | None=None, kind_ids: list[str] | None=None, predicate_ids: list[str] | None=None, cursor: str | None=None, limit: int=40) -> dict:
+        return self._packet("tos_knowledge_search", {'query': query, 'sources': sources, 'kind_ids': kind_ids, 'predicate_ids': predicate_ids, 'cursor': cursor, 'limit': limit, 'mode': 'indexed'}, source_errors=False)
+
+    def knowledge_search_compressed(self, query: str='', *, sources: list[str] | None=None, kind_ids: list[str] | None=None, predicate_ids: list[str] | None=None, cursor: str | None=None, limit: int=40) -> dict:
+        return self._packet("tos_knowledge_search", {'query': query, 'sources': sources, 'kind_ids': kind_ids, 'predicate_ids': predicate_ids, 'cursor': cursor, 'limit': limit, 'mode': 'compressed'}, source_errors=False)
+
+    def render_resource(self, uri: str) -> str:
+        """Return the native resource's exact text carrier."""
+        from mcp.types import TextResourceContents
+        result = self._native_result("read_resource", uri)
+        if len(result.contents) != 1 or not isinstance(result.contents[0], TextResourceContents):
+            raise ValueError("Native Core resource requires one text carrier")
+        return result.contents[0].text
+
+    def read_resource(self, uri: str) -> dict:
+        """Decode the already authorized native resource packet."""
+        import json
+        result = json.loads(self.render_resource(uri))
+        if type(result) is not dict:
+            raise ValueError("Native Core resource did not return an object packet")
+        return result
