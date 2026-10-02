@@ -7,7 +7,7 @@ use tos_access::{
 fn main() {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
     // Software help/version never opens a selected release or grants readiness.
-    let help = "usage: tos [--release-root ABSOLUTE_DIRECTORY | --root ABS | --prepared-read-model ABS --prepared-binding ABS [--root ABS] [--exploration-checkpoints ABS]] COMMAND\n\nCommands:\n  serve [LOOPBACK:PORT]     local HTTP and installed software site\n    [--observe-stdin-eof-deadline-ns N] optional Linux owned-pipe measurement, absolute CLOCK_MONOTONIC ns <=3600s\n  mcp [--transport stdio|streamable-http] [--host HOST --port PORT]\n                            MCP JSONL or loopback /mcp JSON-response transport\n  knowledge | lens | source bounded read operations\n  reading-search --query Q   local Zarathustra reading data\n  word-analysis --query Q    private source-bound task or candidate validation\n  concept-search --query Q  private source-bound concept task\n  lexical-index build|validate|validate-legacy OPTIONS   exact-cut private lexical maintainer\n  structural-paragraph --source-root ABS --check|--validate-tracked\n  technical-markup --source-root ABS --build|--check|--validate-tracked\n  zarathustra-*-v1 --help    explicit source-selected research producers\n  doctor | verify           source-backed diagnostic report\n  software build|verify|extract|install OPTIONS\n  software build --native-command-products ABS_JSON optionally packages owner-command, schema-worker and three compiler-free ops commands; installed paths are absolute, without owner grants or data.\n  restore-source-cut --corpus-store ABS --source-revision sha256:HEX --output FRESH_ABS\n    --max-revisions N --max-directories N --max-members N --max-member-bytes N\n    --max-total-bytes N --max-metadata-bytes N --max-seconds N\n  capture-restore --capture ABS --output FRESH_ABS --source-commit SHA1 --source-tree SHA1\n    --manifest-sha256 HEX --max-archive-bytes N --max-decoded-bytes N\n    --max-source-bytes N --max-metadata-bytes N --max-members N --max-seconds N\n  prepare --source-root ROOT --output-dir FRESH_DIR --max-seconds N\n          [--max-bytes N --max-mutations N --attach-maintenance]\n  prepared-publication --max-seconds N  bounded framed stdin (not raw source)\n  evidence-projection build|check|validate --source-root ABS --staging FRESH_ABS --max-seconds N [--output FRESH_ABS]\n  edge-sql-stream --source SQL --directory EMPTY --maximum-bytes N --max-seconds N\n  edge-sql-chunk --source SQL --output FRESH --offset N --maximum-bytes N\n  edge-import-local --database EXISTING --sql SQL --base REVISION_OR_null --target REVISION\n  edge-offline-capture --request ABS.json\n             bounded private prepared-pair/navigation/integrity SQL capture\n  build-data --source-root ROOT --output DIST --runtime RUNTIME\n             [--max-build-seconds N]  disposable offline public D1 v9\n\nNative install: software install --archive ABS --prefix FRESH_ABS\nwith --max-total-bytes N --max-archive-bytes N --max-members N\nand --max-metadata-bytes N. Installation never selects data or edits PATH.\nExact-source reads: add --source-inputs ABS to --root ABS and the prepared pair; optional --source-local-text-selection ABS selects protected local conditions.\nCommands: source capabilities | contracts | discover REQUEST_JSON | read REQUEST_JSON (use - for stdin).\nData operations without a selected owner report unavailable.\nPublic build requires TOS_BUILD_MAX_SECONDS unless --max-build-seconds is supplied.\n";
+    let help = "usage: tos [--release-root ABSOLUTE_DIRECTORY | --root ABS | --prepared-read-model ABS --prepared-binding ABS [--root ABS] [--exploration-checkpoints ABS]] COMMAND\n\nCommands:\n  serve [LOOPBACK:PORT]     local HTTP and installed software site\n    [--observe-stdin-eof-deadline-ns N] optional Linux owned-pipe measurement, absolute CLOCK_MONOTONIC ns <=3600s\n  mcp [--transport stdio|streamable-http] [--host HOST --port PORT]\n                            MCP JSONL or loopback /mcp JSON-response transport\n  knowledge | lens | source bounded read operations\n  reading-search --query Q   local Zarathustra reading data (--root source; optional --reading-analysis-root outputs)\n  word-analysis --query Q    private source-bound task or candidate validation\n  concept-search --query Q  private source-bound concept task\n  lexical-index build|validate|validate-legacy OPTIONS   exact-cut private lexical maintainer\n  structural-paragraph --source-root ABS --check|--validate-tracked\n  technical-markup --source-root ABS --build|--check|--validate-tracked\n  zarathustra-*-v1 --help    explicit source-selected research producers\n  doctor | verify           source-backed diagnostic report\n  software build|verify|extract|install OPTIONS\n  software build --native-command-products ABS_JSON optionally packages owner-command, schema-worker and three compiler-free ops commands; installed paths are absolute, without owner grants or data.\n  restore-source-cut --corpus-store ABS --source-revision sha256:HEX --output FRESH_ABS\n    --max-revisions N --max-directories N --max-members N --max-member-bytes N\n    --max-total-bytes N --max-metadata-bytes N --max-seconds N\n  capture-restore --capture ABS --output FRESH_ABS --source-commit SHA1 --source-tree SHA1\n    --manifest-sha256 HEX --max-archive-bytes N --max-decoded-bytes N\n    --max-source-bytes N --max-metadata-bytes N --max-members N --max-seconds N\n  prepare --source-root ROOT --output-dir FRESH_DIR --max-seconds N\n          [--max-bytes N --max-mutations N --attach-maintenance]\n  prepared-publication --max-seconds N  bounded framed stdin (not raw source)\n  evidence-projection build|check|validate --source-root ABS --staging FRESH_ABS --max-seconds N [--output FRESH_ABS]\n  edge-sql-stream --source SQL --directory EMPTY --maximum-bytes N --max-seconds N\n  edge-sql-chunk --source SQL --output FRESH --offset N --maximum-bytes N\n  edge-import-local --database EXISTING --sql SQL --base REVISION_OR_null --target REVISION\n  edge-offline-capture --request ABS.json\n             bounded private prepared-pair/navigation/integrity SQL capture\n  build-data --source-root ROOT --output DIST --runtime RUNTIME\n             [--max-build-seconds N]  disposable offline public D1 v9\n\nNative install: software install --archive ABS --prefix FRESH_ABS\nwith --max-total-bytes N --max-archive-bytes N --max-members N\nand --max-metadata-bytes N. Installation never selects data or edits PATH.\nExact-source reads: add --source-inputs ABS to --root ABS and the prepared pair; optional --source-local-text-selection ABS selects protected local conditions.\nCommands: source capabilities | contracts | discover REQUEST_JSON | read REQUEST_JSON (use - for stdin).\nData operations without a selected owner report unavailable.\nPublic build requires TOS_BUILD_MAX_SECONDS unless --max-build-seconds is supplied.\n";
     if args.len() == 1 && matches!(args[0].as_str(), "--version" | "-V") {
         println!("tos {}", env!("CARGO_PKG_VERSION"));
         return;
@@ -141,6 +141,9 @@ fn main() {
     let mut source_local_text_selection = None;
     let mut prepared_root = std::env::var_os("TOS_DATA_ROOT");
     let mut explicit_data_root = false;
+    let mut reading_analysis_root = None;
+    let mut reading_max_file_bytes = None;
+    let mut reading_max_total_file_bytes = None;
     while args.first().is_some_and(|arg| {
         [
             "--release-root",
@@ -150,6 +153,9 @@ fn main() {
             "--source-inputs",
             "--source-local-text-selection",
             "--root",
+            "--reading-analysis-root",
+            "--reading-max-file-bytes",
+            "--reading-max-total-file-bytes",
         ]
         .iter()
         .any(|key| arg == key || arg.starts_with(&format!("{key}=")))
@@ -168,6 +174,9 @@ fn main() {
                 explicit_release = true;
                 &mut release_root
             }
+            "--reading-analysis-root" => &mut reading_analysis_root,
+            "--reading-max-file-bytes" => &mut reading_max_file_bytes,
+            "--reading-max-total-file-bytes" => &mut reading_max_total_file_bytes,
             "--prepared-read-model" => &mut prepared_model,
             "--prepared-binding" => &mut prepared_binding,
             "--exploration-checkpoints" => &mut exploration_checkpoints,
@@ -188,6 +197,14 @@ fn main() {
         eprintln!(
             "invalid_request: prepared paths require a pair; explicit root and release-root selections conflict"
         );
+        std::process::exit(2)
+    }
+    if (reading_analysis_root.is_some()
+        || reading_max_file_bytes.is_some()
+        || reading_max_total_file_bytes.is_some())
+        && (!explicit_data_root || prepared_model.is_some() || explicit_release)
+    {
+        eprintln!("invalid_request: --reading-analysis-root requires explicit --root without prepared or release selection");
         std::process::exit(2)
     }
     if (source_inputs.is_some() && (prepared_model.is_none() || !explicit_data_root))
@@ -267,9 +284,43 @@ fn main() {
             })
             .map(|executor| Arc::new(executor) as Arc<dyn AccessExecutor>)
         } else if explicit_data_root || (prepared_root.is_some() && release_root.is_none()) {
-            tos_access::reading::ReadingLocalExecutor::open(
-                prepared_root.expect("selected reading root").into(),
-            )
+            let source: std::path::PathBuf = prepared_root.expect("selected reading root").into();
+            match (reading_max_file_bytes, reading_max_total_file_bytes) {
+                (None, None) => match reading_analysis_root {
+                    Some(analysis) => tos_access::reading::ReadingLocalExecutor::open_roots(
+                        source,
+                        analysis.into(),
+                    ),
+                    None => tos_access::reading::ReadingLocalExecutor::open(source),
+                },
+                (Some(file), Some(total)) => {
+                    let mut budget =
+                        tos_query::reading_search::ReadingSearchBudget::local_default();
+                    match (
+                        file.to_str().and_then(|v| v.parse::<u64>().ok()),
+                        total.to_str().and_then(|v| v.parse::<u64>().ok()),
+                    ) {
+                        (Some(file), Some(total)) if file > 0 && file <= total => {
+                            budget.max_file_bytes = file;
+                            budget.max_total_file_bytes = total;
+                            let analysis = reading_analysis_root
+                                .map(Into::into)
+                                .unwrap_or_else(|| source.clone());
+                            tos_access::reading::ReadingLocalExecutor::open_roots_with_budget(
+                                source, analysis, budget,
+                            )
+                        }
+                        _ => Err(tos_access::AccessError::new(
+                            tos_access::AccessErrorCode::InvalidRequest,
+                            "invalid explicit reading file budgets",
+                        )),
+                    }
+                }
+                _ => Err(tos_access::AccessError::new(
+                    tos_access::AccessErrorCode::InvalidRequest,
+                    "reading file budgets require a pair",
+                )),
+            }
             .map(|executor| Arc::new(executor) as Arc<dyn AccessExecutor>)
         } else {
             match release_root {

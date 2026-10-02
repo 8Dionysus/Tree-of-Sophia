@@ -375,6 +375,8 @@ pub(crate) fn run_cli(
 /// holder, with no source-rights or publication grant.
 pub struct ReadingLocalExecutor {
     selected: Arc<ReadingRoot>,
+    analysis: Arc<ReadingRoot>,
+    reading_budget: ReadingSearchBudget,
 }
 struct ReadingRoot {
     path: std::path::PathBuf,
@@ -384,6 +386,43 @@ struct ReadingRoot {
 }
 impl ReadingLocalExecutor {
     pub fn open(path: std::path::PathBuf) -> Result<Self, AccessError> {
+        let selected = Arc::new(ReadingRoot::open(path)?);
+        Ok(Self {
+            analysis: Arc::clone(&selected),
+            selected,
+            reading_budget: ReadingSearchBudget::local_default(),
+        })
+    }
+
+    /// Select source and immutable reading outputs independently. Neither root
+    /// selects software or supplies a publication/right grant.
+    pub fn open_roots(
+        source: std::path::PathBuf,
+        analysis: std::path::PathBuf,
+    ) -> Result<Self, AccessError> {
+        Self::open_roots_with_budget(source, analysis, ReadingSearchBudget::local_default())
+    }
+
+    pub fn open_roots_with_budget(
+        source: std::path::PathBuf,
+        analysis: std::path::PathBuf,
+        reading_budget: ReadingSearchBudget,
+    ) -> Result<Self, AccessError> {
+        if reading_budget.max_file_bytes == 0
+            || reading_budget.max_total_file_bytes == 0
+            || reading_budget.max_file_bytes > reading_budget.max_total_file_bytes
+        {
+            return Err(invalid());
+        }
+        Ok(Self {
+            selected: Arc::new(ReadingRoot::open(source)?),
+            analysis: Arc::new(ReadingRoot::open(analysis)?),
+            reading_budget,
+        })
+    }
+}
+impl ReadingRoot {
+    fn open(path: std::path::PathBuf) -> Result<Self, AccessError> {
         use std::os::unix::fs::MetadataExt;
         if !path.is_absolute() {
             return Err(invalid());
@@ -401,12 +440,10 @@ impl ReadingLocalExecutor {
             )
         })?;
         Ok(Self {
-            selected: Arc::new(ReadingRoot {
-                path,
-                directory,
-                dev: m.dev(),
-                ino: m.ino(),
-            }),
+            path,
+            directory,
+            dev: m.dev(),
+            ino: m.ino(),
         })
     }
 }
@@ -429,6 +466,16 @@ impl DisclosureFence for RootFence {
             }
         }
         Ok(())
+    }
+}
+struct ReadingRootsFence {
+    source: RootFence,
+    analysis: RootFence,
+}
+impl DisclosureFence for ReadingRootsFence {
+    fn recheck(&mut self) -> Result<(), AccessError> {
+        self.source.recheck()?;
+        self.analysis.recheck()
     }
 }
 impl AccessExecutor for ReadingLocalExecutor {
@@ -531,16 +578,19 @@ impl AccessExecutor for ReadingLocalExecutor {
     ) -> Result<PreparedPacket<'static>, AccessError> {
         let roots = ExplicitReadingRoots {
             source_root: self.selected.path.clone(),
-            analysis_root: self.selected.path.clone(),
+            analysis_root: self.analysis.path.clone(),
         };
         prepare(
             &roots,
             &ReadingSoftware::embedded(),
             &request,
-            ReadingSearchBudget::local_default(),
+            self.reading_budget.clone(),
             1_048_576,
             tos_query::reading_search::READING_PROVIDER_REF,
-            Box::new(RootFence(Arc::clone(&self.selected))),
+            Box::new(ReadingRootsFence {
+                source: RootFence(Arc::clone(&self.selected)),
+                analysis: RootFence(Arc::clone(&self.analysis)),
+            }),
             probe,
         )
     }
