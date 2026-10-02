@@ -56,3 +56,11 @@ it as a maintained producer fallback. The active entry dispatches native `tos`.
 Historical packet `software_ref` names the original logical rendering path;
 changed facade bytes do not acquire that recipe identity. Native implementation
 and selected executable identity belong to separate execution receipts.
+
+Morph full historical rendering recipe is retained at
+`build_zarathustra_morphology_theme_candidates_v1/8eebdf809bd5989d6c3aae60796a0be57bc886bf3f0441a6109b9b879954ac49.py`
+(41970 bytes, SHA256 `8eebdf809bd5989d6c3aae60796a0be57bc886bf3f0441a6109b9b879954ac49`). These bytes are NONEXECUTED,
+not imported and never a producer fallback. The maintained entry retains only
+the exact orthographic signature helper required by the current Python Concept
+consumer; its native main and execution identity are separate from this recipe.
+Actual6264 used explicit technical profile4925; original default3252 is not retagged.
