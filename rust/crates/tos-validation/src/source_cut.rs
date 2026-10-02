@@ -1384,16 +1384,23 @@ impl CutWorkerSchemaExecutor {
             || report.schema_set_sha256 != self.schema_set_digest
             || report.caps_sha256() != caps_sha256
             || !report.is_well_formed()
-            || !matches!(
-                report.status,
-                schema_diagnostics::Status::Valid | schema_diagnostics::Status::Invalid
-            )
             || cost.worker_cpu_micros.is_none()
         {
             self.prepared.poison(ExecutorFailure::Protocol);
             return Err(ItemRefusal::Unsupported(
                 "cut schema diagnostics binding incomplete".into(),
             ));
+        }
+        if !matches!(
+            report.status,
+            schema_diagnostics::Status::Valid | schema_diagnostics::Status::Invalid
+        ) {
+            // The status and counts are observable only after the complete
+            // worker/request/unit/report binding above has been authenticated.
+            // Keep this fail-closed and expose only protocol enums and counts,
+            // never worker-provided issue text or other free-form detail.
+            self.prepared.poison(ExecutorFailure::Protocol);
+            return Err(diagnostic_status_refusal(report));
         }
         let issue_count = report.issues.len();
         let next_issues = self
@@ -2737,6 +2744,34 @@ fn diagnostics_refusal(
     }
 }
 
+fn diagnostic_status_refusal(report: &schema_diagnostics::Report) -> ItemRefusal {
+    let status = match report.status {
+        schema_diagnostics::Status::Valid => "valid",
+        schema_diagnostics::Status::Invalid => "invalid",
+        schema_diagnostics::Status::Truncated => "truncated",
+        schema_diagnostics::Status::InputRejected => "input_rejected",
+        schema_diagnostics::Status::Indeterminate => "indeterminate",
+    };
+    let failure = match report.failure {
+        schema_diagnostics::Failure::None => "none",
+        schema_diagnostics::Failure::InvalidJson => "invalid_json",
+        schema_diagnostics::Failure::InputBudget => "input_budget",
+        schema_diagnostics::Failure::ValidatorRuntime => "validator_runtime",
+        schema_diagnostics::Failure::UnsupportedInputSemantics => "unsupported_input_semantics",
+    };
+    ItemRefusal::Unsupported(format!(
+        concat!(
+            "cut schema diagnostics status={} failure={} ",
+            "returned_issues={} total_issues={} truncated={}"
+        ),
+        status,
+        failure,
+        report.issues.len(),
+        report.total_issue_count,
+        report.truncated,
+    ))
+}
+
 fn store_error(error: tos_source_store::StoreError) -> ItemRefusal {
     use tos_source_store::StoreErrorCode;
     match error.code {
@@ -2761,6 +2796,71 @@ fn operation_failure_with_context(
         other => ItemRefusal::Unsupported(format!(
             "schema operation refused: {other:?}; original exchange: {exchange:?}"
         )),
+    }
+}
+
+#[cfg(test)]
+mod diagnostic_status_tests {
+    use super::*;
+
+    #[test]
+    fn status_refusal_contains_only_authenticated_protocol_summary_fields() {
+        let worker_sha256 = Digest256::of_bytes(b"worker");
+        let request_sha256 = Digest256::of_bytes(b"request");
+        let unit_sha256 = Digest256::of_bytes(b"unit");
+        let schema_set_sha256 = Digest256::of_bytes(b"schema");
+        let caps = schema_diagnostics::Caps::CURRENT;
+        let status = schema_diagnostics::Status::Indeterminate;
+        let failure = schema_diagnostics::Failure::ValidatorRuntime;
+        let total_issue_count = 1;
+        let truncated = false;
+        let issues = vec![schema_diagnostics::Issue {
+            instance_path: vec![schema_diagnostics::PathSegment::Property(
+                "private-instance-detail".into(),
+            )],
+            schema_keyword: "type".into(),
+            reason: schema_diagnostics::Reason::Type,
+            schema_path: Vec::new(),
+            compatibility_text: None,
+        }];
+        let issues_sha256 = schema_diagnostics::issues_digest(&issues).unwrap();
+        let report_sha256 = schema_diagnostics::report_digest(
+            worker_sha256,
+            request_sha256,
+            unit_sha256,
+            schema_set_sha256,
+            caps,
+            status,
+            failure,
+            total_issue_count,
+            truncated,
+            issues_sha256,
+        );
+        let report = schema_diagnostics::Report {
+            protocol_version: schema_diagnostics::PROTOCOL_VERSION,
+            worker_sha256,
+            request_sha256,
+            unit_sha256,
+            schema_set_sha256,
+            caps,
+            status,
+            failure,
+            total_issue_count,
+            truncated,
+            issues_sha256,
+            report_sha256,
+            issues,
+        };
+        assert!(report.is_well_formed());
+
+        let ItemRefusal::Unsupported(message) = diagnostic_status_refusal(&report) else {
+            panic!("status refusals use the unsupported route");
+        };
+        assert_eq!(
+            message,
+            "cut schema diagnostics status=indeterminate failure=validator_runtime returned_issues=1 total_issues=1 truncated=false"
+        );
+        assert!(!message.contains("private-instance-detail"));
     }
 }
 
