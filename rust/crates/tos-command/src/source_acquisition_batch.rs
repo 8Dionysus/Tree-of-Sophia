@@ -1078,6 +1078,13 @@ fn append(path: &Path, row: &Value) -> Result<()> {
 fn now() -> Result<String> {
     crate::source_serialization::instant().map_err(|e| format!("clock: {e:?}"))
 }
+fn run_stamp() -> Result<String> {
+    let timestamp = now()?;
+    let (seconds, _) = timestamp
+        .split_once('.')
+        .ok_or("clock timestamp lacks its fractional UTC component")?;
+    Ok(format!("{}Z", seconds.replace(['-', ':'], "")))
+}
 fn key(p: &Value) -> Result<(String, String, String)> {
     Ok((
         text(p, "item_ref")?.into(),
@@ -1219,7 +1226,7 @@ fn acquire(
             *n = std::cmp::max(*n, attempt);
         }
     }
-    let stamp = now()?.replace(['-', ':', '.'], "");
+    let stamp = run_stamp()?;
     let mut run = stamp.clone();
     let mut suffix = 0;
     while out.join(format!("receipts/handoff-{run}.json")).exists() {
