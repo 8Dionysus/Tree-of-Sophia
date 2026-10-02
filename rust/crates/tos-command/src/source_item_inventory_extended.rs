@@ -54,7 +54,7 @@ fn direct_child<'a>(node: &'a InventoryXmlNode, name: &str) -> Option<&'a Invent
         .find(|child| child.namespace.is_none() && child.local_name == name)
 }
 
-fn direct_text(node: &InventoryXmlNode, name: &str) -> Option<&str> {
+fn direct_text<'a>(node: &'a InventoryXmlNode, name: &str) -> Option<&'a str> {
     direct_child(node, name).map(|child| child.text_content.as_str())
 }
 
@@ -520,7 +520,7 @@ fn abbyy_inventory(
                     page_depth = None;
                 }
             }
-            XmlEvent::Doctype(_) | XmlEvent::ProcessingInstruction { .. } => (),
+            XmlEvent::Doctype { .. } | XmlEvent::ProcessingInstruction { .. } => (),
             XmlEvent::StartDocument { .. } | XmlEvent::EndDocument | XmlEvent::Comment(_) => (),
         }
     }
@@ -1175,7 +1175,8 @@ fn build_full_inventory_optional(
         let default_event_ref = super::inventory_event_ref(item_id, event_date)?;
         let prior_path = crate::source_acquisition_batch::path_under(repo_root, inventory_ref)
             .map_err(|_| SourceCommandError::Invalid("resource inventory reference"))?;
-        let prior = read_prior_inventory(&prior_path)?;
+        let prior = read_prior_inventory(&prior_path)
+            .map_err(|_| SourceCommandError::Unsupported("prior resource inventory read"))?;
         let event_ref = prior
             .as_ref()
             .and_then(|value| value.get("provenance_event_ref"))
@@ -1768,8 +1769,13 @@ fn invoke_file_inventory(request: &Value) -> Result<Value, String> {
         {
             return Err(SourceCommandError::Invalid("inventory payload sha256"));
         }
-        let plain_text_profile =
-            request_text_or(request, "plain_text_profile", "plain_utf8_file_v1")?;
+        let plain_text_profile = match request.get("plain_text_profile") {
+            None => "plain_utf8_file_v1",
+            Some(Value::String(value)) if !value.is_empty() => value.as_str(),
+            Some(_) => {
+                return Err(SourceCommandError::Invalid("plain text inventory profile"));
+            }
+        };
         if !matches!(plain_text_profile, "plain_utf8_file_v1" | "plain_text_v1") {
             return Err(SourceCommandError::Invalid("plain text inventory profile"));
         }

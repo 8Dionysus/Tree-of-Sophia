@@ -484,6 +484,8 @@ pub fn build_public_d1(request: PublicD1Build<'_>) -> Result<Value> {
     let public_root = PublicRepositoryRoot::new(&stage, &source_revision)?;
     let mut additional = NativeFamilyInputs::bounded_from(limits.native);
     additional.repository_root = Some(public_root.input());
+    // Normalize the captured derived philosophy through its projection adapter.
+    additional.prepared_philosophy_projection = true;
     let native = crate::materialize_native_sources_with_inputs(
         &mut stage,
         &registry,

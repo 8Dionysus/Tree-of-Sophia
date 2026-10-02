@@ -360,7 +360,7 @@ pub fn validate_manifest(repo: &Path, manifest: &Value) -> Result<()> {
         }
         if item_records.len() != 1
             || item_records[0] != format!("{item_root}/item.json")
-            || !manifests.contains(&format!("{item_root}/item.manifest.json"))
+            || !manifests.contains(format!("{item_root}/item.manifest.json").as_str())
             || !provenance
         {
             return Err(format!(

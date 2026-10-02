@@ -612,8 +612,14 @@ fn entries_from_registry_manifest(
                         "registry and Item manifest sizes differ: {item_manifest_ref}"
                     ));
                 }
-                file_id = matching[0].get("file_id").and_then(Value::as_str);
-                sha256 = matching[0].get("sha256").and_then(Value::as_str);
+                file_id = matching[0]
+                    .get("file_id")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned);
+                sha256 = matching[0]
+                    .get("sha256")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned);
             }
             entries.push(json!({
                 "item_id": item_id,
@@ -636,7 +642,7 @@ fn identity(meta: &Metadata) -> (u64, u64, u64, u32, u32, u64, i64, i64, i64, i6
     (
         StdMetadataExt::dev(meta),
         StdMetadataExt::ino(meta),
-        StdMetadataExt::len(meta),
+        meta.len(),
         StdMetadataExt::mode(meta),
         StdMetadataExt::uid(meta),
         StdMetadataExt::nlink(meta),
@@ -1269,7 +1275,7 @@ fn cli(request: &Value) -> Result<Value> {
             "item-manifest",
         )?);
     }
-    let mut missing = Vec::new();
+    let missing: Vec<Value> = Vec::new();
     for inventory in inventories {
         let inventory_path =
             PathBuf::from(inventory.as_str().ok_or("inventory path must be text")?);
@@ -1344,7 +1350,7 @@ pub fn invoke(request: &Value) -> Result<Value> {
                 .map(|part| {
                     part.as_str()
                         .map(str::to_owned)
-                        .ok_or("path part must be text")
+                        .ok_or_else(|| "path part must be text".to_owned())
                 })
                 .collect::<Result<Vec<_>>>()?;
             Ok(json!({"path": path_string(&checked_child(&root, &parts)?)?}))

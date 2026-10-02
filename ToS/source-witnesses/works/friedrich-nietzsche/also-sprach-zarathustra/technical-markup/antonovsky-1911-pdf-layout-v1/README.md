@@ -99,7 +99,7 @@ unopened. The 86-row heading set also remains deliberately recall-incomplete;
 screening every enumerated row does not establish that every Russian heading
 has been found.
 
-## Native whole producer candidate
+## Native whole producer
 
 The installed native route is `tos technical-markup --source-root ABS` with
 exactly one of `--build`, `--check`, or `--validate-tracked`.
@@ -133,8 +133,29 @@ scratch on the same genuine primitives; keep the historical capture unchanged
 and report its known provenance differences separately. Tracked validation can
 validate the historical packet without extraction or producer execution.
 
-Native source and an explicit full eleven-output current-oracle gate are candidates
-until compilation, byte parity, installed command checks and build/issuance
-boundary checks have actually passed. The maintained Python command remains
-retained pending that evidence; it is not yet retired. These mechanics accept
-no text, segmentation, semantic claim, rights clearance or publication.
+Installed `360c7e344e8c9a2a83291d96c8ab5ac0c19ac382` passed the current
+`4c806831` recipe's eleven-output byte/mode/count comparison and installed checks.
+The first controlled run completed those assertions before a scratch census
+race interrupted initial issuance; its terminal RED remains recorded. A fresh
+bounded continuation passed initial issuance, tracked validation and root/private
+symlink refusals. This composite mechanical acceptance preserves the original
+capture and never reclassifies outputs from interrupted issuance as parity data.
+
+The Python executable entry now delegates every supported v1 mode to installed
+`tos technical-markup`, selected by `TOS_NATIVE_PREPARED_CONSUMER_BIN` or `tos`
+on PATH. There is no Python producer fallback. `--repo-root` remains the
+compatibility spelling for `--source-root`; writes additionally require an
+explicit admitted `--scratch-bytes` budget. The maintained test caller consumes
+the native command directly. The original 4c source bytes are retained in
+`ToS/research-packets/retained-builder-inputs/build_antonovsky_1911_technical_markup/`;
+Build/Check resolve only those exact recipe bytes, not the changed facade digest.
+The source reference/digest identify the recipe; the installed image and runtime
+receipt identify current execution. No retained archive is executed.
+
+V2 still imports extraction helpers from the active Python module. Those helpers
+and the old non-entry definitions remain temporarily retained for that exact
+caller, pending the separately owned actual v2 producer/caller closure; the
+whole Python family is not retired. This facade/retained-input successor needs
+matching native source installation and the focused new caller check before
+claiming its own cutover. These mechanics accept no text, segmentation, semantic
+claim, rights clearance or publication.

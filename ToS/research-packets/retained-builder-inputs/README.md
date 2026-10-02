@@ -12,10 +12,16 @@ checks every archive ancestor for symlinks, enforces a 1 MiB bound, and verifies
 the full digest. A mismatch or absent archive leaves the recorded input
 unavailable. This route reads source bytes without executing them.
 
-Current execution uses the active script under `scripts/`. Retention establishes
-availability of a receipt's stated input; execution authentication and assessment
-retain their own evidence requirements. Current schema and output validation
-remain independent.
+The active route determines execution separately from retained input custody.
+For Antonovsky v1, the script is a native CLI compatibility entry; its exact
+`4c80683124592bc969e0db6ffe0d5696ec28d4079bc522725788aeff44abd8eb`
+recipe is retained here as nonexecuted bytes. Native Build/Check require the
+active original path to exist, then accept only the exact original bytes at
+that path or this digest archive, with held-root no-follow reads and a 1 MiB
+bound. The logical original path and recorded digest remain provenance data;
+the installed native image and its execution receipt identify the actual
+producer. Retention establishes input availability, not execution or assessment.
+Current schema and output validation remain independent.
 
 The twenty-one files are exact Git blobs from
 `f56cec46de2315f0f6411dcce6cacbe7d1da918a`, selected by the existing transfer
@@ -23,3 +29,9 @@ source-visible review, structural and passage candidates, authored-source
 bridges, selected-form recurrence, lexical research and synthetic provenance
 laboratory receipts. Their original
 paths and recorded digests determine their locations here.
+
+The additional Antonovsky v1 blob is exact maintained source from
+`0ee415f03553d745ff54e2d08ee447862e66c555`, 91,999 bytes. It is never imported
+or executed by the native producer. The active Python module temporarily retains
+helpers imported by the separately supported v2 builder; that dependency is not
+retirement of the entire Python family.

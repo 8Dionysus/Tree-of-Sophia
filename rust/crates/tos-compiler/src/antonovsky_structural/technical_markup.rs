@@ -8,6 +8,25 @@ mod views;
 const SCHEMA: &str = "ToS/contracts/source-text-unit-packet-v1.schema.json";
 const BUILDER: &str = "scripts/build_antonovsky_1911_technical_markup.py";
 const BUILDER_SHA: &str = "4c80683124592bc969e0db6ffe0d5696ec28d4079bc522725788aeff44abd8eb";
+// The logical original path remains the provenance reference; this archive is
+// source bytes only, never an executable fallback or the native producer image.
+fn recipe_bytes(ctx: &ResearchExecution) -> Result<Vec<u8>> {
+    let mut active = ctx.source_file(BUILDER, 1024 * 1024)?;
+    let raw = ctx.read_file(&mut active, 1024 * 1024)?;
+    if sha(&raw) == BUILDER_SHA {
+        return Ok(raw);
+    }
+    let retained = format!(
+        "ToS/research-packets/retained-builder-inputs/build_antonovsky_1911_technical_markup/{BUILDER_SHA}.py"
+    );
+    let mut file = ctx.source_file(&retained, 1024 * 1024)?;
+    let raw = ctx.read_file(&mut file, 1024 * 1024)?;
+    ensure(
+        sha(&raw) == BUILDER_SHA,
+        "retained v1 recipe source binding drift",
+    )?;
+    Ok(raw)
+}
 const EVENT: &str = "tos.event.segmentation.zarathustra-antonovsky-1911-pdf-layout-v1.2026-09-01";
 const SCREEN_EVENT: &str =
     "tos.event.screening.zarathustra-antonovsky-1911-pdf-layout-v1.2026-09-01";
@@ -487,7 +506,7 @@ pub fn run(
     // The current maintained recipe differs from the historical capture only
     // in five provenance warnings; do not relabel that older source event.
     ensure(
-        sha(&ctx.read(BUILDER)?) == BUILDER_SHA,
+        sha(&recipe_bytes(&ctx)?) == BUILDER_SHA,
         "current v1 producer source binding drift; historical recipe is retained separately",
     )?;
     let doc = prepare(&ctx, &plan)?;

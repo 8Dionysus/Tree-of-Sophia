@@ -511,7 +511,7 @@ fn verify_delta(
     if required_text(provenance, "event_ref")? != required_text(selection_delta, "event_ref")? {
         return Err("handoff provenance event differs".into());
     }
-    if required_text(provenance, "base_revision")? != required_base
+    if required_text(provenance, "base_revision")? != expected_base
         || required_text(provenance, "base_revision")?
             != required_text(&context.manifest, "base_revision")?
     {
@@ -848,8 +848,8 @@ fn create_stage(output: &Path) -> Result<Stage> {
                     .map_err(|error| format!("cannot open adapter staging directory: {error}"))?;
                 let metadata = directory.metadata().map_err(|error| error.to_string())?;
                 return Ok(Stage {
-                    path: parent.join(name),
-                    parent,
+                    path: parent.join(&name),
+                    parent: parent.to_path_buf(),
                     name,
                     directory,
                     dev: metadata.dev(),

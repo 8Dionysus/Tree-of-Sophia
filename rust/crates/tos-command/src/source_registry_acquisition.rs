@@ -175,7 +175,7 @@ fn helper(name: &str, args: &Value) -> Result<Value> {
                     value
                         .as_str()
                         .map(str::to_owned)
-                        .ok_or("event receipt refs must be strings")
+                        .ok_or_else(|| "event receipt refs must be strings".to_owned())
                 })
                 .collect::<Result<Vec<_>>>()?;
             Ok(event(
@@ -257,10 +257,12 @@ fn helper(name: &str, args: &Value) -> Result<Value> {
         }
         "validate_work_extension" => {
             let root = absolute_path(args, "root")?;
-            let (reference, package) =
+            let extension =
                 validate_work_extension(&root, field(args, "target")?, field(args, "package")?)?;
-            Ok(match reference {
-                Some((path, before)) => json!({"path":path,"before_base64":base64_encode(&before)}),
+            Ok(match extension {
+                Some((path, before)) => {
+                    json!({"path":path,"before_base64":base64_encode(&before)})
+                }
                 None => Value::Null,
             })
         }
@@ -500,7 +502,7 @@ fn selected_metadata_observations(preparation: &Value, target: &Value) -> Result
         .map(|value| {
             value
                 .as_str()
-                .ok_or("metadata evidence reference must be a string")
+                .ok_or_else(|| "metadata evidence reference must be a string".to_owned())
         })
         .collect::<Result<Vec<_>>>()?;
     if selected.is_empty() || selected.iter().collect::<HashSet<_>>().len() != selected.len() {
@@ -922,7 +924,11 @@ fn validate_work_extension(
     }
     let prior = arr(&old, "expression_claim_refs")?
         .iter()
-        .map(|value| value.as_str().ok_or("Work claim reference must be text"))
+        .map(|value| {
+            value
+                .as_str()
+                .ok_or_else(|| "Work claim reference must be text".to_owned())
+        })
         .collect::<Result<Vec<_>>>()?;
     let additions = incoming
         .iter()
@@ -1006,7 +1012,7 @@ fn preflight_identities(
             .map(|value| {
                 value
                     .as_str()
-                    .ok_or("target ID must be text")
+                    .ok_or_else(|| "target ID must be text".to_owned())
                     .map(str::to_owned)
             })
             .collect::<Result<BTreeSet<_>>>()?;
@@ -1108,7 +1114,7 @@ fn preflight_identities(
                     .map(|value| {
                         value
                             .as_str()
-                            .ok_or("discovery run target ref must be text")
+                            .ok_or_else(|| "discovery run target ref must be text".to_owned())
                             .map(str::to_owned)
                     })
                     .collect::<Result<Vec<_>>>()?;
@@ -1141,10 +1147,11 @@ fn check_preparation_receipt(
         "checkpoint_review_ref",
         "passed_checks",
     ] {
-        if receipt
-            .get(key)
-            .is_none_or(|value| value.is_null() || value == "" || value == json!([]))
-        {
+        if receipt.get(key).is_none_or(|value| {
+            value.is_null()
+                || value.as_str() == Some("")
+                || value.as_array().is_some_and(Vec::is_empty)
+        }) {
             return Err("preparation receipt lacks checkpoint evidence".into());
         }
     }
@@ -1395,7 +1402,7 @@ fn tei_division_addresses(
     }
     visit(
         edition,
-        &[],
+        &TeiAddress::default(),
         milestone_unit,
         collect_repeated_milestones,
         collect_repeated_divisions,
@@ -2652,7 +2659,7 @@ fn write_discovery(
     let run = json!({
         "$schema":"https://tree-of-sophia.local/ToS/contracts/material-discovery-record.schema.json","schema_version":"tos_material_discovery_record_v1",
         "discovery_id":format!("tos.discovery.registry-{slug}.{day}.v1"),"protocol_ref":format!("{SOURCE}/discovery/DISCOVERY_PROTOCOL.md"),
-        "target":{"target_kind":"expression","known_tos_refs":object(target,"ids")?.values().cloned().collect::<Vec<_>(),"description":target["version_description"],"required_properties":target["limits"].as_array().cloned().unwrap_or_default().into_iter().chain([json!("exact pinned provider version and immutable local file identity")]).collect::<Vec<_>>(),"acceptable_substitutions":[],"languages":languages,"formats":media_types,"purpose_ref":manifest_ref},
+        "target":{"target_kind":"expression","known_tos_refs":object(target,"ids")?.values().cloned().collect::<Vec<_>>(),"description":target["version_description"],"required_properties":target["limits"].as_array().cloned().unwrap_or_default().into_iter().chain([json!("exact pinned provider version and immutable local file identity")]).collect::<Vec<_>>(),"acceptable_substitutions":[],"languages":languages,"formats":media_types,"purpose_ref":manifest_ref},
         "channels":channels,"channel_comparison":comparisons,"selected_result_ids":selected,"rejected_result_ids":[],"rights_inference_from_availability_prohibited":true,"general_web_search_is_last_resort":true,"technical_access_bypass_used":false,
         "maker":{"maker_type":"mixed","agent_ref":"model:codex"},"started_at":started,"ended_at":text(acquisition,"ended_at")?,"status":"reconciled","provenance_event_refs":[event_id,text(acquisition,"event_id")?],"record_version":1,"supersedes_discovery_ref":null
     });
@@ -2927,11 +2934,15 @@ fn install_target(
     };
     let limits = arr(target, "limits")?
         .iter()
-        .map(|value| value.as_str().ok_or("target limit must be text"))
+        .map(|value| {
+            value
+                .as_str()
+                .ok_or_else(|| "target limit must be text".to_owned())
+        })
         .collect::<Result<Vec<_>>>()?
         .join("\n");
     let report = format!(
-        "# Exact local source intake — {target_title}\n\nInspected: {ended}\n\nVersion: `{}`.\n\nThe {} original files ({} bytes) match the prepared Git blob identities and sizes. The Item manifest records computed SHA-256. The files were opened and parsed locally; source bytes and code-point order were preserved.\n\n`forensic-observations.json` records the exact observed format and target-specific mechanical coverage. `resource-inventory.json` contains the owner's text-free enumeration.\n\n{}\n\n{}\n\nRights are layer-specific provider/license assessments for local acquisition. Visibility remains local-only. Authorship, textual fidelity, translation, semantic assessment, canon and publication follow their recorded owner decisions.\n",
+        "# Exact local source intake — {target_title}\n\nInspected: {ended}\n\nVersion: `{}`.\n\nThe {} original files ({} bytes) match the prepared Git blob identities and sizes. The Item manifest records computed SHA-256. The files were opened and parsed locally; source bytes and code-point order were preserved.\n\n`forensic-observations.json` records the exact observed format and target-specific mechanical coverage. `resource-inventory.json` contains the owner's text-free enumeration.\n\n{}\n\n{}\n\n{}\n\nRights are layer-specific provider/license assessments for local acquisition. Visibility remains local-only. Authorship, textual fidelity, translation, semantic assessment, canon and publication follow their recorded owner decisions.\n",
         format!("{}@{}", text(target, "repository")?, text(target, "pin")?),
         bodies.len(),
         byte_size,

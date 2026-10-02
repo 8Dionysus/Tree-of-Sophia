@@ -779,7 +779,7 @@ fn inventory_xml_tree(raw: &[u8]) -> SourceCommandResult<InventoryXmlNode> {
                     node.text_content.push_str(&text);
                 }
             }
-            XmlEvent::Doctype(_) => (),
+            XmlEvent::Doctype { .. } => (),
             XmlEvent::ProcessingInstruction { .. } => (),
             XmlEvent::StartDocument { .. } | XmlEvent::EndDocument | XmlEvent::Comment(_) => (),
         }

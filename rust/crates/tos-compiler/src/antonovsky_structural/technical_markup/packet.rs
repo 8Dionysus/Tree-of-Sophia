@@ -103,7 +103,7 @@ pub(super) fn build(
     );
     // Historical builder bytes bind the retained source event only; they are
     // never loaded as code or passed to a Python process by this producer.
-    let builder_sha = sha(&ctx.read(BUILDER)?);
+    let builder_sha = sha(&recipe_bytes(ctx)?);
     ensure(
         builder_sha == BUILDER_SHA,
         "producer source binding changed during operation",

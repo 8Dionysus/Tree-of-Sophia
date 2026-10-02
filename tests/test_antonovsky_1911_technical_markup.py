@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import json
 import subprocess
-import sys
+import os
+import shutil
 import unittest
 from pathlib import Path
 
@@ -15,18 +16,23 @@ ROUTE_ROOT = REPO_ROOT / (
 )
 
 
+def native_command(action: str) -> list[str]:
+    native = os.environ.get("TOS_NATIVE_PREPARED_CONSUMER_BIN") or shutil.which("tos")
+    if not native or not Path(native).is_absolute():
+        raise RuntimeError("installed native tos required; no Python producer fallback")
+    return [native, "technical-markup", "--source-root", str(REPO_ROOT), action,
+            "--max-seconds", "180"]
+
+
 class Antonovsky1911TechnicalMarkupTests(unittest.TestCase):
     def test_tracked_route_validates_without_private_source_layers(self) -> None:
         completed = subprocess.run(
-            [
-                sys.executable,
-                "scripts/build_antonovsky_1911_technical_markup.py",
-                "--validate-tracked",
-            ],
+            native_command("--validate-tracked"),
             cwd=REPO_ROOT,
             check=False,
             capture_output=True,
             text=True,
+            timeout=185,
         )
         self.assertEqual(
             completed.returncode,
@@ -202,15 +208,12 @@ class Antonovsky1911TechnicalMarkupTests(unittest.TestCase):
         if not payload.is_file():
             self.skipTest("exact local Antonovsky 1911 PDF is not present")
         completed = subprocess.run(
-            [
-                sys.executable,
-                "scripts/build_antonovsky_1911_technical_markup.py",
-                "--check",
-            ],
+            native_command("--check"),
             cwd=REPO_ROOT,
             check=False,
             capture_output=True,
             text=True,
+            timeout=185,
         )
         self.assertEqual(
             completed.returncode,
