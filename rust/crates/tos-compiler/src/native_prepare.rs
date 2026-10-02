@@ -78,6 +78,9 @@ impl SourceBootstrapLimits {
 }
 // Native prepare alone binds normalization to the actual executing ELF. The
 // D1 publisher's accepted processor identity and public receipt are unchanged.
+// Match the selected CI software-image envelope; this bounds one streaming
+// identity read, not source, staging, publication, or allocated image memory.
+const MAX_EXECUTING_IMAGE_BYTES: u64 = 1024 * 1024 * 1024;
 struct ExecutingProcessor {
     file: File,
     path: std::path::PathBuf,
@@ -86,7 +89,7 @@ struct ExecutingProcessor {
     deadline: Instant,
 }
 fn executable_stamp(m: &fs::Metadata) -> Result<(u64, u64, u64, i64, i64, i64, i64)> {
-    if !m.is_file() || m.len() == 0 || m.len() > 256 * 1024 * 1024 {
+    if !m.is_file() || m.len() == 0 || m.len() > MAX_EXECUTING_IMAGE_BYTES {
         return Err(Error::Budget("prepare executing ELF file envelope"));
     }
     Ok((
