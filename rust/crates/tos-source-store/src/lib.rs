@@ -49,4 +49,10 @@ pub use git_capture::{GitMemberDescriptor, read_git_member, resolve_git_member};
 mod publication;
 pub use publication::{MetadataPublicationEpoch, validate_metadata_publication};
 
+mod pinned_sqlite_aux;
 pub use pinned_sqlite::PinnedSqliteConnection;
+pub use pinned_sqlite_aux::{
+    PinnedSqliteAuxLimits, PinnedSqliteAuxRequest, PinnedSqliteAuxScope, PinnedSqliteIoBudget,
+    PinnedSqliteIoFailure, PinnedSqliteIoSnapshot, PinnedSqliteSpaceBudget,
+    PinnedSqliteSpaceReservation, PinnedSqliteSpaceSnapshot,
+};
