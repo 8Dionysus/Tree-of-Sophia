@@ -854,10 +854,10 @@ fn verify_public_selected_bytes(
         .ok_or(SourceCommandError::Conflict(
             "assessment public source is outside the selected cut",
         ))?;
-    // `ctx.files` is the selected software-component closure, not the corpus
-    // member set. The selected cut revision and member digest bind these
-    // owner-read public bytes without requiring authored ToS files to be
-    // duplicated as software components.
+    // `ctx.files` is the selected command-input closure, not the complete
+    // corpus member set. The selected cut revision and member digest bind
+    // these owner-read public bytes without requiring ToS records to be
+    // duplicated as direct command inputs.
     if raw.len() as u64 != member.size_bytes || Digest256::of_bytes(raw) != member.sha256 {
         return Err(SourceCommandError::Conflict(
             "assessment public source differs from selected cut",
