@@ -35,3 +35,13 @@ The additional Antonovsky v1 blob is exact maintained source from
 or executed by the native producer. The active Python module temporarily retains
 helpers imported by the separately supported v2 builder; that dependency is not
 retirement of the entire Python family.
+
+The additional Antonovsky v2 blob is the exact 61,015-byte maintained source
+`fa3cd89b6cad07aa2f63dad6cc84707902586b2b262db4a98128d5def9261a01`,
+retained before its CLI entry changed to native execution. The historical
+`f1c6bf35b382e1daa15f6f934107e130a781c7d4f0943b196e853dbdc4409570`
+blob remains unchanged. The v2 native producer does not execute these archives
+or hash its active Python entry as a generated manifest input; its static inputs
+are the census, identity issuance and primary challenger. Research oracle
+execution uses separately authenticated private inputs under its own custody;
+archive availability is not permission to execute or a claim of independence.
