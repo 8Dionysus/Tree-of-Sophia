@@ -46,7 +46,7 @@ fn main() {
         std::process::exit(code);
     }
     if let Some(code) = tos_access::technical_markup_command::run_if_requested(
-        &args[1..],
+        &args,
         &mut std::io::stdout(),
         &mut std::io::stderr(),
     ) {
