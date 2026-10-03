@@ -800,6 +800,7 @@ pub fn status_release(release: &Path, expected_revision: &str) -> io::Result<Val
     let release = safe_absolute(release)?;
     let status = crate::kag_downstream_status::Status::new(&release.join("status"), "kag")?
         .status(expected_revision)?;
+    budget_check()?;
     let mut result = status;
     result["source_kind"] = Value::String("corpus_revision".into());
     result["integration_revision"] = Value::Null;
