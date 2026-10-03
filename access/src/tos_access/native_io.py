@@ -228,7 +228,20 @@ class _Exchange:
         self.write_input(raw)
 
     def close_input(self):
-        self.write_input(b'', close=True)
+        """Close only the owned input pipe, including after operation cancellation.
+
+        EOF is cleanup, not another request write. The sole reader still owns
+        terminal validation and reap; cancellation remains set for that reader.
+        """
+        remaining = self._deadline - time.monotonic()
+        if remaining <= 0 or not self._send_lock.acquire(timeout=remaining):
+            raise TimeoutError('native input close deadline exceeded')
+        try:
+            if time.monotonic() >= self._deadline:
+                raise TimeoutError('native input close deadline exceeded')
+            self._child.stdin.close()
+        finally:
+            self._send_lock.release()
 
     def frames(self):
         """Yield bounded JSONL bytes, draining bounded stderr in the same reader."""
