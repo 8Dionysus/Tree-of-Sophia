@@ -370,11 +370,24 @@ remain foundation work; the journal provides the assessment-history component of
 
 ### Local account command contract
 
-The journal also offers `run_local_command(owner_config, request)` and a CLI:
+Owned Journal commands use the protected native invocation selected by the
+command issuer. Public owner versions v1–v3 retain their inline, source-bound
+and native TextUnit inputs respectively; confidential versions retain their
+separate owner-local selection. Installing a product does not select or
+authorize this invocation. See the [local invocation release route](../../../../docs/RELEASING.md).
+
+```bash
+python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py \
+  --owner-config /absolute/operator-selected/owner.json \
+  --native-invocation /absolute/operator-selected/native-invocation.json < request.json
+```
+
+The retained Python `run_local_command(owner_config, request)` reference and
+CLI remain available through the explicit oracle route:
 
 ```bash
 python mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py \
-  --owner-config /absolute/operator-selected/owner.json < request.json
+  --legacy-oracle --owner-config /absolute/operator-selected/owner.json < request.json
 ```
 
 This is an explicit local owner operation, never part of read-only `access`.
