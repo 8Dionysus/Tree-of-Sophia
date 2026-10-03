@@ -1664,14 +1664,19 @@
       "source_truth": [
         "ToS/source-witnesses/catalog/catalog.manifest.json",
         "ToS/source-witnesses/",
-        "ToS/doctrine/semantic-interchange/README.md",
-        "access/src/tos_access/knowledge.py"
+        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "rust/crates/tos-compiler/src/source_witness_catalog.rs",
+        "rust/crates/tos-compiler/src/source_bibliographic_native_text.rs",
+        "rust/crates/tos-access/src/source_projection_coverage.rs",
+        "rust/crates/tos-query/src/source_diagnostic.rs",
+        "access/src/tos_access/native_io.py"
       ],
       "reads": [
-        "current public source catalog and exact owned metadata/Claim JSON through existing readers, declared schema/profile closure, existing ordinary normalized graph; complete explicit offline scan with source membership/byte and graph boundary rechecks"
+        "exact public source catalog and Claim membership/currentness through the native held-root/profile and native-text readers; full source values and source-file SHA-256; one held normalized graph-carrier traversal or an explicitly supplied graph packet, with source/read-model boundary rechecks"
       ],
       "writes": [],
-      "side_effects": "stdout-only source identity/field-retention observations, per-source next-owner routes and terminal enumeration summary; no source wording/private native inventory/payload export, semantic acceptance, form quality, rights inference or source mutation",
+      "side_effects": "stdout-only source identity/field-retention observations, per-source next-owner routes and terminal enumeration summary through the installed Rust consumer; no source wording/private native inventory/payload export, semantic acceptance, form quality, rights inference or source mutation",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_source_witness_bibliographic_graph.py",

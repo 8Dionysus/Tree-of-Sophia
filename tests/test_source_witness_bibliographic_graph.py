@@ -217,153 +217,62 @@ class SourceWitnessBibliographicGraphTest(unittest.TestCase):
         self.assertEqual(display['provenance']['title'], 'source-slot-fallback')
 
     def test_source_coverage_requires_complete_fields_and_keeps_conflicting_carriers_visible(self):
-        from source_witness_projection_coverage import observe_record
+        import source_witness_projection_coverage as coverage
         record = {'record_id': 'tos.agent.synthetic', 'record_version': 1,
                   'unknown_extension': {'word': 'λόγος', 'absent': None, 'flag': True}}
         ref = 'ToS/source-witnesses/agents/synthetic/agent.json'
-        node = {'id': 'source:synthetic', 'source_graph': 'source-claims',
-                'source_refs': [ref], 'type_mapping': {'status': 'mapped'},
-                'attributes': {'source_record': copy.deepcopy(record)}}
-        def observe(nodes, **kwargs):
-            return observe_record(record['record_id'], record, ref, nodes,
-                                  kind='agent', adapter=kwargs.get('adapter', 'source-record'))
-        exact = observe([node])
-        self.assertEqual(exact['state'], 'mapped-directly')
-        self.assertEqual(exact['record_digest'], 'sha256:' + canonical_digest(record))
-        self.assertNotIn('λόγος', json.dumps(exact, ensure_ascii=False))
-        alias = {'id': 'navigation:synthetic', 'source_graph': 'source-navigation',
-                 'source_refs': [ref], 'type_mapping': {'status': 'mapped'}, 'attributes': {}}
-        self.assertEqual(observe([node, alias])['state'], 'mapped-directly')
-        self.assertEqual(observe([alias])['state'], 'requires-clarification')
-        self.assertEqual(observe([])['state'], 'missing-from-projection')
-        for mutate in ('missing', 'null', 'boolean-number', 'added'):
-            changed = copy.deepcopy(node)
-            changed['id'] = 'source:conflict'
-            value = changed['attributes']['source_record']
-            if mutate == 'missing':
-                del value['unknown_extension']
-            elif mutate == 'null':
-                del value['unknown_extension']['absent']
-            elif mutate == 'boolean-number':
-                value['unknown_extension']['flag'] = 1
-            else:
-                value['invented'] = None
-            with self.subTest(mutate=mutate):
-                result = observe([node, changed])
-                self.assertEqual(result['state'], 'conflicting-record-carriers')
-                self.assertEqual(result['carriers'][0]['raw_record_state'], 'different')
-        self.assertEqual(node['attributes']['source_record'], record)
+        candidates = [{'id': 'source:synthetic', 'source_graph': 'source-claims',
+            'source_refs': [ref], 'type_mapping': {'status': 'mapped'},
+            'attributes': {'source_record': copy.deepcopy(record)}}]
+        expected = {'state': 'mapped-directly', 'record_digest': 'sha256:' + canonical_digest(record)}
+        with patch.object(coverage, '_native_packets', return_value=(v for v in [expected])) as native:
+            self.assertEqual(coverage.observe_record(record['record_id'], record, ref,
+                candidates, kind='agent', adapter='source-record'), expected)
+        arguments, request = native.call_args.args[:2]
+        self.assertEqual(arguments, ['source-projection-coverage', '--observe-record', '--input', '-'])
+        self.assertEqual(request['record'], record)
+        self.assertEqual(request['candidates'], candidates)
+        self.assertIn('λόγος', json.dumps(request, ensure_ascii=False))
 
     def test_source_coverage_claim_object_adapter_and_source_return_are_distinct(self):
-        from source_witness_projection_coverage import observe_record
+        import source_witness_projection_coverage as coverage
         record = {'claim_id': 'tos.claim.synthetic', 'object': 'tos.agent.synthetic',
                   'polarity': 'negative', 'unknown': [None, False, 'en']}
         ref = 'ToS/source-witnesses/relations/synthetic/source-claims.jsonl'
         node = {'id': 'claim:synthetic', 'source_graph': 'source-claims',
                 'source_refs': [ref], 'type_mapping': {'status': 'mapped'},
                 'attributes': {'source_claim': record}}
-        result = observe_record(record['claim_id'], record, ref, [node], kind='claim',
-                                adapter='reified-claim', source_line=2)
-        self.assertEqual(result['state'], 'mapped-directly')
-        self.assertEqual(result['source_line'], 2)
-        self.assertEqual(result['carriers'][0]['record_pointer'], '/attributes/source_claim')
-        for changed in ({**node, 'source_refs': []}, {**node, 'type_mapping': {'status': 'unmapped'}},
-                        {**node, 'attributes': {'source_record': record}}):
-            with self.subTest(changed=changed):
-                self.assertEqual(observe_record(record['claim_id'], record, ref, [changed],
-                    kind='claim', adapter='reified-claim')['state'], 'requires-clarification')
-        artifact = {'artifact_id': 'tos.artifact.synthetic', 'record_version': 1}
-        node['attributes'] = {'source_record': artifact}
-        result = observe_record(artifact['artifact_id'], artifact, ref, [node],
-                                kind='artifact', adapter='native-witness')
-        self.assertEqual(result['state'], 'mapped-through-adapter')
+        expected = {'state': 'mapped-directly', 'source_line': 2,
+                    'carriers': [{'record_pointer': '/attributes/source_claim'}]}
+        with patch.object(coverage, '_native_packets', return_value=(v for v in [expected])) as native:
+            result = coverage.observe_record(record['claim_id'], record, ref, [node], kind='claim',
+                                             adapter='reified-claim', source_line=2)
+        self.assertEqual(result, expected)
+        self.assertEqual(native.call_args.args[1]['source_line'], 2)
+        self.assertEqual(native.call_args.args[1]['kind'], 'claim')
 
     def test_source_coverage_does_not_enumerate_from_a_stale_catalog(self):
         import source_witness_projection_coverage as coverage
-        observed = []
-        with patch.object(coverage, 'render_outputs', return_value={}), \
-                patch.object(coverage, 'check_outputs', return_value=['stale']), \
-                patch.object(coverage, '_catalog_objects') as load:
-            with self.assertRaisesRegex(ValueError, 'catalog is stale'):
-                coverage.coverage_report(REPO_ROOT, {}, emit_row=observed.append)
-        self.assertEqual(observed, [])
-        load.assert_not_called()
-
-    @contextmanager
-    def source_coverage_fixture(self):
-        """Public catalog enumeration is independent of consumer family filters."""
-        import source_witness_projection_coverage as coverage
-        with tempfile.TemporaryDirectory() as temp:
-            root = Path(temp)
-            link = {'link_id': 'tos.link.synthetic', 'unknown': [None, False, 'λόγος']}
-            claim = {'claim_id': 'tos.claim.synthetic.link', 'object': link['link_id'],
-                     'qualifiers': {'unknown': None}}
-            link_ref = 'ToS/source-witnesses/links/synthetic/link.json'
-            claim_ref = 'ToS/source-witnesses/relations/synthetic/source-claims.jsonl'
-            files = {link_ref: json.dumps(link), claim_ref: json.dumps(claim) + '\n',
-                'ToS/source-witnesses/catalog/link.jsonl': json.dumps({
-                    'record_id': link['link_id'], 'record_type': 'link',
-                    'source_record_ref': link_ref, 'record_sha256': canonical_digest(link)}) + '\n',
-                'ToS/source-witnesses/catalog/claim.jsonl': json.dumps({
-                    'claim_id': claim['claim_id'], 'source_claim_file_ref': claim_ref,
-                    'source_claim_line': 1}) + '\n',
-                'ToS/source-witnesses/catalog/empty.jsonl': ''}
-            for ref, value in files.items():
-                path = root / ref
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(value, encoding='utf-8')
-            manifest = {'record_files': {'link': 'ToS/source-witnesses/catalog/link.jsonl',
-                                        'artifact': 'ToS/source-witnesses/catalog/empty.jsonl'},
-                'claim_file': 'ToS/source-witnesses/catalog/claim.jsonl',
-                'counts': {'total': 2}, 'catalog_sha256': 'synthetic'}
-            outputs = {coverage.MANIFEST_PATH: json.dumps(manifest)}
-            node = {'id': 'navigation:link', 'native_id': link['link_id'],
-                'source_graph': 'source-navigation', 'source_refs': [link_ref],
-                'type_mapping': {'status': 'mapped'}, 'attributes': {'source_record': link}}
-            relation = {'id': 'navigation:assertion', 'from_id': 'synthetic:subject',
-                'to_id': node['id'], 'source_graph': 'source-navigation', 'source_refs': [claim_ref],
-                'predicate_mapping': {'status': 'mapped'},
-                'attributes': {'claim_ref': claim['claim_id'], 'source_claim': claim}}
-            graph = {'source_revision': 'synthetic', 'nodes': [node], 'relations': [relation]}
-            with patch.object(coverage, 'render_outputs', return_value=outputs), \
-                    patch.object(coverage, 'check_outputs', return_value=[]), \
-                    patch.object(coverage, 'SourceClaimProfiles'), \
-                    patch.object(coverage, '_load_source_claim', return_value=claim):
-                yield coverage, root, graph, link_ref
-
-    def test_source_coverage_enumerates_link_objects_claims_relations_and_empty_families(self):
-        rows = []
-        with self.source_coverage_fixture() as (coverage, root, graph, _):
-            revisions = []
-            summary = coverage.coverage_report(root, graph, emit_row=rows.append,
-                                               verify_graph=revisions.append)
-        self.assertEqual(revisions, ['synthetic'])
-        self.assertTrue(summary['enumeration_complete'])
-        self.assertEqual((summary['objects'], summary['claims'], summary['source_files']), (1, 1, 2))
-        self.assertEqual({row['observation']['identity'] for row in rows},
-                         {'tos.link.synthetic', 'tos.claim.synthetic.link'})
-        self.assertEqual({row['observation']['state'] for row in rows}, {'mapped-directly'})
-        self.assertEqual(rows[1]['observation']['carriers'][0]['kind'], 'relation')
-        self.assertEqual(next(group for group in summary['groups'] if group['kind'] == 'artifact'),
-                         {'kind': 'artifact', 'source_identities': 0, 'states': {}})
+        graph = {'source_revision': 'synthetic', 'nodes': [], 'relations': []}
+        row = {'schema_version': 'tos_source_projection_coverage_row_v1',
+               'source_revision': 'synthetic', 'observation': {}}
+        with patch.object(coverage, '_native_packets', return_value=(v for v in [row])):
+            with self.assertRaisesRegex(ValueError, 'terminal summary'):
+                coverage.coverage_report(REPO_ROOT, graph, invocation=Path(__file__), emit_row=lambda _: None)
 
     def test_source_coverage_source_byte_or_read_model_drift_cannot_return_terminal_summary(self):
-        for drift in ('source-bytes', 'read-model'):
-            rows = []
-            with self.subTest(drift=drift), self.source_coverage_fixture() as (coverage, root, graph, ref):
-                def observe(row):
-                    rows.append(row)
-                    if drift == 'source-bytes' and len(rows) == 1:
-                        # Identical JSON value with different bytes is still a changed input.
-                        path = root / ref
-                        path.write_text(path.read_text(encoding='utf-8') + '\n', encoding='utf-8')
-                def verify_graph(_revision):
-                    if drift == 'read-model':
-                        raise ValueError('read-model changed')
-                with self.assertRaisesRegex(ValueError, 'changed'):
-                    coverage.coverage_report(root, graph, emit_row=observe, verify_graph=verify_graph)
-            self.assertEqual(len(rows), 2)
-            self.assertTrue(all(row['schema_version'] == 'tos_source_projection_coverage_row_v1' for row in rows))
+        import source_witness_projection_coverage as coverage
+        graph = {'source_revision': 'synthetic', 'nodes': [], 'relations': []}
+        row = {'schema_version': 'tos_source_projection_coverage_row_v1',
+               'source_revision': 'synthetic', 'observation': {}}
+        summary = {'schema_version': 'tos_source_projection_coverage_v1',
+                   'enumeration_complete': True, 'source_revision': 'synthetic'}
+        rows = []
+        with patch.object(coverage, '_native_packets', return_value=(v for v in [row, summary])):
+            with self.assertRaisesRegex(ValueError, 'read-model changed'):
+                coverage.coverage_report(REPO_ROOT, graph, invocation=Path(__file__), emit_row=rows.append,
+                                         verify_graph=lambda _: (_ for _ in ()).throw(ValueError('read-model changed')))
+        self.assertEqual(rows, [row])
 
     def test_external_citations_remain_per_claim_source_return_not_remote_content(self):
         from source_witness_bibliographic_graph_common import _external_citation_node

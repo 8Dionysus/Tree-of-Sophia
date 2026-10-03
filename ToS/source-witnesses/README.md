@@ -381,18 +381,44 @@ existing fields even when the display's 240-character title or 1024-character
 description is shortened.
 
 For an explicit source-first migration observation, run
-`python scripts/source_witness_projection_coverage.py --rows` from the repository.
-It verifies the public catalog against its current sources, enumerates every
-catalog-owned object and Claim (including carriers filtered out by one graph
-builder), and compares complete retained JSON fields in the ordinary normalized
-reader. Rows distinguish direct/adapted mapping, missing carriers, conflicting
-records and unresolved source return. The final summary alone confirms that
-enumeration completed; an interrupted or stale-input stream is incomplete.
-This offline diagnostic measures retained source fields and carrier coverage. It reports no source wording, private native inventory or
-payload. Exact JSON-field retention is separate from source-file byte formatting,
-semantic understanding, form quality and admission. Uncatalogued families and
-the rest of the ToS corpus remain outside this bounded report and require their
-own source routes; a missing carrier does not imply restricted access or falsity.
+`TOS_NATIVE_PREFIX=/absolute/installed/prefix python scripts/source_witness_projection_coverage.py --invocation /absolute/protected-invocation.json --rows`
+from the repository. `--invocation` selects the actual Access executable digest,
+native schema-worker image and original capture/resource controls using the
+protected `tos_local_native_foundation_invocation_v1` contract. The maintained
+Foundation kernel owns the complete catalogue and worker exchange; coverage
+consumes its sealed stage in a borrowed callback and checks final source/root
+and metadata-publication currentness before its complete summary. The Rust
+`tos-access` command validates the exact public
+catalog inputs and Claims, checks generated-catalog currentness, then compares
+the full source JSON values (including unknown fields and explicit nulls) with
+the ordinary normalized read model. Rows distinguish direct/adapted mapping,
+missing carriers, conflicting records and unresolved source return. The final
+`tos_source_projection_coverage_v1` summary alone confirms that enumeration
+completed; an interrupted, stale-input or refused-budget stream is incomplete.
+`--root`, `--max-input-bytes`, `--max-rows` and `--max-seconds` bound the scan;
+`--graph /absolute/graph.json` supplies an explicit normalized graph snapshot
+instead of reading the native held snapshot. `--native-prefix` may be used
+instead of `TOS_NATIVE_PREFIX`. Imported callers retain `observe_record` and
+`coverage_report(..., invocation=protected_path)` callbacks, which forward to the same installed native
+command; their graph-currentness callback remains caller-owned and runs after
+the native stream has reached successful EOF/status and child cleanup, before
+the summary is returned. `coverage_report` accepts an encoded graph request up
+to 256 MiB, depth 64, and 1,000,000 JSON visits; `observe_record` remains bounded
+to a 16 MiB request. The imported call uses a 120-second work limit plus five
+seconds for cleanup. Its clock starts before graph encoding and process setup,
+so those steps use part of that limit. The command-line `--max-seconds` accepts
+up to 3600; the native wrapper uses that value plus five cleanup seconds on one
+original clock. Neither limit promises a runtime fit. Graph bytes also count
+against the native command's combined selected-input budget, so 256 MiB is a
+transport ceiling rather than an allowance in addition to source inputs.
+
+This offline diagnostic reports source identities, source references, field
+names and source-file SHA-256 values; it does not export source wording, private
+native inventory or payload. Exact JSON-field retention is separate from
+source-file formatting, semantic understanding, form quality, rights and
+admission. Uncatalogued families and the rest of the ToS corpus remain outside
+this bounded report; a missing carrier does not imply restricted access or
+falsity.
 
 A `Link` is a first-class observed route with provider, interface kind,
 technical access status, observation timestamp, provenance event, and a stable

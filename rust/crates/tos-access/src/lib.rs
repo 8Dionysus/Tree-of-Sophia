@@ -77,3 +77,8 @@ pub mod native_cold_resources;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod core_http_admission;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub mod source_projection_catalog_capture;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod source_projection_coverage;
