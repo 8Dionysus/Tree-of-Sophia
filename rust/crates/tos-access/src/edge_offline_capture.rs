@@ -39,7 +39,19 @@ use tos_foundation::{
     canonical_bytes_v1, emit_python_compact_json, parse_json, parse_json_with_state_budget,
 };
 
+mod typed_snapshot;
+
 const REQUEST_SCHEMA: &str = "tos_edge_offline_capture_request_v1";
+const TYPED_REQUEST_SCHEMA: &str = "tos_edge_offline_capture_request_v2";
+const TYPED_RESULT_SCHEMA: &str = "tos_edge_offline_capture_result_v2";
+
+fn result_schema(request_schema: &str) -> &'static str {
+    if request_schema == TYPED_REQUEST_SCHEMA {
+        TYPED_RESULT_SCHEMA
+    } else {
+        "tos_edge_offline_capture_result_v1"
+    }
+}
 // Prepared bindings are each capped at 1 MiB by the source binding validator;
 // catch-up source inputs are capped at 1 MiB, and each projection root at
 // 256 KiB. Outer string escaping plus fixed paths/fields fit inside this
@@ -506,26 +518,63 @@ struct HeldSqliteIdentity {
     guard: File,
     selected_path: PathBuf,
     selected_identity: (u64, u64),
-    sqlite_fd: i32,
+    sqlite_fd: Option<i32>,
+    frame_identity: Option<(u64, String)>,
+    snapshot_inventory: Option<Value>,
 }
 
 impl HeldSqliteIdentity {
     fn verify_selected_file_identity(&self) -> Result<(), String> {
         let guard = self.guard.metadata().map_err(|error| error.to_string())?;
-        let held = fs::metadata(format!("/proc/self/fd/{}", self.sqlite_fd))
-            .map_err(|error| error.to_string())?;
         let current =
             fs::symlink_metadata(&self.selected_path).map_err(|error| error.to_string())?;
         let identity = self.selected_identity;
         if self.selected_path.is_symlink()
             || !current.is_file()
             || (guard.dev(), guard.ino()) != identity
-            || (held.dev(), held.ino()) != identity
             || (current.dev(), current.ino()) != identity
         {
             return Err(invalid(
                 "selected SQLite path differs from its held snapshot identity",
             ));
+        }
+        if let Some(sqlite_fd) = self.sqlite_fd {
+            let held = fs::metadata(format!("/proc/self/fd/{sqlite_fd}"))
+                .map_err(|error| error.to_string())?;
+            if (held.dev(), held.ino()) != identity {
+                return Err(invalid("selected SQLite descriptor identity changed"));
+            }
+        }
+        if let Some((frame_bytes, expected_sha256)) = &self.frame_identity {
+            if guard.len() != *frame_bytes {
+                return Err(invalid("typed snapshot frame length changed"));
+            }
+            let mut reread = self.guard.try_clone().map_err(|error| error.to_string())?;
+            use std::io::Seek;
+            reread
+                .seek(std::io::SeekFrom::Start(0))
+                .map_err(|error| error.to_string())?;
+            let mut hasher = Digest256Hasher::new();
+            let mut buffer = [0u8; 64 * 1024];
+            let mut seen = 0u64;
+            loop {
+                let count = reread
+                    .read(&mut buffer)
+                    .map_err(|error| error.to_string())?;
+                if count == 0 {
+                    break;
+                }
+                seen = seen
+                    .checked_add(count as u64)
+                    .ok_or_else(|| invalid("typed snapshot frame length overflow"))?;
+                if seen > *frame_bytes {
+                    return Err(invalid("typed snapshot frame grew while held"));
+                }
+                hasher.update(&buffer[..count]);
+            }
+            if seen != *frame_bytes || hasher.finalize().to_hex() != *expected_sha256 {
+                return Err(invalid("typed snapshot frame bytes changed while held"));
+            }
         }
         Ok(())
     }
@@ -619,9 +668,148 @@ fn open_read_only(
             guard: identity_guard,
             selected_path: path.to_owned(),
             selected_identity,
-            sqlite_fd,
+            sqlite_fd: Some(sqlite_fd),
+            frame_identity: None,
+            snapshot_inventory: None,
         },
     })
+}
+
+struct SnapshotFrameBudget {
+    limit: u64,
+    used: u64,
+    schema_allocation_limit: u64,
+}
+
+impl SnapshotFrameBudget {
+    fn remaining(&self) -> Result<u64, String> {
+        self.limit
+            .checked_sub(self.used)
+            .ok_or_else(|| invalid("typed snapshot aggregate byte budget"))
+    }
+    fn consume(&mut self, bytes: u64) -> Result<(), String> {
+        self.used = self
+            .used
+            .checked_add(bytes)
+            .filter(|used| *used <= self.limit)
+            .ok_or_else(|| invalid("typed snapshot aggregate byte budget"))?;
+        Ok(())
+    }
+}
+
+fn open_typed_snapshot(
+    path: &Path,
+    role: typed_snapshot::Role,
+    input_field: &str,
+    budget: &mut SnapshotFrameBudget,
+    vm_steps: u64,
+    max_cell_bytes: usize,
+) -> Result<HeldSqlite, String> {
+    let remaining = budget.remaining()?;
+    let imported = typed_snapshot::import(
+        path,
+        role,
+        input_field,
+        remaining,
+        budget.schema_allocation_limit,
+        vm_steps,
+        max_cell_bytes,
+    )?;
+    budget.consume(imported.frame_bytes)?;
+    Ok(HeldSqlite {
+        connection: imported.connection,
+        identity: HeldSqliteIdentity {
+            guard: imported.guard,
+            selected_path: imported.selected_path,
+            selected_identity: imported.selected_identity,
+            sqlite_fd: None,
+            frame_identity: Some((imported.frame_bytes, imported.frame_sha256)),
+            snapshot_inventory: Some(imported.inventory),
+        },
+    })
+}
+
+fn open_selected_snapshot(
+    path: &Path,
+    vm_steps: u64,
+    max_cell_bytes: usize,
+    request_schema: &str,
+    role: typed_snapshot::Role,
+    input_field: &str,
+    frame_budget: &mut Option<SnapshotFrameBudget>,
+) -> Result<HeldSqlite, String> {
+    if request_schema == TYPED_REQUEST_SCHEMA {
+        let budget = frame_budget
+            .as_mut()
+            .ok_or_else(|| invalid("typed snapshot aggregate budget absent"))?;
+        open_typed_snapshot(path, role, input_field, budget, vm_steps, max_cell_bytes)
+    } else {
+        open_read_only(path, vm_steps, max_cell_bytes)
+    }
+}
+
+fn preflight_snapshot_frame_budget(
+    request: &Value,
+    operation: &str,
+) -> Result<SnapshotFrameBudget, String> {
+    let limit = positive(request, "snapshot_frame_max_bytes")?;
+    let schema_allocation_limit = positive(request, "snapshot_schema_max_allocation_bytes")?;
+    let mut fields = vec!["d1_database"];
+    if operation != "source-navigation-integrity" {
+        if !request["before_prepared_database"].is_null() {
+            fields.push("before_prepared_database");
+        }
+        fields.push("after_prepared_database");
+    }
+    let mut total = 0u64;
+    for field in fields {
+        let path = input_path(string(request, field)?)?;
+        let bytes = fs::metadata(path).map_err(|error| error.to_string())?.len();
+        total = total
+            .checked_add(bytes)
+            .filter(|used| *used <= limit)
+            .ok_or_else(|| invalid("typed snapshot aggregate byte budget"))?;
+    }
+    Ok(SnapshotFrameBudget {
+        limit,
+        used: 0,
+        schema_allocation_limit,
+    })
+}
+
+fn snapshot_transport_value(
+    request_schema: &str,
+    snapshots: &[(&str, &HeldSqliteIdentity)],
+) -> Result<Option<Value>, String> {
+    if request_schema == REQUEST_SCHEMA {
+        return Ok(None);
+    }
+    let mut entries = Vec::with_capacity(snapshots.len());
+    for (field, identity) in snapshots {
+        let entry = identity
+            .snapshot_inventory
+            .as_ref()
+            .ok_or_else(|| invalid("typed snapshot inventory absent"))?;
+        if entry.get("input_field").and_then(Value::as_str) != Some(*field) {
+            return Err(invalid("typed snapshot inventory role differs"));
+        }
+        entries.push(entry.clone());
+    }
+    Ok(Some(json!({
+        "schema": "tos_edge_typed_snapshot_inventory_v1",
+        "snapshots": entries,
+    })))
+}
+
+fn attach_snapshot_transport(receipt: &mut Value, inventory: Option<Value>) -> Result<(), String> {
+    let Some(inventory) = inventory else {
+        return Ok(());
+    };
+    receipt
+        .as_object_mut()
+        .ok_or_else(|| invalid("native receipt is not an object"))?
+        .insert("snapshot_transport".to_owned(), inventory);
+    Ok(())
 }
 
 /// Keep SQLite's transient tables, indices, and sort runs in memory for these
@@ -752,6 +940,7 @@ fn implementation_digest() -> String {
     let mut hasher = Digest256Hasher::new();
     for source in [
         include_bytes!("edge_offline_capture.rs").as_slice(),
+        include_bytes!("edge_offline_capture/typed_snapshot.rs").as_slice(),
         include_bytes!("../../tos-compiler/src/d1.rs").as_slice(),
         include_bytes!("../../tos-compiler/src/d1_prepared_pair.rs").as_slice(),
         include_bytes!("../../tos-compiler/src/d1_public_capture.rs").as_slice(),
@@ -3695,6 +3884,8 @@ fn selected_manifest(
 fn run_prepared_transition(
     request: &Value,
     operation: &str,
+    request_schema: &str,
+    frame_budget: &mut Option<SnapshotFrameBudget>,
     limits: Limits,
     stdout: &mut dyn Write,
 ) -> Result<(), String> {
@@ -3757,11 +3948,37 @@ fn run_prepared_transition(
         .prepared
         .max_row_bytes
         .max(limits.prepared.max_metadata_bytes);
-    let mut d1 = open_read_only(&d1_path, vm_steps, sqlite_value_bytes)?;
-    let mut after_db = open_read_only(&after_path, vm_steps, sqlite_value_bytes)?;
+    let mut d1 = open_selected_snapshot(
+        &d1_path,
+        vm_steps,
+        sqlite_value_bytes,
+        request_schema,
+        typed_snapshot::Role::D1,
+        "d1_database",
+        frame_budget,
+    )?;
+    let mut after_db = open_selected_snapshot(
+        &after_path,
+        vm_steps,
+        sqlite_value_bytes,
+        request_schema,
+        typed_snapshot::Role::Prepared,
+        "after_prepared_database",
+        frame_budget,
+    )?;
     let mut before_db = before_prepared_path
         .as_ref()
-        .map(|path| open_read_only(path, vm_steps, sqlite_value_bytes))
+        .map(|path| {
+            open_selected_snapshot(
+                path,
+                vm_steps,
+                sqlite_value_bytes,
+                request_schema,
+                typed_snapshot::Role::Prepared,
+                "before_prepared_database",
+                frame_budget,
+            )
+        })
         .transpose()?;
     let d1_tx = d1
         .connection
@@ -4634,6 +4851,12 @@ fn run_prepared_transition(
     if let Some(identity) = before_identity {
         identity.verify_selected_file_identity()?;
     }
+    let mut selected_snapshots = vec![("d1_database", &d1.identity)];
+    if let Some(identity) = before_identity {
+        selected_snapshots.push(("before_prepared_database", identity));
+    }
+    selected_snapshots.push(("after_prepared_database", &after_db.identity));
+    let snapshot_transport = snapshot_transport_value(request_schema, &selected_snapshots)?;
     let receipt = emit_d1_capture(&spec, transitions, &forward, rollback.as_deref(), &manifest)
         .map_err(|error| format!("offline private capture: {error:?}"))?;
     let sql_bytes = receipt
@@ -4690,7 +4913,7 @@ fn run_prepared_transition(
         ("changes", json!(nav_projection_usage.changes)),
         ("output_bytes", json!(nav_projection_usage.output_bytes)),
     ]);
-    let receipt_value = capture_json_object([
+    let mut receipt_value = capture_json_object([
         ("schema", json!(receipt_schema)),
         ("operation", json!(operation)),
         ("lineage_schema", json!(lineage_schema)),
@@ -4770,8 +4993,9 @@ fn run_prepared_transition(
         ("d1_applied", json!(receipt.d1_applied)),
         ("consumer_switched", json!(receipt.consumer_switched)),
     ]);
+    attach_snapshot_transport(&mut receipt_value, snapshot_transport)?;
     let result = capture_json_object([
-        ("schema", json!("tos_edge_offline_capture_result_v1")),
+        ("schema", json!(result_schema(request_schema))),
         ("operation", json!(operation)),
         ("receipt", receipt_value),
     ]);
@@ -4814,6 +5038,8 @@ fn navigation_row_digest_count(db: &Transaction<'_>, cap: u64) -> Result<u64, St
 
 fn run_source_navigation_integrity(
     request: &Value,
+    request_schema: &str,
+    frame_budget: &mut Option<SnapshotFrameBudget>,
     header_only: bool,
     limits: Limits,
     stdout: &mut dyn Write,
@@ -4843,7 +5069,15 @@ fn run_source_navigation_integrity(
         .prepared
         .max_row_bytes
         .max(limits.prepared.max_metadata_bytes);
-    let mut d1 = open_read_only(&d1_path, vm_steps, sqlite_value_bytes)?;
+    let mut d1 = open_selected_snapshot(
+        &d1_path,
+        vm_steps,
+        sqlite_value_bytes,
+        request_schema,
+        typed_snapshot::Role::D1,
+        "d1_database",
+        frame_budget,
+    )?;
     let d1_tx = d1
         .connection
         .transaction_with_behavior(TransactionBehavior::Deferred)
@@ -5021,6 +5255,8 @@ fn run_source_navigation_integrity(
 
     let transitions = row_transitions(before_rows, after_rows, limits, &mut retained)?;
     d1.identity.verify_selected_file_identity()?;
+    let snapshot_transport =
+        snapshot_transport_value(request_schema, &[("d1_database", &d1.identity)])?;
     let receipt = emit_d1_capture(&spec, transitions, &forward, Some(&rollback), &manifest)
         .map_err(|error| format!("offline navigation integrity capture: {error:?}"))?;
     let sql_bytes = receipt
@@ -5070,7 +5306,7 @@ fn run_source_navigation_integrity(
         ("changes", json!(projection_usage.changes)),
         ("output_bytes", json!(projection_usage.output_bytes)),
     ]);
-    let receipt_value = capture_json_object([
+    let mut receipt_value = capture_json_object([
         (
             "schema",
             json!("tos_edge_native_source_navigation_integrity_receipt_v1"),
@@ -5132,15 +5368,16 @@ fn run_source_navigation_integrity(
         ("d1_applied", json!(receipt.d1_applied)),
         ("consumer_switched", json!(receipt.consumer_switched)),
     ]);
+    attach_snapshot_transport(&mut receipt_value, snapshot_transport)?;
     let result = capture_json_object([
-        ("schema", json!("tos_edge_offline_capture_result_v1")),
+        ("schema", json!(result_schema(request_schema))),
         ("operation", json!("source-navigation-integrity")),
         ("receipt", receipt_value),
     ]);
     write_json_line(stdout, &result)
 }
 
-fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
+fn run_request(raw: &[u8], stdout: &mut dyn Write, parent_guarded: bool) -> Result<(), String> {
     if raw.is_empty() || raw.len() > REQUEST_BYTES {
         return Err(invalid("capture request byte budget"));
     }
@@ -5160,50 +5397,57 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
     );
     let request: Value =
         serde_json::from_slice(raw).map_err(|_| invalid("capture request JSON"))?;
+    let request_schema = string(&request, "schema")?;
     let operation = string(&request, "operation")?;
-    if operation == "source-navigation-integrity" {
-        exact(
-            &request,
-            &[
-                "schema",
-                "operation",
-                "d1_database",
-                "expected_d1_revision",
-                "expected_source_revision",
-                "navigation_root",
-                "rights_root",
-                "header_only",
-                "forward_sql",
-                "rollback_sql",
-                "manifest_json",
-                "limits",
-            ],
-            "integrity capture request fields",
-        )?;
-    } else {
-        exact(
-            &request,
-            &[
-                "schema",
-                "operation",
-                "d1_database",
-                "before_prepared_database",
-                "after_prepared_database",
-                "expected_d1_revision",
-                "before_binding",
-                "after_binding",
-                "before_source_inputs_json",
-                "rights_root",
-                "forward_sql",
-                "rollback_sql",
-                "manifest_json",
-                "limits",
-            ],
-            "capture request fields",
-        )?;
-    }
-    if string(&request, "schema")? != REQUEST_SCHEMA {
+    if request_schema != REQUEST_SCHEMA && request_schema != TYPED_REQUEST_SCHEMA {
         return Err(invalid("capture request schema"));
+    }
+    let typed_request = request_schema == TYPED_REQUEST_SCHEMA;
+    if typed_request != parent_guarded {
+        return Err(invalid("typed capture requires an armed caller process"));
+    }
+    if operation == "source-navigation-integrity" {
+        let mut fields = vec![
+            "schema",
+            "operation",
+            "d1_database",
+            "expected_d1_revision",
+            "expected_source_revision",
+            "navigation_root",
+            "rights_root",
+            "header_only",
+            "forward_sql",
+            "rollback_sql",
+            "manifest_json",
+            "limits",
+        ];
+        if typed_request {
+            fields.push("snapshot_frame_max_bytes");
+            fields.push("snapshot_schema_max_allocation_bytes");
+        }
+        exact(&request, &fields, "integrity capture request fields")?;
+    } else {
+        let mut fields = vec![
+            "schema",
+            "operation",
+            "d1_database",
+            "before_prepared_database",
+            "after_prepared_database",
+            "expected_d1_revision",
+            "before_binding",
+            "after_binding",
+            "before_source_inputs_json",
+            "rights_root",
+            "forward_sql",
+            "rollback_sql",
+            "manifest_json",
+            "limits",
+        ];
+        if typed_request {
+            fields.push("snapshot_frame_max_bytes");
+            fields.push("snapshot_schema_max_allocation_bytes");
+        }
+        exact(&request, &fields, "capture request fields")?;
     }
     if !matches!(
         operation,
@@ -5216,14 +5460,33 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
         return Err(invalid("unsupported private Edge capture operation"));
     }
     let limits = limits(&request["limits"], operation)?;
+    let mut frame_budget = if typed_request {
+        Some(preflight_snapshot_frame_budget(&request, operation)?)
+    } else {
+        None
+    };
     if operation == "source-navigation-integrity" {
         let header_only = request["header_only"]
             .as_bool()
             .ok_or_else(|| invalid("integrity header_only must be boolean"))?;
-        return run_source_navigation_integrity(&request, header_only, limits, stdout);
+        return run_source_navigation_integrity(
+            &request,
+            request_schema,
+            &mut frame_budget,
+            header_only,
+            limits,
+            stdout,
+        );
     }
     if operation != "source-navigation-bootstrap" {
-        return run_prepared_transition(&request, operation, limits, stdout);
+        return run_prepared_transition(
+            &request,
+            operation,
+            request_schema,
+            &mut frame_budget,
+            limits,
+            stdout,
+        );
     }
     let d1_path = input_path(string(&request, "d1_database")?)?;
     let after_path = input_path(string(&request, "after_prepared_database")?)?;
@@ -5250,8 +5513,24 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
         .prepared
         .max_row_bytes
         .max(limits.prepared.max_metadata_bytes);
-    let mut d1 = open_read_only(&d1_path, vm_steps, sqlite_value_bytes)?;
-    let mut after_db = open_read_only(&after_path, vm_steps, sqlite_value_bytes)?;
+    let mut d1 = open_selected_snapshot(
+        &d1_path,
+        vm_steps,
+        sqlite_value_bytes,
+        request_schema,
+        typed_snapshot::Role::D1,
+        "d1_database",
+        &mut frame_budget,
+    )?;
+    let mut after_db = open_selected_snapshot(
+        &after_path,
+        vm_steps,
+        sqlite_value_bytes,
+        request_schema,
+        typed_snapshot::Role::Prepared,
+        "after_prepared_database",
+        &mut frame_budget,
+    )?;
     let d1_tx = d1
         .connection
         .transaction_with_behavior(TransactionBehavior::Deferred)
@@ -5452,6 +5731,13 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
         .map_err(|error| format!("offline bootstrap source pair: {error:?}"))?;
     d1.identity.verify_selected_file_identity()?;
     after_db.identity.verify_selected_file_identity()?;
+    let snapshot_transport = snapshot_transport_value(
+        request_schema,
+        &[
+            ("d1_database", &d1.identity),
+            ("after_prepared_database", &after_db.identity),
+        ],
+    )?;
     let receipt = emit_d1_capture(
         &spec,
         transitions.drain(..),
@@ -5497,7 +5783,7 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
         ("changes", json!(projection_usage.changes)),
         ("output_bytes", json!(projection_usage.output_bytes)),
     ]);
-    let receipt_value = capture_json_object([
+    let mut receipt_value = capture_json_object([
         (
             "schema",
             json!("tos_edge_native_source_navigation_bootstrap_receipt_v1"),
@@ -5547,21 +5833,79 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write) -> Result<(), String> {
         ("d1_applied", json!(receipt.d1_applied)),
         ("consumer_switched", json!(receipt.consumer_switched)),
     ]);
+    attach_snapshot_transport(&mut receipt_value, snapshot_transport)?;
     let result = capture_json_object([
-        ("schema", json!("tos_edge_offline_capture_result_v1")),
+        ("schema", json!(result_schema(request_schema))),
         ("operation", json!(operation)),
         ("receipt", receipt_value),
     ]);
     write_json_line(stdout, &result)
 }
 
-fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
-    if args.len() != 3 || args[1] != "--request" {
-        return Err(invalid(
-            "usage: tos edge-offline-capture --request ABS.json",
-        ));
+#[cfg(target_os = "linux")]
+fn arm_parent_death_signal(expected_parent_pid: libc::pid_t) -> Result<(), String> {
+    let own_pid = unsafe { libc::getpid() };
+    if expected_parent_pid <= 1 || expected_parent_pid == own_pid {
+        return Err(invalid("expected caller process id"));
     }
-    let request_path = input_path(&args[2])?;
+    if unsafe { libc::getppid() } != expected_parent_pid {
+        return Err(invalid("caller process changed before death guard"));
+    }
+    if unsafe {
+        libc::prctl(
+            libc::PR_SET_PDEATHSIG,
+            libc::SIGKILL,
+            0 as libc::c_ulong,
+            0 as libc::c_ulong,
+            0 as libc::c_ulong,
+        )
+    } != 0
+    {
+        return Err(invalid("caller death guard unavailable"));
+    }
+    if unsafe { libc::getppid() } != expected_parent_pid {
+        return Err(invalid("caller process changed while arming death guard"));
+    }
+    Ok(())
+}
+
+#[cfg(not(target_os = "linux"))]
+fn arm_parent_death_signal(_expected_parent_pid: libc::pid_t) -> Result<(), String> {
+    Err(invalid("caller death guard is Linux-only"))
+}
+
+fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
+    let (request_argument, parent_guarded) = match args {
+        [command, request_flag, request_path]
+            if command == "edge-offline-capture" && request_flag == "--request" =>
+        {
+            (request_path, false)
+        }
+        [
+            command,
+            parent_flag,
+            expected_parent_pid,
+            request_flag,
+            request_path,
+        ] if command == "edge-offline-capture"
+            && parent_flag == "--expected-parent-pid"
+            && request_flag == "--request" =>
+        {
+            let expected_parent_pid = expected_parent_pid
+                .parse::<libc::pid_t>()
+                .map_err(|_| invalid("expected caller process id"))?;
+            // The bridge supplies this child-only cue outside the semantic
+            // request. Arm it before opening or parsing the request bytes.
+            arm_parent_death_signal(expected_parent_pid)?;
+            (request_path, true)
+        }
+        _ => {
+            return Err(invalid(
+                "usage: tos edge-offline-capture [--expected-parent-pid PID] --request ABS.json",
+            ));
+        }
+    };
+    let request_path = input_path(request_argument)?;
     let request_file = tos_fd_open::open_absolute_regular(&request_path, REQUEST_BYTES as u64)
         .map_err(|error| format!("capture request file: {error}"))?;
     let mut raw = Vec::new();
@@ -5569,7 +5913,7 @@ fn run(args: &[String], stdout: &mut dyn Write) -> Result<(), String> {
         .take(REQUEST_BYTES as u64 + 1)
         .read_to_end(&mut raw)
         .map_err(|error| error.to_string())?;
-    run_request(&raw, stdout)
+    run_request(&raw, stdout, parent_guarded)
 }
 
 pub fn run_if_requested(

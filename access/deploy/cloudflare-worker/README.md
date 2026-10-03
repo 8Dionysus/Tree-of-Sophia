@@ -1135,7 +1135,12 @@ select the Rust capture operation through an explicit `native_capture` keyword.
 Supply a `tos_access.native_edge_capture.NativeCaptureContext` containing an
 absolute installed `prefix`, an exclusively owned existing `scratch` directory,
 one original absolute monotonic `deadline`, a cumulative `max_snapshot_bytes`
-budget and a per-stream `max_stream_bytes` budget. Missing context refuses;
+budget and a per-stream `max_stream_bytes` budget. `max_snapshot_bytes` bounds
+actual encoded typed frames, including descriptors and hashes. Optional
+`max_schema_allocation_bytes` separately bounds cumulative schema metadata
+allocation before copies; its default derives from the frame allowance, and a
+caller may select a smaller explicit computational budget. These are transport
+resource selections, not source admission or measured RSS. Missing context refuses;
 there is no automatic software discovery or Python fallback. Algorithmic limits
 keep their existing defaults. Delta and catch-up still permit
 `rollback_target=None`; bootstrap and integrity require a reverse target.
@@ -1143,10 +1148,25 @@ keep their existing defaults. Delta and catch-up still permit
 These functions are host source adapters, not members of the standard native
 software archive. Keep the exact Python source package and script district
 available to the caller. The bridge runs the existing installed-prefix verifier
-in an owned child, then executes its verified ELF. It serializes each borrowed
-SQLite transaction through that same connection, including its selected
-uncommitted view; it does not reopen the current database pathname or modify the
-caller transaction. The bridge returns the actual native operation receipt and
+in an owned Linux child, then executes its verified ELF. The fresh isolated
+child arms `PR_SET_PDEATHSIG(SIGKILL)` and checks its exact expected caller PID
+before verifier dispatch; the request-v2 native entry rearms and checks it before
+request parsing. This preserves caller signal handlers and threaded use. Abrupt
+caller death does not execute Python cleanup: the whole owner supervisor must
+still terminate/reap descendants and retain or dispose scratch under its accepted
+lifetime contract. Cooperative cleanup keeps the unreaped leader through final
+group signals, then performs bounded reap. The request-v2 bridge reads
+exact typed rows through each borrowed SQLite connection, including its selected
+uncommitted view. It carries raw TEXT bytes with validated UTF-8/UTF-16le/UTF-16be
+encoding and storage-class tags, preserves table presence and row order, and
+carries schema evidence without executing source DDL. Only native owner-known
+schemas are imported; unknown ordinary tables remain inert evidence. Virtual or
+shadow tables cannot be reconstructed by this finite transport. The bridge does
+not serialize a stale memdb backing buffer, reopen the current database pathname,
+or modify the caller transaction. Its independently checked `snapshot_transport`
+inventory binds wire custody, not physical page identity or source currentness.
+The physical-file request-v1 CLI route remains separate. The bridge returns the
+actual native operation receipt and
 removes only its internal manifest and temporary snapshot files after bounded
 child cleanup. An unreleased child/group retains its selected input directory
 and reports a custody error. WAL and dirty-view interpretation, default limits,
