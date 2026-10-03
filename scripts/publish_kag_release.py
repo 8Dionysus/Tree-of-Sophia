@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import sys
 from corpus_store import CorpusStoreError
@@ -23,15 +24,29 @@ def _native(arguments: list[str]) -> dict:
     selected = os.environ.get('TOS_KAG_RELEASE_BIN') or shutil.which('tos-kag-release')
     if not selected:
         raise CorpusStoreError('install tos-kag-release or set TOS_KAG_RELEASE_BIN')
-    completed = subprocess.run(
+    child = subprocess.Popen(
         [selected, '--repo-root', str(ROOT), '--python', str(Path(sys.executable).resolve()), *arguments],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False, timeout=620,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     )
-    if completed.returncode:
-        message = completed.stderr.decode('utf-8', 'replace').strip()
-        raise CorpusStoreError(message or f'native KAG release exited {completed.returncode}')
     try:
-        result = json.loads(completed.stdout)
+        stdout, stderr = child.communicate(timeout=620)
+    except subprocess.TimeoutExpired as error:
+        # Let the native subreaper perform its owned cleanup before escalating.
+        child.send_signal(signal.SIGTERM)
+        try:
+            child.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            child.kill()
+            child.communicate(timeout=5)
+            raise CorpusStoreError('native KAG deadline; forced leader exit, descendant custody requires host review') from error
+        raise CorpusStoreError('native KAG release deadline expired') from error
+    if child.returncode:
+        message = stderr.decode('utf-8', 'replace').strip()
+        raise CorpusStoreError(message or f'native KAG release exited {child.returncode}')
+    if len(stdout) > 16 * 1024 * 1024 or len(stderr) > 16 * 1024 * 1024:
+        raise CorpusStoreError('native KAG output exceeds its declared wire bound')
+    try:
+        result = json.loads(stdout)
     except (ValueError, UnicodeError) as error:
         raise CorpusStoreError('native KAG release returned invalid JSON') from error
     if not isinstance(result, dict):
