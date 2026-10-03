@@ -1528,8 +1528,8 @@ fn capture_partitioned(root_path: &Path, raw: &[u8], writer: &mut CaptureWriter<
             "",
             writer,
             name,
-            key_fields,
-            order_fields,
+            &key_fields,
+            &order_fields,
             mapping,
             count,
         )?;

@@ -205,7 +205,7 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
         }
         Ok(())
     }
-    fn membership(self) -> SourceMembershipV1 {
+    pub(crate) fn membership(self) -> SourceMembershipV1 {
         match self {
             Self::Resident(i) => i.expected_membership,
             Self::Streamed(i) => i.expected_membership,

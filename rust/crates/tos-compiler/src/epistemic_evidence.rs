@@ -720,7 +720,7 @@ pub(crate) fn check_completed(
         }
     }
     let holder = completed_from_built(
-        &main_root,
+        main_capture.root(),
         built,
         limits,
         deadline,

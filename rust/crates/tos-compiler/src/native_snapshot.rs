@@ -27,7 +27,7 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
     time::Instant,
 };
-use tos_foundation::{Digest256, JsonLimits, JsonMode, JsonValue, parse_json};
+use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonValue, parse_json};
 
 const CORE_STATE_ROLE: &str = "tos-native-core-snapshot-state-v1";
 const CORE_STATE_ISSUER: &str = "tos-compiler/native_snapshot.rs";
