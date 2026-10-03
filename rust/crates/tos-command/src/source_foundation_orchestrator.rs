@@ -16,7 +16,9 @@ use super::foundation_execution_limits::{
 use super::foundation_output::{self, SourceFoundationOutputOutcome};
 use super::foundation_payload::FoundationPayloadSources;
 use super::foundation_reader::FoundationRuleReadLimits;
-use super::foundation_rule_diagnostics::SourceFoundationRuleDiagnosticsLimits;
+use super::foundation_rule_diagnostics::{
+    SourceFoundationRuleDiagnosticsError, SourceFoundationRuleDiagnosticsLimits,
+};
 use super::foundation_run::{
     self, EvaluatedFoundationDefault, FinalizedFoundationDefaultInputs, FoundationBiblioEvidence,
     FoundationDefaultReadError, FoundationFinalInputError,
@@ -51,13 +53,20 @@ pub(crate) enum FoundationOrchestratorError {
     Bootstrap(FoundationBootstrapError),
     Command(SourceCommandError),
     Owner(ItemRefusal),
-    Default(FoundationDefaultReadError),
+    Default(FoundationDefaultStage, FoundationDefaultReadError),
     Final(FoundationFinalInputError),
     Replay(ArtifactReplayFailure),
     Catalog(tos_compiler::Error),
     Persisted(PersistedCatalogEvaluationError),
     Admission(io::Error),
     Incomplete(&'static str),
+}
+
+/// Static owner phase tags; refusals retain their original typed evidence.
+pub(crate) enum FoundationDefaultStage {
+    CapturedCurrentPaths,
+    PrepareRecords,
+    EvaluateDefault,
 }
 
 impl From<FoundationBootstrapError> for FoundationOrchestratorError {
@@ -100,7 +109,106 @@ impl FoundationOrchestratorError {
             },
             Self::Command(_) => "source-foundation invocation refused",
             Self::Owner(_) => "source-foundation owner phase refused",
-            Self::Default(_) => "source-foundation default rules refused",
+            Self::Default(stage, error) => match (stage, error) {
+                (
+                    FoundationDefaultStage::CapturedCurrentPaths,
+                    FoundationDefaultReadError::Owner(ItemRefusal::Budget),
+                ) => "source-foundation default captured current paths: owner budget",
+                (
+                    FoundationDefaultStage::CapturedCurrentPaths,
+                    FoundationDefaultReadError::Owner(ItemRefusal::BudgetCheck { .. }),
+                ) => "source-foundation default captured current paths: owner budget check",
+                (
+                    FoundationDefaultStage::CapturedCurrentPaths,
+                    FoundationDefaultReadError::Owner(ItemRefusal::Deadline),
+                ) => "source-foundation default captured current paths: owner deadline",
+                (
+                    FoundationDefaultStage::CapturedCurrentPaths,
+                    FoundationDefaultReadError::Owner(ItemRefusal::Source(_)),
+                ) => "source-foundation default captured current paths: owner source",
+                (
+                    FoundationDefaultStage::CapturedCurrentPaths,
+                    FoundationDefaultReadError::Owner(ItemRefusal::Unsupported(_)),
+                ) => "source-foundation default captured current paths: owner unsupported",
+                (
+                    FoundationDefaultStage::CapturedCurrentPaths,
+                    FoundationDefaultReadError::Diagnostics(
+                        SourceFoundationRuleDiagnosticsError::Refused { .. },
+                    ),
+                ) => "source-foundation default captured current paths: diagnostics refused",
+                (
+                    FoundationDefaultStage::CapturedCurrentPaths,
+                    FoundationDefaultReadError::Diagnostics(
+                        SourceFoundationRuleDiagnosticsError::IncompleteSchema { .. },
+                    ),
+                ) => {
+                    "source-foundation default captured current paths: diagnostics incomplete schema"
+                }
+                (
+                    FoundationDefaultStage::PrepareRecords,
+                    FoundationDefaultReadError::Owner(ItemRefusal::Budget),
+                ) => "source-foundation default prepare records: owner budget",
+                (
+                    FoundationDefaultStage::PrepareRecords,
+                    FoundationDefaultReadError::Owner(ItemRefusal::BudgetCheck { .. }),
+                ) => "source-foundation default prepare records: owner budget check",
+                (
+                    FoundationDefaultStage::PrepareRecords,
+                    FoundationDefaultReadError::Owner(ItemRefusal::Deadline),
+                ) => "source-foundation default prepare records: owner deadline",
+                (
+                    FoundationDefaultStage::PrepareRecords,
+                    FoundationDefaultReadError::Owner(ItemRefusal::Source(_)),
+                ) => "source-foundation default prepare records: owner source",
+                (
+                    FoundationDefaultStage::PrepareRecords,
+                    FoundationDefaultReadError::Owner(ItemRefusal::Unsupported(_)),
+                ) => "source-foundation default prepare records: owner unsupported",
+                (
+                    FoundationDefaultStage::PrepareRecords,
+                    FoundationDefaultReadError::Diagnostics(
+                        SourceFoundationRuleDiagnosticsError::Refused { .. },
+                    ),
+                ) => "source-foundation default prepare records: diagnostics refused",
+                (
+                    FoundationDefaultStage::PrepareRecords,
+                    FoundationDefaultReadError::Diagnostics(
+                        SourceFoundationRuleDiagnosticsError::IncompleteSchema { .. },
+                    ),
+                ) => "source-foundation default prepare records: diagnostics incomplete schema",
+                (
+                    FoundationDefaultStage::EvaluateDefault,
+                    FoundationDefaultReadError::Owner(ItemRefusal::Budget),
+                ) => "source-foundation default evaluate default: owner budget",
+                (
+                    FoundationDefaultStage::EvaluateDefault,
+                    FoundationDefaultReadError::Owner(ItemRefusal::BudgetCheck { .. }),
+                ) => "source-foundation default evaluate default: owner budget check",
+                (
+                    FoundationDefaultStage::EvaluateDefault,
+                    FoundationDefaultReadError::Owner(ItemRefusal::Deadline),
+                ) => "source-foundation default evaluate default: owner deadline",
+                (
+                    FoundationDefaultStage::EvaluateDefault,
+                    FoundationDefaultReadError::Owner(ItemRefusal::Source(_)),
+                ) => "source-foundation default evaluate default: owner source",
+                (
+                    FoundationDefaultStage::EvaluateDefault,
+                    FoundationDefaultReadError::Owner(ItemRefusal::Unsupported(_)),
+                ) => "source-foundation default evaluate default: owner unsupported",
+                (
+                    FoundationDefaultStage::EvaluateDefault,
+                    FoundationDefaultReadError::Diagnostics(
+                        SourceFoundationRuleDiagnosticsError::Refused { .. },
+                    ),
+                ) => "source-foundation default evaluate default: diagnostics refused",
+                (
+                    FoundationDefaultStage::EvaluateDefault,
+                    FoundationDefaultReadError::Diagnostics(
+                        SourceFoundationRuleDiagnosticsError::IncompleteSchema { .. },
+                    ),
+                ) => "source-foundation default evaluate default: diagnostics incomplete schema",
+            },
             Self::Final(_) => "source-foundation final custody refused",
             Self::Replay(_) => "source-foundation artifact replay refused",
             Self::Catalog(_) => "source-foundation catalog comparison refused",
@@ -757,7 +865,10 @@ fn run<'work, 'receive, 'cancel, 'signal>(
                 execution_limits,
                 remaining_budget,
                 current_ticket,
-                FoundationOrchestratorError::Default(error),
+                FoundationOrchestratorError::Default(
+                    FoundationDefaultStage::CapturedCurrentPaths,
+                    error,
+                ),
             );
         }
     };
@@ -1120,7 +1231,7 @@ fn run<'work, 'receive, 'cancel, 'signal>(
                 execution_limits,
                 remaining_budget,
                 current_ticket,
-                FoundationOrchestratorError::Default(error),
+                FoundationOrchestratorError::Default(FoundationDefaultStage::PrepareRecords, error),
             );
         }
     };
@@ -1537,7 +1648,10 @@ fn run<'work, 'receive, 'cancel, 'signal>(
                 execution_limits,
                 remaining_budget,
                 default_ticket,
-                FoundationOrchestratorError::Default(error),
+                FoundationOrchestratorError::Default(
+                    FoundationDefaultStage::EvaluateDefault,
+                    error,
+                ),
             );
         }
     };
