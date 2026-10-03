@@ -860,9 +860,8 @@ pub(crate) fn select_owner_assessment_public_sources<'a>(
         ));
     }
     let inline = cmd::text(config, "schema_version")? == "tos_local_assessment_owner_v1";
-    let mut reader = SignSourceReader::select_with_publication(
-        public_root, cut, !inline, deadline, cancelled,
-    )?;
+    let mut reader =
+        SignSourceReader::select_with_publication(public_root, cut, !inline, deadline, cancelled)?;
     let source_bindings: &[JsonValue] = if inline {
         &[]
     } else {
@@ -871,7 +870,15 @@ pub(crate) fn select_owner_assessment_public_sources<'a>(
     let rows = if inline {
         Vec::new()
     } else {
-        source_envelopes(&mut reader, base, config, worker, deadline, cancelled, false)?
+        source_envelopes(
+            &mut reader,
+            base,
+            config,
+            worker,
+            deadline,
+            cancelled,
+            false,
+        )?
     };
     // Direct v3 Journal reads reuse the Sign source-owned native resolver.
     // Private profiles select their own confidential adapter separately.
