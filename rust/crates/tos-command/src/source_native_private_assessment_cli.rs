@@ -238,7 +238,7 @@ pub(super) fn run(
     let hint = cmd::parse(&hint_raw)?;
     let version = OwnerVersion::from_config(&hint)?;
     let request = parse_request(request_raw, version)?;
-    if cmd::canonical(&hint)?.len() > MAX_RECORD_BYTES {
+    if cmd::canonical(&hint)?.len() > MAX_CONFIG_BYTES {
         return Err(SourceCommandError::Invalid(
             "assessment canonical owner configuration budget",
         ));
@@ -317,7 +317,7 @@ pub(super) fn run(
             "assessment owner configuration changed during preflight",
         ));
     }
-    if cmd::canonical(config)?.len() > MAX_RECORD_BYTES {
+    if cmd::canonical(config)?.len() > MAX_CONFIG_BYTES {
         return Err(SourceCommandError::Invalid(
             "assessment canonical owner configuration budget",
         ));
