@@ -408,6 +408,7 @@
       },
       {
         "label": "test Rust conformance root and source families",
+        "command_timeout_ms": 900000,
         "command": [
           "cargo", "test", "--workspace", "--locked", "--test", "conformance", "--",
           "--nocapture",
