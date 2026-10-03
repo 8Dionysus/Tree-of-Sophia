@@ -140,6 +140,8 @@ fn inventory(
 /// semantics. The receiver deliberately does not require the current producer.
 pub fn verify_export(root: &Path) -> io::Result<Value> {
     crate::kag_release::budget_check()?;
+    let root_path = crate::kag_release::safe_absolute(root)?;
+    let root = root_path.as_path();
     directory(root)?;
     let manifest = json_file(root, "export.json")?;
     keys(
@@ -355,6 +357,10 @@ fn publish(stage: &Path, output: &Path) -> io::Result<()> {
 /// manifest budget is finite and independent from the 8MiB exported-byte cap.
 pub fn build_export(repo: &Path, store: &Path, revision: &str, output: &Path) -> io::Result<Value> {
     crate::kag_release::budget_check()?;
+    let store_path = crate::kag_release::safe_absolute(store)?;
+    let store = store_path.as_path();
+    let output_path = crate::kag_release::safe_absolute(output)?;
+    let output = output_path.as_path();
     directory(store)?;
     directory(repo)?;
     let revision = SourceRevision(Digest256::from_hex(revision).map_err(bad)?);
@@ -363,6 +369,7 @@ pub fn build_export(repo: &Path, store: &Path, revision: &str, output: &Path) ->
         return Err(bad("output must be a new absolute regular path"));
     }
     let parent = output.parent().unwrap();
+    fs::create_dir_all(parent)?;
     directory(parent)?;
     let before = producer(repo)?;
     let json_limits = JsonLimits {
