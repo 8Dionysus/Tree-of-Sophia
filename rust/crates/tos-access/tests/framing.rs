@@ -550,10 +550,12 @@ fn capability_requires_real_owner_selection() {
         std::collections::BTreeSet::from([
             tos_access::exploration_contracts::OPERATION.to_owned(),
             tos_access::reading::MCP_TOOL.to_owned(),
+            "tos_zarathustra_reading_public_capability".to_owned(),
+            "tos_zarathustra_word_analysis_public_capability".to_owned(),
             "tos_source_read_capabilities".to_owned(),
             "tos_source_read_contract".to_owned(),
         ]),
-        "only packaged contracts and the unavailable reading capability need no data owner"
+        "only packaged contracts and unavailable Reading/Word capability metadata need no data owner"
     );
     let reading = parse_json(
         lines[2].as_bytes(),
