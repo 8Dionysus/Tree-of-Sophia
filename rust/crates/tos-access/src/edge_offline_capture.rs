@@ -39,6 +39,7 @@ use tos_foundation::{
     canonical_bytes_v1, emit_python_compact_json, parse_json, parse_json_with_state_budget,
 };
 
+mod borrowed_bridge;
 mod native_selected_capture;
 #[cfg(test)]
 mod private_runtime_tests;
@@ -5959,6 +5960,9 @@ pub fn run_if_requested(
         && mode == "--selected-request"
     {
         return Some(selected_entry::run(path, stdout, stderr));
+    }
+    if args.len() == 2 && args[1] == "--borrowed-frames" {
+        return Some(borrowed_bridge::run(stdout, stderr));
     }
     Some(match run(args, stdout) {
         Ok(()) => 0,

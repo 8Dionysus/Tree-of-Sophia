@@ -14,11 +14,14 @@ use super::{DatabaseEncoding, Role, build_inventory, hex, tables};
 use rusqlite::{Connection, ffi};
 use serde_json::{Value, json};
 use std::{
+    cell::Cell,
     collections::BTreeMap,
     ffi::CString,
     fs::File,
     io::{Seek, Write},
-    ptr, slice,
+    ptr,
+    rc::Rc,
+    slice,
     time::Instant,
 };
 use tos_foundation::{Digest256, Digest256Hasher};
@@ -27,7 +30,7 @@ use tos_foundation::{Digest256, Digest256Hasher};
 /// not a process RSS guarantee, and are never refunded on a failed capture.
 pub(crate) struct EncodeBudget {
     frame_remaining: u64,
-    schema_remaining: u64,
+    schema_remaining: Rc<Cell<u64>>,
 }
 impl EncodeBudget {
     pub(crate) fn new(frame_bytes: u64, schema_bytes: u64) -> Result<Self, String> {
@@ -36,15 +39,14 @@ impl EncodeBudget {
         }
         Ok(Self {
             frame_remaining: frame_bytes,
-            schema_remaining: schema_bytes,
+            schema_remaining: Rc::new(Cell::new(schema_bytes)),
         })
     }
     fn schema(&mut self, bytes: u64) -> Result<(), String> {
-        self.schema_remaining = self
-            .schema_remaining
-            .checked_sub(bytes)
-            .ok_or("typed encoder cumulative schema allocation budget")?;
-        Ok(())
+        reserve_schema(&self.schema_remaining, bytes)
+    }
+    pub(crate) fn schema_meter(&self) -> Rc<Cell<u64>> {
+        self.schema_remaining.clone()
     }
     fn frame(&mut self, bytes: u64) -> Result<(), String> {
         self.frame_remaining = self
@@ -55,12 +57,102 @@ impl EncodeBudget {
     }
 }
 
+/// Engine operations only: the encoder owns every SELECT and the wire registry.
+/// An adapter must exclude concurrent/reentrant use and preserve the same held
+/// transaction. It may not execute schema SQL or reopen a selected source path.
+pub(crate) trait ReadView {
+    fn paired_row_lengths(&self) -> bool {
+        false
+    }
+    fn transaction_held(&self) -> Result<bool, String>;
+    fn query<'a>(
+        &'a self,
+        sql: &str,
+        deadline: Instant,
+        cancel: &'a dyn Fn() -> Result<(), String>,
+    ) -> Result<Box<dyn ReadStatement + 'a>, String>;
+}
+pub(crate) trait ReadStatement {
+    fn raw_row_cap(&mut self, _bytes: u64, _prepaid: bool) -> Result<(), String> {
+        Ok(())
+    }
+    fn step(&mut self) -> Result<bool, String>;
+    fn kind(&self, column: i32) -> i32;
+    fn integer(&self, column: i32) -> Result<i64, String>;
+    fn blob(&self, column: i32) -> Result<Option<&[u8]>, String>;
+    fn real_bits(&self, column: i32) -> Result<[u8; 8], String>;
+}
+pub(crate) fn reserve_schema(meter: &Cell<u64>, bytes: u64) -> Result<(), String> {
+    meter.set(
+        meter
+            .get()
+            .checked_sub(bytes)
+            .ok_or("typed encoder cumulative schema allocation budget")?,
+    );
+    Ok(())
+}
 struct Active<'a> {
-    db: &'a Connection,
+    db: &'a dyn ReadView,
     deadline: Instant,
     cancel: &'a dyn Fn() -> Result<(), String>,
 }
 impl Active<'_> {
+    fn check(&self) -> Result<(), String> {
+        if Instant::now() >= self.deadline {
+            return Err("typed encoder deadline exceeded".into());
+        }
+        (self.cancel)()?;
+        if !self.db.transaction_held()? {
+            return Err("typed encoder caller released selected transaction".into());
+        }
+        Ok(())
+    }
+    fn query(&self, sql: &str) -> Result<Box<dyn ReadStatement + '_>, String> {
+        self.check()?;
+        self.db.query(sql, self.deadline, self.cancel)
+    }
+}
+struct SqliteView<'a>(&'a Connection);
+impl ReadView for SqliteView<'_> {
+    fn transaction_held(&self) -> Result<bool, String> {
+        Ok(!self.0.is_autocommit())
+    }
+    fn query<'a>(
+        &'a self,
+        sql: &str,
+        deadline: Instant,
+        cancel: &'a dyn Fn() -> Result<(), String>,
+    ) -> Result<Box<dyn ReadStatement + 'a>, String> {
+        let sql = CString::new(sql).map_err(|_| "typed encoder query NUL")?;
+        let mut statement = ptr::null_mut();
+        let mut tail = ptr::null();
+        // Only this bundled engine's own handle is used; no foreign handle.
+        let status = unsafe {
+            ffi::sqlite3_prepare_v2(self.0.handle(), sql.as_ptr(), -1, &mut statement, &mut tail)
+        };
+        let result = RawStatement {
+            statement,
+            db: self.0,
+            deadline,
+            cancel,
+        };
+        if status != ffi::SQLITE_OK || statement.is_null() {
+            return Err(format!("typed encoder prepare status {status}"));
+        }
+        if unsafe { ffi::sqlite3_stmt_readonly(statement) } != 1 {
+            return Err("typed encoder query is not read only".into());
+        }
+        result.check()?;
+        Ok(Box::new(result))
+    }
+}
+struct RawStatement<'a> {
+    statement: *mut ffi::sqlite3_stmt,
+    db: &'a Connection,
+    deadline: Instant,
+    cancel: &'a dyn Fn() -> Result<(), String>,
+}
+impl RawStatement<'_> {
     fn check(&self) -> Result<(), String> {
         if Instant::now() >= self.deadline {
             return Err("typed encoder deadline exceeded".into());
@@ -71,57 +163,21 @@ impl Active<'_> {
         }
         Ok(())
     }
-    fn query(&self, sql: &str) -> Result<RawStatement<'_>, String> {
-        self.check()?;
-        let sql = CString::new(sql).map_err(|_| "typed encoder query NUL")?;
-        let mut statement = ptr::null_mut();
-        let mut tail = ptr::null();
-        // SAFETY: connection is borrowed for this statement's entire lifetime;
-        // SQLite does not retain the SQL buffer. No raw handle escapes.
-        let status = unsafe {
-            ffi::sqlite3_prepare_v2(
-                self.db.handle(),
-                sql.as_ptr(),
-                -1,
-                &mut statement,
-                &mut tail,
-            )
-        };
-        let result = RawStatement {
-            statement,
-            active: self,
-        };
-        if status != ffi::SQLITE_OK || statement.is_null() {
-            return Err(format!("typed encoder prepare status {status}"));
-        }
-        // Every query is module-authored SELECT; reject any accidental writer.
-        if unsafe { ffi::sqlite3_stmt_readonly(statement) } != 1 {
-            return Err("typed encoder query is not read only".into());
-        }
-        self.check()?;
-        Ok(result)
-    }
-}
-struct RawStatement<'a> {
-    statement: *mut ffi::sqlite3_stmt,
-    active: &'a Active<'a>,
 }
 impl Drop for RawStatement<'_> {
     fn drop(&mut self) {
         if !self.statement.is_null() {
-            // SAFETY: uniquely owned statement; finalize never changes a
-            // transaction and is called once, including failed preparation.
             unsafe {
                 ffi::sqlite3_finalize(self.statement);
             }
         }
     }
 }
-impl RawStatement<'_> {
+impl ReadStatement for RawStatement<'_> {
     fn step(&mut self) -> Result<bool, String> {
-        self.active.check()?;
+        self.check()?;
         let status = unsafe { ffi::sqlite3_step(self.statement) };
-        self.active.check()?;
+        self.check()?;
         match status {
             ffi::SQLITE_ROW => Ok(true),
             ffi::SQLITE_DONE => Ok(false),
@@ -137,15 +193,18 @@ impl RawStatement<'_> {
         }
         Ok(unsafe { ffi::sqlite3_column_int64(self.statement, column) })
     }
+    fn real_bits(&self, column: i32) -> Result<[u8; 8], String> {
+        if self.kind(column) != ffi::SQLITE_FLOAT {
+            return Err("typed encoder expected real evidence".into());
+        }
+        Ok(unsafe { ffi::sqlite3_column_double(self.statement, column) }.to_le_bytes())
+    }
     fn blob(&self, column: i32) -> Result<Option<&[u8]>, String> {
         match self.kind(column) {
             ffi::SQLITE_NULL => return Ok(None),
             ffi::SQLITE_BLOB => {}
             _ => return Err("typed encoder expected raw BLOB evidence".into()),
         }
-        // All TEXT expressions were explicitly CAST AS BLOB inside SQLite.
-        // column_blob/bytes therefore performs no encoding conversion, even
-        // for UTF-16, embedded NUL, BOM or invalid text in opaque tables.
         let pointer = unsafe { ffi::sqlite3_column_blob(self.statement, column) };
         let length = unsafe { ffi::sqlite3_column_bytes(self.statement, column) };
         if length < 0 || (length != 0 && pointer.is_null()) {
@@ -154,8 +213,7 @@ impl RawStatement<'_> {
         if length == 0 {
             return Ok(Some(&[]));
         }
-        // SAFETY: slice remains valid until next step/finalize; borrow of self
-        // prevents either while the slice is used. It is never retained.
+        // Borrow ends before next step/finalize; SQLite CAST AS BLOB avoids TEXT conversion.
         Ok(Some(unsafe {
             slice::from_raw_parts(pointer.cast(), length as usize)
         }))
@@ -294,6 +352,7 @@ fn metadata(
         .try_reserve_exact(usize::try_from(count).map_err(|_| "typed encoder metadata count")?)
         .map_err(|_| "typed encoder metadata allocation")?;
     let mut rows = active.query(query)?;
+    rows.raw_row_cap(add(bytes, mul(columns as u64, 8)?)?, true)?;
     let mut used = 0;
     while rows.step()? {
         if result.len() as u64 >= count {
@@ -782,9 +841,45 @@ fn rows(emitter: &mut Emitter<'_, '_>, table: &Table, expected: u64) -> Result<(
         }
     );
     let active = emitter.active;
+    let mut lengths = if active.db.paired_row_lengths() {
+        Some(active.query(&format!(
+            "SELECT ({}) FROM main.{} WHERE ({}) <= {}{}",
+            cell_size(&table.columns)?,
+            quoted(&table.name),
+            cell_size(&table.columns)?,
+            emitter.total,
+            if order.is_empty() {
+                String::new()
+            } else {
+                format!(" ORDER BY {order}")
+            }
+        ))?)
+    } else {
+        None
+    };
     let mut query = active.query(&sql)?;
     let mut count = 0;
-    while query.step()? {
+    loop {
+        let encoded = if let Some(lengths) = &mut lengths {
+            if !lengths.step()? {
+                if query.step()? {
+                    return Err("typed encoder paired row count differs".into());
+                }
+                break;
+            }
+            let length = nonnegative(lengths.integer(0)?)?;
+            query.raw_row_cap(add(length, mul(fields.len() as u64, 16)?)?, false)?;
+            Some(length)
+        } else {
+            None
+        };
+        if !query.step()? {
+            if encoded.is_some() {
+                return Err("typed encoder paired row absent".into());
+            }
+            break;
+        }
+        let row_start = emitter.written;
         if count >= expected {
             return Err("typed encoder row count changed".into());
         }
@@ -817,9 +912,9 @@ fn rows(emitter: &mut Emitter<'_, '_>, table: &Table, expected: u64) -> Result<(
                     if query.kind(base + 1) != ffi::SQLITE_FLOAT {
                         return Err("typed encoder real type changed".into());
                     }
-                    let value = unsafe { ffi::sqlite3_column_double(query.statement, base + 1) };
+                    let value = query.real_bits(base + 1)?;
                     emitter.emit(&[2], true)?;
-                    emitter.emit(&value.to_le_bytes(), true)?;
+                    emitter.emit(&value, true)?;
                 }
                 "text" | "blob" => {
                     let bytes = query
@@ -830,6 +925,12 @@ fn rows(emitter: &mut Emitter<'_, '_>, table: &Table, expected: u64) -> Result<(
                     emitter.emit(bytes, true)?;
                 }
                 _ => return Err("typed encoder cell storage class".into()),
+            }
+        }
+        if let Some(length) = encoded {
+            let expected_bytes = add(length, if table.rowid.is_some() { 8 } else { 0 })?;
+            if emitter.written - row_start != expected_bytes {
+                return Err("typed encoder paired row type/length differs".into());
             }
         }
         count += 1;
@@ -843,8 +944,8 @@ fn rows(emitter: &mut Emitter<'_, '_>, table: &Table, expected: u64) -> Result<(
 /// Encode a currently held view. Output must be caller-created exclusive and
 /// empty; this function neither creates nor reopens any path. The returned
 /// inventory is transport evidence only, matching the existing importer shape.
-pub(crate) fn encode(
-    connection: &Connection,
+pub(crate) fn encode_view(
+    connection: &dyn ReadView,
     role: Role,
     input_field: &str,
     output: &mut File,
@@ -967,4 +1068,24 @@ pub(crate) fn encode(
         hex(emitter.opaque_hash.finalize()),
         opaque,
     ))
+}
+
+pub(crate) fn encode(
+    connection: &Connection,
+    role: Role,
+    input_field: &str,
+    output: &mut File,
+    budget: &mut EncodeBudget,
+    deadline: Instant,
+    cancel: &dyn Fn() -> Result<(), String>,
+) -> Result<Value, String> {
+    encode_view(
+        &SqliteView(connection),
+        role,
+        input_field,
+        output,
+        budget,
+        deadline,
+        cancel,
+    )
 }

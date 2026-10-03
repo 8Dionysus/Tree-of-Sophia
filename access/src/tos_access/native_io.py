@@ -27,7 +27,13 @@ class NativeCancelled(InterruptedError):
 
 
 class NativeCustodyError(RuntimeError):
-    pass
+    def custody_snapshot(self):
+        """Bounded immutable facts; never grants numeric signal/reap authority."""
+        owner = getattr(self, '_owner', None)
+        if owner is None:
+            return {'child_released': False, 'owner_bound': False}
+        return owner.custody_snapshot()
+
 
 
 def _bounded_json(value, cap, deadline, cancelled=None, closing=None):
@@ -121,11 +127,20 @@ class _Exchange:
         self._child = None
         self._unknown = False
         self._reaped = False
+        self._release_complete = False
         self._pending = bytearray()
         self._diagnostic = bytearray()
         self._readers = []
         self._terminal = None
         self._terminal_observed_ns = None
+
+    def custody_snapshot(self):
+        """Release facts only; no external signal/reap authority."""
+        return {'child_released': self._release_complete, 'owner_bound': True,
+                'child_pid': self._child.pid if self._child is not None else None,
+                'ownership_known': not self._unknown, 'reaped': self._reaped,
+                'deadline': self._deadline, 'selected_prefix': str(self._prefix),
+                'operation': self._arguments[0] if self._arguments else None}
 
     def _active(self):
         if self._closing.is_set() or (self._cancelled is not None and self._cancelled.is_set()):
@@ -535,7 +550,12 @@ def owned_exchange(arguments, *, prefix=None, input_cap=16 * 1024 * 1024,
     finally:
         try:
             channel._release()
+            channel._release_complete = True
         except BaseException as error:
+            if isinstance(error, NativeCustodyError):
+                # Explicit retained native owner, not incidental traceback.
+                # External holders receive facts only and must not reap/signal.
+                error._owner = channel
             raise error from primary
 
 

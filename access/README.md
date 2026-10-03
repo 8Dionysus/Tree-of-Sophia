@@ -1982,3 +1982,41 @@ Pass this provider to `NativeAccessCore.discover(..., source_read_service=provid
 the Core borrows it, and the caller closes it after use. Selecting this owner
 requires no Knowledge publication pair. Existing reference constructors and the
 public Core default remain pending actual comparison and explicit cutover.
+
+The maintained borrowed Edge APIs (`NativeCaptureContext.run`, prepared
+delta/catchup and navigation bootstrap/integrity) use the installed Access
+`edge-offline-capture --borrowed-frames` engine transport before the existing
+v2 verifier. The original Python SQLite connections remain exclusively held
+through both children and cleanup; their uncommitted and WAL views are read
+directly. Rust owns the table registry, all SELECTs, schema rules and TOSLSNP1
+frames. Python performs only bounded cursor operations and lossless typed cell
+transport. Source DDL is never executed, paths are never reopened and no
+foreign SQLite handle enters the bundled Rust engine.
+
+`max_query_transport_bytes` selects a finite cumulative helper RPC IO cap.
+Omitting it derives the cap from the already selected schema allocation bound
+(or `max_snapshot_bytes * 128` when that bound was omitted), with checked
+64-bit bounds. Requests, replies, control and chunk bytes share this IO ledger.
+Schema/planner and adapter allocations debit one original cumulative schema
+ledger; the remaining budget is passed to the v2 importer. A maximum of eight
+scoped cursors and one current row per cursor exist. Before every RPC, Rust
+reserves both its bounded reply workspace and an explicit adapter allocation
+grant. Only unused allowance returns after a complete validated reply; an
+incomplete exchange forfeits it. Data rows use paired length/value cursors in
+the identical SQLite order and transaction; raw-cell space is reserved before
+Python fetches the value row. Length, row count and emitted type/byte totals
+must match. This streams both cursors without OFFSET rescans. Raw cells travel in
+64 KiB chunks; no whole BLOB hex packet or table buffer is built. The helper
+uses the parent's original monotonic work deadline and the existing five-second
+cleanup reserve. A deadline watchdog interrupts only the actively borrowed
+connection, without changing its progress hook or transaction policy.
+
+Logical allocation bounds include transport buffers and typed row state.
+SQLite heap/sort work, Python allocator overhead, thread stack and process RSS
+remain physical admission and measurement obligations. The legacy Python
+emitter resides in `native_edge_capture_oracle.py` solely for retained
+differential fixtures; production capture has no oracle fallback. If helper
+cleanup is unproven, `CaptureCustodyError.borrowed_custody` transfers the original
+views, frames and descriptors to the caller's outer holder. The caller must
+retain that custody until its exclusive supervisor proves cleanup; final v2
+capture does not start and no success or adoption is returned.

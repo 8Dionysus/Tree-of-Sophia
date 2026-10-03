@@ -5,7 +5,9 @@
 
 #[path = "typed_snapshot_encoder.rs"]
 mod encoder;
-pub(crate) use encoder::{EncodeBudget, encode as encode_borrowed};
+pub(crate) use encoder::{
+    EncodeBudget, ReadStatement, ReadView, encode as encode_borrowed, encode_view, reserve_schema,
+};
 
 use rusqlite::{
     Connection, TransactionBehavior, params_from_iter,
