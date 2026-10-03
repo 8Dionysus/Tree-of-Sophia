@@ -2192,6 +2192,7 @@ pub(crate) fn evaluate_spooled_admission<
                     )?;
                     rule_source.recheck_auxiliary()?;
                     let reader_cost = rule_source.cost();
+                    drop(rule_source);
                     let reader_io_after = view.original_io.snapshot();
                     let history_usage_after_rules =
                         view.history.as_deref().map(|history| history.usage());
@@ -2237,7 +2238,6 @@ pub(crate) fn evaluate_spooled_admission<
                             .checked_add(reader_external_reads)
                             .ok_or(ItemRefusal::Budget)?,
                     );
-                    drop(rule_source);
                     let owner_state = stored_report.cost.aggregate_state_reservation_bytes;
                     let diagnostic_state_cap = available_after_biblio
                         .checked_sub(owner_state)
@@ -2707,6 +2707,7 @@ pub(crate) fn evaluate_spooled_admission<
         catalog_usage,
     )?;
     drop(catalog_result);
+    drop(validator);
     item_schemas.finish(deadline, cancelled).map_err(owner)?;
     if !item_schemas.is_finished() {
         return Err(incomplete("candidate catalog schema worker EOF is incomplete"));
@@ -2906,11 +2907,12 @@ pub(crate) fn evaluate_spooled_admission<
         state_bytes: final_held_state,
         ..FoundationPhaseReservation::default()
     };
+    let original_io = view.original_io;
     let _payload_completion = finish_candidate_payload_and_physical(
         &mut view,
         candidate,
         input,
-        view.original_io,
+        original_io,
         payloads,
         &item_schemas,
         &mut record_executor,
