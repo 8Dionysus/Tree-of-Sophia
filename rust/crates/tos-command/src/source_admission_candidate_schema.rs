@@ -47,7 +47,9 @@ pub(crate) fn inspect_candidate_records_stored<'store>(
     >,
     ItemRefusal,
 > {
-    let result = (|| {
+    let result = (move || {
+        // Consume the held store reference once; the returned report borrows it.
+        let store = store;
         let deadline = limits.operation.deadline;
         input.verify_invocation(deadline, cancelled)?;
         let mut binding = CandidateSchemaBinding::new(

@@ -284,7 +284,9 @@ fn refusal_class(refusal: &ItemRefusal) -> ArtifactReplayFailureClass {
 
 fn command_class(error: &SourceCommandError) -> ArtifactReplayFailureClass {
     match error {
-        SourceCommandError::Denied(_) | SourceCommandError::Conflict(_) => {
+        SourceCommandError::Denied(_)
+        | SourceCommandError::DeniedWithReason(_)
+        | SourceCommandError::Conflict(_) => {
             ArtifactReplayFailureClass::Source
         }
         SourceCommandError::SchemaExecution { reason, .. } => refusal_class(reason),

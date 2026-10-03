@@ -1815,7 +1815,7 @@ fn compare_prepared_kernel<'candidate, 'stage, B, D>(
             &mut stage,
             validator,
             &mut profiles,
-            index_rows.as_deref_mut(),
+            index_rows.as_mut().map(|rows| &mut **rows as &mut dyn FreshIndexRowsWriter),
         )?;
         let json = JsonLimits::new(limits.catalog.max_output_row_bytes, 96, 1_000_000, 4096)
             .map_err(|_| Error::Budget("catalog manifest JSON limits"))?;
@@ -1824,7 +1824,7 @@ fn compare_prepared_kernel<'candidate, 'stage, B, D>(
             .checked_sub(profiles.retained_state_bytes)
             .ok_or(Error::Budget("catalog shared generated/profile state"))?;
         if let Some((isolated, tree_limits)) = candidate_root {
-            let mut sink = if let Some(rows) = index_rows.as_deref_mut() {
+            let mut sink = if let Some(rows) = index_rows.as_mut().map(|rows| &mut **rows as &mut dyn FreshIndexRowsWriter) {
                 FreshCatalogSink::new_with_index_rows(
                     isolated,
                     tree_limits,

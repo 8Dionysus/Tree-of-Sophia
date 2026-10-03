@@ -938,9 +938,8 @@ impl<'c> NativeSourceValidator<'c> {
             ));
         }
         let max_manifest_allocated_bytes = manifest_partition;
-        let manifest_bytes = candidate_limits
-            .reader
-            .max_manifest_bytes
+        let manifest_bytes = u64::try_from(candidate_limits.reader.max_manifest_bytes)
+            .map_err(|_| invalid("spooled manifest byte limit exceeds range"))?
             .min(max_manifest_allocated_bytes);
         if manifest_bytes == 0 {
             return Err(invalid(

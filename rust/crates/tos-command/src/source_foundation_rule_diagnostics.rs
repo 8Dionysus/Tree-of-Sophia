@@ -714,13 +714,13 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
             reason: "candidate stored rule output header state limit",
         });
     }
-    diagnostics.try_reserve_exact(request_count).map_err(|_| {
-        CandidateRuleDiagnosticsError::Refused {
+    if diagnostics.try_reserve_exact(request_count).is_err() {
+        return Err(CandidateRuleDiagnosticsError::Refused {
             owner_report,
             diagnostics: Vec::new(),
             reason: "candidate stored rule diagnostic allocation",
-        }
-    })?;
+        });
+    }
     let Some(vector_state) = diagnostics
         .capacity()
         .checked_mul(size_of::<CandidateCutSchemaDiagnostic<I>>())

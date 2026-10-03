@@ -582,7 +582,7 @@ fn map_source_error(error: SourceCommandError) -> Error {
         SourceCommandError::Conflict(_) => {
             Error::PreparedUnsupported("fresh catalog private output custody refused")
         }
-        SourceCommandError::Denied(_) => {
+        SourceCommandError::Denied(_) | SourceCommandError::DeniedWithReason(_) => {
             Error::PreparedUnsupported("fresh catalog private output access refused")
         }
         SourceCommandError::Unsupported(_) => Error::Budget("fresh catalog resource limit"),

@@ -262,7 +262,7 @@ fn member(row: (String, Vec<u8>, Vec<u8>, u32)) -> io::Result<MemberMetadata> {
         return Err(invalid("candidate spool source mode"));
     }
     Ok(MemberMetadata {
-        path: RelativePath::new(&path).map_err(invalid)?,
+        path: RelativePath::parse(&path).map_err(invalid)?,
         sha256: Digest256::from_bytes(sha),
         size_bytes: u64::from_be_bytes(size),
         mode,
@@ -1261,7 +1261,7 @@ impl<'host> SpoolCandidate<'host> {
         // Plan complete membership before the first immutable object ingest.
         for (path, u) in &self.batch.updates {
             self.running()?;
-            let path = RelativePath::new(path).map_err(invalid)?;
+            let path = RelativePath::parse(path).map_err(invalid)?;
             let m = MemberMetadata {
                 path,
                 sha256: u.sha256,
@@ -1301,7 +1301,7 @@ impl<'host> SpoolCandidate<'host> {
             .collect();
         for (path, event_ref, event_sha) in retirements {
             self.running()?;
-            let path = RelativePath::new(&path).map_err(invalid)?;
+            let path = RelativePath::parse(&path).map_err(invalid)?;
             if event_ref == path || self.batch.retirements.contains_key(event_ref.as_str()) {
                 return Err(invalid("retirement event is removed by same batch"));
             }
@@ -1484,13 +1484,13 @@ impl<'host> SpoolCandidate<'host> {
             }
             .optional()
             .map_err(sql)?;
-            path.map(|p| RelativePath::new(&p).map_err(invalid))
+            path.map(|p| RelativePath::parse(&p).map_err(invalid))
                 .transpose()
         })();
         self.finish_read(result)
     }
     fn selected(&self, path: &str) -> io::Result<MemberMetadata> {
-        let path = RelativePath::new(path).map_err(invalid)?;
+        let path = RelativePath::parse(path).map_err(invalid)?;
         self.member(&path)?
             .ok_or_else(|| invalid("read outside candidate membership"))
     }
@@ -1512,7 +1512,7 @@ impl<'host> SpoolCandidate<'host> {
     // Shared actual object read body; outer operations own sticky failure state.
     fn read_current_raw(&self, path: &str, cap: usize) -> io::Result<Vec<u8>> {
         let m = self
-            .raw_member(&RelativePath::new(path).map_err(invalid)?)?
+            .raw_member(&RelativePath::parse(path).map_err(invalid)?)?
             .ok_or_else(|| invalid("read outside candidate membership"))?;
         if m.size_bytes > cap as u64 {
             return Err(invalid("candidate read exceeds bound"));
@@ -1579,7 +1579,7 @@ impl<'host> SpoolCandidate<'host> {
         self.failed.set(true);
         let r = (|| {
             let m = self
-                .raw_member(&RelativePath::new(path).map_err(invalid)?)?
+                .raw_member(&RelativePath::parse(path).map_err(invalid)?)?
                 .ok_or_else(|| invalid("verify outside candidate membership"))?;
             self.reserve_logical(m.size_bytes, 0)?;
             self.store.verify_object_accounted(
@@ -1605,7 +1605,7 @@ impl<'host> SpoolCandidate<'host> {
         self.failed.set(true);
         let r = (|| {
             let m = self
-                .raw_member(&RelativePath::new(path).map_err(invalid)?)?
+                .raw_member(&RelativePath::parse(path).map_err(invalid)?)?
                 .ok_or_else(|| invalid("copy outside candidate membership"))?;
             self.reserve_logical(m.size_bytes, 0)?;
             self.store.copy_object_accounted(
@@ -1666,12 +1666,12 @@ impl<'host> SpoolCandidate<'host> {
             .map_err(sql)?;
         row.map(|(path, sha, event, event_sha, size)| {
             Ok(RetirementMetadata {
-                path: RelativePath::new(&path).map_err(invalid)?,
+                path: RelativePath::parse(&path).map_err(invalid)?,
                 sha256: Digest256::from_bytes(
                     sha.try_into()
                         .map_err(|_| invalid("retired digest width"))?,
                 ),
-                event_ref: RelativePath::new(&event).map_err(invalid)?,
+                event_ref: RelativePath::parse(&event).map_err(invalid)?,
                 event_sha256: Digest256::from_bytes(
                     event_sha
                         .try_into()
@@ -1808,7 +1808,7 @@ impl<'host> SpoolCandidate<'host> {
                 .map_err(|_| rusqlite::Error::InvalidQuery)?;
                 let id = std::str::from_utf8(id).map_err(|_| rusqlite::Error::InvalidQuery)?;
                 let path = std::str::from_utf8(path).map_err(|_| rusqlite::Error::InvalidQuery)?;
-                let path = RelativePath::new(path).map_err(|_| rusqlite::Error::InvalidQuery)?;
+                let path = RelativePath::parse(path).map_err(|_| rusqlite::Error::InvalidQuery)?;
                 Ok((id.to_owned(), path))
             };
             let row = match after {
@@ -1845,7 +1845,7 @@ impl<'host> SpoolCandidate<'host> {
                 })
                 .optional()
                 .map_err(sql)?;
-            path.map(|path| RelativePath::new(&path).map_err(invalid))
+            path.map(|path| RelativePath::parse(&path).map_err(invalid))
                 .transpose()
         })();
         self.finish_read(result)

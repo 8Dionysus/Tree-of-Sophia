@@ -2575,8 +2575,11 @@ impl CreationFilesystem {
             return Err(SourceCommandError::Denied("native owner setuid selection"));
         }
         protected_configuration_parents(configuration_path, uid)?;
-        let mut file = tos_fd_open::open_absolute_regular(configuration_path, configuration_cap)
-            .map_err(|_| SourceCommandError::Denied("native protected owner selection"))?;
+        let configuration_file_cap = u64::try_from(configuration_cap)
+            .map_err(|_| SourceCommandError::Invalid("native owner configuration cap"))?;
+        let mut file =
+            tos_fd_open::open_absolute_regular(configuration_path, configuration_file_cap)
+                .map_err(|_| SourceCommandError::Denied("native protected owner selection"))?;
         if owned(&file, uid, false)?.mode() & 0o7777 != 0o600 {
             return Err(SourceCommandError::Denied("native owner must be mode0600"));
         }

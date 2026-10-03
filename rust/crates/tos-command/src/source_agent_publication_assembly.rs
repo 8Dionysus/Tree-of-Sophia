@@ -33,6 +33,9 @@ pub(super) fn source_failure(error: cmd::SourceCommandError) -> Error {
         | cmd::SourceCommandError::Conflict(reason)
         | cmd::SourceCommandError::Denied(reason)
         | cmd::SourceCommandError::Unsupported(reason) => Error::Invalid(reason),
+        cmd::SourceCommandError::DeniedWithReason(_) => {
+            Error::Invalid("Agent source access refused")
+        }
         cmd::SourceCommandError::MissingProductionAdmission => {
             Error::Invalid("Agent source production admission missing")
         }

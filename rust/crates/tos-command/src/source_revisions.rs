@@ -3142,7 +3142,7 @@ fn candidate_current_member_file<I: Copy + Eq>(
                 copy.try_reserve_exact(raw.len())
                     .map_err(|_| tos_validation::item_rules::ItemRefusal::Budget)?;
                 copy.extend_from_slice(raw);
-                *selected = Some(SourceFile {
+                selected = Some(SourceFile {
                     path: relative.clone(),
                     raw: copy,
                 });

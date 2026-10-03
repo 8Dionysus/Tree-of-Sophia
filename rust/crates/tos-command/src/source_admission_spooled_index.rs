@@ -425,7 +425,7 @@ impl CandidateIndexInput for SpoolInput<'_> {
 
     fn member(&mut self, path: &str) -> io::Result<bool> {
         self.candidate.tick()?;
-        let Ok(path) = RelativePath::new(path) else {
+        let Ok(path) = RelativePath::parse(path) else {
             return Ok(false);
         };
         let found = self.candidate.member(&path)?.is_some();
@@ -436,7 +436,7 @@ impl CandidateIndexInput for SpoolInput<'_> {
     fn member_after(&mut self, after: Option<&str>) -> io::Result<Option<String>> {
         self.candidate.tick()?;
         let after = after
-            .map(RelativePath::new)
+            .map(RelativePath::parse)
             .transpose()
             .map_err(|_| invalid("native source member cursor path is invalid"))?;
         let member = self.candidate.member_after(after.as_ref())?;
@@ -446,7 +446,7 @@ impl CandidateIndexInput for SpoolInput<'_> {
 
     fn member_size(&mut self, path: &str) -> io::Result<u64> {
         let path =
-            RelativePath::new(path).map_err(|_| invalid("native source member path is invalid"))?;
+            RelativePath::parse(path).map_err(|_| invalid("native source member path is invalid"))?;
         self.candidate
             .member(&path)?
             .map(|member| member.size_bytes)
@@ -455,7 +455,7 @@ impl CandidateIndexInput for SpoolInput<'_> {
 
     fn member_digest(&mut self, path: &str) -> io::Result<Digest256> {
         let path =
-            RelativePath::new(path).map_err(|_| invalid("native source member path is invalid"))?;
+            RelativePath::parse(path).map_err(|_| invalid("native source member path is invalid"))?;
         self.candidate
             .member(&path)?
             .map(|member| member.sha256)
@@ -1444,7 +1444,7 @@ impl IndexView<'_> {
             .map(|(id, path)| {
                 Ok((
                     id,
-                    RelativePath::new(&path)
+                    RelativePath::parse(&path)
                         .map_err(|_| invalid("native index identity path is invalid"))?,
                 ))
             })
@@ -1480,7 +1480,7 @@ impl IndexView<'_> {
         .map_err(sql)?;
         let source = source
             .map(|source| {
-                RelativePath::new(&source)
+                RelativePath::parse(&source)
                     .map_err(|_| invalid("native dependency source path is invalid"))
             })
             .transpose()?;
@@ -1536,9 +1536,9 @@ impl IndexView<'_> {
         let pair = row
             .map(|(source, target)| {
                 Ok((
-                    RelativePath::new(&source)
+                    RelativePath::parse(&source)
                         .map_err(|_| invalid("native dependency source path is invalid"))?,
-                    RelativePath::new(&target)
+                    RelativePath::parse(&target)
                         .map_err(|_| invalid("native dependency target path is invalid"))?,
                 ))
             })
@@ -1581,7 +1581,7 @@ impl IndexView<'_> {
         .map_err(sql)?;
         let target = row
             .map(|target| {
-                RelativePath::new(&target)
+                RelativePath::parse(&target)
                     .map_err(|_| invalid("native dependency target path is invalid"))
             })
             .transpose()?;

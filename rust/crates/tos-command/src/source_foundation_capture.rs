@@ -170,6 +170,7 @@ impl AuthoredDiagnosticCatalogueComparison<'_, '_> {
                         Error::Conflict("authored diagnostic source already borrowed")
                     })?;
                 observation.recheck(&mut sources, self.capture.deadline, self.capture.cancelled)
+                    .map_err(catalogue_error)
             })();
         if result.is_err() {
             self.capture.poisoned.set(true);
@@ -242,6 +243,7 @@ impl<'source> AuthoredDiagnosticCapture<'source> {
             ));
         }
         super::foundation_catalog::published_manifest(epoch.token(), receipt, limits)
+            .map_err(catalogue_error)
     }
     /// Invoke only after finishing the real cold stage and collecting bounded
     /// expected bytes. Reuses COMMAND's live CompareCatalog and protected-epoch
@@ -294,6 +296,9 @@ impl<'source> AuthoredDiagnosticCapture<'source> {
                     "authored catalogue comparison overlap reservation",
                 ))?;
             let manifest = self.published_catalogue_manifest(receipt, json)?;
+            // Retain the callback's exact command-owned refusal instead of
+            // erasing it when crossing the compiler-owned sink interface.
+            let mut render_error = None;
             let (issues, observation, issue_state_bytes) =
                 super::foundation_catalog::compare_catalogue_outputs(
                     &self.sources,
@@ -304,8 +309,14 @@ impl<'source> AuthoredDiagnosticCapture<'source> {
                     limits.max_retained_state_bytes,
                     self.deadline,
                     self.cancelled,
-                    render,
-                )?;
+                    |sink| match render(sink) {
+                        Ok(()) => Ok(()),
+                        Err(error) => {
+                            render_error = Some(error);
+                            Err(tos_compiler::Error::Invalid("authored catalogue render refused"))
+                        }
+                    },
+                ).map_err(|error| render_error.unwrap_or_else(|| catalogue_error(error)))?;
             Ok(AuthoredDiagnosticCatalogueComparison {
                 capture: self,
                 observation: RefCell::new(observation),
@@ -530,6 +541,21 @@ pub fn with_authored_diagnostic_capture<T>(
     ))
 }
 
+/// The public capture API retains COMMAND's refusal vocabulary. Compiler
+/// mechanics supply no new admission; callback-owned errors are kept separately.
+fn catalogue_error(error: tos_compiler::Error) -> Error {
+    match error {
+        tos_compiler::Error::Invalid(message) => Error::Invalid(message),
+        tos_compiler::Error::Budget(message)
+        | tos_compiler::Error::PreparedUnsupported(message)
+        | tos_compiler::Error::ManagedSourceUnsupported(message) => Error::Unsupported(message),
+        tos_compiler::Error::Io(_) => Error::Denied("authored catalogue descriptor custody"),
+        tos_compiler::Error::Sql(_)
+        | tos_compiler::Error::SqlitePhase { .. }
+        | tos_compiler::Error::SqliteVmBudget { .. }
+        | tos_compiler::Error::Source(_) => Error::Invalid("authored catalogue owner refused"),
+    }
+}
 fn source_error(_: std::io::Error) -> Error {
     Error::Denied("foundation source descriptor custody")
 }

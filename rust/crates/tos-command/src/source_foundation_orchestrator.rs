@@ -101,7 +101,7 @@ impl FoundationOrchestratorError {
                 // this fixed buffer; the CLI separately charges emitted bytes.
                 use std::fmt::Write as _;
                 let mut reason = String::with_capacity(MAX_PUBLIC_BUDGET_REASON_BYTES);
-                let formatted = (|| {
+                let formatted: std::fmt::Result = (|| {
                     write!(reason, "{stage}: owner budget check {check} used=")?;
                     match used {
                         Some(value) => write!(reason, "{value}")?,
@@ -2424,6 +2424,8 @@ pub(crate) fn evaluate_spooled_admission<
         FoundationPhaseReservation::default(),
     )?;
     let catalog_operation = catalog_ticket.operation_limits();
+    let catalog_output_bytes = u64::try_from(catalog_operation.output_bytes)
+        .map_err(|_| incomplete("candidate catalog output byte range"))?;
     let catalog_identity_state = worker_identity_path_clone_bytes(worker_image.identity(), 3)?;
     let catalog_state_cap = catalog_operation
         .state_bytes
@@ -2519,11 +2521,11 @@ pub(crate) fn evaluate_spooled_admission<
             max_claim_bytes,
             catalog_limits
                 .max_rows
-                .min(catalog_operation.output_bytes)
+                .min(catalog_output_bytes)
                 .max(1),
             catalog_operation
                 .tmpfs_bytes
-                .min(catalog_operation.output_bytes)
+                .min(catalog_output_bytes)
                 .max(1),
         )
         .map_err(FoundationOrchestratorError::Command)?;
@@ -2561,7 +2563,7 @@ pub(crate) fn evaluate_spooled_admission<
     let max_generated_bytes = usize::try_from(
         catalog_operation
             .tmpfs_bytes
-            .min(catalog_operation.output_bytes)
+            .min(catalog_output_bytes)
             .min((usize::MAX - 1) as u64),
     )
     .map_err(|_| incomplete("candidate generated catalog byte cap range"))?;
@@ -2620,7 +2622,7 @@ pub(crate) fn evaluate_spooled_admission<
     .map_err(FoundationOrchestratorError::Catalog)?;
     let complete_catalog = match &catalog_result.outcome {
         FoundationCatalogOutcome::Complete(result)
-            if result.issues.is_empty() && result.profiles.complete => result,
+            if result.issues.is_empty() && result.profiles.files().is_ok() => result,
         _ => {
             return fail_window(
                 view.execution_limits,

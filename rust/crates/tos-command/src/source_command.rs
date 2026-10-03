@@ -20,6 +20,8 @@ pub enum SourceCommandError {
     Invalid(&'static str),
     Conflict(&'static str),
     Denied(&'static str),
+    /// Owned allow-listed public denial detail, retained through bounded output.
+    DeniedWithReason(String),
     Unsupported(&'static str),
     SchemaExecution {
         path: String,

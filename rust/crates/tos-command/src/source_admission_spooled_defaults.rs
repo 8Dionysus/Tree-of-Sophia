@@ -1570,12 +1570,20 @@ impl ClaimsProvider<'_, '_, '_, '_> {
             ),
             (Some((path, _)), false) => self.db.query_row(
                 "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE path=?1 AND line=?2 AND (?3 IS NULL OR ordinal>?3) ORDER BY ordinal LIMIT 1",
-                params![path, line.as_deref(), after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice())],
+                params![
+                    path,
+                    line.as_ref().map(|value| value.as_slice()),
+                    after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice()),
+                ],
                 |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|_| rusqlite::Error::InvalidQuery),
             ),
             (Some((path, _)), true) => self.db.query_row(
                 "SELECT ordinal,path,line,raw_sha256,native,value FROM biblio_claims WHERE path=?1 AND line=?2 AND (?3 IS NULL OR ordinal<?3) ORDER BY ordinal DESC LIMIT 1",
-                params![path, line.as_deref(), after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice())],
+                params![
+                    path,
+                    line.as_ref().map(|value| value.as_slice()),
+                    after.map(u64::to_be_bytes).as_ref().map(|value| value.as_slice()),
+                ],
                 |row| decode_claim_row(self.context, row, self.max_state_bytes, self.live_state.get()).map_err(|_| rusqlite::Error::InvalidQuery),
             ),
         }

@@ -141,7 +141,8 @@ fn main() {
                     tos_command::source_command::SourceCommandError::Invalid(_) => "ValueError",
                     tos_command::source_command::SourceCommandError::Conflict(_) =>
                         "JournalConflict",
-                    tos_command::source_command::SourceCommandError::Denied(_) => "PermissionError",
+                    tos_command::source_command::SourceCommandError::Denied(_)
+                    | tos_command::source_command::SourceCommandError::DeniedWithReason(_) => "PermissionError",
                     _ => "Unsupported",
                 }
             );

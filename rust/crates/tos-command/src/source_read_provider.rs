@@ -976,7 +976,7 @@ pub fn advance(
                         s.resolved_or_budget()?;
                     }
                 }
-                Err(Error::Denied(_)) => {
+                Err(Error::Denied(_) | Error::DeniedWithReason(_)) => {
                     s.close_packet("access-restricted", "owner-source-path-restricted")?
                 }
                 Err(Error::Conflict(reason)) => s.close_packet("stale", reason)?,
