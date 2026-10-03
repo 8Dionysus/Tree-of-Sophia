@@ -596,8 +596,8 @@ fn spawn(
             libc::execveat(
                 image_fd,
                 c"".as_ptr(),
-                args.as_ptr(),
-                env.as_ptr(),
+                args.as_ptr().cast(),
+                env.as_ptr().cast(),
                 libc::AT_EMPTY_PATH,
             );
             libc::_exit(126);
@@ -681,7 +681,7 @@ fn observe(
                 {
                     continue;
                 }
-                Err(_) => return Err("native selected stream read"),
+                Err(_) => return Err("native selected stream read".into()),
             };
             if n == 0 {
                 streams.eof[index] = true;
