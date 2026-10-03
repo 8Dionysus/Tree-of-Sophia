@@ -705,7 +705,7 @@ fn compact_claim_scene(
     ]))
 }
 
-const ROLES: [&str; 7] = [
+pub const HUMAN_FORM_ROLES: [&str; 7] = [
     "name",
     "caption",
     "hover",
@@ -848,7 +848,7 @@ fn encode_selection(logical: &JsonValue, enforce: bool) -> Result<JsonValue, Sea
     form_cost(logical, 524288)?;
     let mut packets = BTreeMap::new();
     let mut shared_limits: Vec<JsonValue> = vec![];
-    for role in ROLES {
+    for role in HUMAN_FORM_ROLES {
         let chosen = field(logical, &format!("roles.{role}"));
         if !matches!(get(chosen, "packet"), JsonValue::Null) {
             let mut packet = get(chosen, "packet").clone();
@@ -903,7 +903,7 @@ fn encode_selection(logical: &JsonValue, enforce: bool) -> Result<JsonValue, Sea
     set(&mut out, "packet_base", base.clone());
     set(&mut out, "shared_limits", JsonValue::Array(shared_limits));
     let mut roles = get(&out, "roles").clone();
-    for role in ROLES {
+    for role in HUMAN_FORM_ROLES {
         let mut selected = get(&roles, role).clone();
         remove(&mut selected, "packet");
         set(
@@ -929,7 +929,12 @@ fn empty_role() -> JsonValue {
     ])
 }
 fn empty_roles() -> JsonValue {
-    object(ROLES.iter().map(|role| (*role, empty_role())).collect())
+    object(
+        HUMAN_FORM_ROLES
+            .iter()
+            .map(|role| (*role, empty_role()))
+            .collect(),
+    )
 }
 fn stop_selection(
     result: &JsonValue,
@@ -1328,7 +1333,7 @@ fn select_human_forms(item: &JsonValue, lang: &str) -> Result<JsonValue, SearchV
         if !subject_assessment_valid(p) {
             return stop_selection(&result, "invalid", "forms.invalid-subject-assessment");
         }
-        if (!matches!(role, JsonValue::Null) && !ROLES.contains(&string(role)))
+        if (!matches!(role, JsonValue::Null) && !HUMAN_FORM_ROLES.contains(&string(role)))
             || (!matches!(actual, JsonValue::Null) && !actual.as_str().is_some_and(language))
         {
             return stop_selection(&result, "invalid", "forms.invalid-role-or-language");
@@ -1354,7 +1359,7 @@ fn select_human_forms(item: &JsonValue, lang: &str) -> Result<JsonValue, SearchV
         }
         let context = get(p, "context");
         if p.object_get("language").is_none()
-            || !ROLES.contains(&string(role))
+            || !HUMAN_FORM_ROLES.contains(&string(role))
             || get(p, "display_text")
                 .as_str()
                 .is_none_or(|s| strip(s).is_empty())
@@ -1393,7 +1398,7 @@ fn select_human_forms(item: &JsonValue, lang: &str) -> Result<JsonValue, SearchV
     }
     let mut roles = get(&result, "roles").clone();
     let mut choices = vec![];
-    for role in ROLES {
+    for role in HUMAN_FORM_ROLES {
         let candidates: Vec<_> = ready
             .iter()
             .copied()

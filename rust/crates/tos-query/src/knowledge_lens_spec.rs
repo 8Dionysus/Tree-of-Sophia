@@ -300,7 +300,7 @@ fn identifier(s: &str) -> bool {
         && s.bytes()
             .all(|c| c.is_ascii_alphanumeric() || b"._:-".contains(&c))
 }
-pub(crate) fn language(s: &str) -> bool {
+pub fn language(s: &str) -> bool {
     if s.len() > 128 {
         return false;
     }

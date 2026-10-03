@@ -177,13 +177,16 @@ class KnowledgeContractTests(unittest.TestCase):
         schema = self.schemas['knowledge-graph.v1.schema.json']
         Draft202012Validator.check_schema(schema)
 
+    @unittest.skipUnless(os.environ.get('TOS_NATIVE_PREFIX'), 'installed Rust coverage conformance requires TOS_NATIVE_PREFIX')
     def test_coverage_observes_every_carrier_without_accepting_placeholder_or_mapping(self):
-        from tos_access.coverage import coverage_report
+        from tos_access.coverage import coverage_report, coverage_rows
         corpus, philosophy = self.fixture()
         graph = build_knowledge_graph(corpus, philosophy)
         original = copy.deepcopy(graph)
         rows = []
         report = coverage_report(graph, language='en', emit_row=rows.append)
+        self.assertEqual(list(coverage_rows(graph, language='en')),
+                         [row['observation'] for row in rows])
         self.assertEqual(graph, original)
         self.assertEqual(len(rows), len(graph['nodes']) + len(graph['relations']))
         self.assertEqual(len({row['observation']['id'] for row in rows}), len(rows))
@@ -205,6 +208,7 @@ class KnowledgeContractTests(unittest.TestCase):
         # Existing ABI field-presence counts remain field presence, not quality.
         self.assertEqual(graph['counts']['display_coverage']['node_summaries'], len(graph['nodes']))
 
+    @unittest.skipUnless(os.environ.get('TOS_NATIVE_PREFIX'), 'installed Rust coverage conformance requires TOS_NATIVE_PREFIX')
     def test_coverage_keeps_unknown_mapping_and_duplicate_carriers_visible(self):
         from tos_access.coverage import coverage_report
         graph = build_knowledge_graph({'source_navigation': {'nodes': [
@@ -223,6 +227,7 @@ class KnowledgeContractTests(unittest.TestCase):
         self.assertEqual(rows[0]['observation']['mapping']['status'], 'unmapped')
         self.assertIn('review-source-mapping-with-semantic-registry-owner', rows[0]['observation']['next_actions'])
 
+    @unittest.skipUnless(os.environ.get('TOS_NATIVE_PREFIX'), 'installed Rust coverage conformance requires TOS_NATIVE_PREFIX')
     def test_coverage_invalid_request_and_interrupted_enumeration_do_not_emit_completion(self):
         from tos_access.coverage import coverage_report, main
         from unittest.mock import patch
@@ -231,11 +236,10 @@ class KnowledgeContractTests(unittest.TestCase):
         empty = {'source_revision': 'a' * 64, 'nodes': [], 'relations': []}
         with self.assertRaisesRegex(ValueError, 'language'):
             coverage_report(empty, language='en/../../source')
-        with patch('tos_access.core.ToSAccessCore.discover') as discover, redirect_stderr(StringIO()):
+        with redirect_stderr(StringIO()):
             with self.assertRaises(SystemExit) as caught:
                 main(['--root', 'synthetic-unread-root', '--language', 'en/invalid'])
             self.assertEqual(caught.exception.code, 2)
-            discover.assert_not_called()
         graph = build_knowledge_graph(*self.fixture())
         def interrupted(row):
             self.assertNotIn('enumeration_complete', row)
@@ -243,6 +247,7 @@ class KnowledgeContractTests(unittest.TestCase):
         with self.assertRaisesRegex(OSError, 'interruption'):
             coverage_report(graph, emit_row=interrupted)
 
+    @unittest.skipUnless(os.environ.get('TOS_NATIVE_PREFIX'), 'installed Rust coverage conformance requires TOS_NATIVE_PREFIX')
     def test_coverage_does_not_replace_restricted_form_with_available_display(self):
         from tos_access.coverage import coverage_row
         from tos_access.knowledge import _normalize_node

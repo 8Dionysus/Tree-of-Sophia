@@ -551,6 +551,47 @@ impl LegacyStore {
         }
         no_journal(&self.database_path)
     }
+    /// Enumerate every normalized carrier of this authenticated immutable cut.
+    /// The callback owns disclosure; no second corpus is accumulated here.
+    pub fn visit_knowledge_carriers(
+        &mut self,
+        mut observe: impl FnMut(&Value) -> Result<()>,
+    ) -> Result<(u64, u64)> {
+        self.verify_currentness()?;
+        let mut counts = [0u64; 2];
+        for (index, table) in ["knowledge_nodes", "knowledge_relations"]
+            .iter()
+            .enumerate()
+        {
+            let mut statement = self.db.prepare(&format!(
+                "SELECT CASE WHEN typeof(payload)='text' AND length(CAST(payload AS BLOB))<=?1 THEN payload ELSE NULL END FROM {table} ORDER BY id"
+            )).map_err(err)?;
+            let mut rows = statement
+                .query([self.limits.max_json_bytes as i64])
+                .map_err(err)?;
+            while let Some(row) = rows.next().map_err(err)? {
+                self.verify_currentness()?;
+                self.rows = self
+                    .rows
+                    .checked_add(1)
+                    .filter(|n| *n <= self.limits.max_rows)
+                    .ok_or_else(|| err("source diagnostic carrier row budget"))?;
+                let raw: String = row.get(0).map_err(err)?;
+                let mut m = meter(self.limits, self.deadline, self.abort.as_ref())?;
+                m.bytes = self.bytes;
+                m.work = self.work;
+                m.charge(raw.len() as u64)?;
+                let value = m.parse(raw.as_bytes())?;
+                object(&value)?;
+                self.bytes = m.bytes;
+                self.work = m.work;
+                observe(&value)?;
+                counts[index] += 1;
+            }
+        }
+        self.verify_currentness()?;
+        Ok((counts[0], counts[1]))
+    }
     pub fn first_view_packet(&mut self, budget: PhilosophyReadBudget) -> Result<Vec<u8>> {
         self.verify_currentness()?;
         if self.view_attempted {

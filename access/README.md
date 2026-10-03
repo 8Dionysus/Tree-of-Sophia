@@ -131,7 +131,25 @@ See the [language transport contract](contracts/README.md) for compatibility
 roles, fallback order and the still-distinct full Forms work.
 
 For an explicit migration diagnostic, run
-`PYTHONPATH=access/src python -m tos_access.coverage --root . --language en`.
+`tos-access coverage --root /absolute/selected-data --language en` using the
+verified installed executable. The selected data needs its completed immutable
+offline `knowledge.sqlite3` and the five exact source projection/registry inputs;
+a missing or stale store refuses the diagnostic, without building data implicitly.
+`TOS_QUERY_STORE_PATH` and the existing explicit input-path settings select data.
+The maintained module is a platform forwarder:
+`PYTHONPATH=access/src python -m tos_access.coverage --native-prefix /absolute/installed-prefix --root . --language en`.
+Imported `coverage_row`, `coverage_rows`, and `coverage_report` use the same
+installed Rust code selected by `TOS_NATIVE_PREFIX`; they never fall back to
+Python subject rules. Their JSON input is bounded to 16 MiB (4 MiB for one
+carrier); larger snapshots use the streaming root route. Native
+`coverage --graph /absolute/snapshot.json` (or `-` for stdin) observes a supplied
+normalized snapshot, and `coverage-row --input /absolute/carrier.json` observes
+one complete carrier. Root traversal defaults to 256 MiB cumulative decoded/input
+bytes, one million rows and 30 seconds; explicit `--max-input-bytes`, `--max-rows`
+and `--max-seconds` select a bounded envelope. The module forwards those
+options and caps each owned native child at 50 seconds. Budget refusal never emits a
+terminal completion summary. Software selection requires an installed prefix
+for the module/imported paths; CWD and selected data cannot select code.
 This scans the existing normalized projection and reports per-source carrier
 counts, mapped/unmapped types, missing display wording, derivation, and each
 HumanForm role's delivery and candidate states. `--rows` streams one NDJSON

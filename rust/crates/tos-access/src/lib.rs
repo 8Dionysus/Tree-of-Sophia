@@ -6,6 +6,8 @@
 
 pub mod cli;
 pub mod concept_search;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod coverage;
 pub mod doctor;
 pub mod edge_offline_capture;
 pub mod edge_sql;
