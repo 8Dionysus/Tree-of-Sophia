@@ -2527,7 +2527,8 @@ fn native_initial_creation_cli_preserves_oracle_and_cold_retained_receipt() {
         .unwrap()
         .len();
     assert!(
-        native_bytes <= 536_870_912 && worker_bytes <= 536_870_912 && consumer_bytes <= 536_870_912
+        native_bytes <= 536_870_912 && worker_bytes <= 536_870_912 && consumer_bytes <= 536_870_912,
+        "native creation image bound exceeded: owner={native_bytes} worker={worker_bytes} consumer={consumer_bytes} max=536870912"
     );
     assert!(Instant::now() < deadline);
     eprintln!(

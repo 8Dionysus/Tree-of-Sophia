@@ -552,7 +552,7 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
                 get("--image-root"),
                 &EXECUTORS,
                 get("--rustc-version"),
-                2,
+                1,
                 &b,
             )?;
             let v = manifest(root, artifacts, &b)?;
@@ -759,7 +759,7 @@ mod tests {
         let messages = root.join("cargo.jsonl");
         let mut stream = Vec::new();
         for n in EXECUTORS {
-            let event = json!({"reason":"compiler-artifact","package_id":format!("path+file://{}/rust/crates/tos-ops-mechanics-plan#0.1.0",root.display()),"manifest_path":root.join("rust/crates/tos-ops-mechanics-plan/Cargo.toml"),"target":{"name":n,"kind":["bin"]},"features":[],"profile":{"opt_level":"0","debuginfo":2,"debug_assertions":true,"test":false},"executable":images.join(n)});
+            let event = json!({"reason":"compiler-artifact","package_id":format!("path+file://{}/rust/crates/tos-ops-mechanics-plan#0.1.0",root.display()),"manifest_path":root.join("rust/crates/tos-ops-mechanics-plan/Cargo.toml"),"target":{"name":n,"kind":["bin"]},"features":[],"profile":{"opt_level":"0","debuginfo":1,"debug_assertions":true,"test":false},"executable":images.join(n)});
             serde_json::to_writer(&mut stream, &event).unwrap();
             stream.push(b'\n');
         }
@@ -769,14 +769,14 @@ mod tests {
             cancel: &cancel,
         };
         fs::write(&messages, &stream).unwrap();
-        assert!(cargo_products(&root, &messages, &images, &EXECUTORS, &version, 2, &b).is_err());
+        assert!(cargo_products(&root, &messages, &images, &EXECUTORS, &version, 1, &b).is_err());
         stream.extend_from_slice(b"{\"reason\":\"build-finished\",\"success\":true}\n");
         fs::write(&messages, &stream).unwrap();
-        assert!(cargo_products(&root, &messages, &images, &EXECUTORS, &version, 2, &b).is_ok());
-        assert!(cargo_products(&root, &messages, &images, &EXECUTORS, &version, 1, &b).is_err());
+        assert!(cargo_products(&root, &messages, &images, &EXECUTORS, &version, 1, &b).is_ok());
+        assert!(cargo_products(&root, &messages, &images, &EXECUTORS, &version, 2, &b).is_err());
         let wrong = root.join("wrong-images");
         fs::create_dir(&wrong).unwrap();
-        assert!(cargo_products(&root, &messages, &wrong, &EXECUTORS, &version, 2, &b).is_err());
+        assert!(cargo_products(&root, &messages, &wrong, &EXECUTORS, &version, 1, &b).is_err());
         // Software receipts require the explicitly selected reduced debug-info profile.
         let mut names = vec!["tos-access"];
         names.extend(COMMANDS);
