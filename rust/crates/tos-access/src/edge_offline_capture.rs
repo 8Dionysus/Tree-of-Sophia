@@ -4029,8 +4029,14 @@ fn run_prepared_transition(
         limits,
         &mut d1_read_bytes,
     )?;
-    let (after_header, _, after_header_raw) =
-        parse_meta_accounted(&after_tx, "knowledge_top", limits, &mut d1_read_bytes)?;
+    // Prepared state owns its header inside the digest-checked descriptor;
+    // knowledge_top is a published D1 metadata key, not a prepared carrier.
+    // The descriptor read above already charges the complete header bytes.
+    let after_header = after_descriptor
+        .get("header")
+        .cloned()
+        .ok_or_else(|| invalid("prepared successor descriptor header"))?;
+    let after_header_raw = compact(&after_header, limits.prepared.max_metadata_bytes)?;
     let (_, _, after_catalog_raw) =
         parse_meta_accounted(&after_tx, "knowledge_catalog", limits, &mut d1_read_bytes)?;
     let (after_lens, _, after_lens_raw) =
@@ -4058,9 +4064,6 @@ fn run_prepared_transition(
         return Err(invalid(
             "prepared successor reader metadata differs from held source",
         ));
-    }
-    if after_descriptor.get("header") != Some(&after_header) {
-        return Err(invalid("prepared successor descriptor/header differs"));
     }
     let before_source = if let Some(source) = before_source_inputs {
         source
