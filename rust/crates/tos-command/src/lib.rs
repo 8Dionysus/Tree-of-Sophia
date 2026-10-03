@@ -22,6 +22,7 @@ mod source_admission_store;
 pub mod source_admission_v2_backup_restore;
 pub mod source_admission_v2_case;
 pub mod source_admission_v2_reader;
+pub mod source_admission_v2_seen_pack;
 pub mod source_agent_publication;
 mod source_agent_publication_apply;
 mod source_agent_publication_assembly;

@@ -4,10 +4,14 @@
 use super::source_admission::{active, invalid};
 use super::source_admission_segment_v2::{SourceRevisionRootsV2, SourceRootSetV2};
 use super::source_admission_store::AdmissionStore;
+use super::source_admission_v2_seen_pack::{
+    V2SeenPackSpill, V2SeenPackSpillLimits, V2SeenPackSpillRequest, V2SeenPackSpillRequests,
+};
 use rustix::fs::{Mode, OFlags, RenameFlags};
 use std::{
     fs::{File, Metadata, Permissions},
     io::{self, Read, Write},
+    mem::size_of,
     os::{
         fd::AsRawFd,
         unix::fs::{MetadataExt, PermissionsExt},
@@ -18,7 +22,8 @@ use std::{
 };
 use tos_foundation::{Digest256, Digest256Hasher};
 use tos_segment_store::{
-    AuthenticatedTreeIoLedgerV1, AuthenticatedTreeLimitsV1, AuthenticatedTreeWorkV1, SegmentLimits,
+    AuthenticatedTreeCoverageV1, AuthenticatedTreeIoLedgerV1, AuthenticatedTreeLimitsV1,
+    AuthenticatedTreePackSetV2, AuthenticatedTreeWorkV1, SegmentLimits, SegmentStore,
 };
 use tos_source_store::{
     CorpusCurrentSelection, CorpusPointerFormat, PinnedSqliteIoBudget, PinnedSqliteSpaceBudget,
@@ -49,6 +54,49 @@ pub struct V2ImageLimits {
 
 impl V2ImageLimits {
     fn validate(self) -> io::Result<Self> {
+        let (limits, nodes, retained) = self.validate_layout()?;
+        let local_set = nodes
+            .checked_mul(256)
+            .ok_or_else(|| invalid("V2 image state overflow"))?;
+        if retained
+            .checked_add(local_set)
+            .is_none_or(|required| required > limits.max_state_bytes)
+        {
+            return Err(invalid("V2 image simultaneous state allowance exceeded"));
+        }
+        Ok(limits)
+    }
+
+    pub(crate) fn validate_cold_spill(
+        self,
+        requests: &V2SeenPackSpillRequests,
+    ) -> io::Result<(Self, V2SeenPackSpillLimits, V2SeenPackSpillLimits)> {
+        let (limits, nodes, base_state) = self.validate_layout()?;
+        let retained = base_state
+            .checked_add(size_of::<V2ImageColdSpillPlan>())
+            .ok_or_else(|| invalid("V2 image cold-spill state overflow"))?;
+        let max_tree_nodes = u64::try_from(nodes).map_err(invalid)?;
+        let profile = |request: &V2SeenPackSpillRequest| V2SeenPackSpillLimits {
+            max_tree_nodes,
+            cache_bytes: request.cache_bytes,
+            max_operation_state_bytes: limits.max_state_bytes,
+            retained_operation_state_bytes: retained,
+            sqlite_native_overhead_bytes: request.sqlite_native_overhead_bytes,
+        };
+        let source_profile = profile(&requests.source);
+        let target_profile = profile(&requests.target);
+        let source_charge = source_profile.state_charge()?;
+        let target_charge = target_profile.state_charge()?;
+        if retained
+            .checked_add(source_charge.max(target_charge))
+            .is_none_or(|required| required > limits.max_state_bytes)
+        {
+            return Err(invalid("V2 cold spill exceeds held image state bill"));
+        }
+        Ok((limits, source_profile, target_profile))
+    }
+
+    fn validate_layout(self) -> io::Result<(Self, usize, usize)> {
         self.reader.validate().map_err(invalid)?;
         self.segment.validate().map_err(invalid)?;
         if self.max_history_roots == 0
@@ -76,8 +124,8 @@ impl V2ImageLimits {
         {
             return Err(invalid("V2 image finite profile differs"));
         }
-        // One cold stream at a time; reserve its digest set, worst path nodes,
-        // decoded history descriptors, JSON/descriptor overlap and copy block.
+        // Shared root/path/history/JSON/copy residency remains charged in both
+        // modes. The caller selects either the local-set term or a cold spill.
         let nodes = usize::try_from(self.tree.max_nodes).map_err(invalid)?;
         let path_nodes = self
             .tree
@@ -86,15 +134,9 @@ impl V2ImageLimits {
             .and_then(|n| n.checked_add(1))
             .ok_or_else(|| invalid("V2 image state overflow"))?
             .min(nodes);
-        let required = nodes
-            .checked_mul(256)
-            .and_then(|n| {
-                n.checked_add(
-                    path_nodes
-                        .checked_mul(self.tree.max_node_bytes)?
-                        .checked_mul(64)?,
-                )
-            })
+        let retained = path_nodes
+            .checked_mul(self.tree.max_node_bytes)
+            .and_then(|n| n.checked_mul(64))
             .and_then(|n| {
                 n.checked_add(
                     self.max_history_roots
@@ -105,10 +147,7 @@ impl V2ImageLimits {
             .and_then(|n| n.checked_add(self.reader.max_manifest_bytes.checked_mul(64)?))
             .and_then(|n| n.checked_add(8 * 1024 * 1024 + 2 * BLOCK_BYTES))
             .ok_or_else(|| invalid("V2 image state overflow"))?;
-        if required > self.max_state_bytes {
-            return Err(invalid("V2 image simultaneous state allowance exceeded"));
-        }
-        Ok(self)
+        Ok((self, nodes, retained))
     }
 }
 
@@ -224,12 +263,46 @@ fn selected_roots(
     Ok(roots)
 }
 
+fn verify_tree_v2(
+    segment: &SegmentStore,
+    descriptor: &tos_segment_store::AuthenticatedTreeDescriptorV2,
+    limits: AuthenticatedTreeLimitsV1,
+    tree_io: Arc<dyn AuthenticatedTreeIoLedgerV1>,
+    pack_set: Option<&Arc<V2SeenPackSpill>>,
+    closure_binding: Digest256,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> tos_segment_store::Result<AuthenticatedTreeCoverageV1> {
+    if let Some(pack_set) = pack_set {
+        let pack_set: Arc<dyn AuthenticatedTreePackSetV2> = pack_set.clone();
+        segment.verify_authenticated_tree_v2_with_pack_set(
+            descriptor,
+            limits,
+            Some(tree_io),
+            pack_set,
+            closure_binding,
+            deadline,
+            cancel,
+        )
+    } else {
+        segment.verify_authenticated_tree_v2_with_io(
+            descriptor,
+            limits,
+            Some(tree_io),
+            deadline,
+            cancel,
+        )
+    }
+}
+
 fn verify_closure(
     store: &AdmissionStore,
     roots: &SourceRootSetV2,
     limits: V2ImageLimits,
     io: &PinnedSqliteIoBudget,
     work: &mut Work,
+    closure_binding: Digest256,
+    cold_spill: Option<(V2SeenPackSpillRequest, V2SeenPackSpillLimits)>,
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> io::Result<()> {
@@ -253,15 +326,31 @@ fn verify_closure(
     if roots.history.entries > limits.max_history_roots as u64 {
         return Err(invalid("V2 image retained history bound exceeded"));
     }
-    let coverage = segment
-        .verify_authenticated_tree_v2_with_io(
-            &roots.history,
-            work.tree_limits(limits)?,
-            Some(tree_io.clone()),
-            deadline,
-            cancel,
-        )
-        .map_err(invalid)?;
+    let pack_set = if let Some((request, mut spill_limits)) = cold_spill {
+        spill_limits.max_tree_nodes = work.tree_limits(limits)?.max_nodes;
+        Some(V2SeenPackSpill::open(
+            request.workspace,
+            request.request,
+            segment.physical_root_identity().map_err(invalid)?,
+            segment.store_id(),
+            segment.domain_digest(),
+            closure_binding,
+            spill_limits,
+        )?)
+    } else {
+        None
+    };
+    let coverage = verify_tree_v2(
+        &segment,
+        &roots.history,
+        work.tree_limits(limits)?,
+        tree_io.clone(),
+        pack_set.as_ref(),
+        closure_binding,
+        deadline,
+        cancel,
+    )
+    .map_err(invalid)?;
     work.record_tree(coverage.work, limits)?;
     let mut stream = segment
         .stream_authenticated_tree_v2_with_io(
@@ -345,15 +434,17 @@ fn verify_closure(
             &revision.dependencies,
             &revision.retirements,
         ] {
-            let coverage = segment
-                .verify_authenticated_tree_v2_with_io(
-                    root,
-                    work.tree_limits(limits)?,
-                    Some(tree_io.clone()),
-                    deadline,
-                    cancel,
-                )
-                .map_err(invalid)?;
+            let coverage = verify_tree_v2(
+                &segment,
+                root,
+                work.tree_limits(limits)?,
+                tree_io.clone(),
+                pack_set.as_ref(),
+                closure_binding,
+                deadline,
+                cancel,
+            )
+            .map_err(invalid)?;
             work.record_tree(coverage.work, limits)?;
         }
         let (_, objects, _) = store.backup_namespaces()?;
@@ -760,6 +851,23 @@ pub struct V2ImageOutcome {
     pub custody: Arc<PinnedSqliteSpaceReservation>,
 }
 
+struct V2ImageColdSpillPlan {
+    source: Option<V2SeenPackSpillRequest>,
+    target: Option<V2SeenPackSpillRequest>,
+    source_limits: V2SeenPackSpillLimits,
+    target_limits: V2SeenPackSpillLimits,
+}
+
+impl V2ImageColdSpillPlan {
+    fn take_source(&mut self) -> Option<(V2SeenPackSpillRequest, V2SeenPackSpillLimits)> {
+        Some((self.source.take()?, self.source_limits))
+    }
+
+    fn take_target(&mut self) -> Option<(V2SeenPackSpillRequest, V2SeenPackSpillLimits)> {
+        Some((self.target.take()?, self.target_limits))
+    }
+}
+
 pub fn transfer_image(
     source_path: &Path,
     fresh_target: &Path,
@@ -769,7 +877,72 @@ pub fn transfer_image(
     deadline: Instant,
     cancel: &AtomicBool,
 ) -> io::Result<V2ImageOutcome> {
-    let limits = limits.validate()?;
+    transfer_image_inner(
+        source_path,
+        fresh_target,
+        limits,
+        io,
+        space,
+        deadline,
+        cancel,
+        None,
+    )
+}
+
+/// Cold closure route with separate caller-held auxiliary scratch and
+/// independent source/target SQLite requests. Each request is consumed only
+/// by its corresponding physical-store verification.
+pub fn transfer_image_with_cold_spill(
+    source_path: &Path,
+    fresh_target: &Path,
+    limits: V2ImageLimits,
+    io: &PinnedSqliteIoBudget,
+    image_space: &PinnedSqliteSpaceBudget,
+    auxiliary_space: &PinnedSqliteSpaceBudget,
+    requests: V2SeenPackSpillRequests,
+    deadline: Instant,
+    cancel: &Arc<AtomicBool>,
+) -> io::Result<V2ImageOutcome> {
+    if auxiliary_space.shares_with(image_space) {
+        return Err(invalid(
+            "V2 cold spill auxiliary space must be separately held",
+        ));
+    }
+    requests.validate_for_operation(io, auxiliary_space, deadline, cancel)?;
+    let (limits, source_limits, target_limits) = limits.validate_cold_spill(&requests)?;
+    let plan = V2ImageColdSpillPlan {
+        source: Some(requests.source),
+        target: Some(requests.target),
+        source_limits,
+        target_limits,
+    };
+    transfer_image_inner(
+        source_path,
+        fresh_target,
+        limits,
+        io,
+        image_space,
+        deadline,
+        cancel,
+        Some(plan),
+    )
+}
+
+fn transfer_image_inner(
+    source_path: &Path,
+    fresh_target: &Path,
+    limits: V2ImageLimits,
+    io: &PinnedSqliteIoBudget,
+    space: &PinnedSqliteSpaceBudget,
+    deadline: Instant,
+    cancel: &AtomicBool,
+    mut cold: Option<V2ImageColdSpillPlan>,
+) -> io::Result<V2ImageOutcome> {
+    let limits = if cold.is_some() {
+        limits.validate_layout()?.0
+    } else {
+        limits.validate()?
+    };
     active(deadline, cancel)?;
     let source = AdmissionStore::open_existing(source_path, deadline, cancel)?;
     let _lock = source.lock_for_backup(deadline, cancel)?;
@@ -796,7 +969,20 @@ pub fn transfer_image(
     );
     let result = (|| {
         let mut work = Work::default();
-        verify_closure(&source, &roots, limits, io, &mut work, deadline, cancel)?;
+        let closure_binding = selection
+            .rootset_sha256
+            .ok_or_else(|| invalid("V2 image closure selector digest absent"))?;
+        verify_closure(
+            &source,
+            &roots,
+            limits,
+            io,
+            &mut work,
+            closure_binding,
+            cold.as_mut().and_then(V2ImageColdSpillPlan::take_source),
+            deadline,
+            cancel,
+        )?;
         let (root, _, _) = source.backup_namespaces()?;
         let mut block = [0; BLOCK_BYTES];
         copy_directory(
@@ -821,6 +1007,8 @@ pub fn transfer_image(
             limits,
             io,
             &mut work,
+            closure_binding,
+            cold.as_mut().and_then(V2ImageColdSpillPlan::take_target),
             deadline,
             cancel,
         )?;

@@ -12,6 +12,7 @@ use std::time::Instant;
 
 use tos_foundation::{Digest256, Digest256Hasher};
 
+use crate::authenticated_pack_set_v2::AuthenticatedTreePackSetV2;
 use crate::error::{Result, SegmentError, SegmentErrorCode as Code};
 use crate::generation::PlacementGenerationRowV1;
 use crate::placement::PlacementV1;
@@ -637,9 +638,41 @@ pub struct AuthenticatedTreeRowStreamV2 {
     observed: u64,
     transcript: Digest256Hasher,
     work: AuthenticatedTreeWorkV1,
-    pack_digests: HashSet<Digest256>,
+    pack_capture: PackCaptureV2,
     done: bool,
     failed: bool,
+}
+
+enum PackCaptureV2 {
+    None,
+    Local(HashSet<Digest256>),
+    External(Arc<dyn AuthenticatedTreePackSetV2>),
+}
+
+impl PackCaptureV2 {
+    fn observe(&mut self, digest: Digest256) -> Result<()> {
+        match self {
+            Self::None => Ok(()),
+            Self::Local(digests) => {
+                digests
+                    .try_reserve(1)
+                    .map_err(|_| budget("cold pack receipt allocation failed"))?;
+                digests.insert(digest);
+                Ok(())
+            }
+            Self::External(set) => set.observe(digest),
+        }
+    }
+
+    fn take_local(&mut self) -> Result<HashSet<Digest256>> {
+        match std::mem::replace(self, Self::None) {
+            Self::Local(digests) => Ok(digests),
+            _ => Err(SegmentError::new(
+                Code::InvalidReceipt,
+                "local cold pack inventory is unavailable",
+            )),
+        }
+    }
 }
 
 impl AuthenticatedTreeRowStreamV2 {
@@ -699,10 +732,7 @@ impl AuthenticatedTreeRowStreamV2 {
                         cancelled,
                     )?;
                     if let Some(digest) = loaded.physical_pack_digest {
-                        self.pack_digests
-                            .try_reserve(1)
-                            .map_err(|_| budget("cold pack receipt allocation failed"))?;
-                        self.pack_digests.insert(digest);
+                        self.pack_capture.observe(digest)?;
                     }
                     self.stack
                         .try_reserve(1)
@@ -763,10 +793,7 @@ impl AuthenticatedTreeRowStreamV2 {
                     cancelled,
                 )?;
                 if let Some(digest) = loaded.physical_pack_digest {
-                    self.pack_digests
-                        .try_reserve(1)
-                        .map_err(|_| budget("cold pack receipt allocation failed"))?;
-                    self.pack_digests.insert(digest);
+                    self.pack_capture.observe(digest)?;
                 }
                 self.stack
                     .try_reserve(1)
@@ -2033,6 +2060,21 @@ impl SegmentStore {
         limits: AuthenticatedTreeLimitsV1,
         io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
     ) -> Result<AuthenticatedTreeRowStreamV2> {
+        self.stream_authenticated_tree_v2_with_capture(
+            descriptor,
+            limits,
+            io_ledger,
+            PackCaptureV2::None,
+        )
+    }
+
+    fn stream_authenticated_tree_v2_with_capture(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        pack_capture: PackCaptureV2,
+    ) -> Result<AuthenticatedTreeRowStreamV2> {
         let limits = limits.validate()?;
         validate_descriptor_for_store(self, &descriptor.semantic, limits)?;
         validate_descriptor_v2_shape(descriptor)?;
@@ -2053,15 +2095,15 @@ impl SegmentStore {
             observed: 0,
             transcript,
             work: AuthenticatedTreeWorkV1::default(),
-            pack_digests: HashSet::new(),
+            pack_capture,
             done: false,
             failed: false,
         })
     }
 
-    /// Full cold closure: streams every semantic node, then verifies each
-    /// distinct reachable immutable pack digest once. The temporary digest set
-    /// is operation-local and bounded by the caller's node budget.
+    /// Compatibility full cold closure: streams every semantic node, then
+    /// verifies each distinct reachable immutable pack digest once. Callers
+    /// must explicitly precharge the local set against their finite node cap.
     pub fn verify_authenticated_tree_v2(
         &self,
         descriptor: &AuthenticatedTreeDescriptorV2,
@@ -2080,14 +2122,14 @@ impl SegmentStore {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<AuthenticatedTreeCoverageV1> {
-        let mut stream =
-            self.stream_authenticated_tree_v2_with_io(descriptor, limits, io_ledger.clone())?;
+        let mut stream = self.stream_authenticated_tree_v2_with_capture(
+            descriptor,
+            limits,
+            io_ledger.clone(),
+            PackCaptureV2::Local(HashSet::new()),
+        )?;
         while stream.next_row(deadline, cancelled)?.is_some() {}
-        let mut pack_digests = Vec::new();
-        pack_digests
-            .try_reserve_exact(stream.pack_digests.len())
-            .map_err(|_| budget("cold pack digest list allocation failed"))?;
-        pack_digests.extend(stream.pack_digests.iter().copied());
+        let pack_digests = stream.pack_capture.take_local()?;
         for digest in pack_digests {
             check(deadline, cancelled)?;
             let remaining = remaining_bytes(stream.work, stream.limits)?;
@@ -2106,6 +2148,62 @@ impl SegmentStore {
                 .work
                 .charge_pack_read(raw.len(), frame_count, stream.limits)?;
         }
+        check(deadline, cancelled)?;
+        stream.coverage().ok_or_else(|| {
+            SegmentError::new(
+                Code::InvalidReceipt,
+                "packed authenticated tree coverage unavailable",
+            )
+        })
+    }
+
+    /// Full cold closure using an operation-local exact inventory spill.
+    /// The spill only orders observed pack digests; every pending row is
+    /// reopened and physically validated here by this SegmentStore.
+    pub fn verify_authenticated_tree_v2_with_pack_set(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        pack_set: Arc<dyn AuthenticatedTreePackSetV2>,
+        closure_binding: Digest256,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<AuthenticatedTreeCoverageV1> {
+        check(deadline, cancelled)?;
+        pack_set.check_binding(
+            self.physical_root_identity()?,
+            self.store_id(),
+            self.domain_digest(),
+            closure_binding,
+        )?;
+        let mut stream = self.stream_authenticated_tree_v2_with_capture(
+            descriptor,
+            limits,
+            io_ledger.clone(),
+            PackCaptureV2::External(pack_set.clone()),
+        )?;
+        while stream.next_row(deadline, cancelled)?.is_some() {}
+        let mut verify = |digest: Digest256| {
+            check(deadline, cancelled)?;
+            let remaining = remaining_bytes(stream.work, stream.limits)?;
+            if remaining == 0 {
+                return Err(budget("authenticated tree byte budget exceeded"));
+            }
+            let raw = self.read_authenticated_blob_with_io(
+                digest,
+                AUTHENTICATED_PACK_MAX_BYTES.min(remaining),
+                io_ledger.as_deref(),
+                deadline,
+                cancelled,
+            )?;
+            let frame_count = scan_packed_chunk(&raw)?;
+            stream
+                .work
+                .charge_pack_read(raw.len(), frame_count, stream.limits)
+        };
+        pack_set.verify_pending(&mut verify)?;
+        drop(verify);
         check(deadline, cancelled)?;
         stream.coverage().ok_or_else(|| {
             SegmentError::new(
