@@ -574,8 +574,13 @@ fn assessment_feature_sources() -> [&'static str; 13] {
     ]
 }
 
-fn native_layer_journal_fixture(repository: &Path, root: &Path, deadline: Instant) -> Value {
-    let script = r#"
+fn native_layer_journal_fixture(
+    repository: &Path,
+    root: &Path,
+    deadline: Instant,
+    derived: bool,
+) -> Value {
+    let template = r#"
 import copy,json,sys,tempfile,unittest
 from pathlib import Path
 repository,root=map(Path,sys.argv[1:])
@@ -600,7 +605,16 @@ try:
     tempfile.TemporaryDirectory=ExistingRoot
     test=unittest.TestCase(methodName='runTest')
     import test_native_layer_quality_journal as maintained
-    fx=maintained.QualityJournalFixture(test)
+    if JOURNAL_DERIVED_METHOD:
+        from test_native_text_layer_assessment import NativeDerivedLayerAssessmentFixture
+        # Late handler imports must use this exact fixture source tree.
+        sys.path[:0]=[str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
+        layer=NativeDerivedLayerAssessmentFixture(test)
+        layer.member=layer.seed.member
+        layer.payload=layer.seed.payload
+        fx=maintained.QualityJournalFixture(test,layer_fixture=layer)
+    else:
+        fx=maintained.QualityJournalFixture(test)
     assert fx.fx.layer['admission']['human_review_performed'] is False
     index=next(i for i,g in enumerate(fx.config['authorities']) if g['payload']['actor_id']==fx.config['principal_id'])
     def template(record,profile,name):
@@ -615,29 +629,34 @@ try:
         'layer_template':template(fx.layer_record,'text-layer-quality','synthetic-native-layer-admit'),
         'unit_template':template(fx.unit,'source-observation','synthetic-native-unit-admit'),
         'source_member':fx.fx.member.decode(),'content':fx.fx.content.decode(),
-        'preserved':[str(fx.fx.store/fx.fx.source_ref),str(fx.fx.store/fx.packet_ref),str(fx.fx.payload)]}
+        'derived':JOURNAL_DERIVED_METHOD,
+        'preserved':([str(path) for path in sorted(fx.fx.store.rglob('*')) if path.is_file() and fx.journal not in path.parents] if JOURNAL_DERIVED_METHOD else [str(fx.fx.store/fx.fx.source_ref),str(fx.fx.store/fx.packet_ref),str(fx.fx.payload)])}
 finally:
     tempfile.TemporaryDirectory=original
 print(json.dumps(result,ensure_ascii=False,separators=(',',':')))
 "#;
+    let script = template.replace(
+        "JOURNAL_DERIVED_METHOD",
+        if derived { "True" } else { "False" },
+    );
     fixture_json(
         repository,
         root,
         &root.join("layer-fixture.stdout"),
         &root.join("layer-fixture.stderr"),
         deadline,
-        script,
+        &script,
     )
 }
 
-fn native_layer_journal_case() {
+fn native_layer_journal_case(derived: bool) {
     let repository = super::validation_cut_cases::repository()
         .canonicalize()
         .unwrap();
     let deadline = Instant::now() + Duration::from_secs(240);
     let cancelled = AtomicBool::new(false);
     let temporary = tempfile::tempdir().unwrap();
-    let fixture = native_layer_journal_fixture(&repository, temporary.path(), deadline);
+    let fixture = native_layer_journal_fixture(&repository, temporary.path(), deadline, derived);
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
     let public = PathBuf::from(fixture["public"].as_str().unwrap());
     let context = PathBuf::from(fixture["context"].as_str().unwrap());
@@ -743,10 +762,29 @@ fn native_layer_journal_case() {
             .unwrap()
             .contains(fixture["content"].as_str().unwrap())
     );
-    assert_eq!(
-        comparison["result"]["source_comparison"]["payload"]["source_member_utf8"],
-        fixture["source_member"]
-    );
+    let comparison_payload = &comparison["result"]["source_comparison"]["payload"];
+    if derived {
+        assert_eq!(
+            comparison_payload["schema_version"],
+            "tos_native_text_layer_derivation_comparison_v1"
+        );
+        assert_eq!(
+            comparison_payload["source_view"]["source_member_utf8"],
+            fixture["source_member"]
+        );
+        assert_eq!(comparison_payload["inherited_quality"], "not-transferred");
+        assert_eq!(comparison_payload["lineage"].as_array().unwrap().len(), 2);
+        assert_eq!(
+            comparison_payload["lineage"][1]["record_payload"]["admission"]["review_status"],
+            "unreviewed"
+        );
+        assert_eq!(comparison_payload["performs_semantic_assessment"], false);
+    } else {
+        assert_eq!(
+            comparison_payload["source_member_utf8"],
+            fixture["source_member"]
+        );
+    }
     let append_request = |template: &Value, described: &Value| {
         let mut request = template.clone();
         request["expected_snapshot"] = described["owner_snapshot"].clone();
@@ -836,7 +874,12 @@ fn native_layer_journal_case() {
 
 #[test]
 fn native_private_assessment_v5_quality_dependency_withdrawal_preserves_source() {
-    native_layer_journal_case();
+    native_layer_journal_case(false);
+}
+
+#[test]
+fn native_derived_layer_assessment_lineage_quality_withdrawal_preserves_source() {
+    native_layer_journal_case(true);
 }
 
 #[test]
