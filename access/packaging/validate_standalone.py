@@ -27,6 +27,10 @@ EXPECTED_QUERY_OPERATIONS = {
     "tos.epistemic.inspect",
     "tos.path.find",
     "tos.zarathustra.word-analysis.prepare",
+    "tos_philosophy_graph_scale_rows",
+    "tos_philosophy_graph_lens_packet",
+    "tos.zarathustra.word_analysis.public-capability",
+    "tos.zarathustra.reading.public-capability",
 }
 EXPECTED_PAGE_COMMANDS = {
     "tos.page.context",
