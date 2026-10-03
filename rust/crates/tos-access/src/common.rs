@@ -110,6 +110,7 @@ pub fn registered_operations() -> Result<&'static [RegisteredOperation], AccessE
                         || id == crate::reading::PUBLIC_READING_CAPABILITY_OPERATION
                         || id == crate::word_analysis::OPERATION_ID
                         || id == SEARCH_OPERATION_ID
+                        || id == tos_query::source_gap::SOURCE_GAP_OPERATION
                         || crate::knowledge::KnowledgeOperation::from_id(id).is_some()
                 });
                 if !known
