@@ -2807,7 +2807,7 @@ class AuthoredContractTests(unittest.TestCase):
         query_contract = json.loads(
             (ACCESS_ROOT / "contracts/query-operations.v1.json").read_text(encoding="utf-8")
         )
-        expected_operations = {
+        expected_browser_operations = {
             "tos.status",
             "tos.snapshot",
             "tos.search",
@@ -2822,13 +2822,32 @@ class AuthoredContractTests(unittest.TestCase):
             "tos.epistemic.inspect",
             "tos.zarathustra.word-analysis.prepare",
         }
+        native_operations = {
+            "tos_philosophy_graph_scale_rows": "tos_philosophy_graph_scale_rows",
+            "tos_philosophy_graph_lens_packet": "tos_philosophy_graph_lens_packet",
+            "tos.zarathustra.word_analysis.public-capability": "tos_zarathustra_word_analysis_public_capability",
+            "tos.zarathustra.reading.public-capability": "tos_zarathustra_reading_public_capability",
+        }
+        expected_operations = expected_browser_operations | native_operations.keys()
         self.assertEqual(
             {item["operation_id"] for item in query_contract["operations"]},
             expected_operations,
         )
         query_source = (ACCESS_ROOT / "web/src/query-operations.ts").read_text(encoding="utf-8")
-        for operation_id in expected_operations:
+        for operation_id in expected_browser_operations:
             self.assertIn(f'"{operation_id}"', query_source)
+
+        # These additive imported operations use the native MCP adapter;
+        # they are not browser query-operation dispatch cases.
+        native_contract = json.loads(
+            (REPO_ROOT / "rust/crates/tos-access/operations.v1.json").read_text(encoding="utf-8")
+        )
+        native_bindings = {
+            item["operation_id"]: item["mcp"]["tool"]
+            for item in native_contract["operations"]
+        }
+        for operation_id, tool in native_operations.items():
+            self.assertEqual(native_bindings[operation_id], tool)
 
         page_contract = json.loads(
             (ACCESS_ROOT / "contracts/page-commands.v1.json").read_text(encoding="utf-8")

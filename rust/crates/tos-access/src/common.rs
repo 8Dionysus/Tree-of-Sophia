@@ -106,6 +106,8 @@ pub fn registered_operations() -> Result<&'static [RegisteredOperation], AccessE
                         || id == crate::site::WORD_OPERATION
                         || crate::source_read::Operation::from_id(id).is_some()
                         || id == crate::reading::OPERATION_ID
+                        || id == crate::reading::PUBLIC_WORD_CAPABILITY_OPERATION
+                        || id == crate::reading::PUBLIC_READING_CAPABILITY_OPERATION
                         || id == crate::word_analysis::OPERATION_ID
                         || id == SEARCH_OPERATION_ID
                         || crate::knowledge::KnowledgeOperation::from_id(id).is_some()
