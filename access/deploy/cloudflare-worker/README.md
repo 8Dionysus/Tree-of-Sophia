@@ -1140,7 +1140,11 @@ actual encoded typed frames, including descriptors and hashes. Optional
 `max_schema_allocation_bytes` separately bounds cumulative schema metadata
 allocation before copies; its default derives from the frame allowance, and a
 caller may select a smaller explicit computational budget. These are transport
-resource selections, not source admission or measured RSS. Missing context refuses;
+resource selections, not source admission or measured RSS. The caller must also
+account for two private stream files of at most `max_stream_bytes + 1` bytes
+each and at most 16 KiB of diagnostic metadata in the same owned scratch.
+Retained failure scopes need explicit owner disposition or an additional
+coexistence budget before retries. Missing context refuses;
 there is no automatic software discovery or Python fallback. Algorithmic limits
 keep their existing defaults. Delta and catch-up still permit
 `rollback_target=None`; bootstrap and integrity require a reverse target.
@@ -1166,10 +1170,14 @@ not serialize a stale memdb backing buffer, reopen the current database pathname
 or modify the caller transaction. Its independently checked `snapshot_transport`
 inventory binds wire custody, not physical page identity or source currentness.
 The physical-file request-v1 CLI route remains separate. The bridge returns the
-actual native operation receipt and
-removes only its internal manifest and temporary snapshot files after bounded
-child cleanup. An unreleased child/group retains its selected input directory
-and reports a custody error. WAL and dirty-view interpretation, default limits,
+actual native operation receipt and removes its exclusive transport directory
+after successful validation and bounded child cleanup. Failures after the private scope is created retain that scope and whatever
+request, typed frames and capped private stdout/stderr were materialized. Fixed-size private metadata records phase,
+status, counts, SHA and EOF; exception text contains no native payload, while
+its notes reference the owned evidence directory. Evidence metadata may be incomplete
+if its original deadline or write bound prevents completion; no crash durability
+is claimed. An unreleased child/group also retains its selected input directory
+under the whole owner supervisor's custody contract. WAL and dirty-view interpretation, default limits,
 optional rollback and complete receipts require the corresponding installed
 consumer checks; a source candidate or direct CLI run does not establish them.
 
