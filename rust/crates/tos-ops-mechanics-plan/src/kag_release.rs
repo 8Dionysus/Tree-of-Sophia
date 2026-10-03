@@ -744,6 +744,11 @@ pub fn build_release(
         if observed != integration {
             return Err(invalid("published KAG identity differs"));
         }
+        // Complete owned staging cleanup before publishing a success status.
+        // A refused cleanup retains diagnostics and records a failed attempt,
+        // even if the immutable artifact already reached its release path.
+        tree(&temporary)?;
+        fs::remove_dir_all(&temporary)?;
         match status.succeed(
             &attempt,
             &integration_revision,
@@ -757,12 +762,6 @@ pub fn build_release(
     })();
     if let Err(error) = &result {
         let _ = status.fail(&attempt, &bounded_error(error));
-    }
-    // The temporary root is ours; refuse cleanup if the selected owner left a
-    // symlink/special file rather than deleting beyond the controlled contour.
-    if result.is_ok() && temporary.exists() {
-        tree(&temporary)?;
-        fs::remove_dir_all(&temporary)?;
     }
     result
 }
