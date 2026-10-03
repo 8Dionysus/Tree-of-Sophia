@@ -200,6 +200,17 @@ impl CorpusReader {
         })
     }
 
+    /// Open from an exact caller-held root descriptor. This prevents a
+    /// current-pointer read from reopening a mutable path after the caller has
+    /// already fenced that path against the retained root.
+    pub fn open_existing_at(held_root: &File, limits: ReadLimits) -> Result<Self> {
+        let limits = limits.validate()?;
+        Ok(Self {
+            root: Arc::new(StoreRoot::open_existing_at(held_root)?),
+            limits,
+        })
+    }
+
     /// Explicitly inspect the mutable pointer. It is never consulted by `load_exact`.
     pub fn select_current(&self) -> Result<Option<SourceRevision>> {
         self.select_current_inner(None)

@@ -43,6 +43,19 @@ impl StoreRoot {
         })
     }
 
+    pub(crate) fn open_existing_at(held_root: &File) -> Result<Self> {
+        let root = held_root
+            .try_clone()
+            .map_err(|error| StoreError::io("cannot clone held corpus root", error))?;
+        let revisions = open_directory(&root, "revisions")?;
+        let objects = open_directory(&root, "objects")?;
+        Ok(Self {
+            root,
+            revisions,
+            objects,
+        })
+    }
+
     pub(crate) fn open_revision(&self, revision_hex: &str) -> Result<File> {
         open_directory(&self.revisions, revision_hex)
     }
