@@ -17,9 +17,8 @@ use std::{
     time::{Duration, Instant},
 };
 use tos_foundation::{
-    CanonicalProfile, Digest256, Digest256Hasher, JsonEmissionProfile, JsonLimits, JsonMode,
-    JsonNumber, JsonNumberKind, JsonString, JsonValue, canonical_feed_digest_v1,
-    canonical_raw_bytes_v1, emit_json_profile, parse_json,
+    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonString, JsonValue,
+    canonical_feed_digest_v1, canonical_raw_bytes_v1, parse_json,
 };
 use tos_query::source_diagnostic::Limits;
 use tos_source_store::MetadataPublicationEpoch;
@@ -27,14 +26,10 @@ use tos_source_store::MetadataPublicationEpoch;
 const SOURCE_HOME: &str = "ToS/source-witnesses";
 const CATALOG_HOME: &str = "ToS/source-witnesses/catalog";
 const PUBLICATION_REF: &str = "ToS/source-witnesses/.metadata-publication.json";
-const COMPOSITE_SCHEMA: &str = "ToS/contracts/scholarly-composite-witness.schema.json";
 const INPUT_CAP: u64 = 256 * 1024 * 1024;
 const REQUEST_CAP: usize = 16 * 1024 * 1024;
 const MAX_ROWS: u64 = 1_000_000;
-const MAX_CONTRACT_FILES: u64 = 4096;
 const MAX_SELECTED_FILES: usize = 16_384;
-const MAX_NATIVE_PACKETS: usize = 1024;
-const MAX_NATIVE_PACKET_BYTES: usize = 8 * 1024 * 1024;
 const MAX_CLAIM_FILE_BYTES: usize = 16 * 1024 * 1024;
 const MAX_SOURCE_FILE_BYTES: usize = 16 * 1024 * 1024;
 const MAX_SOURCE_ROW_BYTES: usize = 1024 * 1024;
@@ -46,21 +41,6 @@ const MAX_STATE_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_WALK_ENTRIES: u64 = 1_000_000;
 const MAX_WALK_DEPTH: usize = 128;
 
-const BASE_FAMILIES: [(&str, &str); 9] = [
-    ("agent", "agents.jsonl"),
-    ("place", "places.jsonl"),
-    ("organization", "organizations.jsonl"),
-    ("work", "works.jsonl"),
-    ("expression", "expressions.jsonl"),
-    ("edition", "editions.jsonl"),
-    ("collection", "collections.jsonl"),
-    ("item", "items.jsonl"),
-    ("link", "links.jsonl"),
-];
-const ADAPTED_FAMILIES: [(&str, &str, &str); 2] = [
-    ("artifact", "artifact-witness.json", "artifacts.jsonl"),
-    ("composite", "composite-witness.json", "composites.jsonl"),
-];
 const LIMITATIONS: [&str; 8] = [
     "Only catalog-owned public metadata identities are enumerated, not all ToS corpus resources.",
     "Private native semantic packets, payloads and owner-local material are outside this report.",
@@ -1046,6 +1026,33 @@ impl RootFence {
         self.record_directory(&relative_dir, &directory, after)
     }
 
+    fn bind_metadata_directories(&mut self) -> Result<(), String> {
+        for home in ["ToS/contracts", SOURCE_HOME] {
+            let directory = self.open_dir_ref(home)?;
+            let mut selected = Vec::new();
+            let mut no_selection = |_path: &str, _kind: &fs::FileType| Ok(None);
+            let mut skip = |path: &str| {
+                path.split('/').any(|part| {
+                    matches!(
+                        part,
+                        "payload" | "private" | "local-content" | "catalog" | "owner-local"
+                    )
+                })
+            };
+            self.walk_tree(
+                directory,
+                home.to_owned(),
+                0,
+                MAX_SELECTED_FILES,
+                "coverage directory fence",
+                &mut no_selection,
+                &mut skip,
+                &mut selected,
+            )?;
+        }
+        Ok(())
+    }
+
     fn verify_currentness(&mut self) -> Result<(), String> {
         let files = self
             .files
@@ -1253,32 +1260,8 @@ fn execute_observe(input: &Value, output: &mut dyn Write) -> Result<(), String> 
     )
 }
 
-fn object(fields: Vec<(String, JsonValue)>) -> JsonValue {
-    JsonValue::Object(
-        fields
-            .into_iter()
-            .map(|(key, value)| (JsonString::from_utf8(&key), value))
-            .collect(),
-    )
-}
-fn jstring(value: &str) -> JsonValue {
-    JsonValue::String(JsonString::from_utf8(value))
-}
-fn jnumber(value: u64) -> JsonValue {
-    JsonValue::Number(JsonNumber {
-        kind: JsonNumberKind::Int,
-        lexeme: value.to_string(),
-    })
-}
-fn jarray(values: impl IntoIterator<Item = JsonValue>) -> JsonValue {
-    JsonValue::Array(values.into_iter().collect())
-}
-
 struct CatalogCurrentness {
     catalog_sha256: String,
-    record_count: u64,
-    claim_count: u64,
-    kinds: Vec<String>,
 }
 
 fn selected_publication(fence: &mut RootFence) -> Result<MetadataPublicationEpoch, String> {
@@ -1319,109 +1302,6 @@ fn verify_source_snapshot(
 ) -> Result<(), String> {
     fence.verify_currentness()?;
     verify_publication_current(fence, publication)
-}
-
-fn manifest_bytes(
-    family_order: &[(String, String)],
-    counts: &BTreeMap<String, u64>,
-    claim_count: u64,
-    object_count: u64,
-    catalog_sha256: &str,
-    extension_schema_refs: &BTreeSet<String>,
-    has_extension_family: bool,
-    publication_token: Option<&str>,
-    output_hashes: &[(String, String)],
-) -> Result<Vec<u8>, String> {
-    let record_files = object(
-        family_order
-            .iter()
-            .map(|(kind, filename)| (kind.clone(), jstring(&format!("{CATALOG_HOME}/{filename}"))))
-            .collect(),
-    );
-    let mut count_fields = family_order
-        .iter()
-        .map(|(kind, _)| (kind.clone(), jnumber(*counts.get(kind).unwrap_or(&0))))
-        .collect::<Vec<_>>();
-    count_fields.push(("object_total".into(), jnumber(object_count)));
-    count_fields.push(("claim".into(), jnumber(claim_count)));
-    count_fields.push(("total".into(), jnumber(object_count + claim_count)));
-    let mut fields = vec![
-        (
-            "schema_version".into(),
-            jstring("tos_source_witness_catalog_v3"),
-        ),
-        ("owner_repo".into(), jstring("Tree-of-Sophia")),
-        ("source_root".into(), jstring(SOURCE_HOME)),
-        (
-            "generated_by".into(),
-            jstring("scripts/build_source_witness_catalog.py"),
-        ),
-        (
-            "record_schema_ref".into(),
-            jstring("ToS/contracts/corpus-record.schema.json"),
-        ),
-        (
-            "claim_schema_ref".into(),
-            jstring("ToS/contracts/claim-packet.schema.json"),
-        ),
-    ];
-    if has_extension_family || !extension_schema_refs.is_empty() {
-        fields.push((
-            "extension_schema_refs".into(),
-            jarray(extension_schema_refs.iter().map(|value| jstring(value))),
-        ));
-    }
-    fields.extend([
-        ("record_files".into(), record_files),
-        (
-            "claim_file".into(),
-            jstring(&format!("{CATALOG_HOME}/claims.jsonl")),
-        ),
-        ("counts".into(), object(count_fields)),
-        ("catalog_sha256".into(), jstring(catalog_sha256)),
-    ]);
-    if let Some(token) = publication_token {
-        let files = object(
-            output_hashes
-                .iter()
-                .map(|(path, digest)| (path.clone(), jstring(digest)))
-                .collect(),
-        );
-        fields.push((
-            "selected_metadata_publication".into(),
-            object(vec![
-                (
-                    "protocol".into(),
-                    jstring("tos_selected_source_metadata_v1"),
-                ),
-                ("token".into(), jstring(token)),
-                ("files".into(), files),
-            ]),
-        ));
-    }
-    fields.push((
-        "authority_boundary".into(),
-        jstring("This generated catalog provides navigation to the tracked object and claim records that own its contents."),
-    ));
-    let encoded = emit_json_profile(
-        &object(fields),
-        JsonEmissionProfile::SourceWitnessCatalogPublishedV3,
-        json_limits(MAX_OUTPUT_FILE_BYTES),
-    )
-    .map_err(|error| error.to_string())?;
-    Ok(encoded.bytes)
-}
-
-fn verify_expected_file(
-    fence: &mut RootFence,
-    path: &str,
-    expected: &[u8],
-) -> Result<String, String> {
-    let actual = fence.read_required(path, MAX_OUTPUT_FILE_BYTES, 2)?;
-    if actual != expected {
-        return Err("public source catalog is stale; rebuild it through its owner".into());
-    }
-    Ok(Digest256::of_bytes(expected).to_hex())
 }
 
 fn claim_rows(raw: &[u8], max_rows: u64) -> Result<Vec<(u64, &[u8])>, String> {
@@ -1495,6 +1375,7 @@ fn load_source_catalog(
     };
     let mut fence = RootFence::open(root, max_input_bytes, max_rows, deadline)?;
     let publication = selected_publication(&mut fence)?;
+    fence.bind_metadata_directories()?;
     let cancelled = AtomicBool::new(false);
     let git_signal = AtomicI32::new(0);
     let native_args = [
@@ -1531,6 +1412,34 @@ fn load_source_catalog(
         },
         |stage, receipt, catalogue_limits| {
             let mut populate = || -> Result<(), String> {
+                // Bind the actual held contract inventory too, so a later edit
+                // cannot keep identical source rows while changing their rules.
+                let mut after = None;
+                loop {
+                    let page = stage
+                        .scan_input(
+                            tos_compiler::source_witness_catalog::CATALOG_SOURCE,
+                            tos_compiler::source_witness_catalog::CONTRACT_FILES,
+                            after.as_deref(),
+                            1,
+                        )
+                        .map_err(|e| e.to_string())?;
+                    for row in page.rows {
+                        fence.meter.charge_read(row.payload.len() as u64, 8)?;
+                        let root_bytes = fence.read_required(&row.id, MAX_SOURCE_FILE_BYTES, 8)?;
+                        if Digest256::of_bytes(&root_bytes).to_hex() != row.payload_sha256 {
+                            return Err(
+                                "coverage root contracts differ from genuine captured catalogue"
+                                    .into(),
+                            );
+                        }
+                    }
+                    after = page.next_id;
+                    if after.is_none() {
+                        break;
+                    }
+                }
+
                 observe_owned_catalogue(
                     stage,
                     receipt,
@@ -1614,9 +1523,6 @@ fn load_source_catalog(
                 let kinds = files.keys().cloned().collect::<Vec<_>>();
                 let currentness = CatalogCurrentness {
                     catalog_sha256: string(&receipt.manifest, "catalog_sha256")?.to_owned(),
-                    record_count: receipt.record_count,
-                    claim_count: receipt.claim_count,
-                    kinds: kinds.clone(),
                 };
                 for reference in receipt.file_sha256.keys() {
                     fence.read_required(reference, MAX_OUTPUT_FILE_BYTES, 2)?;
