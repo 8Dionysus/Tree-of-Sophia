@@ -36,17 +36,28 @@ pub(crate) fn budget_check() -> io::Result<()> {
     }
     Ok(())
 }
-struct WholeBudget;
+pub(crate) struct WholeBudget {
+    owns_deadline: bool,
+}
 impl WholeBudget {
-    fn begin() -> io::Result<Self> {
+    pub(crate) fn begin() -> io::Result<Self> {
         budget_check()?;
-        DEADLINE.with(|d| d.set(Some(Instant::now() + Duration::from_secs(600))));
-        Ok(Self)
+        let owns_deadline = DEADLINE.with(|d| {
+            if d.get().is_some() {
+                false
+            } else {
+                d.set(Some(Instant::now() + Duration::from_secs(600)));
+                true
+            }
+        });
+        Ok(Self { owns_deadline })
     }
 }
 impl Drop for WholeBudget {
     fn drop(&mut self) {
-        DEADLINE.with(|d| d.set(None));
+        if self.owns_deadline {
+            DEADLINE.with(|d| d.set(None));
+        }
     }
 }
 
@@ -405,6 +416,7 @@ fn verify_source_copy(export: &Path, provider: &Path, manifest: &Value) -> io::R
     Ok(())
 }
 pub fn verify_integration(root: &Path, expected_revision: &str) -> io::Result<Value> {
+    let _budget = WholeBudget::begin()?;
     directory(root)?;
     let integration = read_json(&root.join("integration.json"))?;
     let mut observed_raw = Vec::new();
@@ -767,6 +779,7 @@ pub fn build_release(
 }
 
 pub fn status_release(release: &Path, expected_revision: &str) -> io::Result<Value> {
+    let _budget = WholeBudget::begin()?;
     let release = safe_absolute(release)?;
     let status = crate::kag_downstream_status::Status::new(&release.join("status"), "kag")?
         .status(expected_revision)?;

@@ -139,6 +139,7 @@ fn inventory(
 /// Verify exact membership, aggregate size, every byte binding and source-return
 /// semantics. The receiver deliberately does not require the current producer.
 pub fn verify_export(root: &Path) -> io::Result<Value> {
+    let _budget = crate::kag_release::WholeBudget::begin()?;
     crate::kag_release::budget_check()?;
     let root_path = crate::kag_release::safe_absolute(root)?;
     let root = root_path.as_path();
@@ -356,6 +357,7 @@ fn publish(stage: &Path, output: &Path) -> io::Result<()> {
 /// Construct the whole export from six exact immutable corpus members. A
 /// manifest budget is finite and independent from the 8MiB exported-byte cap.
 pub fn build_export(repo: &Path, store: &Path, revision: &str, output: &Path) -> io::Result<Value> {
+    let _budget = crate::kag_release::WholeBudget::begin()?;
     crate::kag_release::budget_check()?;
     let store_path = crate::kag_release::safe_absolute(store)?;
     let store = store_path.as_path();
