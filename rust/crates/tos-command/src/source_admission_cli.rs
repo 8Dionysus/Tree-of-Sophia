@@ -40,11 +40,13 @@ struct Arguments {
 
 /// The accepted pointer may already have advanced when post-publication
 /// custody or empty-workspace cleanup refuses. Retain the exact revision and
-/// manifest allocation through the outer bounded refusal path.
+/// source-record allocation through the outer bounded refusal path.
 pub(crate) struct PublicationCommittedRefusal {
     pub(crate) phase: &'static str,
     pub(crate) revision: Digest256,
-    pub(crate) manifest_sha256: Digest256,
+    pub(crate) manifest_sha256: Option<Digest256>,
+    pub(crate) source_artifact:
+        Option<crate::source_admission_segment_v2::SourceRevisionArtifactV2>,
     pub(crate) rootset_sha256: Option<Digest256>,
     pub(crate) batch_sha256: Digest256,
     pub(crate) validator_sha256: Digest256,
@@ -57,7 +59,8 @@ impl fmt::Debug for PublicationCommittedRefusal {
         f.debug_struct("PublicationCommittedRefusal")
             .field("phase", &self.phase)
             .field("revision", &self.revision.to_hex())
-            .field("manifest_sha256", &self.manifest_sha256.to_hex())
+            .field("manifest_sha256", &self.manifest_sha256.map(|d| d.to_hex()))
+            .field("source_artifact", &self.source_artifact)
             .field("rootset_sha256", &self.rootset_sha256.map(|d| d.to_hex()))
             .field("batch_sha256", &self.batch_sha256.to_hex())
             .field("validator_sha256", &self.validator_sha256.to_hex())
@@ -86,6 +89,7 @@ fn publication_committed_refusal(
         phase,
         publication.revision.0,
         publication.manifest_sha256,
+        publication.source_artifact.clone(),
         publication.rootset_sha256,
         publication.fence.batch_sha256,
         publication.fence.validator_sha256,
@@ -97,7 +101,8 @@ fn publication_committed_refusal(
 fn publication_committed_refusal_parts(
     phase: &'static str,
     revision: Digest256,
-    manifest_sha256: Digest256,
+    manifest_sha256: Option<Digest256>,
+    source_artifact: Option<crate::source_admission_segment_v2::SourceRevisionArtifactV2>,
     rootset_sha256: Option<Digest256>,
     batch_sha256: Digest256,
     validator_sha256: Digest256,
@@ -110,6 +115,7 @@ fn publication_committed_refusal_parts(
             phase,
             revision,
             manifest_sha256,
+            source_artifact,
             rootset_sha256,
             batch_sha256,
             validator_sha256,
@@ -330,20 +336,39 @@ fn run_with_cancel_owner(
                 .phase
                 .strip_prefix("publication committed; ")
                 .unwrap_or(committed.phase);
-            let printed = match committed.rootset_sha256 {
-                Some(rootset) => writeln!(
+            let printed = match (
+                committed.rootset_sha256,
+                &committed.source_artifact,
+                committed.manifest_sha256,
+            ) {
+                (Some(rootset), Some(record), _) => writeln!(
                     output,
-                    "Native corpus V2 revision {} was committed (rootset {}, snapshot {}), but {}; restore by that exact revision digest.",
+                    "Native corpus V2 revision {} was committed (rootset {}, record {} {} in {}), but {}; restore by that exact revision digest.",
                     committed.revision.to_hex(),
                     rootset.to_hex(),
-                    committed.manifest_sha256.to_hex(),
+                    record.format(),
+                    record.sha256().to_hex(),
+                    record.filename(),
                     detail
                 ),
-                None => writeln!(
+                (Some(rootset), None, _) => writeln!(
+                    output,
+                    "Native corpus V2 revision {} was committed (rootset {}, source record unavailable), but {}; restore by that exact revision digest.",
+                    committed.revision.to_hex(),
+                    rootset.to_hex(),
+                    detail
+                ),
+                (None, _, Some(manifest)) => writeln!(
                     output,
                     "Native corpus revision {} was committed (manifest {}), but {}; restore by that exact revision digest.",
                     committed.revision.to_hex(),
-                    committed.manifest_sha256.to_hex(),
+                    manifest.to_hex(),
+                    detail
+                ),
+                _ => writeln!(
+                    output,
+                    "Native corpus revision {} was committed, but {}; restore by that exact revision digest.",
+                    committed.revision.to_hex(),
                     detail
                 ),
             };
@@ -544,7 +569,7 @@ fn run_spooled(
     match result {
         Ok((mut receipt, publication, case)) => {
             // The publication result is real store state. Preserve its exact
-            // manifest allocation custody through cleanup and bounded output.
+            // source-record allocation custody through cleanup and bounded output.
             let (case_result, target_custody) = match case {
                 None => (Ok(None), None),
                 Some(Err(error)) => (Err(error), None),
@@ -635,6 +660,7 @@ fn run_spooled(
                     (
                         refusal.revision.0,
                         refusal.manifest_sha256,
+                        refusal.source_artifact.clone(),
                         refusal.rootset_sha256,
                         refusal.batch_sha256,
                         refusal.validator_sha256,
@@ -645,13 +671,23 @@ fn run_spooled(
             drop(resources.workspace);
             let cleanup =
                 validator.cleanup_spooled_workspace(&resources.workspace_root, cancelled.as_ref());
-            if let Some((revision, manifest, rootset, batch, validator_sha, custody)) = committed {
+            if let Some((
+                revision,
+                manifest,
+                source_artifact,
+                rootset,
+                batch,
+                validator_sha,
+                custody,
+            )) = committed
+            {
                 if let Err(cleanup_error) = cleanup {
                     phase.set("publication committed; isolated workspace cleanup failed");
                     return Err(publication_committed_refusal_parts(
                         "publication committed; isolated workspace cleanup failed",
                         revision,
                         manifest,
+                        source_artifact.clone(),
                         rootset,
                         batch,
                         validator_sha,
@@ -665,6 +701,7 @@ fn run_spooled(
                         "publication committed; terminal IO accounting failed",
                         revision,
                         manifest,
+                        source_artifact.clone(),
                         rootset,
                         batch,
                         validator_sha,
@@ -677,6 +714,7 @@ fn run_spooled(
                     "publication committed; post-CAS verification failed",
                     revision,
                     manifest,
+                    source_artifact,
                     rootset,
                     batch,
                     validator_sha,
@@ -944,12 +982,16 @@ fn run_spooled_inner(
         }
         None => AdmissionStore::create(store_path, deadline, &request.cancelled)?,
     };
+    let pointer_io = resources
+        .v2_allocation_accountant
+        .as_ref()
+        .map_or(&request.io_budget, |owner| owner.io_budget());
     store.check_current_budgeted(
         batch.base_revision,
         limits.candidate.reader,
         deadline,
         &request.cancelled,
-        &request.io_budget,
+        pointer_io,
     )?;
     let base = match batch.base_revision {
         Some(revision) => {
@@ -1083,6 +1125,16 @@ fn spooled_receipt(publication: &SpooledPublicationReceipt) -> serde_json::Value
     });
     if let Some(rootset) = publication.rootset_sha256 {
         receipt["rootset_sha256"] = json!(rootset.to_hex());
+        if let Some(record) = &publication.source_artifact {
+            let mut value = json!({
+                "format":record.format(), "sha256":record.sha256().to_hex(),
+                "file":record.filename()
+            });
+            if let Some(bytes) = record.bytes() {
+                value["bytes"] = json!(bytes);
+            }
+            receipt["source_record"] = value;
+        }
     }
     receipt
 }
