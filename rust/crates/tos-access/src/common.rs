@@ -636,7 +636,11 @@ impl AccessExecutor for NoOwner {
     }
 }
 
-pub trait AccessExecutor: Send + Sync {
+// One method/default contract serves both installed owned executors and
+// callback-scoped selected owners. A lifetime never grants source authority.
+macro_rules! access_executor_contract {
+    ($name:ident, [$($generics:tt)*], $packet_lifetime:lifetime, [$($bounds:tt)*]) => {
+        pub trait $name $($generics)* $($bounds)* {
     /// Reuse admitted software custody; selected data cannot supply code.
     fn installed_software(&self) -> Option<Arc<crate::site::SoftwareSite>> {
         None
@@ -648,7 +652,7 @@ pub trait AccessExecutor: Send + Sync {
         &self,
         request: crate::source_read::Request,
         probe: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'static>, AccessError> {
+    ) -> Result<PreparedPacket<$packet_lifetime>, AccessError> {
         crate::source_read::software_packet(request.operation, probe)
     }
     /// Only true when a sealed source cut, verified selected model, live source
@@ -658,7 +662,7 @@ pub trait AccessExecutor: Send + Sync {
         &self,
         request: Params,
         abort_probe: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'static>, AccessError>;
+    ) -> Result<PreparedPacket<$packet_lifetime>, AccessError>;
     /// Software-only discovery; schema availability never implies a read grant.
     fn exploration_runtime_capabilities(&self) -> JsonValue {
         crate::exploration_contracts::runtime_capabilities(None)
@@ -673,7 +677,7 @@ pub trait AccessExecutor: Send + Sync {
         &self,
         _: tos_query::source_gap::SourceGapRequest,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'static>, AccessError> {
+    ) -> Result<PreparedPacket<$packet_lifetime>, AccessError> {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "selected public ledger unavailable",
@@ -688,7 +692,7 @@ pub trait AccessExecutor: Send + Sync {
         &self,
         _: tos_query::knowledge_legacy_search::LegacySearchRequest,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'static>, AccessError> {
+    ) -> Result<PreparedPacket<$packet_lifetime>, AccessError> {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "legacy knowledge search unavailable",
@@ -702,7 +706,7 @@ pub trait AccessExecutor: Send + Sync {
         &self,
         _: IndexedSearchParams,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'static>, AccessError> {
+    ) -> Result<PreparedPacket<$packet_lifetime>, AccessError> {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "indexed knowledge search unavailable",
@@ -716,7 +720,7 @@ pub trait AccessExecutor: Send + Sync {
         &self,
         _: tos_query::compressed_search::CompressedSearchRequest,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'static>, AccessError> {
+    ) -> Result<PreparedPacket<$packet_lifetime>, AccessError> {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "compressed knowledge search unavailable",
@@ -731,14 +735,14 @@ pub trait AccessExecutor: Send + Sync {
         &self,
         _: tos_query::reading_search::ReadingSearchRequest,
         probe: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'static>, AccessError> {
+    ) -> Result<PreparedPacket<$packet_lifetime>, AccessError> {
         crate::reading::unavailable_packet(probe)
     }
     fn concept_search(
         &self,
         _: tos_query::reading_search::ConceptSearchRequest,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'static>, AccessError> {
+    ) -> Result<PreparedPacket<$packet_lifetime>, AccessError> {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "local concept-search data root is not selected",
@@ -752,7 +756,7 @@ pub trait AccessExecutor: Send + Sync {
         _: tos_query::reading_search::WordAnalysisRequest,
         _: Option<&[u8]>,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'static>, AccessError> {
+    ) -> Result<PreparedPacket<$packet_lifetime>, AccessError> {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "private word-analysis data root is not selected",
@@ -765,7 +769,7 @@ pub trait AccessExecutor: Send + Sync {
         &self,
         _: crate::knowledge::KnowledgeRequest,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'static>, AccessError> {
+    ) -> Result<PreparedPacket<$packet_lifetime>, AccessError> {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "selected knowledge operation unavailable",
@@ -779,7 +783,7 @@ pub trait AccessExecutor: Send + Sync {
     fn access_health(
         &self,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'static>, AccessError> {
+    ) -> Result<PreparedPacket<$packet_lifetime>, AccessError> {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "selected access health unavailable",
@@ -793,11 +797,143 @@ pub trait AccessExecutor: Send + Sync {
     fn prepared_status(
         &self,
         _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'static>, AccessError> {
+    ) -> Result<PreparedPacket<$packet_lifetime>, AccessError> {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "selected prepared status unavailable",
         ))
+    }
+        }
+    };
+}
+access_executor_contract!(AccessExecutor, [], 'static, [: Send + Sync]);
+/// Callback-local executor: every returned packet retains its real owner lease.
+/// Delivery must finish before the borrowed selected context is dropped.
+access_executor_contract!(ScopedAccessExecutor, [<'hold>], 'hold, []);
+
+// Existing owned/static implementations safely outlive any shorter hold.
+impl<'hold, T: AccessExecutor + ?Sized> ScopedAccessExecutor<'hold> for T {
+    fn installed_software(&self) -> Option<Arc<crate::site::SoftwareSite>> {
+        AccessExecutor::installed_software(self)
+    }
+    fn source_read_available(&self) -> bool {
+        AccessExecutor::source_read_available(self)
+    }
+    fn source_read(
+        &self,
+        arg0: crate::source_read::Request,
+        arg1: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'hold>, AccessError> {
+        AccessExecutor::source_read(self, arg0, arg1)
+    }
+    fn source_descend_available(&self) -> bool {
+        AccessExecutor::source_descend_available(self)
+    }
+    fn source_descend(
+        &self,
+        arg0: Params,
+        arg1: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'hold>, AccessError> {
+        AccessExecutor::source_descend(self, arg0, arg1)
+    }
+    fn exploration_runtime_capabilities(&self) -> JsonValue {
+        AccessExecutor::exploration_runtime_capabilities(self)
+    }
+    fn source_gap_available(&self) -> bool {
+        AccessExecutor::source_gap_available(self)
+    }
+    fn source_gap(
+        &self,
+        arg0: tos_query::source_gap::SourceGapRequest,
+        arg1: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'hold>, AccessError> {
+        AccessExecutor::source_gap(self, arg0, arg1)
+    }
+    fn knowledge_search_legacy_available(&self) -> bool {
+        AccessExecutor::knowledge_search_legacy_available(self)
+    }
+    fn knowledge_search_legacy(
+        &self,
+        arg0: tos_query::knowledge_legacy_search::LegacySearchRequest,
+        arg1: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'hold>, AccessError> {
+        AccessExecutor::knowledge_search_legacy(self, arg0, arg1)
+    }
+    fn knowledge_search_indexed_available(&self) -> bool {
+        AccessExecutor::knowledge_search_indexed_available(self)
+    }
+    fn knowledge_search_indexed(
+        &self,
+        arg0: IndexedSearchParams,
+        arg1: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'hold>, AccessError> {
+        AccessExecutor::knowledge_search_indexed(self, arg0, arg1)
+    }
+    fn knowledge_search_compressed_available(&self) -> bool {
+        AccessExecutor::knowledge_search_compressed_available(self)
+    }
+    fn knowledge_search_compressed(
+        &self,
+        arg0: tos_query::compressed_search::CompressedSearchRequest,
+        arg1: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'hold>, AccessError> {
+        AccessExecutor::knowledge_search_compressed(self, arg0, arg1)
+    }
+    fn reading_search_available(&self) -> bool {
+        AccessExecutor::reading_search_available(self)
+    }
+    fn reading_search(
+        &self,
+        arg0: tos_query::reading_search::ReadingSearchRequest,
+        arg1: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'hold>, AccessError> {
+        AccessExecutor::reading_search(self, arg0, arg1)
+    }
+    fn concept_search(
+        &self,
+        arg0: tos_query::reading_search::ConceptSearchRequest,
+        arg1: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'hold>, AccessError> {
+        AccessExecutor::concept_search(self, arg0, arg1)
+    }
+    fn word_analysis_available(&self) -> bool {
+        AccessExecutor::word_analysis_available(self)
+    }
+    fn word_analysis(
+        &self,
+        arg0: tos_query::reading_search::WordAnalysisRequest,
+        arg1: Option<&[u8]>,
+        arg2: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'hold>, AccessError> {
+        AccessExecutor::word_analysis(self, arg0, arg1, arg2)
+    }
+    fn knowledge_available(&self, arg0: crate::knowledge::KnowledgeOperation) -> bool {
+        AccessExecutor::knowledge_available(self, arg0)
+    }
+    fn knowledge(
+        &self,
+        arg0: crate::knowledge::KnowledgeRequest,
+        arg1: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'hold>, AccessError> {
+        AccessExecutor::knowledge(self, arg0, arg1)
+    }
+    fn access_health_available(&self) -> bool {
+        AccessExecutor::access_health_available(self)
+    }
+    fn access_health(
+        &self,
+        arg0: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'hold>, AccessError> {
+        AccessExecutor::access_health(self, arg0)
+    }
+    fn prepared_status_available(&self) -> bool {
+        AccessExecutor::prepared_status_available(self)
+    }
+    fn prepared_status(
+        &self,
+        arg0: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'hold>, AccessError> {
+        AccessExecutor::prepared_status(self, arg0)
     }
 }
 

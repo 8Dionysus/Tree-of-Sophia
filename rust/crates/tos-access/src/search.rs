@@ -1,5 +1,5 @@
 //! Maintained search mode parsing; each engine remains an owner QRY function.
-use crate::{AccessError, AccessErrorCode, AccessExecutor, IndexedSearchParams, PreparedPacket};
+use crate::{AccessError, AccessErrorCode, IndexedSearchParams, PreparedPacket};
 use std::sync::Arc;
 use tos_foundation::JsonValue;
 use tos_query::AbortProbe;
@@ -108,11 +108,11 @@ impl SearchRequest {
             limit: number("limit", 40)?,
         }))
     }
-    pub fn execute(
+    pub fn execute<'hold, E: crate::common::ScopedAccessExecutor<'hold> + ?Sized>(
         self,
-        executor: &dyn AccessExecutor,
+        executor: &E,
         probe: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'static>, AccessError> {
+    ) -> Result<PreparedPacket<'hold>, AccessError> {
         match self {
             Self::Legacy(request) if executor.knowledge_search_legacy_available() => {
                 executor.knowledge_search_legacy(request, probe)

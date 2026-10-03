@@ -39,7 +39,9 @@ pub mod private_tmpfs_stage;
 pub use d1_public_build::{
     PublicD1Build, PublicD1BuildLimits, build_public_d1, portable_public_d1_limits,
 };
-pub use d1_public_capture::{PublicCapture, PublicCaptureLimits};
+pub use d1_public_capture::{
+    PublicCapture, PublicCaptureInputPaths, PublicCaptureLimits, RuntimeCaptureRole,
+};
 pub use d1_public_knowledge::project_private_knowledge_row;
 pub use d1_public_lens::project_private_lens_auxiliary_rows;
 pub use d1_public_rows::project_private_navigation_row;
@@ -85,6 +87,7 @@ mod knowledge_original_rows;
 mod knowledge_philosophy_original;
 mod knowledge_posting_codec;
 pub mod native_snapshot;
+pub mod native_snapshot_carriers;
 pub mod native_snapshot_manifest;
 pub use knowledge_philosophy_original::{
     KNOWLEDGE_PHILOSOPHY_MODEL_ABI, PHILOSOPHY_ORIGINAL_PROFILE, PhilosophyOriginalCollection,

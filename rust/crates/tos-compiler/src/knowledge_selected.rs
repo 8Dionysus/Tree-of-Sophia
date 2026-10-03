@@ -1126,6 +1126,19 @@ pub fn open_selected_knowledge_model<'a>(
     open_selected_inner(path, expected, CustodyRef::Borrowed(custody), limits)
 }
 
+/// Open an already-held producer file through the same complete cold verifier
+/// as the path-selected entry point. This crate-private seam lets a producer
+/// lend a sealed anonymous copy without exposing an arbitrary public-FD API.
+pub(crate) fn open_selected_knowledge_model_pinned<'a>(
+    pinned: File,
+    expected: KnowledgeSelectedExpectation,
+    custody: &'a dyn ImmutableKnowledgeCustody,
+    limits: ColdOpenLimits,
+) -> Result<VerifiedKnowledgeModel<'a>> {
+    validate(&expected, limits)?;
+    open_selected_pinned_validated(pinned, expected, CustodyRef::Borrowed(custody), limits)
+}
+
 /// Retain one admitted selected generation without borrowing an external
 /// self-referential holder. Warm forks share this exact owned custody guard.
 pub fn open_selected_knowledge_model_owned(
@@ -1147,9 +1160,23 @@ fn open_selected_inner<'a>(
     if !path.is_absolute() {
         return Err(Error::Invalid("knowledge selected path"));
     }
-    let mut pinned = safe_open::open_regular(path, expected.model_size_bytes)?;
+    let pinned = safe_open::open_regular(path, expected.model_size_bytes)?;
+    open_selected_pinned_validated(pinned, expected, custody, limits)
+}
+
+fn open_selected_pinned_validated<'a>(
+    mut pinned: File,
+    expected: KnowledgeSelectedExpectation,
+    custody: CustodyRef<'a>,
+    limits: ColdOpenLimits,
+) -> Result<VerifiedKnowledgeModel<'a>> {
+    let metadata = pinned.metadata()?;
+    if !metadata.is_file() || metadata.len() != expected.model_size_bytes {
+        return Err(Error::Invalid("knowledge selected held-file type or size"));
+    }
     custody.verify(&pinned, &expected)?;
     custody.verify_cold_resources(limits)?;
+    pinned.rewind()?;
     let (digest, size) = stream_digest(&mut pinned)?;
     if digest != expected.model_sha256 || size != expected.model_size_bytes {
         return Err(Error::Invalid("knowledge selected SHA/size mismatch"));

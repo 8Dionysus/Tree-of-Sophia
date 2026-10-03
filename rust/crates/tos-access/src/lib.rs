@@ -48,7 +48,7 @@ pub mod source_read;
 pub use common::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence,
     IndexedSearchParams, NoOwner, Params, PreparedPacket, QuerySession, RegisteredOperation,
-    SEARCH_OPERATION_ID, checked_execute, descriptor, registered_operations,
+    SEARCH_OPERATION_ID, ScopedAccessExecutor, checked_execute, descriptor, registered_operations,
 };
 
 pub mod native_prepare;
@@ -65,3 +65,15 @@ pub mod technical_markup_command;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub mod research_builders_command;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub mod core_snapshot;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod reference_root_query;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod reference_query_executor;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod native_cold_resources;
+
+#[cfg(not(target_arch = "wasm32"))]
+mod core_http_admission;

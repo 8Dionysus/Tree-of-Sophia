@@ -8,12 +8,16 @@ use crate::{
 use serde_json::{Value, json as value};
 use std::{
     collections::{BTreeMap, BTreeSet},
+    fs,
     io::Read,
+    os::unix::fs::MetadataExt,
     path::{Component, Path},
-    sync::atomic::AtomicBool,
+    sync::{Arc, atomic::AtomicBool},
     time::Instant,
 };
-use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, canonical_bytes_v1};
+use tos_foundation::{
+    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, canonical_bytes_v1,
+};
 use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
 
 pub const SOURCE_REF: &str = "ToS/philosophy/graph-workbench/views/evidence-lens-scenes.v1.json";
@@ -22,6 +26,183 @@ pub const PROJECTION_REF: &str = "ToS/derived-exports/epistemic_evidence_project
 pub const CANON_REF: &str =
     "ToS/canon/relations/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/edges.csv";
 const CAP: usize = 1024 * 1024;
+
+type FileStamp = (u64, u64, u64, i64, i64, i64, i64);
+
+struct BuiltEvidence {
+    raw: Vec<u8>,
+    capture: PublicCapture,
+    opened: BTreeMap<String, Digest256>,
+    projection_path: std::path::PathBuf,
+}
+
+/// The exact checked projection file and every input used to validate it.
+/// Construction stays inside this maintained owner; consumers can only borrow
+/// its actual file bytes while the independent source closure is current.
+pub struct CompletedEvidenceProjection {
+    root: std::path::PathBuf,
+    main_binding: Option<(
+        std::path::PathBuf,
+        (u64, u64, u64, i64, i64, i64, i64),
+        String,
+    )>,
+    source_revision: String,
+    capture: PublicCapture,
+    limits: PublicCaptureLimits,
+    deadline: Instant,
+    opened: BTreeMap<String, Digest256>,
+    projection_stamp: FileStamp,
+    projection_sha256: Digest256,
+    projection_path: std::path::PathBuf,
+    raw: Vec<u8>,
+}
+
+fn file_stamp(metadata: &fs::Metadata) -> Result<FileStamp> {
+    if !metadata.file_type().is_file() {
+        return Err(Error::Invalid(
+            "Evidence Lens projection is not a regular file",
+        ));
+    }
+    Ok((
+        metadata.dev(),
+        metadata.ino(),
+        metadata.len(),
+        metadata.mtime(),
+        metadata.mtime_nsec(),
+        metadata.ctime(),
+        metadata.ctime_nsec(),
+    ))
+}
+
+fn verify_projection_file(
+    capture: &PublicCapture,
+    projection_path: &Path,
+    expected_stamp: Option<FileStamp>,
+    expected_sha256: Option<Digest256>,
+    deadline: Instant,
+) -> Result<(Vec<u8>, FileStamp, Digest256)> {
+    guard(deadline)?;
+    let before = file_stamp(&fs::symlink_metadata(projection_path)?)?;
+    if before.2 == 0 || before.2 > CAP as u64 || expected_stamp.is_some_and(|stamp| stamp != before)
+    {
+        return Err(Error::Budget(
+            "Evidence Lens checked projection bytes or identity",
+        ));
+    }
+    let mut file = safe_open::open_regular(projection_path, CAP as u64)?;
+    if file_stamp(&file.metadata()?)? != before {
+        return Err(Error::Invalid(
+            "Evidence Lens projection changed while opening",
+        ));
+    }
+    capture.charge_work(before.2)?;
+    let mut raw = Vec::with_capacity(before.2 as usize);
+    file.by_ref().take(CAP as u64 + 1).read_to_end(&mut raw)?;
+    if raw.len() as u64 != before.2 || raw.len() > CAP {
+        return Err(Error::Invalid(
+            "Evidence Lens projection changed while reading",
+        ));
+    }
+    let after_handle = file_stamp(&file.metadata()?)?;
+    let after_path = file_stamp(&fs::symlink_metadata(projection_path)?)?;
+    if before != after_handle || before != after_path {
+        return Err(Error::Invalid(
+            "Evidence Lens projection changed while checking",
+        ));
+    }
+    let digest = Digest256::of_bytes(&raw);
+    if expected_sha256.is_some_and(|expected| expected != digest) {
+        return Err(Error::Invalid(
+            "Evidence Lens checked projection bytes changed",
+        ));
+    }
+    let payload = decode(&raw)?;
+    if payload["schema_version"] != "tos_epistemic_evidence_projection_v1" {
+        return Err(Error::Invalid("Evidence Lens checked projection schema"));
+    }
+    guard(deadline)?;
+    Ok((raw, before, digest))
+}
+
+impl CompletedEvidenceProjection {
+    pub(crate) fn raw(&self) -> &[u8] {
+        &self.raw
+    }
+
+    pub(crate) fn source_revision(&self) -> &str {
+        &self.source_revision
+    }
+
+    pub(crate) fn charge_work(&self, bytes: u64) -> Result<()> {
+        self.capture.charge_work(bytes)
+    }
+
+    pub(crate) fn verify_binding(
+        &self,
+        main_capture: &PublicCapture,
+        source_revision: &str,
+    ) -> Result<()> {
+        let Some((main_root, main_identity, main_revision)) = &self.main_binding else {
+            return Err(Error::Invalid(
+                "Evidence Lens has no completed graph binding",
+            ));
+        };
+        if main_root != main_capture.root()
+            || *main_identity != main_capture.capture_identity()?
+            || main_revision != source_revision
+            || self.source_revision != source_revision
+        {
+            return Err(Error::Invalid("Evidence Lens completed snapshot binding"));
+        }
+        self.verify_current()
+    }
+
+    pub(crate) fn verify_current(&self) -> Result<()> {
+        self.capture.verify_inputs(self.limits)?;
+        for (reference, expected) in &self.opened {
+            let actual = route_digest(
+                &self.root,
+                reference,
+                &self.capture,
+                self.limits,
+                self.deadline,
+            )?;
+            if actual != *expected {
+                return Err(Error::Invalid("Evidence Lens checked input changed"));
+            }
+        }
+        let (_, stamp, digest) = verify_projection_file(
+            &self.capture,
+            &self.projection_path,
+            Some(self.projection_stamp),
+            Some(self.projection_sha256),
+            self.deadline,
+        )?;
+        if stamp != self.projection_stamp || digest != self.projection_sha256 {
+            return Err(Error::Invalid("Evidence Lens checked projection changed"));
+        }
+        Ok(())
+    }
+
+    /// Lend this actual checked file only while its own selected input closure
+    /// and projection output stay current. Whole-snapshot callers additionally
+    /// use `verify_binding` against the completed graph capture.
+    pub fn with_current<T>(
+        &self,
+        consume: impl for<'view> FnOnce(
+            &crate::native_snapshot::CompletedEvidenceProjectionView<'view>,
+        ) -> Result<T>,
+    ) -> Result<T> {
+        self.verify_current()?;
+        let view = crate::native_snapshot::CompletedEvidenceProjectionView { evidence: self };
+        let result = consume(&view);
+        let current = self.verify_current();
+        match current {
+            Err(error) => Err(error),
+            Ok(()) => result,
+        }
+    }
+}
 
 fn err(message: impl Into<String>) -> Error {
     Error::Source(message.into())
@@ -147,12 +328,18 @@ pub fn validate_payload(root: &Path, payload: &Value, deadline: Instant) -> Resu
 
 /// Captures selected collections to caller-owned fresh staging, then rechecks all
 /// opened inputs before returning bytes. Never writes a source or public output.
-pub fn build(
+fn build_checked(
     root: &Path,
     staging: &Path,
     limits: PublicCaptureLimits,
     deadline: Instant,
-) -> Result<Vec<u8>> {
+    selected: Option<&crate::d1_public_capture::PublicCaptureInputPaths>,
+    cancelled: std::sync::Arc<AtomicBool>,
+) -> Result<BuiltEvidence> {
+    guard(deadline)?;
+    if cancelled.load(std::sync::atomic::Ordering::Acquire) {
+        return Err(Error::Budget("Evidence Lens cancelled"));
+    }
     let source_raw = read(root, SOURCE_REF, deadline)?;
     let source = decode(&source_raw)?;
     guard(deadline)?;
@@ -179,9 +366,22 @@ pub fn build(
             requested.entry(key).or_default();
         }
     }
-    let capture = PublicCapture::create_evidence(root, staging, limits, deadline)?;
+    let capture = match selected {
+        Some(paths) => PublicCapture::create_evidence_selected(
+            root,
+            paths,
+            staging,
+            limits,
+            deadline,
+            Arc::clone(&cancelled),
+        )?,
+        None => PublicCapture::create_evidence(root, staging, limits, deadline)?,
+    };
     let mut found: BTreeMap<(String, String), BTreeSet<String>> = BTreeMap::new();
     capture.visit_rows("evidence-philosophy", "views", |_, raw| {
+        if cancelled.load(std::sync::atomic::Ordering::Acquire) {
+            return Err(Error::Budget("Evidence Lens cancelled"));
+        }
         let view = decode(raw)?;
         let Some(id) = view["view_id"].as_str() else {
             return Ok(());
@@ -223,6 +423,9 @@ pub fn build(
     found.insert(corpus_key.clone(), BTreeSet::new());
     for collection in ["nodes", "relation_edges"] {
         capture.visit_rows("evidence-corpus", collection, |_, raw| {
+            if cancelled.load(std::sync::atomic::Ordering::Acquire) {
+                return Err(Error::Budget("Evidence Lens cancelled"));
+            }
             let row = decode(raw)?;
             if collection == "relation_edges" && row["owner_branch"] != "ToS/canon" {
                 return Ok(());
@@ -274,7 +477,7 @@ pub fn build(
         &canon_raw,
         l,
         deadline,
-        &AtomicBool::new(false),
+        cancelled.as_ref(),
         |cells| {
             if cells.is_empty() {
                 return Ok(());
@@ -302,6 +505,9 @@ pub fn build(
     capture.charge_work((source_raw.len() + canon_raw.len()) as u64)?;
     let mut output = Vec::new();
     for raw_scene in scenes {
+        if cancelled.load(std::sync::atomic::Ordering::Acquire) {
+            return Err(Error::Budget("Evidence Lens cancelled"));
+        }
         let mut scene = raw_scene.as_object().unwrap().clone();
         scene.remove("anchor_edge_ids");
         let mut selection_ids = Vec::new();
@@ -361,13 +567,43 @@ pub fn build(
     let payload = value!({"schema_version":"tos_epistemic_evidence_projection_v1","owner_repo":"Tree-of-Sophia","surface_kind":"derived_public_evidence_navigation","source_definition_ref":SOURCE_REF,"source_definition_sha256":opened[SOURCE_REF].to_hex(),"scenes":output,"authority_boundary":{"is_source":false,"is_canon":false,"is_semantic_truth":false,"is_rights_clearance":false,"note":"This projection joins explicit owner routes for inspection. The referenced source, review, canon, and rights surfaces retain authority."}});
     validate_payload(root, &payload, deadline)?;
     capture.verify_inputs(limits)?;
-    for (reference, digest) in opened {
-        if route_digest(root, &reference, &capture, limits, deadline)? != digest {
+    let raw = rendered(&payload, deadline)?;
+    capture.verify_inputs(limits)?;
+    for (reference, digest) in &opened {
+        if route_digest(root, reference, &capture, limits, deadline)? != *digest {
             return Err(Error::Invalid("Evidence Lens source changed during build"));
         }
     }
     guard(deadline)?;
-    rendered(&payload, deadline)
+    if cancelled.load(std::sync::atomic::Ordering::Acquire) {
+        return Err(Error::Budget("Evidence Lens cancelled"));
+    }
+    let projection_path = selected
+        .map(|paths| paths.evidence_projection_path.clone())
+        .unwrap_or(reference_path(root, PROJECTION_REF)?);
+    Ok(BuiltEvidence {
+        raw,
+        capture,
+        opened,
+        projection_path,
+    })
+}
+
+pub fn build(
+    root: &Path,
+    staging: &Path,
+    limits: PublicCaptureLimits,
+    deadline: Instant,
+) -> Result<Vec<u8>> {
+    Ok(build_checked(
+        root,
+        staging,
+        limits,
+        deadline,
+        None,
+        Arc::new(AtomicBool::new(false)),
+    )?
+    .raw)
 }
 
 /// Read-only parity check shared by maintained check and validator commands.
@@ -377,11 +613,165 @@ pub fn check(
     limits: PublicCaptureLimits,
     deadline: Instant,
 ) -> Result<()> {
-    let expected = build(root, staging, limits, deadline)?;
+    let expected = build_checked(
+        root,
+        staging,
+        limits,
+        deadline,
+        None,
+        Arc::new(AtomicBool::new(false)),
+    )?
+    .raw;
     if read(root, PROJECTION_REF, deadline)? != expected {
         return Err(err(format!("{PROJECTION_REF} is out of date")));
     }
     guard(deadline)
+}
+
+fn evidence_input_revision(built: &BuiltEvidence) -> Result<String> {
+    let mut hash = Digest256Hasher::new();
+    hash.update(b"tos-epistemic-evidence-input-cut-v1\0");
+    for (path, digest, bytes) in built.capture.retained_input_members()? {
+        hash.update(&(path.len() as u64).to_be_bytes());
+        hash.update(path.as_bytes());
+        hash.update(digest.as_bytes());
+        hash.update(&bytes.to_be_bytes());
+    }
+    for (path, digest) in &built.opened {
+        hash.update(&(path.len() as u64).to_be_bytes());
+        hash.update(path.as_bytes());
+        hash.update(digest.as_bytes());
+    }
+    hash.update(&(built.raw.len() as u64).to_be_bytes());
+    hash.update(Digest256::of_bytes(&built.raw).as_bytes());
+    Ok(hash.finalize().to_hex())
+}
+
+fn completed_from_built(
+    root: &Path,
+    built: BuiltEvidence,
+    limits: PublicCaptureLimits,
+    deadline: Instant,
+    source_revision: String,
+    main_binding: Option<(
+        std::path::PathBuf,
+        (u64, u64, u64, i64, i64, i64, i64),
+        String,
+    )>,
+) -> Result<CompletedEvidenceProjection> {
+    let (raw, projection_stamp, projection_sha256) =
+        verify_projection_file(&built.capture, &built.projection_path, None, None, deadline)?;
+    if raw != built.raw {
+        return Err(err(format!("{PROJECTION_REF} is out of date")));
+    }
+    built.capture.verify_inputs(limits)?;
+    for (reference, digest) in &built.opened {
+        if route_digest(root, reference, &built.capture, limits, deadline)? != *digest {
+            return Err(Error::Invalid("Evidence Lens checked input changed"));
+        }
+    }
+    Ok(CompletedEvidenceProjection {
+        root: root.to_owned(),
+        main_binding,
+        source_revision,
+        capture: built.capture,
+        limits,
+        deadline,
+        opened: built.opened,
+        projection_stamp,
+        projection_sha256,
+        projection_path: built.projection_path,
+        raw,
+    })
+}
+
+/// Run the maintained Evidence Lens check while retaining only its actual
+/// checked output, independent raw capture, and complete used route closure.
+/// Every selected projection source must be the same byte member of the
+/// already-completed graph capture; this binds the holder to that graph cut.
+pub(crate) fn check_completed(
+    main_capture: &PublicCapture,
+    staging: &Path,
+    limits: PublicCaptureLimits,
+    deadline: Instant,
+) -> Result<CompletedEvidenceProjection> {
+    main_capture.verify_captured_inputs()?;
+    let main_root = main_capture.root().to_owned();
+    let main_capture_identity = main_capture.capture_identity()?;
+    let source_revision = main_capture.core_source_revision()?;
+    let mut main_members = BTreeMap::new();
+    for (path, digest, bytes) in main_capture.retained_input_members()? {
+        main_members.insert(path, (digest, bytes));
+    }
+    let selected = main_capture.runtime_input_paths()?;
+    let built = build_checked(
+        &main_root,
+        staging,
+        limits,
+        deadline,
+        Some(&selected),
+        main_capture.cancellation_handle(),
+    )?;
+    for (path, digest, bytes) in built.capture.retained_input_members()? {
+        if main_members.get(&path) != Some(&(digest, bytes)) {
+            return Err(Error::Invalid(
+                "Evidence Lens source differs from completed graph capture",
+            ));
+        }
+    }
+    let holder = completed_from_built(
+        &main_root,
+        built,
+        limits,
+        deadline,
+        source_revision.clone(),
+        Some((main_root, main_capture_identity, source_revision)),
+    )?;
+    main_capture.verify_captured_inputs()?;
+    if main_capture.capture_identity()? != main_capture_identity {
+        return Err(Error::Invalid(
+            "main source capture changed during Evidence Lens check",
+        ));
+    }
+    Ok(holder)
+}
+
+/// Isolated checked projection route for `evidence_projection()` on a partial
+/// root. This binds its complete corpus/philosophy/canon/route cut without
+/// requiring the optional biblio registry or building the whole graph.
+pub fn check_isolated(
+    root: &Path,
+    staging: &Path,
+    limits: PublicCaptureLimits,
+    deadline: Instant,
+) -> Result<CompletedEvidenceProjection> {
+    let built = build_checked(
+        root,
+        staging,
+        limits,
+        deadline,
+        None,
+        Arc::new(AtomicBool::new(false)),
+    )?;
+    let source_revision = evidence_input_revision(&built)?;
+    completed_from_built(root, built, limits, deadline, source_revision, None)
+}
+
+/// Isolated checked projection for the exact Evidence Lens path selected by
+/// a Reference Core constructor. Corpus/philosophy data and the output path
+/// remain the caller's selected paths; source definition, canon, schema, and
+/// route references retain their root-relative owner semantics.
+pub fn check_isolated_selected(
+    root: &Path,
+    selected: &crate::d1_public_capture::PublicCaptureInputPaths,
+    staging: &Path,
+    limits: PublicCaptureLimits,
+    deadline: Instant,
+    cancelled: Arc<AtomicBool>,
+) -> Result<CompletedEvidenceProjection> {
+    let built = build_checked(root, staging, limits, deadline, Some(selected), cancelled)?;
+    let source_revision = evidence_input_revision(&built)?;
+    completed_from_built(root, built, limits, deadline, source_revision, None)
 }
 
 #[cfg(test)]

@@ -29,6 +29,10 @@ fn main() {
         return;
     }
     #[cfg(not(target_arch = "wasm32"))]
+    if let Some(code) = tos_access::core_snapshot::run_if_requested(&args, &mut std::io::stdin()) {
+        std::process::exit(code);
+    }
+    #[cfg(not(target_arch = "wasm32"))]
     if let Some(code) = tos_access::coverage::run_if_requested(
         &args,
         &mut std::io::stdout(),
