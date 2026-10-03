@@ -825,7 +825,7 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
         &revised,
         &expected["revision_result"],
         &revision_request,
-        fixture["record_id"].as_str().unwrap(),
+        fixture["claim_id"].as_str().unwrap(),
         "claim.revise",
     );
     assert_eq!(revised["replayed"], false);
@@ -861,7 +861,7 @@ fn native_legacy_historical_claim_revision_forms_and_cold_lineage_match_oracle()
         &replay,
         &expected["revision_replay"],
         &revision_request,
-        fixture["record_id"].as_str().unwrap(),
+        fixture["claim_id"].as_str().unwrap(),
         "cold claim replay",
     );
     assert_eq!(replay_archive, archive_ref);
