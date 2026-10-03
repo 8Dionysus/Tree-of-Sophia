@@ -312,6 +312,7 @@ class SoftwareSelectionTests(unittest.TestCase):
             'ToS/candidate-intake/AGENTS.md',
             'ToS/candidate-intake/zarathustra/concept-workbench-v1/word-analysis-task.v1.schema.json',
             'ToS/candidate-intake/zarathustra/concept-workbench-v1/english-translation-candidate.v1.schema.json',
+            'ToS/candidate-intake/zarathustra/concept-workbench-v1/plan.v1.json',
             'ToS/candidate-intake/thus-spoke-zarathustra/prologue-1/mode-b/edges.csv',
             'ToS/canon/**/node.human-forms.json',
             'ToS/canon/**/node.json',
