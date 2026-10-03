@@ -239,9 +239,9 @@ fn main() {
         );
         std::process::exit(2)
     }
-    if exploration_checkpoints.is_some() && prepared_model.is_none() {
+    if exploration_checkpoints.is_some() && prepared_model.is_none() && release_root.is_none() {
         eprintln!(
-            "invalid_request: --exploration-checkpoints requires an explicitly selected prepared reader"
+            "invalid_request: --exploration-checkpoints requires an explicitly selected prepared reader or release"
         );
         std::process::exit(2)
     }
@@ -369,8 +369,12 @@ fn main() {
             .map(|executor| Arc::new(executor) as Arc<dyn AccessExecutor>)
         } else {
             match release_root {
-                Some(root) => ManagedLocalExecutor::open(Path::new(&root), profile)
-                    .map(|executor| Arc::new(executor) as Arc<dyn AccessExecutor>),
+                Some(root) => ManagedLocalExecutor::open_with_checkpoints(
+                    Path::new(&root),
+                    profile,
+                    exploration_checkpoints.as_deref().map(Path::new),
+                )
+                .map(|executor| Arc::new(executor) as Arc<dyn AccessExecutor>),
                 None => Ok(Arc::new(NoOwner)),
             }
         };
