@@ -304,13 +304,13 @@ impl V2SeenPackSpill {
                 .checked_add(1)
                 .filter(|count| *count <= self.limits.max_history_roots)
                 .ok_or_else(|| invalid("V2 cold history row ceiling exceeded"))?;
-            let base = base_revision.map(|value| value.to_vec());
+            let base = base_revision.as_ref().map(|value| value.as_slice());
             let changed = self
                 .db
                 .borrow()
                 .execute(
                     "INSERT INTO v2_cold_history(revision,base_revision,raw) VALUES(?1,?2,?3)",
-                    params![revision.as_slice(), base.as_deref(), raw],
+                    params![revision.as_slice(), base, raw],
                 )
                 .map_err(sql_invalid)?;
             if changed != 1 {
@@ -518,7 +518,12 @@ impl V2SeenPackSpill {
                             if !raw.is_empty()
                                 && raw.len() <= self.limits.max_history_row_bytes =>
                         {
-                            raw.to_vec()
+                            let mut bytes = Vec::new();
+                            bytes
+                                .try_reserve_exact(raw.len())
+                                .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                            bytes.extend_from_slice(raw);
+                            bytes
                         }
                         _ => return Err(rusqlite::Error::InvalidQuery),
                     };
