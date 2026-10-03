@@ -135,6 +135,8 @@ pub(crate) struct NativeSegmentV2Budget {
     pub(crate) max_allocated_bytes: u64,
     pub(crate) allocation_space: PinnedSqliteSpaceBudget,
     pub(crate) allocation_reservation: Arc<tos_source_store::PinnedSqliteSpaceReservation>,
+    pub(crate) allocation_unit_bytes: u64,
+    pub(crate) allocation_accountant: Arc<super::source_admission_segment_v2::NativeV2TreeIo>,
     pub(crate) io: PinnedSqliteIoBudget,
     pub(crate) max_working_state_bytes: usize,
     pub(crate) tree_limits: AuthenticatedTreeLimitsV1,
@@ -186,6 +188,9 @@ pub(crate) struct PreparedSpooledExecution {
     pub(crate) streamed_cut_limits: StreamedCutReadLimitsV1,
     pub(crate) max_index_allocated_bytes: u64,
     pub(crate) max_manifest_allocated_bytes: u64,
+    pub(crate) v2_case: Option<foundation_entry::FoundationV2CaseSelection>,
+    pub(crate) v2_allocation_accountant:
+        Option<Arc<super::source_admission_segment_v2::NativeV2TreeIo>>,
 }
 
 pub(crate) struct NativeSourceValidator<'c> {
@@ -741,6 +746,25 @@ impl<'c> NativeSourceValidator<'c> {
 
         let remaining = self.ledger()?.remaining().map_err(command)?;
         let caps = self.ledger()?.caps();
+        let v2_case_state_bytes = self
+            .prepared
+            .as_ref()
+            .and_then(|prepared| prepared.invocation.v2_case())
+            .map(|case| case.retained_state_bytes())
+            .transpose()
+            .map_err(invalid)?
+            .unwrap_or(0);
+        let case_clone_preflight = size_of::<PreparedSpooledExecution>()
+            .checked_add(v2_case_state_bytes)
+            .and_then(|n| n.checked_add(4096))
+            .ok_or_else(|| invalid("V2 case clone state overflow"))?;
+        if case_clone_preflight > remaining.state_bytes {
+            return Err(invalid("V2 case clone exceeds remaining state"));
+        }
+        let v2_case = self
+            .prepared
+            .as_ref()
+            .and_then(|prepared| prepared.invocation.v2_case().cloned());
         let mut candidate_limits = match self.candidate_limits() {
             Ok(limits) => limits,
             Err(_) => return Err(invalid("selected spooled candidate limits refused")),
@@ -749,7 +773,7 @@ impl<'c> NativeSourceValidator<'c> {
             .write_cap
             .checked_sub(self.candidate_io.1)
             .ok_or_else(|| invalid("persistent admission write accounting regressed"))?;
-        let segment_v2_store_bytes = self
+        let segment_v2_total_store_bytes = self
             .prepared
             .as_ref()
             .and_then(|prepared| {
@@ -758,8 +782,35 @@ impl<'c> NativeSourceValidator<'c> {
                     .then_some(prepared.invocation.budgets.max_admission_store_bytes)
             })
             .flatten();
-        let segment_v2_write_cap = if let Some(store_bytes) = segment_v2_store_bytes {
-            let cap = store_bytes
+        let segment_v2_store_bytes = self
+            .prepared
+            .as_ref()
+            .and_then(|prepared| {
+                (prepared.invocation.admission_representation()
+                    == foundation_entry::FoundationAdmissionRepresentation::NativeV4SegmentV2)
+                    .then(|| prepared.invocation.source_store_allocation_bytes())
+            })
+            .flatten();
+        if let Some(case) = v2_case.as_ref() {
+            if case.source_store_bytes.checked_add(case.target_store_bytes)
+                != segment_v2_total_store_bytes
+                || Some(case.source_store_bytes) != segment_v2_store_bytes
+                || case.state_bytes > remaining.state_bytes
+            {
+                return Err(invalid(
+                    "V2 case source/target profile differs from remaining invocation",
+                ));
+            }
+        }
+        let segment_v2_write_cap = if let (Some(store_bytes), Some(total_store_bytes)) =
+            (segment_v2_store_bytes, segment_v2_total_store_bytes)
+        {
+            let allocation_ceiling = if v2_case.is_some() {
+                total_store_bytes
+            } else {
+                store_bytes
+            };
+            let cap = allocation_ceiling
                 .checked_add(64 * 1024)
                 .filter(|cap| *cap < u64::MAX)
                 .ok_or_else(|| invalid("V2 store write profile overflow"))?;
@@ -769,6 +820,8 @@ impl<'c> NativeSourceValidator<'c> {
                 ));
             }
             cap
+        } else if segment_v2_store_bytes.is_some() || segment_v2_total_store_bytes.is_some() {
+            return Err(invalid("V2 persistent allocation selection differs"));
         } else {
             0
         };
@@ -843,7 +896,19 @@ impl<'c> NativeSourceValidator<'c> {
             .filter(|bytes| *bytes != 0 && *bytes < u64::MAX)
             .ok_or_else(|| invalid("spooled IO leaves no room for final store guards"))?;
         let segment_v2_read_cap = if segment_v2_store_bytes.is_some() {
-            (spooled_io_read_cap / 4).min(64 * 1024 * 1024)
+            let base_tree_read_cap = (spooled_io_read_cap / 4).min(64 * 1024 * 1024);
+            let case_read_cap = match v2_case.as_ref() {
+                Some(case) => case
+                    .point_tree_bytes
+                    .checked_mul(2)
+                    .and_then(|n| n.checked_add(case.tree_bytes))
+                    .ok_or_else(|| invalid("V2 case read profile overflow"))?,
+                None => 0,
+            };
+            base_tree_read_cap
+                .checked_add(case_read_cap)
+                .filter(|cap| *cap < spooled_io_read_cap)
+                .ok_or_else(|| invalid("V2 case leaves no candidate read allowance"))?
         } else {
             0
         };
@@ -960,13 +1025,17 @@ impl<'c> NativeSourceValidator<'c> {
             .and_then(|n| n.checked_add(size_of::<PinnedSqliteIoBudget>()))
             .and_then(|n| n.checked_add(size_of::<PinnedSqliteSpaceBudget>()))
             .and_then(|n| n.checked_add(size_of::<Option<NativeSegmentV2Budget>>()))
+            .and_then(|n| n.checked_add(v2_case_state_bytes))
             .and_then(|n| n.checked_add(root_len.checked_mul(2)?))
             .and_then(|n| n.checked_add(4096))
             .ok_or_else(|| invalid("spooled profile retained state overflow"))?;
         let profile_inodes = inode_profile;
         let profile_bytes = declared_profile;
         let segment_v2_state_bytes = if segment_v2_store_bytes.is_some() {
-            (remaining.state_bytes / 4).min(32 * 1024 * 1024)
+            v2_case
+                .as_ref()
+                .map(|case| case.state_bytes)
+                .unwrap_or_else(|| (remaining.state_bytes / 4).min(32 * 1024 * 1024))
         } else {
             0
         };
@@ -981,10 +1050,14 @@ impl<'c> NativeSourceValidator<'c> {
                 "selected spooled profile exceeds remaining invocation resources",
             ));
         }
-        let segment_v2_allocation = if let Some(max_allocated_bytes) = segment_v2_store_bytes {
-            let space = PinnedSqliteSpaceBudget::new(max_allocated_bytes).map_err(invalid)?;
+        let segment_v2_allocation = if let (Some(max_allocated_bytes), Some(total_store_bytes)) =
+            (segment_v2_store_bytes, segment_v2_total_store_bytes)
+        {
+            let space = PinnedSqliteSpaceBudget::new(total_store_bytes).map_err(invalid)?;
             let reservation = Arc::new(space.reserve(max_allocated_bytes).map_err(invalid)?);
             Some((space, reservation))
+        } else if segment_v2_store_bytes.is_some() || segment_v2_total_store_bytes.is_some() {
+            return Err(invalid("V2 persistent allocation selection differs"));
         } else {
             None
         };
@@ -1134,19 +1207,42 @@ impl<'c> NativeSourceValidator<'c> {
             (Some(max_allocated_bytes), Some((allocation_space, allocation_reservation))) => {
                 let io = PinnedSqliteIoBudget::new(segment_v2_read_cap, segment_v2_write_cap)
                     .map_err(invalid)?;
+                let allocation_unit_bytes = v2_case
+                    .as_ref()
+                    .map(|case| case.allocation_unit_bytes)
+                    .unwrap_or(65_536);
+                let allocation_accountant =
+                    super::source_admission_segment_v2::NativeV2TreeIo::new(
+                        io.clone(),
+                        Arc::clone(&allocation_reservation),
+                        max_allocated_bytes,
+                        allocation_unit_bytes,
+                    )?;
                 let max_node_bytes = 64 * 1024usize;
-                let max_rows = u64::try_from((segment_v2_state_bytes / 128).max(1))
-                    .map_err(|_| invalid("V2 row bound exceeds range"))?;
-                let max_nodes = u64::try_from((segment_v2_state_bytes / max_node_bytes).max(1))
-                    .map_err(|_| invalid("V2 node bound exceeds range"))?;
                 let max_total_bytes = segment_v2_read_cap
                     .checked_add(segment_v2_write_cap)
                     .filter(|bytes| *bytes != 0 && *bytes < u64::MAX)
                     .ok_or_else(|| invalid("V2 tree IO bound overflow"))?;
+                // Row and node counts cap finite work, not resident row state.
+                // The builder keeps bounded stack/pack state independently;
+                // actual physical bytes remain under the shared IO ledger.
+                let max_rows = v2_case
+                    .as_ref()
+                    .map(|case| case.tree_rows)
+                    .unwrap_or(max_total_bytes);
+                let max_nodes = v2_case
+                    .as_ref()
+                    .map(|case| case.tree_nodes)
+                    .unwrap_or(max_total_bytes);
+                if max_rows == 0 || max_nodes == 0 {
+                    return Err(invalid("V2 finite row/node work profile is empty"));
+                }
                 Some(NativeSegmentV2Budget {
                     max_allocated_bytes,
                     allocation_space,
                     allocation_reservation,
+                    allocation_unit_bytes,
+                    allocation_accountant,
                     io,
                     max_working_state_bytes: segment_v2_state_bytes,
                     tree_limits: AuthenticatedTreeLimitsV1 {
@@ -1189,6 +1285,10 @@ impl<'c> NativeSourceValidator<'c> {
         };
         self.spooled_workspace = Some((retained_workspace, request.space_budget.clone()));
         self.spooled_profile = Some((index_limits, defaults_limits, request.io_budget.clone()));
+        let v2_allocation_accountant = self
+            .segment_v2_profile
+            .as_ref()
+            .map(|profile| Arc::clone(&profile.allocation_accountant));
 
         Ok(PreparedAdmissionExecution::Spooled(
             PreparedSpooledExecution {
@@ -1202,6 +1302,8 @@ impl<'c> NativeSourceValidator<'c> {
                 streamed_cut_limits,
                 max_index_allocated_bytes: reader_partition,
                 max_manifest_allocated_bytes,
+                v2_case,
+                v2_allocation_accountant,
             },
         ))
     }

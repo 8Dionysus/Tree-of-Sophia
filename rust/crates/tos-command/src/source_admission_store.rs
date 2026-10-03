@@ -119,6 +119,11 @@ fn directory(parent: &File, name: &str) -> io::Result<File> {
     }
     owned_directory(tos_fd_open::open_directory_at(parent, Path::new(name)).map_err(invalid)?)
 }
+fn directory_new(parent: &File, name: &str) -> io::Result<File> {
+    rustix::fs::mkdirat(parent, name, Mode::from_raw_mode(0o700))?;
+    parent.sync_all()?;
+    owned_directory(tos_fd_open::open_directory_at(parent, Path::new(name)).map_err(invalid)?)
+}
 fn optional_directory(parent: &File, name: &str) -> io::Result<Option<File>> {
     match openat(
         parent,
@@ -172,6 +177,72 @@ impl Drop for Temporary<'_> {
     }
 }
 
+struct V2ObjectPrecharge {
+    accountant: Arc<super::source_admission_segment_v2::NativeV2TreeIo>,
+    reserved: u64,
+    linked: bool,
+}
+impl Drop for V2ObjectPrecharge {
+    fn drop(&mut self) {
+        if !self.linked {
+            let _ = self.accountant.release_file_allocation(self.reserved);
+        }
+    }
+}
+
+struct V2NamespacePrecharge {
+    accountant: Arc<super::source_admission_segment_v2::NativeV2TreeIo>,
+    reserved: u64,
+    created: bool,
+}
+impl Drop for V2NamespacePrecharge {
+    fn drop(&mut self) {
+        if !self.created {
+            let _ = self.accountant.release_file_allocation(self.reserved);
+        }
+    }
+}
+
+fn allocated_bytes(file: &File, reason: &'static str) -> io::Result<u64> {
+    file.metadata()?
+        .blocks()
+        .checked_mul(512)
+        .ok_or_else(|| invalid(reason))
+}
+
+fn partial_v2_namespace_allocation(
+    parent: &File,
+    name: &str,
+    parent_before: u64,
+) -> io::Result<Option<u64>> {
+    let root = match tos_fd_open::open_directory_at(parent, Path::new(name)) {
+        Ok(root) => owned_directory(root)?,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(error),
+    };
+    let mut allocated = allocated_bytes(&root, "V2 store directory allocation overflow")?;
+    for child in ["objects", "revisions", "staging"] {
+        match tos_fd_open::open_directory_at(&root, Path::new(child)) {
+            Ok(directory) => {
+                let directory = owned_directory(directory)?;
+                allocated = allocated
+                    .checked_add(allocated_bytes(
+                        &directory,
+                        "V2 store child-directory allocation overflow",
+                    )?)
+                    .ok_or_else(|| invalid("V2 store namespace allocation overflow"))?;
+            }
+            Err(error) if error.kind() == io::ErrorKind::NotFound => (),
+            Err(error) => return Err(error),
+        }
+    }
+    let parent_after = allocated_bytes(parent, "V2 store parent allocation overflow")?;
+    allocated
+        .checked_add(parent_after.saturating_sub(parent_before))
+        .map(Some)
+        .ok_or_else(|| invalid("V2 store namespace allocation overflow"))
+}
+
 pub(crate) struct AdmissionLock(File);
 impl Drop for AdmissionLock {
     fn drop(&mut self) {
@@ -196,6 +267,10 @@ pub(crate) struct AdmissionStore {
     // V2 physical bytes remain attached to this exact private store when a
     // later source fence refuses or publication needs forward recovery.
     v2_store_custody: RefCell<Option<Arc<tos_source_store::PinnedSqliteSpaceReservation>>>,
+    // Attached by the protected native V2 invocation before immutable object
+    // ingestion; object files and later trees share one source allocation cap.
+    v2_allocation_accountant:
+        RefCell<Option<Arc<super::source_admission_segment_v2::NativeV2TreeIo>>>,
 }
 impl AdmissionStore {
     pub(crate) fn streamed_manifest_custody(
@@ -211,6 +286,35 @@ impl AdmissionStore {
         custody: Arc<tos_source_store::PinnedSqliteSpaceReservation>,
     ) {
         *self.v2_store_custody.borrow_mut() = Some(custody);
+    }
+    pub(crate) fn attach_v2_allocation_accountant(
+        &self,
+        accountant: Arc<super::source_admission_segment_v2::NativeV2TreeIo>,
+    ) -> io::Result<()> {
+        self.verify_layout()?;
+        if self.v2_allocation_accountant.borrow().is_some() {
+            return Err(invalid("V2 allocation accountant already attached"));
+        }
+        let unit = accountant.selected_allocation_unit_bytes();
+        for directory in [&self.root, &self.objects, &self.revisions, &self.staging] {
+            if directory.metadata()?.blksize() > unit {
+                return Err(invalid(
+                    "V2 selected allocation quantum is below held store geometry",
+                ));
+            }
+        }
+        self.retain_v2_store_custody(accountant.custody_reservation());
+        *self.v2_allocation_accountant.borrow_mut() = Some(accountant);
+        Ok(())
+    }
+    pub(crate) fn has_v2_allocation_accountant(
+        &self,
+        accountant: &Arc<super::source_admission_segment_v2::NativeV2TreeIo>,
+    ) -> bool {
+        self.v2_allocation_accountant
+            .borrow()
+            .as_ref()
+            .is_some_and(|attached| Arc::ptr_eq(attached, accountant))
     }
     pub(crate) fn v2_store_custody(
         &self,
@@ -259,6 +363,7 @@ impl AdmissionStore {
             v2_segments: RefCell::new(v2_segments),
             streamed_manifest_custody: RefCell::new(None),
             v2_store_custody: RefCell::new(None),
+            v2_allocation_accountant: RefCell::new(None),
         };
         store.verify_layout()?;
         active(deadline, cancel)?;
@@ -1330,6 +1435,129 @@ impl AdmissionStore {
         active(deadline, cancel)
     }
 
+    /// Open the selected store or create its four base namespaces under one
+    /// native V2 allocation reservation. Existing directories are retained
+    /// baseline; a fresh namespace is charged before its first mkdir.
+    pub(crate) fn create_or_open_v2(
+        path: &Path,
+        accountant: Arc<super::source_admission_segment_v2::NativeV2TreeIo>,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<Self> {
+        active(deadline, cancel)?;
+        if !path.is_absolute()
+            || path.components().any(|component| {
+                matches!(
+                    component,
+                    std::path::Component::CurDir | std::path::Component::ParentDir
+                )
+            })
+        {
+            return Err(invalid(
+                "V2 corpus store path must be absolute and normalized",
+            ));
+        }
+        let parent_path = path
+            .parent()
+            .ok_or_else(|| invalid("V2 corpus store parent absent"))?;
+        let name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .filter(|name| !name.is_empty())
+            .ok_or_else(|| invalid("V2 corpus store name absent"))?;
+        let parent = tos_fd_open::open_absolute_directory(parent_path).map_err(invalid)?;
+        match tos_fd_open::open_directory_at(&parent, Path::new(name)) {
+            Ok(existing) => {
+                drop(existing);
+                let store = Self::open_existing(path, deadline, cancel)?;
+                store.attach_v2_allocation_accountant(accountant)?;
+                return Ok(store);
+            }
+            Err(error) if error.kind() == io::ErrorKind::NotFound => (),
+            Err(error) => return Err(error),
+        }
+
+        let unit = accountant.selected_allocation_unit_bytes();
+        if unit == 0 || unit == u64::MAX || parent.metadata()?.blksize() > unit {
+            return Err(invalid(
+                "V2 store allocation quantum is below held geometry",
+            ));
+        }
+        // Four private directories and growth in their two containing
+        // directory entries fit within this finite envelope. This is an
+        // invocation reservation, not filesystem free-space evidence.
+        let precharge_input = unit
+            .checked_mul(7)
+            .ok_or_else(|| invalid("V2 namespace allocation profile overflow"))?;
+        let parent_before = allocated_bytes(&parent, "V2 store parent allocation overflow")?;
+        let reserved = accountant.reserve_file_allocation(precharge_input)?;
+        let mut precharge = V2NamespacePrecharge {
+            accountant: Arc::clone(&accountant),
+            reserved,
+            created: false,
+        };
+        let mut accounting_attempted = false;
+        let result = (|| {
+            rustix::fs::mkdirat(&parent, name, Mode::from_raw_mode(0o700))?;
+            precharge.created = true;
+            parent.sync_all()?;
+            let root = owned_directory(
+                tos_fd_open::open_directory_at(&parent, Path::new(name)).map_err(invalid)?,
+            )?;
+            let objects = directory_new(&root, "objects")?;
+            let revisions = directory_new(&root, "revisions")?;
+            let staging = directory_new(&root, "staging")?;
+            root.sync_all()?;
+            let store = Self {
+                path: path.to_owned(),
+                root,
+                objects,
+                revisions,
+                staging,
+                v2_segments: RefCell::new(None),
+                streamed_manifest_custody: RefCell::new(None),
+                v2_store_custody: RefCell::new(None),
+                v2_allocation_accountant: RefCell::new(None),
+            };
+            store.verify_layout()?;
+            store.attach_v2_allocation_accountant(Arc::clone(&accountant))?;
+            active(deadline, cancel)?;
+
+            let parent_after = allocated_bytes(&parent, "V2 store parent allocation overflow")?;
+            let allocated_revisions = allocated_bytes(
+                &store.revisions,
+                "V2 revisions directory allocation overflow",
+            )?;
+            let allocated_staging =
+                allocated_bytes(&store.staging, "V2 staging directory allocation overflow")?;
+            let actual = allocated_bytes(&store.root, "V2 store directory allocation overflow")?
+                .checked_add(allocated_bytes(
+                    &store.objects,
+                    "V2 objects directory allocation overflow",
+                )?)
+                .and_then(|bytes| bytes.checked_add(allocated_revisions))
+                .and_then(|bytes| bytes.checked_add(allocated_staging))
+                .and_then(|bytes| bytes.checked_add(parent_after.saturating_sub(parent_before)))
+                .ok_or_else(|| invalid("V2 namespace allocation overflow"))?;
+            accounting_attempted = true;
+            accountant.reconcile_file_allocation(reserved, actual)?;
+            Ok(store)
+        })();
+        if result.is_err() && precharge.created && !accounting_attempted {
+            match partial_v2_namespace_allocation(&parent, name, parent_before) {
+                Ok(Some(actual)) => {
+                    let _ = accountant.reconcile_file_allocation(reserved, actual);
+                }
+                Ok(None) | Err(_) => {
+                    // Keep the complete precharge attached if the path cannot
+                    // be safely measured after a partial namespace write.
+                    let _ = accountant.reconcile_file_allocation(reserved, reserved);
+                }
+            }
+        }
+        result
+    }
+
     /// Called only after the selected validator identity matches the batch.
     /// Missing parents are created through held, no-follow directory handles.
     /// Namespace creation is not authorization for any source, rights or review transition.
@@ -1378,6 +1606,7 @@ impl AdmissionStore {
             v2_segments: RefCell::new(v2_segments),
             streamed_manifest_custody: RefCell::new(None),
             v2_store_custody: RefCell::new(None),
+            v2_allocation_accountant: RefCell::new(None),
         };
         store.verify_layout()?;
         active(deadline, cancel)?;
@@ -1682,6 +1911,39 @@ impl AdmissionStore {
             }
             Err(error) => return Err(invalid(error)),
         }
+        let mut object_precharge = self
+            .v2_allocation_accountant
+            .borrow()
+            .clone()
+            .map(|accountant| {
+                let input_bytes = size
+                    .checked_add(accountant.selected_allocation_unit_bytes())
+                    .ok_or_else(|| invalid("V2 object allocation profile overflow"))?;
+                let reserved = accountant.reserve_file_allocation(input_bytes)?;
+                Ok::<_, io::Error>(V2ObjectPrecharge {
+                    accountant,
+                    reserved,
+                    linked: false,
+                })
+            })
+            .transpose()?;
+        let directory_allocated = |directory: &File| -> io::Result<u64> {
+            directory
+                .metadata()?
+                .blocks()
+                .checked_mul(512)
+                .ok_or_else(|| invalid("V2 object namespace allocation overflow"))
+        };
+        let objects_before = if object_precharge.is_some() {
+            directory_allocated(&self.objects)?
+        } else {
+            0
+        };
+        let staging_before = if object_precharge.is_some() {
+            directory_allocated(&self.staging)?
+        } else {
+            0
+        };
         let mut temporary = Temporary::create(&self.staging)?;
         source.seek(SeekFrom::Start(0))?;
         let mut copied = 0u64;
@@ -1739,19 +2001,42 @@ impl AdmissionStore {
         )?;
         self.verify_layout()?;
         let name = digest.to_hex();
-        match rustix::fs::linkat(
+        let installed_new = match rustix::fs::linkat(
             &self.staging,
             temporary.name.as_str(),
             &self.objects,
             name.as_str(),
             AtFlags::empty(),
         ) {
-            Ok(()) => (),
-            Err(Errno::EXIST) => (),
+            Ok(()) => true,
+            Err(Errno::EXIST) => false,
             Err(error) => return Err(error.into()),
+        };
+        if installed_new {
+            if let Some(precharge) = object_precharge.as_mut() {
+                precharge.linked = true;
+            }
         }
         let mut installed =
             tos_fd_open::open_regular_at(&self.objects, Path::new(&name)).map_err(invalid)?;
+        if installed_new {
+            if let Some(precharge) = object_precharge.as_ref() {
+                let file_allocated = directory_allocated(&installed)?;
+                drop(temporary);
+                let objects_after = directory_allocated(&self.objects)?;
+                let staging_after = directory_allocated(&self.staging)?;
+                let namespace_growth = objects_after
+                    .saturating_sub(objects_before)
+                    .checked_add(staging_after.saturating_sub(staging_before))
+                    .ok_or_else(|| invalid("V2 object namespace growth overflow"))?;
+                let actual = file_allocated
+                    .checked_add(namespace_growth)
+                    .ok_or_else(|| invalid("V2 object allocation overflow"))?;
+                precharge
+                    .accountant
+                    .reconcile_file_allocation(precharge.reserved, actual)?;
+            }
+        }
         verify_file_recorded(
             &mut installed,
             size,

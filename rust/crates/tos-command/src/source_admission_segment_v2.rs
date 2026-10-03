@@ -315,19 +315,33 @@ pub(crate) struct NativeV2TreeIo {
 }
 
 impl NativeV2TreeIo {
+    pub(crate) fn new(
+        io: tos_source_store::PinnedSqliteIoBudget,
+        custody: Arc<tos_source_store::PinnedSqliteSpaceReservation>,
+        max_allocated_bytes: u64,
+        allocation_unit_bytes: u64,
+    ) -> io::Result<Arc<Self>> {
+        if max_allocated_bytes == 0
+            || max_allocated_bytes == u64::MAX
+            || allocation_unit_bytes == 0
+            || allocation_unit_bytes == u64::MAX
+        {
+            return Err(invalid("V2 allocation accountant profile is invalid"));
+        }
+        Ok(Arc::new(Self {
+            io,
+            custody,
+            max_allocated_bytes,
+            allocation_unit_bytes,
+            reserved: AtomicU64::new(0),
+            actual: AtomicU64::new(0),
+        }))
+    }
+
     pub(crate) fn from_budget(
         budget: &super::source_foundation_admission::NativeSegmentV2Budget,
     ) -> Arc<Self> {
-        Arc::new(Self {
-            io: budget.io.clone(),
-            custody: Arc::clone(&budget.allocation_reservation),
-            max_allocated_bytes: budget.max_allocated_bytes,
-            // This source profile is deliberately coarse and conservative; it
-            // is not filesystem free-space evidence or a capacity grant.
-            allocation_unit_bytes: 65_536,
-            reserved: AtomicU64::new(0),
-            actual: AtomicU64::new(0),
-        })
+        Arc::clone(&budget.allocation_accountant)
     }
 
     pub(crate) fn reserve_file_allocation(&self, bytes: u64) -> io::Result<u64> {
@@ -343,6 +357,21 @@ impl NativeV2TreeIo {
             return Err(invalid("V2 persistent allocation reconciliation refused"));
         }
         Ok(())
+    }
+
+    pub(crate) fn release_file_allocation(&self, reserved: u64) -> io::Result<()> {
+        let result = self
+            .reserved
+            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
+                current.checked_sub(reserved)
+            });
+        result
+            .map(|_| ())
+            .map_err(|_| invalid("V2 persistent allocation precharge regressed"))
+    }
+
+    pub(crate) fn selected_allocation_unit_bytes(&self) -> u64 {
+        self.allocation_unit_bytes
     }
 
     pub(crate) fn actual_allocated_bytes(&self) -> u64 {
@@ -388,21 +417,20 @@ impl AuthenticatedTreeIoLedgerV1 for NativeV2TreeIo {
         true
     }
     fn reconcile_allocated_bytes(&self, reserved: u64, actual: u64) -> bool {
-        if actual > reserved {
-            return false;
-        }
         let Ok(previous) =
             self.actual
                 .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
-                    current
-                        .checked_add(actual)
-                        .filter(|sum| *sum <= self.max_allocated_bytes)
+                    current.checked_add(actual)
                 })
         else {
             return false;
         };
         let next = previous + actual;
+        let within_file_precharge = actual <= reserved;
+        let within_total_cap = next <= self.max_allocated_bytes;
         self.custody.update_actual_allocated(next).is_ok()
+            && within_file_precharge
+            && within_total_cap
     }
     fn allocation_unit_bytes(&self) -> u64 {
         self.allocation_unit_bytes
@@ -461,6 +489,11 @@ pub(crate) fn build_initial_rootset_v2(
     }
     index.verify_candidate()?;
     let tree_io = NativeV2TreeIo::from_budget(profile);
+    if !store.has_v2_allocation_accountant(&tree_io) {
+        return Err(invalid(
+            "V2 writer and object-ingest allocation account are not shared",
+        ));
+    }
     store.retain_v2_store_custody(tree_io.custody_reservation());
     let segment_bytes = profile.max_allocated_bytes;
     if segment_bytes < 65_536 {
