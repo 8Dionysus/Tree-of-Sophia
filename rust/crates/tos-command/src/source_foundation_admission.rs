@@ -1696,38 +1696,27 @@ impl<'c> NativeSourceValidator<'c> {
         let read = candidate_read
             .checked_add(segment_v2_read)
             .ok_or_else(|| invalid("spooled terminal read suffix overflow"))?;
-        let before = self.ledger()?.measured_charged().source_read_bytes;
-        let charged = self
-            .ledger_mut()?
-            .record_terminal_measured_source_read_suffix(read);
-        let after = self.ledger()?.measured_charged().source_read_bytes;
-        if after.checked_sub(before) != Some(read) {
-            return Err(invalid(
-                "spooled terminal attempted suffix was not recorded",
-            ));
-        }
+        let measured_before = self.ledger()?.measured_charged().source_read_bytes;
         let upper_before = self.ledger()?.admitted_charged().source_read_bytes;
-        let upper_charged = self
+        let classified = self
             .ledger_mut()?
-            .record_terminal_admitted_source_read_upper_bound_suffix(segment_v2_upper);
+            .record_terminal_source_read_suffix(read, segment_v2_upper);
+        let measured_after = self.ledger()?.measured_charged().source_read_bytes;
         let upper_after = self.ledger()?.admitted_charged().source_read_bytes;
-        let upper_recorded = upper_after
-            .checked_sub(upper_before)
-            .ok_or_else(|| invalid("spooled terminal upper-bound accounting regressed"))?;
-        if let Some(segment) = segment_v2_usage
-            && upper_recorded == segment_v2_upper
-        {
-            self.segment_v2_read_upper_accounted = segment.read_upper_bound_attempted_bytes;
+        let measured_recorded = measured_after.checked_sub(measured_before);
+        let upper_recorded = upper_after.checked_sub(upper_before);
+        // Both classifications must be retained before their shared physical
+        // attempted prefix advances. Arithmetic overflow in either ledger
+        // leaves the old witness intact for a later exact refusal.
+        if measured_recorded == Some(read) && upper_recorded == Some(segment_v2_upper) {
+            self.candidate_io = (usage.read_attempted_bytes, usage.write_attempted_bytes);
+            if let Some(segment) = segment_v2_usage {
+                self.segment_v2_io_accounted =
+                    (segment.read_attempted_bytes, segment.write_attempted_bytes);
+                self.segment_v2_read_upper_accounted = segment.read_upper_bound_attempted_bytes;
+            }
         }
-        // A recorded terminal refusal still owns this exact prefix. An
-        // overflow before recording never advances the witness.
-        self.candidate_io = (usage.read_attempted_bytes, usage.write_attempted_bytes);
-        if let Some(segment) = segment_v2_usage {
-            self.segment_v2_io_accounted =
-                (segment.read_attempted_bytes, segment.write_attempted_bytes);
-        }
-        charged.map_err(command)?;
-        upper_charged.map_err(command)?;
+        classified.map_err(command)?;
         if usage.read_permitted_bytes > usage.read_attempted_bytes
             || usage.read_returned_bytes > usage.read_permitted_bytes
             || usage.write_permitted_bytes > usage.write_attempted_bytes

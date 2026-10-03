@@ -146,7 +146,8 @@ impl V2ReadSession {
         deadline: Instant,
         cancel: Arc<AtomicBool>,
     ) -> io::Result<Self> {
-        let store = AdmissionStore::open_existing(path, deadline, &cancel)?;
+        let store =
+            AdmissionStore::open_existing_with_io(path, original_io.clone(), deadline, &cancel)?;
         Self::open_store(store, limits, original_io, deadline, cancel)
     }
 
@@ -161,7 +162,24 @@ impl V2ReadSession {
         deadline: Instant,
         cancel: Arc<AtomicBool>,
     ) -> io::Result<Self> {
-        let store = AdmissionStore::open_existing_at_named(path, held_root, deadline, &cancel)?;
+        Self::open_at_named_with_io(path, held_root, limits, original_io, deadline, cancel)
+    }
+
+    pub fn open_at_named_with_io(
+        path: &Path,
+        held_root: &File,
+        limits: V2PointReadLimits,
+        original_io: PinnedSqliteIoBudget,
+        deadline: Instant,
+        cancel: Arc<AtomicBool>,
+    ) -> io::Result<Self> {
+        let store = AdmissionStore::open_existing_at_named_with_io(
+            path,
+            held_root,
+            original_io.clone(),
+            deadline,
+            &cancel,
+        )?;
         Self::open_store(store, limits, original_io, deadline, cancel)
     }
 

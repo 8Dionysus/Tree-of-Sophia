@@ -17,6 +17,57 @@ use tos_foundation::{Digest256, Digest256Hasher};
 use tos_segment_store::AuthenticatedTreeIoLedgerV1;
 use tos_source_store::{CorpusReader, ReadLimits};
 
+const V2_LAYOUT_ROOT_GUARD_BYTES: u64 = 65_537;
+const V2_LAYOUT_COMPONENT_METADATA_BYTES: u64 = 4_096;
+const V2_LAYOUT_PATH_BYTES: usize = 4_096;
+const V2_LAYOUT_PATH_COMPONENTS: usize = 128;
+
+fn v2_component_guard_bytes(name: &str) -> io::Result<u64> {
+    u64::try_from(name.len())
+        .map_err(|_| invalid("V2 layout component length exceeds range"))?
+        .checked_add(1)
+        .and_then(|bytes| bytes.checked_add(V2_LAYOUT_COMPONENT_METADATA_BYTES))
+        .ok_or_else(|| invalid("V2 layout component guard overflow"))
+}
+
+fn charge_v2_component_guard(
+    io: &tos_source_store::PinnedSqliteIoBudget,
+    name: &str,
+) -> io::Result<()> {
+    io.charge_read_upper_bound(v2_component_guard_bytes(name)?)
+        .map_err(invalid)
+}
+
+fn charge_v2_layout_guard(
+    io: &tos_source_store::PinnedSqliteIoBudget,
+    path: &Path,
+) -> io::Result<()> {
+    if !path.is_absolute()
+        || path.as_os_str().as_encoded_bytes().len() > V2_LAYOUT_PATH_BYTES
+        || path.components().count() > V2_LAYOUT_PATH_COMPONENTS
+        || path.components().any(|component| {
+            matches!(
+                component,
+                std::path::Component::CurDir | std::path::Component::ParentDir
+            )
+        })
+    {
+        return Err(invalid("V2 layout path is not bounded and normalized"));
+    }
+    let relative_names = ["objects", "revisions", "staging", "segments-v2"]
+        .into_iter()
+        .try_fold(0u64, |total, name| {
+            let component = v2_component_guard_bytes(name)?;
+            total
+                .checked_add(component)
+                .ok_or_else(|| invalid("V2 layout guard overflow"))
+        })?;
+    let upper = V2_LAYOUT_ROOT_GUARD_BYTES
+        .checked_add(relative_names)
+        .ok_or_else(|| invalid("V2 layout guard overflow"))?;
+    io.charge_read_upper_bound(upper).map_err(invalid)
+}
+
 /// A streamed pointer rename succeeded, but a required post-rename durability
 /// or custody fence refused. The immutable revision identity and its original
 /// allocation reservation remain available to the caller for exact recovery.
@@ -416,6 +467,9 @@ pub(crate) struct AdmissionStore {
     // ingestion; object files and later trees share one source allocation cap.
     v2_allocation_accountant:
         RefCell<Option<Arc<super::source_admission_segment_v2::NativeV2TreeIo>>>,
+    // The original selected V2 IO ledger also accounts each later private
+    // root/namespace identity fence. Legacy V1 stores keep this unbound.
+    v2_layout_io: RefCell<Option<tos_source_store::PinnedSqliteIoBudget>>,
 }
 impl AdmissionStore {
     pub(crate) fn streamed_manifest_custody(
@@ -436,10 +490,21 @@ impl AdmissionStore {
         &self,
         accountant: Arc<super::source_admission_segment_v2::NativeV2TreeIo>,
     ) -> io::Result<()> {
-        self.verify_layout()?;
         if self.v2_allocation_accountant.borrow().is_some() {
             return Err(invalid("V2 allocation accountant already attached"));
         }
+        if self
+            .v2_layout_io
+            .borrow()
+            .as_ref()
+            .is_some_and(|io| !io.shares_with(accountant.io_budget()))
+        {
+            return Err(invalid("V2 layout and allocation IO ledgers differ"));
+        }
+        if self.v2_layout_io.borrow().is_none() {
+            *self.v2_layout_io.borrow_mut() = Some(accountant.io_budget().clone());
+        }
+        self.verify_layout()?;
         let unit = accountant.selected_allocation_unit_bytes();
         for directory in [&self.root, &self.objects, &self.revisions, &self.staging] {
             if directory.metadata()?.blksize() > unit {
@@ -492,6 +557,18 @@ impl AdmissionStore {
         Self::open_existing_at_named(path, &root, deadline, cancel)
     }
 
+    pub(crate) fn open_existing_with_io(
+        path: &Path,
+        io: tos_source_store::PinnedSqliteIoBudget,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<Self> {
+        active(deadline, cancel)?;
+        charge_v2_layout_guard(&io, path)?;
+        let root = owned_directory(tos_fd_open::open_absolute_directory(path).map_err(invalid)?)?;
+        Self::open_existing_at_named_with_io(path, &root, io, deadline, cancel)
+    }
+
     /// Open all namespaces from the caller's exact held root descriptor after
     /// verifying that its normalized name still resolves to that same object.
     /// Reads remain descriptor-rooted; name checks only fence substitution.
@@ -501,8 +578,30 @@ impl AdmissionStore {
         deadline: Instant,
         cancel: &AtomicBool,
     ) -> io::Result<Self> {
+        Self::open_existing_at_named_inner(path, held_root, None, deadline, cancel)
+    }
+
+    pub(crate) fn open_existing_at_named_with_io(
+        path: &Path,
+        held_root: &File,
+        io: tos_source_store::PinnedSqliteIoBudget,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<Self> {
+        Self::open_existing_at_named_inner(path, held_root, Some(io), deadline, cancel)
+    }
+
+    fn open_existing_at_named_inner(
+        path: &Path,
+        held_root: &File,
+        io: Option<tos_source_store::PinnedSqliteIoBudget>,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<Self> {
         active(deadline, cancel)?;
-        if !path.is_absolute()
+        if let Some(io) = io.as_ref() {
+            charge_v2_layout_guard(io, path)?;
+        } else if !path.is_absolute()
             || path.components().any(|component| {
                 matches!(
                     component,
@@ -537,6 +636,7 @@ impl AdmissionStore {
             streamed_manifest_custody: RefCell::new(None),
             v2_store_custody: RefCell::new(None),
             v2_allocation_accountant: RefCell::new(None),
+            v2_layout_io: RefCell::new(io),
         };
         store.verify_layout()?;
         active(deadline, cancel)?;
@@ -590,6 +690,8 @@ impl AdmissionStore {
         if max_bytes == 0 || max_bytes == usize::MAX {
             return Err(invalid("V2 rootset read profile is invalid"));
         }
+        charge_v2_component_guard(io_budget, &revision.to_hex())?;
+        charge_v2_component_guard(io_budget, "rootset-v2.json")?;
         self.verify_layout()?;
         let directory =
             tos_fd_open::open_directory_at(&self.revisions, Path::new(&revision.to_hex()))
@@ -1691,6 +1793,7 @@ impl AdmissionStore {
                 streamed_manifest_custody: RefCell::new(None),
                 v2_store_custody: RefCell::new(None),
                 v2_allocation_accountant: RefCell::new(None),
+                v2_layout_io: RefCell::new(None),
             };
             store.verify_layout()?;
             store.attach_v2_allocation_accountant(Arc::clone(&accountant))?;
@@ -1760,11 +1863,7 @@ impl AdmissionStore {
         // This finite upper bound covers the name/held-root comparison, the
         // lock and three child namespace lookups, and their metadata checks.
         // It is charged as an upper bound, never reported as returned bytes.
-        const V2_STORE_OPEN_UPPER_BOUND: u64 = 16 * 1024;
-        accountant
-            .io_budget()
-            .charge_read_upper_bound(V2_STORE_OPEN_UPPER_BOUND)
-            .map_err(invalid)?;
+        charge_v2_layout_guard(accountant.io_budget(), path)?;
         let root = owned_directory(held_root.try_clone()?)?;
         let named = owned_directory(tos_fd_open::open_absolute_directory(path).map_err(invalid)?)?;
         if identity(&named)? != identity(&root)? {
@@ -1847,8 +1946,8 @@ impl AdmissionStore {
                 streamed_manifest_custody: RefCell::new(None),
                 v2_store_custody: RefCell::new(None),
                 v2_allocation_accountant: RefCell::new(None),
+                v2_layout_io: RefCell::new(Some(accountant.io_budget().clone())),
             };
-            store.verify_layout()?;
             store.attach_v2_allocation_accountant(Arc::clone(&accountant))?;
             if let Some(precharge) = namespace_reservation.as_ref() {
                 let root_before =
@@ -1948,12 +2047,16 @@ impl AdmissionStore {
             streamed_manifest_custody: RefCell::new(None),
             v2_store_custody: RefCell::new(None),
             v2_allocation_accountant: RefCell::new(None),
+            v2_layout_io: RefCell::new(None),
         };
         store.verify_layout()?;
         active(deadline, cancel)?;
         Ok(store)
     }
     pub(crate) fn verify_layout(&self) -> io::Result<()> {
+        if let Some(io) = self.v2_layout_io.borrow().as_ref() {
+            charge_v2_layout_guard(io, &self.path)?;
+        }
         let root =
             owned_directory(tos_fd_open::open_absolute_directory(&self.path).map_err(invalid)?)?;
         if identity(&root)? != identity(&self.root)? {
