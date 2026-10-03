@@ -16,9 +16,9 @@ use crate::source_foundation_closure::{
 use crate::source_foundation_discovery::{
     ArtifactCorrectionReplayMap, CandidateArtifactCorrectionReplayMap,
     CandidateArtifactEvidenceProvider, CandidateArtifactInvalidSchemaProofs, Cost as DiscoveryCost,
-    CurrentArtifactInvalidSchemaProofs, DiscoveryEventSummaryStore, DiscoveryRunSummaryStore,
-    DiscoverySchemaRequestStore, DiscoverySeenIds, Issue as DiscoveryIssue,
-    SchemaRequest as DiscoverySchemaRequest, SourcePhysicalFacts,
+    CurrentArtifactInvalidSchemaProofs, DiscoveryDigestCache, DiscoveryEventSummaryStore,
+    DiscoveryRunSummaryStore, DiscoverySchemaRequestStore, DiscoverySeenIds,
+    Issue as DiscoveryIssue, SchemaRequest as DiscoverySchemaRequest, SourcePhysicalFacts,
     UnsupportedScope as DiscoveryUnsupported, inspect_with_cut_and_artifact_replays,
     inspect_with_cut_and_artifact_replays_and_records,
     inspect_with_cut_and_artifact_replays_and_records_with_proofs,
@@ -825,6 +825,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored<
         limits,
         stored_limits,
         cancelled,
+        None,
     )
 }
 
@@ -874,6 +875,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         limits,
         stored_limits,
         cancelled,
+        None,
     )
 }
 
@@ -922,6 +924,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         limits,
         stored_limits,
         cancelled,
+        None,
     )
 }
 
@@ -971,6 +974,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         limits,
         stored_limits,
         cancelled,
+        None,
     )
 }
 
@@ -1022,6 +1026,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         limits,
         stored_limits,
         cancelled,
+        None,
     )
 }
 
@@ -1073,6 +1078,60 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         limits,
         stored_limits,
         cancelled,
+        None,
+    )
+}
+
+/// Candidate stored composition with a bounded held cache for exact digests
+/// computed from current-member bytes, alongside the Discovery schema spool.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests_and_digests<
+    I: Copy + Eq,
+    S: LayerFamilySource + ?Sized,
+>(
+    source: &mut S,
+    input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
+    coverage: &crate::record_biblio_cut::SourceCutInputCoverage,
+    records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    paths: &dyn SourceFoundationDefaultPaths,
+    events: &mut dyn SourceFoundationDefaultEventStore,
+    claims: &dyn SourceFoundationDefaultClaims,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    discovery_seen_ids: &mut dyn DiscoverySeenIds,
+    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
+    discovery_event_summaries: &mut dyn DiscoveryEventSummaryStore,
+    discovery_schema_requests: &mut dyn DiscoverySchemaRequestStore,
+    discovery_digest_cache: &mut dyn DiscoveryDigestCache,
+    require_local_payloads: bool,
+    limits: SourceFoundationDefaultRulesLimits,
+    stored_limits: SourceFoundationDefaultStoredLimits,
+    cancelled: &AtomicBool,
+) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
+    inspect_source_foundation_default_rules_from_input_stored_inner(
+        source,
+        input,
+        coverage,
+        records,
+        records_lookup,
+        paths,
+        events,
+        None,
+        claims,
+        physical,
+        None,
+        None,
+        Some(evidence_provider),
+        Some(discovery_seen_ids),
+        Some(discovery_run_summaries),
+        Some(discovery_event_summaries),
+        Some(discovery_schema_requests),
+        require_local_payloads,
+        limits,
+        stored_limits,
+        cancelled,
+        Some(discovery_digest_cache),
     )
 }
 
@@ -1104,6 +1163,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     limits: SourceFoundationDefaultRulesLimits,
     stored_limits: SourceFoundationDefaultStoredLimits,
     cancelled: &AtomicBool,
+    mut discovery_digest_cache: Option<&mut dyn DiscoveryDigestCache>,
 ) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
     let operation = limits.operation;
     source.checkpoint(operation.deadline)?;
@@ -1133,6 +1193,16 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     {
         return Err(ItemRefusal::Source(
             "candidate Discovery schema request spool requires bounded evidence, ID, run, and event providers"
+                .into(),
+        ));
+    }
+    if discovery_digest_cache.is_some()
+        && (discovery_schema_requests.is_none()
+            || evidence_provider.is_none()
+            || discovery_seen_ids.is_none())
+    {
+        return Err(ItemRefusal::Source(
+            "candidate Discovery digest cache requires its bounded evidence, ID, and request providers"
                 .into(),
         ));
     }
@@ -1250,7 +1320,30 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
             if let Some(run_summaries) = discovery_run_summaries.as_deref_mut() {
                 if let Some(event_summaries) = discovery_event_summaries.as_deref_mut() {
                     if let Some(schema_requests) = discovery_schema_requests.as_deref_mut() {
-                        crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests(
+                        if let Some(digest_cache) = discovery_digest_cache.as_deref_mut() {
+                            crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests_and_digests(
+                                &mut aggregate_source,
+                                input,
+                                coverage,
+                                paths,
+                                events.event_lookup(),
+                                records_lookup,
+                                records,
+                                discovery_limits,
+                                physical,
+                                provider,
+                                seen_ids,
+                                run_summaries,
+                                event_summaries,
+                                schema_requests,
+                                digest_cache,
+                                limits
+                                    .max_event_map_bytes
+                                    .min(discovery_limits.max_member_bytes),
+                                require_local_payloads,
+                            )?
+                        } else {
+                            crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests(
                             &mut aggregate_source,
                             input,
                             coverage,
@@ -1270,6 +1363,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
                                 .min(discovery_limits.max_member_bytes),
                             require_local_payloads,
                         )?
+                        }
                     } else {
                         crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries(
                             &mut aggregate_source,

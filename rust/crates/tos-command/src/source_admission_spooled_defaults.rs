@@ -11,7 +11,7 @@ use crate::{
 use rusqlite::{OptionalExtension, params};
 use serde_json::Value;
 use std::{borrow::Cow, cell::Cell, io, mem::size_of, sync::atomic::AtomicBool, time::Instant};
-use tos_foundation::RelativePath;
+use tos_foundation::{Digest256, RelativePath};
 use tos_source_store::{PinnedSqliteAuxScope, PinnedSqliteConnection, SourceMembershipV1};
 use tos_validation::{
     biblio_rules::{
@@ -28,10 +28,11 @@ use tos_validation::{
         SourceFoundationDefaultStoredLimits,
     },
     source_foundation_discovery::{
-        DiscoveryEventSummaryNamespace, DiscoveryEventSummaryStore, DiscoveryEventSummaryStoreCost,
-        DiscoveryRunSummary, DiscoveryRunSummaryStore, DiscoveryRunSummaryStoreCost,
-        DiscoverySchemaRequestStore, DiscoverySchemaRequestStoreCost, DiscoverySeenIdNamespace,
-        DiscoverySeenIds, SchemaRequest as DiscoverySchemaRequest,
+        DiscoveryDigestCache, DiscoveryDigestCacheCost, DiscoveryEventSummaryNamespace,
+        DiscoveryEventSummaryStore, DiscoveryEventSummaryStoreCost, DiscoveryRunSummary,
+        DiscoveryRunSummaryStore, DiscoveryRunSummaryStoreCost, DiscoverySchemaRequestStore,
+        DiscoverySchemaRequestStoreCost, DiscoverySeenIdNamespace, DiscoverySeenIds,
+        SchemaRequest as DiscoverySchemaRequest,
     },
     source_foundation_records::{
         SourceFoundationRecordsCollection as RecordsCollection,
@@ -725,6 +726,10 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                  location TEXT NOT NULL COLLATE BINARY CHECK(length(location)>0),\
                  contract TEXT NOT NULL COLLATE BINARY CHECK(length(contract)>0),\
                  document BLOB NOT NULL CHECK(length(document)>0)\
+             ) WITHOUT ROWID;\
+             CREATE TABLE sf_discovery_digests(\
+                 path TEXT NOT NULL COLLATE BINARY PRIMARY KEY CHECK(length(path)>0),\
+                 sha256 TEXT NOT NULL COLLATE BINARY CHECK(length(sha256)=64)\
              ) WITHOUT ROWID;\
              CREATE TABLE biblio_events(\
                  slot BLOB NOT NULL PRIMARY KEY CHECK(length(slot)=8),\
@@ -2569,6 +2574,273 @@ impl DiscoverySchemaRequestStore for CandidateDiscoverySchemaRequests<'_, '_, '_
     }
 }
 
+struct CandidateDiscoveryDigestCache<'a, 'candidate, 'host, 'cancel, 'budget> {
+    context: ProviderContext<'candidate, 'host, 'cancel>,
+    db: &'a PinnedSqliteConnection,
+    scan_rows: &'budget Cell<u64>,
+    observation_rows: u64,
+    unique_paths: u64,
+    serialized_write_bytes: u64,
+    serialized_read_bytes: u64,
+    scan_row_operations: u64,
+    max_path_bytes: usize,
+    workspace_peak_bytes: usize,
+    finished: bool,
+}
+
+impl CandidateDiscoveryDigestCache<'_, '_, '_, '_, '_> {
+    fn row_text_state(bytes: usize) -> Result<usize, ItemRefusal> {
+        bytes
+            .checked_mul(16)
+            .and_then(|state| state.checked_add(2048))
+            .ok_or(ItemRefusal::Budget)
+    }
+
+    fn valid_digest(value: &str) -> bool {
+        Digest256::from_hex(value)
+            .map(|digest| digest.to_hex() == value)
+            .unwrap_or(false)
+    }
+
+    fn preflight(&self, workspace: usize, max_state_bytes: usize) -> Result<(), ItemRefusal> {
+        if self.finished
+            || max_state_bytes == 0
+            || max_state_bytes > self.context.operation_state_limit
+            || workspace > max_state_bytes
+        {
+            return Err(source_refusal());
+        }
+        self.context.row_state(workspace)?;
+        self.context.check()
+    }
+
+    fn charge_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.context.add_scan_rows(self.scan_rows, rows)?;
+        self.scan_row_operations = self
+            .scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn cost(&self) -> DiscoveryDigestCacheCost {
+        DiscoveryDigestCacheCost {
+            observation_rows: self.observation_rows,
+            unique_paths: self.unique_paths,
+            serialized_write_bytes: self.serialized_write_bytes,
+            serialized_read_bytes: self.serialized_read_bytes,
+            workspace_state_bytes: self.workspace_peak_bytes,
+            scan_row_operations: self.scan_row_operations,
+        }
+    }
+}
+
+impl DiscoveryDigestCache for CandidateDiscoveryDigestCache<'_, '_, '_, '_, '_> {
+    fn lookup_digest(
+        &mut self,
+        path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize), ItemRefusal> {
+        let workspace = Self::row_text_state(path.len())?
+            .checked_add(Self::row_text_state(64)?)
+            .and_then(|state| state.checked_add(size_of::<(String, String)>() + 256))
+            .ok_or(ItemRefusal::Budget)?;
+        if path.is_empty() {
+            return Err(source_refusal());
+        }
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_scan_rows(1)?;
+        let mut statement = self
+            .db
+            .prepare("SELECT sha256 FROM sf_discovery_digests WHERE path=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([path]).map_err(sql_refusal)?;
+        let value = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || value
+                .as_deref()
+                .is_some_and(|digest| !Self::valid_digest(digest))
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        if let Some(value) = &value {
+            self.serialized_read_bytes = self
+                .serialized_read_bytes
+                .checked_add(usize_u64(value.len())?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
+        Ok((value, workspace))
+    }
+
+    fn remember_digest(
+        &mut self,
+        path: &str,
+        digest: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal> {
+        let workspace = Self::row_text_state(path.len())?
+            .checked_add(Self::row_text_state(digest.len())?)
+            .and_then(|state| state.checked_add(size_of::<(String, String)>() + 256))
+            .ok_or(ItemRefusal::Budget)?;
+        if path.is_empty() || !Self::valid_digest(digest) {
+            return Err(source_refusal());
+        }
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        // Reserve both the insert and exact-key readback before either SQL
+        // operation; an existing path is accepted only with the same digest.
+        self.charge_scan_rows(2)?;
+        let inserted = self
+            .db
+            .execute(
+                "INSERT OR IGNORE INTO sf_discovery_digests(path,sha256) VALUES(?1,?2)",
+                params![path, digest],
+            )
+            .map_err(sql_refusal)?;
+        if inserted > 1 {
+            return Err(source_refusal());
+        }
+        self.context.check()?;
+        let mut statement = self
+            .db
+            .prepare("SELECT sha256 FROM sf_discovery_digests WHERE path=?1")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([path]).map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| bounded_row_text(row, 0, workspace))
+            .transpose()
+            .map_err(sql_refusal)?
+            .ok_or_else(source_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() || stored != digest {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.observation_rows = self
+            .observation_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        if inserted == 1 {
+            self.unique_paths = self
+                .unique_paths
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+            self.serialized_write_bytes = self
+                .serialized_write_bytes
+                .checked_add(usize_u64(
+                    path.len()
+                        .checked_add(digest.len())
+                        .ok_or(ItemRefusal::Budget)?,
+                )?)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.serialized_read_bytes = self
+            .serialized_read_bytes
+            .checked_add(usize_u64(stored.len())?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.max_path_bytes = self.max_path_bytes.max(path.len());
+        self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
+        Ok((inserted == 1, workspace))
+    }
+
+    fn finish(
+        &mut self,
+        expected_observation_rows: u64,
+        expected_unique_paths: u64,
+        max_state_bytes: usize,
+    ) -> Result<DiscoveryDigestCacheCost, ItemRefusal> {
+        if self.finished
+            || self.observation_rows != expected_observation_rows
+            || self.unique_paths != expected_unique_paths
+        {
+            return Err(source_refusal());
+        }
+        let path_state = Self::row_text_state(self.max_path_bytes.max(1))?;
+        let digest_state = Self::row_text_state(64)?;
+        let workspace = path_state
+            .checked_mul(2)
+            .and_then(|state| state.checked_add(digest_state))
+            .and_then(|state| state.checked_add(size_of::<(String, String)>() + 512))
+            .ok_or(ItemRefusal::Budget)?;
+        self.preflight(workspace, max_state_bytes)?;
+        let audit_rows = usize::try_from(expected_unique_paths)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.charge_scan_rows(audit_rows)?;
+        self.context.check()?;
+        let mut statement = self
+            .db
+            .prepare("SELECT path,sha256 FROM sf_discovery_digests ORDER BY path COLLATE BINARY")
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([]).map_err(sql_refusal)?;
+        let mut visited = 0u64;
+        let mut previous_path: Option<String> = None;
+        while let Some(row) = rows.next().map_err(sql_refusal)? {
+            if visited % 128 == 0 {
+                self.context.check()?;
+            }
+            if visited >= expected_unique_paths {
+                return Err(source_refusal());
+            }
+            let path = bounded_row_text(row, 0, workspace).map_err(sql_refusal)?;
+            let digest = bounded_row_text(row, 1, workspace).map_err(sql_refusal)?;
+            if path.is_empty()
+                || path.len() > self.max_path_bytes
+                || previous_path
+                    .as_deref()
+                    .is_some_and(|prior| prior >= path.as_str())
+                || !Self::valid_digest(&digest)
+            {
+                return Err(source_refusal());
+            }
+            self.serialized_read_bytes = self
+                .serialized_read_bytes
+                .checked_add(usize_u64(
+                    path.len()
+                        .checked_add(digest.len())
+                        .ok_or(ItemRefusal::Budget)?,
+                )?)
+                .ok_or(ItemRefusal::Budget)?;
+            previous_path = Some(path);
+            visited = visited.checked_add(1).ok_or(ItemRefusal::Budget)?;
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        if visited != expected_unique_paths {
+            return Err(source_refusal());
+        }
+        self.finished = true;
+        self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
+        Ok(self.cost())
+    }
+
+    fn verify_finished(&self) -> Result<(), ItemRefusal> {
+        if !self.finished {
+            return Err(source_refusal());
+        }
+        self.context.check()
+    }
+
+    fn cost(&self) -> DiscoveryDigestCacheCost {
+        CandidateDiscoveryDigestCache::cost(self)
+    }
+}
+
 struct BiblioEventsProvider<'a, 'candidate, 'host, 'cancel> {
     context: ProviderContext<'candidate, 'host, 'cancel>,
     db: &'a PinnedSqliteConnection,
@@ -3634,6 +3906,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
             &mut dyn DiscoveryRunSummaryStore,
             &mut dyn DiscoveryEventSummaryStore,
             &mut dyn DiscoverySchemaRequestStore,
+            &mut dyn DiscoveryDigestCache,
             &mut dyn SourceFoundationBiblioStoredSink,
         ) -> Result<R, ItemRefusal>,
     ) -> Result<R, ItemRefusal> {
@@ -3740,6 +4013,19 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 finished: false,
                 drained: false,
             };
+            let mut discovery_digest_cache = CandidateDiscoveryDigestCache {
+                context,
+                db: &self.db,
+                scan_rows,
+                observation_rows: 0,
+                unique_paths: 0,
+                serialized_write_bytes: 0,
+                serialized_read_bytes: 0,
+                scan_row_operations: 0,
+                max_path_bytes: 0,
+                workspace_peak_bytes: 0,
+                finished: false,
+            };
             let mut biblio = BiblioStoredProvider {
                 events: BiblioEventsProvider {
                     context,
@@ -3773,10 +4059,13 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 &mut discovery_run_summaries,
                 &mut discovery_event_summaries,
                 &mut discovery_schema_requests,
+                &mut discovery_digest_cache,
                 &mut biblio,
             )?;
             discovery_schema_requests.verify_drained()?;
+            discovery_digest_cache.verify_finished()?;
             drop(biblio);
+            drop(discovery_digest_cache);
             drop(discovery_schema_requests);
             drop(discovery_event_summaries);
             drop(discovery_run_summaries);

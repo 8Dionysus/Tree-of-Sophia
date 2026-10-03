@@ -358,6 +358,51 @@ pub struct DiscoverySchemaRequestStoreCost {
     pub scan_row_operations: u64,
 }
 
+/// Candidate-local point cache for exact digests of current source members.
+/// The portable validator passes only paths and authentic digests computed
+/// from bytes returned by its current-source reader; CMD owns the held store.
+pub trait DiscoveryDigestCache {
+    fn lookup_digest(
+        &mut self,
+        path: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<String>, usize), ItemRefusal>;
+
+    fn remember_digest(
+        &mut self,
+        path: &str,
+        digest: &str,
+        max_state_bytes: usize,
+    ) -> Result<(bool, usize), ItemRefusal>;
+
+    fn finish(
+        &mut self,
+        expected_observation_rows: u64,
+        expected_unique_paths: u64,
+        max_state_bytes: usize,
+    ) -> Result<DiscoveryDigestCacheCost, ItemRefusal>;
+
+    fn verify_finished(&self) -> Result<(), ItemRefusal>;
+
+    fn cost(&self) -> DiscoveryDigestCacheCost;
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct DiscoveryDigestCacheCost {
+    /// Source reads whose digest was verified into the point cache.
+    pub observation_rows: u64,
+    /// Exact current paths represented in the cache.
+    pub unique_paths: u64,
+    /// Logical path+digest bytes first written to the cache.
+    pub serialized_write_bytes: u64,
+    /// Digest values and exact path/digest rows materialized by reads.
+    pub serialized_read_bytes: u64,
+    /// High-water one-row workspace for cache operations.
+    pub workspace_state_bytes: usize,
+    /// SQL point, verification, insertion, and EOF-audit rows charged.
+    pub scan_row_operations: u64,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnsupportedScope {
     pub location: String,
@@ -687,6 +732,18 @@ pub struct Cost {
     pub candidate_discovery_schema_request_peak_workspace_state_bytes: usize,
     /// SQL row operations charged to the shared candidate scan limit.
     pub candidate_discovery_schema_request_scan_row_operations: u64,
+    /// Current source-member byte reads whose digests were cached.
+    pub candidate_discovery_digest_observation_rows: u64,
+    /// Exact current member paths represented in the digest cache.
+    pub candidate_discovery_digest_unique_paths: u64,
+    /// Logical path+digest bytes written to the held candidate cache.
+    pub candidate_discovery_digest_serialized_write_bytes: u64,
+    /// Digest values and path/digest rows materialized by point checks and the ordered audit.
+    pub candidate_discovery_digest_serialized_read_bytes: u64,
+    /// High-water row workspace for held candidate digest operations.
+    pub candidate_discovery_digest_peak_workspace_state_bytes: usize,
+    /// SQL row operations charged to the shared candidate scan limit.
+    pub candidate_discovery_digest_scan_row_operations: u64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -840,6 +897,7 @@ struct Inspector<'s, 'p, S: LayerFamilySource + ?Sized, I: Copy + Eq = ()> {
     candidate_discovery_run_summaries: Option<&'p mut dyn DiscoveryRunSummaryStore>,
     candidate_discovery_event_summaries: Option<&'p mut dyn DiscoveryEventSummaryStore>,
     candidate_discovery_schema_requests: Option<&'p mut dyn DiscoverySchemaRequestStore>,
+    candidate_discovery_digest_cache: Option<&'p mut dyn DiscoveryDigestCache>,
     limits: ItemLimits,
     physical: Option<&'s SourcePhysicalFacts>,
     issues: Vec<Issue>,
@@ -867,6 +925,9 @@ struct Inspector<'s, 'p, S: LayerFamilySource + ?Sized, I: Copy + Eq = ()> {
     candidate_discovery_event_summary_peak_workspace_state_bytes: usize,
     candidate_discovery_schema_request_peak_workspace_state_bytes: usize,
     candidate_discovery_schema_request_count: u64,
+    candidate_discovery_digest_observation_rows: u64,
+    candidate_discovery_digest_unique_paths: u64,
+    candidate_discovery_digest_peak_workspace_state_bytes: usize,
     candidate_discovery_event_json_limit: Option<usize>,
 }
 
@@ -1126,6 +1187,61 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         Ok(Digest256::of_bytes(&canonical).to_prefixed())
     }
 
+    fn candidate_digest_lookup(&mut self, path: &str) -> Result<Option<String>, ItemRefusal> {
+        self.checkpoint()?;
+        let remaining_state_bytes = self.remaining_state_bytes()?;
+        let (value, workspace_state_bytes) = self
+            .candidate_discovery_digest_cache
+            .as_deref_mut()
+            .ok_or_else(|| {
+                ItemRefusal::Source("candidate Discovery digest cache unavailable".into())
+            })?
+            .lookup_digest(path, remaining_state_bytes)?;
+        self.check_temporary_state(workspace_state_bytes)?;
+        self.candidate_discovery_digest_peak_workspace_state_bytes = self
+            .candidate_discovery_digest_peak_workspace_state_bytes
+            .max(workspace_state_bytes);
+        self.candidate_artifact_evidence_peak_state_bytes =
+            self.candidate_artifact_evidence_peak_state_bytes.max(
+                self.candidate_current_artifact_evidence_state_bytes
+                    .checked_add(workspace_state_bytes)
+                    .ok_or(ItemRefusal::Budget)?,
+            );
+        Ok(value)
+    }
+
+    fn candidate_digest_remember(&mut self, path: &str, digest: &str) -> Result<bool, ItemRefusal> {
+        let remaining_state_bytes = self.remaining_state_bytes()?;
+        let (first, workspace_state_bytes) = self
+            .candidate_discovery_digest_cache
+            .as_deref_mut()
+            .ok_or_else(|| {
+                ItemRefusal::Source("candidate Discovery digest cache unavailable".into())
+            })?
+            .remember_digest(path, digest, remaining_state_bytes)?;
+        self.check_temporary_state(workspace_state_bytes)?;
+        self.candidate_discovery_digest_observation_rows = self
+            .candidate_discovery_digest_observation_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        if first {
+            self.candidate_discovery_digest_unique_paths = self
+                .candidate_discovery_digest_unique_paths
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        self.candidate_discovery_digest_peak_workspace_state_bytes = self
+            .candidate_discovery_digest_peak_workspace_state_bytes
+            .max(workspace_state_bytes);
+        self.candidate_artifact_evidence_peak_state_bytes =
+            self.candidate_artifact_evidence_peak_state_bytes.max(
+                self.candidate_current_artifact_evidence_state_bytes
+                    .checked_add(workspace_state_bytes)
+                    .ok_or(ItemRefusal::Budget)?,
+            );
+        Ok(first)
+    }
+
     fn current_bytes(&mut self, path: &str) -> Result<Option<Vec<u8>>, ItemRefusal> {
         self.checkpoint()?;
         if !self.has_current_member(path)? {
@@ -1220,9 +1336,27 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                 .ok_or(ItemRefusal::Budget)?;
             self.reserve_state(raw.len().checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
         }
-        self.digests
-            .entry(path.to_owned())
-            .or_insert_with(|| Digest256::of_bytes(&raw).to_hex());
+        let candidate_digest_cache = self.candidate_discovery_digest_cache.is_some();
+        let new_resident_digest = !candidate_digest_cache && !self.digests.contains_key(path);
+        if candidate_digest_cache {
+            self.check_temporary_state(size_of::<String>() + 64)?;
+        } else if new_resident_digest {
+            let digest_state = path
+                .len()
+                .checked_mul(2)
+                .and_then(|bytes| bytes.checked_add(64 * 2))
+                .and_then(|bytes| bytes.checked_add(size_of::<(String, String)>() + 96))
+                .ok_or(ItemRefusal::Budget)?;
+            self.reserve_state(digest_state)?;
+        }
+        if candidate_digest_cache || new_resident_digest {
+            let digest = Digest256::of_bytes(&raw).to_hex();
+            if candidate_digest_cache {
+                self.candidate_digest_remember(path, &digest)?;
+            } else {
+                self.digests.insert(path.to_owned(), digest);
+            }
+        }
         Ok(Some(raw))
     }
 
@@ -1367,21 +1501,31 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
     }
 
     fn digest(&mut self, path: &str) -> Result<Option<String>, ItemRefusal> {
-        if let Some(value) = self.digests.get(path) {
+        if self.candidate_discovery_digest_cache.is_some() {
+            if let Some(value) = self.candidate_digest_lookup(path)? {
+                return Ok(Some(value));
+            }
+        } else if let Some(value) = self.digests.get(path) {
             return Ok(Some(value.clone()));
         }
         let Some(raw) = self.current_bytes(path)? else {
             return Ok(None);
         };
         let value = Digest256::of_bytes(&raw).to_hex();
-        self.digests.insert(path.to_owned(), value.clone());
         Ok(Some(value))
     }
 
-    fn cached_digest(&self, path: &str) -> Option<Digest256> {
-        self.digests
-            .get(path)
-            .and_then(|value| Digest256::from_hex(value).ok())
+    fn cached_digest(&mut self, path: &str) -> Result<Option<Digest256>, ItemRefusal> {
+        let value = if self.candidate_discovery_digest_cache.is_some() {
+            self.candidate_digest_lookup(path)?
+        } else {
+            self.digests.get(path).cloned()
+        };
+        value
+            .as_deref()
+            .map(Digest256::from_hex)
+            .transpose()
+            .map_err(|_| ItemRefusal::Source("cached current-member digest is invalid".into()))
     }
 
     fn exists_source_ref(&mut self, path: &str) -> Result<bool, ItemRefusal> {
@@ -6026,21 +6170,22 @@ fn native_artifact_capture<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         )?;
         return Ok(NativeArtifactCapture::Invalid);
     }
+    let cached_current_digest = inspector.cached_digest(artifact_path)?;
     let exact_invalid_current_schema = match binding {
         Some(NativeArtifactBinding::Cut(binding)) => {
-            invalid_current_schema_proofs.is_some_and(|proofs| {
-                inspector
-                    .cached_digest(artifact_path)
-                    .is_some_and(|digest| {
-                        proofs.proves_invalid(
-                            artifact_path,
-                            binding.revision,
-                            binding.membership,
-                            digest,
-                            current_member_size_bytes,
-                        )
-                    })
-            })
+            if let (Some(proofs), Some(digest)) =
+                (invalid_current_schema_proofs, cached_current_digest)
+            {
+                proofs.proves_invalid(
+                    artifact_path,
+                    binding.revision,
+                    binding.membership,
+                    digest,
+                    current_member_size_bytes,
+                )
+            } else {
+                false
+            }
         }
         Some(NativeArtifactBinding::Candidate {
             identity,
@@ -6051,7 +6196,7 @@ fn native_artifact_capture<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             } else if let Some(proofs) = inspector.candidate_invalid_schema_proofs {
                 if !proofs.binding_matches(identity, membership) {
                     false
-                } else if let Some(digest) = inspector.cached_digest(artifact_path) {
+                } else if let Some(digest) = cached_current_digest {
                     proofs.proves_invalid(
                         artifact_path,
                         digest,
@@ -7184,6 +7329,7 @@ fn inspect_internal<S: LayerFamilySource + ?Sized>(
         None,
         None,
         None,
+        None,
     )
     .map(|output| output.report)
 }
@@ -7283,6 +7429,7 @@ pub fn inspect_candidate_with_artifact_replays_and_records_with_proofs<
         None,
         None,
         None,
+        None,
     )?;
     input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
     Ok(SourceFoundationCandidateDiscoveryReport {
@@ -7330,6 +7477,7 @@ pub fn inspect_candidate_with_artifact_evidence_provider<
         None,
         None,
         None,
+        None,
         require_local_payloads,
     )
 }
@@ -7366,6 +7514,7 @@ pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids<
         physical,
         evidence_provider,
         Some(discovery_seen_ids),
+        None,
         None,
         None,
         None,
@@ -7413,6 +7562,7 @@ pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_su
         None,
         None,
         None,
+        None,
         require_local_payloads,
     )
 }
@@ -7455,6 +7605,7 @@ pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_su
         Some(discovery_run_summaries),
         Some(discovery_event_summaries),
         Some(max_event_json_bytes),
+        None,
         None,
         require_local_payloads,
     )
@@ -7501,6 +7652,54 @@ pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_su
         Some(discovery_event_summaries),
         Some(max_event_json_bytes),
         Some(discovery_schema_requests),
+        None,
+        require_local_payloads,
+    )
+}
+
+/// Candidate variant that also holds exact current-member digests in CMD's
+/// invocation-scoped cache, keeping the portable Discovery kernel's digest
+/// point facts out of its resident path map.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests_and_digests<
+    S: LayerFamilySource + ?Sized,
+    I: Copy + Eq,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    paths: &dyn SourceFoundationDefaultPaths,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    limits: ItemLimits,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    discovery_seen_ids: &mut dyn DiscoverySeenIds,
+    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
+    discovery_event_summaries: &mut dyn DiscoveryEventSummaryStore,
+    discovery_schema_requests: &mut dyn DiscoverySchemaRequestStore,
+    discovery_digest_cache: &mut dyn DiscoveryDigestCache,
+    max_event_json_bytes: usize,
+    require_local_payloads: bool,
+) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
+    inspect_candidate_with_artifact_evidence_provider_impl(
+        source,
+        input,
+        coverage,
+        paths,
+        prior_events,
+        records_lookup,
+        records,
+        limits,
+        physical,
+        evidence_provider,
+        Some(discovery_seen_ids),
+        Some(discovery_run_summaries),
+        Some(discovery_event_summaries),
+        Some(max_event_json_bytes),
+        Some(discovery_schema_requests),
+        Some(discovery_digest_cache),
         require_local_payloads,
     )
 }
@@ -7525,6 +7724,7 @@ fn inspect_candidate_with_artifact_evidence_provider_impl<
     discovery_event_summaries: Option<&mut dyn DiscoveryEventSummaryStore>,
     candidate_discovery_event_json_limit: Option<usize>,
     discovery_schema_requests: Option<&mut dyn DiscoverySchemaRequestStore>,
+    discovery_digest_cache: Option<&mut dyn DiscoveryDigestCache>,
     require_local_payloads: bool,
 ) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
     source.checkpoint(limits.deadline)?;
@@ -7566,6 +7766,7 @@ fn inspect_candidate_with_artifact_evidence_provider_impl<
         discovery_event_summaries,
         candidate_discovery_event_json_limit,
         discovery_schema_requests,
+        discovery_digest_cache,
     )?;
     input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
     Ok(SourceFoundationCandidateDiscoveryReport {
@@ -7698,6 +7899,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     candidate_discovery_event_summaries: Option<&mut dyn DiscoveryEventSummaryStore>,
     candidate_discovery_event_json_limit: Option<usize>,
     candidate_discovery_schema_requests: Option<&mut dyn DiscoverySchemaRequestStore>,
+    candidate_discovery_digest_cache: Option<&mut dyn DiscoveryDigestCache>,
 ) -> Result<DiscoveryKernelOutput, ItemRefusal> {
     if candidate_discovery_event_summaries.is_some()
         && (candidate_input.is_none()
@@ -7712,6 +7914,11 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 || discovery_seen_ids.is_none()
                 || candidate_artifact_evidence_provider.is_none()
                 || candidate_discovery_event_summaries.is_none())
+        || candidate_discovery_digest_cache.is_some()
+            && (candidate_input.is_none()
+                || discovery_seen_ids.is_none()
+                || candidate_discovery_schema_requests.is_none()
+                || candidate_artifact_evidence_provider.is_none())
     {
         return Err(ItemRefusal::Source(
             "candidate Discovery spill requires its bounded evidence and ID providers".into(),
@@ -7730,6 +7937,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         candidate_discovery_run_summaries,
         candidate_discovery_event_summaries,
         candidate_discovery_schema_requests,
+        candidate_discovery_digest_cache,
         candidate_discovery_event_json_limit,
         limits,
         physical,
@@ -7760,6 +7968,9 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         candidate_discovery_event_summary_peak_workspace_state_bytes: 0,
         candidate_discovery_schema_request_peak_workspace_state_bytes: 0,
         candidate_discovery_schema_request_count: 0,
+        candidate_discovery_digest_observation_rows: 0,
+        candidate_discovery_digest_unique_paths: 0,
+        candidate_discovery_digest_peak_workspace_state_bytes: 0,
     };
     let mut previous_path: Option<String> = None;
     let mut previous_path_state = 0usize;
@@ -9409,6 +9620,30 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     } else {
         None
     };
+    let discovery_digest_cache_cost = if inspector.candidate_discovery_digest_cache.is_some() {
+        let remaining_state_bytes = inspector.remaining_state_bytes()?;
+        let observation_rows = inspector.candidate_discovery_digest_observation_rows;
+        let unique_paths = inspector.candidate_discovery_digest_unique_paths;
+        let cost = inspector
+            .candidate_discovery_digest_cache
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .finish(observation_rows, unique_paths, remaining_state_bytes)?;
+        inspector.check_temporary_state(cost.workspace_state_bytes)?;
+        inspector.candidate_discovery_digest_peak_workspace_state_bytes = inspector
+            .candidate_discovery_digest_peak_workspace_state_bytes
+            .max(cost.workspace_state_bytes);
+        inspector.candidate_artifact_evidence_peak_state_bytes =
+            inspector.candidate_artifact_evidence_peak_state_bytes.max(
+                inspector
+                    .candidate_current_artifact_evidence_state_bytes
+                    .checked_add(cost.workspace_state_bytes)
+                    .ok_or(ItemRefusal::Budget)?,
+            );
+        Some(cost)
+    } else {
+        None
+    };
     let status = if inspector.unsupported.is_empty() {
         ScopeStatus::Complete
     } else {
@@ -9492,6 +9727,25 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     ),
                 candidate_discovery_schema_request_scan_row_operations:
                     discovery_schema_request_cost.map_or(0, |cost| cost.scan_row_operations),
+                candidate_discovery_digest_observation_rows: discovery_digest_cache_cost
+                    .map_or(0, |cost| cost.observation_rows),
+                candidate_discovery_digest_unique_paths: discovery_digest_cache_cost
+                    .map_or(0, |cost| cost.unique_paths),
+                candidate_discovery_digest_serialized_write_bytes: discovery_digest_cache_cost
+                    .map_or(0, |cost| cost.serialized_write_bytes),
+                candidate_discovery_digest_serialized_read_bytes: discovery_digest_cache_cost
+                    .map_or(0, |cost| cost.serialized_read_bytes),
+                candidate_discovery_digest_peak_workspace_state_bytes: discovery_digest_cache_cost
+                    .map_or(
+                        inspector.candidate_discovery_digest_peak_workspace_state_bytes,
+                        |cost| {
+                            inspector
+                                .candidate_discovery_digest_peak_workspace_state_bytes
+                                .max(cost.workspace_state_bytes)
+                        },
+                    ),
+                candidate_discovery_digest_scan_row_operations: discovery_digest_cache_cost
+                    .map_or(0, |cost| cost.scan_row_operations),
             },
         },
         candidate_direct_source_bytes: inspector.candidate_direct_source_bytes,
