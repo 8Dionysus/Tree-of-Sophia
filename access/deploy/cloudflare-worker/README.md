@@ -1138,9 +1138,12 @@ one original absolute monotonic `deadline`, a cumulative `max_snapshot_bytes`
 budget and a per-stream `max_stream_bytes` budget. `max_snapshot_bytes` bounds
 actual encoded typed frames, including descriptors and hashes. Optional
 `max_schema_allocation_bytes` separately bounds cumulative schema metadata
-allocation before copies; its default derives from the frame allowance, and a
-caller may select a smaller explicit computational budget. These are transport
-resource selections, not source admission or measured RSS. The caller must also
+allocation and UTF-16 TEXT carrier copies, decoding work and decoded output.
+The native importer charges the raw carrier before copying and the decoding
+work/output before scanning or allocating. Its default derives from the frame
+allowance, and a caller may select a smaller explicit computational budget.
+These are transport resource selections, not source admission or measured RSS.
+The caller must also
 account for two private stream files of at most `max_stream_bytes + 1` bytes
 each and at most 16 KiB of diagnostic metadata in the same owned scratch.
 Retained failure scopes need explicit owner disposition or an additional
