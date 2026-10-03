@@ -2,7 +2,10 @@
 //! A copied selector is installed last, after the independent copy passes
 //! authenticated current/history closure checks. Bytes confer no admission.
 use super::source_admission::{active, invalid};
-use super::source_admission_segment_v2::{SourceRevisionRootsV2, SourceRootSetV2};
+use super::source_admission_segment_v2::{
+    CompactCommitV2, MAX_COMPACT_COMMIT_V2_BYTES, SourceRevisionArtifactV2, SourceRevisionRootsV2,
+    SourceRootSetV2,
+};
 use super::source_admission_store::AdmissionStore;
 use super::source_admission_v2_seen_pack::{
     V2SeenPackSpill, V2SeenPackSpillLimits, V2SeenPackSpillRequest, V2SeenPackSpillRequests,
@@ -260,13 +263,16 @@ impl V2ImageLimits {
         self,
         requests: &V2SeenPackSpillRequests,
     ) -> io::Result<(Self, V2SeenPackSpillLimits, V2SeenPackSpillLimits)> {
-        let (limits, nodes, base_state) = self.validate_layout()?;
+        let (limits, nodes, base_state) = self.validate_layout_with_spilled_history()?;
         let retained = base_state
             .checked_add(size_of::<V2ImageColdSpillPlan>())
             .ok_or_else(|| invalid("V2 image cold-spill state overflow"))?;
         let max_tree_nodes = u64::try_from(nodes).map_err(invalid)?;
+        let max_history_roots = u64::try_from(limits.max_history_roots).map_err(invalid)?;
         let profile = |request: &V2SeenPackSpillRequest| V2SeenPackSpillLimits {
             max_tree_nodes,
+            max_history_roots,
+            max_history_row_bytes: SourceRevisionRootsV2::MAX_ENCODED_BYTES,
             cache_bytes: request.cache_bytes,
             max_operation_state_bytes: limits.max_state_bytes,
             retained_operation_state_bytes: retained,
@@ -286,6 +292,14 @@ impl V2ImageLimits {
     }
 
     fn validate_layout(self) -> io::Result<(Self, usize, usize)> {
+        self.validate_layout_inner(false)
+    }
+
+    fn validate_layout_with_spilled_history(self) -> io::Result<(Self, usize, usize)> {
+        self.validate_layout_inner(true)
+    }
+
+    fn validate_layout_inner(self, history_spilled: bool) -> io::Result<(Self, usize, usize)> {
         self.reader.validate().map_err(invalid)?;
         self.segment.validate().map_err(invalid)?;
         if self.max_history_roots == 0
@@ -323,15 +337,19 @@ impl V2ImageLimits {
             .and_then(|n| n.checked_add(1))
             .ok_or_else(|| invalid("V2 image state overflow"))?
             .min(nodes);
+        let history_resident = if history_spilled {
+            0
+        } else {
+            self.max_history_roots
+                .checked_mul(ROOT_BYTES.checked_mul(4)?)
+                .ok_or_else(|| invalid("V2 image history state overflow"))?
+        };
         let retained = path_nodes
             .checked_mul(self.tree.max_node_bytes)
             .and_then(|n| n.checked_mul(64))
-            .and_then(|n| {
-                n.checked_add(
-                    self.max_history_roots
-                        .checked_mul(ROOT_BYTES.checked_mul(4)?)?,
-                )
-            })
+            .and_then(|n| n.checked_add(history_resident))
+            .and_then(|n| n.checked_add(MAX_COMPACT_COMMIT_V2_BYTES.checked_mul(4)?))
+            .and_then(|n| n.checked_add(size_of::<V2ColdHistoryCursorState>()))
             .and_then(|n| n.checked_add(self.max_depth.checked_mul(8192)?))
             .and_then(|n| n.checked_add(self.reader.max_manifest_bytes.checked_mul(64)?))
             .and_then(|n| n.checked_add(8 * 1024 * 1024 + 2 * BLOCK_BYTES))
@@ -364,6 +382,14 @@ struct Work {
     directories: u64,
     allocated: u64,
     allocation_upper: u64,
+}
+
+#[derive(Default)]
+struct V2ColdHistoryCursorState {
+    row_count: u64,
+    current_seen: bool,
+    after_revision: Option<[u8; 32]>,
+    processed: u64,
 }
 impl Work {
     fn reserve_allocation_upper(&mut self, bytes: u64, limits: V2ImageLimits) -> io::Result<()> {
@@ -513,7 +539,8 @@ fn verify_closure(
         return Err(invalid("V2 image physical domain differs"));
     }
     roots.validate_store_binding(segment.store_id(), segment.domain_digest())?;
-    if roots.history.entries > limits.max_history_roots as u64 {
+    let max_history_roots = u64::try_from(limits.max_history_roots).map_err(invalid)?;
+    if roots.history.entries > max_history_roots {
         return Err(invalid("V2 image retained history bound exceeded"));
     }
     let pack_set = if let Some((request, mut spill_limits)) = cold_spill {
@@ -549,11 +576,23 @@ fn verify_closure(
             Some(tree_io.clone()),
         )
         .map_err(invalid)?;
-    let mut history = Vec::new();
-    let mut current_seen = false;
+    let mut history = if pack_set.is_some() {
+        None
+    } else {
+        Some(Vec::new())
+    };
+    let mut history_cursor = V2ColdHistoryCursorState::default();
     while let Some(row) = stream.next_row(deadline, cancel).map_err(invalid)? {
         active(deadline, cancel)?;
-        if history.len() >= limits.max_history_roots {
+        history_cursor.row_count = history_cursor
+            .row_count
+            .checked_add(1)
+            .filter(|count| *count <= max_history_roots)
+            .ok_or_else(|| invalid("V2 image retained history bound exceeded"))?;
+        if history
+            .as_ref()
+            .is_some_and(|history| history.len() >= limits.max_history_roots)
+        {
             return Err(invalid("V2 image retained history bound exceeded"));
         }
         let revision = SourceRevisionRootsV2::decode(&row.value)?;
@@ -563,162 +602,344 @@ fn verify_closure(
         revision.validate_store_binding(segment.store_id(), segment.domain_digest())?;
         if revision.revision == roots.current.revision {
             roots.verify_current_history_row(&row.key, &row.value)?;
-            if current_seen {
+            if history_cursor.current_seen {
                 return Err(invalid("V2 image repeated current history key"));
             }
-            current_seen = true;
+            history_cursor.current_seen = true;
         }
-        history.try_reserve(1).map_err(invalid)?;
-        history.push(revision);
+        if let Some(spill) = &pack_set {
+            spill.observe_history(
+                *revision.revision.0.as_bytes(),
+                revision.base_revision.map(|base| *base.0.as_bytes()),
+                &row.value,
+            )?;
+        } else if let Some(history) = &mut history {
+            history.try_reserve(1).map_err(invalid)?;
+            history.push(revision);
+        }
     }
     let coverage = stream
         .coverage()
         .ok_or_else(|| invalid("V2 image history EOF absent"))?;
     work.record_tree(coverage.work, limits)?;
     drop(stream);
-    if !current_seen {
+    if !history_cursor.current_seen {
         return Err(invalid(
             "V2 image current absent from authenticated history",
         ));
     }
-    // Preserve every retained predecessor, with no missing base or cycle. The
-    // authenticated history stream is ordered by the raw revision digest.
-    for revision in &history {
-        let mut next = revision.base_revision;
-        let mut hops = 0usize;
-        while let Some(base) = next {
-            active(deadline, cancel)?;
-            hops = hops
-                .checked_add(1)
-                .filter(|n| *n <= history.len())
-                .ok_or_else(|| invalid("V2 image retained history cycle"))?;
-            let index = history
-                .binary_search_by_key(&base.0, |row| row.revision.0)
-                .map_err(|_| invalid("V2 image retained history base absent"))?;
-            next = history[index].base_revision;
+    if let Some(history) = history {
+        // Compatibility mode keeps its explicitly precharged finite vector.
+        // Cold mode performs the same missing-base/cycle checks in SQLite.
+        for revision in &history {
+            let mut next = revision.base_revision;
+            let mut hops = 0usize;
+            while let Some(base) = next {
+                active(deadline, cancel)?;
+                hops = hops
+                    .checked_add(1)
+                    .filter(|n| *n <= history.len())
+                    .ok_or_else(|| invalid("V2 image retained history cycle"))?;
+                let index = history
+                    .binary_search_by_key(&base.0, |row| row.revision.0)
+                    .map_err(|_| invalid("V2 image retained history base absent"))?;
+                next = history[index].base_revision;
+            }
         }
-    }
-    for revision in history {
-        let (_, _, revisions) = store.backup_namespaces()?;
-        let revision_name = revision.revision.0.to_hex();
-        debit_name_resolution(io, &revision_name)?;
-        let directory = tos_fd_open::open_directory_at(revisions, Path::new(&revision_name))
-            .map_err(invalid)?;
-        debit_name_resolution(io, "snapshot.json")?;
-        let snapshot = tos_fd_open::open_regular_at(&directory, Path::new("snapshot.json"))
-            .map_err(invalid)?;
-        let snapshot_size = snapshot.metadata()?.len();
-        if snapshot_size > limits.max_compatibility_manifest_bytes {
-            return Err(invalid("V2 image compatibility manifest bound exceeded"));
-        }
-        verify_file(
-            &directory,
-            "snapshot.json",
-            revision.manifest_sha256,
-            snapshot_size,
-            io,
-            deadline,
-            cancel,
-        )?;
-        for root in [
-            &revision.members,
-            &revision.identities,
-            &revision.dependencies,
-            &revision.retirements,
-        ] {
-            let coverage = verify_tree_v2(
+        for revision in history {
+            verify_revision_closure(
+                store,
                 &segment,
-                root,
-                work.tree_limits(limits)?,
+                &revision,
+                limits,
+                io,
+                work,
                 tree_io.clone(),
                 pack_set.as_ref(),
                 closure_binding,
                 deadline,
                 cancel,
-            )
-            .map_err(invalid)?;
-            work.record_tree(coverage.work, limits)?;
+            )?;
         }
-        let (_, objects, _) = store.backup_namespaces()?;
-        let mut members = segment
-            .stream_authenticated_tree_v2_with_io(
-                &revision.members,
-                work.tree_limits(limits)?,
-                Some(tree_io.clone()),
-            )
-            .map_err(invalid)?;
-        let mut source_bytes = 0u64;
-        while let Some(row) = members.next_row(deadline, cancel).map_err(invalid)? {
-            let path = std::str::from_utf8(&row.key).map_err(invalid)?;
-            tos_foundation::RelativePath::parse(path).map_err(invalid)?;
-            if row.value.len() != 44 {
-                return Err(invalid("V2 image member tuple length differs"));
+    } else {
+        let spill = pack_set
+            .as_ref()
+            .ok_or_else(|| invalid("V2 cold history spill is absent"))?;
+        spill.seal_history(*roots.current.revision.0.as_bytes(), roots.history.entries)?;
+        while let Some(row) = spill.next_history(history_cursor.after_revision)? {
+            active(deadline, cancel)?;
+            if history_cursor
+                .after_revision
+                .is_some_and(|previous| row.revision <= previous)
+            {
+                return Err(invalid("V2 cold history keyset cursor did not advance"));
             }
-            let digest = Digest256::from_bytes(row.value[..32].try_into().map_err(invalid)?);
-            let size = u64::from_be_bytes(row.value[32..40].try_into().map_err(invalid)?);
-            let mode = u32::from_le_bytes(row.value[40..44].try_into().map_err(invalid)?);
-            if mode & !0o777 != 0 {
-                return Err(invalid("V2 image member mode differs"));
+            let revision = SourceRevisionRootsV2::decode(&row.raw)?;
+            if row.revision.as_slice() != revision.revision.0.as_bytes()
+                || row.base_revision != revision.base_revision.map(|base| *base.0.as_bytes())
+            {
+                return Err(invalid("V2 cold history spill row binding differs"));
             }
-            source_bytes = source_bytes
-                .checked_add(size)
-                .ok_or_else(|| invalid("V2 image source byte overflow"))?;
-            verify_object(objects, digest, size, io, deadline, cancel)?;
-        }
-        if source_bytes != revision.source_bytes {
-            return Err(invalid("V2 image source byte count differs"));
-        }
-        let coverage = members
-            .coverage()
-            .ok_or_else(|| invalid("V2 image members EOF absent"))?;
-        work.record_tree(coverage.work, limits)?;
-        drop(members);
-        let mut retirements = segment
-            .stream_authenticated_tree_v2_with_io(
-                &revision.retirements,
-                work.tree_limits(limits)?,
-                Some(tree_io.clone()),
-            )
-            .map_err(invalid)?;
-        let mut ordinal = 0u64;
-        while let Some(row) = retirements.next_row(deadline, cancel).map_err(invalid)? {
-            if row.key.as_slice() != ordinal.to_be_bytes() {
-                return Err(invalid("V2 image retirement ordinal differs"));
-            }
-            ordinal = ordinal
+            revision.validate_store_binding(segment.store_id(), segment.domain_digest())?;
+            verify_revision_closure(
+                store,
+                &segment,
+                &revision,
+                limits,
+                io,
+                work,
+                tree_io.clone(),
+                pack_set.as_ref(),
+                closure_binding,
+                deadline,
+                cancel,
+            )?;
+            history_cursor.processed = history_cursor
+                .processed
                 .checked_add(1)
-                .ok_or_else(|| invalid("V2 image retirement ordinal overflow"))?;
-            let mut raw = row.value.as_slice();
-            tuple_path(&mut raw)?;
-            let retired_digest = tuple_digest(&mut raw)?;
-            tuple_path(&mut raw)?;
-            let event_digest = tuple_digest(&mut raw)?;
-            let event_size =
-                u64::from_be_bytes(take_tuple(&mut raw, 8)?.try_into().map_err(invalid)?);
-            if !raw.is_empty() {
-                return Err(invalid("V2 image retirement tuple trailing bytes"));
-            }
-            let retired_name = retired_digest.to_hex();
-            debit_name_resolution(io, &retired_name)?;
-            let retired =
-                tos_fd_open::open_regular_at(objects, Path::new(&retired_name)).map_err(invalid)?;
-            verify_object(
-                objects,
-                retired_digest,
-                retired.metadata()?.len(),
+                .filter(|count| *count <= max_history_roots)
+                .ok_or_else(|| invalid("V2 cold history processed row bound exceeded"))?;
+            history_cursor.after_revision = Some(row.revision);
+        }
+        spill.finish_history(history_cursor.processed)?;
+    }
+    store.verify_layout()?;
+    active(deadline, cancel)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn verify_revision_closure(
+    store: &AdmissionStore,
+    segment: &SegmentStore,
+    revision: &SourceRevisionRootsV2,
+    limits: V2ImageLimits,
+    io: &PinnedSqliteIoBudget,
+    work: &mut Work,
+    tree_io: Arc<dyn AuthenticatedTreeIoLedgerV1>,
+    pack_set: Option<&Arc<V2SeenPackSpill>>,
+    closure_binding: Digest256,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> io::Result<()> {
+    let (_, _, revisions) = store.backup_namespaces()?;
+    let revision_name = revision.revision.0.to_hex();
+    debit_name_resolution(io, &revision_name)?;
+    let directory =
+        tos_fd_open::open_directory_at(revisions, Path::new(&revision_name)).map_err(invalid)?;
+    verify_revision_artifact(&directory, revision, limits, io, deadline, cancel)?;
+    for root in [
+        &revision.members,
+        &revision.identities,
+        &revision.dependencies,
+        &revision.retirements,
+    ] {
+        let coverage = verify_tree_v2(
+            segment,
+            root,
+            work.tree_limits(limits)?,
+            tree_io.clone(),
+            pack_set,
+            closure_binding,
+            deadline,
+            cancel,
+        )
+        .map_err(invalid)?;
+        work.record_tree(coverage.work, limits)?;
+    }
+    let (_, objects, _) = store.backup_namespaces()?;
+    let mut members = segment
+        .stream_authenticated_tree_v2_with_io(
+            &revision.members,
+            work.tree_limits(limits)?,
+            Some(tree_io.clone()),
+        )
+        .map_err(invalid)?;
+    let mut source_bytes = 0u64;
+    while let Some(row) = members.next_row(deadline, cancel).map_err(invalid)? {
+        active(deadline, cancel)?;
+        let path = std::str::from_utf8(&row.key).map_err(invalid)?;
+        tos_foundation::RelativePath::parse(path).map_err(invalid)?;
+        if row.value.len() != 44 {
+            return Err(invalid("V2 image member tuple length differs"));
+        }
+        let digest = Digest256::from_bytes(row.value[..32].try_into().map_err(invalid)?);
+        let size = u64::from_be_bytes(row.value[32..40].try_into().map_err(invalid)?);
+        let mode = u32::from_le_bytes(row.value[40..44].try_into().map_err(invalid)?);
+        if mode & !0o777 != 0 {
+            return Err(invalid("V2 image member mode differs"));
+        }
+        source_bytes = source_bytes
+            .checked_add(size)
+            .ok_or_else(|| invalid("V2 image source byte overflow"))?;
+        verify_object(objects, digest, size, io, deadline, cancel)?;
+    }
+    if source_bytes != revision.source_bytes {
+        return Err(invalid("V2 image source byte count differs"));
+    }
+    let coverage = members
+        .coverage()
+        .ok_or_else(|| invalid("V2 image members EOF absent"))?;
+    work.record_tree(coverage.work, limits)?;
+    drop(members);
+    let mut retirements = segment
+        .stream_authenticated_tree_v2_with_io(
+            &revision.retirements,
+            work.tree_limits(limits)?,
+            Some(tree_io.clone()),
+        )
+        .map_err(invalid)?;
+    let mut ordinal = 0u64;
+    while let Some(row) = retirements.next_row(deadline, cancel).map_err(invalid)? {
+        active(deadline, cancel)?;
+        if row.key.as_slice() != ordinal.to_be_bytes() {
+            return Err(invalid("V2 image retirement ordinal differs"));
+        }
+        ordinal = ordinal
+            .checked_add(1)
+            .ok_or_else(|| invalid("V2 image retirement ordinal overflow"))?;
+        let mut raw = row.value.as_slice();
+        tuple_path(&mut raw)?;
+        let retired_digest = tuple_digest(&mut raw)?;
+        tuple_path(&mut raw)?;
+        let event_digest = tuple_digest(&mut raw)?;
+        let event_size = u64::from_be_bytes(take_tuple(&mut raw, 8)?.try_into().map_err(invalid)?);
+        if !raw.is_empty() {
+            return Err(invalid("V2 image retirement tuple trailing bytes"));
+        }
+        let retired_name = retired_digest.to_hex();
+        debit_name_resolution(io, &retired_name)?;
+        let retired =
+            tos_fd_open::open_regular_at(objects, Path::new(&retired_name)).map_err(invalid)?;
+        verify_object(
+            objects,
+            retired_digest,
+            retired.metadata()?.len(),
+            io,
+            deadline,
+            cancel,
+        )?;
+        verify_object(objects, event_digest, event_size, io, deadline, cancel)?;
+    }
+    let coverage = retirements
+        .coverage()
+        .ok_or_else(|| invalid("V2 image retirement EOF absent"))?;
+    work.record_tree(coverage.work, limits)?;
+    Ok(())
+}
+
+fn verify_revision_artifact(
+    directory: &File,
+    revision: &SourceRevisionRootsV2,
+    limits: V2ImageLimits,
+    io: &PinnedSqliteIoBudget,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> io::Result<()> {
+    let artifact = &revision.source_artifact;
+    let name = artifact.filename();
+    debit_name_resolution(io, name)?;
+    let file = tos_fd_open::open_regular_at(directory, Path::new(name)).map_err(invalid)?;
+    let size = file.metadata()?.len();
+    if size > limits.max_compatibility_manifest_bytes
+        || artifact.bytes().is_some_and(|expected| expected != size)
+        || matches!(artifact, SourceRevisionArtifactV2::CompactCommitV2 { .. })
+            && size > MAX_COMPACT_COMMIT_V2_BYTES as u64
+    {
+        return Err(invalid("V2 image revision record size differs"));
+    }
+    drop(file);
+
+    match artifact {
+        SourceRevisionArtifactV2::CompactCommitV2 { .. } => {
+            let raw = read_and_verify_compact_record(
+                directory,
+                name,
+                artifact.sha256(),
+                size,
                 io,
                 deadline,
                 cancel,
             )?;
-            verify_object(objects, event_digest, event_size, io, deadline, cancel)?;
+            let record = CompactCommitV2::decode(&raw)?;
+            if !record.matches_roots(revision) {
+                return Err(invalid(
+                    "V2 compact commit differs from authenticated history",
+                ));
+            }
         }
-        let coverage = retirements
-            .coverage()
-            .ok_or_else(|| invalid("V2 image retirement EOF absent"))?;
-        work.record_tree(coverage.work, limits)?;
+        SourceRevisionArtifactV2::LegacyManifestV1 { .. }
+        | SourceRevisionArtifactV2::SnapshotV1 { .. } => {
+            verify_file(
+                directory,
+                name,
+                artifact.sha256(),
+                size,
+                io,
+                deadline,
+                cancel,
+            )?;
+        }
     }
-    store.verify_layout()?;
-    active(deadline, cancel)
+    Ok(())
+}
+
+fn read_and_verify_compact_record(
+    directory: &File,
+    name: &str,
+    expected_digest: Digest256,
+    expected_size: u64,
+    io: &PinnedSqliteIoBudget,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> io::Result<Vec<u8>> {
+    let capacity = usize::try_from(expected_size).map_err(invalid)?;
+    if capacity == 0 || capacity > MAX_COMPACT_COMMIT_V2_BYTES {
+        return Err(invalid("V2 compact commit exceeds its byte profile"));
+    }
+    debit_name_resolution(io, name)?;
+    let mut input = tos_fd_open::open_regular_at(directory, Path::new(name)).map_err(invalid)?;
+    let before = input.metadata()?;
+    if before.len() != expected_size
+        || before.uid() != rustix::process::geteuid().as_raw()
+        || before.mode() & 0o222 != 0
+    {
+        return Err(invalid("V2 compact commit custody differs"));
+    }
+    let mut raw = Vec::new();
+    raw.try_reserve_exact(capacity).map_err(invalid)?;
+    let mut block = [0u8; BLOCK_BYTES];
+    let mut hash = Digest256Hasher::new();
+    let mut remaining = expected_size;
+    while remaining > 0 {
+        active(deadline, cancel)?;
+        let wanted = usize::try_from(remaining.min(BLOCK_BYTES as u64)).map_err(invalid)?;
+        io.charge_read(wanted as u64).map_err(invalid)?;
+        let read = match input.read(&mut block[..wanted]) {
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+            result => result?,
+        };
+        io.record_read_returned(read as u64).map_err(invalid)?;
+        if read == 0 {
+            return Err(invalid("V2 compact commit early EOF"));
+        }
+        hash.update(&block[..read]);
+        raw.extend_from_slice(&block[..read]);
+        remaining -= read as u64;
+    }
+    io.charge_read(1).map_err(invalid)?;
+    let tail = input.read(&mut block[..1])?;
+    io.record_read_returned(tail as u64).map_err(invalid)?;
+    debit_name_resolution(io, name)?;
+    let named = tos_fd_open::open_regular_at(directory, Path::new(name)).map_err(invalid)?;
+    if tail != 0
+        || raw.len() != capacity
+        || hash.finalize() != expected_digest
+        || stamp(&input.metadata()?) != stamp(&before)
+        || stamp(&named.metadata()?) != stamp(&before)
+    {
+        return Err(invalid("V2 compact commit digest or custody changed"));
+    }
+    Ok(raw)
 }
 
 fn take_tuple<'a>(raw: &mut &'a [u8], count: usize) -> io::Result<&'a [u8]> {

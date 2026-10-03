@@ -31,6 +31,21 @@ enum SpillPhase {
     Failed,
 }
 
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum HistoryPhase {
+    Loading,
+    Sealed,
+    Iterating,
+    Complete,
+    Failed,
+}
+
+pub(crate) struct V2ColdHistoryRow {
+    pub revision: [u8; DIGEST_BYTES],
+    pub base_revision: Option<[u8; DIGEST_BYTES]>,
+    pub raw: Vec<u8>,
+}
+
 /// Finite in-memory terms for the SQLite-backed exact digest set.
 ///
 /// The SQLite main-file logical/allocation limits remain on the held request.
@@ -42,6 +57,11 @@ pub(crate) struct V2SeenPackSpillLimits {
     /// Existing cumulative tree-node ceiling; distinct observed packs cannot
     /// exceed the number of physical nodes traversed.
     pub max_tree_nodes: u64,
+    /// Existing retained-history ceiling; the spill does not create a larger
+    /// row grant.
+    pub max_history_roots: u64,
+    /// Source-owned maximum canonical history-row encoding.
+    pub max_history_row_bytes: usize,
     pub cache_bytes: usize,
     pub max_operation_state_bytes: usize,
     pub retained_operation_state_bytes: usize,
@@ -135,6 +155,10 @@ impl V2SeenPackSpillLimits {
         let cache_kib = self.cache_bytes / 1024;
         if self.max_tree_nodes == 0
             || self.max_tree_nodes == u64::MAX
+            || self.max_history_roots == 0
+            || self.max_history_roots == u64::MAX
+            || self.max_history_row_bytes == 0
+            || self.max_history_row_bytes == usize::MAX
             || cache_kib == 0
             || cache_kib > i32::MAX as usize
             || self.cache_bytes == usize::MAX
@@ -150,6 +174,9 @@ impl V2SeenPackSpillLimits {
             // Includes the ordered cursor, returned row, digest passed to the
             // physical verifier, and one conversion/callback scratch copy.
             .and_then(|bytes| bytes.checked_add(4 * DIGEST_BYTES))
+            // One authenticated history row is resident while its compact
+            // tuple is decoded and the corresponding roots are checked.
+            .and_then(|bytes| bytes.checked_add(self.max_history_row_bytes.checked_mul(4)?))
             .and_then(|bytes| bytes.checked_add(self.sqlite_native_overhead_bytes))
             .ok_or_else(|| invalid("V2 pack spill state charge overflow"))?;
         if self
@@ -183,6 +210,8 @@ pub(crate) struct V2SeenPackSpill {
     entries: Cell<u64>,
     phase: Cell<SpillPhase>,
     binding_checked: Cell<bool>,
+    history_entries: Cell<u64>,
+    history_phase: Cell<HistoryPhase>,
 }
 
 impl V2SeenPackSpill {
@@ -212,7 +241,18 @@ impl V2SeenPackSpill {
                  verified INTEGER NOT NULL CHECK(verified IN (0,1))\
              ) WITHOUT ROWID;\
              CREATE INDEX v2_cold_seen_pack_pending ON v2_cold_seen_pack(digest)\
-                 WHERE verified=0;",
+                 WHERE verified=0;\
+             CREATE TABLE v2_cold_history(\
+                 revision BLOB NOT NULL PRIMARY KEY CHECK(length(revision)=32),\
+                 base_revision BLOB CHECK(base_revision IS NULL OR length(base_revision)=32),\
+                 raw BLOB NOT NULL CHECK(length(raw)>0),\
+                 color INTEGER NOT NULL DEFAULT 0 CHECK(color IN (0,1,2)),\
+                 walk_root BLOB CHECK(walk_root IS NULL OR length(walk_root)=32)\
+             ) WITHOUT ROWID;\
+             CREATE INDEX v2_cold_history_unvisited ON v2_cold_history(revision)\
+                 WHERE color=0;\
+             CREATE INDEX v2_cold_history_walk ON v2_cold_history(walk_root)\
+                 WHERE color=1;",
         )
         .map_err(sql_invalid)?;
         let spill = Arc::new(Self {
@@ -230,6 +270,8 @@ impl V2SeenPackSpill {
             entries: Cell::new(0),
             phase: Cell::new(SpillPhase::Observing),
             binding_checked: Cell::new(false),
+            history_entries: Cell::new(0),
+            history_phase: Cell::new(HistoryPhase::Loading),
         });
         spill
             .check_context()
@@ -239,6 +281,293 @@ impl V2SeenPackSpill {
 
     pub(crate) fn state_charge(&self) -> std::io::Result<usize> {
         self.limits.state_charge()
+    }
+
+    pub(crate) fn observe_history(
+        &self,
+        revision: [u8; DIGEST_BYTES],
+        base_revision: Option<[u8; DIGEST_BYTES]>,
+        raw: &[u8],
+    ) -> std::io::Result<()> {
+        let result = (|| {
+            self.check_context()
+                .map_err(|_| invalid("V2 cold history context is unavailable"))?;
+            if self.history_phase.get() != HistoryPhase::Loading
+                || raw.is_empty()
+                || raw.len() > self.limits.max_history_row_bytes
+            {
+                return Err(invalid("V2 cold history row is outside its finite profile"));
+            }
+            let next_entries = self
+                .history_entries
+                .get()
+                .checked_add(1)
+                .filter(|count| *count <= self.limits.max_history_roots)
+                .ok_or_else(|| invalid("V2 cold history row ceiling exceeded"))?;
+            let base = base_revision.map(|value| value.to_vec());
+            let changed = self
+                .db
+                .borrow()
+                .execute(
+                    "INSERT INTO v2_cold_history(revision,base_revision,raw) VALUES(?1,?2,?3)",
+                    params![revision.as_slice(), base.as_deref(), raw],
+                )
+                .map_err(sql_invalid)?;
+            if changed != 1 {
+                return Err(invalid(
+                    "V2 cold history insertion changed an unexpected row count",
+                ));
+            }
+            self.history_entries.set(next_entries);
+            self.check_context()
+                .map_err(|_| invalid("V2 cold history context is unavailable"))
+        })();
+        if result.is_err() {
+            self.history_phase.set(HistoryPhase::Failed);
+            self.phase.set(SpillPhase::Failed);
+        }
+        result
+    }
+
+    /// Seal the authenticated stream after its true EOF, check all base links,
+    /// and walk indexed color rows without a resident history vector or an
+    /// in-memory DFS stack. Each row transitions through the colors at most
+    /// once, so the number of row visits and updates stays linear in history.
+    pub(crate) fn seal_history(
+        &self,
+        current_revision: [u8; DIGEST_BYTES],
+        expected_entries: u64,
+    ) -> std::io::Result<()> {
+        let result = self.seal_history_inner(current_revision, expected_entries);
+        if result.is_err() {
+            self.history_phase.set(HistoryPhase::Failed);
+            self.phase.set(SpillPhase::Failed);
+        }
+        result
+    }
+
+    fn seal_history_inner(
+        &self,
+        current_revision: [u8; DIGEST_BYTES],
+        expected_entries: u64,
+    ) -> std::io::Result<()> {
+        self.check_context()
+            .map_err(|_| invalid("V2 cold history context is unavailable"))?;
+        if self.history_phase.get() != HistoryPhase::Loading
+            || self.history_entries.get() != expected_entries
+            || expected_entries == 0
+            || expected_entries > self.limits.max_history_roots
+        {
+            return Err(invalid("V2 cold history EOF or row count differs"));
+        }
+        let db = self.db.borrow();
+        let current_exists = db
+            .query_row(
+                "SELECT 1 FROM v2_cold_history WHERE revision=?1",
+                params![current_revision.as_slice()],
+                |_| Ok(()),
+            )
+            .optional()
+            .map_err(sql_invalid)?
+            .is_some();
+        if !current_exists {
+            return Err(invalid("V2 cold current revision is absent from history"));
+        }
+        let missing_base = db
+            .query_row(
+                "SELECT child.revision FROM v2_cold_history AS child \
+                 WHERE child.base_revision IS NOT NULL \
+                   AND NOT EXISTS (SELECT 1 FROM v2_cold_history AS parent \
+                                   WHERE parent.revision=child.base_revision) LIMIT 1",
+                [],
+                digest_row,
+            )
+            .optional()
+            .map_err(sql_invalid)?;
+        drop(db);
+        if missing_base.is_some() {
+            return Err(invalid("V2 cold history base revision is absent"));
+        }
+
+        loop {
+            self.check_context()
+                .map_err(|_| invalid("V2 cold history context is unavailable"))?;
+            let start = self
+                .db
+                .borrow()
+                .query_row(
+                    "SELECT revision FROM v2_cold_history WHERE color=0 ORDER BY revision LIMIT 1",
+                    [],
+                    digest_row,
+                )
+                .optional()
+                .map_err(sql_invalid)?;
+            let Some(start) = start else { break };
+            let mut current = start;
+            let mut hops = 0u64;
+            loop {
+                self.check_context()
+                    .map_err(|_| invalid("V2 cold history context is unavailable"))?;
+                let (base, color) = self
+                    .db
+                    .borrow()
+                    .query_row(
+                        "SELECT base_revision,color FROM v2_cold_history WHERE revision=?1",
+                        params![current.as_slice()],
+                        |row| {
+                            let base = match row.get_ref(0)? {
+                                ValueRef::Null => None,
+                                ValueRef::Blob(raw) if raw.len() == DIGEST_BYTES => {
+                                    let mut digest = [0; DIGEST_BYTES];
+                                    digest.copy_from_slice(raw);
+                                    Some(digest)
+                                }
+                                _ => return Err(rusqlite::Error::InvalidQuery),
+                            };
+                            Ok((base, row.get::<_, i64>(1)?))
+                        },
+                    )
+                    .optional()
+                    .map_err(sql_invalid)?
+                    .ok_or_else(|| invalid("V2 cold history walk lost a revision"))?;
+                match color {
+                    0 => {
+                        let changed = self
+                            .db
+                            .borrow()
+                            .execute(
+                                "UPDATE v2_cold_history SET color=1,walk_root=?1 \
+                                 WHERE revision=?2 AND color=0",
+                                params![start.as_slice(), current.as_slice()],
+                            )
+                            .map_err(sql_invalid)?;
+                        if changed != 1 {
+                            return Err(invalid("V2 cold history walk color changed unexpectedly"));
+                        }
+                        hops = hops
+                            .checked_add(1)
+                            .filter(|count| *count <= self.limits.max_history_roots)
+                            .ok_or_else(|| invalid("V2 cold history cycle detected"))?;
+                        match base {
+                            Some(base) => current = base,
+                            None => break,
+                        }
+                    }
+                    1 => return Err(invalid("V2 cold history cycle detected")),
+                    2 => break,
+                    _ => return Err(invalid("V2 cold history walk color is invalid")),
+                }
+            }
+            let changed = self
+                .db
+                .borrow()
+                .execute(
+                    "UPDATE v2_cold_history SET color=2,walk_root=NULL \
+                     WHERE color=1 AND walk_root=?1",
+                    params![start.as_slice()],
+                )
+                .map_err(sql_invalid)?;
+            if changed == 0 {
+                return Err(invalid("V2 cold history walk made no progress"));
+            }
+        }
+        self.check_context()
+            .map_err(|_| invalid("V2 cold history context is unavailable"))?;
+        self.history_phase.set(HistoryPhase::Sealed);
+        Ok(())
+    }
+
+    pub(crate) fn next_history(
+        &self,
+        after: Option<[u8; DIGEST_BYTES]>,
+    ) -> std::io::Result<Option<V2ColdHistoryRow>> {
+        let result = (|| {
+            self.check_context()
+                .map_err(|_| invalid("V2 cold history context is unavailable"))?;
+            if !matches!(
+                self.history_phase.get(),
+                HistoryPhase::Sealed | HistoryPhase::Iterating
+            ) {
+                return Err(invalid("V2 cold history cursor is not sealed"));
+            }
+            let row = {
+                let db = self.db.borrow();
+                let query = match after {
+                    Some(_) => {
+                        "SELECT revision,base_revision,raw FROM v2_cold_history \
+                                WHERE revision>?1 ORDER BY revision LIMIT 1"
+                    }
+                    None => {
+                        "SELECT revision,base_revision,raw FROM v2_cold_history \
+                             ORDER BY revision LIMIT 1"
+                    }
+                };
+                let decode = |row: &rusqlite::Row<'_>| {
+                    let revision = digest_row(row)?;
+                    let base_revision = match row.get_ref(1)? {
+                        ValueRef::Null => None,
+                        ValueRef::Blob(raw) if raw.len() == DIGEST_BYTES => {
+                            let mut digest = [0; DIGEST_BYTES];
+                            digest.copy_from_slice(raw);
+                            Some(digest)
+                        }
+                        _ => return Err(rusqlite::Error::InvalidQuery),
+                    };
+                    let raw = match row.get_ref(2)? {
+                        ValueRef::Blob(raw)
+                            if !raw.is_empty()
+                                && raw.len() <= self.limits.max_history_row_bytes =>
+                        {
+                            raw.to_vec()
+                        }
+                        _ => return Err(rusqlite::Error::InvalidQuery),
+                    };
+                    Ok(V2ColdHistoryRow {
+                        revision,
+                        base_revision,
+                        raw,
+                    })
+                };
+                if let Some(after) = after {
+                    db.query_row(query, params![after.as_slice()], decode)
+                        .optional()
+                } else {
+                    db.query_row(query, [], decode).optional()
+                }
+                .map_err(sql_invalid)?
+            };
+            self.check_context()
+                .map_err(|_| invalid("V2 cold history context is unavailable"))?;
+            match row {
+                Some(row) => {
+                    self.history_phase.set(HistoryPhase::Iterating);
+                    Ok(Some(row))
+                }
+                None => {
+                    self.history_phase.set(HistoryPhase::Complete);
+                    Ok(None)
+                }
+            }
+        })();
+        if result.is_err() {
+            self.history_phase.set(HistoryPhase::Failed);
+            self.phase.set(SpillPhase::Failed);
+        }
+        result
+    }
+
+    pub(crate) fn finish_history(&self, processed: u64) -> std::io::Result<()> {
+        self.check_context()
+            .map_err(|_| invalid("V2 cold history context is unavailable"))?;
+        if self.history_phase.get() != HistoryPhase::Complete
+            || processed != self.history_entries.get()
+            || processed == 0
+        {
+            self.history_phase.set(HistoryPhase::Failed);
+            self.phase.set(SpillPhase::Failed);
+            return Err(invalid("V2 cold history ordered EOF differs"));
+        }
+        Ok(())
     }
 
     fn check_context(&self) -> SegmentResult<()> {
