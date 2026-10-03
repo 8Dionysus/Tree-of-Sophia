@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import shutil
+import stat
 
 BASE = Path(os.environ['TOS_PRIVATE_JOURNAL_V6_FIXTURE_ROOT']).resolve()
 PREFIX = 'ToS/source-witnesses/owner-local/sid-77777777777777777777777777777777/'
@@ -50,6 +51,16 @@ def prepare(repository, root):
     private.mkdir(mode=0o700)
     # Only private rights are inputs; no old journal or authored layer is copied.
     checked_copy(BASE/'private'/PREFIX/'rights', private/PREFIX/'rights')
+    # The native owner checks every private parent before observing an absent
+    # destination file. Allocate a fresh empty package, never an old layer.
+    package = private
+    for component in Path(NEW_PACKAGE).parts:
+        package /= component
+        package.mkdir(mode=0o700, exist_ok=True)
+        info = package.lstat()
+        assert stat.S_ISDIR(info.st_mode) and not package.is_symlink()
+        assert info.st_uid == os.getuid() and stat.S_IMODE(info.st_mode) == 0o700
+    assert not list(package.iterdir())
     context = root/'v6-context.json'
     write(context, {'schema_version':'tos_owner_local_source_context_v1',
         'public_root':str(public),'private_root':str(private),'private_prefix':PREFIX,
