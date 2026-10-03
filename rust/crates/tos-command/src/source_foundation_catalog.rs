@@ -4,6 +4,8 @@
 
 use super::foundation_candidate_catalog::{FreshCatalogCandidate, FreshCatalogSink};
 use super::foundation_capture::FoundationCapturedCut;
+use crate::source_admission_index::FreshIndexRowsWriter;
+use crate::source_admission_spooled_candidate::CandidateFence;
 use crate::source_creation_store::{DisposableCatalogTreeLimits, IsolatedCreationRoot};
 use crate::source_forms_compiler::NativeBibliographicForms;
 use serde_json::Value;
@@ -12,18 +14,23 @@ use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_compiler::knowledge_stage::{
+    CandidateExactInputReceipt, CandidateStageOwner, CandidateValidationBinding,
     ColdAuthoredBinding, ColdExactInputReceipt, ColdStageOwner, KnowledgeStage, StageIsolation,
     StageLimits,
 };
 use tos_compiler::source_bibliographic::{
-    BibliographicLimits, BibliographicSourceCut, prepare_cold_bibliographic_graph_from_cut,
+    BibliographicLimits, BibliographicSourceCut, prepare_candidate_bibliographic_graph_from_input,
+    prepare_cold_bibliographic_graph_from_cut,
 };
 use tos_compiler::source_witness_catalog::{
-    ColdSourceCatalogReceipt, SourceCatalogProfileObserver, SourceCatalogSink,
-    SourceCatalogValidator, render_cold_source_witness_catalog,
+    ColdSourceCatalogReceipt, SourceCatalogProfileObserver, SourceCatalogReceipt,
+    SourceCatalogSink, SourceCatalogValidator, render_candidate_source_witness_catalog,
+    render_cold_source_witness_catalog,
 };
 use tos_compiler::{
-    Error, Result, SourceCatalogInputLimits, plan_cold_source_catalog_inputs_with_workspace,
+    Error, Result, SourceCatalogInputLimits, SourceCatalogRenderWorkV1,
+    plan_candidate_source_catalog_inputs_with_workspace,
+    plan_cold_source_catalog_inputs_with_workspace, prepare_candidate_source_catalog_plan_observed,
     prepare_cold_source_catalog_plan_observed,
 };
 use tos_foundation::{
@@ -31,7 +38,7 @@ use tos_foundation::{
     parse_json,
 };
 use tos_ops_mechanics_plan::route_cards::{RouteResolvedTarget, RouteSources};
-use tos_source_store::ReadLimits;
+use tos_source_store::{MetadataPublicationEpoch, ReadLimits};
 use tos_validation::executor::{
     BatchStreamBudget, ExactWorkerIdentity, ExecutorBudget, VerifiedWorkerImageHandle,
 };
@@ -168,9 +175,9 @@ fn ordered_object(fields: Vec<(&str, JsonValue)>) -> JsonValue {
 /// The compiler's sealed semantic manifest stays unchanged. This actual owner
 /// presentation adds only the selected participating epoch and publishes field
 /// order from the maintained render_catalog_rows contract.
-fn published_manifest(
-    capture: &FoundationCapturedCut,
-    receipt: &ColdSourceCatalogReceipt,
+fn published_manifest<B>(
+    original_epoch_token: Option<&str>,
+    receipt: &SourceCatalogReceipt<B>,
     limits: JsonLimits,
 ) -> Result<Vec<u8>> {
     let original = &receipt.manifest;
@@ -227,7 +234,7 @@ fn published_manifest(
             )?,
         ));
     }
-    if let Some(token) = capture.epoch().token() {
+    if let Some(token) = original_epoch_token {
         let refs = original["record_files"]
             .as_object()
             .ok_or(Error::Invalid("catalog record files"))?;
@@ -490,9 +497,9 @@ fn observe_generated(
 /// the ordinary generated catalog tree. Paths and expected digests come only
 /// from the successful renderer receipt; the publication manifest is compared
 /// byte-for-byte with the exact bytes passed to the sink.
-fn observe_fresh_catalog_outputs(
+fn observe_fresh_catalog_outputs<B>(
     sources: &mut RouteSources,
-    catalog: &ColdSourceCatalogReceipt,
+    catalog: &SourceCatalogReceipt<B>,
     exact_manifest: &[u8],
     max_file_bytes: usize,
     max_total_bytes: usize,
@@ -1367,11 +1374,42 @@ impl SourceCatalogProfileObserver for FoundationCatalogProfiles {
     }
 }
 
-pub(crate) struct FoundationCatalogResult {
+/// Candidate mode sends native semantic row transport directly to the same
+/// caller-reserved provider used by the fresh catalog sink. The maintained
+/// profile selector and this adapter still decide which rows are emitted; the
+/// destination is storage only and grants no source admission.
+struct SpoolingCatalogProfileObserver<'profiles, 'rows> {
+    profiles: &'profiles mut FoundationCatalogProfiles,
+    rows: &'rows mut dyn FreshIndexRowsWriter,
+}
+
+impl SourceCatalogProfileObserver for SpoolingCatalogProfileObserver<'_, '_> {
+    fn record_profile(&mut self, kind: &str, filename: &str) -> Result<()> {
+        <FoundationCatalogProfiles as SourceCatalogProfileObserver>::record_profile(
+            self.profiles,
+            kind,
+            filename,
+        )
+    }
+
+    fn native_semantic_identity(&mut self, id: &str, packet_ref: &str) -> Result<()> {
+        self.rows
+            .push_native_semantic(id, packet_ref)
+            .map_err(|_| Error::Invalid("native semantic row spool refused"))
+    }
+
+    fn completed_record_profiles(&mut self) -> Result<()> {
+        <FoundationCatalogProfiles as SourceCatalogProfileObserver>::completed_record_profiles(
+            self.profiles,
+        )
+    }
+}
+
+pub(crate) struct FoundationCatalogResult<B = ColdAuthoredBinding> {
     pub(crate) observed_plan_work_bytes: u64,
     pub(crate) profiles: FoundationCatalogProfiles,
     pub(crate) issues: Vec<Issue>,
-    pub(crate) catalog: ColdSourceCatalogReceipt,
+    pub(crate) catalog: SourceCatalogReceipt<B>,
     pub(crate) bibliographic_constructed: bool,
     /// Actual selected generated-file reads, including the manifest. These
     /// are separate from authored capture/transfer and must enter whole cost.
@@ -1382,14 +1420,14 @@ pub(crate) struct FoundationCatalogResult {
         tos_validation::source_cut::CutSchemaDiagnosticsCumulativeCost,
 }
 
-pub(crate) enum FoundationCatalogOutcome {
-    Complete(FoundationCatalogResult),
+pub(crate) enum FoundationCatalogOutcome<B = ColdAuthoredBinding, D = CutSchemaDiagnostic> {
+    Complete(FoundationCatalogResult<B>),
     /// Complete authenticated schema rejection; the failed compiler phase
     /// produced no receipt. Independent default owner checks still continue.
     SchemaRejected {
         observed_plan_work_bytes: u64,
         profiles: FoundationCatalogProfiles,
-        diagnostic: CutSchemaDiagnostic,
+        diagnostic: D,
         bibliographic_phase: bool,
         catalog_issues: Vec<Issue>,
         generated_read_bytes: usize,
@@ -1404,16 +1442,20 @@ struct CatalogCandidateArtifact<'a> {
     fresh_sources: RouteSources,
 }
 
-struct CatalogKernelOutput<'a> {
-    outcome: FoundationCatalogOutcome,
+struct CatalogKernelOutput<'a, B = ColdAuthoredBinding, D = CutSchemaDiagnostic> {
+    outcome: FoundationCatalogOutcome<B, D>,
     candidate: Option<CatalogCandidateArtifact<'a>>,
 }
 
 /// Candidate evidence is retained through the host callback. The ordinary
 /// outcome continues to describe the exact maintained comparison; the fresh
 /// route reader is a distinct root sharing only the primary operation count.
-pub(crate) struct FoundationCatalogCandidateOutcome<'a> {
-    pub(crate) outcome: FoundationCatalogOutcome,
+pub(crate) struct FoundationCatalogCandidateOutcome<
+    'a,
+    B = ColdAuthoredBinding,
+    D = CutSchemaDiagnostic,
+> {
+    pub(crate) outcome: FoundationCatalogOutcome<B, D>,
     pub(crate) candidate: Option<FreshCatalogCandidate<'a>>,
     pub(crate) fresh_sources: Option<RouteSources>,
 }
@@ -1447,6 +1489,7 @@ fn compare_kernel<'candidate>(
         &'candidate IsolatedCreationRoot,
         DisposableCatalogTreeLimits,
     )>,
+    index_rows: Option<&mut dyn FreshIndexRowsWriter>,
     cancelled: &AtomicBool,
 ) -> Result<CatalogKernelOutput<'candidate>> {
     let binding = ColdAuthoredBinding::from_cut(
@@ -1496,7 +1539,7 @@ fn compare_kernel<'candidate>(
         source_recheck_read_bytes: std::cell::Cell::new(0),
         source_recheck_failed: std::cell::Cell::new(false),
     };
-    let mut stage = KnowledgeStage::create_cold_until_with_input_cap(
+    let stage = KnowledgeStage::create_cold_until_with_input_cap(
         candidate,
         stage_limits,
         plan.input_receipt(),
@@ -1521,6 +1564,137 @@ fn compare_kernel<'candidate>(
             .min(tos_validation::executor::BatchBudget::MAX_RAW_BYTES),
     )?;
     validator.set_shared_schema_worker_quota(quota.clone())?;
+    compare_prepared_kernel(
+        stage,
+        &validator,
+        &sources,
+        limits,
+        observed_plan_work_bytes,
+        capture.epoch().token(),
+        build_bibliographic,
+        max_generated_bytes,
+        max_generated_files,
+        max_generated_state_bytes,
+        candidate_root,
+        index_rows,
+        cancelled,
+        |stage, validator, profiles, rows| {
+            if let Some(rows) = rows {
+                let mut observer = SpoolingCatalogProfileObserver { profiles, rows };
+                prepare_cold_source_catalog_plan_observed(
+                    &plan,
+                    capture.cut(),
+                    capture.revision(),
+                    capture.membership(),
+                    stage,
+                    validator,
+                    limits,
+                    &mut observer,
+                )
+            } else {
+                prepare_cold_source_catalog_plan_observed(
+                    &plan,
+                    capture.cut(),
+                    capture.revision(),
+                    capture.membership(),
+                    stage,
+                    validator,
+                    limits,
+                    profiles,
+                )
+            }
+        },
+        |stage, catalog, sink| {
+            render_cold_source_witness_catalog(stage, catalog, limits.catalog, sink)
+        },
+        |stage, catalog, validator| {
+            let source = BibliographicSourceCut {
+                cut: capture.cut(),
+                expected_revision: capture.revision(),
+                expected_membership: capture.membership(),
+                stage_source_cut: binding.source_cut(),
+                max_read_files: max_version_files,
+                max_read_bytes: max_version_bytes,
+            };
+            prepare_cold_bibliographic_graph_from_cut(
+                stage,
+                catalog,
+                validator,
+                &mut NativeBibliographicForms,
+                limits,
+                &source,
+            )
+            .map(|_| ())
+        },
+        || owner.recheck_sealed_cut(&owner.receipt),
+        || owner.source_recheck_read_bytes.get(),
+        |stage| stage.finish_cold().map(|_| ()),
+        || validator.take_schema_diagnostic_rejection(),
+    )
+}
+
+/// Object-safe transport into the existing typed renderer; this adds no
+/// selection, source identity or publication authority.
+struct CatalogSinkRef<'a>(&'a mut dyn SourceCatalogSink);
+impl SourceCatalogSink for CatalogSinkRef<'_> {
+    fn begin_file(&mut self, path: &str) -> Result<()> {
+        self.0.begin_file(path)
+    }
+    fn file_bytes(&mut self, raw: &[u8]) -> Result<()> {
+        self.0.file_bytes(raw)
+    }
+    fn end_file(&mut self, path: &str, digest: &str) -> Result<()> {
+        self.0.end_file(path, digest)
+    }
+    fn addressed_row(&mut self, collection: &str, raw: &[u8]) -> Result<()> {
+        self.0.addressed_row(collection, raw)
+    }
+    fn manifest(&mut self, manifest: &Value) -> Result<()> {
+        self.0.manifest(manifest)
+    }
+}
+
+/// One maintained render/default/diagnostic kernel for authenticated cold and
+/// actual candidate inputs. Callbacks retain their exact typed owner receipts.
+#[allow(clippy::too_many_arguments)]
+fn compare_prepared_kernel<'candidate, 'stage, B, D>(
+    mut stage: KnowledgeStage<'stage>,
+    validator: &SourceCatalogValidator<'_>,
+    sources: &RefCell<&mut RouteSources>,
+    limits: BibliographicLimits,
+    observed_plan_work_bytes: u64,
+    original_epoch_token: Option<&str>,
+    build_bibliographic: bool,
+    max_generated_bytes: usize,
+    max_generated_files: usize,
+    max_generated_state_bytes: usize,
+    candidate_root: Option<(
+        &'candidate IsolatedCreationRoot,
+        DisposableCatalogTreeLimits,
+    )>,
+    mut index_rows: Option<&mut dyn FreshIndexRowsWriter>,
+    cancelled: &AtomicBool,
+    mut prepare: impl FnMut(
+        &mut KnowledgeStage<'stage>,
+        &SourceCatalogValidator<'_>,
+        &mut FoundationCatalogProfiles,
+        Option<&mut dyn FreshIndexRowsWriter>,
+    ) -> Result<SourceCatalogReceipt<B>>,
+    mut render: impl FnMut(
+        &mut KnowledgeStage<'stage>,
+        &SourceCatalogReceipt<B>,
+        &mut CatalogSinkRef<'_>,
+    ) -> Result<()>,
+    mut bibliographic: impl FnMut(
+        &mut KnowledgeStage<'stage>,
+        &SourceCatalogReceipt<B>,
+        &SourceCatalogValidator<'_>,
+    ) -> Result<()>,
+    mut recheck: impl FnMut() -> Result<()>,
+    source_recheck_read_bytes: impl Fn() -> usize,
+    finish_stage: impl FnOnce(KnowledgeStage<'stage>) -> Result<()>,
+    take_rejection: impl Fn() -> Result<Option<D>>,
+) -> Result<CatalogKernelOutput<'candidate, B, D>> {
     let mut profiles = FoundationCatalogProfiles {
         files: Vec::new(),
         native_semantic: std::collections::BTreeMap::new(),
@@ -1538,32 +1712,40 @@ fn compare_kernel<'candidate>(
     let mut generated_inputs = None;
     let mut candidate_output: Option<CatalogCandidateArtifact<'candidate>> = None;
     let mut result = (|| {
-        let catalog = prepare_cold_source_catalog_plan_observed(
-            &plan,
-            capture.cut(),
-            capture.revision(),
-            capture.membership(),
+        let catalog = prepare(
             &mut stage,
-            &validator,
-            limits,
+            validator,
             &mut profiles,
+            index_rows.as_deref_mut(),
         )?;
         let json = JsonLimits::new(limits.catalog.max_output_row_bytes, 96, 1_000_000, 4096)
             .map_err(|_| Error::Budget("catalog manifest JSON limits"))?;
-        let manifest = published_manifest(capture, &catalog, json)?;
+        let manifest = published_manifest(original_epoch_token, &catalog, json)?;
         let available_generated_state = max_generated_state_bytes
             .checked_sub(profiles.retained_state_bytes)
             .ok_or(Error::Budget("catalog shared generated/profile state"))?;
         if let Some((isolated, tree_limits)) = candidate_root {
-            let mut sink = FreshCatalogSink::new(
-                isolated,
-                tree_limits,
-                limits.catalog,
-                &manifest,
-                limits.deadline,
-                cancelled,
-            )?;
-            render_cold_source_witness_catalog(&mut stage, &catalog, limits.catalog, &mut sink)?;
+            let mut sink = if let Some(rows) = index_rows.as_deref_mut() {
+                FreshCatalogSink::new_with_index_rows(
+                    isolated,
+                    tree_limits,
+                    limits.catalog,
+                    &manifest,
+                    limits.deadline,
+                    cancelled,
+                    rows,
+                )?
+            } else {
+                FreshCatalogSink::new(
+                    isolated,
+                    tree_limits,
+                    limits.catalog,
+                    &manifest,
+                    limits.deadline,
+                    cancelled,
+                )?
+            };
+            render(&mut stage, &catalog, &mut CatalogSinkRef(&mut sink))?;
             let candidate = sink.finish()?;
             if !candidate.eof_verified() {
                 return Err(Error::Invalid(
@@ -1614,32 +1796,17 @@ fn compare_kernel<'candidate>(
                     cancelled_identity: cancelled as *const AtomicBool as usize,
                 },
             };
-            render_cold_source_witness_catalog(&mut stage, &catalog, limits.catalog, &mut sink)?;
+            render(&mut stage, &catalog, &mut CatalogSinkRef(&mut sink))?;
             catalog_issues = std::mem::take(&mut sink.issues);
             generated_inputs = Some(sink.observation);
         }
         if build_bibliographic {
             bibliographic_phase = true;
-            let source = BibliographicSourceCut {
-                cut: capture.cut(),
-                expected_revision: capture.revision(),
-                expected_membership: capture.membership(),
-                stage_source_cut: binding.source_cut(),
-                max_read_files: max_version_files,
-                max_read_bytes: max_version_bytes,
-            };
-            prepare_cold_bibliographic_graph_from_cut(
-                &mut stage,
-                &catalog,
-                &validator,
-                &mut NativeBibliographicForms,
-                limits,
-                &source,
-            )?;
+            bibliographic(&mut stage, &catalog, validator)?;
         }
         validator.finish()?;
         let schema_execution_cost = validator.diagnostics_v2_cumulative_cost()?;
-        owner.recheck_sealed_cut(&owner.receipt)?;
+        recheck()?;
         let mut selected_generated = generated_inputs
             .take()
             .ok_or(Error::Invalid("catalog observation absent"))?;
@@ -1664,7 +1831,7 @@ fn compare_kernel<'candidate>(
             bibliographic_constructed: build_bibliographic,
             generated_read_bytes,
             generated_inputs: selected_generated,
-            source_recheck_read_bytes: owner.source_recheck_read_bytes.get(),
+            source_recheck_read_bytes: source_recheck_read_bytes(),
             schema_execution_cost,
         })
     })();
@@ -1672,12 +1839,12 @@ fn compare_kernel<'candidate>(
         // No stage escapes this function. Drop closes SQLite and removes the
         // unexported candidate/sidecars/lease using the existing inode guards.
         drop(stage);
-        if let Some(diagnostic) = validator.take_schema_diagnostic_rejection()? {
+        if let Some(diagnostic) = take_rejection()? {
             // Retrieval exposes only complete, fully bound Invalid reports;
             // cleanup/currentness failure still refuses the whole evaluation.
             validator.finish()?;
             let schema_execution_cost = validator.diagnostics_v2_cumulative_cost()?;
-            owner.recheck_sealed_cut(&owner.receipt)?;
+            recheck()?;
             if let Some(selected) = generated_inputs.as_mut() {
                 if let Some(candidate) = candidate_output.as_mut() {
                     selected.recheck(&mut candidate.fresh_sources, limits.deadline, cancelled)?;
@@ -1701,7 +1868,7 @@ fn compare_kernel<'candidate>(
                     catalog_issues,
                     generated_read_bytes,
                     generated_inputs,
-                    source_recheck_read_bytes: owner.source_recheck_read_bytes.get(),
+                    source_recheck_read_bytes: source_recheck_read_bytes(),
                     schema_execution_cost,
                 },
                 candidate: None,
@@ -1710,9 +1877,9 @@ fn compare_kernel<'candidate>(
     } else {
         // This consumes/cleans the computational stage without exporting a
         // projection/SQLite receipt. It repeats owner and input-root fences.
-        stage.finish_cold()?;
+        finish_stage(stage)?;
         if let Ok(completed) = &mut result {
-            completed.source_recheck_read_bytes = owner.source_recheck_read_bytes.get();
+            completed.source_recheck_read_bytes = source_recheck_read_bytes();
         }
     }
     let outcome = result.map(FoundationCatalogOutcome::Complete)?;
@@ -1773,6 +1940,7 @@ pub(crate) fn compare(
         max_source_recheck_read_bytes,
         quota,
         None,
+        None,
         cancelled,
     )
     .map(|output| output.outcome)
@@ -1783,7 +1951,7 @@ pub(crate) fn compare(
 /// generated-file oracle. The candidate root and related route reader remain
 /// owned by the returned value through host review.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn compare_candidate<'candidate>(
+pub(crate) fn compare_candidate<'candidate, 'rows>(
     capture: &FoundationCapturedCut,
     sources: &mut RouteSources,
     candidate: &Path,
@@ -1807,6 +1975,7 @@ pub(crate) fn compare_candidate<'candidate>(
     quota: &tos_validation::executor::SharedSchemaWorkerQuota,
     isolated: &'candidate IsolatedCreationRoot,
     tree_limits: DisposableCatalogTreeLimits,
+    index_rows: Option<&'rows mut dyn FreshIndexRowsWriter>,
     cancelled: &AtomicBool,
 ) -> Result<FoundationCatalogCandidateOutcome<'candidate>> {
     let mut output = compare_kernel(
@@ -1832,6 +2001,7 @@ pub(crate) fn compare_candidate<'candidate>(
         max_source_recheck_read_bytes,
         quota,
         Some((isolated, tree_limits)),
+        index_rows,
         cancelled,
     )?;
     if let (FoundationCatalogOutcome::Complete(result), Some(candidate)) =
@@ -1846,6 +2016,234 @@ pub(crate) fn compare_candidate<'candidate>(
         .candidate
         .map(|candidate| (Some(candidate.candidate), Some(candidate.fresh_sources)))
         .unwrap_or((None, None));
+    Ok(FoundationCatalogCandidateOutcome {
+        outcome: output.outcome,
+        candidate,
+        fresh_sources,
+    })
+}
+
+struct SpoolCatalogStageOwner<'a> {
+    input: &'a dyn tos_validation::record_biblio_cut::SourceCutInputWithIdentity<CandidateFence>,
+    receipt: CandidateExactInputReceipt<CandidateFence>,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+}
+impl CandidateStageOwner<CandidateFence> for SpoolCatalogStageOwner<'_> {
+    fn verify_receipt(&self, supplied: &CandidateExactInputReceipt<CandidateFence>) -> Result<()> {
+        if self.receipt.binding.input_identity() != supplied.binding.input_identity()
+            || self.receipt.binding.coverage() != supplied.binding.coverage()
+            || self.receipt.collections.len() != supplied.collections.len()
+            || !self
+                .receipt
+                .collections
+                .iter()
+                .zip(&supplied.collections)
+                .all(|(a, b)| {
+                    a.source_graph == b.source_graph
+                        && a.collection == b.collection
+                        && a.input_role == b.input_role
+                        && a.adapter_profile == b.adapter_profile
+                        && a.expected_count == b.expected_count
+                        && a.expected_root_sha256 == b.expected_root_sha256
+                })
+        {
+            return Err(Error::Invalid(
+                "spool catalog exact selected receipt differs",
+            ));
+        }
+        Ok(())
+    }
+    fn recheck_current_input(
+        &self,
+        supplied: &CandidateExactInputReceipt<CandidateFence>,
+    ) -> Result<()> {
+        self.verify_receipt(supplied)?;
+        if self.input.input_identity() != supplied.binding.input_identity() {
+            return Err(Error::Invalid(
+                "spool catalog actual candidate fence differs",
+            ));
+        }
+        self.input
+            .source_input()
+            .verify_current_fence(supplied.binding.coverage(), self.deadline, self.cancelled)
+            .map_err(|e| Error::Source(format!("spool catalog candidate fence:{e:?}")))
+    }
+}
+
+/// Same catalog/default render algorithm over the actual spooled candidate.
+/// The schema worker is the caller's already configured candidate worker. The
+/// supplied epoch belongs to the ORIGINAL participating publication context,
+/// selected and rechecked through the existing protected-control owner route;
+/// no candidate epoch or source revision is constructed here. Physical source
+/// reads stay in the candidate's cumulative ledger, including all fence passes.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn compare_spooled_candidate<'candidate>(
+    input: &dyn tos_validation::record_biblio_cut::SourceCutInputWithIdentity<CandidateFence>,
+    coverage: &tos_validation::record_biblio_cut::SourceCutInputCoverage,
+    original_epoch: &MetadataPublicationEpoch,
+    sources: &mut RouteSources,
+    stage_path: &Path,
+    isolation: &dyn StageIsolation,
+    stage_limits: StageLimits,
+    source_limits: SourceCatalogInputLimits,
+    limits: BibliographicLimits,
+    validator: &SourceCatalogValidator<'_>,
+    build_bibliographic: bool,
+    max_version_files: usize,
+    max_version_bytes: usize,
+    max_generated_bytes: usize,
+    max_generated_files: usize,
+    max_generated_state_bytes: usize,
+    isolated: &'candidate IsolatedCreationRoot,
+    tree_limits: DisposableCatalogTreeLimits,
+    index_rows: &mut dyn FreshIndexRowsWriter,
+    cancelled: &AtomicBool,
+) -> Result<
+    FoundationCatalogCandidateOutcome<
+        'candidate,
+        CandidateValidationBinding<CandidateFence>,
+        tos_validation::source_cut::CandidateCutSchemaDiagnostic<CandidateFence>,
+    >,
+> {
+    // Admit retained plan plus minimal working space before the planner can
+    // allocate either. CandidateFence and coverage are fixed Copy values;
+    // their identity has no hidden heap or caller-authored revision.
+    let initial_receipt_state =
+        tos_compiler::CandidateSourceCatalogInputPlan::<CandidateFence>::receipt_state_upper_bound(
+            0,
+        )?;
+    let owner_inline = std::mem::size_of::<SpoolCatalogStageOwner<'_>>()
+        .checked_add(std::mem::size_of::<
+            CandidateValidationBinding<CandidateFence>,
+        >())
+        .and_then(|n| n.checked_add(initial_receipt_state))
+        .and_then(|n| n.checked_add(4096))
+        .ok_or(Error::Budget("spool catalog owner inline state"))?;
+    let planner_workspace = max_generated_state_bytes
+        .checked_sub(source_limits.max_plan_bytes)
+        .and_then(|n| n.checked_sub(owner_inline))
+        .filter(|n| *n >= 16 * 1024)
+        .ok_or(Error::Budget("spool catalog retained plan/workspace state"))?;
+    let mut plan = plan_candidate_source_catalog_inputs_with_workspace(
+        input,
+        input.input_identity(),
+        coverage,
+        source_limits,
+        limits,
+        cancelled,
+        max_generated_state_bytes - owner_inline,
+    )?;
+    let observed_plan_work_bytes = plan.observed_work_bytes();
+    // Clone state is measured from the retained owner's actual collection
+    // strings BEFORE both owner and stage receipt clones. The original receipt
+    // is separately reserved before planning; published binding is fixed.
+    let receipt_clones = plan
+        .input_receipt_clone_state_bytes(0)?
+        .checked_mul(2)
+        .ok_or(Error::Budget("spool catalog receipt clones"))?;
+    let workspace = planner_workspace
+        .checked_sub(receipt_clones)
+        .filter(|n| *n >= 16 * 1024)
+        .ok_or(Error::Budget(
+            "spool catalog retained receipt/workspace state",
+        ))?;
+    let owner = SpoolCatalogStageOwner {
+        input,
+        receipt: plan.input_receipt(),
+        deadline: limits.deadline,
+        cancelled,
+    };
+    owner.recheck_current_input(&owner.receipt)?;
+    let stage = KnowledgeStage::create_candidate_until_with_input_cap(
+        stage_path,
+        stage_limits,
+        plan.input_receipt(),
+        &owner,
+        isolation,
+        limits.deadline,
+        limits.catalog.max_file_bytes,
+    )?;
+    let sources = RefCell::new(sources);
+    let read_ledger = RefCell::new(
+        tos_compiler::source_bibliographic_versions::StreamedBibliographicReadLedger::new(
+            max_version_files as u64,
+            max_version_bytes as u64,
+        )?,
+    );
+    let mut render_work = SourceCatalogRenderWorkV1::default();
+    let mut output = compare_prepared_kernel(
+        stage,
+        validator,
+        &sources,
+        limits,
+        observed_plan_work_bytes,
+        original_epoch.token(),
+        build_bibliographic,
+        max_generated_bytes,
+        max_generated_files,
+        workspace,
+        Some((isolated, tree_limits)),
+        Some(index_rows),
+        cancelled,
+        |stage, validator, profiles, rows| {
+            let rows = rows.ok_or(Error::Invalid("spool catalog index callback absent"))?;
+            let mut observer = SpoolingCatalogProfileObserver { profiles, rows };
+            prepare_candidate_source_catalog_plan_observed(
+                &mut plan,
+                input,
+                stage,
+                validator,
+                limits,
+                &mut observer,
+                &mut render_work,
+            )
+        },
+        |stage, catalog, sink| {
+            render_candidate_source_witness_catalog::<CandidateFence>(
+                stage,
+                catalog,
+                limits.catalog,
+                sink,
+            )
+        },
+        |stage, catalog, validator| {
+            prepare_candidate_bibliographic_graph_from_input(
+                stage,
+                catalog,
+                validator,
+                &mut NativeBibliographicForms,
+                limits,
+                input,
+                &read_ledger,
+                workspace,
+            )
+            .map(|_| ())
+        },
+        || owner.recheck_current_input(&owner.receipt),
+        // Physical reads are supplied once by the actual SpoolCandidate whole
+        // ledger. They must not be counted twice as cold-route recheck reads.
+        || 0,
+        |mut stage| {
+            stage.verify_candidate_inputs::<CandidateFence>()?;
+            drop(stage);
+            Ok(())
+        },
+        || validator.take_candidate_schema_diagnostic_rejection::<CandidateFence>(),
+    )?;
+    if let (FoundationCatalogOutcome::Complete(result), Some(candidate)) =
+        (&mut output.outcome, output.candidate.as_mut())
+    {
+        if result.profiles.complete {
+            candidate.candidate.fresh_rows_mut().native_semantic =
+                std::mem::take(&mut result.profiles.native_semantic);
+        }
+    }
+    let (candidate, fresh_sources) = output
+        .candidate
+        .map(|artifact| (Some(artifact.candidate), Some(artifact.fresh_sources)))
+        .unwrap_or((None, None));
+    owner.recheck_current_input(&owner.receipt)?;
     Ok(FoundationCatalogCandidateOutcome {
         outcome: output.outcome,
         candidate,

@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{Digest256, RelativePath};
 use tos_ops_mechanics_plan::route_cards::{RouteResolvedTarget, RouteSources};
-use tos_source_store::{CorpusCutReader, MemberMetadata};
+use tos_source_store::CorpusCutReader;
 use tos_validation::item_rules::ItemRefusal;
 use tos_validation::source_foundation_discovery::{
     PhysicalResolvedTargetFacts, SourcePhysicalFacts,
@@ -116,6 +116,112 @@ pub(crate) struct FoundationQueryContentBinding {
     pub path: String,
     pub sha256: Option<String>,
     pub byte_size: Option<u64>,
+}
+
+enum SelectionInput<'a> {
+    Cut(&'a CorpusCutReader),
+    Candidate(&'a dyn tos_validation::record_biblio_cut::SourceCutInput),
+}
+impl SelectionInput<'_> {
+    fn walk(
+        &self,
+        limits: FoundationSelectionLimits,
+        cancelled: &AtomicBool,
+        visit: &mut dyn FnMut(&str) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        match self {
+            Self::Cut(cut) => {
+                for member in cut.current().members() {
+                    selection_checkpoint(limits, cancelled)?;
+                    visit(member.path.as_str())?;
+                }
+                Ok(())
+            }
+            Self::Candidate(input) => {
+                input.for_each_current_member_meta(limits.deadline, cancelled, &mut |meta| {
+                    visit(meta.path)
+                })
+            }
+        }
+    }
+    fn present(
+        &self,
+        path: &str,
+        limits: FoundationSelectionLimits,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        match self {
+            Self::Cut(cut) => Ok(RelativePath::parse(path)
+                .ok()
+                .is_some_and(|path| cut.current().member(&path).is_some())),
+            Self::Candidate(input) => Ok(matches!(
+                input.path_presence(path, limits.deadline, cancelled)?,
+                Some(tos_source_store::SourcePresenceV1::File)
+            )),
+        }
+    }
+    fn read(
+        &self,
+        path: &str,
+        limits: FoundationSelectionLimits,
+        cancelled: &AtomicBool,
+        available_state_bytes: usize,
+        visit: &mut dyn FnMut(u64, &[u8]) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        match self {
+            Self::Cut(cut) => {
+                let Ok(path) = RelativePath::parse(path) else {
+                    return Ok(());
+                };
+                let Some(metadata) = cut.current().member(&path) else {
+                    return Ok(());
+                };
+                if metadata.size_bytes > limits.max_member_bytes
+                    || usize::try_from(metadata.size_bytes)
+                        .ok()
+                        .and_then(|n| n.checked_mul(JSON_VALUE_BYTES_PER_SOURCE_BYTE))
+                        .and_then(|n| n.checked_add(JSON_PARSE_FIXED_OVERHEAD))
+                        .is_none_or(|n| n > available_state_bytes)
+                {
+                    return Err(ItemRefusal::Budget);
+                }
+                let member = cut
+                    .read_member(
+                        cut.current().revision(),
+                        &path,
+                        limits.max_member_bytes,
+                        limits.deadline,
+                        cancelled,
+                    )
+                    .map_err(|_| {
+                        ItemRefusal::Source("foundation selector exact-cut read refused".into())
+                    })?;
+                visit(metadata.size_bytes, &member.raw)
+            }
+            Self::Candidate(input) => {
+                // Narrow the carrier's actual raw allocation BEFORE entering
+                // its reader; the decoded Value and retained selector state
+                // must fit the same envelope used by the cold carrier.
+                let state_member_cap = available_state_bytes
+                    .checked_sub(JSON_PARSE_FIXED_OVERHEAD)
+                    .ok_or(ItemRefusal::Budget)?
+                    / JSON_VALUE_BYTES_PER_SOURCE_BYTE;
+                let member_cap = usize::try_from(limits.max_member_bytes)
+                    .map_err(|_| ItemRefusal::Budget)?
+                    .min(state_member_cap);
+                if member_cap == 0 {
+                    return Err(ItemRefusal::Budget);
+                }
+                input.with_current_member(
+                    path,
+                    member_cap,
+                    limits.deadline,
+                    cancelled,
+                    &mut |meta, raw| visit(meta.size_bytes, raw),
+                )
+            }
+        }
+    }
 }
 
 struct Builder<'a> {
@@ -334,96 +440,97 @@ impl<'a> Builder<'a> {
 
     fn read_json(
         &mut self,
-        cut: &CorpusCutReader,
+        input: &SelectionInput<'_>,
         path: &str,
     ) -> Result<Option<Value>, ItemRefusal> {
         self.checkpoint()?;
-        let Ok(relative) = RelativePath::parse(path) else {
-            return Ok(None);
-        };
-        let Some(metadata) = cut.current().member(&relative) else {
-            return Ok(None);
-        };
-        let next_documents = self
-            .selector_documents
-            .checked_add(1)
-            .filter(|count| *count <= self.limits.max_selector_documents)
-            .ok_or(ItemRefusal::BudgetCheck {
-                check: "foundation-selector-documents",
-                used: Some(self.selector_documents.saturating_add(1) as u64),
-                limit: Some(self.limits.max_selector_documents as u64),
-            })?;
-        let size = usize::try_from(metadata.size_bytes).map_err(|_| ItemRefusal::Budget)?;
-        if metadata.size_bytes > self.limits.max_member_bytes {
-            return Err(ItemRefusal::BudgetCheck {
-                check: "foundation-selector-member-bytes",
-                used: Some(metadata.size_bytes),
-                limit: Some(self.limits.max_member_bytes),
-            });
-        }
-        let next_read_bytes = self
-            .source_bytes_read
-            .checked_add(metadata.size_bytes)
-            .filter(|bytes| *bytes <= self.limits.max_total_read_bytes)
-            .ok_or(ItemRefusal::BudgetCheck {
-                check: "foundation-selector-total-read-bytes",
-                used: Some(self.source_bytes_read.saturating_add(metadata.size_bytes)),
-                limit: Some(self.limits.max_total_read_bytes),
-            })?;
-        // Cover the raw member, a conservative serde_json Value tree (including
-        // per-container/per-entry nodes), and bounded parser recursion before
-        // either the raw bytes or the decoded value are allocated.
-        let parse_bound = size
-            .checked_mul(JSON_VALUE_BYTES_PER_SOURCE_BYTE)
-            .and_then(|bytes| bytes.checked_add(JSON_PARSE_FIXED_OVERHEAD))
+        let mut selected = None;
+        let mut read_limits = self.limits;
+        read_limits.max_member_bytes = read_limits.max_member_bytes.min(
+            self.limits
+                .max_total_read_bytes
+                .checked_sub(self.source_bytes_read)
+                .ok_or(ItemRefusal::Budget)?,
+        );
+        let available_state = self
+            .limits
+            .max_state_bytes
+            .checked_sub(self.retained_state_bytes)
             .ok_or(ItemRefusal::Budget)?;
-        let peak = self
-            .retained_state_bytes
-            .checked_add(parse_bound)
-            .ok_or(ItemRefusal::Budget)?;
-        if peak > self.limits.max_state_bytes {
-            return Err(ItemRefusal::BudgetCheck {
-                check: "foundation-selector-state-bytes",
-                used: Some(peak as u64),
-                limit: Some(self.limits.max_state_bytes as u64),
-            });
-        }
-        let member = cut
-            .read_member(
-                cut.current().revision(),
-                &relative,
-                self.limits.max_member_bytes,
-                self.limits.deadline,
-                self.cancelled,
-            )
-            .map_err(|_| {
-                if self.cancelled.load(Ordering::Relaxed) {
-                    ItemRefusal::Source("foundation path selector cancelled".into())
-                } else if Instant::now() >= self.limits.deadline {
-                    ItemRefusal::Deadline
-                } else {
-                    ItemRefusal::Source("foundation selector exact-cut read refused".into())
+        input.read(
+            path,
+            read_limits,
+            self.cancelled,
+            available_state,
+            &mut |size_bytes, raw| {
+                let metadata_size = size_bytes;
+                let next_documents = self
+                    .selector_documents
+                    .checked_add(1)
+                    .filter(|count| *count <= self.limits.max_selector_documents)
+                    .ok_or(ItemRefusal::BudgetCheck {
+                        check: "foundation-selector-documents",
+                        used: Some(self.selector_documents.saturating_add(1) as u64),
+                        limit: Some(self.limits.max_selector_documents as u64),
+                    })?;
+                let size = usize::try_from(metadata_size).map_err(|_| ItemRefusal::Budget)?;
+                if metadata_size > self.limits.max_member_bytes {
+                    return Err(ItemRefusal::BudgetCheck {
+                        check: "foundation-selector-member-bytes",
+                        used: Some(metadata_size),
+                        limit: Some(self.limits.max_member_bytes),
+                    });
                 }
-            })?;
-        self.checkpoint()?;
-        if member.raw.len() != size || member.raw.len() as u64 != metadata.size_bytes {
-            return Err(ItemRefusal::Source(
-                "foundation selector exact-cut member changed".into(),
-            ));
-        }
-        self.source_bytes_read = next_read_bytes;
-        self.selector_documents = next_documents;
-        self.document_state_bytes = parse_bound;
-        self.peak_state_bytes = self.peak_state_bytes.max(peak);
-        let parsed = serde_json::from_slice::<Value>(&member.raw).ok();
-        if parsed.is_some() {
-            // The decoded Value remains live in the caller while exact named
-            // fields are copied into the output lists.
-            self.document_state_bytes = parse_bound;
-        } else {
-            self.document_state_bytes = 0;
-        }
-        Ok(parsed)
+                let next_read_bytes = self
+                    .source_bytes_read
+                    .checked_add(metadata_size)
+                    .filter(|bytes| *bytes <= self.limits.max_total_read_bytes)
+                    .ok_or(ItemRefusal::BudgetCheck {
+                        check: "foundation-selector-total-read-bytes",
+                        used: Some(self.source_bytes_read.saturating_add(metadata_size)),
+                        limit: Some(self.limits.max_total_read_bytes),
+                    })?;
+                // Cover the raw member, a conservative serde_json Value tree (including
+                // per-container/per-entry nodes), and bounded parser recursion before
+                // either the raw bytes or the decoded value are allocated.
+                let parse_bound = size
+                    .checked_mul(JSON_VALUE_BYTES_PER_SOURCE_BYTE)
+                    .and_then(|bytes| bytes.checked_add(JSON_PARSE_FIXED_OVERHEAD))
+                    .ok_or(ItemRefusal::Budget)?;
+                let peak = self
+                    .retained_state_bytes
+                    .checked_add(parse_bound)
+                    .ok_or(ItemRefusal::Budget)?;
+                if peak > self.limits.max_state_bytes {
+                    return Err(ItemRefusal::BudgetCheck {
+                        check: "foundation-selector-state-bytes",
+                        used: Some(peak as u64),
+                        limit: Some(self.limits.max_state_bytes as u64),
+                    });
+                }
+                self.checkpoint()?;
+                if raw.len() != size || raw.len() as u64 != metadata_size {
+                    return Err(ItemRefusal::Source(
+                        "foundation selector exact-cut member changed".into(),
+                    ));
+                }
+                self.source_bytes_read = next_read_bytes;
+                self.selector_documents = next_documents;
+                self.document_state_bytes = parse_bound;
+                self.peak_state_bytes = self.peak_state_bytes.max(peak);
+                let parsed = serde_json::from_slice::<Value>(raw).ok();
+                if parsed.is_some() {
+                    // The decoded Value remains live in the caller while exact named
+                    // fields are copied into the output lists.
+                    self.document_state_bytes = parse_bound;
+                } else {
+                    self.document_state_bytes = 0;
+                }
+                selected = parsed;
+                Ok(())
+            },
+        )?;
+        Ok(selected)
     }
 
     fn add_private_ref(&mut self, root: &str, reference: &str) -> Result<(), ItemRefusal> {
@@ -488,17 +595,32 @@ pub(crate) fn select(
     limits: FoundationSelectionLimits,
     cancelled: &AtomicBool,
 ) -> Result<FoundationPhysicalSelection, ItemRefusal> {
+    select_input(&SelectionInput::Cut(captured.cut()), limits, cancelled)
+}
+
+pub(crate) fn select_candidate(
+    input: &dyn tos_validation::record_biblio_cut::SourceCutInput,
+    limits: FoundationSelectionLimits,
+    cancelled: &AtomicBool,
+) -> Result<FoundationPhysicalSelection, ItemRefusal> {
+    select_input(&SelectionInput::Candidate(input), limits, cancelled)
+}
+
+fn select_input(
+    input: &SelectionInput<'_>,
+    limits: FoundationSelectionLimits,
+    cancelled: &AtomicBool,
+) -> Result<FoundationPhysicalSelection, ItemRefusal> {
     let mut builder = Builder::new(limits, cancelled)?;
-    let cut = captured.cut();
 
     builder.add_repo_path(RepoPathBucket::PrivatePrefix, PRIVATE_ROUTE, false)?;
     builder.add_repo_path(RepoPathBucket::Authored, PRIVATE_ROUTE_CARD, true)?;
     builder.add_resolved_directory(PRIVATE_ROUTE_CARD, PRIVATE_ROUTE)?;
-    for (path, _) in captured.observed_members() {
+    input.walk(limits, cancelled, &mut |path| {
         builder.checkpoint()?;
         if let Some(root) = gold_root(path) {
             let Some(local_content) = join_repo_path(root, "local-content") else {
-                continue;
+                return Ok(());
             };
             if !builder.private_prefixes.contains(&local_content) {
                 builder.add_repo_path(RepoPathBucket::PrivatePrefix, &local_content, false)?;
@@ -516,9 +638,10 @@ pub(crate) fn select(
                 }
             }
         }
-    }
+            Ok(())
+    })?;
 
-    for (path, _) in captured.observed_members() {
+    input.walk(limits, cancelled, &mut |path| {
         builder.checkpoint()?;
         if path.starts_with(ARTIFACTS) && path.ends_with("/artifact-witness.json") {
             builder.add_repo_path(RepoPathBucket::Authored, path, true)?;
@@ -532,12 +655,13 @@ pub(crate) fn select(
                 }
             }
         }
-    }
+        Ok(())
+    })?;
 
     // Exact fixed authored inputs whose physical bytes/types are directly
     // consumed by the maintained companion and transfer-map predicates.
     for path in [PRIVATE_HANDOFF, TRANSFER_CROSSWALK] {
-        if cut_member(cut, path).is_some() {
+        if input.present(path, limits, cancelled)? {
             builder.add_repo_path(RepoPathBucket::Authored, path, true)?;
         }
     }
@@ -547,7 +671,7 @@ pub(crate) fn select(
             "transfer-candidate-page-crosswalk.v1.json",
         ] {
             if let Some(path) = join_repo_path(root, name) {
-                if cut_member(cut, &path).is_some() {
+                if input.present(&path, limits, cancelled)? {
                     builder.add_repo_path(RepoPathBucket::Authored, &path, true)?;
                 }
             }
@@ -557,17 +681,17 @@ pub(crate) fn select(
     // Read selector documents in exact current membership order, with bounded
     // per-member and aggregate reads. Malformed/non-object content is left to
     // its source owner; fields not represented as strings are not selectors.
-    for (path, _) in captured.observed_members() {
+    input.walk(limits, cancelled, &mut |path| {
         builder.checkpoint()?;
-        if !is_selector_document(path, &builder.private_prefixes, cut) {
-            continue;
+        if !is_selector_document(path, &builder.private_prefixes, input, limits, cancelled)? {
+            return Ok(());
         }
-        let Some(value) = builder.read_json(cut, path)? else {
-            continue;
+        let Some(value) = builder.read_json(input, path)? else {
+            return Ok(());
         };
         if !value.is_object() {
             builder.document_state_bytes = 0;
-            continue;
+            return Ok(());
         }
 
         if path.starts_with(SOURCE_HOME) && path.ends_with("/item.manifest.json") {
@@ -674,7 +798,7 @@ pub(crate) fn select(
             }
         }
 
-        if is_artifact_request(path, cut) {
+        if is_artifact_request(path, input, limits, cancelled)? {
             if let Some(bindings) = value.get("source_bindings") {
                 for field in ["rights_ref", "discovery_ref", "research_ref"] {
                     builder.add_ref_from_binding(bindings.get(field))?;
@@ -699,7 +823,8 @@ pub(crate) fn select(
         }
         drop(value);
         builder.document_state_bytes = 0;
-    }
+        Ok(())
+    })?;
 
     Ok(builder.finish())
 }
@@ -1348,56 +1473,60 @@ fn gold_root_for_document<'a>(
 fn is_selector_document(
     path: &str,
     private_prefixes: &BTreeSet<String>,
-    cut: &CorpusCutReader,
-) -> bool {
+    input: &SelectionInput<'_>,
+    limits: FoundationSelectionLimits,
+    cancelled: &AtomicBool,
+) -> Result<bool, ItemRefusal> {
     if path.starts_with(SOURCE_HOME) && path.ends_with("/item.manifest.json") {
-        return true;
+        return Ok(true);
     }
     if path.starts_with(ARTIFACTS)
         && (path.ends_with("/artifact-witness.json")
             || path.ends_with("/representation.json")
-            || is_artifact_request(path, cut))
+            || is_artifact_request(path, input, limits, cancelled)?)
     {
-        return true;
+        return Ok(true);
     }
     if path.starts_with(COMPOSITES) && path.ends_with("/representation.json") {
-        return true;
+        return Ok(true);
     }
     if path == PRIVATE_HANDOFF || path == TRANSFER_CROSSWALK {
-        return true;
+        return Ok(true);
     }
     if is_hierarchical_target_path(path, "hierarchical-numbered-unit-page-map.json")
         || is_hierarchical_target_path(path, "transfer-candidate-page-crosswalk.v1.json")
     {
-        return true;
+        return Ok(true);
     }
     if let Some(root) = gold_root_for_document(path, private_prefixes) {
         let Some(tail) = path
             .strip_prefix(root)
             .and_then(|tail| tail.strip_prefix('/'))
         else {
-            return false;
+            return Ok(false);
         };
-        return !tail.contains('/')
-            && (GOLD_DOCUMENTS.contains(&tail) || LAB_DOCUMENTS.contains(&tail));
+        return Ok(!tail.contains('/')
+            && (GOLD_DOCUMENTS.contains(&tail) || LAB_DOCUMENTS.contains(&tail)));
     }
-    false
+    Ok(false)
 }
 
-fn is_artifact_request(path: &str, cut: &CorpusCutReader) -> bool {
+fn is_artifact_request(
+    path: &str,
+    input: &SelectionInput<'_>,
+    limits: FoundationSelectionLimits,
+    cancelled: &AtomicBool,
+) -> Result<bool, ItemRefusal> {
     if !path.starts_with(ARTIFACTS) || !path.ends_with("/source-create-request.json") {
-        return false;
+        return Ok(false);
     }
     let Some((parent, _)) = path.rsplit_once('/') else {
-        return false;
+        return Ok(false);
     };
-    join_repo_path(parent, "artifact-witness.json")
-        .is_some_and(|artifact_path| cut_member(cut, &artifact_path).is_some())
-}
-
-fn cut_member<'a>(cut: &'a CorpusCutReader, path: &str) -> Option<&'a MemberMetadata> {
-    let relative = RelativePath::parse(path).ok()?;
-    cut.current().member(&relative)
+    match join_repo_path(parent, "artifact-witness.json") {
+        Some(path) => input.present(&path, limits, cancelled),
+        None => Ok(false),
+    }
 }
 
 fn safe_payload_path(path: &str) -> bool {

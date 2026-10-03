@@ -24,7 +24,8 @@ use tos_foundation::{
 use tos_ops_mechanics_plan::route_cards::RouteSources;
 use tos_source_store::{
     CorpusCutReader, CorpusReader, CutReadLimits, MemberMetadata, MetadataPublicationEpoch,
-    ReadLimits, SourceMembershipV1, has_authored_source_descendants_v1, is_authored_source_path_v1,
+    ReadLimits, SourceMembershipV1, StreamedCorpusCutReaderV1,
+    has_authored_source_descendants_v1, is_authored_source_path_v1,
 };
 
 const CONTROL: &str = "ToS/source-witnesses/.metadata-publication.json";
@@ -32,11 +33,17 @@ const CONTROL_READ_RESERVATION: usize = 8192;
 const MAX_CAPTURE_RELATIVE_PATH_BYTES: usize = 4096;
 
 pub(crate) struct FoundationCapturedCut {
-    cut: CorpusCutReader,
+    cut: FoundationCutBacking,
     membership: SourceMembershipV1,
-    metadata: BTreeMap<String, MemberMetadata>,
+    source_bytes: u64,
+    metadata: Option<BTreeMap<String, MemberMetadata>>,
     epoch: MetadataPublicationEpoch,
     cost: FoundationCaptureCost,
+}
+
+enum FoundationCutBacking {
+    Resident(CorpusCutReader),
+    Streamed(StreamedCorpusCutReaderV1),
 }
 
 /// Raw authored-member work only. Publication-control/manifest reads and
@@ -325,13 +332,30 @@ fn membership(metadata: &BTreeMap<String, MemberMetadata>) -> SourceMembershipV1
 
 impl FoundationCapturedCut {
     pub(crate) fn cut(&self) -> &CorpusCutReader {
-        &self.cut
+        match &self.cut {
+            FoundationCutBacking::Resident(cut) => cut,
+            FoundationCutBacking::Streamed(_) => {
+                panic!("resident source-cut access on streamed foundation capture")
+            }
+        }
+    }
+    pub(crate) fn streamed_cut(&self) -> Option<&StreamedCorpusCutReaderV1> {
+        match &self.cut {
+            FoundationCutBacking::Resident(_) => None,
+            FoundationCutBacking::Streamed(cut) => Some(cut),
+        }
     }
     pub(crate) fn revision(&self) -> SourceRevision {
-        self.cut.current().revision()
+        match &self.cut {
+            FoundationCutBacking::Resident(cut) => cut.current().revision(),
+            FoundationCutBacking::Streamed(cut) => cut.current_revision(),
+        }
     }
     pub(crate) fn membership(&self) -> SourceMembershipV1 {
         self.membership
+    }
+    pub(crate) fn source_bytes(&self) -> u64 {
+        self.source_bytes
     }
     pub(crate) fn epoch(&self) -> &MetadataPublicationEpoch {
         &self.epoch
@@ -344,12 +368,150 @@ impl FoundationCapturedCut {
     /// It contains authored members only; payload and auxiliary custody are
     /// selected separately by the command owner.
     pub(crate) fn current_paths(&self) -> Vec<String> {
-        self.metadata.keys().cloned().collect()
+        self.metadata
+            .as_ref()
+            .map(|metadata| metadata.keys().cloned().collect())
+            .unwrap_or_default()
     }
     pub(crate) fn observed_members(&self) -> impl Iterator<Item = (&str, &MemberMetadata)> {
         self.metadata
-            .iter()
+            .as_ref()
+            .into_iter()
+            .flat_map(|metadata| metadata.iter())
             .map(|(path, member)| (path.as_str(), member))
+    }
+
+    pub(crate) fn member(
+        &self,
+        path: &RelativePath,
+    ) -> io::Result<Option<MemberMetadata>> {
+        match &self.cut {
+            FoundationCutBacking::Resident(_) => Ok(self
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get(path.as_str()).cloned())),
+            FoundationCutBacking::Streamed(cut) => cut
+                .member(self.revision(), path)
+                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "captured member read")),
+        }
+    }
+
+    pub(crate) fn member_after(
+        &self,
+        after: Option<&RelativePath>,
+    ) -> io::Result<Option<MemberMetadata>> {
+        match &self.cut {
+            FoundationCutBacking::Resident(_) => Ok(self.metadata.as_ref().and_then(|metadata| {
+                match after {
+                    Some(after) => metadata
+                        .range::<str, _>((std::ops::Bound::Excluded(after.as_str()), std::ops::Bound::Unbounded))
+                        .next()
+                        .map(|(_, member)| member.clone()),
+                    None => metadata.values().next().cloned(),
+                }
+            })),
+            FoundationCutBacking::Streamed(cut) => cut
+                .member_after(self.revision(), after)
+                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "captured member cursor")),
+        }
+    }
+
+    pub(crate) fn read_member(
+        &self,
+        path: &RelativePath,
+        max_bytes: usize,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<Vec<u8>> {
+        let max_bytes = u64::try_from(max_bytes)
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "captured read cap"))?;
+        match &self.cut {
+            FoundationCutBacking::Resident(cut) => cut
+                .read_member(self.revision(), path, max_bytes, deadline, cancel)
+                .map(|member| member.raw)
+                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "captured member bytes")),
+            FoundationCutBacking::Streamed(cut) => cut
+                .read_member(self.revision(), path, max_bytes, deadline, cancel)
+                .map(|member| member.raw)
+                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "captured member bytes")),
+        }
+    }
+
+    /// Visit a sorted current-member cursor without materializing the complete
+    /// source path set. The streamed branch checks a true cursor EOF against
+    /// the capture's authenticated full-membership receipt.
+    pub(crate) fn for_each_member(
+        &self,
+        deadline: Instant,
+        cancel: &AtomicBool,
+        mut visit: impl FnMut(&MemberMetadata) -> io::Result<()>,
+    ) -> io::Result<()> {
+        match &self.cut {
+            FoundationCutBacking::Resident(_) => {
+                let metadata = self
+                    .metadata
+                    .as_ref()
+                    .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "capture metadata absent"))?;
+                if membership(metadata) != self.membership
+                    || metadata.values().try_fold(0u64, |total, member| {
+                        total.checked_add(member.size_bytes)
+                    }) != Some(self.source_bytes)
+                {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "captured resident membership changed",
+                    ));
+                }
+                for member in metadata.values() {
+                    active(deadline, cancel).map_err(|_| {
+                        io::Error::new(io::ErrorKind::Interrupted, "captured member walk interrupted")
+                    })?;
+                    visit(member)?;
+                }
+            }
+            FoundationCutBacking::Streamed(_) => {
+                let mut after = None;
+                let mut hash = Digest256Hasher::new();
+                hash.update(b"tos-val-full-membership-v1\0");
+                let mut count = 0u64;
+                let mut observed_bytes = 0u64;
+                loop {
+                    active(deadline, cancel).map_err(|_| {
+                        io::Error::new(io::ErrorKind::Interrupted, "captured member walk interrupted")
+                    })?;
+                    let next = self.member_after(after.as_ref());
+                    active(deadline, cancel).map_err(|_| {
+                        io::Error::new(io::ErrorKind::Interrupted, "captured member cursor interrupted")
+                    })?;
+                    let Some(member) = next? else { break };
+                    count = count
+                        .checked_add(1)
+                        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "member count overflow"))?;
+                    observed_bytes = observed_bytes
+                        .checked_add(member.size_bytes)
+                        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "member byte count overflow"))?;
+                    feed_membership(&mut hash, &member.path, member.size_bytes, member.sha256);
+                    visit(&member)?;
+                    after = Some(member.path);
+                }
+                active(deadline, cancel).map_err(|_| {
+                    io::Error::new(io::ErrorKind::Interrupted, "captured member EOF interrupted")
+                })?;
+                if count != self.membership.count
+                    || (SourceMembershipV1 {
+                        count,
+                        digest: hash.finalize(),
+                    } != self.membership)
+                    || observed_bytes != self.source_bytes
+                {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "captured streamed membership did not reach authenticated EOF",
+                    ));
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Re-enumerate and rehash actual current files; a participating epoch alone
@@ -423,27 +585,52 @@ impl FoundationCapturedCut {
                 "foundation publication-control read reservation",
             ))?;
         let mut member_bytes = 0usize;
-        let mut stream = self
-            .cut
-            .stream(self.cut.current().revision())
-            .map_err(|_| Error::Invalid("foundation candidate immutable stream"))?;
-        while let Some(member) = stream
-            .next_member(deadline, cancel)
-            .map_err(|_| Error::Invalid("foundation candidate immutable EOF"))?
-        {
-            member_bytes = member_bytes
-                .checked_add(member.raw.len())
-                .filter(|bytes| *bytes <= member_allowance)
-                .ok_or(Error::Unsupported(
-                    "foundation candidate immutable read budget",
-                ))?;
+        match &self.cut {
+            FoundationCutBacking::Resident(cut) => {
+                let mut stream = cut
+                    .stream(self.revision())
+                    .map_err(|_| Error::Invalid("foundation candidate immutable stream"))?;
+                while let Some(member) = stream
+                    .next_member(deadline, cancel)
+                    .map_err(|_| Error::Invalid("foundation candidate immutable EOF"))?
+                {
+                    member_bytes = member_bytes
+                        .checked_add(member.raw.len())
+                        .filter(|bytes| *bytes <= member_allowance)
+                        .ok_or(Error::Unsupported(
+                            "foundation candidate immutable read budget",
+                        ))?;
+                }
+                if stream.coverage() != Some(self.membership) {
+                    return Err(Error::Conflict(
+                        "foundation candidate immutable membership changed",
+                    ));
+                }
+            }
+            FoundationCutBacking::Streamed(_) => self
+                .for_each_member(deadline, cancel, |metadata| {
+                    let raw = self
+                        .read_member(
+                            &metadata.path,
+                            usize::try_from(metadata.size_bytes).map_err(|_| {
+                                io::Error::new(io::ErrorKind::InvalidData, "member size range")
+                            })?,
+                            deadline,
+                            cancel,
+                        )?;
+                    member_bytes = member_bytes
+                        .checked_add(raw.len())
+                        .filter(|bytes| *bytes <= member_allowance)
+                        .ok_or_else(|| {
+                            io::Error::new(
+                                io::ErrorKind::InvalidData,
+                                "foundation candidate immutable read budget",
+                            )
+                        })?;
+                    Ok(())
+                })
+                .map_err(|_| Error::Invalid("foundation candidate immutable EOF"))?,
         }
-        if stream.coverage() != Some(self.membership) {
-            return Err(Error::Conflict(
-                "foundation candidate immutable membership changed",
-            ));
-        }
-        drop(stream);
 
         let (current_state, control_bytes) = state_with_cost(sources)?;
         if control_bytes > CONTROL_READ_RESERVATION {
@@ -472,11 +659,15 @@ impl FoundationCapturedCut {
         deadline: Instant,
         cancel: &AtomicBool,
     ) -> Result<(usize, usize)> {
+        let metadata = self
+            .metadata
+            .as_ref()
+            .ok_or(Error::Invalid("foundation live capture metadata unavailable"))?;
         let current = paths(sources, deadline, cancel)?;
         if !current
             .iter()
             .map(String::as_str)
-            .eq(self.metadata.keys().map(String::as_str))
+            .eq(metadata.keys().map(String::as_str))
         {
             return Err(Error::Conflict("foundation live membership changed"));
         }
@@ -491,7 +682,7 @@ impl FoundationCapturedCut {
                     max_source_read_bytes.min(MAX_BYTES),
                 )
                 .map_err(source_error)?;
-            let original = &self.metadata[&path];
+            let original = &metadata[&path];
             if raw.len() as u64 != original.size_bytes
                 || Digest256::of_bytes(&raw) != original.sha256
                 || physical.mode() & 0o7777 != original.mode
@@ -931,9 +1122,10 @@ pub(crate) fn capture_candidate(
         ));
     }
     Ok(FoundationCapturedCut {
-        cut,
+        cut: FoundationCutBacking::Resident(cut),
         membership,
-        metadata,
+        source_bytes: total_member_bytes as u64,
+        metadata: Some(metadata),
         epoch,
         cost: FoundationCaptureCost {
             source_read_bytes: 0,
@@ -1064,9 +1256,11 @@ pub(crate) fn capture_bounded_with_write_cap(
     }
     drop(stream);
     let mut captured = FoundationCapturedCut {
-        cut,
+        cut: FoundationCutBacking::Resident(cut),
         membership,
-        metadata,
+        source_bytes: u64::try_from(read_bytes)
+            .map_err(|_| Error::Unsupported("foundation member byte range"))?,
+        metadata: Some(metadata),
         epoch,
         cost: FoundationCaptureCost {
             source_read_bytes: read_bytes,

@@ -3,21 +3,131 @@
 //! cut; its result is a district report, never whole-source admission.
 
 use crate::item_rules::{
-    ItemFamilyReport, ItemLimits, ItemPayload, ItemRefusal, ItemRules, ItemSource,
+    ItemFamilyReport, ItemIssue, ItemLimits, ItemPayload, ItemRefusal, ItemRules, ItemSource,
 };
 use crate::record_biblio_cut::{
-    BiblioCurrentRecord, BiblioRecordExecutor, SourceCutRecordReport, inspect_records_from_cut,
+    BiblioCurrentRecord, BiblioRecordExecutor, SourceCutInput, SourceCutInputCoverage,
+    SourceCutInputWithIdentity, SourceCutMemberMeta, SourceCutRecordFactBudget,
+    SourceCutRecordReport, SourceCutRecordUsage, SourceCutStreamedRecordSummary,
+    inspect_records_from_cut, inspect_records_from_input_stored,
 };
-use crate::source_cut::{CutPayloadReader, CutWorkerSchemaExecutor};
+use crate::source_cut::{
+    CandidateCutSchemaDiagnostic, CutPayloadReader, CutPreparedSchemaExecutionBinding,
+    CutSchemaDiagnosticsCumulativeCost, CutSchemaExecutor, CutWorkerSchemaExecutor,
+};
 use crate::source_foundation_discovery::SourcePhysicalFacts;
 use crate::source_witness_foundation::SourceFileMembershipIndex;
 use serde_json::Value;
+use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as FmtWrite;
+use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{RelativePath, SourceRevision};
+use tos_foundation::{Digest256, RelativePath, SourceRevision};
 use tos_source_store::{CorpusCutReader, SourceMembershipV1, SourcePresenceV1};
+
+#[path = "source_foundation_records_storage.rs"]
+mod source_foundation_records_storage;
+pub use source_foundation_records_storage::{
+    SourceFoundationCandidateSchemaIdentity, SourceFoundationFileDescriptorLookup,
+    SourceFoundationGlobalIdFact, SourceFoundationItemSelectionLookup, SourceFoundationLinkUriFact,
+    SourceFoundationRecordFact, SourceFoundationRecordFactCollection,
+    SourceFoundationRecordFactPage, SourceFoundationRecordIdCarrier,
+    SourceFoundationRecordObservation, SourceFoundationRecordPathReference,
+    SourceFoundationRecordSchemaDiagnostic, SourceFoundationRecordsCollection,
+    SourceFoundationRecordsCursor, SourceFoundationRecordsCursorPage, SourceFoundationRecordsIndex,
+    SourceFoundationRecordsLookup, SourceFoundationRecordsPageBudget, SourceFoundationRecordsStore,
+    SourceFoundationRecordsStoredFact, SourceFoundationRecordsStreamedItemSummary,
+    SourceFoundationRecordsStreamedReport, SourceFoundationTypedIdRefFact,
+    SourceFoundationUriOwnerLookup,
+};
+
+/// One exact resource selected into the candidate-bound Item schema closure.
+/// The input receiver compares this tuple with the same `SourceCutInput` and
+/// verifies the raw bytes before allowing the unchanged Item rules to run.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SourceFoundationCandidateSchemaResource<'a> {
+    pub path: &'a str,
+    pub size_bytes: u64,
+    pub sha256: Digest256,
+}
+
+/// Candidate-bound schema executor contract consumed by the source receiver.
+/// The identity is opaque and typed by the command owner; it is not a
+/// `SourceRevision`. Resource enumeration is in strictly ascending path order
+/// and covers the complete selected closure.
+pub trait SourceFoundationCandidateSchemaBinding<I: Eq + Clone>: CutSchemaExecutor {
+    fn input_identity(&self) -> &I;
+    fn prepared_execution_binding(&self) -> CutPreparedSchemaExecutionBinding;
+    fn profile(&self) -> crate::FormatProfile;
+    fn schema_set_digest(&self) -> Digest256;
+    fn contract_selection_digest(&self) -> Digest256;
+    fn contract_digest(&self, contract: &str) -> Option<Digest256>;
+    fn for_each_selected_resource(
+        &self,
+        visit: &mut dyn FnMut(
+            SourceFoundationCandidateSchemaResource<'_>,
+        ) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal>;
+
+    /// Execute the unchanged schema selector, including any JSON-pointer
+    /// fragment in `contract`. The default forwards the contract byte-for-byte
+    /// through the established scalar executor.
+    fn check_with_fragment(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<bool, ItemRefusal> {
+        self.check(path, raw, contract, deadline, cancelled)
+    }
+
+    /// Return one complete typed diagnostics-v2 result from the exact prepared
+    /// candidate schema binding. Scalar implementations must not silently
+    /// synthesize this report.
+    fn check_diagnostics_v2(
+        &mut self,
+        _path: &str,
+        _raw: &[u8],
+        _contract: &str,
+        _deadline: Instant,
+        _cancelled: &AtomicBool,
+    ) -> Result<CandidateCutSchemaDiagnostic<I>, ItemRefusal> {
+        Err(ItemRefusal::Unsupported(
+            "candidate schema diagnostics v2 unavailable".into(),
+        ))
+    }
+
+    /// Move the next complete invalid diagnostics report retained by a bool
+    /// projection. Implementations without this protocol fail closed.
+    fn take_schema_diagnostic_rejection(
+        &mut self,
+    ) -> Result<Option<CandidateCutSchemaDiagnostic<I>>, ItemRefusal> {
+        Err(ItemRefusal::Unsupported(
+            "candidate schema diagnostics rejection drain unavailable".into(),
+        ))
+    }
+
+    /// Report the actual number of diagnostics-v2 executions observed by the
+    /// prepared worker. A scalar default must not masquerade as zero work.
+    fn diagnostic_execution_count(&self) -> Result<usize, ItemRefusal> {
+        Err(ItemRefusal::Unsupported(
+            "candidate schema diagnostics execution count unavailable".into(),
+        ))
+    }
+
+    /// Return checked cumulative cost for complete diagnostics-v2 exchanges.
+    fn diagnostics_v2_cumulative_cost(
+        &self,
+    ) -> Result<CutSchemaDiagnosticsCumulativeCost, ItemRefusal> {
+        Err(ItemRefusal::Unsupported(
+            "candidate schema diagnostics cumulative cost unavailable".into(),
+        ))
+    }
+}
 
 const ITEM_MANIFEST_SUFFIX: &str = "/item.manifest.json";
 const SOURCE_HOME: &str = "ToS/source-witnesses/";
@@ -282,6 +392,27 @@ pub struct SourceFoundationRecordsReport {
     pub cost: SourceFoundationRecordsCost,
 }
 
+struct SourceFoundationRecordsCoreReport {
+    source_membership: SourceMembershipV1,
+    records: Option<SourceFoundationRecordKernelOutcome>,
+    record_usage: Option<SourceCutRecordUsage>,
+    items: ItemFamilyReport,
+    current_records: BTreeMap<String, BiblioCurrentRecord>,
+    current_record_order: Vec<String>,
+    used_declared_profile_kinds: BTreeSet<String>,
+    item_records: Vec<SourceFoundationItemRecordSelection>,
+    record_schema_positions: Vec<(String, usize)>,
+    file_memberships: SourceFileMembershipIndex,
+    rights_ids: BTreeSet<String>,
+    claim_ids: BTreeSet<String>,
+    item_editions: BTreeMap<String, String>,
+    source_event_insertions: Vec<SourceFoundationEventInsertion>,
+    ordered_issues: Vec<SourceFoundationRecordsIssue>,
+    schema_checks: Vec<SourceFoundationRecordsSchemaCheck>,
+    unimplemented: Vec<&'static str>,
+    cost: SourceFoundationRecordsCost,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceFoundationItemRecordSelection {
     pub record_id: String,
@@ -299,9 +430,351 @@ struct SelectedItemRecords {
     state_bytes: usize,
 }
 
-struct DirectCurrentRecordScan {
+#[derive(Clone, Copy)]
+enum SourceFoundationCurrentInput<'a> {
+    Cut {
+        cut: &'a CorpusCutReader,
+        revision: SourceRevision,
+    },
+    Stream(&'a dyn SourceCutInput),
+}
+
+struct SourceFoundationCurrentMember {
+    size_bytes: u64,
+    raw: Vec<u8>,
+}
+
+impl SourceFoundationCurrentInput<'_> {
+    fn cut(&self) -> Option<&CorpusCutReader> {
+        match self {
+            Self::Cut { cut, .. } => Some(cut),
+            Self::Stream(_) => None,
+        }
+    }
+
+    fn input(&self) -> Option<&dyn SourceCutInput> {
+        match self {
+            Self::Cut { .. } => None,
+            Self::Stream(input) => Some(*input),
+        }
+    }
+
+    fn verify_current_fence(
+        &self,
+        coverage: &SourceCutInputCoverage,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal> {
+        check_deadline(deadline, cancelled)?;
+        if let Self::Stream(input) = self {
+            input.verify_current_fence(coverage, deadline, cancelled)?;
+        }
+        check_deadline(deadline, cancelled)
+    }
+
+    fn for_each_member_meta(
+        &self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        visit: &mut dyn FnMut(SourceCutMemberMeta<'_>) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        check_deadline(deadline, cancelled)?;
+        match self {
+            Self::Cut { cut, .. } => {
+                for member in cut.current().members() {
+                    check_deadline(deadline, cancelled)?;
+                    visit(SourceCutMemberMeta {
+                        path: member.path.as_str(),
+                        size_bytes: member.size_bytes,
+                    })?;
+                }
+                Ok(())
+            }
+            Self::Stream(input) => {
+                input.for_each_current_member_meta(deadline, cancelled, visit)?;
+                check_deadline(deadline, cancelled)
+            }
+        }
+    }
+
+    fn presence(
+        &self,
+        path: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<SourcePresenceV1>, ItemRefusal> {
+        check_deadline(deadline, cancelled)?;
+        let relative = RelativePath::parse(path)
+            .map_err(|_| ItemRefusal::Unsupported("source-foundation current path".into()))?;
+        let found = match self {
+            Self::Cut { cut, revision } => cut.presence(*revision, &relative),
+            Self::Stream(input) => input.path_presence(relative.as_str(), deadline, cancelled)?,
+        };
+        check_deadline(deadline, cancelled)?;
+        Ok(found)
+    }
+
+    fn member_size(
+        &self,
+        path: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<u64>, ItemRefusal> {
+        check_deadline(deadline, cancelled)?;
+        let relative = RelativePath::parse(path)
+            .map_err(|_| ItemRefusal::Unsupported("source-foundation current path".into()))?;
+        let size = match self {
+            Self::Cut { cut, .. } => cut
+                .current()
+                .member(&relative)
+                .map(|member| member.size_bytes),
+            Self::Stream(input) => {
+                let mut found = None;
+                input.for_each_current_member_meta(deadline, cancelled, &mut |meta| {
+                    if meta.path == relative.as_str() {
+                        if found.replace(meta.size_bytes).is_some() {
+                            return Err(ItemRefusal::Source(
+                                "source input repeated a current member path".into(),
+                            ));
+                        }
+                    }
+                    Ok(())
+                })?;
+                found
+            }
+        };
+        check_deadline(deadline, cancelled)?;
+        Ok(size)
+    }
+
+    fn read_member(
+        &self,
+        path: &str,
+        max_bytes: usize,
+        prior_state_bytes: usize,
+        max_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<SourceFoundationCurrentMember, ItemRefusal> {
+        check_deadline(deadline, cancelled)?;
+        let relative_path_state_bytes = std::mem::size_of::<RelativePath>()
+            .checked_add(path.len())
+            .ok_or(ItemRefusal::Budget)?;
+        let relative_path_peak = prior_state_bytes
+            .checked_add(relative_path_state_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        if relative_path_peak > max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "source-foundation current path parse state",
+                used: Some(relative_path_peak as u64),
+                limit: Some(max_state_bytes as u64),
+            });
+        }
+        let relative = RelativePath::parse(path)
+            .map_err(|_| ItemRefusal::Unsupported("source-foundation current path".into()))?;
+        match self {
+            Self::Cut { cut, revision } => {
+                let metadata_size = cut
+                    .current()
+                    .member(&relative)
+                    .ok_or_else(|| {
+                        ItemRefusal::Source(format!(
+                            "source-foundation current member missing from captured cut: {path}"
+                        ))
+                    })?
+                    .size_bytes;
+                let expected_len =
+                    usize::try_from(metadata_size).map_err(|_| ItemRefusal::Budget)?;
+                if metadata_size > max_bytes as u64 {
+                    return Err(ItemRefusal::BudgetCheck {
+                        check: "source-foundation current member bytes",
+                        used: Some(metadata_size),
+                        limit: Some(max_bytes as u64),
+                    });
+                }
+                let precharged = prior_state_bytes
+                    .checked_add(relative_path_state_bytes)
+                    .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Vec<u8>>()))
+                    .and_then(|bytes| bytes.checked_add(expected_len))
+                    .ok_or(ItemRefusal::Budget)?;
+                if precharged > max_state_bytes {
+                    return Err(ItemRefusal::BudgetCheck {
+                        check: "source-foundation current member read precharge",
+                        used: Some(precharged as u64),
+                        limit: Some(max_state_bytes as u64),
+                    });
+                }
+                let member = cut
+                    .read_member(*revision, &relative, max_bytes as u64, deadline, cancelled)
+                    .map_err(store_error)?;
+                let size_bytes =
+                    u64::try_from(member.raw.len()).map_err(|_| ItemRefusal::Budget)?;
+                let overlap = prior_state_bytes
+                    .checked_add(relative_path_state_bytes)
+                    .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Vec<u8>>()))
+                    .and_then(|bytes| bytes.checked_add(member.raw.capacity()))
+                    .ok_or(ItemRefusal::Budget)?;
+                if size_bytes != metadata_size
+                    || member.raw.len() > max_bytes
+                    || overlap > max_state_bytes
+                {
+                    return Err(ItemRefusal::BudgetCheck {
+                        check: "source-foundation current member raw state",
+                        used: Some(overlap as u64),
+                        limit: Some(max_state_bytes as u64),
+                    });
+                }
+                check_deadline(deadline, cancelled)?;
+                Ok(SourceFoundationCurrentMember {
+                    size_bytes,
+                    raw: member.raw,
+                })
+            }
+            Self::Stream(input) => {
+                let mut found = None;
+                input.with_current_member(
+                    path,
+                    max_bytes,
+                    deadline,
+                    cancelled,
+                    &mut |meta, bytes| {
+                        check_deadline(deadline, cancelled)?;
+                        if found.is_some()
+                            || meta.path != path
+                            || bytes.len() > max_bytes
+                            || u64::try_from(bytes.len()).ok() != Some(meta.size_bytes)
+                        {
+                            return Err(ItemRefusal::Source(
+                                "source input returned an inexact current member".into(),
+                            ));
+                        }
+                        let overlap = bytes
+                            .len()
+                            .checked_mul(2)
+                            .and_then(|bytes| bytes.checked_add(prior_state_bytes))
+                            .and_then(|used| used.checked_add(relative_path_state_bytes))
+                            .and_then(|used| used.checked_add(std::mem::size_of::<Vec<u8>>()))
+                            .and_then(|used| {
+                                used.checked_add(std::mem::size_of::<
+                                    Option<SourceFoundationCurrentMember>,
+                                >())
+                            })
+                            .ok_or(ItemRefusal::Budget)?;
+                        if overlap > max_state_bytes {
+                            return Err(ItemRefusal::BudgetCheck {
+                                check: "source-foundation current member copy state",
+                                used: Some(overlap as u64),
+                                limit: Some(max_state_bytes as u64),
+                            });
+                        }
+                        let mut raw = Vec::new();
+                        raw.try_reserve_exact(bytes.len())
+                            .map_err(|_| ItemRefusal::Budget)?;
+                        let actual_overlap = bytes
+                            .len()
+                            .checked_add(prior_state_bytes)
+                            .and_then(|used| used.checked_add(relative_path_state_bytes))
+                            .and_then(|used| used.checked_add(std::mem::size_of::<Vec<u8>>()))
+                            .and_then(|used| {
+                                used.checked_add(std::mem::size_of::<
+                                    Option<SourceFoundationCurrentMember>,
+                                >())
+                            })
+                            .and_then(|used| used.checked_add(raw.capacity()))
+                            .ok_or(ItemRefusal::Budget)?;
+                        if actual_overlap > max_state_bytes {
+                            return Err(ItemRefusal::BudgetCheck {
+                                check: "source-foundation current member copy capacity",
+                                used: Some(actual_overlap as u64),
+                                limit: Some(max_state_bytes as u64),
+                            });
+                        }
+                        raw.extend_from_slice(bytes);
+                        found = Some(SourceFoundationCurrentMember {
+                            size_bytes: meta.size_bytes,
+                            raw,
+                        });
+                        Ok(())
+                    },
+                )?;
+                check_deadline(deadline, cancelled)?;
+                found.ok_or_else(|| {
+                    ItemRefusal::Source("source input omitted the requested current member".into())
+                })
+            }
+        }
+    }
+
+    fn member_digest(
+        &self,
+        path: &str,
+        max_bytes: usize,
+        prior_state_bytes: usize,
+        max_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<Digest256>, ItemRefusal> {
+        self.member_digest_with_accounting(
+            path,
+            max_bytes,
+            None,
+            prior_state_bytes,
+            max_state_bytes,
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn member_digest_with_accounting(
+        &self,
+        path: &str,
+        max_bytes: usize,
+        direct_read: Option<(&mut u64, u64)>,
+        prior_state_bytes: usize,
+        max_state_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Option<Digest256>, ItemRefusal> {
+        let Some(expected_size) = self.member_size(path, deadline, cancelled)? else {
+            return Ok(None);
+        };
+        if expected_size > max_bytes as u64 {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "source-foundation digest member bytes",
+                used: Some(expected_size),
+                limit: Some(max_bytes as u64),
+            });
+        }
+        if let Some((direct_read_bytes, direct_read_limit)) = direct_read {
+            account_direct_item_read(
+                expected_size,
+                direct_read_bytes,
+                direct_read_limit,
+                max_bytes,
+                "source-foundation inventory digest reads",
+            )?;
+        }
+        let member = self.read_member(
+            path,
+            max_bytes,
+            prior_state_bytes,
+            max_state_bytes,
+            deadline,
+            cancelled,
+        )?;
+        if member.size_bytes != expected_size {
+            return Err(ItemRefusal::Source(
+                "source member size changed during digest read".into(),
+            ));
+        }
+        check_deadline(deadline, cancelled)?;
+        Ok(Some(Digest256::of_bytes(&member.raw)))
+    }
+}
+
+struct DirectCurrentRecordScan<'a> {
     records: SelectedItemRecords,
-    issues: DirectIssueBuffer,
+    issues: DirectIssueBuffer<'a>,
     schema_checks: Vec<SourceFoundationRecordsSchemaCheck>,
     schema_request_state_bytes: usize,
     candidate_kernel_cause: Option<SourceFoundationRecordKernelCause>,
@@ -313,12 +786,32 @@ struct DirectCurrentRecordScan {
     state_bytes: usize,
 }
 
-struct DirectIssueBuffer {
+#[derive(Clone)]
+struct SourceFoundationRecordsStoreHandle<'a>(
+    Rc<RefCell<&'a mut (dyn SourceFoundationRecordsStore + 'a)>>,
+);
+
+impl<'a> SourceFoundationRecordsStoreHandle<'a> {
+    fn new(store: &'a mut dyn SourceFoundationRecordsStore) -> Self {
+        Self(Rc::new(RefCell::new(store)))
+    }
+
+    fn with<T>(
+        &self,
+        action: impl FnOnce(&mut dyn SourceFoundationRecordsStore) -> Result<T, ItemRefusal>,
+    ) -> Result<T, ItemRefusal> {
+        let mut store = self.0.borrow_mut();
+        action(&mut **store)
+    }
+}
+
+struct DirectIssueBuffer<'a> {
     rows: Vec<SourceFoundationRecordsIssue>,
     state_bytes: usize,
     hard_max_state_bytes: usize,
     max_state_bytes: usize,
     max_issues: usize,
+    store: Option<SourceFoundationRecordsStoreHandle<'a>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -327,14 +820,19 @@ enum LegacyJsonParseFailure {
     Nonfinite,
 }
 
-impl DirectIssueBuffer {
-    fn new(limits: ItemLimits, state_limit: usize) -> Self {
+impl<'a> DirectIssueBuffer<'a> {
+    fn new(
+        limits: ItemLimits,
+        state_limit: usize,
+        store: Option<SourceFoundationRecordsStoreHandle<'a>>,
+    ) -> Self {
         Self {
             rows: Vec::new(),
             state_bytes: std::mem::size_of::<Vec<SourceFoundationRecordsIssue>>(),
             hard_max_state_bytes: state_limit.min(limits.max_state_bytes),
             max_state_bytes: state_limit.min(limits.max_state_bytes),
             max_issues: limits.max_issues,
+            store,
         }
     }
 
@@ -365,11 +863,46 @@ impl DirectIssueBuffer {
             .state_bytes
             .checked_sub(temporary)
             .ok_or(ItemRefusal::Budget)?;
-        self.rows.push(SourceFoundationRecordsIssue {
+        let issue = SourceFoundationRecordsIssue {
             family,
             location: location.to_owned(),
             message: message.to_owned(),
-        });
+        };
+        if let Some(store) = &self.store {
+            store.with(|store| store.ordered_issue(&issue))?;
+        }
+        self.rows.push(issue);
+        Ok(())
+    }
+
+    fn current_record_first(
+        &self,
+        id: &str,
+        record: &BiblioCurrentRecord,
+    ) -> Result<(), ItemRefusal> {
+        if let Some(store) = &self.store {
+            store.with(|store| store.current_record_first(id, record))?;
+        }
+        Ok(())
+    }
+
+    fn item_record_selection(
+        &self,
+        row: &SourceFoundationItemRecordSelection,
+    ) -> Result<(), ItemRefusal> {
+        if let Some(store) = &self.store {
+            store.with(|store| store.item_record_selection(row))?;
+        }
+        Ok(())
+    }
+
+    fn store_fact(
+        &self,
+        write: impl FnOnce(&mut dyn SourceFoundationRecordsStore) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
+        if let Some(store) = &self.store {
+            store.with(write)?;
+        }
         Ok(())
     }
 
@@ -759,7 +1292,7 @@ fn note_record_kernel_candidate_cause(
 
 fn is_candidate_record_kernel_refusal(
     refusal: &ItemRefusal,
-    scan: &DirectCurrentRecordScan,
+    scan: &DirectCurrentRecordScan<'_>,
 ) -> bool {
     let ItemRefusal::Unsupported(reason) = refusal else {
         return false;
@@ -800,6 +1333,7 @@ fn retain_record_schema_position(
     path: &str,
     before_issue: usize,
     state_limit: usize,
+    store: Option<&SourceFoundationRecordsStoreHandle<'_>>,
 ) -> Result<(), ItemRefusal> {
     let retained = std::mem::size_of::<(String, usize)>()
         .checked_add(path.len())
@@ -809,38 +1343,146 @@ fn retain_record_schema_position(
         .filter(|used| *used <= state_limit)
         .ok_or(ItemRefusal::Budget)?;
     positions.push((path.to_owned(), before_issue));
+    if let Some(store) = store {
+        store.with(|store| store.record_schema_position(path, before_issue))?;
+    }
     Ok(())
 }
 
-fn scan_direct_current_records(
-    cut: &CorpusCutReader,
-    revision: SourceRevision,
+fn current_source_paths_matching(
+    source: SourceFoundationCurrentInput<'_>,
+    prefix: &str,
+    excluded_prefix: Option<&str>,
+    basename: Option<&str>,
+    suffix: Option<&str>,
+    base_state_bytes: usize,
+    max_state_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<(Vec<(String, u64)>, usize), ItemRefusal> {
+    let mut paths = Vec::<(String, u64)>::new();
+    let mut path_bytes = 0usize;
+    source.for_each_member_meta(deadline, cancelled, &mut |meta| {
+        let path = meta.path;
+        if !path.starts_with(prefix)
+            || excluded_prefix.is_some_and(|excluded| path.starts_with(excluded))
+            || basename.is_some_and(|name| path.rsplit('/').next() != Some(name))
+            || suffix.is_some_and(|ending| !path.ends_with(ending))
+        {
+            return Ok(());
+        }
+        RelativePath::parse(path)
+            .map_err(|_| ItemRefusal::Source("source metadata contained an invalid path".into()))?;
+        let path_payload_bytes = path.len();
+        let next_len = paths.len().checked_add(1).ok_or(ItemRefusal::Budget)?;
+        let requested_capacity = paths.capacity().max(next_len);
+        let requested_slots = requested_capacity
+            .checked_mul(std::mem::size_of::<(String, u64)>())
+            .ok_or(ItemRefusal::Budget)?;
+        let vector_overlap = if requested_capacity > paths.capacity() {
+            paths
+                .capacity()
+                .checked_add(requested_capacity)
+                .and_then(|slots| slots.checked_mul(std::mem::size_of::<(String, u64)>()))
+                .ok_or(ItemRefusal::Budget)?
+        } else {
+            requested_slots
+        };
+        let allocation_peak = base_state_bytes
+            .checked_add(std::mem::size_of::<Vec<(String, u64)>>())
+            .and_then(|bytes| bytes.checked_add(vector_overlap))
+            .and_then(|bytes| bytes.checked_add(path_bytes))
+            .and_then(|bytes| bytes.checked_add(path_payload_bytes))
+            .ok_or(ItemRefusal::Budget)?;
+        if allocation_peak > max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "source-foundation current path index allocation",
+                used: Some(allocation_peak as u64),
+                limit: Some(max_state_bytes as u64),
+            });
+        }
+        paths
+            .try_reserve_exact(1)
+            .map_err(|_| ItemRefusal::Budget)?;
+        let actual_slots = paths
+            .capacity()
+            .checked_mul(std::mem::size_of::<(String, u64)>())
+            .ok_or(ItemRefusal::Budget)?;
+        let actual_peak = base_state_bytes
+            .checked_add(std::mem::size_of::<Vec<(String, u64)>>())
+            .and_then(|bytes| bytes.checked_add(actual_slots))
+            .and_then(|bytes| bytes.checked_add(path_bytes))
+            .and_then(|bytes| bytes.checked_add(path_payload_bytes))
+            .ok_or(ItemRefusal::Budget)?;
+        if actual_peak > max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "source-foundation current path index capacity",
+                used: Some(actual_peak as u64),
+                limit: Some(max_state_bytes as u64),
+            });
+        }
+        let mut owned_path = String::new();
+        owned_path
+            .try_reserve_exact(path.len())
+            .map_err(|_| ItemRefusal::Budget)?;
+        owned_path.push_str(path);
+        paths.push((owned_path, meta.size_bytes));
+        path_bytes = path_bytes
+            .checked_add(path_payload_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    })?;
+    paths.sort_by(|left, right| left.0.cmp(&right.0));
+    let retained = std::mem::size_of::<Vec<(String, u64)>>()
+        .checked_add(
+            paths
+                .capacity()
+                .checked_mul(std::mem::size_of::<(String, u64)>())
+                .ok_or(ItemRefusal::Budget)?,
+        )
+        .and_then(|bytes| bytes.checked_add(path_bytes))
+        .ok_or(ItemRefusal::Budget)?;
+    let peak = base_state_bytes
+        .checked_add(retained)
+        .ok_or(ItemRefusal::Budget)?;
+    if peak > max_state_bytes {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "source-foundation current path index state",
+            used: Some(peak as u64),
+            limit: Some(max_state_bytes as u64),
+        });
+    }
+    Ok((paths, retained))
+}
+
+fn scan_direct_current_records<'a>(
+    source: SourceFoundationCurrentInput<'_>,
     limits: ItemLimits,
     issue_limits: ItemLimits,
     issue_state_limit: usize,
     cancelled: &AtomicBool,
-) -> Result<DirectCurrentRecordScan, ItemRefusal> {
-    let registry_relative = RelativePath::parse(RECORD_REGISTRY)
-        .map_err(|_| ItemRefusal::Unsupported("source record registry path".into()))?;
-    let registry_meta = cut.current().member(&registry_relative).ok_or_else(|| {
-        ItemRefusal::Source("source record registry absent from captured cut".into())
-    })?;
-    if registry_meta.size_bytes > limits.max_member_bytes as u64 {
+    store: Option<SourceFoundationRecordsStoreHandle<'a>>,
+) -> Result<DirectCurrentRecordScan<'a>, ItemRefusal> {
+    let registry_size = source
+        .member_size(RECORD_REGISTRY, limits.deadline, cancelled)?
+        .ok_or_else(|| {
+            ItemRefusal::Source("source record registry absent from captured cut".into())
+        })?;
+    if registry_size > limits.max_member_bytes as u64 {
         return Err(ItemRefusal::BudgetCheck {
             check: "source-foundation record registry member bytes",
-            used: Some(registry_meta.size_bytes),
+            used: Some(registry_size),
             limit: Some(limits.max_member_bytes as u64),
         });
     }
-    let registry = cut
-        .read_member(
-            revision,
-            &registry_relative,
-            limits.max_member_bytes as u64,
-            limits.deadline,
-            cancelled,
-        )
-        .map_err(store_error)?;
+    let registry = source.read_member(
+        RECORD_REGISTRY,
+        limits.max_member_bytes,
+        0,
+        limits.max_state_bytes,
+        limits.deadline,
+        cancelled,
+    )?;
     let registry_value =
         bounded_native_value(&registry.raw, limits, limits.max_state_bytes, cancelled)?;
 
@@ -906,12 +1548,12 @@ fn scan_direct_current_records(
     if state_bytes > limits.max_state_bytes {
         return Err(ItemRefusal::Budget);
     }
-    let registry_bytes = registry_meta.size_bytes;
+    let registry_bytes = registry.size_bytes;
     drop(registry_value);
     drop(registry);
 
     let mut read_bytes = registry_bytes;
-    let mut issues = DirectIssueBuffer::new(issue_limits, issue_state_limit);
+    let mut issues = DirectIssueBuffer::new(issue_limits, issue_state_limit, store.clone());
     let mut schema_checks = Vec::<SourceFoundationRecordsSchemaCheck>::new();
     let mut schema_request_state_bytes =
         std::mem::size_of::<Vec<SourceFoundationRecordsSchemaCheck>>();
@@ -922,6 +1564,7 @@ fn scan_direct_current_records(
         RECORD_REGISTRY,
         issues.rows.len(),
         limits.max_state_bytes,
+        store.as_ref(),
     )?;
     let mut id_owners = BTreeMap::<String, BiblioCurrentRecord>::new();
     let mut id_order = Vec::<String>::new();
@@ -938,18 +1581,19 @@ fn scan_direct_current_records(
         if record_type == "link" {
             continue;
         }
-        let mut paths = cut
-            .current()
-            .members()
-            .filter_map(|member| {
-                let path = member.path.as_str();
-                (path.starts_with(SOURCE_HOME)
-                    && !path.starts_with(CATALOG_HOME)
-                    && path.rsplit('/').next() == Some(basename.as_str()))
-                .then_some((path.to_owned(), member.size_bytes))
-            })
-            .collect::<Vec<_>>();
-        paths.sort_by(|left, right| left.0.cmp(&right.0));
+        let (paths, paths_state_bytes) = current_source_paths_matching(
+            source,
+            SOURCE_HOME,
+            Some(CATALOG_HOME),
+            Some(&basename),
+            None,
+            state_bytes
+                .checked_add(selected_state_bytes)
+                .ok_or(ItemRefusal::Budget)?,
+            limits.max_state_bytes,
+            limits.deadline,
+            cancelled,
+        )?;
         for (path, member_size) in paths {
             check(limits, cancelled)?;
             if member_size > limits.max_member_bytes as u64 {
@@ -967,22 +1611,27 @@ fn scan_direct_current_records(
                     used: read_bytes.checked_add(member_size),
                     limit: Some(limits.max_total_bytes),
                 })?;
-            let relative = RelativePath::parse(&path).map_err(|_| {
-                ItemRefusal::Unsupported("source-foundation direct record path".into())
-            })?;
-            let member = cut
-                .read_member(
-                    revision,
-                    &relative,
-                    limits.max_member_bytes as u64,
-                    limits.deadline,
-                    cancelled,
-                )
-                .map_err(store_error)?;
+            let member = source.read_member(
+                &path,
+                limits.max_member_bytes,
+                state_bytes
+                    .checked_add(selected_state_bytes)
+                    .and_then(|bytes| bytes.checked_add(paths_state_bytes))
+                    .ok_or(ItemRefusal::Budget)?,
+                limits.max_state_bytes,
+                limits.deadline,
+                cancelled,
+            )?;
+            if member.size_bytes != member_size {
+                return Err(ItemRefusal::Source(
+                    "direct record member size changed after metadata traversal".into(),
+                ));
+            }
             let available = limits
                 .max_state_bytes
                 .checked_sub(state_bytes)
                 .and_then(|remaining| remaining.checked_sub(selected_state_bytes))
+                .and_then(|remaining| remaining.checked_sub(paths_state_bytes))
                 .ok_or(ItemRefusal::Budget)?;
             let value = match bounded_native_value(&member.raw, limits, available, cancelled) {
                 Ok(value) => value,
@@ -1047,14 +1696,16 @@ fn scan_direct_current_records(
                 &path,
                 issues.rows.len(),
                 limits.max_state_bytes,
+                store.as_ref(),
             )?;
             append_direct_source_refs(
                 &mut issues,
                 SourceFoundationRecordsIssueFamily::Record,
                 &path,
                 &value,
-                cut,
-                revision,
+                source,
+                limits.deadline,
+                cancelled,
             )?;
             let record_id = object.get("record_id").and_then(Value::as_str);
             if let Some(record_id) = record_id {
@@ -1084,14 +1735,13 @@ fn scan_direct_current_records(
                         .checked_add(retained)
                         .filter(|used| *used <= limits.max_state_bytes)
                         .ok_or(ItemRefusal::Budget)?;
-                    id_owners.insert(
-                        record_id.to_owned(),
-                        BiblioCurrentRecord {
-                            path: path.clone(),
-                            kind: python_value_string(record_type),
-                            value: value.clone(),
-                        },
-                    );
+                    let current = BiblioCurrentRecord {
+                        path: path.clone(),
+                        kind: python_value_string(record_type),
+                        value: value.clone(),
+                    };
+                    issues.current_record_first(record_id, &current)?;
+                    id_owners.insert(record_id.to_owned(), current);
                     id_order.push(record_id.to_owned());
                 }
                 if object.get("record_type").and_then(Value::as_str) == Some("item") {
@@ -1135,6 +1785,11 @@ fn scan_direct_current_records(
                             },
                         });
                     }
+                    let index = selected_positions
+                        .get(record_id)
+                        .copied()
+                        .ok_or_else(|| ItemRefusal::Source("selected Item index drift".into()))?;
+                    issues.item_record_selection(&selected_items[index].selection)?;
                     selected_bytes = selected_bytes
                         .checked_add(member_size)
                         .ok_or(ItemRefusal::Budget)?;
@@ -1146,6 +1801,7 @@ fn scan_direct_current_records(
                 .ok_or(ItemRefusal::Budget)?;
             if state_bytes
                 .checked_add(selected_state_bytes)
+                .and_then(|used| used.checked_add(paths_state_bytes))
                 .is_none_or(|used| used > limits.max_state_bytes)
             {
                 return Err(ItemRefusal::Budget);
@@ -1154,18 +1810,19 @@ fn scan_direct_current_records(
         }
     }
 
-    let mut link_paths = cut
-        .current()
-        .members()
-        .filter_map(|member| {
-            let path = member.path.as_str();
-            (path.starts_with(SOURCE_HOME)
-                && !path.starts_with(CATALOG_HOME)
-                && path.ends_with("/link.json"))
-            .then_some((path.to_owned(), member.size_bytes))
-        })
-        .collect::<Vec<_>>();
-    link_paths.sort_by(|left, right| left.0.cmp(&right.0));
+    let (link_paths, link_paths_state_bytes) = current_source_paths_matching(
+        source,
+        SOURCE_HOME,
+        Some(CATALOG_HOME),
+        None,
+        Some("/link.json"),
+        state_bytes
+            .checked_add(selected_state_bytes)
+            .ok_or(ItemRefusal::Budget)?,
+        limits.max_state_bytes,
+        limits.deadline,
+        cancelled,
+    )?;
     for (path, member_size) in link_paths {
         check(limits, cancelled)?;
         read_bytes = read_bytes
@@ -1176,21 +1833,27 @@ fn scan_direct_current_records(
                 used: read_bytes.checked_add(member_size),
                 limit: Some(limits.max_total_bytes),
             })?;
-        let relative = RelativePath::parse(&path)
-            .map_err(|_| ItemRefusal::Unsupported("source Link path".into()))?;
-        let member = cut
-            .read_member(
-                revision,
-                &relative,
-                limits.max_member_bytes as u64,
-                limits.deadline,
-                cancelled,
-            )
-            .map_err(store_error)?;
+        let member = source.read_member(
+            &path,
+            limits.max_member_bytes,
+            state_bytes
+                .checked_add(selected_state_bytes)
+                .and_then(|bytes| bytes.checked_add(link_paths_state_bytes))
+                .ok_or(ItemRefusal::Budget)?,
+            limits.max_state_bytes,
+            limits.deadline,
+            cancelled,
+        )?;
+        if member.size_bytes != member_size {
+            return Err(ItemRefusal::Source(
+                "direct Link member size changed after metadata traversal".into(),
+            ));
+        }
         let available = limits
             .max_state_bytes
             .checked_sub(state_bytes)
             .and_then(|remaining| remaining.checked_sub(selected_state_bytes))
+            .and_then(|remaining| remaining.checked_sub(link_paths_state_bytes))
             .ok_or(ItemRefusal::Budget)?;
         let value = match bounded_native_value(&member.raw, limits, available, cancelled) {
             Ok(value) => value,
@@ -1255,20 +1918,22 @@ fn scan_direct_current_records(
             &path,
             issues.rows.len(),
             limits.max_state_bytes,
+            store.as_ref(),
         )?;
         append_direct_source_refs(
             &mut issues,
             SourceFoundationRecordsIssueFamily::Record,
             &path,
             &value,
-            cut,
-            revision,
+            source,
+            limits.deadline,
+            cancelled,
         )?;
         if let Some(observation) = object.get("observation_ref").and_then(Value::as_str) {
             if observation.starts_with("ToS/") {
-                let ref_path = RelativePath::parse(observation)
-                    .map_err(|_| ItemRefusal::Unsupported("source Link observation path".into()))?;
-                if cut.presence(revision, &ref_path) != Some(SourcePresenceV1::File) {
+                if source.presence(observation, limits.deadline, cancelled)?
+                    != Some(SourcePresenceV1::File)
+                {
                     issues.push(
                         SourceFoundationRecordsIssueFamily::Record,
                         &path,
@@ -1306,14 +1971,13 @@ fn scan_direct_current_records(
                     .checked_add(retained)
                     .filter(|used| *used <= limits.max_state_bytes)
                     .ok_or(ItemRefusal::Budget)?;
-                id_owners.insert(
-                    record_id.to_owned(),
-                    BiblioCurrentRecord {
-                        path: path.clone(),
-                        kind: python_value_string(record_type),
-                        value: value.clone(),
-                    },
-                );
+                let current = BiblioCurrentRecord {
+                    path: path.clone(),
+                    kind: python_value_string(record_type),
+                    value: value.clone(),
+                };
+                issues.current_record_first(record_id, &current)?;
+                id_owners.insert(record_id.to_owned(), current);
                 id_order.push(record_id.to_owned());
             }
         }
@@ -1353,7 +2017,7 @@ fn scan_direct_current_records(
         let record_type = owner.value.get("record_type");
         let require = |reference: &Value,
                        expected: &str,
-                       issues: &mut DirectIssueBuffer|
+                       issues: &mut DirectIssueBuffer<'_>|
          -> Result<(), ItemRefusal> {
             let Some(reference) = reference.as_str() else {
                 return Ok(());
@@ -1446,6 +2110,7 @@ fn scan_direct_current_records(
         }
         if is_used {
             used_declared_profile_kinds.insert(kind.clone());
+            issues.store_fact(|store| store.used_profile_kind(kind))?;
         }
     }
     Ok(DirectCurrentRecordScan {
@@ -1468,36 +2133,39 @@ fn scan_direct_current_records(
 }
 
 fn append_direct_source_refs(
-    issues: &mut DirectIssueBuffer,
+    issues: &mut DirectIssueBuffer<'_>,
     family: SourceFoundationRecordsIssueFamily,
     location: &str,
     value: &Value,
-    cut: &CorpusCutReader,
-    revision: SourceRevision,
+    source: SourceFoundationCurrentInput<'_>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
 ) -> Result<(), ItemRefusal> {
     append_direct_source_refs_fields(
         issues,
         family,
         location,
         |field| value.get(field),
-        cut,
-        revision,
+        source,
+        deadline,
+        cancelled,
     )
 }
 
 fn append_direct_source_refs_observed(
-    issues: &mut DirectIssueBuffer,
+    issues: &mut DirectIssueBuffer<'_>,
     family: SourceFoundationRecordsIssueFamily,
     location: &str,
     value: &tos_foundation::JsonValue,
-    cut: &CorpusCutReader,
-    revision: SourceRevision,
+    source: SourceFoundationCurrentInput<'_>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
 ) -> Result<(), ItemRefusal> {
     for field in ["source_refs", "source_record_refs", "receipt_refs"] {
         if let Some(tos_foundation::JsonValue::Array(references)) = value.object_get(field) {
             for reference in references {
                 append_direct_repo_ref_observed(
-                    issues, family, location, reference, cut, revision,
+                    issues, family, location, reference, source, deadline, cancelled,
                 )?;
             }
         }
@@ -1511,19 +2179,22 @@ fn append_direct_source_refs_observed(
         "item_manifest_ref",
     ] {
         if let Some(reference) = value.object_get(field) {
-            append_direct_repo_ref_observed(issues, family, location, reference, cut, revision)?;
+            append_direct_repo_ref_observed(
+                issues, family, location, reference, source, deadline, cancelled,
+            )?;
         }
     }
     Ok(())
 }
 
 fn append_direct_repo_ref_observed(
-    issues: &mut DirectIssueBuffer,
+    issues: &mut DirectIssueBuffer<'_>,
     family: SourceFoundationRecordsIssueFamily,
     location: &str,
     reference: &tos_foundation::JsonValue,
-    cut: &CorpusCutReader,
-    revision: SourceRevision,
+    source: SourceFoundationCurrentInput<'_>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
 ) -> Result<(), ItemRefusal> {
     let exists = match reference {
         tos_foundation::JsonValue::String(reference) => {
@@ -1541,7 +2212,9 @@ fn append_direct_repo_ref_observed(
                 let path = RelativePath::parse(reference).map_err(|_| {
                     ItemRefusal::Unsupported("source-foundation repository reference path".into())
                 })?;
-                cut.presence(revision, &path).is_some()
+                source
+                    .presence(path.as_str(), deadline, cancelled)?
+                    .is_some()
             }
         }
         _ => false,
@@ -1558,7 +2231,7 @@ fn append_direct_repo_ref_observed(
 }
 
 fn append_direct_legacy_inventory_issues(
-    issues: &mut DirectIssueBuffer,
+    issues: &mut DirectIssueBuffer<'_>,
     location: &str,
     manifest_location: &str,
     manifest: &Value,
@@ -1831,17 +2504,20 @@ fn legacy_python_display(value: &tos_foundation::JsonValue) -> Result<String, It
 }
 
 fn append_direct_source_refs_fields<'a>(
-    issues: &mut DirectIssueBuffer,
+    issues: &mut DirectIssueBuffer<'_>,
     family: SourceFoundationRecordsIssueFamily,
     location: &str,
     get: impl Fn(&str) -> Option<&'a Value>,
-    cut: &CorpusCutReader,
-    revision: SourceRevision,
+    source: SourceFoundationCurrentInput<'_>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
 ) -> Result<(), ItemRefusal> {
     for field in ["source_refs", "source_record_refs", "receipt_refs"] {
         if let Some(references) = get(field).and_then(Value::as_array) {
             for reference in references {
-                append_direct_repo_ref(issues, family, location, reference, cut, revision)?;
+                append_direct_repo_ref(
+                    issues, family, location, reference, source, deadline, cancelled,
+                )?;
             }
         }
     }
@@ -1854,19 +2530,22 @@ fn append_direct_source_refs_fields<'a>(
         "item_manifest_ref",
     ] {
         if let Some(reference) = get(field) {
-            append_direct_repo_ref(issues, family, location, reference, cut, revision)?;
+            append_direct_repo_ref(
+                issues, family, location, reference, source, deadline, cancelled,
+            )?;
         }
     }
     Ok(())
 }
 
 fn append_direct_repo_ref(
-    issues: &mut DirectIssueBuffer,
+    issues: &mut DirectIssueBuffer<'_>,
     family: SourceFoundationRecordsIssueFamily,
     location: &str,
     reference: &Value,
-    cut: &CorpusCutReader,
-    revision: SourceRevision,
+    source: SourceFoundationCurrentInput<'_>,
+    deadline: Instant,
+    cancelled: &AtomicBool,
 ) -> Result<(), ItemRefusal> {
     let exists = match reference.as_str() {
         Some(reference) if !reference.starts_with("ToS/") => true,
@@ -1874,7 +2553,9 @@ fn append_direct_repo_ref(
             let path = RelativePath::parse(reference).map_err(|_| {
                 ItemRefusal::Unsupported("source-foundation repository reference path".into())
             })?;
-            cut.presence(revision, &path).is_some()
+            source
+                .presence(path.as_str(), deadline, cancelled)?
+                .is_some()
         }
         None => false,
     };
@@ -1983,8 +2664,7 @@ fn has_direct_item_schema(
 }
 
 fn append_item_direct_issues(
-    cut: &CorpusCutReader,
-    revision: SourceRevision,
+    source: SourceFoundationCurrentInput<'_>,
     limits: SourceFoundationRecordsLimits,
     require_local_payloads: bool,
     cancelled: &AtomicBool,
@@ -1999,7 +2679,8 @@ fn append_item_direct_issues(
     schema_request_state_bytes: &mut usize,
     schema_request_state_limit: usize,
     inventory_set_scan_steps_start: usize,
-    issues: &mut DirectIssueBuffer,
+    issues: &mut DirectIssueBuffer<'_>,
+    store: Option<SourceFoundationRecordsStoreHandle<'_>>,
 ) -> Result<(BTreeMap<String, String>, u64, usize, usize), ItemRefusal> {
     let mut item_editions = BTreeMap::<String, String>::new();
     let mut inventory_set_scan_steps = inventory_set_scan_steps_start;
@@ -2030,8 +2711,7 @@ fn append_item_direct_issues(
         if contract == "ToS/contracts/source-item-manifest.schema.json" {
             if let Some(previous) = context.take() {
                 finish_direct_item_manifest(
-                    cut,
-                    revision,
+                    source,
                     limits,
                     require_local_payloads,
                     cancelled,
@@ -2152,8 +2832,7 @@ fn append_item_direct_issues(
                 SourceFoundationRecordsIssueFamily::Item,
                 &schema_checks[index].location,
                 &inventory,
-                cut,
-                revision,
+                source,
             )?;
             append_direct_legacy_inventory_issues(
                 issues,
@@ -2184,7 +2863,8 @@ fn append_item_direct_issues(
             });
             if !rights_has_check {
                 if let Some(rights_path) = rights_path
-                    && current_file_presence(cut, revision, rights_path)?.is_none()
+                    && current_file_presence(source, rights_path, limits.items.deadline, cancelled)?
+                        .is_none()
                 {
                     issues.push(
                         SourceFoundationRecordsIssueFamily::Item,
@@ -2194,7 +2874,13 @@ fn append_item_direct_issues(
                 }
                 if let Some(provenance_path) =
                     manifest.get("provenance_ref").and_then(Value::as_str)
-                    && current_file_presence(cut, revision, provenance_path)?.is_none()
+                    && current_file_presence(
+                        source,
+                        provenance_path,
+                        limits.items.deadline,
+                        cancelled,
+                    )?
+                    .is_none()
                 {
                     issues.push(
                         SourceFoundationRecordsIssueFamily::Item,
@@ -2223,8 +2909,7 @@ fn append_item_direct_issues(
                     SourceFoundationRecordsIssueFamily::Item,
                     &request.location,
                     manifest,
-                    cut,
-                    revision,
+                    source,
                 )?;
                 let item_id = manifest.get("item_id").unwrap_or(&Value::Null);
                 if let Some(item_id) = item_id.as_str() {
@@ -2237,6 +2922,9 @@ fn append_item_direct_issues(
                         limits.operation.max_issues,
                     )?;
                     if let Some(edition) = manifest.get("embodiment_ref").and_then(Value::as_str) {
+                        if let Some(store) = &store {
+                            store.with(|store| store.item_edition(item_id, edition))?;
+                        }
                         if let Some(previous) = item_editions.get(item_id) {
                             let previous_len = previous.len();
                             set_direct_item_temporary_state(
@@ -2318,16 +3006,25 @@ fn append_item_direct_issues(
                     .get("resource_inventory_ref")
                     .and_then(Value::as_str)
                 {
-                    Some(path) => current_file_presence(cut, revision, path)?.is_none(),
+                    Some(path) => {
+                        current_file_presence(source, path, limits.items.deadline, cancelled)?
+                            .is_none()
+                    }
                     None => false,
                 };
                 let rights_missing = match manifest.get("rights_ref").and_then(Value::as_str) {
-                    Some(path) => current_file_presence(cut, revision, path)?.is_none(),
+                    Some(path) => {
+                        current_file_presence(source, path, limits.items.deadline, cancelled)?
+                            .is_none()
+                    }
                     None => false,
                 };
                 let provenance_missing =
                     match manifest.get("provenance_ref").and_then(Value::as_str) {
-                        Some(path) => current_file_presence(cut, revision, path)?.is_none(),
+                        Some(path) => {
+                            current_file_presence(source, path, limits.items.deadline, cancelled)?
+                                .is_none()
+                        }
                         None => false,
                     };
                 let inventory_has_check = manifest
@@ -2399,8 +3096,7 @@ fn append_item_direct_issues(
                     SourceFoundationRecordsIssueFamily::Item,
                     &request.location,
                     inventory,
-                    cut,
-                    revision,
+                    source,
                 )?;
                 let manifest = schema_checks[current.manifest_index]
                     .decoded_instance
@@ -2561,7 +3257,13 @@ fn append_item_direct_issues(
                 });
                 if !rights_has_check {
                     if let Some(rights_path) = rights_path
-                        && current_file_presence(cut, revision, rights_path)?.is_none()
+                        && current_file_presence(
+                            source,
+                            rights_path,
+                            limits.items.deadline,
+                            cancelled,
+                        )?
+                        .is_none()
                     {
                         issues.push(
                             SourceFoundationRecordsIssueFamily::Item,
@@ -2572,7 +3274,13 @@ fn append_item_direct_issues(
                     if !rights_has_check
                         && let Some(provenance_path) =
                             manifest.get("provenance_ref").and_then(Value::as_str)
-                        && current_file_presence(cut, revision, provenance_path)?.is_none()
+                        && current_file_presence(
+                            source,
+                            provenance_path,
+                            limits.items.deadline,
+                            cancelled,
+                        )?
+                        .is_none()
                     {
                         issues.push(
                             SourceFoundationRecordsIssueFamily::Item,
@@ -2596,8 +3304,7 @@ fn append_item_direct_issues(
                     SourceFoundationRecordsIssueFamily::Item,
                     &request.location,
                     rights,
-                    cut,
-                    revision,
+                    source,
                 )?;
                 let manifest = schema_checks[current.manifest_index]
                     .decoded_instance
@@ -2660,8 +3367,7 @@ fn append_item_direct_issues(
                             SourceFoundationRecordsIssueFamily::Item,
                             &layer_location,
                             |field| layer.get(field),
-                            cut,
-                            revision,
+                            source,
                         )?;
                     }
                 }
@@ -2673,7 +3379,13 @@ fn append_item_direct_issues(
                     })?;
                 if let Some(provenance_path) =
                     manifest.get("provenance_ref").and_then(Value::as_str)
-                    && current_file_presence(cut, revision, provenance_path)?.is_none()
+                    && current_file_presence(
+                        source,
+                        provenance_path,
+                        limits.items.deadline,
+                        cancelled,
+                    )?
+                    .is_none()
                 {
                     issues.push(
                         SourceFoundationRecordsIssueFamily::Item,
@@ -2695,8 +3407,7 @@ fn append_item_direct_issues(
                     SourceFoundationRecordsIssueFamily::Item,
                     &request.location,
                     event,
-                    cut,
-                    revision,
+                    source,
                 )?;
                 if let Some(id) = event.get("event_id").and_then(Value::as_str) {
                     if global_event_ids.contains(id) {
@@ -2728,8 +3439,7 @@ fn append_item_direct_issues(
     }
     if let Some(previous) = context.take() {
         finish_direct_item_manifest(
-            cut,
-            revision,
+            source,
             limits,
             require_local_payloads,
             cancelled,
@@ -2772,8 +3482,10 @@ fn append_item_direct_issues(
                 ));
             }
         };
-        let Some(metadata) = cut.current().member(&relative) else {
-            return match cut.presence(revision, &relative) {
+        let Some(metadata_size_bytes) =
+            source.member_size(relative.as_str(), limits.items.deadline, cancelled)?
+        else {
+            return match source.presence(relative.as_str(), limits.items.deadline, cancelled)? {
                 None => {
                     issues.push(
                         SourceFoundationRecordsIssueFamily::Item,
@@ -2796,21 +3508,25 @@ fn append_item_direct_issues(
             };
         };
         account_direct_item_read(
-            metadata.size_bytes,
+            metadata_size_bytes,
             &mut direct_read_bytes,
             direct_read_limit,
             limits.items.max_member_bytes,
             "source-foundation final Item manifest reads",
         )?;
-        let member = cut
-            .read_member(
-                revision,
-                &relative,
-                limits.items.max_member_bytes as u64,
-                limits.items.deadline,
-                cancelled,
-            )
-            .map_err(store_error)?;
+        let member = source.read_member(
+            relative.as_str(),
+            limits.items.max_member_bytes,
+            direct_item_source_state_bytes(schema_request_state_bytes, issues)?,
+            limits.items.max_state_bytes,
+            limits.items.deadline,
+            cancelled,
+        )?;
+        if member.size_bytes != metadata_size_bytes {
+            return Err(ItemRefusal::Source(
+                "final Item manifest size changed after metadata traversal".into(),
+            ));
+        }
         let value = match bounded_native_value(
             &member.raw,
             limits.items,
@@ -2909,7 +3625,7 @@ fn append_item_direct_issues(
 }
 
 fn direct_require_record(
-    issues: &mut DirectIssueBuffer,
+    issues: &mut DirectIssueBuffer<'_>,
     current_records: &BTreeMap<String, BiblioCurrentRecord>,
     reference: &str,
     expected: &str,
@@ -2940,7 +3656,7 @@ fn direct_require_record(
 }
 
 fn direct_require_record_value(
-    issues: &mut DirectIssueBuffer,
+    issues: &mut DirectIssueBuffer<'_>,
     current_records: &BTreeMap<String, BiblioCurrentRecord>,
     reference: &Value,
     expected: &str,
@@ -2960,7 +3676,7 @@ fn direct_require_record_value(
 }
 
 fn reserve_direct_item_index_state(
-    issues: &mut DirectIssueBuffer,
+    issues: &mut DirectIssueBuffer<'_>,
     persistent_state_bytes: &mut usize,
     temporary_state_bytes: usize,
     peak_state_bytes: &mut usize,
@@ -2982,7 +3698,7 @@ fn reserve_direct_item_index_state(
 }
 
 fn retain_direct_item_index_state_by(
-    issues: &mut DirectIssueBuffer,
+    issues: &mut DirectIssueBuffer<'_>,
     persistent_state_bytes: &mut usize,
     temporary_state_bytes: usize,
     peak_state_bytes: &mut usize,
@@ -3003,7 +3719,7 @@ fn retain_direct_item_index_state_by(
 }
 
 fn set_direct_item_temporary_state(
-    issues: &mut DirectIssueBuffer,
+    issues: &mut DirectIssueBuffer<'_>,
     persistent_state_bytes: usize,
     temporary_state_bytes: &mut usize,
     peak_state_bytes: &mut usize,
@@ -3027,7 +3743,7 @@ fn set_direct_item_temporary_state(
 }
 
 fn set_direct_item_live_state(
-    issues: &mut DirectIssueBuffer,
+    issues: &mut DirectIssueBuffer<'_>,
     persistent_state_bytes: &mut usize,
     temporary_state_bytes: &mut usize,
     peak_state_bytes: &mut usize,
@@ -3053,8 +3769,7 @@ fn set_direct_item_live_state(
 }
 
 fn finish_direct_item_manifest(
-    cut: &CorpusCutReader,
-    revision: SourceRevision,
+    source: SourceFoundationCurrentInput<'_>,
     limits: SourceFoundationRecordsLimits,
     require_local_payloads: bool,
     cancelled: &AtomicBool,
@@ -3070,7 +3785,7 @@ fn finish_direct_item_manifest(
     owner_temporary_state_bytes: &mut usize,
     owner_peak_state_bytes: &mut usize,
     owner_state_limit: usize,
-    issues: &mut DirectIssueBuffer,
+    issues: &mut DirectIssueBuffer<'_>,
 ) -> Result<(), ItemRefusal> {
     let manifest_request = &schema_checks[context.manifest_index];
     let manifest_path = &manifest_request.location;
@@ -3175,7 +3890,7 @@ fn finish_direct_item_manifest(
                 .object_get("provenance_event_ref")
                 .unwrap_or(&tos_foundation::JsonValue::Null);
             append_legacy_inventory_provenance_issue(
-                cut,
+                source,
                 limits.items,
                 cancelled,
                 schema_checks,
@@ -3183,6 +3898,10 @@ fn finish_direct_item_manifest(
                 context.manifest_index,
                 event_end_index,
                 inventory_ref,
+                direct_read_bytes,
+                direct_read_limit,
+                direct_item_source_state_bytes(schema_request_state_bytes, issues)?,
+                limits.items.max_state_bytes,
                 issues,
             )?;
             set_direct_item_temporary_state(
@@ -3222,10 +3941,17 @@ fn finish_direct_item_manifest(
                 }
             }
             if let Some(event) = event {
-                let digest = RelativePath::parse(&inventory_request.location)
-                    .ok()
-                    .and_then(|path| cut.current().member(&path))
-                    .map(|member| member.sha256.to_hex())
+                let digest = source
+                    .member_digest_with_accounting(
+                        &inventory_request.location,
+                        limits.items.max_member_bytes,
+                        Some((direct_read_bytes, direct_read_limit)),
+                        direct_item_source_state_bytes(schema_request_state_bytes, issues)?,
+                        limits.items.max_state_bytes,
+                        limits.items.deadline,
+                        cancelled,
+                    )?
+                    .map(|digest| digest.to_hex())
                     .unwrap_or_default();
                 let expected_output = serde_json::json!({
                     "ref": inventory_request.location,
@@ -3265,15 +3991,17 @@ fn finish_direct_item_manifest(
     }
 
     let mut actual_fixity_state_bytes = 0usize;
-    let actual_fixity = if let Some(metadata) = cut.current().member(&fixity_relative) {
+    let actual_fixity = if let Some(metadata_size_bytes) =
+        source.member_size(&fixity_path, limits.items.deadline, cancelled)?
+    {
         account_direct_item_read(
-            metadata.size_bytes,
+            metadata_size_bytes,
             direct_read_bytes,
             direct_read_limit,
             limits.items.max_member_bytes,
             "source-foundation Item fixity reads",
         )?;
-        let raw_size = usize::try_from(metadata.size_bytes).map_err(|_| ItemRefusal::Budget)?;
+        let raw_size = usize::try_from(metadata_size_bytes).map_err(|_| ItemRefusal::Budget)?;
         actual_fixity_state_bytes = std::mem::size_of::<String>()
             .checked_mul(2)
             .and_then(|bytes| bytes.checked_add(raw_size.checked_mul(3)?))
@@ -3288,15 +4016,14 @@ fn finish_direct_item_manifest(
                 .checked_add(actual_fixity_state_bytes)
                 .ok_or(ItemRefusal::Budget)?,
         )?;
-        let member = cut
-            .read_member(
-                revision,
-                &fixity_relative,
-                limits.items.max_member_bytes as u64,
-                limits.items.deadline,
-                cancelled,
-            )
-            .map_err(store_error)?;
+        let member = source.read_member(
+            &fixity_path,
+            limits.items.max_member_bytes,
+            direct_item_source_state_bytes(schema_request_state_bytes, issues)?,
+            limits.items.max_state_bytes,
+            limits.items.deadline,
+            cancelled,
+        )?;
         let text = String::from_utf8(member.raw)
             .map_err(|_| ItemRefusal::Unsupported("Item fixity UTF-8 decode".into()))?;
         let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
@@ -3610,7 +4337,7 @@ fn finish_direct_item_manifest(
 }
 
 fn append_legacy_inventory_provenance_issue(
-    cut: &CorpusCutReader,
+    source: SourceFoundationCurrentInput<'_>,
     limits: ItemLimits,
     cancelled: &AtomicBool,
     schema_checks: &[SourceFoundationRecordsSchemaCheck],
@@ -3618,7 +4345,11 @@ fn append_legacy_inventory_provenance_issue(
     manifest_index: usize,
     event_end_index: usize,
     inventory_ref: &tos_foundation::JsonValue,
-    issues: &mut DirectIssueBuffer,
+    direct_read_bytes: &mut u64,
+    direct_read_limit: u64,
+    prior_state_bytes: usize,
+    max_state_bytes: usize,
+    issues: &mut DirectIssueBuffer<'_>,
 ) -> Result<(), ItemRefusal> {
     let event_id = match inventory_ref {
         tos_foundation::JsonValue::String(value) => Some(value.as_str().ok_or_else(|| {
@@ -3652,10 +4383,17 @@ fn append_legacy_inventory_provenance_issue(
     }
     let inventory_request = &schema_checks[inventory_index];
     if let Some(event) = event {
-        let digest = RelativePath::parse(&inventory_request.location)
-            .ok()
-            .and_then(|path| cut.current().member(&path))
-            .map(|member| member.sha256.to_hex())
+        let digest = source
+            .member_digest_with_accounting(
+                &inventory_request.location,
+                limits.max_member_bytes,
+                Some((direct_read_bytes, direct_read_limit)),
+                prior_state_bytes,
+                max_state_bytes,
+                limits.deadline,
+                cancelled,
+            )?
+            .map(|digest| digest.to_hex())
             .unwrap_or_default();
         let expected_output = serde_json::json!({
             "ref": inventory_request.location,
@@ -3693,13 +4431,21 @@ fn append_legacy_inventory_provenance_issue(
 }
 
 fn current_file_presence(
-    cut: &CorpusCutReader,
-    revision: SourceRevision,
+    source: SourceFoundationCurrentInput<'_>,
     path: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
 ) -> Result<Option<SourcePresenceV1>, ItemRefusal> {
-    let path = RelativePath::parse(path)
-        .map_err(|_| ItemRefusal::Unsupported("source-foundation owner reference path".into()))?;
-    Ok(cut.presence(revision, &path))
+    source.presence(path, deadline, cancelled)
+}
+
+fn direct_item_source_state_bytes(
+    schema_request_state_bytes: &usize,
+    issues: &DirectIssueBuffer<'_>,
+) -> Result<usize, ItemRefusal> {
+    schema_request_state_bytes
+        .checked_add(issues.state_bytes)
+        .ok_or(ItemRefusal::Budget)
 }
 
 fn account_direct_item_read(
@@ -3858,11 +4604,11 @@ fn python_values_equal(left: &Value, right: &Value) -> bool {
 }
 
 fn build_file_membership_index(
-    cut: &CorpusCutReader,
-    revision: SourceRevision,
+    source: SourceFoundationCurrentInput<'_>,
     limits: ItemLimits,
     max_read_bytes: u64,
     cancelled: &AtomicBool,
+    store: Option<SourceFoundationRecordsStoreHandle<'_>>,
 ) -> Result<
     (
         SourceFileMembershipIndex,
@@ -3880,42 +4626,55 @@ fn build_file_membership_index(
         return Err(ItemRefusal::Budget);
     }
 
-    for metadata in cut.current().members() {
+    let (manifest_paths, manifest_paths_state_bytes) = current_source_paths_matching(
+        source,
+        SOURCE_HOME,
+        None,
+        None,
+        Some(ITEM_MANIFEST_SUFFIX),
+        state_bytes,
+        limits.max_state_bytes,
+        limits.deadline,
+        cancelled,
+    )?;
+    for (path_owned, metadata_size_bytes) in manifest_paths {
         check(limits, cancelled)?;
-        let path = metadata.path.as_str();
-        if !path.starts_with(SOURCE_HOME) || !path.ends_with(ITEM_MANIFEST_SUFFIX) {
-            continue;
-        }
-        if metadata.size_bytes > limits.max_member_bytes as u64 {
+        let path = path_owned.as_str();
+        if metadata_size_bytes > limits.max_member_bytes as u64 {
             return Err(ItemRefusal::BudgetCheck {
                 check: "source-foundation item manifest membership member bytes",
-                used: Some(metadata.size_bytes),
+                used: Some(metadata_size_bytes),
                 limit: Some(limits.max_member_bytes as u64),
             });
         }
         let next_read = read_bytes
-            .checked_add(metadata.size_bytes)
+            .checked_add(metadata_size_bytes)
             .filter(|used| *used <= max_read_bytes)
             .ok_or(ItemRefusal::BudgetCheck {
                 check: "source-foundation item manifest membership reads",
-                used: read_bytes.checked_add(metadata.size_bytes),
+                used: read_bytes.checked_add(metadata_size_bytes),
                 limit: Some(max_read_bytes),
             })?;
-        let relative = RelativePath::parse(path)
-            .map_err(|_| ItemRefusal::Unsupported("source-foundation item manifest path".into()))?;
-        let member = cut
-            .read_member(
-                revision,
-                &relative,
-                limits.max_member_bytes as u64,
-                limits.deadline,
-                cancelled,
-            )
-            .map_err(store_error)?;
+        let member = source.read_member(
+            path,
+            limits.max_member_bytes,
+            state_bytes
+                .checked_add(manifest_paths_state_bytes)
+                .ok_or(ItemRefusal::Budget)?,
+            limits.max_state_bytes,
+            limits.deadline,
+            cancelled,
+        )?;
+        if member.size_bytes != metadata_size_bytes {
+            return Err(ItemRefusal::Source(
+                "Item manifest size changed after metadata traversal".into(),
+            ));
+        }
         read_bytes = next_read;
         let available = limits
             .max_state_bytes
             .checked_sub(state_bytes)
+            .and_then(|remaining| remaining.checked_sub(manifest_paths_state_bytes))
             .and_then(|remaining| remaining.checked_sub(member.raw.len()))
             .ok_or(ItemRefusal::Budget)?;
         let value = match bounded_native_value(&member.raw, limits, available, cancelled) {
@@ -3955,6 +4714,16 @@ fn build_file_membership_index(
                     ))
                 })?;
             if let (Some(item), Some(file)) = (item_id.as_str(), file_id.as_str()) {
+                if let Some(store) = &store {
+                    if !descriptor_existed {
+                        store.with(|store| {
+                            store.file_descriptor_first(file, sha256, byte_size, media_type)
+                        })?;
+                    }
+                    if !existed {
+                        store.with(|store| store.item_file_membership(file, item))?;
+                    }
+                }
                 if !existed {
                     state_bytes = state_bytes
                         .checked_add(item.len())
@@ -3994,7 +4763,10 @@ fn build_file_membership_index(
                     ),
                 });
             }
-            if state_bytes > limits.max_state_bytes {
+            if state_bytes
+                .checked_add(manifest_paths_state_bytes)
+                .is_none_or(|used| used > limits.max_state_bytes)
+            {
                 return Err(ItemRefusal::Budget);
             }
         }
@@ -4057,9 +4829,18 @@ pub fn inspect_source_foundation_records_from_cut(
     physical_facts: &SourcePhysicalFacts,
     payloads: &mut impl CutPayloadReader,
 ) -> Result<SourceFoundationRecordsReport, ItemRefusal> {
-    inspect_source_foundation_records_with_mode(
-        cut,
-        expected_revision,
+    if item_schemas.source_revision() != expected_revision {
+        return Err(ItemRefusal::Source(
+            "source-foundation Item schema worker belongs to another cut".into(),
+        ));
+    }
+    let schema_cost = schema_resource_cost(cut, item_schemas)?;
+    let core = inspect_source_foundation_records_with_mode(
+        SourceFoundationCurrentInput::Cut {
+            cut,
+            revision: expected_revision,
+        },
+        Some(expected_revision),
         expected_membership,
         limits,
         require_local_payloads,
@@ -4069,7 +4850,11 @@ pub fn inspect_source_foundation_records_from_cut(
         physical_facts,
         payloads,
         false,
-    )
+        schema_cost,
+        None,
+        None,
+    )?;
+    resident_source_foundation_report(core, expected_revision)
 }
 
 /// Additive rolling Records→Item route. It preserves the fixed entry above,
@@ -4087,9 +4872,18 @@ pub fn inspect_source_foundation_records_from_cut_rolling(
     physical_facts: &SourcePhysicalFacts,
     payloads: &mut impl CutPayloadReader,
 ) -> Result<SourceFoundationRecordsReport, ItemRefusal> {
-    inspect_source_foundation_records_with_mode(
-        cut,
-        expected_revision,
+    if item_schemas.source_revision() != expected_revision {
+        return Err(ItemRefusal::Source(
+            "source-foundation Item schema worker belongs to another cut".into(),
+        ));
+    }
+    let schema_cost = schema_resource_cost(cut, item_schemas)?;
+    let core = inspect_source_foundation_records_with_mode(
+        SourceFoundationCurrentInput::Cut {
+            cut,
+            revision: expected_revision,
+        },
+        Some(expected_revision),
         expected_membership,
         limits,
         require_local_payloads,
@@ -4099,22 +4893,239 @@ pub fn inspect_source_foundation_records_from_cut_rolling(
         physical_facts,
         payloads,
         true,
-    )
+        schema_cost,
+        None,
+        None,
+    )?;
+    resident_source_foundation_report(core, expected_revision)
 }
 
-fn inspect_source_foundation_records_with_mode(
+/// Additive rolling entry that persists Records and Item owner facts through a
+/// caller-owned bounded store while the existing source kernel discovers
+/// them. The returned index borrows that same store; it cannot outlive the
+/// candidate scope that owns it.
+pub fn inspect_source_foundation_records_from_cut_rolling_stored<'a>(
     cut: &CorpusCutReader,
     expected_revision: SourceRevision,
     expected_membership: SourceMembershipV1,
-    input_limits: SourceFoundationRecordsLimits,
+    limits: SourceFoundationRecordsLimits,
     require_local_payloads: bool,
     cancelled: &AtomicBool,
     record_executor: &mut BiblioRecordExecutor,
     item_schemas: &mut CutWorkerSchemaExecutor,
     physical_facts: &SourcePhysicalFacts,
     payloads: &mut impl CutPayloadReader,
-    rolling: bool,
+    store: &'a mut dyn SourceFoundationRecordsStore,
+) -> Result<SourceFoundationRecordsStreamedReport<'a, SourceRevision>, ItemRefusal> {
+    if item_schemas.source_revision() != expected_revision {
+        return Err(ItemRefusal::Source(
+            "source-foundation Item schema worker belongs to another cut".into(),
+        ));
+    }
+    let schema_cost = schema_resource_cost(cut, item_schemas)?;
+    let report = inspect_source_foundation_records_with_mode(
+        SourceFoundationCurrentInput::Cut {
+            cut,
+            revision: expected_revision,
+        },
+        Some(expected_revision),
+        expected_membership,
+        limits,
+        require_local_payloads,
+        cancelled,
+        record_executor,
+        item_schemas,
+        physical_facts,
+        payloads,
+        true,
+        schema_cost,
+        None,
+        Some(&mut *store),
+    )?;
+    let record_usage = report.record_usage.ok_or(ItemRefusal::Budget)?;
+    let items = streamed_item_summary(&report.items);
+    Ok(SourceFoundationRecordsStreamedReport::new_completed(
+        expected_revision,
+        report.source_membership,
+        record_usage,
+        items,
+        report.cost,
+        None,
+        store,
+    ))
+}
+
+/// Candidate-fenced, current-only Records+Item receiver. The command adapter
+/// supplies one immutable input view, its matching prepared schema binding,
+/// and the already-owned bounded store. The returned identity remains opaque
+/// and is never translated into a `SourceRevision`.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_source_foundation_records_from_input_stored<'a, I: Eq + Clone>(
+    input: &dyn SourceCutInputWithIdentity<I>,
+    schema_binding: &mut impl SourceFoundationCandidateSchemaBinding<I>,
+    limits: SourceFoundationRecordsLimits,
+    require_local_payloads: bool,
+    cancelled: &AtomicBool,
+    record_executor: &mut BiblioRecordExecutor,
+    physical_facts: &SourcePhysicalFacts,
+    payloads: &mut impl CutPayloadReader,
+    fact_budget: SourceCutRecordFactBudget,
+    page_budget: SourceFoundationRecordsPageBudget,
+    store: &'a mut dyn SourceFoundationRecordsStore,
+) -> Result<SourceFoundationRecordsStreamedReport<'a, I>, ItemRefusal> {
+    check(limits.operation, cancelled)?;
+    validate_rolling_limits(limits)?;
+    if input.input_identity() != schema_binding.input_identity() {
+        return Err(ItemRefusal::Source(
+            "candidate Item schema binding has another source input identity".into(),
+        ));
+    }
+    let prepared = schema_binding.prepared_execution_binding();
+    if prepared.schema_profile != schema_binding.profile()
+        || prepared.schema_set_sha256 != schema_binding.schema_set_digest()
+        || prepared.schema_profile != record_executor.profile
+    {
+        return Err(ItemRefusal::Source(
+            "candidate Item schema worker binding differs from the prepared profile or set".into(),
+        ));
+    }
+
+    let source_input = input.source_input();
+    let source = SourceFoundationCurrentInput::Stream(source_input);
+    let report_header_state_bytes = std::mem::size_of::<SourceFoundationRecordsReport>();
+    let record_state_ceiling = limits
+        .operation
+        .max_state_bytes
+        .checked_sub(report_header_state_bytes)
+        .ok_or(ItemRefusal::Budget)?;
+    let mut record_limits = limits.records;
+    record_limits.max_state_bytes = record_limits.max_state_bytes.min(record_state_ceiling);
+    record_limits.max_total_bytes = record_limits
+        .max_total_bytes
+        .min(limits.operation.max_total_bytes);
+    record_limits.max_issues = record_limits.max_issues.min(limits.operation.max_issues);
+
+    let schema_cost = candidate_schema_resource_cost(
+        source,
+        schema_binding,
+        limits.items,
+        limits.max_schema_resource_bytes,
+        report_header_state_bytes,
+        cancelled,
+    )?;
+    let record_summary = inspect_records_from_input_stored(
+        source_input,
+        store,
+        record_limits,
+        fact_budget,
+        page_budget,
+        cancelled,
+        record_executor,
+    )?;
+    if record_summary.current_member_count() != record_summary.input_coverage().member_count()
+        || record_summary.current_source_bytes()
+            != record_summary.input_coverage().source_bytes_read()
+        || record_summary.current_membership() != &record_summary.input_coverage().membership()
+    {
+        return Err(ItemRefusal::Source(
+            "candidate Records summary differs from its verified source coverage".into(),
+        ));
+    }
+
+    let candidate_schema_identity = SourceFoundationCandidateSchemaIdentity::new(
+        prepared,
+        schema_binding.contract_selection_digest(),
+        schema_cost.item_resource_count,
+        schema_cost.items,
+    );
+    let input_identity = input.input_identity().clone();
+    let source_membership = *record_summary.current_membership();
+    let core = inspect_source_foundation_records_with_mode(
+        source,
+        None,
+        source_membership,
+        limits,
+        require_local_payloads,
+        cancelled,
+        record_executor,
+        schema_binding,
+        physical_facts,
+        payloads,
+        true,
+        schema_cost,
+        Some(&record_summary),
+        Some(&mut *store),
+    )?;
+    let record_usage = core.record_usage.ok_or(ItemRefusal::Budget)?;
+    let items = streamed_item_summary(&core.items);
+    Ok(SourceFoundationRecordsStreamedReport::new_completed(
+        input_identity,
+        core.source_membership,
+        record_usage,
+        items,
+        core.cost,
+        Some(candidate_schema_identity),
+        store,
+    ))
+}
+
+fn resident_source_foundation_report(
+    report: SourceFoundationRecordsCoreReport,
+    source_revision: SourceRevision,
 ) -> Result<SourceFoundationRecordsReport, ItemRefusal> {
+    Ok(SourceFoundationRecordsReport {
+        source_revision,
+        source_membership: report.source_membership,
+        records: report.records.ok_or_else(|| {
+            ItemRefusal::Source("resident source-foundation report omitted Records output".into())
+        })?,
+        items: report.items,
+        current_records: report.current_records,
+        current_record_order: report.current_record_order,
+        used_declared_profile_kinds: report.used_declared_profile_kinds,
+        item_records: report.item_records,
+        record_schema_positions: report.record_schema_positions,
+        file_memberships: report.file_memberships,
+        rights_ids: report.rights_ids,
+        claim_ids: report.claim_ids,
+        item_editions: report.item_editions,
+        source_event_insertions: report.source_event_insertions,
+        ordered_issues: report.ordered_issues,
+        schema_checks: report.schema_checks,
+        unimplemented: report.unimplemented,
+        cost: report.cost,
+    })
+}
+
+fn streamed_item_summary(items: &ItemFamilyReport) -> SourceFoundationRecordsStreamedItemSummary {
+    SourceFoundationRecordsStreamedItemSummary {
+        issue_count: items.issues.len(),
+        manifest_item_id_count: items.manifest_item_ids.len(),
+        metadata_bytes: items.metadata_bytes,
+        unavailable_payloads: items.unavailable_payloads,
+        accounted_state_upper_bound_bytes: items.accounted_state_upper_bound_bytes,
+        inventory_set_scan_steps: items.inventory_set_scan_steps,
+        source_admission_complete: items.source_admission_complete,
+    }
+}
+
+fn inspect_source_foundation_records_with_mode(
+    source: SourceFoundationCurrentInput<'_>,
+    expected_revision: Option<SourceRevision>,
+    expected_membership: SourceMembershipV1,
+    input_limits: SourceFoundationRecordsLimits,
+    require_local_payloads: bool,
+    cancelled: &AtomicBool,
+    record_executor: &mut BiblioRecordExecutor,
+    item_schemas: &mut impl CutSchemaExecutor,
+    physical_facts: &SourcePhysicalFacts,
+    payloads: &mut impl CutPayloadReader,
+    rolling: bool,
+    schema_cost: SchemaResourceCost,
+    streamed_record_summary: Option<&SourceCutStreamedRecordSummary>,
+    store: Option<&mut dyn SourceFoundationRecordsStore>,
+) -> Result<SourceFoundationRecordsCoreReport, ItemRefusal> {
+    let store = store.map(SourceFoundationRecordsStoreHandle::new);
     let original_limits = input_limits;
     let mut limits = input_limits;
     check(limits.operation, cancelled)?;
@@ -4143,30 +5154,45 @@ fn inspect_source_foundation_records_with_mode(
     } else {
         validate_limits(limits)?;
     }
-    let revision = cut.current().revision();
-    if revision != expected_revision {
-        return Err(ItemRefusal::Source(
-            "source-foundation expected revision differs from captured cut".into(),
-        ));
-    }
-    if item_schemas.source_revision() != expected_revision {
-        return Err(ItemRefusal::Source(
-            "source-foundation Item schema worker belongs to another cut".into(),
-        ));
-    }
-    if cut.revisions().count() != 1 {
-        return Err(ItemRefusal::Unsupported(
-            "source-foundation records district requires current-only cut".into(),
-        ));
+    match (&source, expected_revision, streamed_record_summary) {
+        (SourceFoundationCurrentInput::Cut { cut, revision }, Some(expected), None) => {
+            if *revision != expected || cut.current().revision() != expected {
+                return Err(ItemRefusal::Source(
+                    "source-foundation expected revision differs from captured cut".into(),
+                ));
+            }
+            if cut.revisions().count() != 1 {
+                return Err(ItemRefusal::Unsupported(
+                    "source-foundation records district requires current-only cut".into(),
+                ));
+            }
+        }
+        (SourceFoundationCurrentInput::Stream(_), None, Some(summary)) => {
+            if *summary.current_membership() != expected_membership {
+                return Err(ItemRefusal::Source(
+                    "source-foundation candidate Biblio membership changed".into(),
+                ));
+            }
+        }
+        _ => {
+            return Err(ItemRefusal::Source(
+                "source-foundation input mode lacks an exact source identity".into(),
+            ));
+        }
     }
 
-    let selected_current_member_bytes =
-        cut.current().members().try_fold(0u64, |total, member| {
-            total
+    let selected_current_member_bytes = if let Some(summary) = streamed_record_summary {
+        summary.current_source_bytes()
+    } else {
+        let mut total = 0u64;
+        source.for_each_member_meta(limits.operation.deadline, cancelled, &mut |member| {
+            total = total
                 .checked_add(member.size_bytes)
-                .ok_or(ItemRefusal::Budget)
+                .ok_or(ItemRefusal::Budget)?;
+            Ok(())
         })?;
-    let schema_cost = schema_resource_cost(cut, item_schemas)?;
+        total
+    };
     if schema_cost.aggregate > limits.max_schema_resource_bytes {
         return Err(ItemRefusal::BudgetCheck {
             check: "source-foundation aggregate schema resource bytes",
@@ -4174,15 +5200,19 @@ fn inspect_source_foundation_records_with_mode(
             limit: Some(limits.max_schema_resource_bytes),
         });
     }
-    let record_registry_bytes = current_member_size(cut, RECORD_REGISTRY)?;
+    let record_registry_bytes = source
+        .member_size(RECORD_REGISTRY, limits.records.deadline, cancelled)?
+        .ok_or_else(|| {
+            ItemRefusal::Source("source record registry absent from current input".into())
+        })?;
 
     let direct_records = scan_direct_current_records(
-        cut,
-        expected_revision,
+        source,
         limits.records,
         limits.operation,
         limits.max_schema_request_state_bytes,
         cancelled,
+        store.clone(),
     )?;
     let record_kernel_read_limit_bytes = limits
         .records
@@ -4216,17 +5246,30 @@ fn inspect_source_foundation_records_with_mode(
             return Err(ItemRefusal::Budget);
         }
     }
-    let record_kernel_outcome =
-        match inspect_records_from_cut(cut, record_kernel_limits, cancelled, record_executor) {
+    let (record_kernel_outcome, record_usage) = if let Some(summary) = streamed_record_summary {
+        (None, Some(summary.usage().clone()))
+    } else {
+        let cut = source.cut().ok_or_else(|| {
+            ItemRefusal::Source("resident Record kernel requires an anchored cut".into())
+        })?;
+        let expected_revision = expected_revision.ok_or_else(|| {
+            ItemRefusal::Source("resident Record kernel has no SourceRevision".into())
+        })?;
+        let outcome = match inspect_records_from_cut(
+            cut,
+            record_kernel_limits,
+            cancelled,
+            record_executor,
+        ) {
             Ok(records) => {
                 if records.source_revision != expected_revision
                     || records.current_membership != expected_membership
                     || !records.retained_memberships.is_empty()
                 {
                     return Err(ItemRefusal::Source(
-                    "source-foundation record traversal differs from captured current membership"
-                        .into(),
-                ));
+                        "source-foundation record traversal differs from captured current membership"
+                            .into(),
+                    ));
                 }
                 SourceFoundationRecordKernelOutcome::Complete(records)
             }
@@ -4240,12 +5283,14 @@ fn inspect_source_foundation_records_with_mode(
             }
             Err(refusal) => return Err(refusal),
         };
-    let record_usage = match &record_kernel_outcome {
-        SourceFoundationRecordKernelOutcome::Complete(records) => Some(records.usage.clone()),
-        SourceFoundationRecordKernelOutcome::Refused { refusal, .. } if rolling => {
-            return Err(refusal.clone());
-        }
-        SourceFoundationRecordKernelOutcome::Refused { .. } => None,
+        let usage = match &outcome {
+            SourceFoundationRecordKernelOutcome::Complete(records) => Some(records.usage.clone()),
+            SourceFoundationRecordKernelOutcome::Refused { refusal, .. } if rolling => {
+                return Err(refusal.clone());
+            }
+            SourceFoundationRecordKernelOutcome::Refused { .. } => None,
+        };
+        (Some(outcome), usage)
     };
     let direct_record_issue_state_bytes = direct_records.issues.state_bytes;
     let direct_record_issue_count = direct_records.issues.rows.len();
@@ -4369,15 +5414,10 @@ fn inspect_source_foundation_records_with_mode(
         .map(|record| record.selection.path.as_str())
         .collect::<Vec<_>>();
     let item_record_read_bytes = item_records.iter().try_fold(0u64, |total, record| {
-        let relative = RelativePath::parse(record)
-            .map_err(|_| ItemRefusal::Unsupported("source-foundation Item record path".into()))?;
-        let metadata = cut
-            .current()
-            .member(&relative)
-            .ok_or_else(|| ItemRefusal::Source("Item record missing from captured cut".into()))?;
-        total
-            .checked_add(metadata.size_bytes)
-            .ok_or(ItemRefusal::Budget)
+        let size_bytes = source
+            .member_size(record, limits.items.deadline, cancelled)?
+            .ok_or_else(|| ItemRefusal::Source("Item record missing from current input".into()))?;
+        total.checked_add(size_bytes).ok_or(ItemRefusal::Budget)
     })?;
     let item_rule_record_read_bytes = item_record_read_bytes;
     let item_scans_read_bytes = selected_items
@@ -4395,11 +5435,11 @@ fn inspect_source_foundation_records_with_mode(
         file_membership_read_bytes,
         file_membership_state_bytes,
     ) = build_file_membership_index(
-        cut,
-        expected_revision,
+        source,
         limits.items,
         file_membership_read_limit_bytes,
         cancelled,
+        store.clone(),
     )?;
     let item_rule_index_state_bytes = item_index_state_bytes
         .checked_add(file_membership_state_bytes)
@@ -4419,9 +5459,13 @@ fn inspect_source_foundation_records_with_mode(
         .checked_sub(item_rule_index_state_bytes)
         .ok_or(ItemRefusal::Budget)?;
     let mut item_rules = ItemRules::new(item_limits, require_local_payloads);
-    let mut source = CurrentItemSource {
-        cut,
-        current_records: &direct_records.current_records,
+    let candidate_store = streamed_record_summary.is_some();
+    let mut item_source = CurrentItemSource {
+        cut: source.cut(),
+        input: source.input(),
+        current_records: (!candidate_store).then_some(&direct_records.current_records),
+        indexed_records: candidate_store.then(|| store.clone()).flatten(),
+        record_cache: None,
         payloads,
         physical_facts,
         cancelled,
@@ -4431,39 +5475,51 @@ fn inspect_source_foundation_records_with_mode(
         schema_request_state_bytes: &mut schema_request_state_bytes,
         schema_request_state_limit_bytes,
         active_manifest: None,
+        active_manifest_state_bytes: 0,
         companion_paths: Vec::new(),
         companion_state_bytes: 0,
         item_record_phase: false,
     };
-    for member in cut.current().members() {
-        let path = member.path.as_str();
+    source.for_each_member_meta(limits.items.deadline, cancelled, &mut |member| {
+        let path = member.path;
         if path.starts_with(SOURCE_HOME) && path.ends_with(ITEM_MANIFEST_SUFFIX) {
             check(limits.items, cancelled)?;
-            item_rules.inspect_manifest(&mut source, path)?;
+            item_rules.inspect_manifest(&mut item_source, path)?;
         }
-    }
+        Ok(())
+    })?;
 
     for record in item_records {
         check(limits.items, cancelled)?;
         let read_limit = item_rules.item_record_read_limit(record)?;
         let relative = RelativePath::parse(record)
             .map_err(|_| ItemRefusal::Unsupported("source-foundation Item record path".into()))?;
-        let member = cut
-            .read_member(
-                expected_revision,
-                &relative,
-                read_limit as u64,
-                limits.items.deadline,
-                cancelled,
-            )
-            .map_err(store_error)?;
-        source.item_record_phase = true;
-        item_rules.inspect_item_record(&mut source, record, &member.raw)?;
-        source.item_record_phase = false;
+        let read_limit = usize::try_from(read_limit).map_err(|_| ItemRefusal::Budget)?;
+        let member = source.read_member(
+            relative.as_str(),
+            read_limit,
+            item_rule_index_state_bytes
+                .checked_add(schema_request_state_bytes)
+                .ok_or(ItemRefusal::Budget)?,
+            limits.items.max_state_bytes,
+            limits.items.deadline,
+            cancelled,
+        )?;
+        item_source.item_record_phase = true;
+        item_rules.inspect_item_record(&mut item_source, record, &member.raw)?;
+        item_source.item_record_phase = false;
     }
     check(limits.items, cancelled)?;
     let items = item_rules.finish();
-    drop(source);
+    drop(item_source);
+    if let Some(store) = &store {
+        for issue in &items.issues {
+            store.with(|store| store.item_issue(issue))?;
+        }
+        for item_id in &items.manifest_item_ids {
+            store.with(|store| store.manifest_item_id(item_id))?;
+        }
+    }
     let mut ordered_issues = direct_records.issues;
     if rolling {
         let kernel_issues = rolling_record_issue_count.ok_or(ItemRefusal::Budget)?;
@@ -4521,6 +5577,9 @@ fn inspect_source_foundation_records_with_mode(
                     limit: Some(schema_request_state_limit_bytes as u64),
                 })?;
             rights_ids.insert(id.to_owned());
+            if let Some(store) = &store {
+                store.with(|store| store.rights_id(id))?;
+            }
             rights_identity_state_bytes = next_state_bytes;
         }
     }
@@ -4576,7 +5635,11 @@ fn inspect_source_foundation_records_with_mode(
                     .map(|used| used as u64),
                 limit: Some(schema_request_state_limit_bytes as u64),
             })?;
-        source_event_insertions.push((id.to_owned(), decoded_instance.clone()));
+        let insertion = (id.to_owned(), decoded_instance.clone());
+        if let Some(store) = &store {
+            store.with(|store| store.source_event_insertion(&insertion))?;
+        }
+        source_event_insertions.push(insertion);
         source_event_state_bytes = next_event_state;
         check(limits.items, cancelled)?;
     }
@@ -4607,8 +5670,7 @@ fn inspect_source_foundation_records_with_mode(
         item_owner_index_state_bytes,
         item_owner_inventory_set_scan_steps,
     ) = append_item_direct_issues(
-        cut,
-        expected_revision,
+        source,
         limits,
         require_local_payloads,
         cancelled,
@@ -4624,7 +5686,13 @@ fn inspect_source_foundation_records_with_mode(
         schema_request_state_limit_bytes,
         items.inventory_set_scan_steps,
         &mut ordered_issues,
+        store.clone(),
     )?;
+    if let Some(store) = &store {
+        for check in &schema_checks {
+            store.with(|store| store.schema_check(check))?;
+        }
+    }
     let aggregate_inventory_set_scan_steps = items
         .inventory_set_scan_steps
         .checked_add(item_owner_inventory_set_scan_steps)
@@ -4667,15 +5735,15 @@ fn inspect_source_foundation_records_with_mode(
     let record_observed_read_bytes = if rolling {
         rolling_record_observed_read_bytes
     } else {
-        match &record_kernel_outcome {
-            SourceFoundationRecordKernelOutcome::Complete(_) => Some(
+        match record_kernel_outcome.as_ref() {
+            Some(SourceFoundationRecordKernelOutcome::Complete(_)) => Some(
                 selected_current_member_bytes
                     .checked_add(schema_cost.records)
                     .and_then(|bytes| bytes.checked_add(record_registry_bytes))
                     .and_then(|bytes| bytes.checked_add(record_owner_read_bytes))
                     .ok_or(ItemRefusal::Budget)?,
             ),
-            SourceFoundationRecordKernelOutcome::Refused { .. } => None,
+            Some(SourceFoundationRecordKernelOutcome::Refused { .. }) | None => None,
         }
     };
     let operation_read_bound = if rolling {
@@ -4819,10 +5887,18 @@ fn inspect_source_foundation_records_with_mode(
         rolling_observed_issue_count,
     };
 
-    Ok(SourceFoundationRecordsReport {
-        source_revision: expected_revision,
+    if let Some(summary) = streamed_record_summary {
+        source.verify_current_fence(
+            summary.input_coverage(),
+            limits.operation.deadline,
+            cancelled,
+        )?;
+    }
+
+    Ok(SourceFoundationRecordsCoreReport {
         source_membership: expected_membership,
         records: record_kernel_outcome,
+        record_usage,
         items,
         current_records: direct_records.current_records,
         current_record_order: direct_records.current_record_order,
@@ -4852,6 +5928,7 @@ struct SchemaResourceCost {
     records: u64,
     items: u64,
     aggregate: u64,
+    item_resource_count: u64,
 }
 
 fn schema_resource_cost(
@@ -4872,6 +5949,7 @@ fn schema_resource_cost(
     }
     let mut records = 0u64;
     let mut items = 0u64;
+    let mut item_resource_count = 0u64;
     for member in cut.current().members() {
         let path = member.path.as_str();
         if !path.starts_with(SCHEMA_HOME) || !path.ends_with(SCHEMA_SUFFIX) {
@@ -4889,12 +5967,252 @@ fn schema_resource_cost(
             items = items
                 .checked_add(member.size_bytes)
                 .ok_or(ItemRefusal::Budget)?;
+            item_resource_count = item_resource_count
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
         }
     }
     Ok(SchemaResourceCost {
         records,
         items,
         aggregate: records.checked_add(items).ok_or(ItemRefusal::Budget)?,
+        item_resource_count,
+    })
+}
+
+fn candidate_schema_resource_cost<I: Eq>(
+    source: SourceFoundationCurrentInput<'_>,
+    schema_binding: &impl SourceFoundationCandidateSchemaBinding<I>,
+    limits: ItemLimits,
+    max_schema_resource_bytes: u64,
+    base_state_bytes: usize,
+    cancelled: &AtomicBool,
+) -> Result<SchemaResourceCost, ItemRefusal> {
+    let mut records = 0u64;
+    let mut previous_metadata_path = String::new();
+    let mut previous_metadata_state_bytes = 0usize;
+    source.for_each_member_meta(limits.deadline, cancelled, &mut |meta| {
+        check(limits, cancelled)?;
+        let relative_path_peak = base_state_bytes
+            .checked_add(previous_metadata_state_bytes)
+            .and_then(|bytes| bytes.checked_add(std::mem::size_of::<RelativePath>()))
+            .and_then(|bytes| bytes.checked_add(meta.path.len()))
+            .ok_or(ItemRefusal::Budget)?;
+        if relative_path_peak > limits.max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate schema RelativePath validation state",
+                used: Some(relative_path_peak as u64),
+                limit: Some(limits.max_state_bytes as u64),
+            });
+        }
+        RelativePath::parse(meta.path)
+            .map_err(|_| ItemRefusal::Source("schema metadata path is invalid".into()))?;
+        if !previous_metadata_path.is_empty() && meta.path <= previous_metadata_path.as_str() {
+            return Err(ItemRefusal::Source(
+                "candidate schema source metadata is not strictly ordered".into(),
+            ));
+        }
+        let next_path_state_bytes = std::mem::size_of::<String>()
+            .checked_add(meta.path.len())
+            .ok_or(ItemRefusal::Budget)?;
+        let overlap_state = base_state_bytes
+            .checked_add(previous_metadata_state_bytes)
+            .and_then(|bytes| bytes.checked_add(next_path_state_bytes))
+            .ok_or(ItemRefusal::Budget)?;
+        if overlap_state > limits.max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate schema metadata path state",
+                used: Some(overlap_state as u64),
+                limit: Some(limits.max_state_bytes as u64),
+            });
+        }
+        if meta.path.starts_with(SCHEMA_HOME) && meta.path.ends_with(SCHEMA_SUFFIX) {
+            records = records
+                .checked_add(meta.size_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        let mut next_path = String::new();
+        next_path
+            .try_reserve_exact(meta.path.len())
+            .map_err(|_| ItemRefusal::Budget)?;
+        next_path.push_str(meta.path);
+        let actual_next_path_state_bytes = std::mem::size_of::<String>()
+            .checked_add(next_path.capacity())
+            .ok_or(ItemRefusal::Budget)?;
+        let actual_overlap = base_state_bytes
+            .checked_add(previous_metadata_state_bytes)
+            .and_then(|bytes| bytes.checked_add(actual_next_path_state_bytes))
+            .ok_or(ItemRefusal::Budget)?;
+        if actual_overlap > limits.max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate schema metadata path capacity",
+                used: Some(actual_overlap as u64),
+                limit: Some(limits.max_state_bytes as u64),
+            });
+        }
+        previous_metadata_path = next_path;
+        previous_metadata_state_bytes = actual_next_path_state_bytes;
+        let live_state = base_state_bytes
+            .checked_add(previous_metadata_state_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        if live_state > limits.max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "candidate schema metadata path retention",
+                used: Some(live_state as u64),
+                limit: Some(limits.max_state_bytes as u64),
+            });
+        }
+        check(limits, cancelled)
+    })?;
+
+    let mut items = 0u64;
+    let mut item_resource_count = 0u64;
+    let mut previous_resource_path = String::new();
+    let mut previous_resource_state_bytes = 0usize;
+    let mut required_found = [false; REQUIRED_ITEM_SCHEMAS.len()];
+    schema_binding.for_each_selected_resource(&mut |resource| {
+        check(limits, cancelled)?;
+        let relative_path_peak = base_state_bytes
+            .checked_add(previous_metadata_state_bytes)
+            .and_then(|bytes| bytes.checked_add(previous_resource_state_bytes))
+            .and_then(|bytes| bytes.checked_add(std::mem::size_of::<RelativePath>()))
+            .and_then(|bytes| bytes.checked_add(resource.path.len()))
+            .ok_or(ItemRefusal::Budget)?;
+        if relative_path_peak > limits.max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "selected Item schema RelativePath validation state",
+                used: Some(relative_path_peak as u64),
+                limit: Some(limits.max_state_bytes as u64),
+            });
+        }
+        RelativePath::parse(resource.path)
+            .map_err(|_| ItemRefusal::Source("selected Item schema path is invalid".into()))?;
+        if !resource.path.starts_with(SCHEMA_HOME)
+            || !resource.path.ends_with(SCHEMA_SUFFIX)
+            || (!previous_resource_path.is_empty()
+                && resource.path <= previous_resource_path.as_str())
+        {
+            return Err(ItemRefusal::Source(
+                "selected Item schema resources are not a sorted exact schema closure".into(),
+            ));
+        }
+        let retained_path_state = std::mem::size_of::<String>()
+            .checked_add(resource.path.len())
+            .ok_or(ItemRefusal::Budget)?;
+        let live_state = base_state_bytes
+            .checked_add(previous_metadata_state_bytes)
+            .and_then(|bytes| bytes.checked_add(previous_resource_state_bytes))
+            .and_then(|bytes| bytes.checked_add(retained_path_state))
+            .ok_or(ItemRefusal::Budget)?;
+        if live_state > limits.max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "selected Item schema path and metadata state",
+                used: Some(live_state as u64),
+                limit: Some(limits.max_state_bytes as u64),
+            });
+        }
+        let actual_size = source
+            .member_size(resource.path, limits.deadline, cancelled)?
+            .ok_or_else(|| {
+                ItemRefusal::Source(format!(
+                    "selected Item schema is absent from candidate input: {}",
+                    resource.path
+                ))
+            })?;
+        if actual_size != resource.size_bytes
+            || schema_binding.contract_digest(resource.path) != Some(resource.sha256)
+        {
+            return Err(ItemRefusal::Source(format!(
+                "candidate schema binding differs from selected source resource: {}",
+                resource.path
+            )));
+        }
+        let digest = source
+            .member_digest(
+                resource.path,
+                limits.max_member_bytes,
+                live_state,
+                limits.max_state_bytes,
+                limits.deadline,
+                cancelled,
+            )?
+            .ok_or_else(|| {
+                ItemRefusal::Source(format!(
+                    "selected Item schema disappeared during digest read: {}",
+                    resource.path
+                ))
+            })?;
+        if digest != resource.sha256 {
+            return Err(ItemRefusal::Source(format!(
+                "candidate schema bytes differ from selected digest: {}",
+                resource.path
+            )));
+        }
+        for (index, required) in REQUIRED_ITEM_SCHEMAS.iter().enumerate() {
+            if resource.path == *required {
+                required_found[index] = true;
+            }
+        }
+        items = items
+            .checked_add(resource.size_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        item_resource_count = item_resource_count
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        let path_overlap = base_state_bytes
+            .checked_add(previous_metadata_state_bytes)
+            .and_then(|bytes| bytes.checked_add(previous_resource_state_bytes))
+            .and_then(|bytes| bytes.checked_add(retained_path_state))
+            .ok_or(ItemRefusal::Budget)?;
+        if path_overlap > limits.max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "selected Item schema path overlap",
+                used: Some(path_overlap as u64),
+                limit: Some(limits.max_state_bytes as u64),
+            });
+        }
+        let mut next_path = String::new();
+        next_path
+            .try_reserve_exact(resource.path.len())
+            .map_err(|_| ItemRefusal::Budget)?;
+        next_path.push_str(resource.path);
+        let next_path_state_bytes = std::mem::size_of::<String>()
+            .checked_add(next_path.capacity())
+            .ok_or(ItemRefusal::Budget)?;
+        let actual_path_overlap = base_state_bytes
+            .checked_add(previous_metadata_state_bytes)
+            .and_then(|bytes| bytes.checked_add(previous_resource_state_bytes))
+            .and_then(|bytes| bytes.checked_add(next_path_state_bytes))
+            .ok_or(ItemRefusal::Budget)?;
+        if actual_path_overlap > limits.max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "selected Item schema path capacity",
+                used: Some(actual_path_overlap as u64),
+                limit: Some(limits.max_state_bytes as u64),
+            });
+        }
+        previous_resource_path = next_path;
+        previous_resource_state_bytes = next_path_state_bytes;
+        check(limits, cancelled)
+    })?;
+    if required_found.iter().any(|found| !found) {
+        return Err(ItemRefusal::Source(
+            "candidate Item schema closure omitted a required contract".into(),
+        ));
+    }
+    let aggregate = records.checked_add(items).ok_or(ItemRefusal::Budget)?;
+    if aggregate > max_schema_resource_bytes {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "source-foundation aggregate schema resource bytes",
+            used: Some(aggregate),
+            limit: Some(max_schema_resource_bytes),
+        });
+    }
+    Ok(SchemaResourceCost {
+        records,
+        items,
+        aggregate,
+        item_resource_count,
     })
 }
 
@@ -4910,8 +6228,11 @@ fn current_member_size(cut: &CorpusCutReader, path: &str) -> Result<u64, ItemRef
 }
 
 struct CurrentItemSource<'a, P: CutPayloadReader> {
-    cut: &'a CorpusCutReader,
-    current_records: &'a BTreeMap<String, BiblioCurrentRecord>,
+    cut: Option<&'a CorpusCutReader>,
+    input: Option<&'a dyn SourceCutInput>,
+    current_records: Option<&'a BTreeMap<String, BiblioCurrentRecord>>,
+    indexed_records: Option<SourceFoundationRecordsStoreHandle<'a>>,
+    record_cache: Option<(String, BiblioCurrentRecord, usize)>,
     payloads: &'a mut P,
     physical_facts: &'a SourcePhysicalFacts,
     cancelled: &'a AtomicBool,
@@ -4921,6 +6242,7 @@ struct CurrentItemSource<'a, P: CutPayloadReader> {
     schema_request_state_bytes: &'a mut usize,
     schema_request_state_limit_bytes: usize,
     active_manifest: Option<String>,
+    active_manifest_state_bytes: usize,
     companion_paths: Vec<ItemCompanionSchemaPath>,
     companion_state_bytes: usize,
     item_record_phase: bool,
@@ -4952,13 +6274,289 @@ struct ItemCompanionSchemaPath {
 }
 
 impl<P: CutPayloadReader> CurrentItemSource<'_, P> {
+    fn path_presence(
+        &self,
+        path: &str,
+        deadline: Instant,
+    ) -> Result<Option<SourcePresenceV1>, ItemRefusal> {
+        check_deadline(deadline, self.cancelled)?;
+        if let Some(input) = self.input {
+            let found = input.path_presence(path, deadline, self.cancelled)?;
+            check_deadline(deadline, self.cancelled)?;
+            return Ok(found);
+        }
+        let cut = self.cut.ok_or_else(|| {
+            ItemRefusal::Source("source-foundation Item input is unavailable".into())
+        })?;
+        let relative = RelativePath::parse(path)
+            .map_err(|_| ItemRefusal::Unsupported("source-foundation Item path".into()))?;
+        let found = cut.presence(cut.current().revision(), &relative);
+        check_deadline(deadline, self.cancelled)?;
+        Ok(found)
+    }
+
+    fn live_source_state_bytes(&self) -> Result<usize, ItemRefusal> {
+        let cache = match &self.record_cache {
+            Some((key, record, charged)) => {
+                let minimum = std::mem::size_of::<(String, BiblioCurrentRecord, usize)>()
+                    .checked_add(key.len())
+                    .and_then(|bytes| bytes.checked_add(record.path.len()))
+                    .and_then(|bytes| bytes.checked_add(record.kind.len()))
+                    .and_then(|bytes| {
+                        crate::record_biblio_cut::decoded_state(&record.value)
+                            .ok()
+                            .and_then(|value| bytes.checked_add(value))
+                    })
+                    .ok_or(ItemRefusal::Budget)?;
+                minimum.max(*charged)
+            }
+            None => 0,
+        };
+        self.schema_request_state_bytes
+            .checked_add(cache)
+            .ok_or(ItemRefusal::Budget)
+    }
+
+    fn available_parse_state_bytes(
+        &self,
+        retained_input_bytes: usize,
+    ) -> Result<usize, ItemRefusal> {
+        let schema_available = self
+            .schema_request_state_limit_bytes
+            .checked_sub(*self.schema_request_state_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        let item_live = self
+            .live_source_state_bytes()?
+            .checked_add(retained_input_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        let item_available =
+            self.limits
+                .max_state_bytes
+                .checked_sub(item_live)
+                .ok_or(ItemRefusal::BudgetCheck {
+                    check: "source-foundation Item parse input state",
+                    used: Some(item_live as u64),
+                    limit: Some(self.limits.max_state_bytes as u64),
+                })?;
+        Ok(schema_available.min(item_available))
+    }
+
+    fn remember_active_manifest(
+        &mut self,
+        path: &str,
+        raw_bytes: usize,
+    ) -> Result<(), ItemRefusal> {
+        let retained = std::mem::size_of::<String>()
+            .checked_add(path.len())
+            .ok_or(ItemRefusal::Budget)?;
+        let peak_aux = self
+            .schema_request_state_bytes
+            .checked_add(retained)
+            .ok_or(ItemRefusal::Budget)?;
+        let peak = self
+            .live_source_state_bytes()?
+            .checked_add(retained)
+            .and_then(|bytes| bytes.checked_add(raw_bytes))
+            .ok_or(ItemRefusal::Budget)?;
+        if peak_aux > self.schema_request_state_limit_bytes || peak > self.limits.max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "source-foundation active Item manifest state",
+                used: Some(peak as u64),
+                limit: Some(
+                    self.limits
+                        .max_state_bytes
+                        .min(self.schema_request_state_limit_bytes) as u64,
+                ),
+            });
+        }
+        let mut active = String::new();
+        active
+            .try_reserve_exact(path.len())
+            .map_err(|_| ItemRefusal::Budget)?;
+        active.push_str(path);
+        let next_aux = self
+            .schema_request_state_bytes
+            .checked_sub(self.active_manifest_state_bytes)
+            .and_then(|bytes| bytes.checked_add(retained))
+            .ok_or(ItemRefusal::Budget)?;
+        self.active_manifest = Some(active);
+        self.active_manifest_state_bytes = retained;
+        *self.schema_request_state_bytes = next_aux;
+        Ok(())
+    }
+
+    fn current_member_bytes(
+        &self,
+        path: &str,
+        max_bytes: usize,
+        deadline: Instant,
+    ) -> Result<Option<Vec<u8>>, ItemRefusal> {
+        check_deadline(deadline, self.cancelled)?;
+        let relative = RelativePath::parse(path)
+            .map_err(|_| ItemRefusal::Unsupported("source-foundation metadata path".into()))?;
+        if self.path_presence(path, deadline)? != Some(SourcePresenceV1::File) {
+            return Ok(None);
+        }
+        let mut raw = None;
+        if let Some(input) = self.input {
+            input.with_current_member(
+                path,
+                max_bytes,
+                deadline,
+                self.cancelled,
+                &mut |meta: SourceCutMemberMeta<'_>, bytes| {
+                    check_deadline(deadline, self.cancelled)?;
+                    if raw.is_some()
+                        || meta.path != path
+                        || bytes.len() > max_bytes
+                        || u64::try_from(bytes.len()).ok() != Some(meta.size_bytes)
+                    {
+                        return Err(ItemRefusal::Source(
+                            "source-foundation Item input returned an inexact member".into(),
+                        ));
+                    }
+                    let overlap = bytes
+                        .len()
+                        .checked_mul(2)
+                        .and_then(|both| both.checked_add(std::mem::size_of::<Option<Vec<u8>>>()))
+                        .ok_or(ItemRefusal::Budget)?;
+                    let peak = self
+                        .live_source_state_bytes()?
+                        .checked_add(overlap)
+                        .ok_or(ItemRefusal::Budget)?;
+                    if peak > self.limits.max_state_bytes {
+                        return Err(ItemRefusal::BudgetCheck {
+                            check: "source-foundation Item borrowed and owned member overlap",
+                            used: Some(peak as u64),
+                            limit: Some(self.limits.max_state_bytes as u64),
+                        });
+                    }
+                    let mut owned = Vec::new();
+                    owned
+                        .try_reserve_exact(bytes.len())
+                        .map_err(|_| ItemRefusal::Budget)?;
+                    owned.extend_from_slice(bytes);
+                    raw = Some(owned);
+                    Ok(())
+                },
+            )?;
+            if raw.is_none() {
+                return Err(ItemRefusal::Source(
+                    "source-foundation Item input omitted a current file member".into(),
+                ));
+            }
+        } else {
+            let cut = self.cut.ok_or_else(|| {
+                ItemRefusal::Source("source-foundation Item input is unavailable".into())
+            })?;
+            let metadata = cut.current().member(&relative).ok_or_else(|| {
+                ItemRefusal::Source(format!(
+                    "source-foundation Item member missing from captured cut: {path}"
+                ))
+            })?;
+            let member_len =
+                usize::try_from(metadata.size_bytes).map_err(|_| ItemRefusal::Budget)?;
+            let peak = self
+                .live_source_state_bytes()?
+                .checked_add(member_len)
+                .and_then(|bytes| bytes.checked_add(std::mem::size_of::<Option<Vec<u8>>>()))
+                .ok_or(ItemRefusal::Budget)?;
+            if metadata.size_bytes > max_bytes as u64 || peak > self.limits.max_state_bytes {
+                return Err(ItemRefusal::BudgetCheck {
+                    check: "source-foundation Item current member precharge",
+                    used: Some(peak as u64),
+                    limit: Some(self.limits.max_state_bytes.min(max_bytes) as u64),
+                });
+            }
+            let member = cut
+                .read_member(
+                    cut.current().revision(),
+                    &relative,
+                    max_bytes as u64,
+                    deadline,
+                    self.cancelled,
+                )
+                .map_err(store_error)?;
+            if member.raw.len() > max_bytes {
+                return Err(ItemRefusal::BudgetCheck {
+                    check: "source-foundation Item current member bytes",
+                    used: Some(member.raw.len() as u64),
+                    limit: Some(max_bytes as u64),
+                });
+            }
+            raw = Some(member.raw);
+        }
+        check_deadline(deadline, self.cancelled)?;
+        Ok(raw)
+    }
+
+    fn current_record_kind(
+        &mut self,
+        id: &str,
+        deadline: Instant,
+    ) -> Result<Option<&str>, ItemRefusal> {
+        check_deadline(deadline, self.cancelled)?;
+        if let Some(records) = self.current_records {
+            return Ok(records.get(id).map(|record| record.kind.as_str()));
+        }
+        if let Some((key, record, _)) = &self.record_cache {
+            if key == id {
+                return Ok(Some(record.kind.as_str()));
+            }
+        }
+        let store = self.indexed_records.as_ref().ok_or_else(|| {
+            ItemRefusal::Source("source-foundation Item record index is unavailable".into())
+        })?;
+        self.record_cache = None;
+        let key_state = std::mem::size_of::<(String, BiblioCurrentRecord, usize)>()
+            .checked_add(id.len())
+            .and_then(|bytes| bytes.checked_add(*self.schema_request_state_bytes))
+            .ok_or(ItemRefusal::Budget)?;
+        let row_limit =
+            self.limits
+                .max_state_bytes
+                .checked_sub(key_state)
+                .ok_or(ItemRefusal::BudgetCheck {
+                    check: "source-foundation Item current-record lookup precharge",
+                    used: Some(key_state as u64),
+                    limit: Some(self.limits.max_state_bytes as u64),
+                })?;
+        let maximum = std::num::NonZeroUsize::new(row_limit.max(1)).ok_or(ItemRefusal::Budget)?;
+        let mut key = String::new();
+        key.try_reserve_exact(id.len())
+            .map_err(|_| ItemRefusal::Budget)?;
+        key.push_str(id);
+        let found = store.with(|store| {
+            SourceFoundationRecordsIndex::new(&*store).lookup_current_record(
+                id,
+                maximum,
+                deadline,
+                self.cancelled,
+            )
+        })?;
+        check_deadline(deadline, self.cancelled)?;
+        let found_state = found.as_ref().map(|lookup| lookup.charged_state_bytes);
+        if found_state.is_some_and(|bytes| bytes > row_limit) {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "source-foundation Item current-record lookup state",
+                used: found_state.map(|bytes| bytes as u64),
+                limit: Some(row_limit as u64),
+            });
+        }
+        self.record_cache = found.map(|lookup| (key, lookup.record, lookup.charged_state_bytes));
+        Ok(self
+            .record_cache
+            .as_ref()
+            .map(|(_, record, _)| record.kind.as_str()))
+    }
+
     fn clear_companion_paths(&mut self) -> Result<(), ItemRefusal> {
         *self.schema_request_state_bytes = self
             .schema_request_state_bytes
             .checked_sub(self.companion_state_bytes)
             .ok_or(ItemRefusal::Budget)?;
         self.companion_state_bytes = 0;
-        self.companion_paths.clear();
+        self.companion_paths = Vec::new();
         Ok(())
     }
 
@@ -4966,9 +6564,17 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, P> {
         &mut self,
         path: &str,
         contract: ItemCompanionContract,
+        additional_live_state_bytes: usize,
     ) -> Result<(), ItemRefusal> {
         let retained = std::mem::size_of::<ItemCompanionSchemaPath>()
             .checked_add(path.len())
+            .and_then(|bytes| {
+                if self.companion_paths.is_empty() {
+                    bytes.checked_add(std::mem::size_of::<Vec<ItemCompanionSchemaPath>>())
+                } else {
+                    Some(bytes)
+                }
+            })
             .ok_or(ItemRefusal::Budget)?;
         let next = self
             .schema_request_state_bytes
@@ -4982,8 +6588,28 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, P> {
                     .map(|used| used as u64),
                 limit: Some(self.schema_request_state_limit_bytes as u64),
             })?;
+        let live_peak = self
+            .live_source_state_bytes()?
+            .checked_add(additional_live_state_bytes)
+            .and_then(|bytes| bytes.checked_add(retained))
+            .ok_or(ItemRefusal::Budget)?;
+        if live_peak > self.limits.max_state_bytes {
+            return Err(ItemRefusal::BudgetCheck {
+                check: "source-foundation Item companion copy overlap",
+                used: Some(live_peak as u64),
+                limit: Some(self.limits.max_state_bytes as u64),
+            });
+        }
+        let mut owned_path = String::new();
+        owned_path
+            .try_reserve_exact(path.len())
+            .map_err(|_| ItemRefusal::Budget)?;
+        owned_path.push_str(path);
+        self.companion_paths
+            .try_reserve_exact(1)
+            .map_err(|_| ItemRefusal::Budget)?;
         self.companion_paths.push(ItemCompanionSchemaPath {
-            path: path.to_owned(),
+            path: owned_path,
             contract,
             consumed: false,
         });
@@ -5033,17 +6659,22 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, P> {
         path: &str,
         contract: ItemCompanionContract,
         raw: &[u8],
+        deadline: Instant,
     ) -> Result<(), ItemRefusal> {
         let Ok(text) = std::str::from_utf8(raw) else {
-            return self.schedule_item_root_check(
+            self.schedule_item_root_check(
                 path,
                 contract,
                 None,
                 SourceFoundationRecordsOwnerIssue::InvalidJsonlUtf8,
-            );
+            )?;
+            check_deadline(deadline, self.cancelled)?;
+            return Ok(());
         };
+        let mut item_limits = self.limits;
+        item_limits.deadline = item_limits.deadline.min(deadline);
         for (offset, line) in text.lines().enumerate() {
-            check(self.limits, self.cancelled)?;
+            check(item_limits, self.cancelled)?;
             let ordinal = offset.checked_add(1).ok_or(ItemRefusal::Budget)?;
             let location = format!("{path}:{ordinal}");
             if line.trim().is_empty() {
@@ -5055,11 +6686,8 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, P> {
                 )?;
                 continue;
             }
-            let available = self
-                .schema_request_state_limit_bytes
-                .checked_sub(*self.schema_request_state_bytes)
-                .ok_or(ItemRefusal::Budget)?;
-            match bounded_native_value(line.as_bytes(), self.limits, available, self.cancelled) {
+            let available = self.available_parse_state_bytes(raw.len())?;
+            match bounded_native_value(line.as_bytes(), item_limits, available, self.cancelled) {
                 Ok(value) if value.is_object() => {}
                 Ok(value) => self.schedule_item_root_check(
                     &location,
@@ -5070,7 +6698,7 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, P> {
                 Err(ItemRefusal::Source(reason)) if reason == "invalid finite native JSON" => {
                     match legacy_parse_failure(
                         line.as_bytes(),
-                        self.limits,
+                        item_limits,
                         available,
                         self.cancelled,
                     )? {
@@ -5090,6 +6718,7 @@ impl<P: CutPayloadReader> CurrentItemSource<'_, P> {
                 Err(error) => return Err(error),
             }
         }
+        check_deadline(deadline, self.cancelled)?;
         Ok(())
     }
 }
@@ -5110,30 +6739,18 @@ impl<P: CutPayloadReader> ItemSource for CurrentItemSource<'_, P> {
         deadline: Instant,
     ) -> Result<Option<Vec<u8>>, ItemRefusal> {
         check_deadline(deadline, self.cancelled)?;
-        let relative = RelativePath::parse(path)
-            .map_err(|_| ItemRefusal::Unsupported("source-foundation metadata path".into()))?;
         let manifest_owner = !self.item_record_phase && path.ends_with(ITEM_MANIFEST_SUFFIX);
-        if self.cut.presence(self.cut.current().revision(), &relative)
-            != Some(SourcePresenceV1::File)
-        {
+        let Some(raw) = self.current_member_bytes(path, max_bytes, deadline)? else {
             return Ok(None);
-        }
+        };
         if manifest_owner {
             self.clear_companion_paths()?;
-            self.active_manifest = Some(path.to_owned());
+            self.remember_active_manifest(path, raw.len())?;
+            check_deadline(deadline, self.cancelled)?;
         }
-        let member = self
-            .cut
-            .read_member(
-                self.cut.current().revision(),
-                &relative,
-                max_bytes as u64,
-                deadline,
-                self.cancelled,
-            )
-            .map_err(store_error)?;
         if self.item_record_phase {
-            return Ok(Some(member.raw));
+            check_deadline(deadline, self.cancelled)?;
+            return Ok(Some(raw));
         }
         let contract = if manifest_owner {
             Some(ItemCompanionContract::Manifest)
@@ -5141,17 +6758,18 @@ impl<P: CutPayloadReader> ItemSource for CurrentItemSource<'_, P> {
             self.companion_for_path(path)
         };
         let Some(contract) = contract else {
-            return Ok(Some(member.raw));
+            check_deadline(deadline, self.cancelled)?;
+            return Ok(Some(raw));
         };
         if contract == ItemCompanionContract::Provenance {
-            self.schedule_jsonl_roots(path, contract, &member.raw)?;
-            return Ok(Some(member.raw));
+            self.schedule_jsonl_roots(path, contract, &raw, deadline)?;
+            check_deadline(deadline, self.cancelled)?;
+            return Ok(Some(raw));
         }
-        let available = self
-            .schema_request_state_limit_bytes
-            .checked_sub(*self.schema_request_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
-        match bounded_native_value(&member.raw, self.limits, available, self.cancelled) {
+        let mut item_limits = self.limits;
+        item_limits.deadline = item_limits.deadline.min(deadline);
+        let available = self.available_parse_state_bytes(raw.len())?;
+        match bounded_native_value(&raw, item_limits, available, self.cancelled) {
             Ok(value) if !value.is_object() => self.schedule_item_root_check(
                 path,
                 contract,
@@ -5160,20 +6778,29 @@ impl<P: CutPayloadReader> ItemSource for CurrentItemSource<'_, P> {
             )?,
             Ok(value) => {
                 if manifest_owner {
+                    let decoded_value_bytes = crate::record_biblio_cut::decoded_state(&value)?;
+                    let additional_live_state_bytes = raw
+                        .len()
+                        .checked_add(decoded_value_bytes)
+                        .ok_or(ItemRefusal::Budget)?;
                     for (field, companion) in [
                         ("resource_inventory_ref", ItemCompanionContract::Inventory),
                         ("rights_ref", ItemCompanionContract::Rights),
                         ("provenance_ref", ItemCompanionContract::Provenance),
                     ] {
                         if let Some(reference) = value.get(field).and_then(Value::as_str) {
-                            self.remember_companion(reference, companion)?;
+                            self.remember_companion(
+                                reference,
+                                companion,
+                                additional_live_state_bytes,
+                            )?;
                         }
                     }
                 }
                 drop(value);
             }
             Err(ItemRefusal::Source(reason)) if reason == "invalid finite native JSON" => {
-                match legacy_parse_failure(&member.raw, self.limits, available, self.cancelled)? {
+                match legacy_parse_failure(&raw, item_limits, available, self.cancelled)? {
                     LegacyJsonParseFailure::Malformed => self.schedule_item_root_check(
                         path,
                         contract,
@@ -5197,7 +6824,8 @@ impl<P: CutPayloadReader> ItemSource for CurrentItemSource<'_, P> {
             }
             Err(error) => return Err(error),
         }
-        Ok(Some(member.raw))
+        check_deadline(deadline, self.cancelled)?;
+        Ok(Some(raw))
     }
 
     fn legacy_observed_inventory(
@@ -5231,17 +6859,19 @@ impl<P: CutPayloadReader> ItemSource for CurrentItemSource<'_, P> {
         let mut limits = self.limits;
         limits.max_member_bytes = limits.max_member_bytes.min(max_member_bytes);
         limits.deadline = limits.deadline.min(deadline);
-        bounded_legacy_observed_inventory(raw, limits, available_state_bytes, self.cancelled)
+        let available = self.available_parse_state_bytes(raw.len())?.min(
+            available_state_bytes
+                .checked_sub(raw.len())
+                .ok_or(ItemRefusal::Budget)?,
+        );
+        let observed = bounded_legacy_observed_inventory(raw, limits, available, self.cancelled)?;
+        check_deadline(deadline, self.cancelled)?;
+        Ok(observed)
     }
 
     fn exists(&mut self, path: &str, deadline: Instant) -> Result<bool, ItemRefusal> {
         check_deadline(deadline, self.cancelled)?;
-        let relative = RelativePath::parse(path)
-            .map_err(|_| ItemRefusal::Unsupported("source-foundation reference path".into()))?;
-        Ok(self
-            .cut
-            .presence(self.cut.current().revision(), &relative)
-            .is_some())
+        Ok(self.path_presence(path, deadline)?.is_some())
     }
 
     fn schema(
@@ -5262,10 +6892,9 @@ impl<P: CutPayloadReader> ItemSource for CurrentItemSource<'_, P> {
         if self.schema_checks.len() >= self.limits.max_issues {
             return Err(ItemRefusal::Budget);
         }
-        let available = self
-            .schema_request_state_limit_bytes
-            .checked_sub(*self.schema_request_state_bytes)
-            .ok_or(ItemRefusal::Budget)?;
+        let mut item_limits = self.limits;
+        item_limits.deadline = item_limits.deadline.min(deadline);
+        let available = self.available_parse_state_bytes(raw.len())?;
         let before_issue = if let Some(manifest) = &self.active_manifest {
             self.membership_issues
                 .iter()
@@ -5274,7 +6903,7 @@ impl<P: CutPayloadReader> ItemSource for CurrentItemSource<'_, P> {
         } else {
             self.membership_issues.len()
         };
-        match bounded_native_value(raw, self.limits, available, self.cancelled) {
+        match bounded_native_value(raw, item_limits, available, self.cancelled) {
             Ok(decoded_instance) => retain_direct_schema_check(
                 self.schema_checks,
                 self.schema_request_state_bytes,
@@ -5294,7 +6923,7 @@ impl<P: CutPayloadReader> ItemSource for CurrentItemSource<'_, P> {
                 }
                 match bounded_legacy_observed_inventory(
                     raw,
-                    self.limits,
+                    item_limits,
                     available,
                     self.cancelled,
                 )? {
@@ -5331,6 +6960,7 @@ impl<P: CutPayloadReader> ItemSource for CurrentItemSource<'_, P> {
             }
             Err(error) => return Err(error),
         }
+        check_deadline(deadline, self.cancelled)?;
         Ok(true)
     }
 
@@ -5384,11 +7014,7 @@ impl<P: CutPayloadReader> ItemSource for CurrentItemSource<'_, P> {
     }
 
     fn record_kind(&mut self, id: &str, deadline: Instant) -> Result<Option<&str>, ItemRefusal> {
-        check_deadline(deadline, self.cancelled)?;
-        Ok(self
-            .current_records
-            .get(id)
-            .map(|record| record.kind.as_str()))
+        self.current_record_kind(id, deadline)
     }
 }
 

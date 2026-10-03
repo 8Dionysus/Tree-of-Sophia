@@ -169,6 +169,26 @@ impl AdmissionBatch {
         deadline: Instant,
         cancel: &AtomicBool,
     ) -> io::Result<Self> {
+        Self::read_with_budget(batch_path, input_root, limits, deadline, cancel, None)
+    }
+    pub(crate) fn read_budgeted(
+        batch_path: &Path,
+        input_root: &Path,
+        limits: AdmissionLimits,
+        deadline: Instant,
+        cancel: &AtomicBool,
+        io: &tos_source_store::PinnedSqliteIoBudget,
+    ) -> io::Result<Self> {
+        Self::read_with_budget(batch_path, input_root, limits, deadline, cancel, Some(io))
+    }
+    fn read_with_budget(
+        batch_path: &Path,
+        input_root: &Path,
+        limits: AdmissionLimits,
+        deadline: Instant,
+        cancel: &AtomicBool,
+        io: Option<&tos_source_store::PinnedSqliteIoBudget>,
+    ) -> io::Result<Self> {
         let limits = limits.validate()?;
         active(deadline, cancel)?;
         let mut file =
@@ -179,7 +199,14 @@ impl AdmissionBatch {
         let mut chunk = [0; 65536];
         loop {
             active(deadline, cancel)?;
+            if let Some(io) = io {
+                io.charge_read(chunk.len() as u64).map_err(invalid)?;
+            }
             let count = file.read(&mut chunk)?;
+            if let Some(io) = io {
+                io.record_read_returned(count as u64).map_err(invalid)?;
+            }
+            active(deadline, cancel)?;
             if count == 0 {
                 break;
             }
