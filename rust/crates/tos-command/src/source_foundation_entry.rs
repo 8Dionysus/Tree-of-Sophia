@@ -408,6 +408,173 @@ impl FoundationAdmissionRepresentation {
     }
 }
 
+/// Opt-in mechanical V2 consumer selection inside the existing protected
+/// invocation. These are slices of its original cap, never new grants.
+#[derive(Clone, Debug)]
+pub(crate) struct FoundationV2CaseSelection {
+    pub target: PathBuf,
+    pub identity: String,
+    pub member_path: RelativePath,
+    pub source_store_bytes: u64,
+    pub target_store_bytes: u64,
+    pub tree_nodes: u64,
+    pub tree_bytes: u64,
+    pub point_tree_nodes: u64,
+    pub point_tree_bytes: u64,
+    pub tree_rows: u64,
+    pub history_roots: usize,
+    pub files: u64,
+    pub directories: u64,
+    pub depth: usize,
+    pub state_bytes: usize,
+    pub pointer_bytes: usize,
+    pub object_bytes: usize,
+    pub snapshot_bytes: u64,
+    pub allocation_unit_bytes: u64,
+    pub aux_bytes: u64,
+    pub sqlite_cache_bytes: usize,
+    pub sqlite_native_overhead_bytes: usize,
+}
+impl FoundationV2CaseSelection {
+    fn parse(
+        value: &tos_foundation::JsonValue,
+        budgets: FoundationInvocationBudgets,
+        representation: FoundationAdmissionRepresentation,
+        artifact_root: Option<&Path>,
+    ) -> Result<Self> {
+        crate::source_command::exact_keys(value, &["target", "identity", "member_path", "limits"])
+            .map_err(|_| Error::Invalid("V2 case fields"))?;
+        if representation != FoundationAdmissionRepresentation::NativeV4SegmentV2 {
+            return Err(Error::Invalid(
+                "V2 case requires explicit segment V2 selection",
+            ));
+        }
+        let target = normalize_selected_text(crate::source_command::text(value, "target")?)?;
+        if artifact_root.is_none_or(|root| target == root || !target.starts_with(root)) {
+            return Err(Error::Invalid(
+                "V2 case target outside selected artifact root",
+            ));
+        }
+        let identity = crate::source_command::text(value, "identity")?;
+        if identity.is_empty()
+            || identity.len() > MAX_RELATIVE_PATH_BYTES
+            || identity.chars().any(char::is_control)
+        {
+            return Err(Error::Invalid("V2 case identity shape"));
+        }
+        let member_path_text = crate::source_command::text(value, "member_path")?;
+        if member_path_text.len() > MAX_RELATIVE_PATH_BYTES {
+            return Err(Error::Invalid("V2 case member path length"));
+        }
+        let member_path = RelativePath::parse(member_path_text)
+            .map_err(|_| Error::Invalid("V2 case member path"))?;
+        let limits = crate::source_command::field(value, "limits")?;
+        const KEYS: &[&str] = &[
+            "source_store_bytes",
+            "target_store_bytes",
+            "tree_nodes",
+            "tree_bytes",
+            "point_tree_nodes",
+            "point_tree_bytes",
+            "tree_rows",
+            "history_roots",
+            "files",
+            "directories",
+            "depth",
+            "state_bytes",
+            "pointer_bytes",
+            "object_bytes",
+            "snapshot_bytes",
+            "allocation_unit_bytes",
+            "aux_bytes",
+            "sqlite_cache_bytes",
+            "sqlite_native_overhead_bytes",
+        ];
+        crate::source_command::exact_keys(limits, KEYS)
+            .map_err(|_| Error::Invalid("V2 case limit fields"))?;
+        let number = |key: &str| -> Result<u64> {
+            let n = crate::source_command::integer(limits, key)?;
+            if n == 0 || n == u64::MAX {
+                return Err(Error::Invalid("V2 case limits must be positive finite"));
+            }
+            Ok(n)
+        };
+        let size = |key: &str| -> Result<usize> {
+            let n =
+                usize::try_from(number(key)?).map_err(|_| Error::Invalid("V2 case limit range"))?;
+            if n == usize::MAX {
+                return Err(Error::Invalid("V2 case limit must be finite"));
+            }
+            Ok(n)
+        };
+        let selected = Self {
+            target,
+            identity: identity.to_owned(),
+            member_path,
+            source_store_bytes: number("source_store_bytes")?,
+            target_store_bytes: number("target_store_bytes")?,
+            tree_nodes: number("tree_nodes")?,
+            tree_bytes: number("tree_bytes")?,
+            point_tree_nodes: number("point_tree_nodes")?,
+            point_tree_bytes: number("point_tree_bytes")?,
+            tree_rows: number("tree_rows")?,
+            history_roots: size("history_roots")?,
+            files: number("files")?,
+            directories: number("directories")?,
+            depth: size("depth")?,
+            state_bytes: size("state_bytes")?,
+            pointer_bytes: size("pointer_bytes")?,
+            object_bytes: size("object_bytes")?,
+            snapshot_bytes: number("snapshot_bytes")?,
+            allocation_unit_bytes: number("allocation_unit_bytes")?,
+            aux_bytes: number("aux_bytes")?,
+            sqlite_cache_bytes: size("sqlite_cache_bytes")?,
+            sqlite_native_overhead_bytes: size("sqlite_native_overhead_bytes")?,
+        };
+        if selected
+            .source_store_bytes
+            .checked_add(selected.target_store_bytes)
+            != budgets.max_admission_store_bytes
+            || selected
+                .point_tree_nodes
+                .checked_mul(2)
+                .and_then(|n| n.checked_add(selected.tree_nodes))
+                .is_none_or(|n| n == u64::MAX)
+            || selected.depth > 64
+            || selected.state_bytes as u64 > budgets.max_state_bytes
+            || selected.object_bytes as u64 > budgets.max_member_bytes
+            || selected.pointer_bytes > INVOCATION_BYTES
+            || selected
+                .tree_bytes
+                .checked_add(
+                    selected
+                        .point_tree_bytes
+                        .checked_mul(2)
+                        .ok_or(Error::Invalid("V2 case tree byte partition overflow"))?,
+                )
+                .is_none_or(|n| n > budgets.max_total_read_bytes)
+            || selected
+                .aux_bytes
+                .checked_mul(10)
+                .is_none_or(|n| n > budgets.tmpfs_quota_bytes)
+            || selected
+                .sqlite_cache_bytes
+                .checked_add(selected.sqlite_native_overhead_bytes)
+                .is_none_or(|n| n >= selected.state_bytes)
+        {
+            return Err(Error::Invalid("V2 case slices exceed original invocation"));
+        }
+        Ok(selected)
+    }
+    pub(crate) fn retained_state_bytes(&self) -> Result<usize> {
+        size_of::<Self>()
+            .checked_add(self.target.as_os_str().as_bytes().len())
+            .and_then(|n| n.checked_add(self.identity.len()))
+            .and_then(|n| n.checked_add(self.member_path.as_str().len()))
+            .ok_or(Error::Unsupported("V2 case retained-state overflow"))
+    }
+}
+
 pub(crate) struct FoundationInvocation<'cancel> {
     path: PathBuf,
     raw: Vec<u8>,
@@ -416,6 +583,7 @@ pub(crate) struct FoundationInvocation<'cancel> {
     admission_representation: FoundationAdmissionRepresentation,
     pub schema_worker: FoundationSchemaWorkerSelection,
     pub artifact_root: Option<PathBuf>,
+    v2_case: Option<FoundationV2CaseSelection>,
     pub budgets: FoundationInvocationBudgets,
     started: Instant,
     deadline: Instant,
@@ -425,6 +593,16 @@ pub(crate) struct FoundationInvocation<'cancel> {
 }
 
 impl<'cancel> FoundationInvocation<'cancel> {
+    pub(crate) fn v2_case(&self) -> Option<&FoundationV2CaseSelection> {
+        self.v2_case.as_ref()
+    }
+    pub(crate) fn source_store_allocation_bytes(&self) -> Option<u64> {
+        self.v2_case
+            .as_ref()
+            .map(|case| case.source_store_bytes)
+            .or(self.budgets.max_admission_store_bytes)
+    }
+
     pub(crate) fn admission_representation(&self) -> FoundationAdmissionRepresentation {
         self.admission_representation
     }
@@ -631,7 +809,7 @@ pub(crate) fn read_invocation<'cancel>(
             .iter()
             .any(|(key, _)| key.as_str() == Some("artifact_root"))
     });
-    // At most six static keys; retain strict optional shapes without a heap
+    // At most seven static keys; retain strict optional shapes without a heap
     // allocation or Vec growth before the invocation state is accounted.
     let mut invocation_keys = [
         "schema_version",
@@ -640,6 +818,7 @@ pub(crate) fn read_invocation<'cancel>(
         "budgets",
         "artifact_root",
         "admission_representation",
+        "v2_case",
     ];
     let mut invocation_key_count = 4;
     if artifact_root_selected {
@@ -647,6 +826,10 @@ pub(crate) fn read_invocation<'cancel>(
     }
     if value.object_get("admission_representation").is_some() {
         invocation_keys[invocation_key_count] = "admission_representation";
+        invocation_key_count += 1;
+    }
+    if value.object_get("v2_case").is_some() {
+        invocation_keys[invocation_key_count] = "v2_case";
         invocation_key_count += 1;
     }
     crate::source_command::exact_keys(&value, &invocation_keys[..invocation_key_count])
@@ -695,6 +878,17 @@ pub(crate) fn read_invocation<'cancel>(
         }
         _ => {}
     }
+    let v2_case = value
+        .object_get("v2_case")
+        .map(|selection| {
+            FoundationV2CaseSelection::parse(
+                selection,
+                budgets,
+                admission_representation,
+                artifact_root.as_deref(),
+            )
+        })
+        .transpose()?;
     drop(value);
 
     let deadline = clock.select_operation_deadline(budgets.operation_wall_ms, cancelled)?;
@@ -702,12 +896,11 @@ pub(crate) fn read_invocation<'cancel>(
         budgets.max_state_bytes,
         "foundation state limit range",
     )?;
-    let selected_path_state =
-        3usize
-            .checked_mul(MAX_RELATIVE_PATH_BYTES)
-            .ok_or(Error::Unsupported(
-                "foundation invocation path state overflow",
-            ))?;
+    let selected_path_state = (if v2_case.is_some() { 6usize } else { 3usize })
+        .checked_mul(MAX_RELATIVE_PATH_BYTES)
+        .ok_or(Error::Unsupported(
+            "foundation invocation path state overflow",
+        ))?;
     let parse_state = raw
         .len()
         .checked_add(INVOCATION_JSON_WORKSPACE)
@@ -723,6 +916,11 @@ pub(crate) fn read_invocation<'cancel>(
         return Err(Error::Conflict("foundation native executable identity"));
     }
     let raw_len = raw.len();
+    let case_retained = v2_case
+        .as_ref()
+        .map(|case| case.retained_state_bytes())
+        .transpose()?
+        .unwrap_or(0);
     let retained_input_bytes = raw_len
         .checked_add(path.as_os_str().as_bytes().len())
         .and_then(|n| n.checked_add(worker_path.as_os_str().as_bytes().len()))
@@ -731,6 +929,7 @@ pub(crate) fn read_invocation<'cancel>(
                 n.checked_add(root.as_os_str().as_bytes().len())
             })
         })
+        .and_then(|n| n.checked_add(case_retained))
         .and_then(|n| n.checked_add(launch.state_upper_bound_bytes))
         .and_then(|n| n.checked_add(size_of::<FoundationInvocation<'_>>()))
         .ok_or(Error::Unsupported(
@@ -766,6 +965,7 @@ pub(crate) fn read_invocation<'cancel>(
             sha256: worker_sha256,
         },
         artifact_root,
+        v2_case,
         budgets,
         started: clock.started,
         deadline,
