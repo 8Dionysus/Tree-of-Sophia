@@ -5675,7 +5675,7 @@ trait NativeCompoundSchema: CutSchemaExecutor {
     fn cut_execution_binding(&self) -> Option<CutExecutionBinding>;
 }
 
-impl NativeCompoundSchema for CutWorkerSchemaExecutor {
+impl<S: CutSchemaExecutor + CutSchemaReceiptRange> NativeCompoundSchema for S {
     fn cut_execution_binding(&self) -> Option<CutExecutionBinding> {
         Some(CutSchemaReceiptRange::execution_binding(self))
     }
@@ -9052,7 +9052,7 @@ impl NativeCompoundReader<'_> {
         let cut = self.cut;
         let cancelled = self.cancelled;
         let mut validate_local_claim = |raw: &[u8],
-                                        schemas: &mut CutWorkerSchemaExecutor,
+                                        schemas: &mut S,
                                         limits: ItemLimits| {
             let mut local = crate::record_rules::validate_source_claim_from_cut(
                 cut.ok_or_else(|| bad("ObjectLink writer requires corpus cut"))?,
