@@ -121,9 +121,10 @@ pub(crate) struct CandidateFence {
 /// Mechanical publication receipt; semantic and rights authority remain separate.
 pub(crate) struct SpooledPublicationReceipt {
     pub revision: SourceRevision,
-    pub manifest_sha256: Digest256,
+    pub manifest_sha256: Option<Digest256>,
+    pub source_artifact: Option<super::source_admission_segment_v2::SourceRevisionArtifactV2>,
     pub rootset_sha256: Option<Digest256>,
-    pub manifest_bytes: u64,
+    pub manifest_bytes: Option<u64>,
     pub fence: CandidateFence,
     pub identities: u64,
     pub dependency_sources: u64,
@@ -137,7 +138,9 @@ pub(crate) struct SpooledPublicationReceipt {
 /// identity even when store durability or pointer rechecks fail afterward.
 pub(crate) struct SpooledPublicationCommittedRefusal {
     pub(crate) revision: SourceRevision,
-    pub(crate) manifest_sha256: Digest256,
+    pub(crate) manifest_sha256: Option<Digest256>,
+    pub(crate) source_artifact:
+        Option<super::source_admission_segment_v2::SourceRevisionArtifactV2>,
     pub(crate) rootset_sha256: Option<Digest256>,
     pub(crate) batch_sha256: Digest256,
     pub(crate) validator_sha256: Digest256,
@@ -150,7 +153,11 @@ impl std::fmt::Debug for SpooledPublicationCommittedRefusal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SpooledPublicationCommittedRefusal")
             .field("revision", &self.revision.0.to_hex())
-            .field("manifest_sha256", &self.manifest_sha256.to_hex())
+            .field(
+                "manifest_sha256",
+                &self.manifest_sha256.map(|digest| digest.to_hex()),
+            )
+            .field("source_artifact", &self.source_artifact)
             .field(
                 "rootset_sha256",
                 &self.rootset_sha256.map(|digest| digest.to_hex()),
@@ -181,7 +188,9 @@ impl std::error::Error for SpooledPublicationCommittedRefusal {
 /// The retained custody is returned with the refusal for explicit recovery.
 pub(crate) struct SpooledPublicationV2Refusal {
     pub(crate) revision: SourceRevision,
-    pub(crate) manifest_sha256: Digest256,
+    pub(crate) manifest_sha256: Option<Digest256>,
+    pub(crate) source_artifact:
+        Option<super::source_admission_segment_v2::SourceRevisionArtifactV2>,
     pub(crate) rootset_sha256: Option<Digest256>,
     pub(crate) batch_sha256: Digest256,
     pub(crate) validator_sha256: Digest256,
@@ -194,7 +203,11 @@ impl std::fmt::Debug for SpooledPublicationV2Refusal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SpooledPublicationV2Refusal")
             .field("revision", &self.revision.0.to_hex())
-            .field("manifest_sha256", &self.manifest_sha256.to_hex())
+            .field(
+                "manifest_sha256",
+                &self.manifest_sha256.map(|digest| digest.to_hex()),
+            )
+            .field("source_artifact", &self.source_artifact)
             .field(
                 "rootset_sha256",
                 &self.rootset_sha256.map(|digest| digest.to_hex()),
@@ -821,12 +834,19 @@ impl<'host> SpoolCandidate<'host> {
             }
             let mut rootset_sha256 = None;
             let mut v2_custody = None;
+            let mut source_artifact = None;
             let publication_result = if let Some(profile) = index.segment_v2_budget() {
                 if self.batch.base_revision.is_some() {
                     return Err(invalid(
                         "V2 initial writer refuses a nonempty admission base",
                     ));
                 }
+                source_artifact = Some(
+                    super::source_admission_segment_v2::SourceRevisionArtifactV2::SnapshotV1 {
+                        sha256: manifest_sha256,
+                        bytes: manifest_bytes,
+                    },
+                );
                 let lock = self
                     .store
                     .lock_for_v2_publication(self.deadline, &self.cancelled)?;
@@ -861,7 +881,8 @@ impl<'host> SpoolCandidate<'host> {
                             error.kind(),
                             SpooledPublicationV2Refusal {
                                 revision: SourceRevision(revision),
-                                manifest_sha256,
+                                manifest_sha256: Some(manifest_sha256),
+                                source_artifact: source_artifact.clone(),
                                 rootset_sha256: None,
                                 batch_sha256: fence.batch_sha256,
                                 validator_sha256: fence.validator_sha256,
@@ -922,7 +943,8 @@ impl<'host> SpoolCandidate<'host> {
                         error.kind(),
                         SpooledPublicationCommittedRefusal {
                             revision: SourceRevision(committed_revision),
-                            manifest_sha256: committed_manifest,
+                            manifest_sha256: Some(committed_manifest),
+                            source_artifact: source_artifact.clone(),
                             rootset_sha256: committed_rootset,
                             batch_sha256: fence.batch_sha256,
                             validator_sha256: fence.validator_sha256,
@@ -936,7 +958,8 @@ impl<'host> SpoolCandidate<'host> {
                         error.kind(),
                         SpooledPublicationV2Refusal {
                             revision: SourceRevision(revision),
-                            manifest_sha256,
+                            manifest_sha256: Some(manifest_sha256),
+                            source_artifact: source_artifact.clone(),
                             rootset_sha256,
                             batch_sha256: fence.batch_sha256,
                             validator_sha256: fence.validator_sha256,
@@ -963,7 +986,8 @@ impl<'host> SpoolCandidate<'host> {
                         error.kind(),
                         SpooledPublicationCommittedRefusal {
                             revision: SourceRevision(revision),
-                            manifest_sha256,
+                            manifest_sha256: Some(manifest_sha256),
+                            source_artifact: source_artifact.clone(),
                             rootset_sha256,
                             batch_sha256: fence.batch_sha256,
                             validator_sha256: fence.validator_sha256,
@@ -977,9 +1001,10 @@ impl<'host> SpoolCandidate<'host> {
             };
             let receipt = SpooledPublicationReceipt {
                 revision: SourceRevision(revision),
-                manifest_sha256,
+                manifest_sha256: Some(manifest_sha256),
+                source_artifact,
                 rootset_sha256,
-                manifest_bytes,
+                manifest_bytes: Some(manifest_bytes),
                 fence,
                 identities: index.identity_count(),
                 dependency_sources: index.dependency_source_count(),
