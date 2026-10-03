@@ -231,6 +231,12 @@ fn bounded_process(
         .env("GIT_NO_REPLACE_OBJECTS", "1")
         .env("GIT_CONFIG_NOSYSTEM", "1")
         .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        // Bound trusted Git mappings after foreign GIT_* inputs are removed.
+        .env("GIT_CONFIG_COUNT", "2")
+        .env("GIT_CONFIG_KEY_0", "core.packedGitWindowSize")
+        .env("GIT_CONFIG_VALUE_0", "16m")
+        .env("GIT_CONFIG_KEY_1", "core.packedGitLimit")
+        .env("GIT_CONFIG_VALUE_1", "64m")
         .env("PYTHONDONTWRITEBYTECODE", "1");
     let mut output = tempfile::tempfile().unwrap();
     let mut errors = tempfile::tempfile().unwrap();
@@ -503,7 +509,13 @@ fn comparable(value: &Value, ignore_revision: bool) -> Value {
 }
 
 fn request_digest(value: &Value) -> String {
-    tos_foundation::Digest256::of_bytes(&canonical(value)).to_prefixed()
+    let raw = tos_foundation::canonical_raw_bytes_v1(
+        &serde_json::to_vec(value).unwrap(),
+        CanonicalProfile::SourceCommandInputV1,
+        JsonLimits::default(),
+    )
+    .unwrap();
+    tos_foundation::Digest256::of_bytes(&raw).to_prefixed()
 }
 
 fn archive_reference(record_id: &str, revision: &str) -> String {

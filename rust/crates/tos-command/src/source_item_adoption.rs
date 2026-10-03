@@ -2935,7 +2935,8 @@ fn recover_item_selected(
         ));
     }
     let scope = serde_value(&owner.scope()?)?;
-    let request_raw = cmd::canonical(&owner.request)?;
+    let mut request_raw = cmd::canonical(&owner.request)?;
+    request_raw.push(b'\n');
     let authorization =
         owner.authorization(cmd::field(&plan.authorization, "dependency_bindings")?.clone())?;
     let mut authorization_error = None;

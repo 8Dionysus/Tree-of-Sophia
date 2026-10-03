@@ -26,13 +26,15 @@ const CAPTURE: &[&str] = &[
     "source-create-environment.json",
     "source-create-provenance.jsonl",
 ];
-const CLAIM_CONTRACTS: &[&str] = &[
+const CLAIM_SCHEMA_CONTRACTS: &[&str] = &[
     CLAIM_SCHEMA,
     "ToS/contracts/claim-packet.schema.json",
     "ToS/contracts/historical-record.schema.json",
     "ToS/contracts/corpus-record.schema.json",
     "ToS/contracts/knowledge-assessment.schema.json",
     "ToS/contracts/claim-display-fields.schema.json",
+];
+const CLAIM_REGISTRY_REFS: &[&str] = &[
     "ToS/doctrine/semantic-interchange/entity-types.v1.json",
     "ToS/doctrine/semantic-interchange/relation-types.v1.json",
 ];
@@ -548,8 +550,9 @@ fn validate_request_shape(request: &JsonValue, revision: bool) -> SourceCommandR
 
 fn contract_digests(ctx: &CommandContext) -> SourceCommandResult<JsonValue> {
     Ok(JsonValue::Object(
-        CLAIM_CONTRACTS
+        CLAIM_SCHEMA_CONTRACTS
             .iter()
+            .chain(CLAIM_REGISTRY_REFS)
             .map(|name| {
                 let bytes = ctx
                     .file(&rel(name)?)?
@@ -1210,7 +1213,7 @@ fn validate_config_claim(
         worker,
         claim,
         CLAIM_SCHEMA,
-        CLAIM_CONTRACTS,
+        CLAIM_SCHEMA_CONTRACTS,
         deadline,
         cancelled,
     )?;
