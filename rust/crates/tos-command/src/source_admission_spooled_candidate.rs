@@ -2,6 +2,7 @@
 //! A completed metadata import is not validation or permission to publish.
 use super::source_admission::{AdmissionBatch, active, invalid};
 use super::source_admission_candidate::CandidateLimits;
+use super::source_admission_spooled_index::cursor_argument_state;
 use super::source_admission_store::AdmissionStore;
 #[path = "source_admission_logical_membership.rs"]
 mod logical_membership;
@@ -121,6 +122,7 @@ pub(crate) struct CandidateFence {
 pub(crate) struct SpooledPublicationReceipt {
     pub revision: SourceRevision,
     pub manifest_sha256: Digest256,
+    pub rootset_sha256: Option<Digest256>,
     pub manifest_bytes: u64,
     pub fence: CandidateFence,
     pub identities: u64,
@@ -136,6 +138,7 @@ pub(crate) struct SpooledPublicationReceipt {
 pub(crate) struct SpooledPublicationCommittedRefusal {
     pub(crate) revision: SourceRevision,
     pub(crate) manifest_sha256: Digest256,
+    pub(crate) rootset_sha256: Option<Digest256>,
     pub(crate) batch_sha256: Digest256,
     pub(crate) validator_sha256: Digest256,
     pub(crate) persistent_manifest_custody:
@@ -148,6 +151,10 @@ impl std::fmt::Debug for SpooledPublicationCommittedRefusal {
         f.debug_struct("SpooledPublicationCommittedRefusal")
             .field("revision", &self.revision.0.to_hex())
             .field("manifest_sha256", &self.manifest_sha256.to_hex())
+            .field(
+                "rootset_sha256",
+                &self.rootset_sha256.map(|digest| digest.to_hex()),
+            )
             .field("batch_sha256", &self.batch_sha256.to_hex())
             .field("validator_sha256", &self.validator_sha256.to_hex())
             .field(
@@ -165,6 +172,50 @@ impl std::fmt::Display for SpooledPublicationCommittedRefusal {
 }
 
 impl std::error::Error for SpooledPublicationCommittedRefusal {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.cause)
+    }
+}
+
+/// A V2 writer left immutable physical allocations before the selector CAS.
+/// The retained custody is returned with the refusal for explicit recovery.
+pub(crate) struct SpooledPublicationV2Refusal {
+    pub(crate) revision: SourceRevision,
+    pub(crate) manifest_sha256: Digest256,
+    pub(crate) rootset_sha256: Option<Digest256>,
+    pub(crate) batch_sha256: Digest256,
+    pub(crate) validator_sha256: Digest256,
+    pub(crate) persistent_store_custody:
+        Option<Arc<tos_source_store::PinnedSqliteSpaceReservation>>,
+    cause: io::Error,
+}
+
+impl std::fmt::Debug for SpooledPublicationV2Refusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SpooledPublicationV2Refusal")
+            .field("revision", &self.revision.0.to_hex())
+            .field("manifest_sha256", &self.manifest_sha256.to_hex())
+            .field(
+                "rootset_sha256",
+                &self.rootset_sha256.map(|digest| digest.to_hex()),
+            )
+            .field("batch_sha256", &self.batch_sha256.to_hex())
+            .field("validator_sha256", &self.validator_sha256.to_hex())
+            .field(
+                "store_custody_retained",
+                &self.persistent_store_custody.is_some(),
+            )
+            .finish_non_exhaustive()
+    }
+}
+
+impl std::fmt::Display for SpooledPublicationV2Refusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("V2 publication refused before a verified selector commit")
+    }
+}
+
+impl std::error::Error for SpooledPublicationV2Refusal {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         Some(&self.cause)
     }
@@ -402,7 +453,7 @@ impl<'host> SpoolCandidate<'host> {
         .map_err(sql)?;
         let clock_cancel = cancelled.clone();
         db.progress_handler(1000, Some(move || active(deadline, &clock_cancel).is_err()));
-        db.execute_batch("CREATE TABLE members(path TEXT COLLATE BINARY PRIMARY KEY,sha BLOB NOT NULL CHECK(length(sha)=32),size BLOB NOT NULL CHECK(length(size)=8),mode INTEGER NOT NULL,changed INTEGER NOT NULL,touched INTEGER NOT NULL) WITHOUT ROWID; CREATE TABLE retirements(ordinal INTEGER PRIMARY KEY,path TEXT,sha BLOB,event_ref TEXT,event_sha BLOB,event_size BLOB); CREATE TABLE affected(path TEXT COLLATE BINARY PRIMARY KEY,visited INTEGER NOT NULL) WITHOUT ROWID; CREATE TABLE reverse_dependencies(target TEXT COLLATE BINARY,source TEXT COLLATE BINARY,PRIMARY KEY(target,source)) WITHOUT ROWID; CREATE TABLE historical_ids(id TEXT COLLATE BINARY PRIMARY KEY,path TEXT NOT NULL) WITHOUT ROWID; CREATE INDEX affected_queue ON affected(visited,path);").map_err(sql)?;
+        db.execute_batch("CREATE TABLE members(path TEXT COLLATE BINARY PRIMARY KEY,sha BLOB NOT NULL CHECK(length(sha)=32),size BLOB NOT NULL CHECK(length(size)=8),mode INTEGER NOT NULL,changed INTEGER NOT NULL,touched INTEGER NOT NULL) WITHOUT ROWID; CREATE INDEX members_changed_path ON members(path COLLATE BINARY) WHERE changed=1; CREATE TABLE retirements(ordinal INTEGER PRIMARY KEY,path TEXT,sha BLOB,event_ref TEXT,event_sha BLOB,event_size BLOB); CREATE INDEX retirements_by_path ON retirements(path COLLATE BINARY,ordinal); CREATE TABLE affected(path TEXT COLLATE BINARY PRIMARY KEY,visited INTEGER NOT NULL) WITHOUT ROWID; CREATE TABLE reverse_dependencies(target TEXT COLLATE BINARY,source TEXT COLLATE BINARY,PRIMARY KEY(target,source)) WITHOUT ROWID; CREATE INDEX reverse_dependencies_by_source ON reverse_dependencies(source COLLATE BINARY,target COLLATE BINARY); CREATE TABLE historical_ids(id TEXT COLLATE BINARY PRIMARY KEY,path TEXT NOT NULL) WITHOUT ROWID; CREATE INDEX historical_ids_by_path ON historical_ids(path COLLATE BINARY,id COLLATE BINARY); CREATE INDEX affected_queue ON affected(visited,path);").map_err(sql)?;
         let batch_bytes = batch.bytes_read();
         let mut candidate = Self {
             store,
@@ -768,17 +819,84 @@ impl<'host> SpoolCandidate<'host> {
             if self.fence()? != fence {
                 return Err(invalid("publication candidate changed after serialization"));
             }
-            let publication_result = self.store.publish_streamed(
-                self.batch.base_revision,
-                revision,
-                output.main,
-                manifest_bytes,
-                manifest_sha256,
-                self.limits.candidate.reader,
-                streamed,
-                self.deadline,
-                &self.cancelled,
-            );
+            let mut rootset_sha256 = None;
+            let mut v2_custody = None;
+            let publication_result = if let Some(profile) = index.segment_v2_budget() {
+                if self.batch.base_revision.is_some() {
+                    return Err(invalid(
+                        "V2 initial writer refuses a nonempty admission base",
+                    ));
+                }
+                let lock = self
+                    .store
+                    .lock_for_v2_publication(self.deadline, &self.cancelled)?;
+                if self
+                    .store
+                    .current_selection(
+                        self.limits.candidate.reader,
+                        self.deadline,
+                        &self.cancelled,
+                        Some(&profile.io),
+                    )?
+                    .is_some()
+                {
+                    return Err(invalid(
+                        "V2 initial writer requires no selected corpus revision",
+                    ));
+                }
+                let built = match super::source_admission_segment_v2::build_initial_rootset_v2(
+                    self.store,
+                    self,
+                    index,
+                    revision,
+                    manifest_sha256,
+                    self.deadline,
+                    &self.cancelled,
+                ) {
+                    Ok(built) => built,
+                    Err(error) => {
+                        return Err(io::Error::new(
+                            error.kind(),
+                            SpooledPublicationV2Refusal {
+                                revision: SourceRevision(revision),
+                                manifest_sha256,
+                                rootset_sha256: None,
+                                batch_sha256: fence.batch_sha256,
+                                validator_sha256: fence.validator_sha256,
+                                persistent_store_custody: self.store.v2_store_custody(),
+                                cause: error,
+                            },
+                        ));
+                    }
+                };
+                rootset_sha256 = Some(built.sha256);
+                v2_custody = Some(built.tree_io.custody_reservation());
+                self.store.publish_streamed_v2_initial(
+                    self.batch.base_revision,
+                    revision,
+                    output.main,
+                    manifest_bytes,
+                    manifest_sha256,
+                    self.limits.candidate.reader,
+                    streamed,
+                    built,
+                    &lock,
+                    self.deadline,
+                    &self.cancelled,
+                )
+            } else {
+                self.store.publish_streamed(
+                    self.batch.base_revision,
+                    revision,
+                    output.main,
+                    manifest_bytes,
+                    manifest_sha256,
+                    self.limits.candidate.reader,
+                    streamed,
+                    self.deadline,
+                    &self.cancelled,
+                )
+            };
             if let Err(error) = publication_result {
                 let committed = error
                     .get_ref()
@@ -791,18 +909,37 @@ impl<'host> SpoolCandidate<'host> {
                         (
                             refusal.revision,
                             refusal.manifest_sha256,
+                            refusal.rootset_sha256,
                             refusal.custody.clone(),
                         )
                     });
-                if let Some((committed_revision, committed_manifest, custody)) = committed {
+                if let Some((committed_revision, committed_manifest, committed_rootset, custody)) =
+                    committed
+                {
                     return Err(io::Error::new(
                         error.kind(),
                         SpooledPublicationCommittedRefusal {
                             revision: SourceRevision(committed_revision),
                             manifest_sha256: committed_manifest,
+                            rootset_sha256: committed_rootset,
                             batch_sha256: fence.batch_sha256,
                             validator_sha256: fence.validator_sha256,
                             persistent_manifest_custody: custody,
+                            cause: error,
+                        },
+                    ));
+                }
+                if index.segment_v2_budget().is_some() {
+                    return Err(io::Error::new(
+                        error.kind(),
+                        SpooledPublicationV2Refusal {
+                            revision: SourceRevision(revision),
+                            manifest_sha256,
+                            rootset_sha256,
+                            batch_sha256: fence.batch_sha256,
+                            validator_sha256: fence.validator_sha256,
+                            persistent_store_custody: v2_custody
+                                .or_else(|| self.store.v2_store_custody()),
                             cause: error,
                         },
                     ));
@@ -811,7 +948,13 @@ impl<'host> SpoolCandidate<'host> {
             }
             // output.reservation survives the consumed FD call above and drops
             // only after its temporary backing has closed.
-            let custody = match self.store.streamed_manifest_custody() {
+            let custody = match if index.segment_v2_budget().is_some() {
+                v2_custody
+                    .or_else(|| self.store.v2_store_custody())
+                    .ok_or_else(|| invalid("V2 store custody absent after publication"))
+            } else {
+                self.store.streamed_manifest_custody()
+            } {
                 Ok(custody) => custody,
                 Err(error) => {
                     return Err(io::Error::new(
@@ -819,9 +962,12 @@ impl<'host> SpoolCandidate<'host> {
                         SpooledPublicationCommittedRefusal {
                             revision: SourceRevision(revision),
                             manifest_sha256,
+                            rootset_sha256,
                             batch_sha256: fence.batch_sha256,
                             validator_sha256: fence.validator_sha256,
-                            persistent_manifest_custody: None,
+                            persistent_manifest_custody: v2_custody
+                                .clone()
+                                .or_else(|| self.store.v2_store_custody()),
                             cause: error,
                         },
                     ));
@@ -830,6 +976,7 @@ impl<'host> SpoolCandidate<'host> {
             let receipt = SpooledPublicationReceipt {
                 revision: SourceRevision(revision),
                 manifest_sha256,
+                rootset_sha256,
                 manifest_bytes,
                 fence,
                 identities: index.identity_count(),
@@ -929,8 +1076,15 @@ impl<'host> SpoolCandidate<'host> {
         allowance: usize,
     ) -> io::Result<Option<MemberMetadata>> {
         self.tick()?;
-        self.check_state(allowance)?;
-        self.finish_read(self.raw_after_bounded(after, allowance))
+        let result = (|| {
+            let argument = cursor_argument_state(after.map_or(0, |path| path.as_str().len()))?;
+            self.check_state(allowance)?;
+            let row_allowance = allowance
+                .checked_sub(argument)
+                .ok_or_else(|| invalid("candidate member cursor state exceeds profile"))?;
+            self.raw_after_bounded(after, row_allowance)
+        })();
+        self.finish_read(result)
     }
     fn raw_after(&self, after: Option<&RelativePath>) -> io::Result<Option<MemberMetadata>> {
         self.raw_after_bounded(after, self.row_state_ceiling.get())
@@ -1001,6 +1155,319 @@ impl<'host> SpoolCandidate<'host> {
     ) -> io::Result<Option<MemberMetadata>> {
         self.tick()?;
         self.finish_read(self.raw_after(after))
+    }
+    /// Stream only member rows changed by this batch in binary path order.
+    /// Base rows remain available through `member_after`; this delta cursor is
+    /// for immutable V2 successor writers and grants no publication authority.
+    pub(crate) fn changed_member_after(
+        &self,
+        after: Option<&RelativePath>,
+        allowance: usize,
+    ) -> io::Result<Option<MemberMetadata>> {
+        self.tick()?;
+        let result = (|| {
+            let input = after.map_or(0, |path| path.as_str().len());
+            let argument = cursor_argument_state(input)?;
+            self.check_state(allowance)?;
+            let row_allowance = allowance
+                .checked_sub(argument)
+                .ok_or_else(|| invalid("changed-member cursor state exceeds profile"))?;
+            let row = match after {
+                Some(after) => self.db.query_row(
+                    "SELECT path,sha,size,mode FROM members WHERE changed=1 AND path>?1 ORDER BY path LIMIT 1",
+                    [after.as_str()],
+                    |row| member_from_row(row, row_allowance),
+                ),
+                None => self.db.query_row(
+                    "SELECT path,sha,size,mode FROM members WHERE changed=1 ORDER BY path LIMIT 1",
+                    [],
+                    |row| member_from_row(row, row_allowance),
+                ),
+            }
+            .optional()
+            .map_err(sql)?;
+            row.map(member).transpose()
+        })();
+        self.finish_read(result)
+    }
+    /// Stream source paths removed by this batch in binary path order so a
+    /// V2 current-root writer can emit exact tombstones without a flat set.
+    pub(crate) fn retired_path_after(
+        &self,
+        after: Option<&RelativePath>,
+        allowance: usize,
+    ) -> io::Result<Option<RelativePath>> {
+        self.tick()?;
+        let result = (|| {
+            let input = after.map_or(0, |path| path.as_str().len());
+            let argument = cursor_argument_state(input)?;
+            self.check_state(allowance)?;
+            let row_allowance = allowance
+                .checked_sub(argument)
+                .ok_or_else(|| invalid("retirement cursor state exceeds profile"))?;
+            let path = match after {
+                Some(after) => self.db.query_row(
+                    "SELECT path FROM retirements WHERE path>?1 ORDER BY path,ordinal LIMIT 1",
+                    [after.as_str()],
+                    |row| bounded_text(row, row_allowance),
+                ),
+                None => self.db.query_row(
+                    "SELECT path FROM retirements ORDER BY path,ordinal LIMIT 1",
+                    [],
+                    |row| bounded_text(row, row_allowance),
+                ),
+            }
+            .optional()
+            .map_err(sql)?;
+            path.map(|path| RelativePath::new(&path).map_err(invalid))
+                .transpose()
+        })();
+        self.finish_read(result)
+    }
+    /// Stream only retirement paths introduced by this candidate. Historical
+    /// events remain in the immutable retirement root, while these paths join
+    /// changed members to drive current-root deltas.
+    pub(crate) fn new_retired_path_after(
+        &self,
+        after: Option<&RelativePath>,
+        allowance: usize,
+    ) -> io::Result<Option<RelativePath>> {
+        self.tick()?;
+        let result = (|| {
+            let input = after.map_or(0, |path| path.as_str().len());
+            let argument = cursor_argument_state(input)?;
+            self.check_state(allowance)?;
+            let row_allowance = allowance
+                .checked_sub(argument)
+                .ok_or_else(|| invalid("new retirement cursor state exceeds profile"))?;
+            let row = match after {
+                Some(after) => self.db.query_row(
+                    "SELECT path FROM retirements WHERE ordinal>=?1 AND path>?2 ORDER BY path,ordinal LIMIT 1",
+                    params![i64::try_from(self.new_retirement_start).map_err(invalid)?, after.as_str()],
+                    |row| bounded_text(row, row_allowance),
+                ),
+                None => self.db.query_row(
+                    "SELECT path FROM retirements WHERE ordinal>=?1 ORDER BY path,ordinal LIMIT 1",
+                    [i64::try_from(self.new_retirement_start).map_err(invalid)?],
+                    |row| bounded_text(row, row_allowance),
+                ),
+            }
+            .optional()
+            .map_err(sql)?;
+            row.map(|path| RelativePath::new(&path).map_err(invalid))
+                .transpose()
+        })();
+        self.finish_read(result)
+    }
+    /// Merge changed members and new tombstones into one strictly path-ordered
+    /// cursor. The SQL union is bounded by the indexed changed subset.
+    pub(crate) fn changed_source_after(
+        &self,
+        after: Option<&RelativePath>,
+        allowance: usize,
+    ) -> io::Result<Option<RelativePath>> {
+        self.tick()?;
+        let result = (|| {
+            let input = after.map_or(0, |path| path.as_str().len());
+            let argument = cursor_argument_state(input)?;
+            self.check_state(allowance)?;
+            let row_allowance = allowance
+                .checked_sub(argument)
+                .ok_or_else(|| invalid("changed-source cursor state exceeds profile"))?;
+            let start = i64::try_from(self.new_retirement_start).map_err(invalid)?;
+            let row = match after {
+                Some(after) => self.db.query_row(
+                    "SELECT path FROM (SELECT path FROM members WHERE changed=1 UNION SELECT path FROM retirements WHERE ordinal>=?1) WHERE path>?2 ORDER BY path LIMIT 1",
+                    params![start, after.as_str()],
+                    |row| bounded_text(row, row_allowance),
+                ),
+                None => self.db.query_row(
+                    "SELECT path FROM (SELECT path FROM members WHERE changed=1 UNION SELECT path FROM retirements WHERE ordinal>=?1) ORDER BY path LIMIT 1",
+                    [start],
+                    |row| bounded_text(row, row_allowance),
+                ),
+            }
+            .optional()
+            .map_err(sql)?;
+            row.map(|path| RelativePath::new(&path).map_err(invalid))
+                .transpose()
+        })();
+        self.finish_read(result)
+    }
+    pub(crate) fn clear_v2_delta_rows(&self) -> io::Result<()> {
+        self.tick()?;
+        let result = self
+            .db
+            .execute_batch("CREATE TABLE IF NOT EXISTS v2_identity_delta(id TEXT COLLATE BINARY PRIMARY KEY,path TEXT) WITHOUT ROWID; CREATE TABLE IF NOT EXISTS v2_dependency_delta(key BLOB PRIMARY KEY,value BLOB) WITHOUT ROWID; DELETE FROM v2_identity_delta; DELETE FROM v2_dependency_delta;")
+            .map_err(sql);
+        self.finish_read(result)
+    }
+    pub(crate) fn put_v2_identity_delta(
+        &self,
+        id: &str,
+        path: Option<&RelativePath>,
+    ) -> io::Result<()> {
+        self.tick()?;
+        let result = (|| {
+            let state = id
+                .len()
+                .checked_add(path.map_or(0, |path| path.as_str().len()))
+                .and_then(|n| n.checked_mul(16))
+                .and_then(|n| n.checked_add(4096))
+                .ok_or_else(|| invalid("V2 identity delta state overflow"))?;
+            self.check_state(state)?;
+            self.db
+                .execute(
+                    "INSERT INTO v2_identity_delta(id,path) VALUES(?1,?2) ON CONFLICT(id) DO UPDATE SET path=excluded.path",
+                    params![id, path.map(RelativePath::as_str)],
+                )
+                .map_err(sql)?;
+            Ok(())
+        })();
+        self.finish_read(result)
+    }
+    pub(crate) fn v2_identity_delta_after(
+        &self,
+        after: Option<&str>,
+        allowance: usize,
+    ) -> io::Result<Option<(String, Option<RelativePath>)>> {
+        self.tick()?;
+        let result = (|| {
+            let argument = cursor_argument_state(after.map_or(0, str::len))?;
+            self.check_state(allowance)?;
+            let row_allowance = allowance
+                .checked_sub(argument)
+                .ok_or_else(|| invalid("V2 identity delta cursor state exceeds profile"))?;
+            let row = match after {
+                Some(after) => self.db.query_row(
+                    "SELECT id,path FROM v2_identity_delta WHERE id>?1 ORDER BY id LIMIT 1",
+                    [after],
+                    |row| {
+                        let id = bounded_text(row, 0, row_allowance)?;
+                        let path = match row.get_ref(1)? {
+                            rusqlite::types::ValueRef::Null => None,
+                            rusqlite::types::ValueRef::Text(bytes) => {
+                                let state = bytes.len().checked_add(size_of::<RelativePath>());
+                                if state.is_none_or(|state| state > row_allowance) {
+                                    return Err(rusqlite::Error::InvalidQuery);
+                                }
+                                let text = std::str::from_utf8(bytes)
+                                    .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                                Some(
+                                    RelativePath::new(text)
+                                        .map_err(|_| rusqlite::Error::InvalidQuery)?,
+                                )
+                            }
+                            _ => return Err(rusqlite::Error::InvalidQuery),
+                        };
+                        Ok((id, path))
+                    },
+                ),
+                None => self.db.query_row(
+                    "SELECT id,path FROM v2_identity_delta ORDER BY id LIMIT 1",
+                    [],
+                    |row| {
+                        let id = bounded_text(row, 0, row_allowance)?;
+                        let path = match row.get_ref(1)? {
+                            rusqlite::types::ValueRef::Null => None,
+                            rusqlite::types::ValueRef::Text(bytes) => {
+                                let state = bytes.len().checked_add(size_of::<RelativePath>());
+                                if state.is_none_or(|state| state > row_allowance) {
+                                    return Err(rusqlite::Error::InvalidQuery);
+                                }
+                                let text = std::str::from_utf8(bytes)
+                                    .map_err(|_| rusqlite::Error::InvalidQuery)?;
+                                Some(
+                                    RelativePath::new(text)
+                                        .map_err(|_| rusqlite::Error::InvalidQuery)?,
+                                )
+                            }
+                            _ => return Err(rusqlite::Error::InvalidQuery),
+                        };
+                        Ok((id, path))
+                    },
+                ),
+            }
+            .optional()
+            .map_err(sql)?;
+            Ok(row)
+        })();
+        self.finish_read(result)
+    }
+    pub(crate) fn put_v2_dependency_delta(
+        &self,
+        key: &[u8],
+        value: Option<&[u8]>,
+    ) -> io::Result<()> {
+        self.tick()?;
+        let result = (|| {
+            let state = key
+                .len()
+                .checked_add(value.map_or(0, <[u8]>::len))
+                .and_then(|n| n.checked_mul(8))
+                .and_then(|n| n.checked_add(4096))
+                .ok_or_else(|| invalid("V2 dependency delta state overflow"))?;
+            self.check_state(state)?;
+            self.db
+                .execute(
+                    "INSERT INTO v2_dependency_delta(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                    params![key, value],
+                )
+                .map_err(sql)?;
+            Ok(())
+        })();
+        self.finish_read(result)
+    }
+    pub(crate) fn v2_dependency_delta_after(
+        &self,
+        after: Option<&[u8]>,
+        allowance: usize,
+    ) -> io::Result<Option<(Vec<u8>, Option<Vec<u8>>)>> {
+        self.tick()?;
+        let result = (|| {
+            let argument = cursor_argument_state(after.map_or(0, <[u8]>::len))?;
+            self.check_state(allowance)?;
+            let row_allowance = allowance
+                .checked_sub(argument)
+                .ok_or_else(|| invalid("V2 dependency delta cursor state exceeds profile"))?;
+            let mut decode =
+                |row: &rusqlite::Row<'_>| -> rusqlite::Result<(Vec<u8>, Option<Vec<u8>>)> {
+                    let key = match row.get_ref(0)? {
+                        rusqlite::types::ValueRef::Blob(bytes) if bytes.len() <= row_allowance => {
+                            bytes.to_vec()
+                        }
+                        _ => return Err(rusqlite::Error::InvalidQuery),
+                    };
+                    let value = match row.get_ref(1)? {
+                        rusqlite::types::ValueRef::Null => None,
+                        rusqlite::types::ValueRef::Blob(bytes) if bytes.len() <= row_allowance => {
+                            Some(bytes.to_vec())
+                        }
+                        _ => return Err(rusqlite::Error::InvalidQuery),
+                    };
+                    let state = key.len().checked_add(value.as_ref().map_or(0, Vec::len));
+                    if state.is_none_or(|state| state > row_allowance) {
+                        return Err(rusqlite::Error::InvalidQuery);
+                    }
+                    Ok((key, value))
+                };
+            let row = match after {
+                Some(after) => self.db.query_row(
+                    "SELECT key,value FROM v2_dependency_delta WHERE key>?1 ORDER BY key LIMIT 1",
+                    [after],
+                    &mut decode,
+                ),
+                None => self.db.query_row(
+                    "SELECT key,value FROM v2_dependency_delta ORDER BY key LIMIT 1",
+                    [],
+                    &mut decode,
+                ),
+            }
+            .optional()
+            .map_err(sql)?;
+            Ok(row)
+        })();
+        self.finish_read(result)
     }
     /// Borrow one verified current member at a time. The callback's genuine
     /// retained native-parser state is supplied separately and charged together
@@ -1623,7 +2090,11 @@ impl<'host> SpoolCandidate<'host> {
         }
         r
     }
-    fn retirement_at_raw(&self, i: u64) -> io::Result<Option<RetirementMetadata>> {
+    fn retirement_at_raw_bounded(
+        &self,
+        i: u64,
+        allowance: usize,
+    ) -> io::Result<Option<RetirementMetadata>> {
         self.running()?;
         let row = self
             .db
@@ -1639,7 +2110,7 @@ impl<'host> SpoolCandidate<'host> {
                         .checked_add(length(r.get_ref(2)?)?)
                         .and_then(|n| n.checked_mul(16))
                         .and_then(|n| n.checked_add(2048))
-                        .is_none_or(|n| n > self.row_state_ceiling.get())
+                        .is_none_or(|n| n > allowance)
                     {
                         return Err(rusqlite::Error::InvalidQuery);
                     }
@@ -1680,9 +2151,27 @@ impl<'host> SpoolCandidate<'host> {
         })
         .transpose()
     }
+    fn retirement_at_raw(&self, i: u64) -> io::Result<Option<RetirementMetadata>> {
+        self.retirement_at_raw_bounded(i, self.row_state_ceiling.get())
+    }
     pub(crate) fn retirement_at(&self, i: u64) -> io::Result<Option<RetirementMetadata>> {
         self.tick()?;
         self.finish_read(self.retirement_at_raw(i))
+    }
+    pub(crate) fn retirement_at_bounded(
+        &self,
+        i: u64,
+        allowance: usize,
+    ) -> io::Result<Option<RetirementMetadata>> {
+        self.tick()?;
+        let result = (|| {
+            self.check_state(allowance)?;
+            let row_allowance = allowance
+                .checked_sub(size_of::<u64>())
+                .ok_or_else(|| invalid("candidate retirement cursor state exceeds profile"))?;
+            self.retirement_at_raw_bounded(i, row_allowance)
+        })();
+        self.finish_read(result)
     }
     pub(crate) fn retirement_count(&self) -> u64 {
         self.retirement_count
@@ -1842,6 +2331,84 @@ impl<'host> SpoolCandidate<'host> {
                 .optional()
                 .map_err(sql)?;
             path.map(|path| RelativePath::new(&path).map_err(invalid))
+                .transpose()
+        })();
+        self.finish_read(result)
+    }
+    /// Reverse lookup the old identity rows owned by one changed member path.
+    /// The dedicated SQLite order is finite and avoids rescanning all retained
+    /// identities for every warm source update.
+    pub(crate) fn historical_identity_for_path_after(
+        &self,
+        path: &RelativePath,
+        after_id: Option<&str>,
+        allowance: usize,
+    ) -> io::Result<Option<String>> {
+        self.tick()?;
+        let result = (|| {
+            let argument_bytes = path
+                .as_str()
+                .len()
+                .checked_add(after_id.map_or(0, str::len))
+                .ok_or_else(|| invalid("historical path cursor argument overflow"))?;
+            let argument = cursor_argument_state(argument_bytes)?;
+            self.check_state(allowance)?;
+            let row_allowance = allowance
+                .checked_sub(argument)
+                .ok_or_else(|| invalid("historical path cursor state exceeds profile"))?;
+            match after_id {
+                Some(after) => self.db.query_row(
+                    "SELECT id FROM historical_ids WHERE path=?1 AND id>?2 ORDER BY id LIMIT 1",
+                    params![path.as_str(), after],
+                    |row| bounded_text(row, row_allowance),
+                ),
+                None => self.db.query_row(
+                    "SELECT id FROM historical_ids WHERE path=?1 ORDER BY id LIMIT 1",
+                    [path.as_str()],
+                    |row| bounded_text(row, row_allowance),
+                ),
+            }
+            .optional()
+            .map_err(sql)
+        })();
+        self.finish_read(result)
+    }
+    /// Stream base dependency targets for one source path in binary order.
+    /// The reverse-adjacency table has a source-order index for warm COW deltas.
+    pub(crate) fn base_dependency_target_after(
+        &self,
+        source: &RelativePath,
+        after_target: Option<&RelativePath>,
+        allowance: usize,
+    ) -> io::Result<Option<RelativePath>> {
+        self.tick()?;
+        let result = (|| {
+            let argument_bytes = source
+                .as_str()
+                .len()
+                .checked_add(after_target.map_or(0, |path| path.as_str().len()))
+                .ok_or_else(|| invalid("base dependency cursor argument overflow"))?;
+            let argument = cursor_argument_state(argument_bytes)?;
+            self.check_state(allowance)?;
+            let row_allowance = allowance
+                .checked_sub(argument)
+                .ok_or_else(|| invalid("base dependency cursor state exceeds profile"))?;
+            let target = match after_target {
+                Some(after) => self.db.query_row(
+                    "SELECT target FROM reverse_dependencies WHERE source=?1 AND target>?2 ORDER BY target LIMIT 1",
+                    params![source.as_str(), after.as_str()],
+                    |row| bounded_text(row, row_allowance),
+                ),
+                None => self.db.query_row(
+                    "SELECT target FROM reverse_dependencies WHERE source=?1 ORDER BY target LIMIT 1",
+                    [source.as_str()],
+                    |row| bounded_text(row, row_allowance),
+                ),
+            }
+            .optional()
+            .map_err(sql)?;
+            target
+                .map(|target| RelativePath::new(&target).map_err(invalid))
                 .transpose()
         })();
         self.finish_read(result)

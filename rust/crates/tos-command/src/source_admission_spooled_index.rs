@@ -116,7 +116,7 @@ fn path_text(path: &RelativePath, cap: usize) -> io::Result<()> {
     Ok(())
 }
 
-fn cursor_argument_state(bytes: usize) -> io::Result<usize> {
+pub(super) fn cursor_argument_state(bytes: usize) -> io::Result<usize> {
     if bytes == 0 {
         return Ok(0);
     }
@@ -525,6 +525,7 @@ impl<'candidate> IndexSink<'candidate> {
         set_and_verify_connection_policy(&db, limits)?;
         db.execute_batch(
             "CREATE TABLE identities(id TEXT COLLATE BINARY PRIMARY KEY,path TEXT NOT NULL) WITHOUT ROWID;\
+             CREATE INDEX identities_by_path ON identities(path COLLATE BINARY,id COLLATE BINARY);\
              CREATE TABLE dependencies(source TEXT COLLATE BINARY NOT NULL,target TEXT COLLATE BINARY NOT NULL,PRIMARY KEY(source,target)) WITHOUT ROWID;\
              CREATE INDEX dependencies_reverse_order ON dependencies(target COLLATE BINARY,source COLLATE BINARY);\
              CREATE TABLE fresh_record_rows(ordinal INTEGER PRIMARY KEY,id TEXT NOT NULL,source_ref TEXT NOT NULL);\
@@ -1353,6 +1354,14 @@ impl IndexView<'_> {
     pub(crate) fn prepared_schema(&self) -> CutPreparedSchemaExecutionBinding {
         self.complete.records().prepared_schema()
     }
+    /// Invocation-selected persistent V2 IO/allocation limits carried only by
+    /// the genuine native completion witness. This is a budget profile, not a
+    /// source or publication permission.
+    pub(crate) fn segment_v2_budget(
+        &self,
+    ) -> Option<&super::source_foundation_admission::NativeSegmentV2Budget> {
+        self.complete.segment_v2()
+    }
     /// Bind a publication receiver to this genuinely sealed scope. A base-only
     /// candidate cannot stand in for a different pending merged membership.
     pub(crate) fn verify_publication_receiver(
@@ -1448,6 +1457,45 @@ impl IndexView<'_> {
             .transpose()?;
         self.candidate.tick()?;
         Ok(row)
+    }
+
+    /// Reverse-cursor identities owned by one changed source path. Native
+    /// identity validation has already completed; this is bounded writer input
+    /// for the corresponding authenticated V2 successor delta.
+    pub(crate) fn identity_for_path_after(
+        &self,
+        path: &RelativePath,
+        after_id: Option<&str>,
+    ) -> io::Result<Option<String>> {
+        self.candidate.tick()?;
+        path_text(path, self.row_limit)?;
+        let argument_bytes = path
+            .as_str()
+            .len()
+            .checked_add(after_id.map_or(0, str::len))
+            .ok_or_else(|| invalid("native identity path cursor argument overflow"))?;
+        let argument = cursor_argument_state(argument_bytes)?;
+        self.candidate.check_state(self.row_limit)?;
+        let result_limit = self
+            .row_limit
+            .checked_sub(argument)
+            .ok_or_else(|| invalid("native identity path cursor state exceeds profile"))?;
+        let id = match after_id {
+            Some(after) => self.db.query_row(
+                "SELECT id FROM identities WHERE path=?1 AND id>?2 ORDER BY id LIMIT 1",
+                params![path.as_str(), after],
+                |row| bounded_text(row, 0, result_limit),
+            ),
+            None => self.db.query_row(
+                "SELECT id FROM identities WHERE path=?1 ORDER BY id LIMIT 1",
+                [path.as_str()],
+                |row| bounded_text(row, 0, result_limit),
+            ),
+        }
+        .optional()
+        .map_err(sql)?;
+        self.candidate.tick()?;
+        Ok(id)
     }
 
     pub(crate) fn dependency_source_after(

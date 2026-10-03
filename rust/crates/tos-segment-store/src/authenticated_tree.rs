@@ -82,6 +82,59 @@ pub struct AuthenticatedTreeDeltaV1 {
     pub value: Option<Vec<u8>>,
 }
 
+/// Invocation-owned cumulative IO ledger for one authenticated-tree operation.
+/// The store charges the maximum exact frame/payload before touching physical
+/// bytes, then reconciles the bytes the operation actually returned. This is
+/// accounting only; it carries no source authorization.
+pub trait AuthenticatedTreeIoLedgerV1: Send + Sync {
+    fn charge_read(&self, bytes: u64) -> bool;
+    fn record_read_returned(&self, bytes: u64) -> bool;
+    fn charge_write(&self, bytes: u64) -> bool;
+    fn record_write_returned(&self, bytes: u64) -> bool;
+    /// Reserve a conservative persistent-allocation upper bound before a new
+    /// immutable pack is staged. Non-owning readers may keep the default.
+    fn reserve_allocated_bytes(&self, _bytes: u64) -> bool {
+        true
+    }
+    /// Reconcile one staged file's observed allocated blocks against its
+    /// prior reservation. This does not grant filesystem capacity.
+    fn reconcile_allocated_bytes(&self, reserved: u64, actual: u64) -> bool {
+        actual <= reserved
+    }
+    /// Conservative physical allocation quantum used for the pre-write bound.
+    fn allocation_unit_bytes(&self) -> u64 {
+        65_536
+    }
+}
+
+fn charge_tree_read(ledger: Option<&dyn AuthenticatedTreeIoLedgerV1>, bytes: u64) -> Result<()> {
+    if ledger.is_some_and(|ledger| !ledger.charge_read(bytes)) {
+        return Err(budget("authenticated tree read IO reservation refused"));
+    }
+    Ok(())
+}
+
+fn record_tree_read(ledger: Option<&dyn AuthenticatedTreeIoLedgerV1>, bytes: u64) -> Result<()> {
+    if ledger.is_some_and(|ledger| !ledger.record_read_returned(bytes)) {
+        return Err(budget("authenticated tree read IO reconciliation refused"));
+    }
+    Ok(())
+}
+
+fn charge_tree_write(ledger: Option<&dyn AuthenticatedTreeIoLedgerV1>, bytes: u64) -> Result<()> {
+    if ledger.is_some_and(|ledger| !ledger.charge_write(bytes)) {
+        return Err(budget("authenticated tree write IO reservation refused"));
+    }
+    Ok(())
+}
+
+fn record_tree_write(ledger: Option<&dyn AuthenticatedTreeIoLedgerV1>, bytes: u64) -> Result<()> {
+    if ledger.is_some_and(|ledger| !ledger.record_write_returned(bytes)) {
+        return Err(budget("authenticated tree write IO reconciliation refused"));
+    }
+    Ok(())
+}
+
 /// A content address and authenticated subtree summary. The compressed
 /// Patricia prefix is derived from these key bounds, so no flat partition
 /// table or extra prefix vector is retained in a descriptor.
@@ -318,6 +371,10 @@ pub struct AuthenticatedTreeWorkV1 {
     pub read_bytes: u64,
     pub written_nodes: u64,
     pub written_bytes: u64,
+    /// Allocated blocks retained by newly linked content-addressed packs.
+    /// This is separate from logical read/write I/O and is zero for reused
+    /// packs. The caller must reserve this persistent space before writing.
+    pub allocated_bytes: u64,
 }
 
 impl AuthenticatedTreeWorkV1 {
@@ -366,6 +423,10 @@ impl AuthenticatedTreeWorkV1 {
                 .checked_add(install.written_bytes)
                 .ok_or_else(|| budget("tree write byte counter overflow"))?;
         }
+        self.allocated_bytes = self
+            .allocated_bytes
+            .checked_add(install.allocated_bytes)
+            .ok_or_else(|| budget("tree allocated-byte counter overflow"))?;
         check_work(*self, limits)
     }
 
@@ -569,6 +630,7 @@ pub struct AuthenticatedTreeRowStreamV2 {
     store: SegmentStore,
     descriptor: AuthenticatedTreeDescriptorV2,
     limits: AuthenticatedTreeLimitsV1,
+    io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
     _pin_lock: Arc<PinDirectoryLease>,
     stack: Vec<StreamFrameV2>,
     started: bool,
@@ -632,6 +694,7 @@ impl AuthenticatedTreeRowStreamV2 {
                         self.limits,
                         &mut self.work,
                         None,
+                        self.io_ledger.as_deref(),
                         deadline,
                         cancelled,
                     )?;
@@ -695,6 +758,7 @@ impl AuthenticatedTreeRowStreamV2 {
                     self.limits,
                     &mut self.work,
                     None,
+                    self.io_ledger.as_deref(),
                     deadline,
                     cancelled,
                 )?;
@@ -1190,6 +1254,7 @@ impl SegmentStore {
             read_bytes: raw.len() as u64,
             written_nodes: 0,
             written_bytes: 0,
+            allocated_bytes: 0,
         };
         Ok((payload, work))
     }
@@ -1252,6 +1317,7 @@ struct PackWriterV2<'a> {
     limits: AuthenticatedTreeLimitsV1,
     pack_cap: usize,
     work: &'a mut AuthenticatedTreeWorkV1,
+    io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
     active: Option<ActivePackV2>,
     deadline: Instant,
     cancelled: &'a AtomicBool,
@@ -1263,6 +1329,7 @@ impl<'a> PackWriterV2<'a> {
         limits: AuthenticatedTreeLimitsV1,
         pack_cap: usize,
         work: &'a mut AuthenticatedTreeWorkV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
         deadline: Instant,
         cancelled: &'a AtomicBool,
     ) -> Self {
@@ -1271,6 +1338,7 @@ impl<'a> PackWriterV2<'a> {
             limits,
             pack_cap,
             work,
+            io_ledger,
             active: None,
             deadline,
             cancelled,
@@ -1439,13 +1507,20 @@ impl<'a> PackWriterV2<'a> {
             return Err(budget("authenticated pack exceeds operation budget"));
         }
         let digest = Digest256::of_bytes(&active.raw);
-        let install = self.store.install_authenticated_blob(
+        let io_ledger = self.io_ledger.as_deref();
+        let payload_bytes = active.raw.len() as u64;
+        charge_tree_read(io_ledger, payload_bytes)?;
+        charge_tree_write(io_ledger, payload_bytes)?;
+        let install = self.store.install_authenticated_blob_accounted(
             digest,
             &active.raw,
             self.pack_cap,
             self.deadline,
             self.cancelled,
+            io_ledger,
         )?;
+        record_tree_read(io_ledger, install.read_bytes)?;
+        record_tree_write(io_ledger, install.written_bytes)?;
         self.work
             .charge_pack_install(install, active.frame_count, self.limits)?;
         active
@@ -1488,11 +1563,31 @@ impl SegmentStore {
     where
         I: IntoIterator<Item = Result<AuthenticatedTreeEntryV1>>,
     {
+        self.build_authenticated_tree_v2_with_work_and_io(
+            kind, rows, limits, None, deadline, cancelled,
+        )
+    }
+
+    /// Budget-aware form used by CMD admission. Every physical pack read/write
+    /// is charged before the store touches it and reconciled after return.
+    pub fn build_authenticated_tree_v2_with_work_and_io<I>(
+        &self,
+        kind: &[u8],
+        rows: I,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
+    where
+        I: IntoIterator<Item = Result<AuthenticatedTreeEntryV1>>,
+    {
         self.build_authenticated_tree_v2_with_pack_cap(
             kind,
             rows,
             limits,
             AUTHENTICATED_PACK_MAX_BYTES,
+            io_ledger,
             deadline,
             cancelled,
         )
@@ -1504,6 +1599,7 @@ impl SegmentStore {
         rows: I,
         limits: AuthenticatedTreeLimitsV1,
         pack_cap: usize,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
@@ -1518,7 +1614,9 @@ impl SegmentStore {
         check(deadline, cancelled)?;
         let _pin_lock = self.hold_generation_pin()?;
         let mut work = AuthenticatedTreeWorkV1::default();
-        let mut writer = PackWriterV2::new(self, limits, pack_cap, &mut work, deadline, cancelled);
+        let mut writer = PackWriterV2::new(
+            self, limits, pack_cap, &mut work, io_ledger, deadline, cancelled,
+        );
         let mut cursor = BuildCursor::new(rows.into_iter());
         let mut frames = Vec::new();
         frames
@@ -1719,11 +1817,30 @@ impl SegmentStore {
     where
         I: IntoIterator<Item = Result<AuthenticatedTreeDeltaV1>>,
     {
+        self.apply_authenticated_tree_delta_v2_with_work_and_io(
+            old, changes, limits, None, deadline, cancelled,
+        )
+    }
+
+    /// Budget-aware COW delta form used by the source admission owner.
+    pub fn apply_authenticated_tree_delta_v2_with_work_and_io<I>(
+        &self,
+        old: &AuthenticatedTreeDescriptorV2,
+        changes: I,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
+    where
+        I: IntoIterator<Item = Result<AuthenticatedTreeDeltaV1>>,
+    {
         self.apply_authenticated_tree_delta_v2_with_pack_cap(
             old,
             changes,
             limits,
             AUTHENTICATED_PACK_MAX_BYTES,
+            io_ledger,
             deadline,
             cancelled,
         )
@@ -1735,6 +1852,7 @@ impl SegmentStore {
         changes: I,
         limits: AuthenticatedTreeLimitsV1,
         pack_cap: usize,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<(AuthenticatedTreeDescriptorV2, AuthenticatedTreeWorkV1)>
@@ -1750,7 +1868,9 @@ impl SegmentStore {
         check(deadline, cancelled)?;
         let _pin_lock = self.hold_generation_pin()?;
         let mut work = AuthenticatedTreeWorkV1::default();
-        let mut writer = PackWriterV2::new(self, limits, pack_cap, &mut work, deadline, cancelled);
+        let mut writer = PackWriterV2::new(
+            self, limits, pack_cap, &mut work, io_ledger, deadline, cancelled,
+        );
         let mut root = descriptor_root_handle(old)?;
         let mut previous: Option<Vec<u8>> = None;
         let mut changed_rows = 0u64;
@@ -1828,6 +1948,20 @@ impl SegmentStore {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<(Option<Vec<u8>>, AuthenticatedTreeWorkV1)> {
+        self.lookup_authenticated_tree_v2_with_work_and_io(
+            descriptor, key, limits, None, deadline, cancelled,
+        )
+    }
+
+    pub fn lookup_authenticated_tree_v2_with_work_and_io(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        key: &[u8],
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(Option<Vec<u8>>, AuthenticatedTreeWorkV1)> {
         let limits = limits.validate()?;
         validate_descriptor_for_store(self, &descriptor.semantic, limits)?;
         validate_descriptor_v2_shape(descriptor)?;
@@ -1840,7 +1974,15 @@ impl SegmentStore {
         };
         loop {
             let loaded = load_node_v2(
-                self, descriptor, &handle, limits, &mut work, None, deadline, cancelled,
+                self,
+                descriptor,
+                &handle,
+                limits,
+                &mut work,
+                None,
+                io_ledger.as_deref(),
+                deadline,
+                cancelled,
             )?;
             let node = loaded.node;
             let prefix_len = node_prefix_nibbles(&node);
@@ -1882,6 +2024,15 @@ impl SegmentStore {
         descriptor: &AuthenticatedTreeDescriptorV2,
         limits: AuthenticatedTreeLimitsV1,
     ) -> Result<AuthenticatedTreeRowStreamV2> {
+        self.stream_authenticated_tree_v2_with_io(descriptor, limits, None)
+    }
+
+    pub fn stream_authenticated_tree_v2_with_io(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+    ) -> Result<AuthenticatedTreeRowStreamV2> {
         let limits = limits.validate()?;
         validate_descriptor_for_store(self, &descriptor.semantic, limits)?;
         validate_descriptor_v2_shape(descriptor)?;
@@ -1895,6 +2046,7 @@ impl SegmentStore {
             store: self.clone(),
             descriptor: descriptor.clone(),
             limits,
+            io_ledger,
             _pin_lock: Arc::new(self.hold_generation_pin()?),
             stack: Vec::new(),
             started: false,
@@ -1917,7 +2069,19 @@ impl SegmentStore {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<AuthenticatedTreeCoverageV1> {
-        let mut stream = self.stream_authenticated_tree_v2(descriptor, limits)?;
+        self.verify_authenticated_tree_v2_with_io(descriptor, limits, None, deadline, cancelled)
+    }
+
+    pub fn verify_authenticated_tree_v2_with_io(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        limits: AuthenticatedTreeLimitsV1,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<AuthenticatedTreeCoverageV1> {
+        let mut stream =
+            self.stream_authenticated_tree_v2_with_io(descriptor, limits, io_ledger.clone())?;
         while stream.next_row(deadline, cancelled)?.is_some() {}
         let mut pack_digests = Vec::new();
         pack_digests
@@ -1930,9 +2094,10 @@ impl SegmentStore {
             if remaining == 0 {
                 return Err(budget("authenticated tree byte budget exceeded"));
             }
-            let raw = self.read_authenticated_blob(
+            let raw = self.read_authenticated_blob_with_io(
                 digest,
                 AUTHENTICATED_PACK_MAX_BYTES.min(remaining),
+                io_ledger.as_deref(),
                 deadline,
                 cancelled,
             )?;
@@ -1957,6 +2122,7 @@ fn work_from_install(install: ImmutableBlobInstallV1) -> AuthenticatedTreeWorkV1
         read_bytes: install.read_bytes,
         written_nodes: u64::from(install.written_bytes > 0),
         written_bytes: install.written_bytes,
+        allocated_bytes: install.allocated_bytes,
     }
 }
 
@@ -2074,6 +2240,7 @@ fn update_one_v2(
             limits,
             work,
             active_pack,
+            writer.io_ledger.as_deref(),
             deadline,
             cancelled,
         )?;
@@ -2594,6 +2761,7 @@ fn load_node_v2(
     limits: AuthenticatedTreeLimitsV1,
     work: &mut AuthenticatedTreeWorkV1,
     active_pack: Option<&ActivePackV2>,
+    io_ledger: Option<&dyn AuthenticatedTreeIoLedgerV1>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<LoadedTreeNodeV2> {
@@ -2602,6 +2770,10 @@ fn load_node_v2(
             if *digest != handle.reference.digest {
                 return Err(invalid("legacy node locator differs from semantic address"));
             }
+            let remaining = remaining_bytes(*work, limits)?;
+            let max_bytes = limits.max_node_bytes.min(remaining);
+            charge_tree_read(io_ledger, max_bytes as u64)?;
+            let before = work.read_bytes;
             let node = load_node(
                 store,
                 &descriptor.semantic,
@@ -2610,6 +2782,12 @@ fn load_node_v2(
                 work,
                 deadline,
                 cancelled,
+            )?;
+            record_tree_read(
+                io_ledger,
+                work.read_bytes
+                    .checked_sub(before)
+                    .ok_or_else(|| budget("legacy V2 read work regressed"))?,
             )?;
             let child_locators = node
                 .children
@@ -2632,6 +2810,7 @@ fn load_node_v2(
                 return Err(budget("authenticated tree byte budget exceeded"));
             }
             let raw = if let Some(digest) = locator.state.digest.get().copied() {
+                charge_tree_read(io_ledger, locator.frame_len as u64)?;
                 store.read_authenticated_blob_range(
                     digest,
                     locator.offset,
@@ -2661,6 +2840,9 @@ fn load_node_v2(
                 copy.extend_from_slice(bytes);
                 copy
             };
+            if locator.state.digest.get().is_some() {
+                record_tree_read(io_ledger, raw.len() as u64)?;
+            }
             work.charge_read(raw.len(), limits)?;
             let (node, child_locators) = decode_packed_frame(
                 &raw,
@@ -4273,6 +4455,7 @@ mod tests {
                 rows.clone().into_iter().map(Ok),
                 limits,
                 600,
+                None,
                 deadline,
                 &cancelled,
             )
@@ -4295,6 +4478,7 @@ mod tests {
                 std::iter::empty::<Result<AuthenticatedTreeDeltaV1>>(),
                 limits,
                 600,
+                None,
                 deadline,
                 &cancelled,
             )
@@ -4349,6 +4533,7 @@ mod tests {
                 changes.clone().into_iter().map(Ok),
                 limits,
                 600,
+                None,
                 deadline,
                 &cancelled,
             )
@@ -4398,6 +4583,7 @@ mod tests {
             limits,
             &mut AuthenticatedTreeWorkV1::default(),
             None,
+            None,
             deadline,
             &cancelled,
         )
@@ -4411,6 +4597,7 @@ mod tests {
             &old_root,
             limits,
             &mut AuthenticatedTreeWorkV1::default(),
+            None,
             None,
             deadline,
             &cancelled,

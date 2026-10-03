@@ -15,6 +15,7 @@ use rustix::io::Errno;
 use tos_fd_open::{OpenError, OpenErrorCode};
 use tos_foundation::{Digest256, Digest256Hasher};
 
+use crate::authenticated_tree::AuthenticatedTreeIoLedgerV1;
 use crate::error::{Result, SegmentError, SegmentErrorCode as Code};
 use crate::format::{self, FrameCoordinate, SegmentLimits};
 use crate::generation::{
@@ -30,6 +31,23 @@ use crate::selected::{
 
 const ROOT_MAGIC: &[u8; 8] = b"TOSROOT2";
 const BLOCK_BYTES: usize = 64 * 1024;
+
+fn allocation_upper_bound(bytes: u64, unit: u64) -> Result<u64> {
+    if unit == 0 || unit == u64::MAX {
+        return Err(SegmentError::new(
+            Code::BudgetExceeded,
+            "invalid persistent allocation quantum",
+        ));
+    }
+    bytes
+        .checked_add(unit - 1)
+        .and_then(|n| n.checked_div(unit))
+        .and_then(|n| n.checked_mul(unit))
+        .and_then(|n| n.checked_add(unit))
+        .ok_or_else(|| {
+            SegmentError::new(Code::BudgetExceeded, "persistent allocation bound overflow")
+        })
+}
 
 /// Opaque CMD-provided binding for one proposed owner unit. Storage preserves
 /// these bytes; it does not decide their source meaning or authorization.
@@ -95,6 +113,9 @@ pub(crate) struct ImmutableBlobInstallV1 {
     pub read_bytes: u64,
     /// Payload bytes written to the staging file before no-replace install.
     pub written_bytes: u64,
+    /// Exact allocated blocks retained by a newly linked immutable object.
+    /// Reused objects and losing no-replace races report zero.
+    pub allocated_bytes: u64,
 }
 
 /// Process-local custody of the exact anchored store that a caller audits.
@@ -230,6 +251,16 @@ impl ByteDurabilityReceipt {
     pub fn store_id(&self) -> [u8; 16] {
         self.inner.store_id
     }
+    /// Identity of the exact physical root directory held by this instance.
+    /// It distinguishes a same-metadata clone from the selected source store.
+    pub fn physical_root_identity(&self) -> Result<(u64, u64)> {
+        let metadata = self
+            .inner
+            ._root
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat held segment root", error))?;
+        Ok((metadata.dev(), metadata.ino()))
+    }
     pub fn domain_digest(&self) -> Digest256 {
         self.inner.domain_digest
     }
@@ -269,6 +300,49 @@ impl SegmentStore {
     /// Initialize an already existing empty, owner-controlled directory.
     /// This makes no corpus or CMD metadata and accepts no live source bytes.
     pub fn initialize_empty(root: &Path, domain: &[u8], limits: SegmentLimits) -> Result<Self> {
+        Self::initialize_empty_root(open_root(root)?, domain, limits)
+    }
+
+    /// Initialize an already existing directory held by the caller. This is
+    /// the descriptor-relative counterpart to `initialize_empty`: callers
+    /// with a private namespace can keep the selected directory inode pinned
+    /// instead of resolving its path again.
+    pub fn initialize_empty_at(root: &File, domain: &[u8], limits: SegmentLimits) -> Result<Self> {
+        Self::initialize_empty_root(held_root(root)?, domain, limits)
+    }
+
+    /// Account the exact held-root metadata write under the caller's IO and
+    /// persistent-allocation ledger before creating the store header.
+    pub fn initialize_empty_at_with_io(
+        root: &File,
+        domain: &[u8],
+        limits: SegmentLimits,
+        io: Arc<dyn AuthenticatedTreeIoLedgerV1>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self> {
+        Self::initialize_empty_root_with_io(
+            held_root(root)?,
+            domain,
+            limits,
+            Some(io),
+            Some(deadline),
+            Some(cancelled),
+        )
+    }
+
+    fn initialize_empty_root(root_fd: File, domain: &[u8], limits: SegmentLimits) -> Result<Self> {
+        Self::initialize_empty_root_with_io(root_fd, domain, limits, None, None, None)
+    }
+
+    fn initialize_empty_root_with_io(
+        root_fd: File,
+        domain: &[u8],
+        limits: SegmentLimits,
+        io: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        deadline: Option<Instant>,
+        cancelled: Option<&AtomicBool>,
+    ) -> Result<Self> {
         let limits = limits.validate()?;
         if domain.is_empty() || domain.len() > u16::MAX as usize {
             return Err(SegmentError::new(
@@ -276,7 +350,55 @@ impl SegmentStore {
                 "invalid custody domain encoding",
             ));
         }
-        let root_fd = open_root(root)?;
+        let mut store_id = [0u8; 16];
+        getrandom::fill(&mut store_id)
+            .map_err(|_| SegmentError::new(Code::Io, "cannot create store instance ID"))?;
+        let mut meta = Vec::with_capacity(8 + 16 + 2 + domain.len() + 32);
+        meta.extend_from_slice(ROOT_MAGIC);
+        meta.extend_from_slice(&store_id);
+        meta.extend_from_slice(&(domain.len() as u16).to_le_bytes());
+        meta.extend_from_slice(domain);
+        let checksum = Digest256::of_bytes(&meta);
+        meta.extend_from_slice(checksum.as_bytes());
+        let directory_reservation = if let Some(io) = io.as_deref() {
+            let unit = io.allocation_unit_bytes();
+            let bytes = unit.checked_mul(6).ok_or_else(|| {
+                SegmentError::new(Code::BudgetExceeded, "directory allocation bound overflow")
+            })?;
+            let upper = allocation_upper_bound(bytes, unit)?;
+            if !io.reserve_allocated_bytes(upper) {
+                return Err(SegmentError::new(
+                    Code::BudgetExceeded,
+                    "segment directory allocation refused",
+                ));
+            }
+            Some((io, upper))
+        } else {
+            None
+        };
+        let allocation_reservation = if let Some(io) = io.as_deref() {
+            let unit = io.allocation_unit_bytes();
+            let bytes = meta.len() as u64;
+            let upper = allocation_upper_bound(bytes, unit)?;
+            if !io.reserve_allocated_bytes(upper) {
+                return Err(SegmentError::new(
+                    Code::BudgetExceeded,
+                    "store metadata allocation refused",
+                ));
+            }
+            if deadline
+                .zip(cancelled)
+                .is_some_and(|(deadline, cancelled)| check_generation(deadline, cancelled).is_err())
+            {
+                return Err(SegmentError::new(
+                    Code::Cancelled,
+                    "store metadata selection expired",
+                ));
+            }
+            Some((io, upper))
+        } else {
+            None
+        };
         for name in [
             "staging",
             "segments",
@@ -289,29 +411,76 @@ impl SegmentStore {
                 SegmentError::io("cannot initialize segment directory", error.into())
             })?;
         }
-        let mut store_id = [0u8; 16];
-        getrandom::fill(&mut store_id)
-            .map_err(|_| SegmentError::new(Code::Io, "cannot create store instance ID"))?;
-        let mut meta = Vec::with_capacity(8 + 16 + 2 + domain.len() + 32);
-        meta.extend_from_slice(ROOT_MAGIC);
-        meta.extend_from_slice(&store_id);
-        meta.extend_from_slice(&(domain.len() as u16).to_le_bytes());
-        meta.extend_from_slice(domain);
-        let checksum = Digest256::of_bytes(&meta);
-        meta.extend_from_slice(checksum.as_bytes());
-        let mut file = create_exclusive(&root_fd, "store.meta")?;
-        file.write_all(&meta)
-            .map_err(|error| SegmentError::io("cannot write store metadata", error))?;
-        file.sync_all()
-            .map_err(|error| SegmentError::io("cannot sync store metadata", error))?;
-        fsync(&root_fd)
-            .map_err(|error| SegmentError::io("cannot sync store directory", error.into()))?;
         let staging = open_directory(&root_fd, "staging")?;
         let segments = open_directory(&root_fd, "segments")?;
         let pins = open_directory(&root_fd, "pins")?;
         let attempts = open_directory(&root_fd, "attempts")?;
         let leaves = open_directory(&root_fd, "leaves")?;
         let generations = open_directory(&root_fd, "generations")?;
+        for directory in [&staging, &segments, &pins, &attempts, &leaves, &generations] {
+            fsync(directory)
+                .map_err(|error| SegmentError::io("cannot sync segment directory", error.into()))?;
+        }
+        if let Some((io, reserved)) = directory_reservation {
+            let actual = [&staging, &segments, &pins, &attempts, &leaves, &generations]
+                .into_iter()
+                .try_fold(0u64, |sum, directory| {
+                    directory
+                        .metadata()
+                        .ok()?
+                        .blocks()
+                        .checked_mul(512)
+                        .and_then(|bytes| sum.checked_add(bytes))
+                })
+                .ok_or_else(|| {
+                    SegmentError::new(Code::BudgetExceeded, "directory allocation overflow")
+                })?;
+            if !io.reconcile_allocated_bytes(reserved, actual) {
+                return Err(SegmentError::new(
+                    Code::BudgetExceeded,
+                    "segment directory allocation reconciliation refused",
+                ));
+            }
+        }
+        if let Some(io) = io.as_deref()
+            && !io.charge_write(meta.len() as u64)
+        {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "store metadata IO refused",
+            ));
+        }
+        let mut file = create_exclusive(&root_fd, "store.meta")?;
+        file.write_all(&meta)
+            .map_err(|error| SegmentError::io("cannot write store metadata", error))?;
+        if let Some(io) = io.as_deref()
+            && !io.record_write_returned(meta.len() as u64)
+        {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "store metadata IO return refused",
+            ));
+        }
+        file.sync_all()
+            .map_err(|error| SegmentError::io("cannot sync store metadata", error))?;
+        if let Some((io, reserved)) = allocation_reservation {
+            let actual = file
+                .metadata()
+                .map_err(|error| SegmentError::io("cannot stat store metadata", error))?
+                .blocks()
+                .checked_mul(512)
+                .ok_or_else(|| {
+                    SegmentError::new(Code::BudgetExceeded, "store metadata allocation overflow")
+                })?;
+            if !io.reconcile_allocated_bytes(reserved, actual) {
+                return Err(SegmentError::new(
+                    Code::BudgetExceeded,
+                    "store metadata allocation reconciliation refused",
+                ));
+            }
+        }
+        fsync(&root_fd)
+            .map_err(|error| SegmentError::io("cannot sync store directory", error.into()))?;
         Ok(Self {
             inner: Arc::new(Inner {
                 _root: root_fd,
@@ -330,8 +499,44 @@ impl SegmentStore {
     }
 
     pub fn open_existing(root: &Path, limits: SegmentLimits) -> Result<Self> {
+        Self::open_existing_root(open_root(root)?, limits)
+    }
+
+    /// Open an existing store below the caller's held root descriptor.
+    pub fn open_existing_at(root: &File, limits: SegmentLimits) -> Result<Self> {
+        Self::open_existing_root(held_root(root)?, limits)
+    }
+
+    /// Open an existing store through the exact held root while charging its
+    /// bounded metadata read to the same caller-owned ledger as tree frames.
+    pub fn open_existing_at_with_io(
+        root: &File,
+        limits: SegmentLimits,
+        io: Arc<dyn AuthenticatedTreeIoLedgerV1>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self> {
+        Self::open_existing_root_with_io(
+            held_root(root)?,
+            limits,
+            Some(io),
+            Some(deadline),
+            Some(cancelled),
+        )
+    }
+
+    fn open_existing_root(root_fd: File, limits: SegmentLimits) -> Result<Self> {
+        Self::open_existing_root_with_io(root_fd, limits, None, None, None)
+    }
+
+    fn open_existing_root_with_io(
+        root_fd: File,
+        limits: SegmentLimits,
+        io: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        deadline: Option<Instant>,
+        cancelled: Option<&AtomicBool>,
+    ) -> Result<Self> {
         let limits = limits.validate()?;
-        let root_fd = open_root(root)?;
         let staging = open_directory(&root_fd, "staging")?;
         let segments = open_directory(&root_fd, "segments")?;
         let pins = open_directory(&root_fd, "pins")?;
@@ -353,11 +558,107 @@ impl SegmentStore {
             Err(error) if is_missing(&error) => None,
             Err(error) => return Err(error),
         };
+        let mut meta_file = open_regular(&root_fd, "store.meta")?;
+        let before = meta_file
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat store metadata", error))?;
+        if !before.is_file() || before.len() < 8 + 16 + 2 + 32 || before.len() > 65_594 {
+            return Err(SegmentError::new(
+                Code::InvalidRoot,
+                "store metadata size differs",
+            ));
+        }
         let mut meta = Vec::new();
-        open_regular(&root_fd, "store.meta")?
-            .take(65_594)
-            .read_to_end(&mut meta)
-            .map_err(|error| SegmentError::io("cannot read store metadata", error))?;
+        let meta_len = usize::try_from(before.len()).map_err(|_| {
+            SegmentError::new(Code::BudgetExceeded, "store metadata exceeds address space")
+        })?;
+        meta.try_reserve_exact(meta_len).map_err(|_| {
+            SegmentError::new(Code::BudgetExceeded, "store metadata allocation failed")
+        })?;
+        while meta.len() < meta_len {
+            if let (Some(deadline), Some(cancelled)) = (deadline, cancelled) {
+                check_generation(deadline, cancelled)?;
+            }
+            let wanted = (meta_len - meta.len()).min(BLOCK_BYTES);
+            if let Some(io) = io.as_deref()
+                && !io.charge_read(wanted as u64)
+            {
+                return Err(SegmentError::new(
+                    Code::BudgetExceeded,
+                    "store metadata read refused",
+                ));
+            }
+            let mut block = [0u8; BLOCK_BYTES];
+            let read = meta_file
+                .read(&mut block[..wanted])
+                .map_err(|error| SegmentError::io("cannot read store metadata", error))?;
+            if let Some(io) = io.as_deref()
+                && !io.record_read_returned(read as u64)
+            {
+                return Err(SegmentError::new(
+                    Code::BudgetExceeded,
+                    "store metadata read return refused",
+                ));
+            }
+            if read == 0 {
+                return Err(SegmentError::new(
+                    Code::InvalidRoot,
+                    "store metadata ended early",
+                ));
+            }
+            meta.extend_from_slice(&block[..read]);
+        }
+        if let Some(io) = io.as_deref()
+            && !io.charge_read(1)
+        {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "store metadata EOF read refused",
+            ));
+        }
+        let mut tail = [0u8; 1];
+        let tail_read = meta_file
+            .read(&mut tail)
+            .map_err(|error| SegmentError::io("cannot read store metadata EOF", error))?;
+        if let Some(io) = io.as_deref()
+            && !io.record_read_returned(tail_read as u64)
+        {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "store metadata EOF return refused",
+            ));
+        }
+        let stamp = |m: &std::fs::Metadata| {
+            (
+                m.dev(),
+                m.ino(),
+                m.len(),
+                m.mode(),
+                m.uid(),
+                m.mtime(),
+                m.mtime_nsec(),
+                m.ctime(),
+                m.ctime_nsec(),
+            )
+        };
+        let selected = open_regular(&root_fd, "store.meta")?;
+        if tail_read != 0
+            || stamp(
+                &meta_file
+                    .metadata()
+                    .map_err(|error| SegmentError::io("cannot restat store metadata", error))?,
+            ) != stamp(&before)
+            || stamp(
+                &selected
+                    .metadata()
+                    .map_err(|error| SegmentError::io("cannot verify store metadata", error))?,
+            ) != stamp(&before)
+        {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "store metadata EOF or custody differs",
+            ));
+        }
         if meta.len() < 8 + 16 + 2 + 32 || &meta[..8] != ROOT_MAGIC {
             return Err(SegmentError::new(
                 Code::InvalidRoot,
@@ -740,6 +1041,18 @@ impl SegmentStore {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<ImmutableBlobInstallV1> {
+        self.install_authenticated_blob_accounted(digest, raw, max_bytes, deadline, cancelled, None)
+    }
+
+    pub(crate) fn install_authenticated_blob_accounted(
+        &self,
+        digest: Digest256,
+        raw: &[u8],
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        allocation_ledger: Option<&dyn AuthenticatedTreeIoLedgerV1>,
+    ) -> Result<ImmutableBlobInstallV1> {
         check_generation(deadline, cancelled)?;
         if raw.len() > max_bytes || Digest256::of_bytes(raw) != digest {
             return Err(SegmentError::new(
@@ -766,16 +1079,61 @@ impl SegmentStore {
                 return Ok(ImmutableBlobInstallV1 {
                     read_bytes: existing.len() as u64,
                     written_bytes: 0,
+                    allocated_bytes: 0,
                 });
             }
             Err(error) if is_missing(&error) => {}
             Err(error) => return Err(error),
         }
 
+        let allocation_reservation = if let Some(ledger) = allocation_ledger {
+            let unit = ledger.allocation_unit_bytes();
+            if unit == 0 || unit == u64::MAX {
+                return Err(SegmentError::new(
+                    Code::BudgetExceeded,
+                    "authenticated pack allocation unit is invalid",
+                ));
+            }
+            let bytes = u64::try_from(raw.len()).map_err(|_| {
+                SegmentError::new(
+                    Code::BudgetExceeded,
+                    "authenticated pack size exceeds range",
+                )
+            })?;
+            let upper = bytes
+                .checked_add(unit - 1)
+                .and_then(|n| n.checked_div(unit))
+                .and_then(|n| n.checked_mul(unit))
+                .and_then(|n| n.checked_add(unit))
+                .ok_or_else(|| {
+                    SegmentError::new(
+                        Code::BudgetExceeded,
+                        "authenticated pack allocation precharge overflow",
+                    )
+                })?;
+            if !ledger.reserve_allocated_bytes(upper) {
+                return Err(SegmentError::new(
+                    Code::BudgetExceeded,
+                    "authenticated pack allocation reservation refused",
+                ));
+            }
+            Some((ledger, upper))
+        } else {
+            None
+        };
+
         let mut stage_id = [0u8; 16];
         getrandom::fill(&mut stage_id)
             .map_err(|_| SegmentError::new(Code::Io, "cannot create object staging ID"))?;
         let stage_name = format!("{}.part", hex_id(stage_id));
+        let generations_before = generations
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat object directory", error))?
+            .blocks()
+            .checked_mul(512)
+            .ok_or_else(|| {
+                SegmentError::new(Code::BudgetExceeded, "directory allocation overflow")
+            })?;
         let mut stage = create_exclusive(generations, &stage_name)?;
         check_generation(deadline, cancelled)?;
         stage
@@ -784,22 +1142,29 @@ impl SegmentStore {
         stage
             .sync_all()
             .map_err(|error| SegmentError::io("cannot sync authenticated object", error))?;
-        drop(stage);
-        match linkat(
+        let staged_allocated = stage
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat authenticated object", error))?
+            .blocks()
+            .checked_mul(512)
+            .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "object allocation overflow"))?;
+        let installed = match linkat(
             generations,
             stage_name.as_str(),
             generations,
             name.as_str(),
             AtFlags::empty(),
         ) {
-            Ok(()) | Err(Errno::EXIST) => {}
+            Ok(()) => true,
+            Err(Errno::EXIST) => false,
             Err(error) => {
                 return Err(SegmentError::io(
                     "cannot no-replace install authenticated object",
                     error.into(),
                 ));
             }
-        }
+        };
+        drop(stage);
         fsync(generations).map_err(|error| {
             SegmentError::io("cannot sync authenticated object directory", error.into())
         })?;
@@ -812,6 +1177,15 @@ impl SegmentStore {
         fsync(generations).map_err(|error| {
             SegmentError::io("cannot sync authenticated object directory", error.into())
         })?;
+        let generations_after = generations
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot restat object directory", error))?
+            .blocks()
+            .checked_mul(512)
+            .ok_or_else(|| {
+                SegmentError::new(Code::BudgetExceeded, "directory allocation overflow")
+            })?;
+        let directory_growth = generations_after.saturating_sub(generations_before);
         check_generation(deadline, cancelled)?;
         let readback = read_bounded_regular(
             open_regular(generations, &name)?,
@@ -826,10 +1200,42 @@ impl SegmentStore {
             ));
         }
         let read_bytes = readback.len() as u64;
+        let allocated_bytes = if installed {
+            staged_allocated
+                .checked_add(directory_growth)
+                .ok_or_else(|| {
+                    SegmentError::new(
+                        Code::BudgetExceeded,
+                        "authenticated pack allocated bytes overflow",
+                    )
+                })?
+        } else {
+            directory_growth
+        };
+        if allocation_reservation.is_some_and(|(ledger, reserved)| {
+            !ledger.reconcile_allocated_bytes(reserved, allocated_bytes)
+        }) {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "authenticated pack allocation reconciliation refused",
+            ));
+        }
         Ok(ImmutableBlobInstallV1 {
             read_bytes,
             written_bytes: raw.len() as u64,
+            allocated_bytes: if installed { allocated_bytes } else { 0 },
         })
+    }
+
+    /// Allocated blocks in the immutable store's fixed metadata file. Callers
+    /// include this only when they created a fresh V2 physical root.
+    pub fn store_metadata_allocated_bytes(&self) -> Result<u64> {
+        let file = open_regular(&self.inner._root, "store.meta")?;
+        file.metadata()
+            .map_err(|error| SegmentError::io("cannot stat segment store metadata", error))?
+            .blocks()
+            .checked_mul(512)
+            .ok_or_else(|| SegmentError::new(Code::BudgetExceeded, "store allocation overflow"))
     }
 
     /// Read exact bounded bytes from the existing content-addressed generation
@@ -858,6 +1264,63 @@ impl SegmentStore {
             return Err(SegmentError::new(
                 Code::CorruptBytes,
                 "authenticated object content digest differs",
+            ));
+        }
+        Ok(raw)
+    }
+
+    /// Same digest-bound object read with a precharged caller IO ledger. The
+    /// immutable file size is observed through its held descriptor before the
+    /// exact byte allowance is issued.
+    pub(crate) fn read_authenticated_blob_with_io(
+        &self,
+        digest: Digest256,
+        max_bytes: usize,
+        io_ledger: Option<&dyn AuthenticatedTreeIoLedgerV1>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Vec<u8>> {
+        check_generation(deadline, cancelled)?;
+        let generations = self.inner.generations.as_ref().ok_or_else(|| {
+            SegmentError::new(
+                Code::InvalidRoot,
+                "store lacks immutable generation directory",
+            )
+        })?;
+        let file = open_regular(generations, &digest.to_hex())?;
+        let metadata = file
+            .metadata()
+            .map_err(|error| SegmentError::io("cannot stat authenticated object", error))?;
+        require_private_generation_file(&metadata)?;
+        let declared = usize::try_from(metadata.len()).map_err(|_| {
+            SegmentError::new(
+                Code::BudgetExceeded,
+                "authenticated object exceeds address space",
+            )
+        })?;
+        if declared > max_bytes {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "authenticated object exceeds read limit",
+            ));
+        }
+        if io_ledger.is_some_and(|ledger| !ledger.charge_read(declared as u64)) {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "authenticated object read reservation refused",
+            ));
+        }
+        let raw = read_bounded_regular(file, max_bytes, deadline, cancelled)?;
+        if Digest256::of_bytes(&raw) != digest {
+            return Err(SegmentError::new(
+                Code::CorruptBytes,
+                "authenticated object content digest differs",
+            ));
+        }
+        if io_ledger.is_some_and(|ledger| !ledger.record_read_returned(raw.len() as u64)) {
+            return Err(SegmentError::new(
+                Code::BudgetExceeded,
+                "authenticated object read reconciliation refused",
             ));
         }
         Ok(raw)
@@ -2043,6 +2506,20 @@ fn open_root(path: &Path) -> Result<File> {
             "cannot securely open segment root",
         )
     })
+}
+
+fn held_root(root: &File) -> Result<File> {
+    let metadata = root
+        .metadata()
+        .map_err(|error| SegmentError::io("cannot inspect held segment root", error))?;
+    if !metadata.is_dir() {
+        return Err(SegmentError::new(
+            Code::InvalidRoot,
+            "held segment root is not a directory",
+        ));
+    }
+    root.try_clone()
+        .map_err(|error| SegmentError::io("cannot retain held segment root", error))
 }
 
 fn open_directory(parent: &File, name: &str) -> Result<File> {

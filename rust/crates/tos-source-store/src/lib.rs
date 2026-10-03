@@ -23,7 +23,8 @@ pub use cut::{
 pub use error::{Result, StoreError, StoreErrorCode};
 pub use limits::ReadLimits;
 pub use manifest::{
-    CorpusDescriptor, CorpusReader, MemberMetadata, RetirementMetadata, Selector, Snapshot,
+    CorpusCurrentSelection, CorpusDescriptor, CorpusPointerFormat, CorpusReader, MemberMetadata,
+    RetirementMetadata, Selector, Snapshot,
 };
 pub use software::{
     SOFTWARE_COMPANION_PROFILE_V1, SoftwareCaptureReader, SoftwareCaptureSelectionV1,

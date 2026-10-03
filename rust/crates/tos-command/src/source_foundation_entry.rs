@@ -224,6 +224,9 @@ pub(crate) struct FoundationInvocationBudgets {
     /// Persistent admission-store IO; absent for existing read-only FND profiles.
     /// This is independent of private-stage tmpfs allocation.
     pub max_admission_write_bytes: Option<u64>,
+    /// Incremental allocated-byte ceiling for the opt-in V2 segment writer.
+    /// This is a separately selected persistent-store profile, not tmpfs.
+    pub max_admission_store_bytes: Option<u64>,
     pub max_total_worker_wire_bytes: u64,
     pub max_current_members: u64,
     pub max_state_bytes: u64,
@@ -258,9 +261,13 @@ impl FoundationInvocationBudgets {
             "max_readonly_record_read_calls",
         ];
         let admission_write_selected = value.object_get("max_admission_write_bytes").is_some();
+        let admission_store_selected = value.object_get("max_admission_store_bytes").is_some();
         let mut selected_keys = KEYS.to_vec();
         if admission_write_selected {
             selected_keys.push("max_admission_write_bytes");
+        }
+        if admission_store_selected {
+            selected_keys.push("max_admission_store_bytes");
         }
         crate::source_command::exact_keys(value, &selected_keys)
             .map_err(|_| Error::Invalid("foundation invocation budget fields"))?;
@@ -287,6 +294,15 @@ impl FoundationInvocationBudgets {
                 let bytes = number("max_admission_write_bytes")?;
                 if bytes == u64::MAX {
                     return Err(Error::Invalid("admission write budget must be finite"));
+                }
+                Some(bytes)
+            } else {
+                None
+            },
+            max_admission_store_bytes: if admission_store_selected {
+                let bytes = number("max_admission_store_bytes")?;
+                if bytes == u64::MAX {
+                    return Err(Error::Invalid("admission store budget must be finite"));
                 }
                 Some(bytes)
             } else {
@@ -371,6 +387,7 @@ pub(crate) struct FoundationBootstrapCost {
 pub(crate) enum FoundationAdmissionRepresentation {
     ResidentV1,
     NativeV4,
+    NativeV4SegmentV2,
 }
 
 impl FoundationAdmissionRepresentation {
@@ -383,6 +400,7 @@ impl FoundationAdmissionRepresentation {
         {
             "resident-v1" => Ok(Self::ResidentV1),
             "native-v4" => Ok(Self::NativeV4),
+            "native-v4-segment-v2" => Ok(Self::NativeV4SegmentV2),
             _ => Err(Error::Invalid(
                 "foundation admission representation profile",
             )),
@@ -663,6 +681,20 @@ pub(crate) fn read_invocation<'cancel>(
     };
     let budgets =
         FoundationInvocationBudgets::parse(crate::source_command::field(&value, "budgets")?)?;
+    match (
+        admission_representation,
+        budgets.max_admission_write_bytes,
+        budgets.max_admission_store_bytes,
+    ) {
+        (FoundationAdmissionRepresentation::NativeV4SegmentV2, Some(write), Some(store))
+            if store <= write => {}
+        (FoundationAdmissionRepresentation::NativeV4SegmentV2, _, _) | (_, _, Some(_)) => {
+            return Err(Error::Invalid(
+                "V2 segment admission requires a finite paired persistent-store profile",
+            ));
+        }
+        _ => {}
+    }
     drop(value);
 
     let deadline = clock.select_operation_deadline(budgets.operation_wall_ms, cancelled)?;
