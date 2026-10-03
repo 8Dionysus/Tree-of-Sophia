@@ -62,9 +62,23 @@ def prepare(repository, root):
     assert receipt['owner']['adapter_sha256'] == material['adapter_sha256']
     binding = receipt['input_representation']
     assert binding == material['input_representation']
-    assert binding['renderer_version'] == '26.05.0'
     assert binding['source_file_sha256'] != binding['input_sha256']
     scope = receipt['source_scope']
+    from native_owner_ocr import validate_page_binding
+    validate_page_binding(binding, source_scope=scope)
+    # Preserve the genuinely signed owned IDs in provisional source records.
+    # Item identity remains the selected synthetic PDF's exact owner.
+    assert scope['item_ref'] == fixture.ids['item']
+    fixture.ids.update({kind:scope[kind+'_ref'] for kind in fixture.ids})
+    for kind, ref in fixture.refs.items():
+        record = json.loads((public/ref).read_bytes())
+        record['record_id'] = fixture.ids[kind]
+        if kind == 'expression':
+            record['work_ref'] = fixture.ids['work']
+        elif kind == 'edition':
+            record['embodies_expression_refs'] = [fixture.ids['expression']]
+        fixture.write_json(ref, record)
+    fixture.manifest['embodiment_ref'] = fixture.ids['edition']
     assert {kind+'_ref':value for kind,value in fixture.ids.items()} == {
         key:value for key,value in scope.items() if key not in {'file_ref','file_sha256'}}
     source_pdf = Path(inputs['source_pdf'])

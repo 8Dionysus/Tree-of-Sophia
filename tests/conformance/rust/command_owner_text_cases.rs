@@ -1115,8 +1115,8 @@ print(json.dumps(f['finish'](repository,root),separators=(',',':')))
             comparison["source_image"]["sha256"]
         );
         assert_eq!(
-            comparison["input_representation"]["renderer_version"],
-            "26.05.0"
+            comparison["input_representation"],
+            fixture["input_representation"]
         );
     }
     assert_eq!(
