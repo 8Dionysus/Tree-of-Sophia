@@ -121,6 +121,20 @@ impl<'a, 'b> SelectedBibliographicSourceCut<'a, 'b> {
             Self::Streamed(i) => i.cut.current_revision(),
         }
     }
+    fn member_facts(self, path: &RelativePath) -> Result<Option<(u64, Digest256)>> {
+        match self {
+            Self::Resident(i) => Ok(i
+                .cut
+                .current()
+                .member(path)
+                .map(|m| (m.size_bytes, m.sha256))),
+            Self::Streamed(i) => i
+                .cut
+                .member(i.expected_revision, path)
+                .map(|m| m.map(|m| (m.size_bytes, m.sha256)))
+                .map_err(|e| Error::Source(e.to_string())),
+        }
+    }
     fn present(self, path: &RelativePath) -> Result<bool> {
         match self {
             Self::Resident(i) => Ok(i.cut.current().member(path).is_some()),
@@ -408,16 +422,12 @@ impl<'a, 'b> Versions<'a, 'b> {
                     stage.scan_input(catalog::CATALOG_SOURCE, collection, after.as_deref(), 1)?;
                 for row in page.rows {
                     check(validator, l)?;
-                    let metadata =
-                        input
-                            .cut
-                            .current()
-                            .member(&path(&row.id)?)
-                            .ok_or(Error::Invalid(
-                                "bibliographic staged source outside selected current cut",
-                            ))?;
-                    if metadata.size_bytes != row.payload.len() as u64
-                        || metadata.sha256 != Digest256::of_bytes(&row.payload)
+                    let (size_bytes, sha256) = input.member_facts(&path(&row.id)?)?.ok_or(
+                        Error::Invalid("bibliographic staged source outside selected current cut"),
+                    )?;
+                    check(validator, l)?;
+                    if size_bytes != row.payload.len() as u64
+                        || sha256 != Digest256::of_bytes(&row.payload)
                     {
                         return Err(Error::Invalid(
                             "bibliographic staged source/cut bytes differ",

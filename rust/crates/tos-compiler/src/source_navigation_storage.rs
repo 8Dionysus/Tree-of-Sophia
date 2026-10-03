@@ -404,7 +404,7 @@ impl<'a> NavigationMap<'a> {
                     crate::source_bibliographic_render::encode(&value, s.limits.max_row_bytes)?;
                 let exists = s.db.query_row(
                     "SELECT EXISTS(SELECT 1 FROM navigation_rows WHERE category=?1 AND key=?2)",
-                    params![category, key],
+                    params![*category, key],
                     |r| r.get::<_, bool>(0),
                 );
                 s.guard()?;
