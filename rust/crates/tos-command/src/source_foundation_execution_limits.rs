@@ -1587,11 +1587,16 @@ impl FoundationExecutionLimits {
                 "foundation catalog diagnostics exceed named output or wire reservation",
             ));
         }
-        let diagnostics = CutSchemaDiagnosticsLimits {
-            max_total_issues,
-            max_total_report_bytes,
-            max_total_state_bytes: reservation.state_bytes,
-        };
+        let diagnostics = CutSchemaDiagnosticsLimits::from_operation_ceilings(
+            CutSchemaDiagnosticsLimits {
+                max_total_issues,
+                max_total_report_bytes,
+                max_total_state_bytes: reservation.state_bytes,
+            },
+            worker_limits.max_receipts,
+            stream,
+        )
+        .map_err(|_| Error::Unsupported("foundation catalog diagnostics operation envelope"))?;
         Ok((worker, worker_limits, stream, diagnostics))
     }
 

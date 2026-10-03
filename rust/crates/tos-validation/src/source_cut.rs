@@ -163,6 +163,35 @@ pub struct CutSchemaDiagnosticsLimits {
     pub max_total_state_bytes: usize,
 }
 
+impl CutSchemaDiagnosticsLimits {
+    /// Project caller ceilings into the same selected operation envelope.
+    pub fn from_operation_ceilings(
+        ceilings: Self,
+        max_receipts: usize,
+        operation: BatchStreamBudget,
+    ) -> Result<Self, ItemRefusal> {
+        let issue_capacity =
+            cut_diagnostics_issue_capacity(max_receipts, operation).ok_or(ItemRefusal::Budget)?;
+        let issue_capacity = usize::try_from(issue_capacity).unwrap_or(usize::MAX);
+        let wire_capacity = usize::try_from(operation.max_total_wire_bytes).unwrap_or(usize::MAX);
+        let limits = Self {
+            max_total_issues: ceilings.max_total_issues.min(issue_capacity),
+            max_total_report_bytes: ceilings
+                .max_total_report_bytes
+                .min(schema_diagnostics::MAX_RESPONSE_BYTES)
+                .min(wire_capacity),
+            max_total_state_bytes: ceilings.max_total_state_bytes.min(wire_capacity),
+        };
+        if operation.validate().is_ok()
+            && cut_diagnostics_limits_valid(max_receipts, limits, operation)
+        {
+            Ok(limits)
+        } else {
+            Err(ItemRefusal::Budget)
+        }
+    }
+}
+
 /// One verified diagnostics-v2 result for an exact source-cut schema check.
 /// Fields stay private so callers receive only evidence built after all
 /// worker, closure, unit, report, caps, and source bindings were checked.
@@ -2797,19 +2826,26 @@ fn check(deadline: Instant, cancelled: &AtomicBool) -> Result<(), ItemRefusal> {
     Ok(())
 }
 
-fn cut_diagnostics_limits_valid(
+fn cut_diagnostics_issue_capacity(
     max_receipts: usize,
-    limits: CutSchemaDiagnosticsLimits,
     operation: BatchStreamBudget,
-) -> bool {
-    let execution_capacity = u64::try_from(max_receipts)
+) -> Option<u64> {
+    u64::try_from(max_receipts)
         .ok()
         .map(|maximum| {
             maximum
                 .min(operation.max_chunks)
                 .min(operation.max_total_units)
         })
-        .and_then(|maximum| maximum.checked_mul(schema_diagnostics::MAX_ISSUES_PER_UNIT as u64));
+        .and_then(|maximum| maximum.checked_mul(schema_diagnostics::MAX_ISSUES_PER_UNIT as u64))
+}
+
+fn cut_diagnostics_limits_valid(
+    max_receipts: usize,
+    limits: CutSchemaDiagnosticsLimits,
+    operation: BatchStreamBudget,
+) -> bool {
+    let execution_capacity = cut_diagnostics_issue_capacity(max_receipts, operation);
     let wire_capacity = usize::try_from(operation.max_total_wire_bytes).unwrap_or(usize::MAX);
     operation.validate().is_ok()
         && limits.max_total_issues > 0

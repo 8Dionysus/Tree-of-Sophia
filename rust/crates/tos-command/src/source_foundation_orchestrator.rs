@@ -1027,17 +1027,21 @@ fn run<'work, 'receive, 'cancel, 'signal>(
             );
         }
     };
-    if record_executor
-        .enable_diagnostics_v2(BiblioSchemaDiagnosticsLimits {
-            max_total_issues: operation.issue_count,
-            max_total_report_bytes: operation.output_bytes,
-            max_total_state_bytes: operation.state_bytes,
-        })
+    if record_executor.set_operation_budget(record_stream).is_err()
+        || BiblioSchemaDiagnosticsLimits::from_operation_ceilings(
+            BiblioSchemaDiagnosticsLimits {
+                max_total_issues: operation.issue_count,
+                max_total_report_bytes: operation.output_bytes,
+                max_total_state_bytes: operation.state_bytes,
+            },
+            max_checks,
+            record_stream,
+        )
+        .and_then(|limits| record_executor.enable_diagnostics_v2(limits))
         .is_err()
         || record_executor
             .set_shared_schema_worker_quota(worker_quota.clone())
             .is_err()
-        || record_executor.set_operation_budget(record_stream).is_err()
     {
         return fail_window(
             execution_limits,
@@ -1081,11 +1085,17 @@ fn run<'work, 'receive, 'cancel, 'signal>(
         max_total_report_bytes: operation.output_bytes,
         max_total_state_bytes: operation.state_bytes,
     };
-    if item_schemas.enable_diagnostics_v2(item_diag).is_err()
+    if item_schemas.set_operation_budget(record_stream).is_err()
+        || CutSchemaDiagnosticsLimits::from_operation_ceilings(
+            item_diag,
+            worker_limits.max_receipts,
+            record_stream,
+        )
+        .and_then(|limits| item_schemas.enable_diagnostics_v2(limits))
+        .is_err()
         || item_schemas
             .set_shared_schema_worker_quota(worker_quota.clone())
             .is_err()
-        || item_schemas.set_operation_budget(record_stream).is_err()
     {
         return fail_window(
             execution_limits,
@@ -1433,13 +1443,17 @@ fn run<'work, 'receive, 'cancel, 'signal>(
             );
         }
     };
-    if layer_schemas
-        .enable_diagnostics_v2(default_diagnostic_limits)
+    if layer_schemas.set_operation_budget(layer_stream).is_err()
+        || CutSchemaDiagnosticsLimits::from_operation_ceilings(
+            default_diagnostic_limits,
+            layer_worker_limits.max_receipts,
+            layer_stream,
+        )
+        .and_then(|limits| layer_schemas.enable_diagnostics_v2(limits))
         .is_err()
         || layer_schemas
             .set_shared_schema_worker_quota(worker_quota.clone())
             .is_err()
-        || layer_schemas.set_operation_budget(layer_stream).is_err()
     {
         return fail_window(
             execution_limits,
@@ -2229,20 +2243,24 @@ fn run<'work, 'receive, 'cancel, 'signal>(
                 usize::try_from(callback_free.worker_wire_bytes.min(usize::MAX as u64 - 1))
                     .unwrap_or(usize::MAX - 1);
             if callback_schema
-                .enable_diagnostics_v2(CutSchemaDiagnosticsLimits {
-                    max_total_issues: callback_free.issue_count.max(1),
-                    max_total_report_bytes: callback_report_bytes.max(1),
-                    max_total_state_bytes: callback_free.state_bytes.max(1),
-                })
+                .set_operation_budget(callback_stream)
+                .is_err()
+                || CutSchemaDiagnosticsLimits::from_operation_ceilings(
+                    CutSchemaDiagnosticsLimits {
+                        max_total_issues: callback_free.issue_count.max(1),
+                        max_total_report_bytes: callback_report_bytes.max(1),
+                        max_total_state_bytes: callback_free.state_bytes.max(1),
+                    },
+                    callback_limits.max_receipts,
+                    callback_stream,
+                )
+                .and_then(|limits| callback_schema.enable_diagnostics_v2(limits))
                 .is_err()
                 || callback_schema
                     .set_diagnostics_v2_legacy_raw_instance_limit(max_schema_instance)
                     .is_err()
                 || callback_schema
                     .set_shared_schema_worker_quota(worker_quota.clone())
-                    .is_err()
-                || callback_schema
-                    .set_operation_budget(callback_stream)
                     .is_err()
             {
                 return fail_window(

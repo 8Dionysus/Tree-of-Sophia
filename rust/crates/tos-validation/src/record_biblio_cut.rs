@@ -55,6 +55,35 @@ pub struct BiblioSchemaDiagnosticsLimits {
     pub max_total_state_bytes: usize,
 }
 
+impl BiblioSchemaDiagnosticsLimits {
+    /// Project caller ceilings into the same selected operation envelope.
+    pub fn from_operation_ceilings(
+        ceilings: Self,
+        max_executions: usize,
+        operation: BatchStreamBudget,
+    ) -> Result<Self, ItemRefusal> {
+        let issue_capacity =
+            diagnostics_issue_capacity(max_executions, operation).ok_or(ItemRefusal::Budget)?;
+        let issue_capacity = usize::try_from(issue_capacity).unwrap_or(usize::MAX);
+        let wire_capacity = usize::try_from(operation.max_total_wire_bytes).unwrap_or(usize::MAX);
+        let limits = Self {
+            max_total_issues: ceilings.max_total_issues.min(issue_capacity),
+            max_total_report_bytes: ceilings
+                .max_total_report_bytes
+                .min(schema_diagnostics::MAX_RESPONSE_BYTES)
+                .min(wire_capacity),
+            max_total_state_bytes: ceilings.max_total_state_bytes.min(wire_capacity),
+        };
+        if operation.validate().is_ok()
+            && diagnostics_limits_valid(limits, max_executions, operation)
+        {
+            Ok(limits)
+        } else {
+            Err(ItemRefusal::Budget)
+        }
+    }
+}
+
 /// Public projection of the exact bounded verdict consumed by RecordFamily.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceCutSchemaVerdict {
@@ -720,19 +749,23 @@ impl BiblioRecordExecutor {
     }
 }
 
-fn diagnostics_limits_valid(
-    limits: BiblioSchemaDiagnosticsLimits,
-    max_executions: usize,
-    operation: BatchStreamBudget,
-) -> bool {
-    let executable_capacity = u64::try_from(max_executions)
+fn diagnostics_issue_capacity(max_executions: usize, operation: BatchStreamBudget) -> Option<u64> {
+    u64::try_from(max_executions)
         .ok()
         .map(|maximum| {
             maximum
                 .min(operation.max_chunks)
                 .min(operation.max_total_units)
         })
-        .and_then(|maximum| maximum.checked_mul(schema_diagnostics::MAX_ISSUES_PER_UNIT as u64));
+        .and_then(|maximum| maximum.checked_mul(schema_diagnostics::MAX_ISSUES_PER_UNIT as u64))
+}
+
+fn diagnostics_limits_valid(
+    limits: BiblioSchemaDiagnosticsLimits,
+    max_executions: usize,
+    operation: BatchStreamBudget,
+) -> bool {
+    let executable_capacity = diagnostics_issue_capacity(max_executions, operation);
     let wire_capacity = usize::try_from(operation.max_total_wire_bytes).unwrap_or(usize::MAX);
     limits.max_total_issues > 0
         && executable_capacity.is_some_and(|capacity| {
