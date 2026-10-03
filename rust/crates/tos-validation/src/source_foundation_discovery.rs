@@ -95,6 +95,8 @@ const HIERARCHICAL_TARGET_ROOTS: &[&str] = &[
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DiscoverySeenIdNamespace {
     Artifact,
+    Composite,
+    CompositeRepresentation,
     Event,
     DiscoveryEvent,
     RepresentationFile,
@@ -104,6 +106,8 @@ impl DiscoverySeenIdNamespace {
     pub const fn storage_key(self) -> &'static str {
         match self {
             Self::Artifact => "artifact",
+            Self::Composite => "composite",
+            Self::CompositeRepresentation => "composite-representation",
             Self::Event => "event",
             Self::DiscoveryEvent => "discovery-event",
             Self::RepresentationFile => "representation-file",
@@ -751,19 +755,17 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         })
     }
 
-    fn collect_current_paths_matching(
+    fn for_each_current_path_matching(
         &mut self,
         mut matches: impl FnMut(&str) -> bool,
-    ) -> Result<Vec<String>, ItemRefusal> {
-        let mut paths = Vec::new();
+        visit: &mut dyn FnMut(&mut Self, &str) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
         self.for_each_current_path(&mut |inspector, path| {
-            if matches(path) {
-                inspector.reserve_state(path.len().checked_add(24).ok_or(ItemRefusal::Budget)?)?;
-                paths.push(path.to_owned());
+            if !matches(path) {
+                return Ok(());
             }
-            Ok(())
-        })?;
-        Ok(paths)
+            visit(inspector, path)
+        })
     }
 
     fn reserve_state(&mut self, bytes: usize) -> Result<(), ItemRefusal> {
@@ -8184,14 +8186,11 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     })?;
 
     let mut composite_ids = BTreeSet::new();
-    let mut composites_by_path: BTreeMap<String, Value> = BTreeMap::new();
-    let composite_paths = inspector.collect_current_paths_matching(|path| {
-        path.starts_with(COMPOSITES) && path.ends_with("/composite-witness.json")
-    })?;
-    for path in &composite_paths {
-        let path = path.as_str();
+    inspector.for_each_current_path_matching(
+        |path| path.starts_with(COMPOSITES) && path.ends_with("/composite-witness.json"),
+        &mut |inspector, path| {
         let Some((value, _, _)) = inspector.json(path, path, COMPOSITE_SCHEMA)? else {
-            continue;
+            return Ok(());
         };
         inspector.source_refs(&value, path)?;
         if let Some(fields) = first_forbidden_content_fields(&value) {
@@ -8211,7 +8210,21 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             )?;
         }
         let id = string(&value, "composite_id").unwrap_or("");
-        if !id.is_empty() && !composite_ids.insert(id.to_owned()) {
+        let first_composite_id = if id.is_empty() {
+            true
+        } else if discovery_seen_ids.is_some() {
+            remember_discovery_id(
+                inspector,
+                &mut discovery_seen_ids,
+                &mut composite_ids,
+                DiscoverySeenIdNamespace::Composite,
+                id,
+                path,
+            )?
+        } else {
+            composite_ids.insert(id.to_owned())
+        };
+        if !id.is_empty() && !first_composite_id {
             inspector.issue(path, "duplicate-composite-id", id)?;
         }
         let relative = path.strip_prefix(COMPOSITES).unwrap_or(path);
@@ -8295,7 +8308,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         for member in rows(&value, "member_observations") {
             let member_id = string(member, "member_artifact_id").unwrap_or("");
             if !discovery_id_contains(
-                &mut inspector,
+                inspector,
                 &mut discovery_seen_ids,
                 &artifact_ids,
                 DiscoverySeenIdNamespace::Artifact,
@@ -8357,274 +8370,346 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 "scholarly-composite provenance_event_ref is absent from discovery provenance",
             )?,
         }
-        composites_by_path.insert(path.to_owned(), value);
-    }
+        Ok(())
+    },
+    )?;
 
     let mut composite_representation_ids = BTreeSet::new();
-    let composite_representation_paths = inspector.collect_current_paths_matching(|path| {
-        if !path.starts_with(COMPOSITES) || !path.ends_with("/representation.json") {
-            return false;
-        }
-        let parent = path
-            .rsplit_once('/')
-            .map(|(parent, _)| parent)
-            .unwrap_or("");
-        let Some(relative) = parent.strip_prefix(COMPOSITES) else {
-            return false;
-        };
-        let parts: Vec<&str> = relative.split('/').collect();
-        parts.len() >= 2
-            && parts[parts.len() - 2] == "representations"
-            && !parts[parts.len() - 1].is_empty()
-    })?;
-    for path in &composite_representation_paths {
-        let path = path.as_str();
-        let Some((value, _, _)) = inspector.json(path, path, COMPOSITE_REPRESENTATION_SCHEMA)?
-        else {
-            continue;
-        };
-        inspector.source_refs(&value, path)?;
-        let representation_id = string(&value, "representation_id").unwrap_or("");
-        if !representation_id.is_empty()
-            && !composite_representation_ids.insert(representation_id.to_owned())
-        {
-            inspector.issue(
-                path,
-                "duplicate-composite-representation-id",
-                representation_id,
-            )?;
-        }
-        let file_id = string(&value, "file_id").unwrap_or("");
-        if !file_id.is_empty() && !representation_file_ids.insert(file_id.to_owned()) {
-            inspector.issue(path, "duplicate-representation-file-id", file_id)?;
-        }
-        let composite_id = string(&value, "composite_id").unwrap_or("");
-        let composite_ref = string(&value, "composite_ref").unwrap_or("");
-        if !composite_ids.contains(composite_id) {
-            inspector.issue(path, "unresolved-represented-composite", composite_id)?;
-        }
-        match composites_by_path.get(composite_ref) {
-            Some(composite) if string(composite, "composite_id") == Some(composite_id) => {}
-            _ => inspector.issue(
-                path,
-                "composite-reference-id-drift",
-                "composite_ref does not resolve the represented composite_id",
-            )?,
-        }
-
-        let payload = value.get("payload").unwrap_or(&Value::Null);
-        let relative = string(payload, "relative_path").unwrap_or("");
-        let payload_name = relative.strip_prefix("payload/").unwrap_or("");
-        let safe_name = !payload_name.is_empty()
-            && !payload_name.contains('/')
-            && !payload_name.contains('\\')
-            && !payload_name.contains('\0')
-            && payload_name != "."
-            && payload_name != "..";
-        let payload_path = format!(
-            "{}/{}",
-            path.rsplit_once('/')
+    inspector.for_each_current_path_matching(
+        |path| {
+            if !path.starts_with(COMPOSITES) || !path.ends_with("/representation.json") {
+                return false;
+            }
+            let parent = path
+                .rsplit_once('/')
                 .map(|(parent, _)| parent)
-                .unwrap_or(""),
-            relative
-        );
-        if !safe_name || !safe_relative_path(&payload_path) {
-            inspector.issue(path, "composite-payload-not-direct-owned-file", relative)?;
-            continue;
-        }
-        if safe_name && safe_relative_path(&payload_path) {
-            if let Some(facts) = inspector.checked_payload_facts(&payload_path, path)? {
-                if facts.symlink || (facts.exists && !facts.regular_file) {
-                    inspector.issue(
-                        path,
-                        "composite-payload-nonregular-or-symlink",
-                        &payload_path,
-                    )?;
-                    continue;
-                }
-                if facts.exists {
-                    if string(payload, "materialization_status") != Some("materialized")
-                        || string(payload, "storage_posture") != Some("tracked_repository_payload")
-                        || payload.get("git_tracked").and_then(Value::as_bool) != Some(true)
-                    {
-                        inspector.issue(
-                            path,
-                            "composite-payload-declared-posture-drift",
-                            &payload_path,
-                        )?;
-                    }
-                    inspector.tracked_composite_payload_git(&payload_path, path)?;
-                    let expected_file_id = format!(
-                        "tos.file.sha256.{}",
-                        string(payload, "sha256").unwrap_or("")
-                    );
-                    if file_id != expected_file_id {
-                        inspector.issue(
-                            path,
-                            "representation-file-id-not-content-addressed",
-                            file_id,
-                        )?;
-                    }
-                    match facts.byte_size {
-                        Some(actual)
-                            if payload.get("byte_size").is_some_and(|expected| {
-                                python_json_equal(&json!(actual), expected)
-                            }) => {}
-                        Some(_) => inspector.issue(
-                            path,
-                            "composite-representation-size-drift",
-                            &payload_path,
-                        )?,
-                        None => inspector.unsupported(
-                            &payload_path,
-                            "local composite payload size is unobserved",
-                        )?,
-                    }
-                    match facts.sha256.as_deref() {
-                        Some(actual)
-                            if payload.get("sha256").is_some_and(|expected| {
-                                python_json_equal(&Value::String(actual.to_owned()), expected)
-                            }) => {}
-                        Some(_) => inspector.issue(
-                            path,
-                            "composite-representation-sha256-drift",
-                            &payload_path,
-                        )?,
-                        None => inspector.unsupported(
-                            &payload_path,
-                            "local composite payload SHA-256 is unobserved",
-                        )?,
-                    }
-                } else {
-                    if string(payload, "materialization_status") != Some("not_materialized")
-                        || string(payload, "storage_posture") != Some("unmaterialized_payload")
-                        || payload.get("git_tracked").and_then(Value::as_bool) != Some(false)
-                    {
-                        inspector.issue(
-                            path,
-                            "composite-payload-declared-posture-drift",
-                            &payload_path,
-                        )?;
-                    }
-                    match require_local_payloads {
-                        true => inspector.issue(
-                            path,
-                            "composite-payload-required-but-missing",
-                            "scholarly-composite representation payload is missing",
-                        )?,
-                        false => {}
-                    }
-                }
-            }
-        }
-
-        let rights_ref = string(&value, "rights_ref").unwrap_or("");
-        let _ = inspector.check_rights(
-            path,
-            rights_ref,
-            &[composite_id, representation_id, file_id],
-            "local_only",
-            LOCAL_REPRESENTATION_POSTURES,
-        )?;
-        let discovery_ref = string(&value, "discovery_ref").unwrap_or("");
-        inspector.with_discovery_summary(
-            discovery_ref,
-            discoveries.get(discovery_ref),
-            |inspector, discovery| match discovery {
-                Some(discovery) if discovery.known_refs.contains(composite_id) => Ok(()),
-                Some(_) => inspector.issue(
+                .unwrap_or("");
+            let Some(relative) = parent.strip_prefix(COMPOSITES) else {
+                return false;
+            };
+            let Some((container, name)) = relative.rsplit_once('/') else {
+                return false;
+            };
+            container.rsplit('/').next() == Some("representations") && !name.is_empty()
+        },
+        &mut |inspector, path| {
+            let Some((value, _, _)) =
+                inspector.json(path, path, COMPOSITE_REPRESENTATION_SCHEMA)?
+            else {
+                return Ok(());
+            };
+            inspector.source_refs(&value, path)?;
+            let representation_id = string(&value, "representation_id").unwrap_or("");
+            let first_composite_representation_id = if representation_id.is_empty() {
+                true
+            } else if discovery_seen_ids.is_some() {
+                remember_discovery_id(
+                    inspector,
+                    &mut discovery_seen_ids,
+                    &mut composite_representation_ids,
+                    DiscoverySeenIdNamespace::CompositeRepresentation,
+                    representation_id,
                     path,
-                    "representation-discovery-target-omits-composite",
-                    discovery_ref,
-                ),
-                None => inspector.issue(path, "unresolved-representation-discovery", discovery_ref),
-            },
-        )?;
-
-        if inspector.physical.and_then(|facts| facts.git_available) == Some(true) {
-            inspector.metadata_git(path, path)?;
-            inspector.metadata_git(DISCOVERY_EVENTS, path)?;
-            if !rights_ref.is_empty() {
-                inspector.metadata_git(rights_ref, path)?;
+                )?
+            } else {
+                composite_representation_ids.insert(representation_id.to_owned())
+            };
+            if !representation_id.is_empty() && !first_composite_representation_id {
+                inspector.issue(
+                    path,
+                    "duplicate-composite-representation-id",
+                    representation_id,
+                )?;
             }
-            if !discovery_ref.is_empty() {
-                inspector.metadata_git(discovery_ref, path)?;
+            let file_id = string(&value, "file_id").unwrap_or("");
+            let first_representation_file_id = if file_id.is_empty() {
+                true
+            } else if discovery_seen_ids.is_some() {
+                remember_discovery_id(
+                    inspector,
+                    &mut discovery_seen_ids,
+                    &mut representation_file_ids,
+                    DiscoverySeenIdNamespace::RepresentationFile,
+                    file_id,
+                    path,
+                )?
+            } else {
+                representation_file_ids.insert(file_id.to_owned())
+            };
+            if !file_id.is_empty() && !first_representation_file_id {
+                inspector.issue(path, "duplicate-representation-file-id", file_id)?;
             }
-        } else if inspector
-            .physical
-            .and_then(|facts| facts.git_available)
-            .is_none()
-        {
-            inspector.unsupported(
-                path,
-                "repository Git availability is unobserved for composite metadata posture",
-            )?;
-        }
-
-        let event_ref = string(&value, "provenance_event_ref").unwrap_or("");
-        match discovery_events.get(event_ref).cloned() {
-            Some(event) => {
-                let mut required =
-                    BTreeSet::from([path.to_owned(), rights_ref.to_owned(), payload_path.clone()]);
-                let absent: Vec<String> = required
-                    .iter()
-                    .filter(|reference| !event.outputs.contains_key(*reference))
-                    .cloned()
-                    .collect();
-                if !absent.is_empty() {
-                    inspector.issue(
-                        &event.location,
-                        "composite-representation-output-closure",
-                        format!(
-                            "composite representation provenance lacks output closure: {}",
-                            python_repr_string_list(absent.iter().map(String::as_str))
-                        ),
-                    )?;
-                }
-                if inspector
-                    .physical
-                    .and_then(|facts| facts.payloads.get(&payload_path))
-                    .is_some_and(|facts| facts.exists)
-                {
-                    inspector.check_required_output_digests(&event, &required, &event.location)?;
+            let composite_id = string(&value, "composite_id").unwrap_or("");
+            let composite_ref = string(&value, "composite_ref").unwrap_or("");
+            let composite_id_seen = !composite_id.is_empty()
+                && if discovery_seen_ids.is_some() {
+                    discovery_id_contains(
+                        inspector,
+                        &mut discovery_seen_ids,
+                        &composite_ids,
+                        DiscoverySeenIdNamespace::Composite,
+                        composite_id,
+                    )?
                 } else {
-                    required.remove(&payload_path);
-                    inspector.check_required_output_digests(&event, &required, &event.location)?;
+                    composite_ids.contains(composite_id)
+                };
+            if !composite_id_seen {
+                inspector.issue(path, "unresolved-represented-composite", composite_id)?;
+            }
+            // The first pass already emitted parse diagnostics. Re-read the
+            // exact current member here instead of retaining every decoded
+            // composite; malformed JSON remains absent from the old path map.
+            let composite_matches = if composite_ref.starts_with(COMPOSITES)
+                && composite_ref.ends_with("/composite-witness.json")
+            {
+                inspector
+                    .current_bytes(composite_ref)?
+                    .and_then(|raw| serde_json::from_slice::<Value>(&raw).ok())
+                    .is_some_and(|composite| {
+                        string(&composite, "composite_id") == Some(composite_id)
+                    })
+            } else {
+                false
+            };
+            if !composite_matches {
+                inspector.issue(
+                    path,
+                    "composite-reference-id-drift",
+                    "composite_ref does not resolve the represented composite_id",
+                )?;
+            }
+
+            let payload = value.get("payload").unwrap_or(&Value::Null);
+            let relative = string(payload, "relative_path").unwrap_or("");
+            let payload_name = relative.strip_prefix("payload/").unwrap_or("");
+            let safe_name = !payload_name.is_empty()
+                && !payload_name.contains('/')
+                && !payload_name.contains('\\')
+                && !payload_name.contains('\0')
+                && payload_name != "."
+                && payload_name != "..";
+            let payload_path = format!(
+                "{}/{}",
+                path.rsplit_once('/')
+                    .map(|(parent, _)| parent)
+                    .unwrap_or(""),
+                relative
+            );
+            if !safe_name || !safe_relative_path(&payload_path) {
+                inspector.issue(path, "composite-payload-not-direct-owned-file", relative)?;
+                return Ok(());
+            }
+            if safe_name && safe_relative_path(&payload_path) {
+                if let Some(facts) = inspector.checked_payload_facts(&payload_path, path)? {
+                    if facts.symlink || (facts.exists && !facts.regular_file) {
+                        inspector.issue(
+                            path,
+                            "composite-payload-nonregular-or-symlink",
+                            &payload_path,
+                        )?;
+                        return Ok(());
+                    }
+                    if facts.exists {
+                        if string(payload, "materialization_status") != Some("materialized")
+                            || string(payload, "storage_posture")
+                                != Some("tracked_repository_payload")
+                            || payload.get("git_tracked").and_then(Value::as_bool) != Some(true)
+                        {
+                            inspector.issue(
+                                path,
+                                "composite-payload-declared-posture-drift",
+                                &payload_path,
+                            )?;
+                        }
+                        inspector.tracked_composite_payload_git(&payload_path, path)?;
+                        let expected_file_id = format!(
+                            "tos.file.sha256.{}",
+                            string(payload, "sha256").unwrap_or("")
+                        );
+                        if file_id != expected_file_id {
+                            inspector.issue(
+                                path,
+                                "representation-file-id-not-content-addressed",
+                                file_id,
+                            )?;
+                        }
+                        match facts.byte_size {
+                            Some(actual)
+                                if payload.get("byte_size").is_some_and(|expected| {
+                                    python_json_equal(&json!(actual), expected)
+                                }) => {}
+                            Some(_) => inspector.issue(
+                                path,
+                                "composite-representation-size-drift",
+                                &payload_path,
+                            )?,
+                            None => inspector.unsupported(
+                                &payload_path,
+                                "local composite payload size is unobserved",
+                            )?,
+                        }
+                        match facts.sha256.as_deref() {
+                            Some(actual)
+                                if payload.get("sha256").is_some_and(|expected| {
+                                    python_json_equal(&Value::String(actual.to_owned()), expected)
+                                }) => {}
+                            Some(_) => inspector.issue(
+                                path,
+                                "composite-representation-sha256-drift",
+                                &payload_path,
+                            )?,
+                            None => inspector.unsupported(
+                                &payload_path,
+                                "local composite payload SHA-256 is unobserved",
+                            )?,
+                        }
+                    } else {
+                        if string(payload, "materialization_status") != Some("not_materialized")
+                            || string(payload, "storage_posture") != Some("unmaterialized_payload")
+                            || payload.get("git_tracked").and_then(Value::as_bool) != Some(false)
+                        {
+                            inspector.issue(
+                                path,
+                                "composite-payload-declared-posture-drift",
+                                &payload_path,
+                            )?;
+                        }
+                        match require_local_payloads {
+                            true => inspector.issue(
+                                path,
+                                "composite-payload-required-but-missing",
+                                "scholarly-composite representation payload is missing",
+                            )?,
+                            false => {}
+                        }
+                    }
                 }
             }
-            None => inspector.issue(
-                path,
-                "unresolved-representation-provenance-event",
-                event_ref,
-            )?,
-        }
-    }
 
-    let access_request_paths = inspector.collect_current_paths_matching(|path| {
-        path.strip_prefix(ACCESS_LEDGER)
-            .is_some_and(|tail| !tail.contains('/') && tail.ends_with(".json"))
-    })?;
-    for path in &access_request_paths {
-        let path = path.as_str();
-        let Some((value, _, _)) = inspector.json(path, path, ACCESS_REQUEST_SCHEMA)? else {
-            continue;
-        };
-        inspector.source_refs(&value, path)?;
-        for event_ref in array(&value, "provenance_event_refs")
-            .iter()
-            .filter_map(Value::as_str)
-        {
-            if !event_id_seen(
-                &mut inspector,
-                &mut discovery_seen_ids,
-                &event_ids,
-                prior_events,
-                event_ref,
-            )? {
-                inspector.issue(path, "unresolved-access-request-event", event_ref)?;
+            let rights_ref = string(&value, "rights_ref").unwrap_or("");
+            let _ = inspector.check_rights(
+                path,
+                rights_ref,
+                &[composite_id, representation_id, file_id],
+                "local_only",
+                LOCAL_REPRESENTATION_POSTURES,
+            )?;
+            let discovery_ref = string(&value, "discovery_ref").unwrap_or("");
+            inspector.with_discovery_summary(
+                discovery_ref,
+                discoveries.get(discovery_ref),
+                |inspector, discovery| match discovery {
+                    Some(discovery) if discovery.known_refs.contains(composite_id) => Ok(()),
+                    Some(_) => inspector.issue(
+                        path,
+                        "representation-discovery-target-omits-composite",
+                        discovery_ref,
+                    ),
+                    None => {
+                        inspector.issue(path, "unresolved-representation-discovery", discovery_ref)
+                    }
+                },
+            )?;
+
+            if inspector.physical.and_then(|facts| facts.git_available) == Some(true) {
+                inspector.metadata_git(path, path)?;
+                inspector.metadata_git(DISCOVERY_EVENTS, path)?;
+                if !rights_ref.is_empty() {
+                    inspector.metadata_git(rights_ref, path)?;
+                }
+                if !discovery_ref.is_empty() {
+                    inspector.metadata_git(discovery_ref, path)?;
+                }
+            } else if inspector
+                .physical
+                .and_then(|facts| facts.git_available)
+                .is_none()
+            {
+                inspector.unsupported(
+                    path,
+                    "repository Git availability is unobserved for composite metadata posture",
+                )?;
             }
-        }
-    }
+
+            let event_ref = string(&value, "provenance_event_ref").unwrap_or("");
+            match discovery_events.get(event_ref).cloned() {
+                Some(event) => {
+                    let mut required = BTreeSet::from([
+                        path.to_owned(),
+                        rights_ref.to_owned(),
+                        payload_path.clone(),
+                    ]);
+                    let absent: Vec<String> = required
+                        .iter()
+                        .filter(|reference| !event.outputs.contains_key(*reference))
+                        .cloned()
+                        .collect();
+                    if !absent.is_empty() {
+                        inspector.issue(
+                            &event.location,
+                            "composite-representation-output-closure",
+                            format!(
+                                "composite representation provenance lacks output closure: {}",
+                                python_repr_string_list(absent.iter().map(String::as_str))
+                            ),
+                        )?;
+                    }
+                    if inspector
+                        .physical
+                        .and_then(|facts| facts.payloads.get(&payload_path))
+                        .is_some_and(|facts| facts.exists)
+                    {
+                        inspector.check_required_output_digests(
+                            &event,
+                            &required,
+                            &event.location,
+                        )?;
+                    } else {
+                        required.remove(&payload_path);
+                        inspector.check_required_output_digests(
+                            &event,
+                            &required,
+                            &event.location,
+                        )?;
+                    }
+                }
+                None => inspector.issue(
+                    path,
+                    "unresolved-representation-provenance-event",
+                    event_ref,
+                )?,
+            }
+            Ok(())
+        },
+    )?;
+
+    inspector.for_each_current_path_matching(
+        |path| {
+            path.strip_prefix(ACCESS_LEDGER)
+                .is_some_and(|tail| !tail.contains('/') && tail.ends_with(".json"))
+        },
+        &mut |inspector, path| {
+            let Some((value, _, _)) = inspector.json(path, path, ACCESS_REQUEST_SCHEMA)? else {
+                return Ok(());
+            };
+            inspector.source_refs(&value, path)?;
+            for event_ref in array(&value, "provenance_event_refs")
+                .iter()
+                .filter_map(Value::as_str)
+            {
+                if !event_id_seen(
+                    inspector,
+                    &mut discovery_seen_ids,
+                    &event_ids,
+                    prior_events,
+                    event_ref,
+                )? {
+                    inspector.issue(path, "unresolved-access-request-event", event_ref)?;
+                }
+            }
+            Ok(())
+        },
+    )?;
     inspector.private_route()?;
 
     let mut expected_manifest_refs = BTreeSet::new();
@@ -8636,14 +8721,14 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         Ok(())
     })?;
     let mut planned_manifest_refs = BTreeSet::new();
-    let server_plan_paths = inspector.collect_current_paths_matching(|path| {
-        path.strip_prefix(SERVER_PLANS)
-            .is_some_and(|tail| !tail.contains('/') && tail.ends_with(".json"))
-    })?;
-    for path in &server_plan_paths {
-        let path = path.as_str();
+    inspector.for_each_current_path_matching(
+        |path| {
+            path.strip_prefix(SERVER_PLANS)
+                .is_some_and(|tail| !tail.contains('/') && tail.ends_with(".json"))
+        },
+        &mut |inspector, path| {
         let Some((plan, plan_digest, _)) = inspector.json(path, path, SERVER_PLAN_SCHEMA)? else {
-            continue;
+            return Ok(());
         };
         inspector.source_refs(&plan, path)?;
         let manifest_evidence = plan.get("manifest").unwrap_or(&Value::Null);
@@ -8770,7 +8855,9 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 inspector.issue(path, "server-plan-provenance-input-digest-drift", event_ref)?;
             }
         }
-    }
+        Ok(())
+    },
+    )?;
     if planned_manifest_refs != expected_manifest_refs {
         inspector.issue(
             SERVER_PLANS.trim_end_matches('/'),
