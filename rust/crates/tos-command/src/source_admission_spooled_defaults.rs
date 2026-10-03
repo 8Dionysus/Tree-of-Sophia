@@ -30,7 +30,8 @@ use tos_validation::{
     source_foundation_discovery::{
         DiscoveryEventSummaryNamespace, DiscoveryEventSummaryStore, DiscoveryEventSummaryStoreCost,
         DiscoveryRunSummary, DiscoveryRunSummaryStore, DiscoveryRunSummaryStoreCost,
-        DiscoverySeenIdNamespace, DiscoverySeenIds,
+        DiscoverySchemaRequestStore, DiscoverySchemaRequestStoreCost, DiscoverySeenIdNamespace,
+        DiscoverySeenIds, SchemaRequest as DiscoverySchemaRequest,
     },
     source_foundation_records::{
         SourceFoundationRecordsCollection as RecordsCollection,
@@ -718,6 +719,13 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
              ) WITHOUT ROWID;\
              CREATE INDEX sf_discovery_events_by_key ON sf_discovery_event_summaries(namespace,id,ordinal);\
              CREATE INDEX sf_discovery_events_by_owner_order ON sf_discovery_event_summaries(owner_insert,ordinal);\
+             CREATE TABLE sf_discovery_schema_requests(\
+                 ordinal BLOB NOT NULL PRIMARY KEY CHECK(length(ordinal)=8),\
+                 before_issue BLOB NOT NULL CHECK(length(before_issue)=8),\
+                 location TEXT NOT NULL COLLATE BINARY CHECK(length(location)>0),\
+                 contract TEXT NOT NULL COLLATE BINARY CHECK(length(contract)>0),\
+                 document BLOB NOT NULL CHECK(length(document)>0)\
+             ) WITHOUT ROWID;\
              CREATE TABLE biblio_events(\
                  slot BLOB NOT NULL PRIMARY KEY CHECK(length(slot)=8),\
                  id TEXT NOT NULL COLLATE BINARY UNIQUE,\
@@ -2168,6 +2176,399 @@ impl DiscoveryEventSummaryStore for CandidateDiscoveryEventSummaries<'_, '_, '_,
     }
 }
 
+struct CandidateDiscoverySchemaRequests<'a, 'candidate, 'host, 'cancel, 'budget> {
+    context: ProviderContext<'candidate, 'host, 'cancel>,
+    db: &'a PinnedSqliteConnection,
+    scan_rows: &'budget Cell<u64>,
+    observation_rows: u64,
+    read_rows: u64,
+    serialized_write_bytes: u64,
+    serialized_read_bytes: u64,
+    scan_row_operations: u64,
+    workspace_peak_bytes: usize,
+    max_document_bytes: Option<usize>,
+    last_before_issue: Option<usize>,
+    last_read_before_issue: Option<usize>,
+    cursor_ordinal: Option<u64>,
+    expected_rows: Option<u64>,
+    direct_issue_count: Option<usize>,
+    finished: bool,
+    drained: bool,
+}
+
+impl CandidateDiscoverySchemaRequests<'_, '_, '_, '_, '_> {
+    fn row_text_state(bytes: usize) -> Result<usize, ItemRefusal> {
+        bytes
+            .checked_mul(16)
+            .and_then(|state| state.checked_add(2048))
+            .ok_or(ItemRefusal::Budget)
+    }
+
+    fn request_workspace(
+        location_bytes: usize,
+        contract_bytes: usize,
+        document_bytes: usize,
+    ) -> Result<usize, ItemRefusal> {
+        Self::row_text_state(location_bytes)?
+            .checked_add(Self::row_text_state(contract_bytes)?)
+            .and_then(|state| state.checked_add(json_state_upper_bound(document_bytes).ok()?))
+            .and_then(|state| {
+                state.checked_add(
+                    document_bytes
+                        .checked_mul(2)?
+                        .checked_add(size_of::<Vec<u8>>() + size_of::<SchemaRequest>() + 1024)?,
+                )
+            })
+            .ok_or(ItemRefusal::Budget)
+    }
+
+    fn preflight(&self, workspace: usize, max_state_bytes: usize) -> Result<(), ItemRefusal> {
+        if max_state_bytes == 0
+            || max_state_bytes > self.context.operation_state_limit
+            || workspace > max_state_bytes
+        {
+            return Err(ItemRefusal::Budget);
+        }
+        self.context.row_state(workspace)?;
+        self.context.check()
+    }
+
+    fn charge_scan_rows(&mut self, rows: usize) -> Result<(), ItemRefusal> {
+        self.context.add_scan_rows(self.scan_rows, rows)?;
+        self.scan_row_operations = self
+            .scan_row_operations
+            .checked_add(usize_u64(rows)?)
+            .ok_or(ItemRefusal::Budget)?;
+        Ok(())
+    }
+
+    fn cost(&self) -> DiscoverySchemaRequestStoreCost {
+        DiscoverySchemaRequestStoreCost {
+            observation_rows: self.observation_rows,
+            serialized_write_bytes: self.serialized_write_bytes,
+            serialized_read_bytes: self.serialized_read_bytes,
+            workspace_state_bytes: self.workspace_peak_bytes,
+            scan_row_operations: self.scan_row_operations,
+        }
+    }
+
+    fn verify_drained(&self) -> Result<(), ItemRefusal> {
+        if !self.finished
+            || !self.drained
+            || self.expected_rows != Some(self.observation_rows)
+            || self.read_rows != self.observation_rows
+        {
+            return Err(source_refusal());
+        }
+        self.context.check()
+    }
+}
+
+impl DiscoverySchemaRequestStore for CandidateDiscoverySchemaRequests<'_, '_, '_, '_, '_> {
+    fn record_request(
+        &mut self,
+        before_issue: usize,
+        location: &str,
+        contract: &str,
+        document: &Value,
+        max_document_bytes: usize,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal> {
+        if self.finished
+            || location.is_empty()
+            || location.len() > 4096
+            || contract.is_empty()
+            || contract.len() > 4096
+            || max_document_bytes == 0
+            || self
+                .last_before_issue
+                .is_some_and(|previous| previous > before_issue)
+            || self
+                .max_document_bytes
+                .is_some_and(|limit| limit != max_document_bytes)
+        {
+            return Err(source_refusal());
+        }
+        let base_workspace = Self::row_text_state(location.len())?
+            .checked_add(Self::row_text_state(contract.len())?)
+            .and_then(|state| state.checked_add(estimate_value_state(document).ok()?))
+            .and_then(|state| state.checked_add(size_of::<SchemaRequest>() + 512))
+            .ok_or(ItemRefusal::Budget)?;
+        self.preflight(base_workspace, max_state_bytes)?;
+        let document_bytes = json_len(document, max_document_bytes)?;
+        if document_bytes == 0 {
+            return Err(source_refusal());
+        }
+        let workspace = Self::request_workspace(location.len(), contract.len(), document_bytes)?;
+        self.preflight(workspace, max_state_bytes)?;
+        let encoded = encoded_json(document, document_bytes, max_state_bytes)?;
+        let ordinal = self.observation_rows.to_be_bytes();
+        let before_issue = usize_u64(before_issue)?.to_be_bytes();
+        self.context.check()?;
+        self.charge_scan_rows(1)?;
+        let inserted = self
+            .db
+            .execute(
+                "INSERT INTO sf_discovery_schema_requests(ordinal,before_issue,location,contract,document) VALUES(?1,?2,?3,?4,?5)",
+                params![
+                    ordinal.as_slice(),
+                    before_issue.as_slice(),
+                    location,
+                    contract,
+                    encoded.as_slice(),
+                ],
+            )
+            .map_err(sql_refusal)?;
+        self.context.check()?;
+        if inserted != 1 {
+            return Err(source_refusal());
+        }
+        self.observation_rows = self
+            .observation_rows
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.serialized_write_bytes = self
+            .serialized_write_bytes
+            .checked_add(usize_u64(encoded.len())?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.max_document_bytes = Some(max_document_bytes);
+        self.last_before_issue = Some(
+            usize::try_from(u64::from_be_bytes(before_issue)).map_err(|_| ItemRefusal::Budget)?,
+        );
+        self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
+        Ok(workspace)
+    }
+
+    fn finish(
+        &mut self,
+        expected_rows: u64,
+        direct_issue_count: usize,
+        max_state_bytes: usize,
+    ) -> Result<DiscoverySchemaRequestStoreCost, ItemRefusal> {
+        if self.finished
+            || self.observation_rows != expected_rows
+            || self
+                .last_before_issue
+                .is_some_and(|ordinal| ordinal > direct_issue_count)
+            || (expected_rows > 0) != self.max_document_bytes.is_some()
+        {
+            return Err(source_refusal());
+        }
+        let workspace = size_of::<(i64, [u8; 8], [u8; 8])>() + 256;
+        self.preflight(workspace, max_state_bytes)?;
+        let count_scan_rows = usize::try_from(expected_rows)
+            .map_err(|_| ItemRefusal::Budget)?
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        self.charge_scan_rows(count_scan_rows)?;
+        let mut statement = self
+            .db
+            .prepare(
+                "SELECT count(*),min(ordinal),max(ordinal),max(before_issue) FROM sf_discovery_schema_requests",
+            )
+            .map_err(sql_refusal)?;
+        let mut rows = statement.query([]).map_err(sql_refusal)?;
+        let actual = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                let count = row.get::<_, i64>(0).map_err(sql_refusal)?;
+                let min = if count == 0 {
+                    None
+                } else {
+                    Some(row_blob(row, 1).map_err(sql_refusal)?.to_vec())
+                };
+                let max = if count == 0 {
+                    None
+                } else {
+                    Some(row_blob(row, 2).map_err(sql_refusal)?.to_vec())
+                };
+                let last_issue = if count == 0 {
+                    None
+                } else {
+                    Some(row_blob(row, 3).map_err(sql_refusal)?.to_vec())
+                };
+                Ok((count, min, max, last_issue))
+            })
+            .transpose()?
+            .ok_or_else(source_refusal)?;
+        let expected_last_ordinal = expected_rows.checked_sub(1);
+        let expected_last_issue = self
+            .last_before_issue
+            .map(usize_u64)
+            .transpose()?
+            .map(u64::to_be_bytes)
+            .map(|bytes| bytes.to_vec());
+        if rows.next().map_err(sql_refusal)?.is_some()
+            || actual.0 < 0
+            || u64::try_from(actual.0).map_err(|_| source_refusal())? != expected_rows
+            || actual.1.as_deref().map(checked_u64_blob).transpose()?
+                != Some(0).filter(|_| expected_rows > 0)
+            || actual.2.as_deref().map(checked_u64_blob).transpose()? != expected_last_ordinal
+            || actual.3 != expected_last_issue
+        {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        self.expected_rows = Some(expected_rows);
+        self.direct_issue_count = Some(direct_issue_count);
+        self.finished = true;
+        self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
+        Ok(self.cost())
+    }
+
+    fn next_request(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(Option<DiscoverySchemaRequest>, usize), ItemRefusal> {
+        if !self.finished || self.drained || self.read_rows > self.observation_rows {
+            return Err(source_refusal());
+        }
+        let metadata_workspace = size_of::<([u8; 8], i64, i64, i64)>() + 256;
+        self.preflight(metadata_workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_scan_rows(1)?;
+        let sql = if self.cursor_ordinal.is_some() {
+            "SELECT ordinal,length(location),length(contract),length(document) FROM sf_discovery_schema_requests WHERE ordinal>?1 ORDER BY ordinal LIMIT 1"
+        } else {
+            "SELECT ordinal,length(location),length(contract),length(document) FROM sf_discovery_schema_requests ORDER BY ordinal LIMIT 1"
+        };
+        let mut statement = self.db.prepare(sql).map_err(sql_refusal)?;
+        let mut rows = if let Some(after) = self.cursor_ordinal {
+            statement
+                .query([after.to_be_bytes().as_slice()])
+                .map_err(sql_refusal)?
+        } else {
+            statement.query([]).map_err(sql_refusal)?
+        };
+        let metadata = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                Ok((
+                    row_blob(row, 0)?.to_vec(),
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, i64>(3)?,
+                ))
+            })
+            .transpose()
+            .map_err(sql_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        self.context.check()?;
+        let Some((ordinal, location_bytes, contract_bytes, document_bytes)) = metadata else {
+            if self.read_rows != self.observation_rows {
+                return Err(source_refusal());
+            }
+            self.drained = true;
+            self.workspace_peak_bytes = self.workspace_peak_bytes.max(metadata_workspace);
+            return Ok((None, metadata_workspace));
+        };
+        let ordinal = checked_u64_blob(&ordinal)?;
+        let expected_ordinal = self.read_rows;
+        let location_bytes = usize::try_from(location_bytes).map_err(|_| source_refusal())?;
+        let contract_bytes = usize::try_from(contract_bytes).map_err(|_| source_refusal())?;
+        let document_bytes = usize::try_from(document_bytes).map_err(|_| source_refusal())?;
+        let max_document_bytes = self.max_document_bytes.ok_or_else(source_refusal)?;
+        if ordinal != expected_ordinal
+            || self
+                .cursor_ordinal
+                .is_some_and(|previous| ordinal <= previous)
+            || location_bytes == 0
+            || location_bytes > 4096
+            || contract_bytes == 0
+            || contract_bytes > 4096
+            || document_bytes == 0
+            || document_bytes > max_document_bytes
+        {
+            return Err(source_refusal());
+        }
+        let workspace = metadata_workspace.max(Self::request_workspace(
+            location_bytes,
+            contract_bytes,
+            document_bytes,
+        )?);
+        self.preflight(workspace, max_state_bytes)?;
+        self.context.check()?;
+        self.charge_scan_rows(1)?;
+        let mut statement = self.db.prepare(
+            "SELECT before_issue,location,contract,document FROM sf_discovery_schema_requests WHERE ordinal=?1",
+        ).map_err(sql_refusal)?;
+        let mut rows = statement
+            .query([ordinal.to_be_bytes().as_slice()])
+            .map_err(sql_refusal)?;
+        let stored = rows
+            .next()
+            .map_err(sql_refusal)?
+            .map(|row| {
+                let before_issue = row_blob(row, 0)?.to_vec();
+                let location = bounded_row_text(row, 1, workspace)?;
+                let contract = bounded_row_text(row, 2, workspace)?;
+                let document = match row.get_ref(3)? {
+                    rusqlite::types::ValueRef::Blob(raw) if raw.len() == document_bytes => {
+                        raw.to_vec()
+                    }
+                    _ => return Err(rusqlite::Error::InvalidQuery),
+                };
+                if before_issue.len() != 8
+                    || location.len() != location_bytes
+                    || contract.len() != contract_bytes
+                {
+                    return Err(rusqlite::Error::InvalidQuery);
+                }
+                Ok((before_issue, location, contract, document))
+            })
+            .transpose()
+            .map_err(sql_refusal)?
+            .ok_or_else(source_refusal)?;
+        if rows.next().map_err(sql_refusal)?.is_some() {
+            return Err(source_refusal());
+        }
+        drop(rows);
+        drop(statement);
+        let (before_issue, location, contract, raw) = stored;
+        let before_issue =
+            usize::try_from(checked_u64_blob(&before_issue)?).map_err(|_| source_refusal())?;
+        let direct_issue_count = self.direct_issue_count.ok_or_else(source_refusal)?;
+        if before_issue > direct_issue_count
+            || self
+                .last_read_before_issue
+                .is_some_and(|previous| previous > before_issue)
+        {
+            return Err(source_refusal());
+        }
+        let document = serde_json::from_slice::<Value>(&raw).map_err(|_| source_refusal())?;
+        self.serialized_read_bytes = self
+            .serialized_read_bytes
+            .checked_add(usize_u64(raw.len())?)
+            .ok_or(ItemRefusal::Budget)?;
+        self.read_rows = self.read_rows.checked_add(1).ok_or(ItemRefusal::Budget)?;
+        self.last_read_before_issue = Some(before_issue);
+        self.cursor_ordinal = Some(ordinal);
+        self.workspace_peak_bytes = self.workspace_peak_bytes.max(workspace);
+        self.context.check()?;
+        Ok((
+            Some(DiscoverySchemaRequest {
+                before_issue,
+                location,
+                contract,
+                document,
+            }),
+            workspace,
+        ))
+    }
+
+    fn cost(&self) -> DiscoverySchemaRequestStoreCost {
+        CandidateDiscoverySchemaRequests::cost(self)
+    }
+}
+
 struct BiblioEventsProvider<'a, 'candidate, 'host, 'cancel> {
     context: ProviderContext<'candidate, 'host, 'cancel>,
     db: &'a PinnedSqliteConnection,
@@ -3232,6 +3633,7 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
             &mut dyn DiscoverySeenIds,
             &mut dyn DiscoveryRunSummaryStore,
             &mut dyn DiscoveryEventSummaryStore,
+            &mut dyn DiscoverySchemaRequestStore,
             &mut dyn SourceFoundationBiblioStoredSink,
         ) -> Result<R, ItemRefusal>,
     ) -> Result<R, ItemRefusal> {
@@ -3319,6 +3721,25 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 finished: false,
                 drained: false,
             };
+            let mut discovery_schema_requests = CandidateDiscoverySchemaRequests {
+                context,
+                db: &self.db,
+                scan_rows,
+                observation_rows: 0,
+                read_rows: 0,
+                serialized_write_bytes: 0,
+                serialized_read_bytes: 0,
+                scan_row_operations: 0,
+                workspace_peak_bytes: 0,
+                max_document_bytes: None,
+                last_before_issue: None,
+                last_read_before_issue: None,
+                cursor_ordinal: None,
+                expected_rows: None,
+                direct_issue_count: None,
+                finished: false,
+                drained: false,
+            };
             let mut biblio = BiblioStoredProvider {
                 events: BiblioEventsProvider {
                     context,
@@ -3351,9 +3772,12 @@ impl<'candidate, 'host> SpoolDefaultStore<'candidate, 'host> {
                 &mut discovery_seen_ids,
                 &mut discovery_run_summaries,
                 &mut discovery_event_summaries,
+                &mut discovery_schema_requests,
                 &mut biblio,
             )?;
+            discovery_schema_requests.verify_drained()?;
             drop(biblio);
+            drop(discovery_schema_requests);
             drop(discovery_event_summaries);
             drop(discovery_run_summaries);
             drop(discovery_seen_ids);

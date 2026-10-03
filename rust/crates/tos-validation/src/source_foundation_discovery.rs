@@ -317,6 +317,47 @@ pub struct SchemaRequest {
     pub document: Value,
 }
 
+/// Candidate-local spool for decoded Discovery schema instances. CMD owns
+/// persistent storage and candidate binding; this portable port carries only
+/// the authentic request metadata and parsed current document.
+pub trait DiscoverySchemaRequestStore {
+    fn record_request(
+        &mut self,
+        before_issue: usize,
+        location: &str,
+        contract: &str,
+        document: &Value,
+        max_document_bytes: usize,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal>;
+
+    fn finish(
+        &mut self,
+        expected_rows: u64,
+        direct_issue_count: usize,
+        max_state_bytes: usize,
+    ) -> Result<DiscoverySchemaRequestStoreCost, ItemRefusal>;
+
+    /// Return one request at a time from the completed keyed spool. The row
+    /// workspace includes parsing its stored JSON and must be precharged by
+    /// the consumer alongside the actual schema worker's remaining budget.
+    fn next_request(
+        &mut self,
+        max_state_bytes: usize,
+    ) -> Result<(Option<SchemaRequest>, usize), ItemRefusal>;
+
+    fn cost(&self) -> DiscoverySchemaRequestStoreCost;
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct DiscoverySchemaRequestStoreCost {
+    pub observation_rows: u64,
+    pub serialized_write_bytes: u64,
+    pub serialized_read_bytes: u64,
+    pub workspace_state_bytes: usize,
+    pub scan_row_operations: u64,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnsupportedScope {
     pub location: String,
@@ -635,6 +676,17 @@ pub struct Cost {
     /// SQLite event summary point/write/count operations charged to the shared
     /// candidate scan-row limit.
     pub candidate_discovery_event_summary_scan_row_operations: u64,
+    /// Discovery schema documents written to the candidate request spool.
+    /// Finite callers retain the compatible request vector and report zero.
+    pub candidate_discovery_schema_request_count: u64,
+    /// Logical serialized JSON bytes written to the candidate request spool.
+    pub candidate_discovery_schema_request_serialized_write_bytes: u64,
+    /// Logical serialized JSON bytes materialized for one-at-a-time worker use.
+    pub candidate_discovery_schema_request_serialized_read_bytes: u64,
+    /// High-water row workspace for request writes and worker-side rereads.
+    pub candidate_discovery_schema_request_peak_workspace_state_bytes: usize,
+    /// SQL row operations charged to the shared candidate scan limit.
+    pub candidate_discovery_schema_request_scan_row_operations: u64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -787,6 +839,7 @@ struct Inspector<'s, 'p, S: LayerFamilySource + ?Sized, I: Copy + Eq = ()> {
     candidate_invalid_schema_proofs: Option<&'p dyn CandidateInvalidArtifactSchemaProof<I>>,
     candidate_discovery_run_summaries: Option<&'p mut dyn DiscoveryRunSummaryStore>,
     candidate_discovery_event_summaries: Option<&'p mut dyn DiscoveryEventSummaryStore>,
+    candidate_discovery_schema_requests: Option<&'p mut dyn DiscoverySchemaRequestStore>,
     limits: ItemLimits,
     physical: Option<&'s SourcePhysicalFacts>,
     issues: Vec<Issue>,
@@ -812,6 +865,8 @@ struct Inspector<'s, 'p, S: LayerFamilySource + ?Sized, I: Copy + Eq = ()> {
     candidate_discovery_run_summary_peak_workspace_state_bytes: usize,
     candidate_discovery_seen_ids_peak_workspace_state_bytes: usize,
     candidate_discovery_event_summary_peak_workspace_state_bytes: usize,
+    candidate_discovery_schema_request_peak_workspace_state_bytes: usize,
+    candidate_discovery_schema_request_count: u64,
     candidate_discovery_event_json_limit: Option<usize>,
 }
 
@@ -1214,22 +1269,63 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             self.issue(location, "missing-current-schema", contract)?;
             return Ok(());
         }
-        if self.schema_requests.len() >= self.limits.max_issues {
+        let request_count = if self.candidate_discovery_schema_requests.is_some() {
+            usize::try_from(self.candidate_discovery_schema_request_count)
+                .map_err(|_| ItemRefusal::Budget)?
+        } else {
+            self.schema_requests.len()
+        };
+        if request_count >= self.limits.max_issues {
             return Err(ItemRefusal::Budget);
         }
-        // The scheduled decoded document is the one bounded aggregate copy
-        // retained for schema diagnostics; no second boolean execution runs.
-        self.reserve_state(raw_size.checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
+        if self.candidate_discovery_schema_requests.is_some() {
+            let remaining_state_bytes = self.remaining_state_bytes()?;
+            let store = self
+                .candidate_discovery_schema_requests
+                .as_deref_mut()
+                .ok_or_else(|| {
+                    ItemRefusal::Source(
+                        "candidate Discovery schema request store is unavailable".into(),
+                    )
+                })?;
+            let workspace_state_bytes = store.record_request(
+                self.issues.len(),
+                location,
+                contract,
+                document,
+                self.limits.max_member_bytes,
+                remaining_state_bytes,
+            )?;
+            self.check_temporary_state(workspace_state_bytes)?;
+            self.candidate_discovery_schema_request_peak_workspace_state_bytes = self
+                .candidate_discovery_schema_request_peak_workspace_state_bytes
+                .max(workspace_state_bytes);
+            self.candidate_artifact_evidence_peak_state_bytes =
+                self.candidate_artifact_evidence_peak_state_bytes.max(
+                    self.candidate_current_artifact_evidence_state_bytes
+                        .checked_add(workspace_state_bytes)
+                        .ok_or(ItemRefusal::Budget)?,
+                );
+            self.candidate_discovery_schema_request_count = self
+                .candidate_discovery_schema_request_count
+                .checked_add(1)
+                .ok_or(ItemRefusal::Budget)?;
+        } else {
+            // The scheduled decoded document is the one bounded aggregate
+            // copy retained for schema diagnostics; no second boolean path
+            // runs alongside it.
+            self.reserve_state(raw_size.checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
+            self.schema_requests.push(SchemaRequest {
+                before_issue: self.issues.len(),
+                location: location.to_owned(),
+                contract: contract.to_owned(),
+                document: document.clone(),
+            });
+        }
         self.document_copies = self
             .document_copies
             .checked_add(1)
             .ok_or(ItemRefusal::Budget)?;
-        self.schema_requests.push(SchemaRequest {
-            before_issue: self.issues.len(),
-            location: location.to_owned(),
-            contract: contract.to_owned(),
-            document: document.clone(),
-        });
         Ok(())
     }
 
@@ -7087,6 +7183,7 @@ fn inspect_internal<S: LayerFamilySource + ?Sized>(
         None,
         None,
         None,
+        None,
     )
     .map(|output| output.report)
 }
@@ -7185,6 +7282,7 @@ pub fn inspect_candidate_with_artifact_replays_and_records_with_proofs<
         None,
         None,
         None,
+        None,
     )?;
     input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
     Ok(SourceFoundationCandidateDiscoveryReport {
@@ -7231,6 +7329,7 @@ pub fn inspect_candidate_with_artifact_evidence_provider<
         None,
         None,
         None,
+        None,
         require_local_payloads,
     )
 }
@@ -7267,6 +7366,7 @@ pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids<
         physical,
         evidence_provider,
         Some(discovery_seen_ids),
+        None,
         None,
         None,
         None,
@@ -7312,6 +7412,7 @@ pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_su
         Some(discovery_run_summaries),
         None,
         None,
+        None,
         require_local_payloads,
     )
 }
@@ -7354,6 +7455,52 @@ pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_su
         Some(discovery_run_summaries),
         Some(discovery_event_summaries),
         Some(max_event_json_bytes),
+        None,
+        require_local_payloads,
+    )
+}
+
+/// Candidate variant that streams each decoded Discovery document into the
+/// invocation-scoped schema-request store for the maintained CMD diagnostics
+/// worker to read back one request at a time.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests<
+    S: LayerFamilySource + ?Sized,
+    I: Copy + Eq,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    paths: &dyn SourceFoundationDefaultPaths,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    limits: ItemLimits,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    discovery_seen_ids: &mut dyn DiscoverySeenIds,
+    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
+    discovery_event_summaries: &mut dyn DiscoveryEventSummaryStore,
+    discovery_schema_requests: &mut dyn DiscoverySchemaRequestStore,
+    max_event_json_bytes: usize,
+    require_local_payloads: bool,
+) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
+    inspect_candidate_with_artifact_evidence_provider_impl(
+        source,
+        input,
+        coverage,
+        paths,
+        prior_events,
+        records_lookup,
+        records,
+        limits,
+        physical,
+        evidence_provider,
+        Some(discovery_seen_ids),
+        Some(discovery_run_summaries),
+        Some(discovery_event_summaries),
+        Some(max_event_json_bytes),
+        Some(discovery_schema_requests),
         require_local_payloads,
     )
 }
@@ -7377,6 +7524,7 @@ fn inspect_candidate_with_artifact_evidence_provider_impl<
     discovery_run_summaries: Option<&mut dyn DiscoveryRunSummaryStore>,
     discovery_event_summaries: Option<&mut dyn DiscoveryEventSummaryStore>,
     candidate_discovery_event_json_limit: Option<usize>,
+    discovery_schema_requests: Option<&mut dyn DiscoverySchemaRequestStore>,
     require_local_payloads: bool,
 ) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
     source.checkpoint(limits.deadline)?;
@@ -7417,6 +7565,7 @@ fn inspect_candidate_with_artifact_evidence_provider_impl<
         discovery_run_summaries,
         discovery_event_summaries,
         candidate_discovery_event_json_limit,
+        discovery_schema_requests,
     )?;
     input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
     Ok(SourceFoundationCandidateDiscoveryReport {
@@ -7548,6 +7697,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     candidate_discovery_run_summaries: Option<&mut dyn DiscoveryRunSummaryStore>,
     candidate_discovery_event_summaries: Option<&mut dyn DiscoveryEventSummaryStore>,
     candidate_discovery_event_json_limit: Option<usize>,
+    candidate_discovery_schema_requests: Option<&mut dyn DiscoverySchemaRequestStore>,
 ) -> Result<DiscoveryKernelOutput, ItemRefusal> {
     if candidate_discovery_event_summaries.is_some()
         && (candidate_input.is_none()
@@ -7557,10 +7707,14 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             != candidate_discovery_event_json_limit.is_some()
         || candidate_discovery_event_json_limit
             .is_some_and(|limit| limit < 2 || limit > limits.max_member_bytes)
+        || candidate_discovery_schema_requests.is_some()
+            && (candidate_input.is_none()
+                || discovery_seen_ids.is_none()
+                || candidate_artifact_evidence_provider.is_none()
+                || candidate_discovery_event_summaries.is_none())
     {
         return Err(ItemRefusal::Source(
-            "candidate Discovery event summary store requires the bounded evidence and ID providers"
-                .into(),
+            "candidate Discovery spill requires its bounded evidence and ID providers".into(),
         ));
     }
     let mut inspector = Inspector {
@@ -7575,6 +7729,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         candidate_invalid_schema_proofs,
         candidate_discovery_run_summaries,
         candidate_discovery_event_summaries,
+        candidate_discovery_schema_requests,
         candidate_discovery_event_json_limit,
         limits,
         physical,
@@ -7603,6 +7758,8 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         candidate_discovery_run_summary_peak_workspace_state_bytes: 0,
         candidate_discovery_seen_ids_peak_workspace_state_bytes: 0,
         candidate_discovery_event_summary_peak_workspace_state_bytes: 0,
+        candidate_discovery_schema_request_peak_workspace_state_bytes: 0,
+        candidate_discovery_schema_request_count: 0,
     };
     let mut previous_path: Option<String> = None;
     let mut previous_path_state = 0usize;
@@ -9228,6 +9385,30 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     } else {
         None
     };
+    let discovery_schema_request_cost = if inspector.candidate_discovery_schema_requests.is_some() {
+        let expected_rows = inspector.candidate_discovery_schema_request_count;
+        let direct_issue_count = inspector.issues.len();
+        let remaining_state_bytes = inspector.remaining_state_bytes()?;
+        let cost = inspector
+            .candidate_discovery_schema_requests
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .finish(expected_rows, direct_issue_count, remaining_state_bytes)?;
+        inspector.check_temporary_state(cost.workspace_state_bytes)?;
+        inspector.candidate_discovery_schema_request_peak_workspace_state_bytes = inspector
+            .candidate_discovery_schema_request_peak_workspace_state_bytes
+            .max(cost.workspace_state_bytes);
+        inspector.candidate_artifact_evidence_peak_state_bytes =
+            inspector.candidate_artifact_evidence_peak_state_bytes.max(
+                inspector
+                    .candidate_current_artifact_evidence_state_bytes
+                    .checked_add(cost.workspace_state_bytes)
+                    .ok_or(ItemRefusal::Budget)?,
+            );
+        Some(cost)
+    } else {
+        None
+    };
     let status = if inspector.unsupported.is_empty() {
         ScopeStatus::Complete
     } else {
@@ -9294,6 +9475,23 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                     ),
                 candidate_discovery_event_summary_scan_row_operations: discovery_event_summary_cost
                     .map_or(0, |cost| cost.scan_row_operations),
+                candidate_discovery_schema_request_count: discovery_schema_request_cost
+                    .map_or(0, |cost| cost.observation_rows),
+                candidate_discovery_schema_request_serialized_write_bytes:
+                    discovery_schema_request_cost.map_or(0, |cost| cost.serialized_write_bytes),
+                candidate_discovery_schema_request_serialized_read_bytes:
+                    discovery_schema_request_cost.map_or(0, |cost| cost.serialized_read_bytes),
+                candidate_discovery_schema_request_peak_workspace_state_bytes:
+                    discovery_schema_request_cost.map_or(
+                        inspector.candidate_discovery_schema_request_peak_workspace_state_bytes,
+                        |cost| {
+                            inspector
+                                .candidate_discovery_schema_request_peak_workspace_state_bytes
+                                .max(cost.workspace_state_bytes)
+                        },
+                    ),
+                candidate_discovery_schema_request_scan_row_operations:
+                    discovery_schema_request_cost.map_or(0, |cost| cost.scan_row_operations),
             },
         },
         candidate_direct_source_bytes: inspector.candidate_direct_source_bytes,

@@ -1025,7 +1025,12 @@ pub(crate) fn finish_candidate_payload_and_physical<'candidate, 'host>(
             .ok_or_else(|| incomplete("candidate final history state allowance overflow"))?;
         if let Some(history) = view.history.as_deref_mut() {
             if history
-                .recheck(free.source_read_bytes, history_state_limit, deadline, cancelled)
+                .recheck(
+                    free.source_read_bytes,
+                    history_state_limit,
+                    deadline,
+                    cancelled,
+                )
                 .is_err()
             {
                 let (after_read, _) = history.usage();
@@ -1042,7 +1047,9 @@ pub(crate) fn finish_candidate_payload_and_physical<'candidate, 'host>(
                 known_external_reads = partial_read
                     .checked_sub(partial_shared)
                     .ok_or_else(|| incomplete("candidate partial history accounting differs"))?;
-                return Err(incomplete("candidate final history custody recheck refused"));
+                return Err(incomplete(
+                    "candidate final history custody recheck refused",
+                ));
             }
         }
         let history_after = view.history.as_deref().map(|history| history.usage());
@@ -1081,7 +1088,9 @@ pub(crate) fn finish_candidate_payload_and_physical<'candidate, 'host>(
             .checked_sub(io_before.read_attempted_bytes)
             .ok_or_else(|| incomplete("candidate final history IO counter regressed"))?;
         if history_shared > shared_after_history {
-            return Err(incomplete("candidate final history share exceeds original IO"));
+            return Err(incomplete(
+                "candidate final history share exceeds original IO",
+            ));
         }
         let history_used = shared_after_history
             .checked_add(known_external_reads)
@@ -1151,12 +1160,11 @@ pub(crate) fn finish_candidate_payload_and_physical<'candidate, 'host>(
             .restrict_remaining_read_budget(bounded_usize(physical_headroom)?, deadline, cancelled)
             .map_err(owner)?;
         if let Err(error) = view.physical.recheck_candidate(
-                view.sources,
-                view.artifact_sources.as_deref_mut(),
-                input,
-                view.coverage,
-            )
-        {
+            view.sources,
+            view.artifact_sources.as_deref_mut(),
+            input,
+            view.coverage,
+        ) {
             let partial = view.physical.cost();
             if let (Some(read), Some(shared)) = (
                 partial.bytes_read.checked_sub(physical_before.bytes_read),
@@ -1242,12 +1250,8 @@ pub(crate) fn finish_candidate_payload_and_physical<'candidate, 'host>(
     };
     let measured_before = view.remaining_budget.measured_charged().source_read_bytes;
     let phase_read = usage.source_read_bytes.amount;
-    let completion_result = complete_window(
-        view.execution_limits,
-        view.remaining_budget,
-        ticket,
-        usage,
-    );
+    let completion_result =
+        complete_window(view.execution_limits, view.remaining_budget, ticket, usage);
     let measured_after = view.remaining_budget.measured_charged().source_read_bytes;
     if measured_after.checked_sub(measured_before) == Some(phase_read) {
         let io_after = original_io.snapshot();
@@ -1288,14 +1292,7 @@ pub(crate) fn finish_candidate_payload_and_physical<'candidate, 'host>(
 /// The returned report is the opaque report sealed by `IndexSink`'s actual
 /// Records receiver; this function creates no whole-admission token.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn evaluate_spooled_admission<
-    'work,
-    'input,
-    'candidate,
-    'host,
-    'cancel,
-    'signal,
->(
+pub(crate) fn evaluate_spooled_admission<'work, 'input, 'candidate, 'host, 'cancel, 'signal>(
     mut view: super::foundation_bootstrap::CandidateFoundationBootstrapView<
         'work,
         'input,
@@ -1322,13 +1319,13 @@ pub(crate) fn evaluate_spooled_admission<
     ),
     FoundationOrchestratorError,
 > {
+    use super::foundation_reader::{FoundationRuleReadLimits, FoundationRuleSource};
     use crate::source_admission_spooled_candidate::CandidateFence;
     use crate::source_admission_spooled_defaults::SpoolDefaultStore;
     use crate::source_admission_spooled_index::{
-        CandidateRecordsReportVerified, IndexSink, SpoolIndexLimits,
-        CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES,
+        CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES, CandidateRecordsReportVerified,
+        IndexSink, SpoolIndexLimits,
     };
-    use super::foundation_reader::{FoundationRuleReadLimits, FoundationRuleSource};
     use std::num::NonZeroUsize;
     use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};
     use tos_validation::source_foundation_records::SourceFoundationRecordsPageBudget;
@@ -1359,10 +1356,15 @@ pub(crate) fn evaluate_spooled_admission<
         || !view.physical.forwards_physical_reads_to_shared_io()
         || payloads.deadline() != deadline
         || view.physical.deadline() != deadline
-        || view.remaining_budget.verify_invocation(view.invocation).is_err()
+        || view
+            .remaining_budget
+            .verify_invocation(view.invocation)
+            .is_err()
         || view.execution_limits.deadline != deadline
     {
-        return Err(incomplete("candidate runner input or shared-ledger binding refused"));
+        return Err(incomplete(
+            "candidate runner input or shared-ledger binding refused",
+        ));
     }
     let fence = *input.input_identity();
     if view.input.input_identity() != &fence
@@ -1380,7 +1382,10 @@ pub(crate) fn evaluate_spooled_admission<
         .io_usage()
         .map_err(FoundationOrchestratorError::Admission)?;
     if *view.candidate_io_adopted
-        != (io_entry.read_attempted_bytes, io_entry.write_attempted_bytes)
+        != (
+            io_entry.read_attempted_bytes,
+            io_entry.write_attempted_bytes,
+        )
     {
         return Err(incomplete("candidate runner IO adoption differs"));
     }
@@ -1415,7 +1420,9 @@ pub(crate) fn evaluate_spooled_admission<
     }
     let minimal_callback = std::mem::size_of::<IndexSink<'candidate>>()
         .checked_add(std::mem::size_of::<SpoolDefaultStore<'candidate, 'host>>())
-        .and_then(|bytes| bytes.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES))
+        .and_then(|bytes| {
+            bytes.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)
+        })
         .ok_or_else(|| incomplete("candidate callback inline state overflow"))?;
     input
         .require_callback_state(minimal_callback, original_operation_state)
@@ -1457,11 +1464,8 @@ pub(crate) fn evaluate_spooled_admission<
     candidate
         .restrict_remaining_io(image_read_reserve, remaining_write_before_schema)
         .map_err(FoundationOrchestratorError::Admission)?;
-    let image_budget = ticket_worker_budget(
-        &schema_ticket,
-        deadline,
-        budgets.worker_address_space_bytes,
-    )?;
+    let image_budget =
+        ticket_worker_budget(&schema_ticket, deadline, budgets.worker_address_space_bytes)?;
     let worker_image = VerifiedWorkerImageHandle::prepare(
         view.execution_limits.worker.clone(),
         image_budget,
@@ -1484,7 +1488,10 @@ pub(crate) fn evaluate_spooled_admission<
         .checked_sub(worker_image_read)
         .ok_or_else(|| incomplete("candidate worker image exceeds source reservation"))?;
     candidate
-        .restrict_remaining_io(candidate_after_image_headroom, remaining_write_before_schema)
+        .restrict_remaining_io(
+            candidate_after_image_headroom,
+            remaining_write_before_schema,
+        )
         .map_err(FoundationOrchestratorError::Admission)?;
 
     input
@@ -1499,9 +1506,7 @@ pub(crate) fn evaluate_spooled_admission<
                 return Err(ItemRefusal::Budget);
             }
             largest_member = largest_member.max(size);
-            if member.path.starts_with("ToS/contracts/")
-                && member.path.ends_with(".schema.json")
-            {
+            if member.path.starts_with("ToS/contracts/") && member.path.ends_with(".schema.json") {
                 schema_count = schema_count.checked_add(1).ok_or(ItemRefusal::Budget)?;
                 schema_bytes = schema_bytes.checked_add(size).ok_or(ItemRefusal::Budget)?;
                 schema_max_bytes = schema_max_bytes.max(size);
@@ -1584,7 +1589,12 @@ pub(crate) fn evaluate_spooled_admission<
     ) {
         Ok(worker) => worker,
         Err(error) => {
-            return fail_window(view.execution_limits, view.remaining_budget, schema_ticket, error);
+            return fail_window(
+                view.execution_limits,
+                view.remaining_budget,
+                schema_ticket,
+                error,
+            );
         }
     };
     let schema_base_state = schema_state_upper_bound(
@@ -1685,7 +1695,9 @@ pub(crate) fn evaluate_spooled_admission<
         .and_then(|state| state.checked_add(view.physical.cost().retained_state_bytes))
         .and_then(|state| state.checked_add(std::mem::size_of::<BiblioRecordExecutor>()))
         .and_then(|state| state.checked_add(std::mem::size_of::<IndexSink<'candidate>>()))
-        .and_then(|state| state.checked_add(std::mem::size_of::<SpoolDefaultStore<'candidate, 'host>>()))
+        .and_then(|state| {
+            state.checked_add(std::mem::size_of::<SpoolDefaultStore<'candidate, 'host>>())
+        })
         .ok_or_else(|| incomplete("candidate dependent callback held-state overflow"))?;
     let callback_header_state = CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES
         .checked_add(std::mem::size_of::<std::sync::Arc<()>>())
@@ -1750,7 +1762,9 @@ pub(crate) fn evaluate_spooled_admission<
         records_stream,
     )
     .map_err(owner)?;
-    record_executor.set_operation_budget(records_stream).map_err(owner)?;
+    record_executor
+        .set_operation_budget(records_stream)
+        .map_err(owner)?;
     record_executor
         .enable_diagnostics_v2(record_diagnostic_limits)
         .map_err(owner)?;
@@ -1758,8 +1772,7 @@ pub(crate) fn evaluate_spooled_admission<
         .set_shared_schema_worker_quota(worker_quota.clone())
         .map_err(owner)?;
 
-    let stored_operation_state = callback_workspace_state
-        .min(defaults_limits.max_row_state_bytes);
+    let stored_operation_state = callback_workspace_state.min(defaults_limits.max_row_state_bytes);
     let stored_page_state = (stored_operation_state / 3).max(1);
     let page_state = NonZeroUsize::new(stored_page_state)
         .ok_or_else(|| incomplete("candidate stored page-state ceiling is zero"))?;
@@ -1775,10 +1788,11 @@ pub(crate) fn evaluate_spooled_admission<
         max_cursor_bytes: cursor_state,
     };
     let max_scan_rows = records_profile.source_read_bytes.min(u64::MAX - 1).max(1);
-    let stored_limits = tos_validation::source_foundation_default_rules::SourceFoundationDefaultStoredLimits {
-        page_budget,
-        max_scan_rows,
-    };
+    let stored_limits =
+        tos_validation::source_foundation_default_rules::SourceFoundationDefaultStoredLimits {
+            page_budget,
+            max_scan_rows,
+        };
     let item_limits = view
         .execution_limits
         .item_limits(records_profile)
@@ -1788,9 +1802,9 @@ pub(crate) fn evaluate_spooled_admission<
             .map_err(|_| incomplete("candidate bibliography query-byte range"))?,
     )
     .map_err(owner)?;
-    let event_json_cap = item_limits
-        .max_state_bytes
-        .min(usize::try_from(item_limits.max_total_bytes.min(usize::MAX as u64)).unwrap_or(usize::MAX));
+    let event_json_cap = item_limits.max_state_bytes.min(
+        usize::try_from(item_limits.max_total_bytes.min(usize::MAX as u64)).unwrap_or(usize::MAX),
+    );
     if event_json_cap < 2 {
         return fail_window(
             view.execution_limits,
@@ -1805,7 +1819,10 @@ pub(crate) fn evaluate_spooled_admission<
         .usage()
         .map_err(|_| incomplete("candidate schema quota unavailable"))?;
     candidate
-        .restrict_remaining_io(records_ticket.remaining().source_read_bytes, remaining_write)
+        .restrict_remaining_io(
+            records_ticket.remaining().source_read_bytes,
+            remaining_write,
+        )
         .map_err(FoundationOrchestratorError::Admission)?;
     payloads
         .restrict_remaining_budget(
@@ -2074,6 +2091,7 @@ pub(crate) fn evaluate_spooled_admission<
                  discovery_seen_ids,
                  discovery_run_summaries,
                  discovery_event_summaries,
+                 discovery_schema_requests,
                  biblio_sink| {
                     let mut biblio_schema_worker = schema_worker.borrow_mut();
                     let biblio_report = tos_validation::biblio_rules::inspect_bibliography_from_input_stored(
@@ -2161,7 +2179,7 @@ pub(crate) fn evaluate_spooled_admission<
                             },
                             max_event_map_bytes: event_state_cap.min(available_after_biblio),
                         };
-                    let stored_report = tos_validation::source_foundation_default_rules::inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries(
+                    let stored_report = tos_validation::source_foundation_default_rules::inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries_and_schema_requests(
                         &mut rule_source,
                         input,
                         view.coverage,
@@ -2175,6 +2193,7 @@ pub(crate) fn evaluate_spooled_admission<
                         discovery_seen_ids,
                         discovery_run_summaries,
                         discovery_event_summaries,
+                        discovery_schema_requests,
                         view.launch.arguments.require_local_payloads,
                         default_rules_limits,
                         stored_limits,
@@ -2315,6 +2334,7 @@ pub(crate) fn evaluate_spooled_admission<
                     };
                     let evaluated = super::foundation_rule_diagnostics::evaluate_candidate_stored_rules(
                         stored_report,
+                        discovery_schema_requests,
                         schemas,
                         schema_limits,
                         deadline,
@@ -2435,8 +2455,12 @@ pub(crate) fn evaluate_spooled_admission<
         .and_then(|state| state.checked_add(defaults_event_state))
         .and_then(|state| state.checked_add(std::mem::size_of::<BiblioRecordExecutor>()))
         .and_then(|state| state.checked_add(std::mem::size_of::<IndexSink<'candidate>>()))
-        .and_then(|state| state.checked_add(std::mem::size_of::<SpoolDefaultStore<'candidate, 'host>>()))
-        .and_then(|state| state.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES))
+        .and_then(|state| {
+            state.checked_add(std::mem::size_of::<SpoolDefaultStore<'candidate, 'host>>())
+        })
+        .and_then(|state| {
+            state.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)
+        })
         .and_then(|state| state.checked_add(records_cost_state))
         .and_then(|state| state.checked_add(dependent_state))
         .ok_or_else(|| incomplete("candidate Records retained-state overflow"))?;
@@ -2685,7 +2709,10 @@ pub(crate) fn evaluate_spooled_admission<
     .map_err(FoundationOrchestratorError::Catalog)?;
     let complete_catalog = match &catalog_result.outcome {
         FoundationCatalogOutcome::Complete(result)
-            if result.issues.is_empty() && result.profiles.complete => result,
+            if result.issues.is_empty() && result.profiles.complete =>
+        {
+            result
+        }
         _ => {
             return fail_window(
                 view.execution_limits,
@@ -2709,7 +2736,9 @@ pub(crate) fn evaluate_spooled_admission<
     }
     let catalog_state = catalog_retained_state(&catalog_result.outcome)?
         .checked_add(catalog_identity_state)
-        .and_then(|state| state.checked_add(fresh.cost().fresh_rows_retained_state_upper_bound_bytes))
+        .and_then(|state| {
+            state.checked_add(fresh.cost().fresh_rows_retained_state_upper_bound_bytes)
+        })
         .ok_or_else(|| incomplete("candidate catalog retained-state overflow"))?;
     let catalog_read = checked_add_u64(
         fresh.cost().readback_bytes as u64,
@@ -2772,7 +2801,9 @@ pub(crate) fn evaluate_spooled_admission<
     drop(catalog_result);
     item_schemas.finish(deadline, cancelled).map_err(owner)?;
     if !item_schemas.is_finished() {
-        return Err(incomplete("candidate catalog schema worker EOF is incomplete"));
+        return Err(incomplete(
+            "candidate catalog schema worker EOF is incomplete",
+        ));
     }
     *view.candidate_io_adopted = (
         io_after_catalog.read_attempted_bytes,
@@ -2855,7 +2886,12 @@ pub(crate) fn evaluate_spooled_admission<
     ) {
         Ok(worker) => worker,
         Err(error) => {
-            return fail_window(view.execution_limits, view.remaining_budget, native_ticket, error);
+            return fail_window(
+                view.execution_limits,
+                view.remaining_budget,
+                native_ticket,
+                error,
+            );
         }
     };
     let native_index_state = build_candidate_native_index(
@@ -2895,7 +2931,9 @@ pub(crate) fn evaluate_spooled_admission<
     let (native_cpu, native_wire) = use_delta(quota_before_native, native_quota_after)?;
     let native_state = native_index_state
         .checked_add(native_schema_state)
-        .and_then(|state| state.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES))
+        .and_then(|state| {
+            state.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)
+        })
         .ok_or_else(|| incomplete("candidate native-index retained state overflow"))?;
     if native_read_delta > native_ticket.remaining().source_read_bytes
         || native_state > native_ticket.remaining().state_bytes
@@ -2911,11 +2949,21 @@ pub(crate) fn evaluate_spooled_admission<
         view.execution_limits,
         view.remaining_budget,
         native_ticket,
-        phase_use(native_read_delta, native_wire, native_state, 0, native_cpu, 0, 0),
+        phase_use(
+            native_read_delta,
+            native_wire,
+            native_state,
+            0,
+            native_cpu,
+            0,
+            0,
+        ),
     )?;
     native_schemas.finish(deadline, cancelled).map_err(owner)?;
     if !native_schemas.is_finished() {
-        return Err(incomplete("candidate native-index worker EOF is incomplete"));
+        return Err(incomplete(
+            "candidate native-index worker EOF is incomplete",
+        ));
     }
     let remaining = view
         .remaining_budget
@@ -2963,7 +3011,9 @@ pub(crate) fn evaluate_spooled_admission<
     if final_held_state > working_ram
         || final_held_state > view.remaining_budget.charged().state_bytes
     {
-        return Err(incomplete("candidate final retained state was not admitted"));
+        return Err(incomplete(
+            "candidate final retained state was not admitted",
+        ));
     }
     let final_held = FoundationPhaseReservation {
         state_bytes: final_held_state,

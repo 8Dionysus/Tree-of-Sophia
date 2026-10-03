@@ -21,7 +21,7 @@ use tos_validation::source_foundation_default_rules::{
     SourceFoundationDefaultRulesReport, SourceFoundationDefaultRulesStoredReport,
 };
 use tos_validation::source_foundation_discovery::{
-    Issue as DiscoveryIssue, SchemaRequest as DiscoverySchemaRequest,
+    DiscoverySchemaRequestStore, Issue as DiscoveryIssue, SchemaRequest as DiscoverySchemaRequest,
 };
 use tos_validation::source_foundation_goldsets::SourceFoundationSchemaRequest as GoldsetSchemaRequest;
 use tos_validation::source_foundation_labs::{
@@ -352,15 +352,29 @@ fn encode_candidate_instance(
 
 fn candidate_request_count<I>(
     owner: &SourceFoundationDefaultRulesStoredReport<I>,
+    discovery_schema_requests: &dyn DiscoverySchemaRequestStore,
 ) -> Result<usize, &'static str> {
     if !lab_aggregate_matches(&owner.labs) {
         return Err("candidate stored lab schema request binding");
     }
+    let request_store_cost = discovery_schema_requests.cost();
+    let reported_spooled_count = owner
+        .discovery
+        .cost
+        .candidate_discovery_schema_request_count;
+    if request_store_cost.observation_rows != reported_spooled_count
+        || (reported_spooled_count > 0 && !owner.discovery.schema_requests.is_empty())
+    {
+        return Err("candidate stored Discovery schema spool binding");
+    }
+    let spooled_count = usize::try_from(reported_spooled_count)
+        .map_err(|_| "candidate stored Discovery schema spool count overflow")?;
     let mut count = 0usize;
     for amount in [
         owner.labs.schema_checks.len(),
         owner.goldsets.schema_requests.len(),
         owner.discovery.schema_requests.len(),
+        spooled_count,
         owner.closure.schema_requests.len(),
     ] {
         count = count
@@ -408,6 +422,7 @@ fn check_candidate_rule_request<I: Copy + Eq>(
     cancelled: &AtomicBool,
     limits: SourceFoundationRuleDiagnosticsLimits,
     prior_diagnostic_state: usize,
+    request_workspace_state: usize,
     diagnostic_vector_state: usize,
     input_bytes_used: usize,
     diagnostic_issue_count: usize,
@@ -434,7 +449,8 @@ fn check_candidate_rule_request<I: Copy + Eq>(
         ));
     }
     let base_state = prior_diagnostic_state
-        .checked_add(diagnostic_vector_state)
+        .checked_add(request_workspace_state)
+        .and_then(|bytes| bytes.checked_add(diagnostic_vector_state))
         .and_then(|bytes| {
             bytes.checked_add(size_of::<EvaluatedCandidateSourceFoundationRules<I>>())
         })
@@ -610,7 +626,8 @@ fn check_candidate_rule_request<I: Copy + Eq>(
 /// that already cover candidate Records are continued without a quota reset.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
-    owner_report: SourceFoundationDefaultRulesStoredReport<I>,
+    mut owner_report: SourceFoundationDefaultRulesStoredReport<I>,
+    discovery_schema_requests: &mut dyn DiscoverySchemaRequestStore,
     schema_worker: &mut CandidateCutWorkerSchemaExecutor<I>,
     schema_limits: SourceFoundationSchemaLimits,
     deadline: Instant,
@@ -618,7 +635,7 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
     limits: SourceFoundationRuleDiagnosticsLimits,
 ) -> Result<EvaluatedCandidateSourceFoundationRules<I>, CandidateRuleDiagnosticsError<I>> {
     let mut diagnostics = Vec::new();
-    let request_count = match candidate_request_count(&owner_report) {
+    let request_count = match candidate_request_count(&owner_report, discovery_schema_requests) {
         Ok(count) => count,
         Err(reason) => {
             return Err(CandidateRuleDiagnosticsError::Refused {
@@ -754,7 +771,7 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
         };
     let mut failed = None;
     macro_rules! run_request {
-        ($request:expr) => {
+        ($request:expr, $workspace_state:expr) => {
             match check_candidate_rule_request(
                 $request,
                 input_identity,
@@ -765,6 +782,7 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
                 cancelled,
                 limits,
                 result_state,
+                $workspace_state,
                 vector_state,
                 input_bytes,
                 issue_count,
@@ -789,26 +807,134 @@ pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
     'requests: {
         for lab in &owner_report.labs.results {
             for request in &lab.schema_checks {
-                run_request!(request);
+                run_request!(request, 0);
                 if failed.is_some() {
                     break 'requests;
                 }
             }
         }
         for request in &owner_report.goldsets.schema_requests {
-            run_request!(request);
+            run_request!(request, 0);
             if failed.is_some() {
                 break 'requests;
             }
         }
         for request in &owner_report.discovery.schema_requests {
-            run_request!(request);
+            run_request!(request, 0);
             if failed.is_some() {
                 break 'requests;
             }
         }
+        let expected_spooled_requests = usize::try_from(
+            owner_report
+                .discovery
+                .cost
+                .candidate_discovery_schema_request_count,
+        );
+        let expected_spooled_requests = match expected_spooled_requests {
+            Ok(count) => count,
+            Err(_) => {
+                failed = Some(("candidate Discovery schema spool count overflow", false));
+                break 'requests;
+            }
+        };
+        let mut discovery_eof = false;
+        loop {
+            if failed.is_some() {
+                break;
+            }
+            let remaining_state = limits
+                .max_state_bytes
+                .checked_sub(result_state)
+                .and_then(|bytes| bytes.checked_sub(vector_state))
+                .and_then(|bytes| {
+                    bytes.checked_sub(size_of::<EvaluatedCandidateSourceFoundationRules<I>>())
+                });
+            let Some(remaining_state) = remaining_state else {
+                failed = Some(("candidate Discovery schema spool state limit", false));
+                break;
+            };
+            match discovery_schema_requests.next_request(remaining_state) {
+                Ok((Some(request), workspace_state)) => {
+                    run_request!(&request, workspace_state);
+                }
+                Ok((None, workspace_state)) => {
+                    let eof_peak = result_state
+                        .checked_add(workspace_state)
+                        .and_then(|bytes| bytes.checked_add(vector_state))
+                        .and_then(|bytes| {
+                            bytes.checked_add(size_of::<
+                                    EvaluatedCandidateSourceFoundationRules<I>,
+                                >())
+                        });
+                    match eof_peak {
+                        Some(peak) if peak <= limits.max_state_bytes => {
+                            peak_state = peak_state.max(peak);
+                            discovery_eof = true;
+                        }
+                        _ => {
+                            failed =
+                                Some(("candidate Discovery schema spool EOF state limit", false));
+                        }
+                    }
+                    break;
+                }
+                Err(_) => {
+                    failed = Some((
+                        "candidate Discovery schema spool read or EOF refused",
+                        false,
+                    ));
+                    break;
+                }
+            }
+            if failed.is_some() {
+                break;
+            }
+        }
+        let spool_cost = discovery_schema_requests.cost();
+        if spool_cost.observation_rows
+            != owner_report
+                .discovery
+                .cost
+                .candidate_discovery_schema_request_count
+            || usize::try_from(spool_cost.observation_rows).ok() != Some(expected_spooled_requests)
+            || spool_cost.serialized_write_bytes
+                != owner_report
+                    .discovery
+                    .cost
+                    .candidate_discovery_schema_request_serialized_write_bytes
+            || (failed.is_none()
+                && (!discovery_eof
+                    || (spool_cost.serialized_read_bytes == 0 && expected_spooled_requests > 0)))
+        {
+            failed = Some((
+                "candidate Discovery schema spool count or EOF binding invalid",
+                false,
+            ));
+        }
+        owner_report
+            .discovery
+            .cost
+            .candidate_discovery_schema_request_serialized_read_bytes =
+            spool_cost.serialized_read_bytes;
+        owner_report
+            .discovery
+            .cost
+            .candidate_discovery_schema_request_peak_workspace_state_bytes = owner_report
+            .discovery
+            .cost
+            .candidate_discovery_schema_request_peak_workspace_state_bytes
+            .max(spool_cost.workspace_state_bytes);
+        owner_report
+            .discovery
+            .cost
+            .candidate_discovery_schema_request_scan_row_operations =
+            spool_cost.scan_row_operations;
+        if failed.is_some() {
+            break 'requests;
+        }
         for request in &owner_report.closure.schema_requests {
-            run_request!(request);
+            run_request!(request, 0);
             if failed.is_some() {
                 break 'requests;
             }
