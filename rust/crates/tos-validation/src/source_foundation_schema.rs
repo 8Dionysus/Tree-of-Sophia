@@ -393,10 +393,7 @@ impl SourceFoundationSchemaSet {
                     .and_then(|definitions| definitions.get("claim_entry"))
                     .is_some_and(Value::is_object);
             }
-            let uri = value
-                .get("$id")
-                .and_then(Value::as_str)
-                .filter(|uri| !uri.is_empty() && uri.len() <= 4096)
+            let uri = source_foundation_schema_resource_uri(&value)
                 .ok_or(SourceFoundationSchemaLoadFailure::SchemaResource)?
                 .to_owned();
             let digest = Digest256::of_bytes(&member.raw);
@@ -421,9 +418,13 @@ impl SourceFoundationSchemaSet {
             return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
         }
         check_load_active(deadline, cancelled)?;
-        let backend = match SchemaBackendProbe::new(resources.clone(), profile) {
-            Ok(backend) => backend,
-            Err(_) => {
+        // Retain and bind exact resources even when their semantics are
+        // outside the exceptional evaluator's closed subset; that evaluator
+        // reports Indeterminate for such a check. General schema probes keep
+        // their stricter SchemaBackendProbe keyword gate.
+        let schema_set_sha256 = match schema_resource_set_digest(&resources) {
+            Some(digest) => digest,
+            None => {
                 check_load_active(deadline, cancelled)?;
                 return Err(SourceFoundationSchemaLoadFailure::SchemaSet);
             }
@@ -436,7 +437,7 @@ impl SourceFoundationSchemaSet {
             source_resources,
             contracts,
             contract_selection_sha256: contract_selection_digest(&expected_contracts),
-            schema_set_sha256: backend.schema_set_digest(),
+            schema_set_sha256,
             limits_sha256: limits.digest(),
             schema_bytes: total_bytes,
             catalog_entry_schema_present,
@@ -583,10 +584,7 @@ impl SourceFoundationSchemaSet {
                     .and_then(|definitions| definitions.get("claim_entry"))
                     .is_some_and(Value::is_object);
             }
-            let uri = value
-                .get("$id")
-                .and_then(Value::as_str)
-                .filter(|uri| !uri.is_empty() && uri.len() <= MAX_LOCATION_BYTES)
+            let uri = source_foundation_schema_resource_uri(&value)
                 .ok_or(SourceFoundationSchemaLoadFailure::SchemaResource)?
                 .to_owned();
             let digest = Digest256::of_bytes(&member.raw);
@@ -612,9 +610,9 @@ impl SourceFoundationSchemaSet {
             return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
         }
         check_load_active(deadline, cancelled)?;
-        let backend = match SchemaBackendProbe::new(resources.clone(), profile) {
-            Ok(backend) => backend,
-            Err(_) => {
+        let schema_set_sha256 = match schema_resource_set_digest(&resources) {
+            Some(digest) => digest,
+            None => {
                 check_load_active(deadline, cancelled)?;
                 return Err(SourceFoundationSchemaLoadFailure::SchemaSet);
             }
@@ -627,7 +625,7 @@ impl SourceFoundationSchemaSet {
             source_resources,
             contracts,
             contract_selection_sha256: contract_selection_digest(&expected_contracts),
-            schema_set_sha256: backend.schema_set_digest(),
+            schema_set_sha256,
             limits_sha256: limits.digest(),
             schema_bytes: total_bytes,
             catalog_entry_schema_present,
@@ -864,11 +862,7 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
                     .and_then(|definitions| definitions.get("claim_entry"))
                     .is_some_and(Value::is_object);
             }
-            let uri = match value
-                .get("$id")
-                .and_then(Value::as_str)
-                .filter(|uri| !uri.is_empty() && uri.len() <= MAX_LOCATION_BYTES)
-            {
+            let uri = match source_foundation_schema_resource_uri(&value) {
                 Some(uri) => uri.to_owned(),
                 None => {
                     selection_failure = Some(SourceFoundationSchemaLoadFailure::SchemaResource);
@@ -957,8 +951,13 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
             return Err(SourceFoundationSchemaLoadFailure::ContractSelection);
         }
         check_load_active(deadline, cancelled)?;
-        let backend = SchemaBackendProbe::new(resources.clone(), profile)
-            .map_err(|_| SourceFoundationSchemaLoadFailure::SchemaSet)?;
+        let schema_set_sha256 = match schema_resource_set_digest(&resources) {
+            Some(digest) => digest,
+            None => {
+                check_load_active(deadline, cancelled)?;
+                return Err(SourceFoundationSchemaLoadFailure::SchemaSet);
+            }
+        };
         check_load_active(deadline, cancelled)?;
         Ok(Self {
             input_identity,
@@ -967,7 +966,7 @@ impl<I: Copy + Eq> CandidateSourceFoundationSchemaSet<I> {
             source_resources,
             contracts,
             contract_selection_sha256: contract_selection_digest(&expected_contracts),
-            schema_set_sha256: backend.schema_set_digest(),
+            schema_set_sha256,
             limits_sha256: limits.digest(),
             schema_bytes: total_schema_bytes,
             catalog_entry_schema_present,
@@ -2338,7 +2337,21 @@ impl Write for BoundedSchemaBytes {
     }
 }
 
-fn schema_resource_set_digest(resources: &[SchemaResource]) -> Option<Digest256> {
+pub(crate) fn source_foundation_schema_resource_uri(value: &Value) -> Option<&str> {
+    if value.get("$schema").and_then(Value::as_str)
+        != Some("https://json-schema.org/draft/2020-12/schema")
+    {
+        return None;
+    }
+    value.get("$id").and_then(Value::as_str).filter(|uri| {
+        !uri.is_empty()
+            && uri.len() <= MAX_LOCATION_BYTES
+            && uri.starts_with("https://")
+            && !uri.contains('#')
+    })
+}
+
+pub(crate) fn schema_resource_set_digest(resources: &[SchemaResource]) -> Option<Digest256> {
     let mut digests = BTreeMap::new();
     for resource in resources {
         if digests

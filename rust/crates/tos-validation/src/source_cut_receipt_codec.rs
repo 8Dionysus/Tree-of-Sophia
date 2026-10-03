@@ -161,65 +161,65 @@ pub(super) fn decode_receipt(bytes: &[u8]) -> Result<CutSchemaReceipt, ItemRefus
 }
 
 pub(super) fn encode_diagnostic(diagnostic: &CutSchemaDiagnostic) -> Result<Vec<u8>, ItemRefusal> {
-    if !diagnostic.unit.report.is_well_formed()
-        || diagnostic.unit.member_id.is_empty()
-        || diagnostic.unit.member_id.len() > MAX_UNIT_MEMBER_ID_BYTES
-        || diagnostic.unit.relative_path.is_empty()
-        || diagnostic.unit.relative_path.len() > MAX_UNIT_RELATIVE_PATH_BYTES
-        || diagnostic.unit.root_uri.len() > MAX_UNIT_ROOT_URI_BYTES
+    let result = &diagnostic.result;
+    if !result.unit.report.is_well_formed()
+        || result.unit.member_id.is_empty()
+        || result.unit.member_id.len() > MAX_UNIT_MEMBER_ID_BYTES
+        || result.unit.relative_path.is_empty()
+        || result.unit.relative_path.len() > MAX_UNIT_RELATIVE_PATH_BYTES
+        || result.unit.root_uri.len() > MAX_UNIT_ROOT_URI_BYTES
     {
         return Err(invalid_payload());
     }
     let capacity = encoded_diagnostic_len(diagnostic)?;
-    if capacity
-        > diagnostic_row_encoded_upper_bound(diagnostic.path.len(), diagnostic.contract.len())?
-    {
+    if capacity > diagnostic_row_encoded_upper_bound(result.path.len(), result.contract.len())? {
         return Err(ItemRefusal::Budget);
     }
     let mut writer = Writer::with_capacity(capacity)?;
     writer.header(DIAGNOSTIC_MAGIC)?;
-    writer.string(&diagnostic.path)?;
-    writer.string(&diagnostic.contract)?;
-    writer.digest(diagnostic.source_revision.0)?;
-    writer.digest(diagnostic.source_raw_sha256)?;
-    writer.digest(diagnostic.decoded_instance_sha256)?;
-    writer.digest(diagnostic.aggregate_caps_sha256)?;
-    write_diagnostics_checkpoint(&mut writer, diagnostic.checkpoint)?;
-    writer.u64(diagnostic.unit.ordinal)?;
-    writer.string(&diagnostic.unit.member_id)?;
-    writer.string(&diagnostic.unit.relative_path)?;
-    writer.string(&diagnostic.unit.root_uri)?;
-    writer.digest(diagnostic.unit.raw_sha256)?;
-    writer.digest(diagnostic.unit.unit_sha256)?;
-    write_report(&mut writer, &diagnostic.unit.report)?;
-    writer.usize(diagnostic.schema_resource_bytes)?;
-    writer.usize(diagnostic.schema_resource_buffer_bytes)?;
-    writer.usize(diagnostic.input_instance_bytes)?;
-    writer.usize(diagnostic.input_instance_buffer_bytes)?;
-    writer.usize(diagnostic.input_metadata_bytes)?;
-    writer.usize(diagnostic.request_bytes)?;
-    writer.usize(diagnostic.request_buffer_bytes)?;
-    writer.usize(diagnostic.response_bytes)?;
-    writer.usize(diagnostic.response_buffer_bytes)?;
-    writer.u64(diagnostic.worker_cpu_micros)?;
-    writer.usize(diagnostic.retained_state_bytes)?;
-    writer.usize(diagnostic.accounted_state_bytes)?;
+    writer.string(&result.path)?;
+    writer.string(&result.contract)?;
+    writer.digest(diagnostic.source_revision().0)?;
+    writer.digest(result.source_raw_sha256)?;
+    writer.digest(result.decoded_instance_sha256)?;
+    writer.digest(result.aggregate_caps_sha256)?;
+    write_diagnostics_checkpoint(&mut writer, result.checkpoint)?;
+    writer.u64(result.unit.ordinal)?;
+    writer.string(&result.unit.member_id)?;
+    writer.string(&result.unit.relative_path)?;
+    writer.string(&result.unit.root_uri)?;
+    writer.digest(result.unit.raw_sha256)?;
+    writer.digest(result.unit.unit_sha256)?;
+    write_report(&mut writer, &result.unit.report)?;
+    writer.usize(result.schema_resource_bytes)?;
+    writer.usize(result.schema_resource_buffer_bytes)?;
+    writer.usize(result.input_instance_bytes)?;
+    writer.usize(result.input_instance_buffer_bytes)?;
+    writer.usize(result.input_metadata_bytes)?;
+    writer.usize(result.request_bytes)?;
+    writer.usize(result.request_buffer_bytes)?;
+    writer.usize(result.response_bytes)?;
+    writer.usize(result.response_buffer_bytes)?;
+    writer.u64(result.worker_cpu_micros)?;
+    writer.usize(result.retained_state_bytes)?;
+    writer.usize(result.accounted_state_bytes)?;
     writer.finish(capacity)
 }
 
 fn encoded_diagnostic_len(diagnostic: &CutSchemaDiagnostic) -> Result<usize, ItemRefusal> {
-    let top_level_strings = encoded_string_len(diagnostic.path.len())?
-        .checked_add(encoded_string_len(diagnostic.contract.len())?)
+    let result = &diagnostic.result;
+    let top_level_strings = encoded_string_len(result.path.len())?
+        .checked_add(encoded_string_len(result.contract.len())?)
         .ok_or(ItemRefusal::Budget)?;
-    let member_id = encoded_string_len(diagnostic.unit.member_id.len())?;
-    let relative_path = encoded_string_len(diagnostic.unit.relative_path.len())?;
-    let root_uri = encoded_string_len(diagnostic.unit.root_uri.len())?;
+    let member_id = encoded_string_len(result.unit.member_id.len())?;
+    let relative_path = encoded_string_len(result.unit.relative_path.len())?;
+    let root_uri = encoded_string_len(result.unit.root_uri.len())?;
     let unit_strings = member_id
         .checked_add(relative_path)
         .and_then(|bytes| bytes.checked_add(root_uri))
         .ok_or(ItemRefusal::Budget)?;
-    let report = encoded_report_len(&diagnostic.unit.report)?;
-    let checkpoint = encoded_diagnostics_checkpoint_len(diagnostic.checkpoint)?;
+    let report = encoded_report_len(&result.unit.report)?;
+    let checkpoint = encoded_diagnostics_checkpoint_len(result.checkpoint)?;
     let total = RECEIPT_HEADER_BYTES
         .checked_add(top_level_strings)
         .and_then(|bytes| bytes.checked_add(4 * 32))
@@ -333,34 +333,36 @@ pub(super) fn decode_diagnostic(bytes: &[u8]) -> Result<CutSchemaDiagnostic, Ite
     let accounted_state_bytes = reader.usize()?;
     reader.finish()?;
     Ok(CutSchemaDiagnostic {
-        path,
-        contract,
         source_revision,
-        source_raw_sha256,
-        decoded_instance_sha256,
-        aggregate_caps_sha256,
-        checkpoint,
-        unit: SchemaDiagnosticUnit {
-            ordinal,
-            member_id,
-            relative_path,
-            root_uri,
-            raw_sha256,
-            unit_sha256,
-            report,
+        result: SchemaDiagnosticResult {
+            path,
+            contract,
+            source_raw_sha256,
+            decoded_instance_sha256,
+            aggregate_caps_sha256,
+            checkpoint,
+            unit: SchemaDiagnosticUnit {
+                ordinal,
+                member_id,
+                relative_path,
+                root_uri,
+                raw_sha256,
+                unit_sha256,
+                report,
+            },
+            schema_resource_bytes,
+            schema_resource_buffer_bytes,
+            input_instance_bytes,
+            input_instance_buffer_bytes,
+            input_metadata_bytes,
+            request_bytes,
+            request_buffer_bytes,
+            response_bytes,
+            response_buffer_bytes,
+            worker_cpu_micros,
+            retained_state_bytes,
+            accounted_state_bytes,
         },
-        schema_resource_bytes,
-        schema_resource_buffer_bytes,
-        input_instance_bytes,
-        input_instance_buffer_bytes,
-        input_metadata_bytes,
-        request_bytes,
-        request_buffer_bytes,
-        response_bytes,
-        response_buffer_bytes,
-        worker_cpu_micros,
-        retained_state_bytes,
-        accounted_state_bytes,
     })
 }
 

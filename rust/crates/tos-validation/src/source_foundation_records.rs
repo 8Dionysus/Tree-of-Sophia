@@ -2717,6 +2717,7 @@ fn append_item_direct_issues(
                     cancelled,
                     physical,
                     schema_checks,
+                    schema_request_state_bytes,
                     previous,
                     index,
                     membership_issues,
@@ -3445,6 +3446,7 @@ fn append_item_direct_issues(
             cancelled,
             physical,
             schema_checks,
+            schema_request_state_bytes,
             previous,
             schema_checks.len(),
             membership_issues,
@@ -3775,6 +3777,7 @@ fn finish_direct_item_manifest(
     cancelled: &AtomicBool,
     physical: &SourcePhysicalFacts,
     schema_checks: &[SourceFoundationRecordsSchemaCheck],
+    schema_request_state_bytes: &usize,
     context: DirectItemManifest,
     event_end_index: usize,
     membership_issues: &[SourceFoundationRecordsIssue],
@@ -5980,7 +5983,7 @@ fn schema_resource_cost(
     })
 }
 
-fn candidate_schema_resource_cost<I: Eq>(
+fn candidate_schema_resource_cost<I: Eq + Clone>(
     source: SourceFoundationCurrentInput<'_>,
     schema_binding: &impl SourceFoundationCandidateSchemaBinding<I>,
     limits: ItemLimits,

@@ -28,12 +28,22 @@ use crate::item_rules::{
 };
 use crate::provenance_rules::{ProvenanceReport, ProvenanceRules, ProvenanceSource};
 use crate::record_rules::RecordFamily;
-use crate::source_foundation_schema::{CandidateSourceFoundationSchemaSet, SelectedSchemaResource};
+use crate::source_foundation_schema::{
+    CandidateSourceFoundationSchemaSet, SOURCE_FOUNDATION_CONTRACT_PATHS, SelectedSchemaResource,
+    schema_resource_set_digest, source_foundation_schema_resource_uri,
+};
 use crate::{FormatProfile, SchemaBackendProbe, SchemaResource, published_value};
 
 /// Exact owner schema executor, with separately enforced process custody.
 /// An unknown profile/resource or incomplete execution must refuse.
 pub trait CutSchemaExecutor {
+    /// Exact immutable source revision bound by this executor, when its
+    /// implementation can attest one. Adapters that cannot expose this
+    /// identity must retain the default refusal value.
+    fn selected_source_revision(&self) -> Option<SourceRevision> {
+        None
+    }
+
     fn check(
         &mut self,
         path: &str,
@@ -153,6 +163,130 @@ pub struct CutSchemaReceipt {
     pub valid: bool,
     /// Transport coverage of this finite invocation, not owner completeness.
     pub batch: Option<CutBatchBinding>,
+}
+
+#[path = "source_cut_receipt_spool.rs"]
+mod receipt_spool;
+pub use receipt_spool::{
+    CutSchemaDiagnosticPage, CutSchemaReceiptPage, CutSchemaReceiptSpoolLimits,
+    CutSchemaReceiptSpoolSummary, CutWorkerSchemaExecutorSpooling,
+};
+
+/// Bounded receipt range access used by operation reports. Rows are local to
+/// the requested executor interval and never imply selected source membership.
+pub trait CutSchemaReceiptRange {
+    fn execution_binding(&self) -> CutExecutionBinding;
+    fn source_revision(&self) -> SourceRevision;
+    fn contract_digest(&self, contract: &str) -> Option<Digest256>;
+    fn receipt_count(&self) -> usize;
+    fn receipt_range_supported(&self) -> bool;
+    fn receipt_page_limits(&self) -> (usize, usize);
+    fn operation_budget(&self) -> BatchStreamBudget;
+    fn receipt_limit_bytes(&self) -> usize;
+    fn release_child(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal>;
+
+    fn read_receipts_after(
+        &mut self,
+        after_ordinal: Option<u64>,
+        max_rows: usize,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<CutSchemaReceiptPage, ItemRefusal>;
+}
+
+/// Materialize only one caller-selected receipt interval. Each page is read
+/// through the owner's bounded range surface and charged together with the
+/// retained output slots; callers remain responsible for their final report
+/// object's separate lifecycle and membership/currentness rules.
+pub(crate) fn collect_schema_receipt_range<S: CutSchemaReceiptRange>(
+    schemas: &mut S,
+    start: usize,
+    end: usize,
+    max_state_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<Vec<CutSchemaReceipt>, ItemRefusal> {
+    if !schemas.receipt_range_supported() || end < start || end > schemas.receipt_count() {
+        return Err(ItemRefusal::Unsupported(
+            "operation requires the legacy schema-receipt range".into(),
+        ));
+    }
+    let count = end - start;
+    let (page_rows, page_bytes) = schemas.receipt_page_limits();
+    if count == 0 {
+        return Ok(Vec::new());
+    }
+    if page_rows == 0 || page_bytes == 0 {
+        return Err(ItemRefusal::Budget);
+    }
+    let output_slots = count
+        .checked_mul(std::mem::size_of::<CutSchemaReceipt>())
+        .ok_or(ItemRefusal::Budget)?;
+    if output_slots > max_state_bytes {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "operation schema receipt output slots",
+            used: u64::try_from(output_slots).ok(),
+            limit: u64::try_from(max_state_bytes).ok(),
+        });
+    }
+    let mut receipts = Vec::new();
+    receipts
+        .try_reserve_exact(count)
+        .map_err(|_| ItemRefusal::Budget)?;
+    let mut ordinal = start;
+    let mut after = start
+        .checked_sub(1)
+        .map(|value| u64::try_from(value).map_err(|_| ItemRefusal::Budget))
+        .transpose()?;
+    let mut retained_bytes = output_slots;
+    while ordinal < end {
+        check(deadline, cancelled)?;
+        let mut rows = (end - ordinal).min(page_rows);
+        let remaining = max_state_bytes
+            .checked_sub(retained_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        let max_bytes = page_bytes.min(remaining);
+        let page = loop {
+            match schemas.read_receipts_after(after, rows, max_bytes, deadline, cancelled) {
+                Err(ItemRefusal::Budget) if rows > 1 => rows = rows.div_ceil(2),
+                result => break result?,
+            }
+        };
+        let page_bytes_used = page.encoded_bytes();
+        retained_bytes = retained_bytes
+            .checked_add(page_bytes_used)
+            .filter(|bytes| *bytes <= max_state_bytes)
+            .ok_or(ItemRefusal::BudgetCheck {
+                check: "operation schema receipt range state bytes",
+                used: retained_bytes
+                    .checked_add(page_bytes_used)
+                    .and_then(|n| u64::try_from(n).ok()),
+                limit: u64::try_from(max_state_bytes).ok(),
+            })?;
+        let rows = page.into_rows();
+        if rows.is_empty() {
+            return Err(ItemRefusal::Unsupported(
+                "operation schema receipt range ended before its boundary".into(),
+            ));
+        }
+        for (row_ordinal, receipt) in rows {
+            if usize::try_from(row_ordinal).ok() != Some(ordinal) || ordinal >= end {
+                return Err(ItemRefusal::Unsupported(
+                    "operation schema receipt range ordinal changed".into(),
+                ));
+            }
+            after = Some(row_ordinal);
+            receipts.push(receipt);
+            ordinal = ordinal.checked_add(1).ok_or(ItemRefusal::Budget)?;
+        }
+    }
+    check(deadline, cancelled)?;
+    Ok(receipts)
 }
 
 /// Caller-owned aggregate ceilings for the opt-in source-cut diagnostics-v2
@@ -429,10 +563,10 @@ pub enum CutPreparedSchemaProtocol {
 /// Logical controller-workspace upper bound for preparing the exact schema
 /// resources selected from this cut. This reads authenticated member metadata
 /// only; it does not read or parse payload bytes. It bounds the transient
-/// constructor peak, including the full `SchemaBackendProbe::new` serde closure,
-/// rather than retained closure state. The shared worker image is accounted by
-/// its operation owner, and allocator bookkeeping/RSS remain governed by the
-/// caller's physical host envelope.
+/// constructor peak, including bounded schema-resource parsing workspace,
+/// rather than retained closure state. The shared worker image is accounted
+/// by its operation owner, and allocator bookkeeping/RSS remain governed by
+/// the caller's physical host envelope.
 pub fn cut_schema_resource_preparation_state_upper_bound(
     cut: &CorpusCutReader,
     deadline: Instant,
@@ -1451,11 +1585,18 @@ impl CutWorkerSchemaExecutor {
                 .filter(|n| *n <= SchemaBackendProbe::MAX_TOTAL_BYTES)
                 .ok_or(ItemRefusal::Budget)?;
         }
-        let schema_set_digest = SchemaBackendProbe::new(resources.clone(), profile)
-            .map_err(|error| {
-                ItemRefusal::Unsupported(format!("schema resource closure: {error:?}"))
-            })?
-            .schema_set_digest();
+        for resource in &resources {
+            check(deadline, cancelled)?;
+            let value = published_value(&resource.raw, SchemaBackendProbe::MAX_RESOURCE_BYTES)
+                .map_err(|_| ItemRefusal::Unsupported("schema resource".into()))?;
+            if source_foundation_schema_resource_uri(&value) != Some(resource.uri.as_str()) {
+                return Err(ItemRefusal::Unsupported(
+                    "schema resource identifier".into(),
+                ));
+            }
+        }
+        let schema_set_digest = schema_resource_set_digest(&resources)
+            .ok_or_else(|| ItemRefusal::Unsupported("schema resource closure".into()))?;
         check(deadline, cancelled)?;
         let prepared_result = match image {
             Some(image) => PreparedSchemaWorker::prepare_with_image(
@@ -2047,7 +2188,7 @@ impl CutWorkerSchemaExecutor {
             ));
         }
         let result = self.check_diagnostics_v2_inner_with_selected_limits(
-            path, raw, contract, deadline, cancelled, None,
+            path, raw, contract, deadline, cancelled, None, false,
         );
         if result.is_err() {
             self.diagnostics_v2_cost_unknown = true;
@@ -2086,6 +2227,7 @@ impl CutWorkerSchemaExecutor {
             deadline,
             cancelled,
             Some(limits),
+            false,
         );
         if result.is_err() {
             self.diagnostics_v2_cost_unknown = true;
@@ -2121,6 +2263,155 @@ impl CutWorkerSchemaExecutor {
         Some(self.pending_diagnostics.remove(index))
     }
 
+    /// Retrieve a fully authenticated non-verdict terminal retained only by
+    /// the opt-in spool route. Ordinary diagnostics calls preserve their
+    /// established refusal and poison behavior without queueing these reports.
+    pub(crate) fn take_spooled_diagnostics_v2_status_refusal(
+        &mut self,
+    ) -> Option<CutSchemaDiagnostic> {
+        let source_revision = self.revision?;
+        let index = self
+            .pending_diagnostics
+            .iter()
+            .position(|diagnostic| !diagnostic.is_valid() && !diagnostic.is_invalid())?;
+        Some(CutSchemaDiagnostic {
+            source_revision,
+            result: self.pending_diagnostics.remove(index),
+        })
+    }
+
+    /// Spool-only opt-in for retaining a fully authenticated non-verdict
+    /// terminal. The ordinary public diagnostics API keeps its existing
+    /// status refusal and poison behavior.
+    fn produce_authenticated_diagnostics_v2_terminal_for_spool(
+        &mut self,
+        path: &str,
+        raw: &[u8],
+        contract: &str,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<CutSchemaDiagnostic, ItemRefusal> {
+        let source_revision = self.revision.ok_or_else(|| {
+            ItemRefusal::Unsupported(
+                "candidate diagnostics require the typed candidate result envelope".into(),
+            )
+        })?;
+        let result = self.check_diagnostics_v2_inner_with_selected_limits(
+            path,
+            raw,
+            contract,
+            deadline,
+            cancelled,
+            self.diagnostics_v2_legacy_selected_limits,
+            true,
+        );
+        if result.is_err() {
+            self.diagnostics_v2_cost_unknown = true;
+            self.prepared.poison(ExecutorFailure::Protocol);
+        }
+        result.map(|result| CutSchemaDiagnostic {
+            source_revision,
+            result,
+        })
+    }
+
+    fn retain_pending_diagnostic(
+        &mut self,
+        diagnostic: SchemaDiagnosticResult,
+    ) -> Result<(), ItemRefusal> {
+        let mut diagnostic = diagnostic;
+        self.precharge_pending_diagnostic(&mut diagnostic)?;
+        if self.pending_diagnostics.len() >= self.pending_diagnostics.capacity() {
+            self.prepared.poison(ExecutorFailure::Protocol);
+            return Err(ItemRefusal::Unsupported(
+                "cut schema diagnostics retained vector slot unavailable".into(),
+            ));
+        }
+        self.pending_diagnostics.push(diagnostic);
+        Ok(())
+    }
+
+    fn precharge_pending_diagnostic(
+        &mut self,
+        diagnostic: &mut SchemaDiagnosticResult,
+    ) -> Result<(), ItemRefusal> {
+        let limits = self
+            .diagnostics_v2
+            .ok_or_else(|| ItemRefusal::Unsupported("schema diagnostics v2 not selected".into()))?;
+        let required_len = self
+            .pending_diagnostics
+            .len()
+            .checked_add(1)
+            .ok_or(ItemRefusal::Budget)?;
+        let previous_bytes = self
+            .pending_diagnostics
+            .capacity()
+            .checked_mul(std::mem::size_of::<SchemaDiagnosticResult>())
+            .ok_or(ItemRefusal::Budget)?;
+        let will_grow = required_len > self.pending_diagnostics.capacity();
+        let requested_capacity = if will_grow {
+            required_len
+        } else {
+            self.pending_diagnostics.capacity()
+        };
+        let requested_capacity_bytes = requested_capacity
+            .checked_mul(std::mem::size_of::<SchemaDiagnosticResult>())
+            .ok_or(ItemRefusal::Budget)?;
+        let transient_state_bytes = self
+            .diagnostic_state_bytes_used
+            .checked_add(if will_grow {
+                requested_capacity_bytes
+            } else {
+                0
+            })
+            .ok_or(ItemRefusal::Budget)?;
+        if transient_state_bytes > limits.max_total_state_bytes {
+            self.prepared.poison(ExecutorFailure::InputBudget);
+            return Err(ItemRefusal::BudgetCheck {
+                check: "cut schema diagnostics retained vector allocation",
+                used: u64::try_from(transient_state_bytes).ok(),
+                limit: u64::try_from(limits.max_total_state_bytes).ok(),
+            });
+        }
+        if self.pending_diagnostics.try_reserve_exact(1).is_err() {
+            self.prepared.poison(ExecutorFailure::InputBudget);
+            return Err(ItemRefusal::Budget);
+        }
+        let next_capacity_bytes = self
+            .pending_diagnostics
+            .capacity()
+            .checked_mul(std::mem::size_of::<SchemaDiagnosticResult>())
+            .ok_or(ItemRefusal::Budget)?;
+        let Some(new_capacity_bytes) = next_capacity_bytes.checked_sub(previous_bytes) else {
+            self.prepared.poison(ExecutorFailure::Protocol);
+            return Err(ItemRefusal::Unsupported(
+                "cut schema diagnostics retained vector capacity changed".into(),
+            ));
+        };
+        let Some(next_state_bytes) = self
+            .diagnostic_state_bytes_used
+            .checked_add(new_capacity_bytes)
+            .filter(|bytes| *bytes <= limits.max_total_state_bytes)
+        else {
+            self.prepared.poison(ExecutorFailure::InputBudget);
+            self.pending_diagnostics = Vec::new();
+            return Err(ItemRefusal::BudgetCheck {
+                check: "cut schema diagnostics retained vector",
+                used: self
+                    .diagnostic_state_bytes_used
+                    .checked_add(new_capacity_bytes)
+                    .and_then(|bytes| u64::try_from(bytes).ok()),
+                limit: u64::try_from(limits.max_total_state_bytes).ok(),
+            });
+        };
+        diagnostic.accounted_state_bytes = diagnostic
+            .accounted_state_bytes
+            .checked_add(new_capacity_bytes)
+            .ok_or(ItemRefusal::Budget)?;
+        self.diagnostic_state_bytes_used = next_state_bytes;
+        Ok(())
+    }
+
     pub fn diagnostic_execution_count(&self) -> usize {
         self.diagnostic_executions
     }
@@ -2154,6 +2445,7 @@ impl CutWorkerSchemaExecutor {
         deadline: Instant,
         cancelled: &AtomicBool,
         selected_limits: Option<LegacySelectedDiagnosticsLimits>,
+        retain_nonverdict_terminal: bool,
     ) -> Result<SchemaDiagnosticResult, ItemRefusal> {
         self.prepared
             .preflight(deadline, cancelled)
@@ -2341,10 +2633,12 @@ impl CutWorkerSchemaExecutor {
                 "cut schema diagnostics binding incomplete".into(),
             ));
         }
-        if !matches!(
-            report.status,
-            schema_diagnostics::Status::Valid | schema_diagnostics::Status::Invalid
-        ) {
+        if !retain_nonverdict_terminal
+            && !matches!(
+                report.status,
+                schema_diagnostics::Status::Valid | schema_diagnostics::Status::Invalid
+            )
+        {
             // The status and counts are observable only after the complete
             // worker/request/unit/report binding above has been authenticated.
             // Keep this fail-closed and expose only protocol enums and counts,
@@ -2620,6 +2914,37 @@ impl CutWorkerSchemaExecutor {
         &self.receipts
     }
 
+    pub fn receipt_count(&self) -> usize {
+        self.scalar_check_count
+    }
+
+    /// Move this verified executor into the opt-in bounded receipt store.
+    /// The caller-created auxiliary scope must share the caller's already
+    /// admitted filesystem namespace, logical I/O and space ledgers, deadline,
+    /// and cancellation lifetime; this conversion grants no quota itself.
+    pub fn into_spooling(
+        self,
+        workspace_dir: std::fs::File,
+        request: tos_source_store::PinnedSqliteAuxRequest,
+        limits: CutSchemaReceiptSpoolLimits,
+        deadline: Instant,
+        cancelled: std::sync::Arc<AtomicBool>,
+    ) -> Result<CutWorkerSchemaExecutorSpooling, ItemRefusal> {
+        if self.revision.is_none() {
+            return Err(ItemRefusal::Unsupported(
+                "candidate schema executor cannot spool cut receipts".into(),
+            ));
+        }
+        CutWorkerSchemaExecutorSpooling::new(
+            self,
+            workspace_dir,
+            request,
+            limits,
+            deadline,
+            cancelled,
+        )
+    }
+
     pub fn source_revision(&self) -> SourceRevision {
         self.revision
             .expect("candidate schema workers do not have a SourceRevision")
@@ -2655,6 +2980,10 @@ impl CutWorkerSchemaExecutor {
 }
 
 impl CutSchemaExecutor for CutWorkerSchemaExecutor {
+    fn selected_source_revision(&self) -> Option<SourceRevision> {
+        self.revision
+    }
+
     fn check_reusing_scalar(
         &mut self,
         path: &str,
@@ -3092,6 +3421,111 @@ impl CutSchemaExecutor for CutWorkerSchemaExecutor {
             });
         }
         Ok(valid)
+    }
+}
+
+impl CutSchemaReceiptRange for CutWorkerSchemaExecutor {
+    fn execution_binding(&self) -> CutExecutionBinding {
+        CutWorkerSchemaExecutor::execution_binding(self)
+    }
+
+    fn source_revision(&self) -> SourceRevision {
+        CutWorkerSchemaExecutor::source_revision(self)
+    }
+
+    fn contract_digest(&self, contract: &str) -> Option<Digest256> {
+        CutWorkerSchemaExecutor::contract_digest(self, contract)
+    }
+
+    fn receipt_count(&self) -> usize {
+        CutWorkerSchemaExecutor::receipt_count(self)
+    }
+
+    fn receipt_range_supported(&self) -> bool {
+        self.diagnostics_v2.is_none()
+    }
+
+    fn receipt_page_limits(&self) -> (usize, usize) {
+        (self.limits.max_receipts, self.limits.max_receipt_bytes)
+    }
+
+    fn operation_budget(&self) -> BatchStreamBudget {
+        CutWorkerSchemaExecutor::operation_budget(self)
+    }
+
+    fn receipt_limit_bytes(&self) -> usize {
+        CutWorkerSchemaExecutor::receipt_limit_bytes(self)
+    }
+
+    fn release_child(
+        &mut self,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal> {
+        CutWorkerSchemaExecutor::release_child(self, deadline, cancelled)
+    }
+
+    fn read_receipts_after(
+        &mut self,
+        after_ordinal: Option<u64>,
+        max_rows: usize,
+        max_bytes: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<CutSchemaReceiptPage, ItemRefusal> {
+        check(deadline, cancelled)?;
+        if self.diagnostics_v2.is_some()
+            || max_rows == 0
+            || max_bytes == 0
+            || max_rows > self.limits.max_receipts
+            || max_bytes > self.limits.max_receipt_bytes
+        {
+            return Err(ItemRefusal::Budget);
+        }
+        let start = after_ordinal
+            .map(|ordinal| ordinal.checked_add(1).ok_or(ItemRefusal::Budget))
+            .transpose()?
+            .map(|ordinal| usize::try_from(ordinal).map_err(|_| ItemRefusal::Budget))
+            .transpose()?
+            .unwrap_or(0);
+        if start > self.receipts.len() {
+            return Err(ItemRefusal::Budget);
+        }
+        let take = max_rows.min(self.receipts.len().saturating_sub(start));
+        let mut page_state_bytes = std::mem::size_of::<Vec<(u64, CutSchemaReceipt)>>();
+        let mut encoded_bytes = 0usize;
+        for receipt in &self.receipts[start..start + take] {
+            check(deadline, cancelled)?;
+            page_state_bytes = page_state_bytes
+                .checked_add(std::mem::size_of::<(u64, CutSchemaReceipt)>())
+                .and_then(|bytes| bytes.checked_add(receipt.path.len()))
+                .and_then(|bytes| bytes.checked_add(receipt.contract.len()))
+                .filter(|bytes| *bytes <= max_bytes)
+                .ok_or(ItemRefusal::Budget)?;
+            encoded_bytes = encoded_bytes
+                .checked_add(
+                    receipt_spool::receipt_codec::encoded_receipt_len(receipt)
+                        .map_err(|_| ItemRefusal::Budget)?,
+                )
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        let mut rows = Vec::new();
+        rows.try_reserve_exact(take)
+            .map_err(|_| ItemRefusal::Budget)?;
+        for (index, receipt) in self.receipts[start..start + take].iter().enumerate() {
+            check(deadline, cancelled)?;
+            let ordinal = u64::try_from(start + index).map_err(|_| ItemRefusal::Budget)?;
+            rows.push((ordinal, receipt.clone()));
+        }
+        check(deadline, cancelled)?;
+        let next_after_ordinal = (start + take < self.receipts.len())
+            .then(|| u64::try_from(start + take - 1).ok())
+            .flatten();
+        Ok(CutSchemaReceiptPage::from_rows(
+            rows,
+            next_after_ordinal,
+            encoded_bytes,
+        ))
     }
 }
 
