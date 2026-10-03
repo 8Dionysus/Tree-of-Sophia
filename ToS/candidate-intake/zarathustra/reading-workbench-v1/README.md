@@ -17,11 +17,42 @@ The generated manifest, coverage receipt, reading census, quote ledger and gap
 ledger belong to the explicitly selected private dataset, not this source tree.
 
 ```bash
-python scripts/build_zarathustra_reading_workbench_v1.py --build --source-root /path/to/private-source-root --output-root /path/to/new-reading-data
-python scripts/build_zarathustra_reading_workbench_v1.py --check --source-root /path/to/private-source-root --output-root /path/to/reading-data
+python scripts/build_zarathustra_reading_workbench_v1.py --build --source-root /path/to/private-source-root --output-root /path/to/new-reading-data --scratch-bytes "$ADMITTED_READING_BYTES"
+python scripts/build_zarathustra_reading_workbench_v1.py --check --source-root /path/to/private-source-root --output-root /path/to/reading-data --scratch-bytes "$ADMITTED_READING_BYTES"
 python scripts/build_zarathustra_reading_workbench_v1.py --validate-tracked --source-root /path/to/private-source-root --output-root /path/to/reading-data
 python scripts/query_zarathustra_reading_workbench_v1.py --native-prefix /absolute/installed-prefix --data-root /path/to/private-source-root --analysis-root /path/to/reading-data --query судьбы --language ru --limit 100 --group-by speaker,formula
 ```
+
+The maintained builder dispatches `tos zarathustra-reading-workbench-v1`
+before importing its retained reference implementation. Select the installed
+binary through `TOS_NATIVE_PREPARED_CONSUMER_BIN` or `PATH`; absence or refusal
+returns an error. `--source-root` and `--output-root` select data directories,
+and build may create its separate output directory. Build and check require
+`--scratch-bytes` with the admitted remaining quota; this selector does not
+grant storage. Both directories share one original operation deadline,
+cancellation state, IO, work and scratch ledgers. The default deadline is 180
+seconds, selectable with `--max-seconds` from 1 to 600.
+
+Set `ADMITTED_READING_BYTES` to the remaining bytes from the host storage
+admission before running build or check. The fixed Reading profile permits
+512 MiB per source file and 4 GiB cumulative source/SQLite reads. The retained
+analysis input is 379,699,200 bytes; generic Research limits remain 256 MiB
+and 2 GiB. Output files remain limited to 256 MiB and cumulative writes to
+1 GiB. The output SQLite pager targets 96 MiB of cache; VACUUM may use a
+second target, totalling 192 MiB before overhead. These are finite refusal
+boundaries and planning targets, with the admitted outer RAM/storage limits
+still binding. They do not establish runtime fit.
+
+The native producer preserves the frozen v1 recipe, code-point offsets,
+quotation and formula candidates, all copied alignment fields, private SQLite
+schema and candidate ceilings. Its execution receipt identifies the native
+kernel separately from the historical recipe references. `--check` reconstructs
+and compares that selected dataset; `--validate-tracked` checks its existing
+tracked companions and policy binding. Neither mode accepts semantic judgments.
+The retained Python helper bodies remain reference consumers and parity oracles
+until their callers have explicit disposition. Native source readiness,
+producer parity, query consumption and installed default retirement require
+separate evidence.
 
 The maintained query CLI selects installed native code before importing the retained
 reference helpers. `--data-root` selects source data and `--analysis-root` selects

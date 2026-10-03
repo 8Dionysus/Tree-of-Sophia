@@ -15,7 +15,7 @@ import tempfile
 import time
 import math
 from contextlib import contextmanager
-from threading import RLock
+from threading import Condition, RLock
 from typing import Any
 
 from .native_core import NativeCore
@@ -78,13 +78,37 @@ class NativeAccessCore(NativeCore):
                  reading_max_total_file_bytes: int | None = None,
                  concept_max_file_bytes: int | None = None,
                  concept_max_total_file_bytes: int | None = None,
-                 native_state_root: str | Path | None = None):
+                 native_state_root: str | Path | None = None,
+                 source_read_service: Any | None = None):
         self._lifetime_lock = RLock()
         self._closed = False
         self._ephemeral_state = None
         self._native_state_root = native_state_root
         prefix = _selected_path(native_prefix, 'native_prefix')
         self.native_prefix = prefix
+        self._source_provider = None
+        self._owns_source_provider = False
+        self._selected_source_provider = False
+        self._selected_calls_condition = Condition()
+        self._selected_calls = 0
+        if source_read_service is not None:
+            if source_inputs_path is not None or source_local_text_selection_path is not None:
+                raise ValueError('select one persisted or embedded source owner')
+            from .native_source_provider import NativeSourceProvider
+            from .native_selected_source import NativeSelectedSourceProvider
+            if isinstance(source_read_service, (NativeSourceProvider, NativeSelectedSourceProvider)):
+                if source_read_service.prefix != prefix:
+                    raise ValueError('embedded source provider uses a different native prefix')
+                self._source_provider = source_read_service
+                self._selected_source_provider = isinstance(source_read_service, NativeSelectedSourceProvider)
+            else:
+                from .source_read import SourceReadService
+                if not isinstance(source_read_service, SourceReadService):
+                    raise TypeError('embedded source owner requires NativeSourceProvider or SourceReadService')
+                # Compatibility comparison only: the legacy object's constructor
+                # has already run. New callers use native provider initialization.
+                self._source_provider = NativeSourceProvider.from_reference_service(prefix, source_read_service)
+                self._owns_source_provider = True
         self.tos_root = None if tos_root is None else _selected_path(tos_root, 'tos_root')
         self.release_root = None if release_root is None else _selected_path(release_root, 'release_root')
         pair = (published_read_model_path, published_read_model_binding_path)
@@ -163,6 +187,46 @@ class NativeAccessCore(NativeCore):
         if native_prefix is None:
             raise ValueError('native imported Core requires an explicit native_prefix')
         return cls(native_prefix, tos_root=tos_root, **selection)
+
+    def _embedded_source(self, operation, request):
+        if self._selected_source_provider:
+            # Retain the borrowed provider and count active native calls without
+            # serializing its two nonqueued slots. Core close joins this lifetime.
+            deadline = time.monotonic() + 50
+            with self._selected_calls_condition:
+                self._ensure_open()
+                provider = self._source_provider
+                self._selected_calls += 1
+            try:
+                packet = provider.call(operation, request, absolute_deadline=deadline)
+                self._ensure_open()
+                if time.monotonic() >= deadline:
+                    raise TimeoutError('selected source deadline expired before disclosure')
+                return packet
+            finally:
+                with self._selected_calls_condition:
+                    self._selected_calls -= 1
+                    self._selected_calls_condition.notify_all()
+        # Explicit synchronous provider profile preserves owner callback latency;
+        # it does not use the selected native profile's hard whole-call 50s clock.
+        with self._lifetime_lock:
+            self._ensure_open()
+            return self._source_provider.call(operation, request)
+
+    def source_read_capabilities(self):
+        if self._source_provider is None:
+            return super().source_read_capabilities()
+        return self._embedded_source('capabilities', {})
+
+    def source_handle_discover(self, request):
+        if self._source_provider is None:
+            return super().source_handle_discover(request)
+        return self._embedded_source('discover', request)
+
+    def source_read(self, request):
+        if self._source_provider is None:
+            return super().source_read(request)
+        return self._embedded_source('read', request)
 
     def zarathustra_word_analysis_task(self, query: str, language: str = 'ru',
                                       rank: int = 1,
@@ -249,6 +313,12 @@ class NativeAccessCore(NativeCore):
             if self._closed:
                 return
             self._closed = True
+            with self._selected_calls_condition:
+                while self._selected_calls:
+                    self._selected_calls_condition.wait()
+            if self._source_provider is not None and self._owns_source_provider:
+                self._source_provider.close()
+            self._source_provider = None
             owned, self._ephemeral_state = self._ephemeral_state, None
             if owned is not None:
                 owned.cleanup()

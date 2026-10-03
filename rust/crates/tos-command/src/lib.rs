@@ -133,6 +133,7 @@ pub mod source_native_text_read;
 mod source_read_contract;
 pub mod source_read_layers;
 pub mod source_read_owner;
+pub mod source_read_provider;
 
 pub mod source_admission_cli;
 mod source_foundation_admission;

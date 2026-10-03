@@ -101,9 +101,12 @@ _SIGNALS = (signal.SIGINT, signal.SIGTERM, signal.SIGHUP, signal.SIGQUIT)
 
 class _Exchange:
     def __init__(self, arguments, prefix, input_cap, frame_cap, valid_returncodes,
-                 cancelled, deadline, env):
+                 cancelled, deadline, env, pass_fds=()):
         from . import native_dispatch
         self._env = env
+        self._pass_fds = pass_fds
+        self._sender_uid = os.getuid()
+        self._sender_gid = os.getgid()
         self._arguments = arguments
         self._prefix = prefix
         self._dispatch = Path(native_dispatch.__file__).resolve(strict=True)
@@ -122,6 +125,7 @@ class _Exchange:
         self._diagnostic = bytearray()
         self._readers = []
         self._terminal = None
+        self._terminal_observed_ns = None
 
     def _active(self):
         if self._closing.is_set() or (self._cancelled is not None and self._cancelled.is_set()):
@@ -153,6 +157,7 @@ class _Exchange:
                  json.dumps([int(sig) for sig in previous]), str(os.getpid())],
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE, start_new_session=True, env=self._env,
+                pass_fds=self._pass_fds,
             )
             # Acquisition and stream registration finish while cancellation is
             # masked; the outer owner finally already covers this whole phase.
@@ -243,6 +248,74 @@ class _Exchange:
         finally:
             self._send_lock.release()
 
+    def receive_descriptor(self, peer):
+        """Receive one FD from the still-owned leader on a private socket.
+
+        Return a caller-owned FileIO and at most 4096 neutral transport bytes.
+        The caller checks descriptor roles, seals and contents and closes the
+        file after the complete child join. No callback runs in this method.
+        SO_PASSCRED must be enabled by the caller before starting the child.
+        """
+        self._active()
+        if self._readers or self._terminal is None:
+            raise NativeCustodyError('native descriptor delivery requires complete EOF and terminal observation')
+        self.finish()  # Recheck accepted terminal status without reaping.
+        import array
+        import io
+        import socket
+        import struct
+        if (type(peer) is not socket.socket or peer.family != socket.AF_UNIX
+                or peer.getsockopt(socket.SOL_SOCKET, socket.SO_TYPE) != socket.SOCK_SEQPACKET
+                or peer.getsockopt(socket.SOL_SOCKET, socket.SO_PASSCRED) != 1):
+            raise ValueError('native descriptor delivery requires a private credentialed UNIX SEQPACKET socket')
+        delivered = []
+        file = None
+        previous = signal.pthread_sigmask(signal.SIG_BLOCK, _SIGNALS)
+        try:
+            self._observe()
+            data, controls, flags, address = peer.recvmsg(
+                4096, socket.CMSG_SPACE(16 * array.array('i').itemsize)
+                + socket.CMSG_SPACE(struct.calcsize('3i')),
+                socket.MSG_DONTWAIT | socket.MSG_CMSG_CLOEXEC)
+            # Register every delivered descriptor before rejecting any control
+            # envelope, so malformed/multiple controls cannot leak an FD.
+            for level, kind, raw in controls:
+                if level == socket.SOL_SOCKET and kind == socket.SCM_RIGHTS:
+                    values = array.array('i')
+                    values.frombytes(raw[:len(raw) - len(raw) % values.itemsize])
+                    delivered.extend(values)
+            credentials = [raw for level, kind, raw in controls
+                           if level == socket.SOL_SOCKET and kind == socket.SCM_CREDENTIALS]
+            rights = [raw for level, kind, raw in controls
+                      if level == socket.SOL_SOCKET and kind == socket.SCM_RIGHTS]
+            if (flags & (socket.MSG_TRUNC | socket.MSG_CTRUNC)
+                    or len(controls) != 2 or len(credentials) != 1 or len(rights) != 1
+                    or len(credentials[0]) != struct.calcsize('3i')
+                    or len(rights[0]) != array.array('i').itemsize or len(delivered) != 1):
+                raise NativeCustodyError('native descriptor envelope differs')
+            pid, uid, gid = struct.unpack('3i', credentials[0])
+            if pid != self._child.pid or uid != self._sender_uid or gid != self._sender_gid:
+                raise NativeCustodyError('native descriptor sender differs from the held leader')
+            self._observe()
+            self._active()
+            file = io.FileIO(delivered[0], mode='rb', closefd=True)
+            delivered.clear()
+            return file, data
+        except BaseException as primary:
+            if file is not None:
+                try:
+                    file.close()
+                except BaseException as error:
+                    primary.add_note(f'native received descriptor close failed: {type(error).__name__}')
+            for fd in delivered:
+                try:
+                    os.close(fd)
+                except BaseException as error:
+                    primary.add_note(f'native delivered descriptor close failed: {type(error).__name__}')
+            raise
+        finally:
+            signal.pthread_sigmask(signal.SIG_SETMASK, previous)
+
     def frames(self):
         """Yield bounded JSONL bytes, draining bounded stderr in the same reader."""
         while self._readers:
@@ -282,6 +355,8 @@ class _Exchange:
         while self._terminal is None:
             self._active()
             self._terminal = self._observe()
+            if self._terminal is not None:
+                self._terminal_observed_ns = time.monotonic_ns()
             if self._terminal is None:
                 time.sleep(min(0.01, max(0, self._work_deadline - time.monotonic())))
         status = (self._terminal.si_status if self._terminal.si_code == os.CLD_EXITED
@@ -290,6 +365,15 @@ class _Exchange:
             raise ValueError(self._diagnostic.decode('utf-8', 'replace').strip()
                              or 'native operation refused the input or resource envelope')
         return status
+
+    def terminal_observed_ns(self):
+        """First authenticated terminal observation, not the actual exit time."""
+        if (self._readers or self._terminal is None or self._terminal_observed_ns is None
+                or self._unknown or self._reaped):
+            raise NativeCustodyError('accepted unreaped native terminal observation unavailable')
+        self.finish()
+        self._observe()
+        return self._terminal_observed_ns
 
     def _release(self):
         self._closing.set()
@@ -353,12 +437,26 @@ class _Exchange:
             raise NativeCustodyError('owned native child cleanup failed: ' + '; '.join(notes)) from failure
 
 
-def _caller_deadline(absolute_deadline):
+def _caller_deadline(absolute_deadline, operation_seconds=50):
     start = time.monotonic()
-    if absolute_deadline is not None and (type(absolute_deadline) not in (int, float)
-            or not math.isfinite(absolute_deadline) or absolute_deadline <= start):
+    try:
+        finite_span = (type(operation_seconds) in (int, float)
+                       and math.isfinite(operation_seconds))
+    except OverflowError:
+        finite_span = False
+    if not finite_span or operation_seconds <= 5:
+        raise ValueError('native operation needs a finite selected span greater than its 5s cleanup reserve')
+    selected_deadline = start + operation_seconds
+    if not math.isfinite(selected_deadline):
+        raise ValueError('native selected deadline addition is not finite')
+    try:
+        finite_absolute = (type(absolute_deadline) in (int, float)
+                           and math.isfinite(absolute_deadline))
+    except OverflowError:
+        finite_absolute = False
+    if absolute_deadline is not None and (not finite_absolute or absolute_deadline <= start):
         raise ValueError('native caller needs a finite remaining absolute deadline')
-    return min(start + 50, absolute_deadline) if absolute_deadline is not None else start + 50
+    return min(selected_deadline, absolute_deadline) if absolute_deadline is not None else selected_deadline
 
 
 def _contract(arguments, input_cap, frame_cap, valid_returncodes):
@@ -394,23 +492,39 @@ def _environment(env):
     return result
 
 
+def _borrowed_fds(value):
+    # Descriptor roles and their authority belong to the selecting caller.
+    # This transport borrows exact open FDs; it never closes parent copies.
+    if (type(value) is not tuple or len(value) > 16
+            or any(type(fd) is not int or fd < 3 for fd in value)
+            or len(set(value)) != len(value)):
+        raise ValueError('native pass_fds requires at most 16 distinct descriptor integers >=3')
+    for fd in value:
+        os.fstat(fd)
+    return value
+
+
 @contextmanager
 def owned_exchange(arguments, *, prefix=None, input_cap=16 * 1024 * 1024,
                    frame_cap=4 * 1024 * 1024, valid_returncodes=(0,),
-                   cancelled=None, absolute_deadline=None, env=None):
+                   cancelled=None, absolute_deadline=None, env=None, pass_fds=(),
+                   operation_seconds=50):
     """One synchronous pipe owner, usable from a caller-owned async worker.
 
     Only the channel is exposed; child PID/Popen/reap stay private to this owner.
     The caller owns domain interpretation and joins its SDK workers before exit.
+    Long operations require the selecting caller's explicit admitted finite span;
+    it is a transport envelope, not a domain budget or host execution grant.
     """
-    deadline = _caller_deadline(absolute_deadline)
+    deadline = _caller_deadline(absolute_deadline, operation_seconds)
     _contract(arguments, input_cap, frame_cap, valid_returncodes)
     environment = _environment(env)
+    descriptors = _borrowed_fds(pass_fds)
     selected = prefix or os.environ.get('TOS_NATIVE_PREFIX')
     if not selected:
         raise ValueError('native operation requires installed Rust software: set TOS_NATIVE_PREFIX or --native-prefix')
     channel = _Exchange(list(arguments), selected, input_cap, frame_cap,
-                        tuple(valid_returncodes), cancelled, deadline, environment)
+                        tuple(valid_returncodes), cancelled, deadline, environment, descriptors)
     primary = None
     try:
         channel._open()
@@ -427,11 +541,13 @@ def owned_exchange(arguments, *, prefix=None, input_cap=16 * 1024 * 1024,
 
 def native_packets(arguments, value=None, *, prefix=None, input_cap=16 * 1024 * 1024,
                    frame_cap=4 * 1024 * 1024, valid_returncodes=(0,),
-                   cancelled=None, absolute_deadline=None, env=None):
+                   cancelled=None, absolute_deadline=None, env=None, pass_fds=(),
+                   operation_seconds=50):
     """Thin output-only JSON facade over the same owned stdin/stdout channel."""
-    deadline = _caller_deadline(absolute_deadline)
+    deadline = _caller_deadline(absolute_deadline, operation_seconds)
     _contract(arguments, input_cap, frame_cap, valid_returncodes)
     environment = _environment(env)
+    descriptors = _borrowed_fds(pass_fds)
     selected = prefix or os.environ.get('TOS_NATIVE_PREFIX')
     if not selected:
         raise ValueError('native operation requires installed Rust software: set TOS_NATIVE_PREFIX or --native-prefix')
@@ -440,7 +556,8 @@ def native_packets(arguments, value=None, *, prefix=None, input_cap=16 * 1024 * 
     writer = None
     with owned_exchange(arguments, prefix=selected, input_cap=input_cap,
                         frame_cap=frame_cap, valid_returncodes=valid_returncodes,
-                        cancelled=cancelled, absolute_deadline=deadline, env=environment) as channel:
+                        cancelled=cancelled, absolute_deadline=deadline, env=environment,
+                        pass_fds=descriptors, operation_seconds=operation_seconds) as channel:
         def write_input():
             try:
                 channel.write_input(payload or b'', close=True)

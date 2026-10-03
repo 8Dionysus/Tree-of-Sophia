@@ -5,6 +5,7 @@
 use std::{io::Write, path::PathBuf};
 
 pub const COMMANDS: &[&str] = &[
+    "zarathustra-reading-workbench-v1",
     "zarathustra-parallel-lexical-candidates-v1",
     "zarathustra-de-ru-paragraph-alignment-v1",
     "zarathustra-concept-workbench-v1",
@@ -13,10 +14,14 @@ pub const COMMANDS: &[&str] = &[
     "zarathustra-eternal-return-concept-candidate-v1",
 ];
 
-pub const HELP: &str = "usage: tos COMMAND --source-root ABSOLUTE_SOURCE_DIRECTORY [--max-seconds 1..600] [--scratch-bytes RESERVED_REMAINING_BYTES] [PRODUCER_OPTIONS]\n\nResearch producers:\n  zarathustra-parallel-lexical-candidates-v1\n  zarathustra-de-ru-paragraph-alignment-v1\n  zarathustra-concept-workbench-v1\n  zarathustra-eternal-return-review-preparation-v1\n  zarathustra-morphology-theme-candidates-v1\n  zarathustra-eternal-return-concept-candidate-v1\n\nThe source directory is explicit. Default whole-operation deadline: 180 seconds. Writes and SQLite production require an explicit remaining scratch quota after the carrier baseline; this option does not grant storage. Private source material remains private.\nGenerated candidates do not grant semantic, rights, publication or canon admission.\n";
+pub const HELP: &str = "usage: tos COMMAND --source-root ABSOLUTE_SOURCE_DIRECTORY [--max-seconds 1..600] [--scratch-bytes RESERVED_REMAINING_BYTES] [PRODUCER_OPTIONS]\n\nResearch producers:\n  zarathustra-reading-workbench-v1\n  zarathustra-parallel-lexical-candidates-v1\n  zarathustra-de-ru-paragraph-alignment-v1\n  zarathustra-concept-workbench-v1\n  zarathustra-eternal-return-review-preparation-v1\n  zarathustra-morphology-theme-candidates-v1\n  zarathustra-eternal-return-concept-candidate-v1\n\nThe source directory is explicit. Default whole-operation deadline: 180 seconds. Writes and SQLite production require an explicit remaining scratch quota after the carrier baseline; this option does not grant storage. Private source material remains private.\nGenerated candidates do not grant semantic, rights, publication or canon admission.\n";
 
 fn entry_identity(command: &str) -> (&'static str, &'static [u8]) {
     match command {
+        "zarathustra-reading-workbench-v1" => (
+            "research_reading_workbench.rs",
+            include_bytes!("../../tos-compiler/src/research_reading_workbench.rs"),
+        ),
         "zarathustra-parallel-lexical-candidates-v1" => (
             "research_parallel_lexical.rs",
             include_bytes!("../../tos-compiler/src/research_parallel_lexical.rs"),
@@ -101,13 +106,26 @@ pub fn run_if_requested(
         });
     }
     let result = selected_args(args).and_then(|(root, seconds, scratch_bytes, producer)| {
-        let root = match scratch_bytes {
-            Some(bytes) => tos_compiler::research_execution::ResearchExecution::new_with_scratch(
-                &root, seconds, bytes,
-            )?,
-            None => tos_compiler::research_execution::ResearchExecution::new(&root, seconds)?,
+        let root = if command == "zarathustra-reading-workbench-v1" {
+            tos_compiler::research_execution::ResearchExecution::new_reading_v1(
+                &root,
+                seconds,
+                scratch_bytes,
+            )?
+        } else {
+            match scratch_bytes {
+                Some(bytes) => {
+                    tos_compiler::research_execution::ResearchExecution::new_with_scratch(
+                        &root, seconds, bytes,
+                    )?
+                }
+                None => tos_compiler::research_execution::ResearchExecution::new(&root, seconds)?,
+            }
         };
         let value = match command {
+            "zarathustra-reading-workbench-v1" => {
+                tos_compiler::research_reading_workbench::run_scoped(&root, &producer)
+            }
             "zarathustra-parallel-lexical-candidates-v1" => {
                 tos_compiler::research_parallel_lexical::run_scoped(&root, &producer)
             }
@@ -172,16 +190,14 @@ mod tests {
     fn research_route_requires_explicit_absolute_root_before_production() {
         assert!(selected_args(&[COMMANDS[0].into(), "--preview".into()]).is_err());
         assert!(selected_args(&[COMMANDS[0].into(), "--source-root".into(), ".".into()]).is_err());
-        assert!(
-            selected_args(&[
-                COMMANDS[0].into(),
-                "--source-root".into(),
-                "/".into(),
-                "--source-root".into(),
-                "/".into()
-            ])
-            .is_err()
-        );
+        assert!(selected_args(&[
+            COMMANDS[0].into(),
+            "--source-root".into(),
+            "/".into(),
+            "--source-root".into(),
+            "/".into()
+        ])
+        .is_err());
     }
 
     #[test]

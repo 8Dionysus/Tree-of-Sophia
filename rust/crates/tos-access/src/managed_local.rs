@@ -19,7 +19,10 @@ use tos_compiler::{
     ColdOpenLimits, NavigationOriginalReceipt, PhilosophyOriginalCollection,
     PhilosophyOriginalReceipt, QueryVocabulary, VerifiedKnowledgeModel,
 };
-use tos_foundation::{Digest256, JsonLimits};
+use tos_foundation::{
+    CanonicalProfile, Digest256, JsonLimits, JsonMode, JsonString, JsonValue, canonical_bytes_v1,
+    parse_json,
+};
 use tos_query::search_v2::{
     CurrentPolicyBinding, IndexedSearchV2Request, SearchContinuationState, SearchV2Error,
     SearchV2ErrorCode,
@@ -390,6 +393,15 @@ impl AccessExecutor for ManagedLocalExecutor {
             "exact source owner is not selected by the release holder",
         ))
     }
+    fn access_health_available(&self) -> bool {
+        self.model.lock().is_ok() && self.release.acquire().is_ok()
+    }
+    fn access_health(
+        &self,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        execute_selected_access_health(self, probe)
+    }
     fn exploration_runtime_capabilities(&self) -> tos_foundation::JsonValue {
         let selected = self
             .release
@@ -419,6 +431,9 @@ impl AccessExecutor for ManagedLocalExecutor {
         )
     }
     fn knowledge_available(&self, operation: O) -> bool {
+        if operation == O::AccessHealth {
+            return self.access_health_available();
+        }
         if operation.is_corpus() {
             return self.corpus_original.is_some()
                 && self.corpus_context.is_some()
@@ -700,11 +715,818 @@ impl AccessExecutor for ManagedLocalExecutor {
         )
     }
 }
+const HEALTH_CHILDREN: usize = 5;
+fn health_inspect_budget(
+    owner: &ManagedLocalExecutor,
+) -> Result<tos_query::InspectBudget, AccessError> {
+    let mut budget = owner.budgets().inspect;
+    let response = owner.profile.max_response_bytes / (HEALTH_CHILDREN + 1);
+    let decoded = owner.cold.max_work_bytes / (HEALTH_CHILDREN as u64 + 1);
+    let rows = owner.cold.max_rows / (HEALTH_CHILDREN as u64 + 1);
+    let vm = owner.cold.max_vm_steps / (HEALTH_CHILDREN as u64 + 1);
+    if response == 0 || decoded == 0 || rows == 0 || vm == 0 {
+        return Err(AccessError::new(
+            AccessErrorCode::BudgetExceeded,
+            "selected access health aggregate budget unavailable",
+        ));
+    }
+    budget.max_open_vm_steps = owner.cold.max_vm_steps;
+    budget.max_read_vm_steps = vm;
+    budget.max_matches = budget.max_matches / (HEALTH_CHILDREN + 1);
+    budget.max_rows = rows;
+    budget.max_decoded_bytes = decoded;
+    budget.max_response_bytes = response;
+    budget.json.max_bytes = budget
+        .json
+        .max_bytes
+        .min(usize::try_from(decoded).unwrap_or(usize::MAX).max(response));
+    if budget.max_matches == 0
+        || budget.max_payload_bytes == 0
+        || budget.max_field_bytes == 0
+        || budget.json.max_bytes == 0
+    {
+        return Err(AccessError::new(
+            AccessErrorCode::BudgetExceeded,
+            "selected access health aggregate budget unavailable",
+        ));
+    }
+    Ok(budget)
+}
+fn health_child_packet(
+    body: &[u8],
+    limits: JsonLimits,
+    meter: &mut tos_query::InspectVisitMeter,
+) -> Result<JsonValue, AccessError> {
+    let mut limits = limits;
+    limits.max_bytes = limits.max_bytes.min(body.len());
+    meter
+        .parse_json(body, JsonMode::PublishedStrict, limits)
+        .map(|packet| packet.into_root())
+        .map_err(|reason| {
+            AccessError::new(
+                if reason.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
+                    AccessErrorCode::BudgetExceeded
+                } else {
+                    AccessErrorCode::CorruptSelectedCarrier
+                },
+                "selected access health child packet invalid",
+            )
+        })
+}
+fn health_required_text(
+    value: &JsonValue,
+    key: &str,
+    maximum: usize,
+) -> Result<String, AccessError> {
+    value
+        .object_get(key)
+        .and_then(JsonValue::as_str)
+        .filter(|value| !value.is_empty() && value.len() <= maximum)
+        .map(str::to_owned)
+        .ok_or_else(|| {
+            AccessError::new(
+                AccessErrorCode::CorruptSelectedCarrier,
+                "selected access health child field invalid",
+            )
+        })
+}
+fn health_optional_text(
+    value: &JsonValue,
+    key: &str,
+    maximum: usize,
+) -> Result<Option<String>, AccessError> {
+    match value.object_get(key) {
+        Some(JsonValue::Null) => Ok(None),
+        Some(JsonValue::String(value)) => value
+            .as_str()
+            .filter(|value| !value.is_empty() && value.len() <= maximum)
+            .map(|value| Some(value.to_owned()))
+            .ok_or_else(|| {
+                AccessError::new(
+                    AccessErrorCode::CorruptSelectedCarrier,
+                    "selected access health child field invalid",
+                )
+            }),
+        _ => Err(AccessError::new(
+            AccessErrorCode::CorruptSelectedCarrier,
+            "selected access health child field invalid",
+        )),
+    }
+}
+fn health_child_schema(value: &JsonValue, expected: &str) -> Result<(), AccessError> {
+    if value.as_object().is_some()
+        && value
+            .object_get("schema_version")
+            .and_then(JsonValue::as_str)
+            == Some(expected)
+    {
+        Ok(())
+    } else {
+        Err(AccessError::new(
+            AccessErrorCode::CorruptSelectedCarrier,
+            "selected access health child schema invalid",
+        ))
+    }
+}
+fn health_subject(
+    status: &str,
+    code: Option<&str>,
+    message: Option<&str>,
+    source_schema: Option<&str>,
+    view_id: Option<&str>,
+) -> JsonValue {
+    JsonValue::Object(
+        vec![
+            (
+                JsonString::from_utf8("status"),
+                JsonValue::String(JsonString::from_utf8(status)),
+            ),
+            (
+                JsonString::from_utf8("code"),
+                code.map(|value| JsonValue::String(JsonString::from_utf8(value)))
+                    .unwrap_or(JsonValue::Null),
+            ),
+            (
+                JsonString::from_utf8("message"),
+                message
+                    .map(|value| JsonValue::String(JsonString::from_utf8(value)))
+                    .unwrap_or(JsonValue::Null),
+            ),
+            (
+                JsonString::from_utf8("source_schema"),
+                source_schema
+                    .map(|value| JsonValue::String(JsonString::from_utf8(value)))
+                    .unwrap_or(JsonValue::Null),
+            ),
+            (
+                JsonString::from_utf8("view_id"),
+                view_id
+                    .map(|value| JsonValue::String(JsonString::from_utf8(value)))
+                    .unwrap_or(JsonValue::Null),
+            ),
+        ]
+        .into_iter()
+        .collect(),
+    )
+}
+fn health_object(fields: Vec<(&str, JsonValue)>) -> JsonValue {
+    JsonValue::Object(
+        fields
+            .into_iter()
+            .map(|(key, value)| (JsonString::from_utf8(key), value))
+            .collect(),
+    )
+}
+fn health_error_subject(error: &AccessError) -> JsonValue {
+    health_subject(
+        "refused",
+        Some(error.code_str()),
+        Some(error.message),
+        None,
+        None,
+    )
+}
+fn health_error_is_global(error: &AccessError) -> bool {
+    matches!(
+        error.code,
+        AccessErrorCode::StaleSelection
+            | AccessErrorCode::PublicationPending
+            | AccessErrorCode::Cancelled
+            | AccessErrorCode::DeadlineExceeded
+    )
+}
+fn check_health_visit_meter(meter: &tos_query::InspectVisitMeter) -> Result<(), AccessError> {
+    if meter.failed() {
+        Err(AccessError::new(
+            AccessErrorCode::BudgetExceeded,
+            "selected access health cumulative JSON visit budget exceeded",
+        ))
+    } else {
+        Ok(())
+    }
+}
+fn append_health_error(errors: &mut Vec<JsonValue>, message: String) {
+    errors.push(JsonValue::String(JsonString::from_utf8(&message)));
+}
+fn consume_inspect_health_packet(
+    packet: tos_query::DisclosableInspect<'_>,
+    probe: &Arc<dyn AbortProbe>,
+    limits: JsonLimits,
+    meter: &mut tos_query::InspectVisitMeter,
+) -> Result<JsonValue, AccessError> {
+    let (body, mut lease) = packet.into_parts();
+    lease.recheck()?;
+    crate::knowledge::check_abort(probe)?;
+    health_child_packet(&body, limits, meter)
+}
+fn consume_catalog_health_packet(
+    packet: tos_query::DisclosableCatalog<'_>,
+    probe: &Arc<dyn AbortProbe>,
+    limits: JsonLimits,
+    meter: &mut tos_query::InspectVisitMeter,
+) -> Result<JsonValue, AccessError> {
+    let (body, mut lease) = packet.into_parts();
+    lease.recheck()?;
+    crate::knowledge::check_abort(probe)?;
+    health_child_packet(&body, limits, meter)
+}
+fn execute_selected_access_health(
+    owner: &ManagedLocalExecutor,
+    probe: Arc<dyn AbortProbe>,
+) -> Result<PreparedPacket<'static>, AccessError> {
+    crate::knowledge::check_abort(&probe)?;
+    let inspect_budget = health_inspect_budget(owner)?;
+    let work_steps = owner.cold.max_vm_steps / (HEALTH_CHILDREN as u64 + 1);
+    let mut visit_meter = tos_query::InspectVisitMeter::new(inspect_budget.json.max_visits);
+    let mut lease = owner.release.acquire()?;
+    if owner.corpus_original.is_some() {
+        lease.retain_member_guards(&owner.corpus_guards)?;
+    }
+    let shared_lease = Arc::new(Mutex::new(lease));
+    let cold = owner
+        .model
+        .lock()
+        .map_err(|_| unavailable("selected native model lock poisoned"))?;
+    let mut model = cold
+        .fork_reader_with_vm_budget(owner.cold.max_vm_steps)
+        .map_err(|_| unavailable("selected native reader unavailable"))?;
+    drop(cold);
+    let bound = tos_query::bind_verified_knowledge(&model, &owner.vocabulary, &owner.descriptor)?;
+
+    let mut errors = Vec::with_capacity(8);
+    let child_json = inspect_budget.json;
+    let mut corpus_source_schema = None;
+    let mut corpus_view_id = None;
+    let mut corpus_index_status = health_subject("unavailable", None, None, None, None);
+    let mut corpus_view_status = health_subject("not_checked", None, None, None, None);
+    let corpus_seed = (|| {
+        let context = owner
+            .corpus_context
+            .as_ref()
+            .ok_or_else(|| unavailable("selected corpus source context unavailable"))?;
+        let mut authority = Authority::new_shared(
+            owner,
+            &bound,
+            O::CorpusStatus.id(),
+            tos_query::corpus_read::CORPUS_INTENDED_USE,
+            Arc::clone(&shared_lease),
+            Arc::clone(&probe),
+        )?;
+        let packet = tos_query::corpus_read::execute_selected_corpus_health_seed_metered(
+            &mut model,
+            &bound,
+            &mut authority,
+            context,
+            tos_query::corpus_read::CorpusReadBudget {
+                inspect: inspect_budget,
+                max_work_steps: work_steps,
+            },
+            &mut visit_meter,
+        )?;
+        consume_inspect_health_packet(packet, &probe, child_json, &mut visit_meter)
+    })();
+    match corpus_seed {
+        Ok(seed) => {
+            health_child_schema(&seed, "tos_selected_corpus_health_seed_v1")?;
+            corpus_source_schema = Some(health_required_text(
+                &seed,
+                "index_schema_version",
+                inspect_budget.max_field_bytes,
+            )?);
+            corpus_view_id =
+                health_optional_text(&seed, "first_graph_view_id", inspect_budget.max_field_bytes)?;
+            if corpus_source_schema.as_deref() != Some("tos_corpus_index_v1") {
+                append_health_error(&mut errors, "unsupported corpus index schema".into());
+                corpus_index_status = health_subject(
+                    "refused",
+                    Some("unsupported_schema"),
+                    Some("unsupported corpus index schema"),
+                    corpus_source_schema.as_deref(),
+                    corpus_view_id.as_deref(),
+                );
+            } else {
+                corpus_index_status = health_subject(
+                    "ready",
+                    None,
+                    None,
+                    corpus_source_schema.as_deref(),
+                    corpus_view_id.as_deref(),
+                );
+                match corpus_view_id.as_deref() {
+                    None => {
+                        append_health_error(
+                            &mut errors,
+                            "corpus index has no supported graph views".into(),
+                        );
+                        corpus_view_status = health_subject(
+                            "unavailable",
+                            Some("no_supported_view"),
+                            Some("corpus index has no supported graph views"),
+                            corpus_source_schema.as_deref(),
+                            None,
+                        );
+                    }
+                    Some(view_id) => {
+                        let sample = (|| {
+                            let context = owner.corpus_context.as_ref().ok_or_else(|| {
+                                unavailable("selected corpus source context unavailable")
+                            })?;
+                            let mut authority = Authority::new_shared(
+                                owner,
+                                &bound,
+                                O::CorpusGraphView.id(),
+                                tos_query::corpus_read::CORPUS_INTENDED_USE,
+                                Arc::clone(&shared_lease),
+                                Arc::clone(&probe),
+                            )?;
+                            let request = tos_query::corpus_read::CorpusReadRequest::GraphView {
+                                view_id: view_id.to_owned(),
+                                limit: 1,
+                            };
+                            let packet = tos_query::corpus_read::execute_selected_corpus_metered(
+                                &mut model,
+                                &bound,
+                                &mut authority,
+                                context,
+                                &request,
+                                tos_query::corpus_read::CorpusReadBudget {
+                                    inspect: inspect_budget,
+                                    max_work_steps: work_steps,
+                                },
+                                &mut visit_meter,
+                            )?;
+                            let value = consume_inspect_health_packet(
+                                packet,
+                                &probe,
+                                child_json,
+                                &mut visit_meter,
+                            )?;
+                            if value.object_get("schema").and_then(JsonValue::as_str)
+                                != Some("tos_corpus_mcp_graph_view_v1")
+                                || value
+                                    .object_get("view")
+                                    .and_then(|view| view.object_get("view_id"))
+                                    .and_then(JsonValue::as_str)
+                                    != Some(view_id)
+                            {
+                                return Err(AccessError::new(
+                                    AccessErrorCode::CorruptSelectedCarrier,
+                                    "selected corpus graph-view sample differs",
+                                ));
+                            }
+                            Ok::<(), AccessError>(())
+                        })();
+                        match sample {
+                            Ok(()) => {
+                                corpus_view_status = health_subject(
+                                    "ready",
+                                    None,
+                                    None,
+                                    corpus_source_schema.as_deref(),
+                                    Some(view_id),
+                                );
+                            }
+                            Err(error) if health_error_is_global(&error) => return Err(error),
+                            Err(error) => {
+                                append_health_error(
+                                    &mut errors,
+                                    format!("corpus index invalid: {}", error.message),
+                                );
+                                corpus_view_status = health_error_subject(&error);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Err(error) if health_error_is_global(&error) => return Err(error),
+        Err(error) => {
+            append_health_error(
+                &mut errors,
+                format!("corpus index invalid: {}", error.message),
+            );
+            corpus_index_status = health_error_subject(&error);
+            corpus_view_status = health_subject(
+                "not_checked",
+                Some("source_unavailable"),
+                Some("corpus view sample requires a valid selected index"),
+                None,
+                None,
+            );
+        }
+    }
+    check_health_visit_meter(&visit_meter)?;
+
+    let mut philosophy_schema = None;
+    let mut philosophy_view_id = None;
+    let mut philosophy_projection_status = health_subject("unavailable", None, None, None, None);
+    let mut philosophy_view_status = health_subject("not_checked", None, None, None, None);
+    let philosophy_seed = (|| {
+        let mut authority = Authority::new_shared(
+            owner,
+            &bound,
+            O::PhilosophyViews.id(),
+            tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE,
+            Arc::clone(&shared_lease),
+            Arc::clone(&probe),
+        )?;
+        let packet = tos_query::philosophy_read::execute_selected_philosophy_health_seed_metered(
+            &mut model,
+            &bound,
+            &mut authority,
+            tos_query::philosophy_read::PhilosophyReadBudget {
+                inspect: inspect_budget,
+                max_work_steps: work_steps,
+            },
+            &mut visit_meter,
+        )?;
+        consume_inspect_health_packet(packet, &probe, child_json, &mut visit_meter)
+    })();
+    match philosophy_seed {
+        Ok(seed) => {
+            health_child_schema(&seed, "tos_selected_philosophy_health_seed_v1")?;
+            philosophy_schema = Some(health_required_text(
+                &seed,
+                "projection_schema_version",
+                inspect_budget.max_field_bytes,
+            )?);
+            philosophy_view_id =
+                health_optional_text(&seed, "first_view_id", inspect_budget.max_field_bytes)?;
+            if !matches!(
+                philosophy_schema.as_deref(),
+                Some("tos_philosophy_graph_projection_v1" | "tos_philosophy_graph_projection_v2")
+            ) {
+                append_health_error(
+                    &mut errors,
+                    "philosophy projection invalid: unsupported source schema".into(),
+                );
+                philosophy_projection_status = health_subject(
+                    "refused",
+                    Some("unsupported_schema"),
+                    Some("philosophy projection invalid: unsupported source schema"),
+                    philosophy_schema.as_deref(),
+                    philosophy_view_id.as_deref(),
+                );
+            } else {
+                philosophy_projection_status = health_subject(
+                    "ready",
+                    None,
+                    None,
+                    philosophy_schema.as_deref(),
+                    philosophy_view_id.as_deref(),
+                );
+                match philosophy_view_id.as_deref() {
+                    None => {
+                        append_health_error(
+                            &mut errors,
+                            "philosophy projection has no graph views".into(),
+                        );
+                        philosophy_view_status = health_subject(
+                            "unavailable",
+                            Some("no_graph_views"),
+                            Some("philosophy projection has no graph views"),
+                            philosophy_schema.as_deref(),
+                            None,
+                        );
+                    }
+                    Some(view_id) => {
+                        let sample = (|| {
+                            let mut authority = Authority::new_shared(
+                                owner,
+                                &bound,
+                                O::PhilosophyView.id(),
+                                tos_query::philosophy_read::PHILOSOPHY_INTENDED_USE,
+                                Arc::clone(&shared_lease),
+                                Arc::clone(&probe),
+                            )?;
+                            let request = tos_query::philosophy_read::PhilosophyReadRequest::View {
+                                view_id: view_id.to_owned(),
+                                limit: 1,
+                            };
+                            let packet =
+                                tos_query::philosophy_read::execute_selected_philosophy_metered(
+                                    &mut model,
+                                    &bound,
+                                    &mut authority,
+                                    &request,
+                                    tos_query::philosophy_read::PhilosophyReadBudget {
+                                        inspect: inspect_budget,
+                                        max_work_steps: work_steps,
+                                    },
+                                    &mut visit_meter,
+                                )?;
+                            let value = consume_inspect_health_packet(
+                                packet,
+                                &probe,
+                                child_json,
+                                &mut visit_meter,
+                            )?;
+                            if value.object_get("schema").and_then(JsonValue::as_str)
+                                != Some("tos_philosophy_mcp_view_v1")
+                                || value
+                                    .object_get("view")
+                                    .and_then(|view| view.object_get("view_id"))
+                                    .and_then(JsonValue::as_str)
+                                    != Some(view_id)
+                            {
+                                return Err(AccessError::new(
+                                    AccessErrorCode::CorruptSelectedCarrier,
+                                    "selected philosophy graph-view sample differs",
+                                ));
+                            }
+                            Ok::<(), AccessError>(())
+                        })();
+                        match sample {
+                            Ok(()) => {
+                                philosophy_view_status = health_subject(
+                                    "ready",
+                                    None,
+                                    None,
+                                    philosophy_schema.as_deref(),
+                                    Some(view_id),
+                                );
+                            }
+                            Err(error) if health_error_is_global(&error) => return Err(error),
+                            Err(error) => {
+                                append_health_error(
+                                    &mut errors,
+                                    format!("philosophy projection invalid: {}", error.message),
+                                );
+                                philosophy_view_status = health_error_subject(&error);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Err(error) if health_error_is_global(&error) => return Err(error),
+        Err(error) => {
+            append_health_error(
+                &mut errors,
+                format!("philosophy projection invalid: {}", error.message),
+            );
+            philosophy_projection_status = health_error_subject(&error);
+            philosophy_view_status = health_subject(
+                "not_checked",
+                Some("source_unavailable"),
+                Some("philosophy view sample requires a valid selected projection"),
+                None,
+                None,
+            );
+        }
+    }
+    check_health_visit_meter(&visit_meter)?;
+
+    let mut knowledge_schema = JsonValue::Null;
+    let mut knowledge_counts = JsonValue::Null;
+    let mut knowledge_graph_status = health_subject("unavailable", None, None, None, None);
+    let mut knowledge_catalog_status = health_subject("unavailable", None, None, None, None);
+    let knowledge = (|| {
+        let mut authority = Authority::new_shared(
+            owner,
+            &bound,
+            O::Catalog.id(),
+            tos_query::CATALOG_INTENDED_USE,
+            Arc::clone(&shared_lease),
+            Arc::clone(&probe),
+        )?;
+        let packet = tos_query::execute_selected_knowledge_health_metadata(
+            &mut model,
+            &bound,
+            &mut authority,
+            tos_query::CatalogBudget {
+                max_open_vm_steps: owner.cold.max_vm_steps,
+                max_read_vm_steps: inspect_budget.max_read_vm_steps,
+                max_packet_bytes: inspect_budget.max_response_bytes,
+                max_decoded_bytes: usize::try_from(inspect_budget.max_decoded_bytes)
+                    .unwrap_or(usize::MAX),
+                json: inspect_budget.json,
+            },
+            &mut visit_meter,
+        )?;
+        consume_catalog_health_packet(packet, &probe, inspect_budget.json, &mut visit_meter)
+    })();
+    match knowledge {
+        Ok(metadata) => {
+            health_child_schema(&metadata, "tos_selected_knowledge_health_metadata_v1")?;
+            let graph_schema =
+                health_required_text(&metadata, "graph_schema", inspect_budget.max_field_bytes)?;
+            let catalog_schema =
+                health_required_text(&metadata, "catalog_schema", inspect_budget.max_field_bytes)?;
+            let mut metadata_fields = match metadata {
+                JsonValue::Object(fields) => fields,
+                _ => {
+                    return Err(AccessError::new(
+                        AccessErrorCode::CorruptSelectedCarrier,
+                        "selected knowledge health counts invalid",
+                    ));
+                }
+            };
+            let counts_index = metadata_fields
+                .iter()
+                .position(|(key, _)| key.as_str() == Some("counts"))
+                .ok_or_else(|| {
+                    AccessError::new(
+                        AccessErrorCode::CorruptSelectedCarrier,
+                        "selected knowledge health counts invalid",
+                    )
+                })?;
+            let counts = metadata_fields.swap_remove(counts_index).1;
+            drop(metadata_fields);
+            if counts.as_object().is_none() {
+                return Err(AccessError::new(
+                    AccessErrorCode::CorruptSelectedCarrier,
+                    "selected knowledge health counts invalid",
+                ));
+            }
+            let nodes = counts
+                .object_get("nodes")
+                .and_then(JsonValue::as_u64)
+                .ok_or_else(|| {
+                    AccessError::new(
+                        AccessErrorCode::CorruptSelectedCarrier,
+                        "selected knowledge health node count invalid",
+                    )
+                })?;
+            let relations = counts
+                .object_get("relations")
+                .and_then(JsonValue::as_u64)
+                .ok_or_else(|| {
+                    AccessError::new(
+                        AccessErrorCode::CorruptSelectedCarrier,
+                        "selected knowledge health relation count invalid",
+                    )
+                })?;
+            let coverage = counts
+                .object_get("display_coverage")
+                .filter(|coverage| coverage.as_object().is_some())
+                .ok_or_else(|| {
+                    AccessError::new(
+                        AccessErrorCode::CorruptSelectedCarrier,
+                        "selected knowledge health display coverage invalid",
+                    )
+                })?;
+            let mut graph_errors = false;
+            for (field, expected, message) in [
+                (
+                    "node_titles",
+                    nodes,
+                    "knowledge graph node title coverage is incomplete",
+                ),
+                (
+                    "node_summaries",
+                    nodes,
+                    "knowledge graph node summary coverage is incomplete",
+                ),
+                (
+                    "relation_labels",
+                    relations,
+                    "knowledge graph relation label coverage is incomplete",
+                ),
+                (
+                    "relation_statements",
+                    relations,
+                    "knowledge graph relation statement coverage is incomplete",
+                ),
+                (
+                    "relation_explanations",
+                    relations,
+                    "knowledge graph relation explanation coverage is incomplete",
+                ),
+            ] {
+                if coverage.object_get(field).and_then(JsonValue::as_u64) != Some(expected) {
+                    graph_errors = true;
+                    append_health_error(&mut errors, message.into());
+                }
+            }
+            knowledge_schema = JsonValue::String(JsonString::from_utf8(&graph_schema));
+            knowledge_counts = counts;
+            knowledge_graph_status = health_subject(
+                if graph_errors { "degraded" } else { "ready" },
+                graph_errors.then_some("coverage_incomplete"),
+                graph_errors.then_some("one or more display-coverage counts differ"),
+                Some(&graph_schema),
+                None,
+            );
+            let catalog_mismatch = catalog_schema != "tos_knowledge_catalog_v1";
+            if catalog_mismatch {
+                append_health_error(
+                    &mut errors,
+                    "knowledge catalog schema is not current".into(),
+                );
+            }
+            knowledge_catalog_status = health_subject(
+                if catalog_mismatch {
+                    "degraded"
+                } else {
+                    "ready"
+                },
+                catalog_mismatch.then_some("unsupported_schema"),
+                catalog_mismatch.then_some("knowledge catalog schema is not current"),
+                Some(&catalog_schema),
+                None,
+            );
+        }
+        Err(error) if health_error_is_global(&error) => return Err(error),
+        Err(error) => {
+            append_health_error(
+                &mut errors,
+                format!("knowledge graph invalid: {}", error.message),
+            );
+            knowledge_graph_status = health_error_subject(&error);
+            knowledge_catalog_status = health_subject(
+                "not_checked",
+                Some("source_unavailable"),
+                Some("knowledge catalog schema requires valid graph metadata"),
+                None,
+                None,
+            );
+        }
+    }
+    check_health_visit_meter(&visit_meter)?;
+
+    crate::knowledge::check_abort(&probe)?;
+    let final_response_limit =
+        owner.profile.max_response_bytes - inspect_budget.max_response_bytes * HEALTH_CHILDREN;
+    if final_response_limit == 0 {
+        return Err(AccessError::new(
+            AccessErrorCode::BudgetExceeded,
+            "selected access health response budget unavailable",
+        ));
+    }
+    let report = health_object(vec![
+        (
+            "schema_version",
+            JsonValue::String(JsonString::from_utf8("tos_selected_access_health_v1")),
+        ),
+        (
+            "service",
+            JsonValue::String(JsonString::from_utf8("tree-of-sophia-access")),
+        ),
+        ("ok", JsonValue::Bool(errors.is_empty())),
+        ("write_enabled", JsonValue::Bool(false)),
+        ("errors", JsonValue::Array(errors)),
+        ("knowledge_schema", knowledge_schema),
+        ("knowledge_counts", knowledge_counts),
+        (
+            "subjects",
+            health_object(vec![
+                ("corpus_index", corpus_index_status),
+                ("corpus_graph_view", corpus_view_status),
+                ("philosophy_projection", philosophy_projection_status),
+                ("philosophy_graph_view", philosophy_view_status),
+                ("knowledge_graph", knowledge_graph_status),
+                ("knowledge_catalog", knowledge_catalog_status),
+            ]),
+        ),
+    ]);
+    let mut output_limits = owner.budgets().inspect.json;
+    output_limits.max_bytes = final_response_limit;
+    let body = visit_meter
+        .canonical_bytes(
+            &report,
+            CanonicalProfile::SourceRecordDigestV1,
+            output_limits,
+        )
+        .map_err(|_| {
+            AccessError::new(
+                AccessErrorCode::BudgetExceeded,
+                "selected access health response exceeds budget",
+            )
+        })?;
+    if body.len() > final_response_limit {
+        return Err(AccessError::new(
+            AccessErrorCode::BudgetExceeded,
+            "selected access health response exceeds budget",
+        ));
+    }
+    crate::knowledge::check_abort(&probe)?;
+    shared_lease
+        .lock()
+        .map_err(|_| {
+            AccessError::new(
+                AccessErrorCode::StaleSelection,
+                "selected native release hold poisoned",
+            )
+        })?
+        .recheck()?;
+    crate::knowledge::check_abort(&probe)?;
+    Ok(PreparedPacket {
+        body,
+        fence: Box::new(AccessHealthFence {
+            lease: shared_lease,
+            probe,
+        }),
+    })
+}
+
 struct Authority {
     policy: CurrentPolicyBinding,
     inspect: IndexedDisclosureScope,
     catalog: CatalogDisclosureScope,
     lease: Option<ReleaseLease>,
+    shared_lease: Option<Arc<Mutex<ReleaseLease>>>,
+    probe: Option<Arc<dyn AbortProbe>>,
     registries: [(String, Digest256); 2],
     registry_grants: u8,
     original: Option<NavigationOriginalReceipt>,
@@ -724,6 +1546,38 @@ impl Authority {
         let mut lease = owner.release.acquire()?;
         if owner.corpus_original.is_some() {
             lease.retain_member_guards(&owner.corpus_guards)?;
+        }
+        Self::scoped(owner, bound, operation, intended, Some(lease), None, None)
+    }
+    fn new_shared(
+        owner: &ManagedLocalExecutor,
+        bound: &BoundCmpKnowledge<'_>,
+        operation: &str,
+        intended: &str,
+        lease: Arc<Mutex<ReleaseLease>>,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<Self, AccessError> {
+        Self::scoped(
+            owner,
+            bound,
+            operation,
+            intended,
+            None,
+            Some(lease),
+            Some(probe),
+        )
+    }
+    fn scoped(
+        owner: &ManagedLocalExecutor,
+        bound: &BoundCmpKnowledge<'_>,
+        operation: &str,
+        intended: &str,
+        lease: Option<ReleaseLease>,
+        shared_lease: Option<Arc<Mutex<ReleaseLease>>>,
+        probe: Option<Arc<dyn AbortProbe>>,
+    ) -> Result<Self, AccessError> {
+        if lease.is_some() == shared_lease.is_some() {
+            return Err(unavailable("selected release hold binding invalid"));
         }
         // These fields identify the existing local holder and selected release;
         // they are not a source-rights receipt or a public issuer credential.
@@ -775,7 +1629,9 @@ impl Authority {
             policy,
             inspect,
             catalog,
-            lease: Some(lease),
+            lease,
+            shared_lease,
+            probe,
             registries: [
                 (
                     selected.entity_registry_id.clone(),
@@ -796,17 +1652,69 @@ impl Authority {
         })
     }
     fn check(&mut self) -> Result<(), SearchV2Error> {
+        if let Some(shared) = &self.shared_lease {
+            return shared
+                .lock()
+                .map_err(|_| query_error("selected native release hold poisoned"))?
+                .check_hold()
+                .map_err(|_| query_error("selected local release changed or revoked"));
+        }
         self.lease
             .as_mut()
             .ok_or_else(|| query_error("release disclosure hold consumed"))?
             .check_hold()
             .map_err(|_| query_error("selected local release changed or revoked"))
     }
-    fn take(&mut self) -> Result<ReleaseLease, SearchV2Error> {
+    fn take(&mut self) -> Result<AuthorityDisclosureLease, SearchV2Error> {
         self.check()?;
+        if let Some(shared) = &self.shared_lease {
+            return Ok(AuthorityDisclosureLease::Shared(Arc::clone(shared)));
+        }
         self.lease
             .take()
+            .map(AuthorityDisclosureLease::Owned)
             .ok_or_else(|| query_error("release disclosure hold consumed"))
+    }
+}
+
+enum AuthorityDisclosureLease {
+    Owned(ReleaseLease),
+    Shared(Arc<Mutex<ReleaseLease>>),
+}
+impl InspectDisclosureLease for AuthorityDisclosureLease {
+    fn recheck(&mut self) -> Result<(), SearchV2Error> {
+        match self {
+            Self::Owned(lease) => InspectDisclosureLease::recheck(lease),
+            Self::Shared(shared) => InspectDisclosureLease::recheck(
+                &mut *shared
+                    .lock()
+                    .map_err(|_| query_error("selected native release hold poisoned"))?,
+            ),
+        }
+    }
+}
+impl IndexedDisclosureLease for AuthorityDisclosureLease {
+    fn recheck(&mut self) -> Result<(), SearchV2Error> {
+        match self {
+            Self::Owned(lease) => IndexedDisclosureLease::recheck(lease),
+            Self::Shared(shared) => IndexedDisclosureLease::recheck(
+                &mut *shared
+                    .lock()
+                    .map_err(|_| query_error("selected native release hold poisoned"))?,
+            ),
+        }
+    }
+}
+impl CatalogDisclosureLease for AuthorityDisclosureLease {
+    fn recheck(&mut self) -> Result<(), CatalogError> {
+        match self {
+            Self::Owned(lease) => CatalogDisclosureLease::recheck(lease),
+            Self::Shared(shared) => CatalogDisclosureLease::recheck(
+                &mut *shared
+                    .lock()
+                    .map_err(|_| catalog_error("selected native release hold poisoned"))?,
+            ),
+        }
     }
 }
 impl InspectDisclosureLease for ReleaseLease {
@@ -876,6 +1784,9 @@ impl IndexedKnowledgeAuthority for IndexedAuthority {
     }
 }
 impl<'hold> InspectCurrentAuthority<'hold> for Authority {
+    fn abort_probe(&self) -> Option<Arc<dyn AbortProbe>> {
+        self.probe.clone()
+    }
     fn authorize_corpus_view_identity_current(
         &mut self,
         receipt: &tos_compiler::CorpusOriginalReceipt,
@@ -1076,6 +1987,9 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
     }
 }
 impl<'hold> CatalogCurrentAuthority<'hold> for Authority {
+    fn abort_probe(&self) -> Option<Arc<dyn AbortProbe>> {
+        self.probe.clone()
+    }
     fn policy_binding(&self) -> CurrentPolicyBinding {
         self.policy.clone()
     }
@@ -1104,6 +2018,26 @@ impl<'hold> CatalogCurrentAuthority<'hold> for Authority {
         Ok(Box::new(self.take().map_err(|_| {
             catalog_error("selected local disclosure hold unavailable")
         })?))
+    }
+}
+
+struct AccessHealthFence {
+    lease: Arc<Mutex<ReleaseLease>>,
+    probe: Arc<dyn AbortProbe>,
+}
+impl crate::DisclosureFence for AccessHealthFence {
+    fn recheck(&mut self) -> Result<(), AccessError> {
+        crate::knowledge::check_abort(&self.probe)?;
+        self.lease
+            .lock()
+            .map_err(|_| {
+                AccessError::new(
+                    AccessErrorCode::StaleSelection,
+                    "selected native release hold poisoned",
+                )
+            })?
+            .recheck()?;
+        crate::knowledge::check_abort(&self.probe)
     }
 }
 

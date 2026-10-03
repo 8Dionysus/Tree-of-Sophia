@@ -881,3 +881,7 @@ pub mod research_execution;
 pub mod research_morphology_theme;
 pub mod research_paragraph_alignment;
 pub mod research_parallel_lexical;
+
+mod research_reading_discourse;
+mod research_reading_formulas;
+pub mod research_reading_workbench;

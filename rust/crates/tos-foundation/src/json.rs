@@ -255,11 +255,20 @@ impl JsonValue {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct JsonDocument {
     root: JsonValue,
     mode: JsonMode,
+    visits: usize,
 }
+
+impl PartialEq for JsonDocument {
+    fn eq(&self, other: &Self) -> bool {
+        self.root == other.root && self.mode == other.mode
+    }
+}
+
+impl Eq for JsonDocument {}
 
 impl JsonDocument {
     pub fn root(&self) -> &JsonValue {
@@ -270,6 +279,11 @@ impl JsonDocument {
     }
     pub fn mode(&self) -> JsonMode {
         self.mode
+    }
+    /// Number of successful value visits performed by the existing parser.
+    /// Reading this count does not traverse or reparse the retained tree.
+    pub fn visits(&self) -> usize {
+        self.visits
     }
 }
 
@@ -332,7 +346,8 @@ fn parse_json_inner(
     if parser.at != raw.len() {
         return Err(parser.error(Code::InvalidJson, "trailing JSON input"));
     }
-    Ok(JsonDocument { root, mode })
+    let visits = parser.visits;
+    Ok(JsonDocument { root, mode, visits })
 }
 
 pub fn parse_json_profile(raw: &[u8], profile: &str, limits: JsonLimits) -> Result<JsonDocument> {
@@ -801,6 +816,30 @@ pub fn canonical_bytes_v1(
     }
 }
 
+/// Emit the exact bytes from `canonical_bytes_v1` and report the value visits
+/// and numeric-lexeme parser visits from that same emission pass.
+pub fn canonical_bytes_v1_with_visits(
+    value: &JsonValue,
+    profile: CanonicalProfile,
+    limits: JsonLimits,
+) -> Result<(Vec<u8>, usize, usize)> {
+    let style = match profile {
+        CanonicalProfile::CorpusSnapshotV1 => WriteStyle::PythonCompactLf,
+        CanonicalProfile::SourceRecordDigestV1 | CanonicalProfile::SourceCommandInputV1 => {
+            WriteStyle::PythonCompact
+        }
+    };
+    let mut bytes = Vec::new();
+    let (writer_visits, numeric_parse_visits) = write_document_into_with_visits(
+        value,
+        limits,
+        style,
+        &mut JsonOutput::Bytes(&mut bytes),
+        true,
+    )?;
+    Ok((bytes, writer_visits, numeric_parse_visits))
+}
+
 /// Count canonical bytes through the same closed output visitor without retaining discarded bytes.
 pub fn canonical_count_v1(
     value: &JsonValue,
@@ -839,7 +878,17 @@ pub fn canonical_feed_digest_v1(
     } else {
         WriteStyle::PythonCompact
     };
-    write_value(value, &mut output, depth, visits, limits, style)?;
+    let mut numeric_parse_visits = 0;
+    write_value(
+        value,
+        &mut output,
+        depth,
+        visits,
+        &mut numeric_parse_visits,
+        limits,
+        style,
+        false,
+    )?;
     if style.newline() {
         emit(&mut output, b"\n", limits)?;
     }
@@ -1012,13 +1061,32 @@ fn write_document_into(
     style: WriteStyle,
     output: &mut JsonOutput<'_>,
 ) -> Result<()> {
+    write_document_into_with_visits(value, limits, style, output, false).map(|_| ())
+}
+fn write_document_into_with_visits(
+    value: &JsonValue,
+    limits: JsonLimits,
+    style: WriteStyle,
+    output: &mut JsonOutput<'_>,
+    combined_visit_limit: bool,
+) -> Result<(usize, usize)> {
     limits.validate()?;
     let mut visits = 0;
-    write_value(value, output, 0, &mut visits, limits, style)?;
+    let mut numeric_parse_visits = 0;
+    write_value(
+        value,
+        output,
+        0,
+        &mut visits,
+        &mut numeric_parse_visits,
+        limits,
+        style,
+        combined_visit_limit,
+    )?;
     if style.newline() {
         emit(output, b"\n", limits)?;
     }
-    Ok(())
+    Ok((visits, numeric_parse_visits))
 }
 fn emit(output: &mut JsonOutput<'_>, bytes: &[u8], limits: JsonLimits) -> Result<()> {
     let next = output
@@ -1119,10 +1187,19 @@ fn write_value(
     output: &mut JsonOutput<'_>,
     depth: usize,
     visits: &mut usize,
+    numeric_parse_visits: &mut usize,
     limits: JsonLimits,
     style: WriteStyle,
+    combined_visit_limit: bool,
 ) -> Result<()> {
-    if depth > limits.max_depth || *visits >= limits.max_visits {
+    let completed_visits = if combined_visit_limit {
+        visits.checked_add(*numeric_parse_visits).ok_or_else(|| {
+            FoundationError::new(Code::BudgetExceeded, "JSON visit counter overflow")
+        })?
+    } else {
+        *visits
+    };
+    if depth > limits.max_depth || completed_visits >= limits.max_visits {
         return Err(FoundationError::new(
             Code::BudgetExceeded,
             "JSON output structural budget exceeded",
@@ -1136,7 +1213,31 @@ fn write_value(
         JsonValue::Number(number) => {
             // JsonValue is public for owner-schema traversal. Do not trust a caller-built
             // Number to carry a valid JSON lexeme or the declared numeric kind.
-            let checked = parse_json(number.lexeme.as_bytes(), JsonMode::PublishedStrict, limits)?;
+            let mut validation_limits = limits;
+            if combined_visit_limit {
+                let completed_visits =
+                    visits.checked_add(*numeric_parse_visits).ok_or_else(|| {
+                        FoundationError::new(Code::BudgetExceeded, "JSON visit counter overflow")
+                    })?;
+                let remaining = limits.max_visits.saturating_sub(completed_visits);
+                if remaining == 0 {
+                    return Err(FoundationError::new(
+                        Code::BudgetExceeded,
+                        "JSON writer budget exceeded",
+                    ));
+                }
+                validation_limits.max_visits = remaining;
+            }
+            let checked = parse_json(
+                number.lexeme.as_bytes(),
+                JsonMode::PublishedStrict,
+                validation_limits,
+            )?;
+            *numeric_parse_visits = numeric_parse_visits
+                .checked_add(checked.visits())
+                .ok_or_else(|| {
+                    FoundationError::new(Code::BudgetExceeded, "JSON visit counter overflow")
+                })?;
             if checked.root() != value {
                 return Err(FoundationError::new(
                     Code::InvalidNumber,
@@ -1174,7 +1275,16 @@ fn write_value(
                 if style.pretty() {
                     emit_indent(output, depth + 1, limits)?;
                 }
-                write_value(item, output, depth + 1, visits, limits, style)?;
+                write_value(
+                    item,
+                    output,
+                    depth + 1,
+                    visits,
+                    numeric_parse_visits,
+                    limits,
+                    style,
+                    combined_visit_limit,
+                )?;
             }
             if style.pretty() && !items.is_empty() {
                 emit(output, b"\n", limits)?;
@@ -1183,7 +1293,14 @@ fn write_value(
             emit(output, b"]", limits)?;
         }
         JsonValue::Object(entries) => {
-            if entries.len() > limits.max_visits.saturating_sub(*visits) {
+            let completed_visits = if combined_visit_limit {
+                visits.checked_add(*numeric_parse_visits).ok_or_else(|| {
+                    FoundationError::new(Code::BudgetExceeded, "JSON visit counter overflow")
+                })?
+            } else {
+                *visits
+            };
+            if entries.len() > limits.max_visits.saturating_sub(completed_visits) {
                 return Err(FoundationError::new(
                     Code::BudgetExceeded,
                     "JSON output structural budget exceeded",
@@ -1206,7 +1323,16 @@ fn write_value(
                     }
                     write_string(key, output, true, limits)?;
                     emit(output, b":", limits)?;
-                    write_value(item, output, depth + 1, visits, limits, style)?;
+                    write_value(
+                        item,
+                        output,
+                        depth + 1,
+                        visits,
+                        numeric_parse_visits,
+                        limits,
+                        style,
+                        combined_visit_limit,
+                    )?;
                 }
             } else {
                 for (index, (key, item)) in entries.iter().enumerate() {
@@ -1236,7 +1362,16 @@ fn write_value(
                         },
                         limits,
                     )?;
-                    write_value(item, output, depth + 1, visits, limits, style)?;
+                    write_value(
+                        item,
+                        output,
+                        depth + 1,
+                        visits,
+                        numeric_parse_visits,
+                        limits,
+                        style,
+                        combined_visit_limit,
+                    )?;
                 }
             }
             if style.pretty() && !entries.is_empty() {

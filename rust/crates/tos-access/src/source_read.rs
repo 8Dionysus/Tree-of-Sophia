@@ -89,6 +89,18 @@ pub fn run_cli(
     if args.first().map(String::as_str) != Some("source") {
         return None;
     }
+    #[cfg(not(target_arch = "wasm32"))]
+    if args.get(1).map(String::as_str) == Some("selected-owner") {
+        return Some(crate::selected_source_owner_cli::run(
+            args, profile, stdin, stdout, stderr,
+        ));
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    if args.get(1).map(String::as_str) == Some("owner-provider-phase") {
+        return Some(crate::source_owner_provider_phase::run(
+            args, stdin, stdout, stderr,
+        ));
+    }
     let operation = match args.get(1).map(String::as_str) {
         Some("capabilities") => Operation::Capabilities,
         Some("contracts") => Operation::Contract,

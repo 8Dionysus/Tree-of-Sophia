@@ -498,15 +498,20 @@ fn command_closure<'a>(
     let roles = commands
         .as_object()
         .ok_or("native command closure must be object")?;
-    if roles.len() != COMMANDS.len()
+    if roles.is_empty()
+        || roles.len() > COMMANDS.len()
         || roles
             .iter()
             .any(|(name, _)| !COMMANDS.contains(&name.as_str().unwrap_or("")))
     {
-        return Err("native command closure must contain exactly the five supported roles".into());
+        return Err(
+            "native command closure must contain a nonempty subset of supported roles".into(),
+        );
     }
     for role in COMMANDS {
-        command_proof(field(commands, role)?, access)?;
+        if let Some(proof) = commands.object_get(role) {
+            command_proof(proof, access)?;
+        }
     }
     Ok(Some(commands))
 }
@@ -818,17 +823,20 @@ pub fn build_with_commands(
         let roles = descriptors
             .as_object()
             .ok_or("native command products must be object")?;
-        if roles.len() != COMMANDS.len()
+        if roles.is_empty()
+            || roles.len() > COMMANDS.len()
             || roles
                 .iter()
                 .any(|(name, _)| !COMMANDS.contains(&name.as_str().unwrap_or("")))
         {
             return Err(
-                "native command products must select exactly the five supported roles".into(),
+                "native command products must select a nonempty subset of supported roles".into(),
             );
         }
         for role in COMMANDS {
-            let selected = field(&descriptors, role)?;
+            let Some(selected) = descriptors.object_get(role) else {
+                continue;
+            };
             let fields = selected
                 .as_object()
                 .ok_or("native command product must be object")?;
@@ -1418,8 +1426,7 @@ impl VerifiedArchive {
         }
         for role in COMMANDS {
             let member = command_member(role);
-            if let Some(commands) = commands {
-                let proof = field(commands, role)?;
+            if let Some(proof) = commands.and_then(|commands| commands.object_get(role)) {
                 let image = declared
                     .get(member.as_str())
                     .ok_or("native command role member absent")?;
@@ -1436,7 +1443,7 @@ impl VerifiedArchive {
                     return Err("archive native command image is not x86_64 ELF64".into());
                 }
             } else if declared.contains_key(member.as_str()) {
-                return Err("native command member requires its fixed role closure".into());
+                return Err("native command member requires its selected role proof".into());
             }
         }
         if toolchain(&pin_bytes)? != string(native, "toolchain")? {
@@ -1562,9 +1569,11 @@ impl VerifiedArchive {
         fs::create_dir(format!("/proc/self/fd/{}/bin", root.as_raw_fd())).checked()?;
         let bin = tos_fd_open::open_directory_at(&root, Path::new("bin")).checked()?;
         let mut links = vec![("tos", PROGRAM.to_owned())];
-        if self.manifest.object_get("native_commands").is_some() {
+        if let Some(commands) = self.manifest.object_get("native_commands") {
             for role in COMMANDS {
-                links.push((role, command_member(role)));
+                if commands.object_get(role).is_some() {
+                    links.push((role, command_member(role)));
+                }
             }
         }
         for (role, member) in &links {

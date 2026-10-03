@@ -8,7 +8,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_source_store::{CorpusCutReader, CutReadLimits};
 use tos_validation::FormatProfile;
-use tos_validation::executor::ExecutorBudget;
+use tos_validation::executor::{ExecutorBudget, VerifiedWorkerImageHandle};
 use tos_validation::retirement_rules::{
     RetirementFamilyReport, RetirementLimits, RetirementRefusal, inspect_retirements_from_cut,
 };
@@ -196,12 +196,20 @@ fn worker(
 ) -> (CutWorkerSchemaExecutor, Digest256) {
     let image =
         super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, cancelled);
+    worker_with_image(cut, cancelled, deadline, &image)
+}
+fn worker_with_image(
+    cut: &CorpusCutReader,
+    cancelled: &AtomicBool,
+    deadline: Instant,
+    image: &VerifiedWorkerImageHandle,
+) -> (CutWorkerSchemaExecutor, Digest256) {
     let digest = image.identity().sha256;
     let preparation_started = Instant::now();
     let prepared = CutWorkerSchemaExecutor::from_cut_with_image(
         cut,
         FormatProfile::LegacyPythonObserved20260923,
-        &image,
+        image,
         ExecutorBudget::laboratory(),
         CutWorkerLimits {
             max_receipts: 32,
@@ -302,6 +310,15 @@ fn retirement_cut_worker_carries_exact_transition_without_unrelated_raw_reads() 
 
 #[test]
 fn retirement_cut_worker_rejects_python_source_semantic_negative_controls() {
+    let cancelled = AtomicBool::new(false);
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let image =
+        super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, &cancelled);
+    let inspect_case = |fixture: &Fixture, revision| {
+        let cut = fixture.cut(revision, &cancelled, deadline);
+        let (mut schemas, _) = worker_with_image(&cut, &cancelled, deadline, &image);
+        inspect_retirements_from_cut(&cut, limits(deadline), &cancelled, &mut schemas)
+    };
     for case in [
         "ordinary event",
         "failed status",
@@ -360,7 +377,7 @@ fn retirement_cut_worker_rejects_python_source_semantic_negative_controls() {
         let revision = fixture.current(canonical_json(&fixture.event), None, None);
         assert!(
             matches!(
-                inspect(&fixture, revision),
+                inspect_case(&fixture, revision),
                 Err(RetirementRefusal::Source(_))
             ),
             "{case}"
@@ -371,7 +388,7 @@ fn retirement_cut_worker_rejects_python_source_semantic_negative_controls() {
     let raw = raw.replacen('{', "{\"status\":\"failed\",", 1).into_bytes();
     let revision = fixture.current(raw, None, None);
     assert!(matches!(
-        inspect(&fixture, revision),
+        inspect_case(&fixture, revision),
         Err(RetirementRefusal::Source(_))
     ));
 }

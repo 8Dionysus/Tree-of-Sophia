@@ -37,8 +37,14 @@ mod mcp_prompts;
 mod mcp_resources;
 pub mod search;
 mod selected_source;
+#[cfg(not(target_arch = "wasm32"))]
+mod selected_source_owner_cli;
 pub mod site;
 pub mod software_archive;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod standalone_validation;
+#[cfg(not(target_arch = "wasm32"))]
+mod source_owner_provider_phase;
 pub mod source_read;
 
 pub use common::{

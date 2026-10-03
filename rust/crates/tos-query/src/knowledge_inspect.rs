@@ -17,8 +17,8 @@ use std::{
 };
 use tos_compiler::VerifiedKnowledgeModel;
 use tos_foundation::{
-    CanonicalProfile, Digest256, FoundationErrorCode, JsonLimits, JsonMode, JsonValue,
-    canonical_bytes_v1, parse_json,
+    CanonicalProfile, Digest256, FoundationError, FoundationErrorCode, JsonDocument, JsonLimits,
+    JsonMode, JsonValue, canonical_bytes_v1, canonical_bytes_v1_with_visits, parse_json,
 };
 
 pub const NODE_INSPECT_OPERATION: &str = "tos.knowledge.node.inspect";
@@ -42,6 +42,93 @@ fn sql_error(reason: rusqlite::Error) -> SearchV2Error {
     }
 }
 pub use crate::inspect_plan::InspectBudget;
+
+/// Optional cumulative JSON work meter for a bounded composite read. Ordinary
+/// readers pass no meter and retain their existing per-document limits.
+pub struct InspectVisitMeter {
+    remaining: usize,
+    failed: bool,
+}
+impl InspectVisitMeter {
+    pub fn new(max_visits: usize) -> Self {
+        Self {
+            remaining: max_visits,
+            failed: false,
+        }
+    }
+    pub fn remaining(&self) -> usize {
+        self.remaining
+    }
+    pub fn failed(&self) -> bool {
+        self.failed
+    }
+    fn budget_error() -> FoundationError {
+        FoundationError::new(
+            FoundationErrorCode::BudgetExceeded,
+            "cumulative selected JSON visit budget exceeded",
+        )
+    }
+    fn charge(&mut self, visits: usize) -> Result<(), FoundationError> {
+        let Some(remaining) = self.remaining.checked_sub(visits) else {
+            self.failed = true;
+            return Err(Self::budget_error());
+        };
+        self.remaining = remaining;
+        Ok(())
+    }
+    pub fn parse_json(
+        &mut self,
+        raw: &[u8],
+        mode: JsonMode,
+        mut limits: JsonLimits,
+    ) -> Result<JsonDocument, FoundationError> {
+        if self.failed || self.remaining == 0 {
+            self.failed = true;
+            return Err(Self::budget_error());
+        }
+        limits.max_visits = limits.max_visits.min(self.remaining);
+        match parse_json(raw, mode, limits) {
+            Ok(document) => {
+                self.charge(document.visits())?;
+                Ok(document)
+            }
+            Err(reason) => {
+                // Failed parses do not expose their partial visit counter, so
+                // this composite refuses rather than allowing unmetered retry.
+                self.failed = true;
+                Err(reason)
+            }
+        }
+    }
+    pub fn canonical_bytes(
+        &mut self,
+        value: &JsonValue,
+        profile: CanonicalProfile,
+        mut limits: JsonLimits,
+    ) -> Result<Vec<u8>, FoundationError> {
+        if self.failed || self.remaining == 0 {
+            self.failed = true;
+            return Err(Self::budget_error());
+        }
+        limits.max_visits = limits.max_visits.min(self.remaining);
+        match canonical_bytes_v1_with_visits(value, profile, limits) {
+            Ok((bytes, writer_visits, numeric_parse_visits)) => {
+                let visits = writer_visits
+                    .checked_add(numeric_parse_visits)
+                    .ok_or_else(|| {
+                        self.failed = true;
+                        Self::budget_error()
+                    })?;
+                self.charge(visits)?;
+                Ok(bytes)
+            }
+            Err(reason) => {
+                self.failed = true;
+                Err(reason)
+            }
+        }
+    }
+}
 /// A retained row's authenticated full projection. Authority includes every
 /// consulted carrier, including endpoint/context carriers and every alias.
 pub struct InspectedCarrier {
@@ -210,8 +297,31 @@ pub(crate) struct Reader<'a, 'b, A: ?Sized> {
     rows: u64,
     consulted: Vec<ObservedInspectCarrier>,
     scope: &'a IndexedDisclosureScope,
+    visit_meter: Option<&'a mut InspectVisitMeter>,
 }
 impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
+    fn parse_document(
+        &mut self,
+        raw: &[u8],
+        mode: JsonMode,
+        limits: JsonLimits,
+    ) -> Result<JsonDocument, FoundationError> {
+        match self.visit_meter.as_deref_mut() {
+            Some(meter) => meter.parse_json(raw, mode, limits),
+            None => parse_json(raw, mode, limits),
+        }
+    }
+    fn canonical_bytes(
+        &mut self,
+        value: &JsonValue,
+        profile: CanonicalProfile,
+        limits: JsonLimits,
+    ) -> Result<Vec<u8>, FoundationError> {
+        match self.visit_meter.as_deref_mut() {
+            Some(meter) => meter.canonical_bytes(value, profile, limits),
+            None => canonical_bytes_v1(value, profile, limits),
+        }
+    }
     fn original_error(reason: tos_compiler::Error) -> SearchV2Error {
         match reason {
             tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => {
@@ -420,7 +530,8 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             sha,
         )?;
         self.check_interrupt()?;
-        let value = parse_json(&row.raw, JsonMode::PublishedStrict, self.budget.json)
+        let value = self
+            .parse_document(&row.raw, JsonMode::PublishedStrict, self.budget.json)
             .map_err(|_| corrupt("selected corpus original JSON invalid"))?
             .into_root();
         Ok(Some((row.ordinal, value)))
@@ -466,7 +577,8 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             sha,
         )?;
         self.check_interrupt()?;
-        let value = parse_json(&row.raw, JsonMode::PublishedStrict, self.budget.json)
+        let value = self
+            .parse_document(&row.raw, JsonMode::PublishedStrict, self.budget.json)
             .map_err(|_| corrupt("selected philosophy original JSON invalid"))?
             .into_root();
         Ok(Some((row.ordinal, value)))
@@ -500,7 +612,8 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             Digest256::of_bytes(&raw),
         )?;
         self.check_interrupt()?;
-        let value = parse_json(&raw, JsonMode::PublishedStrict, self.budget.json)
+        let value = self
+            .parse_document(&raw, JsonMode::PublishedStrict, self.budget.json)
             .map_err(|_| corrupt("selected navigation original JSON invalid"))?
             .into_root();
         Ok(Some((ordinal, value)))
@@ -582,12 +695,13 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
     ) -> Result<u64, SearchV2Error> {
         self.authority.check_selected()?;
         let list = JsonValue::Array(sources.iter().map(|source| text(source)).collect());
-        let encoded = canonical_bytes_v1(
-            &list,
-            CanonicalProfile::SourceRecordDigestV1,
-            self.budget.json,
-        )
-        .map_err(|_| budget_error())?;
+        let encoded = self
+            .canonical_bytes(
+                &list,
+                CanonicalProfile::SourceRecordDigestV1,
+                self.budget.json,
+            )
+            .map_err(|_| budget_error())?;
         let encoded =
             std::str::from_utf8(&encoded).map_err(|_| corrupt("scope sources invalid"))?;
         let field = if kind == SearchKind::Nodes {
@@ -662,7 +776,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         if Digest256::of_bytes(&payload).as_bytes() != sha.as_slice() {
             return Err(corrupt("selected header digest differs"));
         }
-        parse_json(&payload, JsonMode::PublishedStrict, self.budget.json)
+        self.parse_document(&payload, JsonMode::PublishedStrict, self.budget.json)
             .map(|doc| doc.into_root())
             .map_err(|_| corrupt("selected header JSON invalid"))
     }
@@ -711,10 +825,16 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         {
             return Err(corrupt("selected catalog digest differs"));
         }
-        let packet = parse_json(&payload, JsonMode::PublishedStrict, self.budget.json)
+        let packet = self
+            .parse_document(&payload, JsonMode::PublishedStrict, self.budget.json)
             .map_err(|_| corrupt("selected catalog JSON invalid"))?
             .into_root();
-        bound.validate_catalog_identity(&packet, self.budget.json)?;
+        match self.visit_meter.as_deref_mut() {
+            Some(meter) => {
+                bound.validate_catalog_identity_metered(&packet, self.budget.json, meter)?
+            }
+            None => bound.validate_catalog_identity(&packet, self.budget.json)?,
+        }
         Ok(packet)
     }
     /// Complete retained carrier keysets in source/encounter order. Candidate
@@ -733,12 +853,13 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         }
         self.authority.check_selected()?;
         let list = JsonValue::Array(sources.iter().map(|source| text(source)).collect());
-        let encoded = canonical_bytes_v1(
-            &list,
-            CanonicalProfile::SourceRecordDigestV1,
-            self.budget.json,
-        )
-        .map_err(|_| budget_error())?;
+        let encoded = self
+            .canonical_bytes(
+                &list,
+                CanonicalProfile::SourceRecordDigestV1,
+                self.budget.json,
+            )
+            .map_err(|_| budget_error())?;
         let encoded =
             std::str::from_utf8(&encoded).map_err(|_| corrupt("candidate sources invalid"))?;
         let (table, index) = if kind == SearchKind::Nodes {
@@ -847,12 +968,13 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         }
         self.authority.check_selected()?;
         let list = JsonValue::Array(sources.iter().map(|source| text(source)).collect());
-        let encoded = canonical_bytes_v1(
-            &list,
-            CanonicalProfile::SourceRecordDigestV1,
-            self.budget.json,
-        )
-        .map_err(|_| budget_error())?;
+        let encoded = self
+            .canonical_bytes(
+                &list,
+                CanonicalProfile::SourceRecordDigestV1,
+                self.budget.json,
+            )
+            .map_err(|_| budget_error())?;
         let encoded =
             std::str::from_utf8(&encoded).map_err(|_| corrupt("identity sources invalid"))?;
         let sql = "SELECT CASE WHEN length(CAST(id AS BLOB))<=?5 THEN id END FROM knowledge_nodes INDEXED BY knowledge_nodes_entity_id WHERE entity_id=?1 AND id>?2 AND source_graph IN (SELECT value FROM json_each(?3)) ORDER BY id LIMIT ?4";
@@ -988,7 +1110,8 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             }
             let mut limits = self.budget.json;
             limits.max_bytes = limits.max_bytes.min(payload.len());
-            let parsed = parse_json(&payload, JsonMode::PublishedStrict, limits)
+            let parsed = self
+                .parse_document(&payload, JsonMode::PublishedStrict, limits)
                 .map_err(|_| corrupt("inspect carrier JSON invalid"))?;
             let value = parsed.root().clone();
             if value.object_get("id").and_then(JsonValue::as_str) != Some(row_id.as_str()) {
@@ -1024,12 +1147,13 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         limit: usize,
     ) -> Result<(u64, Vec<JsonValue>), SearchV2Error> {
         let ids = JsonValue::Array(matches.iter().map(|value| text(value)).collect());
-        let encoded = canonical_bytes_v1(
-            &ids,
-            CanonicalProfile::SourceRecordDigestV1,
-            self.budget.json,
-        )
-        .map_err(|_| budget_error())?;
+        let encoded = self
+            .canonical_bytes(
+                &ids,
+                CanonicalProfile::SourceRecordDigestV1,
+                self.budget.json,
+            )
+            .map_err(|_| budget_error())?;
         let encoded = std::str::from_utf8(&encoded).map_err(|_| corrupt("inspect IDs invalid"))?;
         let union = "SELECT id FROM knowledge_relations INDEXED BY knowledge_relations_from WHERE from_id IN (SELECT value FROM json_each(?1)) UNION SELECT id FROM knowledge_relations INDEXED BY knowledge_relations_to WHERE to_id IN (SELECT value FROM json_each(?1))";
         let total: i64 = self
@@ -1205,6 +1329,98 @@ where
     F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchV2Error>,
     O: FnOnce(&[u8]) -> Result<(), SearchV2Error>,
 {
+    execute_selected_carrier_packet_observed_with_meter(
+        model,
+        bound,
+        authority,
+        operation,
+        intended_use,
+        budget,
+        None,
+        compute,
+        observe,
+    )
+}
+
+pub(crate) fn execute_selected_carrier_packet_metered<
+    'hold,
+    A: InspectCurrentAuthority<'hold> + ?Sized,
+    F,
+>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    operation: &str,
+    intended_use: &str,
+    budget: InspectBudget,
+    meter: &mut InspectVisitMeter,
+    compute: F,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error>
+where
+    F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchV2Error>,
+{
+    execute_selected_carrier_packet_with_optional_meter(
+        model,
+        bound,
+        authority,
+        operation,
+        intended_use,
+        budget,
+        Some(meter),
+        compute,
+    )
+}
+
+pub(crate) fn execute_selected_carrier_packet_with_optional_meter<
+    'hold,
+    A: InspectCurrentAuthority<'hold> + ?Sized,
+    F,
+>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    operation: &str,
+    intended_use: &str,
+    budget: InspectBudget,
+    visit_meter: Option<&mut InspectVisitMeter>,
+    compute: F,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error>
+where
+    F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchV2Error>,
+{
+    execute_selected_carrier_packet_observed_with_meter(
+        model,
+        bound,
+        authority,
+        operation,
+        intended_use,
+        budget,
+        visit_meter,
+        compute,
+        |_| Ok(()),
+    )
+}
+
+fn execute_selected_carrier_packet_observed_with_meter<
+    'hold,
+    A: InspectCurrentAuthority<'hold> + ?Sized,
+    F,
+    O,
+>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    operation: &str,
+    intended_use: &str,
+    budget: InspectBudget,
+    mut visit_meter: Option<&mut InspectVisitMeter>,
+    compute: F,
+    observe: O,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error>
+where
+    F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchV2Error>,
+    O: FnOnce(&[u8]) -> Result<(), SearchV2Error>,
+{
     if budget.max_open_vm_steps == 0
         || model.open_vm_steps() > budget.max_open_vm_steps
         || budget.max_read_vm_steps == 0
@@ -1266,12 +1482,14 @@ where
             rows: 0,
             consulted: vec![],
             scope: &scope,
+            visit_meter: visit_meter.take(),
         };
         let value = compute(&mut read)?;
         check_abort()?;
         let mut limits = budget.json;
         limits.max_bytes = limits.max_bytes.min(budget.max_response_bytes);
-        let body = canonical_bytes_v1(&value, CanonicalProfile::SourceRecordDigestV1, limits)
+        let body = read
+            .canonical_bytes(&value, CanonicalProfile::SourceRecordDigestV1, limits)
             .map_err(|reason| {
                 if reason.code == FoundationErrorCode::BudgetExceeded {
                     budget_error()
@@ -1300,4 +1518,30 @@ where
         return Err(budget_error());
     }
     result
+}
+
+/// Explicit completed selected graph metadata without node/relation materialization.
+/// Its dedicated operation/intended-use scope must be granted by the held owner;
+/// a catalog lease alone does not select this raw header disclosure.
+pub fn execute_selected_knowledge_header<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    budget: InspectBudget,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+    execute_selected_carrier_packet(
+        model,
+        bound,
+        authority,
+        "tos_knowledge_header",
+        "read_only_public_knowledge_header_v1",
+        budget,
+        |read| {
+            let header = read.header()?;
+            if header.as_object().is_none() {
+                return Err(corrupt("selected knowledge header is not an object"));
+            }
+            Ok(header)
+        },
+    )
 }

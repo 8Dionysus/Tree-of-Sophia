@@ -1400,19 +1400,23 @@ a caller-admitted exact baseline and never certifies skipped target parts.
 
 The access-only native software archive has the executable member
 `access/src/tos_access/tos-access`, beside its software-owned `web_dist`.
-The same archive optionally delivers the complete command cohort through
+The same archive optionally delivers a selected command subset through
 `software build --native-command-products /absolute/products.json`. This bounded
-JSON object must select exactly `tos-native-owner-command`, `tos-schema-worker`,
-`tos-validation-lanes`, `tos-release-check`, and `tos-software-ci`; every value
+JSON object must select a nonempty subset of `tos-native-owner-command`,
+`tos-schema-worker`, `tos-validation-lanes`, `tos-release-check`, and
+`tos-software-ci`; every value
 contains only absolute `binary` and `receipt` paths. Each build-owned receipt
 uses `tos_native_software_command_build_v1`, the access receipt identity fields,
 and `features: []`. The three ops products are built with
 `--no-default-features`; command and schema-worker products use their empty
-effective feature set. All five must match the access source commit/tree, lock,
+effective feature set. Every selected role must match the access source commit/tree, lock,
 toolchain and target. Their SHA/size and ELF headers are checked independently.
 The additive `native_commands` manifest closure binds these exact roles at
 `native/bin/NAME`; install creates corresponding relative `PREFIX/bin/NAME`
-links. Omitting the selector preserves the access-only archive contract.
+links only for the selected roles. A role member without its declared proof is
+rejected. Selecting all five preserves the complete command cohort; selecting
+only `tos-schema-worker` delivers the necessary selected-source companion.
+Omitting the selector preserves the access-only archive contract.
 Delivery supplies executables, not invocation files, owner grants or corpus
 data. Owner commands still require an explicit protected invocation and worker
 binding; installing these roles adds no HTTP write capability.
@@ -1824,15 +1828,63 @@ installed binary must support the matching concept budget flags.
 A generic release or
 prepared publication does not supply local source authority, and a local source
 root does not supply generic publication authority. Missing capabilities keep
-the native unavailable result. Python `SourceReadService` objects and callback
-providers are not accepted as native descriptors.
+the native unavailable result. Python callback objects are not persisted native
+descriptors; the explicit embedded profile below retains their actual objects.
 
 The native facade serves the established knowledge, corpus, philosophy, lens,
 evidence, bounded source-navigation and exact-source MCP operations plus native
-resource reads. Full mutable graph/snapshot builders and reference-only carrier
-access are outside this facade. The current `ToSAccessCore` default remains the
+resource reads. The remaining graph/snapshot builders and complete carrier APIs
+are still being migrated. The current `ToSAccessCore` default remains the
 reference implementation pending migration of its remaining maintained callers;
 selecting `NativeAccessCore` never falls back to it.
+
+The additive `NativeCore.philosophy_projection()` uses the sole
+`full_projection: true` branch of the existing philosophy scale operation.
+Its matching native kernel returns the selected Original header and every base
+node/edge in receipt order as one complete carrier under one currentness fence
+and the existing work/output budget. This branch requires a matching operation
+descriptor and kernel; source preparation does not establish installed support.
+
+The additive embedded owner profile uses
+`tos_access.native_source_provider.NativeSourceProvider.from_owner_readers`
+with an explicit installed prefix and the actual metadata, claim or slot readers.
+`from_prepared_source` accepts the owner's immutable raw source-input bytes,
+actual catalog snapshot, readers, issuer and optional slot-descriptor callback.
+Both constructors initialize through Rust; they do not derive epochs or validate
+source policy in Python. Pass the resulting provider as
+`NativeAccessCore.discover(native_prefix=prefix, source_read_service=provider)`.
+This requires an installed binary containing `source owner-provider-phase`;
+it does not imply that an earlier installed release supports that command.
+
+The platform retains the same objects and calls only their fixed owner methods.
+Every native phase exits and joins before a synchronous callback begins. Rust
+validates observations, content, visibility and currentness, issues handles, and
+retains cumulative budgets in a native-produced sealed descriptor. A separate
+native-produced binding descriptor retains the initialized epoch for the provider
+lifetime: later calls compare fresh observations against that original binding.
+The platform keeps stable identities for the same retained readers and catalog;
+it never compares epochs. A wrapped reference binding supplies its original epoch
+only as an additional native-checked restriction. Custom owners
+support records only; this profile adds no native text rights. Currentness is
+checked at the last owner bookend before native rendering. Object retention is
+not an atomic publication lease.
+
+Existing synchronous owner callbacks may take an unbounded time. This profile
+has no hard end-to-end 50-second promise or callback preemption. It accumulates
+five seconds of Rust domain work and one 45-second work/50-second cleanup envelope
+across all phases, excluding only measured owner-method time. An optional
+`NativeSourceProvider.call(..., absolute_deadline=...)` checks the original
+whole deadline before and after callbacks and refuses expired output. The
+ordinary persisted selected/native profile keeps its whole-call 50-second bound.
+Selected byte limits are preserved, including zero; values above the supported
+16 KiB handle, 64 KiB request, 1 MiB record or 2 MiB response ceilings refuse
+explicitly and are never clamped.
+
+Passing an already constructed historical `SourceReadService` to the additive
+facade is a functional comparison route. Its old constructor already executed
+Python owner rules, so that route does not establish retirement of the old
+builders. The public default and named reference compatibility remain unchanged
+pending genuine constructor and installed consumer acceptance.
 
 The imported `tos_access.doctor.doctor_report` diagnostic executes the installed
 Rust doctor through `native_prefix` (or `TOS_NATIVE_PREFIX`). Its existing
@@ -1853,3 +1905,17 @@ tests; it is never selected by the maintained diagnostic or as fallback.
 existing Rust scale-export operation in one held snapshot. It preserves table
 order and membership/provenance fields; a table exceeding the selected native
 response budget refuses rather than combining pages from different children.
+
+The additive selected-source constructor is
+`tos_access.native_selected_source.NativeSelectedSourceProvider(prefix, source_root,
+inputs_path, expected_revision=revision, local_text_selection=optional_path)`.
+It retains a bounded sealed copy of the actual source-input bytes and initializes
+through the installed native `source selected-owner` command and verified schema
+worker. It neither constructs `PreparedSourceInputs` nor derives an epoch in
+Python. The required revision keyword and two concurrent slots without a queue
+preserve the selected-service contract. Each request keeps one original 50-second
+clock through retention, native admission, worker verification and final cleanup.
+Pass this provider to `NativeAccessCore.discover(..., source_read_service=provider)`;
+the Core borrows it, and the caller closes it after use. Selecting this owner
+requires no Knowledge publication pair. Existing reference constructors and the
+public Core default remain pending actual comparison and explicit cutover.

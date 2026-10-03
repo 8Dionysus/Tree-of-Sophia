@@ -5,8 +5,9 @@
 //! Release selection, source currentness, rights admission or publication.
 
 use crate::d1::{
-    D1PairFailure, D1PairInput, D1PairLimits, D1PairReceipt, D1PredecessorMode, D1RowTransition,
-    emit_d1_pair, target_d1_revision,
+    D1PairFailure, D1PairInput, D1PairLimits, D1PairReceipt, D1PredecessorMode,
+    D1PrivatePreparedInput, D1PrivatePreparedMode, D1RowTransition, emit_d1_pair,
+    private_prepared_target_revision, target_d1_revision,
 };
 use serde_json::{Value, json};
 use std::{
@@ -222,7 +223,7 @@ fn verify_root(
 fn verify_inputs_raw(
     raw: &[u8],
     source_revision: &str,
-    navigation_sha256: &str,
+    navigation_sha256: Option<&str>,
     expected_sha: &str,
 ) -> D1GateResult<(BTreeMap<String, String>, BTreeMap<String, String>)> {
     exact_digest(expected_sha)?;
@@ -303,7 +304,7 @@ fn verify_inputs_raw(
         }
         selected.insert(name.clone(), sha.to_owned());
     }
-    if selected.get("source-navigation").map(String::as_str) != Some(navigation_sha256) {
+    if selected.get("source-navigation").map(String::as_str) != navigation_sha256 {
         return Err(D1GateFailure::Invalid("paired navigation root differs"));
     }
     Ok((selected, deps))
@@ -316,9 +317,57 @@ fn verify_inputs(
     verify_inputs_raw(
         &side.source_inputs_raw,
         &side.source_revision,
-        &side.navigation.snapshot_sha256,
+        Some(&side.navigation.snapshot_sha256),
         expected_sha,
     )
+}
+
+fn verify_nonparticipating_source_scope(
+    before_roots: &BTreeMap<String, String>,
+    after_roots: &BTreeMap<String, String>,
+    before_dependencies: &BTreeMap<String, String>,
+    after_dependencies: &BTreeMap<String, String>,
+    failure: &'static str,
+) -> D1GateResult<()> {
+    if before_roots.keys().ne(after_roots.keys())
+        || before_roots.iter().any(|(name, sha)| {
+            !matches!(
+                name.as_str(),
+                "source-catalog" | "bibliographic-claims" | "source-navigation"
+            ) && after_roots.get(name) != Some(sha)
+        })
+        || before_dependencies.keys().ne(after_dependencies.keys())
+        || before_dependencies.iter().any(|(name, sha)| {
+            !matches!(
+                name.as_str(),
+                "claim-publication-profile" | "metadata-addition-publication-profile"
+            ) && after_dependencies.get(name) != Some(sha)
+        })
+    {
+        return Err(D1GateFailure::Invalid(failure));
+    }
+    Ok(())
+}
+
+fn verify_optional_rights_root(
+    roots: &BTreeMap<String, String>,
+    navigation_sha256: Option<&str>,
+    rights_sha256: Option<&str>,
+    failure: &'static str,
+) -> D1GateResult<()> {
+    match (navigation_sha256, rights_sha256) {
+        (None, None) => Ok(()),
+        (Some(_), Some(expected)) => {
+            let source_rights = roots
+                .get("source-navigation-rights")
+                .or_else(|| roots.get("source-navigation"));
+            if source_rights.map(String::as_str) != Some(expected) {
+                return Err(D1GateFailure::Invalid(failure));
+            }
+            Ok(())
+        }
+        _ => Err(D1GateFailure::Invalid(failure)),
+    }
 }
 
 fn verify_reader_top(raw: &str, revision: &str, source_revision: &str) -> D1GateResult<()> {
@@ -370,7 +419,7 @@ pub fn inspect_offline_source_inputs(
     let (after_roots, after_dependencies) = verify_inputs_raw(
         after_inputs_raw,
         &spec.after_source_revision,
-        &spec.after_navigation_sha256,
+        Some(&spec.after_navigation_sha256),
         &spec.after_source_inputs_sha256,
     )?;
     if spec.predecessor_mode == D1PredecessorMode::Bootstrap {
@@ -390,37 +439,128 @@ pub fn inspect_offline_source_inputs(
     let (before_roots, before_dependencies) = verify_inputs_raw(
         before_inputs_raw,
         &spec.before_source_revision,
-        &spec.before_navigation_sha256,
+        Some(&spec.before_navigation_sha256),
         &spec.before_source_inputs_sha256,
     )?;
-    if before_roots.keys().ne(after_roots.keys())
-        || before_roots.iter().any(|(name, sha)| {
-            !matches!(
-                name.as_str(),
-                "source-catalog" | "bibliographic-claims" | "source-navigation"
-            ) && after_roots.get(name) != Some(sha)
-        })
-        || before_dependencies.keys().ne(after_dependencies.keys())
-        || before_dependencies.iter().any(|(name, sha)| {
-            !matches!(
-                name.as_str(),
-                "claim-publication-profile" | "metadata-addition-publication-profile"
-            ) && after_dependencies.get(name) != Some(sha)
-        })
-    {
-        return Err(D1GateFailure::Invalid(
-            "offline nonparticipating source scope changed",
-        ));
-    }
-    for (roots, expected) in [
-        (&before_roots, spec.before_rights_sha256.as_deref()),
-        (&after_roots, spec.after_rights_sha256.as_deref()),
-    ] {
-        let source_rights = roots
-            .get("source-navigation-rights")
-            .or_else(|| roots.get("source-navigation"));
-        if expected.is_none_or(|expected| source_rights.map(String::as_str) != Some(expected)) {
-            return Err(D1GateFailure::Invalid("offline source rights root differs"));
+    verify_nonparticipating_source_scope(
+        &before_roots,
+        &after_roots,
+        &before_dependencies,
+        &after_dependencies,
+        "offline nonparticipating source scope changed",
+    )?;
+    verify_optional_rights_root(
+        &before_roots,
+        Some(&spec.before_navigation_sha256),
+        spec.before_rights_sha256.as_deref(),
+        "offline source rights root differs",
+    )?;
+    verify_optional_rights_root(
+        &after_roots,
+        Some(&spec.after_navigation_sha256),
+        spec.after_rights_sha256.as_deref(),
+        "offline source rights root differs",
+    )?;
+    Ok(())
+}
+
+/// Verify retained source-input bytes for a private prepared producer profile.
+/// The caller supplies the authentic optional predecessor/successor bytes;
+/// this checker proves only their bounded mechanical relationship.
+pub fn inspect_private_prepared_source_inputs(
+    spec: &D1PrivatePreparedInput,
+    before_inputs_raw: Option<&[u8]>,
+    after_inputs_raw: Option<&[u8]>,
+) -> D1GateResult<()> {
+    use D1PrivatePreparedMode as Mode;
+
+    let target = private_prepared_target_revision(spec)?;
+    verify_reader_top(
+        &spec.before_reader_top,
+        &spec.base_d1_revision,
+        &spec.before_source_revision,
+    )?;
+    verify_reader_top(&spec.after_reader_top, &target, &spec.after_source_revision)?;
+    match spec.predecessor_mode {
+        Mode::Pair | Mode::CatchUp => {
+            let before_raw = before_inputs_raw.ok_or(D1GateFailure::Invalid(
+                "private predecessor source inputs absent",
+            ))?;
+            let after_raw = after_inputs_raw.ok_or(D1GateFailure::Invalid(
+                "private successor source inputs absent",
+            ))?;
+            let (before_roots, before_dependencies) = verify_inputs_raw(
+                before_raw,
+                &spec.before_source_revision,
+                spec.before_navigation_sha256.as_deref(),
+                spec.before_source_inputs_sha256
+                    .as_deref()
+                    .ok_or(D1GateFailure::Invalid(
+                        "private predecessor inputs digest absent",
+                    ))?,
+            )?;
+            let (after_roots, after_dependencies) = verify_inputs_raw(
+                after_raw,
+                &spec.after_source_revision,
+                spec.after_navigation_sha256.as_deref(),
+                spec.after_source_inputs_sha256
+                    .as_deref()
+                    .ok_or(D1GateFailure::Invalid(
+                        "private successor inputs digest absent",
+                    ))?,
+            )?;
+            verify_nonparticipating_source_scope(
+                &before_roots,
+                &after_roots,
+                &before_dependencies,
+                &after_dependencies,
+                "private nonparticipating source scope changed",
+            )?;
+            verify_optional_rights_root(
+                &before_roots,
+                spec.before_navigation_sha256.as_deref(),
+                spec.before_rights_sha256.as_deref(),
+                "private predecessor source rights root differs",
+            )?;
+            verify_optional_rights_root(
+                &after_roots,
+                spec.after_navigation_sha256.as_deref(),
+                spec.after_rights_sha256.as_deref(),
+                "private successor source rights root differs",
+            )?;
+        }
+        Mode::Bootstrap => {
+            if before_inputs_raw.is_some() {
+                return Err(D1GateFailure::Invalid(
+                    "private bootstrap predecessor source inputs present",
+                ));
+            }
+            let after_raw = after_inputs_raw.ok_or(D1GateFailure::Invalid(
+                "private bootstrap source inputs absent",
+            ))?;
+            let (after_roots, _) = verify_inputs_raw(
+                after_raw,
+                &spec.after_source_revision,
+                spec.after_navigation_sha256.as_deref(),
+                spec.after_source_inputs_sha256
+                    .as_deref()
+                    .ok_or(D1GateFailure::Invalid(
+                        "private bootstrap inputs digest absent",
+                    ))?,
+            )?;
+            verify_optional_rights_root(
+                &after_roots,
+                spec.after_navigation_sha256.as_deref(),
+                spec.after_rights_sha256.as_deref(),
+                "private bootstrap source rights root differs",
+            )?;
+        }
+        Mode::Integrity { .. } => {
+            if before_inputs_raw.is_some() || after_inputs_raw.is_some() {
+                return Err(D1GateFailure::Invalid(
+                    "private integrity source inputs must be absent",
+                ));
+            }
         }
     }
     Ok(())
@@ -508,25 +648,13 @@ pub fn inspect_prepared_pair(
     let (before_roots, before_deps) =
         verify_inputs(&pair.before, &spec.before_source_inputs_sha256)?;
     let (after_roots, after_deps) = verify_inputs(&pair.after, &spec.after_source_inputs_sha256)?;
-    if before_roots.keys().ne(after_roots.keys())
-        || before_roots.iter().any(|(name, sha)| {
-            !matches!(
-                name.as_str(),
-                "source-catalog" | "bibliographic-claims" | "source-navigation"
-            ) && after_roots.get(name) != Some(sha)
-        })
-        || before_deps.keys().ne(after_deps.keys())
-        || before_deps.iter().any(|(name, sha)| {
-            !matches!(
-                name.as_str(),
-                "claim-publication-profile" | "metadata-addition-publication-profile"
-            ) && after_deps.get(name) != Some(sha)
-        })
-    {
-        return Err(D1GateFailure::Invalid(
-            "nonparticipating D1 source scope changed",
-        ));
-    }
+    verify_nonparticipating_source_scope(
+        &before_roots,
+        &after_roots,
+        &before_deps,
+        &after_deps,
+        "nonparticipating D1 source scope changed",
+    )?;
     let rollback = &pair.rollback;
     bounded_name(&rollback.rollback_generation)?;
     if rollback.predecessor_d1_revision != spec.base_d1_revision

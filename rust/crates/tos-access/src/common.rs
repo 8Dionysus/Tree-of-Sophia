@@ -35,6 +35,76 @@ pub struct RegisteredOperation {
 
 static OPERATIONS: OnceLock<Result<Vec<RegisteredOperation>, AccessError>> = OnceLock::new();
 
+fn access_health_contract_valid(item: &JsonValue) -> bool {
+    let operation = item.object_get("operation_id").and_then(JsonValue::as_str);
+    if operation != Some(crate::knowledge::ACCESS_HEALTH_OPERATION) {
+        return true;
+    }
+    if item.object_get("intended_use").and_then(JsonValue::as_str)
+        != Some(crate::knowledge::ACCESS_HEALTH_INTENDED_USE)
+    {
+        return false;
+    }
+    let Some(scopes) = item
+        .object_get("selected_scopes")
+        .and_then(JsonValue::as_array)
+    else {
+        return false;
+    };
+    scopes.len() == crate::knowledge::ACCESS_HEALTH_SCOPES.len()
+        && scopes
+            .iter()
+            .zip(crate::knowledge::ACCESS_HEALTH_SCOPES)
+            .all(|(scope, (operation_id, intended_use))| {
+                scope.as_object().is_some_and(|fields| fields.len() == 2)
+                    && scope.object_get("operation_id").and_then(JsonValue::as_str)
+                        == Some(*operation_id)
+                    && scope.object_get("intended_use").and_then(JsonValue::as_str)
+                        == Some(*intended_use)
+            })
+}
+
+fn prepared_status_contract_valid(item: &JsonValue) -> bool {
+    if item.object_get("operation_id").and_then(JsonValue::as_str)
+        != Some(crate::knowledge::PREPARED_STATUS_OPERATION)
+    {
+        return true;
+    }
+    let schema = item
+        .object_get("mcp")
+        .and_then(|mcp| mcp.object_get("input_schema"));
+    item.object_get("execution_version")
+        .and_then(JsonValue::as_str)
+        == Some("tos_selected_prepared_status_v1")
+        && item.object_get("effect").and_then(JsonValue::as_str) == Some("read-only")
+        && item.object_get("availability").and_then(JsonValue::as_str)
+            == Some("only_with_explicit_owner_selected_prepared_binding_and_current_file_wal_fence")
+        && item.object_get("intended_use").and_then(JsonValue::as_str)
+            == Some(crate::knowledge::PREPARED_STATUS_INTENDED_USE)
+        && item.object_get("selected_scopes").is_none()
+        && item
+            .object_get("mcp")
+            .and_then(|mcp| mcp.object_get("tool"))
+            .and_then(JsonValue::as_str)
+            == Some(crate::knowledge::PREPARED_STATUS_OPERATION)
+        && schema.is_some_and(|schema| {
+            schema.as_object().is_some_and(|fields| fields.len() == 4)
+                && schema.object_get("type").and_then(JsonValue::as_str) == Some("object")
+                && schema
+                    .object_get("properties")
+                    .and_then(JsonValue::as_object)
+                    .is_some_and(|fields| fields.is_empty())
+                && schema
+                    .object_get("required")
+                    .and_then(JsonValue::as_array)
+                    .is_some_and(|fields| fields.is_empty())
+                && schema
+                    .object_get("additionalProperties")
+                    .and_then(JsonValue::as_bool)
+                    == Some(false)
+        })
+}
+
 pub fn registered_operations() -> Result<&'static [RegisteredOperation], AccessError> {
     OPERATIONS
         .get_or_init(|| {
@@ -114,6 +184,8 @@ pub fn registered_operations() -> Result<&'static [RegisteredOperation], AccessE
                         || crate::knowledge::KnowledgeOperation::from_id(id).is_some()
                 });
                 if !known
+                    || !access_health_contract_valid(item)
+                    || !prepared_status_contract_valid(item)
                     || !op.is_some_and(|id| seen_ops.insert(id))
                     || !tool.is_some_and(|id| !id.is_empty() && seen_tools.insert(id))
                     || (http.is_some()
@@ -180,6 +252,8 @@ pub(crate) fn mcp_tool_list(
                 crate::source_read::Operation::from_id(id).is_some_and(|op| op.software_only())
                     || executor.source_read_available()
             }
+            crate::knowledge::ACCESS_HEALTH_OPERATION => executor.access_health_available(),
+            crate::knowledge::PREPARED_STATUS_OPERATION => executor.prepared_status_available(),
             id => crate::knowledge::KnowledgeOperation::from_id(id).is_some_and(|op| {
                 op == crate::KnowledgeOperation::ExplorationContracts
                     || executor.knowledge_available(op)
@@ -695,6 +769,34 @@ pub trait AccessExecutor: Send + Sync {
         Err(AccessError::new(
             AccessErrorCode::Unavailable,
             "selected knowledge operation unavailable",
+        ))
+    }
+    /// Readiness for the selected managed-local native public read scopes.
+    /// Implementations retain each domain's own policy/currentness checks.
+    fn access_health_available(&self) -> bool {
+        false
+    }
+    fn access_health(
+        &self,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        Err(AccessError::new(
+            AccessErrorCode::Unavailable,
+            "selected access health unavailable",
+        ))
+    }
+    /// Readiness for the explicit selected prepared-publication status route.
+    /// Implementations retain the prepared transaction and final file/WAL fence.
+    fn prepared_status_available(&self) -> bool {
+        false
+    }
+    fn prepared_status(
+        &self,
+        _: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        Err(AccessError::new(
+            AccessErrorCode::Unavailable,
+            "selected prepared status unavailable",
         ))
     }
 }

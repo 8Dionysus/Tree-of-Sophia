@@ -68,6 +68,22 @@ impl BoundCmpKnowledge<'_> {
         packet: &tos_foundation::JsonValue,
         limits: tos_foundation::JsonLimits,
     ) -> Result<(), SearchV2Error> {
+        self.validate_catalog_identity_with_meter(packet, limits, None)
+    }
+    pub(crate) fn validate_catalog_identity_metered(
+        &self,
+        packet: &tos_foundation::JsonValue,
+        limits: tos_foundation::JsonLimits,
+        meter: &mut crate::knowledge_inspect::InspectVisitMeter,
+    ) -> Result<(), SearchV2Error> {
+        self.validate_catalog_identity_with_meter(packet, limits, Some(meter))
+    }
+    fn validate_catalog_identity_with_meter(
+        &self,
+        packet: &tos_foundation::JsonValue,
+        limits: tos_foundation::JsonLimits,
+        mut meter: Option<&mut crate::knowledge_inspect::InspectVisitMeter>,
+    ) -> Result<(), SearchV2Error> {
         use tos_foundation::JsonValue;
         let invalid = || SearchV2Error {
             code: SearchV2ErrorCode::CorruptSelectedCarrier,
@@ -94,9 +110,10 @@ impl BoundCmpKnowledge<'_> {
                 {
                     return Err(invalid());
                 }
-                self.validate_managed_basis(
+                self.validate_managed_basis_with_meter(
                     packet.object_get("source_basis").ok_or_else(invalid)?,
                     limits,
+                    meter.take(),
                 )?;
             }
         }
@@ -108,6 +125,14 @@ impl BoundCmpKnowledge<'_> {
         &self,
         basis: &tos_foundation::JsonValue,
         limits: tos_foundation::JsonLimits,
+    ) -> Result<String, SearchV2Error> {
+        self.validate_managed_basis_with_meter(basis, limits, None)
+    }
+    fn validate_managed_basis_with_meter(
+        &self,
+        basis: &tos_foundation::JsonValue,
+        limits: tos_foundation::JsonLimits,
+        mut meter: Option<&mut crate::knowledge_inspect::InspectVisitMeter>,
     ) -> Result<String, SearchV2Error> {
         use tos_foundation::{CanonicalProfile, JsonValue, canonical_bytes_v1};
         let invalid = || SearchV2Error {
@@ -129,11 +154,13 @@ impl BoundCmpKnowledge<'_> {
         {
             return Err(invalid());
         }
-        let actual = canonical_bytes_v1(
-            basis.object_get("proof").ok_or_else(invalid)?,
-            CanonicalProfile::SourceRecordDigestV1,
-            limits,
-        )
+        let proof = basis.object_get("proof").ok_or_else(invalid)?;
+        let actual = match meter.as_deref_mut() {
+            Some(meter) => {
+                meter.canonical_bytes(proof, CanonicalProfile::SourceRecordDigestV1, limits)
+            }
+            None => canonical_bytes_v1(proof, CanonicalProfile::SourceRecordDigestV1, limits),
+        }
         .map_err(|reason| SearchV2Error {
             code: if reason.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
                 SearchV2ErrorCode::BudgetExceeded

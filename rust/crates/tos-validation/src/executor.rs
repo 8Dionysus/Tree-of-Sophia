@@ -7545,7 +7545,8 @@ mod native {
         if schema_set != expected_schema {
             return Err(bad());
         }
-        let probe = crate::SchemaBackendProbe::new(resources, profile).map_err(|_| bad())?;
+        let probe = crate::SchemaBackendProbe::prepare_diagnostics_resources(resources, profile)
+            .map_err(|_| bad())?;
         if probe.schema_set_digest() != schema_set {
             return Err(bad());
         }
@@ -7559,15 +7560,6 @@ mod native {
             .map_err(|_| bad())?
             .prepare()
             .map_err(|_| bad())?;
-        let mut validators = BTreeMap::<String, Validator>::new();
-        for unit in &units {
-            if !validators.contains_key(unit.root_uri) {
-                validators.insert(
-                    unit.root_uri.to_owned(),
-                    compile_selected_validator(&probe, &registry, profile, unit.root_uri)?,
-                );
-            }
-        }
         let exceptional_limits =
             exceptional_remaining.unwrap_or_else(ExceptionalSchemaUsage::whole);
         let mut exceptional_preparation_budget =
@@ -7589,6 +7581,40 @@ mod native {
         ack.extend_from_slice(&(units.len() as u32).to_be_bytes());
         output.write_all(&ack)?;
         output.flush()?;
+        let mut validators = BTreeMap::<String, Validator>::new();
+        let mut unsupported_roots = std::collections::BTreeSet::new();
+        for unit in &units {
+            if validators.contains_key(unit.root_uri) || unsupported_roots.contains(unit.root_uri) {
+                continue;
+            }
+            // Framing and exact resource identity have already been ACKed.
+            // Catch only the typed semantic refusal; malformed resources,
+            // resolution and backend failures remain incomplete protocol runs.
+            match crate::check_selected_schema_keywords(&registry, unit.root_uri, |bytes| {
+                exceptional_preparation_budget
+                    .charge_schema_scan()
+                    .and_then(|()| exceptional_preparation_budget.charge_schema_bytes(bytes))
+                    .map_err(|_| crate::SchemaProbeError::BudgetExceeded)
+            }) {
+                Ok(()) => {
+                    validators.insert(
+                        unit.root_uri.to_owned(),
+                        compile_selected_validator(&probe, &registry, profile, unit.root_uri)?,
+                    );
+                }
+                Err(crate::SchemaProbeError::UnknownKeyword(_)) => {
+                    exceptional_preparation_budget
+                        .charge_schema_scan()
+                        .and_then(|()| {
+                            exceptional_preparation_budget
+                                .charge_schema_bytes(256 + unit.root_uri.len())
+                        })
+                        .map_err(|_| bad())?;
+                    unsupported_roots.insert(unit.root_uri.to_owned());
+                }
+                Err(_) => return Err(bad()),
+            }
+        }
         let mut result_stream = Digest256Hasher::new();
         result_stream.update(b"tos-schema-diagnostics-results-v2\0");
         let mut response_bytes = ack.len();
@@ -7596,6 +7622,15 @@ mod native {
             exceptional_schema::EvaluationContext::new(exceptional_limits).map_err(|_| bad())?;
         for unit in &units {
             let report = match unit.input_mode {
+                _ if unsupported_roots.contains(unit.root_uri) => diagnostic_input_report(
+                    worker_sha256,
+                    request_sha256,
+                    unit.unit_sha256,
+                    schema_set,
+                    caps,
+                    schema_diagnostics::Status::Indeterminate,
+                    schema_diagnostics::Failure::UnsupportedInputSemantics,
+                )?,
                 DiagnosticsUnitInputMode::FiniteJson => match crate::published_value(
                     unit.raw,
                     crate::SchemaBackendProbe::MAX_INSTANCE_BYTES,

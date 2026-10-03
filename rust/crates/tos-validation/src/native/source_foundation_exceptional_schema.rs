@@ -93,12 +93,12 @@ impl PreparationBudget {
         }
     }
 
-    fn charge_schema_scan(&mut self) -> Result<(), PrepareFailure> {
+    pub(super) fn charge_schema_scan(&mut self) -> Result<(), PrepareFailure> {
         charge_counter(&mut self.schema_scan_work, 1, self.limits.schema_scan_work)
             .map_err(|_| PrepareFailure::Budget)
     }
 
-    fn charge_schema_bytes(&mut self, amount: usize) -> Result<(), PrepareFailure> {
+    pub(super) fn charge_schema_bytes(&mut self, amount: usize) -> Result<(), PrepareFailure> {
         charge_counter(
             &mut self.schema_scan_bytes,
             u64::try_from(amount).map_err(|_| PrepareFailure::Budget)?,

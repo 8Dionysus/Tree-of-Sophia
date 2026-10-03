@@ -174,6 +174,25 @@ pub fn python_decimal_unicode16_v1(ch: char) -> bool {
     matches!(get_general_category(ch), GeneralCategory::DecimalNumber)
 }
 
+/// Python 3.14/Unicode 16 Unicode-regex `\w`: all letter and number
+/// categories plus ASCII underscore. Combining marks and join controls do not
+/// count as word scalars. The caller selects ASCII mode and boundary adjacency.
+pub fn python_word_unicode16_v1(ch: char) -> bool {
+    use unicode_general_category::{GeneralCategory as Category, get_general_category};
+    ch == '_'
+        || matches!(
+            get_general_category(ch),
+            Category::UppercaseLetter
+                | Category::LowercaseLetter
+                | Category::TitlecaseLetter
+                | Category::ModifierLetter
+                | Category::OtherLetter
+                | Category::DecimalNumber
+                | Category::LetterNumber
+                | Category::OtherNumber
+        )
+}
+
 /// Python 3.14/Unicode 16 printable scalar predicate used by string repr.
 /// CPython excludes separator and other categories except ASCII space.
 pub fn python_printable_unicode16_v1(ch: char) -> bool {

@@ -1,7 +1,10 @@
 //! Maintained philosophy read rules over exact original logical projection inputs.
 //! Selected disclosure requires the held-owner adapter. Source diagnostics use
 //! the separate bounded View-only entry and convey no selected runtime grant.
-use crate::knowledge_inspect::{Reader, execute_selected_carrier_packet};
+use crate::knowledge_inspect::{
+    InspectVisitMeter, Reader, execute_selected_carrier_packet,
+    execute_selected_carrier_packet_with_optional_meter,
+};
 use crate::search_v2::{SearchV2Error, SearchV2ErrorCode};
 use crate::source_read_projection::{object, text};
 use crate::{
@@ -202,6 +205,9 @@ pub enum PhilosophyReadRequest {
         view_id: Option<String>,
         layers: Vec<String>,
     },
+    /// Complete selected Original philosophy projection: its exact header and
+    /// every retained base node/edge in source order, with no view filtering.
+    FullProjection,
     Node {
         node_id: String,
     },
@@ -257,7 +263,9 @@ impl PhilosophyReadRequest {
             Self::LensPacket { .. } => "tos_philosophy_graph_lens_packet",
             Self::Search { .. } => "tos_philosophy_graph_search",
             Self::ScaleManifest { .. } => "tos_philosophy_graph_scale_manifest",
-            Self::ScaleRows { .. } | Self::ScaleExport { .. } => "tos_philosophy_graph_scale_rows",
+            Self::ScaleRows { .. } | Self::ScaleExport { .. } | Self::FullProjection => {
+                "tos_philosophy_graph_scale_rows"
+            }
             Self::Node { .. } => "tos.node.inspect",
             Self::Edge { .. } => "tos_philosophy_graph_edge",
             Self::Neighborhood { .. } => "tos.neighborhood",
@@ -335,6 +343,7 @@ impl PhilosophyReadRequest {
                     && *offset <= 10_000_000
                     && (1..=10_000).contains(limit)
             }
+            Self::FullProjection => true,
             Self::Node { node_id } => id(node_id),
             Self::Edge { edge_id } => id(edge_id),
             Self::Neighborhood {
@@ -422,6 +431,28 @@ pub fn execute_selected_philosophy<'hold, A: InspectCurrentAuthority<'hold> + ?S
     request: &PhilosophyReadRequest,
     budget: PhilosophyReadBudget,
 ) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+    execute_selected_philosophy_with_meter(model, bound, authority, request, budget, None)
+}
+
+pub fn execute_selected_philosophy_metered<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    request: &PhilosophyReadRequest,
+    budget: PhilosophyReadBudget,
+    meter: &mut InspectVisitMeter,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+    execute_selected_philosophy_with_meter(model, bound, authority, request, budget, Some(meter))
+}
+
+fn execute_selected_philosophy_with_meter<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    request: &PhilosophyReadRequest,
+    budget: PhilosophyReadBudget,
+    mut meter: Option<&mut InspectVisitMeter>,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
     request.validate(budget.inspect)?;
     if budget.max_work_steps == 0 {
         return Err(failure(
@@ -429,19 +460,55 @@ pub fn execute_selected_philosophy<'hold, A: InspectCurrentAuthority<'hold> + ?S
             "invalid philosophy work budget",
         ));
     }
-    execute_selected_carrier_packet(
+    execute_selected_carrier_packet_with_optional_meter(
         model,
         bound,
         authority,
         request.operation_id(),
         PHILOSOPHY_INTENDED_USE,
         budget.inspect,
+        meter.take(),
         |read| {
             let receipt = bound_original_receipt(read, bound)?;
+            if matches!(request, PhilosophyReadRequest::FullProjection) {
+                let rows = receipt
+                    .nodes
+                    .checked_add(receipt.edges)
+                    .and_then(|count| count.checked_add(1))
+                    .ok_or_else(|| {
+                        failure(
+                            SearchV2ErrorCode::BudgetExceeded,
+                            "selected philosophy projection row count overflow",
+                        )
+                    })?;
+                if rows > budget.max_work_steps {
+                    return Err(failure(
+                        SearchV2ErrorCode::BudgetExceeded,
+                        "selected philosophy projection exceeds work budget",
+                    ));
+                }
+            }
             let mut header =
                 original_rows(read, &receipt, PhilosophyOriginalCollection::Header, 1)?;
             if matches!(request, PhilosophyReadRequest::Status) {
                 return Ok(public::status(&header.remove(0)));
+            }
+            if matches!(request, PhilosophyReadRequest::FullProjection) {
+                let header = header.remove(0);
+                validate_full_projection_header(&header)?;
+                let nodes = original_rows(
+                    read,
+                    &receipt,
+                    PhilosophyOriginalCollection::Nodes,
+                    receipt.nodes,
+                )?;
+                let edges = original_rows(
+                    read,
+                    &receipt,
+                    PhilosophyOriginalCollection::Edges,
+                    receipt.edges,
+                )?;
+                return compose_full_projection(header, nodes, edges);
             }
             let nodes = original_rows(
                 read,
@@ -541,6 +608,73 @@ fn replace(value: &JsonValue, remove: &[&str], fields: Vec<(&str, JsonValue)>) -
             .map(|(k, v)| (JsonString::from_utf8(k), v)),
     );
     JsonValue::Object(pairs)
+}
+fn compose_full_projection(
+    header: JsonValue,
+    nodes: Vec<JsonValue>,
+    edges: Vec<JsonValue>,
+) -> Result<JsonValue, SearchV2Error> {
+    validate_full_projection_header(&header)?;
+    let JsonValue::Object(fields) = header else {
+        unreachable!("validated full projection header is an object")
+    };
+    let mut node_value = Some(JsonValue::Array(nodes));
+    let mut edge_value = Some(JsonValue::Array(edges));
+    let mut saw_nodes = false;
+    let mut saw_edges = false;
+    let mut projection = Vec::with_capacity(fields.len().saturating_add(2));
+    for (key, value) in fields {
+        match key.as_str() {
+            Some("nodes") => {
+                if saw_nodes {
+                    return Err(failure(
+                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        "selected philosophy header repeats nodes",
+                    ));
+                }
+                saw_nodes = true;
+                projection.push((key, node_value.take().ok_or_else(invalid)?));
+            }
+            Some("edges") => {
+                if saw_edges {
+                    return Err(failure(
+                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        "selected philosophy header repeats edges",
+                    ));
+                }
+                saw_edges = true;
+                projection.push((key, edge_value.take().ok_or_else(invalid)?));
+            }
+            _ => projection.push((key, value)),
+        }
+    }
+    if let Some(value) = node_value {
+        projection.push((JsonString::from_utf8("nodes"), value));
+    }
+    if let Some(value) = edge_value {
+        projection.push((JsonString::from_utf8("edges"), value));
+    }
+    Ok(JsonValue::Object(projection))
+}
+fn validate_full_projection_header(header: &JsonValue) -> Result<(), SearchV2Error> {
+    if header.as_object().is_none() {
+        return Err(failure(
+            SearchV2ErrorCode::CorruptSelectedCarrier,
+            "selected philosophy projection header is not an object",
+        ));
+    }
+    if !matches!(
+        header
+            .object_get("schema_version")
+            .and_then(JsonValue::as_str),
+        Some("tos_philosophy_graph_projection_v1" | "tos_philosophy_graph_projection_v2")
+    ) {
+        return Err(failure(
+            SearchV2ErrorCode::UnsupportedProfile,
+            "selected philosophy projection schema is unsupported",
+        ));
+    }
+    Ok(())
 }
 fn source_refs<'a>(items: impl IntoIterator<Item = &'a JsonValue>) -> JsonValue {
     let mut refs = BTreeSet::new();
@@ -909,6 +1043,7 @@ fn compute_on_graph<'a>(
             None,
             &mut w,
         ),
+        PhilosophyReadRequest::FullProjection => Err(invalid()),
         PhilosophyReadRequest::Node { node_id } => {
             let node = graph.node(node_id)?;
             let edges = graph
@@ -1479,8 +1614,15 @@ pub fn execute_selected_philosophy_view_ids<'hold, A: InspectCurrentAuthority<'h
         budget.inspect,
         |read| {
             let receipt = bound_original_receipt(read, bound)?;
-            let header =
-                original_rows(read, &receipt, PhilosophyOriginalCollection::Header, 1)?.remove(0);
+            let header = original_rows(read, &receipt, PhilosophyOriginalCollection::Header, 1)?
+                .into_iter()
+                .next()
+                .ok_or_else(|| {
+                    failure(
+                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        "selected philosophy header absent",
+                    )
+                })?;
             let mut interrupt = || read.check_interrupt();
             let mut work = Work {
                 remaining: budget.max_work_steps,
@@ -1504,6 +1646,120 @@ pub fn execute_selected_philosophy_view_ids<'hold, A: InspectCurrentAuthority<'h
                 views.push(object(vec![("view_id", text(&id))]));
             }
             Ok(object(vec![("views", values(views))]))
+        },
+    )
+}
+
+/// Minimal health seed under the existing philosophy-views scope. It exposes
+/// only the source projection schema and first declared view identity; the
+/// selected original header stays private to this bounded reader.
+pub fn execute_selected_philosophy_health_seed<
+    'hold,
+    A: InspectCurrentAuthority<'hold> + ?Sized,
+>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    budget: PhilosophyReadBudget,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+    execute_selected_philosophy_health_seed_with_meter(model, bound, authority, budget, None)
+}
+
+pub fn execute_selected_philosophy_health_seed_metered<
+    'hold,
+    A: InspectCurrentAuthority<'hold> + ?Sized,
+>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    budget: PhilosophyReadBudget,
+    meter: &mut InspectVisitMeter,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+    execute_selected_philosophy_health_seed_with_meter(model, bound, authority, budget, Some(meter))
+}
+
+fn execute_selected_philosophy_health_seed_with_meter<
+    'hold,
+    A: InspectCurrentAuthority<'hold> + ?Sized,
+>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    budget: PhilosophyReadBudget,
+    mut meter: Option<&mut InspectVisitMeter>,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+    if budget.max_work_steps == 0 {
+        return Err(invalid());
+    }
+    execute_selected_carrier_packet_with_optional_meter(
+        model,
+        bound,
+        authority,
+        PhilosophyReadRequest::Views.operation_id(),
+        PHILOSOPHY_INTENDED_USE,
+        budget.inspect,
+        meter.take(),
+        |read| {
+            let receipt = bound_original_receipt(read, bound)?;
+            let header = original_rows(read, &receipt, PhilosophyOriginalCollection::Header, 1)?
+                .into_iter()
+                .next()
+                .ok_or_else(|| {
+                    failure(
+                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        "selected philosophy header absent",
+                    )
+                })?;
+            let schema = get(&header, "schema_version")
+                .as_str()
+                .filter(|value| !value.is_empty())
+                .ok_or_else(|| {
+                    failure(
+                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        "selected philosophy projection schema absent",
+                    )
+                })?
+                .to_owned();
+            if schema.len() > budget.inspect.max_field_bytes {
+                return Err(failure(
+                    SearchV2ErrorCode::BudgetExceeded,
+                    "philosophy schema exceeds field budget",
+                ));
+            }
+            let mut interrupt = || read.check_interrupt();
+            let mut work = Work {
+                remaining: budget.max_work_steps,
+                interrupt: &mut interrupt,
+            };
+            let mut first_view = None;
+            for view in arr(get(&header, "views")) {
+                work.step()?;
+                if view.as_object().is_none()
+                    || !crate::knowledge_lens_spec::truthy(get(view, "view_id"))
+                {
+                    continue;
+                }
+                let id = crate::knowledge_lens_spec::py_string(get(view, "view_id"));
+                if id.len() > budget.inspect.max_field_bytes {
+                    return Err(failure(
+                        SearchV2ErrorCode::BudgetExceeded,
+                        "philosophy view identity exceeds field budget",
+                    ));
+                }
+                first_view = Some(id);
+                break;
+            }
+            Ok(object(vec![
+                (
+                    "schema_version",
+                    text("tos_selected_philosophy_health_seed_v1"),
+                ),
+                ("projection_schema_version", text(&schema)),
+                (
+                    "first_view_id",
+                    first_view.as_deref().map(text).unwrap_or(JsonValue::Null),
+                ),
+            ]))
         },
     )
 }

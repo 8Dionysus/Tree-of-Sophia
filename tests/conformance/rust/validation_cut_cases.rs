@@ -560,16 +560,13 @@ fn actual_cut_worker_and_pinned_software_preserve_provenance_lab_limits() {
         StoreErrorCode::UnsupportedFormat,
         "an uncaptured software owner path is not proven absent"
     );
-    let worker_path = selected_worker_path();
-    assert!(worker_path.is_absolute());
-    let digest = Digest256::of_bytes(&fs::read(&worker_path).unwrap());
-    let mut schemas = CutWorkerSchemaExecutor::from_cut(
+    let image =
+        super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, &cancelled);
+    let digest = image.identity().sha256;
+    let mut schemas = CutWorkerSchemaExecutor::from_cut_with_image(
         &cut,
         FormatProfile::LegacyPythonObserved20260923,
-        ExactWorkerIdentity {
-            absolute_path: worker_path,
-            sha256: digest,
-        },
+        &image,
         ExecutorBudget::laboratory(),
         CutWorkerLimits {
             max_receipts: 128,
@@ -704,6 +701,14 @@ fn actual_cut_worker_and_pinned_software_preserve_provenance_lab_limits() {
 fn actual_general_operation_keeps_selected_family_coverage_below_source_admission() {
     use tos_validation::record_biblio_cut::BiblioRecordExecutor;
     use tos_validation::source_cut::CutSchemaExecutor;
+    let stage_started = Instant::now();
+    let stage = |phase: &'static str| {
+        eprintln!(
+            "general operation fixture phase={phase} elapsed_ms={}",
+            stage_started.elapsed().as_millis()
+        );
+    };
+    stage("selected-source-start");
     let mut before = selected_item_sources();
     let owner = repository();
     let relation = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
@@ -838,7 +843,9 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
     for prefix in &prefixes {
         capture.arg("--include-prefix").arg(prefix);
     }
+    stage("archive-capture-start");
     run_archive(&mut capture, "exact opening source capture");
+    stage("archive-capture-ready");
     let captured_manifest: Value =
         serde_json::from_slice(&fs::read(captured.join("capture.json")).unwrap()).unwrap();
     assert_eq!(captured_manifest["source_git_commit"], opening_source);
@@ -849,7 +856,9 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
         .arg(&captured)
         .arg("--output")
         .arg(&restored);
+    stage("archive-restore-start");
     run_archive(&mut restore, "exact opening source restore");
+    stage("archive-restore-ready");
     assert_eq!(fs::read(restored.join(opening_plan)).unwrap(), plan_raw);
     for (path, expected_sha) in opening_paths {
         let raw = fs::read(restored.join(&path)).unwrap();
@@ -874,6 +883,7 @@ fn actual_general_operation_keeps_selected_family_coverage_below_source_admissio
     // Reuse the maintained native compound fixture's real isolated writer.
     // Two siblings at each consumed tier exercise parent archive prefixes;
     // descriptive Expression lineage and exact older commitments survive.
+    stage("compound-oracle-start");
     let oracle=std::process::Command::new(crate::maintained_python()).arg("-c").arg(r#"
 import copy,json,sys
 from pathlib import Path
@@ -969,6 +979,7 @@ try:
     print(json.dumps(files))
 finally:c.doCleanups()
 "#).arg(&owner).env("PYTHONDONTWRITEBYTECODE","1").output().unwrap();
+    stage("compound-oracle-returned");
     assert!(
         oracle.status.success(),
         "maintained compound oracle: {}",
@@ -1014,11 +1025,13 @@ finally:c.doCleanups()
     );
     let temporary = tempfile::tempdir().unwrap();
     let root = temporary.path().join("store");
+    stage("selected-store-start");
     let base = write_cut_store(&before, &root);
     let mut files = before.clone();
     let changed_path = format!("{ITEM}/forensic-report.md");
     files.get_mut(&changed_path).unwrap().push(b'\n');
     let revision = write_cut_store_on_base(&files, &root, Some(base));
+    stage("selected-store-ready");
     let cancelled = AtomicBool::new(false);
     let deadline = Instant::now() + Duration::from_secs(120);
     let read = ReadLimits {
@@ -1041,31 +1054,33 @@ finally:c.doCleanups()
             &cancelled,
         )
         .unwrap();
-    let worker_path = selected_worker_path();
-    let worker = ExactWorkerIdentity {
-        sha256: Digest256::of_bytes(&fs::read(&worker_path).unwrap()),
-        absolute_path: worker_path,
-    };
+    stage("positive-image-start");
+    let image =
+        super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, &cancelled);
+    stage("positive-image-ready");
     let schema_limits = CutWorkerLimits {
         max_receipts: 256,
         max_receipt_bytes: 262_144,
     };
-    let mut schemas = CutWorkerSchemaExecutor::from_cut(
+    let mut schemas = CutWorkerSchemaExecutor::from_cut_with_image(
         &cut,
         FormatProfile::LegacyPythonObserved20260923,
-        worker.clone(),
+        &image,
         ExecutorBudget::laboratory(),
         schema_limits,
         deadline,
         &cancelled,
     )
     .unwrap();
-    let mut record_executor = BiblioRecordExecutor::new(
-        worker,
+    let mut record_executor = BiblioRecordExecutor::new_with_image(
+        &image,
         ExecutorBudget::laboratory(),
         FormatProfile::LegacyPythonObserved20260923,
         256,
-    );
+        deadline,
+        &cancelled,
+    )
+    .unwrap();
     let request_raw = br#"{"operation":"fixture-general-metadata"}"#.to_vec();
     let configuration_raw = br#"{"owner":"private-fixture","scope":"general-mechanics"}"#.to_vec();
     let canonical_digest = |raw: &[u8]| {
@@ -1144,6 +1159,7 @@ finally:c.doCleanups()
         ));
         assert!(schemas.receipts().is_empty());
     }
+    stage("positive-inspect-start");
     let report = inspect_general_operation(
         &cut,
         &proposal,
@@ -1162,6 +1178,7 @@ finally:c.doCleanups()
         panic!("actual General refusal {error:?}; schema receipts {}/{}, retained locator bytes {locator_bytes}, declared receipt-byte cap {}, last supplied locator/root {last:?}",
             receipts.len(), schema_limits.max_receipts, schema_limits.max_receipt_bytes);
     });
+    stage("positive-inspect-ready");
     assert_eq!(
         report.operation().scope(),
         OperationFamilyScope::GeneralSource
@@ -1495,9 +1512,11 @@ finally:c.doCleanups()
             "native-edition-item-compound-evidence",
         ),
     ] {
+        stage("negative-store-start");
         let mut damaged = files.clone();
         damaged.insert(target, raw);
         let damaged_revision = write_cut_store_on_base(&damaged, &root, Some(revision));
+        stage("negative-store-ready");
         let negative_deadline = Instant::now() + Duration::from_secs(120);
         let damaged_cut = reader
             .open_source_cut(
@@ -1516,12 +1535,25 @@ finally:c.doCleanups()
             deadline: negative_deadline,
             ..composed_limits.family
         };
-        let mut negative_records = BiblioRecordExecutor::new(
-            record_executor.worker.clone(),
+        // This negative control has its own original operation deadline;
+        // admit a fresh image for it rather than renewing the positive handle.
+        stage("negative-image-start");
+        let negative_image = super::command_form_cases::schema_image(
+            ExecutorBudget::laboratory(),
+            negative_deadline,
+            &cancelled,
+        );
+        stage("negative-image-ready");
+        let mut negative_records = BiblioRecordExecutor::new_with_image(
+            &negative_image,
             ExecutorBudget::laboratory(),
             FormatProfile::LegacyPythonObserved20260923,
             256,
-        );
+            negative_deadline,
+            &cancelled,
+        )
+        .unwrap();
+        stage("negative-records-start");
         let retained = tos_validation::record_biblio_cut::inspect_records_from_cut(
             &damaged_cut,
             negative_limits,
@@ -1532,10 +1564,11 @@ finally:c.doCleanups()
         negative_records
             .finish(negative_deadline, &cancelled)
             .unwrap();
-        let mut negative_schemas = CutWorkerSchemaExecutor::from_cut(
+        stage("negative-records-ready");
+        let mut negative_schemas = CutWorkerSchemaExecutor::from_cut_with_image(
             &damaged_cut,
             FormatProfile::LegacyPythonObserved20260923,
-            record_executor.worker.clone(),
+            &negative_image,
             ExecutorBudget::laboratory(),
             CutWorkerLimits {
                 max_receipts: 256,
@@ -1545,6 +1578,7 @@ finally:c.doCleanups()
             &cancelled,
         )
         .unwrap();
+        stage("negative-bibliography-start");
         let refused = tos_validation::biblio_rules::inspect_bibliography_from_cut(
             &damaged_cut,
             &retained,
@@ -1556,6 +1590,7 @@ finally:c.doCleanups()
         negative_schemas
             .finish(negative_deadline, &cancelled)
             .unwrap();
+        stage("negative-bibliography-ready");
         assert!(
             refused
                 .shadow
@@ -2387,7 +2422,9 @@ fn actual_source_foundation_inventory_profile2_binds_exceptional_schema_results(
     };
     assert_eq!(
         reason,
-        SourceFoundationSchemaFailure::UnsupportedInputSemantics
+        SourceFoundationSchemaFailure::UnsupportedInputSemantics,
+        "incomplete worker exchange context: {:?}",
+        indeterminate_report.exchange_failure_context()
     );
     assert!(!indeterminate_report.is_complete());
     assert!(!indeterminate_report.is_valid());
@@ -2573,15 +2610,13 @@ print(json.dumps(rows,ensure_ascii=False,allow_nan=False,separators=(',',':')))
             &cancelled,
         )
         .unwrap();
-    let worker_path = selected_worker_path();
-    let worker_digest = Digest256::of_bytes(&fs::read(&worker_path).unwrap());
-    let mut schemas = CutWorkerSchemaExecutor::from_cut(
+    let image =
+        super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, &cancelled);
+    let worker_digest = image.identity().sha256;
+    let mut schemas = CutWorkerSchemaExecutor::from_cut_with_image(
         &cut,
         FormatProfile::AssertedSourceCandidateV1,
-        ExactWorkerIdentity {
-            absolute_path: worker_path,
-            sha256: worker_digest,
-        },
+        &image,
         ExecutorBudget::laboratory(),
         CutWorkerLimits {
             max_receipts: 512,

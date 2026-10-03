@@ -2,6 +2,41 @@
 """Build a reversible whole-book discourse/formula layer over immutable sources."""
 from __future__ import annotations
 
+import os
+import sys
+from pathlib import Path
+
+
+def _native_main(argv: list[str] | None = None) -> int:
+    import shutil
+    args = list(sys.argv[1:] if argv is None else argv)
+    valued = {"--source-root", "--output-root", "--max-seconds", "--scratch-bytes"}
+    args = [token for arg in args for token in (
+        arg.split("=", 1) if arg.split("=", 1)[0] in valued and "=" in arg else [arg]
+    )]
+    native = os.environ.get("TOS_NATIVE_PREPARED_CONSUMER_BIN") or shutil.which("tos")
+    if not native or not Path(native).is_absolute():
+        print("error: select installed tos through TOS_NATIVE_PREPARED_CONSUMER_BIN or PATH", file=sys.stderr)
+        return 1
+    try:
+        selected = [native, "zarathustra-reading-workbench-v1"]
+        if args not in (["--help"], ["-h"]):
+            selected += ["--software-root", str(Path(__file__).resolve().parents[1])]
+        os.execv(native, [*selected, *args])
+    except OSError as exc:
+        print(f"error: cannot execute native tos: {exc}", file=sys.stderr)
+        return 1
+
+
+def main(argv: list[str] | None = None) -> int:
+    return _native_main(argv)
+
+
+# Maintained execution selects the native producer before reference imports.
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+
 import argparse
 import hashlib
 import json
@@ -315,7 +350,8 @@ def materialize(source_root, destination):
     return encoded, receipt
 
 
-def main():
+def _reference_main():
+    """Retained v1 reference/oracle entry; never the maintained executable."""
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--build", action="store_true")
@@ -365,7 +401,3 @@ def main():
                 companion.write_bytes(payload)
                 os.chmod(companion, 0o600)
     print(json.dumps(receipt, ensure_ascii=False, indent=2, sort_keys=True))
-
-
-if __name__ == "__main__":
-    main()

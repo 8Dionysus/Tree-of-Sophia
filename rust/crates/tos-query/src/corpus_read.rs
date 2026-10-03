@@ -1,6 +1,9 @@
 //! Maintained corpus packets from selected ordered originals. Addressed reads
 //! use the producer's verified scalar indexes; no normalized-row reconstruction.
-use crate::knowledge_inspect::{Reader, execute_selected_carrier_packet};
+use crate::knowledge_inspect::{
+    InspectVisitMeter, Reader, execute_selected_carrier_packet,
+    execute_selected_carrier_packet_with_optional_meter,
+};
 use crate::knowledge_lens_spec::{py_string, truthy};
 use crate::search_v2::{SearchV2Error, SearchV2ErrorCode};
 use crate::source_read_projection::{object, text};
@@ -751,14 +754,47 @@ pub fn execute_selected_corpus<'hold, A: InspectCurrentAuthority<'hold> + ?Sized
     request: &CorpusReadRequest,
     budget: CorpusReadBudget,
 ) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+    execute_selected_corpus_with_meter(model, bound, authority, context, request, budget, None)
+}
+
+pub fn execute_selected_corpus_metered<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    context: &CorpusReadContext,
+    request: &CorpusReadRequest,
+    budget: CorpusReadBudget,
+    meter: &mut InspectVisitMeter,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+    execute_selected_corpus_with_meter(
+        model,
+        bound,
+        authority,
+        context,
+        request,
+        budget,
+        Some(meter),
+    )
+}
+
+fn execute_selected_corpus_with_meter<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    context: &CorpusReadContext,
+    request: &CorpusReadRequest,
+    budget: CorpusReadBudget,
+    mut meter: Option<&mut InspectVisitMeter>,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
     request.validate(context, budget)?;
-    execute_selected_carrier_packet(
+    execute_selected_carrier_packet_with_optional_meter(
         model,
         bound,
         authority,
         request.operation_id(),
         CORPUS_INTENDED_USE,
         budget.inspect,
+        meter.take(),
         |read| {
             let receipt = bound_original_receipt(read, bound)?;
             let header = read
@@ -783,6 +819,115 @@ pub fn execute_selected_corpus<'hold, A: InspectCurrentAuthority<'hold> + ?Sized
                 remaining: budget.max_work_steps,
             };
             corpus.packet(request)
+        },
+    )
+}
+
+/// Minimal health seed under the existing corpus-status scope. It exposes only
+/// the source index schema and the first supported graph-view identity; the
+/// original header and graph-view rows remain private to this reader.
+pub fn execute_selected_corpus_health_seed<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    context: &CorpusReadContext,
+    budget: CorpusReadBudget,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+    execute_selected_corpus_health_seed_with_meter(model, bound, authority, context, budget, None)
+}
+
+pub fn execute_selected_corpus_health_seed_metered<
+    'hold,
+    A: InspectCurrentAuthority<'hold> + ?Sized,
+>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    context: &CorpusReadContext,
+    budget: CorpusReadBudget,
+    meter: &mut InspectVisitMeter,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+    execute_selected_corpus_health_seed_with_meter(
+        model,
+        bound,
+        authority,
+        context,
+        budget,
+        Some(meter),
+    )
+}
+
+fn execute_selected_corpus_health_seed_with_meter<
+    'hold,
+    A: InspectCurrentAuthority<'hold> + ?Sized,
+>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    context: &CorpusReadContext,
+    budget: CorpusReadBudget,
+    mut meter: Option<&mut InspectVisitMeter>,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+    if budget.max_work_steps == 0 {
+        return Err(budget_error());
+    }
+    execute_selected_carrier_packet_with_optional_meter(
+        model,
+        bound,
+        authority,
+        CorpusReadRequest::Status.operation_id(),
+        CORPUS_INTENDED_USE,
+        budget.inspect,
+        meter.take(),
+        |read| {
+            let receipt = bound_original_receipt(read, bound)?;
+            let header = read
+                .corpus_row(&receipt, Collection::Header, &Selector::All, None)?
+                .ok_or_else(|| {
+                    fail(
+                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        "selected corpus header absent",
+                    )
+                })?;
+            if header.0 != 0 || header.1.as_object().is_none() {
+                return Err(fail(
+                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    "selected corpus header invalid",
+                ));
+            }
+            let index_schema = field(&header.1, "schema_version")
+                .as_str()
+                .filter(|value| !value.is_empty())
+                .ok_or_else(|| {
+                    fail(
+                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        "selected corpus index schema absent",
+                    )
+                })?
+                .to_owned();
+            if index_schema.len() > budget.inspect.max_field_bytes {
+                return Err(budget_error());
+            }
+            let mut corpus = CorpusRead {
+                read,
+                receipt,
+                header: header.1,
+                context,
+                remaining: budget.max_work_steps,
+            };
+            let first_view = corpus
+                .views()?
+                .iter()
+                .find_map(|view| field(view, "view_id").as_str().map(str::to_owned));
+            let seed = object(vec![
+                ("schema_version", text("tos_selected_corpus_health_seed_v1")),
+                ("index_schema_version", text(&index_schema)),
+                (
+                    "first_graph_view_id",
+                    first_view.as_deref().map(text).unwrap_or(JsonValue::Null),
+                ),
+            ]);
+            Ok(seed)
         },
     )
 }
@@ -887,4 +1032,72 @@ pub(crate) fn graph_for_evidence<'hold, A: InspectCurrentAuthority<'hold> + ?Siz
     };
     let graph = corpus.graph_view("route-graph", 1000)?;
     Ok((graph, corpus.remaining))
+}
+
+/// Exact completed selected corpus metadata, including original graph-view rows.
+/// The public projection's original rows remain under the same selected reader
+/// and terminal disclosure lease; this does not materialize the full index.
+pub fn execute_selected_corpus_header<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
+    model: &mut VerifiedKnowledgeModel<'_>,
+    bound: &BoundCmpKnowledge<'_>,
+    authority: &mut A,
+    context: &CorpusReadContext,
+    budget: CorpusReadBudget,
+) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+    CorpusReadRequest::Status.validate(context, budget)?;
+    execute_selected_carrier_packet(
+        model,
+        bound,
+        authority,
+        "tos_corpus_header",
+        CORPUS_INTENDED_USE,
+        budget.inspect,
+        |read| {
+            let receipt = bound_original_receipt(read, bound)?;
+            let (ordinal, header) = read
+                .corpus_row(&receipt, Collection::Header, &Selector::All, None)?
+                .ok_or_else(|| {
+                    fail(
+                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        "selected corpus header absent",
+                    )
+                })?;
+            if ordinal != 0 || header.as_object().is_none() {
+                return Err(fail(
+                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    "selected corpus header invalid",
+                ));
+            }
+            let expected = receipt
+                .collections
+                .iter()
+                .find(|row| row.collection == Collection::GraphViews.as_str())
+                .map(|row| row.rows)
+                .ok_or_else(|| {
+                    fail(
+                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        "selected corpus graph-view receipt absent",
+                    )
+                })?;
+            if expected > budget.max_work_steps {
+                return Err(budget_error());
+            }
+            let mut corpus = CorpusRead {
+                read,
+                receipt,
+                header,
+                context,
+                remaining: budget.max_work_steps,
+            };
+            let views = corpus.rows(Collection::GraphViews, Selector::All, None)?;
+            if views.len() as u64 != expected {
+                return Err(fail(
+                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    "selected corpus graph-view coverage incomplete",
+                ));
+            }
+            set(&mut corpus.header, "graph_views", JsonValue::Array(views));
+            Ok(corpus.header)
+        },
+    )
 }

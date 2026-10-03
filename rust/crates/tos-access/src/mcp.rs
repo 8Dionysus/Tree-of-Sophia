@@ -256,6 +256,12 @@ impl McpSession {
                     Some("tos_source_gap_search") => executor.source_gap_available(),
                     Some(crate::reading::PUBLIC_WORD_CAPABILITY_TOOL)
                     | Some(crate::reading::PUBLIC_READING_CAPABILITY_TOOL) => true,
+                    Some(crate::knowledge::ACCESS_HEALTH_OPERATION) => {
+                        executor.access_health_available()
+                    }
+                    Some(crate::knowledge::PREPARED_STATUS_OPERATION) => {
+                        executor.prepared_status_available()
+                    }
                     Some(crate::word_analysis::MCP_TOOL) => {
                         self.software.is_some() || executor.word_analysis_available()
                     }
@@ -402,16 +408,28 @@ impl McpSession {
                                 "native operation unavailable",
                             )
                         })
-                        .and_then(|op| crate::KnowledgeRequest::from_arguments(op, arguments))
-                        .and_then(|request| {
-                            if matches!(request, crate::KnowledgeRequest::ExplorationContracts) {
-                                crate::exploration_contracts::execute(
-                                    executor,
-                                    self.profile.max_response_bytes,
-                                )
-                            } else {
-                                executor.knowledge(request, probe)
+                        .and_then(|op| {
+                            if op == crate::KnowledgeOperation::AccessHealth {
+                                return executor.access_health(Arc::clone(&probe));
                             }
+                            if op == crate::KnowledgeOperation::PreparedStatus {
+                                return executor.prepared_status(Arc::clone(&probe));
+                            }
+                            crate::KnowledgeRequest::from_arguments(op, arguments).and_then(
+                                |request| {
+                                    if matches!(
+                                        request,
+                                        crate::KnowledgeRequest::ExplorationContracts
+                                    ) {
+                                        crate::exploration_contracts::execute(
+                                            executor,
+                                            self.profile.max_response_bytes,
+                                        )
+                                    } else {
+                                        executor.knowledge(request, probe)
+                                    }
+                                },
+                            )
                         }),
                     None => unreachable!(),
                 })

@@ -77,6 +77,41 @@ pub struct D1PairInput {
     pub limits: D1PairLimits,
 }
 
+/// Maintained private producer profiles. These do not select or admit a
+/// public source/prepared/navigation/rights pair.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum D1PrivatePreparedMode {
+    Pair,
+    CatchUp,
+    Bootstrap,
+    Integrity { header_only: bool },
+}
+
+/// Authentic optional inputs for an offline private producer. Absence is an
+/// explicit capability state; it is never represented by a synthetic digest.
+#[derive(Clone, Debug)]
+pub struct D1PrivatePreparedInput {
+    pub predecessor_mode: D1PrivatePreparedMode,
+    pub base_d1_revision: String,
+    pub before_source_revision: String,
+    pub after_source_revision: String,
+    pub before_prepared_binding: Option<String>,
+    pub after_prepared_binding: Option<String>,
+    pub before_source_inputs_sha256: Option<String>,
+    pub after_source_inputs_sha256: Option<String>,
+    pub before_navigation_sha256: Option<String>,
+    pub after_navigation_sha256: Option<String>,
+    pub before_rights_sha256: Option<String>,
+    pub after_rights_sha256: Option<String>,
+    pub implementation_sha256: String,
+    pub bootstrap_implementation_sha256: Option<String>,
+    pub migration_implementation_sha256: Option<String>,
+    pub auxiliary_stores: Vec<D1AuxiliaryStore>,
+    pub before_reader_top: String,
+    pub after_reader_top: String,
+    pub limits: D1PairLimits,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum D1PredecessorMode {
     PreparedDelta,
@@ -154,8 +189,11 @@ impl D1Table {
         Self::EdgeMeta,
     ];
     fn selected(spec: &D1PairInput) -> Vec<Self> {
+        Self::selected_stores(&spec.auxiliary_stores)
+    }
+    fn selected_stores(stores: &[D1AuxiliaryStore]) -> Vec<Self> {
         let mut tables = Self::CORE.to_vec();
-        tables.extend(spec.auxiliary_stores.iter().map(|store| store.identity().2));
+        tables.extend(stores.iter().map(|store| store.identity().2));
         tables
     }
     pub fn shape(
@@ -522,6 +560,309 @@ fn selected_binding(raw: &str, source_revision: &str) -> D1PairResult<()> {
     Ok(())
 }
 
+// Reserve the whole private lineage/header processing before parsing or
+// copying caller-owned strings. Fixed framing covers the bounded digest keys;
+// the conservative factors cover parsed binding copies, serialization,
+// hashing and the escaped manifest witness in the same emission ledger.
+fn private_compact_json(raw: &str, cap: usize) -> D1PairResult<String> {
+    let limits = tos_foundation::JsonLimits::new(cap, 128, 2_000_000, 4300)
+        .map_err(|_| D1PairFailure::Budget("private compact JSON limits"))?;
+    let document = tos_foundation::parse_json(
+        raw.as_bytes(),
+        tos_foundation::JsonMode::PublishedStrict,
+        limits,
+    )
+    .map_err(|_| D1PairFailure::Invalid("private compact JSON"))?;
+    let bytes = tos_foundation::emit_python_compact_json(document.root(), limits)
+        .map_err(|_| D1PairFailure::Budget("private compact JSON bytes"))?;
+    String::from_utf8(bytes).map_err(|_| D1PairFailure::Invalid("private compact JSON UTF-8"))
+}
+fn private_lineage_budget(spec: &D1PrivatePreparedInput) -> D1PairResult<(usize, u64)> {
+    let mut bindings = 0u64;
+    for raw in [
+        spec.before_prepared_binding.as_deref(),
+        spec.after_prepared_binding.as_deref(),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if raw.len() > 1_048_576 {
+            return Err(D1PairFailure::Budget("prepared binding bytes"));
+        }
+        bindings = bindings
+            .checked_add(raw.len() as u64)
+            .ok_or(D1PairFailure::Budget("private lineage byte overflow"))?;
+    }
+    let headers = (spec.before_reader_top.len() as u64)
+        .checked_add(spec.after_reader_top.len() as u64)
+        .ok_or(D1PairFailure::Budget("private header byte overflow"))?;
+    if spec.before_reader_top.len() > 32_000 || spec.after_reader_top.len() > 32_000 {
+        return Err(D1PairFailure::Budget("D1 reader top framing"));
+    }
+    let rendered = bindings
+        .checked_mul(8)
+        .and_then(|n| n.checked_add(16_384))
+        .ok_or(D1PairFailure::Budget("private lineage framing overflow"))?;
+    let work = rendered
+        .checked_mul(9)
+        .and_then(|n| bindings.checked_mul(4).and_then(|b| n.checked_add(b)))
+        .and_then(|n| headers.checked_mul(4).and_then(|b| n.checked_add(b)))
+        .ok_or(D1PairFailure::Budget("private lineage work overflow"))?;
+    if spec.limits.max_transitions == 0
+        || spec.limits.max_sql_bytes == 0
+        || work > spec.limits.max_work_bytes
+    {
+        return Err(D1PairFailure::Budget("private lineage work bytes"));
+    }
+    Ok((
+        usize::try_from(rendered).map_err(|_| D1PairFailure::Budget("private lineage bytes"))?,
+        work,
+    ))
+}
+struct PrivateJsonWriter<'a> {
+    raw: &'a mut Vec<u8>,
+    max: usize,
+}
+impl Write for PrivateJsonWriter<'_> {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        if self
+            .raw
+            .len()
+            .checked_add(bytes.len())
+            .is_none_or(|n| n > self.max)
+        {
+            return Err(std::io::Error::other("private lineage bytes"));
+        }
+        self.raw.extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+fn append_private_field<T: serde::Serialize + ?Sized>(
+    raw: &mut Vec<u8>,
+    first: &mut bool,
+    name: &str,
+    value: &T,
+    max: usize,
+) -> D1PairResult<()> {
+    let mut writer = PrivateJsonWriter { raw, max };
+    if !*first {
+        writer
+            .write_all(b",")
+            .map_err(|_| D1PairFailure::Budget("private lineage bytes"))?;
+    }
+    *first = false;
+    serde_json::to_writer(&mut writer, name)
+        .map_err(|_| D1PairFailure::Budget("private lineage key"))?;
+    writer
+        .write_all(b":")
+        .map_err(|_| D1PairFailure::Budget("private lineage bytes"))?;
+    serde_json::to_writer(&mut writer, value)
+        .map_err(|_| D1PairFailure::Budget("private lineage value"))?;
+    Ok(())
+}
+
+/// Exact compact lineage member order of the maintained private Python
+/// profiles, with the caller's genuine native implementation digest. The
+/// implementation identity is deliberately not substituted with Python's.
+pub fn private_prepared_lineage(spec: &D1PrivatePreparedInput) -> D1PairResult<String> {
+    use D1PrivatePreparedMode as Mode;
+    let (max_lineage_bytes, _) = private_lineage_budget(spec)?;
+    if spec
+        .auxiliary_stores
+        .windows(2)
+        .any(|pair| pair[0] >= pair[1])
+    {
+        return Err(D1PairFailure::Invalid(
+            "private D1 auxiliary store selection",
+        ));
+    }
+    for value in [
+        &spec.base_d1_revision,
+        &spec.before_source_revision,
+        &spec.after_source_revision,
+        &spec.implementation_sha256,
+    ] {
+        if !valid_digest(value) {
+            return Err(D1PairFailure::Invalid("private D1 digest"));
+        }
+    }
+    for value in [
+        spec.before_source_inputs_sha256.as_deref(),
+        spec.after_source_inputs_sha256.as_deref(),
+        spec.before_navigation_sha256.as_deref(),
+        spec.after_navigation_sha256.as_deref(),
+        spec.before_rights_sha256.as_deref(),
+        spec.after_rights_sha256.as_deref(),
+        spec.bootstrap_implementation_sha256.as_deref(),
+        spec.migration_implementation_sha256.as_deref(),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if !valid_digest(value) {
+            return Err(D1PairFailure::Invalid("private D1 optional digest"));
+        }
+    }
+    let integrity = matches!(spec.predecessor_mode, Mode::Integrity { .. });
+    if spec.bootstrap_implementation_sha256.is_some() != (spec.predecessor_mode == Mode::Bootstrap)
+        || spec.migration_implementation_sha256.is_some() != integrity
+    {
+        return Err(D1PairFailure::Invalid(
+            "private D1 implementation profile presence",
+        ));
+    }
+    if spec.before_navigation_sha256.is_some() != spec.before_rights_sha256.is_some()
+        || spec.after_navigation_sha256.is_some() != spec.after_rights_sha256.is_some()
+        || spec.before_navigation_sha256.is_some() != spec.after_navigation_sha256.is_some()
+    {
+        return Err(D1PairFailure::Invalid(
+            "private D1 navigation/rights capability state",
+        ));
+    }
+    if matches!(
+        spec.predecessor_mode,
+        Mode::Bootstrap | Mode::Integrity { .. }
+    ) && spec.after_navigation_sha256.is_none()
+    {
+        return Err(D1PairFailure::Invalid(
+            "private native navigation product absent",
+        ));
+    }
+    if spec.before_prepared_binding.is_some() != (spec.predecessor_mode == Mode::Pair)
+        || spec.after_prepared_binding.is_some() == integrity
+        || spec.before_source_inputs_sha256.is_some() == integrity
+        || spec.after_source_inputs_sha256.is_some() == integrity
+    {
+        return Err(D1PairFailure::Invalid(
+            "private D1 prepared/source profile presence",
+        ));
+    }
+    if matches!(
+        spec.predecessor_mode,
+        Mode::Bootstrap | Mode::Integrity { .. }
+    ) && (spec.before_source_revision != spec.after_source_revision
+        || spec.before_source_inputs_sha256 != spec.after_source_inputs_sha256
+        || spec.before_navigation_sha256 != spec.after_navigation_sha256
+        || spec.before_rights_sha256 != spec.after_rights_sha256)
+    {
+        return Err(D1PairFailure::Invalid(
+            "private native retained source inputs",
+        ));
+    }
+    let binding = |raw: Option<&str>,
+                   source: &str|
+     -> D1PairResult<Option<Box<serde_json::value::RawValue>>> {
+        raw.map(|raw| {
+            selected_binding(raw, source)?;
+            serde_json::value::RawValue::from_string(private_compact_json(raw, 1_048_576)?)
+                .map_err(|_| D1PairFailure::Invalid("private prepared binding JSON"))
+        })
+        .transpose()
+    };
+    let before_binding = binding(
+        spec.before_prepared_binding.as_deref(),
+        &spec.before_source_revision,
+    )?;
+    let after_binding = binding(
+        spec.after_prepared_binding.as_deref(),
+        &spec.after_source_revision,
+    )?;
+    let mut raw = Vec::new();
+    raw.push(b'{');
+    let mut first = true;
+    macro_rules! field {
+        ($name:expr, $value:expr $(,)?) => {
+            append_private_field(&mut raw, &mut first, $name, &$value, max_lineage_bytes)?
+        };
+    }
+    match spec.predecessor_mode {
+        Mode::Pair | Mode::CatchUp => {
+            field!(
+                "schema",
+                json!(if spec.predecessor_mode == Mode::Pair {
+                    "tos_prepared_source_d1_delta_v2"
+                } else {
+                    "tos_prepared_source_d1_manifest_reconciliation_v1"
+                }),
+            );
+            field!("implementation_sha256", json!(spec.implementation_sha256));
+            field!("base_d1_revision", json!(spec.base_d1_revision));
+            if let Some(binding) = &before_binding {
+                field!("before_prepared_binding", binding);
+            }
+            field!("after_prepared_binding", after_binding);
+            field!(
+                "before_source_inputs_sha256",
+                json!(spec.before_source_inputs_sha256),
+            );
+            field!(
+                "after_source_inputs_sha256",
+                json!(spec.after_source_inputs_sha256),
+            );
+            // Python updates schema in place, appends this key, then removes
+            // before_prepared_binding. Its insertion order is part of identity.
+            if spec.predecessor_mode == Mode::CatchUp {
+                field!(
+                    "before_d1_source_revision",
+                    json!(spec.before_source_revision),
+                );
+            }
+        }
+        Mode::Bootstrap => {
+            field!("schema", json!("tos_native_navigation_d1_bootstrap_v1"));
+            field!("base_d1_revision", json!(spec.base_d1_revision));
+            field!("prepared_binding", after_binding);
+            field!(
+                "source_inputs_sha256",
+                json!(spec.after_source_inputs_sha256),
+            );
+            field!(
+                "source_navigation_sha256",
+                json!(spec.after_navigation_sha256),
+            );
+            field!("rights_sha256", json!(spec.after_rights_sha256));
+            field!("implementation_sha256", json!(spec.implementation_sha256));
+            field!(
+                "bootstrap_implementation_sha256",
+                json!(spec.bootstrap_implementation_sha256),
+            );
+        }
+        Mode::Integrity { header_only } => {
+            field!(
+                "schema",
+                json!("tos_native_navigation_integrity_migration_v1"),
+            );
+            field!("header_only", json!(header_only));
+            field!("base_d1_revision", json!(spec.base_d1_revision));
+            field!("source_revision", json!(spec.after_source_revision));
+            field!(
+                "source_navigation_sha256",
+                json!(spec.after_navigation_sha256),
+            );
+            field!("rights_sha256", json!(spec.after_rights_sha256));
+            field!("implementation_sha256", json!(spec.implementation_sha256));
+            field!(
+                "migration_implementation_sha256",
+                json!(spec.migration_implementation_sha256),
+            );
+        }
+    }
+    PrivateJsonWriter {
+        raw: &mut raw,
+        max: max_lineage_bytes,
+    }
+    .write_all(b"}")
+    .map_err(|_| D1PairFailure::Budget("private lineage bytes"))?;
+    String::from_utf8(raw).map_err(|_| D1PairFailure::Invalid("private lineage UTF-8"))
+}
+
+pub fn private_prepared_target_revision(spec: &D1PrivatePreparedInput) -> D1PairResult<String> {
+    Ok(digest(private_prepared_lineage(spec)?.as_bytes()))
+}
+
 /// The versioned target identity can be determined before successor reader
 /// metadata is framed. It does not establish source or D1 admission.
 pub fn target_d1_revision(spec: &D1PairInput) -> D1PairResult<String> {
@@ -675,27 +1016,43 @@ pub fn target_d1_revision(spec: &D1PairInput) -> D1PairResult<String> {
 
 fn selection(spec: &D1PairInput) -> D1PairResult<String> {
     let target = target_d1_revision(spec)?;
-    if spec.before_reader_top.len() > 32_000 || spec.after_reader_top.len() > 32_000 {
+    reader_selection(
+        &spec.base_d1_revision,
+        &spec.before_source_revision,
+        &spec.after_source_revision,
+        &spec.before_reader_top,
+        &spec.after_reader_top,
+        &target,
+    )?;
+    Ok(target)
+}
+fn reader_selection(
+    base: &str,
+    before_source: &str,
+    after_source: &str,
+    before_raw: &str,
+    after_raw: &str,
+    target: &str,
+) -> D1PairResult<()> {
+    if before_raw.len() > 32_000 || after_raw.len() > 32_000 {
         return Err(D1PairFailure::Budget("D1 reader top framing"));
     }
-    let before: Value = serde_json::from_str(&spec.before_reader_top)
+    let before: Value = serde_json::from_str(before_raw)
         .map_err(|_| D1PairFailure::Invalid("predecessor reader JSON"))?;
-    let after: Value = serde_json::from_str(&spec.after_reader_top)
+    let after: Value = serde_json::from_str(after_raw)
         .map_err(|_| D1PairFailure::Invalid("successor reader JSON"))?;
-    if before.get("data_revision").and_then(Value::as_str) != Some(spec.base_d1_revision.as_str())
-        || before.get("source_revision").and_then(Value::as_str)
-            != Some(spec.before_source_revision.as_str())
+    if before.get("data_revision").and_then(Value::as_str) != Some(base)
+        || before.get("source_revision").and_then(Value::as_str) != Some(before_source)
         || before.get("read_model_schema").and_then(Value::as_str) != Some(READ_MODEL_SCHEMA)
-        || after.get("source_revision").and_then(Value::as_str)
-            != Some(spec.after_source_revision.as_str())
+        || after.get("source_revision").and_then(Value::as_str) != Some(after_source)
         || after.get("read_model_schema").and_then(Value::as_str) != Some(READ_MODEL_SCHEMA)
     {
         return Err(D1PairFailure::Invalid("selected D1 reader tops"));
     }
-    if after.get("data_revision").and_then(Value::as_str) != Some(target.as_str()) {
+    if after.get("data_revision").and_then(Value::as_str) != Some(target) {
         return Err(D1PairFailure::Invalid("successor D1 reader revision"));
     }
-    Ok(target)
+    Ok(())
 }
 
 /// Only files created by this invocation may be removed after refusal.
@@ -913,13 +1270,72 @@ fn stage_change(
     }
     Ok(())
 }
+struct CaptureEmission<'a> {
+    base_d1_revision: &'a str,
+    before_reader_top: &'a str,
+    after_reader_top: &'a str,
+    before_rights_sha256: Option<&'a str>,
+    after_rights_sha256: Option<&'a str>,
+    auxiliary_stores: &'a [D1AuxiliaryStore],
+    limits: D1PairLimits,
+    private_lineage_json: Option<&'a str>,
+    initial_work_bytes: u64,
+}
+impl<'a> From<&'a D1PairInput> for CaptureEmission<'a> {
+    fn from(spec: &'a D1PairInput) -> Self {
+        Self {
+            base_d1_revision: &spec.base_d1_revision,
+            before_reader_top: &spec.before_reader_top,
+            after_reader_top: &spec.after_reader_top,
+            before_rights_sha256: spec.before_rights_sha256.as_deref(),
+            after_rights_sha256: spec.after_rights_sha256.as_deref(),
+            auxiliary_stores: &spec.auxiliary_stores,
+            limits: spec.limits,
+            private_lineage_json: None,
+            initial_work_bytes: 0,
+        }
+    }
+}
+// Private publication follows published_snapshot_binding on the complete
+// authentic top. Unknown members and their emitted order remain in its
+// metadata digest; the public fixed-header renderer remains independent.
+fn private_auxiliary_binding_parts(raw_top: &str) -> D1PairResult<(String, String)> {
+    let compact = private_compact_json(raw_top, 32_000)?;
+    let top: Value = serde_json::from_str(&compact)
+        .map_err(|_| D1PairFailure::Invalid("private auxiliary top JSON"))?;
+    crate::d1_public_metadata::reader_binding_parts(&top)
+        .map_err(|_| D1PairFailure::Invalid("private auxiliary top shape"))?;
+    #[derive(serde::Deserialize)]
+    struct OriginalNormalization {
+        normalization_binding: Box<serde_json::value::RawValue>,
+    }
+    let original: OriginalNormalization = serde_json::from_str(&compact)
+        .map_err(|_| D1PairFailure::Invalid("private auxiliary normalization JSON"))?;
+    let encode = |name: &str| {
+        serde_json::to_string(&top[name])
+            .map_err(|_| D1PairFailure::Invalid("private auxiliary binding field"))
+    };
+    let prefix =
+        "{\"schema\":\"tos_published_knowledge_snapshot_v1\",\"publication_epoch\":".to_owned();
+    let suffix = format!(
+        ",\"metadata_sha256\":{},\"read_model_schema\":{},\"source_revision\":{},\"data_revision\":{},\"graph_schema\":{},\"normalization_binding\":{}}}",
+        serde_json::to_string(&digest(compact.as_bytes()))
+            .map_err(|_| D1PairFailure::Invalid("private auxiliary digest JSON"))?,
+        encode("read_model_schema")?,
+        encode("source_revision")?,
+        encode("data_revision")?,
+        encode("graph_schema")?,
+        original.normalization_binding.get()
+    );
+    Ok((prefix, suffix))
+}
 fn publication(
     sink: &mut SqlSink,
     revision: &str,
     base: &str,
     target: &str,
     counts: &BTreeMap<&'static str, u64>,
-    spec: &D1PairInput,
+    spec: &CaptureEmission<'_>,
     reverse: bool,
 ) -> D1PairResult<()> {
     let current = "(SELECT json_extract(group_concat(json_chunk,''),'$.sha256') FROM (SELECT json_chunk FROM edge_meta WHERE key='data_revision' ORDER BY part))";
@@ -947,12 +1363,22 @@ fn publication(
         let next_top: Value = serde_json::from_str(next_top)
             .map_err(|_| D1PairFailure::Invalid("auxiliary successor top JSON"))?;
         let clock = "(SELECT epoch FROM knowledge_exploration_clock WHERE singleton=1)";
-        let (_, old_prefix, old_suffix) =
-            crate::d1_public_metadata::reader_binding_parts(&prior_top)
-                .map_err(|_| D1PairFailure::Invalid("auxiliary predecessor binding"))?;
+        let (old_prefix, old_suffix) = if spec.private_lineage_json.is_some() {
+            private_auxiliary_binding_parts(if reverse {
+                spec.after_reader_top
+            } else {
+                spec.before_reader_top
+            })?
+        } else {
+            let (_, prefix, suffix) =
+                crate::d1_public_metadata::reader_binding_parts(&prior_top)
+                    .map_err(|_| D1PairFailure::Invalid("auxiliary predecessor binding"))?;
+            (prefix, suffix)
+        };
         let old_binding = format!("{}||{clock}||{}", quote(&old_prefix), quote(&old_suffix));
-        let old_python = crate::d1_public_metadata::python_reader_binding_parts(&prior_top)
-            .ok()
+        let old_python = (spec.private_lineage_json.is_none())
+            .then(|| crate::d1_public_metadata::python_reader_binding_parts(&prior_top))
+            .and_then(Result::ok)
             .filter(|(_, prefix, suffix)| prefix != &old_prefix || suffix != &old_suffix)
             .map(|(_, prefix, suffix)| {
                 format!(
@@ -962,10 +1388,18 @@ fn publication(
                 )
             })
             .unwrap_or_default();
-        let (_, new_prefix, new_suffix) =
-            crate::d1_public_metadata::reader_binding_parts(&next_top)
+        let (new_prefix, new_suffix) = if spec.private_lineage_json.is_some() {
+            private_auxiliary_binding_parts(if reverse {
+                spec.before_reader_top
+            } else {
+                spec.after_reader_top
+            })?
+        } else {
+            let (_, prefix, suffix) = crate::d1_public_metadata::reader_binding_parts(&next_top)
                 .map_err(|_| D1PairFailure::Invalid("auxiliary successor binding"))?;
-        for store in &spec.auxiliary_stores {
+            (prefix, suffix)
+        };
+        for store in spec.auxiliary_stores {
             let (_, state, _) = store.identity();
             let schema = store.schema();
             auxiliary_guards.push(format!(
@@ -979,7 +1413,7 @@ fn publication(
         }
     }
     body.extend(auxiliary_guards);
-    for table in D1Table::selected(spec) {
+    for table in D1Table::selected_stores(spec.auxiliary_stores) {
         let (serving, columns, keys) = table.shape();
         let count = counts.get(serving).copied().unwrap_or(0);
         if count == 0 {
@@ -1028,7 +1462,7 @@ fn publication(
     ))?;
     sink.line(&format!("DROP TRIGGER {trigger};"))?;
     sink.line(&format!("DROP TRIGGER {retry_trigger};"))?;
-    for table in D1Table::selected(spec) {
+    for table in D1Table::selected_stores(spec.auxiliary_stores) {
         for suffix in ["keys", "before", "after"] {
             sink.line(&format!(
                 "DROP TABLE {};",
@@ -1234,7 +1668,7 @@ where
             &spec.base_d1_revision,
             &target,
             &counts,
-            spec,
+            &CaptureEmission::from(spec),
             false,
         )?;
         publication(
@@ -1243,7 +1677,7 @@ where
             &target,
             &spec.base_d1_revision,
             &counts,
-            spec,
+            &CaptureEmission::from(spec),
             true,
         )?;
         combined_sql(&fw, &rv, spec.limits.max_sql_bytes)?;
@@ -1324,6 +1758,64 @@ where
     I: IntoIterator<Item = D1RowTransition>,
 {
     let target = selection(spec)?;
+    emit_capture_common(
+        &CaptureEmission::from(spec),
+        target,
+        rows,
+        forward,
+        rollback,
+        manifest,
+    )
+}
+
+/// Maintained private source profiles share the existing guarded SQL and
+/// manifest-last owner-output kernel, without constructing a public pair.
+pub fn emit_private_prepared_capture<I>(
+    spec: &D1PrivatePreparedInput,
+    rows: I,
+    forward: &Path,
+    rollback: Option<&Path>,
+    manifest: &Path,
+) -> D1PairResult<D1CaptureReceipt>
+where
+    I: IntoIterator<Item = D1RowTransition>,
+{
+    let (_, initial_work_bytes) = private_lineage_budget(spec)?;
+    let lineage = private_prepared_lineage(spec)?;
+    let target = digest(lineage.as_bytes());
+    reader_selection(
+        &spec.base_d1_revision,
+        &spec.before_source_revision,
+        &spec.after_source_revision,
+        &spec.before_reader_top,
+        &spec.after_reader_top,
+        &target,
+    )?;
+    let context = CaptureEmission {
+        base_d1_revision: &spec.base_d1_revision,
+        before_reader_top: &spec.before_reader_top,
+        after_reader_top: &spec.after_reader_top,
+        before_rights_sha256: spec.before_rights_sha256.as_deref(),
+        after_rights_sha256: spec.after_rights_sha256.as_deref(),
+        auxiliary_stores: &spec.auxiliary_stores,
+        limits: spec.limits,
+        private_lineage_json: Some(&lineage),
+        initial_work_bytes,
+    };
+    emit_capture_common(&context, target, rows, forward, rollback, manifest)
+}
+
+fn emit_capture_common<I>(
+    spec: &CaptureEmission<'_>,
+    target: String,
+    rows: I,
+    forward: &Path,
+    rollback: Option<&Path>,
+    manifest: &Path,
+) -> D1PairResult<D1CaptureReceipt>
+where
+    I: IntoIterator<Item = D1RowTransition>,
+{
     let mut destinations = vec![forward];
     if let Some(rollback) = rollback {
         destinations.push(rollback);
@@ -1380,14 +1872,14 @@ where
     let manifest_pending = pending.last().expect("manifest pending path");
     let rollback_pending = rollback.map(|_| &pending[1]);
     let mut owned = OwnedOutputs::default();
-    let selected_tables = D1Table::selected(spec);
+    let selected_tables = D1Table::selected_stores(spec.auxiliary_stores);
     let result = (|| -> D1PairResult<D1CaptureReceipt> {
         let mut fw = SqlSink::new(forward_pending, spec.limits.max_sql_bytes, &mut owned)?;
         let mut rv = rollback_pending
             .map(|path| SqlSink::new(path, spec.limits.max_sql_bytes, &mut owned))
             .transpose()?;
         let mut counts = BTreeMap::new();
-        for table in D1Table::selected(spec) {
+        for table in D1Table::selected_stores(spec.auxiliary_stores) {
             stage_schema(&mut fw, &target, table)?;
             if let Some(rv) = rv.as_mut() {
                 stage_schema(rv, &spec.base_d1_revision, table)?;
@@ -1396,7 +1888,7 @@ where
         if let Some(rv) = rv.as_ref() {
             combined_sql(&fw, rv, spec.limits.max_sql_bytes)?;
         }
-        let mut work = 0u64;
+        let mut work = spec.initial_work_bytes;
         let mut changed = 0u64;
         for row in rows {
             if !selected_tables.contains(&row.table) {
@@ -1489,7 +1981,7 @@ where
         {
             return Err(D1PairFailure::Budget("combined D1 SQL bytes"));
         }
-        let packet = json!({
+        let mut packet = json!({
             "schema": "tos_rust_private_d1_capture_manifest_v1",
             "base_d1_revision": spec.base_d1_revision,
             "target_d1_revision": target,
@@ -1506,6 +1998,9 @@ where
             "d1_applied": false,
             "consumer_switched": false,
         });
+        if let Some(lineage) = spec.private_lineage_json {
+            packet["private_prepared_lineage_json"] = json!(lineage);
+        }
         let raw = serde_json::to_vec(&packet)
             .map_err(|_| D1PairFailure::Invalid("capture manifest JSON"))?;
         let mut file = OpenOptions::new()
@@ -1534,7 +2029,7 @@ where
         File::open(manifest.parent().expect("manifest parent"))?.sync_all()?;
         Ok(D1CaptureReceipt {
             schema: "tos_rust_private_d1_capture_manifest_v1",
-            base_d1_revision: spec.base_d1_revision.clone(),
+            base_d1_revision: spec.base_d1_revision.to_owned(),
             target_d1_revision: target,
             forward_sha256,
             rollback_sha256,
@@ -1590,6 +2085,111 @@ mod tests {
         after["data_revision"] = target_d1_revision(&spec).unwrap().into();
         spec.after_reader_top = after.to_string();
         spec
+    }
+    fn private_selected() -> D1PrivatePreparedInput {
+        let public = selected();
+        D1PrivatePreparedInput {
+            predecessor_mode: D1PrivatePreparedMode::Pair,
+            base_d1_revision: public.base_d1_revision,
+            before_source_revision: public.before_source_revision,
+            after_source_revision: public.after_source_revision,
+            before_prepared_binding: Some(public.before_prepared_binding),
+            after_prepared_binding: Some(public.after_prepared_binding),
+            before_source_inputs_sha256: Some(public.before_source_inputs_sha256),
+            after_source_inputs_sha256: Some(public.after_source_inputs_sha256),
+            before_navigation_sha256: None,
+            after_navigation_sha256: None,
+            before_rights_sha256: None,
+            after_rights_sha256: None,
+            implementation_sha256: public.implementation_sha256,
+            bootstrap_implementation_sha256: None,
+            migration_implementation_sha256: None,
+            auxiliary_stores: public.auxiliary_stores,
+            before_reader_top: public.before_reader_top,
+            after_reader_top: public.after_reader_top,
+            limits: public.limits,
+        }
+    }
+    #[test]
+    fn private_lineage_keeps_binding_objects_and_original_member_order_without_navigation() {
+        let mut spec = private_selected();
+        let binding = spec.before_prepared_binding.as_mut().unwrap();
+        binding.insert_str(1, "\"original_first_companion\":true,");
+        let raw = private_prepared_lineage(&spec).unwrap();
+        assert!(raw.contains("\"before_prepared_binding\":{\"original_first_companion\":true,"));
+        let value: Value = serde_json::from_str(&raw).unwrap();
+        assert!(value["before_prepared_binding"].is_object());
+        assert!(value.get("before_navigation_sha256").is_none());
+        assert!(raw.starts_with(
+            "{\"schema\":\"tos_prepared_source_d1_delta_v2\",\"implementation_sha256\":"
+        ));
+        assert_eq!(
+            private_prepared_target_revision(&spec).unwrap(),
+            digest(raw.as_bytes())
+        );
+    }
+    #[test]
+    fn private_lineage_refuses_work_before_binding_parse() {
+        let mut spec = private_selected();
+        spec.before_prepared_binding = Some("not JSON".into());
+        spec.limits.max_work_bytes = 1;
+        assert!(matches!(
+            private_prepared_lineage(&spec),
+            Err(D1PairFailure::Budget("private lineage work bytes"))
+        ));
+    }
+    #[test]
+    fn private_profiles_do_not_invent_a_predecessor_or_hide_engine_identity() {
+        let mut spec = private_selected();
+        spec.predecessor_mode = D1PrivatePreparedMode::CatchUp;
+        spec.before_prepared_binding = None;
+        let raw = private_prepared_lineage(&spec).unwrap();
+        let value: Value = serde_json::from_str(&raw).unwrap();
+        assert_eq!(
+            value["schema"],
+            "tos_prepared_source_d1_manifest_reconciliation_v1"
+        );
+        assert!(value.get("before_prepared_binding").is_none());
+        assert_eq!(
+            value["before_d1_source_revision"],
+            spec.before_source_revision
+        );
+        let target = private_prepared_target_revision(&spec).unwrap();
+        spec.implementation_sha256 = hash("different genuine native implementation");
+        assert_ne!(target, private_prepared_target_revision(&spec).unwrap());
+        spec.predecessor_mode = D1PrivatePreparedMode::Bootstrap;
+        spec.before_source_revision = spec.after_source_revision.clone();
+        spec.before_source_inputs_sha256 = spec.after_source_inputs_sha256.clone();
+        spec.before_navigation_sha256 = Some(hash("native navigation"));
+        spec.after_navigation_sha256 = spec.before_navigation_sha256.clone();
+        spec.before_rights_sha256 = Some(hash("native rights"));
+        spec.after_rights_sha256 = spec.before_rights_sha256.clone();
+        spec.bootstrap_implementation_sha256 = Some(hash("native bootstrap"));
+        assert_eq!(
+            serde_json::from_str::<Value>(&private_prepared_lineage(&spec).unwrap()).unwrap()["schema"],
+            "tos_native_navigation_d1_bootstrap_v1"
+        );
+        spec.predecessor_mode = D1PrivatePreparedMode::Integrity { header_only: false };
+        spec.after_prepared_binding = None;
+        spec.before_source_inputs_sha256 = None;
+        spec.after_source_inputs_sha256 = None;
+        spec.bootstrap_implementation_sha256 = None;
+        spec.migration_implementation_sha256 = Some(hash("native integrity"));
+        let full = private_prepared_target_revision(&spec).unwrap();
+        spec.predecessor_mode = D1PrivatePreparedMode::Integrity { header_only: true };
+        assert_ne!(full, private_prepared_target_revision(&spec).unwrap());
+    }
+    #[test]
+    fn private_auxiliary_binding_hashes_the_complete_authentic_top() {
+        let hash = hash("top");
+        let normalization = json!({"schema":"tos_knowledge_graph_normalization_binding_v1", "processor_digest":hash,"entity_registry_digest":hash,"relation_registry_digest":hash,"configuration_digest":hash});
+        let top = json!({"schema":"tos_published_knowledge_reader_v2","read_model_schema":READ_MODEL_SCHEMA,"graph_schema":"tos_knowledge_graph_v1","row_integrity":"sha256-emitted-json-v1","source_revision":hash,"data_revision":hash,"catalog_sha256":hash,"lens_sha256":hash,"normalization_binding":normalization,"authority_boundary":{"source_owner":"Tree-of-Sophia","is_source":false,"is_canon":false,"writes_to_tree":false}}).to_string();
+        let raw = format!("{{\"authentic_unknown_first_companion\":true,{}", &top[1..]);
+        let (prefix, suffix) = private_auxiliary_binding_parts(&raw).unwrap();
+        let binding: Value = serde_json::from_str(&format!("{prefix}0{suffix}")).unwrap();
+        assert_eq!(binding["metadata_sha256"], digest(raw.as_bytes()));
+        let without_companion = private_auxiliary_binding_parts(&top).unwrap();
+        assert_ne!(suffix, without_companion.1);
     }
     #[test]
     fn rights_changes_are_mechanical_and_missing_roots_stay_full_only() {

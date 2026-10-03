@@ -20,9 +20,25 @@ only the standalone inputs already allowlisted by `Tree-of-Sophia`:
 - `ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json`
 
 The public source-gap ledger is copied through its existing allowlist route.
-The original `scripts/build_runtime.py` remains an independent Python oracle
-until the full native output has been compared and accepted. It is not invoked
-by `npm run build:data`.
+The maintained public producer is installed `tos build-data`, invoked by
+`npm run build:data`. `scripts/build_runtime.py` remains an explicit independent
+Python reference producer for differential checks. It is not the npm default.
+
+Its `build_stages.py` cache and fingerprint helpers remain reference-only; the
+native producer deliberately computes full SQL, baseline and static outputs
+under its whole-operation deadline. Public baseline/delta work in
+`incremental_runtime.py` is implemented by native `d1_public_baseline` and
+`d1_public_delta`; lens/publication and navigation-row work has native
+`d1_public_lens`, `d1_public_publication` and `d1_public_rows` owners. These
+Python files also support explicit private reference captures, so their shared
+helpers remain available. This does not establish private capture acceptance.
+
+`scripts/sql_stream.py` and `scripts/import_local_sqlite.py` remain independent
+reference implementations; the maintained deploy entry uses the installed
+native commands described below. `verify:local` remains an independent Python
+differential consumer using `ReferenceToSAccessCore` and authentic local
+Worker HTTP packets. Its representative profile is a finite software gate,
+separate from production data, scale, deployment and semantic acceptance.
 
 The maintained `deploy_edge.mjs` entry invokes installed `tos` for bounded
 `edge-sql-stream` framing and `edge-import-local` offline SQLite bootstrap.
@@ -1183,6 +1199,67 @@ is claimed. An unreleased child/group also retains its selected input directory
 under the whole owner supervisor's custody contract. WAL and dirty-view interpretation, default limits,
 optional rollback and complete receipts require the corresponding installed
 consumer checks; a source candidate or direct CLI run does not establish them.
+
+The private comparison profile `tos-rust-private-prepared-effects-v1` keeps
+both engine identities. The Rust implementation digest binds the ordered,
+length-framed Rust source bytes embedded by `implementation_digest()`; the
+Python reference digest binds its own declared execution profile. Bootstrap
+and integrity additionally bind their actual engine-specific implementation
+source. These digests must never be substituted to force equal revisions.
+Pair and catch-up may omit navigation in both selected sources; source scope
+changes still refuse. Bootstrap, integrity and the explicit navigation-delta
+operation require their actual navigation inputs. This private contract does
+not relax the public D1 pair contract.
+
+A differential check under this profile must recompute each target revision
+from that engine's complete ordered private lineage and check its original
+base revision, source identity, prepared bindings and navigation/rights links.
+Recomputation binds the held implementation and source bytes, not just digest
+strings supplied by a receipt. Retain both raw receipts, SQL artifacts,
+selected views, all table rows and complete raw metadata before classification.
+Strict framing and duplicate-member refusal precede these finite relations:
+
+- The two target scalar slots, `edge_meta.data_revision.sha256` and
+  `edge_meta.knowledge_reader_top.data_revision`, must equal that engine's
+  independently recomputed target, receipt target, forward target and rollback
+  base. Every other metadata field, member order and unknown field stays exact.
+- `tos_delta_publications` keeps the original journal except the selected
+  target/base publication keys. Forward publication seals exactly
+  `(target, base)`; replay adds no row; reverse seals exactly `(base, target)`.
+  Validate the complete expected journal map and column/storage shape against
+  each original journal. Extra rows, a wrong base/target or an unrelated
+  overwritten history row fail the comparison.
+- `knowledge_exploration_clock` retains its single integer singleton. Each
+  actual publication increases its epoch by the number of deleted plus
+  inserted `data_revision` chunks under the bound owner clock triggers;
+  replay leaves it unchanged. Reverse advances it by the same actual chunk
+  accounting rather than restoring the old epoch. A rollback, extra increment
+  or a changed clock shape fails the comparison.
+- Each selected auxiliary publication binding must equal the declared
+  `published_snapshot_binding` of that engine's complete actual reader top
+  and the exact phase clock. Its metadata hash binds the full compact top,
+  including member order and unknown fields. Only its linked data revision,
+  derived metadata hash and phase publication epoch may follow these explicit
+  relations; schema, validity, other binding fields and auxiliary content stay
+  exact. Reverse binds the restored base top to the advanced phase clock.
+
+Forward application and replay compare all remaining typed contents and
+column shapes exactly. Reverse/restoration recover the complete original
+serving contents; the journal, clock and auxiliary seals retain precisely the
+protocol history above. These relations do not exclude whole tables or accept
+unclassified differences. Any additional difference keeps the result
+comparison-required. This profile does not admit a D1 pair or claim a completed
+installed check.
+
+Python reference withdrawal requires native fixture coverage for the maintained
+semantic and refusal cases, including held WAL views, replay/restoration,
+source and rights mismatches, optional reverse output, atomic refusal and
+resource bounds. Retire the corresponding five Python suites and their active
+lane entries together with their oracle dependencies; retain an immutable
+historical differential receipt outside maintained CI. Until that coverage and
+the genuine returning-API check are recorded, the reference functions below
+remain temporary validation dependencies, not a permanent Rust migration
+exemption.
 
 The retained reference functions are `build_prepared_delta_sql_oracle`,
 `build_prepared_catchup_sql_oracle`,

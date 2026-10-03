@@ -6,6 +6,62 @@
   "response_json_profile": "tos_access_response_v1",
   "operations": [
     {
+      "operation_id": "tos_knowledge_prepared_status",
+      "execution_version": "tos_selected_prepared_status_v1",
+      "effect": "read-only",
+      "availability": "only_with_explicit_owner_selected_prepared_binding_and_current_file_wal_fence",
+      "intended_use": "read_only_selected_prepared_status_v1",
+      "mcp": {
+        "tool": "tos_knowledge_prepared_status",
+        "description": "Read status of the selected prepared publication without scanning graph rows",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_access_health",
+      "execution_version": "tos_selected_access_health_v1",
+      "effect": "read-only",
+      "availability": "only_with_one_selected_native_model_and_current_release_hold",
+      "intended_use": "read_only_selected_access_health_v1",
+      "selected_scopes": [
+        {
+          "operation_id": "tos_corpus_status",
+          "intended_use": "read_only_public_corpus_projection_v1"
+        },
+        {
+          "operation_id": "tos_corpus_graph_view",
+          "intended_use": "read_only_public_corpus_projection_v1"
+        },
+        {
+          "operation_id": "tos_philosophy_graph_views",
+          "intended_use": "read_only_public_philosophy_projection_v1"
+        },
+        {
+          "operation_id": "tos.view.open",
+          "intended_use": "read_only_public_philosophy_projection_v1"
+        },
+        {
+          "operation_id": "tos.knowledge.catalog",
+          "intended_use": "read_only_public_knowledge_catalog_v1"
+        }
+      ],
+      "mcp": {
+        "tool": "tos_access_health",
+        "description": "Read bounded health for the selected native public read surfaces",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
       "operation_id": "tos.source.descend",
       "execution_version": "tos_source_navigation_read_model_v1",
       "effect": "read-only",
@@ -1475,50 +1531,67 @@
       },
       "mcp": {
         "tool": "tos_philosophy_graph_scale_rows",
-        "description": "Read selected original philosophy scale_rows",
+        "description": "Read the complete selected original philosophy carrier (header and all base nodes/edges), or a bounded scale-table export",
         "input_schema": {
-          "type": "object",
-          "properties": {
-            "table": {
-              "enum": [
-                "nodes",
-                "edges",
-                "clusters",
-                "cluster-node-memberships",
-                "cluster-edge-memberships"
-              ]
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "full_projection": {
+                  "type": "boolean",
+                  "const": true
+                }
+              },
+              "required": [
+                "full_projection"
+              ],
+              "additionalProperties": false
             },
-            "view_id": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "layers": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "export": {
-              "type": "boolean",
-              "description": "Return the complete table within the selected response budget and one held snapshot; excludes offset and limit"
-            },
-            "offset": {
-              "type": "integer",
-              "minimum": 0,
-              "maximum": 10000000
-            },
-            "limit": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 10000
+            {
+              "type": "object",
+              "properties": {
+                "table": {
+                  "enum": [
+                    "nodes",
+                    "edges",
+                    "clusters",
+                    "cluster-node-memberships",
+                    "cluster-edge-memberships"
+                  ]
+                },
+                "view_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "layers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "export": {
+                  "type": "boolean",
+                  "description": "Return the complete table within the selected response budget and one held snapshot; excludes offset and limit"
+                },
+                "offset": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10000000
+                },
+                "limit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10000
+                }
+              },
+              "required": [
+                "table"
+              ],
+              "additionalProperties": false
             }
-          },
-          "required": [
-            "table"
-          ],
-          "additionalProperties": false
+          ]
         }
       }
     },

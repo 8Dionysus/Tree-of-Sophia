@@ -31,7 +31,7 @@ fn bare(value: &str) -> bool {
 fn sha(value: &str) -> bool {
     value.strip_prefix("sha256:").is_some_and(bare)
 }
-fn identity(value: &str, claim: Option<bool>) -> bool {
+pub(crate) fn identity(value: &str, claim: Option<bool>) -> bool {
     let Some(body) = value.strip_prefix("tos.") else {
         return false;
     };
@@ -46,7 +46,7 @@ fn identity(value: &str, claim: Option<bool>) -> bool {
                     .all(|b| b.is_ascii_digit() || b.is_ascii_lowercase())
         })
 }
-fn kind(value: &str) -> bool {
+pub(crate) fn kind(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= 64
         && value.as_bytes()[0].is_ascii_lowercase()

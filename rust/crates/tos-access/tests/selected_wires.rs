@@ -4223,6 +4223,13 @@ with tempfile.TemporaryDirectory() as d:
                     executor.knowledge_search_legacy_available()
                         || executor.knowledge_search_indexed_available()
                         || executor.knowledge_search_compressed_available()
+                } else if matches!(
+                    descriptor.operation_id.as_str(),
+                    "tos.zarathustra.word_analysis.public-capability"
+                        | "tos.zarathustra.reading.public-capability"
+                ) {
+                    // Fixed software metadata grants no selected data capability.
+                    true
                 } else if descriptor.operation_id == tos_access::reading::OPERATION_ID {
                     executor.reading_search_available()
                 } else if let Some(operation) =
@@ -4250,6 +4257,13 @@ with tempfile.TemporaryDirectory() as d:
                     executor.knowledge_search_legacy_available()
                         || executor.knowledge_search_indexed_available()
                         || executor.knowledge_search_compressed_available()
+                } else if matches!(
+                    op.operation_id.as_str(),
+                    "tos.zarathustra.word_analysis.public-capability"
+                        | "tos.zarathustra.reading.public-capability"
+                ) {
+                    // Fixed software metadata grants no selected data capability.
+                    true
                 } else if op.operation_id == tos_access::reading::OPERATION_ID {
                     executor.reading_search_available()
                 } else if let Some(operation) =

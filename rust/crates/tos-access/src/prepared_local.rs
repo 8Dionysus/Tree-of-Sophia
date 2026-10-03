@@ -35,6 +35,7 @@ pub const PREPARED_RESPONSE_BYTES: usize = 4 * 1024 * 1024;
 const REQUEST_BYTES: usize = 65_536;
 enum LocalRequest {
     SourceBinding,
+    PreparedStatus,
     Search(CompressedSearchRequest),
     SearchCapabilities,
     Catalog,
@@ -388,6 +389,8 @@ impl PreparedLocalExecutor {
                 )
                 .map_err(query_error)?;
             object(vec![])
+        } else if matches!(request, LocalRequest::PreparedStatus) {
+            session.status(&s.binding).map_err(query_error)?
         } else if matches!(request, LocalRequest::Catalog) {
             session.catalog(&s.binding).map_err(query_error)?
         } else {
@@ -668,6 +671,15 @@ impl AccessExecutor for PreparedLocalExecutor {
             KnowledgeRequest::Explore(request) => self.read(LocalRequest::Explore(request), probe),
             _ => Err(unavailable()),
         }
+    }
+    fn prepared_status_available(&self) -> bool {
+        true
+    }
+    fn prepared_status(
+        &self,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        self.read(LocalRequest::PreparedStatus, probe)
     }
 }
 fn percent_length(s: &str) -> usize {

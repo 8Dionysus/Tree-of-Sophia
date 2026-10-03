@@ -78,12 +78,13 @@ pub use knowledge_catalog::{
     CATALOG_CARRIER_LAYER, CATALOG_INTENDED_USE, CATALOG_OPERATION_ID, CatalogBudget,
     CatalogCurrentAuthority, CatalogDisclosureLease, CatalogDisclosureScope, CatalogError,
     CatalogErrorCode, DisclosableCatalog, execute_selected_catalog,
+    execute_selected_knowledge_health_metadata,
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_inspect::{
     DisclosableInspect, INSPECT_INTENDED_USE, InspectCurrentAuthority, InspectDisclosureLease,
-    InspectedCarrier, NODE_INSPECT_OPERATION, ObservedInspectCarrier, RELATION_INSPECT_OPERATION,
-    execute_selected_inspect,
+    InspectVisitMeter, InspectedCarrier, NODE_INSPECT_OPERATION, ObservedInspectCarrier,
+    RELATION_INSPECT_OPERATION, execute_selected_inspect,
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use knowledge_packet::{

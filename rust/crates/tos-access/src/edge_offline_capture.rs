@@ -23,11 +23,11 @@ use std::{
 use tos_compiler::{
     SearchBuildLimits,
     d1::{
-        D1AuxiliaryStore, D1Cell, D1PairInput, D1PairLimits, D1PredecessorMode, D1RowTransition,
-        D1Table, MAX_D1_SQL_ROW_VALUE_BYTES, auxiliary_binding_candidates, emit_d1_capture,
-        target_d1_revision,
+        D1AuxiliaryStore, D1Cell, D1PairLimits, D1PrivatePreparedInput, D1PrivatePreparedMode,
+        D1RowTransition, D1Table, MAX_D1_SQL_ROW_VALUE_BYTES, auxiliary_binding_candidates,
+        emit_private_prepared_capture, private_prepared_target_revision,
     },
-    d1_prepared_pair::inspect_offline_source_inputs,
+    d1_prepared_pair::inspect_private_prepared_source_inputs,
     d1_projection_snapshot::{D1ProjectionAccounting, D1ProjectionLimits, D1ProjectionSnapshot},
     local_prepared::PublicationLimits,
     prepared_source_binding::{PreparedSourceInputs, validate_prepared_source_state},
@@ -39,6 +39,8 @@ use tos_foundation::{
     canonical_bytes_v1, emit_python_compact_json, parse_json, parse_json_with_state_budget,
 };
 
+#[cfg(test)]
+mod private_runtime_tests;
 mod typed_snapshot;
 
 const REQUEST_SCHEMA: &str = "tos_edge_offline_capture_request_v1";
@@ -3368,14 +3370,6 @@ fn capture_transition_rows(
     Ok(())
 }
 
-fn root_digest(source: &PreparedSourceInputs, key: &str) -> Result<String, String> {
-    source
-        .roots()
-        .get(key)
-        .map(|root| root.snapshot_sha256.clone())
-        .ok_or_else(|| invalid("required prepared projection root absent"))
-}
-
 fn reader_top_raw_from_predecessor(
     predecessor_raw: &str,
     source_revision: &str,
@@ -4029,8 +4023,14 @@ fn run_prepared_transition(
         limits,
         &mut d1_read_bytes,
     )?;
-    let (after_header, _, after_header_raw) =
-        parse_meta_accounted(&after_tx, "knowledge_top", limits, &mut d1_read_bytes)?;
+    // Prepared state owns its header inside the digest-checked descriptor;
+    // knowledge_top is a published D1 metadata key, not a prepared carrier.
+    // The descriptor read above already charges the complete header bytes.
+    let after_header = after_descriptor
+        .get("header")
+        .cloned()
+        .ok_or_else(|| invalid("prepared successor descriptor header"))?;
+    let after_header_raw = compact(&after_header, limits.prepared.max_metadata_bytes)?;
     let (_, _, after_catalog_raw) =
         parse_meta_accounted(&after_tx, "knowledge_catalog", limits, &mut d1_read_bytes)?;
     let (after_lens, _, after_lens_raw) =
@@ -4059,9 +4059,6 @@ fn run_prepared_transition(
             "prepared successor reader metadata differs from held source",
         ));
     }
-    if after_descriptor.get("header") != Some(&after_header) {
-        return Err(invalid("prepared successor descriptor/header differs"));
-    }
     let before_source = if let Some(source) = before_source_inputs {
         source
     } else {
@@ -4081,18 +4078,40 @@ fn run_prepared_transition(
     let before_source_value = source_inputs_value(&before_source)?;
     let after_source_value = source_inputs_value(&after_source)?;
     source_scope_compatible(&before_source_value, &after_source_value)?;
-    let before_nav_sha = root_digest(&before_source, "source-navigation")?;
-    let after_nav_sha = root_digest(&after_source, "source-navigation")?;
-    let before_rights_sha = before_source
+    // Ordinary Prepared pairs may omit navigation entirely. Source-scope
+    // compatibility above still rejects adding or removing a selected root.
+    let before_nav_sha = before_source
         .roots()
-        .get("source-navigation-rights")
-        .map(|root| root.snapshot_sha256.clone())
-        .unwrap_or_else(|| before_nav_sha.clone());
-    let after_rights_sha = after_source
+        .get("source-navigation")
+        .map(|root| root.snapshot_sha256.clone());
+    let after_nav_sha = after_source
         .roots()
-        .get("source-navigation-rights")
-        .map(|root| root.snapshot_sha256.clone())
-        .unwrap_or_else(|| after_nav_sha.clone());
+        .get("source-navigation")
+        .map(|root| root.snapshot_sha256.clone());
+    if operation == "source-navigation-delta"
+        && (before_nav_sha.is_none() || after_nav_sha.is_none())
+    {
+        return Err(invalid(
+            "source-navigation delta requires selected navigation roots",
+        ));
+    }
+    // Navigation product rights are absent with the product itself. A
+    // separately selected rights root remains in the complete source-input
+    // inventory and must still be unchanged under source-scope checks.
+    let before_rights_sha = before_nav_sha.as_ref().map(|navigation| {
+        before_source
+            .roots()
+            .get("source-navigation-rights")
+            .map(|root| root.snapshot_sha256.clone())
+            .unwrap_or_else(|| navigation.clone())
+    });
+    let after_rights_sha = after_nav_sha.as_ref().map(|navigation| {
+        after_source
+            .roots()
+            .get("source-navigation-rights")
+            .map(|root| root.snapshot_sha256.clone())
+            .unwrap_or_else(|| navigation.clone())
+    });
 
     let (base_top, _, base_top_raw) =
         parse_meta_accounted(&d1_tx, "knowledge_reader_top", limits, &mut d1_read_bytes)?;
@@ -4688,16 +4707,26 @@ fn run_prepared_transition(
         }
     }
 
-    let nav_before = parsed_root(root_for(&before_source, "source-navigation")?)?;
-    let nav_after = parsed_root(root_for(&after_source, "source-navigation")?)?;
+    let nav_before = before_source
+        .roots()
+        .get("source-navigation")
+        .map(parsed_root)
+        .transpose()?;
+    let nav_after = after_source
+        .roots()
+        .get("source-navigation")
+        .map(parsed_root)
+        .transpose()?;
     let mut nav_top_update = None;
     let mut nav_product = json!({"state":"unchanged","changed_rows":0});
     let mut nav_projection_usage = D1ProjectionAccounting::default();
-    if nav_before.snapshot_sha256() != nav_after.snapshot_sha256() {
+    if let (Some(nav_before), Some(nav_after)) = (&nav_before, &nav_after)
+        && nav_before.snapshot_sha256() != nav_after.snapshot_sha256()
+    {
         let (nav_rows, next_top, nav_changed_rows, usage) = navigation_delta_transitions(
             &d1_tx,
-            &nav_before,
-            &nav_after,
+            nav_before,
+            nav_after,
             limits,
             &mut d1_read_bytes,
         )?;
@@ -4721,34 +4750,35 @@ fn run_prepared_transition(
     let after_binding_raw =
         compact_foundation(&after_binding_value, limits.prepared.max_metadata_bytes)?;
     let mode = if operation == "prepared-catchup" {
-        D1PredecessorMode::SourceInputsCatchup
+        D1PrivatePreparedMode::CatchUp
     } else {
-        D1PredecessorMode::PreparedDelta
+        D1PrivatePreparedMode::Pair
     };
     let before_navigation_sha = before_nav_sha.clone();
     let after_navigation_sha = after_nav_sha.clone();
-    let mut spec = D1PairInput {
+    let mut spec = D1PrivatePreparedInput {
         predecessor_mode: mode,
         base_d1_revision: expected_revision.to_owned(),
         before_source_revision: before_source.source_revision().to_owned(),
         after_source_revision: after_source.source_revision().to_owned(),
-        before_prepared_binding: before_binding_raw,
-        after_prepared_binding: after_binding_raw,
-        before_source_inputs_sha256: before_source.digest().to_owned(),
-        after_source_inputs_sha256: after_source.digest().to_owned(),
+        before_prepared_binding: before_binding_value.as_ref().map(|_| before_binding_raw),
+        after_prepared_binding: Some(after_binding_raw),
+        before_source_inputs_sha256: Some(before_source.digest().to_owned()),
+        after_source_inputs_sha256: Some(after_source.digest().to_owned()),
         before_navigation_sha256: before_navigation_sha,
         after_navigation_sha256: after_navigation_sha,
-        before_rights_sha256: Some(before_rights_sha),
-        after_rights_sha256: Some(after_rights_sha),
+        before_rights_sha256: before_rights_sha,
+        after_rights_sha256: after_rights_sha,
         implementation_sha256: implementation_digest(),
+        bootstrap_implementation_sha256: None,
         migration_implementation_sha256: None,
         auxiliary_stores: installed_auxiliary,
         before_reader_top: base_top_raw.clone(),
         after_reader_top: String::new(),
         limits: limits.pair,
     };
-    let exact_revision =
-        target_d1_revision(&spec).map_err(|_| invalid("private D1 lineage inputs"))?;
+    let exact_revision = private_prepared_target_revision(&spec)
+        .map_err(|_| invalid("private D1 lineage inputs"))?;
     let next_top_raw = reader_top_raw_from_predecessor(
         &base_top_raw,
         after_source.source_revision(),
@@ -4758,8 +4788,12 @@ fn run_prepared_transition(
         limits,
     )?;
     spec.after_reader_top = next_top_raw.clone();
-    inspect_offline_source_inputs(&spec, Some(before_source.raw()), after_source.raw())
-        .map_err(|error| format!("offline prepared source pair: {error:?}"))?;
+    inspect_private_prepared_source_inputs(
+        &spec,
+        Some(before_source.raw()),
+        Some(after_source.raw()),
+    )
+    .map_err(|error| format!("offline prepared source pair: {error:?}"))?;
     let (prior_top_value, _, _) =
         parse_meta_accounted(&d1_tx, "knowledge_reader_top", limits, &mut d1_read_bytes)?;
     if prior_top_value != base_top {
@@ -4857,8 +4891,9 @@ fn run_prepared_transition(
     }
     selected_snapshots.push(("after_prepared_database", &after_db.identity));
     let snapshot_transport = snapshot_transport_value(request_schema, &selected_snapshots)?;
-    let receipt = emit_d1_capture(&spec, transitions, &forward, rollback.as_deref(), &manifest)
-        .map_err(|error| format!("offline private capture: {error:?}"))?;
+    let receipt =
+        emit_private_prepared_capture(&spec, transitions, &forward, rollback.as_deref(), &manifest)
+            .map_err(|error| format!("offline private capture: {error:?}"))?;
     let sql_bytes = receipt
         .forward_bytes
         .checked_add(receipt.rollback_bytes)
@@ -4870,14 +4905,10 @@ fn run_prepared_transition(
         _ => return Err(invalid("private transition receipt operation")),
     };
     let lineage_schema = match spec.predecessor_mode {
-        D1PredecessorMode::PreparedDelta => "tos_rust_prepared_d1_sql_pair_v1",
-        D1PredecessorMode::SourceInputsCatchup => {
-            "tos_prepared_source_d1_manifest_reconciliation_v1"
-        }
-        D1PredecessorMode::Bootstrap => "tos_source_navigation_bootstrap_d1_v1",
-        D1PredecessorMode::SourceNavigationIntegrity { .. } => {
-            "tos_native_navigation_integrity_migration_v1"
-        }
+        D1PrivatePreparedMode::Pair => "tos_prepared_source_d1_delta_v2",
+        D1PrivatePreparedMode::CatchUp => "tos_prepared_source_d1_manifest_reconciliation_v1",
+        D1PrivatePreparedMode::Bootstrap => "tos_native_navigation_d1_bootstrap_v1",
+        D1PrivatePreparedMode::Integrity { .. } => "tos_native_navigation_integrity_migration_v1",
     };
     let before_prepared_pairing_verified = operation != "prepared-catchup";
     let maintained_auxiliary_stores = spec
@@ -5180,20 +5211,21 @@ fn run_source_navigation_integrity(
     )?;
     let source_inputs_sha256 = digest(source_inputs_raw.as_bytes());
     let migration_implementation_sha256 = digest(include_bytes!("edge_offline_capture.rs"));
-    let mut spec = D1PairInput {
-        predecessor_mode: D1PredecessorMode::SourceNavigationIntegrity { header_only },
+    let mut spec = D1PrivatePreparedInput {
+        predecessor_mode: D1PrivatePreparedMode::Integrity { header_only },
         base_d1_revision: expected_revision.to_owned(),
         before_source_revision: expected_source_revision.to_owned(),
         after_source_revision: expected_source_revision.to_owned(),
-        before_prepared_binding: String::new(),
-        after_prepared_binding: String::new(),
-        before_source_inputs_sha256: source_inputs_sha256.clone(),
-        after_source_inputs_sha256: source_inputs_sha256,
-        before_navigation_sha256: navigation_sha256.clone(),
-        after_navigation_sha256: navigation_sha256,
+        before_prepared_binding: None,
+        after_prepared_binding: None,
+        before_source_inputs_sha256: None,
+        after_source_inputs_sha256: None,
+        before_navigation_sha256: Some(navigation_sha256.clone()),
+        after_navigation_sha256: Some(navigation_sha256),
         before_rights_sha256: Some(rights_sha256.clone()),
         after_rights_sha256: Some(rights_sha256),
         implementation_sha256: implementation_digest(),
+        bootstrap_implementation_sha256: None,
         migration_implementation_sha256: Some(migration_implementation_sha256.clone()),
         auxiliary_stores: auxiliary_stores_accounted(
             &d1_tx,
@@ -5205,8 +5237,8 @@ fn run_source_navigation_integrity(
         after_reader_top: String::new(),
         limits: limits.pair,
     };
-    let target_revision =
-        target_d1_revision(&spec).map_err(|_| invalid("integrity D1 lineage inputs"))?;
+    let target_revision = private_prepared_target_revision(&spec)
+        .map_err(|_| invalid("integrity D1 lineage inputs"))?;
     let catalog_sha256 = base_top
         .get("catalog_sha256")
         .and_then(Value::as_str)
@@ -5224,7 +5256,7 @@ fn run_source_navigation_integrity(
         limits,
     )?;
     spec.after_reader_top = next_top_raw.clone();
-    inspect_offline_source_inputs(&spec, None, &[])
+    inspect_private_prepared_source_inputs(&spec, None, None)
         .map_err(|error| format!("offline navigation integrity pair: {error:?}"))?;
 
     let (_, data_revision_rows, _) =
@@ -5257,8 +5289,9 @@ fn run_source_navigation_integrity(
     d1.identity.verify_selected_file_identity()?;
     let snapshot_transport =
         snapshot_transport_value(request_schema, &[("d1_database", &d1.identity)])?;
-    let receipt = emit_d1_capture(&spec, transitions, &forward, Some(&rollback), &manifest)
-        .map_err(|error| format!("offline navigation integrity capture: {error:?}"))?;
+    let receipt =
+        emit_private_prepared_capture(&spec, transitions, &forward, Some(&rollback), &manifest)
+            .map_err(|error| format!("offline navigation integrity capture: {error:?}"))?;
     let sql_bytes = receipt
         .forward_bytes
         .checked_add(receipt.rollback_bytes)
@@ -5329,10 +5362,7 @@ fn run_source_navigation_integrity(
             json!(digest(source_header_raw.as_bytes())),
         ),
         ("rights_sha256", json!(rights.snapshot_sha256())),
-        (
-            "source_inputs_sha256",
-            json!(spec.after_source_inputs_sha256),
-        ),
+        ("source_inputs_sha256", json!(source_inputs_sha256)),
         ("implementation_sha256", json!(spec.implementation_sha256)),
         (
             "migration_implementation_sha256",
@@ -5698,27 +5728,29 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write, parent_guarded: bool) -> Resu
     )?;
     let after_binding_raw = before_binding_raw.clone();
     let nav_sha = nav.snapshot_sha256().to_owned();
-    let mut spec = D1PairInput {
-        predecessor_mode: D1PredecessorMode::Bootstrap,
+    let mut spec = D1PrivatePreparedInput {
+        predecessor_mode: D1PrivatePreparedMode::Bootstrap,
         base_d1_revision: expected_revision.to_owned(),
         before_source_revision: source_revision.clone(),
         after_source_revision: source_revision,
-        before_prepared_binding: before_binding_raw,
-        after_prepared_binding: after_binding_raw,
-        before_source_inputs_sha256: before_inputs_sha.clone(),
-        after_source_inputs_sha256: before_inputs_sha,
-        before_navigation_sha256: nav_sha.clone(),
-        after_navigation_sha256: nav_sha,
+        before_prepared_binding: None,
+        after_prepared_binding: Some(after_binding_raw),
+        before_source_inputs_sha256: Some(before_inputs_sha.clone()),
+        after_source_inputs_sha256: Some(before_inputs_sha),
+        before_navigation_sha256: Some(nav_sha.clone()),
+        after_navigation_sha256: Some(nav_sha),
         before_rights_sha256: Some(rights.snapshot_sha256().to_owned()),
         after_rights_sha256: Some(rights.snapshot_sha256().to_owned()),
         implementation_sha256: implementation_digest(),
+        bootstrap_implementation_sha256: Some(digest(include_bytes!("edge_offline_capture.rs"))),
         migration_implementation_sha256: None,
         auxiliary_stores: installed_auxiliary,
         before_reader_top: base_top_raw.clone(),
         after_reader_top: String::new(),
         limits: limits.pair,
     };
-    let revision = target_d1_revision(&spec).map_err(|_| invalid("private D1 lineage inputs"))?;
+    let revision = private_prepared_target_revision(&spec)
+        .map_err(|_| invalid("private D1 lineage inputs"))?;
     spec.after_reader_top = reader_top_raw_from_predecessor(
         &base_top_raw,
         after_source.source_revision(),
@@ -5727,7 +5759,7 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write, parent_guarded: bool) -> Resu
         &digest(after_lens_raw.as_bytes()),
         limits,
     )?;
-    inspect_offline_source_inputs(&spec, None, after_source.raw())
+    inspect_private_prepared_source_inputs(&spec, None, Some(after_source.raw()))
         .map_err(|error| format!("offline bootstrap source pair: {error:?}"))?;
     d1.identity.verify_selected_file_identity()?;
     after_db.identity.verify_selected_file_identity()?;
@@ -5738,7 +5770,7 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write, parent_guarded: bool) -> Resu
             ("after_prepared_database", &after_db.identity),
         ],
     )?;
-    let receipt = emit_d1_capture(
+    let receipt = emit_private_prepared_capture(
         &spec,
         transitions.drain(..),
         &forward,
@@ -5791,7 +5823,7 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write, parent_guarded: bool) -> Resu
         ("operation", json!(operation)),
         (
             "lineage_schema",
-            json!("tos_source_navigation_bootstrap_d1_v1"),
+            json!("tos_native_navigation_d1_bootstrap_v1"),
         ),
         ("base_d1_revision", json!(receipt.base_d1_revision)),
         ("target_d1_revision", json!(receipt.target_d1_revision)),
@@ -5801,6 +5833,10 @@ fn run_request(raw: &[u8], stdout: &mut dyn Write, parent_guarded: bool) -> Resu
         ("source_navigation_sha256", json!(nav.snapshot_sha256())),
         ("rights_sha256", json!(rights.snapshot_sha256())),
         ("implementation_sha256", json!(spec.implementation_sha256)),
+        (
+            "bootstrap_implementation_sha256",
+            json!(spec.bootstrap_implementation_sha256),
+        ),
         ("manifest_schema", json!(receipt.schema)),
         ("manifest_published_last", json!(true)),
         ("changed_rows", json!(receipt.changed_rows)),

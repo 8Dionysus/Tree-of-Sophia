@@ -241,6 +241,46 @@ impl<'a> PreparedSearchSession<'a> {
         self.read.check_abort()?;
         result
     }
+    /// Return the exact selected publication readiness packet from its
+    /// validated header and required index layouts. This does not scan graph
+    /// rows; the caller retains the snapshot and performs its fresh binding
+    /// and external file/WAL currentness checks before disclosure.
+    pub fn status(&mut self, binding: &JsonValue) -> Result<JsonValue> {
+        self.read.check_abort()?;
+        let view = PreparedReadTransaction::admit(self.read.db, binding, self.read.limits)
+            .map_err(|e| {
+                self.read
+                    .check_abort()
+                    .err()
+                    .unwrap_or_else(|| prepared_error(e))
+            })?;
+        self.read.absorb_owner(&view)?;
+        let result = (|| {
+            let publication_epoch = binding
+                .object_get("publication_epoch")
+                .and_then(JsonValue::as_u64)
+                .filter(|epoch| *epoch <= 9_007_199_254_740_991)
+                .ok_or_else(|| unavailable("prepared publication epoch is invalid"))?;
+            Ok(object(vec![
+                ("schema", string("tos_published_read_status_v1")),
+                ("read_model_schema", top_field(&view, "read_model_schema")?),
+                ("graph_schema", top_field(&view, "graph_schema")?),
+                ("source_revision", top_field(&view, "source_revision")?),
+                ("data_revision", top_field(&view, "data_revision")?),
+                ("publication_epoch", number(publication_epoch)),
+                (
+                    "scope",
+                    string("selected-publication-metadata-and-required-indices"),
+                ),
+                ("verifies_all_rows", JsonValue::Bool(false)),
+                ("writes_to_tree", JsonValue::Bool(false)),
+            ]))
+        })();
+        drop(view);
+        self.read.reset_owner();
+        self.read.check_abort()?;
+        result
+    }
     /// Admit the schema and independent binding without reading catalog or search rows.
     /// Used before an exact-source operation paired with this publication.
     pub fn admit_binding(&mut self, binding: &JsonValue) -> Result<()> {

@@ -11,9 +11,10 @@ use std::{
         unix::fs::MetadataExt,
     },
     path::{Component, Path, PathBuf},
+    rc::Rc,
     sync::{
-        Arc,
         atomic::{AtomicBool, Ordering},
+        Arc,
     },
     time::{Duration, Instant},
 };
@@ -66,14 +67,16 @@ pub struct ResearchExecution {
     directory: File,
     deadline: Instant,
     max_seconds: u64,
+    file_cap: u64,
+    read_cap: u64,
     io: PinnedSqliteIoBudget,
     space: Option<PinnedSqliteSpaceBudget>,
-    retained_space: RefCell<Vec<PinnedSqliteSpaceReservation>>,
+    retained_space: Rc<RefCell<Vec<PinnedSqliteSpaceReservation>>>,
     cancelled: Arc<AtomicBool>,
-    structural_reserved: Cell<u64>,
-    structural_returned: Cell<u64>,
-    work: Cell<u64>,
-    serial: Cell<u64>,
+    structural_reserved: Rc<Cell<u64>>,
+    structural_returned: Rc<Cell<u64>>,
+    work: Rc<Cell<u64>>,
+    serial: Rc<Cell<u64>>,
 }
 impl Deref for ResearchExecution {
     type Target = Path;
@@ -109,18 +112,80 @@ impl ResearchExecution {
             directory,
             deadline: started + Duration::from_secs(max_seconds),
             max_seconds,
+            file_cap: FILE_CAP,
+            read_cap: READ_CAP,
             io: PinnedSqliteIoBudget::new(READ_CAP, WRITE_CAP).map_err(|e| e.to_string())?,
             space: available_bytes
                 .map(PinnedSqliteSpaceBudget::new)
                 .transpose()
                 .map_err(|e| e.to_string())?,
-            retained_space: RefCell::new(Vec::new()),
+            retained_space: Rc::new(RefCell::new(Vec::new())),
             cancelled: Arc::new(AtomicBool::new(false)),
-            structural_reserved: Cell::new(0),
-            structural_returned: Cell::new(0),
-            work: Cell::new(0),
-            serial: Cell::new(0),
+            structural_reserved: Rc::new(Cell::new(0)),
+            structural_returned: Rc::new(Cell::new(0)),
+            work: Rc::new(Cell::new(0)),
+            serial: Rc::new(Cell::new(0)),
         })
+    }
+    /// The maintained Reading v1 input includes a 379,699,200-byte analysis
+    /// database. Its original/final hashes, quick checks and selected table
+    /// walks exceed the generic 256 MiB/2 GiB envelope. This fixed domain
+    /// profile changes neither generic producers nor any caller-selected cap.
+    pub fn new_reading_v1(
+        root: &Path,
+        max_seconds: u64,
+        available_bytes: Option<u64>,
+    ) -> Result<Self, String> {
+        let mut selected = Self::selected(root, max_seconds, available_bytes)?;
+        selected.file_cap = 512 * 1024 * 1024;
+        selected.read_cap = 4 * 1024 * 1024 * 1024;
+        selected.io =
+            PinnedSqliteIoBudget::new(selected.read_cap, WRITE_CAP).map_err(|e| e.to_string())?;
+        Ok(selected)
+    }
+    /// Select another data directory within this same operation. The original
+    /// deadline, cancellation, IO, work and scratch ledgers remain shared.
+    /// Selecting a directory does not grant storage or extend any allowance.
+    pub fn select_directory(&self, root: &Path) -> Result<Self, String> {
+        self.check()?;
+        let directory = tos_fd_open::open_absolute_directory(root).map_err(|e| e.to_string())?;
+        self.check()?;
+        Ok(Self {
+            root: root.to_owned(),
+            directory,
+            deadline: self.deadline,
+            max_seconds: self.max_seconds,
+            file_cap: self.file_cap,
+            read_cap: self.read_cap,
+            io: self.io.clone(),
+            space: self.space.clone(),
+            retained_space: self.retained_space.clone(),
+            cancelled: self.cancelled.clone(),
+            structural_reserved: self.structural_reserved.clone(),
+            structural_returned: self.structural_returned.clone(),
+            work: self.work.clone(),
+            serial: self.serial.clone(),
+        })
+    }
+    /// Create a separately selected output directory through the existing
+    /// descriptor-only parent walker and shared scratch reservation ledger.
+    /// Callers must check source/software separation before requesting this.
+    pub fn select_output_directory(&self, root: &Path, create: bool) -> Result<Self, String> {
+        if !create {
+            return self.select_directory(root);
+        }
+        let relative = root.strip_prefix("/").map_err(|e| e.to_string())?;
+        let reference = relative.to_str().ok_or("output root must be UTF-8")?;
+        let anchor = self.select_directory(Path::new("/"))?;
+        let (parent, _) = anchor.parent(&format!("{reference}/.research-root-selection"), true)?;
+        let selected = self.select_directory(root)?;
+        let actual = selected.directory.metadata().map_err(|e| e.to_string())?;
+        let expected = parent.metadata().map_err(|e| e.to_string())?;
+        if actual.dev() != expected.dev() || actual.ino() != expected.ino() {
+            return Err("output directory changed during selection".into());
+        }
+        self.check()?;
+        Ok(selected)
     }
     /// Reserve the upstream owner's full finite allowance before its reads.
     /// Every reconstruction reserves a distinct allowance. No refund: actual
@@ -174,7 +239,7 @@ impl ResearchExecution {
             let s = space.snapshot();
             serde_json::json!({"declared_available_bytes":s.declared_available_bytes,"reserved_current_bytes":s.reserved_current_bytes,"reserved_high_water_bytes":s.reserved_high_water_bytes,"actual_observed_current_bytes":s.actual_observed_current_bytes,"actual_observed_high_water_bytes":s.actual_observed_high_water_bytes,"allocation_anomalies":s.allocation_anomalies,"ledger_consistent":s.ledger_consistent,"is_storage_grant":false})
         });
-        serde_json::json!({"whole_operation_seconds":self.max_seconds,"file_bytes_max":FILE_CAP,"logical_source_and_sqlite_read_bytes_max":READ_CAP,"logical_source_and_sqlite_write_bytes_max":WRITE_CAP,"io_counter_scope":"Rust source/hash/import/entropy and SQLite pager requests; reserved upstream Structural Rust reads","io_counter_exclusions":["separately bounded native-child protocol and internal reads","bounded helper control metadata/proc reads","filesystem metadata and host verification"],"work_units_max":WORK_CAP,"charged_work_units":self.work.get(),"read_attempted_bytes":io.read_attempted_bytes,"read_permitted_bytes":io.read_permitted_bytes,"read_returned_bytes":io.read_returned_bytes,"write_attempted_bytes":io.write_attempted_bytes,"write_permitted_bytes":io.write_permitted_bytes,"write_returned_bytes":io.write_returned_bytes,"io_failure":io.failure.map(|failure|format!("{failure:?}")),"structural_reserved_read_allowance":self.structural_reserved.get(),"structural_actual_returned_read_bytes":self.structural_returned.get(),"physical_scratch":physical})
+        serde_json::json!({"whole_operation_seconds":self.max_seconds,"file_bytes_max":self.file_cap,"file_bytes_max_scope":"source and read-only artifact inputs","output_file_bytes_max":FILE_CAP,"logical_source_and_sqlite_read_bytes_max":self.read_cap,"logical_source_and_sqlite_write_bytes_max":WRITE_CAP,"io_counter_scope":"Rust source/hash/import/entropy and SQLite pager requests; reserved upstream Structural Rust reads","io_counter_exclusions":["separately bounded native-child protocol and internal reads","bounded helper control metadata/proc reads","filesystem metadata and host verification"],"work_units_max":WORK_CAP,"charged_work_units":self.work.get(),"read_attempted_bytes":io.read_attempted_bytes,"read_permitted_bytes":io.read_permitted_bytes,"read_returned_bytes":io.read_returned_bytes,"write_attempted_bytes":io.write_attempted_bytes,"write_permitted_bytes":io.write_permitted_bytes,"write_returned_bytes":io.write_returned_bytes,"io_failure":io.failure.map(|failure|format!("{failure:?}")),"structural_reserved_read_allowance":self.structural_reserved.get(),"structural_actual_returned_read_bytes":self.structural_returned.get(),"physical_scratch":physical})
     }
     pub fn root(&self) -> &Path {
         &self.root
@@ -189,6 +254,9 @@ impl ResearchExecution {
     }
     pub fn deadline(&self) -> Instant {
         self.deadline
+    }
+    pub fn cancellation_flag(&self) -> &AtomicBool {
+        self.cancelled.as_ref()
     }
     pub fn check(&self) -> Result<(), String> {
         if self.cancelled.load(Ordering::Relaxed) {
@@ -270,7 +338,7 @@ impl ResearchExecution {
         self.check()
     }
     pub fn read_file(&self, file: &mut File, max_bytes: u64) -> Result<Vec<u8>, String> {
-        let cap = max_bytes.min(FILE_CAP);
+        let cap = max_bytes.min(self.file_cap);
         let mut output = Vec::new();
         let mut chunk = [0u8; 65536];
         loop {
@@ -375,7 +443,7 @@ impl ResearchExecution {
             Path::new(std::ffi::OsStr::from_bytes(leaf.as_bytes())),
         )
         .map_err(|e| e.to_string())?;
-        if file.metadata().map_err(|e| e.to_string())?.len() > max_bytes.min(FILE_CAP) {
+        if file.metadata().map_err(|e| e.to_string())?.len() > max_bytes.min(self.file_cap) {
             return Err("research source file cap exceeded".into());
         }
         Ok(file)
@@ -406,7 +474,7 @@ impl ResearchExecution {
     pub fn hash_file(&self, file: &mut File, max_bytes: u64) -> Result<String, String> {
         self.check()?;
         file.seek(SeekFrom::Start(0)).map_err(|e| e.to_string())?;
-        let cap = max_bytes.min(FILE_CAP);
+        let cap = max_bytes.min(self.file_cap);
         let mut total = 0;
         let mut chunk = [0u8; 65536];
         let mut hash = tos_foundation::Digest256Hasher::new();
@@ -438,8 +506,8 @@ impl ResearchExecution {
         Ok(hash.finalize().to_hex())
     }
     pub fn read(&self, reference: &str) -> Result<Vec<u8>, String> {
-        let mut file = self.source_file(reference, FILE_CAP)?;
-        self.read_file(&mut file, FILE_CAP)
+        let mut file = self.source_file(reference, self.file_cap)?;
+        self.read_file(&mut file, self.file_cap)
     }
     pub fn open_sqlite_readonly(
         &self,
@@ -812,6 +880,26 @@ mod tests {
     use super::*;
     use std::{fs, os::unix::fs::symlink};
     #[test]
+    fn separate_output_directory_keeps_the_original_operation_ledgers() {
+        let source = tempfile::tempdir().unwrap();
+        let output = tempfile::tempdir().unwrap();
+        let operation =
+            ResearchExecution::new_with_scratch(source.path(), 10, 1024 * 1024).unwrap();
+        let selected = operation.select_directory(output.path()).unwrap();
+        assert_eq!(selected.deadline(), operation.deadline());
+        assert!(std::ptr::eq(
+            selected.cancellation_flag(),
+            operation.cancellation_flag()
+        ));
+        operation.tick(5).unwrap();
+        selected.tick(7).unwrap();
+        assert_eq!(operation.budget_report()["charged_work_units"], 12);
+        selected.tick(WORK_CAP - 12).unwrap();
+        assert!(operation.tick(1).is_err());
+        assert_eq!(operation.root(), source.path());
+        assert_eq!(selected.root(), output.path());
+    }
+    #[test]
     fn finite_context_guards_descriptor_reads_and_exclusive_writes() {
         let t = tempfile::tempdir().unwrap();
         let c = ResearchExecution::new_with_scratch(t.path(), 1, 4 * 1024 * 1024).unwrap();
@@ -832,11 +920,9 @@ mod tests {
     fn absent_or_exhausted_physical_quota_cannot_create_output() {
         let temp = tempfile::tempdir().unwrap();
         let without_quota = ResearchExecution::new(temp.path(), 180).unwrap();
-        assert!(
-            without_quota
-                .write("output", b"bytes", 0o600, true)
-                .is_err()
-        );
+        assert!(without_quota
+            .write("output", b"bytes", 0o600, true)
+            .is_err());
         let too_small = ResearchExecution::new_with_scratch(temp.path(), 180, 1).unwrap();
         assert!(too_small.write("output", b"bytes", 0o600, true).is_err());
         assert_eq!(fs::read_dir(temp.path()).unwrap().count(), 0);

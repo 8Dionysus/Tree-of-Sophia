@@ -57,7 +57,6 @@ impl Selection {
         let probe = profile
             .with_query_timeout(Duration::from_secs(30))
             .deadline_probe();
-        let timeout = profile.query_timeout.ok_or_else(unavailable)?;
         // Same metadata ceiling as PreparedSourceInputs::parse. Never load an unbounded vector.
         let mut file =
             tos_fd_open::open_absolute_regular(inputs, 1_048_576).map_err(|_| unavailable())?;
@@ -72,13 +71,30 @@ impl Selection {
                 "source vector byte budget exceeded",
             ));
         }
+        Self::open_raw_with_probe(root, &raw, local, revision, profile, probe)
+    }
+    /// Retained immutable vector transport; it does not require a Knowledge
+    /// prepared-publication selector or manufacture such a disclosure fence.
+    pub(crate) fn open_raw_with_probe(
+        root: &Path,
+        raw: &[u8],
+        local: Option<&Path>,
+        revision: &str,
+        profile: AccessProfile,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<Self, AccessError> {
+        let timeout = profile.query_timeout.ok_or_else(unavailable)?;
+        if raw.len() > 1_048_576 {
+            return Err(unavailable());
+        }
+        crate::knowledge::check_abort(&probe)?;
         let site = crate::site::SoftwareSite::installed(Arc::clone(&probe))?;
         let worker = Arc::new(site.source_schema_worker(512 * 1024 * 1024, Arc::clone(&probe))?);
         let identity = ExactWorkerIdentity {
             absolute_path: worker.path().to_owned(),
             sha256: worker.sha256(),
         };
-        let owner = SelectedSourceReadOwner::open(root, &raw, revision, identity, local)
+        let owner = SelectedSourceReadOwner::open(root, raw, revision, identity, local)
             .map_err(owner_error)?;
         worker.verify()?;
         crate::knowledge::check_abort(&probe)?;
@@ -102,12 +118,31 @@ impl Selection {
     pub fn prepare(
         &self,
         request: Request,
-        mut prepared: Box<dyn DisclosureFence>,
+        prepared: Box<dyn DisclosureFence>,
+        deadline: Instant,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        self.prepare_inner(request, Some(prepared), deadline, probe)
+    }
+    pub(crate) fn prepare_owner(
+        &self,
+        request: Request,
+        deadline: Instant,
+        probe: Arc<dyn AbortProbe>,
+    ) -> Result<PreparedPacket<'static>, AccessError> {
+        self.prepare_inner(request, None, deadline, probe)
+    }
+    fn prepare_inner(
+        &self,
+        request: Request,
+        mut prepared: Option<Box<dyn DisclosureFence>>,
         deadline: Instant,
         probe: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket<'static>, AccessError> {
         crate::knowledge::check_abort(&probe)?;
-        prepared.recheck()?;
+        if let Some(fence) = prepared.as_mut() {
+            fence.recheck()?;
+        }
         self.worker.verify()?;
         let op = match request.operation {
             Operation::Capabilities => SourceReadOperation::Capabilities,
@@ -139,7 +174,7 @@ impl Selection {
 }
 struct Fence {
     packet: SourceReadPacket,
-    prepared: Box<dyn DisclosureFence>,
+    prepared: Option<Box<dyn DisclosureFence>>,
     worker: Arc<crate::site::InstalledSchemaWorker>,
     deadline: Instant,
     cancelled: Arc<AtomicBool>,
@@ -148,7 +183,9 @@ struct Fence {
 impl DisclosureFence for Fence {
     fn recheck(&mut self) -> Result<(), AccessError> {
         crate::knowledge::check_abort(&self.probe)?;
-        self.prepared.recheck()?;
+        if let Some(fence) = self.prepared.as_mut() {
+            fence.recheck()?;
+        }
         self.worker.verify()?;
         self.packet
             .verify_current(self.deadline, &self.cancelled)

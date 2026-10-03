@@ -4,8 +4,33 @@ use std::sync::Arc;
 use tos_foundation::JsonValue;
 use tos_query::{AbortProbe, AbortReason};
 
+/// One selected, read-only readiness composition over existing exact domain
+/// scopes. These scopes are owner policy: the health tool cannot widen them.
+pub const ACCESS_HEALTH_OPERATION: &str = "tos_access_health";
+pub const ACCESS_HEALTH_INTENDED_USE: &str = "read_only_selected_access_health_v1";
+pub const PREPARED_STATUS_OPERATION: &str = "tos_knowledge_prepared_status";
+pub const PREPARED_STATUS_INTENDED_USE: &str = "read_only_selected_prepared_status_v1";
+pub const ACCESS_HEALTH_SCOPES: &[(&str, &str)] = &[
+    ("tos_corpus_status", "read_only_public_corpus_projection_v1"),
+    (
+        "tos_corpus_graph_view",
+        "read_only_public_corpus_projection_v1",
+    ),
+    (
+        "tos_philosophy_graph_views",
+        "read_only_public_philosophy_projection_v1",
+    ),
+    ("tos.view.open", "read_only_public_philosophy_projection_v1"),
+    (
+        "tos.knowledge.catalog",
+        "read_only_public_knowledge_catalog_v1",
+    ),
+];
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum KnowledgeOperation {
+    AccessHealth,
+    PreparedStatus,
     EvidenceLens,
     Catalog,
     Node,
@@ -55,6 +80,8 @@ pub enum KnowledgeOperation {
 impl KnowledgeOperation {
     pub fn from_id(id: &str) -> Option<Self> {
         Some(match id {
+            ACCESS_HEALTH_OPERATION => Self::AccessHealth,
+            PREPARED_STATUS_OPERATION => Self::PreparedStatus,
             "tos.epistemic.inspect" | "tos_evidence_lens" => Self::EvidenceLens,
             "tos.knowledge.catalog" => Self::Catalog,
             "tos.knowledge.node.inspect" => Self::Node,
@@ -105,6 +132,8 @@ impl KnowledgeOperation {
     }
     pub fn id(self) -> &'static str {
         match self {
+            Self::AccessHealth => ACCESS_HEALTH_OPERATION,
+            Self::PreparedStatus => PREPARED_STATUS_OPERATION,
             Self::EvidenceLens => "tos.epistemic.inspect",
             Self::Catalog => "tos.knowledge.catalog",
             Self::Node => "tos.knowledge.node.inspect",
@@ -262,7 +291,7 @@ impl KnowledgeRequest {
                     P::Status => KnowledgeOperation::PhilosophyStatus,
                     P::Search { .. } => KnowledgeOperation::PhilosophySearch,
                     P::ScaleManifest { .. } => KnowledgeOperation::PhilosophyScaleManifest,
-                    P::ScaleRows { .. } | P::ScaleExport { .. } => {
+                    P::ScaleRows { .. } | P::ScaleExport { .. } | P::FullProjection => {
                         KnowledgeOperation::PhilosophyScaleRows
                     }
                     P::Node { .. } => KnowledgeOperation::PhilosophyNode,
@@ -284,6 +313,16 @@ impl KnowledgeRequest {
         operation: KnowledgeOperation,
         args: &JsonValue,
     ) -> Result<Self, AccessError> {
+        if operation == KnowledgeOperation::AccessHealth {
+            return Err(invalid(
+                "access health uses its dedicated selected dispatcher",
+            ));
+        }
+        if operation == KnowledgeOperation::PreparedStatus {
+            return Err(invalid(
+                "prepared status uses its dedicated selected dispatcher",
+            ));
+        }
         if operation == KnowledgeOperation::PhilosophyAudit {
             if args.as_object().is_none_or(|fields| !fields.is_empty()) {
                 return Err(invalid("audit takes no tool arguments"));
@@ -501,7 +540,15 @@ fn philosophy_from_arguments(
         }
         O::PhilosophySearch => &["query", "limit"],
         O::PhilosophyScaleManifest => &["view_id", "layers"],
-        O::PhilosophyScaleRows => &["table", "view_id", "layers", "offset", "limit", "export"],
+        O::PhilosophyScaleRows => &[
+            "table",
+            "view_id",
+            "layers",
+            "offset",
+            "limit",
+            "export",
+            "full_projection",
+        ],
         O::PhilosophyNode => &["node_id"],
         O::PhilosophyEdge => &["edge_id"],
         O::PhilosophyNeighborhood => &["node_id", "depth", "limit", "layers", "predicates"],
@@ -652,6 +699,22 @@ fn philosophy_from_arguments(
             layers: strings("layers")?,
         },
         O::PhilosophyScaleRows => {
+            let full_projection = match args.object_get("full_projection") {
+                None => false,
+                Some(JsonValue::Bool(true)) => true,
+                _ => return Err(invalid("full philosophy projection must be a boolean")),
+            };
+            if full_projection {
+                if fields
+                    .iter()
+                    .any(|(key, _)| key.as_str().is_none_or(|key| key != "full_projection"))
+                {
+                    return Err(invalid(
+                        "full philosophy projection cannot select a table or filter",
+                    ));
+                }
+                return Ok(R::FullProjection);
+            }
             let export = match args.object_get("export") {
                 None | Some(JsonValue::Bool(false)) => false,
                 Some(JsonValue::Bool(true)) => true,

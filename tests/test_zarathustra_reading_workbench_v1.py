@@ -85,6 +85,22 @@ class TrackedReadingTests(unittest.TestCase):
 
 
 class ReadingBuilderBoundaryTests(unittest.TestCase):
+    def test_maintained_entry_selects_native_with_software_boundary(self):
+        class SelectedNative(Exception):
+            pass
+
+        with patch.dict(READING_BUILDER.os.environ,
+                        {"TOS_NATIVE_PREPARED_CONSUMER_BIN": "/installed/tos"}), \
+                patch.object(READING_BUILDER.os, "execv", side_effect=SelectedNative) as execute, \
+                self.assertRaises(SelectedNative):
+            READING_BUILDER.main(["--build", "--source-root=/data",
+                                  "--output-root=/result", "--scratch-bytes=1048576"])
+        execute.assert_called_once_with("/installed/tos", [
+            "/installed/tos", "zarathustra-reading-workbench-v1",
+            "--software-root", str(ROOT), "--build", "--source-root", "/data",
+            "--output-root", "/result", "--scratch-bytes", "1048576",
+        ])
+
     def test_builder_rejects_output_inside_source_or_software_roots(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -102,7 +118,7 @@ class ReadingBuilderBoundaryTests(unittest.TestCase):
                             "--source-root", str(selected_source),
                             "--output-root", str(selected_output),
                         ]), self.assertRaisesRegex(ValueError, "separate"):
-                    READING_BUILDER.main()
+                    READING_BUILDER._reference_main()
             self.assertFalse((ROOT / "synthetic-output").exists())
 
 

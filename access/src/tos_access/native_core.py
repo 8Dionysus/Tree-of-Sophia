@@ -69,6 +69,10 @@ class NativeCore:
         """Read the selected Original catalog; no synthesized capability fallback."""
         return self._packet("tos_knowledge_catalog", {}, source_errors=False)
 
+    def knowledge_prepared_status(self) -> dict:
+        """Read the explicitly selected prepared publication status."""
+        return self._packet("tos_knowledge_prepared_status", {}, source_errors=False)
+
     def knowledge_exploration_capabilities(self) -> dict:
         """Project the selected capability from the same native contracts packet."""
         return self.knowledge_exploration_contracts()["capabilities"]
@@ -219,6 +223,11 @@ class NativeCore:
 
     def packet(self, query: str='', view_id: str | None=None, limit: int=20) -> dict:
         return self._packet('tos_corpus_packet', {'query': query, 'view_id': view_id, 'limit': limit}, source_errors=False)
+
+    def philosophy_projection(self) -> dict:
+        """Return one complete selected Original carrier under its native fence."""
+        return self._packet('tos_philosophy_graph_scale_rows',
+                            {'full_projection': True}, source_errors=False)
 
     def philosophy_status(self) -> dict:
         return self._packet('tos_philosophy_graph_status', {}, source_errors=False)
