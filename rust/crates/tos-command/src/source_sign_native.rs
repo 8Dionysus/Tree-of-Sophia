@@ -19,6 +19,7 @@ const MAX_CONTENT_BYTES: usize = 8_388_608;
 const MAX_DERIVED_TEXT_BYTES: usize = 131_072;
 const MAX_EDITS: usize = 128;
 const ASSESSMENT_SCHEMA: &str = "native-text-unit-assessment-subject.schema.json";
+const OWNER_CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NativeReadKind {
@@ -1929,6 +1930,22 @@ fn selected_binding_with_route<'a, R: SignNativeRead + ?Sized>(
 ) -> SourceCommandResult<(Native<'a, R>, JsonValue, JsonValue, JsonValue)> {
     let mut native = selected_native(reader, worker, deadline, cancelled)?;
     native.route_profile = route_profile;
+    if matches!(route_profile, NativeRoute::OwnerText) {
+        // The maintained Python owner-local resolver selects this schema as
+        // the first dependency in its opaque input snapshot. The context
+        // constructor has already authenticated the same cut member; read it
+        // through this held native transport so its owner-local Record ref
+        // preserves that exact dependency closure. Public Sign snapshots do
+        // not include owner-context inputs.
+        let context_schema = native.read(OWNER_CONTEXT_SCHEMA, None, false, true)?;
+        if native.worker.contract_digest(OWNER_CONTEXT_SCHEMA)
+            != Some(Digest256::of_bytes(&context_schema))
+        {
+            return Err(SourceCommandError::Conflict(
+                "native owner context schema and selected worker differ",
+            ));
+        }
+    }
     let (packet, layer, summary) = native.resolve(binding, scope)?;
     Ok((native, packet, layer, summary))
 }
