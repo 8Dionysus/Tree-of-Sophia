@@ -448,3 +448,9 @@ pub fn write_outputs(root: &Path) -> io::Result<Vec<&'static str>> {
     file.write_all(&compact)?;
     Ok(vec![PRETTY, COMPACT])
 }
+
+/// Derive the existing capsule from an unpublished exact-source stage.
+pub(crate) fn build_payload(root: &Path) -> io::Result<JsonValue> {
+    root_check(root)?;
+    payload(&source(root)?)
+}

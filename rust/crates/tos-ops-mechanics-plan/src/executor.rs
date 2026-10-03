@@ -151,6 +151,17 @@ pub(crate) fn capture_ci_git(
     }
 }
 
+/// The selected KAG owner's Python producer/probe are host adapters. Reuse the
+/// existing bounded subreaper custody; the publisher owns result validation.
+pub(crate) fn capture_kag_owner(
+    root: &Path,
+    argv: Vec<String>,
+    limits: Limits,
+    cancel: &AtomicI32,
+) -> io::Result<(i32, Vec<u8>, Vec<u8>)> {
+    capture_ci_git(root, argv, limits, cancel)
+}
+
 fn selected_plan(
     steps: &[(String, Vec<String>)],
     schema_version: &'static str,

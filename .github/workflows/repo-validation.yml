@@ -251,7 +251,9 @@ jobs:
           cargo build --locked -p tos-command --bin tos-native-owner-command --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked -p tos-validation --bin tos-schema-worker --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked --no-default-features -p tos-ops-mechanics-plan \
-            --bin tos-validation-lanes --bin tos-release-check --bin tos-software-ci --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
+            --bin tos-validation-lanes --bin tos-release-check --bin tos-software-ci \
+            --bin tos-kag-release --bin tos-kag-provider-controls \
+            --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
           cargo build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown
           archive="$RUNNER_TEMP/software-wasm-bindgen.tar.gz"
           curl --fail --location --silent --show-error \

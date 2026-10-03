@@ -23,6 +23,9 @@ const COMMANDS: [&str; 5] = [
     "tos-release-check",
     "tos-software-ci",
 ];
+// Controlled integration consumers need these images, independently of the
+// five software-package command roles above. Their receipts are not bundle membership.
+const KAG_IMAGES: [&str; 2] = ["tos-kag-release", "tos-kag-provider-controls"];
 const TARGET: &str = "x86_64-unknown-linux-gnu";
 const TOOLCHAIN: &str = "1.98.1";
 const META: usize = 1024 * 1024;
@@ -599,6 +602,7 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
             absolute(receipt_root)?;
             let mut names = vec!["tos-access"];
             names.extend(COMMANDS);
+            names.extend(KAG_IMAGES);
             cargo_products(
                 root,
                 get("--cargo-messages"),
@@ -633,7 +637,7 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
                     format!("{n}-build.json")
                 });
                 json_write(&receipt, &proof, &b)?;
-                if n != "tos-access" {
+                if COMMANDS.contains(&n) {
                     products.insert(n.into(), json!({"binary":images.join(n),"receipt":receipt}));
                 }
             }
@@ -643,6 +647,16 @@ pub fn run(mode: &str, args: &[String], cancel: &AtomicI32) -> io::Result<()> {
                 &b,
             )?;
             append(get("--github-env"),format!("TOS_NATIVE_OWNER_COMMAND_BIN={}\nTOS_PREPARED_EXECUTOR={}\nTOS_NATIVE_SOURCE_PREPARE_EXECUTABLE={}\nTOS_PREPARED_MAX_SECONDS=20\nTOS_NATIVE_SOURCE_PREPARE_SECONDS=45\nTOS_NATIVE_SOURCE_PREPARE_LIMITS={{\"max_input_bytes\":1048576,\"max_capture_bytes\":8388608,\"max_stage_bytes\":8388608,\"max_temp_bytes\":8388608}}\n",images.join("tos-native-owner-command").display(),images.join("tos-access").display(),images.join("tos-access").display()).as_bytes(),&b)?;
+            append(
+                get("--github-env"),
+                format!(
+                    "TOS_KAG_RELEASE_BIN={}\nTOS_KAG_PROVIDER_CONTROLS_BIN={}\n",
+                    images.join("tos-kag-release").display(),
+                    images.join("tos-kag-provider-controls").display()
+                )
+                .as_bytes(),
+                &b,
+            )?;
         }
         "software-limits" => {
             absolute(get("--image-root"))?;
