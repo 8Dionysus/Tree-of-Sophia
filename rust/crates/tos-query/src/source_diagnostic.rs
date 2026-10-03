@@ -722,6 +722,10 @@ impl LegacyStore {
         let _ = &self.db;
         self.vm.load(Ordering::Relaxed)
     }
+    /// Cumulative charged input bytes and rows of this owned diagnostic operation; not RSS.
+    pub fn resource_usage(&self) -> (u64, u64) {
+        (self.bytes, self.rows)
+    }
 }
 fn no_journal(path: &Path) -> Result<()> {
     for suffix in ["-wal", "-journal", "-shm"] {
