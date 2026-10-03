@@ -87,6 +87,152 @@ class SoftwareBoundaryTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             NativeAccessCore.discover('/owned/source', native_prefix='/owned/software', source_read_service=object())
 
+    def test_native_access_ephemeral_checkpoint_lifetime_is_per_core(self):
+        from tos_access.native_access_core import NativeAccessCore
+        from tos_access.native_core import NativeCore
+        with tempfile.TemporaryDirectory(prefix='native-core-source-check-', dir=REPO_ROOT) as selected:
+            root = Path(selected)
+            core = NativeAccessCore('/owned/software', release_root='/owned/release', native_state_root=root)
+            other = NativeAccessCore('/owned/software', release_root='/owned/release', native_state_root=root)
+            sentinel = {'page': {'next_cursor': 'native-token'}}
+            with patch.object(NativeAccessCore, '_packet', return_value=sentinel):
+                self.assertIs(core.knowledge_explore({'seed': 'owned'}), sentinel)
+                first = core._server.arguments
+                state = Path(first[-1]).parent
+                self.assertEqual(state.stat().st_mode & 0o777, 0o700)
+                self.assertIs(core.knowledge_explore({'cursor': 'native-token'}), sentinel)
+                self.assertEqual(core._server.arguments, first)
+                other.knowledge_explore({'seed': 'owned'})
+                self.assertNotEqual(other._server.arguments[-1], first[-1])
+            core.close()
+            core.close()
+            self.assertFalse(state.exists())
+            with self.assertRaisesRegex(RuntimeError, 'Core is closed'):
+                core.knowledge_catalog()
+            with self.assertRaisesRegex(RuntimeError, 'Core is closed'):
+                core.zarathustra_reading_search('owned')
+            other.close()
+            explicit = root / 'caller-owned.sqlite'
+            explicit.write_text('caller-owned sentinel')
+            configured = NativeAccessCore('/owned/software', release_root='/owned/release',
+                                          published_exploration_checkpoint_path=explicit)
+            configured.close()
+            self.assertEqual(explicit.read_text(), 'caller-owned sentinel')
+
+    def test_native_access_deadline_includes_lifetime_and_setup(self):
+        from tos_access.native_access_core import NativeAccessCore
+        from tos_access.native_core import NativeCore
+        from threading import Event, Thread
+        import time
+        core = NativeAccessCore('/owned/software')
+        acquired, release = Event(), Event()
+        def hold():
+            with core._lifetime_lock:
+                acquired.set()
+                release.wait(1)
+        thread = Thread(target=hold)
+        thread.start()
+        try:
+            self.assertTrue(acquired.wait(1))
+            with patch.object(NativeCore, '_native_result') as child:
+                with self.assertRaisesRegex(TimeoutError, 'waiting for its lifetime'):
+                    core._native_result('call', (), absolute_deadline=time.monotonic() + 0.01)
+                child.assert_not_called()
+        finally:
+            release.set()
+            thread.join()
+        with patch.object(NativeCore, '_native_result', return_value='packet') as child:
+            deadline = time.monotonic() + 1
+            self.assertEqual(core._native_result('call', (), absolute_deadline=deadline), 'packet')
+            self.assertEqual(child.call_args.kwargs['absolute_deadline'], deadline)
+        from tos_access import ReferenceToSAccessCore, ToSAccessCore
+        from tos_access.source_read import SourceReadError
+        from tos_access.source_read_errors import SourceReadError as platform_error
+        from tos_access.mcp_server import NativeMCPServer
+        from tos_access.native_mcp import NativeMCPServer as platform_server
+        self.assertIs(ReferenceToSAccessCore, ToSAccessCore)
+        self.assertIs(SourceReadError, platform_error)
+        self.assertIs(NativeMCPServer, platform_server)
+        core.close()
+
+    def test_imported_doctor_preserves_profile_and_not_ready_report(self):
+        from types import SimpleNamespace
+        from tos_access.doctor import doctor_report
+        report = {'schema_version': 'tos_access_doctor_report_v1', 'profile': 'abyssos',
+                  'ok': False, 'checks': [{'check_id': 'owned', 'ok': False}],
+                  'required_failures': ['owned'], 'tos_root': '/owned/source'}
+        calls = []
+        def packets(arguments, **options):
+            calls.append((arguments, options))
+            return iter([report])
+        with patch.dict(sys.modules, {'tos_access.native_io': SimpleNamespace(native_packets=packets)}):
+            self.assertIs(doctor_report(tos_root='/owned/source', profile='abyssos',
+                                       require_mcp=False, native_prefix='/owned/software'), report)
+            self.assertEqual(calls[0][0], ['--root', '/owned/source', 'doctor', '--json',
+                                         '--profile', 'abyssos', '--require-mcp', 'false'])
+            self.assertEqual(calls[0][1], {'prefix': '/owned/software', 'frame_cap': 65536,
+                                         'input_cap': 1, 'valid_returncodes': (0, 1)})
+            with self.assertRaisesRegex(ValueError, 'unknown access profile'):
+                doctor_report(profile='unknown')
+            with self.assertRaisesRegex(TypeError, 'require_mcp'):
+                doctor_report(require_mcp='false')
+            self.assertEqual(len(calls), 1)
+
+    def test_native_mcp_sdk_joins_the_shared_exchange_owner(self):
+        from contextlib import contextmanager
+        from queue import Queue, Empty
+        from types import SimpleNamespace
+        from tos_access.native_mcp import NativeMCPServer
+        from tos_access.native_io import _bounded_json
+        calls, closed, respond = [], [], [True]
+        @contextmanager
+        def exchange(arguments, **options):
+            calls.append((arguments, options))
+            queue = Queue()
+            input_closed = []
+            class Channel:
+                def send(self, value):
+                    if value.get('method') == 'initialize':
+                        queue.put({'jsonrpc': '2.0', 'id': value['id'], 'result': {
+                            'protocolVersion': value['params']['protocolVersion'],
+                            'capabilities': {'tools': {}},
+                            'serverInfo': {'name': 'source-only-sdk-check', 'version': '1'}}})
+                    elif value.get('method') == 'tools/list' and respond[0]:
+                        queue.put({'jsonrpc': '2.0', 'id': value['id'], 'result': {'tools': []}})
+                def close_input(self):
+                    input_closed.append(True)
+                def frames(self):
+                    while not options['cancelled'].is_set() and not input_closed:
+                        try:
+                            yield json.dumps(queue.get(timeout=0.01)).encode()
+                        except Empty:
+                            pass
+                    if options['cancelled'].is_set():
+                        raise InterruptedError('owned exchange cancelled')
+            try:
+                yield Channel()
+            finally:
+                closed.append(True)
+        with patch.dict(sys.modules, {'tos_access.native_io': SimpleNamespace(owned_exchange=exchange, _bounded_json=_bounded_json)}):
+            server = NativeMCPServer('/owned/software', inherit_data_selection=False)
+            self.assertEqual(asyncio.run(server.list_tools()), [])
+            with self.assertRaisesRegex(ValueError, 'byte budget'):
+                asyncio.run(server._native_api('call', ('owned', {'query': 'x' * 65536})))
+            self.assertEqual(len(calls), 1)
+            respond[0] = False
+            async def cancel_call():
+                task = asyncio.create_task(server.list_tools())
+                await asyncio.sleep(0.02)
+                task.cancel()
+                with self.assertRaises(asyncio.CancelledError):
+                    await asyncio.wait_for(task, 1)
+            asyncio.run(cancel_call())
+        self.assertEqual(closed, [True, True])
+        self.assertEqual(calls[0][0], ['mcp'])
+        self.assertNotIn('TOS_DATA_ROOT', calls[0][1]['env'])
+        self.assertNotIn('TOS_RELEASE_ROOT', calls[0][1]['env'])
+        self.assertTrue(calls[0][1]['cancelled'].is_set())
+
     def test_native_core_forwarding_preserves_raw_rule_inputs_and_packet_identity(self):
         from tos_access.native_core import NativeCore
         core = object.__new__(NativeCore)
@@ -105,6 +251,14 @@ class SoftwareBoundaryTests(unittest.TestCase):
             'predicate_ids': None, 'cursor': None, 'limit': 103, 'mode': 'indexed'})
         self.assertIs(core.philosophy_path_between('owned:left', 'owned:right'), sentinel)
         self.assertEqual(calls[-1][1]['excluded_edge_ids'], [])
+        rows = [{'native_id': 'owned', 'source_refs': ['original:owned']}]
+        core._packet = lambda tool, request, **options: {
+            'rows': rows, 'next_offset': None, 'row_count': 1, 'total_row_count': 1}
+        self.assertIs(core.philosophy_scale_rows('nodes'), rows)
+        core._packet = lambda tool, request, **options: {
+            'rows': rows, 'next_offset': 1, 'row_count': 1, 'total_row_count': 2}
+        with self.assertRaisesRegex(ValueError, 'complete table'):
+            core.philosophy_scale_rows('nodes')
 
     def test_native_core_reading_method_preserves_reference_arguments(self):
         # Mapping only; genuine source-bound packet parity needs the native child.
@@ -352,113 +506,125 @@ server.run(transport='streamable-http')
         assert image_hash() == expected_sha and time.monotonic() < whole_deadline
 
     def test_imported_native_tool_api_owned_child_cleanup(self):
-        # Actual owned tiny OS children/groups; SDK session is a lifecycle-only
-        # stub. This proves cleanup, never native MCP semantics or association.
+        # Real tiny OS children/groups exercise the production stdlib owner.
+        # Only native image admission and SDK semantics are substituted; this
+        # is lifecycle evidence, never an installed native MCP association.
         import anyio
         from types import SimpleNamespace
-        adapter = Path(os.environ.get('TOS_NATIVE_MCP_API_ADAPTER',
-                                      ACCESS_ROOT / 'src/tos_access/mcp_server.py'))
-        spec = importlib.util.spec_from_file_location('tos_access.native_api_lifecycle_candidate', adapter)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        real_open = anyio.open_process
+        from tos_access import native_io, native_mcp
+        real_popen = subprocess.Popen
         real_kill = os.killpg
+
         async def scenario(kind, directory):
-            children = []
-            killed = []
-            waits = []
+            children, events = [], []
             pid_file = directory / 'descendant.pid'
+
             class CloseFailure:
-                async def aclose(self):
+                def __init__(self, stream):
+                    self.stream = stream
+                def fileno(self):
+                    return self.stream.fileno()
+                def close(self):
+                    self.stream.close()
                     raise OSError('owned stdin close failure')
-            class Child:
-                def __init__(self, process):
-                    self.process = process
-                    self.pid = process.pid
-                    self.stdout = process.stdout
-                    self.stdin = CloseFailure() if kind == 'close-error' else process.stdin
-                @property
-                def returncode(self):
-                    return self.process.returncode
-                async def wait(self):
-                    waits.append(self.pid)
-                    return await self.process.wait()
-                async def aclose(self):
-                    return await self.process.aclose()
-            async def open_owned(*args, **kwargs):
+
+            class Child(real_popen):
+                def wait(self, *args, **kwargs):
+                    events.append(('wait', self.pid))
+                    return super().wait(*args, **kwargs)
+
+            def open_owned(*args, **kwargs):
                 if kind == 'exited-leader':
                     code = (
-                        "import subprocess,sys;from pathlib import Path;"
-                        "p=subprocess.Popen([sys.executable,'-B','-c','import time;time.sleep(60)']);"
+                        "import subprocess,sys;from pathlib import Path;sys.stdin.buffer.readline();"
+                        "p=subprocess.Popen([sys.executable,'-B','-c','import time;time.sleep(60)'],"
+                        "stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);"
                         "Path(sys.argv[1]).write_text(str(p.pid))"
                     )
-                    argv = [sys.executable, '-B', '-c', code, str(pid_file)]
+                    argv = [sys.executable, '-I', '-S', '-B', '-c', code, str(pid_file)]
+                elif kind == 'cancel':
+                    argv = [sys.executable, '-I', '-S', '-B', '-c', 'import time;time.sleep(60)']
                 else:
-                    argv = [sys.executable, '-B', '-c', 'import time;time.sleep(60)']
-                process = Child(await real_open(argv, **kwargs))
-                children.append(process)
-                return process
+                    argv = [sys.executable, '-I', '-S', '-B', '-c', 'import sys;sys.stdin.buffer.read()']
+                child = Child(argv, **kwargs)
+                children.append(child)
+                if kind == 'close-error':
+                    child.stdin = CloseFailure(child.stdin)
+                return child
+
             def kill_owned(pid, sig):
-                assert children and pid == children[0].pid and sig == signal.SIGKILL
-                killed.append(pid)
+                self.assertEqual(pid, children[0].pid)
+                self.assertIn(sig, (signal.SIGTERM, signal.SIGKILL))
+                self.assertNotIn(('wait', pid), events)
+                events.append((sig, pid))
                 return real_kill(pid, sig)
+
             class LifecycleSession:
-                def __init__(self, *args, **kwargs):
-                    pass
+                def __init__(self, incoming, outgoing, **kwargs):
+                    self.outgoing = outgoing
                 async def __aenter__(self):
                     return self
                 async def __aexit__(self, *args):
                     pass
                 async def initialize(self):
+                    # The real SDK initialization writes a request. Preserve
+                    # that zero-capacity stream handshake: its writer awaits
+                    # channel_ready before accepting the message.
+                    message = SimpleNamespace(model_dump=lambda **kwargs: {
+                        'jsonrpc': '2.0', 'method': 'initialize', 'id': 1})
+                    await self.outgoing.send(SimpleNamespace(message=message))
                     if kind == 'exited-leader':
                         with anyio.fail_after(2):
-                            while children[0].returncode is None:
+                            while not pid_file.exists():
                                 await anyio.sleep(.01)
                 async def list_tools(self):
                     if kind == 'cancel':
                         await anyio.sleep_forever()
                     return SimpleNamespace(tools=[])
-            try:
-                with patch('anyio.open_process', open_owned), patch('mcp.ClientSession', LifecycleSession), \
-                        patch('os.killpg', kill_owned):
-                    server = module.build_server(native_prefix=directory.absolute())
-                    if kind == 'cancel':
-                        with self.assertRaises(TimeoutError):
-                            with anyio.fail_after(.1):
-                                await server.list_tools()
-                    elif kind == 'close-error':
-                        with self.assertRaisesRegex(RuntimeError, 'cleanup refused'):
+
+            with patch.object(native_io.subprocess, 'Popen', open_owned), \
+                    patch('mcp.ClientSession', LifecycleSession), patch('os.killpg', kill_owned):
+                server = native_mcp.NativeMCPServer(directory.absolute())
+                if kind == 'cancel':
+                    with self.assertRaises(TimeoutError):
+                        with anyio.fail_after(.1):
                             await server.list_tools()
-                    else:
-                        assert await server.list_tools() == []
-                assert len(children) == 1 and killed == [children[0].pid]
-                assert children[0].returncode is not None and waits
-                if kind == 'exited-leader':
-                    assert children[0].returncode == 0
-                    descendant = int(pid_file.read_text())
-                    with anyio.fail_after(2):
-                        while True:
-                            try:
-                                state = Path(f'/proc/{descendant}/stat').read_text().split(') ',1)[1].split()[0]
-                                if state == 'Z':
-                                    break  # exited; reaping belongs to its adopted OS parent
-                            except FileNotFoundError:
-                                break
-                            await anyio.sleep(.01)
-            finally:
-                for child in children:
-                    try:
-                        real_kill(child.pid, signal.SIGKILL)
-                    except ProcessLookupError:
-                        pass
-                    with anyio.fail_after(3):
-                        await child.wait()
-                        await child.aclose()
+                elif kind == 'close-error':
+                    with self.assertRaises(BaseException) as raised:
+                        await server.list_tools()
+                    # AnyIO may wrap the primary close failure and custody
+                    # failure in an ExceptionGroup; retain both error causes.
+                    def errors(error):
+                        yield str(error)
+                        for member in getattr(error, 'exceptions', ()):
+                            yield from errors(member)
+                        if error.__cause__ is not None:
+                            yield from errors(error.__cause__)
+                    self.assertIn('owned stdin close failure', ' '.join(errors(raised.exception)))
+                else:
+                    self.assertEqual(await server.list_tools(), [])
+            self.assertEqual(len(children), 1)
+            child = children[0]
+            self.assertEqual(events.count(('wait', child.pid)), 1)
+            self.assertIn((signal.SIGKILL, child.pid), events)
+            self.assertIsNotNone(child.returncode)
+            if kind == 'exited-leader':
+                self.assertEqual(child.returncode, 0)
+                descendant = int(pid_file.read_text())
+                with anyio.fail_after(2):
+                    while True:
+                        try:
+                            state = Path(f'/proc/{descendant}/stat').read_text().split(') ', 1)[1].split()[0]
+                            if state == 'Z':
+                                break  # Reaping belongs to the adopted OS parent.
+                        except FileNotFoundError:
+                            break
+                        await anyio.sleep(.01)
+
         with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
             for kind in ('close-error', 'exited-leader', 'cancel'):
                 with self.subTest(kind=kind):
-                    directory = root / kind
+                    directory = Path(temporary) / kind
                     directory.mkdir()
                     anyio.run(scenario, kind, directory)
 

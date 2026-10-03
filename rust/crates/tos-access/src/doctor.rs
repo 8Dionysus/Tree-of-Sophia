@@ -787,6 +787,7 @@ pub fn run_if_requested(
     }
     let mut as_json = false;
     let mut profile = "standalone";
+    let mut require_mcp = command == "verify";
     at += 1;
     while at < args.len() {
         let option = &args[at];
@@ -795,7 +796,7 @@ pub fn run_if_requested(
             at += 1;
             continue;
         }
-        if command == "verify" && (option == "--profile" || option.starts_with("--profile=")) {
+        if option == "--profile" || option.starts_with("--profile=") {
             profile = if let Some((_, value)) = option.split_once('=') {
                 value
             } else {
@@ -806,6 +807,27 @@ pub fn run_if_requested(
                 let _ = writeln!(stderr, "invalid_request: unknown access profile: {profile}");
                 return Some(2);
             }
+            at += 1;
+            continue;
+        }
+        if option == "--require-mcp" || option.starts_with("--require-mcp=") {
+            let value = if let Some((_, value)) = option.split_once('=') {
+                value
+            } else {
+                at += 1;
+                args.get(at).map(String::as_str).unwrap_or("")
+            };
+            require_mcp = match value {
+                "true" => true,
+                "false" => false,
+                _ => {
+                    let _ = writeln!(
+                        stderr,
+                        "invalid_request: --require-mcp requires true or false"
+                    );
+                    return Some(2);
+                }
+            };
             at += 1;
             continue;
         }
@@ -827,7 +849,7 @@ pub fn run_if_requested(
                     .map(PathBuf::from)
             })
             .unwrap_or_else(|| program.join("runtime_data"));
-        let report = doctor_report(&root, profile, command == "verify", program)?;
+        let report = doctor_report(&root, profile, require_mcp, program)?;
         let ok = field(&report, "ok") == &JsonValue::Bool(true);
         let bytes = if as_json {
             emit_value_preserved_json(

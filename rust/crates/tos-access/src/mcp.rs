@@ -253,6 +253,9 @@ impl McpSession {
                 });
                 let available = match name {
                     Some(MCP_TOOL) => executor.source_descend_available(),
+                    Some("tos_source_gap_search") => executor.source_gap_available(),
+                    Some(crate::reading::PUBLIC_WORD_CAPABILITY_TOOL)
+                    | Some(crate::reading::PUBLIC_READING_CAPABILITY_TOOL) => true,
                     Some(crate::word_analysis::MCP_TOOL) => {
                         self.software.is_some() || executor.word_analysis_available()
                     }
@@ -343,6 +346,32 @@ impl McpSession {
                                 .expect("available software")
                                 .word_analysis_negative(arguments, probe, self.profile)
                         }
+                    }
+                    Some(crate::reading::PUBLIC_WORD_CAPABILITY_TOOL) => {
+                        crate::reading::public_word_analysis_capability(
+                            self.profile.max_response_bytes,
+                        )
+                        .map(|body| crate::PreparedPacket {
+                            body,
+                            fence: Box::new(RpcProbeFence(probe)),
+                        })
+                    }
+                    Some(crate::reading::PUBLIC_READING_CAPABILITY_TOOL) => {
+                        crate::reading::public_reading_capability(self.profile.max_response_bytes)
+                            .map(|body| crate::PreparedPacket {
+                                body,
+                                fence: Box::new(RpcProbeFence(probe)),
+                            })
+                    }
+                    Some("tos_source_gap_search") => {
+                        tos_query::source_gap::SourceGapRequest::from_json(arguments)
+                            .map_err(|_| {
+                                crate::AccessError::new(
+                                    crate::AccessErrorCode::InvalidRequest,
+                                    "invalid source-gap request",
+                                )
+                            })
+                            .and_then(|request| executor.source_gap(request, probe))
                     }
                     Some(MCP_TOOL) => Params::from_json(arguments)
                         .and_then(|request| executor.source_descend(request, probe)),

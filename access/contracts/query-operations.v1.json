@@ -7,6 +7,7 @@
     {"operation_id": "tos.snapshot", "input": {}, "result": "current philosophy projection fingerprints for traceable local proposal binding"},
     {"operation_id": "tos.search", "input": {"mode": "philosophy|corpus", "query": "string", "limit": "1..100"}, "result": "search packet"},
     {"operation_id": "tos.knowledge.search", "input": {"query": "string", "limit": "1..100", "cursor": "string|null", "search_mode": "indexed|compressed (optional page-adapter engine selection)", "sources": "string[]", "kind_ids": "string[]", "predicate_ids": "string[]"}, "result": "tos_knowledge_search_indexed_v2 or tos_knowledge_search_compressed_v3 packet selected from /api/knowledge/search/capabilities; the page adapter adds search_mode and preserves the native packet schema and opaque cursor", "engine_selection": "An eligible mode is advertised available and meets its min_normalized_query_code_points, counted after native Unicode strip and lowercase normalization. Explicit search_mode must be eligible. Otherwise prefer eligible indexed, then eligible compressed; refuse before search when neither qualifies. Bind advertised source_revision to the catalog revision when supplied. Never fall back to legacy or retry a rejected query through another engine. Continuation retains the selected mode; projection search remains tos.search."},
+    {"operation_id": "tos_philosophy_graph_scale_rows", "input": {"table": "nodes|edges|clusters|cluster-node-memberships|cluster-edge-memberships", "view_id": "string|null", "layers": "string[]", "export": "boolean (optional; true selects the full table, excluding offset/limit)", "offset": "0..10000000", "limit": "1..10000"}, "result": "bounded scale rows packet; a full export is one held native snapshot and refuses when its selected response budget is exceeded"},
     {"operation_id": "tos.source-gaps.search", "input": {"query": "string", "limit": "1..100"}, "result": "bounded public source-access gap records; not a completeness or legal conclusion"},
     {"operation_id": "tos.source.descend", "input": {"node_id": "era, region, tradition, planting, or source object ID", "max_depth": "1..8", "limit": "1..300"}, "result": "bounded source-navigation descent with evidence-bearing edges"},
     {"operation_id": "tos.dossier.inspect", "input": {"object_id": "Work, Expression, Edition, Item, File, or Link ID", "limit": "1..300"}, "result": "compact object dossier with chain, links, rights posture, gaps, and source refs"},
@@ -43,6 +44,9 @@
       },
       "result": "capability envelope containing one exact-source local analysis task or an explicit unavailable state"
     }
+    ,{"operation_id": "tos_philosophy_graph_lens_packet", "input": {"view_id": "string", "limit": "1..100"}, "result": "bounded native philosophy LensPacket; same selected-original authority as the maintained resource route"}
+    ,{"operation_id": "tos.zarathustra.word_analysis.public-capability", "input": {}, "result": "fixed public-bundle excluded-provider posture; no local source capability"}
+    ,{"operation_id": "tos.zarathustra.reading.public-capability", "input": {}, "result": "fixed public-bundle excluded-provider posture; no local source capability"}
   ],
   "consumers": ["native MCP", "HTTP API", "page commands"],
   "authority_limit": "Operation success proves access behavior only; source_ref routes remain authoritative."

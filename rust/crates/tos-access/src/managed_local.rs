@@ -1,6 +1,8 @@
 //! Explicit managed-local projection composition. ReleaseStore is the holder;
 //! neither CMP custody nor these callbacks grant raw source/payload access.
-use crate::exploration_checkpoints::{CheckpointLimits, ProcessExplorationCheckpoints};
+use crate::exploration_checkpoints::{
+    CheckpointLimits, ProcessExplorationCheckpoints, SelectedExplorationCheckpoints as Checkpoints,
+};
 use crate::indexed_cursor::{MAX_CURSOR_BYTES, NativeIndexedCursorCodec};
 use crate::release_state::{ManagedRelease, ReleaseLease};
 use crate::{
@@ -42,7 +44,7 @@ pub struct ManagedLocalExecutor {
     corpus_guards: Vec<crate::release_state::ReleaseMemberGuard>,
     cold: ColdOpenLimits,
     profile: AccessProfile,
-    checkpoints: ProcessExplorationCheckpoints,
+    checkpoints: Checkpoints,
 }
 fn unavailable(message: &'static str) -> AccessError {
     AccessError::new(AccessErrorCode::Unavailable, message)
@@ -61,6 +63,21 @@ fn catalog_error(message: &'static str) -> CatalogError {
 }
 impl ManagedLocalExecutor {
     pub fn open(root: &Path, profile: AccessProfile) -> Result<Self, AccessError> {
+        Self::open_with_checkpoints(root, profile, None)
+    }
+    /// Explicit disposable persistence for imported callers with separate native
+    /// children. Checkpoints supply neither release selection nor source grants.
+    pub fn open_with_checkpoints(
+        root: &Path,
+        profile: AccessProfile,
+        checkpoint_path: Option<&Path>,
+    ) -> Result<Self, AccessError> {
+        if checkpoint_path.is_some_and(|path| !path.is_absolute() || path.starts_with(root)) {
+            return Err(AccessError::new(
+                AccessErrorCode::InvalidRequest,
+                "checkpoint requires an absolute path outside the selected release",
+            ));
+        }
         let release = ManagedRelease::open(root)?;
         let mut cold_hold = release.acquire()?;
         let raw = release.selection_bytes()?;
@@ -146,7 +163,7 @@ impl ManagedLocalExecutor {
             None => (None, vec![]),
         };
         cold_hold.recheck()?;
-        Self::from_admitted_selection(
+        let mut executor = Self::from_admitted_selection(
             release,
             model,
             selection.vocabulary().clone(),
@@ -159,7 +176,19 @@ impl ManagedLocalExecutor {
             corpus_guards,
             selection.cold_limits(),
             profile,
-        )
+        )?;
+        if let Some(path) = checkpoint_path {
+            executor.checkpoints = Checkpoints::Persistent(
+                crate::persistent_exploration_checkpoints::PersistentExplorationCheckpoints::open(
+                    path,
+                    &model_path,
+                    executor.checkpoints.limits(),
+                    executor.budgets().exploration,
+                )
+                .map_err(AccessError::from)?,
+            );
+        }
+        Ok(executor)
     }
     // Called only by the explicit manifest/companion cold-admission path below.
     fn from_admitted_selection(
@@ -202,7 +231,7 @@ impl ManagedLocalExecutor {
             corpus_guards,
             cold,
             profile,
-            checkpoints,
+            checkpoints: Checkpoints::Process(checkpoints),
         })
     }
     fn budgets(&self) -> crate::knowledge::SelectedKnowledgeBudgets {
@@ -368,6 +397,9 @@ impl AccessExecutor for ManagedLocalExecutor {
             .ok()
             .map(|_hold| (self.checkpoints.limits(), self.budgets().exploration));
         crate::exploration_contracts::runtime_capabilities(selected)
+    }
+    fn source_gap_available(&self) -> bool {
+        true
     }
     fn source_gap(
         &self,
@@ -653,12 +685,15 @@ impl AccessExecutor for ManagedLocalExecutor {
         }
         let mut catalog = Authority::new(self, &bound, O::Catalog.id(), intended(O::Catalog))?;
         let mut checkpoints = self.checkpoints.clone();
+        if let Checkpoints::Persistent(store) = &mut checkpoints {
+            store.set_abort_probe(probe.clone());
+        }
         crate::knowledge::execute_selected_knowledge(
             &mut model,
             &bound,
             &mut catalog,
             &mut inspect,
-            &mut checkpoints,
+            checkpoints.store(),
             request,
             budgets,
             probe,

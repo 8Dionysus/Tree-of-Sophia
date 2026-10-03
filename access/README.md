@@ -1787,7 +1787,16 @@ A local prepared reader instead takes `published_read_model_path` and
 `published_read_model_binding_path`, each an explicit absolute path. The latter
 is the owner-selected binding consumed by native `--prepared-binding`.
 `published_exploration_checkpoint_path` selects native persistent exploration
-checkpoints. `source_inputs_path` and optional
+checkpoints for either generic profile. Without that path, the first exploration
+call creates one private disposable store for this Core lifetime and reuses it
+across native child calls. `native_state_root` or `TOS_NATIVE_STATE_ROOT` selects
+the host scratch parent (otherwise the platform temporary parent). The directory
+is private, mode 0700. Use `close()` or a context manager for deterministic cleanup;
+the finalizer is best effort. Closing an instance refuses later calls and never
+removes an explicitly supplied checkpoint path. Stores never transfer source or
+rights authority. The native profile bounds encoded checkpoint residency to at
+most 32MiB and its SQLite file to at most 97MiB; a smaller selected owner budget
+narrows those bounds. Host execution must account for that disposable allocation. `source_inputs_path` and optional
 `source_local_text_selection_path` select the native exact-source descriptor;
 they require the prepared pair and a separately declared `tos_root`.
 
@@ -1805,3 +1814,23 @@ resource reads. Full mutable graph/snapshot builders and reference-only carrier
 access are outside this facade. The current `ToSAccessCore` default remains the
 reference implementation pending migration of its remaining maintained callers;
 selecting `NativeAccessCore` never falls back to it.
+
+The imported `tos_access.doctor.doctor_report` diagnostic executes the installed
+Rust doctor through `native_prefix` (or `TOS_NATIVE_PREFIX`). Its existing
+`tos_root`, `profile`, and `require_mcp` keywords select the same native report;
+not-ready results remain dictionaries with `ok: false`, rather than process
+errors. `tos-legacy --native-prefix /absolute/installed doctor --json` uses this
+same path. Missing installed software refuses instead of running Python rules.
+
+Data selection is independent of software: an explicit `tos_root` selects the
+source diagnostic, and omission uses the native installed runtime-data route.
+Rust's source byte/work/time bounds, embedded contracts, installed web assets,
+and built-in MCP readiness apply. This deliberately replaces repository auto
+search and Python dependency readiness in the historical diagnostic. The
+`reference_doctor_report` entry exists only for the named independent oracle
+tests; it is never selected by the maintained diagnostic or as fallback.
+
+`NativeAccessCore.philosophy_scale_rows` reads a complete table through the
+existing Rust scale-export operation in one held snapshot. It preserves table
+order and membership/provenance fields; a table exceeding the selected native
+response budget refuses rather than combining pages from different children.

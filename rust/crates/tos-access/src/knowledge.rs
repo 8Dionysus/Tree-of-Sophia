@@ -501,7 +501,7 @@ fn philosophy_from_arguments(
         }
         O::PhilosophySearch => &["query", "limit"],
         O::PhilosophyScaleManifest => &["view_id", "layers"],
-        O::PhilosophyScaleRows => &["table", "view_id", "layers", "offset", "limit"],
+        O::PhilosophyScaleRows => &["table", "view_id", "layers", "offset", "limit", "export"],
         O::PhilosophyNode => &["node_id"],
         O::PhilosophyEdge => &["edge_id"],
         O::PhilosophyNeighborhood => &["node_id", "depth", "limit", "layers", "predicates"],
@@ -651,13 +651,31 @@ fn philosophy_from_arguments(
             view_id: optional("view_id")?,
             layers: strings("layers")?,
         },
-        O::PhilosophyScaleRows => R::ScaleRows {
-            table: id("table")?,
-            view_id: optional("view_id")?,
-            layers: strings("layers")?,
-            offset: count("offset", 0, 0, 10_000_000)?,
-            limit: count("limit", 1000, 1, 10_000)?,
-        },
+        O::PhilosophyScaleRows => {
+            let export = match args.object_get("export") {
+                None | Some(JsonValue::Bool(false)) => false,
+                Some(JsonValue::Bool(true)) => true,
+                _ => return Err(invalid("philosophy scale export must be a boolean")),
+            };
+            if export {
+                if args.object_get("offset").is_some() || args.object_get("limit").is_some() {
+                    return Err(invalid("full scale export cannot also select a page"));
+                }
+                R::ScaleExport {
+                    table: id("table")?,
+                    view_id: optional("view_id")?,
+                    layers: strings("layers")?,
+                }
+            } else {
+                R::ScaleRows {
+                    table: id("table")?,
+                    view_id: optional("view_id")?,
+                    layers: strings("layers")?,
+                    offset: count("offset", 0, 0, 10_000_000)?,
+                    limit: count("limit", 1000, 1, 10_000)?,
+                }
+            }
+        }
         O::PhilosophyView => R::View {
             view_id: id("view_id")?,
             limit: count("limit", 1000, 1, 1000)?,

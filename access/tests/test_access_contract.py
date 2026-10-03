@@ -28,7 +28,7 @@ REPO_ROOT = ACCESS_ROOT.parent
 sys.path.insert(0, (ACCESS_ROOT / "src").as_posix())
 
 from tos_access.core import ToSAccessCore  # noqa: E402
-from tos_access.doctor import doctor_report  # noqa: E402
+from tos_access.doctor import reference_doctor_report as doctor_report  # noqa: E402
 from tos_access.http_server import _scale_rows, make_server  # noqa: E402
 from tos_access.mcp_server import build_server  # noqa: E402
 from tos_access.search_read_model import SearchReadModelError  # noqa: E402

@@ -475,3 +475,25 @@ impl Drop for Staged {
         }
     }
 }
+
+#[derive(Clone)]
+pub(crate) enum SelectedExplorationCheckpoints {
+    Process(ProcessExplorationCheckpoints),
+    Persistent(crate::persistent_exploration_checkpoints::PersistentExplorationCheckpoints),
+}
+impl SelectedExplorationCheckpoints {
+    pub(crate) fn limits(&self) -> CheckpointLimits {
+        match self {
+            Self::Process(s) => s.limits(),
+            Self::Persistent(s) => s.limits(),
+        }
+    }
+    pub(crate) fn store(
+        &mut self,
+    ) -> &mut dyn tos_query::knowledge_exploration::ExplorationCheckpoints {
+        match self {
+            Self::Process(s) => s,
+            Self::Persistent(s) => s,
+        }
+    }
+}

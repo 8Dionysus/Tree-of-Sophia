@@ -620,3 +620,24 @@ pub(crate) fn public_word_analysis_capability(cap: usize) -> Result<Vec<u8>, cra
     }
     Ok(raw.as_bytes().to_vec())
 }
+
+pub(crate) const PUBLIC_WORD_CAPABILITY_OPERATION: &str =
+    "tos.zarathustra.word_analysis.public-capability";
+pub(crate) const PUBLIC_READING_CAPABILITY_OPERATION: &str =
+    "tos.zarathustra.reading.public-capability";
+pub(crate) const PUBLIC_WORD_CAPABILITY_TOOL: &str =
+    "tos_zarathustra_word_analysis_public_capability";
+pub(crate) const PUBLIC_READING_CAPABILITY_TOOL: &str = "tos_zarathustra_reading_public_capability";
+
+/// Fixed public-bundle posture, independent of private Reading selection.
+/// This alias grants no data availability, review, rights or publication.
+pub(crate) fn public_reading_capability(cap: usize) -> Result<Vec<u8>, crate::AccessError> {
+    let raw = r#"{"schema":"tos_zarathustra_reading_capability_v1","available":false,"reason":"local source-bound reading provider is excluded from the public bundle","provider_ref":"scripts/query_zarathustra_reading_workbench_v1.py","publication_posture":"excluded_from_public_bundle","result":null,"task":null,"authority":{"source_owner":"Tree-of-Sophia","access_plane_is_source":false,"is_semantic_truth":false,"writes_to_tree":false,"reviewed":false,"canon":false}}"#;
+    if raw.len() > cap {
+        return Err(crate::AccessError::new(
+            crate::AccessErrorCode::BudgetExceeded,
+            "reading capability response budget",
+        ));
+    }
+    Ok(raw.as_bytes().to_vec())
+}

@@ -12,6 +12,7 @@ from .query_store import QueryStoreRequired
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tos", description="Tree of Sophia standalone access platform")
+    parser.add_argument("--native-prefix", type=Path, help="Explicit installed native software for imported diagnostics")
     parser.add_argument("--root", type=Path, help="Tree-of-Sophia repository or standalone runtime-data root")
     parser.add_argument("--prepared-read-model", type=Path,
                         help="Explicit local prepared SQLite publication; requires --prepared-binding")
@@ -105,6 +106,7 @@ def main(argv: list[str] | None = None) -> None:
             tos_root=args.root,
             profile=getattr(args, "profile", "standalone"),
             require_mcp=args.command == "verify",
+            native_prefix=args.native_prefix,
         )
         print(json.dumps(report, ensure_ascii=False, indent=2) if args.as_json else render_doctor(report))
         if not report["ok"]:

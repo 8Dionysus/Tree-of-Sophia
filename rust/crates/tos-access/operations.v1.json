@@ -1500,6 +1500,10 @@
                 "type": "string"
               }
             },
+            "export": {
+              "type": "boolean",
+              "description": "Return the complete table within the selected response budget and one held snapshot; excludes offset and limit"
+            },
             "offset": {
               "type": "integer",
               "minimum": 0,
@@ -1806,6 +1810,91 @@
       },
       "effect": "read-only",
       "availability": "selected_private_reading_root; authenticated_installed_software_absence_retains_explicit_unavailable"
+    },
+    {
+      "operation_id": "tos.source-gaps.search",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_public_ledger_and_current_policy_fence",
+      "mcp": {
+        "tool": "tos_source_gap_search",
+        "description": "Imported Core access through the existing native owner operation",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "default": "",
+              "maxLength": 256
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_lens_packet",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "mcp": {
+        "tool": "tos_philosophy_graph_lens_packet",
+        "description": "Imported Core access through the existing native owner operation",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "view_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          "required": [
+            "view_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos.zarathustra.word_analysis.public-capability",
+      "effect": "read-only",
+      "availability": "software_metadata_only_no_source_authority",
+      "mcp": {
+        "tool": "tos_zarathustra_word_analysis_public_capability",
+        "description": "Imported Core access through the existing native owner operation",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos.zarathustra.reading.public-capability",
+      "effect": "read-only",
+      "availability": "software_metadata_only_no_source_authority",
+      "mcp": {
+        "tool": "tos_zarathustra_reading_public_capability",
+        "description": "Imported Core access through the existing native owner operation",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      }
     }
   ]
 }

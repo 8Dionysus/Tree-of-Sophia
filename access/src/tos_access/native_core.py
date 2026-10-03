@@ -10,20 +10,20 @@ from pathlib import Path
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor
 
-from .mcp_server import NativeMCPServer
-from .source_read import SourceReadError
+from .native_mcp import NativeMCPServer
+from .source_read_errors import SourceReadError
 
 
 class NativeCore:
-    """Synchronous source-read slice over an authenticated native MCP child.
+    """Synchronous packet facade over an authenticated native MCP child.
 
     Each call owns one helper thread, including when its caller already runs an
     async event loop. It joins that thread on success or failure; the existing
     native API owns process-group cleanup under the same original50s deadline.
     """
 
-    def __init__(self, native_prefix: str | Path, arguments=()):
-        self._server = NativeMCPServer(native_prefix, arguments)
+    def __init__(self, native_prefix: str | Path, arguments=(), *, inherit_data_selection: bool = True):
+        self._server = NativeMCPServer(native_prefix, arguments, inherit_data_selection=inherit_data_selection)
 
     def _native_result(self, operation: str, arguments, *, absolute_deadline=None):
         start = time.monotonic()
@@ -91,8 +91,9 @@ class NativeCore:
 
     def zarathustra_word_analysis_task(self, query: str, language: str = "ru",
                                       rank: int = 1,
-                                      include_semantic_neighbors: bool = False) -> dict:
-        deadline = time.monotonic() + 50
+                                      include_semantic_neighbors: bool = False, *,
+                                      absolute_deadline=None) -> dict:
+        deadline = time.monotonic() + 50 if absolute_deadline is None else absolute_deadline
         normalized_query = str(query).strip()
         if not normalized_query:
             raise ValueError("word-analysis query is required")
@@ -114,9 +115,10 @@ class NativeCore:
     def zarathustra_reading_search(self, query: str, language: str = "ru",
                                    limit: int = 20,
                                    include_semantic_neighbors: bool = False,
-                                   group_by: list[str] | None = None) -> dict:
+                                   group_by: list[str] | None = None, *,
+                                   absolute_deadline=None) -> dict:
         """Return the selected source-bound reading capability and full result."""
-        deadline = time.monotonic() + 50
+        deadline = time.monotonic() + 50 if absolute_deadline is None else absolute_deadline
         normalized_query = str(query).strip()
         if not normalized_query or len(normalized_query) > 256:
             raise ValueError("reading query must have 1..256 characters")
@@ -218,6 +220,19 @@ class NativeCore:
     def philosophy_scale_manifest(self, view_id: str | None=None, layers: list[str] | None=None) -> dict:
         return self._packet('tos_philosophy_graph_scale_manifest', {'view_id': view_id, 'layers': [] if layers is None else layers}, source_errors=False)
 
+    def philosophy_scale_rows(self, table: str, view_id: str | None = None,
+                              layers: list[str] | None = None) -> list[dict]:
+        """Export one complete Rust-selected table under its held response budget."""
+        packet = self._packet('tos_philosophy_graph_scale_rows', {
+            'table': table, 'view_id': view_id,
+            'layers': [] if layers is None else layers, 'export': True,
+        }, source_errors=False)
+        if (type(packet.get('rows')) is not list
+                or packet.get('next_offset') is not None
+                or packet.get('row_count') != packet.get('total_row_count')):
+            raise ValueError('native scale export did not return one complete table')
+        return packet['rows']
+
     def philosophy_scale_packet(self, table: str, view_id: str | None=None, layers: list[str] | None=None, offset: int=0, limit: int=1000) -> dict:
         return self._packet('tos_philosophy_graph_scale_rows', {'table': table, 'view_id': view_id, 'layers': [] if layers is None else layers, 'offset': offset, 'limit': limit}, source_errors=False)
 
@@ -281,3 +296,15 @@ class NativeCore:
         if type(result) is not dict:
             raise ValueError("Native Core resource did not return an object packet")
         return result
+
+    def source_gap_search(self, query: str, limit: int = 20) -> dict:
+        return self._packet("tos_source_gap_search", {"query": query, "limit": limit}, source_errors=False)
+
+    def philosophy_lens_packet(self, view_id: str, limit: int = 20) -> dict:
+        return self._packet("tos_philosophy_graph_lens_packet", {"view_id": view_id, "limit": limit}, source_errors=False)
+
+    def zarathustra_word_analysis_public_capability(self) -> dict:
+        return self._packet("tos_zarathustra_word_analysis_public_capability", {}, source_errors=False)
+
+    def zarathustra_reading_public_capability(self) -> dict:
+        return self._packet("tos_zarathustra_reading_public_capability", {}, source_errors=False)

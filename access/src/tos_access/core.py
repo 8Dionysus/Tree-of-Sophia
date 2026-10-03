@@ -205,7 +205,7 @@ def _read_json_version(
 ) -> dict[str, Any]:
     """Read one latest version of a JSON carrier without retaining history.
 
-    The graph itself is retained by ``ToSAccessCore`` only as the currently
+    The graph itself is retained by ``ReferenceToSAccessCore`` only as the currently
     published snapshot.  A process-wide multi-version LRU here would keep old
     raw carriers alive after supersession and multiply the graph's memory
     footprint across source edits.  Keep at most one parsed payload per path;
@@ -614,7 +614,7 @@ def _projection_nodes_edges(payload: dict[str, Any]) -> tuple[list[dict[str, Any
 
 @guard_public_data_methods
 @dataclass(slots=True)
-class ToSAccessCore:
+class ReferenceToSAccessCore:
     tos_root: Path
     index_path: Path
     philosophy_graph_projection_path: Path
@@ -842,7 +842,7 @@ class ToSAccessCore:
         reading_analysis_root: str | Path | None = None,
         reading_max_file_bytes: int | None = None,
         reading_max_total_file_bytes: int | None = None,
-    ) -> "ToSAccessCore":
+    ) -> "ReferenceToSAccessCore":
         """Select legacy carrier reads, or explicitly pin the prepared reader.
 
         The prepared route serves catalog, full node/relation inspection,
@@ -1243,7 +1243,7 @@ class ToSAccessCore:
     ) -> dict[str, bytes]:
         """Keep immutable compact carrier snapshots for the next CAS delta."""
         return {
-            name: ToSAccessCore._canonical_json_bytes(payload)
+            name: ReferenceToSAccessCore._canonical_json_bytes(payload)
             for name, payload in inputs.items()
         }
 
@@ -3900,3 +3900,9 @@ class ToSAccessCore:
 
     def render_resource(self, uri: str) -> str:
         return json.dumps(self.read_resource(uri), ensure_ascii=False, indent=2, sort_keys=True)
+
+
+# The maintained default remains unchanged until native caller compatibility
+# and installed consumer acceptance close its migration route. Oracles name
+# ReferenceToSAccessCore explicitly so future default selection is independent.
+ToSAccessCore = ReferenceToSAccessCore

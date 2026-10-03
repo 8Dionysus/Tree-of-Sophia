@@ -23,7 +23,7 @@ ACCESS_SRC = REPO_ROOT / "access" / "src"
 if ACCESS_SRC.as_posix() not in sys.path:
     sys.path.insert(0, ACCESS_SRC.as_posix())
 
-from tos_access.core import ToSAccessCore, KNOWLEDGE_CONTRACT_RELATIVE_PATHS  # noqa: E402
+from tos_access.core import ReferenceToSAccessCore as ToSAccessCore, KNOWLEDGE_CONTRACT_RELATIVE_PATHS  # noqa: E402
 from tos_access.portable_paths import normalize_paths  # noqa: E402
 from tos_access import core as access_core  # noqa: E402
 from tos_access.projection_store import ProjectionReader, is_partitioned  # noqa: E402

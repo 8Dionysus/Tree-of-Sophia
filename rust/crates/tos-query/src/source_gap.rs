@@ -30,6 +30,59 @@ pub struct SourceGapRequest {
     pub query: String,
     pub limit: usize,
 }
+impl SourceGapRequest {
+    /// Typed MCP framing over the established public-ledger query rules.
+    pub fn from_json(value: &JsonValue) -> Result<Self, SearchV2Error> {
+        let fields = value.as_object().ok_or_else(|| {
+            error(
+                SearchV2ErrorCode::InvalidRequest,
+                "source-gap request must be an object",
+            )
+        })?;
+        if fields
+            .iter()
+            .any(|(key, _)| !matches!(key.as_str(), Some("query" | "limit")))
+        {
+            return Err(error(
+                SearchV2ErrorCode::InvalidRequest,
+                "unknown source-gap field",
+            ));
+        }
+        let query = match value.object_get("query") {
+            None => String::new(),
+            Some(value) => value
+                .as_str()
+                .ok_or_else(|| {
+                    error(
+                        SearchV2ErrorCode::InvalidRequest,
+                        "source-gap query must be a string",
+                    )
+                })?
+                .to_owned(),
+        };
+        let limit = match value.object_get("limit") {
+            None => 20,
+            Some(JsonValue::Number(number)) if number.kind == JsonNumberKind::Int => number
+                .lexeme
+                .parse::<usize>()
+                .ok()
+                .filter(|n| (1..=100).contains(n))
+                .ok_or_else(|| {
+                    error(
+                        SearchV2ErrorCode::InvalidRequest,
+                        "source-gap limit must be 1..100",
+                    )
+                })?,
+            _ => {
+                return Err(error(
+                    SearchV2ErrorCode::InvalidRequest,
+                    "source-gap limit must be an integer",
+                ));
+            }
+        };
+        Ok(Self { query, limit })
+    }
+}
 #[derive(Clone, Copy, Debug)]
 pub struct SourceGapBudget {
     pub json: JsonLimits,

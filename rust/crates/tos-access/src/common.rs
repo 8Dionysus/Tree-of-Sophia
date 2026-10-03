@@ -164,6 +164,9 @@ pub(crate) fn mcp_tool_list(
         .filter(|operation| match operation.operation_id.as_str() {
             crate::site::WORD_OPERATION => software || executor.word_analysis_available(),
             OPERATION_ID => executor.source_descend_available(),
+            tos_query::source_gap::SOURCE_GAP_OPERATION => executor.source_gap_available(),
+            crate::reading::PUBLIC_WORD_CAPABILITY_OPERATION
+            | crate::reading::PUBLIC_READING_CAPABILITY_OPERATION => true,
             crate::reading::OPERATION_ID => executor.reading_search_available(),
             SEARCH_OPERATION_ID => {
                 executor.knowledge_search_indexed_available()
@@ -583,7 +586,12 @@ pub trait AccessExecutor: Send + Sync {
     fn exploration_runtime_capabilities(&self) -> JsonValue {
         crate::exploration_contracts::runtime_capabilities(None)
     }
-    /// Existing published public-ledger projection; no CLI/MCP operation.
+    /// Whether this selected executor supports the declared public ledger.
+    /// Presence never grants source access; the read retains its owner fence.
+    fn source_gap_available(&self) -> bool {
+        false
+    }
+    /// Existing published public-ledger projection.
     fn source_gap(
         &self,
         _: tos_query::source_gap::SourceGapRequest,

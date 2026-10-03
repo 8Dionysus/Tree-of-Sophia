@@ -204,7 +204,7 @@ def reference_prepare(source_root: str | Path, output_dir: str | Path, *,
     # No parents=True: the caller must select an existing output parent.
     output.mkdir(mode=0o700)
     _sync_directory(output.parent)
-    core = source.ToSAccessCore.discover(
+    core = source.ReferenceToSAccessCore.discover(
         tos_root=root,
         index_path=root / source.INDEX_RELATIVE_PATH,
         philosophy_graph_projection_path=root / source.PHILOSOPHY_PROJECTION_RELATIVE_PATH,

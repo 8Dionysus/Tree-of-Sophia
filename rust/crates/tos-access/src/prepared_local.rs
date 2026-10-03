@@ -1,7 +1,9 @@
 //! Explicit local prepared projection reader. An independently supplied binding
 //! selects a snapshot; this adapter grants no source, rights or publication
 //! authority and never falls back to a release/compatibility graph.
-use crate::exploration_checkpoints::{CheckpointLimits, ProcessExplorationCheckpoints};
+use crate::exploration_checkpoints::{
+    CheckpointLimits, ProcessExplorationCheckpoints, SelectedExplorationCheckpoints as Checkpoints,
+};
 use crate::persistent_exploration_checkpoints::PersistentExplorationCheckpoints;
 use crate::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence,
@@ -166,25 +168,6 @@ impl DisclosureFence for CurrentFence {
             checkpoint.commit().map_err(AccessError::from)?;
         }
         Ok(())
-    }
-}
-#[derive(Clone)]
-enum Checkpoints {
-    Process(ProcessExplorationCheckpoints),
-    Persistent(PersistentExplorationCheckpoints),
-}
-impl Checkpoints {
-    fn limits(&self) -> CheckpointLimits {
-        match self {
-            Self::Process(s) => s.limits(),
-            Self::Persistent(s) => s.limits(),
-        }
-    }
-    fn store(&mut self) -> &mut dyn tos_query::knowledge_exploration::ExplorationCheckpoints {
-        match self {
-            Self::Process(s) => s,
-            Self::Persistent(s) => s,
-        }
     }
 }
 struct Selection {
