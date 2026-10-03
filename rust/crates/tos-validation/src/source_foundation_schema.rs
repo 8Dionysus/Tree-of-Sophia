@@ -10,9 +10,9 @@
 use crate::executor::{
     BatchBudget, BatchCoverageExpectation, BatchUnit, BoundedSchemaExecutor,
     DiagnosticsInputProfile, DiagnosticsUnitInputMode, ExactWorkerIdentity, ExceptionalSchemaUsage,
-    ExecutorFailure, MixedDiagnosticsBatchUnit, SchemaDiagnosticsCheckpoint,
-    SchemaDiagnosticsOutcome, SharedSchemaWorkerQuota, VerifiedWorkerImageHandle,
-    schema_diagnostics,
+    ExchangeFailureContext, ExecutorFailure, MixedDiagnosticsBatchUnit,
+    SchemaDiagnosticsCheckpoint, SchemaDiagnosticsOutcome, SharedSchemaWorkerQuota,
+    VerifiedWorkerImageHandle, schema_diagnostics,
 };
 use crate::{FormatProfile, SchemaBackendProbe, SchemaResource};
 use serde_json::Value;
@@ -713,13 +713,21 @@ pub struct SourceFoundationSchemaReport {
     pub expected_check_count: usize,
     pub checks: Vec<SourceFoundationSchemaCheckReport>,
     pub cost: SourceFoundationSchemaCost,
+    exchange_failure_context: Option<ExchangeFailureContext>,
 }
 
 impl SourceFoundationSchemaReport {
+    /// Transport boundary and natural child status for an incomplete worker
+    /// exchange, without paths, payloads, or child diagnostic text.
+    pub fn exchange_failure_context(&self) -> Option<ExchangeFailureContext> {
+        self.exchange_failure_context
+    }
+
     pub fn is_complete(&self) -> bool {
-        if self
-            .exceptional_schema_budget
-            .is_some_and(|budget| budget != ExceptionalSchemaUsage::whole())
+        if self.exchange_failure_context.is_some()
+            || self
+                .exceptional_schema_budget
+                .is_some_and(|budget| budget != ExceptionalSchemaUsage::whole())
         {
             return false;
         }
@@ -1868,7 +1876,10 @@ fn evaluate_source_foundation_schema_checks_inner<C: SourceFoundationSchemaCheck
         else {
             return incomplete(report, SourceFoundationSchemaFailure::InputBudget);
         };
-        if next_metadata_bytes > limits.max_total_report_bytes {
+        if next_metadata_bytes
+            .checked_add(report.cost.estimated_report_bytes)
+            .is_none_or(|total| total > limits.max_total_report_bytes)
+        {
             return incomplete(
                 report,
                 SourceFoundationSchemaFailure::DiagnosticReportBudget,
@@ -1973,7 +1984,7 @@ fn evaluate_source_foundation_schema_checks_inner<C: SourceFoundationSchemaCheck
     }
     let total_unit_count = units.len();
     let mut total_issues = 0usize;
-    let mut estimated_bytes = 0usize;
+    let mut estimated_bytes = report.cost.estimated_report_bytes;
     let mut remaining_cpu_micros = report.max_total_cpu_micros;
     let mut remaining_worker_wire_bytes = limits.max_total_worker_wire_bytes;
     let mut chunk_start = 0usize;
@@ -2288,14 +2299,18 @@ fn evaluate_source_foundation_schema_checks_inner<C: SourceFoundationSchemaCheck
                 }
             }
         };
-        let (diagnostic_units, checkpoint, worker_failure) = match outcome {
+        let (diagnostic_units, checkpoint, worker_failure, exchange_failure_context) = match outcome
+        {
             SchemaDiagnosticsOutcome::Incomplete {
-                checkpoint, reason, ..
-            } => (None, checkpoint, Some(reason)),
+                checkpoint,
+                reason,
+                exchange,
+            } => (None, checkpoint, Some(reason), exchange),
             SchemaDiagnosticsOutcome::Complete { units, checkpoint } => {
-                (Some(units), checkpoint, None)
+                (Some(units), checkpoint, None, None)
             }
         };
+        report.exchange_failure_context = exchange_failure_context;
         let observed_chunk_cpu_micros =
             record_worker_cpu_cost(&mut report, &checkpoint, remaining_cpu_micros);
         let chunk_wire_bytes =
@@ -2516,9 +2531,11 @@ fn empty_schema_report(
         expected_check_count,
         checks: Vec::new(),
         cost: SourceFoundationSchemaCost {
+            estimated_report_bytes: std::mem::size_of::<Option<ExchangeFailureContext>>(),
             schema_resource_bytes: schema_bytes,
             ..SourceFoundationSchemaCost::default()
         },
+        exchange_failure_context: None,
     }
 }
 
