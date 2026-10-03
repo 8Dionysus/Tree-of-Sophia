@@ -1447,7 +1447,10 @@ fn run(
 pub fn run_if_requested(args: &[String], input: &mut dyn Read) -> Option<i32> {
     match selection(args) {
         Ok(None) => None,
-        Err(_) => Some(2),
+        Err(message) => {
+            terminal_diagnostic(message);
+            Some(2)
+        }
         Ok(Some(selection)) => Some(
             match (|| {
                 let deadline = original_cli_deadline(selection.work_deadline_ns)?;
@@ -1456,9 +1459,25 @@ pub fn run_if_requested(args: &[String], input: &mut dyn Read) -> Option<i32> {
                 run(selection, request, deadline, &signal.token)
             })() {
                 Ok(()) => 0,
-                Err(_) => 1,
+                Err(message) => {
+                    terminal_diagnostic(message);
+                    1
+                }
             },
         ),
+    }
+}
+
+// One best-effort bounded diagnostic; never waits on a caller's stderr pipe.
+fn terminal_diagnostic(message: &'static str) {
+    let previous = unsafe { libc::fcntl(2, libc::F_GETFL) };
+    if previous < 0 || unsafe { libc::fcntl(2, libc::F_SETFL, previous | libc::O_NONBLOCK) } < 0 {
+        return;
+    }
+    let raw = message.as_bytes();
+    unsafe {
+        libc::write(2, raw.as_ptr().cast(), raw.len().min(256));
+        libc::fcntl(2, libc::F_SETFL, previous);
     }
 }
 
