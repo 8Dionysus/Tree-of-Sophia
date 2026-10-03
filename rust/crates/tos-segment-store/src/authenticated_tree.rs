@@ -4226,6 +4226,309 @@ pub fn decode_placement_tree_row(raw: &[u8], max_bytes: usize) -> Result<Placeme
     })
 }
 
+/// Return the first authenticated row inside an optional half-open key range
+/// that is strictly after `after_exclusive`. The root's authenticated min/max
+/// summaries let this seek skip every subtree that cannot contain a result;
+/// callers must not implement `*_after` by restarting a full stream.
+///
+/// `max_state_bytes` is the caller's already-reserved transient allowance for
+/// this seek, including its bounded stack, decoded nodes, one in-flight frame,
+/// and the returned row. The function enforces that ceiling as nodes are
+/// loaded. It does not reserve caller state or establish a source grant.
+impl SegmentStore {
+    pub fn lookup_authenticated_tree_v2_after_with_work_and_io(
+        &self,
+        descriptor: &AuthenticatedTreeDescriptorV2,
+        lower_inclusive: Option<&[u8]>,
+        upper_exclusive: Option<&[u8]>,
+        after_exclusive: Option<&[u8]>,
+        limits: AuthenticatedTreeLimitsV1,
+        max_state_bytes: usize,
+        io_ledger: Option<Arc<dyn AuthenticatedTreeIoLedgerV1>>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(Option<AuthenticatedTreeEntryV1>, AuthenticatedTreeWorkV1)> {
+        let limits = limits.validate()?;
+        validate_descriptor_for_store(self, &descriptor.semantic, limits)?;
+        validate_descriptor_v2_shape(descriptor)?;
+        if max_state_bytes == 0 || max_state_bytes == usize::MAX {
+            return Err(budget("authenticated range state allowance is invalid"));
+        }
+        for bound in [lower_inclusive, upper_exclusive, after_exclusive]
+            .into_iter()
+            .flatten()
+        {
+            if bound.len() > limits.max_key_bytes {
+                return Err(budget("authenticated range key exceeds limit"));
+            }
+        }
+        if lower_inclusive
+            .zip(upper_exclusive)
+            .is_some_and(|(lower, upper)| lower >= upper)
+        {
+            return Err(invalid("authenticated range bounds are reversed"));
+        }
+        if after_exclusive
+            .zip(upper_exclusive)
+            .is_some_and(|(after, upper)| after >= upper)
+        {
+            return Ok((None, AuthenticatedTreeWorkV1::default()));
+        }
+        check(deadline, cancelled)?;
+        let _pin_lock = self.hold_generation_pin()?;
+        let Some(root_reference) = descriptor.semantic.root.as_ref() else {
+            return Ok((None, AuthenticatedTreeWorkV1::default()));
+        };
+
+        // A Patricia path cannot exceed two edges per key byte plus its root.
+        // Reserve that finite stack before decoding any node, then enforce the
+        // actual retained decoded-node and transient read overlap below.
+        let max_depth = limits
+            .max_key_bytes
+            .checked_mul(2)
+            .and_then(|depth| depth.checked_add(1))
+            .ok_or_else(|| budget("authenticated range depth overflow"))?;
+        let stack_floor = max_depth
+            .checked_mul(std::mem::size_of::<RangeSearchFrameV2>())
+            .ok_or_else(|| budget("authenticated range stack size overflow"))?;
+        let transient_read = limits
+            .max_node_bytes
+            .checked_mul(4)
+            .and_then(|n| n.checked_add(4096 + 65_536))
+            .ok_or_else(|| budget("authenticated range node state overflow"))?;
+        let root_handle_state = std::mem::size_of::<TreeHandleV2>()
+            .checked_add(root_reference.min_key.len())
+            .and_then(|n| n.checked_add(root_reference.max_key.len()))
+            .and_then(|n| n.checked_add(256))
+            .ok_or_else(|| budget("authenticated range root state overflow"))?;
+        if stack_floor
+            .checked_add(transient_read)
+            .and_then(|n| n.checked_add(root_handle_state))
+            .is_none_or(|required| required > max_state_bytes)
+        {
+            return Err(budget("authenticated range preflight state exceeded"));
+        }
+        let mut stack = Vec::new();
+        stack
+            .try_reserve_exact(max_depth)
+            .map_err(|_| budget("authenticated range stack allocation failed"))?;
+        let stack_storage = stack
+            .capacity()
+            .checked_mul(std::mem::size_of::<RangeSearchFrameV2>())
+            .ok_or_else(|| budget("authenticated range stack capacity overflow"))?;
+        if stack_storage > stack_floor.saturating_add(65_536)
+            || stack_storage
+                .checked_add(transient_read)
+                .and_then(|n| n.checked_add(root_handle_state))
+                .is_none_or(|required| required > max_state_bytes)
+        {
+            return Err(budget("authenticated range stack exceeds state allowance"));
+        }
+
+        let mut work = AuthenticatedTreeWorkV1::default();
+        let root = descriptor_root_handle(descriptor)?
+            .ok_or_else(|| invalid("authenticated range root disappeared"))?;
+        let loaded = load_node_v2(
+            self,
+            descriptor,
+            &root,
+            limits,
+            &mut work,
+            None,
+            io_ledger.as_deref(),
+            deadline,
+            cancelled,
+        )?;
+        drop(root);
+        let root_state = loaded_node_retained_state(&loaded)?;
+        if stack_storage
+            .checked_add(root_state)
+            .is_none_or(|state| state > max_state_bytes)
+        {
+            return Err(budget(
+                "authenticated range decoded root exceeds state allowance",
+            ));
+        }
+        stack.push(RangeSearchFrameV2 {
+            loaded,
+            next_child: 0,
+            value_examined: false,
+            retained_state_bytes: root_state,
+        });
+        let mut retained_nodes = root_state;
+
+        while !stack.is_empty() {
+            check(deadline, cancelled)?;
+            let last = stack.len() - 1;
+            if !stack[last].value_examined {
+                stack[last].value_examined = true;
+                if let Some(row) = stack[last].loaded.node.value.take() {
+                    if authenticated_range_contains(
+                        &row.key,
+                        lower_inclusive,
+                        upper_exclusive,
+                        after_exclusive,
+                    ) {
+                        // The row moves out of the retained node. Its bytes
+                        // were included in loaded_node_retained_state before
+                        // this return, so caller ownership remains covered.
+                        return Ok((Some(row), work));
+                    }
+                }
+            }
+
+            let child = {
+                let frame = &mut stack[last];
+                if frame.next_child >= frame.loaded.node.children.len() {
+                    None
+                } else {
+                    let child_index = frame.next_child;
+                    frame.next_child += 1;
+                    let reference = &frame.loaded.node.children[child_index].1;
+                    let locator = frame
+                        .loaded
+                        .child_locators
+                        .get(child_index)
+                        .ok_or_else(|| invalid("authenticated range child locator is missing"))?;
+                    if !authenticated_range_overlaps(
+                        reference,
+                        lower_inclusive,
+                        upper_exclusive,
+                        after_exclusive,
+                    ) {
+                        continue;
+                    }
+                    let handle_state = std::mem::size_of::<TreeHandleV2>()
+                        .checked_add(reference.min_key.len())
+                        .and_then(|n| n.checked_add(reference.max_key.len()))
+                        .and_then(|n| n.checked_add(std::mem::size_of::<TreeLocatorV2>()))
+                        .and_then(|n| n.checked_add(256))
+                        .ok_or_else(|| budget("authenticated range child state overflow"))?;
+                    if stack_storage
+                        .checked_add(retained_nodes)
+                        .and_then(|n| n.checked_add(handle_state))
+                        .and_then(|n| n.checked_add(transient_read))
+                        .is_none_or(|state| state > max_state_bytes)
+                    {
+                        return Err(budget("authenticated range child preflight exceeded"));
+                    }
+                    Some(TreeHandleV2 {
+                        reference: reference.clone(),
+                        locator: locator.clone(),
+                    })
+                }
+            };
+            let Some(child) = child else {
+                let removed = stack
+                    .pop()
+                    .ok_or_else(|| invalid("authenticated range stack disappeared"))?;
+                retained_nodes = retained_nodes
+                    .checked_sub(removed.retained_state_bytes)
+                    .ok_or_else(|| budget("authenticated range retained state regressed"))?;
+                continue;
+            };
+            let loaded = load_node_v2(
+                self,
+                descriptor,
+                &child,
+                limits,
+                &mut work,
+                None,
+                io_ledger.as_deref(),
+                deadline,
+                cancelled,
+            )?;
+            drop(child);
+            let retained_state_bytes = loaded_node_retained_state(&loaded)?;
+            let next_retained = retained_nodes
+                .checked_add(retained_state_bytes)
+                .ok_or_else(|| budget("authenticated range retained state overflow"))?;
+            if stack_storage
+                .checked_add(next_retained)
+                .is_none_or(|state| state > max_state_bytes)
+            {
+                return Err(budget(
+                    "authenticated range retained nodes exceed allowance",
+                ));
+            }
+            stack.push(RangeSearchFrameV2 {
+                loaded,
+                next_child: 0,
+                value_examined: false,
+                retained_state_bytes,
+            });
+            retained_nodes = next_retained;
+        }
+        Ok((None, work))
+    }
+}
+
+struct RangeSearchFrameV2 {
+    loaded: LoadedTreeNodeV2,
+    next_child: usize,
+    value_examined: bool,
+    retained_state_bytes: usize,
+}
+
+fn authenticated_range_contains(
+    key: &[u8],
+    lower_inclusive: Option<&[u8]>,
+    upper_exclusive: Option<&[u8]>,
+    after_exclusive: Option<&[u8]>,
+) -> bool {
+    lower_inclusive.is_none_or(|lower| key >= lower)
+        && upper_exclusive.is_none_or(|upper| key < upper)
+        && after_exclusive.is_none_or(|after| key > after)
+}
+
+fn authenticated_range_overlaps(
+    node: &AuthenticatedTreeNodeRefV1,
+    lower_inclusive: Option<&[u8]>,
+    upper_exclusive: Option<&[u8]>,
+    after_exclusive: Option<&[u8]>,
+) -> bool {
+    lower_inclusive.is_none_or(|lower| node.max_key.as_slice() >= lower)
+        && upper_exclusive.is_none_or(|upper| node.min_key.as_slice() < upper)
+        && after_exclusive.is_none_or(|after| node.max_key.as_slice() > after)
+}
+
+fn loaded_node_retained_state(loaded: &LoadedTreeNodeV2) -> Result<usize> {
+    let node = &loaded.node;
+    let mut state = std::mem::size_of::<LoadedTreeNodeV2>()
+        .checked_add(node.min_key.capacity())
+        .and_then(|n| n.checked_add(node.max_key.capacity()))
+        .and_then(|n| {
+            n.checked_add(
+                node.children
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<(u8, AuthenticatedTreeNodeRefV1)>())?,
+            )
+        })
+        .and_then(|n| {
+            n.checked_add(
+                loaded
+                    .child_locators
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<TreeLocatorV2>())?,
+            )
+        })
+        .ok_or_else(|| budget("authenticated loaded-node state overflow"))?;
+    if let Some(value) = &node.value {
+        state = state
+            .checked_add(value.key.capacity())
+            .and_then(|n| n.checked_add(value.value.capacity()))
+            .ok_or_else(|| budget("authenticated loaded-value state overflow"))?;
+    }
+    for (_, child) in &node.children {
+        state = state
+            .checked_add(child.min_key.capacity())
+            .and_then(|n| n.checked_add(child.max_key.capacity()))
+            .and_then(|n| n.checked_add(256))
+            .ok_or_else(|| budget("authenticated child-reference state overflow"))?;
+    }
+    Ok(state)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

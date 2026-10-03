@@ -243,6 +243,34 @@ fn partial_v2_namespace_allocation(
         .ok_or_else(|| invalid("V2 store namespace allocation overflow"))
 }
 
+fn partial_v2_existing_root_allocation(
+    root: &File,
+    root_before: u64,
+    missing: [bool; 3],
+) -> io::Result<u64> {
+    let mut allocated = allocated_bytes(root, "V2 store directory allocation overflow")?
+        .saturating_sub(root_before);
+    for (name, was_missing) in ["objects", "revisions", "staging"].into_iter().zip(missing) {
+        if !was_missing {
+            continue;
+        }
+        match tos_fd_open::open_directory_at(root, Path::new(name)) {
+            Ok(directory) => {
+                let directory = owned_directory(directory)?;
+                allocated = allocated
+                    .checked_add(allocated_bytes(
+                        &directory,
+                        "V2 store child-directory allocation overflow",
+                    )?)
+                    .ok_or_else(|| invalid("V2 store namespace allocation overflow"))?;
+            }
+            Err(error) if error.kind() == io::ErrorKind::NotFound => (),
+            Err(error) => return Err(error),
+        }
+    }
+    Ok(allocated)
+}
+
 pub(crate) struct AdmissionLock(File);
 impl Drop for AdmissionLock {
     fn drop(&mut self) {
@@ -250,6 +278,123 @@ impl Drop for AdmissionLock {
         // unrelated concurrent process fork briefly inherited this CLOEXEC fd.
         let _ = rustix::fs::flock(&self.0, FlockOperation::Unlock);
     }
+}
+
+fn lock_at_root(
+    root: &File,
+    accountant: Option<Arc<super::source_admission_segment_v2::NativeV2TreeIo>>,
+    deadline: Instant,
+    cancel: &AtomicBool,
+) -> io::Result<AdmissionLock> {
+    let file = match rustix::fs::openat(
+        root,
+        ".admission.lock",
+        OFlags::RDWR | OFlags::NOFOLLOW | OFlags::CLOEXEC | OFlags::NONBLOCK,
+        Mode::empty(),
+    ) {
+        Ok(fd) => File::from(fd),
+        Err(Errno::NOENT) => match accountant {
+            Some(accountant) => {
+                let unit = accountant.selected_allocation_unit_bytes();
+                if unit == 0 || unit == u64::MAX || root.metadata()?.blksize() > unit {
+                    return Err(invalid("V2 lock allocation quantum is below held geometry"));
+                }
+                let reserved = accountant.reserve_file_allocation(
+                    unit.checked_mul(2)
+                        .ok_or_else(|| invalid("V2 lock allocation profile overflow"))?,
+                )?;
+                let root_before = allocated_bytes(root, "V2 lock root allocation overflow")?;
+                let mut precharge = V2NamespacePrecharge {
+                    accountant: Arc::clone(&accountant),
+                    reserved,
+                    created: false,
+                };
+                let mut accounting_attempted = false;
+                let result = (|| {
+                    let file = File::from(rustix::fs::openat(
+                        root,
+                        ".admission.lock",
+                        OFlags::RDWR
+                            | OFlags::CREATE
+                            | OFlags::EXCL
+                            | OFlags::NOFOLLOW
+                            | OFlags::CLOEXEC
+                            | OFlags::NONBLOCK,
+                        Mode::from_raw_mode(0o600),
+                    )?);
+                    precharge.created = true;
+                    root.sync_all()?;
+                    let actual = allocated_bytes(root, "V2 lock root allocation overflow")?
+                        .saturating_sub(root_before)
+                        .checked_add(allocated_bytes(
+                            &file,
+                            "V2 admission lock allocation overflow",
+                        )?)
+                        .ok_or_else(|| invalid("V2 lock allocation overflow"))?;
+                    accounting_attempted = true;
+                    accountant.reconcile_file_allocation(reserved, actual)?;
+                    Ok(file)
+                })();
+                if result.is_err() && precharge.created && !accounting_attempted {
+                    let actual = (|| {
+                        let root_bytes = allocated_bytes(root, "V2 lock root allocation overflow")?
+                            .saturating_sub(root_before);
+                        let lock_bytes = match tos_fd_open::open_regular_at(
+                            root,
+                            Path::new(".admission.lock"),
+                        ) {
+                            Ok(file) => {
+                                allocated_bytes(&file, "V2 admission lock allocation overflow")?
+                            }
+                            Err(error) if error.kind() == io::ErrorKind::NotFound => 0,
+                            Err(error) => return Err(error),
+                        };
+                        root_bytes
+                            .checked_add(lock_bytes)
+                            .ok_or_else(|| invalid("V2 lock allocation overflow"))
+                    })();
+                    match actual {
+                        Ok(actual) => {
+                            let _ = accountant.reconcile_file_allocation(reserved, actual);
+                        }
+                        Err(_) => {
+                            let _ = accountant.reconcile_file_allocation(reserved, reserved);
+                        }
+                    }
+                }
+                result?
+            }
+            None => File::from(rustix::fs::openat(
+                root,
+                ".admission.lock",
+                OFlags::RDWR
+                    | OFlags::CREATE
+                    | OFlags::NOFOLLOW
+                    | OFlags::CLOEXEC
+                    | OFlags::NONBLOCK,
+                Mode::from_raw_mode(0o600),
+            )?),
+        },
+        Err(error) => return Err(error.into()),
+    };
+    let metadata = file.metadata()?;
+    if !metadata.is_file()
+        || metadata.uid() != rustix::process::geteuid().as_raw()
+        || metadata.mode() & 0o077 != 0
+    {
+        return Err(invalid("corpus admission lock ownership or mode differs"));
+    }
+    loop {
+        active(deadline, cancel)?;
+        match rustix::fs::flock(&file, FlockOperation::NonBlockingLockExclusive) {
+            Ok(()) => break,
+            Err(Errno::WOULDBLOCK) => std::thread::sleep(
+                Duration::from_millis(10).min(deadline.saturating_duration_since(Instant::now())),
+            ),
+            Err(error) => return Err(error.into()),
+        }
+    }
+    Ok(AdmissionLock(file))
 }
 
 pub(crate) struct AdmissionStore {
@@ -1586,6 +1731,174 @@ impl AdmissionStore {
         result
     }
 
+    /// Open or initialize an already owner-selected store root without
+    /// resolving the mutable store name for the physical operation. The
+    /// held descriptor is the source-store capability; the name is checked
+    /// only as a substitution fence. Missing child namespaces and the lock
+    /// file are charged to the same invocation allocation accountant before
+    /// they are created.
+    pub(crate) fn create_or_open_v2_at_named(
+        path: &Path,
+        held_root: &File,
+        accountant: Arc<super::source_admission_segment_v2::NativeV2TreeIo>,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<Self> {
+        active(deadline, cancel)?;
+        if !path.is_absolute()
+            || path.components().any(|component| {
+                matches!(
+                    component,
+                    std::path::Component::CurDir | std::path::Component::ParentDir
+                )
+            })
+        {
+            return Err(invalid(
+                "V2 corpus store path must be absolute and normalized",
+            ));
+        }
+        // This finite upper bound covers the name/held-root comparison, the
+        // lock and three child namespace lookups, and their metadata checks.
+        // It is charged as an upper bound, never reported as returned bytes.
+        const V2_STORE_OPEN_UPPER_BOUND: u64 = 16 * 1024;
+        accountant
+            .io_budget()
+            .charge_read_upper_bound(V2_STORE_OPEN_UPPER_BOUND)
+            .map_err(invalid)?;
+        let root = owned_directory(held_root.try_clone()?)?;
+        let named = owned_directory(tos_fd_open::open_absolute_directory(path).map_err(invalid)?)?;
+        if identity(&named)? != identity(&root)? {
+            return Err(invalid("named V2 corpus root differs from held root"));
+        }
+        let unit = accountant.selected_allocation_unit_bytes();
+        if unit == 0 || unit == u64::MAX || root.metadata()?.blksize() > unit {
+            return Err(invalid(
+                "V2 store allocation quantum is below held geometry",
+            ));
+        }
+
+        let _lock = lock_at_root(&root, Some(Arc::clone(&accountant)), deadline, cancel)?;
+        active(deadline, cancel)?;
+        let missing = ["objects", "revisions", "staging"]
+            .map(|name| optional_directory(&root, name).map(|directory| directory.is_none()))
+            .into_iter()
+            .collect::<io::Result<Vec<_>>>()?;
+        let missing: [bool; 3] = missing
+            .try_into()
+            .map_err(|_| invalid("V2 namespace selection width differs"))?;
+        let missing_count = missing.iter().filter(|missing| **missing).count();
+        let namespace_reservation = if missing_count == 0 {
+            None
+        } else {
+            let blocks = u64::try_from(missing_count)
+                .map_err(|_| invalid("V2 namespace count exceeds finite range"))?
+                .checked_mul(2)
+                .and_then(|blocks| blocks.checked_add(1))
+                .ok_or_else(|| invalid("V2 namespace allocation profile overflow"))?;
+            let requested = unit
+                .checked_mul(blocks)
+                .ok_or_else(|| invalid("V2 namespace allocation profile overflow"))?;
+            let reserved = accountant.reserve_file_allocation(requested)?;
+            Some(V2NamespacePrecharge {
+                accountant: Arc::clone(&accountant),
+                reserved,
+                created: false,
+            })
+        };
+        let root_before = namespace_reservation
+            .as_ref()
+            .map(|_| allocated_bytes(&root, "V2 root allocation overflow"))
+            .transpose()?;
+        let mut accounting_attempted = false;
+        let result = (|| {
+            let mut children = Vec::with_capacity(3);
+            for (name, was_missing) in ["objects", "revisions", "staging"].into_iter().zip(missing)
+            {
+                active(deadline, cancel)?;
+                let child = if was_missing {
+                    rustix::fs::mkdirat(&root, name, Mode::from_raw_mode(0o700))?;
+                    if let Some(precharge) = namespace_reservation.as_mut() {
+                        precharge.created = true;
+                    }
+                    root.sync_all()?;
+                    let child = owned_directory(
+                        tos_fd_open::open_directory_at(&root, Path::new(name)).map_err(invalid)?,
+                    )?;
+                    child
+                } else {
+                    owned_directory(
+                        tos_fd_open::open_directory_at(&root, Path::new(name)).map_err(invalid)?,
+                    )?
+                };
+                children.push(child);
+            }
+            root.sync_all()?;
+            let objects = children.remove(0);
+            let revisions = children.remove(0);
+            let staging = children.remove(0);
+            let v2_segments = optional_directory(&root, "segments-v2")?;
+            let store = Self {
+                path: path.to_owned(),
+                root: root.try_clone()?,
+                objects,
+                revisions,
+                staging,
+                v2_segments: RefCell::new(v2_segments),
+                streamed_manifest_custody: RefCell::new(None),
+                v2_store_custody: RefCell::new(None),
+                v2_allocation_accountant: RefCell::new(None),
+            };
+            store.verify_layout()?;
+            store.attach_v2_allocation_accountant(Arc::clone(&accountant))?;
+            if let Some(precharge) = namespace_reservation.as_ref() {
+                let root_before =
+                    root_before.ok_or_else(|| invalid("V2 namespace root baseline absent"))?;
+                let mut actual = allocated_bytes(&root, "V2 root allocation overflow")?
+                    .saturating_sub(root_before);
+                for (name, was_missing) in
+                    ["objects", "revisions", "staging"].into_iter().zip(missing)
+                {
+                    if was_missing {
+                        let child = tos_fd_open::open_directory_at(&root, Path::new(name))
+                            .map_err(invalid)?;
+                        actual = actual
+                            .checked_add(allocated_bytes(
+                                &child,
+                                "V2 child directory allocation overflow",
+                            )?)
+                            .ok_or_else(|| invalid("V2 namespace allocation overflow"))?;
+                    }
+                }
+                accounting_attempted = true;
+                accountant.reconcile_file_allocation(precharge.reserved, actual)?;
+            }
+            active(deadline, cancel)?;
+            Ok(store)
+        })();
+        if result.is_err()
+            && namespace_reservation
+                .as_ref()
+                .is_some_and(|precharge| precharge.created)
+            && !accounting_attempted
+        {
+            if let (Some(precharge), Some(root_before)) =
+                (namespace_reservation.as_ref(), root_before)
+            {
+                let actual = partial_v2_existing_root_allocation(&root, root_before, missing);
+                match actual {
+                    Ok(actual) => {
+                        let _ = accountant.reconcile_file_allocation(precharge.reserved, actual);
+                    }
+                    Err(_) => {
+                        let _ = accountant
+                            .reconcile_file_allocation(precharge.reserved, precharge.reserved);
+                    }
+                }
+            }
+        }
+        result
+    }
+
     /// Called only after the selected validator identity matches the batch.
     /// Missing parents are created through held, no-follow directory handles.
     /// Namespace creation is not authorization for any source, rights or review transition.
@@ -1788,28 +2101,12 @@ impl AdmissionStore {
         Ok(store)
     }
     fn lock(&self, deadline: Instant, cancel: &AtomicBool) -> io::Result<AdmissionLock> {
-        let file = File::from(rustix::fs::openat(
-            &self.root,
-            ".admission.lock",
-            OFlags::RDWR | OFlags::CREATE | OFlags::NOFOLLOW | OFlags::CLOEXEC | OFlags::NONBLOCK,
-            Mode::from_raw_mode(0o600),
-        )?);
-        let m = file.metadata()?;
-        if !m.is_file() || m.uid() != rustix::process::geteuid().as_raw() || m.mode() & 0o077 != 0 {
-            return Err(invalid("corpus admission lock ownership or mode differs"));
-        }
-        loop {
-            active(deadline, cancel)?;
-            match rustix::fs::flock(&file, FlockOperation::NonBlockingLockExclusive) {
-                Ok(()) => break,
-                Err(Errno::WOULDBLOCK) => std::thread::sleep(
-                    Duration::from_millis(10)
-                        .min(deadline.saturating_duration_since(Instant::now())),
-                ),
-                Err(error) => return Err(error.into()),
-            }
-        }
-        let lock = AdmissionLock(file);
+        let accountant = self
+            .v2_allocation_accountant
+            .borrow()
+            .as_ref()
+            .map(Arc::clone);
+        let lock = lock_at_root(&self.root, accountant, deadline, cancel)?;
         self.verify_layout()?;
         let selected = tos_fd_open::open_regular_at(&self.root, Path::new(".admission.lock"))
             .map_err(invalid)?;

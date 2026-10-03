@@ -14,8 +14,8 @@ use std::{
 };
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
 use tos_segment_store::{
-    AuthenticatedTreeDescriptorV2, AuthenticatedTreeIoLedgerV1, AuthenticatedTreeLimitsV1,
-    SegmentLimits, SegmentStore,
+    AuthenticatedTreeDescriptorV2, AuthenticatedTreeEntryV1, AuthenticatedTreeIoLedgerV1,
+    AuthenticatedTreeLimitsV1, SegmentLimits, SegmentStore,
 };
 use tos_source_store::{
     CorpusCurrentSelection, CorpusPointerFormat, PinnedSqliteIoBudget, ReadLimits,
@@ -52,8 +52,15 @@ impl V2PointReadLimits {
         {
             return Err(invalid("V2 point reader finite profile differs"));
         }
-        let required = self
-            .caller_retained_state_bytes
+        let required = self.base_state_bytes()?;
+        if required > self.max_state_bytes {
+            return Err(invalid("V2 point simultaneous state allowance exceeded"));
+        }
+        Ok(self)
+    }
+
+    fn base_state_bytes(self) -> io::Result<usize> {
+        self.caller_retained_state_bytes
             .checked_add(
                 self.pointer
                     .max_manifest_bytes
@@ -63,11 +70,7 @@ impl V2PointReadLimits {
             .and_then(|n| n.checked_add(self.tree.max_node_bytes.checked_mul(64)?))
             .and_then(|n| n.checked_add(self.max_object_bytes.checked_mul(2)?))
             .and_then(|n| n.checked_add(ROOT_BYTES * 128 + 8 * 1024 * 1024 + BLOCK_BYTES))
-            .ok_or_else(|| invalid("V2 point state overflow"))?;
-        if required > self.max_state_bytes {
-            return Err(invalid("V2 point simultaneous state allowance exceeded"));
-        }
-        Ok(self)
+            .ok_or_else(|| invalid("V2 point state overflow"))
     }
 }
 
@@ -94,6 +97,27 @@ pub struct V2MemberObservation {
     pub size_bytes: u64,
     pub source_mode: u32,
     pub bytes: Vec<u8>,
+}
+
+/// Exact authenticated membership tuple without reading the payload object.
+/// Warm COW callers use this to compare unchanged members while keeping the
+/// object read reserved for an actual consumer request.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct V2MemberTupleObservation {
+    pub revision: SourceRevision,
+    pub path: RelativePath,
+    pub sha256: Digest256,
+    pub size_bytes: u64,
+    pub source_mode: u32,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum V2RootKind {
+    Members,
+    Identities,
+    Dependencies,
+    Retirements,
+    History,
 }
 
 /// One pinned immutable selected cut. Caller-owned IO/deadline/cancellation
@@ -234,6 +258,108 @@ impl V2ReadSession {
         active(self.deadline, &self.cancel)
     }
 
+    /// Return one row from an authenticated, ordered key interval. The
+    /// Patricia seek prunes every child whose authenticated bounds cannot
+    /// contain a row after `after_exclusive`; callers can continue by passing
+    /// the returned key without restarting a full stream. The caller's point
+    /// state profile supplies the transient node-stack allowance, and this
+    /// session charges all actual node/byte work cumulatively.
+    pub fn next_row_after(
+        &mut self,
+        revision: SourceRevision,
+        kind: V2RootKind,
+        lower_inclusive: Option<&[u8]>,
+        upper_exclusive: Option<&[u8]>,
+        after_exclusive: Option<&[u8]>,
+    ) -> io::Result<Option<AuthenticatedTreeEntryV1>> {
+        if self.failed {
+            return Err(invalid("V2 point session already refused"));
+        }
+        self.observation = None;
+        let result = (|| {
+            active(self.deadline, &self.cancel)?;
+            let root = if kind == V2RootKind::History {
+                if revision != self.selection.revision {
+                    return Err(invalid("V2 history cursor revision differs"));
+                }
+                self.roots.history.clone()
+            } else {
+                let Some(roots) = self.revision_roots(revision)? else {
+                    return Ok(None);
+                };
+                match kind {
+                    V2RootKind::Members => roots.members,
+                    V2RootKind::Identities => roots.identities,
+                    V2RootKind::Dependencies => roots.dependencies,
+                    V2RootKind::Retirements => roots.retirements,
+                    V2RootKind::History => unreachable!(),
+                }
+            };
+            let mut limits = self.limits.tree;
+            limits.max_nodes = limits
+                .max_nodes
+                .checked_sub(self.read_nodes)
+                .filter(|n| *n > 0)
+                .ok_or_else(|| invalid("V2 point cumulative node allowance exceeded"))?;
+            limits.max_total_bytes = limits
+                .max_total_bytes
+                .checked_sub(self.tree_read_bytes)
+                .filter(|n| *n > 0)
+                .ok_or_else(|| invalid("V2 point cumulative tree bytes exceeded"))?;
+            let range_state = self
+                .limits
+                .max_state_bytes
+                .checked_sub(self.limits.base_state_bytes()?)
+                .filter(|n| *n > 0)
+                .ok_or_else(|| invalid("V2 point range state allowance absent"))?;
+            let (row, work) = self
+                .segment
+                .lookup_authenticated_tree_v2_after_with_work_and_io(
+                    &root,
+                    lower_inclusive,
+                    upper_exclusive,
+                    after_exclusive,
+                    limits,
+                    range_state,
+                    Some(self.tree_io.clone()),
+                    self.deadline,
+                    &self.cancel,
+                )
+                .map_err(invalid)?;
+            self.record_work(work.read_nodes, work.read_bytes)?;
+            self.store.verify_layout()?;
+            active(self.deadline, &self.cancel)?;
+            Ok(row)
+        })();
+        if result.is_err() {
+            self.failed = true;
+        }
+        result
+    }
+
+    /// Point-read only the authenticated 44-byte member tuple. This does not
+    /// read or verify the referenced payload object.
+    pub fn member_tuple(
+        &mut self,
+        revision: SourceRevision,
+        path: &RelativePath,
+    ) -> io::Result<Option<V2MemberTupleObservation>> {
+        if self.failed {
+            return Err(invalid("V2 point session already refused"));
+        }
+        self.observation = None;
+        let result = (|| {
+            let Some(roots) = self.revision_roots(revision)? else {
+                return Ok(None);
+            };
+            self.member_tuple_from_roots(&roots, path)
+        })();
+        if result.is_err() {
+            self.failed = true;
+        }
+        result
+    }
+
     fn lookup(
         &mut self,
         root: &AuthenticatedTreeDescriptorV2,
@@ -272,19 +398,24 @@ impl V2ReadSession {
                 return Err(error);
             }
         };
+        self.record_work(work.read_nodes, work.read_bytes)?;
+        self.store.verify_layout()?;
+        active(self.deadline, &self.cancel)?;
+        Ok(value)
+    }
+
+    fn record_work(&mut self, nodes: u64, bytes: u64) -> io::Result<()> {
         self.read_nodes = self
             .read_nodes
-            .checked_add(work.read_nodes)
+            .checked_add(nodes)
             .filter(|n| *n <= self.limits.tree.max_nodes)
             .ok_or_else(|| invalid("V2 point cumulative node allowance exceeded"))?;
         self.tree_read_bytes = self
             .tree_read_bytes
-            .checked_add(work.read_bytes)
+            .checked_add(bytes)
             .filter(|n| *n <= self.limits.tree.max_total_bytes)
             .ok_or_else(|| invalid("V2 point cumulative tree bytes exceeded"))?;
-        self.store.verify_layout()?;
-        active(self.deadline, &self.cancel)?;
-        Ok(value)
+        Ok(())
     }
 
     fn revision_roots(
@@ -350,18 +481,12 @@ impl V2ReadSession {
         roots: &SourceRevisionRootsV2,
         path: &RelativePath,
     ) -> io::Result<Option<V2MemberObservation>> {
-        let Some(row) = self.lookup(&roots.members, path.as_str().as_bytes())? else {
+        let Some(member) = self.member_tuple_from_roots(roots, path)? else {
             return Ok(None);
         };
-        if row.len() != 44 {
-            return Err(invalid("V2 point member tuple width differs"));
-        }
-        let digest = Digest256::from_bytes(row[..32].try_into().map_err(invalid)?);
-        let size = u64::from_be_bytes(row[32..40].try_into().map_err(invalid)?);
-        let mode = u32::from_le_bytes(row[40..44].try_into().map_err(invalid)?);
-        if mode & !0o777 != 0 || size > self.limits.max_object_bytes as u64 {
-            return Err(invalid("V2 point object or mode exceeds profile"));
-        }
+        let digest = member.sha256;
+        let size = member.size_bytes;
+        let mode = member.source_mode;
         let (_, objects, _) = self.store.backup_namespaces()?;
         let name = digest.to_hex();
         let mut input = tos_fd_open::open_regular_at(objects, Path::new(&name)).map_err(invalid)?;
@@ -410,12 +535,38 @@ impl V2ReadSession {
         self.store.verify_layout()?;
         active(self.deadline, &self.cancel)?;
         Ok(Some(V2MemberObservation {
+            revision: member.revision,
+            path: member.path,
+            sha256: digest,
+            size_bytes: size,
+            source_mode: mode,
+            bytes,
+        }))
+    }
+
+    fn member_tuple_from_roots(
+        &mut self,
+        roots: &SourceRevisionRootsV2,
+        path: &RelativePath,
+    ) -> io::Result<Option<V2MemberTupleObservation>> {
+        let Some(row) = self.lookup(&roots.members, path.as_str().as_bytes())? else {
+            return Ok(None);
+        };
+        if row.len() != 44 {
+            return Err(invalid("V2 point member tuple width differs"));
+        }
+        let digest = Digest256::from_bytes(row[..32].try_into().map_err(invalid)?);
+        let size = u64::from_be_bytes(row[32..40].try_into().map_err(invalid)?);
+        let mode = u32::from_le_bytes(row[40..44].try_into().map_err(invalid)?);
+        if mode & !0o777 != 0 || size > self.limits.max_object_bytes as u64 {
+            return Err(invalid("V2 point object or mode exceeds profile"));
+        }
+        Ok(Some(V2MemberTupleObservation {
             revision: roots.revision,
             path: path.clone(),
             sha256: digest,
             size_bytes: size,
             source_mode: mode,
-            bytes,
         }))
     }
 }
