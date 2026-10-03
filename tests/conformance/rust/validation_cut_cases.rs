@@ -560,16 +560,13 @@ fn actual_cut_worker_and_pinned_software_preserve_provenance_lab_limits() {
         StoreErrorCode::UnsupportedFormat,
         "an uncaptured software owner path is not proven absent"
     );
-    let worker_path = selected_worker_path();
-    assert!(worker_path.is_absolute());
-    let digest = Digest256::of_bytes(&fs::read(&worker_path).unwrap());
-    let mut schemas = CutWorkerSchemaExecutor::from_cut(
+    let image =
+        super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, &cancelled);
+    let digest = image.identity().sha256;
+    let mut schemas = CutWorkerSchemaExecutor::from_cut_with_image(
         &cut,
         FormatProfile::LegacyPythonObserved20260923,
-        ExactWorkerIdentity {
-            absolute_path: worker_path,
-            sha256: digest,
-        },
+        &image,
         ExecutorBudget::laboratory(),
         CutWorkerLimits {
             max_receipts: 128,
@@ -2573,15 +2570,13 @@ print(json.dumps(rows,ensure_ascii=False,allow_nan=False,separators=(',',':')))
             &cancelled,
         )
         .unwrap();
-    let worker_path = selected_worker_path();
-    let worker_digest = Digest256::of_bytes(&fs::read(&worker_path).unwrap());
-    let mut schemas = CutWorkerSchemaExecutor::from_cut(
+    let image =
+        super::command_form_cases::schema_image(ExecutorBudget::laboratory(), deadline, &cancelled);
+    let worker_digest = image.identity().sha256;
+    let mut schemas = CutWorkerSchemaExecutor::from_cut_with_image(
         &cut,
         FormatProfile::AssertedSourceCandidateV1,
-        ExactWorkerIdentity {
-            absolute_path: worker_path,
-            sha256: worker_digest,
-        },
+        &image,
         ExecutorBudget::laboratory(),
         CutWorkerLimits {
             max_receipts: 512,
