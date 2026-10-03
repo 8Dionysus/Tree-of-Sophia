@@ -406,10 +406,39 @@ impl<'cancel> FoundationRemainingBudget<'cancel> {
         ticket: FoundationBudgetTicket,
         admitted_worst_use: FoundationPhaseUse,
     ) -> Result<()> {
+        self.fail_window_with_source_basis(
+            ticket,
+            admitted_worst_use,
+            FoundationChargeBasis::AdmittedUpperBound,
+        )
+    }
+
+    /// The shared IO owner observed this exact attempted-read term. Preserve
+    /// its measured basis while all other unknown terms retain their worst case.
+    pub(crate) fn fail_window_with_measured_source_reads(
+        &mut self,
+        ticket: FoundationBudgetTicket,
+        mut admitted_worst_use: FoundationPhaseUse,
+        actual_read_bytes: u64,
+    ) -> Result<()> {
+        admitted_worst_use.source_read_bytes = FoundationCharge::measured(actual_read_bytes);
+        self.fail_window_with_source_basis(
+            ticket,
+            admitted_worst_use,
+            FoundationChargeBasis::Measured,
+        )
+    }
+
+    fn fail_window_with_source_basis(
+        &mut self,
+        ticket: FoundationBudgetTicket,
+        admitted_worst_use: FoundationPhaseUse,
+        source_read_basis: FoundationChargeBasis,
+    ) -> Result<()> {
         self.close_ticket(&ticket)?;
         self.poisoned = true;
         let mut worst = admitted_worst_use;
-        worst.source_read_bytes.basis = FoundationChargeBasis::AdmittedUpperBound;
+        worst.source_read_bytes.basis = source_read_basis;
         worst.worker_wire_bytes.basis = FoundationChargeBasis::AdmittedUpperBound;
         worst.state_bytes.basis = FoundationChargeBasis::AdmittedUpperBound;
         worst.issue_count.basis = FoundationChargeBasis::AdmittedUpperBound;
@@ -464,6 +493,40 @@ impl<'cancel> FoundationRemainingBudget<'cancel> {
             .ok_or(Error::Unsupported("foundation invocation budget exhausted"))?;
         remaining.worker_cpu_seconds = seconds_ceiling(remaining.worker_cpu_micros)?;
         Ok(remaining)
+    }
+
+    /// Record only an already-observed terminal source-read suffix. This does
+    /// no work, opens no ticket and returns no remaining allowance. Callers
+    /// may inspect the measured counter delta even when terminal liveness or
+    /// capacity refusal follows the retained charge.
+    pub(crate) fn record_terminal_measured_source_read_suffix(&mut self, bytes: u64) -> Result<()> {
+        let total = self.charged.source_read_bytes.checked_add(bytes);
+        let measured = self.measured_charged.source_read_bytes.checked_add(bytes);
+        let (Some(total), Some(measured)) = (total, measured) else {
+            self.poisoned = true;
+            return Err(Error::Unsupported(
+                "foundation terminal source-read accounting overflow",
+            ));
+        };
+        self.charged.source_read_bytes = total;
+        self.measured_charged.source_read_bytes = measured;
+        if total > self.caps.max_total_read_bytes {
+            self.poisoned = true;
+            return Err(Error::Unsupported(
+                "foundation terminal source reads exceed invocation",
+            ));
+        }
+        if self.open_ticket_id.is_some() {
+            self.poisoned = true;
+            return Err(Error::Unsupported(
+                "foundation terminal source reads with open window",
+            ));
+        }
+        if let Err(error) = self.check_live() {
+            self.poisoned = true;
+            return Err(error);
+        }
+        Ok(())
     }
 
     fn charge(&mut self, usage: FoundationPhaseUse) -> Result<()> {

@@ -7,6 +7,7 @@
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::os::unix::fs::MetadataExt;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
@@ -132,8 +133,20 @@ pub struct StreamedRetiredSourceMemberV1 {
     pub event_raw: Vec<u8>,
 }
 
-/// Exact current revision and all retained bases, with only small revision
-/// metadata in memory and all manifest rows in a caller-owned private O_TMPFILE.
+// Close the caller backing FD before its shared reservation on error paths.
+struct IndexBacking {
+    file: File,
+    policy: Option<Arc<dyn crate::pinned_sqlite::FdIoPolicy>>,
+}
+
+struct BudgetedReadRequest {
+    io: crate::PinnedSqliteIoBudget,
+    space: crate::PinnedSqliteSpaceBudget,
+    deadline: Instant,
+    cancelled: Arc<AtomicBool>,
+}
+
+/// Exact current revision and retained bases; manifest rows live in a private index.
 pub struct StreamedCorpusCutReaderV1 {
     reader: CorpusReader,
     index: crate::PinnedSqliteConnection,
@@ -142,6 +155,9 @@ pub struct StreamedCorpusCutReaderV1 {
     revision_count: u64,
     // Declared after the connection so SQLite closes before its backing FD.
     _index_file: File,
+    // After every retained backing FD: the same reservation cannot release early.
+    _index_policy: Option<Arc<dyn crate::pinned_sqlite::FdIoPolicy>>,
+    budgeted_request: Option<BudgetedReadRequest>,
 }
 
 impl CorpusReader {
@@ -157,19 +173,82 @@ impl CorpusReader {
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<StreamedCorpusCutReaderV1> {
+        self.open_source_cut_streamed_inner(
+            current, limits, index_file, None, None, deadline, cancelled,
+        )
+    }
+
+    /// Keep the strict MAIN-only index while charging manifest reads and actual
+    /// pager I/O to the caller's shared ledgers. Allocated bytes are a separate
+    /// finite reservation, not an I/O cap or filesystem-fit proof.
+    pub fn open_source_cut_streamed_budgeted(
+        &self,
+        current: SourceRevision,
+        limits: StreamedCutReadLimitsV1,
+        index_file: File,
+        io_budget: crate::PinnedSqliteIoBudget,
+        space_budget: crate::PinnedSqliteSpaceBudget,
+        max_index_allocated_bytes: u64,
+        deadline: Instant,
+        cancelled: Arc<AtomicBool>,
+    ) -> Result<StreamedCorpusCutReaderV1> {
+        let limits = limits.validate(self.streamed_cut_root_and_limits().1)?;
+        check_time_budgeted(deadline, &cancelled, Some(&io_budget))?;
+        verify_private_index_file(&index_file, true, None)?;
+        let policy = crate::pinned_sqlite_aux::strict_main_policy(
+            &index_file,
+            io_budget.clone(),
+            space_budget.clone(),
+            limits.max_index_bytes,
+            max_index_allocated_bytes,
+            deadline,
+            cancelled.clone(),
+        )?;
+        let mut reader = self.open_source_cut_streamed_inner(
+            current,
+            limits,
+            index_file,
+            Some(policy),
+            Some(io_budget.clone()),
+            deadline,
+            &cancelled,
+        )?;
+        reader.budgeted_request = Some(BudgetedReadRequest {
+            io: io_budget,
+            space: space_budget,
+            deadline,
+            cancelled,
+        });
+        Ok(reader)
+    }
+
+    fn open_source_cut_streamed_inner(
+        &self,
+        current: SourceRevision,
+        limits: StreamedCutReadLimitsV1,
+        index_file: File,
+        index_policy: Option<Arc<dyn crate::pinned_sqlite::FdIoPolicy>>,
+        io_budget: Option<crate::PinnedSqliteIoBudget>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<StreamedCorpusCutReaderV1> {
+        let backing = IndexBacking {
+            file: index_file,
+            policy: index_policy,
+        };
         let (root, read_limits) = self.streamed_cut_root_and_limits();
         let limits = limits.validate(read_limits)?;
-        check_time(deadline, cancelled)?;
-        let index_identity = verify_private_index_file(&index_file, true, None)?;
-        let mut index = open_index(&index_file, limits)?;
-        verify_private_index_file(&index_file, false, Some(index_identity))?;
+        check_time_budgeted(deadline, cancelled, io_budget.as_ref())?;
+        let index_identity = verify_private_index_file(&backing.file, true, None)?;
+        let mut index = open_index(&backing.file, limits, backing.policy.clone())?;
+        verify_private_index_file(&backing.file, false, Some(index_identity))?;
         create_index_schema(&index, limits)?;
 
         let mut next = Some(current);
         let mut ordinal = 0u64;
         let mut aggregate = CutAggregate::default();
         while let Some(revision) = next {
-            check_time(deadline, cancelled)?;
+            check_time_budgeted(deadline, cancelled, io_budget.as_ref())?;
             let already_loaded = index
                 .query_row(
                     "SELECT 1 FROM revisions WHERE revision=?1",
@@ -185,12 +264,13 @@ impl CorpusReader {
             next = Some(read_exact_manifest(
                 root,
                 &mut index,
-                &index_file,
+                &backing.file,
                 revision,
                 ordinal,
                 read_limits,
                 limits,
                 &mut aggregate,
+                io_budget.as_ref(),
                 deadline,
                 cancelled,
             )?)
@@ -199,25 +279,84 @@ impl CorpusReader {
                 .checked_add(1)
                 .ok_or_else(|| refusal("source revision count overflow"))?;
         }
-        check_time(deadline, cancelled)?;
-        verify_private_index_file(&index_file, false, Some(index_identity))?;
-        check_index_budget(&index, &index_file, limits)?;
+        check_time_budgeted(deadline, cancelled, io_budget.as_ref())?;
+        verify_private_index_file(&backing.file, false, Some(index_identity))?;
+        check_index_budget(&index, &backing.file, limits)?;
         index
             .execute_batch("PRAGMA query_only=ON;")
             .map_err(sql_error)?;
-        check_time(deadline, cancelled)?;
+        check_time_budgeted(deadline, cancelled, io_budget.as_ref())?;
+        if backing
+            .policy
+            .as_ref()
+            .is_some_and(|policy| !policy.check_operation())
+            || io_budget
+                .as_ref()
+                .is_some_and(|budget| budget.snapshot().failure.is_some())
+        {
+            return Err(refusal(
+                "streamed source index ended with a shared-budget failure",
+            ));
+        }
         Ok(StreamedCorpusCutReaderV1 {
             reader: self.clone(),
-            _index_file: index_file,
+            _index_file: backing.file,
             index,
             limits,
             current,
             revision_count: ordinal,
+            _index_policy: backing.policy,
+            budgeted_request: None,
         })
     }
 }
 
 impl StreamedCorpusCutReaderV1 {
+    /// Declared retained terms: (fixed Rust/custody bytes, selected SQLite page
+    /// cache budget). These are not a complete heap bound. Opaque rusqlite,
+    /// SQLite/VFS allocations, statement caches, page pins, allocator overhead
+    /// and process RSS require the caller's separately admitted whole runtime
+    /// envelope across all live connections. Shared request ledgers are charged
+    /// by their original owner, not again here. The shared StoreRoot is included
+    /// conservatively; a whole owner may deduplicate that exact held allocation.
+    pub fn declared_retained_state_bytes(&self) -> Result<(usize, usize)> {
+        if let Some(request) = &self.budgeted_request {
+            check_time_budgeted(request.deadline, &request.cancelled, Some(&request.io))?;
+        }
+        let mut fixed = std::mem::size_of::<Self>()
+            .checked_add(std::mem::size_of::<crate::secure_open::StoreRoot>())
+            .and_then(|bytes| bytes.checked_add(2 * std::mem::size_of::<usize>()))
+            .ok_or_else(|| refusal("streamed declared custody state overflow"))?;
+        if self._index_policy.is_some() {
+            fixed = fixed
+                .checked_add(crate::pinned_sqlite_aux::strict_main_declared_custody_bytes()?)
+                .ok_or_else(|| refusal("streamed declared custody state overflow"))?;
+        }
+        Ok((fixed, self.limits.sqlite_cache_bytes))
+    }
+
+    /// Compare the constructor's resource identities, not limits or freshness.
+    /// Legacy readers are never associated with a budgeted request.
+    pub fn shares_budgeted_request(
+        &self,
+        io: &crate::PinnedSqliteIoBudget,
+        space: &crate::PinnedSqliteSpaceBudget,
+        deadline: Instant,
+        cancelled: &Arc<AtomicBool>,
+    ) -> bool {
+        self.budgeted_request.as_ref().is_some_and(|request| {
+            request.io.shares_with(io)
+                && request.space.shares_with(space)
+                && request.deadline == deadline
+                && Arc::ptr_eq(&request.cancelled, cancelled)
+        })
+    }
+
+    /// Validated raw manifest-row ceiling for precharging owned locator state.
+    pub fn manifest_row_byte_limit(&self) -> usize {
+        self.limits.max_manifest_row_bytes
+    }
+
     /// Content ceilings verified while constructing the complete derived index.
     pub fn content_limits(&self) -> CutReadLimits {
         self.limits.cut
@@ -389,6 +528,50 @@ impl StreamedCorpusCutReaderV1 {
             .optional()
             .map_err(sql_error)?;
         path.map(decode_path).transpose()
+    }
+
+    /// Look up an identity without allocating an owned path before checking
+    /// its caller allowance. This covers the requested path bytes and inline
+    /// RelativePath state, not SQLite pager or allocator/RSS overhead.
+    pub fn identity_path_bounded(
+        &self,
+        revision: SourceRevision,
+        id: &str,
+        max_owned_state_bytes: usize,
+    ) -> Result<Option<RelativePath>> {
+        self.require_revision(revision)?;
+        let path = self
+            .index
+            .query_row(
+                "SELECT path FROM identities WHERE revision=?1 AND id=?2",
+                params![revision.0.as_bytes().as_slice(), id],
+                |row| {
+                    let value = row.get_ref(0)?;
+                    Ok(match value {
+                        rusqlite::types::ValueRef::Text(bytes) => {
+                            let state =
+                                bytes.len().checked_add(std::mem::size_of::<RelativePath>());
+                            if state.is_none_or(|state| state > max_owned_state_bytes) {
+                                Err(refusal(
+                                    "private source identity path exceeds owned-state allowance",
+                                ))
+                            } else {
+                                std::str::from_utf8(bytes)
+                                    .map_err(|_| mismatch("private source index path changed"))
+                                    .and_then(|path| {
+                                        RelativePath::parse(path).map_err(|_| {
+                                            mismatch("private source index path changed")
+                                        })
+                                    })
+                            }
+                        }
+                        _ => Err(mismatch("private source index path changed")),
+                    })
+                },
+            )
+            .optional()
+            .map_err(sql_error)?;
+        path.transpose()
     }
 
     pub fn identity_after(
@@ -843,6 +1026,7 @@ fn read_exact_manifest(
     _read_limits: ReadLimits,
     limits: StreamedCutReadLimitsV1,
     aggregate: &mut CutAggregate,
+    io_budget: Option<&crate::PinnedSqliteIoBudget>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<StreamedRevisionV1> {
@@ -868,7 +1052,14 @@ fn read_exact_manifest(
     })?;
     let manifest_cap = limits.manifest_json.max_bytes;
     let row_cap = limits.max_manifest_row_bytes.min(manifest_cap);
-    let mut cursor = ManifestCursor::new(manifest, manifest_cap, row_cap, deadline, cancelled);
+    let mut cursor = ManifestCursor::new(
+        manifest,
+        manifest_cap,
+        row_cap,
+        io_budget,
+        deadline,
+        cancelled,
+    );
     cursor.expect_byte(b'{')?;
 
     let ordinal_key = ordinal.to_be_bytes();
@@ -903,7 +1094,7 @@ fn read_exact_manifest(
     membership.update(b"tos-val-full-membership-v1\0");
 
     for (top_index, expected_key) in TOP_LEVEL_KEYS.iter().enumerate() {
-        check_time(deadline, cancelled)?;
+        check_time_budgeted(deadline, cancelled, io_budget)?;
         if top_index != 0 {
             cursor.expect_byte(b',')?;
         }
@@ -953,7 +1144,7 @@ fn read_exact_manifest(
                 let mut previous_source: Option<String> = None;
                 let mut first = true;
                 loop {
-                    check_time(deadline, cancelled)?;
+                    check_time_budgeted(deadline, cancelled, io_budget)?;
                     if cursor.peek_byte()? == Some(b'}') {
                         cursor.expect_byte(b'}')?;
                         body.update(b"}");
@@ -1006,7 +1197,7 @@ fn read_exact_manifest(
                     let mut previous_target: Option<RelativePath> = None;
                     let mut first_target = true;
                     loop {
-                        check_time(deadline, cancelled)?;
+                        check_time_budgeted(deadline, cancelled, io_budget)?;
                         if cursor.peek_byte()? == Some(b']') {
                             cursor.expect_byte(b']')?;
                             body.update(b"]");
@@ -1070,7 +1261,7 @@ fn read_exact_manifest(
                 let mut previous: Option<RelativePath> = None;
                 let mut first = true;
                 loop {
-                    check_time(deadline, cancelled)?;
+                    check_time_budgeted(deadline, cancelled, io_budget)?;
                     if cursor.peek_byte()? == Some(b']') {
                         cursor.expect_byte(b']')?;
                         body.update(b"]");
@@ -1157,7 +1348,7 @@ fn read_exact_manifest(
                         check_index_budget(index, index_file, limits)?;
                     }
                 }
-                validate_dependencies(index, revision, deadline, cancelled)?;
+                validate_dependencies(index, revision, io_budget, deadline, cancelled)?;
             }
             "identities" => {
                 record_visits(&mut visits, 1, 1, limits.manifest_json)?;
@@ -1166,7 +1357,7 @@ fn read_exact_manifest(
                 let mut previous_id: Option<String> = None;
                 let mut first = true;
                 loop {
-                    check_time(deadline, cancelled)?;
+                    check_time_budgeted(deadline, cancelled, io_budget)?;
                     if cursor.peek_byte()? == Some(b'}') {
                         cursor.expect_byte(b'}')?;
                         body.update(b"}");
@@ -1246,7 +1437,7 @@ fn read_exact_manifest(
                 body.update(b"[");
                 let mut first = true;
                 loop {
-                    check_time(deadline, cancelled)?;
+                    check_time_budgeted(deadline, cancelled, io_budget)?;
                     if cursor.peek_byte()? == Some(b']') {
                         cursor.expect_byte(b']')?;
                         body.update(b"]");
@@ -1427,8 +1618,77 @@ fn read_exact_manifest(
     })
 }
 
+pub(crate) struct ManifestRead<'a> {
+    file: File,
+    io_budget: Option<&'a crate::PinnedSqliteIoBudget>,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+}
+impl Read for ManifestRead<'_> {
+    fn read(&mut self, output: &mut [u8]) -> io::Result<usize> {
+        if let Some(budget) = self.io_budget {
+            budget
+                .charge_read(output.len() as u64)
+                .map_err(|_| io::Error::other("source manifest read budget exceeded"))?;
+        }
+        self.check_running()?;
+        let result = self.file.read(output);
+        match result {
+            Ok(count) => {
+                if let Some(budget) = self.io_budget {
+                    budget
+                        .record_read_returned(count as u64)
+                        .map_err(|_| io::Error::other("source manifest read accounting failed"))?;
+                }
+                self.check_running()?;
+                Ok(count)
+            }
+            Err(error) => {
+                if error.kind() != io::ErrorKind::Interrupted {
+                    if let Some(budget) = self.io_budget {
+                        budget.fail(crate::PinnedSqliteIoFailure::Io);
+                    }
+                }
+                Err(error)
+            }
+        }
+    }
+}
+
+impl<'a> ManifestRead<'a> {
+    pub(crate) fn new(
+        file: File,
+        io_budget: Option<&'a crate::PinnedSqliteIoBudget>,
+        deadline: Instant,
+        cancelled: &'a AtomicBool,
+    ) -> Self {
+        Self {
+            file,
+            io_budget,
+            deadline,
+            cancelled,
+        }
+    }
+    fn check_running(&self) -> io::Result<()> {
+        let failure = if Instant::now() >= self.deadline {
+            Some(crate::PinnedSqliteIoFailure::Deadline)
+        } else if self.cancelled.load(Ordering::Acquire) {
+            Some(crate::PinnedSqliteIoFailure::Cancelled)
+        } else {
+            None
+        };
+        if let Some(failure) = failure {
+            if let Some(budget) = self.io_budget {
+                budget.fail(failure);
+            }
+            return Err(io::Error::other("source manifest read stopped"));
+        }
+        Ok(())
+    }
+}
+
 struct ManifestCursor<'a> {
-    reader: BufReader<File>,
+    reader: BufReader<ManifestRead<'a>>,
     consumed: usize,
     max_bytes: usize,
     max_row_bytes: usize,
@@ -1441,11 +1701,20 @@ impl<'a> ManifestCursor<'a> {
         file: File,
         max_bytes: usize,
         max_row_bytes: usize,
+        io_budget: Option<&'a crate::PinnedSqliteIoBudget>,
         deadline: Instant,
         cancelled: &'a AtomicBool,
     ) -> Self {
         Self {
-            reader: BufReader::with_capacity(max_bytes.min(64 * 1024).max(1), file),
+            reader: BufReader::with_capacity(
+                max_bytes.min(64 * 1024).max(1),
+                ManifestRead {
+                    file,
+                    io_budget,
+                    deadline,
+                    cancelled,
+                },
+            ),
             consumed: 0,
             max_bytes,
             max_row_bytes,
@@ -1455,7 +1724,11 @@ impl<'a> ManifestCursor<'a> {
     }
 
     fn peek_byte(&mut self) -> Result<Option<u8>> {
-        check_time(self.deadline, self.cancelled)?;
+        check_time_budgeted(
+            self.deadline,
+            self.cancelled,
+            self.reader.get_ref().io_budget,
+        )?;
         self.peek_byte_unchecked()
     }
 
@@ -1468,7 +1741,11 @@ impl<'a> ManifestCursor<'a> {
 
     fn next_byte(&mut self) -> Result<u8> {
         if self.consumed & 0x0fff == 0 {
-            check_time(self.deadline, self.cancelled)?;
+            check_time_budgeted(
+                self.deadline,
+                self.cancelled,
+                self.reader.get_ref().io_budget,
+            )?;
         }
         let byte = self.peek_byte_unchecked()?.ok_or_else(|| {
             StoreError::new(
@@ -1737,6 +2014,7 @@ fn sqlite_member_exists(
 fn validate_dependencies(
     index: &Connection,
     revision: SourceRevision,
+    io_budget: Option<&crate::PinnedSqliteIoBudget>,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<()> {
@@ -1747,7 +2025,7 @@ fn validate_dependencies(
         .query(params![revision.0.as_bytes().as_slice()])
         .map_err(sql_error)?;
     while let Some(row) = sources.next().map_err(sql_error)? {
-        check_time(deadline, cancelled)?;
+        check_time_budgeted(deadline, cancelled, io_budget)?;
         let source = decode_path(row.get::<_, String>(0).map_err(sql_error)?)?;
         if !sqlite_member_exists(index, revision, &source)? {
             return Err(StoreError::new(
@@ -1766,7 +2044,7 @@ fn validate_dependencies(
         .query(params![revision.0.as_bytes().as_slice()])
         .map_err(sql_error)?;
     while let Some(row) = targets.next().map_err(sql_error)? {
-        check_time(deadline, cancelled)?;
+        check_time_budgeted(deadline, cancelled, io_budget)?;
         let target = decode_path(row.get::<_, String>(0).map_err(sql_error)?)?;
         if !sqlite_member_exists(index, revision, &target)? {
             return Err(StoreError::new(
@@ -1781,8 +2059,9 @@ fn validate_dependencies(
 fn open_index(
     file: &File,
     limits: StreamedCutReadLimitsV1,
+    policy: Option<Arc<dyn crate::pinned_sqlite::FdIoPolicy>>,
 ) -> Result<crate::PinnedSqliteConnection> {
-    let index = crate::PinnedSqliteConnection::open_private_derived(file)?;
+    let index = crate::PinnedSqliteConnection::open_private_derived_with_policy(file, policy)?;
     let cache_kib = limits
         .sqlite_cache_bytes
         .div_ceil(1024)
@@ -2037,6 +2316,26 @@ impl Write for TimedStage<'_> {
 
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
+    }
+}
+
+pub(crate) fn check_time_budgeted(
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    io_budget: Option<&crate::PinnedSqliteIoBudget>,
+) -> Result<()> {
+    if let Some(budget) = io_budget {
+        if cancelled.load(Ordering::Acquire) {
+            budget.fail(crate::PinnedSqliteIoFailure::Cancelled);
+        } else if Instant::now() >= deadline {
+            budget.fail(crate::PinnedSqliteIoFailure::Deadline);
+        }
+        if budget.snapshot().failure.is_some() {
+            return Err(refusal("source read stopped by shared I/O ledger"));
+        }
+        Ok(())
+    } else {
+        check_time(deadline, cancelled)
     }
 }
 

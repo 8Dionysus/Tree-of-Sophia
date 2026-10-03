@@ -2,8 +2,15 @@
 //! Historical transport evidence never grants a current writer or admission.
 use crate::PredicateRead;
 use crate::item_rules::{ItemLimits, ItemRefusal};
-use crate::record_biblio_cut::{account, check, current, reserve};
-use crate::source_cut::{CutExecutionBinding, CutSchemaExecutor, CutWorkerSchemaExecutor};
+use crate::record_biblio_cut::{
+    SourceCutInput, SourceCutInputCoverage, SourceCutInputWithIdentity, SourceCutMemberMeta,
+    account, check, current, reserve,
+};
+use crate::source_foundation_records::SourceFoundationRecordsStreamedReport;
+use crate::source_cut::{
+    CandidateCutWorkerSchemaExecutor, CutExecutionBinding, CutPreparedSchemaExecutionBinding,
+    CutSchemaExecutor, CutSchemaReceiptRange, CutWorkerSchemaExecutor,
+};
 use serde_json::{Value, json};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
@@ -14,7 +21,7 @@ use tos_foundation::{
     RelativePath, SourceRevision, canonical_bytes_v1, canonical_count_v1, emit_json_profile,
     parse_json,
 };
-use tos_source_store::{CorpusCutReader, SourceMembershipV1};
+use tos_source_store::{CorpusCutReader, SourceMembershipV1, SourcePresenceV1};
 
 const HOME: &str = "ToS/source-witnesses";
 const CONTROL: &str = "ToS/source-witnesses/.metadata-publication.json";
@@ -450,6 +457,174 @@ pub fn verify_work_expression_from_cut(
     reader.verify(claim_path, claim, schemas)
 }
 
+fn strip_jsonl_line_ending(raw: &[u8]) -> &[u8] {
+    raw.strip_suffix(b"\n").unwrap_or(raw)
+}
+
+/// Verify one exact candidate Claim against its current source carrier and the
+/// same retained native transaction/history kernel used by cut-backed calls.
+/// The caller supplies the complete source coverage produced by the Records
+/// pass; this function verifies that fence on both sides of the replay.
+#[allow(clippy::too_many_arguments)]
+pub fn verify_native_compound_from_input<I: Copy + Eq>(
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+    claim_path: &str,
+    selected_claim_raw: &[u8],
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<CandidateNativeCompoundReadObservation<I>, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    if input.input_identity() != records.input_identity()
+        || input.input_identity() != schemas.input_identity()
+        || coverage.membership() != *records.source_membership()
+        || coverage.source_bytes_read() != records.cost().selected_current_member_bytes
+    {
+        return Err(bad("candidate native Claim input/report identity"));
+    }
+    metadata_path(claim_path, false)?;
+    if !claim_path.ends_with("/source-claims.jsonl") {
+        return Err(bad("candidate native Claim carrier"));
+    }
+    let candidate_schema = records.candidate_schema_identity().ok_or_else(|| {
+        ItemRefusal::Unsupported("candidate native replay requires streamed schema identity".into())
+    })?;
+    if candidate_schema.profile() != schemas.profile()
+        || candidate_schema.schema_set_digest() != schemas.schema_set_digest()
+        || candidate_schema.contract_selection_digest() != schemas.contract_selection_digest()
+        || candidate_schema.prepared_execution_binding() != schemas.prepared_execution_binding()
+        || candidate_schema.selected_resource_count()
+            != u64::try_from(schemas.source_resource_count()).map_err(|_| ItemRefusal::Budget)?
+        || candidate_schema.selected_resource_bytes()
+            != u64::try_from(schemas.schema_bytes()).map_err(|_| ItemRefusal::Budget)?
+    {
+        return Err(bad("candidate native Claim schema/report binding"));
+    }
+    input.verify_current_fence(coverage, limits.deadline, cancelled)?;
+    let selected_body = strip_jsonl_line_ending(selected_claim_raw);
+    if selected_body.is_empty() || selected_body.len() > limits.max_member_bytes.min(MAX_FILE) {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "candidate native selected Claim row bytes",
+            used: Some(selected_body.len() as u64),
+            limit: Some(limits.max_member_bytes.min(MAX_FILE) as u64),
+        });
+    }
+    let mut reader = NativeCompoundReader::new_from_input(input.source_input(), limits, cancelled)?;
+    let carrier_limit = limits.max_member_bytes.min(MAX_SIDE);
+    let claims_raw = reader.required(claim_path, carrier_limit)?;
+    let mut selected_line = None;
+    let mut exact_matches = 0usize;
+    for line in claims_raw.split(|byte| *byte == b'\n') {
+        check(limits.deadline, cancelled)?;
+        if line == selected_body {
+            exact_matches = exact_matches.checked_add(1).ok_or(ItemRefusal::Budget)?;
+            if exact_matches == 1 {
+                selected_line = Some(line);
+            }
+        }
+    }
+    if exact_matches != 1 {
+        return Err(bad("candidate native selected Claim row is not unique/current"));
+    }
+    let selected_line = selected_line.ok_or_else(|| bad("candidate native selected Claim row"))?;
+    let claim = reader.decoded(selected_line)?;
+    let claim_state = crate::record_biblio_cut::decoded_state(&claim)?;
+    if text(&claim, "claim_id")?.is_empty() || !claim.is_object() {
+        return Err(bad("candidate native selected Claim object"));
+    }
+    let mut diagnostics_cost = crate::record_rules::CandidateLocalClaimDiagnosticsCost::default();
+    let input_identity = *input.input_identity();
+    let current_membership = *records.source_membership();
+    let prepared_execution_binding = schemas.prepared_execution_binding();
+    let schema_set_sha256 = schemas.schema_set_digest();
+    let contract_selection_sha256 = schemas.contract_selection_digest();
+    let mut validate_local_claim = |raw: &[u8],
+                                    schemas: &mut CandidateCutWorkerSchemaExecutor<I>,
+                                    local_limits: ItemLimits| {
+        let (decoded, _) = crate::record_biblio_cut::bounded_decoded_state(
+            raw,
+            JsonLimits::default(),
+            local_limits.max_state_bytes,
+            local_limits.deadline,
+            cancelled,
+        )?;
+        let is_current_claim = &decoded == &claim;
+        drop(decoded);
+        let current_raw = if is_current_claim {
+            selected_line
+        } else {
+            raw
+        };
+        let mut local = crate::record_rules::validate_source_claim_from_input(
+            input,
+            records,
+            current_raw,
+            schemas,
+            local_limits,
+            cancelled,
+        )?;
+        if !local.issues.is_empty()
+            || local.input_identity != input_identity
+            || local.current_membership != current_membership
+            || local.prepared_execution_binding != schemas.prepared_execution_binding()
+            || local.schema_set_sha256 != schemas.schema_set_digest()
+            || local.contract_selection_sha256 != schemas.contract_selection_digest()
+        {
+            return Err(bad("candidate native Claim local-profile binding"));
+        }
+        merge_candidate_diagnostics_cost(&mut diagnostics_cost, local.diagnostics_cost)?;
+        Ok(LocalClaimValidation {
+            dependency_digests: std::mem::take(&mut local.dependency_digests),
+            dependency_bytes_read: local.dependency_bytes_read,
+        })
+    };
+    let observation = reader.verify_with_local_claim_validator(
+        claim_path,
+        &claim,
+        schemas,
+        &mut validate_local_claim,
+    )?;
+    drop(validate_local_claim);
+    drop(claim);
+    reader.release_temporary(claim_state);
+    let claims_raw_state = claims_raw
+        .len()
+        .checked_add(std::mem::size_of::<Vec<u8>>())
+        .ok_or(ItemRefusal::Budget)?;
+    drop(selected_line);
+    drop(claims_raw);
+    reader.release_temporary(claims_raw_state);
+    reader.release_raw_cache();
+    input.verify_current_fence(coverage, limits.deadline, cancelled)?;
+    let observation = measured_compound_observation(reader, observation)?;
+    let typed_wrapper_state = std::mem::size_of::<CandidateNativeCompoundReadObservation<I>>()
+        .checked_sub(std::mem::size_of::<NativeCompoundReadObservation>())
+        .ok_or(ItemRefusal::Budget)?;
+    let returned_state_bytes = observation
+        .returned_state_bytes
+        .checked_add(typed_wrapper_state)
+        .ok_or(ItemRefusal::Budget)?;
+    if returned_state_bytes > limits.max_state_bytes {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "candidate native compound returned state",
+            used: Some(returned_state_bytes as u64),
+            limit: Some(limits.max_state_bytes as u64),
+        });
+    }
+    Ok(CandidateNativeCompoundReadObservation {
+        input_identity,
+        current_membership,
+        prepared_execution_binding,
+        schema_set_sha256,
+        contract_selection_sha256,
+        observation,
+        diagnostics_cost,
+        returned_state_bytes,
+    })
+}
+
 /// Actual read cost returned to the Item owner for cumulative topology admission.
 #[derive(Debug)]
 pub struct NativeCompoundReadObservation {
@@ -464,13 +639,64 @@ pub struct NativeCompoundReadObservation {
     pub returned_state_bytes: usize,
 }
 
+/// Candidate-fenced native replay evidence. The input identity and complete
+/// membership stay in the source adapter's opaque domain; no SourceRevision
+/// is synthesized for a spooled candidate.
+#[derive(Debug)]
+pub struct CandidateNativeCompoundReadObservation<I> {
+    input_identity: I,
+    current_membership: SourceMembershipV1,
+    prepared_execution_binding: CutPreparedSchemaExecutionBinding,
+    schema_set_sha256: Digest256,
+    contract_selection_sha256: Digest256,
+    observation: NativeCompoundReadObservation,
+    diagnostics_cost: crate::record_rules::CandidateLocalClaimDiagnosticsCost,
+    returned_state_bytes: usize,
+}
+
+impl<I> CandidateNativeCompoundReadObservation<I> {
+    pub fn input_identity(&self) -> &I {
+        &self.input_identity
+    }
+
+    pub fn current_membership(&self) -> SourceMembershipV1 {
+        self.current_membership
+    }
+
+    pub fn prepared_execution_binding(&self) -> CutPreparedSchemaExecutionBinding {
+        self.prepared_execution_binding
+    }
+
+    pub fn schema_set_sha256(&self) -> Digest256 {
+        self.schema_set_sha256
+    }
+
+    pub fn contract_selection_sha256(&self) -> Digest256 {
+        self.contract_selection_sha256
+    }
+
+    pub fn observation(&self) -> &NativeCompoundReadObservation {
+        &self.observation
+    }
+
+    pub fn diagnostics_cost(
+        &self,
+    ) -> crate::record_rules::CandidateLocalClaimDiagnosticsCost {
+        self.diagnostics_cost
+    }
+
+    pub fn returned_state_bytes(&self) -> usize {
+        self.returned_state_bytes
+    }
+}
+
 /// Successful exact-cut observation of one maintained native source record's
 /// current revision chain and the publication transports named by that chain.
 /// The constructor is private to this module so callers cannot manufacture
 /// lineage evidence from a LayerFamilySource read or a copied JSON document.
 #[derive(Debug)]
-pub struct NativeRecordHistoryReadObservation {
-    source_revision: SourceRevision,
+pub struct NativeRecordHistoryReadObservation<I = SourceRevision> {
+    input_identity: I,
     current_membership: SourceMembershipV1,
     record_path: String,
     identity_field: &'static str,
@@ -495,9 +721,19 @@ pub struct NativeRecordHistoryTransactionObservation {
     transport: NativeTransportState,
 }
 
-impl NativeRecordHistoryReadObservation {
+/// Candidate-fenced history observations preserve the caller's opaque input
+/// identity and never synthesize a `SourceRevision`.
+pub type CandidateNativeRecordHistoryReadObservation<I> = NativeRecordHistoryReadObservation<I>;
+
+impl NativeRecordHistoryReadObservation<SourceRevision> {
     pub fn source_revision(&self) -> SourceRevision {
-        self.source_revision
+        self.input_identity
+    }
+}
+
+impl<I> NativeRecordHistoryReadObservation<I> {
+    pub fn input_identity(&self) -> &I {
+        &self.input_identity
     }
 
     pub fn current_membership(&self) -> SourceMembershipV1 {
@@ -599,7 +835,48 @@ pub fn selected_record_history_from_cut(
         .stream(source_revision)
         .map_err(|_| bad("selected native record source-cut membership"))?
         .expectation();
-    let mut reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    let reader = NativeCompoundReader::new(cut, limits, cancelled)?;
+    selected_record_history_with_reader(
+        source_revision,
+        current_membership,
+        record_path,
+        limits,
+        cancelled,
+        reader,
+    )
+}
+
+/// Reconstruct the same maintained native record history through a borrowed
+/// current-input adapter. The adapter identity and report membership stay
+/// opaque; all exact members and prefix closures are read from that input.
+pub fn selected_record_history_from_input<I: Copy + Eq>(
+    input: &dyn SourceCutInputWithIdentity<I>,
+    current_membership: SourceMembershipV1,
+    record_path: &str,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+) -> Result<CandidateNativeRecordHistoryReadObservation<I>, ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    let input_identity = *input.input_identity();
+    let reader = NativeCompoundReader::new_from_input(input.source_input(), limits, cancelled)?;
+    selected_record_history_with_reader(
+        input_identity,
+        current_membership,
+        record_path,
+        limits,
+        cancelled,
+        reader,
+    )
+}
+
+fn selected_record_history_with_reader<I: Copy>(
+    input_identity: I,
+    current_membership: SourceMembershipV1,
+    record_path: &str,
+    limits: ItemLimits,
+    cancelled: &AtomicBool,
+    mut reader: NativeCompoundReader<'_>,
+) -> Result<NativeRecordHistoryReadObservation<I>, ItemRefusal> {
     let scope = reader.temporary_state;
     let selected_package = reader.selected(record_path)?;
     let basename = record_path
@@ -728,7 +1005,9 @@ pub fn selected_record_history_from_cut(
     let identity_state = identity
         .len()
         .checked_add(record_path.len())
-        .and_then(|n| n.checked_add(std::mem::size_of::<NativeRecordHistoryReadObservation>()))
+        .and_then(|n| {
+            n.checked_add(std::mem::size_of::<NativeRecordHistoryReadObservation<I>>())
+        })
         .ok_or(ItemRefusal::Budget)?;
     reader.temporary(identity_state)?;
     let history_path_state = history_ref.as_ref().map_or(0, String::len)
@@ -789,7 +1068,7 @@ pub fn selected_record_history_from_cut(
     }
 
     Ok(NativeRecordHistoryReadObservation {
-        source_revision,
+        input_identity,
         current_membership,
         record_path: record_path.to_owned(),
         identity_field,
@@ -1739,7 +2018,8 @@ struct Transaction {
 /// One family invocation owns the directory index and deduplicated exact reads.
 /// Neither cache nor historical state survives the selected operation.
 pub(crate) struct NativeCompoundReader<'a> {
-    cut: &'a CorpusCutReader,
+    cut: Option<&'a CorpusCutReader>,
+    input: Option<&'a dyn SourceCutInput>,
     limits: ItemLimits,
     cancelled: &'a AtomicBool,
     paths: BTreeSet<&'a str>,
@@ -1760,7 +2040,8 @@ impl<'a> NativeCompoundReader<'a> {
         cancelled: &'a AtomicBool,
     ) -> Result<Self, ItemRefusal> {
         let mut this = Self {
-            cut,
+            cut: Some(cut),
+            input: None,
             limits,
             cancelled,
             paths: BTreeSet::new(),
@@ -1783,6 +2064,36 @@ impl<'a> NativeCompoundReader<'a> {
             )?;
             this.paths.insert(member.path.as_str());
         }
+        Self::initialize(this)
+    }
+
+    /// Candidate history reads retain no whole-source path set. Exact member
+    /// probes and bounded directory-prefix cursors stay on the borrowed input.
+    fn new_from_input(
+        input: &'a dyn SourceCutInput,
+        limits: ItemLimits,
+        cancelled: &'a AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        let this = Self {
+            cut: None,
+            input: Some(input),
+            limits,
+            cancelled,
+            paths: BTreeSet::new(),
+            raw: BTreeMap::new(),
+            raw_cache_state: 0,
+            transactions: BTreeMap::new(),
+            histories: BTreeMap::new(),
+            state: std::mem::size_of::<Self>(),
+            temporary_state: 0,
+            bytes: 0,
+            reads: Vec::new(),
+            publication: None,
+        };
+        Self::initialize(this)
+    }
+
+    fn initialize(mut this: Self) -> Result<Self, ItemRefusal> {
         let startup_temporary = this.temporary_state;
         if let Some(raw) = this.optional(CONTROL, 8192)? {
             let state = this.decoded(&raw)?;
@@ -1797,6 +2108,10 @@ impl<'a> NativeCompoundReader<'a> {
         this.release_temporary_since(startup_temporary);
         this.release_raw_cache();
         Ok(this)
+    }
+
+    fn cut(&self) -> &CorpusCutReader {
+        self.cut.expect("cut-backed compound reader")
     }
     // `verify` has released its reconstruction temporaries and optional raw
     // cache before bibliography grows Rules. The remaining state still owns
@@ -2055,10 +2370,62 @@ impl<'a> NativeCompoundReader<'a> {
                 .clone();
             return Ok(Some(copy));
         }
-        if !self.paths.contains(path) {
-            return Ok(None);
-        }
-        let raw = current(self.cut, path, self.limits, self.cancelled, &mut self.bytes)?;
+        let raw = if let Some(input) = self.input {
+            if input.path_presence(path, self.limits.deadline, self.cancelled)?
+                != Some(SourcePresenceV1::File)
+            {
+                return Ok(None);
+            }
+            let mut selected = None;
+            let state_before = self.state;
+            let state_limit = self.limits.max_state_bytes;
+            input.with_current_member(
+                path,
+                cap,
+                self.limits.deadline,
+                self.cancelled,
+                &mut |meta: SourceCutMemberMeta<'_>, bytes| {
+                    let copied_state = bytes
+                        .len()
+                        .checked_add(std::mem::size_of::<Vec<u8>>())
+                        .ok_or(ItemRefusal::Budget)?;
+                    if bytes.len() > cap || meta.size_bytes != bytes.len() as u64 {
+                        return Err(bad("compound candidate member size"));
+                    }
+                    if state_before
+                        .checked_add(copied_state)
+                        .is_none_or(|used| used > state_limit)
+                    {
+                        return Err(ItemRefusal::BudgetCheck {
+                            check: "compound candidate member copy",
+                            used: state_before
+                                .checked_add(copied_state)
+                                .map(|used| used as u64),
+                            limit: Some(state_limit as u64),
+                        });
+                    }
+                    selected = Some(bytes.to_vec());
+                    Ok(())
+                },
+            )?;
+            let raw = selected.ok_or_else(|| bad("compound candidate member disappeared"))?;
+            self.bytes = self
+                .bytes
+                .checked_add(raw.len() as u64)
+                .ok_or(ItemRefusal::Budget)?;
+            raw
+        } else {
+            if !self.paths.contains(path) {
+                return Ok(None);
+            }
+            current(
+                self.cut(),
+                path,
+                self.limits,
+                self.cancelled,
+                &mut self.bytes,
+            )?
+        };
         if raw.len() > cap {
             return Err(ItemRefusal::BudgetCheck {
                 check: "compound selected member bytes",
@@ -2098,6 +2465,116 @@ impl<'a> NativeCompoundReader<'a> {
     fn required(&mut self, path: &str, cap: usize) -> Result<Vec<u8>, ItemRefusal> {
         self.optional(path, cap)?
             .ok_or_else(|| bad(&format!("missing selected member {path}")))
+    }
+    fn current_digest_size(&mut self, path: &str) -> Result<(Digest256, u64), ItemRefusal> {
+        if let Some(cut) = self.cut {
+            let relative = RelativePath::parse(path)
+                .map_err(|_| bad("compound current member path"))?;
+            let member = cut
+                .current()
+                .member(&relative)
+                .ok_or_else(|| bad("compound current member absent"))?;
+            return Ok((member.sha256, member.size_bytes));
+        }
+        let raw = self.required(path, MAX_SIDE)?;
+        let size = u64::try_from(raw.len()).map_err(|_| ItemRefusal::Budget)?;
+        let digest = Digest256::of_bytes(&raw);
+        let raw_state = raw
+            .len()
+            .checked_add(std::mem::size_of::<Vec<u8>>())
+            .ok_or(ItemRefusal::Budget)?;
+        drop(raw);
+        self.release_temporary(raw_state);
+        Ok((digest, size))
+    }
+    /// Select only the names under one exact source directory. Cut-backed
+    /// history keeps its existing borrowed full-cut index; candidate-backed
+    /// history obtains the same closure from the indexed prefix cursor and
+    /// retains no corpus-wide path map.
+    fn current_member_names_under(
+        &mut self,
+        directory: &str,
+        max_entries: usize,
+    ) -> Result<BTreeSet<String>, ItemRefusal> {
+        let parsed = RelativePath::parse(directory)
+            .map_err(|_| bad("compound current directory path"))?;
+        if parsed.as_str() != directory || max_entries == 0 {
+            return Err(bad("compound canonical current directory"));
+        }
+        let prefix_bytes = directory
+            .len()
+            .checked_add(1)
+            .and_then(|n| n.checked_add(std::mem::size_of::<String>()))
+            .ok_or(ItemRefusal::Budget)?;
+        self.temporary(prefix_bytes)?;
+        let prefix = format!("{directory}/");
+        let state_before_rows = self.state;
+        let state_limit = self.limits.max_state_bytes;
+        let mut retained = 0usize;
+        let mut names = BTreeSet::new();
+        let mut insert_name = |path: &str| -> Result<(), ItemRefusal> {
+            let name = path
+                .strip_prefix(&prefix)
+                .filter(|name| !name.is_empty())
+                .ok_or_else(|| bad("compound current directory range path"))?;
+            if names.len() >= max_entries {
+                return Err(ItemRefusal::BudgetCheck {
+                    check: "compound current directory member count",
+                    used: Some((names.len() as u64).saturating_add(1)),
+                    limit: Some(max_entries as u64),
+                });
+            }
+            let next_retained = retained
+                .checked_add(name.len())
+                .and_then(|n| n.checked_add(std::mem::size_of::<String>() + 128))
+                .ok_or(ItemRefusal::Budget)?;
+            if state_before_rows
+                .checked_add(next_retained)
+                .is_none_or(|used| used > state_limit)
+            {
+                return Err(ItemRefusal::BudgetCheck {
+                    check: "compound current directory name state",
+                    used: state_before_rows
+                        .checked_add(next_retained)
+                        .map(|used| used as u64),
+                    limit: Some(state_limit as u64),
+                });
+            }
+            if !names.insert(name.to_owned()) {
+                return Err(bad("compound current directory duplicate path"));
+            }
+            retained = next_retained;
+            Ok(())
+        };
+        if let Some(input) = self.input {
+            let mut callback_count = 0u64;
+            let coverage = input.for_each_current_member_meta_under(
+                directory,
+                self.limits.deadline,
+                self.cancelled,
+                &mut |meta| {
+                    callback_count = callback_count.checked_add(1).ok_or(ItemRefusal::Budget)?;
+                    insert_name(meta.path)
+                },
+            )?;
+            if coverage.directory() != directory
+                || coverage.member_count() != callback_count
+                || names.len() as u64 != callback_count
+            {
+                return Err(bad("compound current directory coverage differs"));
+            }
+        } else {
+            for path in self
+                .paths
+                .range::<str, _>((std::ops::Bound::Included(prefix.as_str()), std::ops::Bound::Unbounded))
+                .take_while(|path| path.starts_with(&prefix))
+            {
+                insert_name(path)?;
+            }
+        }
+        self.temporary(retained)?;
+        self.release_temporary(prefix_bytes);
+        Ok(names)
     }
     fn record_read(&mut self, read: PredicateRead) -> Result<(), ItemRefusal> {
         reserve(
@@ -2582,16 +3059,7 @@ impl<'a> NativeCompoundReader<'a> {
             files.insert(name.clone(), raw);
             expected.insert(blob);
         }
-        let prefix = format!("{home}/");
-        let actual: BTreeSet<_> = self
-            .paths
-            .range::<str, _>((
-                std::ops::Bound::Included(prefix.as_str()),
-                std::ops::Bound::Unbounded,
-            ))
-            .take_while(|p| p.starts_with(&prefix))
-            .map(|p| p[prefix.len()..].to_owned())
-            .collect();
+        let actual = self.current_member_names_under(home, 65)?;
         self.temporary(
             actual
                 .iter()
@@ -2664,34 +3132,9 @@ impl<'a> NativeCompoundReader<'a> {
         Ok(files)
     }
     fn flat_package(&mut self, home: &str) -> Result<Package, ItemRefusal> {
-        let prefix = format!("{home}/");
-        self.temporary(std::mem::size_of::<String>() + prefix.len())?;
-        let count = self
-            .paths
-            .range::<str, _>((
-                std::ops::Bound::Included(prefix.as_str()),
-                std::ops::Bound::Unbounded,
-            ))
-            .take_while(|p| p.starts_with(&prefix))
-            .count();
-        if !(1..=64).contains(&count) {
-            return Err(bad("membership flat Claim package count"));
-        }
-        self.temporary(std::mem::size_of::<Vec<&str>>() + count * std::mem::size_of::<&str>())?;
-        let names: Vec<&str> = self
-            .paths
-            .range::<str, _>((
-                std::ops::Bound::Included(prefix.as_str()),
-                std::ops::Bound::Unbounded,
-            ))
-            .take_while(|p| p.starts_with(&prefix))
-            .map(|p| {
-                let path = *p;
-                &path[prefix.len()..]
-            })
-            .collect();
+        let names = self.current_member_names_under(home, 64)?;
         if !(1..=64).contains(&names.len()) || names.iter().any(|name| name.contains('/')) {
-            return Err(bad("membership flat Claim package"));
+            return Err(bad("membership flat Claim package count"));
         }
         let mut result = Package::new();
         self.temporary(std::mem::size_of::<Package>())?;
@@ -5227,6 +5670,56 @@ struct WorkGrammar {
     claim_sha256: Digest256,
     binding: CutExecutionBinding,
 }
+
+trait NativeCompoundSchema: CutSchemaExecutor {
+    fn cut_execution_binding(&self) -> Option<CutExecutionBinding>;
+}
+
+impl NativeCompoundSchema for CutWorkerSchemaExecutor {
+    fn cut_execution_binding(&self) -> Option<CutExecutionBinding> {
+        Some(CutSchemaReceiptRange::execution_binding(self))
+    }
+}
+
+impl<I: Copy + Eq> NativeCompoundSchema for CandidateCutWorkerSchemaExecutor<I> {
+    fn cut_execution_binding(&self) -> Option<CutExecutionBinding> {
+        None
+    }
+}
+
+struct LocalClaimValidation {
+    dependency_digests: BTreeMap<String, Digest256>,
+    dependency_bytes_read: u64,
+}
+
+fn merge_candidate_diagnostics_cost(
+    target: &mut crate::record_rules::CandidateLocalClaimDiagnosticsCost,
+    source: crate::record_rules::CandidateLocalClaimDiagnosticsCost,
+) -> Result<(), ItemRefusal> {
+    macro_rules! add {
+        ($field:ident) => {
+            target.$field = target
+                .$field
+                .checked_add(source.$field)
+                .ok_or(ItemRefusal::Budget)?;
+        };
+    }
+    add!(completed_exchanges);
+    add!(issue_count);
+    add!(schema_resource_bytes);
+    add!(schema_resource_buffer_bytes);
+    add!(input_instance_bytes);
+    add!(input_instance_buffer_bytes);
+    add!(input_metadata_bytes);
+    add!(request_bytes);
+    add!(request_buffer_bytes);
+    add!(response_bytes);
+    add!(response_buffer_bytes);
+    add!(worker_cpu_micros);
+    add!(retained_state_bytes);
+    add!(accounted_state_bytes);
+    Ok(())
+}
 fn preparation_grammar_from_cut(
     kind: CompoundKind,
     reader: &mut NativeCompoundReader<'_>,
@@ -5246,7 +5739,7 @@ fn preparation_grammar_from_cut(
         .checked_sub(reader.bytes)
         .ok_or(ItemRefusal::Budget)?;
     let mut local = crate::record_rules::validate_source_claim_from_cut(
-        reader.cut,
+        reader.cut(),
         claim_raw,
         schemas,
         local_limits,
@@ -6431,7 +6924,7 @@ fn prepare_native_with_reader<'a>(
     authorize: impl FnOnce(&BTreeMap<String, String>) -> Result<Value, ItemRefusal>,
 ) -> Result<WorkExpressionCore<'a>, ItemRefusal> {
     check(reader.limits.deadline, reader.cancelled)?;
-    if schemas.source_revision() != reader.cut.current().revision() || request_raw.len() > MAX_FILE
+    if schemas.source_revision() != reader.cut().current().revision() || request_raw.len() > MAX_FILE
     {
         return Err(bad(
             "native compound source/schema revision or request size",
@@ -6572,6 +7065,27 @@ fn prepare_native_with_reader<'a>(
     if (kind == CompoundKind::EditionItem) != item_companions_input.is_some() {
         return Err(bad("native preparation exact Item companion input"));
     }
+    let cut = reader.cut;
+    let cut = cut.ok_or_else(|| bad("native preparation requires a corpus cut"))?;
+    let local_cancelled = reader.cancelled;
+    let mut validate_local_claim = |claim_raw: &[u8],
+                                    schemas: &mut CutWorkerSchemaExecutor,
+                                    local_limits: ItemLimits| {
+        let mut local = crate::record_rules::validate_source_claim_from_cut(
+            cut,
+            claim_raw,
+            schemas,
+            local_limits,
+            local_cancelled,
+        )?;
+        if !local.issues.is_empty() {
+            return Err(bad("compound Claim local owner profile"));
+        }
+        Ok(LocalClaimValidation {
+            dependency_digests: std::mem::take(&mut local.dependency_digests),
+            dependency_bytes_read: 0,
+        })
+    };
     let prepared = reader.prepare_compound_core(
         kind,
         Cow::Owned(authority),
@@ -6585,6 +7099,7 @@ fn prepare_native_with_reader<'a>(
         &|_| Err(bad("native compound has no external companion inputs")),
         Some(grammar),
         item_companions_input,
+        &mut validate_local_claim,
     )?;
     reader.release_raw_cache();
     Ok(WorkExpressionCore {
@@ -6809,14 +7324,19 @@ impl NativeCompoundReader<'_> {
         }
         Ok(())
     }
-    fn reconstruct(
+    fn reconstruct<S, F>(
         &mut self,
         tx: &Transaction,
         kind: CompoundKind,
-        schemas: &mut CutWorkerSchemaExecutor,
-    ) -> Result<Reconstructed, ItemRefusal> {
+        schemas: &mut S,
+        validate_local_claim: &mut F,
+    ) -> Result<Reconstructed, ItemRefusal>
+    where
+        S: NativeCompoundSchema,
+        F: FnMut(&[u8], &mut S, ItemLimits) -> Result<LocalClaimValidation, ItemRefusal>,
+    {
         let before = self.temporary_state;
-        let result = self.reconstruct_inner(tx, kind, schemas);
+        let result = self.reconstruct_inner(tx, kind, schemas, validate_local_claim);
         self.release_temporary_since(before);
         if let Ok(value) = &result {
             let mut amount = std::mem::size_of::<Reconstructed>();
@@ -6845,7 +7365,7 @@ impl NativeCompoundReader<'_> {
         }
         result
     }
-    fn prepare_compound_core<'b>(
+    fn prepare_compound_core<'b, S, F>(
         &mut self,
         kind: CompoundKind,
         authority: Cow<'b, Value>,
@@ -6855,11 +7375,16 @@ impl NativeCompoundReader<'_> {
         before: Package,
         old: Value,
         recorded_at: &str,
-        schemas: &mut CutWorkerSchemaExecutor,
+        schemas: &mut S,
         after: &impl Fn(&str) -> Result<Vec<u8>, ItemRefusal>,
         work_grammar: Option<WorkGrammar>,
         item_input: Option<(&[u8], &str)>,
-    ) -> Result<CompoundCore<'b>, ItemRefusal> {
+        validate_local_claim: &mut F,
+    ) -> Result<CompoundCore<'b>, ItemRefusal>
+    where
+        S: NativeCompoundSchema,
+        F: FnMut(&[u8], &mut S, ItemLimits) -> Result<LocalClaimValidation, ItemRefusal>,
+    {
         let scope = &authority["scope"];
         let work_path = text(scope, kind.parent_path())?;
         let expression_path = text(scope, kind.child_path())?;
@@ -7013,28 +7538,21 @@ impl NativeCompoundReader<'_> {
             .checked_sub(self.bytes)
             .ok_or(ItemRefusal::Budget)?;
         let prechecked_grammar = work_grammar.is_some();
-        let (dependency_digests, grammar_digests) = if let Some(grammar) = work_grammar {
+        let (dependency_digests, grammar_digests, dependency_bytes_read) =
+            if let Some(grammar) = work_grammar {
             preparation_grammar_extra(kind)?;
             if grammar.claim_sha256 != Digest256::of_bytes(&claim_raw)
-                || grammar.binding != schemas.execution_binding()
+                || schemas.cut_execution_binding() != Some(grammar.binding)
             {
                 return Err(bad("Work prechecked Claim/worker input drift"));
             }
-            (grammar.dependencies, grammar.digests)
+            (grammar.dependencies, grammar.digests, 0)
         } else {
-            let mut local = crate::record_rules::validate_source_claim_from_cut(
-                self.cut,
-                &claim_raw,
-                schemas,
-                local_limits,
-                self.cancelled,
-            )?;
-            if !local.issues.is_empty() {
-                return Err(bad("compound Claim local owner profile"));
-            }
+            let local = validate_local_claim(&claim_raw, schemas, local_limits)?;
             (
-                std::mem::take(&mut local.dependency_digests),
+                local.dependency_digests,
                 BTreeMap::new(),
+                local.dependency_bytes_read,
             )
         };
         let dependencies_state = dependency_digests
@@ -7055,20 +7573,29 @@ impl NativeCompoundReader<'_> {
                 }
             }
         } else {
-            for (path, sha) in dependency_digests {
-                let relative =
-                    RelativePath::parse(&path).map_err(|_| bad("Claim contract path"))?;
-                let size = self
-                    .cut
-                    .current()
-                    .member(&relative)
-                    .ok_or_else(|| bad("Claim dependency membership"))?
-                    .size_bytes;
+            if self.input.is_some() {
                 account(
                     &mut self.bytes,
-                    usize::try_from(size).map_err(|_| ItemRefusal::Budget)?,
+                    usize::try_from(dependency_bytes_read).map_err(|_| ItemRefusal::Budget)?,
                     self.limits.max_total_bytes,
                 )?;
+            }
+            for (path, sha) in dependency_digests {
+                if self.input.is_none() {
+                    let relative =
+                        RelativePath::parse(&path).map_err(|_| bad("Claim contract path"))?;
+                    let size = self
+                        .cut()
+                        .current()
+                        .member(&relative)
+                        .ok_or_else(|| bad("Claim dependency membership"))?
+                        .size_bytes;
+                    account(
+                        &mut self.bytes,
+                        usize::try_from(size).map_err(|_| ItemRefusal::Budget)?,
+                        self.limits.max_total_bytes,
+                    )?;
+                }
                 self.release_temporary(std::mem::size_of::<(String, Digest256)>() + path.len());
                 self.record_read(PredicateRead::ExactPath {
                     path,
@@ -7331,7 +7858,7 @@ impl NativeCompoundReader<'_> {
         core: CompoundCore<'b>,
         environment: &Value,
         native_event_raw: Option<&[u8]>,
-        schemas: &mut CutWorkerSchemaExecutor,
+        schemas: &mut impl CutSchemaExecutor,
     ) -> Result<FinishedCompound<'b>, ItemRefusal> {
         let CompoundCore {
             kind,
@@ -7614,12 +8141,17 @@ impl NativeCompoundReader<'_> {
             archive_path,
         })
     }
-    fn reconstruct_inner(
+    fn reconstruct_inner<S, F>(
         &mut self,
         tx: &Transaction,
         kind: CompoundKind,
-        schemas: &mut CutWorkerSchemaExecutor,
-    ) -> Result<Reconstructed, ItemRefusal> {
+        schemas: &mut S,
+        validate_local_claim: &mut F,
+    ) -> Result<Reconstructed, ItemRefusal>
+    where
+        S: NativeCompoundSchema,
+        F: FnMut(&[u8], &mut S, ItemLimits) -> Result<LocalClaimValidation, ItemRefusal>,
+    {
         let plan = &tx.manifest["plan"];
         let authority = &plan["authorization"];
         keys(
@@ -7776,6 +8308,7 @@ impl NativeCompoundReader<'_> {
             &after,
             None,
             None,
+            validate_local_claim,
         )?;
         if core.id != tx.manifest["transaction_id"] {
             return Err(bad("compound transaction request identity"));
@@ -8416,11 +8949,16 @@ fn native_compound_capture_event(
 }
 
 impl NativeCompoundReader<'_> {
-    fn reconstruct_object_link(
+    fn reconstruct_object_link<S, F>(
         &mut self,
         tx: &Transaction,
-        schemas: &mut CutWorkerSchemaExecutor,
-    ) -> Result<ObjectLinkReconstructed, ItemRefusal> {
+        schemas: &mut S,
+        validate_local_claim: &mut F,
+    ) -> Result<ObjectLinkReconstructed, ItemRefusal>
+    where
+        S: NativeCompoundSchema,
+        F: FnMut(&[u8], &mut S, ItemLimits) -> Result<LocalClaimValidation, ItemRefusal>,
+    {
         let plan = &tx.manifest["plan"];
         keys(plan, &["authorization", "new_directories", "files"])?;
         let authority = &plan["authorization"];
@@ -8465,13 +9003,14 @@ impl NativeCompoundReader<'_> {
         let actual_receipt = self.decoded(receipt_raw)?;
         let event_raw = after(&format!("{claim_home}/source-create-provenance.jsonl"))?;
         let _actual_event = self.decoded(event_raw)?;
-        let result = self.compose_object_link(
+        let result = self.compose_object_link_with_validator(
             scope,
             authority,
             after(&format!("{claim_home}/source-create-request.json"))?,
             after(&format!("{claim_home}/source-create-environment.json"))?,
             text(&actual_receipt, "recorded_at")?,
             schemas,
+            validate_local_claim,
             Some(event_raw),
             None,
         )?;
@@ -8506,10 +9045,61 @@ impl NativeCompoundReader<'_> {
         recorded_at: &str,
         schemas: &mut CutWorkerSchemaExecutor,
         retained_event: Option<&[u8]>,
-        mut capture: Option<
+        capture: Option<
             &mut dyn FnMut(&[(String, &[u8])]) -> Result<(Vec<u8>, Vec<u8>), ItemRefusal>,
         >,
     ) -> Result<ObjectLinkReconstructed, ItemRefusal> {
+        let cut = self.cut;
+        let cancelled = self.cancelled;
+        let mut validate_local_claim = |raw: &[u8],
+                                        schemas: &mut CutWorkerSchemaExecutor,
+                                        limits: ItemLimits| {
+            let mut local = crate::record_rules::validate_source_claim_from_cut(
+                cut.ok_or_else(|| bad("ObjectLink writer requires corpus cut"))?,
+                raw,
+                schemas,
+                limits,
+                cancelled,
+            )?;
+            if !local.issues.is_empty() {
+                return Err(bad("object-Link exact local Claim profile"));
+            }
+            Ok(LocalClaimValidation {
+                dependency_digests: std::mem::take(&mut local.dependency_digests),
+                dependency_bytes_read: 0,
+            })
+        };
+        self.compose_object_link_with_validator(
+            scope,
+            authority,
+            request_raw,
+            environment_raw,
+            recorded_at,
+            schemas,
+            &mut validate_local_claim,
+            retained_event,
+            capture,
+        )
+    }
+
+    fn compose_object_link_with_validator<S, F>(
+        &mut self,
+        scope: &Value,
+        authority: &Value,
+        request_raw: &[u8],
+        environment_raw: &[u8],
+        recorded_at: &str,
+        schemas: &mut S,
+        validate_local_claim: &mut F,
+        retained_event: Option<&[u8]>,
+        mut capture: Option<
+            &mut dyn FnMut(&[(String, &[u8])]) -> Result<(Vec<u8>, Vec<u8>), ItemRefusal>,
+        >,
+    ) -> Result<ObjectLinkReconstructed, ItemRefusal>
+    where
+        S: NativeCompoundSchema,
+        F: FnMut(&[u8], &mut S, ItemLimits) -> Result<LocalClaimValidation, ItemRefusal>,
+    {
         keys(
             authority,
             &[
@@ -8621,14 +9211,9 @@ impl NativeCompoundReader<'_> {
             .as_object()
             .ok_or_else(|| bad("object-Link source contract bindings"))?;
         for (path, digest) in contract_bindings {
-            let relative =
-                RelativePath::parse(path).map_err(|_| bad("object-Link contract locator"))?;
-            let member = self
-                .cut
-                .current()
-                .member(&relative)
-                .ok_or_else(|| bad("object-Link selected contract absent"))?;
-            if digest.as_str() != Some(member.sha256.to_hex().as_str()) {
+            RelativePath::parse(path).map_err(|_| bad("object-Link contract locator"))?;
+            let (current_digest, _) = self.current_digest_size(path)?;
+            if digest.as_str() != Some(current_digest.to_hex().as_str()) {
                 return Err(bad("object-Link current source contract digest"));
             }
         }
@@ -8672,12 +9257,8 @@ impl NativeCompoundReader<'_> {
             }
             let contract_path =
                 RelativePath::parse(contract).map_err(|_| bad("object-Link contract path"))?;
-            let selected = self
-                .cut
-                .current()
-                .member(&contract_path)
-                .ok_or_else(|| bad("object-Link selected contract absent"))?;
-            if dependencies["contracts"][contract] != selected.sha256.to_hex() {
+            let (current_digest, _) = self.current_digest_size(contract_path.as_str())?;
+            if dependencies["contracts"][contract] != current_digest.to_hex() {
                 return Err(bad("object-Link contract fixity dependency"));
             }
         }
@@ -8693,22 +9274,18 @@ impl NativeCompoundReader<'_> {
             .max_total_bytes
             .checked_sub(self.bytes)
             .ok_or(ItemRefusal::Budget)?;
-        let mut local = crate::record_rules::validate_source_claim_from_cut(
-            self.cut,
-            &claim_raw,
-            schemas,
-            local_limits,
-            self.cancelled,
-        )?;
-        if !local.issues.is_empty() {
-            return Err(bad("object-Link exact local Claim profile"));
-        }
+        let mut local = validate_local_claim(&claim_raw, schemas, local_limits)?;
         for (path, digest) in &local.dependency_digests {
             if contract_bindings.get(path).and_then(Value::as_str) != Some(digest.to_hex().as_str())
             {
                 return Err(bad("object-Link local Claim owner contract binding"));
             }
         }
+        account(
+            &mut self.bytes,
+            usize::try_from(local.dependency_bytes_read).map_err(|_| ItemRefusal::Budget)?,
+            self.limits.max_total_bytes,
+        )?;
         let dependency_digests = std::mem::take(&mut local.dependency_digests);
         drop(local);
         let dependencies_state = dependency_digests
@@ -8719,24 +9296,25 @@ impl NativeCompoundReader<'_> {
             .ok_or(ItemRefusal::Budget)?;
         self.temporary(dependencies_state)?;
         for (path, sha) in dependency_digests {
-            let relative =
-                RelativePath::parse(&path).map_err(|_| bad("object-Link Claim dependency path"))?;
-            let size = self
-                .cut
-                .current()
-                .member(&relative)
-                .ok_or_else(|| bad("object-Link Claim dependency membership"))?
-                .size_bytes;
-            account(
-                &mut self.bytes,
-                usize::try_from(size).map_err(|_| ItemRefusal::Budget)?,
-                self.limits.max_total_bytes,
-            )?;
+            RelativePath::parse(&path).map_err(|_| bad("object-Link Claim dependency path"))?;
+            let (current_digest, current_size) = self.current_digest_size(&path)?;
+            if current_digest != sha {
+                return Err(bad("object-Link Claim dependency changed"));
+            }
+            if self.cut.is_some() {
+                account(
+                    &mut self.bytes,
+                    usize::try_from(current_size).map_err(|_| ItemRefusal::Budget)?,
+                    self.limits.max_total_bytes,
+                )?;
+            }
             self.release_temporary(std::mem::size_of::<(String, Digest256)>() + path.len());
-            self.record_read(PredicateRead::ExactPath {
-                path,
-                digest: sha.to_prefixed(),
-            })?;
+            if self.input.is_none() {
+                self.record_read(PredicateRead::ExactPath {
+                    path,
+                    digest: sha.to_prefixed(),
+                })?;
+            }
         }
         let ordered_request = self.ordered_value(request_raw)?;
         let link_ordered = ordered_request
@@ -9017,12 +9595,49 @@ impl NativeCompoundReader<'_> {
 }
 
 impl NativeCompoundReader<'_> {
-    pub(crate) fn verify(
+    pub(crate) fn verify<S>(
         &mut self,
         path: &str,
         claim: &Value,
-        schemas: &mut CutWorkerSchemaExecutor,
-    ) -> Result<NativeCompoundObservation, ItemRefusal> {
+        schemas: &mut S,
+    ) -> Result<NativeCompoundObservation, ItemRefusal>
+    where
+        S: NativeCompoundSchema + CutSchemaReceiptRange,
+    {
+        let cut = self.cut;
+        let cancelled = self.cancelled;
+        let mut validate_local_claim = |raw: &[u8],
+                                        schemas: &mut S,
+                                        limits: ItemLimits| {
+            let mut local = crate::record_rules::validate_source_claim_from_cut(
+                cut.ok_or_else(|| bad("native compound requires corpus cut"))?,
+                raw,
+                schemas,
+                limits,
+                cancelled,
+            )?;
+            if !local.issues.is_empty() {
+                return Err(bad("compound Claim local owner profile"));
+            }
+            Ok(LocalClaimValidation {
+                dependency_digests: std::mem::take(&mut local.dependency_digests),
+                dependency_bytes_read: 0,
+            })
+        };
+        self.verify_with_local_claim_validator(path, claim, schemas, &mut validate_local_claim)
+    }
+
+    fn verify_with_local_claim_validator<S, F>(
+        &mut self,
+        path: &str,
+        claim: &Value,
+        schemas: &mut S,
+        validate_local_claim: &mut F,
+    ) -> Result<NativeCompoundObservation, ItemRefusal>
+    where
+        S: NativeCompoundSchema,
+        F: FnMut(&[u8], &mut S, ItemLimits) -> Result<LocalClaimValidation, ItemRefusal>,
+    {
         let before = self.temporary_state;
         let result = if claim.get("schema_version").and_then(Value::as_str)
             == Some(OBJECT_LINK_CLAIM)
@@ -9031,20 +9646,25 @@ impl NativeCompoundReader<'_> {
                 .and_then(Value::as_str)
                 .is_some_and(object_link_predicate)
         {
-            self.verify_object_link(path, claim, schemas)
+            self.verify_object_link(path, claim, schemas, validate_local_claim)
         } else {
-            self.verify_inner(path, claim, schemas)
+            self.verify_inner(path, claim, schemas, validate_local_claim)
         };
         self.release_temporary_since(before);
         self.release_raw_cache();
         result
     }
-    fn verify_object_link(
+    fn verify_object_link<S, F>(
         &mut self,
         path: &str,
         claim: &Value,
-        schemas: &mut CutWorkerSchemaExecutor,
-    ) -> Result<NativeCompoundObservation, ItemRefusal> {
+        schemas: &mut S,
+        validate_local_claim: &mut F,
+    ) -> Result<NativeCompoundObservation, ItemRefusal>
+    where
+        S: NativeCompoundSchema,
+        F: FnMut(&[u8], &mut S, ItemLimits) -> Result<LocalClaimValidation, ItemRefusal>,
+    {
         check(self.limits.deadline, self.cancelled)?;
         if !path.ends_with("/source-claims.jsonl")
             || !object_link_predicate(text(claim, "predicate")?)
@@ -9086,7 +9706,7 @@ impl NativeCompoundReader<'_> {
         {
             return Err(bad("object-Link pending owner recovery"));
         }
-        let original = self.reconstruct_object_link(&tx, schemas)?;
+        let original = self.reconstruct_object_link(&tx, schemas, validate_local_claim)?;
         let scope = &original.scope;
         if path != text(scope, "claim_source_path")?
             || receipt != original.receipt
@@ -9156,16 +9776,13 @@ impl NativeCompoundReader<'_> {
             .max_total_bytes
             .checked_sub(self.bytes)
             .ok_or(ItemRefusal::Budget)?;
-        let mut current_local = crate::record_rules::validate_source_claim_from_cut(
-            self.cut,
-            &current_claim_raw,
-            schemas,
-            current_limits,
-            self.cancelled,
+        let mut current_local =
+            validate_local_claim(&current_claim_raw, schemas, current_limits)?;
+        account(
+            &mut self.bytes,
+            usize::try_from(current_local.dependency_bytes_read).map_err(|_| ItemRefusal::Budget)?,
+            self.limits.max_total_bytes,
         )?;
-        if !current_local.issues.is_empty() {
-            return Err(bad("object-Link current Claim owner profile"));
-        }
         let dependency_digests = std::mem::take(&mut current_local.dependency_digests);
         drop(current_local);
         self.release_temporary(std::mem::size_of::<Vec<u8>>() + current_claim_raw.len());
@@ -9178,24 +9795,26 @@ impl NativeCompoundReader<'_> {
             .ok_or(ItemRefusal::Budget)?;
         self.temporary(dependencies_state)?;
         for (path, sha) in dependency_digests {
-            let relative = RelativePath::parse(&path)
+            RelativePath::parse(&path)
                 .map_err(|_| bad("object-Link current Claim dependency path"))?;
-            let size = self
-                .cut
-                .current()
-                .member(&relative)
-                .ok_or_else(|| bad("object-Link current Claim dependency membership"))?
-                .size_bytes;
-            account(
-                &mut self.bytes,
-                usize::try_from(size).map_err(|_| ItemRefusal::Budget)?,
-                self.limits.max_total_bytes,
-            )?;
+            let (current_digest, current_size) = self.current_digest_size(&path)?;
+            if current_digest != sha {
+                return Err(bad("object-Link current Claim dependency changed"));
+            }
+            if self.cut.is_some() {
+                account(
+                    &mut self.bytes,
+                    usize::try_from(current_size).map_err(|_| ItemRefusal::Budget)?,
+                    self.limits.max_total_bytes,
+                )?;
+            }
             self.release_temporary(std::mem::size_of::<(String, Digest256)>() + path.len());
-            self.record_read(PredicateRead::ExactPath {
-                path,
-                digest: sha.to_prefixed(),
-            })?;
+            if self.input.is_none() {
+                self.record_read(PredicateRead::ExactPath {
+                    path,
+                    digest: sha.to_prefixed(),
+                })?;
+            }
         }
         if current_link["association_claim_refs"] != json!([scope["claim_id"]])
             || current_link["provenance_event_ref"] != scope["provenance_event_id"]
@@ -9220,12 +9839,17 @@ impl NativeCompoundReader<'_> {
         check(self.limits.deadline, self.cancelled)?;
         Ok(observation)
     }
-    fn verify_inner(
+    fn verify_inner<S, F>(
         &mut self,
         path: &str,
         claim: &Value,
-        schemas: &mut CutWorkerSchemaExecutor,
-    ) -> Result<NativeCompoundObservation, ItemRefusal> {
+        schemas: &mut S,
+        validate_local_claim: &mut F,
+    ) -> Result<NativeCompoundObservation, ItemRefusal>
+    where
+        S: NativeCompoundSchema,
+        F: FnMut(&[u8], &mut S, ItemLimits) -> Result<LocalClaimValidation, ItemRefusal>,
+    {
         check(self.limits.deadline, self.cancelled)?;
         let kind = CompoundKind::from_predicate(text(claim, "predicate")?)?;
         metadata_path(path, false)?;
@@ -9265,7 +9889,7 @@ impl NativeCompoundReader<'_> {
         {
             return Err(bad("current source snapshot is pending owner recovery"));
         }
-        let reconstructed = self.reconstruct(&tx, kind, schemas)?;
+        let reconstructed = self.reconstruct(&tx, kind, schemas, validate_local_claim)?;
         let scope = &reconstructed.scope;
         let work = text(scope, kind.parent_path())?;
         let expression = text(scope, kind.child_path())?;

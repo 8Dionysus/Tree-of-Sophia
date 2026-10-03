@@ -4,8 +4,8 @@
 //! retained archives are not relabelled as current catalog source files.
 use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_stage::{
-    ColdAuthoredBinding, ColdExactInputReceipt, ExactInputReceipt, InputCollectionReceipt,
-    InputRow, KnowledgeStage,
+    CandidateExactInputReceipt, CandidateValidationBinding, ColdAuthoredBinding,
+    ColdExactInputReceipt, ExactInputReceipt, InputCollectionReceipt, InputRow, KnowledgeStage,
 };
 use crate::source_bibliographic::{
     self as graph, BibliographicForms, BibliographicLimits, BibliographicReceipt,
@@ -22,6 +22,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{Digest256, Digest256Hasher, RelativePath, SourceRevision};
 use tos_source_store::{CorpusCutReader, SourceMembershipV1};
+use tos_validation::record_biblio_cut::{
+    SourceCutInput, SourceCutInputCoverage, SourceCutInputWithIdentity,
+};
 
 const ENTITY: &str = "ToS/doctrine/semantic-interchange/entity-types.v1.json";
 const RELATION: &str = "ToS/doctrine/semantic-interchange/relation-types.v1.json";
@@ -73,15 +76,21 @@ struct PlanInput<B> {
 }
 pub struct SourceCatalogInputPlan<B = SourceBinding> {
     receipt: PlanInput<B>,
-    revision: SourceRevision,
+    revision: Option<SourceRevision>,
     membership: SourceMembershipV1,
     members: BTreeMap<String, Member>,
     limits: SourceCatalogInputLimits,
     work_bytes: u64,
+    retained_plan_bytes: usize,
     raw_input_max_bytes: usize,
     workspace_limit: Option<usize>,
 }
 impl SourceCatalogInputPlan {
+    /// A projection plan must retain the independently selected real revision.
+    pub fn source_revision(&self) -> Result<SourceRevision> {
+        self.revision
+            .ok_or(Error::Invalid("projection plan revision missing"))
+    }
     pub fn input_receipt(&self) -> ExactInputReceipt {
         ExactInputReceipt {
             binding: self.receipt.binding.clone(),
@@ -91,6 +100,9 @@ impl SourceCatalogInputPlan {
 }
 pub type ColdSourceCatalogInputPlan = SourceCatalogInputPlan<ColdAuthoredBinding>;
 impl SourceCatalogInputPlan<ColdAuthoredBinding> {
+    pub fn source_revision(&self) -> SourceRevision {
+        self.receipt.binding.revision()
+    }
     pub fn input_receipt(&self) -> ColdExactInputReceipt {
         ColdExactInputReceipt {
             binding: self.receipt.binding.clone(),
@@ -101,9 +113,6 @@ impl SourceCatalogInputPlan<ColdAuthoredBinding> {
 impl<B> SourceCatalogInputPlan<B> {
     pub fn selected_member_count(&self) -> usize {
         self.members.len()
-    }
-    pub fn source_revision(&self) -> SourceRevision {
-        self.revision
     }
     pub fn source_membership(&self) -> SourceMembershipV1 {
         self.membership
@@ -126,9 +135,23 @@ impl<B> SourceCatalogInputPlan<B> {
         Ok(())
     }
 }
-pub struct SourceBibliographicCandidate {
-    pub catalog: SourceCatalogReceipt,
+pub struct SourceBibliographicCandidate<B = SourceBinding> {
+    pub catalog: SourceCatalogReceipt<B>,
     pub bibliographic: BibliographicReceipt,
+}
+/// Preserve the source adapter refusal category without requiring Display or
+/// inventing observations absent from the adapter's actual error.
+pub(crate) fn candidate_input_refusal(error: tos_validation::item_rules::ItemRefusal) -> Error {
+    use tos_validation::item_rules::ItemRefusal;
+    match error {
+        ItemRefusal::Budget => Error::Budget("candidate source input"),
+        ItemRefusal::BudgetCheck { check, .. } => Error::Budget(check),
+        ItemRefusal::Deadline => Error::Budget("candidate source input deadline"),
+        ItemRefusal::Source(detail) => Error::Source(detail),
+        ItemRefusal::Unsupported(detail) => {
+            Error::Source(format!("unsupported candidate source input: {detail}"))
+        }
+    }
 }
 fn check(deadline: Instant, cancelled: &AtomicBool) -> Result<()> {
     if cancelled.load(Ordering::Relaxed) {
@@ -194,15 +217,382 @@ fn public_path(path: &str) -> bool {
                 )
         })
 }
-struct Planning<'a> {
-    cut: &'a CorpusCutReader,
-    revision: SourceRevision,
+/// Host-held kernel quota/custody for the selected locator database, including
+/// its connection/cache lifetime. There is no default permissive owner.
+#[derive(Clone, Copy, Debug)]
+pub enum ColdSourceCatalogSpoolPhase {
+    Create,
+    Grow,
+    Read,
+    Finish,
+}
+pub trait ColdSourceCatalogSpoolIsolation {
+    fn verify(
+        &self,
+        file: &std::fs::File,
+        limits: ColdSourceCatalogSpoolLimits,
+        phase: ColdSourceCatalogSpoolPhase,
+    ) -> Result<()>;
+}
+#[derive(Clone, Copy, Debug)]
+pub struct ColdSourceCatalogSpoolLimits {
+    pub max_selected_members: u64,
+    pub max_locator_bytes: u64,
+    pub max_sqlite_bytes: u64,
+    pub max_work_bytes: u64,
+    pub sqlite_cache_kib: u32,
+    pub max_sql_vm_steps: u64,
+    pub max_workspace_bytes: usize,
+}
+struct DiskEntries<'a> {
+    db: tos_source_store::PinnedSqliteConnection,
+    file: std::fs::File,
+    isolation: &'a dyn ColdSourceCatalogSpoolIsolation,
+    limits: ColdSourceCatalogSpoolLimits,
+    rows: u64,
+    logical_bytes: u64,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+}
+impl DiskEntries<'_> {
+    fn guard(&self, phase: ColdSourceCatalogSpoolPhase) -> Result<()> {
+        check(self.deadline, self.cancelled)?;
+        self.isolation.verify(&self.file, self.limits, phase)?;
+        check(self.deadline, self.cancelled)
+    }
+}
+enum PlanningEntries<'a> {
+    Resident {
+        members: BTreeMap<String, Member>,
+        pending: BTreeSet<String>,
+        scanned: BTreeSet<String>,
+    },
+    Disk(DiskEntries<'a>),
+}
+fn collection_flag(collection: &str) -> Result<u32> {
+    COLLECTIONS
+        .iter()
+        .position(|c| *c == collection)
+        .map(|i| 1u32 << i)
+        .ok_or(Error::Invalid("cold catalog collection flag"))
+}
+impl PlanningEntries<'_> {
+    fn get(&self, path: &str) -> Result<Option<Member>> {
+        use rusqlite::OptionalExtension;
+        match self {
+            Self::Resident { members, .. } => Ok(members.get(path).cloned()),
+            Self::Disk(d) => {
+                d.guard(ColdSourceCatalogSpoolPhase::Read)?;
+                let row =
+                    d.db.query_row(
+                        "SELECT size,sha,flags FROM selected WHERE path=?1",
+                        [path],
+                        |r| {
+                            Ok((
+                                r.get::<_, Vec<u8>>(0)?,
+                                r.get::<_, Vec<u8>>(1)?,
+                                r.get::<_, u32>(2)?,
+                            ))
+                        },
+                    )
+                    .optional()?;
+                d.guard(ColdSourceCatalogSpoolPhase::Read)?;
+                row.map(|(size, sha, flags)| {
+                    let size = u64::from_be_bytes(
+                        size.try_into()
+                            .map_err(|_| Error::Invalid("cold spool size"))?,
+                    );
+                    Ok(Member {
+                        size,
+                        sha: Digest256::from_bytes(
+                            sha.try_into()
+                                .map_err(|_| Error::Invalid("cold spool digest"))?,
+                        ),
+                        collections: COLLECTIONS
+                            .iter()
+                            .enumerate()
+                            .filter(|(i, _)| flags & (1 << i) != 0)
+                            .map(|(_, c)| *c)
+                            .collect(),
+                    })
+                })
+                .transpose()
+            }
+        }
+    }
+    fn queue(&mut self, path: &str) -> Result<()> {
+        match self {
+            Self::Resident {
+                pending, scanned, ..
+            } => {
+                if !scanned.contains(path) {
+                    pending.insert(path.to_owned());
+                }
+            }
+            Self::Disk(d) => {
+                d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
+                d.db.execute("INSERT OR IGNORE INTO pending SELECT ?1 WHERE NOT EXISTS(SELECT 1 FROM scanned WHERE path=?1)",[path])?;
+                d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
+            }
+        }
+        Ok(())
+    }
+    fn queued(&self, path: &str) -> Result<bool> {
+        match self {
+            Self::Resident {
+                pending, scanned, ..
+            } => Ok(pending.contains(path) || scanned.contains(path)),
+            Self::Disk(d) => {
+                d.guard(ColdSourceCatalogSpoolPhase::Read)?;
+                let result = d.db.query_row("SELECT EXISTS(SELECT 1 FROM pending WHERE path=?1) OR EXISTS(SELECT 1 FROM scanned WHERE path=?1)", [path], |r| r.get(0));
+                d.guard(ColdSourceCatalogSpoolPhase::Read)?;
+                Ok(result?)
+            }
+        }
+    }
+    fn pop(&mut self) -> Result<Option<String>> {
+        use rusqlite::OptionalExtension;
+        match self {
+            Self::Resident {
+                pending, scanned, ..
+            } => {
+                let path = pending.pop_first();
+                if let Some(path) = &path {
+                    scanned.insert(path.clone());
+                }
+                Ok(path)
+            }
+            Self::Disk(d) => {
+                d.guard(ColdSourceCatalogSpoolPhase::Read)?;
+                let path: Option<String> =
+                    d.db.query_row("SELECT path FROM pending ORDER BY path LIMIT 1", [], |r| {
+                        r.get(0)
+                    })
+                    .optional()?;
+                d.guard(ColdSourceCatalogSpoolPhase::Read)?;
+                if let Some(path) = &path {
+                    d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
+                    d.db.execute("INSERT INTO scanned VALUES (?1)", [path])?;
+                    d.db.execute("DELETE FROM pending WHERE path=?1", [path])?;
+                    d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
+                }
+                Ok(path)
+            }
+        }
+    }
+    fn len(&self) -> u64 {
+        match self {
+            Self::Resident { members, .. } => members.len() as u64,
+            Self::Disk(d) => d.rows,
+        }
+    }
+    fn set(&mut self, path: &str, member: Member) -> Result<()> {
+        match self {
+            Self::Resident { members, .. } => {
+                members.insert(path.to_owned(), member);
+            }
+            Self::Disk(d) => {
+                d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
+                let mut flags = 0u32;
+                for c in &member.collections {
+                    flags |= collection_flag(c)?;
+                }
+                let added=d.db.execute("INSERT INTO selected VALUES (?1,?2,?3,?4) ON CONFLICT(path) DO UPDATE SET flags=excluded.flags",rusqlite::params![path,member.size.to_be_bytes().as_slice(),member.sha.as_bytes().as_slice(),flags])?;
+                let _ = added;
+                d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
+            }
+        }
+        Ok(())
+    }
+    fn charge(&mut self, bytes: usize) -> Result<()> {
+        if let Self::Disk(d) = self {
+            d.logical_bytes = d
+                .logical_bytes
+                .checked_add(bytes as u64)
+                .filter(|n| *n <= d.limits.max_locator_bytes)
+                .ok_or(Error::Budget("cold spool locator bytes"))?;
+            d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
+        }
+        Ok(())
+    }
+    fn next(&self, after: Option<&str>) -> Result<Option<(String, Member)>> {
+        use rusqlite::OptionalExtension;
+        if let Self::Disk(d) = self {
+            d.guard(ColdSourceCatalogSpoolPhase::Read)?;
+        }
+        let path = match self {
+            Self::Resident { members, .. } => members
+                .keys()
+                .find(|p| after.is_none_or(|a| p.as_str() > a))
+                .cloned(),
+            Self::Disk(d) => match after {
+                Some(after) => {
+                    d.db.query_row(
+                        "SELECT path FROM selected WHERE path>?1 ORDER BY path LIMIT 1",
+                        [after],
+                        |r| r.get::<_, String>(0),
+                    )
+                    .optional()?
+                }
+                None => {
+                    d.db.query_row("SELECT path FROM selected ORDER BY path LIMIT 1", [], |r| {
+                        r.get::<_, String>(0)
+                    })
+                    .optional()?
+                }
+            },
+        };
+        if let Self::Disk(d) = self {
+            d.guard(ColdSourceCatalogSpoolPhase::Read)?;
+        }
+        path.map(|p| {
+            self.get(&p)?
+                .map(|m| (p, m))
+                .ok_or(Error::Invalid("cold spool selected row lost"))
+        })
+        .transpose()
+    }
+    fn new_member(&mut self) -> Result<()> {
+        if let Self::Disk(d) = self {
+            d.rows = d
+                .rows
+                .checked_add(1)
+                .filter(|n| *n <= d.limits.max_selected_members)
+                .ok_or(Error::Budget("cold spool selected members"))?;
+        }
+        Ok(())
+    }
+}
+#[derive(Clone, Copy)]
+enum PlanningCut<'a> {
+    Candidate(&'a dyn SourceCutInput),
+    Resident(&'a CorpusCutReader),
+    Streamed(&'a tos_source_store::StreamedCorpusCutReaderV1),
+}
+impl PlanningCut<'_> {
+    fn member(
+        &self,
+        revision: Option<SourceRevision>,
+        path: &RelativePath,
+        cap: usize,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        work: &mut u64,
+        max_work: u64,
+    ) -> Result<Option<(u64, Digest256)>> {
+        match self {
+            Self::Candidate(input) => {
+                check(deadline, cancelled)?;
+                if input
+                    .path_presence(path.as_str(), deadline, cancelled)
+                    .map_err(candidate_input_refusal)?
+                    != Some(tos_source_store::SourcePresenceV1::File)
+                {
+                    return Ok(None);
+                }
+                let mut facts = None;
+                input
+                    .with_current_member(
+                        path.as_str(),
+                        cap,
+                        deadline,
+                        cancelled,
+                        &mut |meta, raw| {
+                            if meta.path != path.as_str()
+                                || meta.size_bytes != raw.len() as u64
+                                || raw.len() > cap
+                            {
+                                return Err(tos_validation::item_rules::ItemRefusal::Source(
+                                    "candidate member facts".into(),
+                                ));
+                            }
+                            *work = work
+                                .checked_add(meta.size_bytes)
+                                .filter(|n| *n <= max_work)
+                                .ok_or(tos_validation::item_rules::ItemRefusal::Budget)?;
+                            facts = Some((meta.size_bytes, Digest256::of_bytes(raw)));
+                            Ok(())
+                        },
+                    )
+                    .map_err(candidate_input_refusal)?;
+                check(deadline, cancelled)?;
+                Ok(facts)
+            }
+            Self::Resident(cut) => Ok(cut.current().member(path).map(|m| (m.size_bytes, m.sha256))),
+            Self::Streamed(cut) => cut
+                .member(
+                    revision.ok_or(Error::Invalid("streamed plan revision missing"))?,
+                    path,
+                )
+                .map(|m| m.map(|m| (m.size_bytes, m.sha256)))
+                .map_err(|e| Error::Source(e.to_string())),
+        }
+    }
+    fn read(
+        &self,
+        revision: Option<SourceRevision>,
+        path: &RelativePath,
+        cap: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Vec<u8>> {
+        match self {
+            Self::Candidate(input) => {
+                let cap =
+                    usize::try_from(cap).map_err(|_| Error::Budget("candidate read byte range"))?;
+                let mut result = None;
+                input
+                    .with_current_member(
+                        path.as_str(),
+                        cap,
+                        deadline,
+                        cancelled,
+                        &mut |meta, raw| {
+                            if meta.path != path.as_str()
+                                || meta.size_bytes != raw.len() as u64
+                                || raw.len() > cap
+                            {
+                                return Err(tos_validation::item_rules::ItemRefusal::Source(
+                                    "candidate read identity".into(),
+                                ));
+                            }
+                            result = Some(raw.to_vec());
+                            Ok(())
+                        },
+                    )
+                    .map_err(candidate_input_refusal)?;
+                check(deadline, cancelled)?;
+                return result.ok_or(Error::Invalid("candidate source member absent"));
+            }
+            Self::Resident(cut) => cut
+                .read_member(
+                    revision.ok_or(Error::Invalid("resident plan revision missing"))?,
+                    path,
+                    cap,
+                    deadline,
+                    cancelled,
+                )
+                .map(|m| m.raw),
+            Self::Streamed(cut) => cut
+                .read_member(
+                    revision.ok_or(Error::Invalid("resident plan revision missing"))?,
+                    path,
+                    cap,
+                    deadline,
+                    cancelled,
+                )
+                .map(|m| m.raw),
+        }
+        .map_err(|e| Error::Source(e.to_string()))
+    }
+}
+struct Planning<'a, 's> {
+    cut: PlanningCut<'a>,
+    revision: Option<SourceRevision>,
     limits: SourceCatalogInputLimits,
     graph_limits: BibliographicLimits,
     cancelled: &'a AtomicBool,
-    members: BTreeMap<String, Member>,
-    pending: BTreeSet<String>,
-    scanned: BTreeSet<String>,
+    entries: PlanningEntries<'s>,
     plan_bytes: usize,
     work_bytes: u64,
     raw_input_max_bytes: usize,
@@ -212,13 +602,16 @@ struct Planning<'a> {
     live_raw_bytes: usize,
     live_parser_upper: usize,
 }
-impl Planning<'_> {
+impl Planning<'_, '_> {
     fn charge(&mut self, bytes: usize) -> Result<()> {
-        self.plan_bytes = self
-            .plan_bytes
-            .checked_add(bytes)
-            .filter(|n| *n <= self.limits.max_plan_bytes)
-            .ok_or(Error::Budget("cold catalog plan state"))?;
+        if matches!(self.entries, PlanningEntries::Resident { .. }) {
+            self.plan_bytes = self
+                .plan_bytes
+                .checked_add(bytes)
+                .filter(|n| *n <= self.limits.max_plan_bytes)
+                .ok_or(Error::Budget("cold catalog plan state"))?;
+        }
+        self.entries.charge(bytes)?;
         self.check_workspace()
     }
     fn check_workspace(&self) -> Result<()> {
@@ -250,14 +643,14 @@ impl Planning<'_> {
         }
     }
     fn queue(&mut self, path: &str) -> Result<()> {
-        if !self.scanned.contains(path) && !self.pending.contains(path) {
+        if !self.entries.queued(path)? {
             self.charge(
                 path.len()
                     .checked_mul(2)
                     .and_then(|n| n.checked_add(128))
                     .ok_or(Error::Budget("cold catalog locator state"))?,
             )?;
-            self.pending.insert(path.to_owned());
+            self.entries.queue(path)?;
         }
         Ok(())
     }
@@ -267,18 +660,27 @@ impl Planning<'_> {
         }
         let relative =
             RelativePath::parse(path).map_err(|_| Error::Invalid("cold catalog relative path"))?;
-        let Some(metadata) = self.cut.current().member(&relative) else {
+        let Some((size, sha)) = self.cut.member(
+            self.revision,
+            &relative,
+            self.raw_input_max_bytes,
+            self.graph_limits.deadline,
+            self.cancelled,
+            &mut self.work_bytes,
+            self.limits.max_work_bytes,
+        )?
+        else {
             return Ok(false);
         };
-        if metadata.size_bytes > self.raw_input_max_bytes as u64 {
+        if size > self.raw_input_max_bytes as u64 {
             return Err(Error::Budget(
                 "cold catalog original source exceeds raw stage row cap",
             ));
         }
-        let size = metadata.size_bytes;
-        let sha = metadata.sha256;
-        if !self.members.contains_key(path) {
-            if self.members.len() >= self.limits.max_selected_members {
+        if self.entries.get(path)?.is_none() {
+            if matches!(self.entries, PlanningEntries::Resident { .. })
+                && self.entries.len() >= self.limits.max_selected_members as u64
+            {
                 return Err(Error::Budget("cold catalog selected files"));
             }
             self.charge(
@@ -286,23 +688,24 @@ impl Planning<'_> {
                     .checked_add(256)
                     .ok_or(Error::Budget("cold catalog member state"))?,
             )?;
-            self.members.insert(
-                path.to_owned(),
+            self.entries.new_member()?;
+            self.entries.set(
+                path,
                 Member {
                     size,
                     sha,
                     collections: BTreeSet::new(),
                 },
-            );
+            )?;
             self.queue(path)?;
         }
-        if !self.members[path].collections.contains(collection) {
+        let mut member = self
+            .entries
+            .get(path)?
+            .ok_or(Error::Invalid("cold catalog member lost"))?;
+        if !member.collections.contains(collection) {
             self.charge(128)?;
         }
-        let member = self
-            .members
-            .get_mut(path)
-            .ok_or(Error::Invalid("cold catalog member lost"))?;
         member.collections.insert(collection);
         // The maintained readers search these unions and reject duplicate raw
         // paths. A primary file remains primary when later referenced.
@@ -313,13 +716,14 @@ impl Planning<'_> {
         if member.collections.contains(CONTRACT_FILES) {
             member.collections.remove(BIBLIOGRAPHIC_FILES);
         }
+        self.entries.set(path, member)?;
         Ok(true)
     }
     fn raw(&mut self, path: &str) -> Result<Vec<u8>> {
         check(self.graph_limits.deadline, self.cancelled)?;
         let member = self
-            .members
-            .get(path)
+            .entries
+            .get(path)?
             .ok_or(Error::Invalid("cold catalog raw plan absent"))?;
         self.work_bytes = self
             .work_bytes
@@ -341,27 +745,25 @@ impl Planning<'_> {
                 .ok_or(Error::Budget("cold catalog raw workspace range"))?;
             let relative =
                 RelativePath::parse(path).map_err(|_| Error::Invalid("cold catalog raw path"))?;
-            for id in self.cut.current().indexed_ids_for_path(&relative) {
-                self.live_raw_bytes = self
-                    .live_raw_bytes
-                    .checked_add(id.len())
-                    .and_then(|n| n.checked_add(4 * std::mem::size_of::<String>()))
-                    .ok_or(Error::Budget("cold catalog source IDs workspace"))?;
+            if let PlanningCut::Resident(cut) = &self.cut {
+                for id in cut.current().indexed_ids_for_path(&relative) {
+                    self.live_raw_bytes = self
+                        .live_raw_bytes
+                        .checked_add(id.len())
+                        .and_then(|n| n.checked_add(4 * std::mem::size_of::<String>()))
+                        .ok_or(Error::Budget("cold catalog source IDs workspace"))?;
+                }
             }
         }
         self.live_parser_upper = 0;
         self.check_workspace()?;
-        let raw = self
-            .cut
-            .read_member(
-                self.revision,
-                &RelativePath::parse(path).map_err(|_| Error::Invalid("cold catalog raw path"))?,
-                self.raw_input_max_bytes as u64,
-                self.graph_limits.deadline,
-                self.cancelled,
-            )
-            .map_err(|e| Error::Source(e.to_string()))?
-            .raw;
+        let raw = self.cut.read(
+            self.revision,
+            &RelativePath::parse(path).map_err(|_| Error::Invalid("cold catalog raw path"))?,
+            self.raw_input_max_bytes as u64,
+            self.graph_limits.deadline,
+            self.cancelled,
+        )?;
         if raw.len() as u64 != size || Digest256::of_bytes(&raw) != sha {
             return Err(Error::Invalid("cold catalog original bytes binding"));
         }
@@ -397,11 +799,41 @@ impl Planning<'_> {
         }
         Ok(())
     }
+    fn initial(&mut self, path: &str, basenames: &BTreeSet<String>) -> Result<()> {
+        let basename = path.rsplit('/').next().unwrap_or("");
+        if path.starts_with("ToS/contracts/") && path.ends_with(".schema.json") && public_path(path)
+        {
+            self.select(path, CONTRACT_FILES)?;
+        }
+        if path.starts_with("ToS/source-witnesses/") {
+            if basenames.contains(basename)
+                || basename.ends_with(".jsonl")
+                    && (basename.contains("provenance") || basename.contains("anchor"))
+            {
+                catalog::source_ref(path)?;
+                self.select(path, SOURCE_FILES)?;
+            }
+            if basename.starts_with("semantic-annotation")
+                && basename.ends_with(".json")
+                && !path
+                    .split('/')
+                    .any(|part| matches!(part, "payload" | "local-content" | "catalog"))
+            {
+                catalog::source_ref(path)?;
+                self.select(path, NATIVE_IDENTITIES)?;
+            }
+        }
+        Ok(())
+    }
     fn packet(&mut self, path: &str, raw: &[u8]) -> Result<()> {
-        let source = self.members[path].collections.contains(SOURCE_FILES);
+        let member = self
+            .entries
+            .get(path)?
+            .ok_or(Error::Invalid("cold catalog packet absent"))?;
+        let source = member.collections.contains(SOURCE_FILES);
         let required = source
-            || self.members[path].collections.contains(NATIVE_IDENTITIES)
-            || self.members[path].collections.contains(CONTRACT_FILES);
+            || member.collections.contains(NATIVE_IDENTITIES)
+            || member.collections.contains(CONTRACT_FILES);
         let cap = self.graph_limits.catalog.max_row_bytes;
         if path.ends_with(".json") {
             let parsed = self.parse_packet(raw, self.json_input_max_bytes);
@@ -500,6 +932,463 @@ fn collection_receipts(
         });
     }
     Ok(result)
+}
+/// A private selected-member spool, never an arbitrary caller-supplied iterator.
+/// The host reservation and source reader must outlive its transfer/final fence.
+pub struct ColdSourceCatalogInputSpool<'a> {
+    entries: PlanningEntries<'a>,
+    receipt: ColdExactInputReceipt,
+    revision: SourceRevision,
+    membership: SourceMembershipV1,
+    raw_input_max_bytes: usize,
+    work_bytes: u64,
+    consumed: bool,
+}
+impl ColdSourceCatalogInputSpool<'_> {
+    pub fn input_receipt(&self) -> ColdExactInputReceipt {
+        self.receipt.clone()
+    }
+    pub fn selected_member_count(&self) -> u64 {
+        self.entries.len()
+    }
+    pub fn observed_work_bytes(&self) -> u64 {
+        self.work_bytes
+    }
+}
+/// Actual catalog→bibliographic preparation over the same selected spool and
+/// authenticated current/history reader. The sink renderer remains unchanged.
+pub fn render_streamed_source_bibliographic_spool(
+    plan: &mut ColdSourceCatalogInputSpool<'_>,
+    cut: &tos_source_store::StreamedCorpusCutReaderV1,
+    target: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    forms: &mut dyn BibliographicForms,
+    mut l: BibliographicLimits,
+    observer: &mut impl catalog::SourceCatalogProfileObserver,
+    observed: &mut SourceCatalogRenderWorkV1,
+    read_ledger: &std::cell::RefCell<
+        crate::source_bibliographic_versions::StreamedBibliographicReadLedger,
+    >,
+    max_workspace_bytes: usize,
+) -> Result<SourceBibliographicCandidate<ColdAuthoredBinding>> {
+    if let PlanningEntries::Disk(d) = &plan.entries {
+        l.deadline = l.deadline.min(d.deadline);
+    }
+    let result = (|| {
+        let catalog = prepare_streamed_cold_source_catalog_spool(
+            plan, cut, target, validator, l, observer, observed,
+        )?;
+        let source = crate::source_bibliographic_versions::StreamedBibliographicSourceCut {
+            cut,
+            expected_revision: plan.revision,
+            expected_membership: plan.membership,
+            stage_source_cut: plan.receipt.binding.source_cut(),
+            read_ledger,
+            max_workspace_bytes,
+        };
+        let bibliographic = graph::prepare_streamed_cold_bibliographic_graph_from_cut(
+            target, &catalog, validator, forms, l, &source,
+        )?;
+        streamed_selection(
+            cut,
+            plan.revision,
+            plan.membership,
+            l.deadline,
+            validator.cancelled,
+        )?;
+        if let PlanningEntries::Disk(d) = &plan.entries {
+            d.isolation
+                .verify(&d.file, d.limits, ColdSourceCatalogSpoolPhase::Finish)?;
+        }
+        check(l.deadline, validator.cancelled)?;
+        Ok(SourceBibliographicCandidate {
+            catalog,
+            bibliographic,
+        })
+    })();
+    if result.is_err() {
+        target.poison();
+    }
+    result
+}
+pub fn prepare_streamed_cold_source_catalog_spool(
+    plan: &mut ColdSourceCatalogInputSpool<'_>,
+    cut: &tos_source_store::StreamedCorpusCutReaderV1,
+    target: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    mut l: BibliographicLimits,
+    observer: &mut impl catalog::SourceCatalogProfileObserver,
+    observed: &mut SourceCatalogRenderWorkV1,
+) -> Result<SourceCatalogReceipt<ColdAuthoredBinding>> {
+    if plan.consumed {
+        target.poison();
+        return Err(Error::Invalid("streamed catalog spool already consumed"));
+    }
+    plan.consumed = true;
+    if let PlanningEntries::Disk(d) = &plan.entries {
+        if !std::ptr::eq(d.cancelled, validator.cancelled) {
+            target.poison();
+            return Err(Error::Invalid(
+                "streamed catalog cancellation owner differs",
+            ));
+        }
+        l.deadline = l.deadline.min(d.deadline);
+    }
+    let result = (|| {
+        streamed_selection(
+            cut,
+            plan.revision,
+            plan.membership,
+            l.deadline,
+            validator.cancelled,
+        )?;
+        validator.verify_schema_binding(plan.revision)?;
+        if plan.receipt.binding.value() != target.cold_receipt()?.binding.value() {
+            return Err(Error::Invalid("streamed catalog target binding"));
+        }
+        let actual = spool_receipts(&plan.entries, l, validator.cancelled)?;
+        let expected = target.input_collections();
+        if actual.len() != expected.len() {
+            return Err(Error::Invalid("streamed catalog collection closure"));
+        }
+        for a in &actual {
+            if !expected.iter().any(|e| {
+                e.source_graph == a.source_graph
+                    && e.collection == a.collection
+                    && e.input_role == a.input_role
+                    && e.adapter_profile == a.adapter_profile
+                    && e.expected_count == a.expected_count
+                    && e.expected_root_sha256 == a.expected_root_sha256
+            }) {
+                return Err(Error::Invalid("streamed catalog independent target roots"));
+            }
+        }
+        let mut after = None;
+
+        while let Some((path, member)) =
+            next_spool_member(&plan.entries, after.as_deref(), l, validator.cancelled)?
+        {
+            check(l.deadline, validator.cancelled)?;
+            if let PlanningEntries::Disk(d) = &plan.entries {
+                d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
+                plan.work_bytes = plan
+                    .work_bytes
+                    .checked_add(member.size)
+                    .filter(|n| *n <= d.limits.max_work_bytes)
+                    .ok_or(Error::Budget("streamed catalog cumulative work"))?;
+            }
+            let relative = RelativePath::parse(&path)
+                .map_err(|_| Error::Invalid("streamed catalog transfer path"))?;
+            let current = cut
+                .member(plan.revision, &relative)
+                .map_err(|e| Error::Source(e.to_string()))?
+                .ok_or(Error::Invalid("streamed catalog transfer member absent"))?;
+            if current.size_bytes != member.size || current.sha256 != member.sha {
+                return Err(Error::Invalid("streamed catalog transfer metadata changed"));
+            }
+            if let PlanningEntries::Disk(d) = &plan.entries {
+                let buffer_upper = usize::try_from(member.size)
+                    .ok()
+                    .and_then(|n| n.max(8).checked_mul(4))
+                    .and_then(|n| n.checked_add(128 * 1024))
+                    .and_then(|n| {
+                        n.checked_add((d.limits.sqlite_cache_kib as usize) * 1024 + 64 * 1024)
+                    })
+                    .filter(|n| *n <= d.limits.max_workspace_bytes)
+                    .ok_or(Error::Budget("streamed catalog transfer workspace"))?;
+                let _ = buffer_upper;
+            }
+            let raw = cut
+                .read_member(
+                    plan.revision,
+                    &relative,
+                    plan.raw_input_max_bytes.min(l.catalog.max_file_bytes) as u64,
+                    l.deadline,
+                    validator.cancelled,
+                )
+                .map_err(|e| Error::Source(e.to_string()))?
+                .raw;
+            charge_render_work(&mut observed.source_members_returned, 1)?;
+            charge_render_work(
+                &mut observed.source_payload_bytes_returned,
+                raw.len() as u64,
+            )?;
+            if raw.len() as u64 != member.size || Digest256::of_bytes(&raw) != member.sha {
+                return Err(Error::Invalid("streamed catalog transfer exact bytes"));
+            }
+            for collection in &member.collections {
+                check(l.deadline, validator.cancelled)?;
+                target.ingest_input(InputRow {
+                    source_graph: CATALOG_SOURCE,
+                    collection,
+                    id: &path,
+                    payload: &raw,
+                })?;
+                charge_render_work(&mut observed.input_rows_staged, 1)?;
+                charge_render_work(&mut observed.input_payload_bytes_staged, raw.len() as u64)?;
+            }
+            after = Some(path);
+        }
+        let receipt =
+            catalog::prepare_catalog_receipt_observed(target, validator, l.catalog, observer)?;
+        streamed_selection(
+            cut,
+            plan.revision,
+            plan.membership,
+            l.deadline,
+            validator.cancelled,
+        )?;
+        if let PlanningEntries::Disk(d) = &plan.entries {
+            d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
+        }
+        check(l.deadline, validator.cancelled)?;
+        Ok(receipt)
+    })();
+    if result.is_err() {
+        target.poison();
+    }
+    result
+}
+fn streamed_selection(
+    cut: &tos_source_store::StreamedCorpusCutReaderV1,
+    revision: SourceRevision,
+    membership: SourceMembershipV1,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<()> {
+    check(deadline, cancelled)?;
+    let actual = cut
+        .revision(revision)
+        .map_err(|e| Error::Source(e.to_string()))?
+        .ok_or(Error::Invalid("streamed catalog revision absent"))?;
+    if cut.current_revision() != revision || actual.membership != membership {
+        return Err(Error::Invalid(
+            "streamed catalog independently selected cut",
+        ));
+    }
+    Ok(())
+}
+fn next_spool_member(
+    entries: &PlanningEntries<'_>,
+    after: Option<&str>,
+    l: BibliographicLimits,
+    cancelled: &AtomicBool,
+) -> Result<Option<(String, Member)>> {
+    check(l.deadline, cancelled)?;
+    let next = entries.next(after)?;
+    check(l.deadline, cancelled)?;
+    Ok(next)
+}
+fn spool_receipts(
+    entries: &PlanningEntries<'_>,
+    l: BibliographicLimits,
+    cancelled: &AtomicBool,
+) -> Result<Vec<InputCollectionReceipt>> {
+    let mut receipts = Vec::with_capacity(COLLECTIONS.len());
+    for collection in COLLECTIONS {
+        let mut hash = Digest256Hasher::new();
+        let mut count = 0u64;
+        let mut after = None;
+        while let Some((path, member)) = next_spool_member(entries, after.as_deref(), l, cancelled)?
+        {
+            check(l.deadline, cancelled)?;
+            if member.collections.contains(collection) {
+                count = count
+                    .checked_add(1)
+                    .filter(|n| *n <= l.catalog.max_files)
+                    .ok_or(Error::Budget("cold catalog collection files"))?;
+                if collection == NATIVE_IDENTITIES && count > 1024 {
+                    return Err(Error::Budget(
+                        "cold catalog native identity inventory packets",
+                    ));
+                }
+                frame(&mut hash, &path, &member.sha);
+            }
+            after = Some(path);
+        }
+        let (role, profile) = catalog::input_role(collection)?;
+        receipts.push(InputCollectionReceipt {
+            source_graph: CATALOG_SOURCE.into(),
+            collection: collection.into(),
+            input_role: role.into(),
+            adapter_profile: profile.into(),
+            expected_count: count,
+            expected_root_sha256: hash.finalize().to_hex(),
+        });
+    }
+    Ok(receipts)
+}
+/// Plan the same source/dependency law into a quota-owned disk locator index.
+/// No manifest/member Vec or caller-authored receipt grants source membership.
+pub fn plan_streamed_cold_source_catalog_inputs<'a>(
+    cut: &tos_source_store::StreamedCorpusCutReaderV1,
+    revision: SourceRevision,
+    membership: SourceMembershipV1,
+    epoch: &tos_source_store::MetadataPublicationEpoch,
+    file: std::fs::File,
+    isolation: &'a dyn ColdSourceCatalogSpoolIsolation,
+    limits: ColdSourceCatalogSpoolLimits,
+    l: BibliographicLimits,
+    cancelled: &'a AtomicBool,
+) -> Result<ColdSourceCatalogInputSpool<'a>> {
+    l.validate()?;
+    l.catalog.validate()?;
+    if limits.max_selected_members == 0
+        || limits.max_selected_members == u64::MAX
+        || limits.max_locator_bytes == 0
+        || limits.max_locator_bytes == u64::MAX
+        || limits.max_sqlite_bytes < 4096
+        || limits.max_sqlite_bytes == u64::MAX
+        || limits.max_work_bytes == 0
+        || limits.max_work_bytes == u64::MAX
+        || limits.sqlite_cache_kib == 0
+        || limits.sqlite_cache_kib > 64 * 1024
+        || limits.max_sql_vm_steps == 0
+        || limits.max_workspace_bytes == 0
+    {
+        return Err(Error::Budget("streamed catalog spool limits"));
+    }
+    streamed_selection(cut, revision, membership, l.deadline, cancelled)?;
+    let binding = ColdAuthoredBinding::from_streamed_cut(cut, revision, membership, epoch)?;
+    let baseline = (limits.sqlite_cache_kib as usize)
+        .checked_mul(1024)
+        .and_then(|n| n.checked_add(64 * 1024))
+        .filter(|n| *n <= limits.max_workspace_bytes)
+        .ok_or(Error::Budget("streamed catalog spool workspace"))?;
+    isolation.verify(&file, limits, ColdSourceCatalogSpoolPhase::Create)?;
+    let db = tos_source_store::PinnedSqliteConnection::open_private_derived(&file)
+        .map_err(|e| Error::Source(e.to_string()))?;
+    let sql_limits = crate::Limits {
+        max_rows: limits.max_selected_members,
+        max_row_bytes: 4096,
+        max_output_bytes: limits.max_sqlite_bytes,
+        max_work_bytes: limits.max_work_bytes,
+        sqlite_cache_kib: limits.sqlite_cache_kib,
+        max_sql_vm_steps: limits.max_sql_vm_steps,
+    };
+    crate::sqlite_budget::install_progress_until(
+        &db,
+        sql_limits,
+        std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0)),
+        l.deadline,
+    );
+    db.pragma_update(None, "cache_size", -(limits.sqlite_cache_kib as i64))?;
+    let page: u64 = db.query_row("PRAGMA page_size", [], |r| r.get(0))?;
+    if page == 0 || page > limits.max_sqlite_bytes {
+        return Err(Error::Budget("streamed catalog spool page"));
+    }
+    db.pragma_update(None, "max_page_count", limits.max_sqlite_bytes / page)?;
+    let effective: u64 = db.query_row("PRAGMA max_page_count", [], |r| r.get(0))?;
+    if effective > limits.max_sqlite_bytes / page {
+        return Err(Error::Invalid("streamed catalog spool page cap"));
+    }
+    db.execute_batch("CREATE TABLE selected(path TEXT PRIMARY KEY,size BLOB NOT NULL,sha BLOB NOT NULL,flags INTEGER NOT NULL) WITHOUT ROWID; CREATE TABLE pending(path TEXT PRIMARY KEY) WITHOUT ROWID; CREATE TABLE scanned(path TEXT PRIMARY KEY) WITHOUT ROWID;")?;
+    isolation.verify(&file, limits, ColdSourceCatalogSpoolPhase::Grow)?;
+    let mut plan = Planning {
+        cut: PlanningCut::Streamed(cut),
+        revision: Some(revision),
+        limits: SourceCatalogInputLimits {
+            max_manifest_members: membership.count,
+            max_selected_members: 4096,
+            max_plan_bytes: 64 * 1024 * 1024,
+            max_work_bytes: limits.max_work_bytes,
+        },
+        graph_limits: l,
+        cancelled,
+        entries: PlanningEntries::Disk(DiskEntries {
+            db,
+            file,
+            isolation,
+            limits,
+            rows: 0,
+            logical_bytes: 0,
+            deadline: l.deadline,
+            cancelled,
+        }),
+        plan_bytes: baseline,
+        work_bytes: 0,
+        raw_input_max_bytes: l.catalog.max_file_bytes.min(64 * 1024 * 1024),
+        json_input_max_bytes: l.catalog.max_file_bytes.min(64 * 1024 * 1024),
+        cold_raw_parser: true,
+        workspace_limit: Some(limits.max_workspace_bytes),
+        live_raw_bytes: 0,
+        live_parser_upper: 0,
+    };
+    for registry in [ENTITY, RELATION] {
+        if !plan.select(registry, CONTRACT_FILES)? {
+            return Err(Error::Invalid("cold catalog source registry absent"));
+        }
+    }
+    let raw = plan.raw(ENTITY)?;
+    let entities = plan.parse_packet(&raw, l.catalog.max_row_bytes)?;
+    plan.live_parser_upper = plan
+        .live_parser_upper
+        .checked_mul(2)
+        .ok_or(Error::Budget("cold catalog registry workspace"))?;
+    plan.check_workspace()?;
+    let basenames = catalog::source_basenames(entities.value())?;
+    let mut after = None;
+    let mut membership_hash = Digest256Hasher::new();
+    membership_hash.update(b"tos-val-full-membership-v1\0");
+    let mut member_count = 0u64;
+    loop {
+        check(l.deadline, cancelled)?;
+        let Some(member) = cut
+            .member_after(revision, after.as_ref())
+            .map_err(|e| Error::Source(e.to_string()))?
+        else {
+            break;
+        };
+        check(l.deadline, cancelled)?;
+        let reference = member.path.as_str();
+        membership_hash.update(&(reference.len() as u64).to_be_bytes());
+        membership_hash.update(reference.as_bytes());
+        membership_hash.update(&member.size_bytes.to_be_bytes());
+        membership_hash.update(member.sha256.as_bytes());
+        member_count = member_count
+            .checked_add(1)
+            .filter(|n| *n <= membership.count)
+            .ok_or(Error::Budget("streamed catalog full membership"))?;
+        plan.initial(member.path.as_str(), &basenames)?;
+        after = Some(member.path);
+    }
+    if (SourceMembershipV1 {
+        count: member_count,
+        digest: membership_hash.finalize(),
+    }) != membership
+    {
+        return Err(Error::Invalid("streamed catalog full membership EOF"));
+    }
+    drop(basenames);
+    drop(entities);
+    drop(raw);
+    plan.live_raw_bytes = 0;
+    plan.live_parser_upper = 0;
+    while let Some(path) = plan.entries.pop()? {
+        check(l.deadline, cancelled)?;
+        let raw = plan.raw(&path)?;
+        plan.packet(&path, &raw)?;
+        drop(raw);
+        plan.live_raw_bytes = 0;
+        plan.live_parser_upper = 0;
+    }
+    let collections = spool_receipts(&plan.entries, l, cancelled)?;
+    if let PlanningEntries::Disk(d) = &plan.entries {
+        d.guard(ColdSourceCatalogSpoolPhase::Grow)?;
+    }
+    streamed_selection(cut, revision, membership, l.deadline, cancelled)?;
+    Ok(ColdSourceCatalogInputSpool {
+        entries: plan.entries,
+        receipt: ColdExactInputReceipt {
+            binding,
+            collections,
+        },
+        revision,
+        membership,
+        raw_input_max_bytes: plan.raw_input_max_bytes,
+        work_bytes: plan.work_bytes,
+        consumed: false,
+    })
 }
 /// Discover maintained current source families, complete native identities and
 /// their actual public metadata dependency closure. No callback or worker can
@@ -615,17 +1504,48 @@ fn plan_inputs<B: catalog::CatalogInputBinding>(
         l.deadline,
         cancelled,
     )?;
+    plan_inputs_kernel(
+        PlanningCut::Resident(cut),
+        Some(expected_revision),
+        expected_membership,
+        binding,
+        limits,
+        l,
+        cancelled,
+        raw_input_max_bytes,
+        json_input_max_bytes,
+        cold_raw_parser,
+        workspace_limit,
+        0,
+    )
+}
+fn plan_inputs_kernel<B: catalog::CatalogInputBinding>(
+    cut: PlanningCut<'_>,
+    revision: Option<SourceRevision>,
+    expected_membership: SourceMembershipV1,
+    binding: &B,
+    limits: SourceCatalogInputLimits,
+    l: BibliographicLimits,
+    cancelled: &AtomicBool,
+    raw_input_max_bytes: usize,
+    json_input_max_bytes: usize,
+    cold_raw_parser: bool,
+    workspace_limit: Option<usize>,
+    initial_work: u64,
+) -> Result<SourceCatalogInputPlan<B>> {
     let mut plan = Planning {
         cut,
-        revision: expected_revision,
+        revision,
         limits,
         graph_limits: l,
         cancelled,
-        members: BTreeMap::new(),
-        pending: BTreeSet::new(),
-        scanned: BTreeSet::new(),
+        entries: PlanningEntries::Resident {
+            members: BTreeMap::new(),
+            pending: BTreeSet::new(),
+            scanned: BTreeSet::new(),
+        },
         plan_bytes: 0,
-        work_bytes: 0,
+        work_bytes: initial_work,
         raw_input_max_bytes,
         json_input_max_bytes,
         cold_raw_parser,
@@ -651,41 +1571,31 @@ fn plan_inputs<B: catalog::CatalogInputBinding>(
         plan.check_workspace()?;
     }
     let basenames = catalog::source_basenames(entities.value())?;
-    for member in cut.current().members() {
-        check(l.deadline, cancelled)?;
-        let path = member.path.as_str();
-        let basename = path.rsplit('/').next().unwrap_or("");
-        if path.starts_with("ToS/contracts/") && path.ends_with(".schema.json") && public_path(path)
-        {
-            plan.select(path, CONTRACT_FILES)?;
-        }
-        if path.starts_with("ToS/source-witnesses/") {
-            if basenames.contains(basename)
-                || basename.ends_with(".jsonl")
-                    && (basename.contains("provenance") || basename.contains("anchor"))
-            {
-                catalog::source_ref(path)?;
-                plan.select(path, SOURCE_FILES)?;
-            }
-            if basename.starts_with("semantic-annotation")
-                && basename.ends_with(".json")
-                && !path
-                    .split('/')
-                    .any(|part| matches!(part, "payload" | "local-content" | "catalog"))
-            {
-                catalog::source_ref(path)?;
-                plan.select(path, NATIVE_IDENTITIES)?;
+    match cut {
+        PlanningCut::Resident(cut) => {
+            for member in cut.current().members() {
+                check(l.deadline, cancelled)?;
+                plan.initial(member.path.as_str(), &basenames)?;
             }
         }
+        PlanningCut::Candidate(input) => {
+            input
+                .for_each_current_member_meta(l.deadline, cancelled, &mut |meta| {
+                    plan.initial(meta.path, &basenames)
+                        .map_err(|e| tos_validation::item_rules::ItemRefusal::Source(e.to_string()))
+                })
+                .map_err(candidate_input_refusal)?;
+            check(l.deadline, cancelled)?;
+        }
+        PlanningCut::Streamed(_) => return Err(Error::Invalid("resident recipe storage kind")),
     }
     drop(basenames);
     drop(entities);
     drop(raw);
     plan.live_parser_upper = 0;
     plan.live_raw_bytes = 0;
-    while let Some(path) = plan.pending.pop_first() {
+    while let Some(path) = plan.entries.pop()? {
         check(l.deadline, cancelled)?;
-        plan.scanned.insert(path.clone());
         let raw = plan.raw(&path)?;
         plan.packet(&path, &raw)?;
         drop(raw);
@@ -697,17 +1607,21 @@ fn plan_inputs<B: catalog::CatalogInputBinding>(
         // transient source-path framing. Reserve before constructing receipts.
         plan.charge(COLLECTIONS.len() * 1024 + std::mem::size_of::<SourceCatalogInputPlan<B>>())?;
     }
+    let PlanningEntries::Resident { members, .. } = plan.entries else {
+        return Err(Error::Invalid("resident source plan storage"));
+    };
     let receipt = PlanInput {
         binding: binding.clone(),
-        collections: collection_receipts(&plan.members, l)?,
+        collections: collection_receipts(&members, l)?,
     };
     Ok(SourceCatalogInputPlan {
         receipt,
-        revision: expected_revision,
+        revision,
         membership: expected_membership,
-        members: plan.members,
+        members,
         limits,
         work_bytes: plan.work_bytes,
+        retained_plan_bytes: plan.plan_bytes,
         raw_input_max_bytes,
         workspace_limit,
     })
@@ -818,7 +1732,41 @@ fn prepare_catalog_plan<B: catalog::CatalogInputBinding>(
             l.deadline,
             validator.cancelled,
         )?;
-        if plan.revision != expected_revision
+        prepare_catalog_plan_kernel(
+            plan,
+            PlanningCut::Resident(cut),
+            Some(expected_revision),
+            expected_membership,
+            target,
+            validator,
+            l,
+            observer,
+            observed,
+            0,
+            &mut 0,
+        )
+    })();
+    if result.is_err() {
+        target.poison();
+    }
+    result
+}
+fn prepare_catalog_plan_kernel<B: catalog::CatalogInputBinding>(
+    plan: &SourceCatalogInputPlan<B>,
+    cut: PlanningCut<'_>,
+    revision: Option<SourceRevision>,
+    expected_membership: SourceMembershipV1,
+    target: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    l: BibliographicLimits,
+    observer: &mut impl catalog::SourceCatalogProfileObserver,
+    observed: &mut SourceCatalogRenderWorkV1,
+    initial_work: u64,
+    work_after: &mut u64,
+) -> Result<SourceCatalogReceipt<B>> {
+    let result = (|| {
+        plan.limits.validate(l)?;
+        if plan.revision != revision
             || plan.membership != expected_membership
             || !plan.receipt.binding.matches_source(&B::selected(target)?)
         {
@@ -845,32 +1793,47 @@ fn prepare_catalog_plan<B: catalog::CatalogInputBinding>(
                 return Err(Error::Invalid("cold catalog independent target roots"));
             }
         }
-        let mut work = 0u64;
+        *work_after = initial_work;
+        let work = &mut *work_after;
         for (path, member) in &plan.members {
             check(l.deadline, validator.cancelled)?;
             let relative = RelativePath::parse(path)
                 .map_err(|_| Error::Invalid("cold catalog transfer path"))?;
-            let metadata = cut
-                .current()
-                .member(&relative)
+            if let Some(limit) = plan.workspace_limit {
+                let retained = plan.retained_plan_bytes;
+                usize::try_from(member.size)
+                    .ok()
+                    .and_then(|n| n.max(8).checked_mul(4))
+                    .and_then(|n| n.checked_add(128 * 1024))
+                    .and_then(|n| n.checked_add(retained))
+                    .filter(|n| *n <= limit)
+                    .ok_or(Error::Budget("candidate transfer workspace"))?;
+            }
+            let (metadata_size, metadata_sha) = cut
+                .member(
+                    revision,
+                    &relative,
+                    plan.raw_input_max_bytes.min(l.catalog.max_file_bytes),
+                    l.deadline,
+                    validator.cancelled,
+                    work,
+                    plan.limits.max_work_bytes,
+                )?
                 .ok_or(Error::Invalid("cold catalog planned member absent"))?;
-            if metadata.sha256 != member.sha || metadata.size_bytes != member.size {
+            if metadata_sha != member.sha || metadata_size != member.size {
                 return Err(Error::Invalid("cold catalog planned member changed"));
             }
-            work = work
+            *work = work
                 .checked_add(member.size)
                 .filter(|n| *n <= plan.limits.max_work_bytes)
                 .ok_or(Error::Budget("cold catalog transfer work"))?;
-            let raw = cut
-                .read_member(
-                    expected_revision,
-                    &relative,
-                    plan.raw_input_max_bytes.min(l.catalog.max_file_bytes) as u64,
-                    l.deadline,
-                    validator.cancelled,
-                )
-                .map_err(|e| Error::Source(e.to_string()))?
-                .raw;
+            let raw = cut.read(
+                revision,
+                &relative,
+                plan.raw_input_max_bytes.min(l.catalog.max_file_bytes) as u64,
+                l.deadline,
+                validator.cancelled,
+            )?;
             charge_render_work(&mut observed.source_members_returned, 1)?;
             charge_render_work(
                 &mut observed.source_payload_bytes_returned,
@@ -928,7 +1891,10 @@ fn prepare_catalog_plan<B: catalog::CatalogInputBinding>(
                 }
             }
         }
-        catalog::prepare_catalog_receipt_observed(target, validator, l.catalog, observer)
+        let receipt =
+            catalog::prepare_catalog_receipt_observed(target, validator, l.catalog, observer)?;
+
+        Ok(receipt)
     })();
     if result.is_err() {
         target.poison();
@@ -1015,6 +1981,286 @@ pub fn render_source_bibliographic_plan_with_work(
             catalog: receipt,
             bibliographic,
         })
+    })();
+    if result.is_err() {
+        target.poison();
+    }
+    result
+}
+
+fn verify_candidate_input_eof<I: Eq>(
+    input: &dyn SourceCutInputWithIdentity<I>,
+    identity: &I,
+    coverage: &SourceCutInputCoverage,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    max_members: u64,
+    max_file: usize,
+    work: &mut u64,
+    max_work: u64,
+) -> Result<()> {
+    check(deadline, cancelled)?;
+    if input.input_identity() != identity {
+        return Err(Error::Invalid("candidate EOF identity"));
+    }
+    let mut hash = Digest256Hasher::new();
+    hash.update(b"tos-val-full-membership-v1\0");
+    let mut count = 0u64;
+    let mut bytes = 0u64;
+    let mut previous = String::new();
+    let observed = input
+        .for_each_current_member(deadline, cancelled, &mut |meta, raw| {
+            if meta.path.len() > 4096
+                || (!previous.is_empty() && meta.path <= previous.as_str())
+                || meta.size_bytes != raw.len() as u64
+                || raw.len() > max_file
+            {
+                return Err(tos_validation::item_rules::ItemRefusal::Source(
+                    "candidate full member stream".into(),
+                ));
+            }
+            RelativePath::parse(meta.path).map_err(|_| {
+                tos_validation::item_rules::ItemRefusal::Source("candidate EOF path".into())
+            })?;
+            count = count
+                .checked_add(1)
+                .filter(|n| *n <= max_members)
+                .ok_or(tos_validation::item_rules::ItemRefusal::Budget)?;
+            bytes = bytes
+                .checked_add(meta.size_bytes)
+                .ok_or(tos_validation::item_rules::ItemRefusal::Budget)?;
+            *work = work
+                .checked_add(meta.size_bytes)
+                .filter(|n| *n <= max_work)
+                .ok_or(tos_validation::item_rules::ItemRefusal::Budget)?;
+            hash.update(&(meta.path.len() as u64).to_be_bytes());
+            hash.update(meta.path.as_bytes());
+            hash.update(&meta.size_bytes.to_be_bytes());
+            hash.update(Digest256::of_bytes(raw).as_bytes());
+            previous.clear();
+            previous.push_str(meta.path);
+            Ok(())
+        })
+        .map_err(candidate_input_refusal)?;
+    if &observed != coverage
+        || count != coverage.member_count()
+        || bytes != coverage.source_bytes_read()
+        || (SourceMembershipV1 {
+            count,
+            digest: hash.finalize(),
+        }) != coverage.membership()
+    {
+        return Err(Error::Invalid("candidate complete input coverage"));
+    }
+    input
+        .verify_current_fence(&observed, deadline, cancelled)
+        .map_err(candidate_input_refusal)?;
+    check(deadline, cancelled)?;
+    if input.input_identity() != identity {
+        return Err(Error::Invalid("candidate EOF final identity"));
+    }
+    Ok(())
+}
+/// Unpublished input recipe. It carries opaque source identity and verified EOF,
+/// never a source revision, metadata publication epoch or cold-publication receipt.
+pub struct CandidateSourceCatalogInputPlan<'a, I: Copy + Eq + 'static> {
+    plan: SourceCatalogInputPlan<CandidateValidationBinding<I>>,
+    consumed: bool,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+    work_bytes: u64,
+}
+impl<I: Copy + Eq + 'static> CandidateSourceCatalogInputPlan<'_, I> {
+    /// Bound the fixed five-collection receipt before a planner constructs it.
+    /// The bound is derived from the same owned constants and role/profile law.
+    pub fn receipt_state_upper_bound(identity_heap_bytes: usize) -> Result<usize> {
+        let mut bytes = std::mem::size_of::<CandidateExactInputReceipt<I>>()
+            .checked_add(identity_heap_bytes)
+            .and_then(|n| n.checked_add(128))
+            .ok_or(Error::Budget("candidate receipt state"))?;
+        for collection in COLLECTIONS {
+            let (role, profile) = catalog::input_role(collection)?;
+            bytes = std::mem::size_of::<InputCollectionReceipt>()
+                .checked_mul(2)
+                .and_then(|n| bytes.checked_add(n))
+                .ok_or(Error::Budget("candidate receipt state"))?;
+            for length in [
+                CATALOG_SOURCE.len(),
+                collection.len(),
+                role.len(),
+                profile.len(),
+                64,
+            ] {
+                bytes = length
+                    .checked_mul(2)
+                    .and_then(|n| n.checked_add(128))
+                    .and_then(|n| bytes.checked_add(n))
+                    .ok_or(Error::Budget("candidate receipt state"))?;
+            }
+        }
+        Ok(bytes)
+    }
+    /// Reserve a clone BEFORE allocating its receipt/vector/string storage.
+    /// Inline identity/coverage bytes are included; a generic identity owner
+    /// supplies its own additional deep-clone heap bound (zero for fixed Copy
+    /// identities). This observation does not clone or admit any source bytes.
+    pub fn input_receipt_clone_state_bytes(&self, identity_heap_bytes: usize) -> Result<usize> {
+        let mut bytes = std::mem::size_of::<CandidateExactInputReceipt<I>>()
+            .checked_add(identity_heap_bytes)
+            .and_then(|n| n.checked_add(128))
+            .ok_or(Error::Budget("candidate receipt clone state"))?;
+        for collection in &self.plan.receipt.collections {
+            bytes = std::mem::size_of::<InputCollectionReceipt>()
+                .checked_mul(2)
+                .and_then(|n| bytes.checked_add(n))
+                .ok_or(Error::Budget("candidate receipt clone state"))?;
+            for value in [
+                &collection.source_graph,
+                &collection.collection,
+                &collection.input_role,
+                &collection.adapter_profile,
+                &collection.expected_root_sha256,
+            ] {
+                // Conservative allocator/string framing, beyond logical bytes.
+                bytes = value
+                    .len()
+                    .checked_mul(2)
+                    .and_then(|n| n.checked_add(128))
+                    .and_then(|n| bytes.checked_add(n))
+                    .ok_or(Error::Budget("candidate receipt clone state"))?;
+            }
+        }
+        Ok(bytes)
+    }
+    pub fn input_receipt(&self) -> CandidateExactInputReceipt<I> {
+        CandidateExactInputReceipt {
+            binding: self.plan.receipt.binding.clone(),
+            collections: self.plan.receipt.collections.clone(),
+        }
+    }
+    pub fn observed_work_bytes(&self) -> u64 {
+        self.work_bytes
+    }
+}
+pub fn plan_candidate_source_catalog_inputs_with_workspace<'a, I: Copy + Eq + 'static>(
+    input: &dyn SourceCutInputWithIdentity<I>,
+    expected_identity: &I,
+    coverage: &SourceCutInputCoverage,
+    limits: SourceCatalogInputLimits,
+    l: BibliographicLimits,
+    cancelled: &'a AtomicBool,
+    max_workspace_bytes: usize,
+) -> Result<CandidateSourceCatalogInputPlan<'a, I>> {
+    limits.validate(l)?;
+    // EOF path validation retains one bounded previous key and transient path framing.
+    if max_workspace_bytes < 16 * 1024 {
+        return Err(Error::Budget("candidate catalog workspace"));
+    }
+    check(l.deadline, cancelled)?;
+    let binding = CandidateValidationBinding::from_verified_input(
+        input,
+        expected_identity,
+        coverage.clone(),
+        l.deadline,
+        cancelled,
+    )?;
+    let mut initial_work = 0;
+    verify_candidate_input_eof(
+        input,
+        expected_identity,
+        coverage,
+        l.deadline,
+        cancelled,
+        limits.max_manifest_members,
+        l.catalog.max_file_bytes,
+        &mut initial_work,
+        limits.max_work_bytes,
+    )?;
+    let plan = plan_inputs_kernel(
+        PlanningCut::Candidate(input.source_input()),
+        None,
+        coverage.membership(),
+        &binding,
+        limits,
+        l,
+        cancelled,
+        l.catalog.max_file_bytes.min(64 * 1024 * 1024),
+        l.catalog.max_file_bytes.min(64 * 1024 * 1024),
+        true,
+        Some(max_workspace_bytes),
+        initial_work,
+    )?;
+    input
+        .verify_current_fence(coverage, l.deadline, cancelled)
+        .map_err(candidate_input_refusal)?;
+    check(l.deadline, cancelled)?;
+    if input.input_identity() != expected_identity {
+        return Err(Error::Invalid("candidate catalog input identity"));
+    }
+    let work_bytes = plan.work_bytes;
+    Ok(CandidateSourceCatalogInputPlan {
+        plan,
+        consumed: false,
+        deadline: l.deadline,
+        cancelled,
+        work_bytes,
+    })
+}
+pub fn prepare_candidate_source_catalog_plan_observed<I: Copy + Eq + 'static>(
+    plan: &mut CandidateSourceCatalogInputPlan<'_, I>,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    target: &mut KnowledgeStage<'_>,
+    validator: &SourceCatalogValidator<'_>,
+    mut l: BibliographicLimits,
+    observer: &mut impl catalog::SourceCatalogProfileObserver,
+    observed: &mut SourceCatalogRenderWorkV1,
+) -> Result<catalog::CandidateSourceCatalogReceipt<I>> {
+    if plan.consumed {
+        return Err(Error::Invalid("candidate catalog plan consumed"));
+    }
+    plan.consumed = true;
+    let result = (|| {
+        if !std::ptr::eq(plan.cancelled, validator.cancelled) {
+            return Err(Error::Invalid("candidate catalog cancellation identity"));
+        }
+        l.deadline = l.deadline.min(plan.deadline);
+        check(l.deadline, validator.cancelled)?;
+        let binding = &plan.plan.receipt.binding;
+        if input.input_identity() != binding.input_identity() {
+            return Err(Error::Invalid("candidate catalog input identity"));
+        }
+        input
+            .verify_current_fence(binding.coverage(), l.deadline, validator.cancelled)
+            .map_err(candidate_input_refusal)?;
+        validator.verify_candidate_schema_binding(binding.input_identity())?;
+        let receipt = prepare_catalog_plan_kernel(
+            &plan.plan,
+            PlanningCut::Candidate(input.source_input()),
+            None,
+            binding.coverage().membership(),
+            target,
+            validator,
+            l,
+            observer,
+            observed,
+            plan.work_bytes,
+            &mut plan.work_bytes,
+        )?;
+        verify_candidate_input_eof(
+            input,
+            binding.input_identity(),
+            binding.coverage(),
+            l.deadline,
+            validator.cancelled,
+            plan.plan.limits.max_manifest_members,
+            l.catalog.max_file_bytes,
+            &mut plan.work_bytes,
+            plan.plan.limits.max_work_bytes,
+        )?;
+        target.verify_candidate_inputs::<I>()?;
+        validator.verify_candidate_schema_binding(binding.input_identity())?;
+        check(l.deadline, validator.cancelled)?;
+        Ok(receipt)
     })();
     if result.is_err() {
         target.poison();

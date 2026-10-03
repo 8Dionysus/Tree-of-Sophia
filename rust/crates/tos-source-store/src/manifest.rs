@@ -183,11 +183,45 @@ impl CorpusReader {
 
     /// Explicitly inspect the mutable pointer. It is never consulted by `load_exact`.
     pub fn select_current(&self) -> Result<Option<SourceRevision>> {
+        self.select_current_inner(None)
+    }
+
+    /// Preserve the same pointer parser/CAS selection law while charging each
+    /// actual requested and returned read to the caller's shared ledger.
+    pub fn select_current_budgeted(
+        &self,
+        io_budget: &crate::PinnedSqliteIoBudget,
+        deadline: std::time::Instant,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> Result<Option<SourceRevision>> {
+        crate::streamed_cut::check_time_budgeted(deadline, cancelled, Some(io_budget))?;
+        let result = self.select_current_inner(Some((io_budget, deadline, cancelled)))?;
+        crate::streamed_cut::check_time_budgeted(deadline, cancelled, Some(io_budget))?;
+        Ok(result)
+    }
+
+    fn select_current_inner(
+        &self,
+        budget: Option<(
+            &crate::PinnedSqliteIoBudget,
+            std::time::Instant,
+            &std::sync::atomic::AtomicBool,
+        )>,
+    ) -> Result<Option<SourceRevision>> {
         let file = match self.root.open_pointer() {
             Err(error) if is_not_found(&error) => return Ok(None),
             other => other?,
         };
-        let value = self.read_canonical(file)?;
+        let value = if let Some((io_budget, deadline, cancelled)) = budget {
+            self.read_canonical(crate::streamed_cut::ManifestRead::new(
+                file,
+                Some(io_budget),
+                deadline,
+                cancelled,
+            ))?
+        } else {
+            self.read_canonical(file)?
+        };
         exact_keys(
             &value,
             &["schema_version", "current", "previous"],
@@ -386,7 +420,7 @@ impl CorpusReader {
         Ok(())
     }
 
-    fn read_canonical(&self, mut file: File) -> Result<JsonValue> {
+    fn read_canonical<R: Read>(&self, mut file: R) -> Result<JsonValue> {
         let cap = self
             .limits
             .max_manifest_bytes

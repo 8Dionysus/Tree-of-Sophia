@@ -364,11 +364,38 @@ pub(crate) struct FoundationBootstrapCost {
 /// Retains the exact protected launch bytes and the original deadline. It is
 /// configuration custody only; the selected worker's executor still owns
 /// executable pinning and schema semantics.
+/// Authenticated carrier request from the exact protected invocation. This
+/// selects representation only; NativeV4 still needs the complete native
+/// validator and the original shared cancellation/store/profile custody.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum FoundationAdmissionRepresentation {
+    ResidentV1,
+    NativeV4,
+}
+
+impl FoundationAdmissionRepresentation {
+    fn parse(value: &tos_foundation::JsonValue) -> Result<Self> {
+        if value.object_get("admission_representation").is_none() {
+            return Ok(Self::ResidentV1);
+        }
+        match crate::source_command::text(value, "admission_representation")
+            .map_err(|_| Error::Invalid("foundation admission representation value"))?
+        {
+            "resident-v1" => Ok(Self::ResidentV1),
+            "native-v4" => Ok(Self::NativeV4),
+            _ => Err(Error::Invalid(
+                "foundation admission representation profile",
+            )),
+        }
+    }
+}
+
 pub(crate) struct FoundationInvocation<'cancel> {
     path: PathBuf,
     raw: Vec<u8>,
     raw_sha256: Digest256,
     expected_executable_sha256: Digest256,
+    admission_representation: FoundationAdmissionRepresentation,
     pub schema_worker: FoundationSchemaWorkerSelection,
     pub artifact_root: Option<PathBuf>,
     pub budgets: FoundationInvocationBudgets,
@@ -380,6 +407,10 @@ pub(crate) struct FoundationInvocation<'cancel> {
 }
 
 impl<'cancel> FoundationInvocation<'cancel> {
+    pub(crate) fn admission_representation(&self) -> FoundationAdmissionRepresentation {
+        self.admission_representation
+    }
+
     pub(crate) fn uid(&self) -> u32 {
         self.uid
     }
@@ -582,29 +613,32 @@ pub(crate) fn read_invocation<'cancel>(
             .iter()
             .any(|(key, _)| key.as_str() == Some("artifact_root"))
     });
-    let invocation_keys: &[&str] = if artifact_root_selected {
-        &[
-            "schema_version",
-            "native_executable_sha256",
-            "schema_worker",
-            "artifact_root",
-            "budgets",
-        ]
-    } else {
-        &[
-            "schema_version",
-            "native_executable_sha256",
-            "schema_worker",
-            "budgets",
-        ]
-    };
-    crate::source_command::exact_keys(&value, invocation_keys)
+    // At most six static keys; retain strict optional shapes without a heap
+    // allocation or Vec growth before the invocation state is accounted.
+    let mut invocation_keys = [
+        "schema_version",
+        "native_executable_sha256",
+        "schema_worker",
+        "budgets",
+        "artifact_root",
+        "admission_representation",
+    ];
+    let mut invocation_key_count = 4;
+    if artifact_root_selected {
+        invocation_key_count += 1;
+    }
+    if value.object_get("admission_representation").is_some() {
+        invocation_keys[invocation_key_count] = "admission_representation";
+        invocation_key_count += 1;
+    }
+    crate::source_command::exact_keys(&value, &invocation_keys[..invocation_key_count])
         .map_err(|_| Error::Invalid("foundation invocation fields"))?;
     if crate::source_command::text(&value, "schema_version")?
         != "tos_local_native_foundation_invocation_v1"
     {
         return Err(Error::Invalid("foundation invocation profile"));
     }
+    let admission_representation = FoundationAdmissionRepresentation::parse(&value)?;
     let expected_executable_sha256 = Digest256::from_prefixed(crate::source_command::text(
         &value,
         "native_executable_sha256",
@@ -694,6 +728,7 @@ pub(crate) fn read_invocation<'cancel>(
         raw,
         raw_sha256,
         expected_executable_sha256,
+        admission_representation,
         schema_worker: FoundationSchemaWorkerSelection {
             path: worker_path,
             sha256: worker_sha256,
@@ -1263,5 +1298,37 @@ mod clock_selection_tests {
                 .is_err()
         );
         assert_eq!(expired.selected_deadline.get(), None);
+    }
+
+    #[test]
+    fn protected_admission_representation_defaults_resident_and_refuses_unknown_shapes() {
+        use FoundationAdmissionRepresentation::{NativeV4, ResidentV1};
+        for (raw, expected) in [
+            (br#"{}"#.as_slice(), ResidentV1),
+            (
+                br#"{"admission_representation":"resident-v1"}"#.as_slice(),
+                ResidentV1,
+            ),
+            (
+                br#"{"admission_representation":"native-v4"}"#.as_slice(),
+                NativeV4,
+            ),
+        ] {
+            let value = crate::source_command::parse(raw).unwrap();
+            assert_eq!(
+                FoundationAdmissionRepresentation::parse(&value).unwrap(),
+                expected
+            );
+        }
+        for raw in [
+            br#"{"admission_representation":null}"#.as_slice(),
+            br#"{"admission_representation":true}"#.as_slice(),
+            br#"{"admission_representation":4}"#.as_slice(),
+            br#"{"admission_representation":"spooled"}"#.as_slice(),
+            br#"{"admission_representation":"native-v5"}"#.as_slice(),
+        ] {
+            let value = crate::source_command::parse(raw).unwrap();
+            assert!(FoundationAdmissionRepresentation::parse(&value).is_err());
+        }
     }
 }

@@ -12,6 +12,7 @@ use crate::source_command::{
 };
 use crate::source_creation_store::{IsolatedCreationRoot, MAX_BYTES, MAX_FILES, active};
 use serde_json::Value as CandidateValue;
+use std::cell::{Cell, RefCell};
 use std::collections::BTreeMap;
 use std::io::{self, Write};
 use std::mem::size_of;
@@ -24,7 +25,8 @@ use tos_foundation::{
 use tos_ops_mechanics_plan::route_cards::RouteSources;
 use tos_source_store::{
     CorpusCutReader, CorpusReader, CutReadLimits, MemberMetadata, MetadataPublicationEpoch,
-    ReadLimits, SourceMembershipV1, has_authored_source_descendants_v1, is_authored_source_path_v1,
+    ReadLimits, SourceMembershipV1, StreamedCorpusCutReaderV1,
+    has_authored_source_descendants_v1, is_authored_source_path_v1,
 };
 
 const CONTROL: &str = "ToS/source-witnesses/.metadata-publication.json";
@@ -32,17 +34,23 @@ const CONTROL_READ_RESERVATION: usize = 8192;
 const MAX_CAPTURE_RELATIVE_PATH_BYTES: usize = 4096;
 
 pub(crate) struct FoundationCapturedCut {
-    cut: CorpusCutReader,
+    cut: FoundationCutBacking,
     membership: SourceMembershipV1,
-    metadata: BTreeMap<String, MemberMetadata>,
+    source_bytes: u64,
+    metadata: Option<BTreeMap<String, MemberMetadata>>,
     epoch: MetadataPublicationEpoch,
     cost: FoundationCaptureCost,
+}
+
+enum FoundationCutBacking {
+    Resident(CorpusCutReader),
+    Streamed(StreamedCorpusCutReaderV1),
 }
 
 /// Raw authored-member work only. Publication-control/manifest reads and
 /// allocator overhead require separate bounded reservations in the caller.
 #[derive(Clone, Copy, Debug, Default)]
-pub(crate) struct FoundationCaptureCost {
+pub struct FoundationCaptureCost {
     /// Bytes read directly from the selected live ToS route.
     pub source_read_bytes: usize,
     pub source_recheck_bytes: usize,
@@ -53,6 +61,472 @@ pub(crate) struct FoundationCaptureCost {
     /// Equal-digest members share one object, so this is a write upper bound.
     pub object_write_upper_bound_bytes: usize,
     pub manifest_write_bytes: usize,
+}
+
+/// Explicit independent capture and aggregate recheck allowances. The caller
+/// charges these to its whole operation, including parser/manifest state and
+/// actual host-backed capture/stage isolation. This carrier grants no isolation.
+#[derive(Clone, Copy, Debug)]
+pub struct AuthoredDiagnosticCaptureLimits {
+    pub read_limits: ReadLimits,
+    pub cut_limits: CutReadLimits,
+    /// All three existing member passes: capture, immutable EOF, live recheck.
+    pub max_capture_member_read_bytes: usize,
+    pub max_capture_write_bytes: usize,
+    /// All callback rechecks plus the mandatory final live/control recheck.
+    pub max_recheck_read_bytes: usize,
+    /// Whole callback-owned value/heap plus held capture and the independently
+    /// reserved final fence workspace. Construction/manifest transient state
+    /// is separately charged by the caller's whole operation.
+    pub max_callback_and_fence_state_bytes: usize,
+    /// Caller-grounded heap allowance for T and its actual stage/provider/worker
+    /// state. This declaration does not enforce opaque heap or process RSS.
+    pub callback_owned_heap_state_upper_bound_bytes: usize,
+    /// Held across the callback so final source/control checking can run while
+    /// T and callback-owned retained state remain live.
+    pub final_fence_workspace_upper_bound_bytes: usize,
+}
+
+/// Mechanical read accounting, never admission, an Original outcome or a
+/// completed native-session receipt. Capture control reads remain an explicit
+/// upper bound because the existing capture cost reports raw members only.
+#[derive(Clone, Copy, Debug)]
+pub struct AuthoredDiagnosticCaptureCost {
+    pub capture: FoundationCaptureCost,
+    pub callback_recheck_read_bytes: usize,
+    pub final_recheck_read_bytes: usize,
+    pub capture_control_read_upper_bound_bytes: usize,
+    /// Reserved source-level state accounting, never measured process memory.
+    pub callback_inline_value_bytes: usize,
+    pub callback_owned_heap_state_upper_bound_bytes: usize,
+    pub final_fence_workspace_upper_bound_bytes: usize,
+    pub final_fence_workspace_lower_bound_bytes: usize,
+    pub current_traversal_workspace_upper_bound_bytes: usize,
+    pub callback_and_fence_state_upper_bound_bytes: usize,
+}
+
+/// Explicit comparison allowances charged inside the callback's independently
+/// admitted retained-state budget. The owner enforces cumulative generated reads.
+#[derive(Clone, Copy, Debug)]
+pub struct AuthoredDiagnosticCatalogueComparisonLimits {
+    pub max_file_bytes: usize,
+    pub max_total_read_bytes: usize,
+    pub max_files: usize,
+    pub max_retained_state_bytes: usize,
+    pub renderer_owned_state_upper_bound_bytes: usize,
+    pub max_overlap_state_bytes: usize,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct AuthoredDiagnosticCatalogueComparisonCost {
+    pub generated_read_bytes: usize,
+    pub observation_retained_state_bytes: usize,
+    pub issue_retained_state_bytes: usize,
+    pub overlap_state_upper_bound_bytes: usize,
+}
+
+/// Real owner comparison selections retained within the borrowed capture.
+/// Construction is private; it exposes no mutable RouteSources or authority.
+pub struct AuthoredDiagnosticCatalogueComparison<'guard, 'source> {
+    capture: &'guard AuthoredDiagnosticCapture<'source>,
+    observation: RefCell<super::foundation_catalog::GeneratedCatalogObservation>,
+    issues: Vec<(String, String)>,
+    issue_state_bytes: usize,
+    overlap_state_upper_bound_bytes: usize,
+}
+impl AuthoredDiagnosticCatalogueComparison<'_, '_> {
+    pub fn issues(&self) -> &[(String, String)] {
+        &self.issues
+    }
+    pub fn cost(&self) -> Result<AuthoredDiagnosticCatalogueComparisonCost> {
+        let observation = self
+            .observation
+            .try_borrow()
+            .map_err(|_| Error::Conflict("authored catalogue observation already borrowed"))?;
+        Ok(AuthoredDiagnosticCatalogueComparisonCost {
+            generated_read_bytes: observation.read_bytes(),
+            observation_retained_state_bytes: observation.retained_state_bytes(),
+            issue_retained_state_bytes: self.issue_state_bytes,
+            overlap_state_upper_bound_bytes: self.overlap_state_upper_bound_bytes,
+        })
+    }
+    /// Recheck the owner's exact generated selections after later callbacks.
+    /// Uses the same cumulative cap/clock/cancel; a refusal poisons outer capture.
+    pub fn recheck(&self) -> Result<()> {
+        let result =
+            (|| {
+                active(self.capture.deadline, self.capture.cancelled)?;
+                if self.capture.poisoned.get() {
+                    return Err(Error::Conflict(
+                        "authored diagnostic capture previously refused",
+                    ));
+                }
+                let mut observation = self.observation.try_borrow_mut().map_err(|_| {
+                    Error::Conflict("authored catalogue observation already borrowed")
+                })?;
+                let mut sources =
+                    self.capture.sources.try_borrow_mut().map_err(|_| {
+                        Error::Conflict("authored diagnostic source already borrowed")
+                    })?;
+                observation.recheck(&mut sources, self.capture.deadline, self.capture.cancelled)
+            })();
+        if result.is_err() {
+            self.capture.poisoned.set(true);
+        }
+        result
+    }
+}
+
+/// Borrowed access to one real capture. Its private construction retains the
+/// exact mutable RouteSources, actual isolated root and original operation
+/// clock through the callback. Callers cannot construct or replace this guard.
+pub struct AuthoredDiagnosticCapture<'a> {
+    captured: &'a FoundationCapturedCut,
+    sources: RefCell<&'a mut RouteSources>,
+    isolated: &'a IsolatedCreationRoot,
+    read_limits: ReadLimits,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+    remaining_recheck_bytes: Cell<usize>,
+    observed_recheck_bytes: Cell<usize>,
+    poisoned: Cell<bool>,
+    pass_upper_bound_bytes: usize,
+    callback_owned_heap_state_upper_bound_bytes: usize,
+}
+
+impl<'source> AuthoredDiagnosticCapture<'source> {
+    pub fn cut(&self) -> &CorpusCutReader {
+        self.captured.cut()
+    }
+    pub fn revision(&self) -> SourceRevision {
+        self.captured.revision()
+    }
+    pub fn membership(&self) -> SourceMembershipV1 {
+        self.captured.membership()
+    }
+    pub fn epoch(&self) -> &MetadataPublicationEpoch {
+        self.captured.epoch()
+    }
+    pub fn capture_cost(&self) -> FoundationCaptureCost {
+        self.captured.cost()
+    }
+    /// Reuse the COMMAND-owned persisted catalogue manifest format after
+    /// checking its cold binding against this actual cut and protected epoch.
+    /// The caller still verifies the real catalog/stage receipt before using
+    /// this pure formatter; formatting grants no source or semantic admission.
+    pub fn published_catalogue_manifest(
+        &self,
+        receipt: &tos_compiler::source_witness_catalog::ColdSourceCatalogReceipt,
+        limits: JsonLimits,
+    ) -> Result<Vec<u8>> {
+        active(self.deadline, self.cancelled)?;
+        if self.poisoned.get() {
+            return Err(Error::Conflict(
+                "authored diagnostic capture recheck previously refused",
+            ));
+        }
+        let binding = &receipt.input_binding;
+        let epoch = self.captured.epoch();
+        if binding.revision() != self.captured.revision()
+            || binding.membership() != self.captured.membership()
+            || binding.epoch_token() != epoch.token()
+            || binding.epoch_generation() != epoch.generation()
+            || binding.epoch_member()
+                != epoch
+                    .member_binding()
+                    .map_err(|_| Error::Invalid("authored diagnostic protected epoch binding"))?
+        {
+            return Err(Error::Conflict(
+                "authored diagnostic cold catalogue receipt binding",
+            ));
+        }
+        super::foundation_catalog::published_manifest(epoch.token(), receipt, limits)
+    }
+    /// Invoke only after finishing the real cold stage and collecting bounded
+    /// expected bytes. Reuses COMMAND's live CompareCatalog and protected-epoch
+    /// formatter. The returned handle must be rechecked after later callbacks.
+    pub fn compare_catalogue_outputs<'guard>(
+        &'guard self,
+        receipt: &tos_compiler::source_witness_catalog::ColdSourceCatalogReceipt,
+        json: JsonLimits,
+        limits: AuthoredDiagnosticCatalogueComparisonLimits,
+        render: impl FnOnce(
+            &mut dyn tos_compiler::source_witness_catalog::SourceCatalogSink,
+        ) -> Result<()>,
+    ) -> Result<AuthoredDiagnosticCatalogueComparison<'guard, 'source>> {
+        let result = (|| {
+            for cap in [
+                limits.max_file_bytes,
+                limits.max_total_read_bytes,
+                limits.max_files,
+                limits.max_retained_state_bytes,
+                limits.max_overlap_state_bytes,
+            ] {
+                if cap == 0 || cap == usize::MAX {
+                    return Err(Error::Invalid(
+                        "authored catalogue finite comparison limits",
+                    ));
+                }
+            }
+            // Reserve manifest Vec capacity, current raw Vec, owner observations/
+            // issues and renderer-owned state BEFORE formatting or comparison.
+            let overlap = json
+                .max_bytes
+                .checked_mul(2)
+                .and_then(|n| n.checked_add(limits.max_file_bytes))
+                .and_then(|n| n.checked_add(limits.max_retained_state_bytes))
+                .and_then(|n| n.checked_add(limits.renderer_owned_state_upper_bound_bytes))
+                .and_then(|n| {
+                    n.checked_add(
+                        super::foundation_catalog::catalogue_comparison_controller_state_bytes(),
+                    )
+                })
+                .and_then(|n| {
+                    n.checked_add(size_of::<AuthoredDiagnosticCatalogueComparison<'_, '_>>())
+                })
+                .filter(|n| {
+                    *n <= limits.max_overlap_state_bytes
+                        && limits.max_overlap_state_bytes
+                            <= self.callback_owned_heap_state_upper_bound_bytes
+                })
+                .ok_or(Error::Unsupported(
+                    "authored catalogue comparison overlap reservation",
+                ))?;
+            let manifest = self.published_catalogue_manifest(receipt, json)?;
+            let (issues, observation, issue_state_bytes) =
+                super::foundation_catalog::compare_catalogue_outputs(
+                    &self.sources,
+                    manifest,
+                    limits.max_file_bytes,
+                    limits.max_total_read_bytes,
+                    limits.max_files,
+                    limits.max_retained_state_bytes,
+                    self.deadline,
+                    self.cancelled,
+                    render,
+                )?;
+            Ok(AuthoredDiagnosticCatalogueComparison {
+                capture: self,
+                observation: RefCell::new(observation),
+                issues,
+                issue_state_bytes,
+                overlap_state_upper_bound_bytes: overlap,
+            })
+        })();
+        if result.is_err() {
+            self.poisoned.set(true);
+        }
+        result
+    }
+    /// Reuse the exact live/epoch fence under a monotone local allowance.
+    /// One final pass remains reserved even when the callback invokes this
+    /// through its ColdStageOwner. No allowance or clock is reset here.
+    pub fn recheck(&self) -> Result<usize> {
+        self.recheck_pass(false)
+    }
+    fn recheck_pass(&self, final_pass: bool) -> Result<usize> {
+        if self.poisoned.get() {
+            return Err(Error::Conflict(
+                "authored diagnostic capture recheck previously refused",
+            ));
+        }
+        let result = self.recheck_pass_inner(final_pass);
+        self.poisoned.set(result.is_err());
+        result
+    }
+    fn recheck_pass_inner(&self, final_pass: bool) -> Result<usize> {
+        active(self.deadline, self.cancelled)?;
+        let needed = self
+            .pass_upper_bound_bytes
+            .checked_mul(if final_pass { 1 } else { 2 })
+            .ok_or(Error::Unsupported(
+                "authored diagnostic recheck reservation overflow",
+            ))?;
+        if self.remaining_recheck_bytes.get() < needed {
+            return Err(Error::Unsupported(
+                "authored diagnostic aggregate recheck budget",
+            ));
+        }
+        // Charge the full pass reservation BEFORE I/O, including failure paths.
+        self.remaining_recheck_bytes
+            .set(self.remaining_recheck_bytes.get() - self.pass_upper_bound_bytes);
+        let mut sources = self
+            .sources
+            .try_borrow_mut()
+            .map_err(|_| Error::Conflict("authored diagnostic source already borrowed"))?;
+        self.isolated
+            .verify_current(self.deadline, self.cancelled)?;
+        let bytes = self.captured.recheck_with_control_budget(
+            &mut sources,
+            self.read_limits,
+            self.pass_upper_bound_bytes,
+            self.deadline,
+            self.cancelled,
+        )?;
+        self.observed_recheck_bytes.set(
+            self.observed_recheck_bytes
+                .get()
+                .checked_add(bytes)
+                .ok_or(Error::Unsupported(
+                    "authored diagnostic observed read accounting",
+                ))?,
+        );
+        self.isolated
+            .verify_current(self.deadline, self.cancelled)?;
+        active(self.deadline, self.cancelled)?;
+        Ok(bytes)
+    }
+}
+
+/// Run a read-only authored diagnostic against the existing exact capture
+/// kernel. Only the private isolated store is written. The callback receives
+/// no mutable source, capture constructor, arbitrary stage authority or grant.
+/// The caller retains host-backed namespace isolation and owns bounded cleanup
+/// of its actual newly created IsolatedCreationRoot after this function returns.
+/// Initial capture selects and verifies the protected publication epoch and
+/// authentic complete immutable EOF. Terminal success additionally requires
+/// the same live bytes/membership, epoch, held root and isolated-root custody.
+pub fn with_authored_diagnostic_capture<T>(
+    sources: &mut RouteSources,
+    isolated: &IsolatedCreationRoot,
+    validator_sha256: Digest256,
+    limits: AuthoredDiagnosticCaptureLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    diagnostic: impl for<'capture> FnOnce(&AuthoredDiagnosticCapture<'capture>) -> Result<T>,
+) -> Result<(T, AuthoredDiagnosticCaptureCost)> {
+    let deadline = deadline.min(sources.deadline());
+    active(deadline, cancelled)?;
+    for cap in [
+        limits.max_capture_member_read_bytes,
+        limits.max_capture_write_bytes,
+        limits.max_recheck_read_bytes,
+        limits.max_callback_and_fence_state_bytes,
+        limits.final_fence_workspace_upper_bound_bytes,
+    ] {
+        if cap == 0 || cap == usize::MAX {
+            return Err(Error::Invalid("authored diagnostic finite capture limits"));
+        }
+    }
+    // Reserve the callback value and declared opaque heap BEFORE running its
+    // producer. The caller's actual heap/stage quotas remain a separate owner.
+    let callback_state_upper_bound_bytes = size_of::<T>()
+        .checked_add(limits.callback_owned_heap_state_upper_bound_bytes)
+        .and_then(|bytes| bytes.checked_add(limits.final_fence_workspace_upper_bound_bytes))
+        .filter(|bytes| *bytes <= limits.max_callback_and_fence_state_bytes)
+        .ok_or(Error::Unsupported(
+            "authored diagnostic callback/fence state reservation",
+        ))?;
+    let current_traversal_workspace_upper_bound_bytes =
+        RouteSources::selected_paths_workspace_upper_bound_bytes().map_err(source_error)?;
+    if current_traversal_workspace_upper_bound_bytes
+        > limits.final_fence_workspace_upper_bound_bytes
+    {
+        return Err(Error::Unsupported(
+            "authored diagnostic changed-current traversal reservation",
+        ));
+    }
+    let captured = capture_bounded_with_write_cap(
+        sources,
+        isolated,
+        validator_sha256,
+        limits.read_limits,
+        limits.cut_limits,
+        limits.max_capture_member_read_bytes,
+        limits.max_capture_write_bytes,
+        deadline,
+        cancelled,
+    )?;
+    if captured.streamed_cut().is_some() || captured.cost().candidate_copy_read_bytes.is_some() {
+        return Err(Error::Invalid(
+            "authored diagnostic requires genuine live resident capture",
+        ));
+    }
+    let pass_upper_bound_bytes = captured
+        .cost()
+        .source_read_bytes
+        .checked_add(CONTROL_READ_RESERVATION)
+        .filter(|bytes| *bytes <= limits.max_recheck_read_bytes)
+        .ok_or(Error::Unsupported(
+            "authored diagnostic mandatory final recheck reservation",
+        ))?;
+    // The current live kernel materializes each raw member before hashing;
+    // it does not use a streaming 32KiB buffer. Reuse the owner's existing
+    // retained metadata/path/control parse envelope without changing it, then
+    // reserve the changed-current traversal worst case, largest actual raw
+    // member and guard frame. Captured names never bound changed-current names.
+    // Directory traversal and opaque caller state still require independently
+    // grounded caller allowances; this is source accounting, never RSS.
+    let metadata = captured
+        .metadata
+        .as_ref()
+        .ok_or(Error::Invalid("authored diagnostic live capture metadata"))?;
+    let mut file_name_bytes = 0usize;
+    let mut largest_member_bytes = 0usize;
+    for (path, member) in metadata {
+        file_name_bytes = file_name_bytes
+            .checked_add(path.len())
+            .ok_or(Error::Unsupported(
+                "authored diagnostic fence name accounting",
+            ))?;
+        largest_member_bytes = largest_member_bytes.max(
+            usize::try_from(member.size_bytes)
+                .map_err(|_| Error::Unsupported("authored diagnostic member size range"))?,
+        );
+    }
+    let held_capture_control_state =
+        candidate_capture_retained_state_upper_bound(metadata.len(), file_name_bytes).ok_or(
+            Error::Unsupported("authored diagnostic held capture/control reservation"),
+        )?;
+    let fence_state_lower_bound_bytes = current_traversal_workspace_upper_bound_bytes
+        .checked_add(largest_member_bytes)
+        .and_then(|bytes| bytes.checked_add(held_capture_control_state))
+        .and_then(|bytes| bytes.checked_add(size_of::<AuthoredDiagnosticCapture<'_>>()))
+        .filter(|bytes| *bytes <= limits.final_fence_workspace_upper_bound_bytes)
+        .ok_or(Error::Unsupported(
+            "authored diagnostic final fence workspace reservation",
+        ))?;
+    let guard = AuthoredDiagnosticCapture {
+        captured: &captured,
+        sources: RefCell::new(sources),
+        isolated,
+        // A changed larger member must refuse before raw Vec allocation,
+        // preserving the actual captured-largest workspace reservation.
+        read_limits: ReadLimits {
+            max_selected_object_bytes: limits
+                .read_limits
+                .max_selected_object_bytes
+                .min(largest_member_bytes.max(1) as u64),
+            ..limits.read_limits
+        },
+        deadline,
+        cancelled,
+        remaining_recheck_bytes: Cell::new(limits.max_recheck_read_bytes),
+        observed_recheck_bytes: Cell::new(0),
+        poisoned: Cell::new(false),
+        pass_upper_bound_bytes,
+        callback_owned_heap_state_upper_bound_bytes: limits
+            .callback_owned_heap_state_upper_bound_bytes,
+    };
+    let value = diagnostic(&guard)?;
+    let callback_recheck_read_bytes = guard.observed_recheck_bytes.get();
+    let final_recheck_read_bytes = guard.recheck_pass(true)?;
+    Ok((
+        value,
+        AuthoredDiagnosticCaptureCost {
+            capture: captured.cost(),
+            callback_recheck_read_bytes,
+            final_recheck_read_bytes,
+            capture_control_read_upper_bound_bytes: CONTROL_READ_RESERVATION * 2,
+            callback_inline_value_bytes: size_of::<T>(),
+            callback_owned_heap_state_upper_bound_bytes: limits
+                .callback_owned_heap_state_upper_bound_bytes,
+            final_fence_workspace_upper_bound_bytes: limits.final_fence_workspace_upper_bound_bytes,
+            final_fence_workspace_lower_bound_bytes: fence_state_lower_bound_bytes,
+            current_traversal_workspace_upper_bound_bytes,
+            callback_and_fence_state_upper_bound_bytes: callback_state_upper_bound_bytes,
+        },
+    ))
 }
 
 fn source_error(_: std::io::Error) -> Error {
@@ -325,13 +799,30 @@ fn membership(metadata: &BTreeMap<String, MemberMetadata>) -> SourceMembershipV1
 
 impl FoundationCapturedCut {
     pub(crate) fn cut(&self) -> &CorpusCutReader {
-        &self.cut
+        match &self.cut {
+            FoundationCutBacking::Resident(cut) => cut,
+            FoundationCutBacking::Streamed(_) => {
+                panic!("resident source-cut access on streamed foundation capture")
+            }
+        }
+    }
+    pub(crate) fn streamed_cut(&self) -> Option<&StreamedCorpusCutReaderV1> {
+        match &self.cut {
+            FoundationCutBacking::Resident(_) => None,
+            FoundationCutBacking::Streamed(cut) => Some(cut),
+        }
     }
     pub(crate) fn revision(&self) -> SourceRevision {
-        self.cut.current().revision()
+        match &self.cut {
+            FoundationCutBacking::Resident(cut) => cut.current().revision(),
+            FoundationCutBacking::Streamed(cut) => cut.current_revision(),
+        }
     }
     pub(crate) fn membership(&self) -> SourceMembershipV1 {
         self.membership
+    }
+    pub(crate) fn source_bytes(&self) -> u64 {
+        self.source_bytes
     }
     pub(crate) fn epoch(&self) -> &MetadataPublicationEpoch {
         &self.epoch
@@ -344,12 +835,150 @@ impl FoundationCapturedCut {
     /// It contains authored members only; payload and auxiliary custody are
     /// selected separately by the command owner.
     pub(crate) fn current_paths(&self) -> Vec<String> {
-        self.metadata.keys().cloned().collect()
+        self.metadata
+            .as_ref()
+            .map(|metadata| metadata.keys().cloned().collect())
+            .unwrap_or_default()
     }
     pub(crate) fn observed_members(&self) -> impl Iterator<Item = (&str, &MemberMetadata)> {
         self.metadata
-            .iter()
+            .as_ref()
+            .into_iter()
+            .flat_map(|metadata| metadata.iter())
             .map(|(path, member)| (path.as_str(), member))
+    }
+
+    pub(crate) fn member(
+        &self,
+        path: &RelativePath,
+    ) -> io::Result<Option<MemberMetadata>> {
+        match &self.cut {
+            FoundationCutBacking::Resident(_) => Ok(self
+                .metadata
+                .as_ref()
+                .and_then(|metadata| metadata.get(path.as_str()).cloned())),
+            FoundationCutBacking::Streamed(cut) => cut
+                .member(self.revision(), path)
+                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "captured member read")),
+        }
+    }
+
+    pub(crate) fn member_after(
+        &self,
+        after: Option<&RelativePath>,
+    ) -> io::Result<Option<MemberMetadata>> {
+        match &self.cut {
+            FoundationCutBacking::Resident(_) => Ok(self.metadata.as_ref().and_then(|metadata| {
+                match after {
+                    Some(after) => metadata
+                        .range::<str, _>((std::ops::Bound::Excluded(after.as_str()), std::ops::Bound::Unbounded))
+                        .next()
+                        .map(|(_, member)| member.clone()),
+                    None => metadata.values().next().cloned(),
+                }
+            })),
+            FoundationCutBacking::Streamed(cut) => cut
+                .member_after(self.revision(), after)
+                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "captured member cursor")),
+        }
+    }
+
+    pub(crate) fn read_member(
+        &self,
+        path: &RelativePath,
+        max_bytes: usize,
+        deadline: Instant,
+        cancel: &AtomicBool,
+    ) -> io::Result<Vec<u8>> {
+        let max_bytes = u64::try_from(max_bytes)
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "captured read cap"))?;
+        match &self.cut {
+            FoundationCutBacking::Resident(cut) => cut
+                .read_member(self.revision(), path, max_bytes, deadline, cancel)
+                .map(|member| member.raw)
+                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "captured member bytes")),
+            FoundationCutBacking::Streamed(cut) => cut
+                .read_member(self.revision(), path, max_bytes, deadline, cancel)
+                .map(|member| member.raw)
+                .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "captured member bytes")),
+        }
+    }
+
+    /// Visit a sorted current-member cursor without materializing the complete
+    /// source path set. The streamed branch checks a true cursor EOF against
+    /// the capture's authenticated full-membership receipt.
+    pub(crate) fn for_each_member(
+        &self,
+        deadline: Instant,
+        cancel: &AtomicBool,
+        mut visit: impl FnMut(&MemberMetadata) -> io::Result<()>,
+    ) -> io::Result<()> {
+        match &self.cut {
+            FoundationCutBacking::Resident(_) => {
+                let metadata = self
+                    .metadata
+                    .as_ref()
+                    .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "capture metadata absent"))?;
+                if membership(metadata) != self.membership
+                    || metadata.values().try_fold(0u64, |total, member| {
+                        total.checked_add(member.size_bytes)
+                    }) != Some(self.source_bytes)
+                {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "captured resident membership changed",
+                    ));
+                }
+                for member in metadata.values() {
+                    active(deadline, cancel).map_err(|_| {
+                        io::Error::new(io::ErrorKind::Interrupted, "captured member walk interrupted")
+                    })?;
+                    visit(member)?;
+                }
+            }
+            FoundationCutBacking::Streamed(_) => {
+                let mut after = None;
+                let mut hash = Digest256Hasher::new();
+                hash.update(b"tos-val-full-membership-v1\0");
+                let mut count = 0u64;
+                let mut observed_bytes = 0u64;
+                loop {
+                    active(deadline, cancel).map_err(|_| {
+                        io::Error::new(io::ErrorKind::Interrupted, "captured member walk interrupted")
+                    })?;
+                    let next = self.member_after(after.as_ref());
+                    active(deadline, cancel).map_err(|_| {
+                        io::Error::new(io::ErrorKind::Interrupted, "captured member cursor interrupted")
+                    })?;
+                    let Some(member) = next? else { break };
+                    count = count
+                        .checked_add(1)
+                        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "member count overflow"))?;
+                    observed_bytes = observed_bytes
+                        .checked_add(member.size_bytes)
+                        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "member byte count overflow"))?;
+                    feed_membership(&mut hash, &member.path, member.size_bytes, member.sha256);
+                    visit(&member)?;
+                    after = Some(member.path);
+                }
+                active(deadline, cancel).map_err(|_| {
+                    io::Error::new(io::ErrorKind::Interrupted, "captured member EOF interrupted")
+                })?;
+                if count != self.membership.count
+                    || (SourceMembershipV1 {
+                        count,
+                        digest: hash.finalize(),
+                    } != self.membership)
+                    || observed_bytes != self.source_bytes
+                {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "captured streamed membership did not reach authenticated EOF",
+                    ));
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Re-enumerate and rehash actual current files; a participating epoch alone
@@ -423,27 +1052,52 @@ impl FoundationCapturedCut {
                 "foundation publication-control read reservation",
             ))?;
         let mut member_bytes = 0usize;
-        let mut stream = self
-            .cut
-            .stream(self.cut.current().revision())
-            .map_err(|_| Error::Invalid("foundation candidate immutable stream"))?;
-        while let Some(member) = stream
-            .next_member(deadline, cancel)
-            .map_err(|_| Error::Invalid("foundation candidate immutable EOF"))?
-        {
-            member_bytes = member_bytes
-                .checked_add(member.raw.len())
-                .filter(|bytes| *bytes <= member_allowance)
-                .ok_or(Error::Unsupported(
-                    "foundation candidate immutable read budget",
-                ))?;
+        match &self.cut {
+            FoundationCutBacking::Resident(cut) => {
+                let mut stream = cut
+                    .stream(self.revision())
+                    .map_err(|_| Error::Invalid("foundation candidate immutable stream"))?;
+                while let Some(member) = stream
+                    .next_member(deadline, cancel)
+                    .map_err(|_| Error::Invalid("foundation candidate immutable EOF"))?
+                {
+                    member_bytes = member_bytes
+                        .checked_add(member.raw.len())
+                        .filter(|bytes| *bytes <= member_allowance)
+                        .ok_or(Error::Unsupported(
+                            "foundation candidate immutable read budget",
+                        ))?;
+                }
+                if stream.coverage() != Some(self.membership) {
+                    return Err(Error::Conflict(
+                        "foundation candidate immutable membership changed",
+                    ));
+                }
+            }
+            FoundationCutBacking::Streamed(_) => self
+                .for_each_member(deadline, cancel, |metadata| {
+                    let raw = self
+                        .read_member(
+                            &metadata.path,
+                            usize::try_from(metadata.size_bytes).map_err(|_| {
+                                io::Error::new(io::ErrorKind::InvalidData, "member size range")
+                            })?,
+                            deadline,
+                            cancel,
+                        )?;
+                    member_bytes = member_bytes
+                        .checked_add(raw.len())
+                        .filter(|bytes| *bytes <= member_allowance)
+                        .ok_or_else(|| {
+                            io::Error::new(
+                                io::ErrorKind::InvalidData,
+                                "foundation candidate immutable read budget",
+                            )
+                        })?;
+                    Ok(())
+                })
+                .map_err(|_| Error::Invalid("foundation candidate immutable EOF"))?,
         }
-        if stream.coverage() != Some(self.membership) {
-            return Err(Error::Conflict(
-                "foundation candidate immutable membership changed",
-            ));
-        }
-        drop(stream);
 
         let (current_state, control_bytes) = state_with_cost(sources)?;
         if control_bytes > CONTROL_READ_RESERVATION {
@@ -472,11 +1126,15 @@ impl FoundationCapturedCut {
         deadline: Instant,
         cancel: &AtomicBool,
     ) -> Result<(usize, usize)> {
+        let metadata = self
+            .metadata
+            .as_ref()
+            .ok_or(Error::Invalid("foundation live capture metadata unavailable"))?;
         let current = paths(sources, deadline, cancel)?;
         if !current
             .iter()
             .map(String::as_str)
-            .eq(self.metadata.keys().map(String::as_str))
+            .eq(metadata.keys().map(String::as_str))
         {
             return Err(Error::Conflict("foundation live membership changed"));
         }
@@ -491,7 +1149,7 @@ impl FoundationCapturedCut {
                     max_source_read_bytes.min(MAX_BYTES),
                 )
                 .map_err(source_error)?;
-            let original = &self.metadata[&path];
+            let original = &metadata[&path];
             if raw.len() as u64 != original.size_bytes
                 || Digest256::of_bytes(&raw) != original.sha256
                 || physical.mode() & 0o7777 != original.mode
@@ -931,9 +1589,10 @@ pub(crate) fn capture_candidate(
         ));
     }
     Ok(FoundationCapturedCut {
-        cut,
+        cut: FoundationCutBacking::Resident(cut),
         membership,
-        metadata,
+        source_bytes: total_member_bytes as u64,
+        metadata: Some(metadata),
         epoch,
         cost: FoundationCaptureCost {
             source_read_bytes: 0,
@@ -1064,9 +1723,11 @@ pub(crate) fn capture_bounded_with_write_cap(
     }
     drop(stream);
     let mut captured = FoundationCapturedCut {
-        cut,
+        cut: FoundationCutBacking::Resident(cut),
         membership,
-        metadata,
+        source_bytes: u64::try_from(read_bytes)
+            .map_err(|_| Error::Unsupported("foundation member byte range"))?,
+        metadata: Some(metadata),
         epoch,
         cost: FoundationCaptureCost {
             source_read_bytes: read_bytes,

@@ -20,7 +20,12 @@ use tos_source_store::{
 };
 use tos_validation::PredicateRead;
 use tos_validation::item_rules::ItemLimits;
-use tos_validation::native_compound::{NativeRecordHistoryReadObservation, NativeTransportState};
+use tos_validation::native_compound::{
+    CandidateNativeRecordHistoryReadObservation, NativeRecordHistoryReadObservation,
+    NativeTransportState,
+};
+use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};
+use tos_validation::source_cut::CandidateCutWorkerSchemaExecutor;
 use tos_validation::source_cut::{CutSchemaExecutor, CutWorkerSchemaExecutor};
 
 const HISTORY: &str = "source-revision-history.json";
@@ -153,8 +158,8 @@ enum TransactionReconstructionMode {
 /// from the exact publication carriers under the maintained evidence context.
 /// The private fields prevent callers from promoting a status-only assertion.
 #[derive(Debug)]
-pub(crate) struct ArtifactCorrectionReplayObservation {
-    source_revision: tos_foundation::SourceRevision,
+pub(crate) struct ArtifactCorrectionReplayObservation<I = tos_foundation::SourceRevision> {
+    input_identity: I,
     current_membership: SourceMembershipV1,
     source_root: String,
     source_path: String,
@@ -176,7 +181,7 @@ pub(crate) struct ArtifactCorrectionReplayTransactionObservation {
 
 impl ArtifactCorrectionReplayObservation {
     pub(crate) fn source_revision(&self) -> tos_foundation::SourceRevision {
-        self.source_revision
+        self.input_identity
     }
 
     pub(crate) fn current_membership(&self) -> SourceMembershipV1 {
@@ -238,7 +243,72 @@ impl tos_validation::source_foundation_discovery::ArtifactCorrectionReplayEviden
     for ArtifactCorrectionReplayObservation
 {
     fn source_revision(&self) -> tos_foundation::SourceRevision {
-        self.source_revision
+        self.input_identity
+    }
+
+    fn current_membership(&self) -> SourceMembershipV1 {
+        self.current_membership
+    }
+
+    fn source_path(&self) -> &str {
+        &self.source_path
+    }
+
+    fn record_id(&self) -> &str {
+        &self.record_id
+    }
+
+    fn origin_record_sha256(&self) -> &str {
+        &self.origin_record_sha256
+    }
+
+    fn origin_record_byte_size(&self) -> usize {
+        self.origin_record_byte_size
+    }
+
+    fn history_sha256(&self) -> Option<&str> {
+        self.history_sha256.as_deref()
+    }
+
+    fn transaction_count(&self) -> usize {
+        self.transactions.len()
+    }
+
+    fn transaction_at(
+        &self,
+        index: usize,
+    ) -> Option<
+        tos_validation::source_foundation_discovery::ArtifactCorrectionReplayTransactionRef<'_>,
+    > {
+        self.transactions.get(index).map(|transaction| {
+            tos_validation::source_foundation_discovery::ArtifactCorrectionReplayTransactionRef {
+                transaction_id: &transaction.transaction_id,
+                manifest_sha256: &transaction.manifest_sha256,
+                receipt_sha256: &transaction.receipt_sha256,
+            }
+        })
+    }
+
+    fn publication_state_bytes(&self) -> usize {
+        self.publication_state_bytes
+    }
+
+    fn returned_state_bytes(&self) -> usize {
+        self.returned_state_bytes
+    }
+}
+
+/// Candidate-fenced correction evidence keeps the opaque current-input identity
+/// and never synthesizes a `SourceRevision`.
+pub(crate) type CandidateArtifactCorrectionReplayObservation<I> =
+    ArtifactCorrectionReplayObservation<I>;
+
+impl<I: Copy + Eq>
+    tos_validation::source_foundation_discovery::CandidateArtifactCorrectionReplayEvidence<I>
+    for ArtifactCorrectionReplayObservation<I>
+{
+    fn input_identity(&self) -> &I {
+        &self.input_identity
     }
 
     fn current_membership(&self) -> SourceMembershipV1 {
@@ -302,6 +372,18 @@ pub struct RecordVersionReadInput<'a> {
     pub source_revision: tos_foundation::SourceRevision,
     pub effective_uid: u64,
     pub schema_source_path: &'a str,
+}
+
+/// Small, explicitly selected current metadata view used by candidate-fenced
+/// Artifact correction replay. It owns only the paths named by the maintained
+/// history/publication proof, while preserving the borrowed input's opaque
+/// identity; it is never assigned a `SourceRevision`.
+struct CandidateRecordVersionReadInput<'a, I: Copy + Eq> {
+    input: &'a dyn SourceCutInputWithIdentity<I>,
+    input_identity: I,
+    files: Vec<SourceFile>,
+    schema_source_path: String,
+    effective_uid: u64,
 }
 
 /// Transport over one live selected source-root read epoch. The implementor
@@ -673,8 +755,13 @@ pub(crate) fn validate_readonly_schema(
 }
 
 pub(crate) trait RecordRead {
+    type Identity: Copy + Eq;
+
     fn files(&self) -> &[SourceFile];
-    fn source_revision(&self) -> tos_foundation::SourceRevision;
+    fn input_identity(&self) -> Self::Identity;
+    fn effective_uid(&self) -> u64 {
+        0
+    }
     fn schema_source_path(&self) -> SourceCommandResult<String>;
     fn writer(&self) -> Option<&CommandContext> {
         None
@@ -692,11 +779,16 @@ pub(crate) trait RecordRead {
     }
 }
 impl RecordRead for CommandContext {
+    type Identity = tos_foundation::SourceRevision;
+
     fn files(&self) -> &[SourceFile] {
         &self.files
     }
-    fn source_revision(&self) -> tos_foundation::SourceRevision {
+    fn input_identity(&self) -> Self::Identity {
         self.base_revision
+    }
+    fn effective_uid(&self) -> u64 {
+        self.effective_uid
     }
     fn schema_source_path(&self) -> SourceCommandResult<String> {
         Ok(cmd::text(&cmd::parse(&self.configuration_raw)?, "source_path")?.to_owned())
@@ -709,11 +801,16 @@ impl RecordRead for CommandContext {
     }
 }
 impl RecordRead for RecordVersionReadInput<'_> {
+    type Identity = tos_foundation::SourceRevision;
+
     fn files(&self) -> &[SourceFile] {
         self.files
     }
-    fn source_revision(&self) -> tos_foundation::SourceRevision {
+    fn input_identity(&self) -> Self::Identity {
         self.source_revision
+    }
+    fn effective_uid(&self) -> u64 {
+        self.effective_uid
     }
     fn schema_source_path(&self) -> SourceCommandResult<String> {
         path(self.schema_source_path)?;
@@ -740,6 +837,127 @@ impl RecordRead for RecordVersionReadInput<'_> {
         }
         self.schema_source_path()?;
         Ok(())
+    }
+}
+
+impl<I: Copy + Eq> RecordRead for CandidateRecordVersionReadInput<'_, I> {
+    type Identity = I;
+
+    fn files(&self) -> &[SourceFile] {
+        &self.files
+    }
+
+    fn input_identity(&self) -> Self::Identity {
+        self.input_identity
+    }
+
+    fn effective_uid(&self) -> u64 {
+        self.effective_uid
+    }
+
+    fn schema_source_path(&self) -> SourceCommandResult<String> {
+        path(&self.schema_source_path)?;
+        Ok(self.schema_source_path.clone())
+    }
+
+    fn check(&self) -> SourceCommandResult<()> {
+        if self.input.input_identity() != &self.input_identity {
+            return Err(SourceCommandError::Conflict(
+                "candidate selected metadata input identity changed",
+            ));
+        }
+        let total = self
+            .files
+            .iter()
+            .try_fold(0usize, |sum, file| sum.checked_add(file.raw.len()));
+        if self.files.len() > cmd::SELECTED_SOURCE_MAX_FILES
+            || total.is_none_or(|total| total > READONLY_RECORD_MAX_BYTES)
+            || self
+                .files
+                .iter()
+                .map(|file| &file.path)
+                .collect::<BTreeSet<_>>()
+                .len()
+                != self.files.len()
+        {
+            return Err(SourceCommandError::Invalid(
+                "candidate selected source byte budget or duplicate path",
+            ));
+        }
+        self.schema_source_path()?;
+        Ok(())
+    }
+}
+
+/// One schema worker bound to the same typed read identity as the selected
+/// metadata context. Candidate workers prove their resource closure through
+/// that identity and prepared schema-set binding; immutable-cut workers still
+/// compare each selected schema's exact source bytes.
+trait RecordSchemaWorker: CutSchemaExecutor {
+    type Identity: Copy + Eq;
+
+    fn input_identity(&self) -> Self::Identity;
+    fn contract_digest(&self, contract: &str) -> Option<Digest256>;
+    fn resource_closure_bound_to_identity(&self) -> bool {
+        false
+    }
+
+    fn public_profile(
+        &mut self,
+        cut: Option<&CorpusCutReader>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        ctx: &impl RecordRead<Identity = Self::Identity>,
+        config: &JsonValue,
+        record: &JsonValue,
+    ) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)>
+    where
+        Self: Sized,
+    {
+        let _ = (cut, deadline, cancelled, ctx, config, record);
+        Err(SourceCommandError::Unsupported(
+            "public profile requires the immutable-cut schema worker",
+        ))
+    }
+}
+
+impl RecordSchemaWorker for CutWorkerSchemaExecutor {
+    type Identity = tos_foundation::SourceRevision;
+
+    fn input_identity(&self) -> Self::Identity {
+        self.source_revision()
+    }
+
+    fn contract_digest(&self, contract: &str) -> Option<Digest256> {
+        CutWorkerSchemaExecutor::contract_digest(self, contract)
+    }
+
+    fn public_profile(
+        &mut self,
+        cut: Option<&CorpusCutReader>,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+        ctx: &impl RecordRead<Identity = Self::Identity>,
+        config: &JsonValue,
+        record: &JsonValue,
+    ) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
+        public_profile(cut, self, deadline, cancelled, ctx, config, record)
+    }
+}
+
+impl<I: Copy + Eq> RecordSchemaWorker for CandidateCutWorkerSchemaExecutor<I> {
+    type Identity = I;
+
+    fn input_identity(&self) -> Self::Identity {
+        *CandidateCutWorkerSchemaExecutor::input_identity(self)
+    }
+
+    fn contract_digest(&self, contract: &str) -> Option<Digest256> {
+        CandidateCutWorkerSchemaExecutor::contract_digest(self, contract)
+    }
+
+    fn resource_closure_bound_to_identity(&self) -> bool {
+        true
     }
 }
 
@@ -1627,12 +1845,12 @@ fn revised(record: &JsonValue, request: &JsonValue) -> SourceCommandResult<JsonV
     cmd::set(&mut revised, "record_version", cmd::number(version))?;
     Ok(revised)
 }
-fn proposal(
+fn proposal<W, C>(
     cut: Option<&CorpusCutReader>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut W,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &impl RecordRead,
+    ctx: &C,
     config: &JsonValue,
     family: RevisionFamily,
     inspection: &Inspection,
@@ -1644,7 +1862,11 @@ fn proposal(
     Package,
     Vec<JsonValue>,
     Vec<JsonValue>,
-)> {
+)>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
     scope(config, request, scope_operation)?;
     let revised = revised(&inspection.record, request)?;
     let (_, schemas, _, _) = profile(
@@ -1729,13 +1951,17 @@ fn proposal(
     output.insert(formname, cmd::published(&forms)?);
     Ok((revised, subject, output, views, refs))
 }
-fn validate_forms(
-    worker: &mut CutWorkerSchemaExecutor,
+fn validate_forms<W, C>(
+    worker: &mut W,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &impl RecordRead,
+    ctx: &C,
     forms: &JsonValue,
-) -> SourceCommandResult<()> {
+) -> SourceCommandResult<()>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
     let refs = [
         "ToS/contracts/knowledge-assessment.schema.json",
         "ToS/contracts/human-form.schema.json",
@@ -1966,19 +2192,23 @@ fn receipt(
     }
     Ok(value)
 }
-fn successor(
+fn successor<W, C>(
     cut: Option<&CorpusCutReader>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut W,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &impl RecordRead,
+    ctx: &C,
     config: &JsonValue,
     family: RevisionFamily,
     inspection: &Inspection,
     request: &JsonValue,
     instant: &str,
     scope_operation: &str,
-) -> SourceCommandResult<(Inspection, JsonValue)> {
+) -> SourceCommandResult<(Inspection, JsonValue)>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
     if cmd::array(&inspection.history, "receipts")?.len() >= 128 {
         return Err(SourceCommandError::Invalid(
             "source revision history capacity reached",
@@ -2278,18 +2508,22 @@ fn revision_publication_state_bytes(
     Ok(state)
 }
 
-fn reconstruct_transaction(
+fn reconstruct_transaction<W, C>(
     cut: Option<&CorpusCutReader>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut W,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &impl RecordRead,
+    ctx: &C,
     config: &JsonValue,
     family: RevisionFamily,
     transaction: &RetainedRevisionTransaction,
     mode: TransactionReconstructionMode,
     scope_operation: &str,
-) -> SourceCommandResult<(JsonValue, Inspection, Inspection, JsonValue)> {
+) -> SourceCommandResult<(JsonValue, Inspection, Inspection, JsonValue)>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
     if mode == TransactionReconstructionMode::ArtifactHistoryEvidence
         && (family != RevisionFamily::NativeSelected
             || cmd::text(config, "record_type")? != "artifact")
@@ -2483,6 +2717,52 @@ pub(crate) fn replay_artifact_corrections_from_cut(
         ));
     }
 
+    replay_artifact_corrections_with_context(
+        input,
+        source_root,
+        Some(cut),
+        current_membership,
+        native_history,
+        worker,
+        deadline,
+        cancelled,
+    )
+}
+
+fn replay_artifact_corrections_with_context<I, W, C>(
+    ctx: &C,
+    source_root: &str,
+    cut: Option<&CorpusCutReader>,
+    current_membership: SourceMembershipV1,
+    native_history: &NativeRecordHistoryReadObservation<I>,
+    worker: &mut W,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<ArtifactCorrectionReplayObservation<I>>
+where
+    I: Copy + Eq,
+    W: RecordSchemaWorker<Identity = I>,
+    C: RecordRead<Identity = I>,
+{
+    ctx.check()?;
+    if Instant::now() >= deadline || cancelled.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(SourceCommandError::Unsupported(
+            "Artifact correction replay deadline or cancellation",
+        ));
+    }
+    if worker.input_identity() != ctx.input_identity()
+        || *native_history.input_identity() != ctx.input_identity()
+    {
+        return Err(SourceCommandError::Conflict(
+            "Artifact correction replay typed input identities differ",
+        ));
+    }
+    if native_history.current_membership() != current_membership {
+        return Err(SourceCommandError::Conflict(
+            "Artifact correction replay membership differs from completed input records",
+        ));
+    }
+
     let source_path = native_history.record_path();
     path(source_path)?;
     if source_path.len() > 1024
@@ -2502,7 +2782,7 @@ pub(crate) fn replay_artifact_corrections_from_cut(
             "Artifact correction replay requires its exact public record path",
         ));
     }
-    if input.schema_source_path != source_path {
+    if ctx.schema_source_path()? != source_path {
         return Err(SourceCommandError::Conflict(
             "Artifact correction replay schema path differs from readonly source input",
         ));
@@ -2518,7 +2798,7 @@ pub(crate) fn replay_artifact_corrections_from_cut(
     }
     for name in &expected_names {
         let full_path = path(&format!("{}/{}", split(source_path)?.0, name))?;
-        if selected.get(name).map(Vec::as_slice) != input.file(&full_path)? {
+        if selected.get(name).map(Vec::as_slice) != ctx.file(&full_path)? {
             return Err(SourceCommandError::Conflict(
                 "Artifact correction replay package differs from captured command files",
             ));
@@ -2603,8 +2883,8 @@ pub(crate) fn replay_artifact_corrections_from_cut(
         }
     }
     let publication = read_record_revision_publication_inner(
-        input,
-        input.effective_uid,
+        ctx,
+        ctx.effective_uid(),
         &selected_ids,
         Some(&expected_manifest_sha256),
         Some((deadline, cancelled)),
@@ -2653,7 +2933,7 @@ pub(crate) fn replay_artifact_corrections_from_cut(
             correction,
         )?;
         let (original, before, after, reconstructed) = reconstruct_transaction(
-            Some(cut),
+            cut,
             worker,
             deadline,
             cancelled,
@@ -2729,7 +3009,7 @@ pub(crate) fn replay_artifact_corrections_from_cut(
     }
 
     let mut observation = ArtifactCorrectionReplayObservation {
-        source_revision: input.source_revision,
+        input_identity: ctx.input_identity(),
         current_membership,
         source_root: source_root.to_owned(),
         source_path: source_path.to_owned(),
@@ -2745,10 +3025,427 @@ pub(crate) fn replay_artifact_corrections_from_cut(
     Ok(observation)
 }
 
-fn artifact_correction_observation_state_bytes(
-    observation: &ArtifactCorrectionReplayObservation,
+const CANDIDATE_REPLAY_FILE_NODE_UPPER: usize = 512;
+
+fn candidate_source_refusal(refusal: tos_validation::item_rules::ItemRefusal) -> SourceCommandError {
+    use tos_validation::item_rules::ItemRefusal;
+    match refusal {
+        ItemRefusal::Budget | ItemRefusal::BudgetCheck { .. } => {
+            SourceCommandError::Invalid("candidate Artifact replay source budget")
+        }
+        ItemRefusal::Deadline => {
+            SourceCommandError::Unsupported("candidate Artifact replay source deadline")
+        }
+        ItemRefusal::Source(_) => {
+            SourceCommandError::Conflict("candidate Artifact replay source changed")
+        }
+        ItemRefusal::Unsupported(_) => {
+            SourceCommandError::Unsupported("candidate Artifact replay source unavailable")
+        }
+    }
+}
+
+fn candidate_current_member_file<I: Copy + Eq>(
+    input: &dyn SourceCutInputWithIdentity<I>,
+    input_identity: I,
+    files: &mut BTreeMap<String, SourceFile>,
+    file_path: &str,
+    required_file: bool,
+    expected_digest: Option<&str>,
+    max_member_bytes: usize,
+    max_total_bytes: u64,
+    total_bytes: &mut u64,
+    max_state_bytes: usize,
+    state_bytes: &mut usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<()> {
+    if let Some(existing) = files.get(file_path) {
+        if expected_digest
+            .is_some_and(|digest| Digest256::of_bytes(&existing.raw).to_prefixed() != digest)
+        {
+            return Err(SourceCommandError::Conflict(
+                "candidate replay member differs from native history read",
+            ));
+        }
+        return Ok(());
+    }
+    if file_path.len() > 1024 || Instant::now() >= deadline || cancelled.load(Ordering::Relaxed) {
+        return Err(SourceCommandError::Unsupported(
+            "candidate Artifact replay source path or deadline",
+        ));
+    }
+    let relative = path(file_path)?;
+    let source = input.source_input();
+    let presence = source
+        .path_presence(file_path, deadline, cancelled)
+        .map_err(candidate_source_refusal)?;
+    if presence.is_none() {
+        if required_file {
+            return Err(SourceCommandError::Unsupported(
+                "required candidate Artifact replay member is absent",
+            ));
+        }
+        return Ok(());
+    }
+    if presence != Some(tos_source_store::SourcePresenceV1::File) {
+        return Err(SourceCommandError::Conflict(
+            "candidate Artifact replay member is not a regular source file",
+        ));
+    }
+
+    let mut selected: Option<SourceFile> = None;
+    let mut observed_bytes = 0u64;
+    let mut retained_state = 0usize;
+    source
+        .with_current_member(
+            file_path,
+            max_member_bytes,
+            deadline,
+            cancelled,
+            &mut |meta, raw| {
+                if input.input_identity() != &input_identity
+                    || selected.is_some()
+                    || meta.path != file_path
+                    || raw.len() > max_member_bytes
+                    || u64::try_from(raw.len()).ok() != Some(meta.size_bytes)
+                {
+                    return Err(tos_validation::item_rules::ItemRefusal::Source(
+                        "candidate Artifact replay current member binding changed".into(),
+                    ));
+                }
+                let next_read = total_bytes
+                    .checked_add(meta.size_bytes)
+                    .ok_or(tos_validation::item_rules::ItemRefusal::Budget)?;
+                if next_read > max_total_bytes {
+                    return Err(tos_validation::item_rules::ItemRefusal::Budget);
+                }
+                if expected_digest.is_some_and(|digest| {
+                    Digest256::of_bytes(raw).to_prefixed() != digest
+                }) {
+                    return Err(tos_validation::item_rules::ItemRefusal::Source(
+                        "candidate Artifact replay member digest changed".into(),
+                    ));
+                }
+                let next_state = raw
+                    .len()
+                    .checked_mul(2)
+                    .and_then(|n| n.checked_add(file_path.len().checked_mul(3)?))
+                    .and_then(|n| n.checked_add(CANDIDATE_REPLAY_FILE_NODE_UPPER))
+                    .and_then(|n| n.checked_add(size_of::<SourceFile>() + 1024))
+                    .and_then(|n| n.checked_add(*state_bytes))
+                    .ok_or(tos_validation::item_rules::ItemRefusal::Budget)?;
+                if next_state > max_state_bytes {
+                    return Err(tos_validation::item_rules::ItemRefusal::Budget);
+                }
+                let mut copy = Vec::new();
+                copy.try_reserve_exact(raw.len())
+                    .map_err(|_| tos_validation::item_rules::ItemRefusal::Budget)?;
+                copy.extend_from_slice(raw);
+                *selected = Some(SourceFile {
+                    path: relative.clone(),
+                    raw: copy,
+                });
+                observed_bytes = meta.size_bytes;
+                retained_state = next_state - *state_bytes;
+                Ok(())
+            },
+        )
+        .map_err(candidate_source_refusal)?;
+    let file = selected.ok_or(SourceCommandError::Conflict(
+        "candidate Artifact replay input omitted a present member",
+    ))?;
+    *total_bytes = total_bytes
+        .checked_add(observed_bytes)
+        .ok_or(SourceCommandError::Invalid(
+            "candidate Artifact replay source byte overflow",
+        ))?;
+    *state_bytes = state_bytes
+        .checked_add(retained_state)
+        .ok_or(SourceCommandError::Invalid(
+            "candidate Artifact replay state overflow",
+        ))?;
+    files.insert(file_path.to_owned(), file);
+    Ok(())
+}
+
+fn candidate_insert_owned_package_file(
+    files: &mut BTreeMap<String, SourceFile>,
+    file_path: String,
+    raw: &[u8],
+    max_state_bytes: usize,
+    state_bytes: &mut usize,
+) -> SourceCommandResult<()> {
+    if files.contains_key(&file_path) {
+        return Err(SourceCommandError::Conflict(
+            "candidate replay package repeats a source path",
+        ));
+    }
+    let charge = raw
+        .len()
+        .checked_mul(2)
+        .and_then(|n| n.checked_add(file_path.len().checked_mul(3)?))
+        .and_then(|n| n.checked_add(CANDIDATE_REPLAY_FILE_NODE_UPPER))
+        .and_then(|n| n.checked_add(size_of::<SourceFile>() + 1024))
+        .and_then(|n| n.checked_add(*state_bytes))
+        .ok_or(SourceCommandError::Invalid(
+            "candidate Artifact replay package state overflow",
+        ))?;
+    if charge > max_state_bytes {
+        return Err(SourceCommandError::Invalid(
+            "candidate Artifact replay package state budget",
+        ));
+    }
+    let relative = path(&file_path)?;
+    let mut copy = Vec::new();
+    copy.try_reserve_exact(raw.len())
+        .map_err(|_| SourceCommandError::Invalid("candidate Artifact replay allocation"))?;
+    copy.extend_from_slice(raw);
+    files.insert(file_path, SourceFile { path: relative, raw: copy });
+    *state_bytes = charge;
+    Ok(())
+}
+
+fn candidate_replay_source_files<I: Copy + Eq>(
+    input: &dyn SourceCutInputWithIdentity<I>,
+    native_history: &CandidateNativeRecordHistoryReadObservation<I>,
+    max_member_bytes: usize,
+    max_total_bytes: u64,
+    max_state_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(Vec<SourceFile>, u64, usize)> {
+    let input_identity = *input.input_identity();
+    let mut files = BTreeMap::<String, SourceFile>::new();
+    let mut source_bytes = 0u64;
+    let mut state_bytes = 0usize;
+    let parent = native_history
+        .record_path()
+        .rsplit_once('/')
+        .map(|(parent, _)| parent)
+        .ok_or(SourceCommandError::Invalid(
+            "candidate Artifact replay owner path",
+        ))?;
+    for (name, raw) in native_history.selected_package() {
+        if Instant::now() >= deadline || cancelled.load(Ordering::Relaxed) {
+            return Err(SourceCommandError::Unsupported(
+                "candidate Artifact replay package deadline",
+            ));
+        }
+        candidate_insert_owned_package_file(
+            &mut files,
+            format!("{parent}/{name}"),
+            raw,
+            max_state_bytes,
+            &mut state_bytes,
+        )?;
+    }
+
+    for (index, read) in native_history.reads().iter().enumerate() {
+        if index % 64 == 0 && (Instant::now() >= deadline || cancelled.load(Ordering::Relaxed)) {
+            return Err(SourceCommandError::Unsupported(
+                "candidate Artifact replay history-read deadline",
+            ));
+        }
+        if let PredicateRead::ExactPath { path: read_path, digest } = read {
+            candidate_current_member_file(
+                input,
+                input_identity,
+                &mut files,
+                read_path,
+                true,
+                Some(digest),
+                max_member_bytes,
+                max_total_bytes,
+                &mut source_bytes,
+                max_state_bytes,
+                &mut state_bytes,
+                deadline,
+                cancelled,
+            )?;
+        }
+    }
+
+    candidate_current_member_file(
+        input,
+        input_identity,
+        &mut files,
+        CONTROL_PATH,
+        false,
+        None,
+        max_member_bytes,
+        max_total_bytes,
+        &mut source_bytes,
+        max_state_bytes,
+        &mut state_bytes,
+        deadline,
+        cancelled,
+    )?;
+
+    for (index, transaction) in native_history.transactions().iter().enumerate() {
+        if index % 32 == 0 && (Instant::now() >= deadline || cancelled.load(Ordering::Relaxed)) {
+            return Err(SourceCommandError::Unsupported(
+                "candidate Artifact publication manifest deadline",
+            ));
+        }
+        let id = transaction.transaction_id();
+        let directory = format!(
+            "ToS/source-witnesses/.metadata-transactions/{}",
+            &id[7..]
+        );
+        let manifest_path = format!("{directory}/manifest.json");
+        candidate_current_member_file(
+            input,
+            input_identity,
+            &mut files,
+            &manifest_path,
+            true,
+            Some(transaction.manifest_sha256()),
+            max_member_bytes,
+            max_total_bytes,
+            &mut source_bytes,
+            max_state_bytes,
+            &mut state_bytes,
+            deadline,
+            cancelled,
+        )?;
+        candidate_current_member_file(
+            input,
+            input_identity,
+            &mut files,
+            &format!("{directory}/completion.json"),
+            false,
+            None,
+            max_member_bytes,
+            max_total_bytes,
+            &mut source_bytes,
+            max_state_bytes,
+            &mut state_bytes,
+            deadline,
+            cancelled,
+        )?;
+        let manifest_raw = &files
+            .get(&manifest_path)
+            .ok_or(SourceCommandError::Conflict(
+                "candidate Artifact replay manifest disappeared",
+            ))?
+            .raw;
+        if manifest_raw.len() > 524_288 {
+            return Err(SourceCommandError::Invalid(
+                "candidate Artifact replay manifest byte budget",
+            ));
+        }
+        let manifest = cmd::parse(manifest_raw)?;
+        let plan = cmd::field(&manifest, "plan")?;
+        for entry in cmd::array(plan, "files")? {
+            for side in ["before", "after"] {
+                let binding = cmd::field(entry, side)?;
+                if binding == &JsonValue::Null {
+                    continue;
+                }
+                let digest = digest_text(cmd::field(binding, "sha256")?)?;
+                let blob_path = format!("{directory}/{}.blob", &digest[7..]);
+                candidate_current_member_file(
+                    input,
+                    input_identity,
+                    &mut files,
+                    &blob_path,
+                    true,
+                    Some(digest),
+                    max_member_bytes,
+                    max_total_bytes,
+                    &mut source_bytes,
+                    max_state_bytes,
+                    &mut state_bytes,
+                    deadline,
+                    cancelled,
+                )?;
+            }
+        }
+    }
+    if input.input_identity() != &input_identity {
+        return Err(SourceCommandError::Conflict(
+            "candidate Artifact replay input fence changed",
+        ));
+    }
+    Ok((files.into_values().collect(), source_bytes, state_bytes))
+}
+
+/// Replay the same maintained Artifact correction history from a borrowed
+/// candidate source input and completed streamed Records report. The typed
+/// schema identity, opaque input identity, and Records membership must agree
+/// before any retained publication is consumed.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn replay_artifact_corrections_from_candidate<I: Copy + Eq>(
+    input: &dyn SourceCutInputWithIdentity<I>,
+    records: &tos_validation::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
+    source_root: &str,
+    effective_uid: u64,
+    native_history: &CandidateNativeRecordHistoryReadObservation<I>,
+    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    max_member_bytes: usize,
+    max_total_bytes: u64,
+    max_state_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> SourceCommandResult<(CandidateArtifactCorrectionReplayObservation<I>, u64, usize)> {
+    if Instant::now() >= deadline || cancelled.load(Ordering::Relaxed) {
+        return Err(SourceCommandError::Unsupported(
+            "candidate Artifact correction replay deadline or cancellation",
+        ));
+    }
+    let identity = *input.input_identity();
+    let schema = records
+        .candidate_schema_identity()
+        .ok_or(SourceCommandError::Conflict(
+            "candidate Artifact replay lacks the prepared Records schema identity",
+        ))?;
+    if records.input_identity() != &identity
+        || native_history.input_identity() != &identity
+        || worker.input_identity() != &identity
+        || *records.source_membership() != native_history.current_membership()
+        || schema.profile() != worker.profile()
+        || schema.schema_set_digest() != worker.schema_set_digest()
+        || schema.contract_selection_digest() != worker.contract_selection_digest()
+        || schema.prepared_execution_binding() != worker.prepared_execution_binding()
+    {
+        return Err(SourceCommandError::Conflict(
+            "candidate Artifact replay input, Records, history, or schema bindings differ",
+        ));
+    }
+    let (files, source_bytes, retained_state) = candidate_replay_source_files(
+        input,
+        native_history,
+        max_member_bytes,
+        max_total_bytes,
+        max_state_bytes,
+        deadline,
+        cancelled,
+    )?;
+    let ctx = CandidateRecordVersionReadInput {
+        input,
+        input_identity: identity,
+        files,
+        schema_source_path: native_history.record_path().to_owned(),
+        effective_uid,
+    };
+    let replay = replay_artifact_corrections_with_context(
+        &ctx,
+        source_root,
+        None,
+        *records.source_membership(),
+        native_history,
+        worker,
+        deadline,
+        cancelled,
+    )?;
+    Ok((replay, source_bytes, retained_state))
+}
+
+fn artifact_correction_observation_state_bytes<I>(
+    observation: &ArtifactCorrectionReplayObservation<I>,
 ) -> SourceCommandResult<usize> {
-    let mut state = std::mem::size_of::<ArtifactCorrectionReplayObservation>()
+    let mut state = std::mem::size_of::<ArtifactCorrectionReplayObservation<I>>()
         .checked_add(observation.source_root.capacity())
         .and_then(|state| state.checked_add(observation.source_path.capacity()))
         .and_then(|state| state.checked_add(observation.record_id.capacity()))
@@ -3849,7 +4546,7 @@ pub(crate) fn schema(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &impl RecordRead,
+    ctx: &impl RecordRead<Identity = tos_foundation::SourceRevision>,
     refs: &[String],
     root: &str,
     instance: &JsonValue,
@@ -3861,23 +4558,35 @@ pub(crate) fn schema(
 
 // Reuse is limited to an actual scalar result from this selected worker operation.
 // The caller still reads and checks the current source/resource dependencies.
-fn schema_at(
-    worker: &mut CutWorkerSchemaExecutor,
+fn schema_at<W, C>(
+    worker: &mut W,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &impl RecordRead,
+    ctx: &C,
     refs: &[String],
     root: &str,
     instance: &JsonValue,
     source_path: Option<&str>,
     reuse_scalar: bool,
-) -> SourceCommandResult<()> {
-    if worker.source_revision() != ctx.source_revision() {
+) -> SourceCommandResult<()>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
+    if worker.input_identity() != ctx.input_identity() {
         return Err(SourceCommandError::Conflict(
-            "schema worker and source command cut differ",
+            "schema worker and selected source input differ",
         ));
     }
     for name in refs {
+        if worker.resource_closure_bound_to_identity() {
+            if worker.contract_digest(name).is_none() {
+                return Err(SourceCommandError::Conflict(
+                    "candidate schema resource is outside the prepared source closure",
+                ));
+            }
+            continue;
+        }
         let raw = required(ctx, name)?;
         let source = cmd::parse(raw)?;
         let uri = cmd::text(&source, "$id")?;
@@ -3921,16 +4630,20 @@ fn schema_at(
     }
 }
 
-fn profile(
+fn profile<W, C>(
     cut: Option<&CorpusCutReader>,
-    worker: &mut CutWorkerSchemaExecutor,
+    worker: &mut W,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &impl RecordRead,
+    ctx: &C,
     config: &JsonValue,
     family: RevisionFamily,
     record: &JsonValue,
-) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
+) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)>
+where
+    W: RecordSchemaWorker,
+    C: RecordRead<Identity = W::Identity>,
+{
     let source_path = cmd::text(config, "source_path")?;
     let (_, base) = split(source_path)?;
     let (kind, id_field, schema_ref) = if family == RevisionFamily::NativeSelected {
@@ -3982,7 +4695,7 @@ fn profile(
             "ToS/contracts/historical-record.schema.json",
         )
     } else if family.profile() {
-        return public_profile(cut, worker, deadline, cancelled, ctx, config, record);
+        return worker.public_profile(cut, deadline, cancelled, ctx, config, record);
     } else {
         let kind = cmd::text(config, "record_type")?;
         let mut allowed = vec!["agent", "place", "organization", "work"];
@@ -4087,7 +4800,7 @@ fn native_identity_inventory(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &impl RecordRead,
+    ctx: &impl RecordRead<Identity = tos_foundation::SourceRevision>,
     record_id: &str,
 ) -> SourceCommandResult<(Option<String>, bool)> {
     if !["occurrence", "lexeme", "sense", "sign", "concept"]
@@ -4846,7 +5559,7 @@ pub(crate) fn validate_source_profile_registry(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &impl RecordRead,
+    ctx: &impl RecordRead<Identity = tos_foundation::SourceRevision>,
 ) -> SourceCommandResult<JsonValue> {
     let contract = "ToS/contracts/semantic-entity-type-registry.schema.json";
     let registry = cmd::parse(required(ctx, REGISTRY)?)?;
@@ -5000,7 +5713,7 @@ pub(crate) fn public_profile(
     worker: &mut CutWorkerSchemaExecutor,
     deadline: Instant,
     cancelled: &AtomicBool,
-    ctx: &impl RecordRead,
+    ctx: &impl RecordRead<Identity = tos_foundation::SourceRevision>,
     config: &JsonValue,
     record: &JsonValue,
 ) -> SourceCommandResult<(JsonValue, Vec<String>, Option<String>, Option<String>)> {
@@ -5496,7 +6209,7 @@ pub fn resolve_record_version_readonly(
 }
 
 fn resolve_record_version_selected(
-    ctx: &impl RecordRead,
+    ctx: &impl RecordRead<Identity = tos_foundation::SourceRevision>,
     cut: Option<&CorpusCutReader>,
     selected_path: Option<&str>,
     collection_limits: Option<ItemLimits>,
@@ -5513,7 +6226,7 @@ fn resolve_record_version_selected(
         ctx.check()?;
     }
     exact_ref(exact)?;
-    if worker.source_revision() != ctx.source_revision() {
+    if worker.source_revision() != ctx.input_identity() {
         return Err(SourceCommandError::Conflict(
             "metadata resolver worker and source cut differ",
         ));

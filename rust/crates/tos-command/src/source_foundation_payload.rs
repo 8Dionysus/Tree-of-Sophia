@@ -11,7 +11,7 @@ use std::io;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 use tos_foundation::{Digest256Hasher, RelativePath};
-use tos_ops_mechanics_plan::route_cards::RouteSources;
+use tos_ops_mechanics_plan::route_cards::{RouteSourceReadHooks, RouteSources};
 use tos_source_store::CorpusCutReader;
 use tos_validation::item_rules::{ItemPayload, ItemRefusal};
 use tos_validation::layer_family_cut::CutLayerPayloadReader;
@@ -57,6 +57,8 @@ pub struct PhysicalPayloadCost {
     pub initial_bytes_read: u64,
     pub final_bytes_read: u64,
     pub total_bytes_read: u64,
+    /// Actual root payload returns forwarded into the one original IO ledger.
+    pub shared_read_bytes_returned: u64,
     pub observation_calls: usize,
     pub snapshot_paths: usize,
     /// Clone returned to the physical provider; that provider also accounts
@@ -250,7 +252,9 @@ impl JpegDimensions {
 /// rehashed every observed present regular file and rechecked non-file classes.
 pub struct FoundationPayloadSources<'a> {
     sources: &'a mut RouteSources,
-    cut: &'a CorpusCutReader,
+    membership: PayloadMembership<'a>,
+    original_io: Option<&'a tos_source_store::PinnedSqliteIoBudget>,
+    shared_read_bytes_returned: u64,
     deadline: Instant,
     cancelled: &'a AtomicBool,
     limits: PhysicalPayloadLimits,
@@ -269,7 +273,66 @@ pub struct FoundationPayloadSources<'a> {
     observed: BTreeMap<String, Observation>,
 }
 
+#[derive(Clone, Copy)]
+enum PayloadMembership<'a> {
+    Cut(&'a CorpusCutReader),
+    Candidate(&'a dyn tos_validation::record_biblio_cut::SourceCutInput),
+}
+
+struct PayloadSharedReadHooks<'budget, 'counter> {
+    budget: &'budget tos_source_store::PinnedSqliteIoBudget,
+    returned: &'counter mut u64,
+    deadline: Instant,
+    cancelled: &'budget AtomicBool,
+}
+impl PayloadSharedReadHooks<'_, '_> {
+    fn checkpoint(&self) -> io::Result<()> {
+        if self.cancelled.load(Ordering::Acquire) {
+            return Err(io::Error::new(
+                io::ErrorKind::Interrupted,
+                "payload cancelled",
+            ));
+        }
+        if Instant::now() >= self.deadline {
+            return Err(io::Error::new(
+                io::ErrorKind::Interrupted,
+                "payload deadline",
+            ));
+        }
+        Ok(())
+    }
+}
+impl RouteSourceReadHooks for PayloadSharedReadHooks<'_, '_> {
+    fn before_read(&mut self, requested_bytes: u64) -> io::Result<()> {
+        self.checkpoint()?;
+        self.budget
+            .charge_read(requested_bytes)
+            .map_err(|_| io::Error::other("candidate payload shared read permit refused"))?;
+        self.checkpoint()
+    }
+    fn read_returned(&mut self, actual_bytes: u64) -> io::Result<()> {
+        self.budget
+            .record_read_returned(actual_bytes)
+            .map_err(|_| io::Error::other("candidate payload shared read return refused"))?;
+        *self.returned = self
+            .returned
+            .checked_add(actual_bytes)
+            .ok_or_else(|| io::Error::other("candidate payload shared return overflow"))?;
+        self.checkpoint()
+    }
+}
+
 impl<'a> FoundationPayloadSources<'a> {
+    pub(crate) fn shared_io_budget_matches(
+        &self,
+        original_io: &tos_source_store::PinnedSqliteIoBudget,
+    ) -> bool {
+        self.original_io
+            .is_some_and(|io| io.shares_with(original_io))
+    }
+    pub(crate) fn forwards_payload_reads_to_shared_io(&self) -> bool {
+        self.original_io.is_some()
+    }
     pub(crate) fn deadline(&self) -> Instant {
         self.deadline
     }
@@ -306,9 +369,84 @@ impl<'a> FoundationPayloadSources<'a> {
         self.limits.max_state_bytes = available_state_bytes;
         Ok(())
     }
+    /// Narrow final read headroom without widening or replacing the already
+    /// selected state ceiling used by the payload hashing/custody kernel.
+    pub(crate) fn restrict_remaining_read_budget(
+        &mut self,
+        additional_read_bytes: u64,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<(), ItemRefusal> {
+        let remaining = self
+            .limits
+            .max_total_bytes
+            .checked_sub(self.bytes_read)
+            .ok_or(ItemRefusal::Budget)?;
+        self.restrict_remaining_budget(
+            additional_read_bytes.min(remaining),
+            self.limits.max_state_bytes,
+            deadline,
+            cancelled,
+        )
+    }
+
     pub fn new(
         sources: &'a mut RouteSources,
         cut: &'a CorpusCutReader,
+        limits: PhysicalPayloadLimits,
+        deadline: Instant,
+        cancelled: &'a AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        Self::new_membership(
+            sources,
+            PayloadMembership::Cut(cut),
+            None,
+            limits,
+            deadline,
+            cancelled,
+        )
+    }
+
+    pub(crate) fn new_candidate(
+        sources: &'a mut RouteSources,
+        input: &'a crate::source_admission_candidate_records::CandidateRecordsInput<'_, '_>,
+        original_io: &'a tos_source_store::PinnedSqliteIoBudget,
+        limits: PhysicalPayloadLimits,
+        deadline: Instant,
+        cancelled: &'a AtomicBool,
+    ) -> Result<Self, ItemRefusal> {
+        if sources.deadline() > deadline {
+            return Err(ItemRefusal::Source(
+                "candidate payload route deadline extends original invocation".into(),
+            ));
+        }
+        if cancelled.load(Ordering::Acquire) {
+            return Err(ItemRefusal::Source("payload source cancelled".into()));
+        }
+        if Instant::now() >= deadline {
+            return Err(ItemRefusal::Deadline);
+        }
+        if !input.shares_io_budget(original_io) {
+            input.abandon();
+            return Err(ItemRefusal::Source(
+                "candidate payload input does not share original IO".into(),
+            ));
+        }
+        let input: &'a dyn tos_validation::record_biblio_cut::SourceCutInput = input;
+        Self::new_membership(
+            sources,
+            PayloadMembership::Candidate(input),
+            Some(original_io),
+            limits,
+            deadline,
+            cancelled,
+        )
+    }
+
+    fn new_membership(
+        sources: &'a mut RouteSources,
+        membership: PayloadMembership<'a>,
+        original_io: Option<&'a tos_source_store::PinnedSqliteIoBudget>,
         limits: PhysicalPayloadLimits,
         deadline: Instant,
         cancelled: &'a AtomicBool,
@@ -324,7 +462,9 @@ impl<'a> FoundationPayloadSources<'a> {
         }
         Ok(Self {
             sources,
-            cut,
+            membership,
+            original_io,
+            shared_read_bytes_returned: 0,
             deadline,
             cancelled,
             limits,
@@ -463,6 +603,7 @@ impl<'a> FoundationPayloadSources<'a> {
             initial_bytes_read: self.initial_bytes_read,
             final_bytes_read: self.final_bytes_read,
             total_bytes_read: self.bytes_read,
+            shared_read_bytes_returned: self.shared_read_bytes_returned,
             observation_calls: self.observations,
             snapshot_paths: self.snapshot_paths,
             snapshot_facts_state_bytes: self.snapshot_facts_state_bytes,
@@ -585,32 +726,51 @@ impl<'a> FoundationPayloadSources<'a> {
         let mut jpeg = JpegDimensions::new();
         let mut callback_refusal = None;
         let before_read = self.bytes_read;
-        let result = self.sources.stream_regular(
-            physical_path,
-            max_file_bytes.min(self.limits.max_file_bytes),
-            &mut self.bytes_read,
-            self.limits.max_total_bytes,
-            |chunk| {
-                if cancelled.load(Ordering::Relaxed) {
-                    callback_refusal = Some(ItemRefusal::Source("payload source cancelled".into()));
-                    return Err(io::Error::new(
-                        io::ErrorKind::Interrupted,
-                        "payload cancelled",
-                    ));
-                }
-                if Instant::now() >= deadline {
-                    callback_refusal = Some(ItemRefusal::Deadline);
-                    return Err(io::Error::new(
-                        io::ErrorKind::Interrupted,
-                        "payload deadline",
-                    ));
-                }
-                sha256.update(chunk);
-                sha1.update(chunk);
-                jpeg.feed(chunk);
-                Ok(())
-            },
-        );
+        let mut visit = |chunk: &[u8]| {
+            if cancelled.load(Ordering::Relaxed) {
+                callback_refusal = Some(ItemRefusal::Source("payload source cancelled".into()));
+                return Err(io::Error::new(
+                    io::ErrorKind::Interrupted,
+                    "payload cancelled",
+                ));
+            }
+            if Instant::now() >= deadline {
+                callback_refusal = Some(ItemRefusal::Deadline);
+                return Err(io::Error::new(
+                    io::ErrorKind::Interrupted,
+                    "payload deadline",
+                ));
+            }
+            sha256.update(chunk);
+            sha1.update(chunk);
+            jpeg.feed(chunk);
+            Ok(())
+        };
+        let result = match self.original_io {
+            Some(budget) => {
+                let mut hooks = PayloadSharedReadHooks {
+                    budget,
+                    returned: &mut self.shared_read_bytes_returned,
+                    deadline,
+                    cancelled,
+                };
+                self.sources.stream_regular_with_hooks(
+                    physical_path,
+                    max_file_bytes.min(self.limits.max_file_bytes),
+                    &mut self.bytes_read,
+                    self.limits.max_total_bytes,
+                    &mut hooks,
+                    &mut visit,
+                )
+            }
+            None => self.sources.stream_regular(
+                physical_path,
+                max_file_bytes.min(self.limits.max_file_bytes),
+                &mut self.bytes_read,
+                self.limits.max_total_bytes,
+                &mut visit,
+            ),
+        };
         let streamed = self.bytes_read.saturating_sub(before_read);
         if self.final_verification {
             self.final_bytes_read = self
@@ -774,7 +934,13 @@ impl<'a> FoundationPayloadSources<'a> {
     fn source_member(&self, path: &str) -> Result<bool, ItemRefusal> {
         let relative = RelativePath::parse(path)
             .map_err(|_| ItemRefusal::Unsupported("physical payload source membership".into()))?;
-        Ok(self.cut.current().member(&relative).is_some())
+        match self.membership {
+            PayloadMembership::Cut(cut) => Ok(cut.current().member(&relative).is_some()),
+            PayloadMembership::Candidate(input) => Ok(matches!(
+                input.path_presence(path, self.deadline, self.cancelled)?,
+                Some(tos_source_store::SourcePresenceV1::File)
+            )),
+        }
     }
 
     /// Revalidate all observed physical facts and return them for the
@@ -840,6 +1006,7 @@ impl<'a> FoundationPayloadSources<'a> {
             initial_bytes_read: self.initial_bytes_read,
             final_bytes_read: self.final_bytes_read,
             total_bytes_read: self.bytes_read,
+            shared_read_bytes_returned: self.shared_read_bytes_returned,
             observation_calls: self.observations,
             snapshot_paths: self.snapshot_paths,
             snapshot_facts_state_bytes: self.snapshot_facts_state_bytes,

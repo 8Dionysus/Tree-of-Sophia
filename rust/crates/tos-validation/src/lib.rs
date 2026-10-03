@@ -420,6 +420,24 @@ impl SchemaBackendProbe {
         resources: impl IntoIterator<Item = SchemaResource>,
         profile: FormatProfile,
     ) -> Result<Self, SchemaProbeError> {
+        Self::prepare_resources(resources, profile, true)
+    }
+
+    // Only the framed diagnostics worker may defer keyword semantics until
+    // after its authenticated ACK. All raw/resource identity checks are shared
+    // with the public strict probe; an unchecked root must never be evaluated.
+    pub(crate) fn prepare_diagnostics_resources(
+        resources: impl IntoIterator<Item = SchemaResource>,
+        profile: FormatProfile,
+    ) -> Result<Self, SchemaProbeError> {
+        Self::prepare_resources(resources, profile, false)
+    }
+
+    fn prepare_resources(
+        resources: impl IntoIterator<Item = SchemaResource>,
+        profile: FormatProfile,
+        require_known_keywords: bool,
+    ) -> Result<Self, SchemaProbeError> {
         let mut parsed = BTreeMap::new();
         let mut digests = BTreeMap::new();
         let mut total = 0usize;
@@ -445,7 +463,9 @@ impl SchemaBackendProbe {
             {
                 return Err(SchemaProbeError::InvalidResourceId);
             }
-            check_known_keywords(&value)?;
+            if require_known_keywords {
+                check_known_keywords(&value)?;
+            }
             let digest = Digest256::of_bytes(&resource.raw);
             if parsed.insert(resource.uri.clone(), value).is_some() {
                 return Err(SchemaProbeError::DuplicateResourceId);
@@ -591,7 +611,11 @@ impl SchemaBackendProbe {
 
 // The current authored 2020-12 corpus schemas use exactly these keyword
 // positions. A future keyword is an explicit engine/owner conformance change.
-fn check_known_keywords(root: &Value) -> Result<(), SchemaProbeError> {
+fn check_schema_keyword_node<'a>(
+    schema: &'a Value,
+    follow_definitions: bool,
+    mut child: impl FnMut(&'a Value) -> Result<(), SchemaProbeError>,
+) -> Result<(), SchemaProbeError> {
     const KNOWN: &[&str] = &[
         "$defs",
         "$id",
@@ -649,34 +673,95 @@ fn check_known_keywords(root: &Value) -> Result<(), SchemaProbeError> {
     ];
     const ARRAYS: &[&str] = &["allOf", "anyOf", "oneOf", "prefixItems"];
     const MAPS: &[&str] = &["$defs", "properties", "patternProperties"];
-    let known: BTreeSet<&str> = KNOWN.iter().copied().collect();
-    fn visit(schema: &Value, known: &BTreeSet<&str>) -> Result<(), SchemaProbeError> {
-        let Some(object) = schema.as_object() else {
-            return Ok(());
-        };
-        for (key, value) in object {
-            if !known.contains(key.as_str()) {
-                return Err(SchemaProbeError::UnknownKeyword(key.clone()));
-            }
-            if SINGLE.contains(&key.as_str()) {
-                visit(value, known)?;
-            } else if ARRAYS.contains(&key.as_str()) {
-                if let Some(array) = value.as_array() {
-                    for item in array {
-                        visit(item, known)?;
-                    }
+    let Some(object) = schema.as_object() else {
+        return Ok(());
+    };
+    for (key, value) in object {
+        if !KNOWN.contains(&key.as_str()) {
+            return Err(SchemaProbeError::UnknownKeyword(key.clone()));
+        }
+        if SINGLE.contains(&key.as_str()) {
+            child(value)?;
+        } else if ARRAYS.contains(&key.as_str()) {
+            if let Some(array) = value.as_array() {
+                for item in array {
+                    child(item)?;
                 }
-            } else if MAPS.contains(&key.as_str()) {
-                if let Some(map) = value.as_object() {
-                    for item in map.values() {
-                        visit(item, known)?;
-                    }
+            }
+        } else if MAPS.contains(&key.as_str()) && (follow_definitions || key != "$defs") {
+            if let Some(map) = value.as_object() {
+                for item in map.values() {
+                    child(item)?;
                 }
             }
         }
-        Ok(())
     }
-    visit(root, &known)
+    Ok(())
+}
+
+fn check_known_keywords(root: &Value) -> Result<(), SchemaProbeError> {
+    check_schema_keyword_node(root, true, check_known_keywords)
+}
+
+// Use the same schema positions/keyword policy as the public probe, with the
+// original prepared registry retaining URI scopes and JSON Pointer selectors.
+// Only the requested closure is classified: unrelated resources cannot poison
+// a unit, and jsonschema must not silently ignore an unknown reachable keyword.
+fn check_selected_schema_keywords(
+    registry: &Registry<'_>,
+    root_uri: &str,
+    mut charge: impl FnMut(usize) -> Result<(), SchemaProbeError>,
+) -> Result<(), SchemaProbeError> {
+    let backend =
+        |error: jsonschema::ReferencingError| SchemaProbeError::Backend(error.to_string());
+    charge(256 + root_uri.len())?;
+    let base_uri = root_uri.split_once('#').map_or(root_uri, |(base, _)| base);
+    let uri = jsonschema::uri::from_str(base_uri).map_err(backend)?;
+    let resolver = registry.resolver(uri);
+    let (root, resolver, _) = resolver.lookup(root_uri).map_err(backend)?.into_inner();
+    // Charge before allocating traversal state. The caller supplies the
+    // existing preparation scan-work/scan-byte budget, including mixed-call
+    // remaining counters; there is no additional whole-call budget.
+    charge(256 + resolver.base_uri().as_str().len())?;
+    let mut pending = vec![(root, resolver)];
+    let mut visited = BTreeSet::new();
+    while let Some((schema, resolver)) = pending.pop() {
+        // Include the resolver's static scope in cycle identity. Dynamic-ref
+        // keywords remain unknown under the shared strict keyword policy.
+        let base = resolver.base_uri();
+        charge(256 + base.as_str().len())?;
+        if !visited.insert((schema as *const Value as usize, base.as_str().to_owned())) {
+            continue;
+        }
+        // Charge keyword visits before inspecting or allocating child state.
+        if let Some(object) = schema.as_object() {
+            for keyword in object.keys() {
+                charge(keyword.len())?;
+                charge(0)?; // Reserve the shared keyword-policy inspection too.
+            }
+        }
+        // Definitions do not apply a schema: skip their child enumeration.
+        // Resolved references bring selected definition children into closure.
+        check_schema_keyword_node(schema, false, |child| {
+            let id_bytes = child.get("$id").and_then(Value::as_str).map_or(0, str::len);
+            charge(256 + base.as_str().len() + id_bytes)?;
+            let child_resolver = resolver
+                .in_subresource(Draft::Draft202012.create_resource_ref(child))
+                .map_err(backend)?;
+            pending.push((child, child_resolver));
+            Ok(())
+        })?;
+        if let Some(reference) = schema.get("$ref") {
+            let reference = reference.as_str().ok_or_else(|| {
+                SchemaProbeError::Backend("non-string schema reference".to_owned())
+            })?;
+            charge(256 + base.as_str().len() + reference.len())?;
+            let (target, target_resolver, _) =
+                resolver.lookup(reference).map_err(backend)?.into_inner();
+            pending.push((target, target_resolver));
+        }
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -697,6 +782,100 @@ mod tests {
             FormatProfile::AssertedSourceCandidateV1,
         )
         .unwrap()
+    }
+
+    #[test]
+    fn diagnostics_keyword_refusal_follows_only_the_requested_closure() {
+        let uri = "https://tree-of-sophia.local/diagnostics-keywords";
+        let clean_uri = "https://tree-of-sophia.local/diagnostics-clean";
+        let unsupported_uri = "https://tree-of-sophia.local/diagnostics-unsupported";
+        let unknown = "x-conformance-unsupported-assertion";
+        let resources = || {
+            vec![
+                resource(
+                    uri,
+                    &json!({
+                        "$schema": DRAFT, "$id": uri,
+                        "$defs": {
+                            "supported": {"type": "integer"},
+                            "unsupported": {(unknown): true},
+                            "cycle": {"$ref": "#/$defs/cycle"}
+                        }
+                    })
+                    .to_string(),
+                ),
+                resource(
+                    clean_uri,
+                    &json!({
+                        "$schema": DRAFT, "$id": clean_uri,
+                        "$ref": format!("{uri}#/$defs/supported")
+                    })
+                    .to_string(),
+                ),
+                resource(
+                    unsupported_uri,
+                    &json!({
+                        "$schema": DRAFT, "$id": unsupported_uri,
+                        "$ref": format!("{uri}#/$defs/unsupported")
+                    })
+                    .to_string(),
+                ),
+            ]
+        };
+        assert!(matches!(
+            SchemaBackendProbe::new(resources(), FormatProfile::AssertedSourceCandidateV1),
+            Err(SchemaProbeError::UnknownKeyword(_))
+        ));
+        let prepared = SchemaBackendProbe::prepare_diagnostics_resources(
+            resources(),
+            FormatProfile::AssertedSourceCandidateV1,
+        )
+        .unwrap();
+        let registry = Registry::new()
+            .extend(
+                prepared
+                    .resources
+                    .iter()
+                    .map(|(uri, value)| (uri.as_str(), value.clone())),
+            )
+            .unwrap()
+            .prepare()
+            .unwrap();
+        let scan = |root: &str| {
+            let mut work = 0usize;
+            let mut bytes = 0usize;
+            check_selected_schema_keywords(&registry, root, |cost| {
+                work += 1;
+                bytes += cost;
+                if work > 300_000 || bytes > SchemaBackendProbe::MAX_TOTAL_BYTES {
+                    Err(SchemaProbeError::BudgetExceeded)
+                } else {
+                    Ok(())
+                }
+            })
+        };
+        assert_eq!(scan(uri), Ok(())); // Unreferenced definitions do not apply.
+        assert_eq!(scan(clean_uri), Ok(()));
+        assert_eq!(
+            scan(unsupported_uri),
+            Err(SchemaProbeError::UnknownKeyword(unknown.to_owned()))
+        );
+        assert_eq!(scan(&format!("{uri}#/$defs/supported")), Ok(()));
+        assert_eq!(scan(&format!("{uri}#/$defs/cycle")), Ok(()));
+        assert_eq!(
+            scan(&format!("{uri}#/$defs/unsupported")),
+            Err(SchemaProbeError::UnknownKeyword(unknown.to_owned()))
+        );
+        assert!(matches!(
+            scan(&format!("{uri}#/$defs/missing")),
+            Err(SchemaProbeError::Backend(_))
+        ));
+        assert_eq!(
+            check_selected_schema_keywords(&registry, clean_uri, |_| {
+                Err(SchemaProbeError::BudgetExceeded)
+            }),
+            Err(SchemaProbeError::BudgetExceeded)
+        );
     }
 
     #[test]

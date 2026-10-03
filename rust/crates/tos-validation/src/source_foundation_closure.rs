@@ -12,16 +12,22 @@
 use crate::biblio_rules::BiblioClaim;
 use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::layer_family_rules::LayerFamilySource;
-use crate::record_biblio_cut::BiblioCurrentRecord;
+use crate::record_biblio_cut::{
+    BiblioCurrentRecord, SourceCutInputCoverage, SourceCutInputWithIdentity,
+};
+use crate::source_foundation_default_rules::{
+    BorrowedDefaultRecords, SliceDefaultClaims, SliceDefaultPaths, SourceFoundationDefaultClaims,
+    SourceFoundationDefaultEventLookup, SourceFoundationDefaultPaths,
+    SourceFoundationDefaultRecordsLookup,
+};
 use crate::source_witness_foundation::SourceFileMembershipIndex;
 use serde_json::Value;
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::Ordering;
 use std::time::Instant;
-use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, RelativePath, SourceRevision, canonical_bytes_v1,
-};
-use tos_source_store::{CorpusCutReader, SourceMembershipV1};
+use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, RelativePath, canonical_bytes_v1};
+use tos_source_store::CorpusCutReader;
 
 const SOURCE_HOME: &str = "ToS/source-witnesses/";
 const CLAIM_SCHEMA: &str = "ToS/contracts/claim-packet.schema.json";
@@ -132,11 +138,11 @@ struct ClaimRef {
     native: bool,
 }
 
-/// Check the cross-stream closure district over an exact current source cut.
-/// The caller supplies the earlier-district event map, path list, and
-/// source-declared profile kinds from the captured cut and the completed
-/// record district. No repository walk, mutable checkout read, catalog read,
-/// or source admission is performed here.
+/// Cold compatibility entry for the cross-stream closure district. The
+/// caller supplies materialized views from the exact captured cut; the
+/// identity-bearing entry below runs the same predicates over bounded stored
+/// lookups without rebuilding those maps. No repository walk, mutable
+/// checkout read, catalog read, or source admission is performed here.
 pub fn inspect_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     source: &mut S,
     cut: &CorpusCutReader,
@@ -150,23 +156,88 @@ pub fn inspect_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     bibliographic_claims: &[BiblioClaim],
     limits: ItemLimits,
 ) -> Result<SourceFoundationClosureReport, ItemRefusal> {
-    let mut rules = ClosureRules::new(
-        source,
-        cut,
-        source_events,
+    validate_legacy_cut_paths(cut, current_paths, limits.deadline, source.cancellation())?;
+    let records = BorrowedDefaultRecords {
         current_records,
         item_editions,
-        current_paths,
-        file_memberships,
         rights_ids,
-        limits,
-    )?;
-    let requires_bibliographic =
-        source_foundation_requires_bibliographic(current_paths, declared_profile_kinds);
+        file_memberships,
+        declared_profile_kinds,
+    };
+    let paths = SliceDefaultPaths(current_paths);
+    let claims = SliceDefaultClaims(bibliographic_claims);
+    run_source_foundation_closure(source, source_events, &records, &paths, &claims, limits)
+}
+
+/// Run the same closure predicates against a current candidate carrying its
+/// real input identity and the exact EOF coverage already produced by the
+/// Records pass. The owner supplies bounded lookup views over its completed
+/// Records, event, claim and path indexes; this adapter creates no revision
+/// and reconstructs no resident corpus maps.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_source_foundation_closure_with_identity<I: Eq, S: LayerFamilySource + ?Sized>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    expected_identity: &I,
+    coverage: &SourceCutInputCoverage,
+    source_events: &dyn SourceFoundationDefaultEventLookup,
+    records: &dyn SourceFoundationDefaultRecordsLookup,
+    paths: &dyn SourceFoundationDefaultPaths,
+    claims: &dyn SourceFoundationDefaultClaims,
+    limits: ItemLimits,
+) -> Result<SourceFoundationClosureReport, ItemRefusal> {
+    let cancelled = source.cancellation();
+    check(limits.deadline, cancelled)?;
+    if input.input_identity() != expected_identity {
+        return Err(ItemRefusal::Source(
+            "source-foundation closure input identity differs from completed Records".into(),
+        ));
+    }
+    input
+        .source_input()
+        .verify_current_fence(coverage, limits.deadline, cancelled)?;
+    let result =
+        run_source_foundation_closure(source, source_events, records, paths, claims, limits);
+    check(limits.deadline, source.cancellation())?;
+    if input.input_identity() != expected_identity {
+        return Err(ItemRefusal::Source(
+            "source-foundation closure input identity changed during inspection".into(),
+        ));
+    }
+    input
+        .source_input()
+        .verify_current_fence(coverage, limits.deadline, source.cancellation())?;
+    result
+}
+
+fn run_source_foundation_closure<S: LayerFamilySource + ?Sized>(
+    source: &mut S,
+    source_events: &dyn SourceFoundationDefaultEventLookup,
+    records: &dyn SourceFoundationDefaultRecordsLookup,
+    paths: &dyn SourceFoundationDefaultPaths,
+    claims: &dyn SourceFoundationDefaultClaims,
+    limits: ItemLimits,
+) -> Result<SourceFoundationClosureReport, ItemRefusal> {
+    let mut has_declared_profile_kind = false;
+    records.for_each_profile_kind(&mut |kind| {
+        check(limits.deadline, source.cancellation())?;
+        let _ = kind;
+        has_declared_profile_kind = true;
+        Ok(())
+    })?;
+    let mut requires_bibliographic = has_declared_profile_kind;
+    paths.for_each_path(&mut |path| {
+        check(limits.deadline, source.cancellation())?;
+        requires_bibliographic |= path.starts_with(SOURCE_HOME)
+            && (path.ends_with("/historical-claims.jsonl")
+                || path.ends_with("/source-claims.jsonl"));
+        Ok(())
+    })?;
+    let mut rules = ClosureRules::new(source, source_events, records, paths, claims, limits)?;
     rules.check_records_map()?;
     rules.collect_events()?;
     rules.check_boundary_maps_and_anchors()?;
-    rules.check_claim_streams(bibliographic_claims)?;
+    rules.check_claim_streams()?;
     rules.check_topology()?;
     rules.check_derivation()?;
     rules.check_responsibility_claims()?;
@@ -185,6 +256,167 @@ pub fn inspect_source_foundation_closure<S: LayerFamilySource + ?Sized>(
     })
 }
 
+fn validate_legacy_cut_paths(
+    cut: &CorpusCutReader,
+    current_paths: &[String],
+    deadline: Instant,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<(), ItemRefusal> {
+    let mut members = cut.current().members();
+    for supplied in current_paths {
+        check(deadline, cancelled)?;
+        let Some(member) = members.next() else {
+            return Err(ItemRefusal::Source(
+                "source-foundation current paths differ from the exact captured cut".into(),
+            ));
+        };
+        if member.path.as_str() != supplied {
+            return Err(ItemRefusal::Source(
+                "source-foundation current paths differ from the exact captured cut".into(),
+            ));
+        }
+    }
+    check(deadline, cancelled)?;
+    if members.next().is_some() {
+        return Err(ItemRefusal::Source(
+            "source-foundation current paths differ from the exact captured cut".into(),
+        ));
+    }
+    Ok(())
+}
+
+fn push_bounded_issue(
+    issues: &mut Vec<(String, String)>,
+    cost: &mut SourceFoundationClosureCost,
+    retained_state_bytes: &mut usize,
+    temporary_state_bytes: usize,
+    limits: ItemLimits,
+    cancelled: &std::sync::atomic::AtomicBool,
+    location: &str,
+    message: String,
+) -> Result<(), ItemRefusal> {
+    check(limits.deadline, cancelled)?;
+    if issues.len() >= limits.max_issues {
+        return Err(ItemRefusal::BudgetCheck {
+            check: "source-foundation closure issue count",
+            used: Some(issues.len() as u64 + 1),
+            limit: Some(limits.max_issues as u64),
+        });
+    }
+    let location = location.to_owned();
+    let amount = location
+        .len()
+        .checked_add(message.len())
+        .and_then(|n| n.checked_add(2 * std::mem::size_of::<String>()))
+        .ok_or(ItemRefusal::Budget)?;
+    let retained = retained_state_bytes
+        .checked_add(amount)
+        .filter(|used| {
+            used.checked_add(temporary_state_bytes)
+                .is_some_and(|total| total <= limits.max_state_bytes)
+        })
+        .ok_or(ItemRefusal::BudgetCheck {
+            check: "source-foundation closure state",
+            used: None,
+            limit: Some(limits.max_state_bytes as u64),
+        })?;
+    *retained_state_bytes = retained;
+    cost.reserved_state_bytes = cost
+        .reserved_state_bytes
+        .max(retained.saturating_add(temporary_state_bytes));
+    issues.push((location, message));
+    cost.emitted_issues = issues.len();
+    Ok(())
+}
+
+fn exact_backref_messages(
+    record: &Value,
+    field: &str,
+    record_id: &str,
+    label: &str,
+    claims: &BTreeMap<String, ClaimRef>,
+) -> Vec<String> {
+    let refs = value_strings(record, field);
+    let actual: BTreeSet<String> = refs.iter().cloned().collect();
+    let missing: Vec<String> = actual
+        .iter()
+        .filter(|claim_id| !claims.contains_key(*claim_id))
+        .cloned()
+        .collect();
+    let misbound: Vec<String> = actual
+        .iter()
+        .filter(|claim_id| {
+            claims
+                .get(*claim_id)
+                .is_some_and(|claim| claim.subject != record_id)
+        })
+        .cloned()
+        .collect();
+    let unreferenced: Vec<String> = claims
+        .iter()
+        .filter(|(_, claim)| claim.subject == record_id)
+        .filter(|(claim_id, _)| !actual.contains(*claim_id))
+        .map(|(claim_id, _)| claim_id.clone())
+        .collect();
+    let mut findings = Vec::new();
+    if !missing.is_empty() {
+        findings.push(format!(
+            "unresolved {label} claims: {}",
+            python_string_list(&missing)
+        ));
+    }
+    if !misbound.is_empty() {
+        findings.push(format!(
+            "{label} claims belong to another subject: {}",
+            python_string_list(&misbound)
+        ));
+    }
+    if !unreferenced.is_empty() {
+        findings.push(format!(
+            "subject {label} claims are not referenced: {}",
+            python_string_list(&unreferenced)
+        ));
+    }
+    if refs.len() != actual.len() {
+        findings.push(format!("{field} contains duplicate claim references"));
+    }
+    findings
+}
+
+fn claim_reference_index_state(id: &str, reference: &ClaimRef) -> Result<usize, ItemRefusal> {
+    id.len()
+        .checked_add(claim_reference_payload_state(reference)?)
+        .and_then(|n| {
+            n.checked_add(std::mem::size_of::<String>() + 8 * std::mem::size_of::<usize>())
+        })
+        .ok_or(ItemRefusal::Budget)
+}
+
+fn claim_reference_payload_state(reference: &ClaimRef) -> Result<usize, ItemRefusal> {
+    reference
+        .location
+        .len()
+        .checked_add(reference.subject.len())
+        .and_then(|n| n.checked_add(reference.predicate.len()))
+        .and_then(|n| n.checked_add(reference.object.len()))
+        .and_then(|n| n.checked_add(reference.event.len()))
+        .and_then(|n| n.checked_add(std::mem::size_of::<ClaimRef>()))
+        .ok_or(ItemRefusal::Budget)
+}
+
+fn claim_refs_vec_clone_state(claims: &BTreeMap<String, ClaimRef>) -> Result<usize, ItemRefusal> {
+    claims.iter().try_fold(
+        std::mem::size_of::<Vec<ClaimRef>>(),
+        |state, (id, claim)| {
+            state
+                .checked_add(id.len())
+                .and_then(|n| n.checked_add(claim_reference_payload_state(claim).ok()?))
+                .and_then(|n| n.checked_add(std::mem::size_of::<(String, ClaimRef)>()))
+                .ok_or(ItemRefusal::Budget)
+        },
+    )
+}
+
 /// Exact source-derived condition used by the maintained Python route for its
 /// optional bibliographic graph boundary.
 pub fn source_foundation_requires_bibliographic(
@@ -201,16 +433,11 @@ pub fn source_foundation_requires_bibliographic(
 
 struct ClosureRules<'a, S: LayerFamilySource + ?Sized> {
     source: &'a mut S,
-    cut: &'a CorpusCutReader,
-    source_revision: SourceRevision,
-    current_membership: SourceMembershipV1,
     limits: ItemLimits,
-    paths: BTreeSet<String>,
-    all_paths: BTreeSet<String>,
-    records: &'a BTreeMap<String, BiblioCurrentRecord>,
-    file_memberships: &'a SourceFileMembershipIndex,
-    rights_ids: &'a BTreeSet<String>,
-    source_events: &'a BTreeMap<String, Value>,
+    paths: &'a dyn SourceFoundationDefaultPaths,
+    records: &'a dyn SourceFoundationDefaultRecordsLookup,
+    source_events: &'a dyn SourceFoundationDefaultEventLookup,
+    claims: &'a dyn SourceFoundationDefaultClaims,
     links: BTreeMap<String, (String, Value)>,
     issues: Vec<(String, String)>,
     schema_requests: Vec<SourceFoundationClosureSchemaRequest>,
@@ -237,111 +464,36 @@ struct ClosureRules<'a, S: LayerFamilySource + ?Sized> {
     object_links: BTreeMap<String, ClaimRef>,
     topology: BTreeMap<String, ClaimRef>,
     derivation: BTreeMap<String, ClaimRef>,
-    item_edition_by_id: &'a BTreeMap<String, String>,
-    file_digests: BTreeMap<String, String>,
 }
 
 impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
     fn new(
         source: &'a mut S,
-        cut: &'a CorpusCutReader,
-        source_events: &'a BTreeMap<String, Value>,
-        records: &'a BTreeMap<String, BiblioCurrentRecord>,
-        item_editions: &'a BTreeMap<String, String>,
-        current_paths: &[String],
-        file_memberships: &'a SourceFileMembershipIndex,
-        rights_ids: &'a BTreeSet<String>,
+        source_events: &'a dyn SourceFoundationDefaultEventLookup,
+        records: &'a dyn SourceFoundationDefaultRecordsLookup,
+        paths: &'a dyn SourceFoundationDefaultPaths,
+        claims: &'a dyn SourceFoundationDefaultClaims,
         limits: ItemLimits,
     ) -> Result<Self, ItemRefusal> {
         check(limits.deadline, source.cancellation())?;
-        let source_revision = cut.current().revision();
-        let current_membership = cut
-            .stream(source_revision)
-            .map_err(|_| {
-                ItemRefusal::Source("source-foundation exact cut membership unavailable".into())
-            })?
-            .expectation();
-        let mut paths = BTreeSet::new();
-        let mut all_paths = BTreeSet::new();
-        let mut state_bytes = 0usize;
-        for path in current_paths {
-            if all_paths.contains(path) {
-                return Err(ItemRefusal::Source(
-                    "source-foundation closure received duplicate current path".into(),
-                ));
-            }
-            let owned_path = path
-                .len()
-                .checked_add(std::mem::size_of::<String>())
-                .ok_or(ItemRefusal::Budget)?;
-            let copies = if path.starts_with(SOURCE_HOME) { 2 } else { 1 };
-            state_bytes = state_bytes
-                .checked_add(owned_path.checked_mul(copies).ok_or(ItemRefusal::Budget)?)
-                .ok_or(ItemRefusal::Budget)?;
-            if state_bytes > limits.max_state_bytes {
-                return Err(ItemRefusal::BudgetCheck {
-                    check: "source-foundation closure current path index",
-                    used: Some(state_bytes as u64),
-                    limit: Some(limits.max_state_bytes as u64),
-                });
-            }
-            all_paths.insert(path.clone());
-            if path.starts_with(SOURCE_HOME) {
-                paths.insert(path.clone());
-            }
-        }
-        for id in source_events.keys() {
-            state_bytes = state_bytes
-                .checked_add(
-                    id.len()
-                        .checked_add(std::mem::size_of::<String>())
-                        .ok_or(ItemRefusal::Budget)?,
-                )
-                .ok_or(ItemRefusal::Budget)?;
-            if state_bytes > limits.max_state_bytes {
-                return Err(ItemRefusal::BudgetCheck {
-                    check: "source-foundation closure event index",
-                    used: Some(state_bytes as u64),
-                    limit: Some(limits.max_state_bytes as u64),
-                });
-            }
-        }
-        if all_paths.len() != cut.current().member_count()
-            || cut
-                .current()
-                .members()
-                .any(|member| !all_paths.contains(member.path.as_str()))
-        {
-            return Err(ItemRefusal::Source(
-                "source-foundation current paths differ from the exact cut membership".into(),
-            ));
-        }
         Ok(Self {
             source,
-            cut,
-            source_revision,
-            current_membership,
             limits,
             paths,
-            all_paths,
             records,
-            file_memberships,
-            rights_ids,
             source_events,
+            claims,
             links: BTreeMap::new(),
             issues: Vec::new(),
             schema_requests: Vec::new(),
             unsupported: Vec::new(),
-            cost: SourceFoundationClosureCost {
-                reserved_state_bytes: state_bytes,
-                ..SourceFoundationClosureCost::default()
-            },
-            retained_state_bytes: state_bytes,
+            cost: SourceFoundationClosureCost::default(),
+            retained_state_bytes: 0,
             temporary_state_bytes: 0,
             loaded: BTreeMap::new(),
             digests: BTreeMap::new(),
             recorded_checks: BTreeMap::new(),
-            event_ids: source_events.keys().cloned().collect(),
+            event_ids: BTreeSet::new(),
             events: BTreeMap::new(),
             claim_ids: BTreeSet::new(),
             anchors: BTreeSet::new(),
@@ -357,8 +509,6 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             object_links: BTreeMap::new(),
             topology: BTreeMap::new(),
             derivation: BTreeMap::new(),
-            item_edition_by_id: item_editions,
-            file_digests: BTreeMap::new(),
         })
     }
 
@@ -409,25 +559,93 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         self.temporary_state_bytes = baseline;
     }
 
+    fn path_exists(&self, path: &str) -> Result<bool, ItemRefusal> {
+        let deadline = self.limits.deadline;
+        let cancelled = self.source.cancellation();
+        let mut checkpoint = || check(deadline, cancelled);
+        self.paths.contains_with_checkpoint(path, &mut checkpoint)
+    }
+
+    fn current_record(
+        &self,
+        id: &str,
+    ) -> Result<Option<Cow<'_, BiblioCurrentRecord>>, ItemRefusal> {
+        check(self.limits.deadline, self.source.cancellation())?;
+        self.records.current_record(id)
+    }
+
+    fn event(&self, id: &str) -> Result<Option<Cow<'_, Value>>, ItemRefusal> {
+        check(self.limits.deadline, self.source.cancellation())?;
+        if let Some(event) = self.events.get(id) {
+            return Ok(Some(Cow::Borrowed(event)));
+        }
+        self.source_events.event(id)
+    }
+
+    fn event_exists(&self, id: &str) -> Result<bool, ItemRefusal> {
+        check(self.limits.deadline, self.source.cancellation())?;
+        Ok(self.event_ids.contains(id) || self.source_events.event_contains(id)?)
+    }
+
+    fn collect_current_paths(
+        &mut self,
+        matches: impl Fn(&str) -> bool,
+        check_name: &'static str,
+    ) -> Result<BTreeSet<String>, ItemRefusal> {
+        let path_source = self.paths;
+        let deadline = self.limits.deadline;
+        let cancelled = self.source.cancellation();
+        let base = self
+            .retained_state_bytes
+            .checked_add(self.temporary_state_bytes)
+            .and_then(|used| used.checked_add(std::mem::size_of::<BTreeSet<String>>()))
+            .ok_or(ItemRefusal::Budget)?;
+        let mut used = 0usize;
+        let mut found = BTreeSet::new();
+        path_source.for_each_path(&mut |path| {
+            check(deadline, cancelled)?;
+            if !matches(path) {
+                return Ok(());
+            }
+            let row_bytes = path
+                .len()
+                .checked_add(std::mem::size_of::<String>())
+                .and_then(|n| n.checked_add(4 * std::mem::size_of::<usize>()))
+                .ok_or(ItemRefusal::Budget)?;
+            used = used.checked_add(row_bytes).ok_or(ItemRefusal::Budget)?;
+            let total = base.checked_add(used).ok_or(ItemRefusal::Budget)?;
+            if total > self.limits.max_state_bytes {
+                return Err(ItemRefusal::BudgetCheck {
+                    check: check_name,
+                    used: Some(total as u64),
+                    limit: Some(self.limits.max_state_bytes as u64),
+                });
+            }
+            found.insert(path.to_owned());
+            Ok(())
+        })?;
+        self.reserve(
+            used.checked_add(std::mem::size_of::<BTreeSet<String>>())
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
+        Ok(found)
+    }
+
     fn issue(
         &mut self,
         location: impl Into<String>,
         message: impl Into<String>,
     ) -> Result<(), ItemRefusal> {
-        check(self.limits.deadline, self.source.cancellation())?;
-        if self.issues.len() >= self.limits.max_issues {
-            return Err(ItemRefusal::BudgetCheck {
-                check: "source-foundation closure issue count",
-                used: Some(self.issues.len() as u64 + 1),
-                limit: Some(self.limits.max_issues as u64),
-            });
-        }
-        let location = location.into();
-        let message = message.into();
-        self.reserve(location.len() + message.len() + 2 * std::mem::size_of::<String>())?;
-        self.issues.push((location, message));
-        self.cost.emitted_issues = self.issues.len();
-        Ok(())
+        push_bounded_issue(
+            &mut self.issues,
+            &mut self.cost,
+            &mut self.retained_state_bytes,
+            self.temporary_state_bytes,
+            self.limits,
+            self.source.cancellation(),
+            location.into(),
+            message.into(),
+        )
     }
 
     fn python_equal(&self, left: &Value, right: &Value) -> Result<bool, ItemRefusal> {
@@ -454,7 +672,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
 
     fn current_raw(&mut self, path: &str) -> Result<Option<Vec<u8>>, ItemRefusal> {
         check(self.limits.deadline, self.source.cancellation())?;
-        if !self.all_paths.contains(path) {
+        if !self.path_exists(path)? {
             return Ok(None);
         }
         let raw = self
@@ -480,8 +698,17 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 .checked_add(1)
                 .ok_or(ItemRefusal::Budget)?;
             let digest = Digest256::of_bytes(bytes).to_hex();
+            self.reserve(
+                path.len()
+                    .checked_add(digest.len())
+                    .and_then(|n| {
+                        n.checked_add(
+                            std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
+                        )
+                    })
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
             self.digests.insert(path.to_owned(), digest.clone());
-            self.file_digests.insert(path.to_owned(), digest);
         }
         Ok(raw)
     }
@@ -502,7 +729,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             self.reserve(clone_cost)?;
             return Ok(self.loaded.get(path).cloned());
         }
-        if !self.all_paths.contains(path) {
+        if !self.path_exists(path)? {
             if required {
                 self.issue(path, "required source member is missing")?;
             }
@@ -578,7 +805,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             self.reserve(clone_cost)?;
             return Ok(self.loaded.get(path).cloned());
         }
-        if !self.paths.contains(path) || !path.ends_with(".jsonl") {
+        if !self.path_exists(path)? || !path.ends_with(".jsonl") {
             return Ok(None);
         }
         let Some(raw) = self.current_raw(path)? else {
@@ -634,23 +861,36 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         let Some(reference) = reference else {
             return Ok(());
         };
-        let records = self.records;
-        match records.get(reference) {
+        let lookup = self.current_record(reference)?;
+        let classification = match lookup.as_ref() {
+            None => None,
+            Some(record) => {
+                let kind = record.value.get("record_type").unwrap_or(&Value::Null);
+                if text(&record.value, "record_type") == Some(expected_kind) {
+                    Some(Ok(()))
+                } else {
+                    let length = crate::source_foundation_records::python_value_string_len(kind)?;
+                    Some(Err((
+                        length,
+                        crate::source_foundation_records::python_value_string(kind),
+                    )))
+                }
+            }
+        };
+        drop(lookup);
+        match classification {
             None => self.issue(
                 owner,
                 format!("unresolved {expected_kind} reference: {reference}"),
             )?,
-            Some(record) if text(&record.value, "record_type") != Some(expected_kind) => {
-                let kind = record.value.get("record_type").unwrap_or(&Value::Null);
-                let length = crate::source_foundation_records::python_value_string_len(kind)?;
+            Some(Err((length, displayed))) => {
                 self.reserve(length)?;
-                let displayed = crate::source_foundation_records::python_value_string(kind);
                 self.issue(
                     owner,
                     format!("{reference} resolves to {displayed}, expected {expected_kind}"),
                 )?;
             }
-            Some(_) => {}
+            Some(Ok(())) => {}
         }
         Ok(())
     }
@@ -659,7 +899,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         if let Some(value) = self.digests.get(path) {
             return Ok(Some(value.clone()));
         }
-        if !self.all_paths.contains(path) {
+        if !self.path_exists(path)? {
             return Ok(None);
         }
         let Some(raw) = self.current_raw(path)? else {
@@ -741,7 +981,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
 
     fn current_exists(&mut self, path: &str) -> Result<bool, ItemRefusal> {
         check(self.limits.deadline, self.source.cancellation())?;
-        if !self.all_paths.contains(path) {
+        if !self.path_exists(path)? {
             return Ok(false);
         }
         self.source
@@ -752,15 +992,11 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         let Some(id) = row.get("claim_id").and_then(Value::as_str) else {
             return Ok(None);
         };
-        self.reserve(id.len() + std::mem::size_of::<String>())?;
+        self.reserve(id.len() + std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())?;
         if !self.claim_ids.insert(id.to_owned()) {
             self.issue(location, format!("duplicate claim_id: {id}"))?;
         }
         Ok(Some(id.to_owned()))
-    }
-
-    fn event(&self, id: &str) -> Option<&Value> {
-        self.source_events.get(id).or_else(|| self.events.get(id))
     }
 
     fn check_records_map(&mut self) -> Result<(), ItemRefusal> {
@@ -768,10 +1004,18 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         // only verifies caller map shape and builds the Link join operand;
         // repeating that owner's checks would change issue coverage/order.
         let records = self.records;
-        for (id, record) in records {
-            check(self.limits.deadline, self.source.cancellation())?;
-            if record.value.get("record_id").and_then(Value::as_str) != Some(id.as_str())
-                || !self.paths.contains(&record.path)
+        let paths = self.paths;
+        let deadline = self.limits.deadline;
+        let cancelled = self.source.cancellation();
+        let mut retained = self.retained_state_bytes;
+        let temporary = self.temporary_state_bytes;
+        let max_state = self.limits.max_state_bytes;
+        let links = &mut self.links;
+        records.for_each_current_record(&mut |id, record| {
+            check(deadline, cancelled)?;
+            if record.value.get("record_id").and_then(Value::as_str) != Some(id)
+                || !paths
+                    .contains_with_checkpoint(&record.path, &mut || check(deadline, cancelled))?
             {
                 return Err(ItemRefusal::Source(
                     "source-foundation record map differs from its selected source input".into(),
@@ -788,42 +1032,64 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                         n.checked_add(std::mem::size_of::<(String, (String, Value))>() + 64)
                     })
                     .ok_or(ItemRefusal::Budget)?;
-                self.reserve(clone_state)?;
-                self.links
-                    .insert(id.clone(), (record.path.clone(), record.value.clone()));
+                retained = retained
+                    .checked_add(clone_state)
+                    .filter(|used| {
+                        used.checked_add(temporary)
+                            .is_some_and(|total| total <= max_state)
+                    })
+                    .ok_or(ItemRefusal::BudgetCheck {
+                        check: "source-foundation closure Link index",
+                        used: None,
+                        limit: Some(max_state as u64),
+                    })?;
+                links.insert(id.to_owned(), (record.path.clone(), record.value.clone()));
             }
-        }
+            Ok(())
+        })?;
+        self.retained_state_bytes = retained;
+        self.cost.reserved_state_bytes = self
+            .cost
+            .reserved_state_bytes
+            .max(retained.saturating_add(temporary));
         Ok(())
     }
 
     fn collect_events(&mut self) -> Result<(), ItemRefusal> {
         let mut event_key_mismatch = false;
-        for (id, event) in self.source_events {
-            check(self.limits.deadline, self.source.cancellation())?;
-            if text(event, "event_id") != Some(id.as_str()) {
+        let deadline = self.limits.deadline;
+        let cancelled = self.source.cancellation();
+        self.source_events.for_each_event(&mut |id, event| {
+            check(deadline, cancelled)?;
+            if text(event, "event_id") != Some(id) {
                 event_key_mismatch = true;
-                break;
             }
-        }
+            Ok(())
+        })?;
         if event_key_mismatch {
             self.issue(
                 SOURCE_HOME,
                 "earlier-district event map key differs from event_id",
             )?;
         }
+        self.reserve(
+            std::mem::size_of::<BTreeSet<String>>()
+                + 3 * (std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())
+                + TOPOLOGY_PROVENANCE.len()
+                + DERIVATION_PROVENANCE.len()
+                + CHRONOLOGY_PROVENANCE.len(),
+        )?;
         let mut event_paths = BTreeSet::from([
             TOPOLOGY_PROVENANCE.to_owned(),
             DERIVATION_PROVENANCE.to_owned(),
             CHRONOLOGY_PROVENANCE.to_owned(),
         ]);
-        event_paths.extend(
-            self.paths
-                .iter()
-                .filter(|path| path.ends_with(PROVISION_EVENT_BASENAME))
-                .cloned(),
-        );
+        event_paths.extend(self.collect_current_paths(
+            |path| path.ends_with(PROVISION_EVENT_BASENAME),
+            "source-foundation closure event-path index",
+        )?);
         for path in event_paths {
-            if !self.paths.contains(&path) {
+            if !self.path_exists(&path)? {
                 continue;
             }
             let Some(loaded) = self.json_rows(&path, PROVENANCE_SCHEMA, false)? else {
@@ -835,16 +1101,33 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 let Some(id) = text(&event, "event_id").map(str::to_owned) else {
                     continue;
                 };
-                self.reserve(id.len() + std::mem::size_of::<String>())?;
-                if !self.event_ids.insert(id.clone()) {
+                let event_state = crate::record_biblio_cut::decoded_state(&event)?;
+                self.reserve(
+                    id.len()
+                        .checked_mul(2)
+                        .and_then(|n| n.checked_add(event_state))
+                        .and_then(|n| {
+                            n.checked_add(
+                                2 * std::mem::size_of::<String>()
+                                    + 2 * std::mem::size_of::<usize>()
+                                    + std::mem::size_of::<Value>(),
+                            )
+                        })
+                        .ok_or(ItemRefusal::Budget)?,
+                )?;
+                let source_has_id = self.source_events.event_contains(&id)?;
+                if source_has_id || !self.event_ids.insert(id.clone()) {
                     self.issue(
                         format!("{path}:{line}"),
                         format!("duplicate event_id: {id}"),
                     )?;
-                } else if !self.source_events.contains_key(&id) {
+                } else {
                     self.events.insert(id.clone(), event);
                 }
                 if path.ends_with(PROVISION_EVENT_BASENAME) {
+                    self.reserve(
+                        id.len() + std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
+                    )?;
                     self.provision_event_ids.insert(id);
                 }
             }
@@ -852,35 +1135,50 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         Ok(())
     }
 
-    fn check_claim_streams(
-        &mut self,
-        bibliographic_claims: &[BiblioClaim],
-    ) -> Result<(), ItemRefusal> {
-        let mut supplied: BTreeMap<String, BTreeMap<usize, &BiblioClaim>> = BTreeMap::new();
-        for claim in bibliographic_claims {
-            check(self.limits.deadline, self.source.cancellation())?;
+    fn check_claim_streams(&mut self) -> Result<(), ItemRefusal> {
+        let claims = self.claims;
+        let paths = self.paths;
+        let deadline = self.limits.deadline;
+        let cancelled = self.source.cancellation();
+        let limits = self.limits;
+        let temporary = self.temporary_state_bytes;
+        let issues = &mut self.issues;
+        let cost = &mut self.cost;
+        let retained = &mut self.retained_state_bytes;
+        claims.for_each_claim(&mut |ordinal, claim| {
+            check(deadline, cancelled)?;
             if !claim.path.starts_with(SOURCE_HOME) || !claim.path.ends_with("-claims.jsonl") {
-                self.issue(
+                return push_bounded_issue(
+                    issues,
+                    cost,
+                    retained,
+                    temporary,
+                    limits,
+                    cancelled,
                     &claim.path,
-                    "bibliography report contains a non-source Claim route",
-                )?;
-                continue;
+                    "bibliography report contains a non-source Claim route".to_owned(),
+                );
             }
-            if !self.paths.contains(&claim.path) {
-                self.issue(
+            if !paths.contains(&claim.path)? {
+                return push_bounded_issue(
+                    issues,
+                    cost,
+                    retained,
+                    temporary,
+                    limits,
+                    cancelled,
                     &claim.path,
-                    "bibliography Claim row is outside the captured source membership",
-                )?;
-                continue;
+                    "bibliography Claim row is outside the captured source membership".to_owned(),
+                );
             }
-            if claim.line == 0
-                || supplied
-                    .entry(claim.path.clone())
-                    .or_default()
-                    .insert(claim.line, claim)
-                    .is_some()
-            {
-                self.issue(
+            if claim.line == 0 {
+                push_bounded_issue(
+                    issues,
+                    cost,
+                    retained,
+                    temporary,
+                    limits,
+                    cancelled,
                     &claim.path,
                     format!(
                         "bibliography report repeats or misnumbers Claim line {}",
@@ -888,22 +1186,33 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     ),
                 )?;
             }
-        }
-        let native_lines: BTreeSet<(String, usize)> = bibliographic_claims
-            .iter()
-            .filter(|claim| claim.native)
-            .map(|claim| (claim.path.clone(), claim.line))
-            .collect();
+            if claims
+                .first_claim_at(&claim.path, claim.line)?
+                .is_some_and(|(first, _)| first != ordinal)
+            {
+                push_bounded_issue(
+                    issues,
+                    cost,
+                    retained,
+                    temporary,
+                    limits,
+                    cancelled,
+                    &claim.path,
+                    format!(
+                        "bibliography report repeats or misnumbers Claim line {}",
+                        claim.line
+                    ),
+                )?;
+            }
+            Ok(())
+        })?;
 
-        let claim_paths: Vec<String> = self
-            .paths
-            .iter()
-            .filter(|path| path.ends_with("-claims.jsonl"))
-            .cloned()
-            .collect();
+        let claim_paths = self.collect_current_paths(
+            |path| path.ends_with("-claims.jsonl"),
+            "source-foundation closure Claim path index",
+        )?;
         for path in claim_paths {
-            let supplied_rows = supplied.remove(&path);
-            let rows = if let Some(supplied_rows) = supplied_rows {
+            if self.claims.claim_count_for_path(&path)? > 0 {
                 let Some(current) = self.unchecked_jsonl_rows(&path)? else {
                     self.issue(
                         &path,
@@ -911,40 +1220,47 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     )?;
                     continue;
                 };
-                let expected_lines: BTreeSet<usize> =
-                    current.rows.iter().map(|(line, _)| *line).collect();
-                let supplied_lines: BTreeSet<usize> = supplied_rows.keys().copied().collect();
-                if expected_lines != supplied_lines {
+                let distinct = self.claims.distinct_nonzero_claim_lines_for_path(&path)?;
+                let has_zero_line = self.claims.first_claim_at(&path, 0)?.is_some();
+                let mut exact_lines = distinct == current.rows.len() as u64 && !has_zero_line;
+                let mut digest_mismatch = false;
+                for (line, current_value) in &current.rows {
+                    check(self.limits.deadline, self.source.cancellation())?;
+                    let Some((_, claim)) = self.claims.last_claim_at(&path, *line)? else {
+                        exact_lines = false;
+                        continue;
+                    };
+                    if claim.raw_sha256 != current.digest {
+                        digest_mismatch = true;
+                        break;
+                    }
+                    if !self.python_equal(current_value, &claim.value)? {
+                        self.issue(
+                            format!("{}:{}", path, line),
+                            "bibliography Claim value differs from the exact current line",
+                        )?;
+                    }
+                }
+                if !exact_lines {
                     self.issue(
                         &path,
                         "bibliography Claim rows do not cover the exact current file lines",
                     )?;
                 }
-                for claim in supplied_rows.values() {
-                    if claim.raw_sha256 != current.digest {
-                        self.issue(
-                            &path,
-                            "bibliography Claim digest differs from the exact current file",
-                        )?;
-                        break;
-                    }
-                    let current_row = current
-                        .rows
-                        .iter()
-                        .find(|(line, _)| *line == claim.line)
-                        .map(|(_, value)| value);
-                    if !current_row
-                        .map(|current| self.python_equal(current, &claim.value))
-                        .transpose()?
-                        .unwrap_or(false)
-                    {
-                        self.issue(
-                            format!("{}:{}", path, claim.line),
-                            "bibliography Claim value differs from the exact current line",
-                        )?;
-                    }
+                if digest_mismatch {
+                    self.issue(
+                        &path,
+                        "bibliography Claim digest differs from the exact current file",
+                    )?;
                 }
-                current.rows
+                for (line, claim) in current.rows {
+                    let mut native = false;
+                    self.claims.for_each_claim_at(&path, line, &mut |_, row| {
+                        native |= row.native;
+                        Ok(())
+                    })?;
+                    self.register_claim(&path, line, &claim, native)?;
+                }
             } else if path.ends_with("/source-claims.jsonl")
                 || path.ends_with("/historical-claims.jsonl")
             {
@@ -956,7 +1272,9 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     self.gap(&path, "this profile requires the exact-cut biblio_rules Claim report for source-declared profile and native compound validation")?;
                     continue;
                 }
-                current.rows
+                for (line, claim) in current.rows {
+                    self.register_claim(&path, line, &claim, false)?;
+                }
             } else {
                 let contract = if path.ends_with("/object-link-claims.jsonl") {
                     OBJECT_LINK_SCHEMA
@@ -966,27 +1284,28 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 let Some(current) = self.json_rows(&path, contract, true)? else {
                     continue;
                 };
-                current.rows
-            };
-
-            for (line, claim) in rows {
-                self.register_claim(
-                    &path,
-                    line,
-                    &claim,
-                    native_lines.contains(&(path.clone(), line)),
-                )?;
+                for (line, claim) in current.rows {
+                    self.register_claim(&path, line, &claim, false)?;
+                }
             }
         }
-        for extra_path in supplied.keys() {
-            self.issue(
-                extra_path,
-                "bibliography report contains a Claim stream absent from the captured path list",
-            )?;
-        }
-        for reference in self.boundary_membership_refs.clone() {
-            if !self.membership.contains_key(&reference) {
-                self.issue(
+        let limits = self.limits;
+        let cancelled = self.source.cancellation();
+        let temporary = self.temporary_state_bytes;
+        let issues = &mut self.issues;
+        let cost = &mut self.cost;
+        let retained = &mut self.retained_state_bytes;
+        let membership_refs = &self.boundary_membership_refs;
+        let membership = &self.membership;
+        for reference in membership_refs {
+            if !membership.contains_key(reference) {
+                push_bounded_issue(
+                    issues,
+                    cost,
+                    retained,
+                    temporary,
+                    limits,
+                    cancelled,
                     SOURCE_HOME,
                     format!(
                         "work-boundary maps reference missing membership claims: [{reference}]"
@@ -994,9 +1313,17 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 )?;
             }
         }
-        for reference in self.boundary_responsibility_refs.clone() {
-            if !self.responsibility.contains_key(&reference) {
-                self.issue(
+        let responsibility_refs = &self.boundary_responsibility_refs;
+        let responsibility = &self.responsibility;
+        for reference in responsibility_refs {
+            if !responsibility.contains_key(reference) {
+                push_bounded_issue(
+                    issues,
+                    cost,
+                    retained,
+                    temporary,
+                    limits,
+                    cancelled,
                     SOURCE_HOME,
                     format!(
                         "work-boundary maps reference missing responsibility claims: [{reference}]"
@@ -1057,12 +1384,11 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
 
         let mut counts = BTreeMap::<String, u64>::new();
         for (path, predicate, subject_kind, object_kind, backref, role) in TOPOLOGY_ROUTES {
-            let actual_paths: Vec<String> = self
-                .paths
-                .iter()
-                .filter(|candidate| candidate.ends_with(path.rsplit('/').next().unwrap_or(path)))
-                .cloned()
-                .collect();
+            let suffix = path.rsplit('/').next().unwrap_or(path);
+            let actual_paths = self.collect_current_paths(
+                |candidate| candidate.ends_with(suffix),
+                "source-foundation closure topology path index",
+            )?;
             if actual_paths.len() != 1 || actual_paths.first().map(String::as_str) != Some(path) {
                 self.issue(path, "bibliographic topology claim basename must exist only at its owned relation route")?;
             }
@@ -1160,22 +1486,20 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     crate::source_foundation_records::python_value_string(object_value);
                 let mut expected_evidence = BTreeSet::new();
                 for endpoint in [&subject_key, &object_key] {
-                    if let Some(record) = self.records.get(endpoint) {
+                    if let Some(record) = self.current_record(endpoint)? {
                         expected_evidence.insert(record.path.clone());
                     }
                 }
                 if object_kind == "item" {
-                    if let Some(manifest_ref) = self
-                        .records
-                        .get(&object_key)
+                    let object_record = self.current_record(&object_key)?;
+                    if let Some(manifest_ref) = object_record
+                        .as_ref()
                         .and_then(|record| text(&record.value, "item_manifest_ref"))
                     {
                         expected_evidence.insert(manifest_ref.to_owned());
                     }
                     if let (Some(item_id), Some(edition_id)) = (object_ref, subject_ref) {
-                        if self.item_edition_by_id.get(item_id).map(String::as_str)
-                            != Some(edition_id)
-                        {
+                        if self.records.item_edition(item_id)?.as_deref() != Some(edition_id) {
                             self.issue(&location, "edition-item topology differs from the current item manifest embodiment")?;
                         }
                     }
@@ -1261,49 +1585,98 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         field: &str,
         predicate: &str,
     ) -> Result<(), ItemRefusal> {
-        let ids_by_subject: BTreeMap<String, BTreeSet<String>> = self
+        let index_state = self
             .topology
             .iter()
             .filter(|(_, claim)| claim.predicate == predicate)
-            .fold(BTreeMap::new(), |mut map, (id, claim)| {
-                map.entry(claim.subject.clone())
-                    .or_default()
-                    .insert(id.clone());
-                map
-            });
-        let records: Vec<_> = self
-            .records
+            .try_fold(
+                std::mem::size_of::<BTreeMap<String, BTreeSet<String>>>(),
+                |state, (id, claim)| {
+                    state
+                        .checked_add(
+                            id.len()
+                                .checked_add(claim.subject.len())
+                                .and_then(|n| {
+                                    n.checked_add(
+                                        2 * std::mem::size_of::<String>()
+                                            + std::mem::size_of::<BTreeSet<String>>()
+                                            + 8 * std::mem::size_of::<usize>(),
+                                    )
+                                })
+                                .ok_or(ItemRefusal::Budget)?,
+                        )
+                        .ok_or(ItemRefusal::Budget)
+                },
+            )?;
+        self.reserve(index_state)?;
+        let mut ids_by_subject = BTreeMap::<String, BTreeSet<String>>::new();
+        for (id, claim) in self
+            .topology
             .iter()
-            .filter(|(_, record)| record.kind == subject_kind)
-            .map(|(id, record)| {
-                (
-                    id.clone(),
-                    record.path.clone(),
-                    value_strings(&record.value, field),
-                )
-            })
-            .collect();
-        for (id, path, actual) in records {
-            let expected = ids_by_subject.get(&id).cloned().unwrap_or_default();
-            let actual = actual.into_iter().collect::<BTreeSet<_>>();
-            if actual != expected {
-                self.issue(
-                    path,
+            .filter(|(_, claim)| claim.predicate == predicate)
+        {
+            ids_by_subject
+                .entry(claim.subject.clone())
+                .or_default()
+                .insert(id.clone());
+        }
+        let records = self.records;
+        let deadline = self.limits.deadline;
+        let cancelled = self.source.cancellation();
+        let limits = self.limits;
+        let temporary = self.temporary_state_bytes;
+        let issues = &mut self.issues;
+        let cost = &mut self.cost;
+        let retained = &mut self.retained_state_bytes;
+        records.for_each_current_record(&mut |id, record| {
+            check(deadline, cancelled)?;
+            if record.kind != subject_kind {
+                return Ok(());
+            }
+            let workspace = crate::record_biblio_cut::decoded_state(&record.value)?
+                .checked_mul(2)
+                .and_then(|n| n.checked_add(256))
+                .ok_or(ItemRefusal::Budget)?;
+            let temporary = temporary
+                .checked_add(workspace)
+                .ok_or(ItemRefusal::Budget)?;
+            let used = retained.checked_add(temporary).ok_or(ItemRefusal::Budget)?;
+            if used > limits.max_state_bytes {
+                return Err(ItemRefusal::BudgetCheck {
+                    check: "source-foundation closure topology backlink workspace",
+                    used: Some(used as u64),
+                    limit: Some(limits.max_state_bytes as u64),
+                });
+            }
+            cost.reserved_state_bytes = cost.reserved_state_bytes.max(used);
+            let actual: BTreeSet<String> =
+                value_strings(&record.value, field).into_iter().collect();
+            let matches = ids_by_subject
+                .get(id)
+                .map_or(actual.is_empty(), |expected| expected == &actual);
+            if !matches {
+                push_bounded_issue(
+                    issues,
+                    cost,
+                    retained,
+                    temporary,
+                    limits,
+                    cancelled,
+                    &record.path,
                     format!("{field} does not close over the exact outgoing {predicate} claims"),
                 )?;
             }
-        }
+            Ok(())
+        })?;
         Ok(())
     }
 
     fn check_derivation(&mut self) -> Result<(), ItemRefusal> {
         let claim_path = DERIVATION_CLAIMS;
-        let claim_paths: Vec<String> = self
-            .paths
-            .iter()
-            .filter(|path| path.ends_with("/expression-derivation-claims.jsonl"))
-            .cloned()
-            .collect();
+        let claim_paths = self.collect_current_paths(
+            |path| path.ends_with("/expression-derivation-claims.jsonl"),
+            "source-foundation closure derivation path index",
+        )?;
         if claim_paths.len() != 1 || claim_paths.first().map(String::as_str) != Some(claim_path) {
             self.issue(
                 claim_path,
@@ -1351,17 +1724,35 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             if subject_ref == object_ref {
                 self.issue(&location, "Expression derivation is irreflexive")?;
             }
-            if let (Some(subject), Some(object)) = (
-                self.records.get(&subject_ref),
-                self.records.get(&object_ref),
-            ) {
-                if text(&subject.value, "work_ref") != text(&object.value, "work_ref") {
-                    self.issue(
-                        &location,
-                        "v1 Expression derivation endpoints must realize the same Work",
-                    )?;
+            let same_work = {
+                let subject_record = self.current_record(&subject_ref)?;
+                let object_record = self.current_record(&object_ref)?;
+                match (subject_record, object_record) {
+                    (Some(subject), Some(object)) => {
+                        text(&subject.value, "work_ref") == text(&object.value, "work_ref")
+                    }
+                    _ => true,
                 }
+            };
+            if !same_work {
+                self.issue(
+                    &location,
+                    "v1 Expression derivation endpoints must realize the same Work",
+                )?;
             }
+            self.reserve(
+                claim_id
+                    .len()
+                    .checked_mul(2)
+                    .and_then(|n| n.checked_add(subject_ref.len().checked_mul(4)?))
+                    .and_then(|n| n.checked_add(object_ref.len().checked_mul(3)?))
+                    .and_then(|n| {
+                        n.checked_add(
+                            6 * std::mem::size_of::<String>() + 16 * std::mem::size_of::<usize>(),
+                        )
+                    })
+                    .ok_or(ItemRefusal::Budget)?,
+            )?;
             if !pairs.insert((subject_ref.clone(), object_ref.clone())) {
                 self.issue(&location, "duplicate Expression-derivation endpoint pair")?;
             }
@@ -1448,11 +1839,52 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                             format!("unresolved derivation evidence: {evidence_ref}"),
                         )?;
                     }
+                    self.reserve(
+                        evidence_ref.len()
+                            + std::mem::size_of::<String>()
+                            + 4 * std::mem::size_of::<usize>(),
+                    )?;
                     evidence_paths.insert(evidence_ref);
                 }
             }
         }
 
+        let graph_workspace = edges.iter().try_fold(
+            std::mem::size_of::<BTreeMap<String, u8>>()
+                + std::mem::size_of::<Vec<(String, bool)>>(),
+            |state, (subject, objects)| {
+                let subject_state = subject
+                    .len()
+                    .checked_mul(2)
+                    .and_then(|n| {
+                        n.checked_add(
+                            2 * std::mem::size_of::<String>()
+                                + std::mem::size_of::<u8>()
+                                + std::mem::size_of::<bool>()
+                                + 12 * std::mem::size_of::<usize>(),
+                        )
+                    })
+                    .ok_or(ItemRefusal::Budget)?;
+                let object_state = objects.iter().try_fold(0usize, |used, object| {
+                    used.checked_add(
+                        object
+                            .len()
+                            .checked_add(
+                                std::mem::size_of::<String>()
+                                    + std::mem::size_of::<(String, bool)>()
+                                    + 8 * std::mem::size_of::<usize>(),
+                            )
+                            .ok_or(ItemRefusal::Budget)?,
+                    )
+                    .ok_or(ItemRefusal::Budget)
+                })?;
+                state
+                    .checked_add(subject_state)
+                    .and_then(|n| n.checked_add(object_state))
+                    .ok_or(ItemRefusal::Budget)
+            },
+        )?;
+        self.reserve(graph_workspace)?;
         let mut visited = BTreeMap::<String, u8>::new();
         let mut cycle = false;
         for start in edges.keys() {
@@ -1491,44 +1923,84 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             self.issue(claim_path, "Expression derivation cycle detected")?;
         }
 
-        let clone_cost = self.records.iter().try_fold(0usize, |used, (id, record)| {
-            used.checked_add(id.len())
-                .and_then(|bytes| {
-                    bytes.checked_add(std::mem::size_of::<(String, BiblioCurrentRecord)>())
-                })
-                .and_then(|bytes| bytes.checked_add(record.path.len() + record.kind.len()))
-                .and_then(|bytes| {
-                    crate::record_biblio_cut::decoded_state(&record.value)
-                        .ok()
-                        .and_then(|size| bytes.checked_add(size))
-                })
-                .ok_or(ItemRefusal::Budget)
-        })?;
-        self.reserve(clone_cost)?;
-        let current_records: Vec<(String, BiblioCurrentRecord)> = self
-            .records
-            .iter()
-            .map(|(id, record)| (id.clone(), record.clone()))
-            .collect();
-        for (record_id, record) in current_records {
+        let inverse_state = subjects.iter().try_fold(
+            std::mem::size_of::<BTreeMap<String, BTreeSet<String>>>(),
+            |state, (claim_id, subject)| {
+                state
+                    .checked_add(
+                        claim_id
+                            .len()
+                            .checked_add(subject.len())
+                            .and_then(|n| {
+                                n.checked_add(
+                                    std::mem::size_of::<String>()
+                                        + std::mem::size_of::<BTreeSet<String>>()
+                                        + 8 * std::mem::size_of::<usize>(),
+                                )
+                            })
+                            .ok_or(ItemRefusal::Budget)?,
+                    )
+                    .ok_or(ItemRefusal::Budget)
+            },
+        )?;
+        self.reserve(inverse_state)?;
+        let mut expected_by_subject = BTreeMap::<String, BTreeSet<String>>::new();
+        for (claim_id, subject) in &subjects {
+            expected_by_subject
+                .entry(subject.clone())
+                .or_default()
+                .insert(claim_id.clone());
+        }
+        let records = self.records;
+        let deadline = self.limits.deadline;
+        let cancelled = self.source.cancellation();
+        let limits = self.limits;
+        let temporary = self.temporary_state_bytes;
+        let issues = &mut self.issues;
+        let cost = &mut self.cost;
+        let retained = &mut self.retained_state_bytes;
+        records.for_each_current_record(&mut |record_id, record| {
+            check(deadline, cancelled)?;
             if record.kind != "expression" {
-                continue;
+                return Ok(());
             }
-            let expected: BTreeSet<String> = subjects
-                .iter()
-                .filter(|(_, subject)| subject.as_str() == record_id.as_str())
-                .map(|(claim_id, _)| claim_id.clone())
-                .collect();
+            let workspace = crate::record_biblio_cut::decoded_state(&record.value)?
+                .checked_mul(2)
+                .and_then(|n| n.checked_add(256))
+                .ok_or(ItemRefusal::Budget)?;
+            let temporary = temporary
+                .checked_add(workspace)
+                .ok_or(ItemRefusal::Budget)?;
+            let used = retained.checked_add(temporary).ok_or(ItemRefusal::Budget)?;
+            if used > limits.max_state_bytes {
+                return Err(ItemRefusal::BudgetCheck {
+                    check: "source-foundation closure derivation backlink workspace",
+                    used: Some(used as u64),
+                    limit: Some(limits.max_state_bytes as u64),
+                });
+            }
+            cost.reserved_state_bytes = cost.reserved_state_bytes.max(used);
             let actual = value_strings(&record.value, "derivation_claim_refs")
                 .into_iter()
                 .collect::<BTreeSet<_>>();
-            if expected != actual {
-                self.issue(
-                    &record.path,
-                    "derivation_claim_refs do not close over exact outgoing derivation claims",
+            if !expected_by_subject
+                .get(record_id)
+                .map_or(actual.is_empty(), |expected| expected == &actual)
+            {
+                push_bounded_issue(
+                    issues,
+                    cost,
+                    retained,
+                    temporary,
+                    limits,
+                    cancelled,
+                    record.path.as_str(),
+                    "derivation_claim_refs do not close over exact outgoing derivation claims"
+                        .to_owned(),
                 )?;
             }
-        }
+            Ok(())
+        })?;
 
         let event_rows = self.json_rows(DERIVATION_PROVENANCE, PROVENANCE_SCHEMA, true)?;
         if let Some(events) = event_rows {
@@ -1581,7 +2053,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
 
                 let mut expected_inputs = evidence_paths;
                 for endpoint in &endpoint_refs {
-                    if let Some(record) = self.records.get(endpoint) {
+                    if let Some(record) = self.current_record(endpoint)? {
                         expected_inputs.insert(record.path.clone());
                     }
                 }
@@ -1654,6 +2126,9 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
     }
 
     fn check_responsibility_claims(&mut self) -> Result<(), ItemRefusal> {
+        let temporary_baseline = self.temporary_state_bytes;
+        let clone_state = claim_refs_vec_clone_state(&self.responsibility)?;
+        self.reserve_temporary(clone_state)?;
         let claims: Vec<ClaimRef> = self.responsibility.values().cloned().collect();
         let mut validated_events = BTreeSet::new();
         for claim in claims {
@@ -1711,7 +2186,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             ) {
                 self.issue(&claim.location, "responsibility claim assertion_layer must be bibliographic_assertion or scholarly_report")?;
             }
-            let Some(event) = self.event(&claim.event).cloned() else {
+            let Some(event) = self.event(&claim.event)?.map(Cow::into_owned) else {
                 self.issue(
                     &claim.location,
                     format!("unresolved provenance_event_ref: {}", claim.event),
@@ -1747,7 +2222,13 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     "responsibility claim provenance event does not digest-bind the claim file",
                 )?;
             }
-            if validated_events.insert(claim.event.clone()) {
+            if !validated_events.contains(&claim.event) {
+                self.reserve_temporary(
+                    claim.event.len()
+                        + std::mem::size_of::<String>()
+                        + 4 * std::mem::size_of::<usize>(),
+                )?;
+                validated_events.insert(claim.event.clone());
                 self.check_event_input_bindings(
                     &claim.location,
                     &event,
@@ -1755,15 +2236,19 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 )?;
             }
         }
+        self.release_temporary_since(temporary_baseline);
         Ok(())
     }
 
     fn check_publication_claims(&mut self) -> Result<(), ItemRefusal> {
+        let temporary_baseline = self.temporary_state_bytes;
+        let clone_state = claim_refs_vec_clone_state(&self.publication)?;
+        self.reserve_temporary(clone_state)?;
         let claims: Vec<ClaimRef> = self.publication.values().cloned().collect();
         let mut validated_events = BTreeSet::new();
         for claim in claims {
             check(self.limits.deadline, self.source.cancellation())?;
-            if !self.records.contains_key(&claim.subject) {
+            if self.current_record(&claim.subject)?.is_none() {
                 continue;
             }
             let owner_path = claim
@@ -1774,12 +2259,16 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             let owner_path = owner_path
                 .rsplit_once('/')
                 .map(|(parent, _)| format!("{parent}/edition.json"));
-            let owner_id = owner_path.as_ref().and_then(|path| {
-                self.records
-                    .values()
-                    .find(|candidate| candidate.path == *path)
+            let owner_id = {
+                let owner_record = match owner_path.as_deref() {
+                    Some(path) => self.records.record_by_path(path)?,
+                    None => None,
+                };
+                owner_record
+                    .as_ref()
                     .and_then(|candidate| text(&candidate.value, "record_id"))
-            });
+                    .map(str::to_owned)
+            };
             if claim.native {
                 continue;
             }
@@ -1812,24 +2301,24 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             ) {
                 self.issue(&location, "publication claim assertion_layer must be bibliographic_assertion or scholarly_report")?;
             }
-            if owner_id != Some(claim.subject.as_str()) {
+            if owner_id.as_deref() != Some(claim.subject.as_str()) {
                 self.issue(
                     &location,
                     "publication claim subject_ref differs from sibling edition.json",
                 )?;
             }
             if claim.object.starts_with("tos.")
-                && !self.records.contains_key(&claim.object)
+                && self.current_record(&claim.object)?.is_none()
                 && !self.links.contains_key(&claim.object)
-                && !self.event_ids.contains(&claim.object)
-                && !self.rights_ids.contains(&claim.object)
+                && !self.event_exists(&claim.object)?
+                && !self.records.rights_contains(&claim.object)?
             {
                 self.issue(
                     &location,
                     format!("unresolved publication claim object: {}", claim.object),
                 )?;
             }
-            let Some(event) = self.event(&claim.event).cloned() else {
+            let Some(event) = self.event(&claim.event)?.map(Cow::into_owned) else {
                 self.issue(
                     &location,
                     format!("unresolved provenance_event_ref: {}", claim.event),
@@ -1854,7 +2343,13 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     "publication claim provenance event does not digest-bind the claim file",
                 )?;
             }
-            if validated_events.insert(claim.event.clone()) {
+            if !validated_events.contains(&claim.event) {
+                self.reserve_temporary(
+                    claim.event.len()
+                        + std::mem::size_of::<String>()
+                        + 4 * std::mem::size_of::<usize>(),
+                )?;
+                validated_events.insert(claim.event.clone());
                 self.check_event_input_bindings(
                     &location,
                     &event,
@@ -1862,10 +2357,30 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 )?;
             }
         }
+        self.release_temporary_since(temporary_baseline);
         Ok(())
     }
 
     fn check_provision_activity(&mut self) -> Result<(), ItemRefusal> {
+        let mut clone_state = std::mem::size_of::<Vec<(String, ClaimRef, Value)>>();
+        for (id, reference) in &self.provision {
+            let Some(value) = self.provision_values.get(id) else {
+                continue;
+            };
+            clone_state = clone_state
+                .checked_add(id.len())
+                .and_then(|n| n.checked_add(claim_reference_payload_state(reference).ok()?))
+                .and_then(|n| n.checked_add(crate::record_biblio_cut::decoded_state(value).ok()?))
+                .and_then(|n| {
+                    n.checked_add(
+                        std::mem::size_of::<(String, ClaimRef, Value)>()
+                            + 8 * std::mem::size_of::<usize>(),
+                    )
+                })
+                .ok_or(ItemRefusal::Budget)?;
+        }
+        let temporary_baseline = self.temporary_state_bytes;
+        self.reserve_temporary(clone_state)?;
         let claims: Vec<(String, ClaimRef, Value)> = self
             .provision
             .iter()
@@ -1909,13 +2424,17 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             let owner_path = owner_path
                 .rsplit_once('/')
                 .map(|(parent, _)| format!("{parent}/edition.json"));
-            let owner_id = owner_path.as_ref().and_then(|path| {
-                self.records
-                    .values()
-                    .find(|candidate| candidate.path == *path)
+            let owner_id = {
+                let owner_record = match owner_path.as_deref() {
+                    Some(path) => self.records.record_by_path(path)?,
+                    None => None,
+                };
+                owner_record
+                    .as_ref()
                     .and_then(|candidate| text(&candidate.value, "record_id"))
-            });
-            if owner_id != Some(reference.subject.as_str()) {
+                    .map(str::to_owned)
+            };
+            if owner_id.as_deref() != Some(reference.subject.as_str()) {
                 self.issue(
                     &location,
                     "provision-activity subject_ref differs from sibling edition.json",
@@ -1982,7 +2501,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     }
                 }
                 if let Some(reference) = text(agent, "normalized_agent_ref") {
-                    match self.records.get(reference) {
+                    match self.current_record(reference)? {
                         None => self.issue(
                             &location,
                             format!("unresolved provision agent reference: {reference}"),
@@ -2013,7 +2532,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 )?;
             }
 
-            let Some(event) = self.event(&reference.event).cloned() else {
+            let Some(event) = self.event(&reference.event)?.map(Cow::into_owned) else {
                 self.issue(
                     &location,
                     format!(
@@ -2045,8 +2564,21 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     "provision-activity provenance event does not digest-bind the claim file",
                 )?;
             }
-            used_events.insert(reference.event.clone());
-            if validated_events.insert(reference.event.clone()) {
+            if !used_events.contains(&reference.event) {
+                self.reserve_temporary(
+                    reference.event.len()
+                        + std::mem::size_of::<String>()
+                        + 4 * std::mem::size_of::<usize>(),
+                )?;
+                used_events.insert(reference.event.clone());
+            }
+            if !validated_events.contains(&reference.event) {
+                self.reserve_temporary(
+                    reference.event.len()
+                        + std::mem::size_of::<String>()
+                        + 4 * std::mem::size_of::<usize>(),
+                )?;
+                validated_events.insert(reference.event.clone());
                 self.check_event_input_bindings(
                     &location,
                     &event,
@@ -2060,7 +2592,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                         format!("unresolved repository evidence ref: {evidence}"),
                     )?;
                 } else if evidence.starts_with("tos.")
-                    && !self.records.contains_key(&evidence)
+                    && self.current_record(&evidence)?.is_none()
                     && !self.links.contains_key(&evidence)
                 {
                     self.issue(
@@ -2084,6 +2616,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 ),
             )?;
         }
+        self.release_temporary_since(temporary_baseline);
         Ok(())
     }
 
@@ -2116,12 +2649,10 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
     }
 
     fn check_chronology(&mut self) -> Result<(), ItemRefusal> {
-        let paths: Vec<String> = self
-            .paths
-            .iter()
-            .filter(|path| path.ends_with("/work-chronology-claims.jsonl"))
-            .cloned()
-            .collect();
+        let paths = self.collect_current_paths(
+            |path| path.ends_with("/work-chronology-claims.jsonl"),
+            "source-foundation closure chronology path index",
+        )?;
         if paths.len() != 1 || paths.first().map(String::as_str) != Some(CHRONOLOGY_CLAIMS) {
             self.issue(
                 CHRONOLOGY_CLAIMS,
@@ -2170,12 +2701,20 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         };
         let mut evidence_paths = BTreeSet::new();
         let mut subjects = BTreeMap::<String, String>::new();
+        self.reserve(std::mem::size_of::<BTreeMap<String, String>>())?;
         let mut staged_count = 0u64;
         let mut single_count = 0u64;
         for (line, claim) in &claims.rows {
             let location = format!("{CHRONOLOGY_CLAIMS}:{line}");
             let claim_id = text(claim, "claim_id").unwrap_or_default().to_owned();
             let subject = text(claim, "subject_ref").unwrap_or_default().to_owned();
+            self.reserve(
+                claim_id.len()
+                    + subject.len()
+                    + std::mem::size_of::<String>()
+                    + std::mem::size_of::<String>()
+                    + 4 * std::mem::size_of::<usize>(),
+            )?;
             subjects.insert(claim_id, subject.clone());
             if text(claim, "claim_type") != Some("bibliographic")
                 || text(claim, "assertion_layer") != Some("scholarly_report")
@@ -2215,6 +2754,11 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     )?;
                 }
                 if reference.starts_with("ToS/") {
+                    self.reserve(
+                        reference.len()
+                            + std::mem::size_of::<String>()
+                            + 4 * std::mem::size_of::<usize>(),
+                    )?;
                     evidence_paths.insert(reference.clone());
                 }
             }
@@ -2294,16 +2838,22 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     continue;
                 };
                 self.expect_ref(&location, Some(edition_ref), "edition")?;
-                let Some(edition) = self.records.get(edition_ref) else {
+                let Some(edition) = self.current_record(edition_ref)? else {
                     continue;
                 };
-                let same_work = value_strings(&edition.value, "embodies_expression_refs")
-                    .iter()
-                    .any(|expression_ref| {
-                        self.records.get(expression_ref).is_some_and(|expression| {
+                let mut same_work = false;
+                for expression_ref in value_strings(&edition.value, "embodies_expression_refs") {
+                    if self
+                        .current_record(&expression_ref)?
+                        .is_some_and(|expression| {
                             text(&expression.value, "work_ref") == Some(subject.as_str())
                         })
-                    });
+                    {
+                        same_work = true;
+                        break;
+                    }
+                }
+                drop(edition);
                 if !same_work {
                     self.issue(
                         &location,
@@ -2312,17 +2862,58 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 }
             }
         }
-        let current_works: BTreeSet<String> = self
-            .records
-            .iter()
-            .filter(|(_, record)| {
-                record.kind == "work"
-                    && record
-                        .path
-                        .starts_with("ToS/source-witnesses/works/friedrich-nietzsche/")
-            })
-            .map(|(id, _)| id.clone())
-            .collect();
+        let mut current_works = BTreeSet::new();
+        let deadline = self.limits.deadline;
+        let cancelled = self.source.cancellation();
+        let records = self.records;
+        let max_state = self.limits.max_state_bytes;
+        let retained_base = self.retained_state_bytes + self.temporary_state_bytes;
+        let mut current_work_state = std::mem::size_of::<BTreeSet<String>>();
+        records.for_each_current_record(&mut |id, record| {
+            check(deadline, cancelled)?;
+            if record.kind == "work"
+                && record
+                    .path
+                    .starts_with("ToS/source-witnesses/works/friedrich-nietzsche/")
+            {
+                let row_state = id
+                    .len()
+                    .checked_add(std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>())
+                    .ok_or(ItemRefusal::Budget)?;
+                current_work_state = current_work_state
+                    .checked_add(row_state)
+                    .ok_or(ItemRefusal::Budget)?;
+                let used = retained_base
+                    .checked_add(current_work_state)
+                    .ok_or(ItemRefusal::Budget)?;
+                if used > max_state {
+                    return Err(ItemRefusal::BudgetCheck {
+                        check: "source-foundation closure chronology work index",
+                        used: Some(used as u64),
+                        limit: Some(max_state as u64),
+                    });
+                }
+                current_works.insert(id.to_owned());
+            }
+            Ok(())
+        })?;
+        self.reserve(current_work_state)?;
+        let chronology_work_state = subjects.values().try_fold(
+            std::mem::size_of::<BTreeSet<String>>(),
+            |state, subject| {
+                state
+                    .checked_add(
+                        subject
+                            .len()
+                            .checked_add(
+                                std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
+                            )
+                            .ok_or(ItemRefusal::Budget)?,
+                    )
+                    .ok_or(ItemRefusal::Budget)
+            },
+        )?;
+        self.reserve(chronology_work_state)?;
         let chronology_works: BTreeSet<String> = subjects.values().cloned().collect();
         if chronology_works != current_works {
             self.issue(
@@ -2401,6 +2992,52 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
     }
 
     fn check_object_links(&mut self) -> Result<(), ItemRefusal> {
+        let temporary_baseline = self.temporary_state_bytes;
+        let claims_state = claim_refs_vec_clone_state(&self.object_links)?;
+        let targets_state = self
+            .object_links
+            .iter()
+            .try_fold(0usize, |state, (id, claim)| {
+                state
+                    .checked_add(
+                        id.len()
+                            .checked_mul(2)
+                            .and_then(|n| n.checked_add(claim.object.len()))
+                            .and_then(|n| n.checked_add(claim.event.len()))
+                            .and_then(|n| {
+                                n.checked_add(
+                                    2 * (std::mem::size_of::<String>()
+                                        + 4 * std::mem::size_of::<usize>()),
+                                )
+                            })
+                            .ok_or(ItemRefusal::Budget)?,
+                    )
+                    .ok_or(ItemRefusal::Budget)
+            })?;
+        let links_state = self
+            .links
+            .iter()
+            .try_fold(0usize, |state, (id, (path, value))| {
+                state
+                    .checked_add(
+                        id.len()
+                            .checked_add(path.len())
+                            .and_then(|n| {
+                                n.checked_add(crate::record_biblio_cut::decoded_state(value).ok()?)
+                            })
+                            .and_then(|n| {
+                                n.checked_add(std::mem::size_of::<(String, String, Value)>())
+                            })
+                            .ok_or(ItemRefusal::Budget)?,
+                    )
+                    .ok_or(ItemRefusal::Budget)
+            })?;
+        self.reserve_temporary(
+            claims_state
+                .checked_add(targets_state)
+                .and_then(|n| n.checked_add(links_state))
+                .ok_or(ItemRefusal::Budget)?,
+        )?;
         let claims: Vec<(String, ClaimRef)> = self
             .object_links
             .iter()
@@ -2411,7 +3048,20 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         for (claim_id, claim) in claims {
             check(self.limits.deadline, self.source.cancellation())?;
             let location = &claim.location;
-            if !self.records.contains_key(&claim.subject) && !claim.native {
+            let (subject_exists, subject_is_link, subject_is_valid_native) = {
+                match self.current_record(&claim.subject)? {
+                    None => (false, false, false),
+                    Some(subject) => (
+                        true,
+                        subject.kind == "link",
+                        matches!(
+                            subject.kind.as_str(),
+                            "work" | "expression" | "edition" | "collection" | "item" | "artifact"
+                        ),
+                    ),
+                }
+            };
+            if !subject_exists && !claim.native {
                 self.issue(
                     location,
                     format!(
@@ -2419,11 +3069,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                         claim.subject
                     ),
                 )?;
-            } else if self
-                .records
-                .get(&claim.subject)
-                .is_some_and(|record| record.kind == "link")
-            {
+            } else if subject_is_link {
                 self.issue(
                     location,
                     format!(
@@ -2431,14 +3077,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                         claim.subject
                     ),
                 )?;
-            } else if claim.native
-                && !self.records.get(&claim.subject).is_some_and(|record| {
-                    matches!(
-                        record.kind.as_str(),
-                        "work" | "expression" | "edition" | "collection" | "item" | "artifact"
-                    )
-                })
-            {
+            } else if claim.native && !subject_is_valid_native {
                 self.issue(
                     location,
                     format!(
@@ -2453,7 +3092,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     format!("unresolved Link object: {}", claim.object),
                 )?;
             }
-            if !self.event_ids.contains(&claim.event) {
+            if !self.event_exists(&claim.event)? {
                 self.issue(
                     location,
                     format!(
@@ -2540,50 +3179,76 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 )?;
             }
         }
+        self.release_temporary_since(temporary_baseline);
         Ok(())
     }
 
     fn check_record_backlinks(&mut self) -> Result<(), ItemRefusal> {
-        let records: Vec<(String, BiblioCurrentRecord)> = self
-            .records
-            .iter()
-            .map(|(id, record)| (id.clone(), record.clone()))
-            .collect();
-        for (id, record) in records {
-            check(self.limits.deadline, self.source.cancellation())?;
-            let location = record.path.clone();
+        let records = self.records;
+        let membership = &self.membership;
+        let responsibility = &self.responsibility;
+        let publication = &self.publication;
+        let provision = &self.provision;
+        let chronology = &self.chronology;
+        let deadline = self.limits.deadline;
+        let cancelled = self.source.cancellation();
+        let limits = self.limits;
+        let temporary_base = self.temporary_state_bytes;
+        let issues = &mut self.issues;
+        let cost = &mut self.cost;
+        let retained = &mut self.retained_state_bytes;
+        records.for_each_current_record(&mut |id, record| {
+            check(deadline, cancelled)?;
+            let is_era_work = record.kind == "work"
+                && record
+                    .path
+                    .starts_with("ToS/source-witnesses/works/friedrich-nietzsche/");
+            if record.kind != "collection"
+                && !matches!(record.kind.as_str(), "work" | "expression" | "edition")
+            {
+                return Ok(());
+            }
+            let workspace = crate::record_biblio_cut::decoded_state(&record.value)?
+                .checked_mul(3)
+                .and_then(|n| n.checked_add(512))
+                .ok_or(ItemRefusal::Budget)?;
+            let temporary = temporary_base
+                .checked_add(workspace)
+                .ok_or(ItemRefusal::Budget)?;
+            let used = retained
+                .checked_add(temporary)
+                .ok_or(ItemRefusal::Budget)?;
+            if used > limits.max_state_bytes {
+                return Err(ItemRefusal::BudgetCheck {
+                    check: "source-foundation closure record-backlink workspace",
+                    used: Some(used as u64),
+                    limit: Some(limits.max_state_bytes as u64),
+                });
+            }
+            cost.reserved_state_bytes = cost.reserved_state_bytes.max(used);
+            let location = record.path.as_str();
+            let mut findings = Vec::<String>::new();
             if record.kind == "collection" {
-                let actual: BTreeSet<String> =
-                    value_strings(&record.value, "membership_claim_refs")
-                        .into_iter()
-                        .collect();
-                let valid_ids: BTreeSet<String> = self
-                    .membership
-                    .keys()
-                    .filter(|claim_id| {
-                        self.membership
-                            .get(*claim_id)
-                            .is_some_and(|claim| claim.subject == id)
-                    })
-                    .cloned()
+                let refs = value_strings(&record.value, "membership_claim_refs");
+                let actual: BTreeSet<String> = refs.iter().cloned().collect();
+                let valid_ids: BTreeSet<String> = membership
+                    .iter()
+                    .filter(|(_, claim)| claim.subject == id)
+                    .map(|(claim_id, _)| claim_id.clone())
                     .collect();
-                if actual != valid_ids
-                    || value_strings(&record.value, "membership_claim_refs").len() != actual.len()
-                {
-                    self.issue(&location, "unresolved or mismatched membership claims: Collection membership refs do not close over all verified current Claims")?;
+                if actual != valid_ids || refs.len() != actual.len() {
+                    findings.push("unresolved or mismatched membership claims: Collection membership refs do not close over all verified current Claims".to_owned());
                 }
             }
             if matches!(record.kind.as_str(), "work" | "expression" | "edition") {
-                self.check_exact_backrefs(
-                    &location,
+                findings.extend(exact_backref_messages(
                     &record.value,
                     "responsibility_claim_refs",
-                    &id,
+                    id,
                     "responsibility",
-                )?;
-                if record.kind == "work"
-                    && location.starts_with("ToS/source-witnesses/works/friedrich-nietzsche/")
-                {
+                    responsibility,
+                ));
+                if is_era_work {
                     let actual: BTreeSet<String> =
                         value_strings(&record.value, "responsibility_claim_refs")
                             .into_iter()
@@ -2591,51 +3256,44 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     let authored: Vec<String> = actual
                         .iter()
                         .filter(|claim_id| {
-                            self.responsibility
+                            responsibility
                                 .get(*claim_id)
                                 .is_some_and(|claim| claim.predicate == "authored_by")
                         })
                         .cloned()
                         .collect();
                     if authored.len() != 1 {
-                        self.issue(
-                            &location,
-                            format!(
-                                "current Nietzsche Work must reference exactly one authored_by claim; found {}",
-                                python_string_list(&authored)
-                            ),
-                        )?;
-                    } else if self
-                        .responsibility
+                        findings.push(format!(
+                            "current Nietzsche Work must reference exactly one authored_by claim; found {}",
+                            python_string_list(&authored)
+                        ));
+                    } else if responsibility
                         .get(&authored[0])
                         .map(|claim| claim.object.as_str())
                         != Some("tos.agent.friedrich-nietzsche")
                     {
-                        self.issue(&location, "current Nietzsche Work authored_by claim must resolve to tos.agent.friedrich-nietzsche")?;
+                        findings.push("current Nietzsche Work authored_by claim must resolve to tos.agent.friedrich-nietzsche".to_owned());
                     }
                 }
             }
             if record.kind == "edition" {
-                self.check_exact_backrefs(
-                    &location,
+                findings.extend(exact_backref_messages(
                     &record.value,
                     "publication_claim_refs",
-                    &id,
+                    id,
                     "publication",
-                )?;
-                self.check_exact_backrefs(
-                    &location,
+                    publication,
+                ));
+                findings.extend(exact_backref_messages(
                     &record.value,
                     "provision_activity_claim_refs",
-                    &id,
+                    id,
                     "provision-activity",
-                )?;
+                    provision,
+                ));
             }
-            if record.kind == "work"
-                && location.starts_with("ToS/source-witnesses/works/friedrich-nietzsche/")
-            {
-                let expected: BTreeSet<String> = self
-                    .chronology
+            if is_era_work {
+                let expected: BTreeSet<String> = chronology
                     .iter()
                     .filter(|(_, claim)| claim.subject == id)
                     .map(|(claim_id, _)| claim_id.clone())
@@ -2643,88 +3301,26 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 let refs = value_strings(&record.value, "chronology_claim_refs");
                 let actual: BTreeSet<String> = refs.iter().cloned().collect();
                 if actual != expected || expected.len() != 1 || refs.len() != actual.len() {
-                    self.issue(
-                        &location,
-                        format!(
-                            "current Nietzsche Work must reference exactly one first_publication_chronology claim; found {}",
-                            python_string_list(&actual.iter().cloned().collect::<Vec<_>>())
-                        ),
-                    )?;
+                    findings.push(format!(
+                        "current Nietzsche Work must reference exactly one first_publication_chronology claim; found {}",
+                        python_string_list(&actual.iter().cloned().collect::<Vec<_>>())
+                    ));
                 }
             }
-        }
-        Ok(())
-    }
-
-    fn check_exact_backrefs(
-        &mut self,
-        location: &str,
-        record: &Value,
-        field: &str,
-        record_id: &str,
-        label: &str,
-    ) -> Result<(), ItemRefusal> {
-        let refs = value_strings(record, field);
-        let actual: BTreeSet<String> = refs.iter().cloned().collect();
-        let (missing, misbound, unreferenced) = {
-            let claims = match label {
-                "responsibility" => &self.responsibility,
-                "publication" => &self.publication,
-                "provision-activity" => &self.provision,
-                _ => unreachable!("fixed backref claim families"),
-            };
-            let known: BTreeSet<String> = claims.keys().cloned().collect();
-            let missing = actual.difference(&known).cloned().collect::<Vec<_>>();
-            let misbound = actual
-                .intersection(&known)
-                .filter(|claim_id| {
-                    claims
-                        .get(*claim_id)
-                        .is_some_and(|claim| claim.subject != record_id)
-                })
-                .cloned()
-                .collect::<Vec<_>>();
-            let unreferenced = claims
-                .iter()
-                .filter(|(_, claim)| claim.subject == record_id)
-                .filter(|(claim_id, _)| !actual.contains(*claim_id))
-                .map(|(claim_id, _)| claim_id.clone())
-                .collect::<Vec<_>>();
-            (missing, misbound, unreferenced)
-        };
-        if !missing.is_empty() {
-            self.issue(
-                location,
-                format!(
-                    "unresolved {label} claims: {}",
-                    python_string_list(&missing)
-                ),
-            )?;
-        }
-        if !misbound.is_empty() {
-            self.issue(
-                location,
-                format!(
-                    "{label} claims belong to another subject: {}",
-                    python_string_list(&misbound)
-                ),
-            )?;
-        }
-        if !unreferenced.is_empty() {
-            self.issue(
-                location,
-                format!(
-                    "subject {label} claims are not referenced: {}",
-                    python_string_list(&unreferenced)
-                ),
-            )?;
-        }
-        if refs.len() != actual.len() {
-            self.issue(
-                location,
-                format!("{field} contains duplicate claim references"),
-            )?;
-        }
+            for message in findings {
+                push_bounded_issue(
+                    issues,
+                    cost,
+                    retained,
+                    temporary,
+                    limits,
+                    cancelled,
+                    location,
+                    message,
+                )?;
+            }
+            Ok(())
+        })?;
         Ok(())
     }
 
@@ -2744,7 +3340,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             .unwrap_or_default()
             .to_owned();
 
-        if !event.is_empty() && !self.event_ids.contains(&event) {
+        if !event.is_empty() && !self.event_exists(&event)? {
             self.issue(
                 &location,
                 format!("unresolved provenance_event_ref: {event}"),
@@ -2781,6 +3377,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         if path.ends_with("/membership-claims.jsonl") || predicate == "contains_work" {
             self.expect_ref(&location, Some(&subject), "collection")?;
             self.expect_ref(&location, Some(&object), "work")?;
+            self.reserve(claim_reference_index_state(&id, &reference)?)?;
             self.membership.insert(id.clone(), reference.clone());
         }
         if path.ends_with("/responsibility-claims.jsonl")
@@ -2804,26 +3401,37 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 self.expect_ref(&location, Some(&subject), expected_subject)?;
             }
             self.expect_ref(&location, Some(&object), "agent")?;
+            self.reserve(claim_reference_index_state(&id, &reference)?)?;
             self.responsibility.insert(id.clone(), reference.clone());
         }
         if path.ends_with("/publication-claims.jsonl") {
             self.expect_ref(&location, Some(&subject), "edition")?;
+            self.reserve(claim_reference_index_state(&id, &reference)?)?;
             self.publication.insert(id.clone(), reference.clone());
         }
         if path.ends_with("/provision-activity-claims.jsonl") {
             self.expect_ref(&location, Some(&subject), "edition")?;
             self.reserve(crate::record_biblio_cut::decoded_state(claim)?)?;
+            self.reserve(
+                id.len()
+                    + std::mem::size_of::<String>()
+                    + std::mem::size_of::<Value>()
+                    + 4 * std::mem::size_of::<usize>(),
+            )?;
+            self.reserve(claim_reference_index_state(&id, &reference)?)?;
             self.provision_values.insert(id.clone(), claim.clone());
             self.provision.insert(id.clone(), reference.clone());
         }
         if path == CHRONOLOGY_CLAIMS {
             self.expect_ref(&location, Some(&subject), "work")?;
+            self.reserve(claim_reference_index_state(&id, &reference)?)?;
             self.chronology.insert(id.clone(), reference.clone());
         }
         if path.ends_with("/object-link-claims.jsonl")
             || claim.get("schema_version").and_then(Value::as_str)
                 == Some("tos_object_link_claim_v2")
         {
+            self.reserve(claim_reference_index_state(&id, &reference)?)?;
             self.object_links.insert(id.clone(), reference.clone());
         }
         if TOPOLOGY_ROUTES.iter().any(|(route, ..)| *route == path)
@@ -2832,9 +3440,11 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 "has_expression" | "embodied_by" | "exemplified_by"
             )
         {
+            self.reserve(claim_reference_index_state(&id, &reference)?)?;
             self.topology.insert(id.clone(), reference.clone());
         }
         if path == DERIVATION_CLAIMS || predicate == "is_derivative_of" {
+            self.reserve(claim_reference_index_state(&id, &reference)?)?;
             self.derivation.insert(id.clone(), reference);
         }
         Ok(())
@@ -2876,12 +3486,10 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
     }
 
     fn check_boundary_maps_and_anchors(&mut self) -> Result<(), ItemRefusal> {
-        let map_paths: Vec<String> = self
-            .paths
-            .iter()
-            .filter(|path| path.ends_with("/work-boundary-map.json"))
-            .cloned()
-            .collect();
+        let map_paths = self.collect_current_paths(
+            |path| path.ends_with("/work-boundary-map.json"),
+            "source-foundation closure boundary-map path index",
+        )?;
         let mut boundary_anchor_ids = BTreeSet::new();
         for map_path in &map_paths {
             let Some(loaded) = self.json_rows(map_path, BOUNDARY_MAP_SCHEMA, true)? else {
@@ -2911,24 +3519,24 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
 
             let item_ref = boundary_map.get("item_ref").unwrap_or(&Value::Null);
             let file_id = boundary_map.get("file_id").unwrap_or(&Value::Null);
-            if !self.file_memberships.contains(item_ref, file_id) {
+            if !self.records.file_contains(item_ref, file_id)? {
                 self.issue(map_path, "work-boundary file does not belong to its item")?;
             }
-            let manifest_sha = self
-                .file_memberships
-                .sha256_for(file_id)
-                .unwrap_or(&Value::Null);
             let map_sha = boundary_map.get("file_sha256").unwrap_or(&Value::Null);
-            if !self.python_equal(manifest_sha, map_sha)? {
+            let manifest_matches = {
+                let manifest_sha = self
+                    .records
+                    .file_sha256(file_id)?
+                    .unwrap_or(Cow::Borrowed(&Value::Null));
+                self.python_equal(&manifest_sha, map_sha)?
+            };
+            if !manifest_matches {
                 self.issue(
                     map_path,
                     "work-boundary file digest differs from the item manifest",
                 )?;
             }
-            if !self
-                .event_ids
-                .contains(text(boundary_map, "provenance_event_ref").unwrap_or_default())
-            {
+            if !self.event_exists(text(boundary_map, "provenance_event_ref").unwrap_or_default())? {
                 self.issue(map_path, "work-boundary provenance event is unresolved")?;
             }
 
@@ -3095,30 +3703,49 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
             let mut membership_refs = BTreeSet::new();
             for member in members {
                 if let Some(reference) = text(&member, "membership_claim_ref") {
+                    self.reserve(
+                        reference.len()
+                            + std::mem::size_of::<String>()
+                            + 4 * std::mem::size_of::<usize>(),
+                    )?;
                     membership_refs.insert(reference.to_owned());
                 }
                 if let Some(reference) = text(&member, "responsibility_claim_ref")
                     .or_else(|| text(&member, "translation_responsibility_claim_ref"))
                 {
+                    self.reserve(
+                        reference.len()
+                            + std::mem::size_of::<String>()
+                            + 4 * std::mem::size_of::<usize>(),
+                    )?;
                     self.boundary_responsibility_refs
                         .insert(reference.to_owned());
                 }
             }
-            self.boundary_membership_refs.extend(membership_refs);
+            for reference in membership_refs {
+                if !self.boundary_membership_refs.contains(&reference) {
+                    self.reserve(
+                        reference.len()
+                            + std::mem::size_of::<String>()
+                            + 4 * std::mem::size_of::<usize>(),
+                    )?;
+                    self.boundary_membership_refs.insert(reference);
+                }
+            }
         }
 
-        let non_boundary_anchor_paths: Vec<String> = self
-            .paths
-            .iter()
-            .filter(|path| path.ends_with("/anchors.jsonl"))
-            .filter(|path| {
+        let non_boundary_anchor_paths = self.collect_current_paths(
+            |path| {
+                if !path.ends_with("/anchors.jsonl") {
+                    return false;
+                }
                 let map_path = path
                     .rsplit_once('/')
                     .map(|(parent, _)| format!("{parent}/work-boundary-map.json"));
                 !map_path.is_some_and(|candidate| map_paths.contains(&candidate))
-            })
-            .cloned()
-            .collect();
+            },
+            "source-foundation closure non-boundary anchor path index",
+        )?;
         let mut evidence_anchor_ids = boundary_anchor_ids;
         for anchor_path in non_boundary_anchor_paths {
             if let Some(loaded) = self.json_rows(&anchor_path, ANCHOR_SCHEMA, false)? {
@@ -3126,7 +3753,11 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     let location = format!("{anchor_path}:{line}");
                     let id = text(&anchor, "anchor_id").map(str::to_owned);
                     if let Some(id) = id {
-                        self.reserve(id.len() + std::mem::size_of::<String>())?;
+                        self.reserve(
+                            2 * (id.len()
+                                + std::mem::size_of::<String>()
+                                + 4 * std::mem::size_of::<usize>()),
+                        )?;
                         if !evidence_anchor_ids.insert(id.clone()) {
                             self.issue(
                                 &location,
@@ -3137,7 +3768,7 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                     }
                     self.expect_ref(&location, text(&anchor, "item_id"), "item")?;
                     if let Some(event_ref) = text(&anchor, "provenance_event_ref") {
-                        if !self.event_ids.contains(event_ref) {
+                        if !self.event_exists(event_ref)? {
                             self.issue(
                                 &location,
                                 format!("unresolved source-anchor provenance event: {event_ref}"),
@@ -3147,7 +3778,14 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
                 }
             }
         }
-        self.anchors.extend(evidence_anchor_ids);
+        for id in evidence_anchor_ids {
+            if !self.anchors.contains(&id) {
+                self.reserve(
+                    id.len() + std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>(),
+                )?;
+                self.anchors.insert(id);
+            }
+        }
         Ok(())
     }
 
@@ -3162,7 +3800,9 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         let Some(id) = text(anchor, "anchor_id").map(str::to_owned) else {
             return Ok(());
         };
-        self.reserve(id.len() + std::mem::size_of::<String>())?;
+        self.reserve(
+            3 * (id.len() + std::mem::size_of::<String>() + 4 * std::mem::size_of::<usize>()),
+        )?;
         if !all_ids.insert(id.clone()) {
             self.issue(location, format!("duplicate boundary anchor_id: {id}"))?;
         }
@@ -3202,12 +3842,10 @@ impl<'a, S: LayerFamilySource + ?Sized> ClosureRules<'a, S> {
         if let (Some(work_ref), Some(expression_ref)) =
             (text(member, "work_ref"), text(member, "expression_ref"))
         {
-            if self
-                .records
-                .get(expression_ref)
-                .and_then(|record| text(&record.value, "work_ref"))
-                != Some(work_ref)
-            {
+            let belongs_to_work = self
+                .current_record(expression_ref)?
+                .is_some_and(|record| text(&record.value, "work_ref") == Some(work_ref));
+            if !belongs_to_work {
                 self.issue(
                     location,
                     format!("work-boundary expression belongs to another work: {expression_ref}"),

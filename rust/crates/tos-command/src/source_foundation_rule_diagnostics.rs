@@ -5,19 +5,28 @@
 use super::foundation_cli::{SchemaPlacement, interleave_schema_findings};
 use super::foundation_lab_resolution::{self, ResolvedFoundationLab};
 use serde_json::Value;
+use std::io::{self, Write};
 use std::mem::size_of;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
+use tos_validation::FormatProfile;
 use tos_validation::executor::{
     ExactWorkerIdentity, SharedSchemaWorkerQuota, VerifiedWorkerImageHandle,
 };
+use tos_validation::source_cut::{
+    CandidateCutSchemaDiagnostic, CandidateCutWorkerSchemaExecutor, CutPreparedSchemaProtocol,
+};
 use tos_validation::source_foundation_closure::SourceFoundationClosureSchemaRequest;
-use tos_validation::source_foundation_default_rules::SourceFoundationDefaultRulesReport;
+use tos_validation::source_foundation_default_rules::{
+    SourceFoundationDefaultRulesReport, SourceFoundationDefaultRulesStoredReport,
+};
 use tos_validation::source_foundation_discovery::{
     Issue as DiscoveryIssue, SchemaRequest as DiscoverySchemaRequest,
 };
 use tos_validation::source_foundation_goldsets::SourceFoundationSchemaRequest as GoldsetSchemaRequest;
-use tos_validation::source_foundation_labs::{SourceFoundationLab, SourceFoundationLabResult};
+use tos_validation::source_foundation_labs::{
+    SourceFoundationLab, SourceFoundationLabResult, SourceFoundationSchemaCheck,
+};
 use tos_validation::source_foundation_records::{
     SourceFoundationRecordsOwnerIssue, SourceFoundationRecordsSchemaCheck,
 };
@@ -156,6 +165,771 @@ struct Processed {
 
 enum ProcessError {
     Refused(&'static str),
+}
+
+/// Cost and evidence returned by the actual candidate diagnostic worker. The
+/// stored owner report contains no Records payload; Records executions are
+/// represented only by the worker's already-completed cumulative counters.
+pub(crate) struct EvaluatedCandidateSourceFoundationRules<I> {
+    pub owner_report: SourceFoundationDefaultRulesStoredReport<I>,
+    pub diagnostics: Vec<CandidateCutSchemaDiagnostic<I>>,
+    pub cost: CandidateSourceFoundationRuleDiagnosticsCost,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct CandidateSourceFoundationRuleDiagnosticsCost {
+    pub schema_check_count: usize,
+    pub schema_input_instance_bytes: usize,
+    pub schema_result_state_upper_bound_bytes: usize,
+    pub typed_diagnostic_vector_state_upper_bound_bytes: usize,
+    pub diagnostic_issue_count: usize,
+    pub worker_schema_resource_bytes: u64,
+    pub worker_request_bytes: u64,
+    pub worker_response_bytes: u64,
+    pub worker_cpu_micros: u64,
+    pub cumulative_execution_count_before: usize,
+    pub cumulative_execution_count_after: usize,
+    pub peak_additional_state_upper_bound_bytes: usize,
+}
+
+/// A refused or incomplete candidate run keeps the real stored owner report
+/// and every complete typed diagnostic already produced. It never introduces
+/// a SourceRevision-shaped placeholder.
+pub(crate) enum CandidateRuleDiagnosticsError<I> {
+    Refused {
+        owner_report: SourceFoundationDefaultRulesStoredReport<I>,
+        diagnostics: Vec<CandidateCutSchemaDiagnostic<I>>,
+        reason: &'static str,
+    },
+    Incomplete {
+        owner_report: SourceFoundationDefaultRulesStoredReport<I>,
+        diagnostics: Vec<CandidateCutSchemaDiagnostic<I>>,
+        reason: &'static str,
+    },
+}
+
+impl<I> CandidateRuleDiagnosticsError<I> {
+    pub(crate) fn reason(&self) -> &'static str {
+        match self {
+            Self::Refused { reason, .. } | Self::Incomplete { reason, .. } => reason,
+        }
+    }
+}
+
+struct CandidateRuleStepFailure<I> {
+    diagnostic: Option<CandidateCutSchemaDiagnostic<I>>,
+    reason: &'static str,
+    incomplete: bool,
+}
+
+struct CandidateRuleStepSuccess<I> {
+    diagnostic: CandidateCutSchemaDiagnostic<I>,
+    input_bytes: usize,
+    diagnostic_state: usize,
+    issue_count: usize,
+    peak_state: usize,
+}
+
+const CANDIDATE_INSTANCE_WRITE_CHUNK_BYTES: usize = 64 * 1024;
+
+struct CandidateInstanceWriter<'a, W> {
+    inner: W,
+    bytes: usize,
+    maximum: usize,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+    failure: Option<&'static str>,
+}
+
+impl<W: Write> Write for CandidateInstanceWriter<'_, W> {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        if self.cancelled.load(Ordering::Relaxed) {
+            self.failure = Some("candidate rule diagnostics cancelled");
+            return Err(io::Error::new(
+                io::ErrorKind::Interrupted,
+                "candidate rule diagnostics cancelled",
+            ));
+        }
+        if Instant::now() >= self.deadline {
+            self.failure = Some("candidate rule diagnostics deadline");
+            return Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "candidate rule diagnostics deadline",
+            ));
+        }
+        let next = self
+            .bytes
+            .checked_add(bytes.len())
+            .filter(|used| *used <= self.maximum);
+        let Some(next) = next else {
+            self.failure = Some("candidate schema instance bound");
+            return Err(io::Error::other("candidate schema instance bound"));
+        };
+        let chunk_bytes = bytes.len().min(CANDIDATE_INSTANCE_WRITE_CHUNK_BYTES);
+        let written = self.inner.write(&bytes[..chunk_bytes])?;
+        self.bytes = self
+            .bytes
+            .checked_add(written)
+            .filter(|used| *used <= self.maximum)
+            .ok_or_else(|| io::Error::other("candidate schema instance bound"))?;
+        debug_assert!(self.bytes <= next);
+        Ok(written)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.inner.flush()
+    }
+}
+
+fn write_candidate_instance<W: Write>(
+    value: &Value,
+    writer: &mut CandidateInstanceWriter<'_, W>,
+) -> Result<(), &'static str> {
+    serde_json::to_writer(&mut *writer, value).map_err(|_| {
+        writer
+            .failure
+            .unwrap_or("candidate schema instance encoding")
+    })
+}
+
+fn candidate_instance_encoded_len(
+    value: &Value,
+    maximum: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<usize, &'static str> {
+    let mut counter = CandidateInstanceWriter {
+        inner: io::sink(),
+        bytes: 0,
+        maximum,
+        deadline,
+        cancelled,
+        failure: None,
+    };
+    write_candidate_instance(value, &mut counter)?;
+    Ok(counter.bytes)
+}
+
+fn encode_candidate_instance(
+    value: &Value,
+    encoded_len: usize,
+    maximum: usize,
+    max_state_bytes: usize,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<Vec<u8>, &'static str> {
+    if encoded_len > maximum || encoded_len > max_state_bytes {
+        return Err("candidate schema instance state limit");
+    }
+    if cancelled.load(Ordering::Relaxed) {
+        return Err("candidate rule diagnostics cancelled");
+    }
+    if Instant::now() >= deadline {
+        return Err("candidate rule diagnostics deadline");
+    }
+    let mut raw = Vec::new();
+    raw.try_reserve_exact(encoded_len)
+        .map_err(|_| "candidate schema instance allocation")?;
+    if raw.capacity() > maximum || raw.capacity() > max_state_bytes {
+        return Err("candidate schema instance buffer capacity limit");
+    }
+    let mut writer = CandidateInstanceWriter {
+        inner: &mut raw,
+        bytes: 0,
+        maximum,
+        deadline,
+        cancelled,
+        failure: None,
+    };
+    write_candidate_instance(value, &mut writer)?;
+    let written = writer.bytes;
+    drop(writer);
+    if raw.len() != encoded_len || written != encoded_len {
+        return Err("candidate schema instance encoding changed");
+    }
+    Ok(raw)
+}
+
+fn candidate_request_count<I>(
+    owner: &SourceFoundationDefaultRulesStoredReport<I>,
+) -> Result<usize, &'static str> {
+    if !lab_aggregate_matches(&owner.labs) {
+        return Err("candidate stored lab schema request binding");
+    }
+    let mut count = 0usize;
+    for amount in [
+        owner.labs.schema_checks.len(),
+        owner.goldsets.schema_requests.len(),
+        owner.discovery.schema_requests.len(),
+        owner.closure.schema_requests.len(),
+    ] {
+        count = count
+            .checked_add(amount)
+            .ok_or("candidate stored schema request count overflow")?;
+    }
+    for lab in &owner.labs.results {
+        if !request_ordinals_valid(&lab.schema_checks, lab.ordered_issues.len()) {
+            return Err("candidate stored lab schema ordinals invalid");
+        }
+    }
+    if !request_ordinals_valid(
+        &owner.goldsets.schema_requests,
+        owner.goldsets.ordered_issues.len(),
+    ) || !request_ordinals_valid(
+        &owner.discovery.schema_requests,
+        owner.discovery.issues.len(),
+    ) || !request_ordinals_valid(&owner.closure.schema_requests, owner.closure.issues.len())
+    {
+        return Err("candidate stored schema ordinals invalid");
+    }
+    Ok(count)
+}
+
+fn request_ordinals_valid<R: SchemaRequestValue>(requests: &[R], direct_issues: usize) -> bool {
+    let mut prior = 0usize;
+    for request in requests {
+        let ordinal = request.before_issue();
+        if ordinal < prior || ordinal > direct_issues {
+            return false;
+        }
+        prior = ordinal;
+    }
+    true
+}
+
+#[allow(clippy::too_many_arguments)]
+fn check_candidate_rule_request<I: Copy + Eq>(
+    request: &impl SchemaRequestValue,
+    input_identity: I,
+    worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    expected_binding: tos_validation::source_cut::CutPreparedSchemaExecutionBinding,
+    schema_limits: SourceFoundationSchemaLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    limits: SourceFoundationRuleDiagnosticsLimits,
+    prior_diagnostic_state: usize,
+    diagnostic_vector_state: usize,
+    input_bytes_used: usize,
+    diagnostic_issue_count: usize,
+    prior_peak_state: usize,
+) -> Result<CandidateRuleStepSuccess<I>, CandidateRuleStepFailure<I>> {
+    let fail = |reason, diagnostic| CandidateRuleStepFailure {
+        diagnostic,
+        reason,
+        incomplete: false,
+    };
+    if cancelled.load(Ordering::Relaxed) {
+        return Err(fail("candidate rule diagnostics cancelled", None));
+    }
+    if Instant::now() >= deadline {
+        return Err(fail("candidate rule diagnostics deadline", None));
+    }
+    let location = request.location();
+    let contract = request.contract();
+    if location.is_empty() || location.len() > 4096 || contract.is_empty() || contract.len() > 4096
+    {
+        return Err(fail(
+            "candidate rule diagnostics location or contract limit",
+            None,
+        ));
+    }
+    let base_state = prior_diagnostic_state
+        .checked_add(diagnostic_vector_state)
+        .and_then(|bytes| {
+            bytes.checked_add(size_of::<EvaluatedCandidateSourceFoundationRules<I>>())
+        })
+        .ok_or_else(|| fail("candidate rule diagnostics state overflow", None))?;
+    let input_state_limit = limits
+        .max_state_bytes
+        .checked_sub(base_state)
+        .ok_or_else(|| fail("candidate rule diagnostics state limit", None))?;
+    let remaining_instance_bytes = schema_limits
+        .max_total_instance_bytes
+        .checked_sub(input_bytes_used)
+        .ok_or_else(|| fail("candidate rule diagnostics aggregate input limit", None))?;
+    let maximum_instance_bytes = schema_limits
+        .max_instance_bytes
+        .min(remaining_instance_bytes);
+    let encoded_len = candidate_instance_encoded_len(
+        request.instance(),
+        maximum_instance_bytes,
+        deadline,
+        cancelled,
+    )
+    .map_err(|reason| CandidateRuleStepFailure {
+        diagnostic: None,
+        reason,
+        incomplete: matches!(
+            reason,
+            "candidate rule diagnostics cancelled" | "candidate rule diagnostics deadline"
+        ),
+    })?;
+    if encoded_len > input_state_limit {
+        return Err(fail("candidate schema instance state limit", None));
+    }
+    let input_bytes = input_bytes_used
+        .checked_add(encoded_len)
+        .filter(|used| *used <= schema_limits.max_total_instance_bytes)
+        .ok_or_else(|| fail("candidate rule diagnostics aggregate input limit", None))?;
+    let worker_controller_state = worker
+        .diagnostics_v2_controller_state_upper_bound(encoded_len, location.len())
+        .map_err(|_| {
+            fail(
+                "candidate rule diagnostics controller state unavailable",
+                None,
+            )
+        })?;
+    let preallocation_peak = base_state
+        .checked_add(encoded_len)
+        .and_then(|bytes| bytes.checked_add(worker_controller_state))
+        .ok_or_else(|| fail("candidate rule diagnostics controller state overflow", None))?;
+    if preallocation_peak > limits.max_state_bytes {
+        return Err(fail(
+            "candidate rule diagnostics controller state limit",
+            None,
+        ));
+    }
+    let buffer_state_limit = input_state_limit
+        .checked_sub(worker_controller_state)
+        .ok_or_else(|| fail("candidate rule diagnostics controller state limit", None))?;
+    let raw = encode_candidate_instance(
+        request.instance(),
+        encoded_len,
+        maximum_instance_bytes,
+        buffer_state_limit,
+        deadline,
+        cancelled,
+    )
+    .map_err(|reason| CandidateRuleStepFailure {
+        diagnostic: None,
+        reason,
+        incomplete: matches!(
+            reason,
+            "candidate rule diagnostics cancelled" | "candidate rule diagnostics deadline"
+        ),
+    })?;
+    let call_peak = base_state
+        .checked_add(raw.capacity())
+        .and_then(|bytes| bytes.checked_add(worker_controller_state))
+        .ok_or_else(|| fail("candidate rule diagnostics controller state overflow", None))?;
+    if call_peak > limits.max_state_bytes {
+        return Err(fail(
+            "candidate rule diagnostics actual buffer capacity exceeds state limit",
+            None,
+        ));
+    }
+    let diagnostic = worker
+        .check_diagnostics_v2(location, &raw, contract, deadline, cancelled)
+        .map_err(|_| fail("candidate rule diagnostics worker refused", None))?;
+    if diagnostic.input_identity() != &input_identity
+        || diagnostic.schema_set_sha256() != worker.schema_set_digest()
+        || diagnostic.contract_selection_sha256() != worker.contract_selection_digest()
+        || diagnostic.profile() != worker.profile()
+        || diagnostic.profile() != FormatProfile::LegacyPythonObserved20260923
+        || diagnostic.prepared_execution_binding() != expected_binding
+        || diagnostic.result().path() != location
+        || diagnostic.result().contract() != contract
+    {
+        return Err(fail(
+            "candidate rule diagnostics result binding invalid",
+            Some(diagnostic),
+        ));
+    }
+    if !diagnostic.is_valid() && !diagnostic.is_invalid() {
+        let reason = match (diagnostic.report().status, diagnostic.report().failure) {
+            (
+                tos_validation::executor::schema_diagnostics::Status::Indeterminate,
+                tos_validation::executor::schema_diagnostics::Failure::UnsupportedInputSemantics,
+            ) => "candidate rule diagnostics unsupported input semantics",
+            (
+                tos_validation::executor::schema_diagnostics::Status::Indeterminate,
+                tos_validation::executor::schema_diagnostics::Failure::ValidatorRuntime,
+            ) => "candidate rule diagnostics validator runtime indeterminate",
+            _ => "candidate rule diagnostics incomplete",
+        };
+        return Err(CandidateRuleStepFailure {
+            diagnostic: Some(diagnostic),
+            reason,
+            incomplete: true,
+        });
+    }
+    let Some(next_issues) = diagnostic_issue_count
+        .checked_add(diagnostic.report().issues.len())
+        .filter(|count| *count <= schema_limits.max_total_issues)
+    else {
+        return Err(fail(
+            "candidate rule diagnostics issue limit",
+            Some(diagnostic),
+        ));
+    };
+    let Some(returned_state) =
+        prior_diagnostic_state.checked_add(diagnostic.accounted_state_bytes())
+    else {
+        return Err(fail(
+            "candidate rule diagnostics result state overflow",
+            Some(diagnostic),
+        ));
+    };
+    let Some(peak) = returned_state
+        .checked_add(diagnostic_vector_state)
+        .and_then(|bytes| {
+            bytes.checked_add(size_of::<EvaluatedCandidateSourceFoundationRules<I>>())
+        })
+        .and_then(|bytes| bytes.checked_add(raw.capacity()))
+        .and_then(|bytes| bytes.checked_add(worker_controller_state))
+    else {
+        return Err(fail(
+            "candidate rule diagnostics peak state overflow",
+            Some(diagnostic),
+        ));
+    };
+    if peak > limits.max_state_bytes {
+        return Err(fail(
+            "candidate rule diagnostics result state limit",
+            Some(diagnostic),
+        ));
+    }
+    if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
+        return Err(CandidateRuleStepFailure {
+            diagnostic: Some(diagnostic),
+            reason: "candidate rule diagnostics ended at deadline or cancellation",
+            incomplete: true,
+        });
+    }
+    Ok(CandidateRuleStepSuccess {
+        diagnostic,
+        input_bytes,
+        diagnostic_state: returned_state,
+        issue_count: next_issues,
+        peak_state: prior_peak_state.max(peak),
+    })
+}
+
+/// Evaluate only the stored default-rule request DTOs through the actual
+/// candidate schema worker. The same worker instance and cumulative counters
+/// that already cover candidate Records are continued without a quota reset.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn evaluate_candidate_stored_rules<I: Copy + Eq>(
+    owner_report: SourceFoundationDefaultRulesStoredReport<I>,
+    schema_worker: &mut CandidateCutWorkerSchemaExecutor<I>,
+    schema_limits: SourceFoundationSchemaLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+    limits: SourceFoundationRuleDiagnosticsLimits,
+) -> Result<EvaluatedCandidateSourceFoundationRules<I>, CandidateRuleDiagnosticsError<I>> {
+    let mut diagnostics = Vec::new();
+    let request_count = match candidate_request_count(&owner_report) {
+        Ok(count) => count,
+        Err(reason) => {
+            return Err(CandidateRuleDiagnosticsError::Refused {
+                owner_report,
+                diagnostics,
+                reason,
+            });
+        }
+    };
+    let input_identity = owner_report.input_identity;
+    let worker_binding = schema_worker.prepared_execution_binding();
+    if !schema_limits.validate()
+        || limits.max_state_bytes == 0
+        || schema_worker.input_identity() != &input_identity
+        || schema_worker.profile() != FormatProfile::LegacyPythonObserved20260923
+        || schema_worker.limits_sha256() != schema_limits.digest()
+        || schema_worker.is_finished()
+        || !matches!(
+            worker_binding.protocol,
+            CutPreparedSchemaProtocol::DiagnosticsV2 { .. }
+        )
+    {
+        return Err(CandidateRuleDiagnosticsError::Refused {
+            owner_report,
+            diagnostics,
+            reason: "candidate stored rule worker binding invalid",
+        });
+    }
+    if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
+        return Err(CandidateRuleDiagnosticsError::Refused {
+            owner_report,
+            diagnostics,
+            reason: "candidate stored rule diagnostics deadline or cancellation",
+        });
+    }
+    if request_count > schema_limits.max_checks
+        || owner_report.cost.queued_schema_document_count > schema_limits.max_checks
+    {
+        return Err(CandidateRuleDiagnosticsError::Refused {
+            owner_report,
+            diagnostics,
+            reason: "candidate stored rule schema count limit",
+        });
+    }
+    let before_count = match schema_worker.diagnostic_execution_count() {
+        Ok(count) => count,
+        Err(_) => {
+            return Err(CandidateRuleDiagnosticsError::Refused {
+                owner_report,
+                diagnostics,
+                reason: "candidate stored rule cumulative execution count unavailable",
+            });
+        }
+    };
+    let before_cost = match schema_worker.diagnostics_v2_cumulative_cost() {
+        Ok(cost) => cost,
+        Err(_) => {
+            return Err(CandidateRuleDiagnosticsError::Refused {
+                owner_report,
+                diagnostics,
+                reason: "candidate stored rule cumulative worker cost unavailable",
+            });
+        }
+    };
+    let expected_total = before_count.checked_add(request_count);
+    if expected_total != Some(owner_report.cost.queued_schema_document_count)
+        || usize::try_from(before_cost.completed_exchanges()).ok() != Some(before_count)
+    {
+        return Err(CandidateRuleDiagnosticsError::Refused {
+            owner_report,
+            diagnostics,
+            reason: "candidate stored rule prior diagnostic count binding invalid",
+        });
+    }
+    let requested_vector_state =
+        match request_count.checked_mul(size_of::<CandidateCutSchemaDiagnostic<I>>()) {
+            Some(bytes) if bytes <= limits.max_state_bytes => bytes,
+            _ => {
+                return Err(CandidateRuleDiagnosticsError::Refused {
+                    owner_report,
+                    diagnostics,
+                    reason: "candidate stored rule diagnostic vector state limit",
+                });
+            }
+        };
+    if requested_vector_state
+        .checked_add(size_of::<EvaluatedCandidateSourceFoundationRules<I>>())
+        .is_none_or(|bytes| bytes > limits.max_state_bytes)
+    {
+        return Err(CandidateRuleDiagnosticsError::Refused {
+            owner_report,
+            diagnostics,
+            reason: "candidate stored rule output header state limit",
+        });
+    }
+    diagnostics.try_reserve_exact(request_count).map_err(|_| {
+        CandidateRuleDiagnosticsError::Refused {
+            owner_report,
+            diagnostics: Vec::new(),
+            reason: "candidate stored rule diagnostic allocation",
+        }
+    })?;
+    let Some(vector_state) = diagnostics
+        .capacity()
+        .checked_mul(size_of::<CandidateCutSchemaDiagnostic<I>>())
+    else {
+        return Err(CandidateRuleDiagnosticsError::Refused {
+            owner_report,
+            diagnostics,
+            reason: "candidate stored rule diagnostic vector capacity limit",
+        });
+    };
+    if vector_state > limits.max_state_bytes || vector_state < requested_vector_state {
+        return Err(CandidateRuleDiagnosticsError::Refused {
+            owner_report,
+            diagnostics,
+            reason: "candidate stored rule diagnostic vector capacity limit",
+        });
+    }
+    let mut input_bytes = 0usize;
+    let mut result_state = 0usize;
+    let mut issue_count = 0usize;
+    let mut peak_state =
+        match vector_state.checked_add(size_of::<EvaluatedCandidateSourceFoundationRules<I>>()) {
+            Some(bytes) if bytes <= limits.max_state_bytes => bytes,
+            _ => {
+                return Err(CandidateRuleDiagnosticsError::Refused {
+                    owner_report,
+                    diagnostics,
+                    reason: "candidate stored rule output header state limit",
+                });
+            }
+        };
+    let mut failed = None;
+    macro_rules! run_request {
+        ($request:expr) => {
+            match check_candidate_rule_request(
+                $request,
+                input_identity,
+                schema_worker,
+                worker_binding,
+                schema_limits,
+                deadline,
+                cancelled,
+                limits,
+                result_state,
+                vector_state,
+                input_bytes,
+                issue_count,
+                peak_state,
+            ) {
+                Ok(success) => {
+                    input_bytes = success.input_bytes;
+                    issue_count = success.issue_count;
+                    result_state = success.diagnostic_state;
+                    peak_state = success.peak_state;
+                    diagnostics.push(success.diagnostic);
+                }
+                Err(failure) => {
+                    if let Some(diagnostic) = failure.diagnostic {
+                        diagnostics.push(diagnostic);
+                    }
+                    failed = Some((failure.reason, failure.incomplete));
+                }
+            }
+        };
+    }
+    'requests: {
+        for lab in &owner_report.labs.results {
+            for request in &lab.schema_checks {
+                run_request!(request);
+                if failed.is_some() {
+                    break 'requests;
+                }
+            }
+        }
+        for request in &owner_report.goldsets.schema_requests {
+            run_request!(request);
+            if failed.is_some() {
+                break 'requests;
+            }
+        }
+        for request in &owner_report.discovery.schema_requests {
+            run_request!(request);
+            if failed.is_some() {
+                break 'requests;
+            }
+        }
+        for request in &owner_report.closure.schema_requests {
+            run_request!(request);
+            if failed.is_some() {
+                break 'requests;
+            }
+        }
+    }
+    if let Some((reason, incomplete)) = failed {
+        return Err(if incomplete {
+            CandidateRuleDiagnosticsError::Incomplete {
+                owner_report,
+                diagnostics,
+                reason,
+            }
+        } else {
+            CandidateRuleDiagnosticsError::Refused {
+                owner_report,
+                diagnostics,
+                reason,
+            }
+        });
+    }
+    let after_count = match schema_worker.diagnostic_execution_count() {
+        Ok(count) => count,
+        Err(_) => {
+            return Err(CandidateRuleDiagnosticsError::Refused {
+                owner_report,
+                diagnostics,
+                reason: "candidate stored rule final execution count unavailable",
+            });
+        }
+    };
+    let after_cost = match schema_worker.diagnostics_v2_cumulative_cost() {
+        Ok(cost) => cost,
+        Err(_) => {
+            return Err(CandidateRuleDiagnosticsError::Incomplete {
+                owner_report,
+                diagnostics,
+                reason: "candidate stored rule final worker cost incomplete",
+            });
+        }
+    };
+    let delta_exchanges = after_cost
+        .completed_exchanges()
+        .checked_sub(before_cost.completed_exchanges());
+    let delta_resource_bytes = after_cost
+        .schema_resource_bytes()
+        .checked_sub(before_cost.schema_resource_bytes());
+    let delta_request_bytes = after_cost
+        .request_bytes()
+        .checked_sub(before_cost.request_bytes());
+    let delta_response_bytes = after_cost
+        .response_bytes()
+        .checked_sub(before_cost.response_bytes());
+    let delta_cpu_micros = after_cost
+        .worker_cpu_micros()
+        .checked_sub(before_cost.worker_cpu_micros());
+    let expected_after = before_count.checked_add(request_count);
+    if expected_after != Some(after_count)
+        || u64::try_from(request_count).ok() != delta_exchanges
+        || delta_resource_bytes.is_none()
+        || delta_request_bytes.is_none()
+        || delta_response_bytes.is_none()
+        || delta_cpu_micros.is_none()
+        || (request_count > 0
+            && (delta_resource_bytes == Some(0)
+                || delta_request_bytes == Some(0)
+                || delta_response_bytes == Some(0)))
+    {
+        return Err(CandidateRuleDiagnosticsError::Incomplete {
+            owner_report,
+            diagnostics,
+            reason: "candidate stored rule cumulative execution accounting invalid",
+        });
+    }
+    let (
+        Some(worker_schema_resource_bytes),
+        Some(worker_request_bytes),
+        Some(worker_response_bytes),
+        Some(worker_cpu_micros),
+    ) = (
+        delta_resource_bytes,
+        delta_request_bytes,
+        delta_response_bytes,
+        delta_cpu_micros,
+    )
+    else {
+        return Err(CandidateRuleDiagnosticsError::Incomplete {
+            owner_report,
+            diagnostics,
+            reason: "candidate stored rule cumulative execution counters regressed",
+        });
+    };
+    let result_state_with_header = result_state.checked_add(vector_state).and_then(|bytes| {
+        bytes.checked_add(size_of::<EvaluatedCandidateSourceFoundationRules<I>>())
+    });
+    if result_state_with_header.is_none_or(|bytes| bytes > limits.max_state_bytes)
+        || peak_state > limits.max_state_bytes
+    {
+        return Err(CandidateRuleDiagnosticsError::Refused {
+            owner_report,
+            diagnostics,
+            reason: "candidate stored rule retained diagnostic state limit",
+        });
+    }
+    Ok(EvaluatedCandidateSourceFoundationRules {
+        owner_report,
+        diagnostics,
+        cost: CandidateSourceFoundationRuleDiagnosticsCost {
+            schema_check_count: request_count,
+            schema_input_instance_bytes: input_bytes,
+            schema_result_state_upper_bound_bytes: result_state,
+            typed_diagnostic_vector_state_upper_bound_bytes: vector_state,
+            diagnostic_issue_count: issue_count,
+            worker_schema_resource_bytes,
+            worker_request_bytes,
+            worker_response_bytes,
+            worker_cpu_micros,
+            cumulative_execution_count_before: before_count,
+            cumulative_execution_count_after: after_count,
+            peak_additional_state_upper_bound_bytes: peak_state,
+        },
+    })
 }
 
 /// Schedule every retained district request in maintained order and run the
@@ -1370,6 +2144,21 @@ macro_rules! impl_schema_request {
 impl_schema_request!(GoldsetSchemaRequest);
 impl_schema_request!(DiscoverySchemaRequest);
 impl_schema_request!(SourceFoundationClosureSchemaRequest);
+
+impl SchemaRequestValue for SourceFoundationSchemaCheck {
+    fn before_issue(&self) -> usize {
+        self.before_issue
+    }
+    fn location(&self) -> &str {
+        &self.location
+    }
+    fn contract(&self) -> &str {
+        &self.contract
+    }
+    fn instance(&self) -> &Value {
+        &self.instance
+    }
+}
 
 fn record_placements<'a>(
     checks: &'a [SourceFoundationRecordsSchemaCheck],

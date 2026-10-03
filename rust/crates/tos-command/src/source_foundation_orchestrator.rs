@@ -41,6 +41,7 @@ use tos_validation::record_biblio_cut::{BiblioRecordExecutor, BiblioSchemaDiagno
 use tos_validation::source_cut::{
     CutSchemaDiagnosticsLimits, CutSchemaExecutor, CutWorkerLimits, CutWorkerSchemaExecutor,
     cut_schema_resource_preparation_state_upper_bound,
+    streamed_cut_schema_resource_preparation_state_upper_bound,
 };
 use tos_validation::source_foundation_discovery::SourcePhysicalFacts;
 use tos_validation::source_foundation_records::SourceFoundationRecordsReport;
@@ -62,7 +63,9 @@ pub(crate) enum FoundationOrchestratorError {
     Incomplete(&'static str),
 }
 
-/// Static owner phase tags; refusals retain their original typed evidence.
+const MAX_PUBLIC_BUDGET_REASON_BYTES: usize = 192;
+
+#[derive(Clone, Copy)]
 pub(crate) enum FoundationDefaultStage {
     CapturedCurrentPaths,
     PrepareRecords,
@@ -76,7 +79,50 @@ impl From<FoundationBootstrapError> for FoundationOrchestratorError {
 }
 
 impl FoundationOrchestratorError {
-    pub(crate) fn public_reason(&self) -> &'static str {
+    pub(crate) fn public_reason(&self) -> String {
+        if let Self::Default(
+            stage,
+            FoundationDefaultReadError::Owner(ItemRefusal::BudgetCheck { check, used, limit }),
+        ) = self
+        {
+            if matches!(*check, "record_issue_sink" | "biblio_sink") {
+                let stage = match stage {
+                    FoundationDefaultStage::CapturedCurrentPaths => {
+                        "source-foundation default captured current paths"
+                    }
+                    FoundationDefaultStage::PrepareRecords => {
+                        "source-foundation default prepare records"
+                    }
+                    FoundationDefaultStage::EvaluateDefault => {
+                        "source-foundation default evaluate default"
+                    }
+                };
+                // The allow-listed labels and two optional u64 counters fit
+                // this fixed buffer; the CLI separately charges emitted bytes.
+                use std::fmt::Write as _;
+                let mut reason = String::with_capacity(MAX_PUBLIC_BUDGET_REASON_BYTES);
+                let formatted = (|| {
+                    write!(reason, "{stage}: owner budget check {check} used=")?;
+                    match used {
+                        Some(value) => write!(reason, "{value}")?,
+                        None => reason.push_str("unknown"),
+                    }
+                    reason.push_str(" limit=");
+                    match limit {
+                        Some(value) => write!(reason, "{value}")?,
+                        None => reason.push_str("unknown"),
+                    }
+                    Ok(())
+                })();
+                if formatted.is_ok() && reason.len() <= MAX_PUBLIC_BUDGET_REASON_BYTES {
+                    return reason;
+                }
+            }
+        }
+        self.static_public_reason().to_owned()
+    }
+
+    fn static_public_reason(&self) -> &'static str {
         match self {
             Self::Bootstrap(error) => match error {
                 FoundationBootstrapError::Command(_) => {
@@ -321,6 +367,65 @@ fn fail_window<T>(
     Err(error)
 }
 
+/// Close a failed candidate phase against the exact attempted-read prefix of
+/// the shared original ledger. The adopted counters move only when that exact
+/// read amount is visible in the budget's measured charge.
+#[allow(clippy::too_many_arguments)]
+fn fail_candidate_window_with_measured_io<T>(
+    execution_limits: &mut FoundationExecutionLimits,
+    remaining_budget: &mut FoundationRemainingBudget<'_>,
+    ticket: FoundationBudgetTicket,
+    original_io: &tos_source_store::PinnedSqliteIoBudget,
+    io_before: tos_source_store::PinnedSqliteIoSnapshot,
+    external_reads: u64,
+    adopted: &mut (u64, u64),
+    remaining_write_bytes: &mut u64,
+    error: FoundationOrchestratorError,
+) -> Result<T, FoundationOrchestratorError> {
+    let io_after = original_io.snapshot();
+    let Some(shared_read) = io_after
+        .read_attempted_bytes
+        .checked_sub(io_before.read_attempted_bytes)
+    else {
+        let worst = failure_use(&ticket);
+        let _ = execution_limits.clear_window(&ticket);
+        let _ = remaining_budget.fail_window(ticket, worst);
+        return Err(error);
+    };
+    let Some(write_delta) = io_after
+        .write_attempted_bytes
+        .checked_sub(io_before.write_attempted_bytes)
+    else {
+        let worst = failure_use(&ticket);
+        let _ = execution_limits.clear_window(&ticket);
+        let _ = remaining_budget.fail_window(ticket, worst);
+        return Err(error);
+    };
+    let Some(actual_read) = shared_read.checked_add(external_reads) else {
+        let worst = failure_use(&ticket);
+        let _ = execution_limits.clear_window(&ticket);
+        let _ = remaining_budget.fail_window(ticket, worst);
+        return Err(error);
+    };
+    let measured_before = remaining_budget.measured_charged().source_read_bytes;
+    let worst = failure_use(&ticket);
+    let _ = execution_limits.clear_window(&ticket);
+    let _ = remaining_budget.fail_window_with_measured_source_reads(ticket, worst, actual_read);
+    let measured_after = remaining_budget.measured_charged().source_read_bytes;
+    let measured_delta = measured_after.checked_sub(measured_before);
+    if measured_delta == Some(actual_read) {
+        // The measured read suffix is adopted independently of write
+        // headroom. A denied write must not make terminal accounting charge
+        // this already-recorded read prefix a second time.
+        adopted.0 = io_after.read_attempted_bytes;
+        if let Some(write_after) = remaining_write_bytes.checked_sub(write_delta) {
+            adopted.1 = io_after.write_attempted_bytes;
+            *remaining_write_bytes = write_after;
+        }
+    }
+    Err(error)
+}
+
 fn use_delta(
     before: tos_validation::executor::SharedSchemaWorkerQuotaUsage,
     after: tos_validation::executor::SharedSchemaWorkerQuotaUsage,
@@ -490,9 +595,7 @@ fn ticket_worker_budget(
 ) -> Result<ExecutorBudget, FoundationOrchestratorError> {
     let operation = ticket.operation_limits();
     let wall = deadline.saturating_duration_since(Instant::now());
-    let cpu_seconds = operation
-        .worker_cpu_seconds
-        .min(ExecutorBudget::MAX_SCALAR_CPU_SECONDS);
+    let cpu_seconds = operation.worker_cpu_seconds.min(3_600);
     if wall.is_zero() || cpu_seconds == 0 || address_space_bytes < 64 * 1024 * 1024 {
         return Err(incomplete("source-foundation worker reservation exhausted"));
     }
@@ -572,6 +675,7 @@ fn cut_worker_shape(
 fn schema_state_upper_bound(
     bytes: usize,
     resources: usize,
+    source_resource_metadata: usize,
 ) -> Result<usize, FoundationOrchestratorError> {
     bytes
         .checked_mul(8)
@@ -580,6 +684,7 @@ fn schema_state_upper_bound(
                 .checked_mul(512)
                 .and_then(|rows| state.checked_add(rows))
         })
+        .and_then(|state| state.checked_add(source_resource_metadata))
         .and_then(|state| state.checked_add(std::mem::size_of::<SourceFoundationSchemaSet>()))
         .ok_or_else(|| incomplete("source-foundation schema state overflow"))
 }
@@ -599,8 +704,8 @@ fn default_issue_count(evaluated: &EvaluatedFoundationDefault<'_>) -> usize {
     evaluated.rules.cost.issue_count
 }
 
-fn catalog_issue_count(
-    outcome: &FoundationCatalogOutcome,
+fn catalog_issue_count<B>(
+    outcome: &FoundationCatalogOutcome<B>,
 ) -> Result<usize, FoundationOrchestratorError> {
     match outcome {
         FoundationCatalogOutcome::Complete(result) => Ok(result.issues.len()),
@@ -612,8 +717,8 @@ fn catalog_issue_count(
     }
 }
 
-fn catalog_read_bytes(
-    outcome: &FoundationCatalogOutcome,
+fn catalog_read_bytes<B, D>(
+    outcome: &FoundationCatalogOutcome<B, D>,
 ) -> Result<u64, FoundationOrchestratorError> {
     let (work, generated, recheck) = match outcome {
         FoundationCatalogOutcome::Complete(result) => (
@@ -641,8 +746,8 @@ fn catalog_read_bytes(
     )
 }
 
-fn catalog_retained_state(
-    outcome: &FoundationCatalogOutcome,
+fn catalog_retained_state<B, D>(
+    outcome: &FoundationCatalogOutcome<B, D>,
 ) -> Result<usize, FoundationOrchestratorError> {
     match outcome {
         FoundationCatalogOutcome::Complete(result) => checked_add_usize(
@@ -662,8 +767,8 @@ fn catalog_retained_state(
     }
 }
 
-fn outcome_schema_execution_cost(
-    outcome: &FoundationCatalogOutcome,
+fn outcome_schema_execution_cost<B, D>(
+    outcome: &FoundationCatalogOutcome<B, D>,
 ) -> tos_validation::source_cut::CutSchemaDiagnosticsCumulativeCost {
     match outcome {
         FoundationCatalogOutcome::Complete(result) => result.schema_execution_cost,
@@ -674,8 +779,8 @@ fn outcome_schema_execution_cost(
     }
 }
 
-fn catalog_profiles(
-    outcome: &FoundationCatalogOutcome,
+fn catalog_profiles<B, D>(
+    outcome: &FoundationCatalogOutcome<B, D>,
 ) -> Result<&[(String, String)], FoundationOrchestratorError> {
     let profiles = match outcome {
         FoundationCatalogOutcome::Complete(result) => &result.profiles,
@@ -685,6 +790,2125 @@ fn catalog_profiles(
         .files()
         .map_err(|_| incomplete("catalog record-profile selection incomplete"))
 }
+
+/// Select the actual candidate closure and move its bytes into the same
+/// prepared worker kernel. Both the Records worker and the later native-index
+/// callback worker use this path with one verified image and aggregate quota.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn prepare_candidate_schema_worker(
+    view: &super::foundation_bootstrap::CandidateFoundationBootstrapView<'_, '_, '_, '_>,
+    input: &crate::source_admission_candidate_records::CandidateRecordsInput<'_, '_>,
+    image: &VerifiedWorkerImageHandle,
+    quota: &SharedSchemaWorkerQuota,
+    ticket: &FoundationBudgetTicket,
+    schema_limits: SourceFoundationSchemaLimits,
+    metadata_state_limit: usize,
+    worker_limits: CutWorkerLimits,
+    diagnostics: CutSchemaDiagnosticsLimits,
+    operation: tos_validation::executor::BatchStreamBudget,
+    held_state_bytes: usize,
+    max_operation_state_bytes: usize,
+) -> Result<
+    tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
+        crate::source_admission_spooled_candidate::CandidateFence,
+    >,
+    FoundationOrchestratorError,
+> {
+    use tos_validation::record_biblio_cut::SourceCutInputWithIdentity;
+    let deadline = view.invocation.deadline();
+    let cancelled = view.cancelled;
+    input
+        .verify_invocation(deadline, cancelled)
+        .map_err(owner)?;
+    if input.input_identity() != view.input.input_identity() {
+        return Err(incomplete(
+            "candidate schema preparation source binding differs",
+        ));
+    }
+    let image_state = image
+        .retained_state_bytes()
+        .map_err(|_| incomplete("candidate worker image state unavailable"))?;
+    if held_state_bytes < bounded_usize(image_state)? {
+        return Err(incomplete("candidate held worker image is unreserved"));
+    }
+    let preparation = tos_validation::source_cut::source_foundation_candidate_schema_preparation_state_upper_bound(
+        schema_limits, metadata_state_limit,
+    ).map_err(owner)?;
+    let required = held_state_bytes
+        .checked_add(preparation)
+        .and_then(|bytes| {
+            bytes.checked_add(worker_identity_path_clone_bytes(image.identity(), 2).ok()?)
+        })
+        .and_then(|bytes| {
+            bytes.checked_add(size_of::<
+                tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
+                    crate::source_admission_spooled_candidate::CandidateFence,
+                >,
+            >())
+        })
+        .ok_or_else(|| incomplete("candidate schema preparation overlap overflow"))?;
+    input
+        .require_callback_state(required, max_operation_state_bytes)
+        .map_err(owner)?;
+    let set =
+        tos_validation::source_foundation_schema::CandidateSourceFoundationSchemaSet::from_input(
+            input,
+            FormatProfile::LegacyPythonObserved20260923,
+            schema_limits,
+            metadata_state_limit,
+            deadline,
+            cancelled,
+        )
+        .map_err(schema_load)?;
+    let budget = ticket_worker_budget(
+        ticket,
+        deadline,
+        view.invocation.budgets.worker_address_space_bytes,
+    )?;
+    let mut worker = tos_validation::source_cut::CandidateCutWorkerSchemaExecutor::from_schema_set(
+        set,
+        image,
+        budget,
+        worker_limits,
+        deadline,
+        cancelled,
+    )
+    .map_err(owner)?;
+    let diagnostics = CutSchemaDiagnosticsLimits::from_operation_ceilings(
+        diagnostics,
+        worker_limits.max_receipts,
+        operation,
+    )
+    .map_err(owner)?;
+    worker.set_operation_budget(operation).map_err(owner)?;
+    worker.enable_diagnostics_v2(diagnostics).map_err(owner)?;
+    worker
+        .set_shared_schema_worker_quota(quota.clone())
+        .map_err(owner)?;
+    let controller = worker
+        .diagnostics_v2_controller_state_upper_bound(schema_limits.max_instance_bytes, 4096)
+        .map_err(owner)?;
+    let controller_overlap = required
+        .checked_add(controller)
+        .ok_or_else(|| incomplete("candidate schema controller overlap overflow"))?;
+    input
+        .require_callback_state(controller_overlap, max_operation_state_bytes)
+        .map_err(owner)?;
+    worker
+        .set_diagnostics_v2_controller_state_cap(controller)
+        .map_err(owner)?;
+    Ok(worker)
+}
+
+/// Run the maintained native identity/dependency/retirement kernel after the
+/// fresh catalog has streamed its rows. Like the cold admission callback, this
+/// uses a separately selected full schema worker under the same image/quota;
+/// the catalog worker has already finished. No source view escapes this step.
+pub(crate) fn build_candidate_native_index(
+    index: &mut crate::source_admission_spooled_index::IndexSink<'_>,
+    records: &crate::source_admission_spooled_index::CandidateRecordsReportVerified,
+    schemas: &mut tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
+        crate::source_admission_spooled_candidate::CandidateFence,
+    >,
+    limits: crate::source_admission_index::IndexLimits,
+    json: tos_foundation::JsonLimits,
+    json_state_bytes: usize,
+    deadline: Instant,
+    cancelled: &std::sync::atomic::AtomicBool,
+) -> Result<usize, FoundationOrchestratorError> {
+    if *schemas.input_identity() != records.fence() || schemas.is_finished() {
+        return Err(incomplete(
+            "native candidate callback schema binding refused",
+        ));
+    }
+    let retained = {
+        let mut schema_check = |path: &str, raw: &[u8], schema_raw: &[u8]| {
+            let diagnostic = schemas
+                .check_diagnostics_v2_for_schema_raw(path, raw, schema_raw, deadline, cancelled)
+                .map_err(|_| io::Error::other("selected candidate schema check refused"))?;
+            if diagnostic.is_valid() {
+                Ok(None)
+            } else if diagnostic.is_invalid() {
+                Ok(Some("selected candidate schema is invalid".to_owned()))
+            } else {
+                Err(io::Error::other(
+                    "selected candidate schema report incomplete",
+                ))
+            }
+        };
+        index
+            .build(records, limits, json, json_state_bytes, &mut schema_check)
+            .map_err(FoundationOrchestratorError::Admission)?
+    };
+    schemas.finish(deadline, cancelled).map_err(owner)?;
+    if !schemas.is_finished() {
+        return Err(incomplete(
+            "native candidate callback worker EOF incomplete",
+        ));
+    }
+    Ok(retained)
+}
+
+/// Post-catalog custody for the borrowed candidate route. The catalog must
+/// already have stopped the same Item worker; the record worker is stopped
+/// here before either physical provider rereads its observations. This helper
+/// returns payload evidence only, never native admission completion. Authored,
+/// catalog, historical and full candidate raw EOF custody remain caller duties.
+pub(crate) fn finish_candidate_payload_and_physical<'candidate, 'host>(
+    view: &mut super::foundation_bootstrap::CandidateFoundationBootstrapView<'_, '_, '_, '_>,
+    candidate: &'candidate crate::source_admission_spooled_candidate::SpoolCandidate<'host>,
+    input: &crate::source_admission_candidate_records::CandidateRecordsInput<'candidate, 'host>,
+    original_io: &tos_source_store::PinnedSqliteIoBudget,
+    mut payloads: FoundationPayloadSources<'_>,
+    item_schemas: &tos_validation::source_cut::CandidateCutWorkerSchemaExecutor<
+        crate::source_admission_spooled_candidate::CandidateFence,
+    >,
+    record_executor: &mut BiblioRecordExecutor,
+    worker_quota: &SharedSchemaWorkerQuota,
+    held: FoundationPhaseReservation,
+    remaining_write_bytes: u64,
+) -> Result<super::foundation_payload::PhysicalPayloadCompletion, FoundationOrchestratorError> {
+    let deadline = view.invocation.deadline();
+    let cancelled = view.cancelled;
+    view.remaining_budget
+        .verify_invocation(view.invocation)
+        .map_err(FoundationOrchestratorError::Command)?;
+    let input_identity: &dyn tos_validation::record_biblio_cut::SourceCutInputWithIdentity<
+        crate::source_admission_spooled_candidate::CandidateFence,
+    > = input;
+    if item_schemas.input_identity() != view.input.input_identity()
+        || !std::ptr::addr_eq(view.input, input_identity)
+        || !candidate.shares_io_budget(original_io)
+        || !input.shares_io_budget(original_io)
+        || !view.original_io.shares_with(original_io)
+        || !view.physical.shared_io_budget_matches(original_io)
+        || !view.physical.forwards_physical_reads_to_shared_io()
+        || !item_schemas.is_finished()
+        || !candidate.matches_invocation(deadline, cancelled)
+        || payloads.deadline() != deadline
+        || view.physical.deadline() != deadline
+    {
+        return Err(incomplete("candidate post-worker custody binding refused"));
+    }
+    let payload_before = payloads.cost();
+    let physical_before = view.physical.cost();
+    let minimum_held = payload_before
+        .peak_state_bytes
+        .checked_add(physical_before.retained_state_bytes)
+        .ok_or_else(|| incomplete("candidate final provider state overflow"))?;
+    if held.state_bytes < minimum_held {
+        return Err(incomplete("candidate final provider overlap is unreserved"));
+    }
+    let ticket = open_window(
+        view.execution_limits,
+        view.remaining_budget,
+        "candidate-payload-physical-eof",
+        FoundationWindowKind::FinalCustodyAndOutput,
+        held,
+    )?;
+    let free = ticket.remaining();
+    let io_before = original_io.snapshot();
+    let mut known_external_reads = 0u64;
+    let result = (|| {
+        let history_before = view.history.as_deref().map(|history| history.usage());
+        let history_shared_before = view
+            .history
+            .as_deref()
+            .filter(|history| history.shared_io_budget_matches(original_io))
+            .map(|history| history.shared_runtime_read_bytes_returned());
+        let history_state_limit = history_before
+            .map_or(0, |(_, state)| state)
+            .checked_add(free.state_bytes)
+            .ok_or_else(|| incomplete("candidate final history state allowance overflow"))?;
+        if let Some(history) = view.history.as_deref_mut() {
+            if history
+                .recheck(free.source_read_bytes, history_state_limit, deadline, cancelled)
+                .is_err()
+            {
+                let (after_read, _) = history.usage();
+                let partial_read = after_read
+                    .checked_sub(history_before.map_or(0, |(read, _)| read))
+                    .ok_or_else(|| incomplete("candidate partial history read regressed"))?;
+                let partial_shared = history
+                    .shared_io_budget_matches(original_io)
+                    .then(|| history.shared_runtime_read_bytes_returned())
+                    .zip(history_shared_before)
+                    .map_or(Some(0), |(after, before)| after.checked_sub(before))
+                    .filter(|bytes| *bytes <= partial_read)
+                    .ok_or_else(|| incomplete("candidate partial history shared read differs"))?;
+                known_external_reads = partial_read
+                    .checked_sub(partial_shared)
+                    .ok_or_else(|| incomplete("candidate partial history accounting differs"))?;
+                return Err(incomplete("candidate final history custody recheck refused"));
+            }
+        }
+        let history_after = view.history.as_deref().map(|history| history.usage());
+        let history_read = match (history_before, history_after) {
+            (Some((before, _)), Some((after, _))) => after
+                .checked_sub(before)
+                .ok_or_else(|| incomplete("candidate final history read cost regressed"))?,
+            _ => 0,
+        };
+        let history_state = match (history_before, history_after) {
+            (Some((_, before)), Some((_, after))) => after
+                .checked_sub(before)
+                .ok_or_else(|| incomplete("candidate final history state cost regressed"))?,
+            _ => 0,
+        };
+        let history_shared = match (
+            history_shared_before,
+            view.history
+                .as_deref()
+                .filter(|history| history.shared_io_budget_matches(original_io))
+                .map(|history| history.shared_runtime_read_bytes_returned()),
+        ) {
+            (Some(before), Some(after)) => after
+                .checked_sub(before)
+                .filter(|bytes| *bytes <= history_read)
+                .ok_or_else(|| incomplete("candidate final history shared-read cost differs"))?,
+            (None, None) => 0,
+            _ => return Err(incomplete("candidate final history IO identity changed")),
+        };
+        known_external_reads = history_read
+            .checked_sub(history_shared)
+            .ok_or_else(|| incomplete("candidate final history read accounting differs"))?;
+        let io_after_history = original_io.snapshot();
+        let shared_after_history = io_after_history
+            .read_attempted_bytes
+            .checked_sub(io_before.read_attempted_bytes)
+            .ok_or_else(|| incomplete("candidate final history IO counter regressed"))?;
+        if history_shared > shared_after_history {
+            return Err(incomplete("candidate final history share exceeds original IO"));
+        }
+        let history_used = shared_after_history
+            .checked_add(known_external_reads)
+            .ok_or_else(|| incomplete("candidate final history read cost overflow"))?;
+        let payload_headroom = free
+            .source_read_bytes
+            .checked_sub(history_used)
+            .ok_or_else(|| incomplete("candidate final history exceeds read reservation"))?;
+        candidate
+            .restrict_remaining_io(payload_headroom, remaining_write_bytes)
+            .map_err(FoundationOrchestratorError::Admission)?;
+
+        // The payload reread is bounded by its actual initial stream. Its
+        // forwarded returns are charged through the shared original ledger.
+        let payload_recheck_bound = payload_before.initial_bytes_read;
+        let quota_before = worker_quota
+            .usage()
+            .map_err(|_| incomplete("schema quota unavailable"))?;
+        record_executor.finish(deadline, cancelled).map_err(owner)?;
+        let quota_after = worker_quota
+            .usage()
+            .map_err(|_| incomplete("schema quota unavailable"))?;
+        let (cpu, wire) = use_delta(quota_before, quota_after)?;
+        payloads
+            .restrict_remaining_read_budget(payload_recheck_bound, deadline, cancelled)
+            .map_err(owner)?;
+        let completion = payloads.finish_with_cost().map_err(owner)?;
+        let payload_read = completion
+            .cost
+            .total_bytes_read
+            .checked_sub(payload_before.total_bytes_read)
+            .ok_or_else(|| incomplete("candidate payload final read cost regressed"))?;
+        let payload_shared_read = completion
+            .cost
+            .shared_read_bytes_returned
+            .checked_sub(payload_before.shared_read_bytes_returned)
+            .ok_or_else(|| incomplete("candidate payload shared-read counter regressed"))?;
+        let payload_unshared_read = payload_read
+            .checked_sub(payload_shared_read)
+            .ok_or_else(|| incomplete("candidate payload shared-read accounting differs"))?;
+        known_external_reads = known_external_reads
+            .checked_add(payload_unshared_read)
+            .ok_or_else(|| incomplete("candidate payload external read cost overflow"))?;
+        let io_after_payload = original_io.snapshot();
+        let candidate_payload_read = io_after_payload
+            .read_attempted_bytes
+            .checked_sub(io_before.read_attempted_bytes)
+            .ok_or_else(|| incomplete("candidate final IO read counter regressed"))?;
+        let physical_headroom = free
+            .source_read_bytes
+            .checked_sub(candidate_payload_read)
+            .and_then(|bytes| bytes.checked_sub(known_external_reads))
+            .and_then(|bytes| bytes.checked_sub(payload_unshared_read))
+            .ok_or_else(|| incomplete("candidate payload final reads exceed reservation"))?;
+        let write_headroom = remaining_write_bytes
+            .checked_sub(
+                io_after_payload
+                    .write_attempted_bytes
+                    .checked_sub(io_before.write_attempted_bytes)
+                    .ok_or_else(|| incomplete("candidate final IO write counter regressed"))?,
+            )
+            .ok_or_else(|| incomplete("candidate payload IO exceeds write reservation"))?;
+        candidate
+            .restrict_remaining_io(physical_headroom, write_headroom)
+            .map_err(FoundationOrchestratorError::Admission)?;
+        view.physical
+            .restrict_remaining_read_budget(bounded_usize(physical_headroom)?, deadline, cancelled)
+            .map_err(owner)?;
+        if let Err(error) = view.physical.recheck_candidate(
+                view.sources,
+                view.artifact_sources.as_deref_mut(),
+                input,
+                view.coverage,
+            )
+        {
+            let partial = view.physical.cost();
+            if let (Some(read), Some(shared)) = (
+                partial.bytes_read.checked_sub(physical_before.bytes_read),
+                partial
+                    .shared_read_bytes_returned
+                    .checked_sub(physical_before.shared_read_bytes_returned),
+            ) {
+                if let Some(unshared) = read.checked_sub(shared) {
+                    let unshared = u64::try_from(unshared)
+                        .map_err(|_| incomplete("candidate partial physical read range"))?;
+                    known_external_reads = known_external_reads
+                        .checked_add(unshared)
+                        .ok_or_else(|| incomplete("candidate partial physical read overflow"))?;
+                }
+            }
+            return Err(owner(error));
+        }
+        let physical_after = view.physical.cost();
+        let physical_read = physical_after
+            .bytes_read
+            .checked_sub(physical_before.bytes_read)
+            .ok_or_else(|| incomplete("candidate physical final read cost regressed"))?;
+        let physical_shared_read = physical_after
+            .shared_read_bytes_returned
+            .checked_sub(physical_before.shared_read_bytes_returned)
+            .ok_or_else(|| incomplete("candidate physical shared-read counter regressed"))?;
+        let physical_unshared_read = physical_read
+            .checked_sub(physical_shared_read)
+            .ok_or_else(|| incomplete("candidate physical shared-read accounting differs"))?;
+        known_external_reads = known_external_reads
+            .checked_add(
+                u64::try_from(physical_unshared_read)
+                    .map_err(|_| incomplete("candidate physical external read range"))?,
+            )
+            .ok_or_else(|| incomplete("candidate physical external read overflow"))?;
+        let physical_state = physical_after
+            .retained_state_bytes
+            .checked_sub(physical_before.retained_state_bytes)
+            .ok_or_else(|| incomplete("candidate physical final state cost regressed"))?;
+        let io_after = original_io.snapshot();
+        let candidate_read = io_after
+            .read_attempted_bytes
+            .checked_sub(io_before.read_attempted_bytes)
+            .ok_or_else(|| incomplete("candidate final IO read counter regressed"))?;
+        let remaining_write = remaining_write_bytes
+            .checked_sub(
+                io_after
+                    .write_attempted_bytes
+                    .checked_sub(io_before.write_attempted_bytes)
+                    .ok_or_else(|| incomplete("candidate final IO write counter regressed"))?,
+            )
+            .ok_or_else(|| incomplete("candidate final IO exceeds write reservation"))?;
+        let read = candidate_read
+            .checked_add(known_external_reads)
+            .ok_or_else(|| incomplete("candidate final provider read cost overflow"))?;
+        let state = completion
+            .cost
+            .final_facts_state_bytes
+            .checked_add(physical_state)
+            .and_then(|bytes| bytes.checked_add(history_state))
+            .ok_or_else(|| incomplete("candidate final provider retained cost overflow"))?;
+        Ok((
+            completion,
+            phase_use(read, wire, state, 0, cpu, 0, 0),
+            remaining_write,
+        ))
+    })();
+    let (completion, usage, remaining_write) = match result {
+        Ok(result) => result,
+        Err(error) => {
+            return fail_candidate_window_with_measured_io(
+                view.execution_limits,
+                view.remaining_budget,
+                ticket,
+                original_io,
+                io_before,
+                known_external_reads,
+                view.candidate_io_adopted,
+                view.remaining_write_bytes,
+                error,
+            );
+        }
+    };
+    let measured_before = view.remaining_budget.measured_charged().source_read_bytes;
+    let phase_read = usage.source_read_bytes.amount;
+    let completion_result = complete_window(
+        view.execution_limits,
+        view.remaining_budget,
+        ticket,
+        usage,
+    );
+    let measured_after = view.remaining_budget.measured_charged().source_read_bytes;
+    if measured_after.checked_sub(measured_before) == Some(phase_read) {
+        let io_after = original_io.snapshot();
+        *view.candidate_io_adopted = (
+            io_after.read_attempted_bytes,
+            io_after.write_attempted_bytes,
+        );
+        *view.remaining_write_bytes = remaining_write;
+    }
+    completion_result?;
+    let remaining = view
+        .remaining_budget
+        .remaining()
+        .map_err(FoundationOrchestratorError::Command)?;
+    candidate
+        .restrict_remaining_io(remaining.source_read_bytes, remaining_write)
+        .map_err(FoundationOrchestratorError::Admission)?;
+    // Protected controls use their maintained parser/state/read envelope and
+    // their own window, after the final candidate/pager IO delta is charged.
+    // The outer owner adopts these terminal spool counters without another debit.
+    super::foundation_bootstrap::verify_candidate_original_epoch_with_budget(
+        view.sources,
+        view.original_epoch,
+        view.execution_limits,
+        view.remaining_budget,
+    )?;
+    let remaining = view
+        .remaining_budget
+        .remaining()
+        .map_err(FoundationOrchestratorError::Command)?;
+    candidate
+        .restrict_remaining_io(remaining.source_read_bytes, remaining_write)
+        .map_err(FoundationOrchestratorError::Admission)?;
+    Ok(completion)
+}
+
+/// Run the complete candidate route over the exact borrowed Records input.
+/// The returned report is the opaque report sealed by `IndexSink`'s actual
+/// Records receiver; this function creates no whole-admission token.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn evaluate_spooled_admission<
+    'work,
+    'input,
+    'candidate,
+    'host,
+    'cancel,
+    'signal,
+>(
+    mut view: super::foundation_bootstrap::CandidateFoundationBootstrapView<
+        'work,
+        'input,
+        'cancel,
+        'signal,
+    >,
+    mut payloads: FoundationPayloadSources<'work>,
+    input: &'input crate::source_admission_candidate_records::CandidateRecordsInput<
+        'candidate,
+        'host,
+    >,
+    candidate: &'candidate crate::source_admission_spooled_candidate::SpoolCandidate<'host>,
+    selected_index: crate::source_admission_spooled_index::SpoolIndexLimits,
+    native_limits: crate::source_admission_index::IndexLimits,
+    defaults_limits: crate::source_admission_spooled_index::SpoolIndexLimits,
+    json: tos_foundation::JsonLimits,
+    json_state_bytes: usize,
+    callback_state_bytes: usize,
+    base_declared_state_bytes: usize,
+) -> Result<
+    (
+        crate::source_admission_spooled_index::IndexSink<'candidate>,
+        crate::source_admission_spooled_index::CandidateRecordsReportVerified,
+    ),
+    FoundationOrchestratorError,
+> {
+    use crate::source_admission_spooled_candidate::CandidateFence;
+    use crate::source_admission_spooled_defaults::SpoolDefaultStore;
+    use crate::source_admission_spooled_index::{
+        CandidateRecordsReportVerified, IndexSink, SpoolIndexLimits,
+        CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES,
+    };
+    use super::foundation_reader::{FoundationRuleReadLimits, FoundationRuleSource};
+    use std::num::NonZeroUsize;
+    use tos_validation::record_biblio_cut::{SourceCutInput, SourceCutInputWithIdentity};
+    use tos_validation::source_foundation_records::SourceFoundationRecordsPageBudget;
+
+    let deadline = view.invocation.deadline();
+    let cancelled = view.cancelled;
+    let budgets = view.invocation.budgets;
+    let max_members = usize::try_from(budgets.max_current_members.min(usize::MAX as u64))
+        .map_err(|_| incomplete("candidate current-member limit range"))?;
+    let max_member_bytes = usize::try_from(budgets.max_member_bytes.min(usize::MAX as u64))
+        .map_err(|_| incomplete("candidate member limit range"))?;
+    let original_operation_state = view
+        .remaining_budget
+        .remaining()
+        .map_err(FoundationOrchestratorError::Command)?
+        .state_bytes;
+    let working_ram = usize::try_from(budgets.working_ram_bytes)
+        .map_err(|_| incomplete("candidate working-RAM limit range"))?;
+
+    let input_identity: &dyn SourceCutInputWithIdentity<CandidateFence> = input;
+    if !std::ptr::addr_eq(view.input, input_identity)
+        || !candidate.matches_invocation(deadline, cancelled)
+        || !candidate.shares_io_budget(view.original_io)
+        || !input.shares_io_budget(view.original_io)
+        || !payloads.shared_io_budget_matches(view.original_io)
+        || !payloads.forwards_payload_reads_to_shared_io()
+        || !view.physical.shared_io_budget_matches(view.original_io)
+        || !view.physical.forwards_physical_reads_to_shared_io()
+        || payloads.deadline() != deadline
+        || view.physical.deadline() != deadline
+        || view.remaining_budget.verify_invocation(view.invocation).is_err()
+        || view.execution_limits.deadline != deadline
+    {
+        return Err(incomplete("candidate runner input or shared-ledger binding refused"));
+    }
+    let fence = *input.input_identity();
+    if view.input.input_identity() != &fence
+        || view.coverage.membership() != fence.membership
+        || native_limits.max_edges == 0
+        || native_limits.max_state_bytes == 0
+        || json.max_bytes == 0
+        || json_state_bytes == 0
+        || callback_state_bytes == 0
+        || callback_state_bytes > original_operation_state
+    {
+        return Err(incomplete("candidate runner profile binding refused"));
+    }
+    let io_entry = candidate
+        .io_usage()
+        .map_err(FoundationOrchestratorError::Admission)?;
+    if *view.candidate_io_adopted
+        != (io_entry.read_attempted_bytes, io_entry.write_attempted_bytes)
+    {
+        return Err(incomplete("candidate runner IO adoption differs"));
+    }
+    let borrowed_base = candidate
+        .borrowed_base_declared_retained_state_bytes()
+        .map_err(FoundationOrchestratorError::Admission)?;
+    if borrowed_base
+        .0
+        .checked_add(borrowed_base.1)
+        .filter(|bytes| *bytes == base_declared_state_bytes)
+        .is_none()
+    {
+        return Err(incomplete("candidate borrowed-base declaration differs"));
+    }
+    let candidate_owned_state = candidate
+        .own_retained_state_upper_bound_bytes()
+        .map_err(FoundationOrchestratorError::Admission)?;
+    let payload_initial = payloads.cost();
+    let physical_initial = view.physical.cost();
+    let fixed_declared = candidate_owned_state
+        .checked_add(base_declared_state_bytes)
+        .and_then(|state| state.checked_add(selected_index.cache_bytes))
+        .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
+        .and_then(|state| state.checked_add(payload_initial.peak_state_bytes))
+        .and_then(|state| state.checked_add(physical_initial.retained_state_bytes))
+        .and_then(|state| {
+            state.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)
+        })
+        .ok_or_else(|| incomplete("candidate whole-run declared state overflow"))?;
+    if fixed_declared > working_ram {
+        return Err(incomplete("candidate declared working envelope exceeded"));
+    }
+    let minimal_callback = std::mem::size_of::<IndexSink<'candidate>>()
+        .checked_add(std::mem::size_of::<SpoolDefaultStore<'candidate, 'host>>())
+        .and_then(|bytes| bytes.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES))
+        .ok_or_else(|| incomplete("candidate callback inline state overflow"))?;
+    input
+        .require_callback_state(minimal_callback, original_operation_state)
+        .map_err(owner)?;
+
+    let mut schema_count = 0usize;
+    let mut schema_bytes = 0usize;
+    let mut schema_max_bytes = 0usize;
+    let mut catalog_members = 0usize;
+    let mut catalog_member_bytes = 0u64;
+    let mut largest_member = 0usize;
+
+    let schema_ticket = open_window(
+        view.execution_limits,
+        view.remaining_budget,
+        "candidate-schema-resource-load",
+        FoundationWindowKind::Schema,
+        FoundationPhaseReservation::default(),
+    )?;
+    let schema_operation = schema_ticket.operation_limits();
+    let worker_quota = SharedSchemaWorkerQuota::new(
+        view.remaining_budget
+            .remaining_worker_cpu_micros()
+            .map_err(FoundationOrchestratorError::Command)?,
+        schema_ticket.remaining().worker_wire_bytes,
+        schema_ticket.remaining().worker_wire_bytes.max(1),
+    )
+    .map_err(|_| incomplete("candidate shared schema quota refused"))?;
+    let io_before_schema = candidate
+        .io_usage()
+        .map_err(FoundationOrchestratorError::Admission)?;
+    let worker_image_max = MAX_WORKER_IMAGE_BYTES;
+    let image_read_reserve = schema_ticket
+        .remaining()
+        .source_read_bytes
+        .checked_sub(worker_image_max)
+        .ok_or_else(|| incomplete("candidate worker image exceeds source-read reservation"))?;
+    let remaining_write_before_schema = *view.remaining_write_bytes;
+    candidate
+        .restrict_remaining_io(image_read_reserve, remaining_write_before_schema)
+        .map_err(FoundationOrchestratorError::Admission)?;
+    let image_budget = ticket_worker_budget(
+        &schema_ticket,
+        deadline,
+        budgets.worker_address_space_bytes,
+    )?;
+    let worker_image = VerifiedWorkerImageHandle::prepare(
+        view.execution_limits.worker.clone(),
+        image_budget,
+        deadline,
+        cancelled,
+    )
+    .map_err(|_| incomplete("candidate verified worker image refused"))?;
+    let worker_image_read = worker_image
+        .image_bytes()
+        .map_err(|_| incomplete("candidate worker image byte count unavailable"))?;
+    let worker_image_state = usize::try_from(
+        worker_image
+            .retained_state_bytes()
+            .map_err(|_| incomplete("candidate worker image state unavailable"))?,
+    )
+    .map_err(|_| incomplete("candidate worker image state range"))?;
+    let candidate_after_image_headroom = schema_ticket
+        .remaining()
+        .source_read_bytes
+        .checked_sub(worker_image_read)
+        .ok_or_else(|| incomplete("candidate worker image exceeds source reservation"))?;
+    candidate
+        .restrict_remaining_io(candidate_after_image_headroom, remaining_write_before_schema)
+        .map_err(FoundationOrchestratorError::Admission)?;
+
+    input
+        .verify_current_fence(view.coverage, deadline, cancelled)
+        .map_err(owner)?;
+    input
+        .for_each_current_member_meta(deadline, cancelled, &mut |member| {
+            let size = usize::try_from(member.size_bytes).map_err(|_| {
+                ItemRefusal::Source("candidate member size exceeds address space".into())
+            })?;
+            if size > max_member_bytes {
+                return Err(ItemRefusal::Budget);
+            }
+            largest_member = largest_member.max(size);
+            if member.path.starts_with("ToS/contracts/")
+                && member.path.ends_with(".schema.json")
+            {
+                schema_count = schema_count.checked_add(1).ok_or(ItemRefusal::Budget)?;
+                schema_bytes = schema_bytes.checked_add(size).ok_or(ItemRefusal::Budget)?;
+                schema_max_bytes = schema_max_bytes.max(size);
+            }
+            if member.path.starts_with("ToS/source-witnesses/") {
+                catalog_members = catalog_members.checked_add(1).ok_or(ItemRefusal::Budget)?;
+                catalog_member_bytes = catalog_member_bytes
+                    .checked_add(member.size_bytes)
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+            if catalog_members > max_members {
+                return Err(ItemRefusal::Budget);
+            }
+            Ok(())
+        })
+        .map_err(owner)?;
+    input
+        .verify_current_fence(view.coverage, deadline, cancelled)
+        .map_err(owner)?;
+    if schema_count == 0 || schema_bytes == 0 || schema_max_bytes == 0 || largest_member == 0 {
+        return Err(incomplete("candidate selected schema closure is empty"));
+    }
+    let max_checks = max_members.min(65_536).max(1);
+    let schema_limits = schema_limits_for_ticket(
+        view.execution_limits,
+        &schema_ticket,
+        schema_count,
+        schema_max_bytes,
+        schema_bytes,
+        max_checks,
+    )?;
+    let first_worker_shape = cut_worker_shape(schema_operation, max_checks);
+    let first_worker_stream = view
+        .execution_limits
+        .cut_worker_stream_budget(schema_operation, first_worker_shape)
+        .map_err(FoundationOrchestratorError::Command)?;
+    let first_worker_limits = CutWorkerLimits {
+        max_receipts: max_checks,
+        max_receipt_bytes: schema_operation.state_bytes.min(1024 * 1024).max(1),
+    };
+    let first_diagnostics = CutSchemaDiagnosticsLimits {
+        max_total_issues: schema_operation.issue_count.max(1),
+        max_total_report_bytes: schema_operation.output_bytes.max(1),
+        max_total_state_bytes: schema_operation.state_bytes.max(1),
+    };
+    let image_path_state = worker_identity_path_clone_bytes(worker_image.identity(), 4)?;
+    let first_worker_held = candidate_owned_state
+        .checked_add(base_declared_state_bytes)
+        .and_then(|state| state.checked_add(selected_index.cache_bytes))
+        .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
+        .and_then(|state| state.checked_add(worker_image_state))
+        .and_then(|state| state.checked_add(image_path_state))
+        .and_then(|state| state.checked_add(payload_initial.peak_state_bytes))
+        .and_then(|state| state.checked_add(physical_initial.retained_state_bytes))
+        .and_then(|state| {
+            state.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)
+        })
+        .ok_or_else(|| incomplete("candidate schema worker held-state overflow"))?;
+    if first_worker_held > working_ram {
+        return fail_window(
+            view.execution_limits,
+            view.remaining_budget,
+            schema_ticket,
+            incomplete("candidate schema worker exceeds declared working envelope"),
+        );
+    }
+    let mut item_schemas = match prepare_candidate_schema_worker(
+        &view,
+        input,
+        &worker_image,
+        &worker_quota,
+        &schema_ticket,
+        schema_limits,
+        schema_operation.state_bytes,
+        first_worker_limits,
+        first_diagnostics,
+        first_worker_stream,
+        first_worker_held,
+        original_operation_state,
+    ) {
+        Ok(worker) => worker,
+        Err(error) => {
+            return fail_window(view.execution_limits, view.remaining_budget, schema_ticket, error);
+        }
+    };
+    let schema_base_state = schema_state_upper_bound(
+        item_schemas.schema_bytes(),
+        item_schemas.source_resource_count(),
+        item_schemas
+            .source_resource_metadata_state_bytes()
+            .ok_or_else(|| incomplete("candidate selected schema metadata state unavailable"))?,
+    )?;
+    let schema_controller = item_schemas
+        .diagnostics_v2_controller_state_upper_bound(schema_limits.max_instance_bytes, 4096)
+        .map_err(owner)?;
+    let schema_state = schema_base_state
+        .checked_add(schema_controller)
+        .and_then(|state| state.checked_add(std::mem::size_of_val(&item_schemas)))
+        .ok_or_else(|| incomplete("candidate schema retained-state overflow"))?;
+    let io_after_schema = candidate
+        .io_usage()
+        .map_err(FoundationOrchestratorError::Admission)?;
+    let schema_read_delta = io_after_schema
+        .read_attempted_bytes
+        .checked_sub(io_before_schema.read_attempted_bytes)
+        .ok_or_else(|| incomplete("candidate schema IO read counter regressed"))?;
+    let schema_write_delta = io_after_schema
+        .write_attempted_bytes
+        .checked_sub(io_before_schema.write_attempted_bytes)
+        .ok_or_else(|| incomplete("candidate schema IO write counter regressed"))?;
+    let remaining_write = remaining_write_before_schema
+        .checked_sub(schema_write_delta)
+        .ok_or_else(|| incomplete("candidate schema IO exceeded write reservation"))?;
+    let schema_candidate_headroom = schema_ticket
+        .remaining()
+        .source_read_bytes
+        .checked_sub(worker_image_read)
+        .and_then(|bytes| bytes.checked_sub(schema_read_delta))
+        .ok_or_else(|| incomplete("candidate schema IO exceeded source reservation"))?;
+    candidate
+        .restrict_remaining_io(schema_candidate_headroom, remaining_write)
+        .map_err(FoundationOrchestratorError::Admission)?;
+    let schema_charge = checked_add_usize(
+        checked_add_usize(base_declared_state_bytes, worker_image_state)?,
+        checked_add_usize(schema_state, image_path_state)?,
+    )?;
+    complete_window(
+        view.execution_limits,
+        view.remaining_budget,
+        schema_ticket,
+        phase_use(
+            checked_add_u64(worker_image_read, schema_read_delta)?,
+            0,
+            schema_charge,
+            0,
+            0,
+            0,
+            0,
+        ),
+    )?;
+    *view.candidate_io_adopted = (
+        io_after_schema.read_attempted_bytes,
+        io_after_schema.write_attempted_bytes,
+    );
+    *view.remaining_write_bytes = remaining_write;
+    let remaining = view
+        .remaining_budget
+        .remaining()
+        .map_err(FoundationOrchestratorError::Command)?;
+    candidate
+        .restrict_remaining_io(remaining.source_read_bytes, remaining_write)
+        .map_err(FoundationOrchestratorError::Admission)?;
+
+    let records_ticket = open_window(
+        view.execution_limits,
+        view.remaining_budget,
+        "candidate-records-artifact-bibliography-defaults",
+        FoundationWindowKind::RecordsAndBibliography,
+        FoundationPhaseReservation::default(),
+    )?;
+    let records_operation = records_ticket.operation_limits();
+    if records_operation.source_read_bytes == 0
+        || records_operation.state_bytes == 0
+        || records_operation.issue_count == 0
+    {
+        return fail_window(
+            view.execution_limits,
+            view.remaining_budget,
+            records_ticket,
+            incomplete("candidate Records operation reservation exhausted"),
+        );
+    }
+    let callback_held = candidate_owned_state
+        .checked_add(base_declared_state_bytes)
+        .and_then(|state| state.checked_add(selected_index.cache_bytes))
+        .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
+        .and_then(|state| state.checked_add(worker_image_state))
+        .and_then(|state| state.checked_add(image_path_state))
+        .and_then(|state| state.checked_add(schema_state))
+        .and_then(|state| state.checked_add(payloads.cost().peak_state_bytes))
+        .and_then(|state| state.checked_add(view.physical.cost().retained_state_bytes))
+        .and_then(|state| state.checked_add(std::mem::size_of::<BiblioRecordExecutor>()))
+        .and_then(|state| state.checked_add(std::mem::size_of::<IndexSink<'candidate>>()))
+        .and_then(|state| state.checked_add(std::mem::size_of::<SpoolDefaultStore<'candidate, 'host>>()))
+        .ok_or_else(|| incomplete("candidate dependent callback held-state overflow"))?;
+    let callback_header_state = CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES
+        .checked_add(std::mem::size_of::<std::sync::Arc<()>>())
+        .ok_or_else(|| incomplete("candidate callback report-header state overflow"))?;
+    let callback_workspace_state = callback_state_bytes
+        .checked_sub(callback_held)
+        .and_then(|state| state.checked_sub(callback_header_state))
+        .ok_or_else(|| {
+            incomplete("candidate simultaneous callback state exceeds its fixed reservation")
+        })?
+        .min(records_operation.state_bytes);
+    if callback_state_bytes > working_ram || callback_workspace_state == 0 {
+        return fail_window(
+            view.execution_limits,
+            view.remaining_budget,
+            records_ticket,
+            incomplete("candidate simultaneous callback state exceeds its fixed reservation"),
+        );
+    }
+    input
+        .require_callback_state(callback_state_bytes, original_operation_state)
+        .map_err(owner)?;
+
+    let callback_result_state = std::mem::size_of::<(usize, u64)>();
+    let records_callback_state = callback_workspace_state
+        .checked_sub(callback_result_state)
+        .ok_or_else(|| incomplete("candidate callback result header exceeds reservation"))?;
+    let mut records_profile = records_operation;
+    records_profile.state_bytes = records_callback_state;
+    let records_schema_request_state = records_callback_state.max(1);
+    let records_limits = view
+        .execution_limits
+        .rolling_records_limits(records_profile, records_schema_request_state)
+        .map_err(FoundationOrchestratorError::Command)?;
+    let records_shape = cut_worker_shape(records_profile, max_checks);
+    let records_stream = view
+        .execution_limits
+        .cut_worker_stream_budget(records_profile, records_shape)
+        .map_err(FoundationOrchestratorError::Command)?;
+    let record_executor_budget = ticket_worker_budget(
+        &records_ticket,
+        deadline,
+        budgets.worker_address_space_bytes,
+    )?;
+    let mut record_executor = BiblioRecordExecutor::new_with_image(
+        &worker_image,
+        record_executor_budget,
+        FormatProfile::LegacyPythonObserved20260923,
+        max_checks,
+        deadline,
+        cancelled,
+    )
+    .map_err(owner)?;
+    let record_diagnostic_ceilings = BiblioSchemaDiagnosticsLimits {
+        max_total_issues: records_profile.issue_count.max(1),
+        max_total_report_bytes: records_profile.output_bytes.max(1),
+        max_total_state_bytes: records_profile.state_bytes.max(1),
+    };
+    let record_diagnostic_limits = BiblioSchemaDiagnosticsLimits::from_operation_ceilings(
+        record_diagnostic_ceilings,
+        max_checks,
+        records_stream,
+    )
+    .map_err(owner)?;
+    record_executor.set_operation_budget(records_stream).map_err(owner)?;
+    record_executor
+        .enable_diagnostics_v2(record_diagnostic_limits)
+        .map_err(owner)?;
+    record_executor
+        .set_shared_schema_worker_quota(worker_quota.clone())
+        .map_err(owner)?;
+
+    let stored_operation_state = callback_workspace_state
+        .min(defaults_limits.max_row_state_bytes);
+    let stored_page_state = (stored_operation_state / 3).max(1);
+    let page_state = NonZeroUsize::new(stored_page_state)
+        .ok_or_else(|| incomplete("candidate stored page-state ceiling is zero"))?;
+    let cursor_state = NonZeroUsize::new((stored_page_state / 4).min(64 * 1024).max(1))
+        .ok_or_else(|| incomplete("candidate stored cursor-state ceiling is zero"))?;
+    let max_page_rows = max_members
+        .min(stored_page_state / std::mem::size_of::<String>().max(1))
+        .max(1);
+    let page_budget = SourceFoundationRecordsPageBudget {
+        max_rows: NonZeroUsize::new(max_page_rows)
+            .ok_or_else(|| incomplete("candidate stored page-row ceiling is zero"))?,
+        max_state_bytes: page_state,
+        max_cursor_bytes: cursor_state,
+    };
+    let max_scan_rows = records_profile.source_read_bytes.min(u64::MAX - 1).max(1);
+    let stored_limits = tos_validation::source_foundation_default_rules::SourceFoundationDefaultStoredLimits {
+        page_budget,
+        max_scan_rows,
+    };
+    let item_limits = view
+        .execution_limits
+        .item_limits(records_profile)
+        .map_err(FoundationOrchestratorError::Command)?;
+    let biblio_query_rows = tos_validation::biblio_rules::biblio_query_row_operation_budget(
+        usize::try_from(item_limits.max_total_bytes)
+            .map_err(|_| incomplete("candidate bibliography query-byte range"))?,
+    )
+    .map_err(owner)?;
+    let event_json_cap = item_limits
+        .max_state_bytes
+        .min(usize::try_from(item_limits.max_total_bytes.min(usize::MAX as u64)).unwrap_or(usize::MAX));
+    if event_json_cap < 2 {
+        return fail_window(
+            view.execution_limits,
+            view.remaining_budget,
+            records_ticket,
+            incomplete("candidate stored event JSON ceiling is too small"),
+        );
+    }
+
+    let io_before_records = view.original_io.snapshot();
+    let quota_before_records = worker_quota
+        .usage()
+        .map_err(|_| incomplete("candidate schema quota unavailable"))?;
+    candidate
+        .restrict_remaining_io(records_ticket.remaining().source_read_bytes, remaining_write)
+        .map_err(FoundationOrchestratorError::Admission)?;
+    payloads
+        .restrict_remaining_budget(
+            records_ticket.remaining().source_read_bytes,
+            payloads
+                .cost()
+                .peak_state_bytes
+                .checked_add(records_ticket.remaining().state_bytes)
+                .ok_or_else(|| incomplete("candidate payload allowance overflow"))?,
+            deadline,
+            cancelled,
+        )
+        .map_err(owner)?;
+    let mut index = IndexSink::open(candidate, selected_index)
+        .map_err(FoundationOrchestratorError::Admission)?;
+    let after_index_open = candidate
+        .io_usage()
+        .map_err(FoundationOrchestratorError::Admission)?;
+    let index_open_read = after_index_open
+        .read_attempted_bytes
+        .checked_sub(io_before_records.read_attempted_bytes)
+        .ok_or_else(|| incomplete("candidate index-open read counter regressed"))?;
+    let index_open_write = after_index_open
+        .write_attempted_bytes
+        .checked_sub(io_before_records.write_attempted_bytes)
+        .ok_or_else(|| incomplete("candidate index-open write counter regressed"))?;
+    let write_after_index = remaining_write
+        .checked_sub(index_open_write)
+        .ok_or_else(|| incomplete("candidate index-open write reservation exceeded"))?;
+    let read_after_index = records_ticket
+        .remaining()
+        .source_read_bytes
+        .checked_sub(index_open_read)
+        .ok_or_else(|| incomplete("candidate index-open read reservation exceeded"))?;
+    candidate
+        .restrict_remaining_io(read_after_index, write_after_index)
+        .map_err(FoundationOrchestratorError::Admission)?;
+    let mut defaults = SpoolDefaultStore::open(
+        candidate,
+        defaults_limits,
+        biblio_query_rows,
+        event_json_cap,
+        stored_operation_state,
+    )
+    .map_err(FoundationOrchestratorError::Admission)?;
+
+    let physical_facts = view.physical.facts();
+    let callback_external_reads = std::cell::Cell::new(0u64);
+    let (verified_records, (dependent_state, history_rule_reads)) = match index.with_candidate_records_report(
+        input,
+        &mut item_schemas,
+        records_limits,
+        view.launch.arguments.require_local_payloads,
+        cancelled,
+        &mut record_executor,
+        physical_facts,
+        &mut payloads,
+        tos_validation::record_biblio_cut::SourceCutRecordFactBudget {
+            max_facts: records_profile.source_read_bytes.min(u64::MAX - 1).max(1),
+            max_encoded_bytes: records_profile.source_read_bytes.min(u64::MAX - 1).max(1),
+        },
+        page_budget,
+        callback_held,
+        original_operation_state,
+        records_callback_state,
+        |records, verified, schemas, record_executor, payload_reader| {
+            if verified.fence() != fence
+                || verified.record_issue_count() != 0
+                || verified.item_issue_count() != 0
+                || records.input_identity() != &fence
+                || records.source_membership() != &fence.membership
+                || records.cost().selected_current_member_bytes != fence.source_bytes
+            {
+                return Err(io::Error::other("candidate Records report is not clean and bound"));
+            }
+            let after_records = view.original_io.snapshot();
+            let read_used = after_records
+                .read_attempted_bytes
+                .checked_sub(io_before_records.read_attempted_bytes)
+                .ok_or_else(|| io::Error::other("candidate Records read counter regressed"))?;
+            let write_used = after_records
+                .write_attempted_bytes
+                .checked_sub(io_before_records.write_attempted_bytes)
+                .ok_or_else(|| io::Error::other("candidate Records write counter regressed"))?;
+            let current_read = records_ticket
+                .remaining()
+                .source_read_bytes
+                .checked_sub(read_used)
+                .ok_or_else(|| io::Error::other("candidate Records read budget exceeded"))?;
+            let current_write = remaining_write
+                .checked_sub(write_used)
+                .ok_or_else(|| io::Error::other("candidate Records write budget exceeded"))?;
+            candidate
+                .restrict_remaining_io(current_read, current_write)
+                .map_err(|_| io::Error::other("candidate Records IO narrowing refused"))?;
+
+            let artifact_limits = view
+                .execution_limits
+                .item_limits(FoundationPhaseReservation {
+                    source_read_bytes: current_read,
+                    worker_wire_bytes: records_ticket.remaining().worker_wire_bytes,
+                    state_bytes: callback_workspace_state,
+                    issue_count: records_ticket.remaining().issue_count,
+                    output_bytes: records_ticket.remaining().output_bytes,
+                    worker_cpu_micros: records_ticket.remaining().worker_cpu_micros,
+                    worker_cpu_seconds: records_ticket.remaining().worker_cpu_seconds,
+                    tmpfs_bytes: records_ticket.remaining().tmpfs_bytes,
+                    tmpfs_inodes: records_ticket.remaining().tmpfs_inodes,
+                })
+                .map_err(|_| io::Error::other("candidate Artifact limits refused"))?;
+            let source_root = view
+                .selected_roots
+                .repo_root
+                .join("ToS/source-witnesses");
+            let history_usage_before = view.history.as_deref().map(|history| history.usage());
+            let history_shared_before = view
+                .history
+                .as_deref()
+                .filter(|history| history.shared_io_budget_matches(view.original_io))
+                .map(|history| history.shared_runtime_read_bytes_returned());
+            let replay_result = super::foundation_artifact_replay::prepare_candidate_artifact_replay(
+                input,
+                view.coverage,
+                records,
+                &source_root,
+                u64::from(view.invocation.uid()),
+                schemas,
+                artifact_limits,
+                page_budget,
+                max_scan_rows.min(usize::MAX as u64) as usize,
+                max_checks,
+                cancelled,
+            );
+            let replay = match replay_result {
+                Ok(replay) => replay,
+                Err(error) => {
+                    let history_after = view.history.as_deref().map(|history| history.usage());
+                    let history_read = match (history_usage_before, history_after) {
+                        (Some((before, _)), Some((after, _))) =>
+                            after.checked_sub(before).unwrap_or(0),
+                        _ => 0,
+                    };
+                    let history_shared = match (
+                        history_shared_before,
+                        view.history
+                            .as_deref()
+                            .filter(|history| history.shared_io_budget_matches(view.original_io))
+                            .map(|history| history.shared_runtime_read_bytes_returned()),
+                    ) {
+                        (Some(before), Some(after)) => after.checked_sub(before).unwrap_or(0),
+                        _ => 0,
+                    };
+                    let owner_reads = error
+                        .cost
+                        .native_history_source_read_bytes
+                        .checked_add(error.cost.readonly.read_bytes);
+                    if let Some(external) = owner_reads
+                        .and_then(|reads| reads.checked_sub(history_shared.min(history_read)))
+                    {
+                        callback_external_reads.set(external);
+                    }
+                    return Err(io::Error::other("candidate Artifact history/replay refused"));
+                }
+            };
+            let replay_cost = replay.cost();
+            let replay_state = replay_cost
+                .retained_state_upper_bound_bytes()
+                .ok_or_else(|| io::Error::other("candidate Artifact retained cost overflow"))?;
+            let replay_external_reads = replay_cost
+                .native_history_source_read_bytes
+                .checked_add(replay_cost.readonly.read_bytes)
+                .ok_or_else(|| io::Error::other("candidate Artifact read cost overflow"))?;
+            let after_replay = view.original_io.snapshot();
+            let candidate_used = after_replay
+                .read_attempted_bytes
+                .checked_sub(io_before_records.read_attempted_bytes)
+                .ok_or_else(|| io::Error::other("candidate Artifact read counter regressed"))?;
+            let history_usage_after = view.history.as_deref().map(|history| history.usage());
+            let history_read = match (history_usage_before, history_usage_after) {
+                (Some((before, _)), Some((after, _))) => after
+                    .checked_sub(before)
+                    .ok_or_else(|| io::Error::other("candidate Artifact history cost regressed"))?,
+                _ => 0,
+            };
+            let history_shared = match (
+                history_shared_before,
+                view.history
+                    .as_deref()
+                    .filter(|history| history.shared_io_budget_matches(view.original_io))
+                    .map(|history| history.shared_runtime_read_bytes_returned()),
+            ) {
+                (Some(before), Some(after)) => after
+                    .checked_sub(before)
+                    .filter(|bytes| *bytes <= history_read)
+                    .ok_or_else(|| io::Error::other("candidate Artifact history share differs"))?,
+                (None, None) => 0,
+                _ => return Err(io::Error::other("candidate Artifact history IO identity changed")),
+            };
+            if history_read != replay_cost.native_history_source_read_bytes
+                || replay_cost.candidate_source_read_bytes > candidate_used
+                || history_shared > candidate_used
+            {
+                return Err(io::Error::other("candidate Artifact history cost differs"));
+            }
+            let artifact_external_reads = replay_external_reads
+                .checked_sub(history_shared)
+                .ok_or_else(|| io::Error::other("candidate Artifact shared-read accounting differs"))?;
+            callback_external_reads.set(artifact_external_reads);
+            if !replay.skips().is_empty() {
+                return Err(io::Error::other("candidate Artifact evidence is incomplete"));
+            }
+            let after_replay_headroom = records_ticket
+                .remaining()
+                .source_read_bytes
+                .checked_sub(candidate_used)
+                .and_then(|bytes| bytes.checked_sub(artifact_external_reads))
+                .ok_or_else(|| io::Error::other("candidate Artifact source budget exceeded"))?;
+            candidate
+                .restrict_remaining_io(after_replay_headroom, current_write)
+                .map_err(|_| io::Error::other("candidate Artifact IO narrowing refused"))?;
+            let biblio_operation = FoundationPhaseReservation {
+                source_read_bytes: after_replay_headroom,
+                worker_wire_bytes: records_ticket.remaining().worker_wire_bytes,
+                state_bytes: callback_workspace_state.saturating_sub(replay_state),
+                issue_count: records_ticket.remaining().issue_count,
+                output_bytes: records_ticket.remaining().output_bytes,
+                worker_cpu_micros: records_ticket.remaining().worker_cpu_micros,
+                worker_cpu_seconds: records_ticket.remaining().worker_cpu_seconds,
+                tmpfs_bytes: records_ticket.remaining().tmpfs_bytes,
+                tmpfs_inodes: records_ticket.remaining().tmpfs_inodes,
+            };
+            let biblio_limits = view
+                .execution_limits
+                .item_limits(biblio_operation)
+                .map_err(|_| io::Error::other("candidate Biblio limits refused"))?;
+            let default_event_json_bytes = event_json_cap
+                .min(biblio_limits.max_state_bytes)
+                .min(usize::try_from(biblio_limits.max_total_bytes.min(usize::MAX as u64)).unwrap_or(usize::MAX));
+            if default_event_json_bytes < 2 {
+                return Err(io::Error::other("candidate Biblio event ceiling is too small"));
+            }
+            defaults
+                .fold_record_events(
+                    records,
+                    stored_limits,
+                    default_event_json_bytes,
+                    stored_operation_state,
+                    deadline,
+                    cancelled,
+                )
+                .map_err(|_| io::Error::other("candidate stored Records events refused"))?;
+            let biblio_query_rows = tos_validation::biblio_rules::biblio_query_row_operation_budget(
+                usize::try_from(biblio_limits.max_total_bytes)
+                    .map_err(|_| io::Error::other("candidate Biblio query cap range"))?,
+            )
+            .map_err(|_| io::Error::other("candidate Biblio query budget refused"))?;
+            let providers_result = defaults.with_providers(
+                records,
+                input,
+                stored_limits,
+                stored_operation_state,
+                deadline,
+                cancelled,
+                |records_lookup, paths, default_events, biblio_sink| {
+                    let biblio_report = tos_validation::biblio_rules::inspect_bibliography_from_input_stored(
+                        input,
+                        view.coverage,
+                        records,
+                        records_lookup,
+                        default_events.event_lookup(),
+                        biblio_sink,
+                        schemas,
+                        biblio_limits,
+                        cancelled,
+                    )?;
+                    if biblio_report.input_identity() != &fence
+                        || biblio_report.source_membership() != fence.membership
+                        || !biblio_report.owner_predicates_complete()
+                        || biblio_report.shadow().issue_sink_truncated
+                        || !biblio_report.shadow().issues.is_empty()
+                    {
+                        return Err(ItemRefusal::Source(
+                            "candidate Biblio owner predicates are incomplete or invalid".into(),
+                        ));
+                    }
+                    let claims: &dyn tos_validation::source_foundation_default_rules::SourceFoundationDefaultClaims =
+                        biblio_sink;
+                    let biblio_state = biblio_report.accounted_state_upper_bound_bytes();
+                    let available_after_biblio = biblio_operation
+                        .state_bytes
+                        .checked_sub(biblio_state)
+                        .ok_or(ItemRefusal::Budget)?;
+                    let mut reader_limits = FoundationRuleReadLimits {
+                        max_member_bytes: max_member_bytes.min(after_replay_headroom as usize).max(1),
+                        max_read_bytes: after_replay_headroom,
+                        max_auxiliary_paths: max_members
+                            .min(available_after_biblio / std::mem::size_of::<(String, Option<(Digest256, u64)>)>().max(1))
+                            .max(1),
+                        max_auxiliary_state_bytes: available_after_biblio,
+                        deadline,
+                    };
+                    reader_limits.max_member_bytes = reader_limits
+                        .max_member_bytes
+                        .min(usize::try_from(biblio_limits.max_member_bytes)
+                            .map_err(|_| ItemRefusal::Budget)?);
+                    let history_usage_before_rules =
+                        view.history.as_deref().map(|history| history.usage());
+                    let history_shared_before_rules = view
+                        .history
+                        .as_deref()
+                        .filter(|history| history.shared_io_budget_matches(view.original_io))
+                        .map(|history| history.shared_runtime_read_bytes_returned());
+                    let reader_io_before = view.original_io.snapshot();
+                    let mut rule_source = FoundationRuleSource::from_candidate(
+                        input,
+                        view.original_io,
+                        view.sources,
+                        schemas,
+                        payload_reader,
+                        cancelled,
+                        reader_limits,
+                        callback_held
+                            .checked_add(replay_state)
+                            .and_then(|state| state.checked_add(biblio_state))
+                            .ok_or(ItemRefusal::Budget)?,
+                        callback_state_bytes,
+                    )?;
+                    if let Some(history) = view.history.as_deref_mut() {
+                        rule_source = rule_source.with_history(history)?;
+                    }
+                    let event_state_cap = biblio_operation
+                        .state_bytes
+                        .min(biblio_operation.output_bytes);
+                    let default_rules_limits =
+                        tos_validation::source_foundation_default_rules::SourceFoundationDefaultRulesLimits {
+                            operation: {
+                                let mut operation = biblio_limits;
+                                operation.max_state_bytes = available_after_biblio;
+                                operation.max_total_bytes = after_replay_headroom;
+                                operation
+                            },
+                            max_event_map_bytes: event_state_cap.min(available_after_biblio),
+                        };
+                    let stored_report = tos_validation::source_foundation_default_rules::inspect_source_foundation_default_rules_from_input_stored(
+                        &mut rule_source,
+                        input,
+                        view.coverage,
+                        records,
+                        records_lookup,
+                        paths,
+                        default_events,
+                        replay.histories(),
+                        claims,
+                        physical_facts,
+                        &replay.artifact_replays(),
+                        replay.invalid_schema_proofs(),
+                        view.launch.arguments.require_local_payloads,
+                        default_rules_limits,
+                        stored_limits,
+                        cancelled,
+                    )?;
+                    rule_source.recheck_auxiliary()?;
+                    let reader_cost = rule_source.cost();
+                    let reader_io_after = view.original_io.snapshot();
+                    let history_usage_after_rules =
+                        view.history.as_deref().map(|history| history.usage());
+                    let history_rule_read = match (
+                        history_usage_before_rules,
+                        history_usage_after_rules,
+                    ) {
+                        (Some((before, _)), Some((after, _))) => {
+                            after.checked_sub(before).ok_or(ItemRefusal::Budget)?
+                        }
+                        _ => 0,
+                    };
+                    let history_shared_rule_read = match (
+                        history_shared_before_rules,
+                        view.history
+                            .as_deref()
+                            .filter(|history| history.shared_io_budget_matches(view.original_io))
+                            .map(|history| history.shared_runtime_read_bytes_returned()),
+                    ) {
+                        (Some(before), Some(after)) => after
+                            .checked_sub(before)
+                            .filter(|bytes| *bytes <= history_rule_read)
+                            .ok_or(ItemRefusal::Budget)?,
+                        (None, None) => 0,
+                        _ => return Err(ItemRefusal::Budget),
+                    };
+                    let reader_shared_attempts = reader_io_after
+                        .read_attempted_bytes
+                        .checked_sub(reader_io_before.read_attempted_bytes)
+                        .ok_or(ItemRefusal::Budget)?;
+                    let reader_external_reads = reader_cost
+                        .bytes_read
+                        .checked_sub(reader_cost.shared_read_bytes_returned)
+                        .ok_or(ItemRefusal::Budget)?;
+                    if history_rule_read > reader_cost.bytes_read
+                        || history_shared_rule_read > reader_cost.shared_read_bytes_returned
+                        || reader_cost.shared_read_bytes_returned > reader_shared_attempts
+                    {
+                        return Err(ItemRefusal::Budget);
+                    }
+                    callback_external_reads.set(
+                        artifact_external_reads
+                            .checked_add(reader_external_reads)
+                            .ok_or(ItemRefusal::Budget)?,
+                    );
+                    drop(rule_source);
+                    let owner_state = stored_report.cost.aggregate_state_reservation_bytes;
+                    let diagnostic_state_cap = available_after_biblio
+                        .checked_sub(owner_state)
+                        .and_then(|state| state.checked_sub(reader_cost.auxiliary_state_bytes))
+                        .ok_or(ItemRefusal::Budget)?;
+                    let rule_diag_limits = SourceFoundationRuleDiagnosticsLimits {
+                        max_issues: biblio_operation.issue_count.max(1),
+                        max_output_bytes: biblio_operation.output_bytes.max(1),
+                        max_state_bytes: diagnostic_state_cap.max(1),
+                    };
+                    let evaluated = super::foundation_rule_diagnostics::evaluate_candidate_stored_rules(
+                        stored_report,
+                        schemas,
+                        schema_limits,
+                        deadline,
+                        cancelled,
+                        rule_diag_limits,
+                    )
+                    .map_err(|_| ItemRefusal::Source(
+                        "candidate stored default diagnostics are incomplete".into(),
+                    ))?;
+                    let owner_report = &evaluated.owner_report;
+                    let clean = owner_report.cost.direct_owner_issue_count == 0
+                        && owner_report.labs.unimplemented.is_empty()
+                        && owner_report
+                            .labs
+                            .results
+                            .iter()
+                            .all(|lab| lab.unimplemented.is_empty())
+                        && owner_report.goldsets.coverage_gaps.is_empty()
+                        && owner_report.discovery.unsupported.is_empty()
+                        && owner_report.closure.unsupported.is_empty()
+                        && owner_report.cost.queued_schema_document_count
+                            == evaluated.cost.schema_check_count
+                        && evaluated.cost.diagnostic_issue_count == 0
+                        && evaluated.diagnostics.iter().all(|diagnostic| {
+                            diagnostic.input_identity() == &fence
+                                && diagnostic.prepared_execution_binding()
+                                    == schemas.prepared_execution_binding()
+                                && diagnostic.result().is_valid()
+                        });
+                    if !clean {
+                        return Err(ItemRefusal::Source(
+                            "candidate default owner predicates are incomplete or invalid".into(),
+                        ));
+                    }
+                    let after_defaults = view.original_io.snapshot();
+                    let candidate_read = after_defaults
+                        .read_attempted_bytes
+                        .checked_sub(io_before_records.read_attempted_bytes)
+                        .ok_or(ItemRefusal::Budget)?;
+                    let total_candidate_and_external = candidate_read
+                        .checked_add(callback_external_reads.get())
+                        .ok_or(ItemRefusal::Budget)?;
+                    if total_candidate_and_external > records_ticket.remaining().source_read_bytes {
+                        return Err(ItemRefusal::Budget);
+                    }
+                    let callback_evidence_state = replay_state
+                        .checked_add(biblio_state)
+                        .and_then(|state| state.checked_add(owner_state))
+                        .and_then(|state| state.checked_add(reader_cost.auxiliary_state_bytes))
+                        .and_then(|state| {
+                            state.checked_add(evaluated.cost.peak_additional_state_upper_bound_bytes)
+                        })
+                        .ok_or(ItemRefusal::Budget)?;
+                    if callback_evidence_state > callback_workspace_state {
+                        return Err(ItemRefusal::Budget);
+                    }
+                    let _ = biblio_query_rows;
+                    Ok((callback_evidence_state, callback_external_reads.get()))
+                },
+            );
+            let dependent_evidence = providers_result
+                .map_err(|_| io::Error::other("candidate Biblio/default stored providers refused"))?;
+            let final_callback_io = view.original_io.snapshot();
+            if final_callback_io.read_attempted_bytes
+                .checked_sub(io_before_records.read_attempted_bytes)
+                .is_none_or(|read| read > records_ticket.remaining().source_read_bytes)
+                || final_callback_io.write_attempted_bytes
+                    .checked_sub(io_before_records.write_attempted_bytes)
+                    .is_none_or(|write| write > remaining_write)
+            {
+                return Err(io::Error::other("candidate dependent owners exceeded shared IO"));
+            }
+            Ok(dependent_evidence)
+        },
+    ) {
+        Ok(result) => result,
+        Err(error) => {
+            return fail_candidate_window_with_measured_io(
+                view.execution_limits,
+                view.remaining_budget,
+                records_ticket,
+                view.original_io,
+                io_before_records,
+                callback_external_reads.get(),
+                view.candidate_io_adopted,
+                view.remaining_write_bytes,
+                FoundationOrchestratorError::Admission(error),
+            );
+        }
+    };
+
+    let records_cost_state = verified_records
+        .record_issue_count()
+        .checked_add(verified_records.item_issue_count())
+        .and_then(|issues| issues.checked_add(verified_records.manifest_item_id_count()))
+        .and_then(|items| items.checked_mul(std::mem::size_of::<usize>()))
+        .ok_or_else(|| incomplete("candidate Records report state overflow"))?;
+    let io_after_records = view.original_io.snapshot();
+    let records_read_delta = io_after_records
+        .read_attempted_bytes
+        .checked_sub(io_before_records.read_attempted_bytes)
+        .ok_or_else(|| incomplete("candidate Records IO read counter regressed"))?;
+    let records_write_delta = io_after_records
+        .write_attempted_bytes
+        .checked_sub(io_before_records.write_attempted_bytes)
+        .ok_or_else(|| incomplete("candidate Records IO write counter regressed"))?;
+    let remaining_write = remaining_write
+        .checked_sub(records_write_delta)
+        .ok_or_else(|| incomplete("candidate Records IO exceeded write reservation"))?;
+    let quota_after_records = worker_quota
+        .usage()
+        .map_err(|_| incomplete("candidate schema quota unavailable"))?;
+    let (records_cpu, records_wire) = use_delta(quota_before_records, quota_after_records)?;
+    let defaults_event_state = defaults.default_event_cost().retained_state_bytes;
+    let records_charge_state = selected_index
+        .cache_bytes
+        .checked_add(defaults_limits.cache_bytes)
+        .and_then(|state| state.checked_add(defaults_event_state))
+        .and_then(|state| state.checked_add(std::mem::size_of::<BiblioRecordExecutor>()))
+        .and_then(|state| state.checked_add(std::mem::size_of::<IndexSink<'candidate>>()))
+        .and_then(|state| state.checked_add(std::mem::size_of::<SpoolDefaultStore<'candidate, 'host>>()))
+        .and_then(|state| state.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES))
+        .and_then(|state| state.checked_add(records_cost_state))
+        .and_then(|state| state.checked_add(dependent_state))
+        .ok_or_else(|| incomplete("candidate Records retained-state overflow"))?;
+    let records_usage = phase_use(
+        records_read_delta
+            .checked_add(history_rule_reads)
+            .ok_or_else(|| incomplete("candidate Records external read cost overflow"))?,
+        records_wire,
+        records_charge_state,
+        0,
+        records_cpu,
+        0,
+        0,
+    );
+    if phase_amounts(records_usage)?.state_bytes > records_ticket.remaining().state_bytes
+        || records_read_delta
+            .checked_add(history_rule_reads)
+            .is_none_or(|read| read > records_ticket.remaining().source_read_bytes)
+    {
+        return fail_window(
+            view.execution_limits,
+            view.remaining_budget,
+            records_ticket,
+            incomplete("candidate Records and dependent-owner report exceeds reservation"),
+        );
+    }
+    let measured_before_records = view.remaining_budget.measured_charged().source_read_bytes;
+    let records_phase_read = records_usage.source_read_bytes.amount;
+    let records_completion = complete_window(
+        view.execution_limits,
+        view.remaining_budget,
+        records_ticket,
+        records_usage,
+    );
+    let measured_after_records = view.remaining_budget.measured_charged().source_read_bytes;
+    if measured_after_records.checked_sub(measured_before_records) == Some(records_phase_read) {
+        *view.candidate_io_adopted = (
+            io_after_records.read_attempted_bytes,
+            io_after_records.write_attempted_bytes,
+        );
+        *view.remaining_write_bytes = remaining_write;
+    }
+    records_completion?;
+
+    let catalog_ticket = open_window(
+        view.execution_limits,
+        view.remaining_budget,
+        "candidate-catalog-and-persisted-inputs",
+        FoundationWindowKind::CatalogAndPersisted,
+        FoundationPhaseReservation::default(),
+    )?;
+    let catalog_operation = catalog_ticket.operation_limits();
+    let catalog_identity_state = worker_identity_path_clone_bytes(worker_image.identity(), 3)?;
+    let catalog_state_cap = catalog_operation
+        .state_bytes
+        .checked_sub(catalog_identity_state)
+        .ok_or_else(|| incomplete("candidate catalog worker identity exceeds state"))?;
+    let mut largest_catalog_member = 0u64;
+    let mut observed_catalog_members = 0usize;
+    let mut observed_catalog_bytes = 0u64;
+    input
+        .for_each_current_member_meta(deadline, cancelled, &mut |member| {
+            if member.path.starts_with("ToS/source-witnesses/") {
+                observed_catalog_members = observed_catalog_members
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+                largest_catalog_member = largest_catalog_member.max(member.size_bytes);
+                observed_catalog_bytes = observed_catalog_bytes
+                    .checked_add(member.size_bytes)
+                    .ok_or(ItemRefusal::Budget)?;
+            }
+            Ok(())
+        })
+        .map_err(owner)?;
+    if observed_catalog_members == 0
+        || observed_catalog_members > max_members
+        || observed_catalog_bytes > fence.source_bytes
+    {
+        return fail_window(
+            view.execution_limits,
+            view.remaining_budget,
+            catalog_ticket,
+            incomplete("candidate catalog current-source census refused"),
+        );
+    }
+    let max_catalog_members = observed_catalog_members.min(4096).max(1);
+    let max_catalog_files = max_members.min((u64::MAX - 1) as usize).max(1) as u64;
+    let max_catalog_rows = catalog_operation.source_read_bytes.min(u64::MAX - 1).max(1);
+    let max_catalog_file_bytes = usize::try_from(
+        budgets
+            .max_member_bytes
+            .min(16 * 1024 * 1024)
+            .min(largest_catalog_member.max(1))
+            .min(catalog_operation.source_read_bytes)
+            .min((usize::MAX - 1) as u64),
+    )
+    .map_err(|_| incomplete("candidate catalog file cap range"))?;
+    let max_catalog_row_bytes = max_catalog_file_bytes.min(1024 * 1024).max(1);
+    let max_catalog_output_row_bytes = usize::try_from(
+        catalog_operation
+            .tmpfs_bytes
+            .min(4 * 1024 * 1024)
+            .min((usize::MAX - 1) as u64),
+    )
+    .map_err(|_| incomplete("candidate catalog output row cap range"))?;
+    let catalog_limits = view
+        .execution_limits
+        .catalog_limits(
+            max_catalog_files,
+            max_catalog_rows,
+            max_catalog_file_bytes,
+            max_catalog_row_bytes,
+            max_catalog_row_bytes,
+            max_catalog_output_row_bytes,
+        )
+        .map_err(FoundationOrchestratorError::Command)?;
+    let catalog_source_limits = view
+        .execution_limits
+        .catalog_input_limits(max_catalog_members)
+        .map_err(FoundationOrchestratorError::Command)?;
+    let catalog_read_limits = view
+        .execution_limits
+        .read_limits(
+            catalog_operation,
+            max_members,
+            observed_catalog_bytes.min(catalog_operation.source_read_bytes),
+        )
+        .map_err(FoundationOrchestratorError::Command)?;
+    let max_claim_bytes = catalog_state_cap.min(128 * 1024 * 1024);
+    let max_claim_rows = (catalog_limits.max_rows.min(16_384) as usize)
+        .min(max_claim_bytes / catalog_limits.max_output_row_bytes.max(1));
+    if max_claim_rows == 0 {
+        return fail_window(
+            view.execution_limits,
+            view.remaining_budget,
+            catalog_ticket,
+            incomplete("candidate catalog Claim cohort exceeds state reservation"),
+        );
+    }
+    let biblio_catalog_limits = view
+        .execution_limits
+        .bibliography_limits(
+            catalog_limits,
+            max_claim_rows,
+            max_claim_bytes,
+            catalog_limits
+                .max_rows
+                .min(catalog_operation.output_bytes)
+                .max(1),
+            catalog_operation
+                .tmpfs_bytes
+                .min(catalog_operation.output_bytes)
+                .max(1),
+        )
+        .map_err(FoundationOrchestratorError::Command)?;
+    let stage_limits = view
+        .execution_limits
+        .stage_limits(
+            max_catalog_rows,
+            max_catalog_rows.min(1024) as usize,
+            catalog_operation.tmpfs_bytes.min(64 * 1024 * 1024),
+        )
+        .map_err(FoundationOrchestratorError::Command)?;
+    let catalog_worker_shape = FoundationCatalogWorkerShape {
+        batch: BatchBudget::laboratory(),
+        max_chunks: max_checks
+            .div_ceil(BatchBudget::laboratory().max_units)
+            .max(1) as u64,
+        max_total_units: u64::try_from(max_checks)
+            .unwrap_or(u64::MAX - 1)
+            .min(catalog_operation.worker_wire_bytes)
+            .max(1),
+        max_total_raw_bytes: catalog_operation
+            .source_read_bytes
+            .min(catalog_operation.worker_wire_bytes)
+            .min(BatchBudget::MAX_RAW_BYTES as u64)
+            .max(1),
+        max_total_wire_bytes: catalog_operation.worker_wire_bytes,
+        max_distinct_selectors: max_checks.max(1).min(1024),
+        max_receipts: max_checks.max(1),
+        max_receipt_bytes: catalog_state_cap.min(1024 * 1024).max(1),
+    };
+    let (catalog_executor, _catalog_cut_limits, _catalog_stream, _catalog_diagnostics) = view
+        .execution_limits
+        .catalog_worker_limits(catalog_worker_shape)
+        .map_err(FoundationOrchestratorError::Command)?;
+    let max_generated_bytes = usize::try_from(
+        catalog_operation
+            .tmpfs_bytes
+            .min(catalog_operation.output_bytes)
+            .min((usize::MAX - 1) as u64),
+    )
+    .map_err(|_| incomplete("candidate generated catalog byte cap range"))?;
+    let max_generated_files = max_catalog_files as usize;
+    let tree_limits = DisposableCatalogTreeLimits {
+        max_total_bytes: usize::try_from(
+            catalog_operation.tmpfs_bytes.min((usize::MAX - 1) as u64),
+        )
+        .map_err(|_| incomplete("candidate catalog tmpfs byte range"))?,
+        max_file_bytes: max_catalog_output_row_bytes,
+        max_files: usize::try_from(max_catalog_files).unwrap_or(usize::MAX - 1),
+        max_state_bytes: catalog_state_cap,
+        max_inodes: usize::try_from(max_catalog_files)
+            .unwrap_or(usize::MAX - 4)
+            .saturating_add(3),
+    };
+    let candidate_catalog_path = view.isolated.path().join("source-foundation.sqlite");
+    let io_before_catalog = candidate
+        .io_usage()
+        .map_err(FoundationOrchestratorError::Admission)?;
+    let quota_before_catalog = worker_quota
+        .usage()
+        .map_err(|_| incomplete("candidate catalog schema quota unavailable"))?;
+    let validator = tos_compiler::source_witness_catalog::SourceCatalogValidator::from_candidate_prepared(
+        worker_image.identity(),
+        catalog_executor,
+        cancelled,
+        deadline,
+        &fence,
+        &mut item_schemas
+            as &mut dyn tos_validation::source_foundation_records::SourceFoundationCandidateSchemaBinding<CandidateFence>,
+    )
+    .map_err(FoundationOrchestratorError::Catalog)?;
+    let catalog_result = super::foundation_catalog::compare_spooled_candidate(
+        input,
+        view.coverage,
+        view.original_epoch,
+        view.sources,
+        &candidate_catalog_path,
+        view.stage,
+        stage_limits,
+        catalog_source_limits,
+        biblio_catalog_limits,
+        &validator,
+        true,
+        max_catalog_files as usize,
+        max_catalog_file_bytes,
+        max_generated_bytes,
+        max_generated_files,
+        catalog_state_cap,
+        view.isolated,
+        tree_limits,
+        &mut index,
+        cancelled,
+    )
+    .map_err(FoundationOrchestratorError::Catalog)?;
+    let complete_catalog = match &catalog_result.outcome {
+        FoundationCatalogOutcome::Complete(result)
+            if result.issues.is_empty() && result.profiles.complete => result,
+        _ => {
+            return fail_window(
+                view.execution_limits,
+                view.remaining_budget,
+                catalog_ticket,
+                incomplete("candidate catalog owner comparison is incomplete or invalid"),
+            );
+        }
+    };
+    let fresh = catalog_result
+        .candidate
+        .as_ref()
+        .ok_or_else(|| incomplete("candidate catalog produced no fresh sink"))?;
+    if !fresh.eof_verified() || catalog_result.fresh_sources.is_none() {
+        return fail_window(
+            view.execution_limits,
+            view.remaining_budget,
+            catalog_ticket,
+            incomplete("candidate fresh catalog EOF or source evidence is missing"),
+        );
+    }
+    let catalog_state = catalog_retained_state(&catalog_result.outcome)?
+        .checked_add(catalog_identity_state)
+        .and_then(|state| state.checked_add(fresh.cost().fresh_rows_retained_state_upper_bound_bytes))
+        .ok_or_else(|| incomplete("candidate catalog retained-state overflow"))?;
+    let catalog_read = checked_add_u64(
+        fresh.cost().readback_bytes as u64,
+        u64::try_from(complete_catalog.generated_read_bytes)
+            .map_err(|_| incomplete("candidate catalog generated read range"))?,
+    )?;
+    let io_after_catalog = candidate
+        .io_usage()
+        .map_err(FoundationOrchestratorError::Admission)?;
+    let catalog_candidate_read = io_after_catalog
+        .read_attempted_bytes
+        .checked_sub(io_before_catalog.read_attempted_bytes)
+        .ok_or_else(|| incomplete("candidate catalog IO read counter regressed"))?;
+    let catalog_write_delta = io_after_catalog
+        .write_attempted_bytes
+        .checked_sub(io_before_catalog.write_attempted_bytes)
+        .ok_or_else(|| incomplete("candidate catalog IO write counter regressed"))?;
+    let remaining_write = remaining_write
+        .checked_sub(catalog_write_delta)
+        .ok_or_else(|| incomplete("candidate catalog IO exceeded write reservation"))?;
+    let catalog_source_use = checked_add_u64(catalog_candidate_read, catalog_read)?;
+    let catalog_free = catalog_ticket.remaining();
+    if catalog_source_use > catalog_free.source_read_bytes
+        || catalog_state > catalog_free.state_bytes
+        || complete_catalog.issues.len() > catalog_free.issue_count
+        || fresh.cost().output_bytes as u64 > catalog_free.tmpfs_bytes
+        || fresh.cost().created_inodes as u64 > catalog_free.tmpfs_inodes
+    {
+        return fail_window(
+            view.execution_limits,
+            view.remaining_budget,
+            catalog_ticket,
+            incomplete("candidate catalog evidence exceeds the invocation reservation"),
+        );
+    }
+    let catalog_quota_after = worker_quota
+        .usage()
+        .map_err(|_| incomplete("candidate catalog schema quota unavailable"))?;
+    let (catalog_cpu, catalog_wire) = use_delta(quota_before_catalog, catalog_quota_after)?;
+    let tmpfs_before = view
+        .stage
+        .quota_usage()
+        .map_err(|_| incomplete("candidate catalog stage quota unavailable"))?;
+    let catalog_usage = phase_use(
+        catalog_source_use,
+        catalog_wire,
+        catalog_state,
+        complete_catalog.issues.len(),
+        catalog_cpu,
+        fresh.cost().output_bytes as u64,
+        fresh.cost().created_inodes as u64,
+    );
+    let _ = tmpfs_before;
+    complete_window(
+        view.execution_limits,
+        view.remaining_budget,
+        catalog_ticket,
+        catalog_usage,
+    )?;
+    drop(catalog_result);
+    item_schemas.finish(deadline, cancelled).map_err(owner)?;
+    if !item_schemas.is_finished() {
+        return Err(incomplete("candidate catalog schema worker EOF is incomplete"));
+    }
+    *view.candidate_io_adopted = (
+        io_after_catalog.read_attempted_bytes,
+        io_after_catalog.write_attempted_bytes,
+    );
+    *view.remaining_write_bytes = remaining_write;
+    let remaining = view
+        .remaining_budget
+        .remaining()
+        .map_err(FoundationOrchestratorError::Command)?;
+    candidate
+        .restrict_remaining_io(remaining.source_read_bytes, remaining_write)
+        .map_err(FoundationOrchestratorError::Admission)?;
+
+    let native_ticket = open_window(
+        view.execution_limits,
+        view.remaining_budget,
+        "candidate-native-index-schema-and-callback",
+        FoundationWindowKind::Schema,
+        FoundationPhaseReservation::default(),
+    )?;
+    let native_operation = native_ticket.operation_limits();
+    let native_schema_limits = schema_limits_for_ticket(
+        view.execution_limits,
+        &native_ticket,
+        schema_count,
+        schema_max_bytes,
+        schema_bytes,
+        max_checks,
+    )?;
+    let native_shape = cut_worker_shape(native_operation, max_checks);
+    let native_stream = view
+        .execution_limits
+        .cut_worker_stream_budget(native_operation, native_shape)
+        .map_err(FoundationOrchestratorError::Command)?;
+    let native_worker_limits = CutWorkerLimits {
+        max_receipts: max_checks,
+        max_receipt_bytes: native_operation.state_bytes.min(1024 * 1024).max(1),
+    };
+    let native_diagnostics = CutSchemaDiagnosticsLimits {
+        max_total_issues: native_operation.issue_count.max(1),
+        max_total_report_bytes: native_operation.output_bytes.max(1),
+        max_total_state_bytes: native_operation.state_bytes.max(1),
+    };
+    let held_native = candidate_owned_state
+        .checked_add(base_declared_state_bytes)
+        .and_then(|state| state.checked_add(selected_index.cache_bytes))
+        .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
+        .and_then(|state| state.checked_add(worker_image_state))
+        .and_then(|state| state.checked_add(image_path_state))
+        .and_then(|state| state.checked_add(schema_state))
+        .and_then(|state| state.checked_add(payloads.cost().peak_state_bytes))
+        .and_then(|state| state.checked_add(view.physical.cost().retained_state_bytes))
+        .and_then(|state| {
+            state.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)
+        })
+        .ok_or_else(|| incomplete("candidate native worker held-state overflow"))?;
+    let io_before_native = candidate
+        .io_usage()
+        .map_err(FoundationOrchestratorError::Admission)?;
+    let quota_before_native = worker_quota
+        .usage()
+        .map_err(|_| incomplete("candidate native-index quota unavailable"))?;
+    candidate
+        .restrict_remaining_io(native_ticket.remaining().source_read_bytes, remaining_write)
+        .map_err(FoundationOrchestratorError::Admission)?;
+    let mut native_schemas = match prepare_candidate_schema_worker(
+        &view,
+        input,
+        &worker_image,
+        &worker_quota,
+        &native_ticket,
+        native_schema_limits,
+        native_operation.state_bytes,
+        native_worker_limits,
+        native_diagnostics,
+        native_stream,
+        held_native,
+        original_operation_state,
+    ) {
+        Ok(worker) => worker,
+        Err(error) => {
+            return fail_window(view.execution_limits, view.remaining_budget, native_ticket, error);
+        }
+    };
+    let native_index_state = build_candidate_native_index(
+        &mut index,
+        &verified_records,
+        &mut native_schemas,
+        native_limits,
+        json,
+        json_state_bytes,
+        deadline,
+        cancelled,
+    )?;
+    let native_schema_state = schema_state_upper_bound(
+        native_schemas.schema_bytes(),
+        native_schemas.source_resource_count(),
+        native_schemas
+            .source_resource_metadata_state_bytes()
+            .ok_or_else(|| incomplete("candidate native schema metadata state unavailable"))?,
+    )?;
+    let native_io_after = candidate
+        .io_usage()
+        .map_err(FoundationOrchestratorError::Admission)?;
+    let native_read_delta = native_io_after
+        .read_attempted_bytes
+        .checked_sub(io_before_native.read_attempted_bytes)
+        .ok_or_else(|| incomplete("candidate native-index IO read counter regressed"))?;
+    let native_write_delta = native_io_after
+        .write_attempted_bytes
+        .checked_sub(io_before_native.write_attempted_bytes)
+        .ok_or_else(|| incomplete("candidate native-index IO write counter regressed"))?;
+    let remaining_write = remaining_write
+        .checked_sub(native_write_delta)
+        .ok_or_else(|| incomplete("candidate native-index IO exceeded write reservation"))?;
+    let native_quota_after = worker_quota
+        .usage()
+        .map_err(|_| incomplete("candidate native-index quota unavailable"))?;
+    let (native_cpu, native_wire) = use_delta(quota_before_native, native_quota_after)?;
+    let native_state = native_index_state
+        .checked_add(native_schema_state)
+        .and_then(|state| state.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES))
+        .ok_or_else(|| incomplete("candidate native-index retained state overflow"))?;
+    if native_read_delta > native_ticket.remaining().source_read_bytes
+        || native_state > native_ticket.remaining().state_bytes
+    {
+        return fail_window(
+            view.execution_limits,
+            view.remaining_budget,
+            native_ticket,
+            incomplete("candidate native-index evidence exceeds reservation"),
+        );
+    }
+    complete_window(
+        view.execution_limits,
+        view.remaining_budget,
+        native_ticket,
+        phase_use(native_read_delta, native_wire, native_state, 0, native_cpu, 0, 0),
+    )?;
+    native_schemas.finish(deadline, cancelled).map_err(owner)?;
+    if !native_schemas.is_finished() {
+        return Err(incomplete("candidate native-index worker EOF is incomplete"));
+    }
+    let remaining = view
+        .remaining_budget
+        .remaining()
+        .map_err(FoundationOrchestratorError::Command)?;
+    candidate
+        .restrict_remaining_io(remaining.source_read_bytes, remaining_write)
+        .map_err(FoundationOrchestratorError::Admission)?;
+    *view.remaining_write_bytes = remaining_write;
+
+    let history_retained_state = view
+        .history
+        .as_deref()
+        .map_or(0, |history| history.usage().1);
+    let default_event_retained_state = defaults.default_event_cost().retained_state_bytes;
+    let final_held_state = candidate_owned_state
+        .checked_add(base_declared_state_bytes)
+        .and_then(|state| state.checked_add(selected_index.cache_bytes))
+        .and_then(|state| state.checked_add(defaults_limits.cache_bytes))
+        .and_then(|state| state.checked_add(default_event_retained_state))
+        .and_then(|state| state.checked_add(worker_image_state))
+        .and_then(|state| state.checked_add(image_path_state))
+        .and_then(|state| state.checked_add(schema_state))
+        .and_then(|state| state.checked_add(native_schema_state))
+        .and_then(|state| state.checked_add(native_index_state))
+        .and_then(|state| state.checked_add(records_cost_state))
+        .and_then(|state| {
+            state.checked_add(CANDIDATE_RECORDS_REPORT_RETAINED_STATE_UPPER_BOUND_BYTES)
+        })
+        .and_then(|state| state.checked_add(payloads.cost().peak_state_bytes))
+        .and_then(|state| state.checked_add(view.physical.cost().retained_state_bytes))
+        .and_then(|state| state.checked_add(history_retained_state))
+        .and_then(|state| state.checked_add(std::mem::size_of::<IndexSink<'candidate>>()))
+        .and_then(|state| {
+            state.checked_add(std::mem::size_of::<SpoolDefaultStore<'candidate, 'host>>())
+        })
+        .and_then(|state| state.checked_add(std::mem::size_of::<BiblioRecordExecutor>()))
+        .and_then(|state| state.checked_add(std::mem::size_of_val(&native_schemas)))
+        .and_then(|state| {
+            state.checked_add(std::mem::size_of::<
+                crate::source_foundation_admission::NativeAdmissionComplete,
+            >())
+        })
+        .ok_or_else(|| incomplete("candidate final retained-state overflow"))?;
+    if final_held_state > working_ram
+        || final_held_state > view.remaining_budget.charged().state_bytes
+    {
+        return Err(incomplete("candidate final retained state was not admitted"));
+    }
+    let final_held = FoundationPhaseReservation {
+        state_bytes: final_held_state,
+        ..FoundationPhaseReservation::default()
+    };
+    let _payload_completion = finish_candidate_payload_and_physical(
+        &mut view,
+        candidate,
+        input,
+        view.original_io,
+        payloads,
+        &item_schemas,
+        &mut record_executor,
+        &worker_quota,
+        final_held,
+        remaining_write,
+    )?;
+    let io_terminal = candidate
+        .io_usage()
+        .map_err(FoundationOrchestratorError::Admission)?;
+    *view.candidate_io_adopted = (
+        io_terminal.read_attempted_bytes,
+        io_terminal.write_attempted_bytes,
+    );
+    *view.remaining_write_bytes = remaining_write
+        .checked_sub(
+            io_terminal
+                .write_attempted_bytes
+                .checked_sub(native_io_after.write_attempted_bytes)
+                .ok_or_else(|| incomplete("candidate final write counter regressed"))?,
+        )
+        .ok_or_else(|| incomplete("candidate final write cap exceeded"))?;
+    Ok((index, verified_records))
+}
+
+struct NativeAdmissionStateHeader;
 
 fn run<'work, 'receive, 'cancel, 'signal>(
     view: FoundationBootstrapView<'work, 'cancel, 'signal>,
@@ -732,21 +2956,24 @@ fn run<'work, 'receive, 'cancel, 'signal>(
     let mut schema_count = 0usize;
     let mut schema_total = 0usize;
     let mut schema_max = 0usize;
-    for member in captured.cut().current().members() {
-        if Instant::now() >= deadline || cancelled.load(Ordering::Acquire) {
-            return Err(incomplete("source-foundation schema census interrupted"));
-        }
-        let path = member.path.as_str();
-        if path.starts_with("ToS/contracts/") && path.ends_with(".schema.json") {
-            schema_count = schema_count
-                .checked_add(1)
-                .ok_or_else(|| incomplete("schema resource count overflow"))?;
-            let bytes = usize::try_from(member.size_bytes)
-                .map_err(|_| incomplete("schema resource size range"))?;
-            schema_total = checked_add_usize(schema_total, bytes)?;
-            schema_max = schema_max.max(bytes);
-        }
-    }
+    captured
+        .for_each_member(deadline, cancelled, |member| {
+            let path = member.path.as_str();
+            if path.starts_with("ToS/contracts/") && path.ends_with(".schema.json") {
+                schema_count = schema_count.checked_add(1).ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::InvalidData, "schema resource count overflow")
+                })?;
+                let bytes = usize::try_from(member.size_bytes).map_err(|_| {
+                    io::Error::new(io::ErrorKind::InvalidData, "schema resource size range")
+                })?;
+                schema_total = schema_total.checked_add(bytes).ok_or_else(|| {
+                    io::Error::new(io::ErrorKind::InvalidData, "schema resource byte overflow")
+                })?;
+                schema_max = schema_max.max(bytes);
+            }
+            Ok(())
+        })
+        .map_err(|_| incomplete("source-foundation schema census refused"))?;
     let max_checks = max_members.min(65_536).max(1);
     let quota_caps = remaining_budget
         .remaining()
@@ -777,11 +3004,15 @@ fn run<'work, 'receive, 'cancel, 'signal>(
         schema_total,
         max_checks,
     )?;
-    let schema_preparation_state = match cut_schema_resource_preparation_state_upper_bound(
-        captured.cut(),
-        deadline,
-        cancelled,
-    ) {
+    let preparation = match captured.streamed_cut() {
+        Some(cut) => {
+            streamed_cut_schema_resource_preparation_state_upper_bound(cut, deadline, cancelled)
+        }
+        None => {
+            cut_schema_resource_preparation_state_upper_bound(captured.cut(), deadline, cancelled)
+        }
+    };
+    let schema_preparation_state = match preparation {
         Ok(bytes) => bytes,
         Err(error) => {
             return fail_window(
@@ -800,13 +3031,24 @@ fn run<'work, 'receive, 'cancel, 'signal>(
             incomplete("schema closure preparation exceeds remaining state"),
         );
     }
-    let schema_set = match SourceFoundationSchemaSet::from_cut(
-        captured.cut(),
-        FormatProfile::LegacyPythonObserved20260923,
-        schema_limits,
-        deadline,
-        cancelled,
-    ) {
+    let selected_schema_set = match captured.streamed_cut() {
+        Some(cut) => SourceFoundationSchemaSet::from_streamed_cut(
+            cut,
+            FormatProfile::LegacyPythonObserved20260923,
+            schema_limits,
+            schema_preparation_state,
+            deadline,
+            cancelled,
+        ),
+        None => SourceFoundationSchemaSet::from_cut(
+            captured.cut(),
+            FormatProfile::LegacyPythonObserved20260923,
+            schema_limits,
+            deadline,
+            cancelled,
+        ),
+    };
+    let schema_set = match selected_schema_set {
         Ok(set) => set,
         Err(error) => {
             return fail_window(
@@ -818,8 +3060,14 @@ fn run<'work, 'receive, 'cancel, 'signal>(
         }
     };
     let loaded_schema_bytes = schema_set.schema_bytes();
-    let schema_state =
-        schema_state_upper_bound(loaded_schema_bytes, schema_set.schema_resource_count())?;
+    let source_resource_metadata_state = schema_set
+        .source_resource_metadata_state_bytes()
+        .ok_or_else(|| incomplete("source-foundation selected resource state overflow"))?;
+    let schema_state = schema_state_upper_bound(
+        loaded_schema_bytes,
+        schema_set.schema_resource_count(),
+        source_resource_metadata_state,
+    )?;
     if schema_state > schema_ticket.operation_limits().state_bytes {
         return fail_window(
             execution_limits,
@@ -1138,21 +3386,17 @@ fn run<'work, 'receive, 'cancel, 'signal>(
             );
         }
     };
-    if record_executor.set_operation_budget(record_stream).is_err()
-        || BiblioSchemaDiagnosticsLimits::from_operation_ceilings(
-            BiblioSchemaDiagnosticsLimits {
-                max_total_issues: operation.issue_count,
-                max_total_report_bytes: operation.output_bytes,
-                max_total_state_bytes: operation.state_bytes,
-            },
-            max_checks,
-            record_stream,
-        )
-        .and_then(|limits| record_executor.enable_diagnostics_v2(limits))
+    if record_executor
+        .enable_diagnostics_v2(BiblioSchemaDiagnosticsLimits {
+            max_total_issues: operation.issue_count,
+            max_total_report_bytes: operation.output_bytes,
+            max_total_state_bytes: operation.state_bytes,
+        })
         .is_err()
         || record_executor
             .set_shared_schema_worker_quota(worker_quota.clone())
             .is_err()
+        || record_executor.set_operation_budget(record_stream).is_err()
     {
         return fail_window(
             execution_limits,
@@ -1172,15 +3416,27 @@ fn run<'work, 'receive, 'cancel, 'signal>(
             incomplete("Item schema preparation exceeds remaining state"),
         );
     }
-    let mut item_schemas = match CutWorkerSchemaExecutor::from_cut_with_image(
-        captured.cut(),
-        FormatProfile::LegacyPythonObserved20260923,
-        &worker_image,
-        executor_budget,
-        worker_limits,
-        deadline,
-        cancelled,
-    ) {
+    let selected_worker = match captured.streamed_cut() {
+        Some(cut) => CutWorkerSchemaExecutor::from_streamed_cut_with_image(
+            cut,
+            FormatProfile::LegacyPythonObserved20260923,
+            &worker_image,
+            executor_budget,
+            worker_limits,
+            deadline,
+            cancelled,
+        ),
+        None => CutWorkerSchemaExecutor::from_cut_with_image(
+            captured.cut(),
+            FormatProfile::LegacyPythonObserved20260923,
+            &worker_image,
+            executor_budget,
+            worker_limits,
+            deadline,
+            cancelled,
+        ),
+    };
+    let mut item_schemas = match selected_worker {
         Ok(executor) => executor,
         Err(error) => {
             return fail_window(
@@ -1196,17 +3452,11 @@ fn run<'work, 'receive, 'cancel, 'signal>(
         max_total_report_bytes: operation.output_bytes,
         max_total_state_bytes: operation.state_bytes,
     };
-    if item_schemas.set_operation_budget(record_stream).is_err()
-        || CutSchemaDiagnosticsLimits::from_operation_ceilings(
-            item_diag,
-            worker_limits.max_receipts,
-            record_stream,
-        )
-        .and_then(|limits| item_schemas.enable_diagnostics_v2(limits))
-        .is_err()
+    if item_schemas.enable_diagnostics_v2(item_diag).is_err()
         || item_schemas
             .set_shared_schema_worker_quota(worker_quota.clone())
             .is_err()
+        || item_schemas.set_operation_budget(record_stream).is_err()
     {
         return fail_window(
             execution_limits,
@@ -1535,15 +3785,27 @@ fn run<'work, 'receive, 'cancel, 'signal>(
             incomplete("layer schema preparation exceeds remaining state"),
         );
     }
-    let mut layer_schemas = match CutWorkerSchemaExecutor::from_cut_with_image(
-        captured.cut(),
-        FormatProfile::LegacyPythonObserved20260923,
-        &worker_image,
-        executor_budget,
-        layer_worker_limits,
-        deadline,
-        cancelled,
-    ) {
+    let selected_worker = match captured.streamed_cut() {
+        Some(cut) => CutWorkerSchemaExecutor::from_streamed_cut_with_image(
+            cut,
+            FormatProfile::LegacyPythonObserved20260923,
+            &worker_image,
+            executor_budget,
+            layer_worker_limits,
+            deadline,
+            cancelled,
+        ),
+        None => CutWorkerSchemaExecutor::from_cut_with_image(
+            captured.cut(),
+            FormatProfile::LegacyPythonObserved20260923,
+            &worker_image,
+            executor_budget,
+            layer_worker_limits,
+            deadline,
+            cancelled,
+        ),
+    };
+    let mut layer_schemas = match selected_worker {
         Ok(executor) => executor,
         Err(error) => {
             return fail_window(
@@ -1554,17 +3816,13 @@ fn run<'work, 'receive, 'cancel, 'signal>(
             );
         }
     };
-    if layer_schemas.set_operation_budget(layer_stream).is_err()
-        || CutSchemaDiagnosticsLimits::from_operation_ceilings(
-            default_diagnostic_limits,
-            layer_worker_limits.max_receipts,
-            layer_stream,
-        )
-        .and_then(|limits| layer_schemas.enable_diagnostics_v2(limits))
+    if layer_schemas
+        .enable_diagnostics_v2(default_diagnostic_limits)
         .is_err()
         || layer_schemas
             .set_shared_schema_worker_quota(worker_quota.clone())
             .is_err()
+        || layer_schemas.set_operation_budget(layer_stream).is_err()
     {
         return fail_window(
             execution_limits,
@@ -1799,22 +4057,27 @@ fn run<'work, 'receive, 'cancel, 'signal>(
     let catalog_free = catalog_ticket.remaining();
     let mut catalog_members = 0usize;
     let mut largest_captured_member_bytes = 0u64;
-    for member in captured.cut().current().members() {
-        let path = member.path.as_str();
-        if Instant::now() >= deadline || cancelled.load(Ordering::Acquire) {
-            return fail_window(
-                execution_limits,
-                remaining_budget,
-                catalog_ticket,
-                incomplete("catalog source-shape census interrupted"),
-            );
-        }
-        largest_captured_member_bytes = largest_captured_member_bytes.max(member.size_bytes);
-        if path.starts_with("ToS/source-witnesses/") {
-            catalog_members = catalog_members
-                .checked_add(1)
-                .ok_or_else(|| incomplete("catalog source-shape count overflow"))?;
-        }
+    if captured
+        .for_each_member(deadline, cancelled, |member| {
+            largest_captured_member_bytes = largest_captured_member_bytes.max(member.size_bytes);
+            if member.path.as_str().starts_with("ToS/source-witnesses/") {
+                catalog_members = catalog_members.checked_add(1).ok_or_else(|| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        "catalog source-shape count overflow",
+                    )
+                })?;
+            }
+            Ok(())
+        })
+        .is_err()
+    {
+        return fail_window(
+            execution_limits,
+            remaining_budget,
+            catalog_ticket,
+            incomplete("catalog source-shape census refused"),
+        );
     }
     let max_catalog_members = catalog_members.min(4096).max(1);
     let max_catalog_files = max_members.min(u64::MAX as usize - 1).max(1) as u64;
@@ -2037,6 +4300,7 @@ fn run<'work, 'receive, 'cancel, 'signal>(
                     .unwrap_or(usize::MAX - 4)
                     .saturating_add(3),
             },
+            None,
             cancelled,
         ) {
             Ok(result) => {
@@ -2334,15 +4598,27 @@ fn run<'work, 'receive, 'cancel, 'signal>(
                     incomplete("admission callback schema preparation exceeds remaining state"),
                 );
             }
-            let mut callback_schema = match CutWorkerSchemaExecutor::from_cut_with_image(
-                captured.cut(),
-                FormatProfile::LegacyPythonObserved20260923,
-                &worker_image,
-                callback_worker_budget,
-                callback_limits,
-                deadline,
-                cancelled,
-            ) {
+            let selected_worker = match captured.streamed_cut() {
+                Some(cut) => CutWorkerSchemaExecutor::from_streamed_cut_with_image(
+                    cut,
+                    FormatProfile::LegacyPythonObserved20260923,
+                    &worker_image,
+                    callback_worker_budget,
+                    callback_limits,
+                    deadline,
+                    cancelled,
+                ),
+                None => CutWorkerSchemaExecutor::from_cut_with_image(
+                    captured.cut(),
+                    FormatProfile::LegacyPythonObserved20260923,
+                    &worker_image,
+                    callback_worker_budget,
+                    callback_limits,
+                    deadline,
+                    cancelled,
+                ),
+            };
+            let mut callback_schema = match selected_worker {
                 Ok(executor) => executor,
                 Err(error) => {
                     return fail_window(
@@ -2357,24 +4633,20 @@ fn run<'work, 'receive, 'cancel, 'signal>(
                 usize::try_from(callback_free.worker_wire_bytes.min(usize::MAX as u64 - 1))
                     .unwrap_or(usize::MAX - 1);
             if callback_schema
-                .set_operation_budget(callback_stream)
-                .is_err()
-                || CutSchemaDiagnosticsLimits::from_operation_ceilings(
-                    CutSchemaDiagnosticsLimits {
-                        max_total_issues: callback_free.issue_count.max(1),
-                        max_total_report_bytes: callback_report_bytes.max(1),
-                        max_total_state_bytes: callback_free.state_bytes.max(1),
-                    },
-                    callback_limits.max_receipts,
-                    callback_stream,
-                )
-                .and_then(|limits| callback_schema.enable_diagnostics_v2(limits))
+                .enable_diagnostics_v2(CutSchemaDiagnosticsLimits {
+                    max_total_issues: callback_free.issue_count.max(1),
+                    max_total_report_bytes: callback_report_bytes.max(1),
+                    max_total_state_bytes: callback_free.state_bytes.max(1),
+                })
                 .is_err()
                 || callback_schema
                     .set_diagnostics_v2_legacy_raw_instance_limit(max_schema_instance)
                     .is_err()
                 || callback_schema
                     .set_shared_schema_worker_quota(worker_quota.clone())
+                    .is_err()
+                || callback_schema
+                    .set_operation_budget(callback_stream)
                     .is_err()
             {
                 return fail_window(
@@ -2877,21 +5149,16 @@ fn run<'work, 'receive, 'cancel, 'signal>(
     // Reserve the exact selected-member byte census plus the fixed publication
     // control ceiling before any other final input provider can spend source
     // reads. The capture helper enforces this total before each member stream.
-    let Some(captured_member_read_upper) =
-        captured
-            .observed_members()
-            .try_fold(0usize, |sum, (_, member)| {
-                usize::try_from(member.size_bytes)
-                    .ok()
-                    .and_then(|bytes| sum.checked_add(bytes))
-            })
-    else {
-        return fail_window(
-            execution_limits,
-            remaining_budget,
-            final_ticket,
-            incomplete("captured EOF member byte census overflow"),
-        );
+    let captured_member_read_upper = match usize::try_from(captured.source_bytes()) {
+        Ok(bytes) => bytes,
+        Err(_) => {
+            return fail_window(
+                execution_limits,
+                remaining_budget,
+                final_ticket,
+                incomplete("captured EOF member byte census overflow"),
+            );
+        }
     };
     let Some(final_member_read_limit) = captured_member_read_upper
         .checked_add(usize::try_from(FINAL_CONTROL_RESERVE).unwrap_or(usize::MAX))

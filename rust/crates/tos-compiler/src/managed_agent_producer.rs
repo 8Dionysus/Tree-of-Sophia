@@ -129,7 +129,7 @@ pub fn prepare_managed_agent_selected_model<P: ManagedProducerProof>(
     build_header: impl FnOnce(&mut KnowledgeStage<'_>, &KnowledgeRegistry) -> Result<Value>,
 ) -> Result<CompletedManagedAgentProducer<P>> {
     proof.validate()?;
-    let export_revision = source_plan.source_revision();
+    let export_revision = source_plan.source_revision()?;
     let export_membership = source_plan.source_membership();
     let original_binding = source_plan.input_receipt().binding;
     if proof.delta().is_some()

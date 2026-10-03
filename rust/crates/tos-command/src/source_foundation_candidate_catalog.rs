@@ -6,7 +6,7 @@
 //! admission. Only the two row bindings consumed by `source_index` are retained
 //! from the same addressed-row callbacks.
 
-use crate::source_admission_index::FreshRows;
+use crate::source_admission_index::{FreshIndexRowsWriter, FreshRows};
 use crate::source_command::SourceCommandError;
 use crate::source_creation_store::{
     DisposableCatalogTree, DisposableCatalogTreeCost, DisposableCatalogTreeLimits,
@@ -68,7 +68,7 @@ impl FreshCatalogCandidate<'_> {
 
 /// A bounded SourceCatalogSink that writes each callback directly into the
 /// caller's private isolated root and captures the exact rows used by FND.
-pub(crate) struct FreshCatalogSink<'root, 'manifest, 'cancel> {
+pub(crate) struct FreshCatalogSink<'root, 'manifest, 'cancel, 'rows> {
     tree: DisposableCatalogTree<'root>,
     source_limits: SourceCatalogLimits,
     max_addressed_rows: u64,
@@ -76,6 +76,7 @@ pub(crate) struct FreshCatalogSink<'root, 'manifest, 'cancel> {
     deadline: Instant,
     cancelled: &'cancel AtomicBool,
     rows: FreshRows,
+    rows_writer: Option<&'rows mut dyn FreshIndexRowsWriter>,
     record_rows: u64,
     claim_rows: u64,
     slot_rows: u64,
@@ -85,7 +86,7 @@ pub(crate) struct FreshCatalogSink<'root, 'manifest, 'cancel> {
     manifest_seen: bool,
 }
 
-impl<'root, 'manifest, 'cancel> FreshCatalogSink<'root, 'manifest, 'cancel> {
+impl<'root, 'manifest, 'cancel, 'rows> FreshCatalogSink<'root, 'manifest, 'cancel, 'rows> {
     pub(crate) fn new(
         isolated: &'root IsolatedCreationRoot,
         tree_limits: DisposableCatalogTreeLimits,
@@ -93,6 +94,49 @@ impl<'root, 'manifest, 'cancel> FreshCatalogSink<'root, 'manifest, 'cancel> {
         exact_manifest_raw: &'manifest [u8],
         deadline: Instant,
         cancelled: &'cancel AtomicBool,
+    ) -> Result<Self> {
+        Self::new_inner(
+            isolated,
+            tree_limits,
+            source_limits,
+            exact_manifest_raw,
+            deadline,
+            cancelled,
+            None,
+        )
+    }
+
+    /// Candidate-specific route that sends addressed identity pairs directly
+    /// to the caller's already-reserved native row store. The writer carries no
+    /// admission authority; native validation still consumes and verifies it.
+    pub(crate) fn new_with_index_rows(
+        isolated: &'root IsolatedCreationRoot,
+        tree_limits: DisposableCatalogTreeLimits,
+        source_limits: SourceCatalogLimits,
+        exact_manifest_raw: &'manifest [u8],
+        deadline: Instant,
+        cancelled: &'cancel AtomicBool,
+        rows_writer: &'rows mut dyn FreshIndexRowsWriter,
+    ) -> Result<Self> {
+        Self::new_inner(
+            isolated,
+            tree_limits,
+            source_limits,
+            exact_manifest_raw,
+            deadline,
+            cancelled,
+            Some(rows_writer),
+        )
+    }
+
+    fn new_inner(
+        isolated: &'root IsolatedCreationRoot,
+        tree_limits: DisposableCatalogTreeLimits,
+        source_limits: SourceCatalogLimits,
+        exact_manifest_raw: &'manifest [u8],
+        deadline: Instant,
+        cancelled: &'cancel AtomicBool,
+        rows_writer: Option<&'rows mut dyn FreshIndexRowsWriter>,
     ) -> Result<Self> {
         source_limits.validate()?;
         let max_addressed_rows = source_limits
@@ -126,6 +170,7 @@ impl<'root, 'manifest, 'cancel> FreshCatalogSink<'root, 'manifest, 'cancel> {
                 claims: Vec::new(),
                 native_semantic: Default::default(),
             },
+            rows_writer,
             record_rows: 0,
             claim_rows: 0,
             slot_rows: 0,
@@ -157,7 +202,7 @@ impl<'root, 'manifest, 'cancel> FreshCatalogSink<'root, 'manifest, 'cancel> {
             .ok_or(Error::Budget("fresh catalog decoded row state"))
     }
 
-    fn parse_index_pair(&mut self, collection: &str, raw: &[u8]) -> Result<Value> {
+    fn parse_index_pair(&mut self, collection: &str, raw: &[u8], retain: bool) -> Result<Value> {
         let workspace = self.row_workspace(raw)?;
         let retained = self.external_state_bytes()?;
         self.tree
@@ -202,25 +247,33 @@ impl<'root, 'manifest, 'cancel> FreshCatalogSink<'root, 'manifest, 'cancel> {
         self.tree
             .check_external_peak(retained, workspace)
             .map_err(map_source_error)?;
-        self.tree
-            .check_external_peak(
-                retained
-                    .checked_add(pair_state)
-                    .ok_or(Error::Budget("fresh catalog row state"))?,
-                workspace,
-            )
-            .map_err(map_source_error)?;
+        if retain {
+            self.tree
+                .check_external_peak(
+                    retained
+                        .checked_add(pair_state)
+                        .ok_or(Error::Budget("fresh catalog row state"))?,
+                    workspace,
+                )
+                .map_err(map_source_error)?;
+        } else {
+            self.tree
+                .check_external_peak(retained, workspace)
+                .map_err(map_source_error)?;
+        }
         let mut pair = Map::new();
         pair.insert(id_field.to_owned(), id);
         pair.insert(ref_field.to_owned(), source_ref);
         let pair = Value::Object(pair);
-        self.retained_pair_state_bytes = self
-            .retained_pair_state_bytes
-            .checked_add(pair_state)
-            .ok_or(Error::Budget("fresh catalog retained row state"))?;
-        self.tree
-            .set_external_state(self.external_state_bytes()?)
-            .map_err(map_source_error)?;
+        if retain {
+            self.retained_pair_state_bytes = self
+                .retained_pair_state_bytes
+                .checked_add(pair_state)
+                .ok_or(Error::Budget("fresh catalog retained row state"))?;
+            self.tree
+                .set_external_state(self.external_state_bytes()?)
+                .map_err(map_source_error)?;
+        }
         Ok(pair)
     }
 
@@ -341,7 +394,7 @@ impl<'root, 'manifest, 'cancel> FreshCatalogSink<'root, 'manifest, 'cancel> {
     }
 }
 
-impl SourceCatalogSink for FreshCatalogSink<'_, '_, '_> {
+impl SourceCatalogSink for FreshCatalogSink<'_, '_, '_, '_> {
     fn begin_file(&mut self, source_ref: &str) -> Result<()> {
         self.tree
             .begin_file(source_ref, self.deadline, self.cancelled)
@@ -364,12 +417,68 @@ impl SourceCatalogSink for FreshCatalogSink<'_, '_, '_> {
         self.increment_category(collection)?;
         match collection {
             "records" => {
-                let pair = self.parse_index_pair(collection, raw)?;
-                self.rows.records.push(pair);
+                let retain = self.rows_writer.is_none();
+                let pair = self.parse_index_pair(collection, raw, retain)?;
+                if self.rows_writer.is_some() {
+                    let id = pair
+                        .get("record_id")
+                        .and_then(Value::as_str)
+                        .ok_or(Error::Invalid("fresh catalog record identity"))?;
+                    let source_ref = pair
+                        .get("source_record_ref")
+                        .and_then(Value::as_str)
+                        .ok_or(Error::Invalid("fresh catalog record source reference"))?;
+                    let pair_state = pair_state_upper_bound(
+                        pair.get("record_id")
+                            .ok_or(Error::Invalid("fresh catalog record identity"))?,
+                        pair.get("source_record_ref")
+                            .ok_or(Error::Invalid("fresh catalog record source reference"))?,
+                    )?;
+                    self.tree
+                        .check_external_peak(self.external_state_bytes()?, pair_state)
+                        .map_err(map_source_error)?;
+                    let writer = self
+                        .rows_writer
+                        .as_deref_mut()
+                        .ok_or(Error::Invalid("fresh catalog row spool absent"))?;
+                    writer
+                        .push_record(id, source_ref)
+                        .map_err(|_| Error::Invalid("fresh catalog row spool refused"))?;
+                } else {
+                    self.rows.records.push(pair);
+                }
             }
             "claims" => {
-                let pair = self.parse_index_pair(collection, raw)?;
-                self.rows.claims.push(pair);
+                let retain = self.rows_writer.is_none();
+                let pair = self.parse_index_pair(collection, raw, retain)?;
+                if self.rows_writer.is_some() {
+                    let id = pair
+                        .get("claim_id")
+                        .and_then(Value::as_str)
+                        .ok_or(Error::Invalid("fresh catalog claim identity"))?;
+                    let source_ref = pair
+                        .get("source_claim_file_ref")
+                        .and_then(Value::as_str)
+                        .ok_or(Error::Invalid("fresh catalog claim source reference"))?;
+                    let pair_state = pair_state_upper_bound(
+                        pair.get("claim_id")
+                            .ok_or(Error::Invalid("fresh catalog claim identity"))?,
+                        pair.get("source_claim_file_ref")
+                            .ok_or(Error::Invalid("fresh catalog claim source reference"))?,
+                    )?;
+                    self.tree
+                        .check_external_peak(self.external_state_bytes()?, pair_state)
+                        .map_err(map_source_error)?;
+                    let writer = self
+                        .rows_writer
+                        .as_deref_mut()
+                        .ok_or(Error::Invalid("fresh catalog row spool absent"))?;
+                    writer
+                        .push_claim(id, source_ref)
+                        .map_err(|_| Error::Invalid("fresh catalog row spool refused"))?;
+                } else {
+                    self.rows.claims.push(pair);
+                }
             }
             "slots" => {
                 if raw.len() > self.source_limits.max_output_row_bytes {

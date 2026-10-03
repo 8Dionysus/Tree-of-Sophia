@@ -7,6 +7,7 @@ use crate::{
 use fs2::FileExt;
 use rusqlite::{Connection, OptionalExtension, params};
 use std::{
+    any::Any,
     cell::Cell,
     collections::{BTreeMap, BTreeSet},
     fs,
@@ -21,7 +22,9 @@ use std::{
     time::Instant,
 };
 use tos_foundation::{Digest256, Digest256Hasher, SourceRevision};
-use tos_source_store::{CorpusCutReader, MetadataPublicationEpoch, SourceMembershipV1};
+use tos_source_store::{
+    CorpusCutReader, MetadataPublicationEpoch, SourceMembershipV1, StreamedCorpusCutReaderV1,
+};
 
 // A selected descriptor permits up to 4,096 source registrations. A full
 // source family can contribute several independently sealed collections.
@@ -173,6 +176,34 @@ impl ColdAuthoredBinding {
             })?,
         })
     }
+    /// Bind an independently selected revision to the authenticated disk index.
+    /// Full stream EOF/currentness remains the owner's final-stage obligation.
+    pub fn from_streamed_cut(
+        cut: &StreamedCorpusCutReaderV1,
+        revision: SourceRevision,
+        membership: SourceMembershipV1,
+        epoch: &MetadataPublicationEpoch,
+    ) -> Result<Self> {
+        let selected = cut
+            .revision(revision)
+            .map_err(|_| Error::Source("cold authored streamed custody refused".into()))?
+            .ok_or(Error::Invalid("cold authored streamed revision absent"))?;
+        if cut.current_revision() != revision || selected.membership != membership {
+            return Err(Error::Invalid(
+                "cold authored independently selected streamed cut",
+            ));
+        }
+        Ok(Self {
+            revision,
+            membership,
+            source_cut: revision.0.to_hex(),
+            epoch_token: epoch.token().map(str::to_owned),
+            epoch_generation: epoch.generation(),
+            epoch_member: epoch.member_binding().map_err(|_| {
+                Error::Source("cold authored metadata epoch binding refused".into())
+            })?,
+        })
+    }
     pub fn revision(&self) -> SourceRevision {
         self.revision
     }
@@ -213,34 +244,162 @@ pub trait ColdStageOwner {
     fn verify_receipt(&self, receipt: &ColdExactInputReceipt) -> Result<()>;
     fn recheck_sealed_cut(&self, receipt: &ColdExactInputReceipt) -> Result<()>;
 }
+/// Actual candidate input identity and adapter-reported complete EOF coverage.
+/// This carrier creates no revision, publication epoch or source admission.
+#[derive(Clone)]
+pub struct CandidateValidationBinding<I: Copy + Eq + 'static> {
+    identity: I,
+    coverage: tos_validation::record_biblio_cut::SourceCutInputCoverage,
+}
+impl<I: Copy + Eq + 'static> CandidateValidationBinding<I> {
+    pub fn from_verified_input(
+        input: &dyn tos_validation::record_biblio_cut::SourceCutInputWithIdentity<I>,
+        expected: &I,
+        coverage: tos_validation::record_biblio_cut::SourceCutInputCoverage,
+        deadline: Instant,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> Result<Self> {
+        let checkpoint = || {
+            if Instant::now() >= deadline || cancelled.load(Ordering::Relaxed) {
+                Err(Error::Budget("candidate input deadline/cancel"))
+            } else {
+                Ok(())
+            }
+        };
+        checkpoint()?;
+        if input.input_identity() != expected {
+            return Err(Error::Invalid("candidate actual input identity"));
+        }
+        if coverage.member_count() != coverage.membership().count {
+            return Err(Error::Invalid("candidate complete input coverage"));
+        }
+        input
+            .source_input()
+            .verify_current_fence(&coverage, deadline, cancelled)
+            .map_err(|e| Error::Source(format!("candidate current input fence:{e:?}")))?;
+        checkpoint()?;
+        if input.input_identity() != expected {
+            return Err(Error::Invalid("candidate actual input identity changed"));
+        }
+        Ok(Self {
+            identity: *input.input_identity(),
+            coverage,
+        })
+    }
+    pub fn input_identity(&self) -> &I {
+        &self.identity
+    }
+    pub fn coverage(&self) -> &tos_validation::record_biblio_cut::SourceCutInputCoverage {
+        &self.coverage
+    }
+    pub(crate) fn validate(&self) -> Result<()> {
+        if self.coverage.member_count() != self.coverage.membership().count {
+            return Err(Error::Invalid("candidate complete input coverage"));
+        }
+        Ok(())
+    }
+    /// Diagnostic coverage only. The opaque identity is compared in memory;
+    /// these bytes are never an identity token or membership admission.
+    pub(crate) fn value(&self) -> serde_json::Value {
+        serde_json::json!({"kind":"candidate-validation-input-v1",
+            "membership_count":self.coverage.member_count(),
+            "membership_sha256":self.coverage.membership().digest.to_hex(),
+            "source_bytes_read":self.coverage.source_bytes_read()})
+    }
+    pub(crate) fn matches(&self, other: &Self) -> bool {
+        self.identity == other.identity && self.coverage == other.coverage
+    }
+}
+#[derive(Clone)]
+pub struct CandidateExactInputReceipt<I: Copy + Eq + 'static> {
+    pub binding: CandidateValidationBinding<I>,
+    pub collections: Vec<InputCollectionReceipt>,
+}
+impl<I: Copy + Eq + 'static> CandidateExactInputReceipt<I> {
+    fn validate(&self) -> Result<()> {
+        self.binding.validate()?;
+        validate_input_collections(&self.collections)
+    }
+}
+/// The actual adapter retains its source fence through computational completion.
+pub trait CandidateStageOwner<I: Copy + Eq + 'static> {
+    fn verify_receipt(&self, receipt: &CandidateExactInputReceipt<I>) -> Result<()>;
+    fn recheck_current_input(&self, receipt: &CandidateExactInputReceipt<I>) -> Result<()>;
+}
+#[derive(Clone)]
+struct ErasedCandidateReceipt {
+    actual: Rc<dyn Any>,
+    validate: fn(&dyn Any) -> Result<()>,
+    collections: fn(&dyn Any) -> &[InputCollectionReceipt],
+}
+impl ErasedCandidateReceipt {
+    fn new<I: Copy + Eq + 'static>(receipt: CandidateExactInputReceipt<I>) -> Self {
+        Self {
+            actual: Rc::new(receipt),
+            validate: |r| {
+                r.downcast_ref::<CandidateExactInputReceipt<I>>()
+                    .ok_or(Error::Invalid("candidate receipt type"))?
+                    .validate()
+            },
+            collections: |r| {
+                &r.downcast_ref::<CandidateExactInputReceipt<I>>()
+                    .expect("private candidate receipt type")
+                    .collections
+            },
+        }
+    }
+    fn typed<I: Copy + Eq + 'static>(&self) -> Result<&CandidateExactInputReceipt<I>> {
+        self.actual
+            .downcast_ref()
+            .ok_or(Error::Invalid("candidate receipt identity type"))
+    }
+}
+trait ErasedCandidateOwner {
+    fn verify(&self, receipt: &ErasedCandidateReceipt) -> Result<()>;
+    fn recheck(&self, receipt: &ErasedCandidateReceipt) -> Result<()>;
+}
+struct CandidateOwnerAdapter<'a, I: Copy + Eq + 'static>(&'a dyn CandidateStageOwner<I>);
+impl<I: Copy + Eq + 'static> ErasedCandidateOwner for CandidateOwnerAdapter<'_, I> {
+    fn verify(&self, receipt: &ErasedCandidateReceipt) -> Result<()> {
+        self.0.verify_receipt(receipt.typed::<I>()?)
+    }
+    fn recheck(&self, receipt: &ErasedCandidateReceipt) -> Result<()> {
+        self.0.recheck_current_input(receipt.typed::<I>()?)
+    }
+}
 #[derive(Clone)]
 enum StageInputReceipt {
     Projection(ExactInputReceipt),
     Cold(ColdExactInputReceipt),
+    Candidate(ErasedCandidateReceipt),
 }
 impl StageInputReceipt {
     fn validate(&self) -> Result<()> {
         match self {
             Self::Projection(r) => r.validate(),
             Self::Cold(r) => r.validate(),
+            Self::Candidate(r) => (r.validate)(r.actual.as_ref()),
         }
     }
     fn collections(&self) -> &[InputCollectionReceipt] {
         match self {
             Self::Projection(r) => &r.collections,
             Self::Cold(r) => &r.collections,
+            Self::Candidate(r) => (r.collections)(r.actual.as_ref()),
         }
     }
 }
 enum StageInputOwner<'a> {
     Projection(&'a dyn StageOwner),
     Cold(&'a dyn ColdStageOwner),
+    Candidate(Box<dyn ErasedCandidateOwner + 'a>),
 }
 impl StageInputOwner<'_> {
     fn verify_receipt(&self, receipt: &StageInputReceipt) -> Result<()> {
         match (self, receipt) {
             (Self::Projection(o), StageInputReceipt::Projection(r)) => o.verify_receipt(r),
             (Self::Cold(o), StageInputReceipt::Cold(r)) => o.verify_receipt(r),
+            (Self::Candidate(o), StageInputReceipt::Candidate(r)) => o.verify(r),
             _ => Err(Error::Invalid("stage input owner kind")),
         }
     }
@@ -248,6 +407,7 @@ impl StageInputOwner<'_> {
         match (self, receipt) {
             (Self::Projection(o), StageInputReceipt::Projection(r)) => o.recheck_sealed_cut(r),
             (Self::Cold(o), StageInputReceipt::Cold(r)) => o.recheck_sealed_cut(r),
+            (Self::Candidate(o), StageInputReceipt::Candidate(r)) => o.recheck(r),
             _ => Err(Error::Invalid("stage input owner kind")),
         }
     }
@@ -369,10 +529,24 @@ impl<'a> KnowledgeStage<'a> {
         self.public_build
     }
     pub(crate) fn registered_source(&self, source_graph: &str) -> bool {
+        if matches!(&self.receipt, StageInputReceipt::Candidate(_)) {
+            return self
+                .receipt
+                .collections()
+                .iter()
+                .any(|entry| entry.source_graph == source_graph);
+        }
         self.registrations.contains_key(source_graph)
     }
 
     fn registered(&self, source_graph: &str, collection: &str) -> bool {
+        if matches!(&self.receipt, StageInputReceipt::Candidate(_)) {
+            return self
+                .receipt
+                .collections()
+                .iter()
+                .any(|entry| entry.source_graph == source_graph && entry.collection == collection);
+        }
         self.registrations
             .get(source_graph)
             .is_some_and(|collections| collections.contains(collection))
@@ -384,6 +558,9 @@ impl<'a> KnowledgeStage<'a> {
             StageInputReceipt::Cold(_) => Err(Error::Invalid(
                 "cold authored stage is not projection input",
             )),
+            StageInputReceipt::Candidate(_) => {
+                Err(Error::Invalid("candidate stage is not projection input"))
+            }
         }
     }
     pub(crate) fn cold_receipt(&self) -> Result<&ColdExactInputReceipt> {
@@ -392,15 +569,32 @@ impl<'a> KnowledgeStage<'a> {
             StageInputReceipt::Projection(_) => Err(Error::Invalid(
                 "projection stage is not cold authored input",
             )),
+            StageInputReceipt::Candidate(_) => {
+                Err(Error::Invalid("candidate stage is not cold authored input"))
+            }
         }
     }
     pub(crate) fn input_collections(&self) -> &[InputCollectionReceipt] {
         self.receipt.collections()
     }
-    pub(crate) fn input_source_cut(&self) -> &str {
+    pub fn candidate_receipt<I: Copy + Eq + 'static>(
+        &self,
+    ) -> Result<&CandidateExactInputReceipt<I>> {
+        if self.poisoned {
+            return Err(Error::Invalid("candidate stage poisoned"));
+        }
         match &self.receipt {
-            StageInputReceipt::Projection(r) => &r.binding.source_cut,
-            StageInputReceipt::Cold(r) => r.binding.source_cut(),
+            StageInputReceipt::Candidate(r) => r.typed::<I>(),
+            _ => Err(Error::Invalid("stage is not candidate validation input")),
+        }
+    }
+    pub(crate) fn input_source_cut(&self) -> Result<&str> {
+        match &self.receipt {
+            StageInputReceipt::Projection(r) => Ok(&r.binding.source_cut),
+            StageInputReceipt::Cold(r) => Ok(r.binding.source_cut()),
+            StageInputReceipt::Candidate(_) => {
+                Err(Error::Invalid("candidate input has no source cut"))
+            }
         }
     }
 
@@ -516,6 +710,70 @@ impl<'a> KnowledgeStage<'a> {
         Ok(stage)
     }
 
+    /// Private computational candidate staging with the same quota, deadline,
+    /// counters and raw input ceiling. No cold or projection binding is minted.
+    pub fn create_candidate_until_with_input_cap<I: Copy + Eq + 'static>(
+        candidate: &Path,
+        limits: StageLimits,
+        receipt: CandidateExactInputReceipt<I>,
+        owner: &'a dyn CandidateStageOwner<I>,
+        isolation: &'a dyn StageIsolation,
+        deadline: Instant,
+        max_input_bytes: usize,
+    ) -> Result<Self> {
+        if max_input_bytes == 0
+            || max_input_bytes as u64 > MAX_STAGE_PAGE_BYTES
+            || max_input_bytes as u128 > limits.sqlite.max_work_bytes as u128
+        {
+            return Err(Error::Budget("candidate stage raw input ceiling"));
+        }
+        if Instant::now() >= deadline {
+            return Err(Error::Budget("candidate stage deadline"));
+        }
+        let mut stage = Self::create_inner(
+            candidate,
+            limits,
+            StageInputReceipt::Candidate(ErasedCandidateReceipt::new(receipt)),
+            StageInputOwner::Candidate(Box::new(CandidateOwnerAdapter(owner))),
+            Some(isolation),
+            Some(Arc::new(AtomicU64::new(0))),
+            None,
+            Some(deadline),
+        )?;
+        stage.raw_input_max_bytes = max_input_bytes;
+        Ok(stage)
+    }
+
+    /// Check the actual candidate owner without repeating the input-row census.
+    pub(crate) fn recheck_candidate_owner<I: Copy + Eq + 'static>(&mut self) -> Result<()> {
+        let result = (|| {
+            self.candidate_receipt::<I>()?;
+            self.check(WritePhase::Finalize)?;
+            self.owner.recheck_sealed_cut(&self.receipt)?;
+            self.check(WritePhase::Finalize)
+        })();
+        self.poisoned |= result.is_err();
+        result
+    }
+
+    /// Recheck this computational candidate's actual owner fence and the
+    /// existing complete input collection roots. No output receipt is issued.
+    pub fn verify_candidate_inputs<I: Copy + Eq + 'static>(&mut self) -> Result<u64> {
+        let result = (|| {
+            self.candidate_receipt::<I>()?;
+            if self.write_page.is_some() || !self.db().is_autocommit() {
+                return Err(Error::Invalid("candidate stage pending write"));
+            }
+            self.check(WritePhase::Finalize)?;
+            self.owner.recheck_sealed_cut(&self.receipt)?;
+            let rows = self.verified_input_rows()?;
+            self.recheck_candidate_owner::<I>()?;
+            Ok(rows)
+        })();
+        self.poisoned |= result.is_err();
+        result
+    }
+
     /// Complete a computational cold candidate. No selected projection or SQLite
     /// export receipt is emitted; disposal retains existing private-stage cleanup.
     pub fn finish_cold(mut self) -> Result<ColdStageReceipt> {
@@ -602,11 +860,15 @@ impl<'a> KnowledgeStage<'a> {
         limits.validate()?;
         receipt.validate()?;
         let mut registrations: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
-        for entry in receipt.collections() {
-            registrations
-                .entry(entry.source_graph.clone())
-                .or_default()
-                .insert(entry.collection.clone());
+        // Candidate registrations borrow the already receipted collection
+        // strings; do not create an independently unpriced map/string clone.
+        if !matches!(&receipt, StageInputReceipt::Candidate(_)) {
+            for entry in receipt.collections() {
+                registrations
+                    .entry(entry.source_graph.clone())
+                    .or_default()
+                    .insert(entry.collection.clone());
+            }
         }
         owner.verify_receipt(&receipt)?;
         let parent = candidate
@@ -1220,7 +1482,7 @@ impl<'a> KnowledgeStage<'a> {
         result
     }
     fn insert_node_inner(&mut self, row: NodeRow<'_>) -> Result<()> {
-        if !self.registrations.contains_key(row.source_graph) {
+        if !self.registered_source(row.source_graph) {
             return Err(Error::Invalid("unregistered node source"));
         }
         for value in [row.id, row.kind_id, row.type_id] {
@@ -1259,7 +1521,7 @@ impl<'a> KnowledgeStage<'a> {
         result
     }
     fn insert_relation_inner(&mut self, row: RelationRow<'_>) -> Result<()> {
-        if !self.registrations.contains_key(row.source_graph) {
+        if !self.registered_source(row.source_graph) {
             return Err(Error::Invalid("unregistered relation source"));
         }
         for value in [

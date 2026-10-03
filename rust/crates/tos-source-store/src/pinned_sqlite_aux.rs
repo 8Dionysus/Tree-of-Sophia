@@ -3,6 +3,7 @@
 //! The public budgets are deliberately independent of SQLite so callers can
 //! reserve their output/staging lifetime against the same declared envelope.
 
+use crate::pinned_sqlite::FdIoPolicy;
 use crate::{Result, StoreError, StoreErrorCode};
 use rusqlite::ffi;
 use std::fs::OpenOptions;
@@ -52,9 +53,16 @@ pub struct PinnedSqliteIoSnapshot {
 }
 
 #[derive(Debug)]
-struct IoState {
+struct IoLimits {
     max_read: u64,
     max_write: u64,
+}
+
+#[derive(Debug)]
+struct IoState {
+    // Charge and restriction share one linearization point. An atomic ceiling
+    // alone would permit a charge to commit against a stale, larger limit.
+    limits: Mutex<IoLimits>,
     read_attempted: AtomicU64,
     read_permitted: AtomicU64,
     read_returned: AtomicU64,
@@ -70,6 +78,11 @@ struct IoState {
 pub struct PinnedSqliteIoBudget(Arc<IoState>);
 
 impl PinnedSqliteIoBudget {
+    /// Identity of the existing ledger, never numeric-limit equivalence.
+    pub fn shares_with(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+
     pub fn new(max_read_bytes: u64, max_write_bytes: u64) -> Result<Self> {
         if max_read_bytes == 0
             || max_write_bytes == 0
@@ -79,8 +92,10 @@ impl PinnedSqliteIoBudget {
             return Err(budget_error("SQLite logical I/O limits must be nonzero"));
         }
         Ok(Self(Arc::new(IoState {
-            max_read: max_read_bytes,
-            max_write: max_write_bytes,
+            limits: Mutex::new(IoLimits {
+                max_read: max_read_bytes,
+                max_write: max_write_bytes,
+            }),
             read_attempted: AtomicU64::new(0),
             read_permitted: AtomicU64::new(0),
             read_returned: AtomicU64::new(0),
@@ -92,6 +107,11 @@ impl PinnedSqliteIoBudget {
     }
 
     pub fn charge_read(&self, bytes: u64) -> Result<()> {
+        let limits = self.0.limits.lock().map_err(|_| {
+            saturating_add(&self.0.read_attempted, bytes);
+            self.fail(PinnedSqliteIoFailure::Io);
+            budget_error("SQLite logical I/O limit lock is poisoned")
+        })?;
         if self.0.failure.load(Ordering::Acquire) != 0 {
             saturating_add(&self.0.read_attempted, bytes);
             return Err(budget_error(
@@ -101,7 +121,7 @@ impl PinnedSqliteIoBudget {
         charge(
             &self.0.read_attempted,
             &self.0.read_permitted,
-            self.0.max_read,
+            limits.max_read,
             bytes,
         )
         .map_err(|_| {
@@ -111,6 +131,11 @@ impl PinnedSqliteIoBudget {
     }
 
     pub fn charge_write(&self, bytes: u64) -> Result<()> {
+        let limits = self.0.limits.lock().map_err(|_| {
+            saturating_add(&self.0.write_attempted, bytes);
+            self.fail(PinnedSqliteIoFailure::Io);
+            budget_error("SQLite logical I/O limit lock is poisoned")
+        })?;
         if self.0.failure.load(Ordering::Acquire) != 0 {
             saturating_add(&self.0.write_attempted, bytes);
             return Err(budget_error(
@@ -120,7 +145,7 @@ impl PinnedSqliteIoBudget {
         charge(
             &self.0.write_attempted,
             &self.0.write_permitted,
-            self.0.max_write,
+            limits.max_write,
             bytes,
         )
         .map_err(|_| {
@@ -134,6 +159,57 @@ impl PinnedSqliteIoBudget {
             self.fail(PinnedSqliteIoFailure::Io);
             budget_error("SQLite read return exceeded permitted bytes")
         })
+    }
+
+    /// Narrow this same cumulative ledger to the caller's genuinely remaining
+    /// outer read/write slices before further IO. Existing attempts, permits,
+    /// returns and failures are never reset or refunded. Already issued IO may
+    /// finish; its entire permit is included in the used baseline.
+    ///
+    /// The caller must finish/debit external IO before selecting these slices
+    /// and prevent concurrent external spending of that remaining outer pool.
+    /// This mechanical restriction neither verifies that outer accounting nor
+    /// grants a larger limit: repeated calls can only retain or lower ceilings.
+    /// Zero remaining bytes are valid. No new Arc/request identity is created.
+    pub fn restrict_remaining_io(
+        &self,
+        remaining_read_bytes: u64,
+        remaining_write_bytes: u64,
+    ) -> Result<()> {
+        let mut limits = self.0.limits.lock().map_err(|_| {
+            self.fail(PinnedSqliteIoFailure::Io);
+            budget_error("SQLite logical I/O limit lock is poisoned")
+        })?;
+        if self.0.failure.load(Ordering::Acquire) != 0 {
+            return Err(budget_error(
+                "SQLite logical I/O ledger has a prior failure",
+            ));
+        }
+        if remaining_read_bytes == u64::MAX || remaining_write_bytes == u64::MAX {
+            return Err(budget_error("SQLite remaining I/O slice is unbounded"));
+        }
+        let used_read = self
+            .0
+            .read_attempted
+            .load(Ordering::Acquire)
+            .max(self.0.read_permitted.load(Ordering::Acquire))
+            .max(self.0.read_returned.load(Ordering::Acquire));
+        let used_write = self
+            .0
+            .write_attempted
+            .load(Ordering::Acquire)
+            .max(self.0.write_permitted.load(Ordering::Acquire))
+            .max(self.0.write_returned.load(Ordering::Acquire));
+        // Validate both additions before mutating either ceiling.
+        let max_read = used_read
+            .checked_add(remaining_read_bytes)
+            .ok_or_else(|| budget_error("SQLite remaining read slice overflow"))?;
+        let max_write = used_write
+            .checked_add(remaining_write_bytes)
+            .ok_or_else(|| budget_error("SQLite remaining write slice overflow"))?;
+        limits.max_read = limits.max_read.min(max_read);
+        limits.max_write = limits.max_write.min(max_write);
+        Ok(())
     }
 
     pub fn record_write_returned(&self, bytes: u64) -> Result<()> {
@@ -245,6 +321,11 @@ struct SpaceLedger {
 pub struct PinnedSqliteSpaceBudget(Arc<SpaceLedger>);
 
 impl PinnedSqliteSpaceBudget {
+    /// Identity of the existing ledger; this creates no reservation or grant.
+    pub fn shares_with(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+
     pub fn new(available_declared_bytes: u64) -> Result<Self> {
         if available_declared_bytes == 0 || available_declared_bytes == u64::MAX {
             return Err(budget_error(
@@ -951,6 +1032,129 @@ impl AuxContext {
         }
         Ok(false)
     }
+}
+
+// Reuse the auxiliary ledger policy for a strict MAIN-only VFS. This holds a
+// descriptor until before its reservation drops; it does not grant aux opens.
+struct MainOnlyPolicy {
+    _file: File,
+    inner: AuxPolicy,
+}
+impl crate::pinned_sqlite::FdIoPolicy for MainOnlyPolicy {
+    fn begin_read(&self, bytes: u64) -> bool {
+        self.inner.begin_read(bytes)
+    }
+    fn record_read(&self, bytes: u64) -> bool {
+        self.inner.record_read(bytes)
+    }
+    fn before_write(&self, file: &File, offset: u64, bytes: u64) -> bool {
+        self.inner.before_write(file, offset, bytes)
+    }
+    fn record_write(&self, bytes: u64) -> bool {
+        self.inner.record_write(bytes)
+    }
+    fn before_truncate(&self, file: &File, size: u64) -> bool {
+        self.inner.before_truncate(file, size)
+    }
+    fn after_mutation(&self, file: &File) -> bool {
+        self.inner.after_mutation(file)
+    }
+    fn check_operation(&self) -> bool {
+        self.inner.check_operation()
+    }
+    fn failed_io(&self) {
+        self.inner.failed_io();
+    }
+}
+
+pub(super) fn strict_main_policy(
+    file: &File,
+    io_budget: PinnedSqliteIoBudget,
+    space_budget: PinnedSqliteSpaceBudget,
+    logical_cap: u64,
+    allocated_cap: u64,
+    deadline: Instant,
+    cancelled: Arc<AtomicBool>,
+) -> Result<Arc<dyn crate::pinned_sqlite::FdIoPolicy>> {
+    if logical_cap == 0
+        || logical_cap == u64::MAX
+        || allocated_cap == 0
+        || allocated_cap == u64::MAX
+    {
+        return Err(budget_error("strict SQLite main envelope is invalid"));
+    }
+    if cancelled.load(Ordering::Acquire) {
+        io_budget.fail(PinnedSqliteIoFailure::Cancelled);
+    } else if deadline <= Instant::now() {
+        io_budget.fail(PinnedSqliteIoFailure::Deadline);
+    }
+    if io_budget.snapshot().failure.is_some() {
+        return Err(budget_error("strict SQLite main request is stopped"));
+    }
+    let metadata = file
+        .metadata()
+        .map_err(|_| invalid("strict SQLite main metadata"))?;
+    validate_unnamed_file(&metadata)?;
+    if metadata.len() != 0 {
+        return Err(invalid("strict SQLite main must be fresh"));
+    }
+    let reservation = space_budget.reserve(allocated_cap).map_err(|error| {
+        io_budget.fail(PinnedSqliteIoFailure::SpaceLimit);
+        error
+    })?;
+    let actual = metadata.blocks().checked_mul(512).ok_or_else(|| {
+        io_budget.fail(PinnedSqliteIoFailure::SpaceLimit);
+        budget_error("strict SQLite allocation overflow")
+    })?;
+    reservation
+        .update_actual_allocated(actual)
+        .map_err(|error| {
+            io_budget.fail(PinnedSqliteIoFailure::SpaceLimit);
+            error
+        })?;
+    let owned = file
+        .try_clone()
+        .map_err(|_| invalid("strict SQLite main descriptor clone"))?;
+    let state = Arc::new(AuxState {
+        class: AuxClass::Main,
+        logical_cap,
+        allocated_cap,
+        reservation: Some(reservation),
+        other: None,
+        io_budget,
+        space_budget,
+        deadline,
+        cancelled,
+        live_aux: Arc::new(AtomicUsize::new(0)),
+        logical_current: AtomicU64::new(0),
+        allocated_current: AtomicU64::new(actual),
+        counted_live: false,
+        open_handles: AtomicUsize::new(0),
+    });
+    Ok(Arc::new(MainOnlyPolicy {
+        _file: owned,
+        inner: AuxPolicy {
+            state,
+            context: Weak::new(),
+            key: Vec::new(),
+            delete_on_close: false,
+        },
+    }))
+}
+
+/// Fixed allocations made by strict_main_policy, excluding the shared request
+/// ledgers, SQLite/VFS allocations and allocator overhead. Arc headers are
+/// charged conservatively alongside their concrete payloads.
+pub(super) fn strict_main_declared_custody_bytes() -> Result<usize> {
+    [
+        std::mem::size_of::<MainOnlyPolicy>(),
+        std::mem::size_of::<AuxState>(),
+        std::mem::size_of::<AtomicUsize>(),
+        6 * std::mem::size_of::<usize>(),
+    ]
+    .into_iter()
+    .try_fold(0usize, |sum, bytes| sum.checked_add(bytes))
+    .ok_or_else(|| budget_error("strict SQLite declared custody state overflow"))
 }
 
 #[derive(Debug)]
@@ -1916,4 +2120,52 @@ fn budget_error(detail: &'static str) -> StoreError {
 
 fn invalid(detail: &'static str) -> StoreError {
     StoreError::new(StoreErrorCode::DescriptorMismatch, detail)
+}
+
+#[cfg(test)]
+mod io_restriction_tests {
+    use super::*;
+
+    #[test]
+    fn narrowing_keeps_identity_counters_and_inflight_permits() {
+        let io = PinnedSqliteIoBudget::new(100, 100).unwrap();
+        let clone = io.clone();
+        io.charge_read(7).unwrap();
+        io.charge_write(11).unwrap();
+        let before = io.snapshot();
+        clone.restrict_remaining_io(0, 0).unwrap();
+        assert!(clone.shares_with(&io));
+        assert_eq!(io.snapshot(), before);
+        io.record_read_returned(7).unwrap();
+        io.record_write_returned(11).unwrap();
+        // A larger later slice cannot restore either exhausted ceiling.
+        clone.restrict_remaining_io(100, 100).unwrap();
+        assert!(io.charge_read(1).is_err());
+        assert_eq!(io.snapshot().read_permitted_bytes, 7);
+        assert_eq!(io.snapshot().read_returned_bytes, 7);
+        assert_eq!(
+            io.snapshot().failure,
+            Some(PinnedSqliteIoFailure::ReadLimit)
+        );
+        assert!(clone.restrict_remaining_io(100, 100).is_err());
+    }
+
+    #[test]
+    fn narrowing_write_limit_is_shared_and_invalid_pair_does_not_partially_apply() {
+        let io = PinnedSqliteIoBudget::new(10, 20).unwrap();
+        io.charge_read(1).unwrap();
+        io.charge_write(2).unwrap();
+        assert!(io.restrict_remaining_io(0, u64::MAX - 1).is_err());
+        // Overflow in the second slice must leave the first ceiling intact.
+        io.charge_read(9).unwrap();
+        io.restrict_remaining_io(0, 3).unwrap();
+        let clone = io.clone();
+        clone.charge_write(3).unwrap();
+        assert!(io.charge_write(1).is_err());
+        assert_eq!(clone.snapshot().write_permitted_bytes, 5);
+        assert_eq!(
+            clone.snapshot().failure,
+            Some(PinnedSqliteIoFailure::WriteLimit)
+        );
+    }
 }

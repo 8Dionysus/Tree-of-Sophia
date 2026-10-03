@@ -11,7 +11,9 @@ use crate::source_bibliographic_render::{self as render, array, digest, encode, 
 pub use crate::source_bibliographic_render::{
     ClaimInputs as SuppliedBibliographicClaimInputs, Cohort as SuppliedBibliographicClaimCohort,
 };
-pub use crate::source_bibliographic_versions::BibliographicSourceCut;
+pub use crate::source_bibliographic_versions::{
+    BibliographicSourceCut, StreamedBibliographicReadLedger, StreamedBibliographicSourceCut,
+};
 
 /// Render authenticated ordered metadata/history supplied by the source owner.
 /// This is the existing per-record kernel; inputs are not a source receipt,
@@ -1392,7 +1394,9 @@ pub fn prepare_bibliographic_graph_from_cut(
         validator,
         materializer,
         l,
-        Some(source),
+        Some(
+            crate::source_bibliographic_versions::SelectedBibliographicSourceCut::Resident(source),
+        ),
     )
 }
 pub fn prepare_cold_bibliographic_graph_from_cut(
@@ -1409,7 +1413,64 @@ pub fn prepare_cold_bibliographic_graph_from_cut(
         validator,
         materializer,
         l,
-        Some(source),
+        Some(
+            crate::source_bibliographic_versions::SelectedBibliographicSourceCut::Resident(source),
+        ),
+    )
+}
+pub fn prepare_streamed_cold_bibliographic_graph_from_cut(
+    stage: &mut KnowledgeStage<'_>,
+    catalog_receipt: &catalog::ColdSourceCatalogReceipt,
+    validator: &SourceCatalogValidator<'_>,
+    materializer: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+    source: &StreamedBibliographicSourceCut<'_>,
+) -> Result<BibliographicReceipt> {
+    prepare_impl(
+        stage,
+        catalog_receipt,
+        validator,
+        materializer,
+        l,
+        Some(
+            crate::source_bibliographic_versions::SelectedBibliographicSourceCut::Streamed(source),
+        ),
+    )
+}
+/// Compile the same exact metadata/Claim/history kernel from an actual selected
+/// current candidate. Opaque input identity is retained in its typed receipt;
+/// no candidate revision, future epoch, or source-cut label is manufactured.
+pub fn prepare_candidate_bibliographic_graph_from_input<I: Eq + Copy + 'static>(
+    stage: &mut KnowledgeStage<'_>,
+    catalog_receipt: &catalog::CandidateSourceCatalogReceipt<I>,
+    validator: &SourceCatalogValidator<'_>,
+    materializer: &mut dyn BibliographicForms,
+    l: BibliographicLimits,
+    input: &dyn tos_validation::record_biblio_cut::SourceCutInputWithIdentity<I>,
+    read_ledger: &std::cell::RefCell<
+        crate::source_bibliographic_versions::StreamedBibliographicReadLedger,
+    >,
+    max_workspace_bytes: usize,
+) -> Result<BibliographicReceipt> {
+    let source = crate::source_bibliographic_versions::CandidateBibliographicSource {
+        input,
+        binding: &catalog_receipt.input_binding,
+        read_ledger,
+        max_workspace_bytes,
+        validator,
+        original_deadline: l.deadline,
+    };
+    prepare_impl(
+        stage,
+        catalog_receipt,
+        validator,
+        materializer,
+        l,
+        Some(
+            crate::source_bibliographic_versions::SelectedBibliographicSourceCut::Candidate(
+                &source,
+            ),
+        ),
     )
 }
 fn prepare_impl<B: catalog::CatalogInputBinding>(
@@ -1418,7 +1479,7 @@ fn prepare_impl<B: catalog::CatalogInputBinding>(
     validator: &SourceCatalogValidator<'_>,
     materializer: &mut dyn BibliographicForms,
     l: BibliographicLimits,
-    source: Option<&crate::source_bibliographic_versions::BibliographicSourceCut<'_>>,
+    source: Option<crate::source_bibliographic_versions::SelectedBibliographicSourceCut<'_, '_>>,
 ) -> Result<BibliographicReceipt> {
     let result = (|| {
         l.validate()?;
@@ -1434,7 +1495,7 @@ fn prepare_impl<B: catalog::CatalogInputBinding>(
         }
         let mut versions = source
             .map(|source| {
-                crate::source_bibliographic_versions::Versions::new(
+                crate::source_bibliographic_versions::Versions::new_selected(
                     source,
                     stage,
                     validator,
@@ -1513,6 +1574,9 @@ INSERT INTO source_bibliographic_totals VALUES(1,0,0);")?;Ok(())})?;
                 }
             }Ok(())
         })?;
+        if let Some(versions) = &versions {
+            versions.verify_catalog_binding(stage, catalog_receipt, l)?;
+        }
         catalog::verify_catalog(stage, catalog_receipt, l.catalog)?;
         let (node_count, edge_count, claim_count, row_root_sha256) = root(stage, l)?;
         if claim_count != catalog_receipt.claim_count {
@@ -1549,6 +1613,15 @@ pub fn render_bibliographic_graph(
 pub fn render_cold_bibliographic_graph(
     stage: &mut KnowledgeStage<'_>,
     catalog_receipt: &catalog::ColdSourceCatalogReceipt,
+    receipt: &BibliographicReceipt,
+    l: BibliographicLimits,
+    sink: &mut impl BibliographicSink,
+) -> Result<()> {
+    render_impl(stage, catalog_receipt, receipt, l, sink)
+}
+pub fn render_candidate_bibliographic_graph<I: Eq + Copy + 'static>(
+    stage: &mut KnowledgeStage<'_>,
+    catalog_receipt: &catalog::CandidateSourceCatalogReceipt<I>,
     receipt: &BibliographicReceipt,
     l: BibliographicLimits,
     sink: &mut impl BibliographicSink,
