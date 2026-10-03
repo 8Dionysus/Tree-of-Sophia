@@ -9,8 +9,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {createHash} from 'node:crypto';
 import {build} from 'esbuild';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
-import {knowledgeNodeD1, knowledgeRelationD1} from '../src/knowledge-store.ts';
-import {nativePacketResponse} from '../src/native-lens-response.ts';
+import {publishedWorkerFixtureModules} from './native-lens-fixture.ts';
 
 const repo = fileURLToPath(new URL('../../../../',import.meta.url));
 const sha = raw => createHash('sha256').update(raw).digest('hex');
@@ -122,7 +121,9 @@ p=json.load(sys.stdin);unordered=['$.lens','$.counts','$.scene'] if p['lens'] el
 }
 let workerPromise;
 async function worker() {
-  workerPromise??=build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'})
+  workerPromise??=build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',
+    plugins:[{name:'existing-node-wasm-module',setup(build){build.onLoad({filter:/\.wasm$/},({path})=>({
+      contents:`export default new WebAssembly.Module(Uint8Array.from(atob(${JSON.stringify(readFileSync(path).toString('base64'))}),c=>c.charCodeAt(0)))`,loader:'js'}));}}]})
     .then(async bundle=>(await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'))).default);
   return workerPromise;
 }
@@ -285,8 +286,7 @@ print(json.dumps(output))`);
 });
 
 test('real Miniflare D1 lens uses the shared header/status guard before first HTTP serialization',async()=>{
-  const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
-  const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-09-03',d1Databases:['DB']}));
+  const mf=new Miniflare(convertV4MiniflareOptions({...await publishedWorkerFixtureModules(),d1Databases:['DB']}));
   const data=lensDatabase();try {
     const db=await mf.getD1Database('DB');
     await db.batch(schema.split(';').map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)));
@@ -348,9 +348,6 @@ test('inspection exact source targets match Python native witness identities and
 });
 
 test('authored CSV target preserves string/null cells and rejects malformed or ambiguous exact bindings',async()=>{
-  const {parseNativeJson,nativeChild}=await import('../../../shared/native-semantics.ts');
-  const {nativeSourceReadTargets}=await import('../src/native-source-target.ts');
-  const {nativePacketJson}=await import('../src/native-lens.ts');
   const row={id:'canon:fixture:m001',source_record:{digest:'a'.repeat(64),transform_version:'tos-knowledge-normalization-v2',field_map:{},
     payload:{pack_id:'canon/relations/fixture',edge_id:'m001',properties:{source_row:1,source_file_sha256:'b'.repeat(64),
       source_record:{edge_id:'m001','10':'ten','2':'two',missing:null,note:'строка\nещё','😀':'astral','\ue000':'bmp'}}}}};
@@ -366,17 +363,27 @@ test('authored CSV target preserves string/null cells and rejects malformed or a
     const wrong=structuredClone(row);mutate(wrong);inputs.push(wrong);
   }
   for(let i=0;i<inputs.length;i++){
-    const item=inputs[i],native=parseNativeJson(JSON.stringify({item,revision:'c'.repeat(64)}));
-    const actual=JSON.parse(nativePacketJson(await nativeSourceReadTargets([nativeChild(native,'item')],nativeChild(native,'revision'))));
-    const expected=python("from tos_access.source_read_projection import source_read_targets;p=json.load(sys.stdin);print(json.dumps(source_read_targets([p['item']],p['revision'])))",{item,revision:'c'.repeat(64)});
-    assert.deepEqual(actual,expected);
-    assert.equal(Object.keys(actual).length,i===0?1:0);
+    const data=database();try {
+      replaceRow(data,'node','philosophy:a',raw=>{const item=JSON.parse(raw);item.source_record=inputs[i].source_record;return JSON.stringify(item);});
+      const expected=oracle(data,'node','philosophy:a',0),actual=await response(data,'node','philosophy:a',0);
+      assert.equal(actual.status,expected.status,expected.error);
+      if(expected.status===200) {
+        const raw=await actual.text();assertPackets(raw,expected.raw);
+        assert.equal(Object.keys(JSON.parse(raw).source_read_targets).length,i===0?1:0);
+      }
+    }finally{data.close();}
   }
 });
 
 test('inspection identifier Unicode stripping, unknown IDs and HEAD status agree with published Python',async()=>{
+  for(const kind of ['node','relation'])for(const id of ['', ' '.repeat(8), 'x'.repeat(4097)]) {
+    let reads=0;
+    const unavailable=new Proxy({}, {get(){reads++;throw new Error('malformed inspection must precede ANY D1');}});
+    const actual=await response({db:unavailable},kind,id);
+    assert.equal(actual.status,400);assert.equal(reads,0);
+  }
   const data=database();try {
-    for(const kind of ['node','relation'])for(const id of ['', 'not-found','x'.repeat(4097), '\u0085'+(kind==='node'?'philosophy:a':'philosophy:r')+'\u001c', '\ufeff'+(kind==='node'?'philosophy:a':'philosophy:r')+'\ufeff']) {
+    for(const kind of ['node','relation'])for(const id of ['', 'not-found','x'.repeat(4097), ' '.repeat(5000)+(kind==='node'?'philosophy:a':'philosophy:r'), '\u0085'+(kind==='node'?'philosophy:a':'philosophy:r')+'\u001c', '\ufeff'+(kind==='node'?'philosophy:a':'philosophy:r')+'\ufeff']) {
       const expected=oracle(data,kind,id), result=await response(data,kind,id);
       assert.equal(result.status,expected.status,`${kind}/${JSON.stringify(id.slice(0,30))}`);
       if(expected.status===200)assertPackets(await result.text(),expected.raw);
@@ -491,8 +498,7 @@ test('inspection actual repeated source-ref response budget is 413 after bounded
 });
 
 test('real Miniflare D1 inspection preserves raw first HTTP serialization and ABA rejection',async()=>{
-  const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
-  const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-09-03',d1Databases:['DB']}));
+  const mf=new Miniflare(convertV4MiniflareOptions({...await publishedWorkerFixtureModules(),d1Databases:['DB']}));
   const data=database();try {
     const db=await mf.getD1Database('DB');
     await db.batch(schema.split(';').map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)));
@@ -513,7 +519,8 @@ test('real Miniflare D1 inspection preserves raw first HTTP serialization and AB
           db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'").bind(JSON.stringify({sha256:'e'.repeat(64)})),
           db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'").bind(fixture.metadata.data_revision)]);}
         return result;}};}};
-      await assert.rejects(kind==='node'?knowledgeNodeD1(guarded,'philosophy:a',200):knowledgeRelationD1(guarded,'philosophy:r'),error=>error.status===409);assert.equal(changed,true);
+      const actual=await response({db:guarded},kind,kind==='node'?'philosophy:a':'philosophy:r');
+      assert.equal(actual.status,409);assert.equal(changed,true);
     }
   }finally{data.close();await mf.dispose();}
 });

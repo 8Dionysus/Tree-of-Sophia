@@ -77,7 +77,7 @@ class NativeFixture:
         self.owner.write_bytes(revisions._encode(self.config))
 
     def command(self, operation, **fields):
-        return source.run_local_command(self.owner, {'schema_version': 'tos_local_source_command_v1',
+        return source.run_legacy_oracle_command(self.owner, {'schema_version': 'tos_local_source_command_v1',
                                                      'operation': operation, **fields})
 
     def request(self):
@@ -162,14 +162,14 @@ class NativeMetadataRevisionTests(unittest.TestCase):
                     self.assertNotEqual(path, fixture.path.parent)
                     return listing(path)
                 with patch.object(source, '_read', side_effect=selected_read), patch.object(Path, 'iterdir', selected_listing):
-                    result = source.run_local_command(fixture.owner, request)
+                    result = source.run_legacy_oracle_command(fixture.owner, request)
                     old = fixture.command('inspect-version', source=request['expected_source'])
                 self.assertEqual(old['record'], fixture.record)
                 self.assertEqual(set(old['files']), set(before))
                 self.assertTrue(all(view['state'] == 'ready' and view['admission'] is None for view in result['materializations']))
                 self.assertEqual(json.loads(fixture.formpath.read_bytes())['prior_forms'], fixture.original_forms['forms'])
                 self.assertEqual((fixture.nested / 'untouched.bin').read_bytes(), b'synthetic opaque bytes')
-                self.assertTrue(source.run_local_command(fixture.owner, request)['replayed'])
+                self.assertTrue(source.run_legacy_oracle_command(fixture.owner, request)['replayed'])
                 fixture.sync_catalog()
                 reader = MetadataVersionReader(fixture.root)
                 self.assertTrue(reader.supports(kind, source_ref=fixture.relative))
@@ -197,7 +197,7 @@ class NativeMetadataRevisionTests(unittest.TestCase):
                     raise RuntimeError('synthetic native interruption')
                 with patch.object(transactions, '_replace_file', side_effect=interrupt):
                     with self.assertRaisesRegex(RuntimeError, 'synthetic native interruption'):
-                        source.run_local_command(fixture.owner, request)
+                        source.run_legacy_oracle_command(fixture.owner, request)
                 with self.assertRaises(PublicationPending):
                     PublicationSnapshot(fixture.root)
                 from source_selected_revisions import _transaction_id
@@ -218,7 +218,7 @@ class NativeMetadataRevisionTests(unittest.TestCase):
             invalid = copy.deepcopy(request)
             invalid['fields'] = fields
             with self.subTest(fields=fields), self.assertRaises((PermissionError, ValueError)):
-                source.run_local_command(fixture.owner, invalid)
+                source.run_legacy_oracle_command(fixture.owner, invalid)
             self.assertEqual(revisions._selected_package(fixture.path), before)
         fixture.config.update(schema_version=source.CORPUS_COMPLETE_REVISION_CONFIG)
         fixture.config.pop('record_schema_version')

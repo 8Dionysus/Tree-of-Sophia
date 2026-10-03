@@ -30,8 +30,11 @@ from test_indexed_lens import lens
 
 
 class SourceClaimPublicationTests(unittest.TestCase):
+    workload = fixtures.PublicationWorkload()
+
     def setUp(self):
         self.base = fixtures.SourceAgentPublicationTests()
+        self.base.workload = self.workload
         self.base.setUp()
         self.addCleanup(self.base.doCleanups)
         self.root, self.db = self.base.root, self.base.db
@@ -54,13 +57,13 @@ class SourceClaimPublicationTests(unittest.TestCase):
             'allowed_subject_refs': [self.claim['subject_ref']], 'allowed_object_refs': [self.claim['object']],
             'allowed_predicates': [self.claim['predicate']], 'allowed_evidence_refs': [self.evidence]}
         self.owner.write_bytes(canonical_bytes(self.config))
-        preview = commands.run_local_command(self.owner, {'schema_version': 'tos_local_source_command_v1',
+        preview = commands.run_legacy_oracle_command(self.owner, {'schema_version': 'tos_local_source_command_v1',
             'operation': 'prepare-create', 'claims': [self.claim]})
         request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'claims.create',
             'command_id': 'synthetic-claim-publication', 'claims': [self.claim], 'expected_revision': None,
             'expected_configuration': preview['owner_configuration'],
             'expected_dependencies': preview['expected_dependencies'], 'expected_inputs': preview['source_bindings']}
-        created = commands.run_local_command(self.owner, request)
+        created = commands.run_legacy_oracle_command(self.owner, request)
         receipt_path = (self.root / self.relative).with_name('source-create-receipt.json')
         self.expected = {'expected_receipt_sha256': hashlib.sha256(receipt_path.read_bytes()).hexdigest(),
                          'expected_request_digest': created['receipt']['request_digest']}
@@ -86,6 +89,43 @@ class SourceClaimPublicationTests(unittest.TestCase):
     def test_atomic_all_lane_addition_matches_full_union_oracle_and_old_reader_conflicts(self):
         before = PublishedKnowledgeReadModel(self.base.path, self.base.binding)
         old_catalog = before.catalog()
+        if os.environ.get('TOS_NATIVE_CLAIM_PUBLICATION_CASE_BIN'):
+            # The real maintained fixture enters the native whole caller before
+            # any Python transaction begins. Generic Connection APIs stay intact.
+            import importlib.util
+            import subprocess
+            adapter = ROOT / 'tests/conformance/rust/source_claim_publication_fixture.py'
+            spec = importlib.util.spec_from_file_location('claim_native_fixture', adapter)
+            fixture = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(fixture)
+            packet = self.root / 'derived/native-claim-fixture.json'
+            fixture.write_fixture(self, packet)
+            binary = Path(os.environ['TOS_NATIVE_CLAIM_PUBLICATION_CASE_BIN'])
+            self.assertTrue(binary.is_absolute())
+            self.assertLessEqual(binary.stat().st_size, 512 * 1024 * 1024)
+            digest = hashlib.sha256()
+            with binary.open('rb') as image:
+                for block in iter(lambda: image.read(65536), b''):
+                    digest.update(block)
+            self.assertEqual(digest.hexdigest(), os.environ['TOS_NATIVE_CLAIM_PUBLICATION_CASE_SHA256'])
+            environment = {**os.environ, 'TOS_NATIVE_CLAIM_PUBLICATION_FIXTURE': str(packet)}
+            completed = subprocess.run([str(binary), '--exact',
+                'command_claim_publication_cases::maintained_claim_addition_whole_transaction_and_access'],
+                env=environment, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL, timeout=260, check=False)
+            self.assertEqual(completed.returncode, 0, 'native whole Claim case failed; OPS case output is authoritative')
+            result = json.loads(packet.with_suffix('.receipt.json').read_bytes())
+            self.assertTrue(result['prepared_committed'])
+            self.assertTrue(result['complete_incidence_verified'])
+            self.assertFalse(result['is_semantic_acceptance'])
+            self.assertFalse(self.db.in_transaction)
+            expected = json.loads(packet.read_bytes())['expected']
+            for kind in ('node', 'relation'):
+                stored = {identity: json.loads(raw) for identity, raw in self.db.execute('SELECT id,json FROM knowledge_' + kind + 's')}
+                self.assertEqual(stored, {row['id']: row for row in expected[kind + 's']})
+            with self.assertRaises(PublishedSnapshotConflict):
+                before.catalog()
+            return
         with self.operation() as operation:
             observed = operation.raw
             observed['nodes'].clear()

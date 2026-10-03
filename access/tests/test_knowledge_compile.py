@@ -51,6 +51,9 @@ class KnowledgeCompileTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             inputs = self.fixture(root)
+            # write_projection emits canonical member order. Compare the same
+            # source carrier: readable-context entries preserve that order.
+            inputs = json.loads(json.dumps(inputs, ensure_ascii=False, sort_keys=True))
             expected = k.build_knowledge_graph(inputs['corpus'], inputs['philosophy'], inputs['bibliographic'], inputs['entities'], inputs['predicates'])
             self.partition(root, inputs)
             output = root / 'ToS/derived-exports/runtime/knowledge.sqlite3'

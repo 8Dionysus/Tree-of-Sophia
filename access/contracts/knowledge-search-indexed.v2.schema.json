@@ -1,0 +1,385 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.com/contracts/knowledge-search-indexed.v2.schema.json",
+  "title": "Tree of Sophia selected indexed knowledge search v2 response",
+  "description": "Structural response shape. Publication and every source_graph/filter must be checked against one owner-selected QueryVocabulary registry/root at compile and open; this schema alone grants no source registration or rights.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "source_revision",
+    "query",
+    "filters",
+    "page",
+    "counts",
+    "nodes",
+    "relations",
+    "authority_boundary",
+    "work"
+  ],
+  "properties": {
+    "schema": {
+      "const": "tos_knowledge_search_indexed_v2"
+    },
+    "source_revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "query": {
+      "type": "string",
+      "maxLength": 256
+    },
+    "filters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sources",
+        "kind_ids",
+        "predicate_ids"
+      ],
+      "properties": {
+        "sources": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "kind_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "predicate_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cursor",
+        "next_cursor",
+        "limit_per_kind",
+        "ordering_scope",
+        "has_more"
+      ],
+      "properties": {
+        "cursor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "next_cursor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "limit_per_kind": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "ordering_scope": {
+          "const": "global-rank"
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "matching_nodes",
+        "matching_relations",
+        "returned_nodes",
+        "returned_relations",
+        "scope"
+      ],
+      "properties": {
+        "matching_nodes": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "matching_relations": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "returned_nodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "returned_relations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "scope": {
+          "const": "exact-if-kind-exhausted-without-continuation"
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relation"
+      }
+    },
+    "authority_boundary": {
+      "$ref": "knowledge-graph.v1.schema.json#/$defs/authorityBoundary"
+    },
+    "work": {
+      "type": "object",
+      "required": [
+        "nodes",
+        "relations"
+      ],
+      "properties": {
+        "nodes": {
+          "type": "object"
+        },
+        "relations": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "entity_id",
+        "native_id",
+        "source_graph",
+        "kind_id",
+        "type_id",
+        "type_mapping",
+        "content_revision",
+        "display",
+        "epistemic",
+        "graph_layers",
+        "view_ids",
+        "source_refs",
+        "attributes",
+        "semantics"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/nonEmptyString"
+        },
+        "entity_id": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/nonEmptyString"
+        },
+        "native_id": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/nonEmptyString"
+        },
+        "source_graph": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Structural source ID only. A selected QueryVocabulary must register it at compile and open."
+        },
+        "kind_id": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/nonEmptyString"
+        },
+        "type_id": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/nonEmptyString"
+        },
+        "type_mapping": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/semanticMapping"
+        },
+        "content_revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_dossier_ref": {
+          "type": "string",
+          "pattern": "^tos\\.[a-z0-9]+(?:[.-][a-z0-9]+)*$",
+          "description": "Exact owner-provided source-navigation dossier handle. Consumers must pass this value unchanged; absence means no dossier route was advertised."
+        },
+        "display": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/nodeDisplay"
+        },
+        "display_selection": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/displaySelection"
+        },
+        "human_form_selection": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/humanFormSelection"
+        },
+        "readable_context": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/readableContext"
+        },
+        "epistemic": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/epistemic"
+        },
+        "graph_layers": {
+          "type": "array",
+          "items": {
+            "$ref": "knowledge-graph.v1.schema.json#/$defs/nonEmptyString"
+          },
+          "uniqueItems": true
+        },
+        "view_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "knowledge-graph.v1.schema.json#/$defs/nonEmptyString"
+          },
+          "uniqueItems": true
+        },
+        "source_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "knowledge-graph.v1.schema.json#/$defs/nonEmptyString"
+          },
+          "uniqueItems": true
+        },
+        "attributes": {
+          "type": "object"
+        },
+        "semantics": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/nodeSemantics"
+        },
+        "source_record": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/sourceRecord"
+        }
+      }
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "native_id",
+        "source_graph",
+        "from_id",
+        "to_id",
+        "predicate_id",
+        "content_revision",
+        "relation_type_id",
+        "predicate_mapping",
+        "display",
+        "epistemic",
+        "graph_layers",
+        "view_ids",
+        "source_refs",
+        "attributes",
+        "semantics"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/nonEmptyString"
+        },
+        "native_id": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/nonEmptyString"
+        },
+        "source_graph": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Structural source ID only. A selected QueryVocabulary must register it at compile and open."
+        },
+        "from_id": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/nonEmptyString"
+        },
+        "to_id": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/nonEmptyString"
+        },
+        "predicate_id": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/nonEmptyString"
+        },
+        "relation_type_id": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/nonEmptyString"
+        },
+        "predicate_mapping": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/semanticMapping"
+        },
+        "content_revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "display": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/relationDisplay"
+        },
+        "display_selection": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/displaySelection"
+        },
+        "human_form_selection": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/humanFormSelection"
+        },
+        "readable_context": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/readableContext"
+        },
+        "epistemic": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/epistemic"
+        },
+        "graph_layers": {
+          "type": "array",
+          "items": {
+            "$ref": "knowledge-graph.v1.schema.json#/$defs/nonEmptyString"
+          },
+          "uniqueItems": true
+        },
+        "view_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "knowledge-graph.v1.schema.json#/$defs/nonEmptyString"
+          },
+          "uniqueItems": true
+        },
+        "source_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "knowledge-graph.v1.schema.json#/$defs/nonEmptyString"
+          },
+          "uniqueItems": true
+        },
+        "attributes": {
+          "type": "object"
+        },
+        "semantics": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/relationSemantics"
+        },
+        "source_record": {
+          "$ref": "knowledge-graph.v1.schema.json#/$defs/sourceRecord"
+        }
+      }
+    }
+  }
+}

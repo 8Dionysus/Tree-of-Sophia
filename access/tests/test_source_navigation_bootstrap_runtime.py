@@ -44,6 +44,8 @@ import test_source_navigation_delta_runtime as delta_fixture
 class SourceNavigationBootstrapTests(unittest.TestCase):
     """Use one tiny prepared pair and an absent native D1 product."""
 
+    sqlite_temp_store = None
+
     OLD_D1_REVISION = "d" * 64
     NATIVE_TABLES = (
         "source_navigation_nodes",
@@ -60,6 +62,7 @@ class SourceNavigationBootstrapTests(unittest.TestCase):
 
     def setUp(self):
         self.base = delta_fixture.SourceNavigationDeltaTests()
+        self.base.sqlite_temp_store = self.sqlite_temp_store
         self.base.setUp()
         self.addCleanup(self.base.doCleanups)
         self.f = self.base.f
@@ -151,7 +154,7 @@ class SourceNavigationBootstrapTests(unittest.TestCase):
         for db in (self.d1, self.f.db):
             db.execute("BEGIN")
         try:
-            return bootstrap.build_source_navigation_bootstrap_sql(
+            return bootstrap.build_source_navigation_bootstrap_sql_oracle(
                 self.d1,
                 self.f.db,
                 self.root / target_name,
@@ -340,7 +343,7 @@ class SourceNavigationBootstrapTests(unittest.TestCase):
     def _integrity_capture(self, revision, *, limits=None, name='integrity', header_only=False):
         self.d1.execute('BEGIN')
         try:
-            return bootstrap.build_source_navigation_integrity_sql(self.d1, self.root / (name + '.sql'),
+            return bootstrap.build_source_navigation_integrity_sql_oracle(self.d1, self.root / (name + '.sql'),
                 expected_d1_revision=revision, expected_source_revision=self.old_binding['source_revision'],
                 navigation_view=self.navigation_view, expected_navigation_sha256=self.navigation_view.snapshot_digest,
                 rights_view=self.rights_view, expected_rights_sha256=self.rights_view.snapshot_digest,
@@ -434,7 +437,7 @@ class SourceNavigationBootstrapTests(unittest.TestCase):
         for db in (self.d1, before_db, self.f.db):
             db.execute("BEGIN")
         try:
-            result = delta.build_prepared_delta_sql(
+            result = delta.build_prepared_delta_sql_oracle(
                 self.d1,
                 before_db,
                 self.f.db,

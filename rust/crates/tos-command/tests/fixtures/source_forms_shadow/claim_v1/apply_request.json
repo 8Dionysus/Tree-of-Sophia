@@ -1,0 +1,63 @@
+{
+  "changes": [
+    {
+      "expected_form": {
+        "digest": "sha256:abd5d3c532773706011220ccd6b9c54309d3913ae98525937cc15b7dea2c5c48",
+        "id": "tos.form.nietzsche-letter-705.addressee.statement-ru",
+        "version": 2
+      },
+      "form": {
+        "bindings": {
+          "context-0": {
+            "pointer": "",
+            "record": {
+              "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d",
+              "id": "tos.claim.nietzsche-letter-705.addressee",
+              "version": 2
+            }
+          },
+          "wording": {
+            "pointer": "/qualifiers/statement",
+            "record": {
+              "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d",
+              "id": "tos.claim.nietzsche-letter-705.addressee",
+              "version": 2
+            }
+          }
+        },
+        "content": {
+          "kind": "source-copy",
+          "slot": "wording"
+        },
+        "creator_id": "agent:cmd2-claim-oracle",
+        "form_id": "tos.form.nietzsche-letter-705.addressee.statement-ru",
+        "form_version": 3,
+        "language": "ru",
+        "revises": {
+          "digest": "sha256:abd5d3c532773706011220ccd6b9c54309d3913ae98525937cc15b7dea2c5c48",
+          "id": "tos.form.nietzsche-letter-705.addressee.statement-ru",
+          "version": 2
+        },
+        "role": "statement",
+        "schema_version": "tos_human_form_v1",
+        "script": null,
+        "subject": {
+          "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d",
+          "id": "tos.claim.nietzsche-letter-705.addressee",
+          "version": 2
+        }
+      },
+      "operation": "form.revise"
+    }
+  ],
+  "command_id": "cmd2:oracle:claim-v1:1",
+  "expected_configuration": "sha256:40dcd3091fdec849debef1f26df312ad33dc056de49e10d08500dabd1e600a22",
+  "expected_revision": "sha256:3f5a0dac1b7781e3c5ecc1ec6b742402ab9e422cb4500bc75a9f999258054b84",
+  "expected_source": {
+    "digest": "sha256:4ac6303728aaa74d8dec2c0b70c57b79c3b515cb8a3abfaebef5049b63ba931d",
+    "id": "tos.claim.nietzsche-letter-705.addressee",
+    "version": 2
+  },
+  "operation": "apply",
+  "schema_version": "tos_local_source_command_v1"
+}

@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://treeofsophia.local/ToS/contracts/knowledge-query-vocabulary.schema.json",
+  "title": "Source-owned knowledge query vocabulary",
+  "description": "Authored query semantics only. A selected compiler binding separately supplies exact source cut, registry bytes, graph/catalog roots, generation and rights policy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "descriptor_id", "descriptor_version", "owner_ref", "purpose", "semantic_registry_refs", "query_profile", "sources", "extension_adapter_profile", "source_coverage", "mapping_policy", "identity", "overview", "filters", "catalog"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "schema_version": {"const": "tos_knowledge_query_vocabulary_v1"},
+    "descriptor_id": {"type": "string", "minLength": 1},
+    "descriptor_version": {"type": "integer", "minimum": 1},
+    "owner_ref": {"$ref": "#/$defs/text"},
+    "purpose": {"$ref": "#/$defs/text"},
+    "semantic_registry_refs": {
+      "type": "object", "additionalProperties": false, "required": ["entity", "relation"],
+      "properties": {"entity": {"$ref": "#/$defs/registryRef"}, "relation": {"$ref": "#/$defs/registryRef"}}
+    },
+    "query_profile": {
+      "type": "object", "additionalProperties": false,
+      "required": ["profile_id", "profile_version", "semantic_primitive_profile", "normalized_carrier_id_profile", "source_dossier_profile"],
+      "properties": {
+        "profile_id": {"$ref": "#/$defs/text"}, "profile_version": {"type": "integer", "minimum": 1},
+        "semantic_primitive_profile": {"$ref": "#/$defs/text"}, "normalized_carrier_id_profile": {"$ref": "#/$defs/text"},
+        "source_dossier_profile": {"$ref": "#/$defs/text"}
+      }
+    },
+    "sources": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/source"}},
+    "extension_adapter_profile": {"$ref": "#/$defs/text"},
+    "source_coverage": {"const": "all-registered-sources-exactly-once; unknown-or-unsupported-adapter-refuses"},
+    "mapping_policy": {"const": "exact-source-graph-and-native-id; unknown-retains-native-id-with-registry-fallback; no-name-inference"},
+    "identity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["shared_entity_id_grammars", "carrier_group_profile", "focus_resolution_order", "native_id_collision", "source_dossier_graph_id", "source_dossier_kinds", "source_dossier_ref_profile", "same_as_relation_effect"],
+      "properties": {
+        "shared_entity_id_grammars": {"$ref": "#/$defs/strings"},
+        "carrier_group_profile": {"$ref": "#/$defs/text"},
+        "focus_resolution_order": {"type": "array", "prefixItems": [{"const": "id"}, {"const": "entity_id"}, {"const": "unique_native_id"}], "items": false, "minItems": 3},
+        "native_id_collision": {"const": "ambiguous-refuse"},
+        "source_dossier_graph_id": {"$ref": "#/$defs/text"},
+        "source_dossier_kinds": {"$ref": "#/$defs/strings"},
+        "source_dossier_ref_profile": {"const": "exact-owner-issued-handle-only"},
+        "same_as_relation_effect": {"const": "retained-relation-only"}
+      }
+    },
+    "overview": {
+      "type": "object", "additionalProperties": false,
+      "required": ["excluded_predicate_ids", "excluded_relation_type_ids", "routes"],
+      "properties": {
+        "excluded_predicate_ids": {"$ref": "#/$defs/strings"},
+        "excluded_relation_type_ids": {"$ref": "#/$defs/strings"},
+        "routes": {"type": "array", "items": {"$ref": "#/$defs/route"}}
+      }
+    },
+    "filters": {
+      "type": "object", "additionalProperties": false,
+      "required": ["operators", "dotted_field_profile", "node_fields", "relation_fields", "property_definitions", "unknown_field", "unknown_property_id"],
+      "properties": {
+        "operators": {"$ref": "#/$defs/strings"},
+        "dotted_field_profile": {"$ref": "#/$defs/text"},
+        "node_fields": {"$ref": "#/$defs/strings"},
+        "relation_fields": {"$ref": "#/$defs/strings"},
+        "property_definitions": {"const": "selected-entity-registry-property-definitions; preserve-applies-to-inherited-value-type-operators"},
+        "unknown_field": {"const": "reject"}, "unknown_property_id": {"const": "reject"}
+      }
+    },
+    "catalog": {
+      "type": "object", "additionalProperties": false,
+      "required": ["canonical_order", "facets"],
+      "properties": {"canonical_order": {"$ref": "#/$defs/text"}, "facets": {"$ref": "#/$defs/strings"}}
+    }
+  },
+  "$defs": {
+    "text": {"type": "string", "minLength": 1, "maxLength": 1024},
+    "strings": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/text"}},
+    "registryRef": {
+      "type": "object", "additionalProperties": false, "required": ["registry_id", "source_ref", "fallback_id_field"],
+      "properties": {"registry_id": {"$ref": "#/$defs/text"}, "source_ref": {"$ref": "#/$defs/text"}, "fallback_id_field": {"$ref": "#/$defs/text"}, "property_field": {"$ref": "#/$defs/text"}}
+    },
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_graph_id", "owner_ref", "input_role", "adapter_profile", "representative_priority"],
+      "properties": {
+        "source_graph_id": {"$ref": "#/$defs/text"}, "owner_ref": {"$ref": "#/$defs/text"},
+        "input_role": {"$ref": "#/$defs/text"}, "adapter_profile": {"$ref": "#/$defs/text"},
+        "representative_priority": {"type": "integer", "minimum": 0}
+      }
+    },
+    "route": {
+      "type": "object", "additionalProperties": false,
+      "required": ["route_id", "candidate_kind_ids", "confirming_predicate_ids", "candidate_type_ids", "confirming_relation_type_ids"],
+      "properties": {
+        "route_id": {"$ref": "#/$defs/text"},
+        "candidate_kind_ids": {"$ref": "#/$defs/strings"},
+        "confirming_predicate_ids": {"$ref": "#/$defs/strings"},
+        "candidate_type_ids": {"$ref": "#/$defs/strings"},
+        "confirming_relation_type_ids": {"$ref": "#/$defs/strings"}
+      }
+    }
+  }
+}

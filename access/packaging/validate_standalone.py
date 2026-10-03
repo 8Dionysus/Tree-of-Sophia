@@ -27,6 +27,10 @@ EXPECTED_QUERY_OPERATIONS = {
     "tos.epistemic.inspect",
     "tos.path.find",
     "tos.zarathustra.word-analysis.prepare",
+    "tos_philosophy_graph_scale_rows",
+    "tos_philosophy_graph_lens_packet",
+    "tos.zarathustra.word_analysis.public-capability",
+    "tos.zarathustra.reading.public-capability",
 }
 EXPECTED_PAGE_COMMANDS = {
     "tos.page.context",
@@ -237,6 +241,7 @@ def _validate_knowledge_contracts(repo_root: Path, *, data_root: Path | None = N
     contract_root = repo_root / "access/contracts"
     schema_names = (
         "knowledge-graph.v1.schema.json",
+        "knowledge-search-indexed.v2.schema.json",
         "lens-spec.v1.schema.json",
         "lens-result.v1.schema.json",
         "temporal-comparison-request.v1.schema.json",

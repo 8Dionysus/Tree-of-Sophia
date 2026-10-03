@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Select bounded software checks; unknown inputs require the full release suite."""
+"""Native software CI entry with explicit Python reference oracles.
+
+Production CLI and imported main() use tos-software-ci without a Python
+fallback. The reference_* functions preserve historical test expectations;
+they are not the maintained check-selection or documentation executor.
+"""
 from __future__ import annotations
 
 import argparse
@@ -20,13 +25,13 @@ def git(root: Path, *args: str) -> bytes:
     return subprocess.check_output(['git', *args], cwd=root)
 
 
-def changed_paths(root: Path, base: str) -> list[str]:
+def reference_changed_paths(root: Path, base: str) -> list[str]:
     # No rename detection: both removed and added paths influence selection.
     return sorted(set(p.decode('utf-8') for p in git(
         root, 'diff', '--name-only', '--no-renames', '-z', base, 'HEAD').split(b'\0') if p))
 
 
-def select(paths: list[str], force_full: bool = False) -> dict:
+def reference_select(paths: list[str], force_full: bool = False) -> dict:
     mode, worker, rust = 'none', False, False
     for path in paths:
         p = PurePosixPath(path)
@@ -38,6 +43,7 @@ def select(paths: list[str], force_full: bool = False) -> dict:
             continue
         if path in ('Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml') or path.startswith(('rust/', 'tests/conformance/rust/')):
             rust = True
+            mode = max(mode, 'browser', key=MODES.index)
         elif path.startswith('access/deploy/cloudflare-worker/'):
             worker = True
         elif path.startswith(('access/web/', 'access/e2e/')):
@@ -54,7 +60,7 @@ def select(paths: list[str], force_full: bool = False) -> dict:
             'changed_paths': paths, 'forced_full': force_full or not paths}
 
 
-def links(text: str) -> set[str]:
+def reference_links(text: str) -> set[str]:
     # Literal examples inside fenced blocks are not document links.
     visible, fence = [], None
     for line in text.splitlines():
@@ -72,7 +78,7 @@ def links(text: str) -> set[str]:
     return {a or b for a, b in LINK.findall(prose)} | set(REFERENCE.findall(prose))
 
 
-def check_docs(root: Path, base: str, paths: list[str]) -> list[str]:
+def reference_check_docs(root: Path, base: str, paths: list[str]) -> list[str]:
     errors = []
     for name in paths:
         target = root / name
@@ -83,8 +89,8 @@ def check_docs(root: Path, base: str, paths: list[str]) -> list[str]:
             errors.append(f'{name}: unresolved merge marker')
         previous = subprocess.run(['git', 'show', f'{base}:{name}'], cwd=root,
                                   stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-        old_links = links(previous.stdout.decode('utf-8')) if previous.returncode == 0 else set()
-        for href in sorted(links(content) - old_links):
+        old_links = reference_links(previous.stdout.decode('utf-8')) if previous.returncode == 0 else set()
+        for href in sorted(reference_links(content) - old_links):
             url = urlsplit(href)
             if url.scheme or url.netloc or not url.path:
                 continue
@@ -97,7 +103,7 @@ def check_docs(root: Path, base: str, paths: list[str]) -> list[str]:
     return errors
 
 
-def gate(needs: dict) -> None:
+def reference_gate(needs: dict) -> None:
     if needs.get('plan', {}).get('result') != 'success':
         raise ValueError('check selection or documentation validation did not succeed')
     outputs = needs['plan'].get('outputs', {})
@@ -110,24 +116,28 @@ def gate(needs: dict) -> None:
             raise ValueError(f'{job}: expected {expected}, got {needs.get(job)}')
 
 
-def main() -> int:
+def _arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
     plan = sub.add_parser('plan')
     plan.add_argument('--base', required=True)
     plan.add_argument('--full', action='store_true')
     sub.add_parser('gate')
-    args = parser.parse_args()
+    return parser.parse_args(argv)
+
+
+def reference_main() -> int:
+    args = _arguments()
     if args.command == 'gate':
-        gate(json.loads(os.environ['CI_NEEDS']))
+        reference_gate(json.loads(os.environ['CI_NEEDS']))
         print('All selected checks succeeded; unselected checks were skipped.')
         return 0
     root = Path(__file__).resolve().parents[1]
-    paths = changed_paths(root, args.base)
-    errors = check_docs(root, args.base, paths)
+    paths = reference_changed_paths(root, args.base)
+    errors = reference_check_docs(root, args.base, paths)
     if errors:
         raise ValueError('\n'.join(errors))
-    result = select(paths, args.full)
+    result = reference_select(paths, args.full)
     print(json.dumps(result, indent=2))
     if output := os.environ.get('GITHUB_OUTPUT'):
         with open(output, 'a', encoding='utf-8') as stream:
@@ -135,6 +145,34 @@ def main() -> int:
             stream.write(f"worker={str(result['worker']).lower()}\n")
             stream.write(f"rust={str(result['rust']).lower()}\n")
     return 0
+
+
+def native_main(argv: list[str] | None = None) -> int:
+    """Installed CLI route; retained Python oracles require reference_* names."""
+    import shutil
+    import sys
+
+    args = _arguments(argv)
+    selected = os.environ.get('TOS_SOFTWARE_CI_EXECUTOR')
+    executable = selected or shutil.which('tos-software-ci')
+    if not executable:
+        print('[error] install tos-software-ci or set TOS_SOFTWARE_CI_EXECUTOR', file=sys.stderr)
+        return 1
+    arguments = [args.command]
+    if args.command == 'plan':
+        arguments.extend(['--repo-root', str(Path(__file__).resolve().parents[1]), '--base', args.base])
+        if args.full:
+            arguments.append('--full')
+    try:
+        os.execv(executable, [executable, *arguments])
+    except OSError as error:
+        print(f'[error] cannot execute native software CI: {error}', file=sys.stderr)
+        return 1
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Maintained imported entry; uses the same native route as the CLI."""
+    return native_main(argv)
 
 
 if __name__ == '__main__':

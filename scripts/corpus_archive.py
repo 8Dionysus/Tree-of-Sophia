@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tarfile
 from typing import Any, BinaryIO, Callable, Iterator
+from types import MappingProxyType
 
 
 CHUNK_SIZE = 1024 * 1024
@@ -280,7 +281,7 @@ def _selected_tree_entries(
     exclude_path_parts = [] if exclude_path_parts is None else exclude_path_parts
     try:
         process = subprocess.Popen(
-            ["git", "ls-tree", "-r", "-l", "-z", commit],
+            ["git", "ls-tree", "-r", "-z", commit],
             cwd=repo_root,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
@@ -294,7 +295,7 @@ def _selected_tree_entries(
         for record in _iter_nul_records(process.stdout):
             try:
                 left, path_raw = record.split(b"\t", 1)
-                mode_raw, type_raw, oid_raw, size_raw = left.split()
+                mode_raw, type_raw, oid_raw = left.split()
                 path = path_raw.decode("utf-8", errors="surrogateescape")
             except (ValueError, UnicodeError) as exc:
                 raise _error("git ls-tree returned a malformed tree entry") from exc
@@ -310,18 +311,13 @@ def _selected_tree_entries(
                 oid = oid_raw.decode("ascii")
             except UnicodeError as exc:
                 raise _error(f"selected Git tree entry has an invalid object id: {path}") from exc
-            try:
-                size = int(size_raw)
-            except ValueError as exc:
-                raise _error(f"selected Git tree entry has an invalid size: {path}") from exc
-            if _HEX40.fullmatch(oid) is None or size < 0:
+            if _HEX40.fullmatch(oid) is None:
                 raise _error(f"selected Git tree entry is malformed: {path}")
             if path in selected:
                 raise _error(f"duplicate selected Git path: {path}")
             selected[path] = {
                 "path": path,
                 "git_blob_oid": oid,
-                "size_bytes": size,
                 "mode": int(mode_raw, 8) & 0o777,
             }
     except BaseException:
@@ -340,7 +336,37 @@ def _selected_tree_entries(
     if return_code != 0:
         detail = stderr.decode("utf-8", errors="replace").strip()
         raise _error(f"git ls-tree failed: {detail or f'exit {return_code}'}")
-    return [selected[path] for path in sorted(selected)]
+    entries = [selected[path] for path in sorted(selected)]
+    if entries:
+        # ls-tree -l materializes missing blob sizes in a partial clone. Select
+        # exact include/exclude paths first, so unrelated blobs need no fetch.
+        try:
+            sizes = subprocess.run(
+                ["git", "cat-file", "--batch-check"],
+                cwd=repo_root,
+                input="".join(entry["git_blob_oid"] + "\n" for entry in entries).encode("ascii"),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+        except OSError as exc:
+            raise _error(f"selected Git blob sizes failed: {exc}") from exc
+        if sizes.returncode != 0:
+            detail = sizes.stderr.decode("utf-8", errors="replace").strip()
+            raise _error(f"selected Git blob sizes failed: {detail or f'exit {sizes.returncode}'}")
+        records = sizes.stdout.splitlines()
+        if len(records) != len(entries):
+            raise _error("selected Git blob size response count differs")
+        for entry, record in zip(entries, records):
+            try:
+                oid, kind, size_raw = record.decode("ascii").split()
+                size = int(size_raw)
+            except (ValueError, UnicodeError) as exc:
+                raise _error("selected Git blob size response is malformed") from exc
+            if oid != entry["git_blob_oid"] or kind != "blob" or size < 0:
+                raise _error("selected Git blob size response differs from selection")
+            entry["size_bytes"] = size
+    return entries
 
 
 class _BlobReader:
@@ -880,6 +906,128 @@ def restore_capture(capture_root: Path, destination: Path) -> dict[str, Any]:
     }
     _write_exclusive(destination / "restore-receipt.json", _canonical_bytes(receipt), label="restore receipt")
     return receipt
+
+
+_SOFTWARE_COMPONENT_SELECTION_TOKEN = object()
+
+
+class SelectedSoftwareComponents:
+    """Exact current components from one selected capture, never authority.
+
+    Construct with ``select_software_components``. The capture/member/restore
+    contracts remain owned here; no native path namespace is implicitly allowed.
+    """
+
+    __slots__ = ('_root', '_capture', '_members', '_selection_token')
+
+    def __init__(self, root: Path, capture: tuple[str, str, str], members: dict, *, _token=None):
+        if _token is not _SOFTWARE_COMPONENT_SELECTION_TOKEN:
+            raise TypeError('use select_software_components to verify the capture context')
+        object.__setattr__(self, '_root', root)
+        object.__setattr__(self, '_capture', capture)
+        object.__setattr__(self, '_members', MappingProxyType(dict(members)))
+        object.__setattr__(self, '_selection_token', _token)
+
+    def __setattr__(self, name, value):
+        raise AttributeError('selected software capture context is immutable')
+
+    @property
+    def capture(self) -> tuple[str, str, str]:
+        return self._capture
+
+    def _factory_bound(self) -> bool:
+        return getattr(self, '_selection_token', None) is _SOFTWARE_COMPONENT_SELECTION_TOKEN
+
+    def contains(self, ref: str) -> bool:
+        return ref in self._members
+
+    def resolve_current(self, ref: str, digest: str) -> Path | None:
+        binding = self._members.get(ref)
+        if binding is None or binding[0] != digest:
+            return None
+        path = self._root / ref
+        try:
+            _ensure_directory(self._root, label="selected software root")
+            for parent in PurePosixPath(ref).parents:
+                if parent != PurePosixPath('.'):
+                    _ensure_directory(self._root / str(parent), label="software component parent")
+            metadata = _ensure_regular(path, label="software component")
+            if metadata.st_size != binding[1] or _sha256_file(path) != digest:
+                return None
+            return path
+        except (OSError, CorpusArchiveError):
+            return None
+
+
+def select_software_components(
+    capture_root: Path, restored_root: Path, *, source_git_commit: str,
+    source_git_tree: str, capture_manifest_sha256: str,
+    component_paths: list[str], max_selected_bytes: int = 8_388_608,
+) -> SelectedSoftwareComponents:
+    """Select bounded components using the existing exact transport descriptor.
+
+    Archive-wide fixity belongs to capture/restore. Here the selected manifest,
+    complete canonical member index, restore receipt and current component bytes
+    are verified. Requested components come from the owner caller, not an event.
+    """
+    capture_root, restored_root = Path(capture_root), Path(restored_root)
+    if (not _is_hex(source_git_commit, _HEX40, label="selected commit")
+            or not _is_hex(source_git_tree, _HEX40, label="selected tree")
+            or not _is_hex(capture_manifest_sha256, _HEX64, label="selected capture")):
+        raise _error("invalid selected software capture identity")
+    if (not isinstance(component_paths, list) or not 1 <= len(component_paths) <= 128
+            or any(not isinstance(ref, str) for ref in component_paths)
+            or len(set(component_paths)) != len(component_paths)
+            or type(max_selected_bytes) is not int or not 1 <= max_selected_bytes <= 8_388_608):
+        raise _error("invalid software component selection budget")
+    requested = {_validate_relative_path(ref, label="software component") for ref in component_paths}
+    manifest_path = capture_root / "capture.json"
+    if _ensure_regular(manifest_path, label="software capture manifest").st_size > 1_048_576:
+        raise _error("software capture manifest exceeds budget")
+    manifest = _read_capture_manifest(capture_root)
+    if (_sha256_file(manifest_path) != capture_manifest_sha256
+            or manifest['source_git_commit'] != source_git_commit
+            or manifest['source_git_tree'] != source_git_tree):
+        raise _error("software capture selection differs")
+    index = capture_root / "members.jsonl"
+    if (_ensure_regular(index, label="software member index").st_size > 33_554_432
+            or manifest['member_count'] > 65_536
+            or _sha256_file(index) != manifest['members_sha256']):
+        raise _error("software member index selection or budget differs")
+    selected, count, total, selected_total = {}, 0, 0, 0
+    for member in _iter_members(index, manifest['include_prefixes'],
+                                exclude_prefixes=manifest.get('exclude_prefixes'),
+                                exclude_path_parts=manifest.get('exclude_path_parts')):
+        count += 1
+        total += member['size_bytes']
+        if count > 65_536:
+            raise _error("software member index count exceeds budget")
+        if member['path'] in requested:
+            selected_total += member['size_bytes']
+            if selected_total > max_selected_bytes:
+                raise _error("software components exceed selected byte budget")
+            selected[member['path']] = (member['sha256'], member['size_bytes'])
+    if (count != manifest['member_count'] or total != manifest['source_bytes']
+            or selected.keys() != requested):
+        raise _error("software capture membership or requested components differ")
+    _ensure_directory(restored_root, label="selected software root")
+    receipt_path = restored_root / "restore-receipt.json"
+    if _ensure_regular(receipt_path, label="software restore receipt").st_size > 1_048_576:
+        raise _error("software restore receipt exceeds budget")
+    raw = receipt_path.read_bytes()
+    receipt = _strict_object(raw, label="software restore receipt")
+    if raw != _canonical_bytes(receipt) or receipt != {
+        'schema_version': 'tos_corpus_restore_receipt_v1',
+        'source_git_commit': source_git_commit, 'member_count': count,
+        'source_bytes': total, 'manifest_sha256': capture_manifest_sha256,
+    }:
+        raise _error("software restore receipt differs from selected capture")
+    result = SelectedSoftwareComponents(restored_root,
+        (source_git_commit, source_git_tree, capture_manifest_sha256), selected,
+        _token=_SOFTWARE_COMPONENT_SELECTION_TOKEN)
+    if any(result.resolve_current(ref, digest) is None for ref, (digest, _) in selected.items()):
+        raise _error("selected software component current bytes differ")
+    return result
 
 
 def _cli_parser() -> argparse.ArgumentParser:

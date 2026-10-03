@@ -92,3 +92,113 @@ The separate [selected Agent composition](source-agent-publication.v1.md) now
 connects those primitives to real source readers and selected-command evidence
 for one explicitly bootstrapped descriptive profile. It does not expand the
 authority or completeness guarantees of this storage-only pairing layer.
+
+
+## Offline publication execution
+
+### Native normalization implementation transition
+
+The Rust joined owner exposes
+`prepared_maintenance::transition_prepared_normalization_transaction` for an
+explicitly reviewed compatible implementation change. Its
+`ReviewedNormalizationTransition` names the exact old/new processor digests
+and a nonempty review reference. The executing source owner independently
+verifies the current native artifact identity; an arbitrary request digest or
+the predecessor Python implementation digest is not that identity. Reuse an
+already verified held artifact digest, or account for its complete read before
+entering the transaction.
+
+This route supplies no normalized row changes. Registry bytes, configuration,
+lenses, source-order profile and header meaning remain unchanged; only the
+normalization processor and source revision may move. Catalog contribution
+state, prepared descriptor, search/lens selection and semantic state are paired
+in the caller's transaction, with predecessor checks, CAS and final readback.
+The ordinary delta APIs still reject a changed normalization binding.
+
+The source owner must pair its source-root, reverse-dependency and context
+selections before committing that same transaction. The source-pairing entry point is
+`prepared_source_binding::transition_prepared_source_profiles_transaction`.
+It preserves exact retained root bytes and namespaces, the source-publication
+token and the dependency key set. Its reviewed old/new digest map must name
+exactly the changed dependencies among `normalization`, `declaration-profile`,
+`agent-publication-profile` and `claim-publication-profile`; extra or unchanged
+names refuse. Each normalization dependency must match the corresponding
+header binding digest. The source revision advances, and the final source CAS
+and readback share the publication mutation allowance. Reverse-dependency and
+context pairing remain the calling composition's responsibility.
+
+A returned maintenance
+receipt alone is not permission to commit an unpaired source state. Every error
+requires rollback of the entire caller transaction. Naming a compatibility
+review does not prove unchanged algorithm semantics or admit source material.
+
+This implementation transition does not adopt an old auxiliary projector by
+rewriting its fingerprint. The catalog and semantic indexes must already have
+the current native projector identities, obtained through their actual native
+bootstrap or a separately implemented, reviewed migration. A changed registry,
+normalization rule or source contract requires the corresponding real data
+migration, not this compatibility route.
+
+Before a controlled cutover, retain the predecessor software/data pair and its
+immutable source parts. The new reader selects the returned new binding against
+the same committed database. An old binding against that advanced database must
+refuse; it is not a restore operation. Recovery selects the preserved compatible
+pair through the serving owner's existing restore/clock procedure. These APIs
+neither switch a running consumer nor authorize deletion of the predecessor.
+
+Cost includes bounded metadata parsing and copies, catalog aggregate rendering,
+semantic report/finalization work, search/lens resealing, source-owner finalizers
+and the SQLite rollback journal. The combined mutation allowance covers all
+lanes; “no row changes” does not mean zero work or a measured constant-time bound.
+
+The maintained file owners `publish_prepared`, `publish_prepared_rows`, and
+`apply_prepared_delta` select the installed Rust `tos-access` executor. Explicit
+`native_executable` overrides `TOS_PREPARED_EXECUTOR`, which overrides installed
+PATH discovery; a selected override must be absolute. Data/source selection never
+selects executable code. Missing or unusable code refuses before target creation;
+there is no build on call or Python fallback. A positive whole deadline is supplied
+as `native_timeout` or `TOS_PREPARED_MAX_SECONDS`. The offline `prepare` consumer
+also exposes `--native-executable` and `--max-seconds` and resolves both before
+creating its output directory. This deadline covers the native publication, not
+source assembly or the separate maintenance attachment.
+
+Explicit `reference_publish_prepared`, `reference_publish_prepared_rows`, and
+`reference_apply_prepared_delta` retain the independent Python implementations as
+oracles. Live `sqlite3.Connection` transaction APIs remain distinct until their
+complete catalog/semantic/prepared operation has a Rust-owned transaction; a
+subprocess never receives ownership of a Python connection.
+
+Donor progress uses the existing five report phases. The framed native command
+emits bounded progress reports and waits for acknowledgement on a separate private
+pipe before proceeding. Callback refusal returns through whole transaction
+rollback and owned-new-file removal; the read-only donor is retained unchanged.
+The final successor report says `committed:false`. Native acknowledgement waiting
+uses the same absolute deadline. Python callbacks execute synchronously and must
+cooperate with the caller deadline; an arbitrary blocking user callback is not a
+bounded Python supervisor. Compound index carriers use Python-compatible nested
+representation with the maintained foundation number codec and pinned Unicode16
+printable categories; they do not become JSON strings or silently disappear.
+
+## Joined offline maintenance ownership
+
+`prepare` attaches catalog and semantic maintenance through one native file-owned
+transaction after publication. It supplies the exact selected owner inputs and
+normalization processor identity, checks its source state before the call, and
+acknowledges the actual source check before native commit. Publication and attachment
+retain separate named mutation budgets. The native projector records its own exact
+implementation digest; a Python source digest remains normalization provenance,
+never an identity for native code. Existing Python auxiliary projector state requires
+explicit offline bootstrap/rebuild before native delta, with no hidden full rebuild.
+
+Native transaction functions accept a real Rust `rusqlite::Transaction` and join
+catalog contributor facts, semantic diagnostics and prepared publication. Whole
+source pairing must include `prepared_source_state` in that same transaction.
+Generic Python Connection APIs remain reference paths until their complete native
+successor owns the operation; an individual inner call cannot cross a subprocess
+boundary while leaving its outer Python transaction open. `reference_attach_maintenance`
+retains the independent Python attachment oracle.
+
+A prepared public binding requires an exact integer publication epoch within the
+safe integer bound. Incidental Python dictionary equality between malformed boolean
+or float epochs and integers does not expand this typed reader ABI. Independent
+Python reference behavior is retained.

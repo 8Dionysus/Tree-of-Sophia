@@ -1,8 +1,9 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {BUDGET,ContractError} from './knowledge-client.mjs';
-import {constructorCatalog,createConstructorCatalogLoader,initialDraft,compileDraft,encodeDraft,decodeDraft,summarizeLens,previewDraft,draftForPacket,readSaved,saveDraft,SAVED_LENSES_KEY} from './lens-model.mjs';
+import {constructorCatalog,createConstructorCatalogLoader,initialDraft,validateDraft,compileDraft,encodeDraft,decodeDraft,summarizeLens,previewDraft,draftForPacket,readSaved,saveDraft,SAVED_LENSES_KEY} from './lens-model.mjs';
 
 const schema=JSON.parse(readFileSync(new URL('../../../contracts/lens-spec.v1.schema.json',import.meta.url),'utf8'));
 const boundary={is_source:false,is_canon:false,writes_to_tree:false};
@@ -123,6 +124,29 @@ test('links round-trip the owned definition and reject malformed or excessive ca
   assert.deepEqual(decodeDraft(encodeDraft(value)),value);
   for(const text of ['{','null',JSON.stringify({...value,v:3}),JSON.stringify({...value,nodeIds:[raw.id,raw.id]}),'x'.repeat(12001)])assert.throws(()=>decodeDraft(text),ContractError);
   assert.equal(decodeDraft(JSON.stringify({...value,authority:'canon'})).authority,undefined);
+});
+test('saved draft normalization preserves JS values, sparse cardinality and array iterator behavior',()=>{
+  const value={...draft(),name:'\uFEFF \ud800 \uFEFF',depth:-0,query:'\ud800',nodeIds:['\ud800'],kinds:Array(1)};
+  const normalized=validateDraft(value);
+  assert.equal(normalized.name,'\ud800');assert.equal(normalized.query,'\ud800');assert.deepEqual(normalized.nodeIds,['\ud800']);
+  assert.ok(Object.is(normalized.depth,-0));assert.deepEqual(normalized.kinds,[undefined]);assert.ok(0 in normalized.kinds);
+  assert.throws(()=>validateDraft({...value,kinds:Array(2)}),ContractError);
+  assert.throws(()=>validateDraft({...value,kinds:[undefined]}),ContractError);
+  const iteratorKinds=['duplicate','duplicate'];iteratorKinds[Symbol.iterator]=function*(){yield 'first';yield 'second';};
+  assert.deepEqual(validateDraft({...value,kinds:iteratorKinds}).kinds,['first','second']);
+  for(const patch of [{name:'\uFEFF '},{name:'x'.repeat(65)},{query:'x'.repeat(257)},{focusId:''},{nodeIds:['x'.repeat(1025)]},
+    {depth:Infinity},{depth:0.5},{limit:0},{relations:0},{direction:'outgoing\n'}])assert.throws(()=>validateDraft({...value,...patch}),ContractError);
+});
+test('saved draft v1 compatibility observes inherited fields while retaining only owned paths',()=>{
+  const value={...draft(),v:1};delete value.conditions;delete value.paths;
+  const legacy=validateDraft(value);assert.equal(legacy.v,2);assert.deepEqual(legacy.conditions,{nodes:[],relations:[]});assert.ok(!Object.hasOwn(legacy,'paths'));
+  assert.deepEqual(validateDraft({...value,conditions:undefined,paths:undefined}).paths,[]);
+  assert.throws(()=>validateDraft({...value,conditions:null}),ContractError);
+  const inherited=Object.assign(Object.create({paths:[]}),value);
+  assert.ok(!Object.hasOwn(validateDraft(inherited),'paths'));
+  Object.getPrototypeOf(inherited).paths=[{}];assert.throws(()=>validateDraft(inherited),ContractError);
+  assert.throws(()=>validateDraft({...value,scope:'area',nodeIds:[],conditions:null}),/Исходная область пуста/);
+  assert.throws(()=>validateDraft({...value,scope:'focus',focusId:null,conditions:null}),/Сначала выберите звезду/);
 });
 test('preview reports selector scope, added context and limits without claiming corpus totals',()=>{
   const p=packet();assert.deepEqual(summarizeLens(p),{nodes:1,relations:0,matched:3,context:0,limited:true});

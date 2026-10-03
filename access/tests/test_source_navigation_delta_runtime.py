@@ -15,17 +15,21 @@ import source_navigation_delta_runtime as navigation
 import test_prepared_source_binding as fixtures
 from tos_access.projection_store import Collection, write_projection
 from tos_access.projection_mutation import ProjectionSnapshotView
+from tos_access.prepared_publication import configure_sqlite_temp_store
 from tos_access.prepared_source_binding import PreparedSourceInputs
 from incremental_runtime import prepare_search_address_indexes_transaction
 
 
 class SourceNavigationDeltaTests(unittest.TestCase):
+    sqlite_temp_store = None
+
     @classmethod
     def setUpClass(cls):
         fixtures.PreparedSourceBindingTests.setUpClass()
 
     def setUp(self):
         self.source = fixtures.PreparedSourceBindingTests()
+        self.source.sqlite_temp_store = self.sqlite_temp_store
         self.source.setUp()
         self.addCleanup(self.source.doCleanups)
         self.f = self.source.f
@@ -61,9 +65,11 @@ class SourceNavigationDeltaTests(unittest.TestCase):
             word_analysis_capability={'available': False}, carrier_paths={},
             logical_bindings={'source_revision': graph['source_revision']})
         path = self.root / name / 'read-model.sql'
-        full.build_read_model_sql(None, path, revision, carriers, emit_delta_baseline=False)
+        full.build_read_model_sql(None, path, revision, carriers, emit_delta_baseline=False,
+                                  sqlite_temp_store=self.sqlite_temp_store)
         db = sqlite3.connect(':memory:')
         self.addCleanup(db.close)
+        configure_sqlite_temp_store(db, self.sqlite_temp_store)
         db.executescript(path.read_text())
         db.executescript((ROOT / 'access/deploy/cloudflare-worker/migrations/0001-exploration.sql').read_text())
         return db
@@ -77,6 +83,7 @@ class SourceNavigationDeltaTests(unittest.TestCase):
         self.source.attach()
         self.before = sqlite3.connect(':memory:')
         self.addCleanup(self.before.close)
+        configure_sqlite_temp_store(self.before, self.sqlite_temp_store)
         self.f.db.backup(self.before)  # Tiny synthetic fixture only.
         self.d1 = self.full(self.f.graph, self.f.catalog, 'd' * 64, 'old', self.raw if available else {})
         self.d1.execute('BEGIN IMMEDIATE')
@@ -104,7 +111,7 @@ class SourceNavigationDeltaTests(unittest.TestCase):
         for db in (self.d1, self.before, self.f.db):
             db.execute('BEGIN')
         try:
-            return delta.build_prepared_delta_sql(self.d1, self.before, self.f.db, self.root / 'delta.sql',
+            return delta.build_prepared_delta_sql_oracle(self.d1, self.before, self.f.db, self.root / 'delta.sql',
                 expected_d1_revision='d' * 64, before_binding=self.f.binding,
                 after_binding=result['binding'], rollback_target=self.root / 'rollback.sql', **options)
         finally:

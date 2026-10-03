@@ -21,7 +21,7 @@ from tos_access.core import (
     _indexed_search_cursor_decode,
     _indexed_search_cursor_encode,
 )
-from tos_access.doctor import doctor_report
+from tos_access.doctor import reference_doctor_report as doctor_report
 from tos_access.exploration import ExplorationService, EXECUTION_VERSION
 from tos_access.projection_store import ProjectionReader
 from tos_access.query_store import COMPILER_VERSION, QueryStore, QueryStoreRequired

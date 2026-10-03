@@ -91,7 +91,7 @@ class NativeUnitCommandTests(unittest.TestCase):
         self.owner.chmod(0o600)
 
     def run_command(self, request):
-        return source.run_local_command(self.owner, request)
+        return source.run_legacy_oracle_command(self.owner, request)
 
     def prepare(self):
         prepared = self.run_command(self.proposal)
@@ -532,7 +532,7 @@ class NativeUnitCommandTests(unittest.TestCase):
             'import os,sys,json; from pathlib import Path; '
             'sys.path.insert(0,sys.argv[1]); import source_commands as source; '
             'source._publish_new_directory=lambda staging,target: os._exit(71); '
-            'source.run_local_command(Path(sys.argv[2]),json.loads(sys.stdin.buffer.read()))')
+            'source.run_legacy_oracle_command(Path(sys.argv[2]),json.loads(sys.stdin.buffer.read()))')
         process = subprocess.run([sys.executable, '-c', program, str(module_home), str(self.owner)],
             input=encode(self.request), capture_output=True, timeout=30)
         self.assertEqual(process.returncode, 71, process.stderr.decode())

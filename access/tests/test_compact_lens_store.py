@@ -10,7 +10,11 @@ from unittest.mock import patch
 
 from tos_access import knowledge as k
 from tos_access.compact_lens_store import prepare_compact_lens_store_transaction, CompactStoreLimits
-from tos_access.prepared_publication import publish_prepared, apply_prepared_delta_transaction, PreparedChange
+from tos_access.prepared_publication import (
+    reference_publish_prepared as publish_prepared,
+    apply_prepared_delta_transaction,
+    PreparedChange,
+)
 from tos_access.published_lens import PublishedLensService
 from tos_access.published_read_model import PublishedKnowledgeReadModel, PublishedReadModelError, _Read
 from tos_access.published_read_metadata import _compact

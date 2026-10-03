@@ -1233,6 +1233,7 @@ def test_lens_large_relation_area_requires_scope_confirmation(reader_fixture_bas
         ))
         page.goto(reader_fixture_base_url + '/lens-scope-check')
         page.evaluate("""async () => {
+          await import('/static/fixtures/reader-rules.mjs');
           const {mountLensBuilder}=await import('/static/src/observatory/lens-builder.mjs');
           const {lensContext,boundary}=await import('/static/fixtures/lens-scenarios.mjs');
           const context=lensContext(),nodes=Array.from({length:41},(_,i)=>({id:'fixture:'+i}));
@@ -1420,6 +1421,7 @@ def test_reader_positions_survive_pagehide_before_debounce():
             native.goto(native_url, wait_until='domcontentloaded')
             native.get_by_role('button', name='Открыть текст', exact=True).click()
             native.locator('.native-reader:not([hidden])').wait_for()
+            native.locator('.native-reader[data-native-state="available"]').wait_for()
             native.locator('.nr-article').wait_for()
             # The native 350 ms debounce also must not run between scroll and
             # the synthetic pagehide that asks the reader to flush.

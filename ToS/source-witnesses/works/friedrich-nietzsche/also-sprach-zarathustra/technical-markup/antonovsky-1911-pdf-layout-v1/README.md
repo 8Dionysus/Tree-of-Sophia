@@ -98,3 +98,73 @@ stays `proposed`, `reviews[]` stays empty, and DE↔RU alignment claims remain
 unopened. The 86-row heading set also remains deliberately recall-incomplete;
 screening every enumerated row does not establish that every Russian heading
 has been found.
+
+## Native whole producer
+
+The installed native route is `tos technical-markup --source-root ABS` with
+exactly one of `--build`, `--check`, or `--validate-tracked`.
+`--build --issue-identities` additionally requests initial issuance; an existing
+issuance is never replaced. Writing requires an explicitly admitted
+`--scratch-bytes N` budget. The default whole deadline is 180 seconds;
+`--max-seconds` accepts 1 through 600. The external Poppler child also owns a
+finite one-second failure cleanup reserve.
+
+The native v1 producer independently creates the original page/panel/block
+packet, citation spine, region and heading candidates, both screening views,
+summaries, provenance, and the two private layers. It shares only the retained
+root/source custody, exact Poppler extraction, XML observation, resource budgets
+and Python-compatible JSON primitives with v2. V2 paragraph/verse output is not
+a replacement for these v1 units.
+
+The historical Python builder bytes remain the provenance binding and parity
+oracle; the native route never executes them. Historical event authorship,
+dates and method labels are retained artifact data, not a claim of native
+execution. A changed packet-schema digest requires explicit review of the
+bounded large-array schema adapter before it can run.
+
+The current maintained recipe is builder digest
+`4c80683124592bc969e0db6ffe0d5696ec28d4079bc522725788aeff44abd8eb`.
+The retained historical capture binds
+`82452bce0c1599925e18ffd08c5d963d1a872da532d9a7aef72b155087aefcb9`;
+five provenance warning strings and the method digest evolved, while extraction
+and unit algorithms did not. Build/check require the current source binding.
+Compare against current Python oracle outputs in separate admitted private
+scratch on the same genuine primitives; keep the historical capture unchanged
+and report its known provenance differences separately. Tracked validation can
+validate the historical packet without extraction or producer execution.
+
+Installed `360c7e344e8c9a2a83291d96c8ab5ac0c19ac382` passed the current
+`4c806831` recipe's eleven-output byte/mode/count comparison and installed checks.
+The first controlled run completed those assertions before a scratch census
+race interrupted initial issuance; its terminal RED remains recorded. A fresh
+bounded continuation passed initial issuance, tracked validation and root/private
+symlink refusals. This composite mechanical acceptance preserves the original
+capture and never reclassifies outputs from interrupted issuance as parity data.
+
+The Python executable entry now delegates every supported v1 mode to installed
+`tos technical-markup`, selected by `TOS_NATIVE_PREPARED_CONSUMER_BIN` or `tos`
+on PATH. There is no Python producer fallback. `--repo-root` remains the
+compatibility spelling for `--source-root`; writes additionally require an
+explicit admitted `--scratch-bytes` budget. The maintained test caller consumes
+the native command directly. The original 4c source bytes are retained in
+`ToS/research-packets/retained-builder-inputs/build_antonovsky_1911_technical_markup/`;
+Build/Check resolve only those exact recipe bytes, not the changed facade digest.
+The source reference/digest identify the recipe; the installed image and runtime
+receipt identify current execution. No retained archive is executed.
+
+Installed `2402bd87760cde0e55ea86a74adbaaa0714f4ca9` subsequently passed
+the focused new facade/archive route: read-only Check matched the existing
+current-recipe outputs, facade and maintained native tracked validation passed,
+and dirty archive plus missing active-original source controls were refused.
+The original archive remained nonexecuted and all selected input/output bytes
+were restored and checked. This closes the standalone v1 caller cutover in the
+same technical scope as the earlier composite eleven-output acceptance.
+
+The v2 standalone producer and maintained caller have also passed their scoped
+native checks. Four research producers still import v2 read-only reconstruction
+helpers, which in turn import extraction helpers from this active v1 module.
+Those helper definitions remain retained until each research producer's native
+parity and downstream caller acceptance closes; their native replacements are
+already owned by the research routes. The whole Python helper family is not
+retired. These mechanics accept no text, segmentation, semantic claim, rights
+clearance or publication.

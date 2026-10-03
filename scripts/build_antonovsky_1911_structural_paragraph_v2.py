@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Build the complete Antonovsky 1911 structural/paragraph technical spine.
+"""Native CLI entry with transitional read-only reconstruction imports.
+
+The standalone producer always executes installed native tos without a Python
+fallback. Four research builders still import the unchanged reconstruction and
+identity helpers below until their own native consumer acceptance closes.
+The independent oracle is retained separately; this entry is not that oracle.
+
+Complete Antonovsky 1911 structural/paragraph technical spine:
 
 Tracked outputs are text-free.  The builder reads the exact frozen v1 source
 observation, applies the independently verified paragraph/verse algorithm, and
@@ -15,8 +22,9 @@ import hashlib
 import importlib.util
 import json
 import math
+import os
+import shutil
 import re
-import secrets
 import statistics
 import sys
 from collections import Counter, defaultdict
@@ -587,32 +595,6 @@ def issuance_bindings(model: dict[str, Any]) -> dict[str, list[str]]:
     }
 
 
-def mint(prefix: str) -> str:
-    return f"{prefix}.sid-{secrets.token_hex(16)}"
-
-
-def issue_identities(model: dict[str, Any]) -> None:
-    path = REPO / ISSUANCE_REF
-    if path.exists():
-        raise BuildError("identity issuance already exists; refusing to remint")
-    bindings = issuance_bindings(model)
-    prefixes = {"structures": "tos.structure-unit", "paragraphs": "tos.text-unit",
-                "verse_groups": "tos.text-unit", "verse_lines": "tos.text-unit",
-                "physical_lines": "tos.text-unit", "logical_rows": "tos.text-unit"}
-    payload = {
-        "schema_version": "tos_antonovsky_1911_structural_paragraph_identity_issuance_v2",
-        "issuance_id": "tos.identity-issuance.zarathustra-antonovsky-1911-structural-paragraph-v2",
-        "issued_on": "2026-09-01", "opaque_identity": True,
-        "source_binding_is_not_identity": True,
-        "source_fixity": {"pdf_sha256": PDF_SHA, "bbox_sha256": BBOX_SHA,
-                           "private_text_layer_sha256": TEXT_SHA},
-        "identities": {kind: [{"binding": binding, "id": mint(prefixes[kind])}
-                               for binding in values]
-                       for kind, values in bindings.items()},
-    }
-    path.write_bytes(json_bytes(payload))
-
-
 def load_identities(model: dict[str, Any]) -> dict[str, dict[str, str]]:
     payload = json.loads((REPO / ISSUANCE_REF).read_text())
     if payload["source_fixity"] != {"pdf_sha256": PDF_SHA, "bbox_sha256": BBOX_SHA,
@@ -632,495 +614,32 @@ def load_identities(model: dict[str, Any]) -> dict[str, dict[str, str]]:
     return result
 
 
-def import_challenger(directory: Path, model: dict[str, Any]) -> None:
-    target = REPO / CHALLENGER_REF
-    if target.exists():
-        raise BuildError("primary challenger input already exists; refusing to replace")
-    private_path = directory / "paragraph-units.private.prototype.v2.jsonl"
-    units = load_jsonl(private_path)
-    owner_by_locator, role_by_ordinal = {}, {}
-    for ordinal, unit in enumerate(units, 1):
-        role_by_ordinal[str(ordinal)] = unit["technical_role"]
-        for fragment in unit["source_fragments"]:
-            locator = fragment["fragment_id"]
-            if locator in owner_by_locator:
-                raise BuildError("challenger duplicates a source line")
-            owner_by_locator[locator] = ordinal
-    order = [line.locator for line in model["lines"]]
-    if set(owner_by_locator) != set(order):
-        raise BuildError("challenger does not cover the exact source-line set")
-    payload = {
-        "schema_version": "tos_antonovsky_1911_primary_challenger_input_v2",
-        "role": "complete_boundary_challenger_not_authority",
-        "source_text_included": False,
-        "source_fixity": {"pdf_sha256": PDF_SHA, "bbox_sha256": BBOX_SHA,
-                           "private_text_layer_sha256": TEXT_SHA},
-        "source_line_count": len(order),
-        "ordered_source_line_binding_sha256": sha(json.dumps(order, separators=(",", ":")).encode()),
-        "challenger_unit_count": len(units),
-        "challenger_content_unit_count": sum(u["technical_role"] in {"prose_paragraph", "verse_stanza"}
-                                             for u in units),
-        "owner_unit_ordinal_by_source_line": [owner_by_locator[x] for x in order],
-        "technical_role_by_unit_ordinal": role_by_ordinal,
-        "input_artifact_sha256": {
-            name: sha((directory / name).read_bytes()) for name in (
-                "paragraph-units.private.prototype.v2.jsonl",
-                "paragraph-units.public.prototype.v2.jsonl", "summary.prototype.v2.json",
-                "manifest.prototype.v2.json")
-        },
-        "resolution_policy": "independent_source_visible_pass_controls_final_technical_boundary",
-    }
-    target.write_bytes(json_bytes(payload))
-
-
-def compare_challenger(model: dict[str, Any]) -> dict[str, Any]:
-    challenger = json.loads((REPO / CHALLENGER_REF).read_text())
-    lines: list[PhysicalLine] = model["lines"]
-    order = [line.locator for line in lines]
-    if challenger["ordered_source_line_binding_sha256"] != sha(
-            json.dumps(order, separators=(",", ":")).encode()):
-        raise BuildError("challenger physical-line binding drift")
-    owners = challenger["owner_unit_ordinal_by_source_line"]
-    roles = challenger["technical_role_by_unit_ordinal"]
-    final_owner = {line.locator: line.paragraph_ref or line.verse_group_ref or line.row_ref for line in lines}
-    categories = Counter()
-    body_categories = Counter()
-    for index, (left, right) in enumerate(zip(lines, lines[1:], strict=False)):
-        final_same = final_owner[left.locator] == final_owner[right.locator]
-        challenger_same = owners[index] == owners[index + 1]
-        category = ("agree_same_unit" if final_same and challenger_same else
-                    "agree_boundary" if not final_same and not challenger_same else
-                    "final_only_boundary" if not final_same else "challenger_only_boundary")
-        categories[category] += 1
-        if left.role in {"prose", "verse"} and right.role in {"prose", "verse"} and \
-                roles[str(owners[index])] in {"prose_paragraph", "verse_stanza"} and \
-                roles[str(owners[index + 1])] in {"prose_paragraph", "verse_stanza"}:
-            body_categories[category] += 1
-    if sum(categories.values()) != EXPECTED["physical_lines"] - 1:
-        raise BuildError("challenger comparison is not exhaustive")
-    return {
-        "schema_version": "tos_antonovsky_1911_full_boundary_comparison_v2",
-        "comparison_axis": "every_adjacent_pair_in_exact_physical_line_order",
-        "evaluated_adjacent_pairs": sum(categories.values()),
-        "all_pair_results": dict(sorted(categories.items())),
-        "body_content_pair_results": dict(sorted(body_categories.items())),
-        "disagreement_count": categories["final_only_boundary"] + categories["challenger_only_boundary"],
-        "resolution": "independent_source_visible_pass_selected_for_all_disagreements",
-        "unresolved_disagreement_count": 0, "source_text_included": False,
-    }
-
-
-def structure_parent(key: str, record: dict[str, Any]) -> str | None:
-    kind = record["record_kind"]
-    if kind == "reading_unit_heading":
-        # In Part I the source-visible "Speeches of Zarathustra" heading is
-        # a wrapper over the 22 speeches after the Prologue.  Keep the
-        # Prologue directly under the part and preserve the wrapper instead
-        # of leaving it as an orphan technical heading.
-        if record["part_id"] == "part_1" and record["reading_unit_ordinal_within_part"] >= 2:
-            return "part_1.cycle_heading"
-        return record["part_id"]
-    if kind == "numbered_subpart_marker": return record["parent_reading_ref"]
-    if kind == "cycle_heading": return record["part_id"]
-    if kind == "publisher_catalog_heading": return "back_matter.publisher_catalog"
-    return None
-
-
-def make_outputs(model: dict[str, Any]) -> dict[str, bytes]:
-    ids = load_identities(model)
-    comparison = compare_challenger(model)
-    line_id = ids["physical_lines"]
-    row_id = ids["logical_rows"]
-    structure_id = ids["structures"]
-    paragraph_id = ids["paragraphs"]
-    verse_group_id = ids["verse_groups"]
-    verse_line_id = ids["verse_lines"]
-    row_key_by_ref = {row.row_ref: row_binding(row) for row in model["rows"]}
-    paragraph_key_by_ref = {row["paragraph_ref"]: paragraph_binding(row) for row in model["paragraphs"]}
-    verse_group_key_by_ref = {row["verse_group_ref"]: paragraph_binding(row) for row in model["verse_groups"]}
-    verse_line_key_by_ref = {
-        row["verse_line_ref"]: f"{row['verse_group_ref']}|{row['verse_line_ordinal']}|"
-                               f"{sha(chr(10).join(row['physical_line_refs']).encode())}"
-        for row in model["verse_lines"]
-    }
-
-    structure_rows = []
-    for record in model["census"]:
-        key = structure_key(record)
-        parent = structure_parent(key, record)
-        structure_rows.append({
-            "schema_version": "tos_antonovsky_1911_structure_spine_v2",
-            "structure_unit_id": structure_id[key], "technical_structure_key": key,
-            "record_kind": record["record_kind"],
-            "parent_structure_unit_id": structure_id[parent] if parent else None,
-            "part_id": record.get("part_id"),
-            "reading_unit_ordinal_within_part": record.get("reading_unit_ordinal_within_part"),
-            "reading_unit_ordinal_global": record.get("reading_unit_ordinal_global"),
-            "numbered_subpart_number": record.get("number"),
-            "source_anchor_refs": record.get("anchors", []),
-            "source_locator_span": record.get("source_locator_span"),
-            "display_citation_span": record.get("panel_span", record.get("display_citations")),
-            "source_visible": record.get("source_visible", True),
-            "visual_only_heading_observation": any(
-                anchor.get("embedded_bbox_anchor_missing", False) for anchor in record.get("anchors", [])),
-            "source_text_included": False, "semantic_promotion": False,
-        })
-
-    physical_rows = []
-    for line in model["lines"]:
-        physical_rows.append({
-            "schema_version": "tos_antonovsky_1911_physical_line_spine_v2",
-            "physical_line_unit_id": line_id[line.locator], "source_line_ref": line.source_line_ref,
-            "source_locator": line.locator, "source_block_unit_ref": line.block_unit_id,
-            "block_line_ordinal": line.ordinal, "pdf_page": line.page, "panel": line.panel,
-            "bbox_points": [round(v, 6) for v in line.bbox], "exact_sha256": line.text_sha256,
-            "logical_row_unit_ref": row_id[row_key_by_ref[line.row_ref]], "technical_role": line.role,
-            "reading_unit_ref": structure_id.get(line.reading_ref),
-            "numbered_subpart_ref": structure_id.get(line.subpart_ref),
-            "paragraph_unit_ref": paragraph_id.get(paragraph_key_by_ref.get(line.paragraph_ref)),
-            "verse_group_unit_ref": verse_group_id.get(verse_group_key_by_ref.get(line.verse_group_ref)),
-            "verse_line_unit_ref": verse_line_id.get(verse_line_key_by_ref.get(line.verse_line_ref)),
-            "source_text_included": False, "semantic_promotion": False,
-        })
-
-    logical_rows = []
-    for row in model["rows"]:
-        logical_rows.append({
-            "schema_version": "tos_antonovsky_1911_logical_row_spine_v2",
-            "logical_row_unit_id": row_id[row_binding(row)], "pdf_page": row.page, "panel": row.panel,
-            "bbox_points": [round(v, 6) for v in row.bbox],
-            "ordered_physical_line_unit_refs": [line_id[x.locator] for x in row.lines],
-            "exact_sha256": row.text_sha256, "technical_role": row.role,
-            "reading_unit_ref": structure_id.get(row.reading_ref),
-            "numbered_subpart_ref": structure_id.get(row.subpart_ref),
-            "estimated_body_margin_x": round(row.base_x, 3) if row.base_x is not None else None,
-            "indent_delta_points": round(row.indent_delta, 3) if row.indent_delta is not None else None,
-            "source_text_included": False, "semantic_promotion": False,
-        })
-
-    line_by_locator = {line.locator: line for line in model["lines"]}
-    paragraph_rows = []
-    for record in model["paragraphs"]:
-        pid = paragraph_id[paragraph_binding(record)]
-        blocks = sorted({line_by_locator[locator].block_unit_id for locator in record["physical_line_refs"]})
-        part = record["reading_ref"].split(".")[0]
-        paragraph_rows.append({
-            "schema_version": "tos_antonovsky_1911_paragraph_spine_v2",
-            "paragraph_unit_id": pid, "unit_kind": "prose_paragraph",
-            "display_citation": f"Za-RU-Ant1911.{record['reading_ref'].replace('part_', 'P').replace('.reading_', '.R')}.p{record['reading_paragraph_ordinal']:04d}",
-            "part_id": part, "global_technical_ordinal": record["global_ordinal"],
-            "reading_unit_ref": structure_id[record["reading_ref"]],
-            "numbered_subpart_ref": structure_id.get(record["subpart_ref"]),
-            "ordinal_within_reading_unit": record["reading_paragraph_ordinal"],
-            "ordinal_within_numbered_subpart": record["subpart_paragraph_ordinal"],
-            "ordered_logical_row_refs": [row_id[row_key_by_ref[x]] for x in record["row_refs"]],
-            "ordered_physical_line_refs": [line_id[x] for x in record["physical_line_refs"]],
-            "source_block_unit_refs": blocks, "boundary_basis": record["boundary_basis"],
-            "boundary_confidence": record["boundary_confidence"], "crosses_page_sides": record["cross_panel"],
-            "exact_sha256": record["text_sha256"], "boundary_posture": "agent_verified_technical",
-            "source_text_included": False, "semantic_promotion": False,
-        })
-
-    verse_group_rows = []
-    for record in model["verse_groups"]:
-        gid = verse_group_id[paragraph_binding(record)]
-        verse_group_rows.append({
-            "schema_version": "tos_antonovsky_1911_verse_group_spine_v2",
-            "verse_group_unit_id": gid, "unit_kind": "continuous_verse_group",
-            "display_citation": f"Za-RU-Ant1911.{record['reading_ref'].replace('part_', 'P').replace('.reading_', '.R')}.vg{record['reading_verse_group_ordinal']:03d}",
-            "global_technical_ordinal": record["global_ordinal"],
-            "reading_unit_ref": structure_id[record["reading_ref"]],
-            "numbered_subpart_ref": structure_id.get(record["subpart_ref"]),
-            "ordinal_within_reading_unit": record["reading_verse_group_ordinal"],
-            "ordered_verse_line_refs": [verse_line_id[verse_line_key_by_ref[x]] for x in record["verse_line_refs"]],
-            "ordered_physical_line_refs": [line_id[x] for x in record["physical_line_refs"]],
-            "crosses_page_sides": record["cross_panel"], "exact_sha256": record["text_sha256"],
-            "boundary_posture": "agent_verified_technical", "source_text_included": False,
-            "semantic_promotion": False,
-        })
-
-    verse_line_rows = []
-    for record in model["verse_lines"]:
-        key = verse_line_key_by_ref[record["verse_line_ref"]]
-        verse_line_rows.append({
-            "schema_version": "tos_antonovsky_1911_verse_line_spine_v2",
-            "verse_line_unit_id": verse_line_id[key],
-            "verse_group_unit_ref": verse_group_id[verse_group_key_by_ref[record["verse_group_ref"]]],
-            "ordinal_within_verse_group": record["verse_line_ordinal"],
-            "reading_unit_ref": structure_id[record["reading_ref"]],
-            "numbered_subpart_ref": structure_id.get(record["subpart_ref"]),
-            "logical_row_unit_ref": row_id[row_key_by_ref[record["row_ref"]]],
-            "ordered_physical_line_refs": [line_id[x] for x in record["physical_line_refs"]],
-            "bbox_points": record["bbox_points"], "exact_sha256": record["text_sha256"],
-            "source_text_included": False, "semantic_promotion": False,
-        })
-
-    conflict_rows = []
-    for ordinal, record in enumerate(model["conflicts"], 1):
-        converted = {k: v for k, v in record.items() if not k.endswith("row_ref")}
-        converted.update({
-            "schema_version": "tos_antonovsky_1911_boundary_conflict_v2",
-            "conflict_ref": f"ru-ant1911.boundary-conflict.{ordinal:05d}",
-            "first_logical_row_ref": row_id.get(row_key_by_ref.get(record.get("first_row_ref"))),
-            "last_logical_row_ref": row_id.get(row_key_by_ref.get(record.get("last_row_ref"))),
-            "previous_logical_row_ref": row_id.get(row_key_by_ref.get(record.get("previous_row_ref"))),
-            "current_logical_row_ref": row_id.get(row_key_by_ref.get(record.get("current_row_ref"))),
-            "reading_unit_ref": structure_id.get(record.get("reading_ref")),
-            "numbered_subpart_ref": structure_id.get(record.get("subpart_ref")),
-            "status": "resolved_by_declared_rule", "source_text_included": False,
-        })
-        converted.pop("reading_ref", None); converted.pop("subpart_ref", None)
-        conflict_rows.append(converted)
-
-    roles = Counter(line.role for line in model["lines"])
-    prose_by_part = Counter(row["reading_ref"].split(".")[0] for row in model["paragraphs"])
-    verse_by_part = Counter(row["reading_ref"].split(".")[0] for row in model["verse_groups"])
-    subparts_with_content = {row["subpart_ref"] for row in model["paragraphs"] if row["subpart_ref"]} | {
-        row["subpart_ref"] for row in model["verse_lines"] if row["subpart_ref"]}
-    if len(subparts_with_content) != EXPECTED["subparts"]:
-        raise BuildError("not all numbered subparts have technical content")
-    coverage = {
-        "schema_version": "tos_antonovsky_1911_coverage_receipt_v2",
-        "source_fixity": {"pdf_sha256": PDF_SHA, "bbox_sha256": BBOX_SHA,
-                           "private_text_layer_sha256": TEXT_SHA},
-        "source_poppler_block_count": EXPECTED["blocks"],
-        "expected_physical_line_count": EXPECTED["physical_lines"],
-        "assigned_physical_line_count": len(physical_rows), "duplicate_physical_line_count": 0,
-        "unresolved_physical_line_count": 0, "logical_row_count": len(logical_rows),
-        "reading_unit_count": EXPECTED["readings"], "numbered_subpart_count": EXPECTED["subparts"],
-        "numbered_subparts_with_content": len(subparts_with_content),
-        "prose_paragraph_count": len(paragraph_rows), "continuous_verse_group_count": len(verse_group_rows),
-        "verse_line_count": len(verse_line_rows), "technical_role_counts": dict(sorted(roles.items())),
-        "coverage_status": "complete", "source_text_included": False, "semantic_authority": False,
-    }
-    contradictions = [
-        {"schema_version": "tos_antonovsky_1911_contradiction_v2",
-         "contradiction_ref": f"ru-ant1911.visual-marker-{number}",
-         "kind": "raster_marker_absent_from_embedded_bbox_layer", "technical_structure_key": key,
-         "resolution": "source_visible_raster_context_event_materialized_without_inventing_physical_line",
-         "status": "resolved", "source_text_included": False, "semantic_promotion": False}
-        for number, key in ((22, "part_3.reading_12.subpart_22"), (1, "part_4.reading_18.subpart_01"))
-    ] + [{
-        "schema_version": "tos_antonovsky_1911_contradiction_v2",
-        "contradiction_ref": "ru-ant1911.primary-challenger-boundaries",
-        "kind": "competing_technical_segmentation", "evaluated_adjacent_pairs": comparison["evaluated_adjacent_pairs"],
-        "disagreement_count": comparison["disagreement_count"],
-        "resolution": comparison["resolution"], "status": "resolved",
-        "source_text_included": False, "semantic_promotion": False,
-    }]
-    summary = {
-        "schema_version": "tos_antonovsky_1911_structural_paragraph_summary_v2",
-        "status": "agent_verified_complete", "physical_line_count": len(physical_rows),
-        "logical_row_count": len(logical_rows), "part_count": 4,
-        "reading_unit_count": EXPECTED["readings"], "numbered_subpart_count": EXPECTED["subparts"],
-        "embedded_numbered_subpart_marker_count": 110, "raster_only_numbered_subpart_marker_count": 2,
-        "prose_paragraph_count": len(paragraph_rows), "continuous_verse_group_count": len(verse_group_rows),
-        "verse_line_count": len(verse_line_rows), "prose_paragraph_counts_by_part": dict(sorted(prose_by_part.items())),
-        "continuous_verse_group_counts_by_part": dict(sorted(verse_by_part.items())),
-        "boundary_conflict_count": len(conflict_rows), "unresolved_boundary_conflict_count": 0,
-        "challenger_boundary_disagreement_count": comparison["disagreement_count"],
-        "unresolved_challenger_disagreement_count": 0, "source_text_included": False,
-        "semantic_authority": False,
-    }
-    verification = {
-        "schema_version": "tos_antonovsky_1911_agent_verification_v2",
-        "status": "agent_verified_complete", "maker_kind": "codex_internal_agents",
-        "checks": {"exact_source_fixity": True, "physical_line_coverage_13071": True,
-                   "logical_row_rebuild_10686": True, "reading_census_81": True,
-                   "numbered_subpart_census_112": True, "all_numbered_subparts_have_content": True,
-                   "prose_verse_disjoint": True, "local_ordinals_continuous": True,
-                   "primary_challenger_all_adjacent_pairs_compared": True,
-                   "all_boundary_conflicts_resolved": True, "all_contradictions_resolved": True,
-                   "opaque_identity_binding_closed": True, "tracked_outputs_text_free": True},
-        "unresolved_count": 0, "source_text_included": False, "semantic_authority": False,
-        "authority_boundary": "complete_technical_proposal_only",
-    }
-    provenance = [
-        {"event_id": "ru-ant1911-v2.source-rebuild", "event_kind": "exact_source_rebuild",
-         "input_ref": f"{V1_ROUTE_REF}/citation-spine.v1.jsonl", "status": "complete"},
-        {"event_id": "ru-ant1911-v2.structure-census", "event_kind": "source_visible_structure_census",
-         "input_ref": CENSUS_REF, "status": "complete"},
-        {"event_id": "ru-ant1911-v2.independent-pass", "event_kind": "independent_paragraph_verse_reconstruction",
-         "status": "complete"},
-        {"event_id": "ru-ant1911-v2.challenger-comparison", "event_kind": "full_adjacent_boundary_comparison",
-         "input_ref": CHALLENGER_REF, "status": "complete"},
-        {"event_id": "ru-ant1911-v2.agent-verification", "event_kind": "independent_technical_verification",
-         "status": "agent_verified_complete"},
-    ]
-    for row in provenance:
-        row.update({"schema_version": "tos_antonovsky_1911_provenance_event_v2",
-                    "event_date": "2026-09-01", "ended_at": "2026-09-01T18:00:00-06:00",
-                    "source_text_included": False,
-                    "semantic_promotion": False})
-
-    artifacts = {
-        OUTPUT_REFS["physical_lines"]: jsonl_bytes(physical_rows),
-        OUTPUT_REFS["logical_rows"]: jsonl_bytes(logical_rows),
-        OUTPUT_REFS["structures"]: jsonl_bytes(structure_rows),
-        OUTPUT_REFS["paragraphs"]: jsonl_bytes(paragraph_rows),
-        OUTPUT_REFS["verse_groups"]: jsonl_bytes(verse_group_rows),
-        OUTPUT_REFS["verse_lines"]: jsonl_bytes(verse_line_rows),
-        OUTPUT_REFS["conflicts"]: jsonl_bytes(conflict_rows),
-        OUTPUT_REFS["comparison"]: json_bytes(comparison),
-        OUTPUT_REFS["contradictions"]: jsonl_bytes(contradictions),
-        OUTPUT_REFS["coverage"]: json_bytes(coverage),
-        OUTPUT_REFS["verification"]: json_bytes(verification),
-        OUTPUT_REFS["summary"]: json_bytes(summary),
-        OUTPUT_REFS["provenance"]: jsonl_bytes(provenance),
-    }
-    manifest = {
-        "schema_version": "tos_antonovsky_1911_structural_paragraph_manifest_v2",
-        "static_inputs": {ref: {"sha256": sha((REPO / ref).read_bytes()), "bytes": (REPO / ref).stat().st_size}
-                          for ref in (CENSUS_REF, ISSUANCE_REF, CHALLENGER_REF)},
-        "generated_outputs": {ref: {"sha256": sha(payload), "bytes": len(payload)}
-                              for ref, payload in sorted(artifacts.items())},
-        "source_text_included": False, "semantic_authority": False,
-    }
-    artifacts[OUTPUT_REFS["manifest"]] = json_bytes(manifest)
-    return artifacts
-
-
-FORBIDDEN_KEYS = {"text", "source_text", "content", "exact_text", "ocr_text",
-                  "heading_text", "translation", "lemma", "concept", "relation"}
-
-
-def assert_text_free(value: Any, where: str) -> None:
-    if isinstance(value, dict):
-        for key, child in value.items():
-            if key in FORBIDDEN_KEYS:
-                raise BuildError(f"forbidden tracked key {key!r} in {where}")
-            if key == "source_text_included" and child is not False:
-                raise BuildError(f"source_text_included must be false in {where}")
-            assert_text_free(child, where)
-    elif isinstance(value, list):
-        for child in value: assert_text_free(child, where)
-
-
-def validate_tracked() -> dict[str, Any]:
-    manifest = json.loads((REPO / OUTPUT_REFS["manifest"]).read_text())
-    for ref, receipt in manifest["static_inputs"].items():
-        path = REPO / ref
-        if not path.is_file() or sha(path.read_bytes()) != receipt["sha256"] or path.stat().st_size != receipt["bytes"]:
-            raise BuildError(f"static input manifest drift: {ref}")
-    for ref, receipt in manifest["generated_outputs"].items():
-        path = REPO / ref
-        if not path.is_file() or sha(path.read_bytes()) != receipt["sha256"] or path.stat().st_size != receipt["bytes"]:
-            raise BuildError(f"generated output manifest drift: {ref}")
-    jsonl_refs = {OUTPUT_REFS[key] for key in (
-        "physical_lines", "logical_rows", "structures", "paragraphs", "verse_groups",
-        "verse_lines", "conflicts", "contradictions", "provenance")}
-    parsed = {}
-    for ref in manifest["generated_outputs"]:
-        path = REPO / ref
-        value = load_jsonl(path) if ref in jsonl_refs else json.loads(path.read_text())
-        assert_text_free(value, ref)
-        parsed[ref] = value
-    physical = parsed[OUTPUT_REFS["physical_lines"]]
-    logical = parsed[OUTPUT_REFS["logical_rows"]]
-    structures = parsed[OUTPUT_REFS["structures"]]
-    paragraphs = parsed[OUTPUT_REFS["paragraphs"]]
-    verse_groups = parsed[OUTPUT_REFS["verse_groups"]]
-    verse_lines = parsed[OUTPUT_REFS["verse_lines"]]
-    conflicts = parsed[OUTPUT_REFS["conflicts"]]
-    comparison = parsed[OUTPUT_REFS["comparison"]]
-    contradictions = parsed[OUTPUT_REFS["contradictions"]]
-    coverage = parsed[OUTPUT_REFS["coverage"]]
-    verification = parsed[OUTPUT_REFS["verification"]]
-    if (len(physical), len(logical), len(paragraphs), len(verse_groups), len(verse_lines)) != (
-            EXPECTED["physical_lines"], EXPECTED["logical_rows"], EXPECTED["prose"],
-            EXPECTED["verse_groups"], EXPECTED["verse_lines"]):
-        raise BuildError("tracked count drift")
-    ids = [row["physical_line_unit_id"] for row in physical]
-    if len(ids) != len(set(ids)):
-        raise BuildError("physical-line identities are not unique")
-    row_ids = {row["logical_row_unit_id"] for row in logical}
-    if any(row["logical_row_unit_ref"] not in row_ids for row in physical):
-        raise BuildError("physical-to-logical reference closure failure")
-    structure_ids = {row["structure_unit_id"] for row in structures}
-    if any(row["parent_structure_unit_id"] not in structure_ids
-           for row in structures if row["parent_structure_unit_id"]):
-        raise BuildError("structure parent closure failure")
-    if Counter(row["record_kind"] for row in structures)["reading_unit_heading"] != EXPECTED["readings"] \
-            or Counter(row["record_kind"] for row in structures)["numbered_subpart_marker"] != EXPECTED["subparts"]:
-        raise BuildError("tracked structure census drift")
-    reading_ordinals: dict[str, list[int]] = defaultdict(list)
-    subpart_ordinals: dict[str, list[int]] = defaultdict(list)
-    for row in paragraphs:
-        reading_ordinals[row["reading_unit_ref"]].append(row["ordinal_within_reading_unit"])
-        if row["numbered_subpart_ref"]:
-            subpart_ordinals[row["numbered_subpart_ref"]].append(row["ordinal_within_numbered_subpart"])
-    if len(reading_ordinals) != EXPECTED["readings"]:
-        raise BuildError("not all reading units contain prose")
-    if any(values != list(range(1, len(values) + 1)) for values in reading_ordinals.values()) \
-            or any(values != list(range(1, len(values) + 1)) for values in subpart_ordinals.values()):
-        raise BuildError("paragraph ordinals are not continuous")
-    prose_lines = {ref for row in paragraphs for ref in row["ordered_physical_line_refs"]}
-    verse_physical = {ref for row in verse_lines for ref in row["ordered_physical_line_refs"]}
-    if prose_lines & verse_physical:
-        raise BuildError("prose and verse physical-line overlap")
-    if len(conflicts) != 49 or any(row["status"] != "resolved_by_declared_rule" for row in conflicts):
-        raise BuildError("boundary-conflict closure failure")
-    if comparison["evaluated_adjacent_pairs"] != EXPECTED["physical_lines"] - 1 \
-            or comparison["unresolved_disagreement_count"] != 0:
-        raise BuildError("full challenger comparison incomplete")
-    if any(row["status"] != "resolved" for row in contradictions):
-        raise BuildError("contradiction ledger has unresolved rows")
-    if coverage["coverage_status"] != "complete" or verification["status"] != "agent_verified_complete" \
-            or verification["unresolved_count"] != 0:
-        raise BuildError("completion receipts are not closed")
-    return {"status": "pass", "physical_lines": len(physical), "logical_rows": len(logical),
-            "prose_paragraphs": len(paragraphs), "continuous_verse_groups": len(verse_groups),
-            "verse_lines": len(verse_lines), "reading_units": EXPECTED["readings"],
-            "numbered_subparts": EXPECTED["subparts"], "unresolved": 0}
-
-
-def write_artifacts(artifacts: dict[str, bytes]) -> None:
-    for ref, payload in artifacts.items():
-        path = REPO / ref
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(payload)
-
-
-def check_artifacts(artifacts: dict[str, bytes]) -> None:
-    drift = []
-    for ref, payload in artifacts.items():
-        path = REPO / ref
-        if not path.is_file() or path.read_bytes() != payload:
-            drift.append(ref)
-    if drift:
-        raise BuildError("generated artifact drift: " + ", ".join(drift))
-
-
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Native Antonovsky v2 compatibility entry")
     actions = parser.add_mutually_exclusive_group(required=True)
-    actions.add_argument("--build", action="store_true")
-    actions.add_argument("--check", action="store_true")
-    actions.add_argument("--validate-tracked", action="store_true")
-    actions.add_argument("--issue-identities", action="store_true")
+    for flag in ("--build", "--check", "--validate-tracked", "--issue-identities", "--private-model"):
+        actions.add_argument(flag, action="store_true")
     actions.add_argument("--import-challenger", type=Path)
+    parser.add_argument("--repo-root", type=Path, default=REPO)
     args = parser.parse_args(argv)
-    if args.validate_tracked:
-        print(json.dumps(validate_tracked(), indent=2, sort_keys=True)); return 0
-    model = reconstruct()
-    if args.issue_identities:
-        issue_identities(model)
-        print(json.dumps({"status": "issued", "identity_ref": ISSUANCE_REF}, indent=2)); return 0
-    if args.import_challenger:
-        import_challenger(args.import_challenger, model)
-        print(json.dumps({"status": "imported", "challenger_ref": CHALLENGER_REF}, indent=2)); return 0
-    artifacts = make_outputs(model)
-    if args.build:
-        write_artifacts(artifacts)
+    native = os.environ.get("TOS_NATIVE_PREPARED_CONSUMER_BIN") or shutil.which("tos")
+    if not native or not Path(native).is_absolute():
+        print("error: select installed tos through TOS_NATIVE_PREPARED_CONSUMER_BIN or PATH", file=sys.stderr)
+        return 1
+    command = [native, "structural-paragraph", "--source-root", str(args.repo_root.absolute())]
+    if args.import_challenger is not None:
+        command += ["--import-challenger", str(args.import_challenger.absolute())]
     else:
-        check_artifacts(artifacts)
-    print(json.dumps(json.loads(artifacts[OUTPUT_REFS["summary"]]), indent=2, sort_keys=True))
-    return 0
+        for name in ("build", "check", "validate_tracked", "issue_identities", "private_model"):
+            if getattr(args, name):
+                command.append("--" + name.replace("_", "-"))
+                break
+    try:
+        os.execv(native, command)
+    except OSError as exc:
+        print(f"error: cannot execute selected native tos: {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
-    try:
-        raise SystemExit(main())
-    except BuildError as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
-        raise SystemExit(1)
+    raise SystemExit(main())

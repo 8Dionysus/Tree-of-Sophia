@@ -12,6 +12,7 @@ wasm = ["dep:wasm-bindgen"]
 
 [dependencies]
 sha2 = "0.10"
+unicode-general-category = "=1.1.0"
 wasm-bindgen = { version = "0.2", optional = true }
 
 [lib]

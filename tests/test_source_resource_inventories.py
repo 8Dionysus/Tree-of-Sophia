@@ -14,9 +14,9 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SCRIPTS_DIR = REPO_ROOT / "scripts"
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
+ORACLE_DIR = REPO_ROOT / "tests/oracles/source_resource_inventory"
+if str(ORACLE_DIR) not in sys.path:
+    sys.path.insert(0, str(ORACLE_DIR))
 
 import build_source_resource_inventories as inventories  # noqa: E402
 

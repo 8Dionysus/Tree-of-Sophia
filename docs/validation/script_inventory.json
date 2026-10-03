@@ -2063,10 +2063,10 @@
       "writes": [
         "ToS/source-witnesses/**/resource-inventory.json unless --check is used"
       ],
-      "side_effects": "tracked text-free PDF, bundled DjVu, EPUB, TEI, DjVu XML, and ABBYY XML resource inventories",
+      "side_effects": "thin Python wire facade delegates bounded PDF, DjVu, EPUB, TEI, OSIS, JSON, OCR, and plain-text inventory profiles to the native owner; native schema/fixity checks precede tracked companion writes; no Python parser fallback",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
-      "test_target": "tests/test_source_resource_inventories.py",
+      "test_target": "tests/test_source_inventory_native_facade.py",
       "disposition": "keep"
     },
     {
@@ -4369,12 +4369,12 @@
         "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/manifest.v1.json"
       ],
       "reads": [
-        "the existing exact German lexical database and recurrence projection, the complete rebuilt Russian structural witness, all four private DE/RU paragraph layers, and the frozen paragraph-alignment packets"
+        "native build/check/preview read the existing exact German lexical database and recurrence projection, reconstructed Russian structural witness, private DE/RU paragraph layers and frozen paragraph-alignment packets; --validate-tracked instead reads authenticated declared inputs, retained issuance, exact tracked/private receipts and full private cache bytes without regeneration or SQLite opening; executable compatibility helpers remain imported by Python Concept and Eternal Concept"
       ],
       "writes": [
-        "tracked text-free Russian recurrence, keyword, repeated-sequence, and translation-surface-association projections plus coverage, summary, provenance and manifest; ignored mode-0600 Russian SQLite and readable analysis unless --check is used"
+        "native --build writes tracked text-free recurrence, keyword, repeated-sequence and surface-association projections plus coverage, summary, provenance and manifest, and ignored mode-0600 SQLite/readable analysis; --check/--preview regenerate privately and require admitted scratch; --validate-tracked writes nothing"
       ],
-      "side_effects": "mechanical whole-work lexical observations and proposed/ambiguous/deferred surface-association candidates only; no text acceptance, correction overlay, morphology, lemma, lexeme, translation equivalence, sign, concept, graph/canon effect, publication, or human review",
+      "side_effects": "native-only maintained producer dispatch; original full 5ee rendering source retained as nonexecuted/nonimported archive, authenticated cold oracle separate; read-only --validate-tracked proves existing receipt custody, not regenerated algorithm or typed cache equivalence; exact Python consumer helpers remain executable pending consumer cutovers; mechanical whole-work lexical observations and proposed/ambiguous/deferred surface-association candidates only; no text acceptance, correction overlay, morphology, lemma, lexeme, translation equivalence, sign, concept, graph/canon effect, publication, or human review",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_zarathustra_parallel_lexical_candidates_v1.py",
@@ -4449,7 +4449,7 @@
       "writes": [
         "four tracked text-free translation-alignment packets plus coverage, diagnostics, conflict, scope-exclusion, independent-audit, provenance, verification, summary and manifest receipts, and four ignored mode-0600 Russian paragraph layers unless --check or --validate-tracked is used"
       ],
-      "side_effects": "complete paragraph-level machine proposal coverage only; all independent disagreements and primary-only risks remain ambiguous or deferred, reviews and projections stay empty, and no translation acceptance, lexical or semantic equivalence, graph/canon effect, publication, or runtime authority is created",
+      "side_effects": "native-only installed tos compatibility entry; explicit admitted scratch quota required for writes; historical recipe retained as nonexecuted source; complete paragraph-level machine proposal coverage only; all independent disagreements and primary-only risks remain ambiguous or deferred, reviews and projections stay empty, and no translation acceptance, lexical or semantic equivalence, graph/canon effect, publication, or runtime authority is created",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "release",
       "test_target": "tests/test_zarathustra_de_ru_paragraph_alignment_v1.py",
@@ -4497,7 +4497,7 @@
       "writes": [
         "text-free candidate morphology families, typed relations, bilingual recurrence neighborhoods, receipts, and one mode-0600 readable analysis"
       ],
-      "side_effects": "issues opaque candidate identities only on explicit first build; creates no accepted lemma, lexeme, sense, translation equivalence, sign, concept, semantic relation, graph fact, canon object, or human review",
+      "side_effects": "Native-only producer dispatch; writes require explicit native admitted scratch quota. Exact Concept signature compatibility helper remains; full historical body retained as NONEXECUTED recipe, no Python producer fallback. Native issues opaque candidate identities only on explicit first build; creates no accepted lemma, lexeme, sense, translation equivalence, sign, concept, semantic relation, graph fact, canon object, or human review.",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_zarathustra_morphology_theme_candidates_v1.py",
@@ -4512,15 +4512,18 @@
         "complete Zarathustra DE/RU paragraph-alignment manifest and exact private text layers",
         "parallel lexical and morphology/theme candidate manifests",
         "semantic identity research and sign-annotation contract",
-        "return-as-action canon node as a declared negative control"
+        "return-as-action canon node as a declared negative control",
+        "exact historical rendering recipe at ToS/research-packets/retained-builder-inputs/build_zarathustra_eternal_return_concept_candidate_v1/35f9a992d0f9460baea7649dde7abed4f615188a376b915041ce49c734400c12.py; NONEXECUTED and never imported or a producer fallback"
       ],
       "reads": [
-        "all 3423 aligned units, exact DE/RU source-return anchors, recurrence formulas, context signals, and declared negative controls"
+        "all 3423 aligned units, exact DE/RU source-return anchors, recurrence formulas, context signals, and declared negative controls",
+        "native-only maintained main: --build/--check/--preview retain source regeneration; --validate-tracked reads authenticated default plan/input pins, identity issuance and existing tracked/private output receipts without regeneration or providers"
       ],
       "writes": [
-        "one sign-annotation concept candidate, text-free evidence/formula/template ledgers, coverage and promotion receipts, plus one mode-0600 exact bilingual analysis"
+        "one sign-annotation concept candidate, text-free evidence/formula/template ledgers, coverage and promotion receipts, plus one mode-0600 exact bilingual analysis",
+        "--validate-tracked writes nothing; --check remains a regenerating comparison and is distinct from retained-product receipt validation"
       ],
-      "side_effects": "issues opaque candidate identities only on explicit first build; materializes no accepted sign, concept, claim, relation, translation equivalence, graph fact, canon object, or human review",
+      "side_effects": "issues opaque candidate identities only on explicit first build; materializes no accepted sign, concept, claim, relation, translation equivalence, graph fact, canon object, or human review; maintained main dispatches native tos only; retained recipe archive is NONEXECUTED/nonimported, cold original oracle stays separate; --validate-tracked authenticates retained receipts without semantic admission",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_zarathustra_eternal_return_concept_candidate_v1.py",
@@ -4535,15 +4538,18 @@
         "frozen eternal-return parent candidate and exact mode-0600 analysis",
         "complete DE/RU paragraph-alignment manifest",
         "Antonovsky 1911 structural paragraph/verse manifest",
-        "semantic identity research and review-ledger checklist"
+        "semantic identity research and review-ledger checklist",
+        "exact historical rendering recipe at ToS/research-packets/retained-builder-inputs/build_zarathustra_eternal_return_review_preparation_v1/335df2c5ad52229d449cf6a22cdef4d5dabca49163b3154d85aed1e1a212027b.py; NONEXECUTED and never imported or a producer fallback"
       ],
       "reads": [
-        "five declared gap alignments, all 159 selected core-reading evidence units in source order, exact witness slices, speaker transitions, interpretation templates, and counterpressure passages"
+        "five declared gap alignments, all 159 selected core-reading evidence units in source order, exact witness slices, speaker transitions, interpretation templates, and counterpressure passages",
+        "native-only maintained main: --build/--check/--preview retain source regeneration; --validate-tracked reads authenticated default plan/input pins, identity issuance and existing tracked/private output receipts without regeneration or providers"
       ],
       "writes": [
-        "text-free gap and speaker candidates, interpretation review matrix, compressed exception worklist, coverage/provenance receipts, and one mode-0600 exact review-preparation analysis"
+        "text-free gap and speaker candidates, interpretation review matrix, compressed exception worklist, coverage/provenance receipts, and one mode-0600 exact review-preparation analysis",
+        "--validate-tracked writes nothing; --check remains a regenerating comparison and is distinct from retained-product receipt validation"
       ],
-      "side_effects": "issues opaque candidate identities only on explicit first build; corrects no witness, mutates no alignment, records no human review, materializes no claim or relation, and has no graph or canon effect",
+      "side_effects": "issues opaque candidate identities only on explicit first build; corrects no witness, mutates no alignment, records no human review, materializes no claim or relation, and has no graph or canon effect; maintained main dispatches native tos only; retained recipe archive is NONEXECUTED/nonimported, cold original oracle stays separate; --validate-tracked authenticates retained receipts without semantic admission",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_zarathustra_eternal_return_review_preparation_v1.py",
@@ -4558,15 +4564,17 @@
         "complete four-part German and Russian technical witness units, exact occurrence indexes, and paragraph alignment candidates",
         "candidate lexical and morphology methods, semantic identity research, and review checklist",
         "one parameterized concept request with explicit seeds, distinctions, negative controls, relation ceiling, and a source-first on-demand English policy",
-        "the fixity-bound translation reference register and etymology evidence route"
+        "the fixity-bound translation reference register and etymology evidence route",
+        "selected native implementation is distinct from the exact NONEXECUTED c60 rendering recipe; imported Generic helper fate remains open"
       ],
       "reads": [
-        "all exact source-item occurrences, Zarathustra work-scope boundaries, every paragraph and verse line, alignment shapes and statuses, and private source-return layers"
+        "all exact source-item occurrences, Zarathustra work-scope boundaries, every paragraph and verse line, alignment shapes and statuses, and private source-return layers",
+        "default frozen plan or an owned bounded technical successor changing only five selected SHA256 pins with exact predecessor lineage and all remaining semantics preserved"
       ],
       "writes": [
         "text-free all-form and witness-local context spines, speaker-state candidates, request-local form and occurrence candidates, typed relations, gap and exclusion ledgers, a candidate graph, English on-demand task worklists, and mode-0600 exact and English context packets"
       ],
-      "side_effects": "issues opaque candidate identities only on explicit first build; excludes appended separate-work material; English is AI-generated per German occurrence with Russian as comparator, sourced etymology required, recognized English translations sealed until freeze, and no accepted translation, lemma, speaker, sign, concept, relation, graph fact, review, or canon object",
+      "side_effects": "issues opaque candidate identities only on explicit first build; excludes appended separate-work material; English is AI-generated per German occurrence with Russian as comparator, sourced etymology required, recognized English translations sealed until freeze, and no accepted translation, lemma, speaker, sign, concept, relation, graph fact, review, or canon object; maintained main dispatches native tos before reference imports; archive is NONEXECUTED/nonimported and never a fallback; custom technical plans cannot issue identities or promote candidate authority",
       "validation_lane": "source_witness_foundation",
       "ci_inclusion": "focused-tests",
       "test_target": "tests/test_zarathustra_concept_workbench_v1.py",

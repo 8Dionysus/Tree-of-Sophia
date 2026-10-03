@@ -3,30 +3,41 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 from pathlib import Path
 from threading import Lock
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from .core import ToSAccessCore
+from .native_mcp import NativeMCPServer, _native_wire_bytes, DEFAULT_HTTP_PORT
+
+if TYPE_CHECKING:
+    from .core import ToSAccessCore
 
 
 LOGGER = logging.getLogger(__name__)
-DEFAULT_HTTP_PORT = 5429
 
 
-def _run_server(server: Any) -> None:
+def _transport_options() -> tuple[str, str | None, int | None]:
     transport = os.environ.get("TOS_MCP_TRANSPORT") or os.environ.get("AOA_MCP_TRANSPORT", "stdio").strip() or "stdio"
     if transport == "stdio":
-        server.run(transport="stdio")
-        return
+        return transport, None, None
     if transport != "streamable-http":
         raise SystemExit(f"unsupported AOA_MCP_TRANSPORT: {transport}")
     host = os.environ.get("TOS_MCP_HOST") or os.environ.get("AOA_MCP_HOST", "127.0.0.1").strip()
     if host not in {"127.0.0.1", "localhost", "::1"}:
         raise SystemExit("AOA_MCP_HOST must remain loopback-only")
-    server.settings.host = host
-    server.settings.port = int(os.environ.get("TOS_MCP_PORT") or os.environ.get("AOA_MCP_PORT", DEFAULT_HTTP_PORT))
-    server.run(transport="streamable-http")
+    port = int(os.environ.get("TOS_MCP_PORT") or os.environ.get("AOA_MCP_PORT", DEFAULT_HTTP_PORT))
+    if not 0 <= port <= 65535:
+        raise SystemExit("AOA_MCP_PORT must be a valid local TCP port")
+    return transport, host, port
+
+
+def _run_server(server: Any) -> None:
+    transport, host, port = _transport_options()
+    if transport == "streamable-http":
+        server.settings.host = host
+        server.settings.port = port
+    server.run(transport=transport)
 
 
 def build_server(
@@ -36,7 +47,17 @@ def build_server(
     philosophy_post_planting_audit_path: str | Path | None = None,
     *,
     core: ToSAccessCore | None = None,
+    native_prefix: str | Path | None = None,
+    native_arguments: list[str] | tuple[str, ...] = (),
 ) -> Any:
+    if native_prefix is not None:
+        if core is not None or any(value is not None for value in (
+                tos_root, index_path, philosophy_graph_projection_path, philosophy_post_planting_audit_path)):
+            raise ValueError('select native software/options or a reference core/discovery paths')
+        return NativeMCPServer(native_prefix, native_arguments)
+    if native_arguments:
+        raise ValueError('native MCP options require an explicit native prefix')
+    from .core import ToSAccessCore
     if core is not None and any(value is not None for value in (
             tos_root, index_path, philosophy_graph_projection_path, philosophy_post_planting_audit_path)):
         raise ValueError("select either an existing core or MCP source discovery paths")
@@ -597,6 +618,23 @@ def build_server(
     return mcp
 
 
-def main() -> None:
+def main(arguments=None) -> None:
+    # Imported main() historically uses configured reference discovery, not
+    # the hosting application's argv. The executable module passes argv below.
+    args = list(() if arguments is None else arguments)
+    if args:
+        # Reuse the maintained explicit-prefix parser and image custody. This
+        # fixed server entry does not introduce another operation registry.
+        if not (args[0] == '--native-prefix' or args[0].startswith('--native-prefix=')):
+            raise SystemExit('native MCP module options require --native-prefix')
+        transport, host, port = _transport_options()
+        options = (['--transport', transport, '--host', host, '--port', str(port)]
+                   if transport == 'streamable-http' else [])
+        from .__main__ import main as module_main
+        return module_main([*args, 'mcp', *options])
     logging.basicConfig(level=logging.INFO)
     _run_server(build_server())
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])

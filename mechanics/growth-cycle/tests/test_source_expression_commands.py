@@ -40,7 +40,7 @@ def replace(*args):
     count += 1
     if count == int(sys.argv[3]): os._exit(86)
 tx._replace_file = replace
-commands.run_local_command(Path(sys.argv[2]), json.load(sys.stdin))
+commands.run_legacy_oracle_command(Path(sys.argv[2]), json.load(sys.stdin))
 '''
 
 
@@ -138,7 +138,7 @@ class NativeExpressionTests(unittest.TestCase):
 
     def request(self):
         proposal = self.proposal()
-        prepared = commands.run_local_command(self.owner, proposal)
+        prepared = commands.run_legacy_oracle_command(self.owner, proposal)
         return {**proposal, 'operation': compound.OPERATION, 'command_id': self.config['expression_id'],
             'fields': prepared['prepared_fields'], 'expected_source': prepared['source'],
             'expected_revision': prepared['revision'], 'expected_configuration': prepared['owner_configuration'],
@@ -184,7 +184,7 @@ class NativeExpressionTests(unittest.TestCase):
         before = self.work_path.read_bytes()
         request = self.request()
         self.assertEqual(self.work_path.read_bytes(), before)
-        result = commands.run_local_command(self.owner, request)
+        result = commands.run_legacy_oracle_command(self.owner, request)
         self.assertFalse(result['grants_admission'])
         self.assertEqual(result['source_profiles']['work']['type_id'], 'tos.entity.work')
         self.assertEqual(result['source_profiles']['expression']['type_id'], 'tos.entity.expression')
@@ -212,15 +212,15 @@ class NativeExpressionTests(unittest.TestCase):
     def test_exact_replay_after_catalog_rebuild_and_later_sibling(self):
         first_config = copy.deepcopy(self.config)
         first = self.request()
-        result = commands.run_local_command(self.owner, first)
+        result = commands.run_legacy_oracle_command(self.owner, first)
         self.rebuild()
-        self.assertTrue(commands.run_local_command(self.owner, first)['replayed'])
+        self.assertTrue(commands.run_legacy_oracle_command(self.owner, first)['replayed'])
         self.select_child('second')
-        commands.run_local_command(self.owner, self.request())
+        commands.run_legacy_oracle_command(self.owner, self.request())
         self.rebuild()
         self.config = first_config
         self.owner.write_text(json.dumps(self.config))
-        replay = commands.run_local_command(self.owner, first)
+        replay = commands.run_legacy_oracle_command(self.owner, first)
         self.assertTrue(replay['replayed'])
         self.assertEqual(replay['receipt'], result['receipt'])
         self.assertEqual(replay['source']['version'], 6)
@@ -243,7 +243,7 @@ class NativeExpressionTests(unittest.TestCase):
         request = self.request()
         pending = self.crash(request)
         with self.assertRaises(PublicationPending):
-            commands.run_local_command(self.owner, {'schema_version': compound.REQUEST, 'operation': 'describe'})
+            commands.run_legacy_oracle_command(self.owner, {'schema_version': compound.REQUEST, 'operation': 'describe'})
         with patch.object(foundation, '_validate_foundation') as inner:
             self.assertTrue(foundation.validate_foundation(self.root))
             inner.assert_not_called()
@@ -251,12 +251,12 @@ class NativeExpressionTests(unittest.TestCase):
             input=json.dumps(self.recovery(pending, 'resume')), text=True, capture_output=True)
         self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
         self.assertFalse(json.loads(process.stdout)['grants_admission'])
-        self.assertTrue(commands.run_local_command(self.owner, request)['replayed'])
+        self.assertTrue(commands.run_legacy_oracle_command(self.owner, request)['replayed'])
 
     def test_pending_rollback_restores_parent_without_removing_descendants(self):
         before = revisions._selected_package(self.work_path)
         pending = self.crash(self.request(), edge=10)
-        result = commands.run_local_command(self.owner, self.recovery(pending, 'rollback'))
+        result = commands.run_legacy_oracle_command(self.owner, self.recovery(pending, 'rollback'))
         self.assertIsNone(result['receipt'])
         self.assertEqual(revisions._selected_package(self.work_path), before)
         self.assertFalse((self.root / self.config['expression_source_path']).parent.exists())
@@ -270,20 +270,20 @@ class NativeExpressionTests(unittest.TestCase):
         self.config['allowed_operations'] = []
         self.owner.write_text(json.dumps(self.config))
         with self.assertRaises(PermissionError):
-            commands.run_local_command(self.owner, self.recovery(pending, 'resume'))
+            commands.run_legacy_oracle_command(self.owner, self.recovery(pending, 'resume'))
         self.config = {**copy.deepcopy(original), 'expires_at': '2000-01-01T00:00:00Z'}
         self.owner.write_text(json.dumps(self.config))
         with self.assertRaises(PermissionError):
-            commands.run_local_command(self.owner, {'schema_version': compound.REQUEST, 'operation': 'describe'})
+            commands.run_legacy_oracle_command(self.owner, {'schema_version': compound.REQUEST, 'operation': 'describe'})
         self.config = original
         self.owner.write_text(json.dumps(self.config))
         selected = self.root / 'ToS/contracts/corpus-record.schema.json'
         raw = selected.read_bytes()
         selected.write_bytes(raw + b'\n')
         with self.assertRaises(commands.JournalConflict):
-            commands.run_local_command(self.owner, self.recovery(pending, 'resume'))
+            commands.run_legacy_oracle_command(self.owner, self.recovery(pending, 'resume'))
         selected.write_bytes(raw)
-        commands.run_local_command(self.owner, self.recovery(pending, 'rollback'))
+        commands.run_legacy_oracle_command(self.owner, self.recovery(pending, 'rollback'))
 
     def test_pending_third_state_is_not_overwritten_by_resume_or_rollback(self):
         pending = self.crash(self.request())
@@ -292,10 +292,10 @@ class NativeExpressionTests(unittest.TestCase):
         expression.write_bytes(b'{"unrelated": "external third state"}\n')
         for decision in ('resume', 'rollback'):
             with self.subTest(decision=decision), self.assertRaises((ValueError, OSError)):
-                commands.run_local_command(self.owner, self.recovery(pending, decision))
+                commands.run_legacy_oracle_command(self.owner, self.recovery(pending, decision))
         self.assertEqual(expression.read_bytes(), b'{"unrelated": "external third state"}\n')
         expression.write_bytes(initial)
-        commands.run_local_command(self.owner, self.recovery(pending, 'rollback'))
+        commands.run_legacy_oracle_command(self.owner, self.recovery(pending, 'rollback'))
 
     def test_prepare_rejects_nonprovisional_child_wrong_fields_and_stale_catalog(self):
         initial = self.work_path.read_bytes()
@@ -303,18 +303,18 @@ class NativeExpressionTests(unittest.TestCase):
         bad = copy.deepcopy(proposal)
         bad['record']['identity_status'] = 'verified'
         with self.assertRaises(ValueError):
-            commands.run_local_command(self.owner, bad)
+            commands.run_legacy_oracle_command(self.owner, bad)
         bad = copy.deepcopy(proposal)
         bad['forms'] = bad['forms'][:1]
         with self.assertRaises(PermissionError):
-            commands.run_local_command(self.owner, bad)
+            commands.run_legacy_oracle_command(self.owner, bad)
         request = self.request()
         changed = copy.deepcopy(request)
         changed['fields']['preferred_label'] = 'Unauthorized rewrite'
         with self.assertRaises(ValueError):
-            commands.run_local_command(self.owner, changed)
+            commands.run_legacy_oracle_command(self.owner, changed)
         self.assertEqual(self.work_path.read_bytes(), initial)
-        commands.run_local_command(self.owner, request)
+        commands.run_legacy_oracle_command(self.owner, request)
         self.select_child('second')
         with self.assertRaises(ValueError):
             self.request()
@@ -329,7 +329,7 @@ class NativeExpressionTests(unittest.TestCase):
         self.assertTrue(issues)
         (self.root / carrier_ref).unlink()
         (self.root / carrier_ref).parent.rmdir()
-        commands.run_local_command(self.owner, request)
+        commands.run_legacy_oracle_command(self.owner, request)
         issues = []
         self.assertEqual(len(_native_topology_claims(self.root, issues)), 1)
         self.assertEqual(issues, [])
@@ -354,13 +354,13 @@ class NativeExpressionTests(unittest.TestCase):
             raw = read(path, limit)
             return raw + b'\n' if Path(path) == commands.ROOT / commands.contract.MODULE_REF else raw
         with patch.object(commands, '_read', side_effect=changed_grammar), self.assertRaises(commands.JournalConflict):
-            commands.run_local_command(self.owner, request)
+            commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(json.loads(self.work_path.read_bytes()), self.work)
         manifest = self.root / compound.CATALOG_MANIFEST
         before = manifest.read_bytes()
         manifest.write_bytes(before + b'\n')
         with self.assertRaises(commands.JournalConflict):
-            commands.run_local_command(self.owner, request)
+            commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(json.loads(self.work_path.read_bytes()), self.work)
         manifest.write_bytes(before)
         original = compound.transactions._replace_file
@@ -369,7 +369,7 @@ class NativeExpressionTests(unittest.TestCase):
             self.config['allowed_operations'] = []
             self.owner.write_text(json.dumps(self.config))
         with patch.object(compound.transactions, '_replace_file', side_effect=revoke), self.assertRaises(ValueError):
-            commands.run_local_command(self.owner, request)
+            commands.run_legacy_oracle_command(self.owner, request)
         self.assertIsNotNone(compound.transactions.read_pending_transaction(self.root))
 
     def test_compound_growth_requires_the_descriptive_parent_history(self):
@@ -383,23 +383,23 @@ class NativeExpressionTests(unittest.TestCase):
         proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
             'fields': {'notes': 'Corrected synthetic parent description.'},
             'forms': self.proposal()['forms'], 'reason': 'Synthetic source history.'}
-        prepared = commands.run_local_command(owner, proposal)
+        prepared = commands.run_legacy_oracle_command(owner, proposal)
         correction = {**proposal, 'operation': 'record.revise', 'command_id': 'test:parent-correction',
             'expected_source': prepared['source'], 'expected_revision': prepared['revision'],
             'expected_configuration': prepared['owner_configuration'],
             'expected_dependencies': prepared['expected_dependencies'],
             'expected_publication': prepared['publication_snapshot']}
-        commands.run_local_command(owner, correction)
+        commands.run_legacy_oracle_command(owner, correction)
         self.rebuild()
         request = self.request()
-        inspected = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+        inspected = commands.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
             'operation': 'inspect-version', 'source': correction['expected_source']})
         blob = self.root / inspected['files']['work.json']['archive_path']
         original = blob.read_bytes()
         before = revisions._selected_package(self.work_path)
         blob.write_bytes(b'damaged descriptive predecessor')
         with self.assertRaises(commands.JournalCorruption):
-            commands.run_local_command(self.owner, request)
+            commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(revisions._selected_package(self.work_path), before)
         self.assertFalse((self.root / self.config['expression_source_path']).parent.exists())
         self.assertIsNone(compound.transactions.read_pending_transaction(self.root))
@@ -410,10 +410,10 @@ class NativeExpressionTests(unittest.TestCase):
             blob.write_bytes(b'damaged predecessor after pending')
         with patch.object(compound.transactions, '_replace_file', side_effect=damage_during_publication):
             with self.assertRaises(commands.JournalCorruption):
-                commands.run_local_command(self.owner, request)
+                commands.run_legacy_oracle_command(self.owner, request)
         self.assertIsNotNone(compound.transactions.read_pending_transaction(self.root))
         blob.write_bytes(original)
-        result = commands.run_local_command(self.owner, request)
+        result = commands.run_legacy_oracle_command(self.owner, request)
         self.assertEqual(result['source']['version'], 6)
         self.assertEqual(self.untouched.read_bytes(), b'Unrelated synthetic descendant\n')
 
@@ -429,19 +429,19 @@ class NativeExpressionTests(unittest.TestCase):
         proposal = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
             'fields': {'notes': 'Corrected synthetic descriptive note, no semantic admission.'},
             'forms': self.proposal()['expression_forms'], 'reason': 'Synthetic descriptive correction.'}
-        prepared = commands.run_local_command(owner, proposal)
+        prepared = commands.run_legacy_oracle_command(owner, proposal)
         request = {**proposal, 'operation': 'record.revise', 'command_id': 'synthetic:expression-correction',
             'expected_source': prepared['source'], 'expected_revision': prepared['revision'],
             'expected_configuration': prepared['owner_configuration'],
             'expected_dependencies': prepared['expected_dependencies'],
             'expected_publication': prepared['publication_snapshot']}
-        return commands.run_local_command(owner, request)
+        return commands.run_legacy_oracle_command(owner, request)
 
     def test_descriptive_expression_successor_retains_exact_initial_bytes(self):
         from metadata_version_reader import MetadataVersionReader
         initial_work_raw = self.work_path.read_bytes()
         request = self.request()
-        commands.run_local_command(self.owner, request)
+        commands.run_legacy_oracle_command(self.owner, request)
         self.correct_expression()
         self.rebuild()
         verified = compound.verify_compound(self.root,
@@ -456,7 +456,7 @@ class NativeExpressionTests(unittest.TestCase):
 
     def test_canonical_reference_without_exact_initial_archive_bytes_is_not_enough(self):
         request = self.request()
-        commands.run_local_command(self.owner, request)
+        commands.run_legacy_oracle_command(self.owner, request)
         expression = self.root / self.config['expression_source_path']
         # Same ID/version/canonical digest, but no longer the created byte layer.
         expression.write_bytes(expression.read_bytes() + b'\n')
@@ -467,7 +467,7 @@ class NativeExpressionTests(unittest.TestCase):
 
     def test_committed_evidence_survives_copy_without_owner_grant_or_original_inodes(self):
         request = self.request()
-        commands.run_local_command(self.owner, request)
+        commands.run_legacy_oracle_command(self.owner, request)
         with tempfile.TemporaryDirectory() as destination:
             relocated = Path(destination) / 'relocated'
             shutil.copytree(self.root, relocated)
@@ -486,8 +486,8 @@ class NativeExpressionTests(unittest.TestCase):
         self.config['authority_ref'] = 'test-only:renewed-recovery-not-creation'
         self.owner.write_text(json.dumps(self.config))
         with self.assertRaises(PermissionError):
-            commands.run_local_command(self.owner, request)
-        recovered = commands.run_local_command(self.owner, self.recovery(pending, 'resume'))
+            commands.run_legacy_oracle_command(self.owner, request)
+        recovered = commands.run_legacy_oracle_command(self.owner, self.recovery(pending, 'resume'))
         self.assertEqual(recovered['receipt']['principal_id'], 'model:synthetic')
         self.assertEqual(recovered['recovery']['publication']['recovery_authorization']['principal_id'],
                          'model:synthetic-recovery')
@@ -500,11 +500,11 @@ class NativeExpressionTests(unittest.TestCase):
             nonlocal committed
             if not committed:
                 committed = True
-                commands.run_local_command(self.owner, request)
+                commands.run_legacy_oracle_command(self.owner, request)
             return original_result(*args, **kwargs)
         with patch.object(compound, '_result', side_effect=commit_during_result):
             with self.assertRaises(PublicationChanged):
-                commands.run_local_command(self.owner, self.proposal())
+                commands.run_legacy_oracle_command(self.owner, self.proposal())
         self.assertTrue(committed)
         self.assertEqual(json.loads(self.work_path.read_bytes())['record_version'], 5)
 

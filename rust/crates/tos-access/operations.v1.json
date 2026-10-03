@@ -1,0 +1,1900 @@
+{
+  "schema_version": "tos_native_access_operations_v1",
+  "owner": "Tree-of-Sophia/access",
+  "source_contract": "access/contracts/query-operations.v1.json",
+  "request_json_profile": "tos_request_last_wins_json_v1",
+  "response_json_profile": "tos_access_response_v1",
+  "operations": [
+    {
+      "operation_id": "tos.source.descend",
+      "execution_version": "tos_source_navigation_read_model_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_model_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/source/navigation/{node_id}"
+      },
+      "mcp": {
+        "tool": "tos_source_descend",
+        "description": "Read a bounded source-navigation descent from an exact node ID",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "node_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "max_depth": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8,
+              "default": 8
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 300,
+              "default": 300
+            }
+          },
+          "required": [
+            "node_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "source descend"
+      },
+      "request": {
+        "node_id": "opaque exact UTF-8 ID",
+        "max_depth": "1..8; default 8",
+        "limit": "1..300; default 300"
+      },
+      "result": "source_descend packet with exact authority_note"
+    },
+    {
+      "operation_id": "tos.knowledge.search",
+      "execution_version": "tos_knowledge_search_v1_or_indexed_v2",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_engine_and_current_query_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/search"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_search",
+        "description": "Search selected knowledge carriers with the maintained legacy or indexed engine; compressed requires a prepared publication",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "default": "",
+              "maxLength": 256
+            },
+            "sources": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "kind_ids": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "predicate_ids": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000,
+              "default": 0
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 40
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "legacy",
+                "indexed",
+                "compressed"
+              ],
+              "default": "legacy"
+            },
+            "cursor": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 65536
+            }
+          },
+          "additionalProperties": false,
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "mode": {
+                    "const": "indexed"
+                  }
+                },
+                "required": [
+                  "mode"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "query": {
+                    "maxLength": 256
+                  },
+                  "offset": {
+                    "const": 0
+                  },
+                  "sources": {
+                    "maxItems": 256,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  },
+                  "kind_ids": {
+                    "maxItems": 256,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  },
+                  "predicate_ids": {
+                    "maxItems": 256,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "cli": {
+        "command": "knowledge search"
+      },
+      "request": {
+        "query": "optional Unicode text; default empty; 0..256 normalized code points for legacy, 3..256 for indexed",
+        "sources": "selected source-owned vocabulary IDs",
+        "kind_ids": "legacy permits unknown filters (zero matches); indexed requires selected vocabulary",
+        "predicate_ids": "legacy permits unknown filters (zero matches); indexed requires selected vocabulary",
+        "cursor": "adapter-local continuation",
+        "limit": "1..100; default 40",
+        "mode": "legacy default; indexed explicit; compressed unavailable without prepared owner publication",
+        "offset": "legacy 0..100000; indexed/compressed zero"
+      },
+      "result": "exact selected engine packet under held current authority"
+    },
+    {
+      "operation_id": "tos.knowledge.catalog",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/catalog"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_catalog",
+        "description": "vocabulary, safe fields, operators, bounds, display coverage, and stored LensSpecs",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "knowledge catalog"
+      }
+    },
+    {
+      "operation_id": "tos.knowledge.node.inspect",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/nodes/{node_id}"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_node",
+        "description": "normalized node matches and related human-readable relations",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "node_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "relation_limit": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000,
+              "default": 200
+            }
+          },
+          "required": [
+            "node_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "knowledge node"
+      }
+    },
+    {
+      "operation_id": "tos.knowledge.relation.inspect",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/relations/{relation_id}"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_relation",
+        "description": "normalized relation matches and display-complete endpoints",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "relation_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "relation_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "knowledge relation"
+      }
+    },
+    {
+      "operation_id": "tos.knowledge.temporal.compare",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "POST",
+        "path_template": "/api/knowledge/temporal/compare"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_temporal_compare",
+        "description": "bounded comparison of two exact Claim date envelopes, with full source context and comparable/undetermined/unsupported posture",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "request": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "request"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "knowledge temporal-compare"
+      }
+    },
+    {
+      "operation_id": "tos.lens.compile",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "POST",
+        "path_template": "/api/knowledge/lenses/compile"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_lens_compile",
+        "description": "validated arbitrary tos_lens_spec_v1 executed without changing ToS",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "spec": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "spec"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "lens compile"
+      }
+    },
+    {
+      "operation_id": "tos.knowledge.explore",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "POST",
+        "path_template": "/api/knowledge/explore"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_explore",
+        "description": "Continue a bounded read-only knowledge exploration",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "request": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "request"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos.knowledge.focus",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/focus/{node_id}"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_focus",
+        "description": "a bounded radial LensResult centered on an exact normalized ID, stable entity ID, or one unambiguous native ID",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "node_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sources": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "depth": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 5,
+              "default": 1
+            },
+            "direction": {
+              "type": "string",
+              "enum": [
+                "outgoing",
+                "incoming",
+                "either"
+              ],
+              "default": "either"
+            },
+            "predicate_ids": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "node_limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 200
+            },
+            "relation_limit": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000,
+              "default": 400
+            },
+            "profile": {
+              "type": "string",
+              "enum": [
+                "all",
+                "overview"
+              ],
+              "default": "overview"
+            }
+          },
+          "required": [
+            "node_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "knowledge focus"
+      }
+    },
+    {
+      "operation_id": "tos.lens.open",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/lenses/{lens_id}"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_lens_open",
+        "description": "stored LensSpec executed through the generic engine",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "lens_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "lens_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "lens open"
+      }
+    },
+    {
+      "operation_id": "tos.knowledge.contracts",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_knowledge_model_and_held_current_authority",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/contracts"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_contracts",
+        "description": "the versioned knowledge operation map plus graph, LensSpec, and LensResult JSON Schemas",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "knowledge contracts"
+      }
+    },
+    {
+      "operation_id": "tos.knowledge.search.capabilities",
+      "execution_version": "tos_knowledge_search_capabilities_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_model_and_current_query_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/search/capabilities"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_search_capabilities",
+        "description": "Read selected search engine capabilities; engine selection is not public authorization",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "knowledge search-capabilities"
+      },
+      "request": {},
+      "result": "selected search capabilities packet under held current authority"
+    },
+    {
+      "operation_id": "tos.dossier.inspect",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_original_component_and_held_current_release_authority",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/source/dossiers/{object_id}"
+      },
+      "mcp": {
+        "tool": "tos_dossier_inspect",
+        "description": "Read the admitted source dossier projection from the selected original navigation component",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "object_id": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 300,
+              "default": 300
+            }
+          },
+          "required": [
+            "object_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos.node.inspect",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/nodes/{node_id}"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_node",
+        "description": "Inspect one retained philosophy projection node",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "node_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "node_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_edge",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/edges/{edge_id}"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_edge",
+        "description": "Inspect one retained philosophy projection edge",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "edge_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "edge_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos.neighborhood",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/neighborhood/{node_id}"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_neighborhood",
+        "description": "Read a bounded philosophy projection neighborhood",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "node_id": {
+              "type": "string"
+            },
+            "depth": {
+              "type": "integer",
+              "default": 1
+            },
+            "layers": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "predicates": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "limit": {
+              "type": "integer",
+              "default": 80
+            }
+          },
+          "required": [
+            "node_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos.path.find",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/paths"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_path",
+        "description": "Read deterministic bounded philosophy paths",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "from_id": {
+              "type": "string"
+            },
+            "to_id": {
+              "type": "string"
+            },
+            "layers": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "predicates": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "max_depth": {
+              "type": "integer",
+              "default": 6
+            },
+            "direction": {
+              "type": "string",
+              "default": "outgoing"
+            },
+            "view_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "excluded_edge_ids": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "alternative_limit": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          "required": [
+            "from_id",
+            "to_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos.view.open",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/views/{view_id}"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_view",
+        "description": "Read one retained philosophy graph view",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "view_id": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "default": 1000
+            }
+          },
+          "required": [
+            "view_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_views",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/views"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_views",
+        "description": "List retained philosophy graph views",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_layers",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/layers"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_layers",
+        "description": "Read retained philosophy layers and counts",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_clusters",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/clusters"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_clusters",
+        "description": "Read compact philosophy clusters",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "view_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "cluster_kind": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "limit": {
+              "type": "integer",
+              "default": 80
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_review_packet",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/review-packet"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_review_packet",
+        "description": "Read a philosophy review packet",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "view_id": {
+              "type": "string",
+              "default": "chronology"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos.snapshot",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/snapshot"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_snapshot",
+        "description": "Read philosophy snapshot fingerprints",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_unresolved",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/unresolved"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_unresolved",
+        "description": "Read unresolved philosophy review surfaces",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "view_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_knowledge_exploration_contracts",
+      "execution_version": "tos_exploration_capabilities_v1",
+      "effect": "read-only",
+      "availability": "packaged_software_contracts_with_actual_selected_runtime_capabilities",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/knowledge/explore/contracts"
+      },
+      "mcp": {
+        "tool": "tos_knowledge_exploration_contracts",
+        "description": "Read software-owned exploration request/result v1/v2 schemas and actual local runtime capabilities",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_corpus_status",
+      "execution_version": "tos_corpus_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_corpus_original_declared_source_members_and_current_release_hold",
+      "mcp": {
+        "tool": "tos_corpus_status",
+        "description": "Read the selected corpus status projection",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path_template": "/api/corpus/status"
+      }
+    },
+    {
+      "operation_id": "tos_corpus_summary",
+      "execution_version": "tos_corpus_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_corpus_original_declared_source_members_and_current_release_hold",
+      "mcp": {
+        "tool": "tos_corpus_summary",
+        "description": "Read the selected corpus summary projection",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path_template": "/api/corpus/summary"
+      }
+    },
+    {
+      "operation_id": "tos_corpus_search",
+      "execution_version": "tos_corpus_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_corpus_original_declared_source_members_and_current_release_hold",
+      "mcp": {
+        "tool": "tos_corpus_search",
+        "description": "Read the selected corpus search projection",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "resource_kind": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path_template": "/api/corpus/search"
+      }
+    },
+    {
+      "operation_id": "tos_corpus_resources",
+      "execution_version": "tos_corpus_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_corpus_original_declared_source_members_and_current_release_hold",
+      "mcp": {
+        "tool": "tos_corpus_resources",
+        "description": "Read the selected corpus resources projection",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "resource_kind": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "owner_branch": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 100
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_corpus_node",
+      "execution_version": "tos_corpus_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_corpus_original_declared_source_members_and_current_release_hold",
+      "mcp": {
+        "tool": "tos_corpus_node",
+        "description": "Read the selected corpus node projection",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "node_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "node_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path_template": "/api/corpus/nodes/{node_id}"
+      }
+    },
+    {
+      "operation_id": "tos_corpus_relation_pack",
+      "execution_version": "tos_corpus_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_corpus_original_declared_source_members_and_current_release_hold",
+      "mcp": {
+        "tool": "tos_corpus_relation_pack",
+        "description": "Read the selected corpus relation pack projection",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "pack_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "pack_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path_template": "/api/corpus/relation-packs/{pack_id}"
+      }
+    },
+    {
+      "operation_id": "tos_corpus_graph_view",
+      "execution_version": "tos_corpus_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_corpus_original_declared_source_members_and_current_release_hold",
+      "mcp": {
+        "tool": "tos_corpus_graph_view",
+        "description": "Read the selected corpus graph view projection",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "view_id": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 100
+            }
+          },
+          "required": [
+            "view_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path_template": "/api/corpus/graph-views/{view_id}"
+      }
+    },
+    {
+      "operation_id": "tos_corpus_packet",
+      "execution_version": "tos_corpus_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_corpus_original_declared_source_members_and_current_release_hold",
+      "mcp": {
+        "tool": "tos_corpus_packet",
+        "description": "Read the selected corpus packet projection",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "default": ""
+            },
+            "view_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_zarathustra_reading_search",
+      "execution_version": "tos_zarathustra_reading_search_result_v1",
+      "effect": "read-only",
+      "availability": "only_with_explicit_local_data_root_and_compiled_software_and_current_file_pins",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/zarathustra/reading"
+      },
+      "mcp": {
+        "tool": "tos_zarathustra_reading_search",
+        "description": "Read local occurrence-bound source candidates without accepting interpretation",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "1..256 code points after Unicode16 strip"
+            },
+            "language": {
+              "type": "string",
+              "default": "ru",
+              "description": "de, ru or en after Unicode16 strip/lower"
+            },
+            "limit": {
+              "type": "integer",
+              "default": 20,
+              "description": "Clamped to0..100"
+            },
+            "include_semantic_neighbors": {
+              "type": "boolean",
+              "default": false
+            },
+            "group_by": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "enum": [
+                  "speaker",
+                  "formula"
+                ]
+              },
+              "default": [
+                "speaker",
+                "formula"
+              ]
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "reading-search"
+      },
+      "request": {
+        "query": "1..256 codepoints after Unicode16 strip",
+        "language": "de|ru|en; default ru",
+        "limit": "0..100; default20",
+        "group_by": "speaker/formula; default both"
+      },
+      "result": "tos_zarathustra_reading_capability_v1 with candidate-only native reading result"
+    },
+    {
+      "operation_id": "tos.source.read.capabilities",
+      "execution_version": "tos_source_read_owner_v1",
+      "effect": "read-only",
+      "availability": "software_discovery_does_not_grant_source_access",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/source/capabilities"
+      },
+      "mcp": {
+        "tool": "tos_source_read_capabilities",
+        "description": "Read exact source through the selected owner and its current disclosure fence",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "source capabilities"
+      }
+    },
+    {
+      "operation_id": "tos.source.read.contract",
+      "execution_version": "tos_source_read_owner_v1",
+      "effect": "read-only",
+      "availability": "software_discovery_does_not_grant_source_access",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/source/contracts"
+      },
+      "mcp": {
+        "tool": "tos_source_read_contract",
+        "description": "Read exact source through the selected owner and its current disclosure fence",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "source contracts"
+      }
+    },
+    {
+      "operation_id": "tos.source.handle.discover",
+      "execution_version": "tos_source_read_owner_v1",
+      "effect": "read-only",
+      "availability": "only_with_explicit_source_owner_and_matching_prepared_binding",
+      "http": {
+        "method": "POST",
+        "path_template": "/api/source/handles"
+      },
+      "mcp": {
+        "tool": "tos_source_handle_discover",
+        "description": "Read exact source through the selected owner and its current disclosure fence",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "target": {
+              "type": "object"
+            },
+            "selector": {
+              "type": "object"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "source discover"
+      }
+    },
+    {
+      "operation_id": "tos.source.read",
+      "execution_version": "tos_source_read_owner_v1",
+      "effect": "read-only",
+      "availability": "only_with_explicit_source_owner_and_matching_prepared_binding",
+      "http": {
+        "method": "POST",
+        "path_template": "/api/source/read"
+      },
+      "mcp": {
+        "tool": "tos_source_read",
+        "description": "Read exact source through the selected owner and its current disclosure fence",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "handle": {
+              "type": "object"
+            },
+            "representation": {
+              "type": "string",
+              "default": "record"
+            }
+          },
+          "required": [
+            "handle"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "cli": {
+        "command": "source read"
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_status",
+      "execution_version": "tos_philosophy_original_read_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_original_model_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/status"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_status",
+        "description": "Read selected original philosophy status",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_search",
+      "execution_version": "tos_philosophy_original_read_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_original_model_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/search"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_search",
+        "description": "Read selected original philosophy search",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_scale_manifest",
+      "execution_version": "tos_philosophy_original_read_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_original_model_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/scale-export/manifest"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_scale_manifest",
+        "description": "Read selected original philosophy scale_manifest",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "view_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "layers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_scale_rows",
+      "execution_version": "tos_philosophy_original_read_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_original_model_and_current_policy_fence",
+      "http": {
+        "method": "GET",
+        "path_template": "/api/philosophy/scale-export/{table}"
+      },
+      "mcp": {
+        "tool": "tos_philosophy_graph_scale_rows",
+        "description": "Read selected original philosophy scale_rows",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "table": {
+              "enum": [
+                "nodes",
+                "edges",
+                "clusters",
+                "cluster-node-memberships",
+                "cluster-edge-memberships"
+              ]
+            },
+            "view_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "layers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "export": {
+              "type": "boolean",
+              "description": "Return the complete table within the selected response budget and one held snapshot; excludes offset and limit"
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000000
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            }
+          },
+          "required": [
+            "table"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos.epistemic.inspect",
+      "execution_version": "tos_evidence_lens_packet_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_original_model_declared_evidence_member_and_current_policy_fence",
+      "mcp": {
+        "tool": "tos_epistemic_packet",
+        "description": "Join a selected original projection item to exact declared public evidence routes",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "enum": [
+                "philosophy",
+                "corpus"
+              ]
+            },
+            "item_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "view_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          "required": [
+            "mode",
+            "item_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_evidence_lens",
+      "execution_version": "tos_evidence_lens_packet_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_original_model_declared_evidence_member_and_current_policy_fence",
+      "mcp": {
+        "tool": "tos_evidence_lens",
+        "description": "Join a selected original projection item to exact declared public evidence routes",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "enum": [
+                "philosophy",
+                "corpus"
+              ]
+            },
+            "item_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "view_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          "required": [
+            "mode",
+            "item_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_contracts",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "mcp": {
+        "tool": "tos_philosophy_graph_contracts",
+        "description": "Read the maintained source-owned philosophy access packet",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_epistemic_packet",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "mcp": {
+        "tool": "tos_philosophy_epistemic_packet",
+        "description": "Read the maintained source-owned philosophy access packet",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "item_id": {
+              "type": "string",
+              "maxLength": 4096,
+              "minLength": 1
+            },
+            "view_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 4096
+            },
+            "limit": {
+              "type": "integer",
+              "default": 80,
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          "required": [
+            "item_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_audit",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "mcp": {
+        "tool": "tos_philosophy_graph_audit",
+        "description": "Read the maintained source-owned philosophy access packet",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_packet",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "mcp": {
+        "tool": "tos_philosophy_graph_packet",
+        "description": "Read the maintained source-owned philosophy access packet",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "maxLength": 4096,
+              "default": ""
+            },
+            "view_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 4096
+            },
+            "limit": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_chronology_packet",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "mcp": {
+        "tool": "tos_philosophy_graph_chronology_packet",
+        "description": "Read the maintained source-owned philosophy access packet",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_source_evidence_packet",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "mcp": {
+        "tool": "tos_philosophy_graph_source_evidence_packet",
+        "description": "Read the maintained source-owned philosophy access packet",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_concept_lineage_packet",
+      "execution_version": "tos_philosophy_original_v1",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "mcp": {
+        "tool": "tos_philosophy_graph_concept_lineage_packet",
+        "description": "Read the maintained source-owned philosophy access packet",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos.zarathustra.word_analysis_task",
+      "execution_version": "tos_installed_word_analysis_capability_v1",
+      "mcp": {
+        "tool": "tos_zarathustra_prepare_word_analysis",
+        "description": "Return one exact-source local analysis task; never accept or persist its interpretation.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "language": {
+              "type": "string",
+              "default": "ru"
+            },
+            "rank": {
+              "type": "integer",
+              "default": 1
+            },
+            "include_semantic_neighbors": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "effect": "read-only",
+      "availability": "selected_private_reading_root; authenticated_installed_software_absence_retains_explicit_unavailable"
+    },
+    {
+      "operation_id": "tos.source-gaps.search",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_public_ledger_and_current_policy_fence",
+      "mcp": {
+        "tool": "tos_source_gap_search",
+        "description": "Imported Core access through the existing native owner operation",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "default": "",
+              "maxLength": 256
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos_philosophy_graph_lens_packet",
+      "effect": "read-only",
+      "availability": "only_with_owner_selected_philosophy_original_and_current_policy_fence",
+      "mcp": {
+        "tool": "tos_philosophy_graph_lens_packet",
+        "description": "Imported Core access through the existing native owner operation",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "view_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          "required": [
+            "view_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos.zarathustra.word_analysis.public-capability",
+      "effect": "read-only",
+      "availability": "software_metadata_only_no_source_authority",
+      "mcp": {
+        "tool": "tos_zarathustra_word_analysis_public_capability",
+        "description": "Imported Core access through the existing native owner operation",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "operation_id": "tos.zarathustra.reading.public-capability",
+      "effect": "read-only",
+      "availability": "software_metadata_only_no_source_authority",
+      "mcp": {
+        "tool": "tos_zarathustra_reading_public_capability",
+        "description": "Imported Core access through the existing native owner operation",
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    }
+  ]
+}

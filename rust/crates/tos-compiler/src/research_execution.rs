@@ -1,0 +1,877 @@
+//! Finite operation budget and descriptor custody shared by research producers.
+use fs2::FileExt;
+use std::{
+    cell::{Cell, RefCell},
+    ffi::CString,
+    fs::File,
+    io::{Read, Seek, SeekFrom, Write},
+    ops::Deref,
+    os::{
+        fd::{AsRawFd, FromRawFd},
+        unix::fs::MetadataExt,
+    },
+    path::{Component, Path, PathBuf},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::{Duration, Instant},
+};
+const FILE_CAP: u64 = 256 * 1024 * 1024;
+const READ_CAP: u64 = 2 * 1024 * 1024 * 1024;
+const WRITE_CAP: u64 = 1024 * 1024 * 1024;
+const WORK_CAP: u64 = 100_000_000;
+const STRUCTURAL_READ_ALLOWANCE: u64 = 512 * 1024 * 1024;
+const DIRECTORY_RESERVATION: u64 = 64 * 1024;
+use tos_source_store::{
+    PinnedSqliteAuxLimits, PinnedSqliteAuxRequest, PinnedSqliteAuxScope, PinnedSqliteIoBudget,
+    PinnedSqliteSpaceBudget, PinnedSqliteSpaceReservation,
+};
+fn output_stat(parent: &File, leaf: &CString) -> Result<Option<libc::stat>, String> {
+    let mut st = std::mem::MaybeUninit::<libc::stat>::uninit();
+    if unsafe {
+        libc::fstatat(
+            parent.as_raw_fd(),
+            leaf.as_ptr(),
+            st.as_mut_ptr(),
+            libc::AT_SYMLINK_NOFOLLOW,
+        )
+    } < 0
+    {
+        let error = std::io::Error::last_os_error();
+        if error.raw_os_error() == Some(libc::ENOENT) {
+            return Ok(None);
+        }
+        return Err(error.to_string());
+    }
+    let st = unsafe { st.assume_init() };
+    if st.st_mode & libc::S_IFMT != libc::S_IFREG {
+        return Err("research output leaf is not regular".into());
+    }
+    Ok(Some(st))
+}
+fn output_fingerprint(st: &libc::stat) -> (u64, u64, i64, i64, i64, i64, i64) {
+    (
+        st.st_dev,
+        st.st_ino,
+        st.st_size,
+        st.st_mtime,
+        st.st_mtime_nsec,
+        st.st_ctime,
+        st.st_ctime_nsec,
+    )
+}
+pub struct ResearchExecution {
+    root: PathBuf,
+    directory: File,
+    deadline: Instant,
+    max_seconds: u64,
+    io: PinnedSqliteIoBudget,
+    space: Option<PinnedSqliteSpaceBudget>,
+    retained_space: RefCell<Vec<PinnedSqliteSpaceReservation>>,
+    cancelled: Arc<AtomicBool>,
+    structural_reserved: Cell<u64>,
+    structural_returned: Cell<u64>,
+    work: Cell<u64>,
+    serial: Cell<u64>,
+}
+impl Deref for ResearchExecution {
+    type Target = Path;
+    fn deref(&self) -> &Path {
+        &self.root
+    }
+}
+impl ResearchExecution {
+    pub fn new(root: &Path, max_seconds: u64) -> Result<Self, String> {
+        Self::selected(root, max_seconds, None)
+    }
+    /// `available_bytes` is an explicit remaining scratch quota, after the
+    /// admitted carrier baseline and other users. This does not grant storage.
+    pub fn new_with_scratch(
+        root: &Path,
+        max_seconds: u64,
+        available_bytes: u64,
+    ) -> Result<Self, String> {
+        Self::selected(root, max_seconds, Some(available_bytes))
+    }
+    fn selected(
+        root: &Path,
+        max_seconds: u64,
+        available_bytes: Option<u64>,
+    ) -> Result<Self, String> {
+        let started = Instant::now();
+        if !(1..=600).contains(&max_seconds) {
+            return Err("research max-seconds must be 1..600".into());
+        }
+        let directory = tos_fd_open::open_absolute_directory(root).map_err(|e| e.to_string())?;
+        Ok(Self {
+            root: root.to_owned(),
+            directory,
+            deadline: started + Duration::from_secs(max_seconds),
+            max_seconds,
+            io: PinnedSqliteIoBudget::new(READ_CAP, WRITE_CAP).map_err(|e| e.to_string())?,
+            space: available_bytes
+                .map(PinnedSqliteSpaceBudget::new)
+                .transpose()
+                .map_err(|e| e.to_string())?,
+            retained_space: RefCell::new(Vec::new()),
+            cancelled: Arc::new(AtomicBool::new(false)),
+            structural_reserved: Cell::new(0),
+            structural_returned: Cell::new(0),
+            work: Cell::new(0),
+            serial: Cell::new(0),
+        })
+    }
+    /// Reserve the upstream owner's full finite allowance before its reads.
+    /// Every reconstruction reserves a distinct allowance. No refund: actual
+    /// returned bytes are recorded separately afterwards.
+    pub fn reserve_structural_reads(&self) -> Result<(), String> {
+        self.check()?;
+        self.io
+            .charge_read(STRUCTURAL_READ_ALLOWANCE)
+            .map_err(|e| e.to_string())?;
+        self.structural_reserved.set(
+            self.structural_reserved
+                .get()
+                .checked_add(STRUCTURAL_READ_ALLOWANCE)
+                .ok_or("structural allowance overflow")?,
+        );
+        Ok(())
+    }
+    /// Record actual cumulative structural reads within the reserved allowance.
+    pub fn charge_structural(
+        &self,
+        model: &crate::antonovsky_structural::Model,
+        charged: &mut u64,
+    ) -> Result<(), String> {
+        if model.root_identity()? != self.root_identity()? {
+            return Err(
+                "structural source root identity differs from selected research root".into(),
+            );
+        }
+        let total = model.source_read_bytes();
+        let delta = total
+            .checked_sub(*charged)
+            .ok_or("structural source read counter regressed")?;
+        let returned_total = self
+            .structural_returned
+            .get()
+            .checked_add(delta)
+            .ok_or("structural returned byte overflow")?;
+        if total > STRUCTURAL_READ_ALLOWANCE || returned_total > self.structural_reserved.get() {
+            return Err("structural reads lack their reserved finite allowance".into());
+        }
+        self.io
+            .record_read_returned(delta)
+            .map_err(|e| e.to_string())?;
+        self.structural_returned.set(returned_total);
+        *charged = total;
+        Ok(())
+    }
+    pub fn budget_report(&self) -> serde_json::Value {
+        let io = self.io.snapshot();
+        let physical = self.space.as_ref().map(|space| {
+            let s = space.snapshot();
+            serde_json::json!({"declared_available_bytes":s.declared_available_bytes,"reserved_current_bytes":s.reserved_current_bytes,"reserved_high_water_bytes":s.reserved_high_water_bytes,"actual_observed_current_bytes":s.actual_observed_current_bytes,"actual_observed_high_water_bytes":s.actual_observed_high_water_bytes,"allocation_anomalies":s.allocation_anomalies,"ledger_consistent":s.ledger_consistent,"is_storage_grant":false})
+        });
+        serde_json::json!({"whole_operation_seconds":self.max_seconds,"file_bytes_max":FILE_CAP,"logical_source_and_sqlite_read_bytes_max":READ_CAP,"logical_source_and_sqlite_write_bytes_max":WRITE_CAP,"io_counter_scope":"Rust source/hash/import/entropy and SQLite pager requests; reserved upstream Structural Rust reads","io_counter_exclusions":["separately bounded native-child protocol and internal reads","bounded helper control metadata/proc reads","filesystem metadata and host verification"],"work_units_max":WORK_CAP,"charged_work_units":self.work.get(),"read_attempted_bytes":io.read_attempted_bytes,"read_permitted_bytes":io.read_permitted_bytes,"read_returned_bytes":io.read_returned_bytes,"write_attempted_bytes":io.write_attempted_bytes,"write_permitted_bytes":io.write_permitted_bytes,"write_returned_bytes":io.write_returned_bytes,"io_failure":io.failure.map(|failure|format!("{failure:?}")),"structural_reserved_read_allowance":self.structural_reserved.get(),"structural_actual_returned_read_bytes":self.structural_returned.get(),"physical_scratch":physical})
+    }
+    pub fn root(&self) -> &Path {
+        &self.root
+    }
+    pub fn root_directory(&self) -> &File {
+        &self.directory
+    }
+    pub fn root_identity(&self) -> Result<(u64, u64), String> {
+        self.check()?;
+        let meta = self.directory.metadata().map_err(|e| e.to_string())?;
+        Ok((meta.dev(), meta.ino()))
+    }
+    pub fn deadline(&self) -> Instant {
+        self.deadline
+    }
+    pub fn check(&self) -> Result<(), String> {
+        if self.cancelled.load(Ordering::Relaxed) {
+            Err("research operation cancelled".into())
+        } else if Instant::now() >= self.deadline {
+            Err("research operation deadline exceeded".into())
+        } else {
+            Ok(())
+        }
+    }
+    fn charge(&self, cell: &Cell<u64>, n: u64, cap: u64, label: &str) -> Result<(), String> {
+        self.check()?;
+        let v = cell
+            .get()
+            .checked_add(n)
+            .ok_or("research budget overflow")?;
+        if v > cap {
+            return Err(format!("research {label} budget exceeded"));
+        }
+        cell.set(v);
+        Ok(())
+    }
+    pub fn tick(&self, n: u64) -> Result<(), String> {
+        self.charge(&self.work, n, WORK_CAP, "work")
+    }
+    fn reserve_space(&self, bytes: u64) -> Result<PinnedSqliteSpaceReservation, String> {
+        self.check()?;
+        self.space
+            .as_ref()
+            .ok_or("research writes require an explicit reserved --scratch-bytes quota")?
+            .reserve(bytes)
+            .map_err(|e| e.to_string())
+    }
+    fn observed_space_with_parent(
+        reservation: &PinnedSqliteSpaceReservation,
+        file: &File,
+        parent: Option<(&File, u64)>,
+    ) -> Result<(), String> {
+        let mut bytes = file
+            .metadata()
+            .map_err(|e| e.to_string())?
+            .blocks()
+            .checked_mul(512)
+            .ok_or("allocated byte overflow")?;
+        if let Some((directory, before_blocks)) = parent {
+            let delta = directory
+                .metadata()
+                .map_err(|e| e.to_string())?
+                .blocks()
+                .saturating_sub(before_blocks)
+                .checked_mul(512)
+                .ok_or("directory allocated byte overflow")?;
+            bytes = bytes.checked_add(delta).ok_or("allocated byte overflow")?;
+        }
+        reservation
+            .update_actual_allocated(bytes)
+            .map_err(|e| e.to_string())
+    }
+    /// Charge each permitted request before the syscall, retaining partial/error attempts.
+    pub fn read_exact(&self, file: &mut File, output: &mut [u8]) -> Result<(), String> {
+        let mut done = 0;
+        while done < output.len() {
+            self.check()?;
+            self.io
+                .charge_read((output.len() - done) as u64)
+                .map_err(|e| e.to_string())?;
+            match file.read(&mut output[done..]) {
+                Ok(0) => return Err("research exact read reached EOF".into()),
+                Ok(n) => {
+                    self.io
+                        .record_read_returned(n as u64)
+                        .map_err(|e| e.to_string())?;
+                    done += n;
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+                Err(e) => return Err(e.to_string()),
+            }
+        }
+        self.check()
+    }
+    pub fn read_file(&self, file: &mut File, max_bytes: u64) -> Result<Vec<u8>, String> {
+        let cap = max_bytes.min(FILE_CAP);
+        let mut output = Vec::new();
+        let mut chunk = [0u8; 65536];
+        loop {
+            self.check()?;
+            let request = (cap.saturating_sub(output.len() as u64).saturating_add(1))
+                .min(chunk.len() as u64) as usize;
+            self.io
+                .charge_read(request as u64)
+                .map_err(|e| e.to_string())?;
+            let count = match file.read(&mut chunk[..request]) {
+                Ok(n) => n,
+                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+                Err(e) => return Err(e.to_string()),
+            };
+            self.io
+                .record_read_returned(count as u64)
+                .map_err(|e| e.to_string())?;
+            if count == 0 {
+                break;
+            }
+            if output.len() as u64 + count as u64 > cap {
+                return Err("research file grew beyond cap".into());
+            }
+            output.try_reserve(count).map_err(|e| e.to_string())?;
+            output.extend_from_slice(&chunk[..count]);
+        }
+        self.check()?;
+        Ok(output)
+    }
+    fn parts(reference: &str) -> Result<Vec<&std::ffi::OsStr>, String> {
+        let p = Path::new(reference);
+        if reference.len() > 4096 || p.is_absolute() {
+            return Err("invalid research relative reference".into());
+        }
+        let mut out = Vec::new();
+        for c in p.components() {
+            match c {
+                Component::Normal(s) => out.push(s),
+                _ => return Err("invalid research relative reference".into()),
+            }
+        }
+        if out.is_empty() || out.len() > 64 {
+            return Err("invalid research reference depth".into());
+        }
+        Ok(out)
+    }
+    fn parent(&self, reference: &str, create: bool) -> Result<(File, CString), String> {
+        self.check()?;
+        let parts = Self::parts(reference)?;
+        let mut parent =
+            tos_fd_open::reopen_directory(&self.directory).map_err(|e| e.to_string())?;
+        for part in &parts[..parts.len() - 1] {
+            self.tick(1)?;
+            match tos_fd_open::open_directory_at(&parent, Path::new(part)) {
+                Ok(next) => parent = next,
+                Err(e) => {
+                    if !create
+                        || e.source.as_ref().and_then(|x| x.raw_os_error()) != Some(libc::ENOENT)
+                    {
+                        return Err(e.to_string());
+                    }
+                    let leaf = CString::new(part.as_encoded_bytes()).map_err(|e| e.to_string())?;
+                    let reservation = self.reserve_space(DIRECTORY_RESERVATION)?;
+                    let parent_blocks_before =
+                        parent.metadata().map_err(|e| e.to_string())?.blocks();
+                    let created =
+                        unsafe { libc::mkdirat(parent.as_raw_fd(), leaf.as_ptr(), 0o700) } == 0;
+                    if !created
+                        && std::io::Error::last_os_error().raw_os_error() != Some(libc::EEXIST)
+                    {
+                        return Err(std::io::Error::last_os_error().to_string());
+                    }
+                    if created {
+                        self.retained_space.borrow_mut().push(reservation);
+                    }
+                    let next = tos_fd_open::open_directory_at(&parent, Path::new(part))
+                        .map_err(|e| e.to_string())?;
+                    if created {
+                        let leases = self.retained_space.borrow();
+                        Self::observed_space_with_parent(
+                            leases.last().ok_or("directory lease missing")?,
+                            &next,
+                            Some((&parent, parent_blocks_before)),
+                        )?;
+                    }
+                    parent = next;
+                }
+            }
+        }
+        Ok((
+            parent,
+            CString::new(parts.last().unwrap().as_encoded_bytes()).map_err(|e| e.to_string())?,
+        ))
+    }
+    pub fn output_parent(&self, reference: &str) -> Result<(File, CString), String> {
+        self.parent(reference, true)
+    }
+    pub fn source_file(&self, reference: &str, max_bytes: u64) -> Result<File, String> {
+        let (parent, leaf) = self.parent(reference, false)?;
+        let file = tos_fd_open::open_regular_at(
+            &parent,
+            Path::new(std::ffi::OsStr::from_bytes(leaf.as_bytes())),
+        )
+        .map_err(|e| e.to_string())?;
+        if file.metadata().map_err(|e| e.to_string())?.len() > max_bytes.min(FILE_CAP) {
+            return Err("research source file cap exceeded".into());
+        }
+        Ok(file)
+    }
+    pub fn verify_file_unchanged(
+        &self,
+        file: &File,
+        before: &std::fs::Metadata,
+    ) -> Result<(), String> {
+        self.check()?;
+        let now = file.metadata().map_err(|e| e.to_string())?;
+        let fingerprint = |m: &std::fs::Metadata| {
+            (
+                m.dev(),
+                m.ino(),
+                m.len(),
+                m.mtime(),
+                m.mtime_nsec(),
+                m.ctime(),
+                m.ctime_nsec(),
+            )
+        };
+        if fingerprint(before) != fingerprint(&now) {
+            return Err("research selected file changed during use".into());
+        }
+        Ok(())
+    }
+    pub fn hash_file(&self, file: &mut File, max_bytes: u64) -> Result<String, String> {
+        self.check()?;
+        file.seek(SeekFrom::Start(0)).map_err(|e| e.to_string())?;
+        let cap = max_bytes.min(FILE_CAP);
+        let mut total = 0;
+        let mut chunk = [0u8; 65536];
+        let mut hash = tos_foundation::Digest256Hasher::new();
+        loop {
+            self.check()?;
+            let request = (cap - total + 1).min(chunk.len() as u64) as usize;
+            self.io
+                .charge_read(request as u64)
+                .map_err(|e| e.to_string())?;
+            let count = match file.read(&mut chunk[..request]) {
+                Ok(n) => n,
+                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+                Err(e) => return Err(e.to_string()),
+            };
+            self.io
+                .record_read_returned(count as u64)
+                .map_err(|e| e.to_string())?;
+            if count == 0 {
+                break;
+            }
+            total += count as u64;
+            if total > cap {
+                return Err("research hash file cap exceeded".into());
+            }
+            hash.update(&chunk[..count]);
+        }
+        file.seek(SeekFrom::Start(0)).map_err(|e| e.to_string())?;
+        self.check()?;
+        Ok(hash.finalize().to_hex())
+    }
+    pub fn read(&self, reference: &str) -> Result<Vec<u8>, String> {
+        let mut file = self.source_file(reference, FILE_CAP)?;
+        self.read_file(&mut file, FILE_CAP)
+    }
+    pub fn open_sqlite_readonly(
+        &self,
+        file: &File,
+    ) -> Result<tos_source_store::PinnedSqliteConnection, String> {
+        self.check()?;
+        tos_source_store::PinnedSqliteConnection::open_readonly_immutable_budgeted(
+            file,
+            self.io.clone(),
+            self.deadline,
+            self.cancelled.clone(),
+        )
+        .map_err(|e| e.to_string())
+    }
+    pub fn sqlite_scope(
+        &self,
+        limits: PinnedSqliteAuxLimits,
+    ) -> Result<ResearchSqliteScope<'_>, String> {
+        self.check()?;
+        let space = self
+            .space
+            .clone()
+            .ok_or("SQLite producers require an explicit reserved --scratch-bytes quota")?;
+        let reservation = self.reserve_space(DIRECTORY_RESERVATION)?;
+        let parent = tos_fd_open::reopen_directory(&self.directory).map_err(|e| e.to_string())?;
+        let serial = self.serial.get();
+        self.serial
+            .set(serial.checked_add(1).ok_or("scratch serial overflow")?);
+        let name = CString::new(format!(".research-sqlite-{}-{serial}", std::process::id()))
+            .map_err(|e| e.to_string())?;
+        let parent_blocks_before = parent.metadata().map_err(|e| e.to_string())?.blocks();
+        if unsafe { libc::mkdirat(parent.as_raw_fd(), name.as_ptr(), 0o700) } < 0 {
+            return Err(std::io::Error::last_os_error().to_string());
+        }
+        let directory = match tos_fd_open::open_directory_at(
+            &parent,
+            Path::new(std::ffi::OsStr::from_bytes(name.as_bytes())),
+        ) {
+            Ok(dir) => dir,
+            Err(error) => {
+                self.retained_space.borrow_mut().push(reservation);
+                return Err(format!(
+                    "{error}; created scratch directory requires owner cleanup"
+                ));
+            }
+        };
+        let metadata = match directory.metadata() {
+            Ok(metadata) => metadata,
+            Err(error) => {
+                self.retained_space.borrow_mut().push(reservation);
+                return Err(format!(
+                    "{error}; created scratch directory requires owner cleanup"
+                ));
+            }
+        };
+        let mut guard = ResearchSqliteScope {
+            context: self,
+            parent,
+            name: Some(name),
+            identity: (metadata.dev(), metadata.ino()),
+            parent_blocks_before,
+            scope: None,
+            directory_reservation: Some(reservation),
+        };
+        let setup = (|| {
+            if unsafe { libc::fchmod(directory.as_raw_fd(), 0o700) } < 0 {
+                return Err(std::io::Error::last_os_error().to_string());
+            }
+            Self::observed_space_with_parent(
+                guard
+                    .directory_reservation
+                    .as_ref()
+                    .ok_or("scratch directory lease missing")?,
+                &directory,
+                Some((&guard.parent, guard.parent_blocks_before)),
+            )?;
+            self.check()?;
+            PinnedSqliteAuxScope::new(
+                directory,
+                PinnedSqliteAuxRequest {
+                    limits,
+                    io_budget: self.io.clone(),
+                    space_budget: space,
+                    deadline: self.deadline,
+                    cancelled: self.cancelled.clone(),
+                },
+            )
+            .map_err(|e| e.to_string())
+        })();
+        match setup {
+            Ok(scope) => {
+                guard.scope = Some(scope);
+                Ok(guard)
+            }
+            Err(error) => {
+                let cleanup = guard.cleanup();
+                Err(combine_failure(error, cleanup))
+            }
+        }
+    }
+    pub fn write(
+        &self,
+        reference: &str,
+        payload: &[u8],
+        mode: u32,
+        exclusive: bool,
+    ) -> Result<(), String> {
+        self.check()?;
+        if payload.len() as u64 > FILE_CAP {
+            return Err("research output file cap exceeded".into());
+        }
+        let (parent, leaf) = self.output_parent(reference)?;
+        parent
+            .try_lock_exclusive()
+            .map_err(|e| format!("research output parent busy: {e}"))?;
+        let parent_blocks_before = parent.metadata().map_err(|e| e.to_string())?.blocks();
+        let initial = output_stat(&parent, &leaf)?;
+        let present = initial.is_some();
+        if exclusive && present {
+            return Err("research output already exists".into());
+        }
+        let serial = self.serial.get();
+        self.serial.set(serial + 1);
+        let stage = CString::new(format!(
+            ".research-{}-{}-{serial}.tmp",
+            std::process::id(),
+            self.deadline.elapsed().as_nanos()
+        ))
+        .map_err(|e| e.to_string())?;
+        let mut reservation = Some(
+            self.reserve_space(
+                (payload.len() as u64)
+                    .checked_add(65535)
+                    .ok_or("stage size overflow")?
+                    / 65536
+                    * 65536
+                    + 65536,
+            )?,
+        );
+        let fd = unsafe {
+            libc::openat(
+                parent.as_raw_fd(),
+                stage.as_ptr(),
+                libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+                mode,
+            )
+        };
+        if fd < 0 {
+            return Err(std::io::Error::last_os_error().to_string());
+        }
+        let mut file = unsafe { File::from_raw_fd(fd) };
+        let result = (|| {
+            for chunk in payload.chunks(65536) {
+                let mut done = 0;
+                while done < chunk.len() {
+                    self.check()?;
+                    self.io
+                        .charge_write((chunk.len() - done) as u64)
+                        .map_err(|e| e.to_string())?;
+                    match file.write(&chunk[done..]) {
+                        Ok(0) => return Err("research stage zero write".into()),
+                        Ok(n) => {
+                            self.io
+                                .record_write_returned(n as u64)
+                                .map_err(|e| e.to_string())?;
+                            done += n;
+                        }
+                        Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+                        Err(e) => return Err(e.to_string()),
+                    }
+                    Self::observed_space_with_parent(
+                        reservation.as_ref().ok_or("stage lease missing")?,
+                        &file,
+                        Some((&parent, parent_blocks_before)),
+                    )?;
+                }
+            }
+            if unsafe { libc::fchmod(file.as_raw_fd(), mode) } < 0 {
+                return Err(std::io::Error::last_os_error().to_string());
+            }
+            file.sync_all().map_err(|e| e.to_string())?;
+            Self::observed_space_with_parent(
+                reservation.as_ref().ok_or("stage lease missing")?,
+                &file,
+                Some((&parent, parent_blocks_before)),
+            )?;
+            self.check()?;
+            let current = output_stat(&parent, &leaf)?;
+            if initial.as_ref().map(output_fingerprint) != current.as_ref().map(output_fingerprint)
+            {
+                return Err("research output changed before commit".into());
+            }
+            let rc = if exclusive || !present {
+                unsafe {
+                    libc::linkat(
+                        parent.as_raw_fd(),
+                        stage.as_ptr(),
+                        parent.as_raw_fd(),
+                        leaf.as_ptr(),
+                        0,
+                    )
+                }
+            } else {
+                unsafe {
+                    libc::renameat(
+                        parent.as_raw_fd(),
+                        stage.as_ptr(),
+                        parent.as_raw_fd(),
+                        leaf.as_ptr(),
+                    )
+                }
+            };
+            if rc < 0 {
+                return Err(std::io::Error::last_os_error().to_string());
+            }
+            let observation = Self::observed_space_with_parent(
+                reservation.as_ref().ok_or("stage lease missing")?,
+                &file,
+                Some((&parent, parent_blocks_before)),
+            );
+            self.retained_space
+                .borrow_mut()
+                .push(reservation.take().ok_or("stage lease missing")?);
+            observation?;
+            parent.sync_all().map_err(|e| e.to_string())?;
+            let retained = self.retained_space.borrow();
+            Self::observed_space_with_parent(
+                retained.last().ok_or("published lease missing")?,
+                &file,
+                Some((&parent, parent_blocks_before)),
+            )?;
+            Ok(())
+        })();
+        let rc = unsafe { libc::unlinkat(parent.as_raw_fd(), stage.as_ptr(), 0) };
+        if rc < 0 && std::io::Error::last_os_error().raw_os_error() != Some(libc::ENOENT) {
+            if let Some(lease) = reservation.take() {
+                self.retained_space.borrow_mut().push(lease);
+            }
+            return Err(match result {
+                Ok(()) => "research stage cleanup failed".into(),
+                Err(error) => format!("{error}; research stage cleanup failed"),
+            });
+        }
+        drop(file);
+        drop(reservation);
+        if result.is_ok() {
+            self.check()?;
+        }
+        result
+    }
+}
+fn combine_failure(primary: String, cleanup: Result<(), String>) -> String {
+    match cleanup {
+        Ok(()) => primary,
+        Err(error) => format!("{primary}; scratch cleanup: {error}"),
+    }
+}
+/// Owns only one exclusive private scratch child and the shared backend scope.
+pub struct ResearchSqliteScope<'a> {
+    context: &'a ResearchExecution,
+    parent: File,
+    name: Option<CString>,
+    identity: (u64, u64),
+    parent_blocks_before: u64,
+    scope: Option<PinnedSqliteAuxScope>,
+    directory_reservation: Option<PinnedSqliteSpaceReservation>,
+}
+impl ResearchSqliteScope<'_> {
+    pub fn scope_mut(&mut self) -> &mut PinnedSqliteAuxScope {
+        self.scope.as_mut().expect("live owned SQLite scope")
+    }
+    fn cleanup(&mut self) -> Result<(), String> {
+        drop(self.scope.take());
+        let Some(name) = self.name.take() else {
+            return Ok(());
+        };
+        let mut st = std::mem::MaybeUninit::<libc::stat>::uninit();
+        let mut retained_parent_bytes = 0;
+        let result = (|| {
+            if unsafe {
+                libc::fstatat(
+                    self.parent.as_raw_fd(),
+                    name.as_ptr(),
+                    st.as_mut_ptr(),
+                    libc::AT_SYMLINK_NOFOLLOW,
+                )
+            } < 0
+            {
+                return Err(std::io::Error::last_os_error().to_string());
+            }
+            let st = unsafe { st.assume_init() };
+            if st.st_mode & libc::S_IFMT != libc::S_IFDIR || (st.st_dev, st.st_ino) != self.identity
+            {
+                return Err("owned scratch directory identity changed".into());
+            }
+            if unsafe { libc::unlinkat(self.parent.as_raw_fd(), name.as_ptr(), libc::AT_REMOVEDIR) }
+                < 0
+            {
+                return Err(std::io::Error::last_os_error().to_string());
+            }
+            retained_parent_bytes = self
+                .parent
+                .metadata()
+                .map_err(|e| e.to_string())?
+                .blocks()
+                .saturating_sub(self.parent_blocks_before)
+                .checked_mul(512)
+                .ok_or("directory allocated byte overflow")?;
+            self.directory_reservation
+                .as_ref()
+                .ok_or("scratch directory lease missing")?
+                .update_actual_allocated(retained_parent_bytes)
+                .map_err(|e| e.to_string())?;
+            self.parent.sync_all().map_err(|e| e.to_string())?;
+            // Sync may change allocation; observe it before a successful return.
+            retained_parent_bytes = self
+                .parent
+                .metadata()
+                .map_err(|e| e.to_string())?
+                .blocks()
+                .saturating_sub(self.parent_blocks_before)
+                .checked_mul(512)
+                .ok_or("directory allocated byte overflow")?;
+            self.directory_reservation
+                .as_ref()
+                .ok_or("scratch directory lease missing")?
+                .update_actual_allocated(retained_parent_bytes)
+                .map_err(|e| e.to_string())?;
+            self.context.check()
+        })();
+        // Removal releases the child, but retained parent growth remains charged.
+        // On refusal retain a conservative reservation through the operation.
+        if result.is_err() || retained_parent_bytes > 0 {
+            if let Some(lease) = self.directory_reservation.take() {
+                self.context.retained_space.borrow_mut().push(lease);
+            }
+        } else {
+            drop(self.directory_reservation.take());
+        }
+        result
+    }
+    pub fn complete(
+        mut self,
+        recipe: Result<(), String>,
+        max_bytes: u64,
+    ) -> Result<Vec<u8>, String> {
+        let result = recipe.and_then(|()| {
+            self.scope_mut()
+                .read_main_bytes(max_bytes)
+                .map_err(|e| e.to_string())
+        });
+        let cleanup = self.cleanup();
+        match result {
+            Ok(bytes) => {
+                cleanup?;
+                Ok(bytes)
+            }
+            Err(error) => Err(combine_failure(error, cleanup)),
+        }
+    }
+}
+impl Drop for ResearchSqliteScope<'_> {
+    fn drop(&mut self) {
+        let _ = self.cleanup();
+    }
+}
+use std::os::unix::ffi::OsStrExt;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{fs, os::unix::fs::symlink};
+    #[test]
+    fn finite_context_guards_descriptor_reads_and_exclusive_writes() {
+        let t = tempfile::tempdir().unwrap();
+        let c = ResearchExecution::new_with_scratch(t.path(), 1, 4 * 1024 * 1024).unwrap();
+        c.write("private/a", b"exact", 0o600, true).unwrap();
+        assert_eq!(c.read("private/a").unwrap(), b"exact");
+        assert!(c.write("private/a", b"other", 0o600, true).is_err());
+        symlink("a", t.path().join("private/link")).unwrap();
+        assert!(c.read("private/link").is_err());
+        assert!(c.write("private/link", b"escape", 0o600, false).is_err());
+        assert_eq!(c.read("private/a").unwrap(), b"exact");
+        assert!(ResearchExecution::new(t.path(), 0).is_err());
+        assert!(ResearchExecution::new(t.path(), 601).is_err());
+        assert!(c.read("../escape").is_err());
+        assert!(c.tick(WORK_CAP + 1).is_err());
+        fs::rename(t.path().join("private"), t.path().join("held")).unwrap();
+    }
+    #[test]
+    fn absent_or_exhausted_physical_quota_cannot_create_output() {
+        let temp = tempfile::tempdir().unwrap();
+        let without_quota = ResearchExecution::new(temp.path(), 180).unwrap();
+        assert!(
+            without_quota
+                .write("output", b"bytes", 0o600, true)
+                .is_err()
+        );
+        let too_small = ResearchExecution::new_with_scratch(temp.path(), 180, 1).unwrap();
+        assert!(too_small.write("output", b"bytes", 0o600, true).is_err());
+        assert_eq!(fs::read_dir(temp.path()).unwrap().count(), 0);
+        assert!(ResearchExecution::new_with_scratch(temp.path(), 180, 0).is_err());
+        assert!(ResearchExecution::new_with_scratch(temp.path(), 180, u64::MAX).is_err());
+    }
+    #[test]
+    fn failed_exact_read_keeps_attempts_and_partial_returned_bytes() {
+        let temp = tempfile::tempdir().unwrap();
+        fs::write(temp.path().join("partial"), b"abc").unwrap();
+        let ctx = ResearchExecution::new(temp.path(), 180).unwrap();
+        let mut file = ctx.source_file("partial", 1024).unwrap();
+        let mut output = [0u8; 6];
+        assert!(ctx.read_exact(&mut file, &mut output).is_err());
+        let io = ctx.io.snapshot();
+        assert_eq!(io.read_returned_bytes, 3);
+        assert_eq!(io.read_attempted_bytes, 9);
+        assert_eq!(io.read_permitted_bytes, 9);
+    }
+    #[test]
+    fn held_hash_binds_open_inode_after_namespace_replacement() {
+        let temp = tempfile::tempdir().unwrap();
+        let ctx = ResearchExecution::new(temp.path(), 180).unwrap();
+        fs::write(temp.path().join("database"), b"selected bytes").unwrap();
+        let mut held = ctx.source_file("database", 1024).unwrap();
+        fs::write(temp.path().join("replacement"), b"different bytes").unwrap();
+        fs::rename(
+            temp.path().join("replacement"),
+            temp.path().join("database"),
+        )
+        .unwrap();
+        assert_eq!(
+            ctx.hash_file(&mut held, 1024).unwrap(),
+            tos_foundation::Digest256::of_bytes(b"selected bytes").to_hex()
+        );
+        assert_eq!(ctx.read("database").unwrap(), b"different bytes");
+    }
+}

@@ -14,7 +14,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
-from tos_access.core import ToSAccessCore
+from tos_access.core import ReferenceToSAccessCore as ToSAccessCore
 from tos_access.knowledge import (
     addressed_update_knowledge_graph,
     build_knowledge_graph,

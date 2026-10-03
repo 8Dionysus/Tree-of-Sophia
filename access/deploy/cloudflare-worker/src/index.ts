@@ -1,3 +1,4 @@
+import {installSourceNavigationRules} from "./source-navigation-rules.ts";
 import { boundedInt, HttpError, jsonResponse, listParam, withSecurity, type Item } from "./common";
 import {
   buildHealth,
@@ -17,26 +18,41 @@ import {
 } from "./queries";
 import { scaleExportResponse } from "./scale";
 import {
-  executeKnowledgeLensD1,
-  focusKnowledgeNodeD1,
-  knowledgeNodeD1,
-  knowledgeRelationD1,
+  lensSnapshotResponseD1,
+  inspectionSnapshotResponseD1,
   knowledgeSearchD1,
   knowledgeSearchCapabilitiesD1,
   knowledgeSearchD1Indexed,
-  knowledgeTemporalCompareD1,
+  temporalSnapshotResponseD1,
   knowledgeCatalogD1,
-  storedKnowledgeLensD1,
 } from "./knowledge-store";
-import { SourceNavigationError } from "./source-navigation";
-import { sourceDescendD1, sourceDossierD1 } from "./source-navigation-store";
+import { SourceNavigationError, sourceDescendD1, sourceDossierD1 } from "./source-navigation-store";
 import { metaItem } from "./store";
 import { KnowledgeRevisionConflict } from "./lens-pagination";
-import { exploreD1, explorationCapabilitiesD1 } from "./exploration";
-import {parseNativeRequest, type NativeRef} from './native-lens.ts';
-import {nativeLensResponse, nativePacketResponse} from './native-lens-response.ts';
+import { explorationSnapshotResponseD1, explorationCapabilitiesD1 } from "./exploration";
+import {nativePacketResponse} from './native-lens-response.ts';
 import {NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 import {nativeStrip,nativeIntegerString} from '../../../shared/native-unicode.ts';
+import {SelectedTemporalError} from './selected-temporal-runtime.ts';
+import {installKnowledgeSceneRules} from '../../../shared/knowledge-scene.ts';
+import {initSync, KnowledgeSceneSession, TemporalReplaySession, validate_temporal_request_wasm_v1,
+  InspectionSession, validate_inspect_request_wasm_v1, LensSession, validate_lens_request_wasm_v1,
+  ExplorationSession,validate_exploration_request_wasm_v1,validate_exploration_replay_wasm_v1,
+  exploration_cache_version_wasm_v1} from '../generated/tos_web_rules.js';
+import * as classicRuntime from "../generated/tos_web_rules.js";
+import {installWorkerClassicRules} from "./worker-classic.ts";
+import temporalWasm from '../generated/tos_web_rules_bg.wasm';
+
+// wasm-bindgen owns module initialization; no second host cache or fetch.
+initSync({module: temporalWasm});
+installWorkerClassicRules(classicRuntime);
+installSourceNavigationRules(classicRuntime);
+installKnowledgeSceneRules({KnowledgeSceneSession});
+const temporalRuntime = {TemporalReplaySession, validate_temporal_request_wasm_v1};
+const inspectionRuntime = {InspectionSession, validate_inspect_request_wasm_v1};
+const lensRuntime={LensSession,validate_lens_request_wasm_v1};
+const explorationRuntime={ExplorationSession,validate_exploration_request_wasm_v1,
+  validate_exploration_replay_wasm_v1,exploration_cache_version_wasm_v1};
 
 const STATIC_CORPUS_LIMITS = new Set([1, 100, 700, 1000]);
 const STATIC_PHILOSOPHY_LIMITS = new Set([1, 1000]);
@@ -93,7 +109,8 @@ async function sourceGapResponse(request: Request, env: Env, search: URLSearchPa
   return jsonResponse({ ...packet, query, result_count: gaps.length, gaps }, 200, request.method);
 }
 
-async function lensCompileResponse(request: Request, env: Env, operation: 'lens' | 'exploration' | 'temporal' = 'lens'): Promise<Response> {
+async function lensCompileResponse(request: Request, env: Env,
+  operation: 'lens' | 'exploration' | 'temporal' = 'lens'): Promise<Response> {
   const contentType = ((request.headers.get("Content-Type") ?? "").split(";").at(0) ?? "").trim().toLowerCase();
   if (contentType !== "application/json") throw new HttpError(415, "lens request must use application/json");
   const declaredLength = request.headers.get("Content-Length");
@@ -125,27 +142,24 @@ async function lensCompileResponse(request: Request, env: Env, operation: 'lens'
     bytes.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  let spec: unknown, nativeSpec: NativeRef | null = null;
-  try {
-    const raw = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
-    if (operation === 'lens' || operation === 'exploration') {nativeSpec = parseNativeRequest(raw, {maxBytes: MAX_LENS_REQUEST_BYTES}); spec = nativeSpec.value;}
-    else spec = JSON.parse(raw);
-  } catch (error) {
-    throw new HttpError(400, `invalid LensSpec JSON: ${error instanceof Error ? error.message : "decode failed"}`);
+  // The maintained temporal route passes its generated shared Rust module.
+  // Publication selection and exact retained bytes stay with the D1 reader.
+  if (operation === 'temporal') {
+    try { return withSecurity(await temporalSnapshotResponseD1(env.DB, temporalRuntime, bytes, request.signal)); }
+    catch (error) {
+      if (error instanceof NativeBudgetExceeded) throw new HttpError(413, error.message);
+      if (error instanceof SelectedTemporalError) {
+        const status = error.code === 'UnknownIdentifier' ? 404
+          : error.code === 'StaleSelection' ? 409
+          : error.code === 'BudgetExceeded' ? 413
+          : error.code === 'InvalidRequest' || error.code === 'InvalidJson' ? 400 : 503;
+        throw new HttpError(status, error.message);
+      }
+      throw error;
+    }
   }
-  if (!spec || typeof spec !== "object" || Array.isArray(spec)) throw new HttpError(400, "lens spec must be an object");
-  try {
-    if (nativeSpec && operation === 'lens') return nativeLensResponse(await executeKnowledgeLensD1(env.DB, nativeSpec), 200, request.method);
-    if (operation === 'temporal') return nativePacketResponse(await knowledgeTemporalCompareD1(env.DB,spec),200,request.method);
-    return withSecurity(new Response(await exploreD1(env.DB,spec,nativeSpec??undefined),{status:200,
-      headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}}));
-  } catch (error) {
-    if (error instanceof KnowledgeRevisionConflict) throw error;
-    if (error instanceof HttpError) throw error;
-    if (error instanceof NativeBudgetExceeded) throw new HttpError(413, error.message);
-    if (operation === 'lens' && error instanceof Error) throw new HttpError(400, error.message);
-    throw error;
-  }
+  if(operation==='lens')return withSecurity(await lensSnapshotResponseD1(env.DB,lensRuntime,bytes,'compile',request.signal,request.method));
+  return withSecurity(await explorationSnapshotResponseD1(env.DB,explorationRuntime,bytes,request.signal,request.method));
 }
 
 async function apiResponse(request: Request, env: Env, url: URL): Promise<Response> {
@@ -279,39 +293,31 @@ async function apiResponse(request: Request, env: Env, url: URL): Promise<Respon
   }
   const knowledgeNodePrefix = "/api/knowledge/nodes/";
   if (path.startsWith(knowledgeNodePrefix)) {
-    return nativePacketResponse(
-      await knowledgeNodeD1(env.DB, segment(path, knowledgeNodePrefix), boundedInt(search.get("relation_limit"), 200, 0, 1000)),
-      200,
-      method,
-    );
+    return withSecurity(await inspectionSnapshotResponseD1(env.DB,inspectionRuntime,'node',
+      segment(path,knowledgeNodePrefix),boundedInt(search.get("relation_limit"),200,0,1000),request.signal,method));
   }
   const knowledgeRelationPrefix = "/api/knowledge/relations/";
   if (path.startsWith(knowledgeRelationPrefix)) {
-    return nativePacketResponse(await knowledgeRelationD1(env.DB, segment(path, knowledgeRelationPrefix)), 200, method);
+    return withSecurity(await inspectionSnapshotResponseD1(env.DB,inspectionRuntime,'relation',
+      segment(path,knowledgeRelationPrefix),200,request.signal,method));
   }
   const knowledgeFocusPrefix = "/api/knowledge/focus/";
   if (path.startsWith(knowledgeFocusPrefix)) {
     const profile = search.get("profile") || "overview";
-    if (profile !== "overview" && profile !== "all") throw new HttpError(400, "profile must be overview or all");
     const direction = (search.get("direction") || "either").trim().toLowerCase();
-    if (direction !== "outgoing" && direction !== "incoming" && direction !== "either") {
-      throw new HttpError(400, "direction must be outgoing, incoming, or either");
-    }
     const sources = listParam(search, "sources");
-    return nativeLensResponse(await focusKnowledgeNodeD1(env.DB, segment(path, knowledgeFocusPrefix), {
-      ...(sources.length ? { sources } : {}),
-      depth: boundedInt(search.get("depth"), 1, 0, 5),
-      direction,
-      profile,
-      predicateIds: listParam(search, "predicates"),
-      nodeLimit: boundedInt(search.get("node_limit"), 200, 1, 1000),
-      relationLimit: boundedInt(search.get("relation_limit"), 400, 0, 2000),
-    }), 200, method);
+    const focus={node_id:segment(path,knowledgeFocusPrefix),
+      ...(sources.length?{sources}:{}),depth:boundedInt(search.get("depth"),1,0,5),direction,profile,
+      predicate_ids:listParam(search,"predicates"),node_limit:boundedInt(search.get("node_limit"),200,1,1000),
+      relation_limit:boundedInt(search.get("relation_limit"),400,0,2000)};
+    return withSecurity(await lensSnapshotResponseD1(env.DB,lensRuntime,new TextEncoder().encode(JSON.stringify(focus)),
+      'focus',request.signal,method));
   }
   const knowledgeLensPrefix = "/api/knowledge/lenses/";
   if (path.startsWith(knowledgeLensPrefix)) {
     const lensId = segment(path, knowledgeLensPrefix);
-    return nativeLensResponse(await storedKnowledgeLensD1(env.DB, lensId), 200, method);
+    return withSecurity(await lensSnapshotResponseD1(env.DB,lensRuntime,new TextEncoder().encode(JSON.stringify(lensId)),
+      'stored',request.signal,method));
   }
 
 

@@ -1,7 +1,8 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {test} from 'vitest';
 import assert from 'node:assert/strict';
 
-import {validateLens,projectLens,focusSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError,displayTitle,displayTitleForm,sourceOriginalTitle,compileRouteCenter,isSourceDossierRef,SOURCE_DOSSIER_LIMIT} from './knowledge-client.mjs';
+import {validateLens,projectLens,focusSpec,relationSpec,KnowledgeClient,RequestSlots,ContractError,RevisionError,RequestError,displayTitle,displayTitleForm,sourceOriginalTitle,compileRouteCenter,isSourceDossierRef,SOURCE_DOSSIER_LIMIT,validateSourceDossier,sameJson,explorationRequestMatches,validateExploration} from './knowledge-client.mjs';
 import {setUiLanguage} from './ui-i18n.mjs';
 
 const node=id=>({id,entity_id:'tos.work.friedrich-nietzsche.also-sprach-zarathustra',kind_id:'work',
@@ -325,4 +326,213 @@ test('generated claim headings distinguish declared predicates without parsing I
   assert.equal(displayTitle(raw,'','ru'),'Утверждение');
   raw.display.provenance={title:'source-title',source_title_available:true};raw.display.title.ru='Слова автора';
   assert.equal(displayTitle(raw,'','ru'),'Слова автора');
+});
+
+test('inspection preserves exact source objects and refuses before later field reads',async()=>{
+  const raw=node('selected'),content=new String('b'.repeat(64));raw.content_revision=content;
+  raw.source_refs=new Array(1);raw.unknown={explicit:null};
+  const packet={schema:'tos_knowledge_node_packet_v1',source_revision:fixture.source_revision,matches:[raw]};
+  const client=new KnowledgeClient({fetcher:async()=>({ok:true,json:async()=>packet})});
+  client.request=async()=>packet;
+  packet.matches.push(node('opaque:\ud800'));
+  const result=await client.inspect('node',raw.id,undefined,fixture.source_revision,content);
+  assert.equal(result.packet,packet);assert.equal(result.match,raw);assert.equal(result.match.unknown.explicit,null);
+  let reads=0;const duplicate={id:raw.id};
+  Object.defineProperty(duplicate,'display',{get(){reads++;throw new Error('late display access');}});
+  packet.matches=[raw,duplicate];
+  await assert.rejects(client.inspect('node',raw.id,undefined,fixture.source_revision),ContractError);
+  assert.equal(reads,0);
+  Object.defineProperty(packet,'matches',{get(){reads++;throw new Error('late matches access');}});
+  packet.schema='wrong';
+  await assert.rejects(client.inspect('node',raw.id,undefined,fixture.source_revision),ContractError);
+  assert.equal(reads,0);
+});
+
+
+test('inspection never reclassifies exceptions from source getters as Rust refusals',async()=>{
+  for(const marker of ['item','revision','schema']){
+    const packet={schema:'tos_knowledge_node_packet_v1',source_revision:fixture.source_revision};
+    Object.defineProperty(packet,'matches',{get(){throw marker;}});
+    const client=new KnowledgeClient({fetcher:async()=>({ok:true,json:async()=>packet})});
+    await assert.rejects(client.inspect('node','opaque'),error=>error===marker);
+  }
+});
+
+test('inspection observes each original ID getter read and retains reference equality',async()=>{
+  const raw=node('initial'),identity={opaque:true};let reads=0;
+  Object.defineProperty(raw,'id',{get(){reads++;return reads<=2?'initial':identity;}});
+  const packet={schema:'tos_knowledge_node_packet_v1',source_revision:fixture.source_revision,matches:[raw]};
+  const client=new KnowledgeClient({fetcher:async()=>({ok:true,json:async()=>packet})});
+  client.request=async()=>packet;
+  assert.equal((await client.inspect('node',identity)).match,raw);assert.equal(reads,5);
+});
+
+
+test('source dossier preserves sparse metadata, native numeric coercion and authority rereads',()=>{
+  const packet=dossier(),hints=[];packet.agent_summary.rights_scope_refs=new Array(2);
+  packet.source_refs=new Proxy([],{get(target,key){
+    if(key==='length')return {[Symbol.toPrimitive](hint){hints.push(hint);return 64n;}};
+    if(key==='every')return ()=>({truthy:true});
+    return Reflect.get(target,key);
+  }});
+  let authorityReads=0;const authority={unknown:null};
+  Object.defineProperty(packet,'authority_note',{get(){
+    authorityReads++;if(authorityReads===1)return 'probe';
+    if(authorityReads===2)return {length:{[Symbol.toPrimitive](hint){hints.push(hint);return 0n;}}};
+    return authority;
+  }});
+  assert.equal(validateSourceDossier(packet,'tos.work.fixture'),packet);
+  assert.equal(authorityReads,3);assert.deepEqual(hints,['number','number']);
+});
+
+test('source dossier snapshots precede schema refusal and source exceptions keep their identity',()=>{
+  let reads=0;const malformed={schema:'wrong'};
+  Object.defineProperty(malformed,'agent_summary',{get(){reads++;return {};}});
+  Object.defineProperty(malformed,'object',{get(){reads++;return {};}});
+  assert.throws(()=>validateSourceDossier(malformed,'tos.work.fixture'),ContractError);assert.equal(reads,2);
+  const packet=dossier();Object.defineProperty(packet,'authority_note',{get(){throw 'dossier';}});
+  assert.throws(()=>validateSourceDossier(packet,'tos.work.fixture'),error=>error==='dossier');
+});
+
+test('source dossier callback predicates preserve revoked Proxy shortcircuits',()=>{
+  const object=Proxy.revocable({},{}),callable=Proxy.revocable(()=>{},{});object.revoke();callable.revoke();
+  const strings=dossier();strings.agent_summary.gaps=[object.proxy];
+  assert.throws(()=>validateSourceDossier(strings,'tos.work.fixture'),ContractError);
+  const records=dossier();records.relations=[callable.proxy];
+  assert.throws(()=>validateSourceDossier(records,'tos.work.fixture'),ContractError);
+  records.relations=[object.proxy];
+  assert.throws(()=>validateSourceDossier(records,'tos.work.fixture'),TypeError);
+});
+
+test('retained native array callbacks outlive inspection and dossier sessions',async()=>{
+  let inspectRef,stringElement,recordElement,chainElement;
+  const raw=node('selected');raw.source_refs.some=callback=>{inspectRef=callback;return false;};
+  const packet={schema:'tos_knowledge_node_packet_v1',source_revision:fixture.source_revision,matches:[raw]};
+  const client=new KnowledgeClient();client.request=async()=>packet;
+  await client.inspect('node','selected');
+  assert.equal(inspectRef('source'),false);assert.equal(inspectRef(''),true);
+  const metadata=dossier();
+  metadata.agent_summary.gaps.every=callback=>{stringElement=callback;return true;};
+  metadata.relations.every=callback=>{recordElement=callback;return true;};
+  const chain=[];chain.every=callback=>{chainElement=callback;return true;};metadata.chain={route:chain};
+  validateSourceDossier(metadata,'tos.work.fixture');
+  assert.equal(stringElement('text'),true);assert.equal(stringElement(''),false);
+  assert.equal(recordElement({}),true);assert.equal(recordElement([]),false);
+  assert.equal(chainElement({unknown:null}),true);assert.equal(chainElement(null),false);
+});
+
+
+test('exact JSON and normalized selector callbacks retain native opaque results and lifetime',()=>{
+  let retained;const marker={truthy:true},left=[1];left.every=callback=>{retained=callback;return marker;};
+  assert.equal(sameJson(left,[1]),marker);assert.equal(retained(1,0),true);assert.equal(retained(2,0),false);
+  const sparse=new Array(2);assert.equal(sameJson(sparse,[7,8]),true);
+  const selectors=['source'];selectors.every=()=>0;
+  const requested={sources:selectors};assert.equal(explorationRequestMatches({sources:['source']},requested),false);
+  assert.equal(explorationRequestMatches({sources:['source']},{sources:['source','source']}),true);
+  assert.equal(explorationRequestMatches({sources:['source','source']},{sources:['source']}),false);
+});
+
+test('whole packet gates preserve schema, field, iterator and host exception order',()=>{
+  const packet=clone();let arrays=0;
+  packet.schema='wrong';Object.defineProperty(packet,'nodes',{get(){arrays++;throw 'nodes';}});
+  assert.throws(()=>validateLens(packet),ContractError);assert.equal(arrays,0);
+  const host=clone();Object.defineProperty(host.authority_boundary,'is_source',{get(){throw 'area';}});
+  assert.throws(()=>validateLens(host),error=>error==='area');
+  let closed=0;const iterable=[];iterable[Symbol.iterator]=function*(){try{yield null;}finally{closed++;}};
+  const malformed=clone();malformed.nodes=iterable;
+  assert.throws(()=>validateLens(malformed),ContractError);assert.equal(closed,1);
+});
+
+test('exploration v1 repeats status observation before cursor selection',()=>{
+  const packet=clone();packet.schema='tos_exploration_result_v1';packet.writes_to_tree=false;
+  packet.snapshot_revision='d'.repeat(64);packet.page={number:1,scope:'resumable-neighborhood',returned_nodes:2,returned_relations:1,
+    primary_node_ids:packet.nodes.map(item=>item.id),context_node_ids:[],next_cursor:null};
+  packet.counts={scope:'cumulative-discovered-not-global-total'};packet.inclusion={authority:'query-execution-not-semantic-proof'};
+  let reads=0;Object.defineProperty(packet,'status',{get(){return ++reads===1?'paused':'complete';}});
+  assert.equal(validateExploration(packet),packet);assert.equal(reads,2);
+});
+
+test('search request refusal occurs before capabilities and late page reads stay ordered',async()=>{
+  let requests=0;const client=new KnowledgeClient();client.request=async()=>{requests++;throw new Error('unexpected transport');};
+  await assert.rejects(client.search('query',undefined,{cursor:'cursor',search_mode:'',limit:6}),ContractError);assert.equal(requests,0);
+  const packet=emptySearchPacket('indexed');let moreReads=0;
+  Object.defineProperty(packet.page,'has_more',{get(){return ++moreReads===1?false:true;}});packet.page.next_cursor='next';
+  client.request=async path=>path==='/search/capabilities'?{modes:{indexed:{available:true}}}:packet;
+  assert.equal((await client.search('query')).page,packet.page);assert.equal(moreReads,2);
+});
+
+test('retained area endpoint callback keeps its original identity index across exploration setup',()=>{
+  const packet=clone();packet.schema='tos_exploration_result_v1';packet.writes_to_tree=false;
+  packet.snapshot_revision='d'.repeat(64);packet.status='complete';
+  packet.page={number:1,scope:'resumable-neighborhood',returned_nodes:2,returned_relations:1,
+    primary_node_ids:['late-a','late-b'],context_node_ids:[],next_cursor:null};
+  packet.counts={scope:'cumulative-discovered-not-global-total'};packet.inclusion={authority:'query-execution-not-semantic-proof'};
+  for(const [index,raw] of packet.nodes.entries()){
+    const initial=raw.id;let reads=0;Object.defineProperty(raw,'id',{get(){return ++reads<=4?initial:index===0?'late-a':'late-b';}});
+  }
+  let retained;packet.relations.some=callback=>{retained=callback;return false;};
+  validateExploration(packet);
+  assert.equal(retained({from_id:'graph-a:work',to_id:'graph-b:work'}),false);
+  assert.equal(retained({from_id:'late-a',to_id:'late-b'}),true);
+});
+
+
+test('Rust lens recipes retain opaque slots, own-property order and repeated relation reads',()=>{
+  const depth={};depth.self=depth;const focus=focusSpec(undefined,{depth});
+  assert.equal(Object.hasOwn(focus.seed,'focus_node_id'),true);assert.equal(focus.seed.focus_node_id,undefined);
+  assert.equal(focus.traversal.depth,depth);assert.equal(focusSpec('id',{depth:undefined}).traversal.depth,1);
+  assert.deepEqual(Object.keys(focus),['schema_version','lens_id','language','detail','explain','seed','node_query','traversal','limits']);
+  assert.deepEqual(Object.keys(focus.limits),['nodes','relations','groups']);assert.equal(Object.getPrototypeOf(focus),Object.prototype);
+  const first={},second=Symbol('second'),target=3n,identity={};identity.self=identity;let fromReads=0;const reads=[];
+  const relation={get from_id(){reads.push('from');return ++fromReads===1?first:second;},
+    get to_id(){reads.push('to');return target;},get id(){reads.push('id');return identity;}};
+  const spec=relationSpec(relation);assert.deepEqual(reads,['from','from','to','id']);
+  assert.equal(spec.seed.focus_node_id,first);assert.equal(spec.node_query.filters[0].value[0],second);
+  assert.equal(spec.node_query.filters[0].value[1],target);assert.equal(spec.relation_query.filters[0].value,identity);
+  assert.equal(Object.keys(spec).at(-1),'relation_query');assert.deepEqual(spec.limits,{nodes:2,relations:1,groups:2});
+});
+
+test('lens projection retained sort and map callbacks outlive each Rust invocation',()=>{
+  const packet=clone();let compare,project;
+  packet.nodes.slice=function(){const values=Array.prototype.slice.call(this);
+    values.sort=callback=>{compare=callback;return values;};
+    values.map=callback=>{project=callback;return Array.prototype.map.call(values,callback);};return values;};
+  assert.deepEqual(projectLens(packet).map(value=>value.slot),[0,1]);
+  assert.equal(compare(packet.nodes[0],packet.nodes[1]),-1);
+  assert.equal(project(node('later'),2).slot,2);
+  const marker={host:true},bad=node('bad');let reads=0;
+  Object.defineProperty(bad,'id',{get(){if(++reads===2)throw marker;return 'bad';}});
+  assert.throws(()=>project(bad,3),error=>error===marker);
+  assert.equal(project(node('after-error'),4).slot,4);
+});
+
+test('lens projection preserves opaque physical slots and native vector restoration',()=>{
+  const packet=clone(),hints=[],reads=[],opaque={},target=Symbol('target');
+  const slot={[Symbol.toPrimitive](hint){hints.push(hint);return hint==='number'?19:'0';}};
+  const old={id:packet.nodes[0].id,get slot(){reads.push('slot');return slot;},
+    get p(){reads.push('p');return {slice:()=>opaque};},get sourcePosition(){reads.push('source');return 'raw';},
+    get volumeZ(){reads.push('volume');return NaN;},get pos(){reads.push('pos');return {slice:()=>0};},
+    get target(){reads.push('target');return {slice:()=>target};}};
+  const projected=projectLens(packet,[old])[0];
+  assert.equal(projected.slot,slot);assert.equal(projected.p,opaque);assert.equal(projected.sourcePosition,'raw');
+  assert.equal(Number.isNaN(projected.volumeZ),true);assert.deepEqual(projected.pos,[0,5,70]);assert.equal(projected.target,target);
+  assert.deepEqual(hints,['number','string']);assert.deepEqual(reads,['slot','slot','p','source','volume','pos','target']);
+  let vectorReads=0;const bigintOld={id:packet.nodes[0].id,slot:0n,get p(){vectorReads++;return [];}};
+  assert.throws(()=>projectLens(packet,[bigintOld]),TypeError);assert.equal(vectorReads,0);
+});
+
+test('route policy retains compile 404 fallback, lazy error access and relation callback lifetime',async()=>{
+  const prior=new RequestError(404,'relation'),current=new RequestError(404,'node');let calls=0;
+  const identity={packet:clone(),match:fixture.relations[0]};
+  const client={inspect:async()=>identity,compile:async()=>{throw ++calls===1?prior:current;}};
+  await assert.rejects(compileRouteCenter(client,identity.match.id),error=>error===prior);assert.equal(calls,2);
+  const marker={getter:true},statusError=new RequestError(404,'status');let statuses=0,compiles=0;
+  Object.defineProperty(statusError,'status',{get(){statuses++;throw marker;}});
+  await assert.rejects(compileRouteCenter({inspect:async()=>{throw statusError;},compile:async()=>{compiles++;}},'id'),error=>error===marker);
+  assert.equal(statuses,1);assert.equal(compiles,0);
+  const opaque={};Object.defineProperty(opaque,'status',{get(){throw new Error('unrequested status');}});
+  await assert.rejects(compileRouteCenter({inspect:async()=>{throw opaque;}},'id'),error=>error===opaque);
+  let retained;const packet=clone();packet.relations.some=callback=>{retained=callback;return {truthy:true};};
+  assert.equal((await compileRouteCenter({inspect:async()=>identity,compile:async()=>packet},identity.match.id)).kind,'relation');
+  assert.equal(retained({id:identity.match.id}),true);assert.equal(retained({id:'different'}),false);
 });

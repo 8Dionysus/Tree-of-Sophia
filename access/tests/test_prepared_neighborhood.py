@@ -10,7 +10,11 @@ from unittest.mock import patch
 
 from tos_access import knowledge as k
 from tos_access.prepared_neighborhood import capture_prepared_neighborhood, NeighborhoodLimits
-from tos_access.prepared_publication import publish_prepared, apply_prepared_delta, PreparedChange
+from tos_access.prepared_publication import (
+    reference_publish_prepared as publish_prepared,
+    reference_apply_prepared_delta as apply_prepared_delta,
+    PreparedChange,
+)
 from tos_access.published_read_model import (PublishedKnowledgeReadModel, PublishedReadLimits,
     PublishedReadBudgetExceeded, PublishedSnapshotConflict)
 from tos_access.published_read_metadata import PublishedReadModelError

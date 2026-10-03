@@ -19,6 +19,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 import zipfile
+from collections import Counter
 
 from jsonschema import Draft202012Validator
 
@@ -27,7 +28,7 @@ REPO_ROOT = ACCESS_ROOT.parent
 sys.path.insert(0, (ACCESS_ROOT / "src").as_posix())
 
 from tos_access.core import ToSAccessCore  # noqa: E402
-from tos_access.doctor import doctor_report  # noqa: E402
+from tos_access.doctor import reference_doctor_report as doctor_report  # noqa: E402
 from tos_access.http_server import _scale_rows, make_server  # noqa: E402
 from tos_access.mcp_server import build_server  # noqa: E402
 from tos_access.search_read_model import SearchReadModelError  # noqa: E402
@@ -57,6 +58,10 @@ archive_common = load_script(
 edge_build = load_script(
     "edge_build_runtime",
     ACCESS_ROOT / "deploy/cloudflare-worker/scripts/build_runtime.py",
+)
+claim_navigation = load_script(
+    "fixture_claim_navigation",
+    REPO_ROOT / "scripts/claim_navigation.py",
 )
 
 
@@ -216,41 +221,173 @@ def write_fixture(root: Path) -> None:
         "snapshot_review": {"snapshot_schema_version": "tos_philosophy_graph_projection_snapshot_v1"},
         "unresolved_review_surfaces": [],
     }
+    # These are fixture-only source records, not an authored Claim catalog.
+    # Retain real bytes so every projected provenance digest has a referent.
+    canonical_digest = claim_navigation.canonical_digest
+    canonical_json = claim_navigation.canonical_json
+    navigation_nodes = {node['node_id']: node for node in index['source_navigation']['nodes']}
+    object_catalog_refs = {
+        kind: f'ToS/source-witnesses/catalog/{kind}s.jsonl'
+        for kind in ('agent', 'place', 'organization', 'work', 'expression',
+                     'edition', 'collection', 'item')
+    }
+    source_records = {path: [] for path in object_catalog_refs.values()}
+    source_records['ToS/source-witnesses/relations/fixture.jsonl'] = []
+    source_records['ToS/source-witnesses/relations/object-link-claims.jsonl'] = []
     bibliographic_nodes = {}
     bibliographic_edges = []
     claim_traces = []
-    for edge in index.get('source_navigation', {}).get('edges', []):
-        if edge.get('edge_kind') != 'evidence_claim':
+    claim_catalog = []
+    for edge in index['source_navigation']['edges']:
+        if edge['edge_kind'] != 'evidence_claim':
             continue
         claim_ref = 'tos.claim.fixture.' + edge['edge_id']
         edge['claim_ref'] = claim_ref
+        source_ref = edge['source_refs'][0]
+        claim = {
+            'schema_version': 'tos_fixture_bibliographic_claim_v1',
+            'claim_id': claim_ref, 'claim_type': 'bibliographic', 'claim_version': 1,
+            'predicate': edge['predicate_id'], 'subject_ref': edge['from_id'],
+            'object': edge['to_id'], 'assertion_layer': 'bibliographic_assertion',
+            'epistemic_status': 'reported', 'review_status': 'unreviewed',
+            'visibility': 'public',
+        }
+        claim_sha = canonical_digest(claim)
+        source_records[source_ref].append(claim)
+        source_line = len(source_records[source_ref])
+        claim_catalog.append({'claim_ref': claim_ref, 'claim_sha256': claim_sha,
+                              'source_claim_file_ref': source_ref,
+                              'source_claim_line': source_line})
         claim_node = 'claim:' + claim_ref
-        refs = edge['source_refs']
-        bibliographic_nodes[claim_node] = {'node_id': claim_node, 'node_kind': 'claim', 'label': edge['predicate_id'],
-            'source_refs': refs, 'properties': {'claim_ref': claim_ref, 'predicate': edge['predicate_id'], 'claim_version': 1, 'review_status': 'unreviewed'}}
+        bibliographic_nodes[claim_node] = {
+            'node_id': claim_node, 'node_kind': 'claim', 'source_ref': source_ref,
+            'source_line': source_line, 'source_sha256': claim_sha,
+            'properties': {'claim_ref': claim_ref, 'predicate': edge['predicate_id'],
+                           'claim_version': 1, 'review_status': 'unreviewed',
+                           'epistemic_status': 'reported', 'source_claim': claim,
+                           'source_claim_file_ref': source_ref,
+                           'source_claim_line': source_line},
+        }
         for role, endpoint in [('subject', edge['from_id']), ('object', edge['to_id'])]:
             identity = 'identity:' + endpoint
-            bibliographic_nodes[identity] = {'node_id': identity, 'node_kind': 'identity', 'label': endpoint,
-                'source_refs': refs, 'properties': {'identity_ref': endpoint, 'identity_kind': endpoint.split('.')[1]}}
-            bibliographic_edges.append({'edge_id': edge['edge_id'] + ':' + role, 'edge_kind': 'has_' + role,
-                'from_id': claim_node, 'to_id': identity, 'claim_ref': claim_ref, 'review_status': 'unreviewed',
-                'source_claim_file_ref': refs[0]})
-        claim_traces.append({'claim_ref': claim_ref, 'claim_node_id': claim_node, 'predicate': edge['predicate_id'],
-            'subject_node_id': 'identity:' + edge['from_id'], 'object_node_id': 'identity:' + edge['to_id'],
-            'evidence_node_ids': [], 'review_status': 'unreviewed', 'epistemic_status': 'reported'})
+            if identity not in bibliographic_nodes:
+                navigation = navigation_nodes[endpoint]
+                kind = navigation['node_kind']
+                record = {'schema_version': 'tos_fixture_source_record_v1',
+                          'record_id': endpoint, 'record_type': kind,
+                          'record_version': 1, 'preferred_label': navigation['label']}
+                catalog_ref = object_catalog_refs.get(kind, navigation['source_ref'])
+                source_records.setdefault(catalog_ref, []).append(record)
+                bibliographic_nodes[identity] = {
+                    'node_id': identity, 'node_kind': 'identity',
+                    'source_ref': catalog_ref,
+                    'source_sha256': canonical_digest(record),
+                    **({'source_line': len(source_records[catalog_ref])}
+                       if catalog_ref.endswith('.jsonl') else {}),
+                    'properties': {'identity_ref': endpoint, 'identity_kind': kind,
+                                   'preferred_label': navigation['label'],
+                                   'source_record': record},
+                }
+        evidence_id = 'evidence:' + claim_ref
+        maker_id = 'maker:' + claim_ref
+        event_id = 'provenance_event:' + claim_ref
+        for node_id, kind, properties in (
+            (evidence_id, 'evidence', {'evidence_ref': f'{source_ref}#{source_line}',
+                                       'evidence_kind': 'fixture-source-line', 'resolved': True}),
+            (maker_id, 'maker', {'maker_type': 'fixture-unattributed'}),
+            (event_id, 'provenance_event', {'event_ref': claim_ref,
+                                             'event_type': 'fixture-claim-record'}),
+        ):
+            bibliographic_nodes[node_id] = {
+                'node_id': node_id, 'node_kind': kind, 'source_ref': source_ref,
+                'source_line': source_line, 'source_sha256': claim_sha,
+                'properties': properties,
+            }
+        edge_ids = []
+        for role, endpoint in [('subject', edge['from_id']), ('object', edge['to_id'])]:
+            edge_id = edge['edge_id'] + ':' + role
+            edge_ids.append(edge_id)
+            bibliographic_edges.append({
+                'edge_id': edge_id, 'edge_kind': 'has_' + role,
+                'from_id': claim_node, 'to_id': 'identity:' + endpoint,
+                'claim_ref': claim_ref, 'claim_sha256': claim_sha,
+                'evidence_node_ids': [evidence_id], 'maker_node_id': maker_id,
+                'provenance_event_node_id': event_id, 'review_status': 'unreviewed',
+                'source_claim_file_ref': source_ref, 'source_claim_line': source_line,
+            })
+        claim_traces.append({
+            'claim_ref': claim_ref, 'claim_sha256': claim_sha,
+            'claim_node_id': claim_node, 'subject_node_id': 'identity:' + edge['from_id'],
+            'object_node_id': 'identity:' + edge['to_id'],
+            'predicate': edge['predicate_id'], 'assertion_layer': 'bibliographic_assertion',
+            'epistemic_status': 'reported', 'confidence': None, 'qualifiers': None,
+            'maker_node_id': maker_id, 'provenance_event_node_id': event_id,
+            'evidence_node_ids': [evidence_id], 'counterevidence_node_ids': [],
+            'review_node_ids': [], 'normalized_identity_node_ids': [],
+            'review_status': 'unreviewed', 'visibility': 'public',
+            'alternative_claim_refs': [], 'counterevidence_refs': [],
+            'supersedes_claim_ref': None, 'source_claim_file_ref': source_ref,
+            'source_claim_line': source_line, 'source_claim_sha256': claim_sha,
+            'edge_ids': sorted(edge_ids),
+        })
+    catalog_manifest_ref = 'ToS/source-witnesses/catalog/catalog.manifest.json'
+    claim_catalog_ref = 'ToS/source-witnesses/catalog/claims.jsonl'
+    source_records[claim_catalog_ref] = claim_catalog
+    input_digests = {}
+    for source_ref, rows in source_records.items():
+        path = root / source_ref
+        path.parent.mkdir(parents=True, exist_ok=True)
+        raw = ''.join(canonical_json(row) + '\n' for row in rows).encode('utf-8')
+        path.write_bytes(raw)
+        input_digests[source_ref] = hashlib.sha256(raw).hexdigest()
+    manifest_path = root / catalog_manifest_ref
+    manifest_path.write_text(canonical_json({'schema_version': 'tos_fixture_catalog_v1',
+                                             'record_files': object_catalog_refs,
+                                             'claim_file': claim_catalog_ref}) + '\n', encoding='utf-8')
+    input_digests[catalog_manifest_ref] = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+    ordered_nodes = sorted(bibliographic_nodes.values(), key=lambda node: node['node_id'])
+    ordered_edges = sorted(bibliographic_edges, key=lambda edge: edge['edge_id'])
+    ordered_traces = sorted(claim_traces, key=lambda trace: trace['claim_ref'])
+    # The contract fixes generated_by; authority_boundary identifies this fixture producer.
+    bibliographic = {
+        'schema_version': 'tos_source_witness_bibliographic_graph_v1',
+        'schema_ref': 'ToS/contracts/source-witness-bibliographic-graph.schema.json',
+        'owner_repo': 'Tree-of-Sophia',
+        'surface_kind': 'derived_source_witness_bibliographic_claim_graph',
+        'generated_by': 'scripts/build_source_witness_bibliographic_graph.py',
+        'source_refs': {'catalog_manifest_ref': catalog_manifest_ref,
+                        'claim_catalog_ref': claim_catalog_ref,
+                        'object_catalog_refs': object_catalog_refs},
+        'input_digests': dict(sorted(input_digests.items())),
+        'graph_layers': ['bibliographic'],
+        'relation_model': {'assertion_form': 'reified_claim_node',
+                           'direct_subject_object_edges': False,
+                           'edge_trace_rule': 'Every fixture edge is indexed by its Claim trace.',
+                           'runtime_owner': 'abyss-stack'},
+        'counts': {'source_claims': len(ordered_traces), 'nodes': len(ordered_nodes),
+                   'edges': len(ordered_edges), 'claim_traces': len(ordered_traces),
+                   'direct_subject_object_edges': 0,
+                   'node_kinds': dict(sorted(Counter(node['node_kind'] for node in ordered_nodes).items())),
+                   'edge_kinds': dict(sorted(Counter(edge['edge_kind'] for edge in ordered_edges).items()))},
+        'review_counts': {'unreviewed': len(ordered_traces)},
+        'visibility_counts': {'public': len(ordered_traces)},
+        'nodes': ordered_nodes, 'edges': ordered_edges, 'claim_traces': ordered_traces,
+        'authority_boundary': {'authoritative_claims': 'none; fixture-only synthetic records',
+                               'projection_role': 'access/tests/test_access_contract.py::write_fixture contract fixture',
+                               'does_not_establish': ['source admission', 'rights', 'canon']},
+        'validation_refs': ['scripts/build_source_witness_bibliographic_graph.py',
+                            'scripts/query_source_witness_bibliographic_graph.py',
+                            'scripts/validate_source_witness_bibliographic_graph.py',
+                            'tests/test_source_witness_bibliographic_graph.py'],
+    }
+    bibliographic['projection_fingerprint'] = canonical_digest(bibliographic)
+    Draft202012Validator(json.loads(
+        (REPO_ROOT / 'ToS/contracts/source-witness-bibliographic-graph.schema.json').read_text(
+            encoding='utf-8'))).validate(bibliographic)
     (derived / "tos_corpus_index.min.json").write_text(json.dumps(index), encoding="utf-8")
     (derived / "philosophy_graph_projection.min.json").write_text(json.dumps(graph), encoding="utf-8")
     (graph_derived / "source-witness-bibliographic-claims.min.json").write_text(
-        json.dumps(
-            {
-                "schema_version": "tos_source_witness_bibliographic_graph_v1",
-                "nodes": list(bibliographic_nodes.values()),
-                "edges": bibliographic_edges,
-                "claim_traces": claim_traces,
-            }
-        ),
-        encoding="utf-8",
-    )
+        json.dumps(bibliographic), encoding="utf-8")
     (derived / "epistemic_evidence_projection.min.json").write_text(
         json.dumps(
             {
@@ -312,6 +449,7 @@ def write_fixture(root: Path) -> None:
     for name in (
         "knowledge-api.v1.json",
         "knowledge-graph.v1.schema.json",
+        "knowledge-search-indexed.v2.schema.json",
         "source-read.v1.schema.json",
         "readable-context.v1.schema.json",
         "lens-spec.v1.schema.json",
@@ -1269,6 +1407,7 @@ class CoreContractTests(unittest.TestCase):
                 {
                     "api",
                     "knowledge_graph",
+                    "knowledge_search_indexed",
                     "source_read",
                     "readable_context",
                     "lens_spec",
@@ -2287,40 +2426,8 @@ class CoreContractTests(unittest.TestCase):
     def test_corpus_route_and_promotion_views_preserve_relation_topology(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             root = Path(raw)
-            write_fixture(root)
-            index_path = root / "ToS/derived-exports/tos_corpus_index.min.json"
-            index = json.loads(index_path.read_text(encoding="utf-8"))
-            index["graph_views"].extend(
-                [
-                    {"view_id": "route-graph", "title": "Routes"},
-                    {"view_id": "promotion-flow", "title": "Promotion"},
-                ]
-            )
-            index["nodes"] = [
-                {"node_id": "a", "label": "Alpha"},
-                {"node_id": "b", "label": "Beta"},
-            ]
-            index["relation_packs"] = [
-                {"pack_id": "candidate-intake/fixture", "owner_branch": "ToS/candidate-intake", "path": "ToS/candidate-intake/fixture/edges.csv"},
-                {"pack_id": "canon/fixture", "owner_branch": "ToS/canon", "path": "ToS/canon/fixture/edges.csv"},
-            ]
-            index["relation_edges"] = [
-                {
-                    "edge_id": "candidate-edge",
-                    "owner_branch": "ToS/candidate-intake",
-                    "pack_id": "candidate-intake/fixture",
-                    "from_id": "candidate-a",
-                    "to_id": "candidate-b",
-                },
-                {
-                    "edge_id": "canon-edge",
-                    "owner_branch": "ToS/canon",
-                    "pack_id": "canon/fixture",
-                    "from_id": "a",
-                    "to_id": "b",
-                },
-            ]
-            index_path.write_text(json.dumps(index), encoding="utf-8")
+            from fixture_support import write_corpus_topology_fixture
+            write_corpus_topology_fixture(root)
             core = ToSAccessCore.discover(tos_root=root)
 
             routes = core.graph_view("route-graph")
@@ -2657,10 +2764,12 @@ class AuthoredContractTests(unittest.TestCase):
         gate = workflow["jobs"]["required_gate"]
         self.assertEqual(set(gate["needs"]), {"plan", "software", "worker", "rust"})
         self.assertEqual(gate["if"], "${{ always() }}")
-        run_steps = [step for step in gate["steps"] if "run" in step]
-        self.assertEqual(len(run_steps), 1)
-        command = run_steps[0]["run"]
-        self.assertEqual(run_steps[0]["env"]["CI_NEEDS"], "${{ toJSON(needs) }}")
+        gate_steps = [step for step in gate["steps"]
+                      if step.get("name") == "Require every selected check to pass"]
+        self.assertEqual(len(gate_steps), 1)
+        self.assertIn("run", gate_steps[0])
+        command = gate_steps[0]["run"]
+        self.assertEqual(gate_steps[0]["env"]["CI_NEEDS"], "${{ toJSON(needs) }}")
         for mode, worker, rust in [("full", True, True), ("reader", True, False),
                                    ("browser", False, False), ("none", True, False),
                                    ("none", False, True), ("none", False, False)]:
@@ -2698,7 +2807,7 @@ class AuthoredContractTests(unittest.TestCase):
         query_contract = json.loads(
             (ACCESS_ROOT / "contracts/query-operations.v1.json").read_text(encoding="utf-8")
         )
-        expected_operations = {
+        expected_browser_operations = {
             "tos.status",
             "tos.snapshot",
             "tos.search",
@@ -2713,13 +2822,32 @@ class AuthoredContractTests(unittest.TestCase):
             "tos.epistemic.inspect",
             "tos.zarathustra.word-analysis.prepare",
         }
+        native_operations = {
+            "tos_philosophy_graph_scale_rows": "tos_philosophy_graph_scale_rows",
+            "tos_philosophy_graph_lens_packet": "tos_philosophy_graph_lens_packet",
+            "tos.zarathustra.word_analysis.public-capability": "tos_zarathustra_word_analysis_public_capability",
+            "tos.zarathustra.reading.public-capability": "tos_zarathustra_reading_public_capability",
+        }
+        expected_operations = expected_browser_operations | native_operations.keys()
         self.assertEqual(
             {item["operation_id"] for item in query_contract["operations"]},
             expected_operations,
         )
         query_source = (ACCESS_ROOT / "web/src/query-operations.ts").read_text(encoding="utf-8")
-        for operation_id in expected_operations:
+        for operation_id in expected_browser_operations:
             self.assertIn(f'"{operation_id}"', query_source)
+
+        # These additive imported operations use the native MCP adapter;
+        # they are not browser query-operation dispatch cases.
+        native_contract = json.loads(
+            (REPO_ROOT / "rust/crates/tos-access/operations.v1.json").read_text(encoding="utf-8")
+        )
+        native_bindings = {
+            item["operation_id"]: item["mcp"]["tool"]
+            for item in native_contract["operations"]
+        }
+        for operation_id, tool in native_operations.items():
+            self.assertEqual(native_bindings[operation_id], tool)
 
         page_contract = json.loads(
             (ACCESS_ROOT / "contracts/page-commands.v1.json").read_text(encoding="utf-8")
@@ -2754,7 +2882,15 @@ class AuthoredContractTests(unittest.TestCase):
     def test_browser_preserves_empty_filters_and_hides_unsupported_routes(self) -> None:
         actions = (ACCESS_ROOT / "web/src/query-operations.ts").read_text(encoding="utf-8")
         page = (ACCESS_ROOT / "web/src/main.ts").read_text(encoding="utf-8")
-        self.assertIn('["__tos_none__"]', actions)
+        request_rules = (REPO_ROOT / "rust/crates/tos-web-rules/src/query_request.rs").read_text(encoding="utf-8")
+        path_rules = (REPO_ROOT / "rust/crates/tos-web-rules/src/path_query.rs").read_text(encoding="utf-8")
+        # The no-match sentinel is owned by the installed Rust rules; the
+        # browser forwards it for explicit empty filters rather than omitting them.
+        self.assertIn("requestRules().filter_empty(selected.length) ? [requestRules().empty_filter()]", actions)
+        self.assertIn("rules.filter_empty(selected.length) ? [rules.empty_filter()]", actions)
+        for rules in (request_rules, path_rules):
+            empty_filter = rules.split("pub fn empty_filter", 1)[1].split("}", 1)[0]
+            self.assertIn('"__tos_none__"', empty_filter)
         self.assertIn('state.mode === "philosophy"', page)
         self.assertGreaterEqual(page.count("state.activeLayers.size === 0"), 1)
         self.assertGreaterEqual(page.count("state.activePredicates.size === 0"), 1)

@@ -342,7 +342,7 @@
       "layer": "software-foundation",
       "mode": "blocking",
       "owner_surface": "rust/README.md",
-      "purpose": "Check pinned native and WASM builds, formatting, independent fixture tests, isolated native install, and generated WEB.1 bindings in a real Node host for Rust source changes.",
+      "purpose": "Check pinned native and WASM builds, formatting, exact conformance product provenance, complete fixture tests, isolated native install, and generated WEB.1 bindings in a real Node host for Rust source changes.",
       "command_sequence": "rust_workspace",
       "failure_route": "rust/README.md",
       "does_not_own": [
@@ -380,8 +380,210 @@
         "command": ["cargo", "fmt", "--all", "--check"]
       },
       {
-        "label": "test Rust workspace",
-        "command": ["cargo", "test", "--workspace", "--locked"]
+        "label": "build exact native schema worker for source-cut fixtures",
+        "command": ["cargo", "build", "--locked", "-p", "tos-validation", "--bin", "tos-schema-worker"]
+      },
+      {
+        "label": "build exact native owner CLI for process-cold fixtures",
+        "command": ["cargo", "build", "--locked", "-p", "tos-command", "--bin", "tos-native-owner-command"]
+      },
+      {
+        "label": "build exact native prepared consumer for conformance fixtures",
+        "command": ["cargo", "build", "--locked", "-p", "tos-access", "--bin", "tos-access"]
+      },
+      {
+        "label": "compile exact Rust conformance test image",
+        "command": ["cargo", "test", "--no-run", "--workspace", "--locked", "--message-format=json"]
+      },
+      {
+        "label": "test Rust workspace remainder excluding conformance and isolated process-cold fixtures",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--no-fail-fast", "--exclude", "tos-conformance", "--",
+          "--nocapture",
+          "--skip", "source_creation_store::revision_publication::tests::native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery",
+          "--skip", "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
+          "--skip", "source_creation_store::work_expression::tests::real_pending_refuses_changed_dependency_then_resumes_or_rolls_back"
+        ]
+      },
+      {
+        "label": "test Rust conformance root and source families",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance", "--",
+          "--nocapture",
+          "--skip", "command_form_cases::",
+          "--skip", "command_record_cases::",
+          "--skip", "command_claim_cases::",
+          "--skip", "command_collection_cases::",
+          "--skip", "command_item_cases::",
+          "--skip", "command_work_cases::",
+          "--skip", "command_text_cases::",
+          "--skip", "command_claim_publication_cases::",
+          "--skip", "command_public_text_cases::",
+          "--skip", "command_responsibility_cases::",
+          "--skip", "command_edition_cases::",
+          "--skip", "command_artifact_cases::",
+          "--skip", "command_object_link_cases::",
+          "--skip", "command_legacy_claim_cases::",
+          "--skip", "command_metadata_publication_cases::",
+          "--skip", "command_owner_text_cases::",
+          "--skip", "command_private_claim_cases::",
+          "--skip", "command_private_profile_cases::"
+        ]
+      },
+      {
+        "label": "test Rust conformance Form and Record families",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance", "command_", "--",
+          "--nocapture",
+          "--skip", "command_claim_cases::",
+          "--skip", "command_collection_cases::",
+          "--skip", "command_item_cases::",
+          "--skip", "command_work_cases::",
+          "--skip", "command_text_cases::",
+          "--skip", "command_claim_publication_cases::",
+          "--skip", "command_public_text_cases::",
+          "--skip", "command_responsibility_cases::",
+          "--skip", "command_edition_cases::",
+          "--skip", "command_artifact_cases::",
+          "--skip", "command_object_link_cases::",
+          "--skip", "command_legacy_claim_cases::",
+          "--skip", "command_metadata_publication_cases::",
+          "--skip", "command_owner_text_cases::",
+          "--skip", "command_private_claim_cases::",
+          "--skip", "command_private_profile_cases::"
+        ]
+      },
+      {
+        "label": "test Rust conformance Claim publication families",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance", "command_", "--",
+          "--nocapture", "--test-threads=1",
+          "--skip", "command_form_cases::",
+          "--skip", "command_record_cases::",
+          "--skip", "command_collection_cases::",
+          "--skip", "command_item_cases::",
+          "--skip", "command_work_cases::",
+          "--skip", "command_text_cases::",
+          "--skip", "command_public_text_cases::",
+          "--skip", "command_responsibility_cases::",
+          "--skip", "command_edition_cases::",
+          "--skip", "command_artifact_cases::",
+          "--skip", "command_object_link_cases::",
+          "--skip", "command_legacy_claim_cases::",
+          "--skip", "command_metadata_publication_cases::",
+          "--skip", "command_owner_text_cases::",
+          "--skip", "command_private_claim_cases::",
+          "--skip", "command_private_profile_cases::",
+          "--skip", "command_claim_cases::claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admission",
+          "--skip", "command_claim_cases::initial_claim_creation_publishes_five_native_files_and_cold_replays",
+          "--skip", "command_claim_cases::initial_collection_order_binds_retained_version_and_cold_replays"
+        ]
+      },
+      {
+        "label": "test Rust conformance lifecycle families",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance", "command_", "--",
+          "--nocapture",
+          "--skip", "command_form_cases::",
+          "--skip", "command_record_cases::",
+          "--skip", "command_claim_cases::",
+          "--skip", "command_text_cases::",
+          "--skip", "command_claim_publication_cases::",
+          "--skip", "command_public_text_cases::",
+          "--skip", "command_responsibility_cases::",
+          "--skip", "command_metadata_publication_cases::",
+          "--skip", "command_owner_text_cases::",
+          "--skip", "command_private_claim_cases::",
+          "--skip", "command_private_profile_cases::",
+          "--skip", "command_artifact_cases::native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes"
+        ]
+      },
+      {
+        "label": "test Rust conformance text and private families",
+        "command_timeout_ms": 900000,
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance", "command_", "--",
+          "--nocapture",
+          "--skip", "command_form_cases::",
+          "--skip", "command_record_cases::",
+          "--skip", "command_claim_cases::",
+          "--skip", "command_collection_cases::",
+          "--skip", "command_item_cases::",
+          "--skip", "command_work_cases::",
+          "--skip", "command_edition_cases::",
+          "--skip", "command_artifact_cases::",
+          "--skip", "command_object_link_cases::",
+          "--skip", "command_legacy_claim_cases::",
+          "--skip", "command_claim_publication_cases::"
+        ]
+      },
+      {
+        "label": "test Rust segment conformance target",
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "segment-conformance", "--",
+          "--nocapture"
+        ]
+      },
+      {
+        "label": "test isolated process-cold source revision fixture",
+        "command": [
+          "cargo", "test", "--locked", "-p", "tos-command", "--lib",
+          "source_creation_store::revision_publication::tests::native_record_revisions_cover_fixed_handlers_process_cold_and_exact_recovery",
+          "--", "--exact"
+        ]
+      },
+      {
+        "label": "test isolated process-cold Work37 fixture",
+        "command": [
+          "cargo", "test", "--locked", "-p", "tos-command", "--lib",
+          "source_creation_store::work_expression::tests::native_work37_cli_creates_process_cold_replays_and_recovers_exact_pending",
+          "--", "--exact"
+        ]
+      },
+      {
+        "label": "test isolated process-cold Work recovery fixture",
+        "command": [
+          "cargo", "test", "--locked", "-p", "tos-command", "--lib",
+          "source_creation_store::work_expression::tests::real_pending_refuses_changed_dependency_then_resumes_or_rolls_back",
+          "--", "--exact"
+        ]
+      },
+      {
+        "label": "test isolated conformance Artifact fixture",
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance",
+          "command_artifact_cases::native_artifact_cli_describes_prepares_creates_and_cold_replays_exact_bytes",
+          "--", "--exact", "--nocapture"
+        ]
+      },
+      {
+        "label": "test isolated conformance Claim successor fixture",
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance",
+          "command_claim_cases::claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admission",
+          "--", "--exact", "--nocapture"
+        ]
+      },
+      {
+        "label": "test isolated conformance initial Claim fixture",
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance",
+          "command_claim_cases::initial_claim_creation_publishes_five_native_files_and_cold_replays",
+          "--", "--exact", "--nocapture"
+        ]
+      },
+      {
+        "label": "test isolated conformance Collection order fixture",
+        "command": [
+          "cargo", "test", "--workspace", "--locked", "--test", "conformance",
+          "command_claim_cases::initial_collection_order_binds_retained_version_and_cold_replays",
+          "--", "--exact", "--nocapture"
+        ]
       },
       {
         "label": "check WASM foundation target",
@@ -394,6 +596,10 @@
       {
         "label": "install native exact reader outside checkout",
         "command": ["python", "scripts/verify_rust_reader_install.py"]
+      },
+      {
+        "label": "install native mechanics executor and verify process custody",
+        "command": ["python", "scripts/verify_rust_mechanics_install.py"]
       },
       {
         "label": "verify generated WEB.1 binding in Node WebAssembly host",
@@ -654,6 +860,7 @@
         "command": [
           "python",
           "scripts/build_epistemic_evidence_projection.py",
+          "--native",
           "--check"
         ]
       },
@@ -661,7 +868,8 @@
         "label": "validate epistemic evidence projection",
         "command": [
           "python",
-          "scripts/validate_epistemic_evidence_projection.py"
+          "scripts/validate_epistemic_evidence_projection.py",
+          "--native"
         ]
       },
       {
@@ -871,6 +1079,7 @@
         "command": [
           "python",
           "scripts/build_epistemic_evidence_projection.py",
+          "--native",
           "--check"
         ]
       },
@@ -878,7 +1087,8 @@
         "label": "validate epistemic evidence projection",
         "command": [
           "python",
-          "scripts/validate_epistemic_evidence_projection.py"
+          "scripts/validate_epistemic_evidence_projection.py",
+          "--native"
         ]
       },
       {
@@ -968,7 +1178,7 @@
         ]
       },
       {
-        "label": "run tests",
+        "label": "run tests: access and source contracts",
         "command": [
           "python",
           "-m",
@@ -979,7 +1189,122 @@
           "--strict-markers",
           "-m",
           "not data_release",
-          "access/tests",
+          "access/tests/test_access_contract.py",
+          "access/tests/test_addressed_replacement.py",
+          "access/tests/test_builder_ownership.py",
+          "access/tests/test_catalog_index.py",
+          "access/tests/test_cloudflare_tunnel_deploy.py",
+          "access/tests/test_compact_lens_carrier.py",
+          "access/tests/test_compact_lens_store.py",
+          "access/tests/test_compressed_search_bootstrap.py",
+          "access/tests/test_compressed_search_bulk.py",
+          "access/tests/test_compressed_search_store.py",
+          "access/tests/test_core_partitioned_philosophy.py",
+          "access/tests/test_coverage_forwarding.py",
+          "access/tests/test_data_access.py",
+          "access/tests/test_data_snapshot.py",
+          "access/tests/test_exploration.py",
+          "access/tests/test_exploration_origin.py",
+          "access/tests/test_http_security.py",
+          "access/tests/test_human_form_codec.py",
+          "access/tests/test_incremental_runtime.py",
+          "access/tests/test_indexed_lens.py",
+          "access/tests/test_indexed_search_contract.py",
+          "access/tests/test_knowledge_compile.py"
+        ]
+      },
+      {
+        "label": "run tests: knowledge, maintenance, and projection",
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "-p",
+          "no:cacheprovider",
+          "--strict-markers",
+          "-m",
+          "not data_release",
+          "access/tests/test_knowledge_contract.py",
+          "access/tests/test_knowledge_scene_focus.py",
+          "access/tests/test_lens_membership_index.py",
+          "access/tests/test_native_io.py",
+          "access/tests/test_offline_maintenance.py",
+          "access/tests/test_offline_prepare.py",
+          "access/tests/test_prepared_catalog.py",
+          "access/tests/test_prepared_catchup_runtime.py",
+          "access/tests/test_prepared_cli.py",
+          "access/tests/test_prepared_delta_runtime.py",
+          "access/tests/test_prepared_delta_wal.py",
+          "access/tests/test_prepared_neighborhood.py",
+          "access/tests/test_prepared_publication.py",
+          "access/tests/test_prepared_semantics.py",
+          "access/tests/test_prepared_source_binding.py",
+          "access/tests/test_prepared_source_dependencies.py",
+          "access/tests/test_processing.py",
+          "access/tests/test_processing_closure.py",
+          "access/tests/test_projection_diff.py",
+          "access/tests/test_projection_mutation.py"
+        ]
+      },
+      {
+        "label": "run tests: published reads and source navigation",
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "-p",
+          "no:cacheprovider",
+          "--strict-markers",
+          "-m",
+          "not data_release",
+          "access/tests/test_projection_snapshot_diff.py",
+          "access/tests/test_projection_store.py",
+          "access/tests/test_published_exploration.py",
+          "access/tests/test_published_lens.py",
+          "access/tests/test_published_read_model.py",
+          "access/tests/test_published_search.py",
+          "access/tests/test_published_search_adapters.py",
+          "access/tests/test_published_temporal.py",
+          "access/tests/test_query_store.py",
+          "access/tests/test_readable_context.py",
+          "access/tests/test_reading_access.py",
+          "access/tests/test_release_pair.py",
+          "access/tests/test_release_state.py",
+          "access/tests/test_search_read_model.py",
+          "access/tests/test_search_reverse_codec.py",
+          "access/tests/test_semantic_index.py",
+          "access/tests/test_separate_query_compiler_roots.py",
+          "access/tests/test_software_boundary.py",
+          "access/tests/test_software_bundle.py",
+          "access/tests/test_source_assembly_normalization.py",
+          "access/tests/test_source_claim_catalog.py",
+          "access/tests/test_source_metadata_catalog.py",
+          "access/tests/test_source_metadata_publication.py",
+          "access/tests/test_source_metadata_publication_profiles.py",
+          "access/tests/test_source_navigation_bootstrap_runtime.py",
+          "access/tests/test_source_navigation_delta_runtime.py",
+          "access/tests/test_source_navigation_file_rights.py"
+        ]
+      },
+      {
+        "label": "run tests: remaining access and software support",
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "-p",
+          "no:cacheprovider",
+          "--strict-markers",
+          "-m",
+          "not data_release",
+          "access/tests/test_source_navigation_rows.py",
+          "access/tests/test_source_read.py",
+          "access/tests/test_source_read_owner.py",
+          "access/tests/test_streaming_wheel.py",
+          "access/tests/test_temporal_comparison.py",
           "tests/test_validation_lanes.py",
           "tests/test_acquisition_batch.py",
           "tests/test_acquisition_handoff_adapter.py",
@@ -1032,13 +1357,67 @@
         ]
       },
       {
-        "label": "browser behavior",
+        "label": "browser behavior: WebMCP reading and metadata cases",
         "command": [
           "python",
           "-m",
           "pytest",
           "-q",
-          "access/e2e/test_webmcp.py"
+          "access/e2e/test_webmcp.py::test_real_browser_webmcp_loop_and_stale_deixis",
+          "access/e2e/test_webmcp.py::test_real_browser_source_gap_research_stages_reviewable_route",
+          "access/e2e/test_webmcp.py::test_real_browser_sources_panel_reads_frozen_metadata_record",
+          "access/e2e/test_webmcp.py::test_source_metadata_remains_when_native_discovery_fails"
+        ]
+      },
+      {
+        "label": "browser behavior: search and continuation cases",
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "access/e2e/test_webmcp.py::test_research_seeded_locale_and_panel_sequence",
+          "access/e2e/test_webmcp.py::test_real_browser_cancellation_reload_and_deep_link",
+          "access/e2e/test_webmcp.py::test_real_browser_prepared_search_preserves_engine_and_selection",
+          "access/e2e/test_webmcp.py::test_observatory_prepared_human_agent_search_and_continuation"
+        ]
+      },
+      {
+        "label": "browser behavior: visibility and packaged-entry cases",
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "access/e2e/test_webmcp.py::test_research_visibility_refreshes_links_and_preserves_source_disclosure",
+          "access/e2e/test_webmcp.py::test_built_research_entry_persists_exact_shelf_and_camera",
+          "access/e2e/test_webmcp.py::test_research_catalog_limit_explains_failed_connection_and_can_retry",
+          "access/e2e/test_webmcp.py::test_observatory_research_and_saved_route_links_use_packaged_entry"
+        ]
+      },
+      {
+        "label": "browser behavior: lens, fallback and draft cases",
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "access/e2e/test_webmcp.py::test_research_lens_preview_save_apply_and_return",
+          "access/e2e/test_webmcp.py::test_real_browser_graceful_without_webmcp",
+          "access/e2e/test_webmcp.py::test_corpus_note_exit_recovers_exact_draft",
+          "access/e2e/test_webmcp.py::test_research_shelf_collection_delete_is_atomic"
+        ]
+      },
+      {
+        "label": "browser behavior: scoped lens and reader delivery cases",
+        "command": [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "access/e2e/test_webmcp.py::test_lens_large_relation_area_requires_scope_confirmation",
+          "access/e2e/test_webmcp.py::test_native_delivery_export_preserves_identity_and_respects_expiry",
+          "access/e2e/test_webmcp.py::test_reader_positions_survive_pagehide_before_debounce"
         ]
       }
     ],

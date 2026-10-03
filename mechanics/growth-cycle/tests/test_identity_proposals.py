@@ -182,11 +182,11 @@ class IdentityProposalCommandTests(unittest.TestCase):
             yield root, owner, config, claim, request, rebuild, graph_fixture, paths
 
     def create(self, owner, request):
-        preview = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+        preview = commands.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
             'operation': 'prepare-create', 'claims': request['claims']})
         request.update(expected_configuration=preview['owner_configuration'],
             expected_dependencies=preview['expected_dependencies'], expected_inputs=preview['source_bindings'])
-        return commands.run_local_command(owner, request), preview
+        return commands.run_legacy_oracle_command(owner, request), preview
 
     def test_create_correct_replay_exact_history_forms_and_old_subjects(self):
         from claim_version_reader import ClaimVersionReader
@@ -195,7 +195,7 @@ class IdentityProposalCommandTests(unittest.TestCase):
             before = [path.read_bytes() for path in paths]
             created, initial = self.create(owner, request)
             self.assertFalse(created['grants_admission'])
-            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            self.assertTrue(commands.run_legacy_oracle_command(owner, request)['replayed'])
             exact = created['receipt']['claims'][0]
             projection = rebuild()
             graph, _, _ = fixture.historical_knowledge(root, projection)
@@ -234,19 +234,19 @@ class IdentityProposalCommandTests(unittest.TestCase):
             change = {'schema_version': 'tos_local_source_command_v1', 'operation': 'prepare-revise',
                 'fields': {'object': changed_value}, 'reason': 'Correct the artificial proposal grounds only.',
                 'forms': [{'form_id': 'tos.form.synthetic-identity-proposal', 'field_id': 'claim.statement'}]}
-            preview = commands.run_local_command(owner, change)
+            preview = commands.run_legacy_oracle_command(owner, change)
             correction = {**change, 'operation': 'claim.revise', 'command_id': 'synthetic:identity-correct',
                 'expected_configuration': preview['owner_configuration'], 'expected_source': preview['source'],
                 'expected_revision': preview['revision'], 'expected_dependencies': preview['expected_dependencies'],
                 'expected_inputs': preview['source_bindings']}
-            corrected = commands.run_local_command(owner, correction)
-            self.assertTrue(commands.run_local_command(owner, correction)['replayed'])
+            corrected = commands.run_legacy_oracle_command(owner, correction)
+            self.assertTrue(commands.run_legacy_oracle_command(owner, correction)['replayed'])
             self.assertEqual(corrected['source']['version'], 2)
             materialized = corrected['materializations'][0]
             self.assertFalse(materialized['standalone_reading'])
             self.assertIsNone(materialized['admission'])
             self.assertEqual(materialized['context'][0]['value']['object'], changed_value)
-            inspected = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+            inspected = commands.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
                 'operation': 'inspect-version', 'source': exact})
             self.assertEqual(inspected['record'], claim)
             rebuild()
@@ -259,7 +259,7 @@ class IdentityProposalCommandTests(unittest.TestCase):
                 self.assertTrue(proposals.eligible_type(SourceClaimProfiles(root).entities,
                     resolved['descriptor']['type_id'], reader=proposals.reader_for_claim(claim)))
             owner.write_text(json.dumps(config))
-            self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+            self.assertTrue(commands.run_legacy_oracle_command(owner, request)['replayed'])
 
     def test_changed_topology_is_a_new_exact_successor_proposal_not_subject_succession(self):
         from claim_version_reader import ClaimVersionReader
@@ -286,7 +286,7 @@ class IdentityProposalCommandTests(unittest.TestCase):
             denied = {**next_config, 'allowed_related_claim_refs': []}
             owner.write_text(json.dumps(denied))
             with self.assertRaises(PermissionError):
-                commands.run_local_command(owner, next_request)
+                commands.run_legacy_oracle_command(owner, next_request)
             self.assertEqual(ClaimVersionReader(root).resolve(prior)['record'], claim)
 
     def test_creation_rejects_bad_exact_ref_and_never_touches_participants(self):
@@ -426,6 +426,6 @@ class SemanticIdentityProposalCommandTests(IdentityProposalCommandTests):
             revoked = {**config, 'allowed_object_refs': config['allowed_object_refs'][1:]}
             owner.write_text(json.dumps(revoked))
             with self.assertRaises(PermissionError):
-                commands.run_local_command(owner, request)
+                commands.run_legacy_oracle_command(owner, request)
             self.assertFalse(created['grants_admission'])
             self.assertEqual(paths[0].read_bytes(), original)

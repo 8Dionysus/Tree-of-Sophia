@@ -641,7 +641,7 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
   const dispose=()=>{if(disposed)return;if(resumeEnabled)void saveResume().finally(()=>viewStore.close());else viewStore.close();disposed=true;clearTimeout(resumeTimer);searchGeneration++;disposeSourceCommandPanel();research.destroy();builder.destroy();corpus.destroy();controller.dispose();root.removeEventListener('click',click);root.removeEventListener('pointerup',scheduleResume);root.removeEventListener('wheel',scheduleResume);document.removeEventListener('keydown',keydown);document.removeEventListener('visibilitychange',visibility);};
   window.addEventListener('pagehide',event=>{if(!event.persisted)dispose();});
   reflect(controller.state());
-  const discovery=await controller.start();if(discovery){root.dataset.ready='true';
+  const discovery=await controller.start();if(discovery){
     const id=url.searchParams.get('focus'),kind=url.searchParams.get('kind')??'node',shelfRoute=url.searchParams.get('shelfRoute');
     if(shelfRoute){try{const record=await research.shelf.store.get(shelfRoute);if(record?.type!=='route')throw new Error(word('Сохранённый маршрут не найден.','The saved route was not found.'));await openSavedRoute(record.target);}catch(error){report(error);showSearch();}}
     else if(id&&['node','relation'].includes(kind)){
@@ -671,6 +671,9 @@ export async function mountLiveResearch(root,{session,skyFactory=mountConstructo
       }else {showSearch();if(saved)showNotice(word('Сохранённая область относится к прежней версии данных.','The saved area belongs to an earlier data version.'));}
     }
     resumeEnabled=true;
+    // Discovery alone is not readiness: restore the requested route and saved
+    // selection before consumers observe an idle, ready research surface.
+    if(!disposed)root.dataset.ready='true';
   }else if(!disposed){
     const body=modal(t('discoveryFailed'),'connection');
     if(body){

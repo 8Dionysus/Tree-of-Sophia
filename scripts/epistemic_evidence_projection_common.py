@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Build and validate the public-safe ToS Evidence Lens projection."""
+"""Retained independent Python Evidence Lens reference oracle.
+
+Maintained builder/validator commands and the corpus worker select installed
+Rust. These callable functions remain for differential fixtures and explicit
+--legacy-oracle commands; they are not an automatic production fallback.
+Source, rights, review and canon authority remain with their authored owners.
+"""
 
 from __future__ import annotations
 

@@ -12,7 +12,13 @@ from unittest.mock import patch
 from tos_access import knowledge as k
 from tos_access import prepared_semantics as joined
 from tos_access.catalog_semantics import CatalogInputs
-from tos_access.prepared_publication import PreparedChange, PublicationLimits, publish_prepared, SOURCE_ORDER_STRIDE
+from tos_access.prepared_publication import (
+    PreparedChange,
+    configure_sqlite_temp_store,
+    PublicationLimits,
+    reference_publish_prepared as publish_prepared,
+    SOURCE_ORDER_STRIDE,
+)
 from tos_access.published_read_model import PublishedKnowledgeReadModel, PublishedSnapshotConflict
 from tos_access.published_search import PublishedSearchService
 from tos_access.published_lens import PublishedLensService
@@ -21,6 +27,8 @@ from test_indexed_lens import lens
 
 
 class PreparedSemanticTests(unittest.TestCase):
+    sqlite_temp_store = None
+
     @classmethod
     def setUpClass(cls):
         root = Path(__file__).resolve().parents[2]
@@ -36,9 +44,11 @@ class PreparedSemanticTests(unittest.TestCase):
         self.graph['counts'] = {'nodes': 3, 'relations': 1, 'unknown': {'not_a_number': False},
                                'semantic_validation': self.full(self.graph)}
         self.catalog = self.catalogue(self.graph)
-        self.binding = publish_prepared(self.path, graph=self.graph, catalog=self.catalog)
+        self.binding = publish_prepared(self.path, graph=self.graph, catalog=self.catalog,
+                                        sqlite_temp_store=self.sqlite_temp_store)
         self.db = sqlite3.connect(self.path, isolation_level=None)
         self.addCleanup(self.db.close)
+        configure_sqlite_temp_store(self.db, self.sqlite_temp_store)
 
     def full(self, graph):
         return k.validate_knowledge_semantics(graph, self.entities, self.relations)

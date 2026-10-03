@@ -1,3 +1,4 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {test,expect} from 'vitest';
 import {createHash} from 'node:crypto';
 import {verifyReadableContext,readableContextFor} from './readable-context.mjs';

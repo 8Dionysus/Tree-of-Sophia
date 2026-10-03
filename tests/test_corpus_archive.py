@@ -17,8 +17,10 @@ if str(SCRIPTS) not in sys.path:
 
 from corpus_archive import (  # noqa: E402
     CorpusArchiveError,
+    SelectedSoftwareComponents,
     capture_git,
     restore_capture,
+    select_software_components,
     verify_capture,
 )
 
@@ -106,6 +108,37 @@ class CorpusArchiveTests(unittest.TestCase):
         self.assertEqual((destination / "src/run.sh").stat().st_mode & 0o777, 0o755)
         self.assertEqual((destination / "src/a.txt").stat().st_mode & 0o777, 0o644)
         self.assertTrue((destination / "restore-receipt.json").is_file())
+        components = select_software_components(capture, destination,
+            source_git_commit=manifest['source_git_commit'],
+            source_git_tree=manifest['source_git_tree'],
+            capture_manifest_sha256=hashlib.sha256((capture / 'capture.json').read_bytes()).hexdigest(),
+            component_paths=['src/nested/b.txt'])
+        digest = hashlib.sha256(b'beta\n').hexdigest()
+        with self.assertRaises(TypeError):
+            SelectedSoftwareComponents(destination, components.capture, {'src/nested/b.txt': (digest, 5)})
+        with self.assertRaises(AttributeError):
+            components.capture = ('0' * 40, '0' * 40, '0' * 64)
+        self.assertEqual(components.resolve_current('src/nested/b.txt', digest), destination / 'src/nested/b.txt')
+        self.assertIsNone(components.resolve_current('src/a.txt', hashlib.sha256(b'alpha\n').hexdigest()))
+        self.assertIsNone(components.resolve_current('src/nested/b.txt', '0' * 64))
+        import validate_source_witness_foundation as foundation
+        class UnverifiedComponents(SelectedSoftwareComponents):
+            def __init__(self):
+                pass
+            def _factory_bound(self):
+                return True
+        with self.assertRaises(ValueError):
+            with foundation.selected_provenance_software(UnverifiedComponents()):
+                self.fail('unverified subclass entered selected capture scope')
+        self.assertIsNone(foundation._recorded_provenance_input_path(self.repo, 'src/nested/b.txt', digest))
+        with foundation.selected_provenance_software(components):
+            self.assertEqual(foundation._recorded_provenance_input_path(self.repo, 'src/nested/b.txt', digest), destination / 'src/nested/b.txt')
+            self.assertIsNone(foundation._recorded_provenance_input_path(self.repo, 'src/nested/b.txt', '0' * 64))
+            current = destination / 'src/nested/b.txt'
+            current.unlink()
+            current.symlink_to(self.repo / 'src/nested/b.txt')
+            self.assertIsNone(foundation._recorded_provenance_input_path(self.repo, 'src/nested/b.txt', digest))
+        self.assertIsNone(foundation._recorded_provenance_input_path(self.repo, 'src/nested/b.txt', digest))
 
     def test_capture_is_deterministic_and_prefix_boundary_is_exact(self) -> None:
         first = self._capture("first", prefixes=["src/"])
@@ -148,6 +181,31 @@ class CorpusArchiveTests(unittest.TestCase):
         with tarfile.open(capture / "source.tar.gz", mode="r:gz") as archive:
             self.assertEqual(archive.getnames(), [member["path"] for member in members])
             self.assertEqual(archive.extractfile("src/nested/keep.txt").read(), b"kept\n")
+
+    def test_partial_clone_capture_needs_only_selected_blobs(self) -> None:
+        self._commit_files({
+            "src/payload/secret.txt": b"excluded prefix sentinel\n",
+            "src/.owner-local/private.txt": b"excluded part sentinel\n",
+        })
+        expected = self._capture(
+            "full", exclude_prefixes=["src/payload"], exclude_path_parts=[".owner-local"]
+        )
+        _git(self.repo, "config", "uploadpack.allowFilter", "true")
+        partial = self.root / "partial"
+        subprocess.run(
+            ["git", "clone", "--quiet", "--filter=blob:none", "--no-checkout",
+             self.repo.as_uri(), str(partial)], check=True, capture_output=True,
+        )
+        _git(partial, "checkout", "HEAD", "--", "src/a.txt", "src/nested/b.txt", "src/run.sh")
+        # No remote is available to fetch either excluded or unrelated blobs.
+        # A selected-size capture still succeeds with exact bytes and modes.
+        self.repo.rename(self.root / "unavailable-origin")
+        actual = self.root / "partial-capture"
+        capture_git(partial, self.commit, ["src"], actual,
+                    exclude_prefixes=["src/payload"], exclude_path_parts=[".owner-local"])
+        verify_capture(actual)
+        for name in ("source.tar.gz", "members.jsonl", "capture.json"):
+            self.assertEqual((actual / name).read_bytes(), (expected / name).read_bytes())
 
     def test_v2_verifier_rejects_forged_excluded_members_after_outer_rehash(self) -> None:
         self._commit_files(

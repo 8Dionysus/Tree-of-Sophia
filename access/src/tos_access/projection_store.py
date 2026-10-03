@@ -8,7 +8,7 @@ This module has no source, semantic, rights, or runtime admission authority.
 from __future__ import annotations
 
 from collections import OrderedDict
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 import gzip
 import hashlib
@@ -308,21 +308,31 @@ def write_projection(path: Path, header: dict[str, Any], collections: Mapping[st
 class ProjectionReader:
     """Read one immutable manifest snapshot with a byte-bounded part cache."""
 
-    def __init__(self, path: Path, *, cache_bytes: int = DEFAULT_CACHE_BYTES):
+    def __init__(self, path: Path, *, cache_bytes: int = DEFAULT_CACHE_BYTES,
+                 before_read: Callable[[int, int], None] | None = None):
+        # Optional caller admission sees declared stored/decoded bytes before
+        # each physical read. Ordinary query readers retain their old behavior.
         self.path = Path(path).absolute()
+        self._before_read = before_read
         _check_selected_data(self.path)
         if self.path.is_symlink() or not self.path.is_file():
             raise ProjectionStoreError("projection root must be a regular file")
-        if self.path.stat().st_size > MAX_ROOT_BYTES:
+        root_size = self.path.stat().st_size
+        if root_size > MAX_ROOT_BYTES:
             raise ProjectionStoreError("projection root exceeds bound")
-        with self.path.open("rb") as stream:
-            self._root_bytes = stream.read(MAX_ROOT_BYTES + 1)
-        if len(self._root_bytes) > MAX_ROOT_BYTES:
-            raise ProjectionStoreError("projection root exceeds bound")
+        if self._before_read is not None:
+            self._before_read(root_size + 1, root_size + 1)
+        with self.path.open("rb", buffering=0) as stream:
+            self._root_bytes = stream.read(root_size + 1)
+        if len(self._root_bytes) != root_size:
+            raise ProjectionStoreError("projection root size changed during selection")
         self._initialize_manifest(cache_bytes)
 
     def _initialize_manifest(self, cache_bytes):
         """Validate already bounded root bytes; also used by immutable views."""
+        # Snapshot readers initialize retained bytes directly and never select
+        # a physical root. Their ordinary part reads have no extra hook.
+        self._before_read = getattr(self, "_before_read", None)
         self.manifest = _strict_json(self._root_bytes)
         root = self.manifest
         if (not isinstance(root, dict) or set(root) != {"schema_version", "logical_schema", "header", "limits", "collections"}
@@ -396,7 +406,9 @@ class ProjectionReader:
             raise ProjectionStoreError(f"missing or symlink projection part: {path}")
         if path.stat().st_size != descriptor["size_bytes"]:
             raise ProjectionStoreError(f"projection part size mismatch: {path}")
-        with path.open("rb") as stream:
+        if self._before_read is not None:
+            self._before_read(descriptor["size_bytes"] + 1, descriptor["decoded_bytes"] + 1)
+        with path.open("rb", buffering=0) as stream:
             stored = stream.read(descriptor["size_bytes"] + 1)
         if len(stored) != descriptor["size_bytes"]:
             raise ProjectionStoreError("projection part size changed while reading")
@@ -548,16 +560,21 @@ class ProjectionReader:
             raise ProjectionStoreError("projection snapshot changed during operation")
 
 
-def is_partitioned(path: Path) -> bool:
+def is_partitioned(path: Path, *, before_read: Callable[[int, int], None] | None = None) -> bool:
     """Small-root probe; a legacy monolith is never read just for detection."""
     path = Path(path)
     _check_selected_data(path)
-    if not path.is_file() or path.stat().st_size > MAX_ROOT_BYTES:
+    if not path.is_file():
         return False
-    with path.open("rb") as stream:
-        raw = stream.read(MAX_ROOT_BYTES + 1)
-    if len(raw) > MAX_ROOT_BYTES:
+    size = path.stat().st_size
+    if size > MAX_ROOT_BYTES:
         return False
+    if before_read is not None:
+        before_read(size + 1, size + 1)
+    with path.open("rb", buffering=0) as stream:
+        raw = stream.read(size + 1)
+    if len(raw) != size:
+        raise ProjectionStoreError("projection root size changed during detection")
     value = _strict_json(raw)
     return isinstance(value, dict) and value.get("schema_version") == FORMAT
 

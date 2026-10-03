@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import json
 import subprocess
-import sys
+import os
+import shutil
 import unittest
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -20,6 +21,13 @@ SOURCE_PDF = REPO / (
 )
 
 
+def native_command(action: str) -> list[str]:
+    native = os.environ.get("TOS_NATIVE_PREPARED_CONSUMER_BIN") or shutil.which("tos")
+    if not native or not Path(native).is_absolute():
+        raise RuntimeError("installed native tos required; no Python producer fallback")
+    return [native, "structural-paragraph", "--source-root", str(REPO), action]
+
+
 def jsonl(name: str) -> list[dict]:
     return [json.loads(line) for line in (ROUTE / name).read_text().splitlines()]
 
@@ -27,8 +35,7 @@ def jsonl(name: str) -> list[dict]:
 class Antonovsky1911StructuralParagraphV2Tests(unittest.TestCase):
     def test_tracked_route_validates(self) -> None:
         completed = subprocess.run(
-            [sys.executable, "scripts/build_antonovsky_1911_structural_paragraph_v2.py",
-             "--validate-tracked"], cwd=REPO, capture_output=True, text=True)
+            native_command("--validate-tracked"), cwd=REPO, capture_output=True, text=True, timeout=185)
         self.assertEqual(completed.returncode, 0,
                          msg=f"stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}")
 
@@ -105,8 +112,8 @@ class Antonovsky1911StructuralParagraphV2Tests(unittest.TestCase):
         if not SOURCE_PDF.is_file():
             self.skipTest("exact local Antonovsky 1911 PDF is not present")
         completed = subprocess.run(
-            [sys.executable, "scripts/build_antonovsky_1911_structural_paragraph_v2.py", "--check"],
-            cwd=REPO, capture_output=True, text=True)
+            native_command("--check"),
+            cwd=REPO, capture_output=True, text=True, timeout=185)
         self.assertEqual(completed.returncode, 0,
                          msg=f"stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}")
 

@@ -19,23 +19,25 @@ https://github.com/user-attachments/assets/9a75a3a2-7033-4d86-822c-805efb07ef7a
 
 ## Quick start
 
-Install the validated standalone software archive with Python 3.11+ and select
-a compatible data snapshot separately. The software archive includes built
-browser assets; neither it nor a Git clone includes the production corpus.
-After extracting the archive, replace the example paths below with its location
-and the selected snapshot's `data` directory:
+Install the verified native Linux x86_64 software archive into a fresh user
+prefix. It includes built browser assets and needs no Python runtime. Software
+installation does not include or select a corpus.
 
 ```sh
-python3 -m venv .venv
-.venv/bin/python -m pip install '/path/to/extracted/access[mcp]'
-export TOS_DATA_ROOT=/path/to/snapshot/data
-.venv/bin/tos serve
+/path/to/verified/tos-access software install --archive /absolute/tos-software.zip \
+  --prefix /absolute/fresh-prefix \
+  --max-total-bytes ADMITTED_EXPANDED_BYTES --max-archive-bytes ADMITTED_ZIP_BYTES \
+  --max-members ADMITTED_MEMBER_COUNT --max-metadata-bytes ADMITTED_METADATA_BYTES
+/absolute/fresh-prefix/bin/tos serve 127.0.0.1:8080
 ```
 
-Open [http://127.0.0.1:8080](http://127.0.0.1:8080), or use `.venv/bin/tos mcp`
-for native MCP. The first opening verifies the selected snapshot; the server
-then reuses its reader. Installation and data selection are documented in
-[`access/README.md`](access/README.md#software-only-archive).
+Open [http://127.0.0.1:8080](http://127.0.0.1:8080), or use
+`/absolute/fresh-prefix/bin/tos mcp`. Without a selected owner, data capabilities
+report unavailable. Select admitted managed data explicitly with `--release-root`;
+software installation does not grant data access. Exact archive budgets, native
+receipt verification, rollback and the retained `tos-legacy` Python reference
+route are documented in
+[`access/README.md`](access/README.md#native-fresh-prefix-installation).
 
 For source development, use the [release and validation route](docs/RELEASING.md).
 CI selects checks for the changed surface: human documentation does not rebuild

@@ -750,10 +750,24 @@ record and, when materially distinct, a new item or item version.
 `resource-inventory.json` is a tracked mechanical companion generated from the
 exact payload digest. It enumerates PDF page geometry and image counts, bundled
 DjVu page order and geometry, EPUB member/spine order and member fixity, TEI
-page-break/division structure, or provider DjVu/ABBYY OCR page geometry and
-counts. Text-bearing EPUB, TEI, and OCR resources may carry only one-way
-normalized fingerprints and character or word counts. The inventory supplies text-free mechanical structure; reading, edition
-identification and rights assessment retain their owner routes.
+page-break/division structure, OSIS chapter/verse order, top-level JSON
+members/counts, or provider DjVu/ABBYY OCR page geometry and counts. Text-bearing
+EPUB, TEI, OSIS, JSON, plain-text, and OCR resources may carry only one-way
+fingerprints and bounded counts. The inventory supplies text-free mechanical
+structure; reading, edition identification and rights assessment retain their
+owner routes.
+
+The maintained `scripts/build_source_resource_inventories.py` entrypoint is a
+thin wire facade to the native `source_item_inventory` owner. Its existing
+`--repo-root`, `--payload-source-root`, `--event-date`, `--plain-text-profile`,
+and `--check` interface still writes or checks each Item's declared
+`resource-inventory.json`; the native owner verifies payload fixity and the
+source-resource-inventory schema before writing. The Rust owner covers PDF,
+DjVu, DjVu XML, ABBYY XML gzip, JP2 ZIP, scandata XML, EPUB, plain UTF-8/text,
+JSON, TEI, and OSIS profiles. It has no Python parser fallback. The preserved
+Python implementation is test-only at
+`tests/oracles/source_resource_inventory/` for migration fixtures and historical
+reference behavior.
 The bounded `plain_utf8_file_v1` profile adds one inert complete plain-text or
 Markdown file: exact raw-byte extent/fixity and UTF-8/BOM, code-point, newline
 and observed Unicode-form facts only. It neither rewrites bytes nor interprets
@@ -1389,6 +1403,38 @@ The payloads may be absent from a public clone, so the inventory builder is a
 focused local operation rather than a release-gate download. Its authoritative
 local invocation and explicit payload-root requirement live in
 [`scripts/AGENTS.md`](../../scripts/AGENTS.md).
+
+The native owner preserves the maintained selector table below. Rows are
+separate branches where the same media type selects a distinct profile. The
+registry JSON/XML branches use the existing JSON, TEI, and OSIS inventory
+owners; remaining profiles stay with the source-item inventory extension.
+
+| # | Maintained selector | Native owner and resulting profile |
+| --- | --- | --- |
+| 1 | `application/json` | `source_item_inventory::json_inventory` → `json_members_v1` |
+| 2 | `text/plain` with `plain_text_v1` | `plain_text_inventory` → `plain_text_v1` |
+| 3 | `text/plain` with `plain_utf8_file_v1` | `source_item_inventory::observe` → `plain_utf8_file_v1` |
+| 4 | `text/markdown` | `source_item_inventory::observe` → `plain_utf8_file_v1` |
+| 5 | `application/osis+xml` | `source_item_inventory::osis_inventory` → `osis_structure_v1` |
+| 6 | `application/pdf` | `pdf_inventory` → `pdf_pages_v1` |
+| 7 | `application/epub+zip` | `source_item_inventory::observe` → `epub_resources_v1` |
+| 8 | `application/zip` with `_jp2.zip` path | `jp2_zip_inventory` → `jp2_zip_pages_v1` |
+| 9 | `image/vnd.djvu` | `djvu_inventory` → `djvu_pages_v1` |
+| 10 | `application/vnd.djvu+xml` | `djvu_xml_inventory` → `djvu_xml_pages_v1` |
+| 11 | `application/gzip` with `.abbyy.xml.gz` path | `abbyy_inventory` → `abbyy_xml_pages_v1` |
+| 12 | `application/xml` or `text/xml` with `_scandata.xml` path | `scandata_inventory` → `scandata_pages_v1` |
+| 13 | `application/xml` or `text/xml` with an OSIS root | `source_item_inventory::osis_inventory` → `osis_structure_v1` |
+| 14 | `application/tei+xml` | `source_item_inventory::tei_inventory` → `tei_structure_v1` |
+| 15 | `application/xml` or `text/xml` containing TEI text | `source_item_inventory::tei_inventory` → `tei_structure_v1` |
+
+Only PDF geometry and image enumeration call external parsers. Under the
+bounded runner's fixed `/usr/bin` search path, the required programs are
+`/usr/bin/pdfinfo` and `/usr/bin/pdfimages`; the runner sends the exact
+fixity-checked PDF bytes on stdin to `pdfinfo -`,
+`pdfinfo -f 1 -l N -box -`, and `pdfimages -list -`. The binary DjVu parser,
+DjVu XML parser, scandata/TEI/OSIS XML parsers, ABBYY gzip/XML parser, and EPUB
+or JP2 ZIP member walkers run in the native owner and require no external
+DjVu or archive command.
 
 Omit `--check` only when intentionally regenerating tracked inventories from
 the same fixity-verified local payloads. The source-foundation validator checks

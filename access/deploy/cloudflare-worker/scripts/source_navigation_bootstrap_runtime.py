@@ -17,7 +17,51 @@ SCHEMA = 'tos_native_navigation_d1_bootstrap_v1'
 RIGHTS_SCHEMA = 'tos_source_navigation_rights_v1'
 
 
+def _native_root(view, expected_digest):
+    if not isinstance(view, ProjectionSnapshotView):
+        raise ValueError('independently admitted immutable source snapshot required')
+    return {'expected_sha256': expected_digest,
+        'namespace_path': str(view.namespace_path),
+        'root_json': view.root_bytes.decode('utf-8')}
+
+
 def build_source_navigation_integrity_sql(db, target, *, expected_d1_revision,
+        expected_source_revision, navigation_view, expected_navigation_sha256,
+        rights_view, expected_rights_sha256, rollback_target, limits=None,
+        projection_limits=None, header_only=False, native_capture=None):
+    """Return an actual native integrity receipt through explicit transport."""
+    forward, reverse = delta._native_output_paths(target, rollback_target)
+    request = {'schema': 'tos_edge_offline_capture_request_v1',
+        'operation': 'source-navigation-integrity', 'd1_database': 'borrowed',
+        'expected_d1_revision': expected_d1_revision,
+        'expected_source_revision': expected_source_revision,
+        'navigation_root': _native_root(navigation_view, expected_navigation_sha256),
+        'rights_root': _native_root(rights_view, expected_rights_sha256),
+        'header_only': header_only, 'forward_sql': str(forward),
+        'rollback_sql': None if reverse is None else str(reverse), 'manifest_json': None,
+        'limits': {'prepared': dict(vars(limits or delta.PreparedD1DeltaLimits())),
+                   'projection': dict(vars(projection_limits or MutationLimits()))}}
+    return delta._native_receipt(native_capture, request, {'d1_database': db},
+                                  'tos_edge_native_source_navigation_integrity_receipt_v1')
+
+
+def build_source_navigation_bootstrap_sql(db, prepared_db, target, *,
+        expected_d1_revision, prepared_binding, rights_view,
+        expected_rights_sha256, trusted_rights_sha256, rollback_target,
+        limits=None, projection_limits=None, native_capture=None):
+    """Return native bootstrap output; source and rights admission stay upstream."""
+    rights = _native_root(rights_view, expected_rights_sha256)
+    rights['trusted_sha256'] = trusted_rights_sha256
+    request = delta._native_transition_request('source-navigation-bootstrap',
+        target, rollback_target, expected_d1_revision, None, prepared_binding,
+        limits or delta.PreparedD1DeltaLimits(), rights_root=rights)
+    request['limits']['projection'] = dict(vars(projection_limits or MutationLimits()))
+    return delta._native_receipt(native_capture, request,
+        {'d1_database': db, 'after_prepared_database': prepared_db},
+        'tos_edge_native_source_navigation_bootstrap_receipt_v1')
+
+
+def build_source_navigation_integrity_sql_oracle(db, target, *, expected_d1_revision,
         expected_source_revision, navigation_view, expected_navigation_sha256,
         rights_view, expected_rights_sha256, rollback_target, limits=None,
         projection_limits=None, header_only=False):
@@ -173,7 +217,7 @@ def _own_digest():
     return hashlib.sha256(raw).hexdigest()
 
 
-def build_source_navigation_bootstrap_sql(db, prepared_db, target, *,
+def build_source_navigation_bootstrap_sql_oracle(db, prepared_db, target, *,
         expected_d1_revision, prepared_binding, rights_view,
         expected_rights_sha256, trusted_rights_sha256, rollback_target,
         limits=None, projection_limits=None):

@@ -103,7 +103,12 @@ function catalogIds(catalog,key){
 }
 
 export function compilePathQuery(value,context){
-  const paths=validatePathDraft(value);
+  return compileValidatedPathQuery(validatePathDraft(value),context);
+}
+
+// `compileDraft` already validated this newly normalized path list in the
+// same synchronous call. Direct callers enter through `compilePathQuery`.
+export function compileValidatedPathQuery(paths,context){
   // An empty path list is the legacy request: it must remain executable even
   // when an older catalog/schema has no path extension yet.
   if(!paths.length)return [];

@@ -7,6 +7,51 @@ registry 45 state their definitions through each subject’s properties, purpose
 and relations. Source-specific uncertainty and substantive negation remain
 part of the authored meaning.
 
+## Query vocabulary for derived readers
+
+[`query-vocabulary.v1.json`](query-vocabulary.v1.json) registers the source
+graphs, owner routes, adapter profiles, representative order, overview routes,
+exact declared-identity grammar, and safe filter grammar used by derived
+knowledge readers. Its initial seven registrations describe the existing
+knowledge producer; they are data for that producer, not a closed list of
+possible future sources. A further source needs an owner registration and a
+supported, versioned adapter. Unknown or duplicate registrations cannot be
+treated as empty input. Native kinds and predicates remain exact, with
+unmapped values retaining the registries' explicit fallback IDs rather than
+receiving a name-derived classification.
+
+The entity and relation registries continue to own type and relation
+definitions. Queryable properties come from the selected entity registry's
+`property_definitions`, including applicability, inheritance, value type and
+operators; this descriptor does not copy them. A zero-distance carrier group
+requires an exact declared entity ID under its selected grammar. A `same-as`
+relation remains a separately reviewed relation and never merges carriers by
+itself. Source dossier handles are issued by the source-navigation owner and
+are never reconstructed from transport IDs or paths.
+
+The authored descriptor has the structural contract
+[`knowledge-query-vocabulary.schema.json`](../../contracts/knowledge-query-vocabulary.schema.json).
+Selection of exact descriptor and registry bytes, source cut, graph and catalog
+roots, compiler generation, rights posture and cursor freshness belongs to a
+derived binding. Neither the descriptor nor a selected read model grants
+source access, review, canon or publication authority. An incompatible change
+to this vocabulary or its selected registry invalidates derived query
+fingerprints and requires a rebuilt reader or an explicit refusal.
+
+The `indexed-node-edge-v1` extension adapter accepts an owner-selected,
+complete pair of normalized node and relation collections with exact IDs,
+declared source graph, native vocabulary, provenance and source-layer fields.
+It is a byte-preserving indexing route for already normalized owner carriers,
+not a route that invents a subject, identity, summary or semantic mapping.
+The compiler checks every carrier's declared graph against its single
+registration and the selected semantic registries, requires both collections
+even when one is empty, and verifies their complete owner roots before making
+them eligible to query. An owner with different raw material must supply a
+separate reviewed adapter rather than relabel that material as this profile.
+This profile does not make the current Python knowledge builder emit an eighth
+source; its public graph contract and readers have their own compatibility
+route.
+
 ## Scoped composition and research corpora
 
 Entity registry 32 adds the persistent `research-corpus` source profile and two

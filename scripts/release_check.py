@@ -12,18 +12,36 @@ from validation_lanes import command_sequence
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RELEASE_SEQUENCE = 'release_check'
 REPOSITORY_TEST_LABEL = 'run tests'
+REPOSITORY_TEST_GROUP_PREFIX = f'{REPOSITORY_TEST_LABEL}: '
+
+
+def _test_phase_start(steps: list[tuple[str, list[str]]]) -> int:
+    positions = [
+        i for i, (label, _) in enumerate(steps)
+        if label == REPOSITORY_TEST_LABEL or label.startswith(REPOSITORY_TEST_GROUP_PREFIX)
+    ]
+    labels = [steps[i][0] for i in positions]
+    if (not positions
+            or positions != list(range(positions[0], len(steps)))
+            or len(labels) != len(set(labels))
+            or any(label.startswith(REPOSITORY_TEST_GROUP_PREFIX)
+                   and not label[len(REPOSITORY_TEST_GROUP_PREFIX):].strip()
+                   for label in labels)
+            or (REPOSITORY_TEST_LABEL in labels and labels != [REPOSITORY_TEST_LABEL])):
+        raise ValueError(
+            'selected sequence must end with one legacy run tests step or a complete run tests: group suffix'
+        )
+    return positions[0]
 
 
 def select_steps(steps: list[tuple[str, list[str]]], phase: str) -> list[tuple[str, list[str]]]:
     if phase == 'all':
         return steps
-    positions = [i for i, (label, _) in enumerate(steps) if label == REPOSITORY_TEST_LABEL]
-    if positions != [len(steps) - 1]:
-        raise ValueError('selected sequence must contain exactly one final run tests step')
+    test_start = _test_phase_start(steps)
     if phase == 'checks':
-        return steps[:-1]
+        return steps[:test_start]
     if phase == 'tests':
-        return steps[-1:]
+        return steps[test_start:]
     raise ValueError(f'unknown phase: {phase}')
 
 
@@ -37,10 +55,18 @@ def run_step(label: str, command: list[str]) -> int:
     return completed.returncode
 
 
-def main(argv: list[str] | None = None) -> int:
+def _arguments(argv: list[str] | None = None, *, native: bool = False) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--phase', choices=('all', 'checks', 'tests'), default='all')
-    args = parser.parse_args(argv)
+    if native:
+        for option in ('command-timeout-ms', 'lane-timeout-ms',
+                       'cleanup-grace-ms', 'max-output-bytes'):
+            parser.add_argument('--' + option, type=int, default=None)
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _arguments(argv)
     try:
         steps = select_steps(command_sequence(RELEASE_SEQUENCE, REPO_ROOT), args.phase)
     except (KeyError, ValueError) as exc:
@@ -53,5 +79,32 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
+def native_main(argv: list[str] | None = None) -> int:
+    """Installed CLI route; phase APIs remain available to Python callers."""
+    import shutil
+    import sys
+
+    args = _arguments(argv, native=True)
+    selected = os.environ.get('TOS_RELEASE_CHECK_EXECUTOR')
+    executable = selected or shutil.which('tos-release-check')
+    if not executable:
+        print('[error] install tos-release-check or set TOS_RELEASE_CHECK_EXECUTOR', file=sys.stderr)
+        return 1
+    arguments = ['--phase', args.phase]
+    # Forward explicit owner limits; native validation remains authoritative.
+    # Omitted values retain the native defaults rather than duplicating them.
+    for option in ('command-timeout-ms', 'lane-timeout-ms',
+                   'cleanup-grace-ms', 'max-output-bytes'):
+        value = getattr(args, option.replace('-', '_'))
+        if value is not None:
+            arguments.extend(['--' + option, str(value)])
+    try:
+        os.execv(executable, [executable, '--repo-root', str(REPO_ROOT),
+                              '--python', sys.executable, *arguments])
+    except OSError as error:
+        print(f'[error] cannot execute native release check: {error}', file=sys.stderr)
+        return 1
+
+
 if __name__ == '__main__':
-    raise SystemExit(main())
+    raise SystemExit(native_main())

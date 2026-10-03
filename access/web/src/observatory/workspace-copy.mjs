@@ -1,24 +1,32 @@
 import {t} from './ui-i18n.mjs';
-import {createResearchWorkspace} from '../research-workspace';
+import {createBrowserResearchWorkspace} from '../research-workspace-rust';
 import {validatePlace,PLACES_KEY,RESUME_KEY} from './place-model.mjs';
 import {compactHistory,HISTORY_KEY} from './travel-model.mjs';
 import {validateInterface,INTERFACE_KEY} from './interface-model.mjs';
 import {validateReading,READING_KEY} from './reading-resume.mjs';
 import {readSaved,SAVED_LENSES_KEY} from './lens-model.mjs';
+import {validateWorkspaceCopyEnvelope,validateWorkspaceCopyPlacesSize,validateWorkspaceCopyPlaces,
+  validateWorkspaceCopyLenses,validateWorkspaceCopyPacket,validateWorkspaceCopyCustody} from './workspace-copy-rust.mjs';
 
 export const COPY_SCHEMA='tos_observatory_workspace_v1',COPY_FILE_LIMIT=12000000;
 const bad=()=>{throw new Error(t("Файл не является полной копией исследования или содержит повреждённые данные."));};
+const admit=work=>{try{work();}catch{bad();}};
 export function validateWorkspaceCopy(input){
   const text=typeof input==='string'?input:JSON.stringify(input);if(typeof text!=='string'||text.length>4000000)bad();
   const value=JSON.parse(text);
-  if(value?.schema!==COPY_SCHEMA||value.v!==1||typeof value.exportedAt!=='string'||!Number.isFinite(Date.parse(value.exportedAt))
-    ||!Array.isArray(value.places)||value.places.length>12||JSON.stringify(value.places).length>800000)bad();
-  const places=value.places.map(validatePlace);if(new Set(places.map(place=>place.id)).size!==places.length)bad();
-  if(!Array.isArray(value.lenses))bad();const lenses=readSaved({getItem:()=>JSON.stringify(value.lenses)});
-  if(new Set(lenses.map(lens=>lens.name)).size!==lenses.length)bad();
-  const research=createResearchWorkspace({persistence:false});research.importPacket(JSON.stringify(value.research));
-  return {schema:COPY_SCHEMA,v:1,exportedAt:new Date(value.exportedAt).toISOString(),history:compactHistory(value.history),places,lenses,
-    resume:value.resume===null?null:validatePlace(value.resume),preferences:validateInterface(value.preferences),reading:validateReading(value.reading),research:JSON.parse(research.exportPacket())};
+  admit(()=>validateWorkspaceCopyEnvelope(value));
+  admit(()=>validateWorkspaceCopyPlacesSize(JSON.stringify(value.places).length));
+  const places=value.places.map(validatePlace);
+  admit(()=>validateWorkspaceCopyPlaces(places,value.lenses));
+  const lenses=readSaved({getItem:()=>JSON.stringify(value.lenses)});
+  admit(()=>validateWorkspaceCopyLenses(lenses));
+  const research=createBrowserResearchWorkspace({persistence:false});let researchPacket;
+  try{research.importPacket(JSON.stringify(value.research));researchPacket=JSON.parse(research.exportPacket());}
+  finally{if('dispose' in research)research.dispose();}
+  const copy={schema:COPY_SCHEMA,v:1,exportedAt:new Date(value.exportedAt).toISOString(),history:compactHistory(value.history),places,lenses,
+    resume:value.resume===null?null:validatePlace(value.resume),preferences:validateInterface(value.preferences),reading:validateReading(value.reading),research:researchPacket};
+  admit(()=>validateWorkspaceCopyPacket(copy));
+  return copy;
 }
 export function copyStorageKeys(pathname){return [HISTORY_KEY+':'+pathname,PLACES_KEY,RESUME_KEY,INTERFACE_KEY,READING_KEY+':'+pathname,'tos-research-workspace-v1',SAVED_LENSES_KEY];}
 export function snapshotCopyStorage(storage,pathname){
@@ -27,8 +35,16 @@ export function snapshotCopyStorage(storage,pathname){
 }
 export function commitWorkspaceCopy(storage,pathname,input,before){
   const copy=validateWorkspaceCopy(input),keys=copyStorageKeys(pathname);
-  if(keys.some(key=>!before.has(key)||storage.getItem(key)!==before.get(key)))
+  // Preserve the existing short-circuit storage reads: a first mismatch must
+  // not touch later keys. Rust receives only snapshot/equality flags.
+  const flags=[];
+  for(const key of keys){
+    const present=before.has(key),equal=present&&storage.getItem(key)===before.get(key);
+    flags.push({present,equal});if(!equal)break;
+  }
+  try{validateWorkspaceCopyCustody(flags);}catch{
     throw new Error(t("Исследование изменилось после проверки файла. Выберите файл заново, чтобы сравнить с текущими данными."));
+  }
   const values=[copy.history,copy.places,copy.resume,copy.preferences,copy.reading,copy.research,copy.lenses],written=[];
   try{
     keys.forEach((key,index)=>{const text=values[index]===null?null:JSON.stringify(values[index]);

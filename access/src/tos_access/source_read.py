@@ -21,6 +21,8 @@ import re
 from dataclasses import dataclass
 from typing import Any, Callable
 
+from .source_read_errors import SourceReadError, SourceReadBudgetExceeded
+
 
 HANDLE_SCHEMA = "tos_source_read_handle_v1"
 DISCOVERY_SCHEMA = "tos_source_handle_discovery_v1"
@@ -54,14 +56,6 @@ CSV_LAYER = "authored_csv_record"
 SUPPORTED_LAYERS = frozenset({METADATA_LAYER, CLAIM_LAYER, SLOT_LAYER, CSV_LAYER})
 SLOT_KINDS = frozenset({"claim", "provenance_event", "anchor"})
 PUBLIC_VISIBILITIES = frozenset({"public", "public_metadata_only"})
-
-
-class SourceReadError(ValueError):
-    """The supplied ABI value is structurally invalid."""
-
-
-class SourceReadBudgetExceeded(SourceReadError):
-    """The selected exact record would exceed a delivery budget."""
 
 
 def _canonical_bytes(value: Any) -> bytes:

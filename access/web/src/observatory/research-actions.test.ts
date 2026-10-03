@@ -1,3 +1,4 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {describe,it,expect} from 'vitest';
 import {createResearchWorkspace,type ResearchProposalInput} from '../research-workspace';
 import {stageObservation} from './research-actions';

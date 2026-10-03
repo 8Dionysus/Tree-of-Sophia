@@ -11,6 +11,25 @@ normal test discovery and executable behavior own software validation. Update a
 navigation entry when it helps a real consumer; no inventory row or regenerated
 coverage carrier is required merely because a test file changed.
 
+The completed GenericXML/UXLC laboratory's maintained regression consumer is
+[`rust/crates/tos-compiler/tests/generic_xml_uxlc_lab.rs`](../../rust/crates/tos-compiler/tests/generic_xml_uxlc_lab.rs).
+Cargo's existing workspace test route discovers this integration target. Its ten
+groups retain selection/source-return, disclosure, nested authority and method
+freeze boundaries formerly exercised by 37 Python cases; they consume public
+synthetic observations and historical method data, without private source reads
+or a new generic XML/public contract.
+
+The original Python oracle is preserved byte-for-byte as
+[`tests/historical/test_generic_xml_uxlc_lab.py.txt`](../../tests/historical/test_generic_xml_uxlc_lab.py.txt),
+SHA256 `67d36f428aa295386b3d2063d6d3a5a2a5e2855608c7577edbff362fc94d47be`,
+outside default Python discovery. The four frozen experiment programs and their
+receipts/verdict remain unchanged at their original lab paths. They are
+historical method evidence, and the maintained suite no longer imports them.
+Historical G21 independence applies only to the exact frozen consumer bytes;
+changed methods refuse the inherited finding and need fresh owner assessment.
+The native successor does not claim arbitrary Python AST analysis equivalence,
+rerun the completed experiment, or grant rights/publication/semantic authority.
+
 ## Route Shape
 
 Use this compact route shape:

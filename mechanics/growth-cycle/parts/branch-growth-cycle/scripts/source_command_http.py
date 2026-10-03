@@ -72,7 +72,14 @@ class SourceCommandServer(HTTPServer):
     request_queue_size = 4
 
     def __init__(self, *, owner_config: Path, token_file: Path,
-                 browser_origin: str, port: int = 0):
+                 browser_origin: str, port: int = 0, native_invocation: Path | None = None,
+                 legacy_oracle: bool = False):
+        if legacy_oracle and native_invocation is not None:
+            raise ValueError('legacy oracle excludes native invocation')
+        if not legacy_oracle and native_invocation is None:
+            raise ValueError('select protected native invocation at server startup; see docs/RELEASING.md')
+        self.native_invocation = Path(native_invocation) if native_invocation is not None else None
+        self.legacy_oracle = legacy_oracle
         self.owner_config = Path(owner_config)
         self.token_file = Path(token_file)
         self.browser_origin = _origin(browser_origin)
@@ -80,6 +87,8 @@ class SourceCommandServer(HTTPServer):
         # Check path protection at startup; do not execute describe or load
         # source material merely to start the transport.
         os.close(_owned_path(self.owner_config))
+        if self.native_invocation is not None:
+            os.close(_owned_path(self.native_invocation))
         _credential(self.token_file)
         super().__init__(('127.0.0.1', port), SourceCommandHandler)
         self.expected_host = f'127.0.0.1:{self.server_port}'
@@ -334,7 +343,9 @@ class SourceCommandHandler(BaseHTTPRequestHandler):
             self._error(400, 'invalid-command-json')
             return
         try:
-            result = commands.run_local_command(self.server.owner_config, request)
+            result = (commands.run_legacy_oracle_command(self.server.owner_config, request)
+                      if self.server.legacy_oracle else commands.run_local_command(
+                          self.server.owner_config, request, native_invocation=self.server.native_invocation))
         except PermissionError:
             self._error(403, 'owner-permission-denied', dispatched=True)
         except (JournalBusy, JournalConflict):
@@ -351,6 +362,8 @@ class SourceCommandHandler(BaseHTTPRequestHandler):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--owner-config', type=Path, required=True)
+    parser.add_argument('--native-invocation', type=Path, help='Protected startup owner selection, never selected by a request.')
+    parser.add_argument('--legacy-oracle', action='store_true', help='Explicit retained Python behavior pending whole native replacement.')
     parser.add_argument('--token-file', type=Path, required=True)
     parser.add_argument('--browser-origin', required=True)
     parser.add_argument('--port', type=int, required=True)
@@ -358,7 +371,8 @@ def main():
     if not 1 <= args.port <= 65535:
         parser.error('port must be in 1..65535')
     with SourceCommandServer(owner_config=args.owner_config, token_file=args.token_file,
-                             browser_origin=args.browser_origin, port=args.port) as server:
+                             browser_origin=args.browser_origin, port=args.port,
+                             native_invocation=args.native_invocation, legacy_oracle=args.legacy_oracle) as server:
         try:
             server.serve_forever()
         except KeyboardInterrupt:

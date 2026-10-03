@@ -2,10 +2,18 @@
  * Raw-number/Python emission evidence lives separately in native-exploration.test.mjs.
  */
 import {createHash} from 'node:crypto';
-import {exploreD1 as exploreRawD1} from '../src/exploration.ts';
+import {publishedNodeFixtureWorker} from './native-lens-fixture.ts';
+import {HttpError} from '../src/common.ts';
+import {publishedExplorationAdmission} from '../src/exploration.ts';
+import {validate_exploration_request_wasm_v1} from '../generated/tos_web_rules.js';
 import type {Item} from '../src/common.ts';
 const initialized=new WeakSet<object>();
 const sha=(raw:string)=>createHash('sha256').update(raw).digest('hex');
+/** The real shared pre-I/O validator; no test-side normalization or DB reads. */
+export function validateExploration(request:unknown):void {
+  try {validate_exploration_request_wasm_v1(new TextEncoder().encode(JSON.stringify(request)),publishedExplorationAdmission());}
+  catch(error){throw new HttpError(error==='InvalidRequest'||error==='InvalidJson'?400:503,String(error));}
+}
 export async function publishExplorationFixture(db:D1Database):Promise<void> {
   if (!initialized.has(db)) {
     for (const [kind,fields] of [['node',['kind_id','type_id']],['relation',['native_id','relation_type_id']]] as const) {
@@ -41,4 +49,11 @@ export async function publishExplorationFixture(db:D1Database):Promise<void> {
       catalog_sha256:'0'.repeat(64),row_integrity:'sha256-emitted-json-v1',authority_boundary:authority})),
   ]);
 }
-export async function exploreD1(db:D1Database,request:unknown):Promise<Item> {return JSON.parse(await exploreRawD1(db,request));}
+export async function exploreD1(db:D1Database,request:unknown):Promise<Item> {
+  const response=await (await publishedNodeFixtureWorker()).fetch(new Request('https://tos.test/api/knowledge/explore',{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request)}),
+    {DB:db,ASSETS:{fetch(){throw new Error('exploration must not read static assets');}}} as unknown as Env,{});
+  const raw=await response.text();
+  if(response.status!==200)throw new HttpError(response.status,raw);
+  return JSON.parse(raw) as Item;
+}

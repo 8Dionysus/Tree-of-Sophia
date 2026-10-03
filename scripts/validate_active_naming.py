@@ -556,7 +556,7 @@ def validate(*, feedback_cache: Path | None = None) -> list[str]:
     return issues
 
 
-def main(argv: list[str] | None = None) -> int:
+def _arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Validate active naming paths and content."
     )
@@ -569,7 +569,11 @@ def main(argv: list[str] | None = None) -> int:
             "outside the repository and is never used by release/CI lanes"
         ),
     )
-    args = parser.parse_args(argv)
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _arguments(argv)
     try:
         issues = validate(feedback_cache=args.feedback_cache)
     except ValueError as exc:
@@ -584,5 +588,25 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
+def native_main(argv: list[str] | None = None) -> int:
+    """Default installed validator; explicit feedback-cache stays Python-owned."""
+    import shutil
+
+    args = _arguments(argv)
+    if args.feedback_cache is not None:
+        return main(argv)
+    selected = os.environ.get("TOS_OPS_MECHANICS_EXECUTOR")
+    executable = selected or shutil.which("tos-ops-mechanics-plan")
+    if not executable:
+        print("[error] install tos-ops-mechanics-plan or set TOS_OPS_MECHANICS_EXECUTOR", file=sys.stderr)
+        return 1
+    try:
+        os.execv(executable, [executable, "--repo-root", str(REPO_ROOT),
+                              "--active-naming-validate"])
+    except OSError as error:
+        print(f"[error] cannot execute native active naming validator: {error}", file=sys.stderr)
+        return 1
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(native_main())

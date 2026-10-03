@@ -124,10 +124,10 @@ class AssessmentPolicyTests(unittest.TestCase):
 
     def run_local(self, path, request, *, now=NOW):
         from datetime import datetime
-        from assessment_journal import run_local_command
+        from assessment_journal import run_local_command as run_legacy_oracle_command
         with patch('assessment_journal.datetime') as clock:
             clock.now.return_value = datetime.fromisoformat(now.replace('Z', '+00:00'))
-            return run_local_command(path, request)
+            return run_legacy_oracle_command(path, request)
 
     def test_local_command_append_restart_replay_and_current_revocation(self):
         from assessment_journal import _digest
@@ -328,6 +328,12 @@ class AssessmentPolicyTests(unittest.TestCase):
         request['operation'] = 'inspect'
         command = [sys.executable, str(ROOT / 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py'),
                    '--owner-config', str(path)]
+        default = subprocess.run(command, input=json.dumps(request), capture_output=True, text=True, timeout=10)
+        self.assertEqual(default.returncode, 2, default.stderr)
+        self.assertEqual(json.loads(default.stdout), {
+            'schema_version': 'tos_local_assessment_error_v1', 'error': 'PermissionError'})
+        self.assertEqual(list((path.parent / 'journal').iterdir()), [])
+        command.append('--legacy-oracle')
         result = subprocess.run(command, input=json.dumps(request), capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         self.assertEqual(json.loads(result.stdout)['result']['batch_count'], 0)
@@ -374,7 +380,7 @@ class AssessmentPolicyTests(unittest.TestCase):
         path, config, request, records, fixity = self.real_source_command_fixture()
         before = [(ROOT / binding['path']).read_bytes() for binding in config['source_records']]
         command = [sys.executable, str(ROOT / 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py'),
-                   '--owner-config', str(path)]
+                   '--owner-config', str(path), '--legacy-oracle']
         reply = subprocess.run(command, input=json.dumps(request), capture_output=True, text=True, timeout=10)
         self.assertEqual(reply.returncode, 0, reply.stderr + reply.stdout)
         result = json.loads(reply.stdout)
@@ -403,7 +409,13 @@ class AssessmentPolicyTests(unittest.TestCase):
 
     def assessed_form_fixture(self, *, source_copy=False):
         """Synthetic wording over a copied source; no real language calibration."""
+        from datetime import datetime
         from assessment_journal import _source_records
+        # Direct graph reads and run_local's append must observe the same
+        # fixture instant. Nested expiry probes still select their later clock.
+        clock = patch('assessment_journal.datetime', wraps=datetime)
+        self.addCleanup(clock.stop)
+        clock.start().now.return_value = datetime.fromisoformat(NOW.replace('Z', '+00:00'))
         path, config, _, records, fixity = self.real_source_command_fixture()
         root = path.parent / 'sources'
         for item in fixity:
@@ -534,12 +546,12 @@ class AssessmentPolicyTests(unittest.TestCase):
                 self.assertFalse(list((path.parent / 'journal').iterdir()))
 
     def test_assessed_form_command_rejects_request_authority_and_reports_cli_contract(self):
-        from assessment_journal import JournalConflict, run_local_command
+        from assessment_journal import JournalConflict, run_local_command as run_legacy_oracle_command
         import subprocess
         path, config, _, _ = self.assessed_form_fixture()
         describe = {'schema_version': 'tos_local_assessment_command_v1', 'operation': 'describe',
                     'subject_id': self.subject.id}
-        description = run_local_command(path, describe)
+        description = run_legacy_oracle_command(path, describe)
         request = {**describe, 'operation': 'materialize-form', 'expected_subject': self.subject.ref,
                    'expected_snapshot': description['owner_snapshot']}
         for key, value in (('authority', self.authorities[0].payload), ('form_language_context', None),
@@ -549,7 +561,7 @@ class AssessmentPolicyTests(unittest.TestCase):
         with self.assertRaises(JournalConflict):
             self.run_local(path, {**request, 'expected_snapshot': 'sha256:' + '0' * 64})
         command = [sys.executable, str(ROOT / 'mechanics/growth-cycle/parts/branch-growth-cycle/scripts/assessment_journal.py'),
-                   '--owner-config', str(path)]
+                   '--owner-config', str(path), '--legacy-oracle']
         result = subprocess.run(command, input=json.dumps(request), capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         packet = json.loads(result.stdout)

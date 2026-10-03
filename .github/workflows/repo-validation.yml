@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+# One native CI profile for owner binaries, same-run executors and test consumers.
+env:
+  CARGO_PROFILE_DEV_DEBUG: "1"
+  CARGO_PROFILE_TEST_DEBUG: "1"
+
 concurrency:
   group: repo-validation-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -21,8 +26,43 @@ jobs:
       software_mode: ${{ steps.select.outputs.software_mode }}
       worker: ${{ steps.select.outputs.worker }}
       rust: ${{ steps.select.outputs.rust }}
+      executor_sha256: ${{ steps.executors.outputs.executor_sha256 }}
+      executor_manifest_sha256: ${{ steps.executors.outputs.executor_manifest_sha256 }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Prepare exact native CI executors
+        id: executors
+        env:
+          CARGO_HOME: ${{ runner.temp }}/plan-cargo-home
+          CARGO_TARGET_DIR: ${{ runner.temp }}/plan-cargo-target
+          CARGO_BUILD_JOBS: "2"
+        run: |
+          rustup toolchain install 1.98.1 --profile minimal
+          if cargo +1.98.1 build --locked --no-default-features -p tos-ops-mechanics-plan \
+            --bin tos-release-check --bin tos-validation-lanes --bin tos-software-ci \
+            --target x86_64-unknown-linux-gnu --message-format=json > "$RUNNER_TEMP/plan-cargo-messages.jsonl"; then
+            :
+          else
+            cargo_status=$?
+            cat "$RUNNER_TEMP/plan-cargo-messages.jsonl" >&2 || true
+            exit "$cargo_status"
+          fi
+          mkdir "$RUNNER_TEMP/tos-ci-executors"
+          cp "$CARGO_TARGET_DIR"/x86_64-unknown-linux-gnu/debug/tos-{release-check,validation-lanes,software-ci} "$RUNNER_TEMP/tos-ci-executors/"
+          rustc +1.98.1 --version > "$RUNNER_TEMP/plan-rustc-version.txt"
+          "$RUNNER_TEMP/tos-ci-executors/tos-software-ci" executor-manifest \
+            --repo-root "$GITHUB_WORKSPACE" --artifact-root "$RUNNER_TEMP/tos-ci-executors" \
+            --image-root "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug" \
+            --cargo-messages "$RUNNER_TEMP/plan-cargo-messages.jsonl" \
+            --rustc-version "$RUNNER_TEMP/plan-rustc-version.txt" --github-output "$GITHUB_OUTPUT"
+          printf 'TOS_SOFTWARE_CI_EXECUTOR=%s\n' "$RUNNER_TEMP/tos-ci-executors/tos-software-ci" >> "$GITHUB_ENV"
+      - name: Preserve same-run native CI executors
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: tos-ci-executors-${{ github.sha }}
+          path: ${{ runner.temp }}/tos-ci-executors/
+          if-no-files-found: error
+          retention-days: 1
       - name: Select checks from both sides of the exact change
         id: select
         env:
@@ -55,10 +95,18 @@ jobs:
             /mechanics/growth-cycle/parts/branch-growth-cycle/scripts/
             /mechanics/growth-cycle/tests/test_source_revisions.py
             /docs/validation/validation_lanes.json
-            /rust/README.md
+            /.gitignore
+            /Cargo.toml
+            /Cargo.lock
+            /rust-toolchain.toml
+            /rust/
+            /tests/conformance/rust/
             /tests/test_validation_lanes.py
             /tests/test_acquisition_batch.py
             /tests/test_acquisition_handoff_adapter.py
+            /tests/oracles/acquisition/acquisition_batch.py
+            /tests/oracles/acquisition/acquisition_handoff_adapter.py
+            /tests/oracles/acquisition/source_payload_custody.py
             /tests/test_file_membership.py
             /tests/test_software_ci.py
             /tests/test_corpus_*.py
@@ -73,6 +121,75 @@ jobs:
             /tests/test_source_catalog_slots.py
             /tests/test_native_text_binding.py
             /ToS/contracts/
+            /ToS/doctrine/semantic-interchange/entity-types.v1.json
+            /ToS/doctrine/semantic-interchange/relation-types.v1.json
+            /ToS/doctrine/semantic-interchange/query-vocabulary.v1.json
+            /ToS/philosophy/graph-workbench/views/evidence-lens-scenes.v1.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-request.v2.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/word-analysis-task.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/english-translation-candidate.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/requests/fate.concept-request.v2.json
+            /ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json
+            # Exact public synthetic inputs consumed by Rust include_* tests.
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/build_candidate.py
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/comparison-result.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/consume_owner.py
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/evaluate_lab.py
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v16.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v6.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/input-manifest.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P1-no-namespace.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P10-true-tei.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P11-tei-lookalike.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P12-dynamic-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P12-dynamic-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P13-reorder-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P13-reorder-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P14-text-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P14-text-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P15-attribute-value-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P15-attribute-value-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P2-prefix-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P2-prefix-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P3-default-namespace.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P4-duplicate-siblings.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P5-interleaved-siblings.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P6-empty-long.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P6-empty-short.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P7-attributes-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P7-attributes-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P8-comments-pi-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P8-comments-pi-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P9-mixed-namespaces.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/PC1-uxlc-shape.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P1-no-namespace.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P10-true-tei.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P11-tei-lookalike.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P12-dynamic-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P12-dynamic-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P13-reorder-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P13-reorder-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P14-text-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P14-text-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P15-attribute-value-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P15-attribute-value-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P2-prefix-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P2-prefix-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P3-default-namespace.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P4-duplicate-siblings.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P5-interleaved-siblings.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P6-empty-long.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P6-empty-short.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P7-attributes-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P7-attributes-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P8-comments-pi-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P8-comments-pi-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P9-mixed-namespaces.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/PC1-uxlc-shape.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/bc/PC1-uxlc-shape.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/c/PC1-uxlc-shape.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/run_experiment.py
             /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.json
             /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/item.manifest.json
             /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/editions/repository-82e7e281/items/acquired-note-utf8-20260910/rights.json
@@ -86,11 +203,33 @@ jobs:
             /requirements-dev.txt
             /pytest.ini
             /.github/workflows/repo-validation.yml
+            /.github/workflows/cloudflare-edge.yml
+
+      - name: Fetch same-run native CI executors
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: tos-ci-executors-${{ github.sha }}
+          path: ${{ runner.temp }}/tos-ci-executors
+      - name: Verify and bind exact native CI executors
+        env:
+          TOS_CI_EXECUTOR_SHA256: ${{ needs.plan.outputs.executor_sha256 }}
+          TOS_CI_MANIFEST_SHA256: ${{ needs.plan.outputs.executor_manifest_sha256 }}
+        run: |
+          root="$RUNNER_TEMP/tos-ci-executors"
+          # Authenticate the verifier BEFORE executing downloaded code. These
+          # digests come from the independent producer job, never its own manifest.
+          printf '%s  %s\n' "$TOS_CI_EXECUTOR_SHA256" "$root/tos-software-ci" | sha256sum --check --status
+          printf '%s  %s\n' "$TOS_CI_MANIFEST_SHA256" "$root/manifest.json" | sha256sum --check --status
+          chmod 0500 "$root/tos-software-ci"
+          "$root/tos-software-ci" executor-bind --repo-root "$GITHUB_WORKSPACE" \
+            --artifact-root "$root" --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH"
+          chmod 0500 "$root/tos-release-check" "$root/tos-validation-lanes"
 
       - name: Setup Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
-          python-version: "3.12"
+          # Native search/lens artifacts are bound to the Unicode 16 runtime.
+          python-version: "3.14"
 
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -105,12 +244,41 @@ jobs:
           npm ci --prefer-offline --no-audit --no-fund --prefix access/web
           python -m playwright install --with-deps chromium
 
+      - name: Prepare pinned native software and browser rules
+        env:
+          CARGO_HOME: ${{ runner.temp }}/software-cargo-home
+          CARGO_TARGET_DIR: ${{ runner.temp }}/software-cargo-target
+          CARGO_BUILD_JOBS: "2"
+        run: |
+          rustup toolchain install 1.98.1 --profile minimal --target wasm32-unknown-unknown
+          rustup default 1.98.1
+          cargo build --locked -p tos-access --bin tos-access --target x86_64-unknown-linux-gnu --message-format=json > "$RUNNER_TEMP/software-cargo-messages.jsonl"
+          cargo build --locked -p tos-command --bin tos-native-owner-command --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
+          cargo build --locked -p tos-validation --bin tos-schema-worker --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
+          cargo build --locked --no-default-features -p tos-ops-mechanics-plan \
+            --bin tos-validation-lanes --bin tos-release-check --bin tos-software-ci --target x86_64-unknown-linux-gnu --message-format=json >> "$RUNNER_TEMP/software-cargo-messages.jsonl"
+          cargo build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown
+          archive="$RUNNER_TEMP/software-wasm-bindgen.tar.gz"
+          curl --fail --location --silent --show-error \
+            'https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.128/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl.tar.gz' \
+            --output "$archive"
+          printf '%s  %s\n' 'b51f0208fdff83515a787bd8ab9ac5865ed84dabb66d0c709957bb59793c645f' "$archive" | sha256sum --check --status
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl/wasm-bindgen" \
+            --target web --out-name tos_web_rules --out-dir access/deploy/cloudflare-worker/generated \
+            "$CARGO_TARGET_DIR/wasm32-unknown-unknown/release/tos_web_rules.wasm"
+          rustc +1.98.1 --version > "$RUNNER_TEMP/software-rustc-version.txt"
+          "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-software-ci" software-receipts \
+            --repo-root "$GITHUB_WORKSPACE" --image-root "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug" \
+            --receipt-root "$RUNNER_TEMP" --cargo-messages "$RUNNER_TEMP/software-cargo-messages.jsonl" \
+            --rustc-version "$RUNNER_TEMP/software-rustc-version.txt" --github-env "$GITHUB_ENV"
+
       - name: Validate software contracts and build browser assets
         run: python scripts/release_check.py --phase checks
 
       - name: Test shared software and data-operation code on fixtures
         if: ${{ needs.plan.outputs.software_mode == 'full' }}
-        run: python scripts/release_check.py --phase tests
+        run: python scripts/release_check.py --phase tests --command-timeout-ms 900000
 
       - name: Test reader and API behavior on fixtures
         if: ${{ needs.plan.outputs.software_mode == 'reader' }}
@@ -119,12 +287,37 @@ jobs:
       - name: Test browser behavior with bounded fixtures
         run: python scripts/validation_lanes.py --run software_browser
 
-      - name: Build and install the software artifact without corpus data
+      - name: Build and install the native software artifact without corpus data
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/software-cargo-target
+        run: |
+          native="$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-access"
+          root="$GITHUB_WORKSPACE"
+          archive="$root/dist/tree-of-sophia-software.zip"
+          # Bound the complete six-image input closure, plus generated manifest/README.
+          "$TOS_SOFTWARE_CI_EXECUTOR" software-limits --repo-root "$root" \
+            --image-root "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug" --receipt-root "$RUNNER_TEMP"
+          read -r total_cap archive_cap member_cap metadata_cap < "$RUNNER_TEMP/tos-native-package-limits.txt"
+          limits=(--max-total-bytes "$total_cap" --max-archive-bytes "$archive_cap" --max-members "$member_cap" --max-metadata-bytes "$metadata_cap")
+          mkdir -p -- "$root/dist"
+          "$native" software build --root "$root" --source-ref "${{ github.sha }}" \
+            --web-dist "$root/access/web/dist" --output "$archive" \
+            --native-access-binary "$native" --native-access-receipt "$RUNNER_TEMP/tos-native-build.json" \
+            --native-command-products "$RUNNER_TEMP/tos-native-command-products.json" "${limits[@]}"
+          "$native" software verify --archive "$archive" "${limits[@]}"
+          "$native" software install --archive "$archive" --prefix "$RUNNER_TEMP/tos-native-install" "${limits[@]}"
+          env -i PATH= "$RUNNER_TEMP/tos-native-install/bin/tos" --help
+          env -i PATH= "$RUNNER_TEMP/tos-native-install/bin/tos" --version
+          for role in tos-native-owner-command tos-schema-worker tos-validation-lanes tos-release-check tos-software-ci; do
+            test -x "$RUNNER_TEMP/tos-native-install/bin/$role"
+          done
+
+      - name: Retain unique legacy wheel and integrity reference checks
         run: |
           python access/packaging/build_software_bundle.py \
-            --output dist/tree-of-sophia-software.zip \
+            --output "$RUNNER_TEMP/tree-of-sophia-legacy-reference.zip" \
             --source-ref "${{ github.sha }}"
-          python access/packaging/validate_software_bundle.py --bundle dist/tree-of-sophia-software.zip
+          python access/packaging/validate_software_bundle.py --bundle "$RUNNER_TEMP/tree-of-sophia-legacy-reference.zip" --native-prefix "$RUNNER_TEMP/tos-native-install"
 
       - name: Preserve validated software candidate
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -148,6 +341,11 @@ jobs:
         with:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /Cargo.toml
+            /Cargo.lock
+            /rust-toolchain.toml
+            /rust/
+            /tests/conformance/rust/
             /access/
             !/access/web/dist/
             /scripts/
@@ -159,6 +357,13 @@ jobs:
             /ToS/canon/registries/predicates.csv
             /ToS/doctrine/semantic-interchange/entity-types.v1.json
             /ToS/doctrine/semantic-interchange/relation-types.v1.json
+            /ToS/doctrine/semantic-interchange/query-vocabulary.v1.json
+            /ToS/philosophy/graph-workbench/views/evidence-lens-scenes.v1.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/word-analysis-task.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/english-translation-candidate.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-request.v2.schema.json
+            /ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json
             /requirements-dev.txt
 
       - name: Setup Python for cross-adapter fixture checks
@@ -177,8 +382,30 @@ jobs:
           cache: npm
           cache-dependency-path: access/deploy/cloudflare-worker/package-lock.json
 
-      - name: Test Worker contracts without deployment or production data
+      - name: Prepare pinned Worker rules
+        env:
+          CARGO_HOME: ${{ runner.temp }}/worker-cargo-home
+          CARGO_TARGET_DIR: ${{ runner.temp }}/worker-cargo-target
+          CARGO_BUILD_JOBS: "2"
         run: |
+          rustup toolchain install 1.98.1 --profile minimal --target wasm32-unknown-unknown
+          cargo +1.98.1 build --locked -p tos-access --bin tos-access --target x86_64-unknown-linux-gnu
+          cargo +1.98.1 build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown
+          archive="$RUNNER_TEMP/worker-wasm-bindgen.tar.gz"
+          curl --fail --location --silent --show-error \
+            'https://github.com/wasm-bindgen/wasm-bindgen/releases/download/0.2.128/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl.tar.gz' \
+            --output "$archive"
+          printf '%s  %s\n' 'b51f0208fdff83515a787bd8ab9ac5865ed84dabb66d0c709957bb59793c645f' "$archive" | sha256sum --check --status
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl/wasm-bindgen" \
+            --target web --out-name tos_web_rules --out-dir access/deploy/cloudflare-worker/generated \
+            "$CARGO_TARGET_DIR/wasm32-unknown-unknown/release/tos_web_rules.wasm"
+
+      - name: Test Worker contracts without deployment or production data
+        env:
+          TOS_ACCESS_BIN: ${{ runner.temp }}/worker-cargo-target/x86_64-unknown-linux-gnu/debug/tos-access
+        run: |
+          test -x "$TOS_ACCESS_BIN"
           npm ci --prefer-offline --no-audit --no-fund --prefix access/deploy/cloudflare-worker
           npm run typecheck --prefix access/deploy/cloudflare-worker
           npm test --prefix access/deploy/cloudflare-worker
@@ -206,6 +433,7 @@ jobs:
       - name: Checkout Rust sources and validation route
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
+          # Keep external include_* inputs and selected tos-validation fixtures within bounded owner paths.
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /Cargo.toml
@@ -213,11 +441,312 @@ jobs:
             /rust-toolchain.toml
             /rust/
             /tests/conformance/rust/
+            /tests/fixtures/native-text-binding/
+            /access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json
+            /access/tests/fixtures/knowledge-contract/ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.json
+            # Exact maintained Python oracles imported by selected-lens integration tests.
+            /access/tests/test_access_contract.py
+            /access/tests/fixture_support.py
+            /access/tests/test_source_navigation_file_rights.py
+            /access/pyproject.toml
+            /access/src/
+            /access/packaging/archive_common.py
+            /access/packaging/data_compile_common.py
+            /access/packaging/validate_standalone.py
+            /access/deploy/cloudflare-worker/scripts/build_runtime.py
+            /access/deploy/cloudflare-worker/scripts/build_stages.py
+            /access/deploy/cloudflare-worker/scripts/incremental_runtime.py
+            /access/deploy/cloudflare-worker/scripts/lens_auxiliary_runtime.py
+            /access/deploy/cloudflare-worker/scripts/source_navigation_rows.py
+            /access/deploy/cloudflare-worker/migrations/0001-exploration.sql
+            /access/contracts/exploration-request.v1.schema.json
+            /access/contracts/exploration-request.v2.schema.json
+            /access/contracts/exploration-result.v1.schema.json
+            /access/contracts/exploration-result.v2.schema.json
+            /access/contracts/knowledge-api.v1.json
+            /access/contracts/knowledge-graph.v1.schema.json
+            /access/contracts/knowledge-search-indexed.v2.schema.json
+            /access/contracts/lens-result.v1.schema.json
+            /access/contracts/lens-spec.v1.schema.json
+            /access/contracts/readable-context.v1.schema.json
+            /access/contracts/runtime-data.v1.json
+            /access/contracts/runtime-manifest.v1.json
+            /access/contracts/source-read.v1.schema.json
+            /access/contracts/temporal-comparison-request.v1.schema.json
+            /access/contracts/temporal-comparison-result.v1.schema.json
+            /access/contracts/web-actions.v1.json
             /ToS/contracts/
-            /scripts/validation_lanes.py
-            /scripts/verify_rust_reader_install.py
-            /scripts/verify_rust_web_host.py
+            /scripts/
+            /mechanics/growth-cycle/
+            # Exact files embedded by native mechanics contract tests.
+            /QUESTBOOK.md
+            /mechanics/agon/parts/threshold-intake/schemas/tos-agon-threshold-intake.schema.json
+            /mechanics/agon/parts/threshold-registry/config/tos_agon_threshold_intakes.config.json
+            /mechanics/agon/parts/threshold-registry/generated/tos_agon_threshold_intake_registry.min.json
+            /mechanics/agon/parts/threshold-registry/schemas/tos-agon-threshold-intake-registry.schema.json
+            /mechanics/experience/parts/adoption-boundary/examples/tos_adoption_boundary_dossier.example.json
+            /mechanics/experience/parts/adoption-boundary/examples/tos_no_runtime_adoption_guard.example.json
+            /mechanics/experience/parts/adoption-boundary/schemas/tos_adoption_boundary_dossier_v1.json
+            /mechanics/experience/parts/adoption-boundary/schemas/tos_no_runtime_adoption_guard_v1.json
+            /mechanics/experience/parts/candidate-review/examples/aoa_experience_candidate_dossier.example.json
+            /mechanics/experience/parts/candidate-review/examples/tos_intake_boundary_decision.example.json
+            /mechanics/experience/parts/candidate-review/schemas/aoa_experience_candidate_dossier_v1.json
+            /mechanics/experience/parts/candidate-review/schemas/tos_intake_boundary_decision_v1.json
+            /mechanics/experience/parts/governance-boundary/examples/tos_governance_dossier_boundary_v1.example.json
+            /mechanics/experience/parts/governance-boundary/examples/tos_governance_review_note.example.json
+            /mechanics/experience/parts/governance-boundary/schemas/tos_governance_dossier_boundary_v1.json
+            /mechanics/experience/parts/governance-boundary/schemas/tos_governance_review_note_v1.json
+            /mechanics/experience/parts/installation-boundary/examples/tos_installation_dossier_boundary_v1.example.json
+            /mechanics/experience/parts/installation-boundary/schemas/tos_installation_dossier_boundary_v1.json
+            /mechanics/experience/parts/pattern-review/examples/tos_pattern_review_note.example.json
+            /mechanics/experience/parts/pattern-review/schemas/tos_pattern_review_note_v1.json
+            /mechanics/experience/parts/service-office-boundary/examples/tos_no_runtime_office_write_guard_v1.example.json
+            /mechanics/experience/parts/service-office-boundary/examples/tos_service_dossier_boundary_v1.example.json
+            /mechanics/experience/parts/service-office-boundary/schemas/tos_no_runtime_office_write_guard_v1.json
+            /mechanics/experience/parts/service-office-boundary/schemas/tos_service_dossier_boundary_v1.json
+            /mechanics/experience/parts/write-guards/examples/tos_no_direct_write_guard.example.json
+            /mechanics/experience/parts/write-guards/schemas/tos_no_direct_write_guard_v1.json
+            /mechanics/questbook/parts/dispatch-contracts/examples/quest_catalog.min.example.json
+            /mechanics/questbook/parts/dispatch-contracts/examples/quest_dispatch.min.example.json
+            /mechanics/questbook/parts/dispatch-contracts/schemas/quest.schema.json
+            /mechanics/questbook/parts/dispatch-contracts/schemas/quest_dispatch.schema.json
+            /mechanics/questbook/parts/obligation-boundary/docs/QUESTBOOK_TOS_INTEGRATION.md
+            /quests/TOS-Q-0001.yaml
+            /quests/TOS-Q-0002.yaml
+            /quests/TOS-Q-0003.yaml
+            /quests/TOS-Q-0004.yaml
+            /requirements-dev.txt
+            /ToS/doctrine/semantic-interchange/
+            /ToS/candidate-intake/zarathustra/reading-workbench-v1/reading-search-result.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-search-result.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/concept-request.v2.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/word-analysis-task.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/english-translation-candidate.v1.schema.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/plan.v1.json
+            /ToS/candidate-intake/zarathustra/concept-workbench-v1/requests/fate.concept-request.v2.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/edition.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1884-part-3/editions/chemnitz-schmeitzner-1884-part-3/items/dta-sbb-corrected-tei-p5/
+            /ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/variant-a-occurrences-only.json
+            /ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/variant-b-competing-sign-proposals.json
+            /ToS/research-packets/foundation-laboratory-2026-07/semantic-annotation-v2-abc/variant-c-invalid-model-promotion.json
+            /ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/variant-a-one-to-one-proposal.json
+            /ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/variant-b-competing-mappings.json
+            /ToS/research-packets/foundation-laboratory-2026-07/translation-alignment-v1-abc/variant-c-invalid-acceptance.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/variant-a.anchor.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/variant-b.anchor.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/variant-c.anchor.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/variant-b-unicode.txt
+            /ToS/research-packets/foundation-laboratory-2026-07/source-anchor-v2-abc/lab.manifest.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-a.layer.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-b.layer.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-c.layer.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-a-raw-ocr.txt
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/variant-b-diplomatic.txt
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-layer-abc/editorial-policy.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-a-source-layout-observation.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-b-competing-segmentations.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/variant-c-invalid-acceptance.json
+            /ToS/research-packets/foundation-laboratory-2026-07/source-text-unit-v1-abc/public-synthetic-source.x-tos-unit.txt
+            /ToS/source-witnesses/research-corpora/foundation-source-routes/research-corpus.json
+            /ToS/source-witnesses/artifacts/old-babylonian/susa/hammurabi-stele-sb-8/artifact-witness.json
+            /ToS/source-witnesses/agents/erasmus-of-rotterdam/agent.json
+            /ToS/source-witnesses/links/cdli/cdlb-2006-1/article/link.json
+            /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/work.json
+            /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/expression.json
+            /ToS/source-witnesses/works/tree-of-sophia/scoped-research-selection/expressions/english-20260910/source-claims.jsonl
+            /ToS/source-witnesses/relations/oim-a00645-physical-composition/source-claims.jsonl
+            /ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645-plus-a00649a-i/artifact-witness.json
+            /ToS/source-witnesses/artifacts/sumerian/adab/oim-a00645/artifact-witness.json
+            /ToS/source-witnesses/discovery/DISCOVERY_PROTOCOL.md
+            /ToS/source-witnesses/discovery/provenance.jsonl
+            /ToS/source-witnesses/discovery/runs/zarathustra-parts-2-3-provision-identity.2026-08-01.v1.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-2/editions/chemnitz-schmeitzner-1883-part-2/items/dta-sbb-corrected-tei-p5/source-metadata-snapshot.json
+            /ToS/research-packets/foundation-laboratory-2026-07/ZARATHUSTRA_PARTS_2_3_PROVISION_IDENTITY_RESEARCH.md
+            # Exact authored inputs used by the native Artifact and retained-Collection consumers.
+            /tests/test_bibliographic_claim_assembler.py
+            /tests/test_source_agent_publication.py
+            /tests/test_source_catalog_projection.py
+            /tests/test_source_catalog_slots.py
+            /tests/test_source_claim_publication.py
+            /tests/test_source_witness_bibliographic_graph.py
+            /access/tests/source_assembly_fixture.py
+            /access/tests/test_indexed_lens.py
+            /access/tests/source_agent_publication_fixture.py
+            /access/tests/test_source_metadata_publication.py
+            /tests/test_native_text_binding.py
+            /ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/artifact-witness.json
+            /ToS/source-witnesses/artifacts/old-babylonian/uncertain/penn-cbs-07771/rights.json
+            /ToS/source-witnesses/discovery/runs/old-babylonian-gilgamesh-cbs7771.2026-08-22.v1.json
+            /ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/collection.json
+            /ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/collection.human-forms.json
+            /ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/membership-claims.jsonl
+            /ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/responsibility-claims.jsonl
+            /ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/source-revision-history.json
+            /ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/work-boundary-map.json
+            /ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/structure/work-boundaries/anchors.jsonl
+            /ToS/source-witnesses/.record-revisions/20d58ef2b14655526fac62cc34f8d84c72126453d2f171317ed6c4114dfd107a-fafe3ef84b65b29968511c6a06ff018e46571d11c604ec14fc5ef5018f70c1b2/
+            /ToS/source-witnesses/.record-revisions/20d58ef2b14655526fac62cc34f8d84c72126453d2f171317ed6c4114dfd107a-d34e996729a4bb5b04a3a6cc486f2e1ef7e020747fc18afcf10e5ab7628feb73/
+            /ToS/source-witnesses/.metadata-transactions/64289eef67ba46afc5338aff9422484b17707f15796a402a947117d7f0eb7583/
+            /ToS/source-witnesses/.metadata-transactions/ea6aab06fd43ea735791de0ae5e973950f67900dfd9b70a6af1fee853673705c/
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/work.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json
+            /ToS/source-witnesses/agents/friedrich-nietzsche/agent.json
+            /ToS/source-witnesses/places/chemnitz/place.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/zur-genealogie-der-moral/work.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/der-fall-wagner/work.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/goetzen-daemmerung/work.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/der-antichrist/work.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/ecce-homo/work.json
+            /ToS/source-witnesses/relations/mysl-1996-volume-2-member-order/source-claims.jsonl
+            /ToS/review-ledger/2026-09-10-mysl-collection-order-source-reading.md
+            # Complete data dependencies of the selected conformance recipes.
+            /ToS/candidate-intake/AGENTS.md
+            /ToS/candidate-intake/thus-spoke-zarathustra/prologue-1/mode-b/edges.csv
+            /ToS/canon/**/node.human-forms.json
+            /ToS/canon/**/node.json
+            /ToS/canon/AGENTS.md
+            /ToS/canon/relations/friedrich-nietzsche/thus-spoke-zarathustra/prologue-1/edges.csv
+            /ToS/derived-exports/AGENTS.md
+            /ToS/doctrine/AGENTS.md
+            /ToS/philosophy/AGENTS.md
+            /ToS/philosophy/philosophy.manifest.json
+            /ToS/philosophy/graph-workbench/views/evidence-lens-scenes.v1.json
+            /ToS/public-compatibility/AGENTS.md
+            /ToS/public-compatibility/source_node.example.json
+            /ToS/research-packets/AGENTS.md
+            /ToS/research-packets/foundation-laboratory-2026-07/JENSEITS_1886_LETTER_705_SOURCE_READING_V1.md
+            /ToS/review-ledger/AGENTS.md
+            /ToS/source-witnesses/.record-revisions/2c4c3a4f5cb2cbf1713ebdaa0b27dfcb0729cf980f33591a6e1e2ea6296b8d25-f63f2f0562a6a662be9c5340ddde5686a6de35a8991ad2ad7b53e3a8fd134eba/
+            /ToS/source-witnesses/.record-revisions/3b6ca195bb9bb9fb57cc1e0d9bece8b18011ef12c3d99d614aac5fa3760ad712-8d38fda8bf756906f8ed3543a8cc069082d39b04b188db5050d76a2ad663a497/
+            /ToS/source-witnesses/.record-revisions/709df7fb307a1331d25fa253f7159a3ee27b3862898ddf8db74c6cbfc6965438-75afe571bb0254a738c20c0d5d09fac8b11ce0f299068b534ef652ef09575422/
+            /ToS/source-witnesses/AGENTS.md
+            /ToS/source-witnesses/agents/constantin-georg-naumann/
+            /ToS/source-witnesses/documents/friedrich-nietzsche/naumann-letter-705/
+            /ToS/source-witnesses/links/internet-archive/onfoursongsconta00good/landing/link.human-forms.json
+            /ToS/source-witnesses/links/internet-archive/onfoursongsconta00good/landing/link.json
+            /ToS/source-witnesses/relations/nietzsche-letter-705-addressee/
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/de-schmeitzner-1883-part-1/editions/chemnitz-schmeitzner-1883-part-1/items/dta-sbb-corrected-tei-p5/rights.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/editions/saint-petersburg-prometey-1911-fourth/items/rsl-neb-scan-pdf/rights.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/expression.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/expressions/ru-antonovsky-1911/responsibility-claims.jsonl
+            # Public source-gap records selected by runtime-data.v1 for parity tests.
+            /ToS/source-witnesses/access-requests/public-ledger/
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/edition-reading-admission.dta-ekgwb.za-i-vorrede-1.v1.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/initial-sign-packet.v5.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/provenance.opening-sentence-alignment.za-i-vorrede-1.v2.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.antonovsky-1911-embedded.v1.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-layer.za-i-vorrede-1-p1.dta-machine.v1.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.antonovsky-1911-layout.v1.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.antonovsky-1911-sentence-proposal.v1.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.dta-layout.v1.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/source-text-unit.za-i-vorrede-1-p1.dta-sentence-proposal.v1.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/translation-alignment.za-i-vorrede-1-opening-sentence.dta-1883-antonovsky-1911.v1.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/za-i-vorrede-1-opening-sentence-alignment.plan.v1.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/transfer-candidate-page-crosswalk.v1.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-samples.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/gold-sets/foundation-pilot-v1/transfer-target-anchors.v1.jsonl
+            /ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/de-naumann-1886/editions/leipzig-c-g-naumann-1886/items/internet-archive-google-harvard-scan-pdf/rights.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/expressions/ru-polilov-mysl-1996/structure/mysl-1996-volume-2-operator-pdf/numbered-unit-page-map.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/alignments/structure/naumann-1886-polilov-mysl-1996/numbered-unit-label-correspondence.json
+            /ToS/source-witnesses/collections/friedrich-nietzsche/works-in-two-volumes-volume-2-mysl-1996/editions/moscow-mysl-1996-volume-2/items/operator-pdf/rights.json
+            /ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.human-forms.json
+            /ToS/source_home.manifest.json
+            # Exact files embedded by the native GenericXML integration test; historical programs/receipts are not executed.
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/build_candidate.py
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/comparison-result.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/consume_owner.py
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/evaluate_lab.py
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v16.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/freeze-receipt-v6.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/input-manifest.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P1-no-namespace.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P10-true-tei.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P11-tei-lookalike.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P12-dynamic-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P12-dynamic-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P13-reorder-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P13-reorder-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P14-text-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P14-text-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P15-attribute-value-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P15-attribute-value-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P2-prefix-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P2-prefix-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P3-default-namespace.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P4-duplicate-siblings.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P5-interleaved-siblings.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P6-empty-long.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P6-empty-short.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P7-attributes-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P7-attributes-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P8-comments-pi-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P8-comments-pi-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/P9-mixed-namespaces.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/a/PC1-uxlc-shape.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P1-no-namespace.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P10-true-tei.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P11-tei-lookalike.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P12-dynamic-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P12-dynamic-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P13-reorder-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P13-reorder-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P14-text-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P14-text-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P15-attribute-value-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P15-attribute-value-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P2-prefix-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P2-prefix-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P3-default-namespace.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P4-duplicate-siblings.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P5-interleaved-siblings.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P6-empty-long.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P6-empty-short.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P7-attributes-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P7-attributes-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P8-comments-pi-a.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P8-comments-pi-b.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/P9-mixed-namespaces.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/b/PC1-uxlc-shape.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/bc/PC1-uxlc-shape.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/public-synthetic/run-1/c/PC1-uxlc-shape.json
+            /ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/run_experiment.py
+            /ToS/zarathustra/AGENTS.md
+            /access/tests/fixtures/knowledge-contract/ToS/source-witnesses/semantic-descriptions/crosscutting-concept-freedom/crosscutting-concept.human-forms.json
+            /access/tests/fixtures/source-assembly/ToS/source-witnesses/agents/friedrich-nietzsche/agent.json
+            /access/tests/fixtures/source-assembly/ToS/source-witnesses/places/chemnitz/place.json
+            /access/tests/fixtures/source-assembly/ToS/source-witnesses/works/friedrich-nietzsche/jenseits-von-gut-und-boese/work.json
+            /tests/test_source_owner_claim_profiles.py
+            /tests/test_source_owner_record_profiles.py
+            !/ToS/source-witnesses/**/payload/
+            /ToS/research-packets/foundation-laboratory-2026-07/DTA_ZARATHUSTRA_PARTS_1_4_LAYERED_RIGHTS_ASSESSMENT.md
+            /ToS/research-packets/foundation-laboratory-2026-07/provenance-event-v2-abc/
+            /ToS/research-packets/retained-builder-inputs/build_provenance_event_v2_lab/
             /docs/validation/validation_lanes.json
+      - name: Fetch same-run native CI executors
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: tos-ci-executors-${{ github.sha }}
+          path: ${{ runner.temp }}/tos-ci-executors
+      - name: Verify and bind exact native CI executors
+        env:
+          TOS_CI_EXECUTOR_SHA256: ${{ needs.plan.outputs.executor_sha256 }}
+          TOS_CI_MANIFEST_SHA256: ${{ needs.plan.outputs.executor_manifest_sha256 }}
+        run: |
+          root="$RUNNER_TEMP/tos-ci-executors"
+          # Authenticate the verifier BEFORE executing downloaded code. These
+          # digests come from the independent producer job, never its own manifest.
+          printf '%s  %s\n' "$TOS_CI_EXECUTOR_SHA256" "$root/tos-software-ci" | sha256sum --check --status
+          printf '%s  %s\n' "$TOS_CI_MANIFEST_SHA256" "$root/manifest.json" | sha256sum --check --status
+          chmod 0500 "$root/tos-software-ci"
+          "$root/tos-software-ci" executor-bind --repo-root "$GITHUB_WORKSPACE" \
+            --artifact-root "$root" --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH"
+          chmod 0500 "$root/tos-release-check" "$root/tos-validation-lanes"
+      - name: Setup Python for Unicode 16 differential oracles
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.14"
+      - name: Install maintained Python fixture dependencies
+        run: python -m pip install -r requirements-dev.txt
       - name: Install pinned Rust toolchain and WASM target
         run: |
           rustup toolchain install 1.98.1 --profile minimal --component rustfmt --target wasm32-unknown-unknown
@@ -235,19 +764,26 @@ jobs:
           printf '%s  %s\n' 'b51f0208fdff83515a787bd8ab9ac5865ed84dabb66d0c709957bb59793c645f' "$archive" | sha256sum --check --status
           tar -xzf "$archive" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/wasm-bindgen-0.2.128-x86_64-unknown-linux-musl" >> "$GITHUB_PATH"
-      - name: Verify Rust workspace and isolated install
+      - name: Verify Rust workspace, conformance products and isolated install
         env:
           CARGO_HOME: ${{ runner.temp }}/cargo-home
           CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target
           CARGO_BUILD_JOBS: "2"
+          TOS_NATIVE_OWNER_COMMAND_PATH: ${{ runner.temp }}/cargo-target/debug/tos-native-owner-command
+          TOS_NATIVE_OWNER_COMMAND_BIN: ${{ runner.temp }}/cargo-target/debug/tos-native-owner-command
+          TOS_NATIVE_PREPARED_CONSUMER_BIN: ${{ runner.temp }}/cargo-target/debug/tos-access
+          TOS_SCHEMA_WORKER_PATH: ${{ runner.temp }}/cargo-target/debug/tos-schema-worker
         run: python scripts/validation_lanes.py --run rust_workspace
-      - name: Verify command transaction laboratory against PostgreSQL
+      - name: Verify durable command transactions against PostgreSQL
         env:
           CARGO_HOME: ${{ runner.temp }}/cargo-home
           CARGO_TARGET_DIR: ${{ runner.temp }}/cargo-target
           CARGO_BUILD_JOBS: "2"
+          TOS_SCHEMA_WORKER_PATH: ${{ runner.temp }}/cargo-target/debug/tos-schema-worker
           TOS_CMD_POSTGRES_URL: postgres://tos_cmd_lab:synthetic_lab_only@127.0.0.1:5432/tos_cmd_lab
-        run: cargo test -p tos-command --test postgres_lab --locked -- --nocapture
+        run: |
+          : "${TOS_CMD_POSTGRES_URL:?dedicated PostgreSQL connection is required}"
+          cargo test -p tos-command --features postgres-lab --test postgres_durable_lab --locked -- --nocapture
 
   required_gate:
     name: Repo Validation
@@ -257,7 +793,29 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
-          sparse-checkout: scripts
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /scripts/
+            /Cargo.lock
+      - name: Fetch same-run native CI executors
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: tos-ci-executors-${{ github.sha }}
+          path: ${{ runner.temp }}/tos-ci-executors
+      - name: Verify and bind exact native CI executors
+        env:
+          TOS_CI_EXECUTOR_SHA256: ${{ needs.plan.outputs.executor_sha256 }}
+          TOS_CI_MANIFEST_SHA256: ${{ needs.plan.outputs.executor_manifest_sha256 }}
+        run: |
+          root="$RUNNER_TEMP/tos-ci-executors"
+          # Authenticate the verifier BEFORE executing downloaded code. These
+          # digests come from the independent producer job, never its own manifest.
+          printf '%s  %s\n' "$TOS_CI_EXECUTOR_SHA256" "$root/tos-software-ci" | sha256sum --check --status
+          printf '%s  %s\n' "$TOS_CI_MANIFEST_SHA256" "$root/manifest.json" | sha256sum --check --status
+          chmod 0500 "$root/tos-software-ci"
+          "$root/tos-software-ci" executor-bind --repo-root "$GITHUB_WORKSPACE" \
+            --artifact-root "$root" --github-env "$GITHUB_ENV" --github-path "$GITHUB_PATH"
+          chmod 0500 "$root/tos-release-check" "$root/tos-validation-lanes"
       - name: Require every selected check to pass
         env:
           CI_NEEDS: ${{ toJSON(needs) }}

@@ -66,13 +66,13 @@ class ArtifactCreationTests(unittest.TestCase):
             yield root, owner, config, proposal, rebuild, graph_fixture
 
     def create(self, owner, proposal):
-        preview = source.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+        preview = source.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
                                                    'operation': 'prepare-create', **proposal})
         request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'source.create',
             'command_id': 'synthetic:artifact-create', 'expected_configuration': preview['owner_configuration'],
             'expected_source': None, 'expected_revision': None,
             'expected_dependencies': preview['expected_dependencies'], **proposal}
-        return source.run_local_command(owner, request), request
+        return source.run_legacy_oracle_command(owner, request), request
 
     def test_native_shape_and_three_input_bindings_do_not_accept_authority(self):
         with self.fixture() as (root, _, config, proposal, *_):
@@ -143,7 +143,7 @@ class ArtifactCreationTests(unittest.TestCase):
             before = {field: (root / binding['ref']).read_bytes() for field, binding in config['source_bindings'].items()}
             result, request = self.create(owner, proposal)
             self.assertFalse(result['grants_admission'])
-            self.assertTrue(source.run_local_command(owner, request)['replayed'])
+            self.assertTrue(source.run_legacy_oracle_command(owner, request)['replayed'])
             path = root / config['source_path']
             with patch.object(source, '_configuration', side_effect=AssertionError('evidence reader must not load a grant')):
                 origin = artifact.verify_creation(root, config['source_path'], proposal['record'])
@@ -181,13 +181,13 @@ class ArtifactCreationTests(unittest.TestCase):
             owner.write_bytes(revisions._encode(revision))
             change = {'fields': {'path_identity': {**proposal['record']['path_identity'], 'note': 'Corrected synthetic description.'}},
                       'forms': proposal['forms'], 'reason': 'Synthetic descriptive correction only.'}
-            preview = source.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+            preview = source.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
                                                        'operation': 'prepare-revise', **change})
             correction = {'schema_version': 'tos_local_source_command_v1', 'operation': 'record.revise',
                 'command_id': 'synthetic:artifact-correction', 'expected_configuration': preview['owner_configuration'],
                 'expected_source': preview['source'], 'expected_revision': preview['revision'],
                 'expected_dependencies': preview['expected_dependencies'], 'expected_publication': preview['expected_publication'], **change}
-            source.run_local_command(owner, correction)
+            source.run_legacy_oracle_command(owner, correction)
             current = json.loads(path.read_bytes())
             read, listing = source._read, Path.iterdir
             def bounded_read(selected, limit):
@@ -199,14 +199,14 @@ class ArtifactCreationTests(unittest.TestCase):
             with patch.object(source, '_read', side_effect=bounded_read), patch.object(Path, 'iterdir', bounded_listing):
                 origin = artifact.verify_creation(root, config['source_path'], current)
                 owner.write_bytes(revisions._encode(config))
-                self.assertTrue(source.run_local_command(owner, request)['replayed'])
+                self.assertTrue(source.run_legacy_oracle_command(owner, request)['replayed'])
             self.assertEqual(origin['source'], created['receipt']['source'])
             self.assertEqual(origin['current_source']['version'], 2)
             self.assertEqual((descendants / 'untouched.bin').read_bytes(), b'No inspection or acquisition.')
 
     def test_stale_or_substituted_inputs_cannot_publish_or_rebind_old_origin(self):
         with self.fixture() as (root, owner, config, proposal, *_):
-            prepared = source.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+            prepared = source.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
                                                         'operation': 'prepare-create', **proposal})
             request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'source.create',
                 'command_id': 'synthetic:stale-artifact', 'expected_configuration': prepared['owner_configuration'],
@@ -215,7 +215,7 @@ class ArtifactCreationTests(unittest.TestCase):
             original = research.read_bytes()
             research.write_bytes(original + b'Changed exact input.\n')
             with self.assertRaises(source.JournalConflict):
-                source.run_local_command(owner, request)
+                source.run_legacy_oracle_command(owner, request)
             self.assertFalse((root / config['source_path']).parent.exists())
             research.write_bytes(original)
             _, created_request = self.create(owner, proposal)
@@ -223,12 +223,12 @@ class ArtifactCreationTests(unittest.TestCase):
             with self.assertRaises(source.JournalConflict):
                 artifact.verify_creation(root, config['source_path'], proposal['record'])
             with self.assertRaises(source.JournalConflict):
-                source.run_local_command(owner, created_request)
+                source.run_legacy_oracle_command(owner, created_request)
             wrong = copy.deepcopy(proposal)
             wrong['source_bindings']['research_ref']['sha256'] = source._digest(research.read_bytes())[7:]
             research.write_bytes(original)
             with self.assertRaises(PermissionError):
-                source.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                source.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
                                                  'operation': 'prepare-create', **wrong})
 
     def test_old_corpus_grant_and_occupied_directory_cannot_create_artifact(self):
@@ -237,7 +237,7 @@ class ArtifactCreationTests(unittest.TestCase):
             old.update(schema_version=source.CORPUS_COLLECTION_CONFIG, record_type='artifact')
             owner.write_bytes(revisions._encode(old))
             with self.assertRaises((PermissionError, ValueError)):
-                source.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+                source.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
             owner.write_bytes(revisions._encode(config))
             target = (root / config['source_path']).parent
             target.mkdir()
@@ -251,7 +251,7 @@ class ArtifactCreationTests(unittest.TestCase):
     def test_shared_atomic_publication_has_no_partial_target_and_retains_exact_retry(self):
         for after_commit in (False, True):
             with self.subTest(after_commit=after_commit), self.fixture() as (root, owner, config, proposal, *_):
-                prepared = source.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+                prepared = source.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
                                                             'operation': 'prepare-create', **proposal})
                 request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'source.create',
                     'command_id': 'synthetic:artifact-publication', 'expected_configuration': prepared['owner_configuration'],
@@ -264,9 +264,9 @@ class ArtifactCreationTests(unittest.TestCase):
                     raise RuntimeError('Synthetic interruption at the shared atomic boundary.')
                 with patch.object(source, '_publish_new_directory', side_effect=interrupted):
                     with self.assertRaises(RuntimeError):
-                        source.run_local_command(owner, request)
+                        source.run_legacy_oracle_command(owner, request)
                 self.assertEqual((root / config['source_path']).exists(), after_commit)
-                result = source.run_local_command(owner, request)
+                result = source.run_legacy_oracle_command(owner, request)
                 self.assertEqual(result['replayed'], after_commit)
                 self.assertEqual(artifact.verify_creation(root, config['source_path'], proposal['record'])['source'],
                                  result['receipt']['source'])

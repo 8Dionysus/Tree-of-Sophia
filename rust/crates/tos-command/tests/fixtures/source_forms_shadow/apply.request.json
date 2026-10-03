@@ -1,0 +1,144 @@
+{
+  "changes": [
+    {
+      "expected_form": {
+        "digest": "sha256:79cfb97a52bef0e52c7728dcd41a568dba0426aad8c955a5b32a137762d2469d",
+        "id": "tos.form.jenseits-von-gut-und-boese.name-original",
+        "version": 3
+      },
+      "form": {
+        "bindings": {
+          "context-0": {
+            "pointer": "/identity_status",
+            "record": {
+              "digest": "sha256:8a767a4380b00a2d6895bba8949972e33d37baec0513d87e5c0b60ed2fb1055e",
+              "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+              "version": 7
+            }
+          },
+          "context-1": {
+            "pointer": "/same_as_posture",
+            "record": {
+              "digest": "sha256:8a767a4380b00a2d6895bba8949972e33d37baec0513d87e5c0b60ed2fb1055e",
+              "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+              "version": 7
+            }
+          },
+          "wording": {
+            "pointer": "/preferred_label",
+            "record": {
+              "digest": "sha256:8a767a4380b00a2d6895bba8949972e33d37baec0513d87e5c0b60ed2fb1055e",
+              "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+              "version": 7
+            }
+          }
+        },
+        "content": {
+          "kind": "source-copy",
+          "slot": "wording"
+        },
+        "creator_id": "agent:cmd2-forms-oracle",
+        "form_id": "tos.form.jenseits-von-gut-und-boese.name-original",
+        "form_version": 4,
+        "language": null,
+        "revises": {
+          "digest": "sha256:79cfb97a52bef0e52c7728dcd41a568dba0426aad8c955a5b32a137762d2469d",
+          "id": "tos.form.jenseits-von-gut-und-boese.name-original",
+          "version": 3
+        },
+        "role": "name",
+        "schema_version": "tos_human_form_v1",
+        "script": null,
+        "subject": {
+          "digest": "sha256:8a767a4380b00a2d6895bba8949972e33d37baec0513d87e5c0b60ed2fb1055e",
+          "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+          "version": 7
+        }
+      },
+      "operation": "form.revise"
+    },
+    {
+      "expected_form": null,
+      "form": {
+        "bindings": {
+          "context-0": {
+            "pointer": "/identity_status",
+            "record": {
+              "digest": "sha256:8a767a4380b00a2d6895bba8949972e33d37baec0513d87e5c0b60ed2fb1055e",
+              "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+              "version": 7
+            }
+          },
+          "context-1": {
+            "pointer": "/same_as_posture",
+            "record": {
+              "digest": "sha256:8a767a4380b00a2d6895bba8949972e33d37baec0513d87e5c0b60ed2fb1055e",
+              "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+              "version": 7
+            }
+          },
+          "context-2": {
+            "pointer": "/variant_labels/0/language",
+            "record": {
+              "digest": "sha256:8a767a4380b00a2d6895bba8949972e33d37baec0513d87e5c0b60ed2fb1055e",
+              "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+              "version": 7
+            }
+          },
+          "context-3": {
+            "pointer": "/variant_labels/0/source_ref",
+            "record": {
+              "digest": "sha256:8a767a4380b00a2d6895bba8949972e33d37baec0513d87e5c0b60ed2fb1055e",
+              "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+              "version": 7
+            }
+          },
+          "context-4": {
+            "pointer": "/variant_labels/0/status",
+            "record": {
+              "digest": "sha256:8a767a4380b00a2d6895bba8949972e33d37baec0513d87e5c0b60ed2fb1055e",
+              "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+              "version": 7
+            }
+          },
+          "wording": {
+            "pointer": "/variant_labels/0/value",
+            "record": {
+              "digest": "sha256:8a767a4380b00a2d6895bba8949972e33d37baec0513d87e5c0b60ed2fb1055e",
+              "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+              "version": 7
+            }
+          }
+        },
+        "content": {
+          "kind": "source-copy",
+          "slot": "wording"
+        },
+        "creator_id": "agent:cmd2-forms-oracle",
+        "form_id": "tos.form.oracle.jgb-name-ru-copy",
+        "form_version": 1,
+        "language": "ru",
+        "revises": null,
+        "role": "name",
+        "schema_version": "tos_human_form_v1",
+        "script": null,
+        "subject": {
+          "digest": "sha256:8a767a4380b00a2d6895bba8949972e33d37baec0513d87e5c0b60ed2fb1055e",
+          "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+          "version": 7
+        }
+      },
+      "operation": "form.create"
+    }
+  ],
+  "command_id": "cmd2:oracle:jgb-forms:1",
+  "expected_configuration": "sha256:d9c3c7cb56cbcf8f538edf77c052e3282e1e17c02fef4e00264164deee3bcff3",
+  "expected_revision": "sha256:7abcf8fe8b90667ac5ca8e2eb5affe51cc56283fb3ca4f7f26a2e03750f4e25b",
+  "expected_source": {
+    "digest": "sha256:8a767a4380b00a2d6895bba8949972e33d37baec0513d87e5c0b60ed2fb1055e",
+    "id": "tos.work.friedrich-nietzsche.jenseits-von-gut-und-boese",
+    "version": 7
+  },
+  "operation": "apply",
+  "schema_version": "tos_local_source_command_v1"
+}

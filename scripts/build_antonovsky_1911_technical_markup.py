@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the witness-local Antonovsky 1911 PDF technical layout spine.
+"""Native v1 CLI facade with temporarily retained v2 extraction helpers.
 
 The exact scan, full Poppler bbox observation, and sequential embedded-text
 layer stay below the ignored mode-0600 source boundary. Tracked artifacts are
@@ -23,8 +23,6 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
-
-from jsonschema import Draft202012Validator, FormatChecker
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -1611,6 +1609,8 @@ def _packet(
         },
     }
     schema = _load_json(repo_root, SCHEMA_REF)
+    from jsonschema import Draft202012Validator, FormatChecker
+
     errors = sorted(
         Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(packet),
         key=lambda error: list(error.absolute_path),
@@ -1947,6 +1947,8 @@ def _validate_tracked(
     issuance = _load_and_validate_issuance(repo_root, plan, None)
     packet = _load_json(repo_root, plan["outputs"]["packet_ref"])
     schema = _load_json(repo_root, SCHEMA_REF)
+    from jsonschema import Draft202012Validator, FormatChecker
+
     errors = sorted(
         Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(packet),
         key=lambda error: list(error.absolute_path),
@@ -2154,79 +2156,42 @@ def _prepare_local(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--build", action="store_true", help="write generated artifacts")
-    mode.add_argument("--check", action="store_true", help="check full local parity")
-    mode.add_argument(
-        "--validate-tracked",
-        action="store_true",
-        help="validate tracked artifacts without local source payloads",
-    )
-    parser.add_argument(
-        "--issue-identities",
-        action="store_true",
-        help="one-time opaque identity issuance; valid only with --build",
-    )
-    parser.add_argument("--repo-root", type=Path, default=REPO_ROOT)
-    args = parser.parse_args(argv)
-    repo_root = args.repo_root.resolve()
-    try:
-        plan = _load_plan(repo_root)
-        screening = _load_screening_plan(repo_root, plan)
-        if args.validate_tracked:
-            if args.issue_identities:
-                raise AntonovskyMarkupError(
-                    "--issue-identities is valid only with --build"
-                )
-            summary = _validate_tracked(repo_root, plan, screening)
-            screening_summary = _load_json(
-                repo_root, plan["outputs"]["screening_summary_ref"]
-            )
-            print(
-                "antonovsky technical markup tracked validation passed: "
-                f"units={summary['tracked_unit_count']} "
-                f"blocks={summary['layout_block_paragraph_candidate_count']} "
-                f"headings={summary['heading_candidate_count']} "
-                f"screened_headings={screening_summary['heading_candidate_count']} "
-                f"split_boundaries={screening_summary['split_boundary_count']}"
-            )
-            return 0
+    """Compatibility entry only; v1 production has no Python fallback.
 
-        document = _prepare_local(repo_root, plan)
-        if args.issue_identities:
-            if not args.build:
-                raise AntonovskyMarkupError(
-                    "--issue-identities is valid only with --build"
-                )
-            _issue_identities(repo_root, plan, document)
-        issuance = _load_and_validate_issuance(repo_root, plan, document)
-        tracked, private = _build_artifacts(
-            repo_root, plan, screening, document, issuance
-        )
-        if args.build:
-            _write_artifacts(repo_root, tracked, private)
-            action = "built"
-        else:
-            _check_artifacts(repo_root, tracked, private)
-            action = "parity passed"
-        summary = json.loads(tracked[plan["outputs"]["summary_ref"]])
-        screening_summary = json.loads(
-            tracked[plan["outputs"]["screening_summary_ref"]]
-        )
-        print(
-            f"antonovsky technical markup {action}: "
-            f"pages={summary['pdf_page_count']} "
-            f"panels={summary['observed_panel_count']} "
-            f"blocks={summary['layout_block_paragraph_candidate_count']} "
-            f"headings={summary['heading_candidate_count']} "
-            f"units={summary['tracked_unit_count']} "
-            f"screened_headings={screening_summary['heading_candidate_count']} "
-            f"split_boundaries={screening_summary['split_boundary_count']}"
-        )
-        return 0
-    except AntonovskyMarkupError as exc:
-        print(f"error: {exc}", file=sys.stderr)
+    Module helpers remain temporarily imported by the retained v2 builder.
+    Exact original recipe bytes live in the nonexecuted digest archive.
+    """
+    parser = argparse.ArgumentParser(description="Native Antonovsky v1 compatibility entry")
+    mode = parser.add_mutually_exclusive_group(required=True)
+    for flag in ("--build", "--check", "--validate-tracked"):
+        mode.add_argument(flag, action="store_true")
+    parser.add_argument("--issue-identities", action="store_true")
+    parser.add_argument("--repo-root", type=Path, default=REPO_ROOT)
+    parser.add_argument("--max-seconds", type=int, default=180)
+    parser.add_argument("--scratch-bytes", type=int)
+    args = parser.parse_args(argv)
+    if args.issue_identities and not args.build:
+        print("error: --issue-identities is valid only with --build", file=sys.stderr)
+        return 1
+    if not 1 <= args.max_seconds <= 600:
+        parser.error("--max-seconds must be 1 through 600")
+    if args.build and (args.scratch_bytes is None or args.scratch_bytes <= 0):
+        parser.error("--build requires an explicitly admitted --scratch-bytes budget")
+    native = os.environ.get("TOS_NATIVE_PREPARED_CONSUMER_BIN") or shutil.which("tos")
+    if not native or not Path(native).is_absolute():
+        print("error: select installed tos through TOS_NATIVE_PREPARED_CONSUMER_BIN or PATH", file=sys.stderr)
+        return 1
+    action = "--build" if args.build else "--check" if args.check else "--validate-tracked"
+    command = [native, "technical-markup", "--source-root", str(args.repo_root.absolute()),
+               action, "--max-seconds", str(args.max_seconds)]
+    if args.scratch_bytes is not None:
+        command += ["--scratch-bytes", str(args.scratch_bytes)]
+    if args.issue_identities:
+        command.append("--issue-identities")
+    try:
+        os.execv(native, command)
+    except OSError as exc:
+        print(f"error: cannot execute selected native tos: {exc}", file=sys.stderr)
         return 1
 
 

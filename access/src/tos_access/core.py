@@ -73,6 +73,7 @@ SOURCE_READ_CONTRACT_RELATIVE_PATH = Path("access/contracts/source-read.v1.schem
 KNOWLEDGE_CONTRACT_RELATIVE_PATHS = {
     "api": Path("access/contracts/knowledge-api.v1.json"),
     "knowledge_graph": Path("access/contracts/knowledge-graph.v1.schema.json"),
+    "knowledge_search_indexed": Path("access/contracts/knowledge-search-indexed.v2.schema.json"),
     "readable_context": Path("access/contracts/readable-context.v1.schema.json"),
     "lens_spec": Path("access/contracts/lens-spec.v1.schema.json"),
     "lens_result": Path("access/contracts/lens-result.v1.schema.json"),
@@ -204,7 +205,7 @@ def _read_json_version(
 ) -> dict[str, Any]:
     """Read one latest version of a JSON carrier without retaining history.
 
-    The graph itself is retained by ``ToSAccessCore`` only as the currently
+    The graph itself is retained by ``ReferenceToSAccessCore`` only as the currently
     published snapshot.  A process-wide multi-version LRU here would keep old
     raw carriers alive after supersession and multiply the graph's memory
     footprint across source edits.  Keep at most one parsed payload per path;
@@ -613,7 +614,7 @@ def _projection_nodes_edges(payload: dict[str, Any]) -> tuple[list[dict[str, Any
 
 @guard_public_data_methods
 @dataclass(slots=True)
-class ToSAccessCore:
+class ReferenceToSAccessCore:
     tos_root: Path
     index_path: Path
     philosophy_graph_projection_path: Path
@@ -630,6 +631,14 @@ class ToSAccessCore:
     published_read_model_expected: dict[str, Any] | None = None
     published_exploration_checkpoint_path: Path | None = None
     source_read_service: SourceReadService | SelectedSourceReadService | None = None
+    native_prefix: Path | None = None
+    reading_analysis_root: Path | None = None
+    reading_max_file_bytes: int | None = None
+    reading_max_total_file_bytes: int | None = None
+    concept_max_file_bytes: int | None = None
+    concept_max_total_file_bytes: int | None = None
+    _native_core: Any = field(default=None, init=False, repr=False, compare=False)
+    _native_reading_core: Any = field(default=None, init=False, repr=False, compare=False)
     _data_guard: DataGuard | None = field(default=None, init=False, repr=False, compare=False)
     _prepared_reader: PublishedKnowledgeReadModel | None = field(default=None, init=False, repr=False, compare=False)
     _prepared_lens: PublishedLensService | None = field(default=None, init=False, repr=False, compare=False)
@@ -670,6 +679,44 @@ class ToSAccessCore:
     _query_lock: Any = field(default_factory=Lock, init=False, repr=False, compare=False)
 
     def __post_init__(self):
+        if self.native_prefix is None:
+            if any(value is not None for value in (
+                self.reading_analysis_root, self.reading_max_file_bytes,
+                self.reading_max_total_file_bytes,
+            )):
+                raise ValueError("native reading selectors require an explicit native_prefix")
+            if self.concept_max_file_bytes is not None or self.concept_max_total_file_bytes is not None:
+                raise ValueError("native concept selectors require an explicit native_prefix")
+        else:
+            from .native_core import NativeCore
+            arguments = ["--root", str(Path(self.tos_root).absolute())]
+            word_arguments = list(arguments)
+            concept_file, concept_total = self.concept_max_file_bytes, self.concept_max_total_file_bytes
+            if (concept_file is None) != (concept_total is None):
+                raise ValueError("native concept file budgets require a pair")
+            if concept_file is not None:
+                if (type(concept_file) is not int or type(concept_total) is not int
+                        or not 0 < concept_file <= concept_total <= 2**64 - 1):
+                    raise ValueError("invalid explicit native concept file budgets")
+                word_arguments.extend(["--concept-max-file-bytes", str(concept_file),
+                                       "--concept-max-total-file-bytes", str(concept_total)])
+            self._native_core = NativeCore(self.native_prefix, word_arguments)
+            if self.reading_analysis_root is not None:
+                analysis = Path(self.reading_analysis_root)
+                if not analysis.is_absolute() or ".." in analysis.parts:
+                    raise ValueError("native reading analysis requires an absolute data root")
+                arguments.extend(["--reading-analysis-root", str(analysis)])
+            file_bytes, total_bytes = self.reading_max_file_bytes, self.reading_max_total_file_bytes
+            if (file_bytes is None) != (total_bytes is None):
+                raise ValueError("native reading file budgets require a pair")
+            if file_bytes is not None:
+                if (type(file_bytes) is not int or type(total_bytes) is not int
+                        or not 0 < file_bytes <= total_bytes <= 2**64 - 1):
+                    raise ValueError("invalid explicit native reading file budgets")
+                arguments.extend(["--reading-max-file-bytes", str(file_bytes),
+                                  "--reading-max-total-file-bytes", str(total_bytes)])
+            self._native_reading_core = (NativeCore(self.native_prefix, arguments)
+                                         if len(arguments) > 2 or concept_file is not None else self._native_core)
         self._data_guard = DataGuard.for_data_root(self.tos_root)
         if self._data_guard is not None:
             # A selected release cannot borrow another source tree through a
@@ -805,13 +852,21 @@ class ToSAccessCore:
         published_read_model_expected: dict[str, Any] | None = None,
         published_exploration_checkpoint_path: str | Path | None = None,
         source_read_service: SourceReadService | SelectedSourceReadService | None = None,
-    ) -> "ToSAccessCore":
+        native_prefix: str | Path | None = None,
+        reading_analysis_root: str | Path | None = None,
+        reading_max_file_bytes: int | None = None,
+        reading_max_total_file_bytes: int | None = None,
+        concept_max_file_bytes: int | None = None,
+        concept_max_total_file_bytes: int | None = None,
+    ) -> "ReferenceToSAccessCore":
         """Select legacy carrier reads, or explicitly pin the prepared reader.
 
         The prepared route serves catalog, full node/relation inspection,
         bounded exploration, and v9 lens/focus. Other knowledge operations refuse instead of silently
         rebuilding the graph. No environment variable activates this opt-in.
         """
+        if native_prefix is not None and tos_root is None:
+            raise ValueError("native Core methods require an explicit tos_root data selection")
         root = _discover_root(tos_root)
         index = Path(
             index_path
@@ -891,6 +946,12 @@ class ToSAccessCore:
             published_exploration_checkpoint_path=(Path(published_exploration_checkpoint_path)
                                                   if published_exploration_checkpoint_path is not None else None),
             source_read_service=source_read_service,
+            native_prefix=Path(native_prefix) if native_prefix is not None else None,
+            reading_analysis_root=Path(reading_analysis_root) if reading_analysis_root is not None else None,
+            reading_max_file_bytes=reading_max_file_bytes,
+            reading_max_total_file_bytes=reading_max_total_file_bytes,
+            concept_max_file_bytes=concept_max_file_bytes,
+            concept_max_total_file_bytes=concept_max_total_file_bytes,
         )
 
     def index_exists(self) -> bool:
@@ -1200,7 +1261,7 @@ class ToSAccessCore:
     ) -> dict[str, bytes]:
         """Keep immutable compact carrier snapshots for the next CAS delta."""
         return {
-            name: ToSAccessCore._canonical_json_bytes(payload)
+            name: ReferenceToSAccessCore._canonical_json_bytes(payload)
             for name, payload in inputs.items()
         }
 
@@ -1983,6 +2044,10 @@ class ToSAccessCore:
         rank: int = 1,
         include_semantic_neighbors: bool = False,
     ) -> dict[str, Any]:
+        if self._native_core is not None:
+            return self._native_core.zarathustra_word_analysis_task(
+                query, language, rank, include_semantic_neighbors,
+            )
         normalized_query = str(query).strip()
         if not normalized_query:
             raise ValueError("word-analysis query is required")
@@ -2079,6 +2144,10 @@ class ToSAccessCore:
         group_by: list[str] | None = None,
     ) -> dict[str, Any]:
         """Read occurrence-bound source candidates through the installed provider."""
+        if self._native_reading_core is not None:
+            return self._native_reading_core.zarathustra_reading_search(
+                query, language, limit, include_semantic_neighbors, group_by,
+            )
         normalized_query = str(query).strip()
         if not normalized_query or len(normalized_query) > 256:
             raise ValueError("reading query must have 1..256 characters")
@@ -3849,3 +3918,9 @@ class ToSAccessCore:
 
     def render_resource(self, uri: str) -> str:
         return json.dumps(self.read_resource(uri), ensure_ascii=False, indent=2, sort_keys=True)
+
+
+# The maintained default remains unchanged until native caller compatibility
+# and installed consumer acceptance close its migration route. Oracles name
+# ReferenceToSAccessCore explicitly so future default selection is independent.
+ToSAccessCore = ReferenceToSAccessCore

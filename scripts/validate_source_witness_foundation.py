@@ -47,6 +47,7 @@ from material_discovery_semantics import material_discovery_semantic_issues
 from source_bibliographic_topology import BibliographicTopologyError, validate_current_topology
 from source_metadata_snapshot import PublicationSnapshot
 from source_payload_custody import CustodyError, checked_root, payload_path
+from corpus_archive import SelectedSoftwareComponents
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -506,6 +507,22 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+_PROVENANCE_SOFTWARE = ContextVar('tos_selected_provenance_software', default=None)
+
+
+@contextmanager
+def selected_provenance_software(components: SelectedSoftwareComponents):
+    """Use selected capture byte evidence; this grants no producer authority."""
+    if (type(components) is not SelectedSoftwareComponents
+            or not SelectedSoftwareComponents._factory_bound(components)):
+        raise ValueError('selected software capture context required')
+    token = _PROVENANCE_SOFTWARE.set(components)
+    try:
+        yield
+    finally:
+        _PROVENANCE_SOFTWARE.reset(token)
+
+
 def _recorded_provenance_input_path(repo_root: Path, ref: object, digest: object) -> Path | None:
     """Resolve exact recorded schema or builder bytes from their owner archives.
 
@@ -515,6 +532,11 @@ def _recorded_provenance_input_path(repo_root: Path, ref: object, digest: object
     if (not isinstance(ref, str) or not isinstance(digest, str)
             or re.fullmatch(r'[a-f0-9]{64}', digest) is None):
         return None
+    components = _PROVENANCE_SOFTWARE.get()
+    # Exact selected current components never inherit a retained fallback.
+    # ToS bytes retain their authored source owner even when captured as software.
+    if not ref.startswith('ToS/') and components is not None and components.contains(ref):
+        return components.resolve_current(ref, digest)
     relative = Path(ref)
     if (relative.as_posix() != ref or relative.is_absolute() or '..' in relative.parts
             or not relative.parts or relative.parts[0] not in {'ToS', 'scripts'}

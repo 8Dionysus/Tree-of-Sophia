@@ -211,10 +211,33 @@ def _publish_header(db, header, catalog, lens, descriptor, epoch, limits):
     return published_snapshot_binding(metadata[TOP_KEY], epoch)
 
 
+def configure_sqlite_temp_store(db, mode=None):
+    """Explicit computational storage selection; None preserves existing policy."""
+    if mode is None:
+        return
+    if mode != 'MEMORY':
+        raise ValueError('SQLite temp storage profile must be None or MEMORY')
+    selected = []
+    count = 0
+    for (option,) in db.execute('PRAGMA compile_options'):
+        count += 1
+        if count > 256 or not isinstance(option, str) or len(option) > 4096:
+            raise ValueError('SQLite compile-option envelope exceeded')
+        if option.startswith('TEMP_STORE='):
+            selected.append(option)
+    if selected not in (['TEMP_STORE=1'], ['TEMP_STORE=2'], ['TEMP_STORE=3']):
+        raise ValueError('SQLite MEMORY temp capability unavailable')
+    db.execute('PRAGMA temp_store=MEMORY')
+    if db.execute('PRAGMA temp_store').fetchone()[0] != 2:
+        raise ValueError('SQLite MEMORY temp selection differs')
+
+
 def publish_prepared(path: str | Path, *, graph: dict, catalog: dict,
                      limits: PublicationLimits | None = None,
                      search_scratch_path: str | Path | None = None,
-                     search_scratch_limits: BulkBootstrapLimits | None = None) -> dict:
+                     search_scratch_limits: BulkBootstrapLimits | None = None,
+                     native_executable: str | Path | None = None,
+                     native_timeout: int | None = None) -> dict:
     """Create one exclusive 0600 file; failure removes only that new inode.
 
     Explicit repeatable normalized row lists retain their native source order.
@@ -226,7 +249,29 @@ def publish_prepared(path: str | Path, *, graph: dict, catalog: dict,
                                  if key not in ("nodes", "relations")}, catalog=catalog,
                                  row_factory=lambda kind: iter(graph[kind + "s"]), limits=limits,
                                  search_scratch_path=search_scratch_path,
-                                 search_scratch_limits=search_scratch_limits)
+                                 search_scratch_limits=search_scratch_limits,
+                                 native_executable=native_executable,
+                                 native_timeout=native_timeout)
+
+
+def reference_publish_prepared(path: str | Path, *, graph: dict, catalog: dict,
+                     limits: PublicationLimits | None = None,
+                     search_scratch_path: str | Path | None = None,
+                     search_scratch_limits: BulkBootstrapLimits | None = None,
+                     sqlite_temp_store: str | None = None) -> dict:
+    """Create one exclusive 0600 file; failure removes only that new inode.
+
+    Explicit repeatable normalized row lists retain their native source order.
+    Rows are streamed into SQLite once; the descriptor pass retains no row copy.
+    """
+    if not isinstance(graph, dict) or any(not isinstance(graph.get(kind + "s"), list) for kind in _COLUMNS):
+        raise ValueError("explicit repeatable normalized row lists required")
+    return reference_publish_prepared_rows(path, source_header={key: value for key, value in graph.items()
+                                 if key not in ("nodes", "relations")}, catalog=catalog,
+                                 row_factory=lambda kind: iter(graph[kind + "s"]), limits=limits,
+                                 search_scratch_path=search_scratch_path,
+                                 search_scratch_limits=search_scratch_limits,
+                                 sqlite_temp_store=sqlite_temp_store)
 
 
 def publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dict,
@@ -234,7 +279,47 @@ def publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dic
                           limits: PublicationLimits | None = None,
                           search_scratch_path: str | Path | None = None,
                           search_scratch_limits: BulkBootstrapLimits | None = None,
-                          search_reuse=None) -> dict:
+                          search_reuse=None,
+                          native_executable: str | Path | None = None,
+                          native_timeout: int | None = None) -> dict:
+    """Explicit new-file bootstrap; optionally retain a selected search donor.
+
+    Search reuse verifies every predecessor carrier/address in one read-only
+    snapshot, preserves its complete population/order and bounds replacements.
+    It is not an addressed normalization migration of the donor in place.
+    """
+    from .prepared_native import select_publication_executor
+    native_executable, native_timeout = select_publication_executor(native_executable, native_timeout)
+    if search_reuse is not None and (search_scratch_path is not None or search_scratch_limits is not None):
+        raise ValueError('search reuse and full bulk search are mutually exclusive')
+    if (search_scratch_path is None) != (search_scratch_limits is None):
+        raise ValueError('bulk search requires both an explicit scratch path and limits')
+    if search_scratch_limits is not None:
+        if not isinstance(search_scratch_limits, BulkBootstrapLimits):
+            raise ValueError('explicit BulkBootstrapLimits required')
+        search_scratch_limits.validate()
+    if search_reuse is not None:
+        from .prepared_search_reuse import PreparedSearchReuse
+        if not isinstance(search_reuse, PreparedSearchReuse):
+            raise ValueError('explicit PreparedSearchReuse required')
+    from .prepared_native import native_publication
+    selected = limits or PublicationLimits()
+    _header(source_header, catalog)
+    if not callable(row_factory):
+        raise ValueError('explicit repeatable normalized row factory required')
+    return native_publication(path, executable=native_executable, timeout=native_timeout,
+                              operation='bootstrap', header=source_header, catalog=catalog,
+                              limits=selected, row_factory=row_factory, search_reuse=search_reuse,
+                              search_scratch_path=search_scratch_path,
+                              search_scratch_limits=search_scratch_limits)
+
+
+def reference_publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dict,
+                          row_factory: Callable[[str], Iterable[dict[str, Any]]],
+                          limits: PublicationLimits | None = None,
+                          search_scratch_path: str | Path | None = None,
+                          search_scratch_limits: BulkBootstrapLimits | None = None,
+                          search_reuse=None, sqlite_temp_store: str | None = None) -> dict:
     """Explicit new-file bootstrap; optionally retain a selected search donor.
 
     Search reuse verifies every predecessor carrier/address in one read-only
@@ -243,7 +328,8 @@ def publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: dic
     """
     options = dict(source_header=source_header, catalog=catalog, row_factory=row_factory,
                    limits=limits, search_scratch_path=search_scratch_path,
-                   search_scratch_limits=search_scratch_limits)
+                   search_scratch_limits=search_scratch_limits,
+                   sqlite_temp_store=sqlite_temp_store)
     if search_reuse is None:
         return _publish_prepared_rows(path, **options)
     if search_scratch_path is not None or search_scratch_limits is not None:
@@ -258,7 +344,7 @@ def _publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: di
                           limits: PublicationLimits | None = None,
                           search_scratch_path: str | Path | None = None,
                           search_scratch_limits: BulkBootstrapLimits | None = None,
-                          _search_donor=None) -> dict:
+                          _search_donor=None, sqlite_temp_store: str | None = None) -> dict:
     """Bootstrap from two repeatable passes, without retaining transformed rows.
 
     ``row_factory(kind)`` supplies a fresh iterable for ``node`` or ``relation``
@@ -312,6 +398,7 @@ def _publish_prepared_rows(path: str | Path, *, source_header: dict, catalog: di
     db = None
     try:
         db = sqlite3.connect(path, isolation_level=None)
+        configure_sqlite_temp_store(db, sqlite_temp_store)
         db.execute("PRAGMA journal_mode=DELETE")
         maximum = _cap(db, limits)
         db.execute("BEGIN IMMEDIATE")
@@ -540,7 +627,22 @@ def apply_prepared_delta_transaction(db: sqlite3.Connection, *, expected_binding
 
 
 def apply_prepared_delta(path: str | Path, **kwargs) -> dict:
-    """Offline file owner wrapper; one transaction commits or rolls back all lanes."""
+    """Rust file owner; one native transaction commits or rolls back all lanes."""
+    from .prepared_native import select_publication_executor
+    native_executable, native_timeout = select_publication_executor(
+        kwargs.pop("native_executable", None), kwargs.pop("native_timeout", None))
+    from .prepared_native import native_publication
+    if set(kwargs) - {'expected_binding', 'source_header', 'catalog', 'changes', 'limits'}:
+        raise TypeError('unknown native prepared delta argument')
+    return native_publication(path, executable=native_executable, timeout=native_timeout,
+                              operation='delta', header=kwargs['source_header'],
+                              catalog=kwargs['catalog'], changes=kwargs['changes'],
+                              expected_binding=kwargs['expected_binding'],
+                              limits=kwargs.get('limits') or PublicationLimits())
+
+
+def reference_apply_prepared_delta(path: str | Path, **kwargs) -> dict:
+    """Independent Python oracle; never selected as a native fallback."""
     path = Path(path).absolute()
     if not stat.S_ISREG(path.lstat().st_mode):
         raise ValueError("prepared publication must be a regular non-symlink file")

@@ -9,7 +9,6 @@ import {DatabaseSync} from 'node:sqlite';
 import {createHash} from 'node:crypto';
 import {build} from 'esbuild';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
-import {knowledgeTemporalCompareD1} from '../src/knowledge-store.ts';
 
 const repo = fileURLToPath(new URL('../../../../',import.meta.url));
 const sha = raw => createHash('sha256').update(raw).digest('hex');
@@ -97,7 +96,9 @@ p=json.load(sys.stdin);print(json.dumps(diff(json.loads(p['actual']),json.loads(
 }
 let workerPromise;
 async function worker() {
-  workerPromise??=build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'})
+  workerPromise??=build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',
+    plugins:[{name:'existing-node-wasm-module',setup(build){build.onLoad({filter:/\.wasm$/},({path})=>({
+      contents:`export default new WebAssembly.Module(Uint8Array.from(atob(${JSON.stringify(readFileSync(path).toString('base64'))}),c=>c.charCodeAt(0)))`,loader:'js'}));}}]})
     .then(async bundle=>(await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'))).default);
   return workerPromise;
 }
@@ -239,6 +240,42 @@ test('temporal equivalent source float spellings bind canonically while duplicat
  }finally{data.close();}
 });
 
+// Unique predecessor controls now exercise the default Rust HTTP route rather
+// than keeping a second TS temporal algorithm as their executor.
+test('invalid temporal requests fail 400 before any forbidden or unavailable D1 access',async()=>{
+ const data=selected();try{
+  let accesses=0;
+  const forbidden=new Proxy({}, {get(){accesses++;throw Error('D1 access forbidden by request validation');}});
+  for(const request of [null,[],{}, {...data.request,extra:true},
+   {...data.request,source_revision:'invalid'}, {...data.request,left:{...data.request.left,node_id:' x'}},
+   {...data.request,right:{...data.request.right,content_revision:'invalid'}},
+   {...data.request,left:{...data.request.left,node_id:'😀'.repeat(1025)}}]){
+   const actual=await response({db:forbidden,request:data.request},request);
+   assert.equal(actual.status,400);await actual.arrayBuffer();
+  }
+  assert.equal(accesses,0);
+  const actual=await response(data,{...data.request,left:{...data.request.left,node_id:'😀'.repeat(1024)}});
+  assert.equal(actual.status,404);await actual.arrayBuffer();
+ }finally{data.close();}
+});
+
+test('temporal escaped row keys and decoded duplicate identity use retained Rust route bytes',async()=>{
+ for(const ambiguous of [false,true]){
+  const data=selected('document-native-numbers');try{
+   const claim=JSON.parse(data.sqlite.prepare('SELECT json FROM knowledge_nodes WHERE id=?').get(data.request.left.node_id).json);
+   const valueId=claim.semantics.claim.object_node_id;
+   for(const row of data.sqlite.prepare('SELECT id FROM knowledge_nodes').all())replaceRow(data,'node',row.id,raw=>{
+    if(ambiguous)return row.id===valueId?raw.slice(0,-1)+',"\\u0061ttributes":'+JSON.stringify(JSON.parse(raw).attributes)+'}':raw;
+    return ' \n'+raw.replace(/"(attributes|source_claim|semantics|time|raw|value)"(?=\s*:)/g,
+     (_,key)=>'"\\u'+key.charCodeAt(0).toString(16).padStart(4,'0')+key.slice(1)+'"')+'\n ';
+   });
+   const actual=await response(data);
+   if(ambiguous){assert.equal(actual.status,503);await actual.arrayBuffer();}
+   else {const expected=oracle(data);assert.equal(actual.status,expected.status);assertPackets(await actual.text(),expected.raw);}
+  }finally{data.close();}
+ }
+});
+
 test('temporal expanded canonical floats refuse source binding rather than imposing a hidden small-row cutoff',async()=>{
  const data=selected('document-native-numbers');try{
   replaceRow(data,'node',data.request.left.node_id,raw=>{
@@ -275,8 +312,13 @@ p=json.load(sys.stdin);top=json.loads(p['raw']);top['schema']='tos_published_kno
 
 test('real Miniflare temporal D1 raw HTTP matches published Python and rejects ABA',async()=>{
  const fixture=fixtures.find(item=>item.name==='document-native-numbers'),data=database(fixture);data.request=fixture.request;
- const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
- const mf=new Miniflare(convertV4MiniflareOptions({modules:true,script:bundle.outputFiles[0].text,compatibilityDate:'2026-09-03',d1Databases:['DB']}));
+ const bundle=await build({entryPoints:[fileURLToPath(new URL('../src/index.ts',import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022',
+  plugins:[{name:'existing-workerd-wasm-module',setup(build){build.onResolve({filter:/\.wasm$/},()=>({path:'./tos_web_rules_bg.wasm',external:true}));}}]});
+ const modulesRoot=fileURLToPath(new URL('../generated/',import.meta.url));
+ const mf=new Miniflare(convertV4MiniflareOptions({modulesRoot,modules:[
+  {type:'ESModule',path:join(modulesRoot,'temporal-worker-test.mjs'),contents:bundle.outputFiles[0].text},
+  {type:'CompiledWasm',path:join(modulesRoot,'tos_web_rules_bg.wasm'),contents:readFileSync(join(modulesRoot,'tos_web_rules_bg.wasm'))}],
+  compatibilityDate:'2026-09-03',d1Databases:['DB']}));
  try{
   const db=await mf.getD1Database('DB');
   await db.batch(schema.split(';').map(s=>s.trim()).filter(Boolean).map(s=>db.prepare(s)));
@@ -296,6 +338,7 @@ test('real Miniflare temporal D1 raw HTTP matches published Python and rejects A
      db.prepare("UPDATE edge_meta SET json_chunk=? WHERE key='data_revision'").bind(fixture.metadata.data_revision)]);
    }return result;
   }};}};
-  await assert.rejects(knowledgeTemporalCompareD1(guarded,data.request),error=>error.status===409);assert.equal(changed,true);
+  const changedResponse=await response({db:guarded,request:data.request});
+  assert.equal(changedResponse.status,409);await changedResponse.arrayBuffer();assert.equal(changed,true);
  }finally{data.close();await mf.dispose();}
 });

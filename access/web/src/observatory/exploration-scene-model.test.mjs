@@ -140,3 +140,4 @@ test('ordinary focused Claim and selected Claim path retain the vertex plus comp
   const mismatched=claimView('v2',selected);mismatched.selection={...selected,id:'missing-path'};
   expect(()=>buildExplorationSceneModel(mismatched)).toThrow(SceneContractError);
 });
+import './human-forms-wasm-test-runtime.mjs';

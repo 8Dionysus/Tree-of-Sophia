@@ -38,3 +38,43 @@ The implementation and focused validation are owned by
 `scripts/build_zarathustra_eternal_return_concept_candidate_v1.py` and
 `tests/test_zarathustra_eternal_return_concept_candidate_v1.py`; execute them
 through the [ToS validation routes](../../../VALIDATION.md).
+
+The native command `tos zarathustra-eternal-return-concept-candidate-v1`
+uses the original `plan.v1.json` by default. A reviewed technical input profile
+can be selected with `--plan-ref <repository-relative-ref>` in `--build`,
+`--check`, or `--preview`. The selected source root must be owned mode `0700`,
+and the profile must be an owned regular mode-`0600` file, at most 64 KiB.
+The original plan and its historical outputs remain separate and unchanged.
+
+A profile follows source → proposal → review before use in a fresh carrier.
+It names the exact original plan digest and a distinct versioned identity.
+Only the SHA256 pins for `paragraph_alignment_manifest`,
+`parallel_lexical_manifest` and `morphology_theme_manifest` may change; input references and membership,
+`frozen_at`, source scope, selection law, output route, authority boundaries,
+and all other pins must match the original plan. The profile retains the
+existing opaque identity issuance and must pass its complete binding check,
+including in preview. `--issue-identities` is rejected for a custom profile.
+Selected plan references and digests appear in provenance and the manifest.
+
+This route authenticates upstream manifest membership. It does not read the
+Morphology private analysis or accept morphology, translation, concept,
+semantic, graph, or canon judgments. A successful build/check remains a
+mechanical result; source-visible review and scoped admission retain their
+existing owners. Fresh profile validation is independent of the original
+plan's retained-input validation.
+
+The maintained producer entry dispatches to the native `tos` command. Select
+an exact installed executable with `TOS_NATIVE_PREPARED_CONSUMER_BIN` and pass
+`--source-root` for a separately owned source/carrier root. `--build` produces
+candidate files; `--check` regenerates them and compares the full product.
+Use `--validate-tracked` to validate existing retained products without
+regeneration, provider execution, or writes. This mode checks the original
+default plan, input pins, manifest membership/digests, tracked/private modes,
+existing opaque bindings, private exact return, counts and declared ceilings.
+It reports receipt mechanics, not algorithm equivalence or semantic admission.
+
+The original Python rendering recipes remain independent cold oracle/history
+material with their exact Git identities. Both active Eternal entries are
+native-only; the former Review-to-Concept Python hydration import retires with
+the coordinated family cutover. Historical expected output identities remain
+separate from actual native/oracle equivalence; no prior artifact is retagged.

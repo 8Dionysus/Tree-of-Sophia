@@ -54,6 +54,12 @@ def _write_projection(root: Path, relative: str, payload):
     write_partitioned_payload(path, payload, prune=False)
 
 
+def _build_evidence_projection(view: Path) -> None:
+    """Run the installed producer on this worker's fresh owned source view."""
+    from build_epistemic_evidence_projection import run_native_evidence
+    run_native_evidence(view, 'build')
+
+
 def _copy_source_view(store: CorpusStore, manifest: dict, view: Path) -> None:
     with stage_timing(
         'build.source_materialize',
@@ -113,10 +119,8 @@ def _compile_view(store: CorpusStore, manifest: dict, revision: str, view: Path,
             payload = corpus.build_payload(storage=storage,
                 source_paths=[entry['path'] for entry in manifest['files']])
             _write_projection(view, 'ToS/derived-exports/tos_corpus_index.min.json', payload)
-    evidence = _bind('epistemic_evidence_projection_common', view)
     with stage_timing('build.epistemic_evidence'):
-        (view / 'ToS/derived-exports/epistemic_evidence_projection.min.json').write_text(
-            evidence.render_payload(evidence.build_payload()), encoding='utf-8')
+        _build_evidence_projection(view)
     # Producer bugs cannot silently turn a modified source view into a new
     # accepted corpus. Verify the exact original bytes after all producers.
     with stage_timing('build.source_audit', members=len(manifest['files'])):

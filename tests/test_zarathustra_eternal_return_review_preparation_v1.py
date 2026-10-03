@@ -31,7 +31,7 @@ class ZarathustraEternalReturnReviewPreparationV1Tests(unittest.TestCase):
         if not PRIVATE.is_file():
             self.skipTest("private eternal-return review preparation is not present")
         result = subprocess.run(
-            ["python", "scripts/build_zarathustra_eternal_return_review_preparation_v1.py", "--check"],
+            ["python", "scripts/build_zarathustra_eternal_return_review_preparation_v1.py", "--validate-tracked"],
             cwd=REPO, text=True, capture_output=True,
         )
         self.assertEqual(result.returncode, 0, result.stderr)

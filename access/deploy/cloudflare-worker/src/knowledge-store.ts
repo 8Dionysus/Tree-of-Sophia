@@ -1,20 +1,16 @@
 import { HttpError, type Item } from "./common.ts";
-import {
-  focusLensSpec,
-  type FocusKnowledgeOptions,
-  type KnowledgeNode,
-  type KnowledgeRelation,
-} from "./knowledge.ts";
-import { jsonRows, rows } from "./store.ts";
+import { rows } from "./store.ts";
 import {nativeLower, codePointCompare, nativeNumberInfo, NativeBudgetExceeded} from '../../../shared/native-semantics.ts';
 import {nativeStrip} from '../../../shared/native-unicode.ts';
 import {NativeSearchDelivery, nativeSearchFailure} from './native-search-store.ts';
-import {executeNativeLensD1} from './native-lens-store.ts';
-import {inspectNativeD1} from './native-inspection-store.ts';
-import {parseNativeJson, parseNativeRequest, nativeField, arrayRefs, type NativeRef, type NativeLensResult, type NativePacket} from './native-lens.ts';
-import {NativeD1Read, nativeD1Limits, readNativePublication, nativeSha256, nativeUnavailable} from './native-d1-read.ts';
-import {compareNativeTemporalD1} from './native-temporal-store.ts';
-import {normalizeTemporalComparisonRequest} from './temporal-comparison.ts';
+import {PublishedLensD1Transport,readPublishedLensMetadata} from './native-lens-store.ts';
+import {admitAuxiliary,readLensPublicationBinding} from './native-lens-auxiliary.ts';
+import {respondLensSnapshot,lensError,SelectedLensError,type PublishedLensModule} from './selected-lens-runtime.ts';
+import {InspectionD1Transport, readNativeInspectionPublication} from './native-inspection-store.ts';
+import {respondInspectionSnapshot, inspectionError, SelectedInspectionError, type InspectionModule} from './selected-inspection-runtime.ts';
+import {respondTemporalSnapshot, SelectedTemporalError, type TemporalPublishedModule} from './selected-temporal-runtime.ts';
+import {parseNativeRequest, nativeField,nativePacketJson, type NativeRef, type NativePacket} from './native-lens.ts';
+import {NativeD1Read, NativeD1Rows, nativeD1Limits, readNativePublication, nativeSha256, nativeUnavailable,type NativeD1Limits} from './native-d1-read.ts';
 
 const KNOWLEDGE_SOURCES = new Set(["philosophy", "canon", "candidate-intake", "source-navigation", "source-claims", "semantic-interchange", "repository"]);
 const SEARCH_NGRAM_SIZE = 3;
@@ -144,12 +140,129 @@ export async function consistentRead<T>(
   return result;
 }
 
-export async function executeKnowledgeLensD1(db: D1Database, specValue: NativeRef): Promise<NativeLensResult> {
-  return consistentRead(db, snapshot => executeNativeLensD1(db, specValue, {}, snapshot.revision));
+/** Whole published lens/focus/stored path. Rust owns normalization, selectors,
+ * fast-path eligibility, traversal, presentation and packet construction. */
+export async function lensSnapshotResponseD1(db:D1Database,runtime:PublishedLensModule,
+  request:Uint8Array,operation:'compile'|'focus'|'stored',signal?:AbortSignal,method='GET',
+  overrides:Partial<NativeD1Limits>={}):Promise<Response> {
+  const limits={...nativeD1Limits,...overrides};
+  if(Object.values(limits).some(value=>!Number.isSafeInteger(value)||value<1)||limits.blockSize>64)throw new Error('invalid native lens budgets');
+  const encoder=new TextEncoder();
+  const admission=encoder.encode(JSON.stringify({max_open_vm_steps:limits.maxSqlReads,
+    max_read_vm_steps:limits.maxSqlReads,max_matches:limits.maxCandidates,max_rows:limits.maxRows,
+    max_field_bytes:1048576,max_payload_bytes:1048576,max_decoded_bytes:limits.maxDecodedBytes,
+    max_response_bytes:16*1048576,max_json_bytes:16*1048576,max_json_depth:64,
+    max_json_visits:300000,max_integer_digits:4300,max_candidates:limits.maxCandidates,
+    max_path_steps:limits.maxPathSteps,max_adjacency_rows:limits.maxSqlReads,block_size:limits.blockSize,
+    max_callbacks:limits.maxCallbacks,max_sort_bytes:limits.maxSortBytes,
+    max_cache_bytes:limits.maxCacheBytes,max_cache_entries:limits.maxCacheEntries}));
+  try {
+    signal?.throwIfAborted();
+    if(typeof runtime?.LensSession!=='function'||typeof runtime.validate_lens_request_wasm_v1!=='function')throw new SelectedLensError('selected_runtime_unavailable');
+    try {runtime.validate_lens_request_wasm_v1(request,operation,admission);}catch(error){lensError(error);}
+    signal?.throwIfAborted();
+    const read=new NativeD1Read(db,limits,true,signal);
+    const publication=await consistentRead(db,async snapshot=>{
+      const top=await readNativePublication(read,snapshot.revision);
+      const metadata=await readPublishedLensMetadata(read,top);
+      // Catalog custody remains the existing separate bounded reader. Rust
+      // receives its exact bytes and selects the unique stored specification.
+      const catalog=operation==='stored'?(await publishedCatalogDocument(db,snapshot.revision,signal)).raw:'';
+      const binding=nativePacketJson(await readLensPublicationBinding(read,top,snapshot.epoch));
+      return {snapshot,top,metadata,catalog,binding};
+    });
+    let verifyAuxiliary=async():Promise<void>=>{};
+    const checkSelected=async():Promise<void>=>{
+      signal?.throwIfAborted();
+      const current=await knowledgeSnapshot(db);
+      if(!sameKnowledgeSnapshot(current,publication.snapshot))throw new HttpError(409,'knowledge snapshot changed during query; retry against the current revision');
+      await verifyAuxiliary();signal?.throwIfAborted();
+    };
+    const physical=new PublishedLensD1Transport(read);
+    const selected={sourceRevision:nativeField(publication.top.ref,'source_revision').value as string,
+      top:encoder.encode(publication.top.raw),metadata:encoder.encode(publication.metadata.raw),
+      catalog:encoder.encode(publication.catalog),publication:encoder.encode(publication.binding),admission,checkSelected,
+      payloads:physical.payloads.bind(physical),candidates:physical.candidates.bind(physical),focus:physical.focus.bind(physical),
+      incident:physical.incident.bind(physical),ordered:physical.ordered.bind(physical),aliases:physical.aliases.bind(physical),
+      sources:physical.sources.bind(physical),count:physical.count.bind(physical),
+      async auxiliary(need:{compact:boolean;membership:boolean}):Promise<{compact:boolean;membership:boolean}> {
+        const requested=[...(need.compact?['compact' as const]:[]),...(need.membership?['membership' as const]:[])];
+        const auxiliary=await admitAuxiliary(read,publication.top,requested);
+        const stores={compact:auxiliary.installed.includes('compact'),membership:auxiliary.installed.includes('membership')};
+        verifyAuxiliary=auxiliary.verify;physical.setStores(stores);return stores;
+      },
+    };
+    try {return await respondLensSnapshot(runtime,selected,request,operation,signal,method);}
+    catch(error){await checkSelected();throw error;}
+  }catch(error){
+    signal?.throwIfAborted();
+    if(error instanceof HttpError)throw error;
+    if(error instanceof NativeBudgetExceeded)throw new HttpError(413,error.message);
+    if(error instanceof SelectedLensError){const status=error.code==='UnknownIdentifier'?(operation==='stored'?404:400)
+      :error.code==='StaleSelection'?409:error.code==='BudgetExceeded'?413
+      :error.code==='InvalidRequest'||error.code==='InvalidJson'?400:503;throw new HttpError(status,error.message);}
+    throw error;
+  }
 }
 
-async function publishedCatalog(db: D1Database, revision: string): Promise<NativeRef> {
-  const read=new NativeD1Read(db,nativeD1Limits,true);
+/** The publisher/import selects the public snapshot. This reader validates
+ * publication framing and retained exact rows; it issues no runtime rights. */
+export async function temporalSnapshotResponseD1(db: D1Database, runtime: TemporalPublishedModule,
+  request: Uint8Array, signal?: AbortSignal): Promise<Response> {
+  if (!runtime || typeof runtime.TemporalReplaySession !== 'function'
+      || typeof runtime.validate_temporal_request_wasm_v1 !== 'function') {
+    throw new SelectedTemporalError('selected_runtime_unavailable');
+  }
+  signal?.throwIfAborted();
+  const encoder = new TextEncoder();
+  const admission = encoder.encode(JSON.stringify({max_json_bytes:1048576, max_json_depth:64,
+    max_json_visits:300000, max_integer_digits:4300, max_source_bytes:6*1048576,
+    max_replay_bytes:7*(65536+6*1048576), max_output_bytes:16*1048576}));
+  // Same shared request validator and parser admission as comparison. Invalid
+  // shapes retain 400 before even publication metadata on an unavailable DB.
+  try { runtime.validate_temporal_request_wasm_v1(request, admission); }
+  catch (error) {
+    if (typeof error === 'string') throw new SelectedTemporalError(error);
+    throw error;
+  }
+  signal?.throwIfAborted();
+  const read = new NativeD1Read(db, nativeD1Limits, true);
+  const publication = await consistentRead(db, async snapshot => {
+    const top = await readNativeInspectionPublication(read, snapshot.revision);
+    return {snapshot, top};
+  });
+  const checkSelected = async (): Promise<void> => {
+    signal?.throwIfAborted();
+    const current = await knowledgeSnapshot(db);
+    if (!sameKnowledgeSnapshot(current, publication.snapshot)) {
+      throw new HttpError(409, 'knowledge snapshot changed during query; retry against the current revision');
+    }
+    signal?.throwIfAborted();
+  };
+  const rows = new NativeD1Rows(read, nativeD1Limits, false);
+  const selected = {
+    sourceRevision: nativeField(publication.top.ref, 'source_revision').value as string,
+    // The published normalized source-claims contract owns this profile name;
+    // no native selected receipt or runtime grant is inferred from the header.
+    claimSourceGraph: 'source-claims',
+    admission,
+    checkSelected,
+    async readExactNode(id: string): Promise<Uint8Array | null> {
+      await checkSelected();
+      if (!id.isWellFormed()) nativeUnavailable('prepared response contains invalid JSON values');
+      const found = await read.textRows<{id:string}>(['id'], ['id'],
+        'SELECT id FROM knowledge_nodes WHERE id=? ORDER BY id LIMIT 2', id);
+      if (found.length > 1) throw new NativeBudgetExceeded('prepared temporal has too many exact identity matches');
+      const raw = found.length ? encoder.encode(await rows.getRaw('node', id)) : null;
+      await checkSelected();
+      return raw;
+    },
+  };
+  return respondTemporalSnapshot(runtime, selected, request, signal);
+}
+
+async function publishedCatalogDocument(db: D1Database, revision: string, signal?:AbortSignal): Promise<{raw:string;ref:NativeRef}> {
+  const read=new NativeD1Read(db,nativeD1Limits,true,signal);
   const top=await readNativePublication(read,revision,'inspection');
   const catalog=await read.metadata('knowledge_catalog',8*1024*1024);
   if (await nativeSha256(catalog.raw)!==nativeField(top.ref,'catalog_sha256').value
@@ -157,23 +270,14 @@ async function publishedCatalog(db: D1Database, revision: string): Promise<Nativ
       || nativeField(catalog.ref,'source_revision').value!==nativeField(top.ref,'source_revision').value) {
     nativeUnavailable('published knowledge catalog differs from its reader binding');
   }
-  return catalog.ref;
+  return catalog;
+}
+async function publishedCatalog(db:D1Database,revision:string):Promise<NativeRef> {
+  return (await publishedCatalogDocument(db,revision)).ref;
 }
 
 export async function knowledgeCatalogD1(db: D1Database): Promise<NativeRef> {
   return consistentRead(db,snapshot=>publishedCatalog(db,snapshot.revision));
-}
-
-export async function storedKnowledgeLensD1(db: D1Database, lensId: string): Promise<NativeLensResult> {
-  return consistentRead(db,async snapshot=>{
-    const catalog=await publishedCatalog(db,snapshot.revision);
-    const lenses=nativeField(catalog,'lenses');
-    if (!Array.isArray(lenses.value)) nativeUnavailable('published knowledge lens catalog is invalid');
-    const matches=arrayRefs(lenses).filter(ref=>nativeField(ref,'lens_id').value===lensId);
-    if (!matches.length) throw new HttpError(404,`unknown ToS knowledge lens: ${lensId}`);
-    if (matches.length!==1) nativeUnavailable('published knowledge lens identity is ambiguous');
-    return executeNativeLensD1(db,matches[0]!,{},snapshot.revision);
-  });
 }
 
 export async function knowledgeSearchD1(db: D1Database, options: Parameters<typeof knowledgeSearchD1Unchecked>[1]): Promise<NativePacket> {
@@ -212,17 +316,54 @@ export async function knowledgeSearchD1Indexed(
   return nativeSearchFailure(()=>consistentRead(db, (snapshot) => knowledgeSearchD1IndexedUnchecked(db, options, snapshot)));
 }
 
-export async function knowledgeNodeD1(db: D1Database, id: string, relationLimit: number): Promise<NativePacket> {
-  return consistentRead(db, snapshot => inspectNativeD1(db, 'node', id, relationLimit, snapshot.revision));
-}
-
-export async function knowledgeRelationD1(db: D1Database, id: string): Promise<NativePacket> {
-  return consistentRead(db, snapshot => inspectNativeD1(db, 'relation', id, 200, snapshot.revision));
-}
-
-export async function knowledgeTemporalCompareD1(db: D1Database, request: unknown): Promise<NativePacket> {
-  const normalized = normalizeTemporalComparisonRequest(request);
-  return consistentRead(db, snapshot => compareNativeTemporalD1(db,normalized,snapshot.revision));
+/** Full node/relation inspection of one publisher-selected public snapshot.
+ * Rust owns request shape, alias precedence/completeness and packet semantics;
+ * this adapter owns existing D1 integrity/physical admission and body handoff. */
+export async function inspectionSnapshotResponseD1(db:D1Database,runtime:InspectionModule,
+  kind:'node'|'relation',identifier:string,relationLimit:number,signal?:AbortSignal,method='GET'):Promise<Response> {
+  const encoder=new TextEncoder();
+  const admission=encoder.encode(JSON.stringify({max_open_vm_steps:nativeD1Limits.maxSqlReads,
+    max_read_vm_steps:nativeD1Limits.maxSqlReads,max_matches:128,max_rows:nativeD1Limits.maxRows,
+    max_field_bytes:1048576,max_payload_bytes:1048576,max_decoded_bytes:nativeD1Limits.maxDecodedBytes,
+    max_response_bytes:16*1048576,max_json_bytes:16*1048576,max_json_depth:64,
+    max_json_visits:300000,max_integer_digits:4300}));
+  const request=encoder.encode(JSON.stringify({kind,identifier,relation_limit:relationLimit}));
+  try {
+    signal?.throwIfAborted();
+    if(typeof runtime?.InspectionSession!=='function'||typeof runtime.validate_inspect_request_wasm_v1!=='function') {
+      throw new SelectedInspectionError('selected_runtime_unavailable');
+    }
+    // Preserve malformed request refusal before even snapshot metadata I/O.
+    try {runtime.validate_inspect_request_wasm_v1(request,admission);}catch(error){inspectionError(error);}
+    signal?.throwIfAborted();
+    const read=new NativeD1Read(db,nativeD1Limits,true,signal);
+    const publication=await consistentRead(db,async snapshot=>({snapshot,
+      top:await readNativeInspectionPublication(read,snapshot.revision)}));
+    const checkSelected=async():Promise<void>=>{
+      signal?.throwIfAborted();
+      const current=await knowledgeSnapshot(db);
+      if(!sameKnowledgeSnapshot(current,publication.snapshot)) {
+        throw new HttpError(409,'knowledge snapshot changed during query; retry against the current revision');
+      }
+      signal?.throwIfAborted();
+    };
+    const physical=new InspectionD1Transport(read);
+    const selected={sourceRevision:nativeField(publication.top.ref,'source_revision').value as string,
+      top:encoder.encode(publication.top.raw),admission,checkSelected,
+      lookup:physical.lookup.bind(physical),incident:physical.incident.bind(physical),endpoints:physical.endpoints.bind(physical)};
+    try {return await respondInspectionSnapshot(runtime,selected,request,signal,method);}
+    catch(error){await checkSelected();throw error;}
+  } catch(error) {
+    signal?.throwIfAborted();
+    if(error instanceof HttpError)throw error;
+    if(error instanceof NativeBudgetExceeded)throw new HttpError(413,error.message);
+    if(error instanceof SelectedInspectionError) {
+      const status=error.code==='UnknownIdentifier'?404:error.code==='StaleSelection'?409:
+        error.code==='BudgetExceeded'?413:error.code==='InvalidRequest'||error.code==='InvalidJson'?400:503;
+      throw new HttpError(status,error.message);
+    }
+    return nativeUnavailable('prepared inspection publication unavailable or invalid');
+  }
 }
 
 type SqlFragment = { sql: string; bindings: unknown[] };
@@ -250,80 +391,6 @@ function joinFragments(parts: SqlFragment[]): SqlFragment {
 async function count(db: D1Database, table: string, where: SqlFragment): Promise<number> {
   const result = await rows<CountRow>(db, `SELECT COUNT(*) AS count FROM ${table} WHERE ${where.sql}`, ...where.bindings);
   return Number(result[0]?.count ?? 0);
-}
-
-function asNodes(items: Item[]): KnowledgeNode[] {
-  return items as KnowledgeNode[];
-}
-
-function asRelations(items: Item[]): KnowledgeRelation[] {
-  return items as KnowledgeRelation[];
-}
-
-export async function nodesByIds(db: D1Database, ids: Iterable<string>): Promise<KnowledgeNode[]> {
-  const values = [...new Set(ids)];
-  if (values.length === 0) return [];
-  return asNodes(await jsonRows(
-    db,
-    "SELECT json FROM knowledge_nodes WHERE id IN (SELECT value FROM json_each(?)) ORDER BY id",
-    JSON.stringify(values),
-  ));
-}
-
-export async function relationsByIds(db: D1Database, ids: Iterable<string>): Promise<KnowledgeRelation[]> {
-  const values = [...new Set(ids)];
-  if (values.length === 0) return [];
-  return asRelations(await jsonRows(
-    db,
-    "SELECT json FROM knowledge_relations WHERE id IN (SELECT value FROM json_each(?)) ORDER BY id",
-    JSON.stringify(values),
-  ));
-}
-
-export async function resolveFocusNodeD1(
-  db: D1Database,
-  requestedId: string | null,
-  sources: string[],
-): Promise<KnowledgeNode | null> {
-  if (requestedId === null) return null;
-  const source = sourceFragment("n", sources);
-  const exact = asNodes(await jsonRows(
-    db,
-    `SELECT n.json FROM knowledge_nodes n WHERE ${source.sql} AND n.id = ? ORDER BY n.id`,
-    ...source.bindings,
-    requestedId,
-  ));
-  if (exact.length > 0) return exact[0]!;
-  const entity = asNodes(await jsonRows(
-    db,
-    `SELECT n.json FROM knowledge_nodes n WHERE ${source.sql} AND n.entity_id = ? ORDER BY CASE n.source_graph WHEN 'source-navigation' THEN 0 WHEN 'canon' THEN 1 WHEN 'source-claims' THEN 2 WHEN 'philosophy' THEN 3 WHEN 'candidate-intake' THEN 4 WHEN 'repository' THEN 5 WHEN 'semantic-interchange' THEN 6 ELSE 99 END, n.id`,
-    ...source.bindings,
-    requestedId,
-  ));
-  if (entity.length > 0) return entity[0]!;
-  const native = asNodes(await jsonRows(
-    db,
-    `SELECT n.json FROM knowledge_nodes n WHERE ${source.sql} AND n.native_id = ? ORDER BY n.id`,
-    ...source.bindings,
-    requestedId,
-  ));
-  if (native.length === 0) throw new HttpError(400, `unknown ToS knowledge focus: ${requestedId}`);
-  if (native.length > 1) {
-    throw new HttpError(
-      400,
-      `ambiguous ToS knowledge focus ${requestedId}: ${native.map((item) => item.id).join(", ")}; use a namespaced node id`,
-    );
-  }
-  return native[0]!;
-}
-
-
-export async function focusKnowledgeNodeD1(
-  db: D1Database,
-  nodeId: string,
-  options: FocusKnowledgeOptions = {},
-): Promise<NativeLensResult> {
-  return executeKnowledgeLensD1(db, parseNativeJson(JSON.stringify(focusLensSpec(nodeId, options))));
 }
 
 function normalizedSources(values: string[] | null): string[] {

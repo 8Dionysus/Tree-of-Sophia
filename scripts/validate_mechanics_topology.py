@@ -502,5 +502,23 @@ def main() -> int:
     return 0
 
 
+def native_main(argv: list[str] | None = None) -> int:
+    """Installed validator CLI; source-level validation APIs stay importable."""
+    import os
+    import shutil
+
+    selected = os.environ.get("TOS_OPS_MECHANICS_EXECUTOR")
+    executable = selected or shutil.which("tos-ops-mechanics-plan")
+    if not executable:
+        print("[error] install tos-ops-mechanics-plan or set TOS_OPS_MECHANICS_EXECUTOR", file=sys.stderr)
+        return 1
+    try:
+        os.execv(executable, [executable, "--repo-root", str(REPO_ROOT),
+                              "--mechanics-topology-validate"])
+    except OSError as error:
+        print(f"[error] cannot execute native mechanics topology validator: {error}", file=sys.stderr)
+        return 1
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(native_main())

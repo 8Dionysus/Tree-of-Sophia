@@ -22,8 +22,7 @@ import source_command_contracts as contract
 import source_revisions as revisions
 import source_metadata_transactions as transactions
 import source_item_deposit as deposit
-from build_source_resource_inventories import (GENERATOR_VERSION as INVENTORY_GENERATOR_VERSION,
-    inventory_authority_boundary, SCHEMA_REF as INVENTORY_SCHEMA)
+from build_source_resource_inventories import inventory_metadata
 from source_metadata_snapshot import PublicationSnapshot
 from source_bibliographic_topology import validate_edition_item_delta
 from source_record_profiles import SourceClaimProfiles, SOURCE_CLAIM_BASENAME, CORPUS_REF
@@ -870,8 +869,13 @@ def _schema(root, name, value):
 
 def _item_companions(root, scope, request, byte_receipt, *, generator_version=None):
     """Preserve the existing acquired Item v1 grammar; no source text is emitted."""
-    generator_version = INVENTORY_GENERATOR_VERSION if generator_version is None else generator_version
-    inventory_boundary = inventory_authority_boundary(generator_version)
+    inventory_owner = inventory_metadata()
+    generator_version = inventory_owner['generator_version'] if generator_version is None else generator_version
+    try:
+        inventory_boundary = inventory_owner['authority_boundaries'][str(generator_version)]
+        inventory_schema = inventory_owner['schema_ref']
+    except (KeyError, TypeError) as error:
+        raise ValueError('resource inventory metadata version is unsupported') from error
     base = Path(scope['item_source_path']).parent
     ref = lambda name: (base / name).as_posix()
     stamp = byte_receipt['deposited_at']
@@ -883,7 +887,7 @@ def _item_companions(root, scope, request, byte_receipt, *, generator_version=No
         'resource_inventory_ref': ref('resource-inventory.json'), 'visibility': 'local_only', 'manifest_version': 1}
     if request['inventory'] is None or request['inventory_limitation'] is not None:
         raise ValueError('resource inventory unavailable; bytes must remain retained without acquired Item metadata')
-    inventory = {'$schema': INVENTORY_SCHEMA, 'schema_version': 'tos_source_resource_inventory_v1',
+    inventory = {'$schema': inventory_schema, 'schema_version': 'tos_source_resource_inventory_v1',
         'item_id': scope['item_id'], 'generated_from_manifest_ref': ref('item.manifest.json'),
         'inventory_authority': 'mechanical_metadata_only', 'source_text_included': False,
         'files': [request['inventory']], 'generator': {'name': 'build_source_resource_inventories.py', 'version': generator_version},

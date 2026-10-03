@@ -16,6 +16,8 @@ import hashlib
 import json
 import os
 import platform
+import signal
+import subprocess
 from pathlib import Path
 import re
 import stat
@@ -1555,8 +1557,8 @@ def _create_source(owner_config, config, configuration, source_path, request):
         return result(receipt)
 
 
-def run_local_command(owner_config: Path | None, request: dict):
-    """One independently delegated source owner route; never semantic admission."""
+def run_legacy_oracle_command(owner_config: Path | None, request: dict):
+    """Retained Python oracle for behavior not yet replaced by a whole native consumer."""
     if not isinstance(request, dict) or len(_canonical(request)) > MAX_COMMAND_BYTES:
         raise ValueError('source command exceeds the 1 MiB input budget')
     request = _json_object(_canonical(request))  # Freeze caller-owned mutable input.
@@ -1577,6 +1579,142 @@ def run_local_command(owner_config: Path | None, request: dict):
     if snapshot is not None:
         snapshot.verify_current()
     return result
+
+
+def run_local_command(owner_config: Path | None, request: dict, *, native_invocation: Path | None = None):
+    """Default owned execution uses an explicitly selected protected native invocation."""
+    if request.get('schema_version') == DISCOVERY_REQUEST:
+        if owner_config is not None or native_invocation is not None:
+            raise ValueError('discovery takes no owner selection')
+        return discover_commands(request)
+    if native_invocation is None:
+        raise PermissionError('select --owner-config and --native-invocation using docs/RELEASING.md; retained Python oracle requires --legacy-oracle')
+    return _run_selected_native_owner(owner_config, native_invocation, request)
+
+
+def _run_selected_native_owner(owner_config: Path, invocation_path: Path, request: dict):
+    """Default local native route. The selected invocation is evidence, not a grant."""
+    deadline = time.monotonic() + 60
+    if owner_config is None:
+        raise PermissionError('native owner requires an owner configuration')
+    # The compatibility transport reads a protected family hint only. The
+    # native typed owner performs configuration, grammar and source checks.
+    with os.fdopen(_owned_path(owner_config), 'rb') as selected:
+        info = os.fstat(selected.fileno())
+        if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600:
+            raise PermissionError('native owner configuration must be private owner bytes')
+        config_raw = selected.read(MAX_COMMAND_BYTES + 1)
+    if len(config_raw) > MAX_COMMAND_BYTES:
+        raise ValueError('native owner configuration exceeds the input budget')
+    config = _json_object(config_raw)
+    schema = config.get('schema_version')
+    if not isinstance(schema, str):
+        raise ValueError('native owner configuration has no schema discriminator')
+    claim = schema.startswith(('tos_local_claim_create_owner_v', 'tos_local_claim_revision_owner_v',
+                               'tos_local_document_catalogue_date_', 'tos_local_identity_proposal_')) or schema == 'tos_local_claim_layer_revision_owner_v1'
+    item = schema == 'tos_local_item_adoption_owner_v1'
+    collection = config['schema_version'] == 'tos_local_collection_membership_owner_v1'
+    alignment = config['schema_version'] == 'tos_local_native_alignment_owner_v1'
+    source = not item and not claim and not alignment and not collection
+    if len(_canonical(request)) > MAX_COMMAND_BYTES:
+        raise ValueError('source command exceeds the 1 MiB input budget')
+    operations = (('describe', 'prepare-attach', 'collection.work.attach', 'collection.work.recover') if collection else
+                  ('describe', 'prepare-create', 'claims.create', 'prepare-revise', 'claim.revise', 'inspect-version') if claim else
+                  ('describe', 'prepare-create', 'item.adopt', 'item.adoption.recover') if item else
+                  ('describe', 'prepare-create', 'prepare-revise', 'alignment.create', 'alignment.revise',
+                   'inspect', 'inspect-version', 'inspect-recovery'))
+    if not source and request['operation'] not in operations:
+        raise PermissionError('native invocation operation is not implemented')
+    with os.fdopen(_owned_path(invocation_path), 'rb') as selected:
+        info = os.fstat(selected.fileno())
+        if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600:
+            raise PermissionError('native invocation must be private owner bytes')
+    raw = _read(invocation_path, MAX_COMMAND_BYTES)
+    invocation = _json_object(raw)
+    publication_profile = invocation.get('schema_version')
+    publication = source and publication_profile in (
+        'tos_local_native_agent_publication_invocation_v1',
+        'tos_local_native_metadata_publication_invocation_v1')
+    keys = {'schema_version', 'owner_config', 'native_executable', 'native_executable_sha256',
+            'corpus_store', 'source_revision', 'software_capture', 'software_restored_root',
+            'software_selection', 'software_components', 'schema_worker', 'budgets'}
+    keys.add('original_source_revision' if item or claim or collection else 'owner_context')
+    if source:
+        keys.update(('original_source_revision', 'assessment_schema_worker'))
+    if publication:
+        keys.update(('prepared_database', 'expected_binding_path', 'source_inputs_path',
+                     'source_inputs_sha256', 'catalog_path', 'catalog_sha256',
+                     'descriptor_path', 'descriptor_sha256', 'publication_limits',
+                     'reviewed_execution_transition'))
+        if publication_profile == 'tos_local_native_metadata_publication_invocation_v1':
+            keys.update(('reviewed_metadata_transition', 'expected_creation_receipt_sha256',
+                         'expected_creation_request_digest'))
+    profile = (publication_profile if publication else
+               'tos_local_native_collection_invocation_v1' if collection else
+               'tos_local_native_claim_invocation_v1' if claim else
+               'tos_local_native_item_invocation_v1' if item else
+               'tos_local_native_source_invocation_v1' if source else 'tos_local_native_owner_invocation_v1')
+    if (invocation.get('schema_version') != profile or invocation.get('owner_config') != str(owner_config)
+            or set(invocation) != keys):
+        raise PermissionError('native invocation does not select this owner')
+    executable = Path(invocation['native_executable'])
+    descriptor = _owned_path(executable)
+    try:
+        info = os.fstat(descriptor)
+        if (not info.st_mode & stat.S_IXUSR or info.st_mode & 0o022
+                or info.st_mode & (stat.S_ISUID | stat.S_ISGID | stat.S_ISVTX)):
+            raise PermissionError('native executable owner/mode')
+        with tempfile.TemporaryFile() as source_input, tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as errors:
+            source_input.write(_canonical(request))
+            source_input.seek(0)
+            child = subprocess.Popen([f'/proc/self/fd/{descriptor}', '--invocation', str(invocation_path)],
+                                     pass_fds=(descriptor,), stdin=source_input,
+                                     stdout=output, stderr=errors, start_new_session=True)
+            try:
+                while child.poll() is None:
+                    if (time.monotonic() >= deadline or output.tell() > MAX_COMMAND_BYTES
+                            or errors.tell() > MAX_COMMAND_BYTES):
+                        os.killpg(child.pid, signal.SIGKILL)
+                        child.wait()
+                        raise ValueError('bounded native owner command refused')
+                    time.sleep(0.01)
+            finally:
+                if child.poll() is None:
+                    os.killpg(child.pid, signal.SIGKILL)
+                    child.wait()
+            if (time.monotonic() >= deadline or output.tell() > MAX_COMMAND_BYTES
+                    or errors.tell() > MAX_COMMAND_BYTES):
+                raise ValueError('native owner command refused')
+            if child.returncode != 0:
+                errors.seek(0)
+                reason = errors.read(4096).decode('utf-8', errors='replace').strip()
+                raise ValueError('native owner command refused' + (': ' + reason if reason else ''))
+            output.seek(0)
+            response = _json_object(output.read(MAX_COMMAND_BYTES + 1))
+            expected_result = ('tos_collection_membership_result_v1' if collection else
+                               'tos_local_native_claim_result_v1' if claim else
+                               'tos_edition_item_result_v1' if item else
+                               'tos_expression_edition_result_v1' if schema == 'tos_local_expression_edition_owner_v1' else
+                               'tos_expression_responsibility_result_v1' if schema == 'tos_local_expression_responsibility_owner_v1' else
+                               'tos_local_assessment_result_v1' if schema in (
+                                   'tos_local_assessment_owner_v4', 'tos_local_assessment_owner_v5',
+                                   'tos_local_assessment_owner_v6') else
+                               'tos_local_native_source_result_v1' if source else
+                               'tos_local_native_alignment_result_v1')
+            if publication and publication_profile == 'tos_local_native_metadata_publication_invocation_v1':
+                expected_result = {
+                    'describe-metadata-execution': 'tos_local_native_metadata_execution_v1',
+                    'reviewed-metadata-execution-bootstrap': 'tos_local_native_metadata_publication_result_v1',
+                    'publish-initial-metadata': 'tos_local_native_metadata_publication_result_v1',
+                }.get(request.get('action'))
+                if (expected_result is None or response.get('grants_admission') is not False
+                        or not isinstance(response.get('result'), dict)):
+                    raise ValueError('native Metadata result profile')
+            if response.get('schema_version') != expected_result:
+                raise ValueError('native owner result profile')
+            return response
+    finally:
+        os.close(descriptor)
 
 
 def _run_configured_command(owner_config, config, configuration, source_path, request):
@@ -1850,10 +1988,16 @@ def main():
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument('--owner-config', type=Path)
     selection.add_argument('--discover', action='store_true', help='Emit handler-owned JSON capability grammar without reading stdin, owner configuration or source targets.')
+    parser.add_argument('--native-invocation', type=Path, help='Explicit protected local native owner selection; see docs/RELEASING.md; never authority discovery.')
+    parser.add_argument('--legacy-oracle', action='store_true', help='Explicit retained Python oracle for behavior not yet replaced; removed after its whole native consumer is accepted.')
     parser.add_argument('--handler', help='With --discover, select one exact handler_id from the implementation catalogue.')
     args = parser.parse_args()
     if args.handler is not None and not args.discover:
         parser.error('--handler requires --discover')
+    if args.legacy_oracle and (args.discover or args.native_invocation is not None):
+        parser.error('--legacy-oracle excludes discovery and native invocation')
+    if args.native_invocation is not None and (args.discover or args.owner_config is None):
+        parser.error('--native-invocation requires --owner-config and excludes --discover')
     try:
         if args.discover:
             response = discover_commands({'schema_version': DISCOVERY_REQUEST, 'operation': 'discover',
@@ -1862,8 +2006,14 @@ def main():
             raw = sys.stdin.buffer.read(MAX_COMMAND_BYTES + 1)
             if len(raw) > MAX_COMMAND_BYTES:
                 raise ValueError('source command exceeds the stdin budget')
-            response = run_local_command(args.owner_config, _json_object(raw))
+            request = _json_object(raw)
+            response = (run_legacy_oracle_command(args.owner_config, request) if args.legacy_oracle else
+                        run_local_command(args.owner_config, request, native_invocation=args.native_invocation))
     except (ValueError, KeyError, TypeError, OSError, ValidationError, RuntimeError) as error:
+        if args.native_invocation is not None:
+            # This explicit local owner's stderr is diagnostic; the public
+            # response keeps its existing error envelope and withholds content.
+            print('selected native owner refused: ' + str(error), file=sys.stderr)
         print(json.dumps({'schema_version': 'tos_local_source_command_error_v1', 'error': type(error).__name__}))
         return 2
     print(json.dumps(response, ensure_ascii=False, allow_nan=False))

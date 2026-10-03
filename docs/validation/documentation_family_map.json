@@ -760,6 +760,62 @@
       ]
     },
     {
+      "id": "rust",
+      "label": "maintained Rust execution and synthetic compatibility",
+      "match": {
+        "prefix": "rust/"
+      },
+      "consumer": [
+        "contributor",
+        "CI",
+        "native/WASM integration owner"
+      ],
+      "load_moment": "when a native/WASM contract, crate route, or synthetic compatibility fixture is changed",
+      "owner": "rust/README.md and the exact crate or source-contract owner",
+      "roles": {
+        "authored": "workspace and crate explanations; executable contract intent, not ToS corpus meaning",
+        "generated": "derived synthetic fixtures and oracle carriers, weaker than their selected source and generator",
+        "executable": "bounded fixture/oracle generators and maintained native/WASM rules",
+        "runtime": "external installed/runtime state only",
+        "tool": "crate operation and adapter contracts",
+        "receipt": "bounded synthetic comparison evidence, not source admission or release acceptance"
+      },
+      "currentness_inputs": [
+        "rust/README.md",
+        "Cargo.toml",
+        "Cargo.lock",
+        "rust-toolchain.toml",
+        "tests/conformance/rust/README.md",
+        "docs/validation/validation_lanes.json"
+      ],
+      "next_organ": [
+        "exact crate or source-contract owner",
+        "tests/conformance/rust/",
+        "rust_workspace validation lane"
+      ],
+      "context": {
+        "posture": "on_demand",
+        "metric": "whitespace_tokens_v1",
+        "max_tokens": 1400,
+        "surfaces": [
+          "rust/README.md"
+        ]
+      },
+      "public_safety": {
+        "posture": "repository_internal",
+        "forbidden": [
+          "secrets",
+          "private or production corpus payloads",
+          "ambient host state claims"
+        ],
+        "boundary": "synthetic fixtures and executable checks do not grant rights, source admission, canon, production activation or capacity acceptance"
+      },
+      "validation_lane": "rust_workspace",
+      "authority_keys": [
+        "rust_executable_contract"
+      ]
+    },
+    {
       "id": "tests",
       "label": "bounded regression tests",
       "match": {
@@ -1162,6 +1218,13 @@
       "strength": "executable",
       "family_id": "tests",
       "family_owner": "tests/AGENTS.md, docs/testing/TEST_TOPOLOGY.md, and the exact owner surface"
+    },
+    {
+      "id": "rust_executable_contract",
+      "owner": "rust/README.md",
+      "strength": "executable",
+      "family_id": "rust",
+      "family_owner": "rust/README.md and the exact crate or source-contract owner"
     },
     {
       "id": "artifact_declaration",

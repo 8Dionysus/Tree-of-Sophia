@@ -489,20 +489,11 @@ def test_real_authored_csv_inspection_human_agent_return(tmp_path):
     relations = [r for r in graph['relations'] if 'pack_id' in r['source_record']['payload']]
     targets = source_read_targets(relations, revision)
     assert len(targets) == len(edges)
-    # Native inspection must emit the same exact target for every actual row.
+    # This source-owner slice verifies every real CSV target and the exact
+    # custody/current-source return below. Portable inspection target parity
+    # belongs to the maintained actual Rust/WASM D1 inspection/CSV oracle; do
+    # not retain a second TS projection executor inside this owner boundary.
     execution = Path(__file__).resolve().parents[2]
-    program = (
-        f"import {{parseNativeJson,nativeChild,nativeKeys}} from {json.dumps((execution/'access/shared/native-semantics.ts').as_uri())};\n"
-        f"import {{nativeSourceReadTargets}} from {json.dumps((execution/'access/deploy/cloudflare-worker/src/native-source-target.ts').as_uri())};\n"
-        f"import {{nativePacketJson}} from {json.dumps((execution/'access/deploy/cloudflare-worker/src/native-lens.ts').as_uri())};\n"
-        "import {readFileSync} from 'node:fs';for(const line of readFileSync(0,'utf8').trimEnd().split('\\n')){const p=parseNativeJson(line);\n"
-        "process.stdout.write(nativePacketJson(await nativeSourceReadTargets([nativeChild(p,'relation')],nativeChild(p,'revision')))+'\\n');}"
-    )
-    native = subprocess.run(['node', '--experimental-strip-types', '--input-type=module', '-e', program],
-        input='\n'.join(json.dumps({'relation': relation, 'revision': revision}, ensure_ascii=False) for relation in relations),
-        text=True, capture_output=True, timeout=25)
-    assert native.returncode == 0, native.stderr
-    assert {key: value for line in native.stdout.splitlines() for key, value in json.loads(line).items()} == targets
     core = ToSAccessCore.discover(tos_root=root, source_read_service=selected)
     observed = []
     # Two independent seams, one per authored status; no huge end-to-end query.
@@ -550,5 +541,5 @@ def test_real_authored_csv_inspection_human_agent_return(tmp_path):
                          'authority_layer': record['provenance']['authority_layer'],
                          'exact_human_agent_return': True})
     print(json.dumps({'status': 'passed', 'scope': 'real source slice, not full prepared publication or rendered UI',
-        'rows': len(edges), 'packs': len(packs), 'native_python_target_parity': True,
+        'rows': len(edges), 'packs': len(packs),
         'source_revision': revision, 'observed': observed}, ensure_ascii=False))

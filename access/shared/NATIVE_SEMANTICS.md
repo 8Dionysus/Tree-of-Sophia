@@ -1,13 +1,11 @@
 # Native-v7 bounded Worker semantics
 
-The shared helpers preserve Python values independently of a runtime. The
-Worker's lens/focus route uses them from raw request and D1 row text through
-bounded selection, grouping, pagination and the first wire serialization.
-Node/relation inspection and temporal comparison separately retain full raw
-rows through their first wire serialization. Resumable exploration preserves
-native compact packets through checkpoint persistence and replay. Legacy v1 and
-indexed v2 search retain native full rows and authority metadata through the
-first wire serialization as well.
+The shared JSON helpers preserve Python values during host custody and bounded
+legacy/indexed search transport. Maintained Worker temporal, inspection,
+lens/focus/stored and exploration domain execution uses the build-owned shared
+Rust/WASM module. Hosts retain original row bytes through digest/identity checks;
+Rust preserves source numeric kinds and ordered packet emission. Exploration
+keeps exact compact packet text through checkpoint persistence and replay.
 
 ## Entry and reference API
 
@@ -108,29 +106,46 @@ local-prepared search is outside this correction.
 
 ## Resumable exploration boundary
 
-`native-exploration-store.ts` reads bounded identity/adjacency windows and verifies
-selected full rows against emitted digests and index identity before producing
-compact `nativeCarrier` packets. Arbitrary retained source fields, including
-unknown semantics, numeric kinds, negative zero, unsafe integers and source
-member order, remain native references. The existing compact projection still
-omits attributes, source records, readable context and the Claim canonical-JSON
-companion; it does not synthesize missing input. Scenes use the same bounded
-structural projection as lenses, without executing a lens.
+The maintained POST uses `explorationSnapshotResponseD1` and the generated
+`ExplorationSession`. Shared Rust owns pre-I/O request validation, exact origins,
+BFS/identity/inclusion, compact presentation/scene, state codec and replay shape.
+Its one exploration-specific suspended algorithm is consumed by both native
+and published adapters under explicit distinct software profiles; its future
+is not persisted or replayed. `PublishedExplorationD1Transport` serves concrete
+bounded focus/row/identity/adjacency needs with static indexed SQL and verifies
+original carrier digests and identity columns before passing lexical bytes.
+There is no TS domain executor or fallback. Public origin constants/types remain
+in `exploration-origin.ts`; its old normalizer/binder is removed. The exclusively
+replaced carrier/scene/native human-form bridge is also removed; shared browser
+presentation and independently used human-form helpers remain.
 
-The exploration adapter serializes the native page once, before the atomic D1
-checkpoint batch, with its existing 1 MiB response cap. That same JSON text is
-returned on first delivery, persisted replay and concurrent CAS-winner delivery;
-replay validation never round-trips it through an ordinary JavaScript packet.
-Private state contains only normalized request options, string identities,
-bounded integer counters, queue/depth pairs and structural origin descriptors.
-Explicit key/type/range/closure guards precede cloning this private state.
-No source-valued carrier enters traversal state.
+Rust owns the sole parsed-row directory and bounded strong LRU (2 MiB / 64 entries).
+Suspended/current row references share one lexical live-source charge, bounded
+by 16 MiB; this is not allocator RSS. Host custody trees/raw strings/UTF8 arrays,
+parsed replies, checkpoint state and final output are distinct bounded phases.
+Cancellation is cooperative around bounded sync WASM and D1, not an in-WASM
+interrupt. Actual packet emission happens once after final cursor insertion,
+with the existing 1 MiB limit, before atomic D1 checkpoint CAS. Paused state is
+encoded once for persistence; finished state is not encoded. Native checkpoint
+admission counts its state with the existing exact writer visitor and observes
+the actual final response bytes. There are no discarded state/packet encodes.
+
+The host retains opaque tokens, TTL, checkpoint framing, atomic CAS/successor
+and eviction. Stored replay and concurrent winner text retain exact emitted
+bytes and are validated without ordinary JS packet reserialization. Shared
+snapshotPacketResponse checks epoch/data/source revisions at demand pull before
+whole enqueue/close and discards on abort/cancel; this proves platform body
+handoff, not network flush or writer exclusion. Private state contains normalized
+request options, string identities, bounded counters, queue/depth and structural
+origin descriptors. Shared codec key/type/range/closure checks protect canonical
+state roundtrips and restore maintained packet member order. Source carriers
+are not persisted in traversal state.
 
 The public v1/v2 schemas, `tos-exploration-d1-execution-v6`, traversal scheduling,
 24 adjacency windows/512 work-unit bounds, TTL and cache capacities are unchanged.
 The private checkpoint `version` now uses
-`tos-exploration-d1-execution-v6/native-json-v1`. Old v6 cache records may already
-contain rounded numbers: they return 409 and require a fresh start, without
+`tos-exploration-d1-execution-v6/rust-state-v1`. Old private TS cache records
+return 409 and require a fresh start, without
 rewriting/migrating/deleting source data or changing the cache-table schema.
 Oversized state/replay cells are masked in SQL before delivery. Expiry, successor
 admission and eviction share the batch's publication-epoch guard, so a crossed
@@ -157,25 +172,32 @@ preemption. These are bounded preservation tests, not universal runtime parity.
 
 ## Temporal comparison boundary
 
-`native-temporal-store.ts` uses the same bounded published header, emitted-row
-digest and identity checks as inspection, but executes no inspection or lens.
-Only the exact selected Claim IDs and their declared value/Document-subject IDs
-are read. Four historical or six documentary lookup calls are sufficient; a
-request-local cache avoids fetching a repeated full operand. No schema, generated
-scalar index, historical assertion or inferred Claim is introduced.
+The maintained temporal POST uses `knowledge-store.ts` and
+`selected-temporal-runtime.ts` over the generated shared Rust module. The former
+Worker `temporal-comparison.ts` algorithm, `native-temporal-store.ts` executor
+and dead `knowledgeTemporalCompareD1` entry are retired. The same bounded
+published header, emitted-row digests and identity checks as inspection deliver
+verified raw bytes through `NativeD1Rows.getRaw`; no JS source reserialization
+or lens execution is involved. Rust derives the exact Claim/value/Document-
+subject IDs, with at most six distinct rows and seven replay executions.
 
-`temporal-comparison.ts` carries original `NativeRef`s into `NativePacket` result
-fragments. Its `_same_json` equivalent adds the temporal contract's boolean/type
-distinction to exact native numeric equality. Documentary canonical digests sort
-keys by code point and use Python numeric representations, not original token
-spelling or rounded `.value` numbers. Returned source references keep original
-numeric kinds/lexemes and member order independently of that canonical digest.
-Canonicalization has a separate 8 MiB character-work allowance: a short float
-token can expand in Python's representation. The accepted canonical source
-companion still has the owner's 262144 UTF-8-byte limit; exceeding that limit
-is an inconsistent binding, not a hidden smaller input-row budget.
-The existing source profile, role, source-line kind, exact raw binding and
-date-envelope rules remain the Python owner's computation.
+`tos_query::compare_temporal_operands` owns request shape, source/content
+revision matching, declared profiles, assessment/visibility, date envelopes,
+exact source binding and documentary source-line numeric rules. Its shared
+`validate_temporal_request` also powers the narrow WASM request entry before
+ANY D1 access, preserving malformed request400 even with an unavailable DB.
+Actual source revision matching remains after verified publication selection;
+there is no dummy revision or host copy of normalization.
+
+FND retains original integer/float kinds and member order. Published packet
+emission uses insertion-ordered Python compact numeric/string spelling, with
+no final LF. Documentary digests keep the separate sorted canonical profile.
+Published canonical work uses the declared 16 MiB output cap independently of
+1 MiB retained-row/request parsing: Python float spelling may expand short
+input. The owner's 262144-byte exact source binding cutoff remains an
+undetermined binding reason, not a smaller input-row budget. Aggregate canonical
+bytes/CPU instructions are not measured. Private selected native admission
+remains separate from this published snapshot path.
 
 HTTP request decoding is bounded to 64 KiB and rejects invalid UTF-8/BOM; request
 selection member order and Python whitespace semantics survive normalization.
@@ -226,48 +248,68 @@ JSON.stringify is used only to escape individual string values/keys.
 
 ## Worker integration boundary
 
-`native-lens.ts` carries original filter references through normalization and
-property binding. Matching, eager filter groups, native set-intersection
-failures, Python value strings, casefold grouping and v7 float64 fingerprints
-operate on references. Native int equality is exact even where v7 fingerprint
-int/float coercion intentionally aliases numeric values. Pagination requires
-integer JSON kinds, not merely integral JavaScript values.
+The maintained lens compile, focus and stored-open routes use the mandatory
+build-owned WASM `LensSession`, which drives the same `tos_query::LensPlan` as
+the native consumer. Shared Rust validation runs on original bounded request
+bytes before any D1 read; verified `knowledge_lens_top` properties bind afterward.
+The published-v7 software vocabulary is explicit; the native consumer retains
+its stronger selected descriptor law. Exact integer equality, eager filter/set
+refusals, grouping, float64 fingerprints and request/cursor last-member-wins
+behavior stay in the shared core. Source carrier duplicates remain refused.
+FND retains original lexical numeric kinds, object order and unknown fields,
+then emits the insertion-ordered Python compact packet with a 16 MiB ceiling.
 
-`native-lens-store.ts` uses the existing v9 publication header, per-row emitted
-byte digests, dimensional histograms and four ordered indexes. It rejects
-incompatible Unicode/schema, damaged row/order closure and changing publication
-clocks. SQL narrows identities, dimensions and incidence only; general matching
-and sort/count execute before bounded selection. Fixed-length path walks allow
-revisits; exhausted negative-path work fails rather than asserting absence.
-Metadata streams one chunk per query with SQL type/UTF-8-length guards against
-both local and remaining aggregate allowances. Selected payload pages use SQL
-length/type and cumulative page-byte guards before JSON or identity text is
-delivered to the Worker. Relation index endpoints must match authoritative row
-headers before use, even when no relation payload will be returned.
-All identity/order/header projections use SQL string-type/1 MiB-cell and
-cumulative remaining-byte guards too. Delivery admission is serialized within
-one request, so concurrently merged streams cannot overbook an allowance.
+`native-lens-store.ts` now retains physical D1 reads and publication admission.
+Rust declares bounded identities, dimensional/membership terms, ordered headers,
+incidence and full/covered-compact payload needs. The host translates them to
+indexed SQL and checks row/digest/identity/order closure before raw delivery.
+The existing SQL type/UTF-8/cumulative guards, per-row 1 MiB, source 16 MiB,
+query/returned-row/rows-read limits remain distinct from logical candidate,
+callback, path and sort work. Rust owns the sole 2 MiB lexical/64-entry parsed
+LRU; selected/suspended carrier references and pending replies share aggregate
+lexical charging. Transient host integrity trees, array framing, UTF-8/WASM
+copies and allocation overhead are not an RSS or precise CPU measurement.
+No whole graph is prefetched and no operation is replayed. Requested auxiliary
+stores remain bound to the verified publication and rechecked at completion.
 
-`native-lens-result.ts` retains source references through compact omissions,
-human-form context transport and pagination. Its scene projection has only
-explicit structural strings/IDs and display states; it is not a second lossy
-source-bearing result. `native-lens-response.ts` writes the plain public
-LensResult JSON directly with a 16 MiB ceiling. Internal `{packet, preview}`
-never appears on the wire. No producer schema or new scalar index is introduced.
-The stored catalog asset is byte-bounded while streaming before strict UTF-8
-decoding/JSON parsing (8 MiB; absent Content-Length does not bypass it). Invalid
-or oversized publication assets return 503. Native execution/response budgets
-return 413 for compilation and stored-lens/focus GET/HEAD; malformed compile
-input remains 400 and damaged source metadata remains 503.
+The actual Response reuses the demand-driven whole-packet snapshot lifecycle:
+final epoch/data_revision check before enqueue/close, cancellation/abort discard,
+and HEAD admission with no body. This is snapshot body handoff, not remote flush
+or writer exclusion. Catalog selection remains the existing separately bounded
+8 MiB digest/revision-verified D1 reader; stored execution shares the same outer
+snapshot. Invalid requests return 400, unknown stored IDs 404, source damage 503,
+publication/cursor change 409 and execution/response budget exhaustion 413.
+Local matched WASM/typecheck and the existing23 lens plus3 affected knowledge
+controls passed, including real Miniflare compilation/pagination. This bounded
+parity does not establish deployment, scale or every portable family.
+
+The replaced TS request/compiler, matcher, path/selector/traversal, group/sort/
+fingerprint/cursor finalizer and dead execute/focus/stored entry points are
+removed. `native-lens.ts` retains JSON/ref helpers used by D1 custody and
+search. The exploration carrier presentation and its exclusively used native
+human-form bridge have since been replaced by the real Rust consumer.
+`native-lens-response.ts` retains ordinary
+bounded search/catalog packet transport. Browser preview helpers and independent
+Python/physical safety controls remain; no retired TS lens executor or fallback
+is retained behind the actual route.
 
 `native-d1-read.ts` is the internal bounded text/payload/digest reader shared
 with `native-inspection-store.ts`. Inspection is an independent v8/v9 plan:
 exact normalized ID, then node entity ID, then native aliases; code-point ID
 ordering; full selected rows; exact incident counts; bounded related relations
 or complete unique endpoint closure. It never executes a lens, reads the catalog
-or lens histograms, or rereads selected full rows to rebuild a packet. Its
-`NativePacket` contains raw row/header refs and explicitly derived counts/flags;
-`nativePacketResponse` is its first serialization, including for HEAD admission.
+or lens histograms, or rereads selected full rows to rebuild a packet. The
+maintained GET/HEAD routes now pass original verified full rows through the
+shared Rust `InspectPlan` and mandatory WASM product. The plan selects concrete
+lookup/incident/endpoint needs and owns aliases, packet construction and exact
+source targets. Host code executes bounded SQL and verifies the publication,
+row digests and identity. Python compact emission occurs in FND; demand-driven
+body delivery rechecks the publication epoch/revision before enqueue/close.
+HEAD computes the same bounded packet and returns no body. The actual product,
+typecheck and 13 existing inspection/CSV, two overflow and two readable-context
+controls passed, including real Miniflare. The exclusively replaced TS algorithm
+and source-target projection are removed; shared publication/physical transport
+stays. Local execution does not establish deployment or every portable family.
 
 Inspection adopts the published Python reader's explicit compatibility
 corrections: nonempty string `source_refs` only, incomplete endpoint closure

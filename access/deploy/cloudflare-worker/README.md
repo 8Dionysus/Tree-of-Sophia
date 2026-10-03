@@ -8,8 +8,8 @@ CSV/JSONL from normalized D1 rows so the browser's download controls do not
 depend on the former Python origin.
 
 The edge is a generated read model. It does not own philosophical meaning,
-review state, rights, or canon. `scripts/build_runtime.py` reads only the
-standalone inputs already allowlisted by `Tree-of-Sophia`:
+review state, rights, or canon. The offline Rust `build:data` producer reads
+only the standalone inputs already allowlisted by `Tree-of-Sophia`:
 
 - `ToS/derived-exports/tos_corpus_index.min.json`
 - `ToS/derived-exports/philosophy_graph_projection.min.json`
@@ -20,6 +20,57 @@ standalone inputs already allowlisted by `Tree-of-Sophia`:
 - `ToS/philosophy/graph-workbench/review-packets/table-i-post-planting-audit.json`
 
 The public source-gap ledger is copied through its existing allowlist route.
+The original `scripts/build_runtime.py` remains an independent Python oracle
+until the full native output has been compared and accepted. It is not invoked
+by `npm run build:data`.
+
+The maintained `deploy_edge.mjs` entry invokes installed `tos` for bounded
+`edge-sql-stream` framing and `edge-import-local` offline SQLite bootstrap.
+Set `TOS_ACCESS_BIN` to an explicit native executable when it is outside PATH.
+Import never launches Cargo. Node owns Wrangler process invocation and the
+explicit local-store selection; Rust owns SQLite statement completeness,
+byte-exact chunking, statement/value budgets, baseline and target revision
+checks, and the one-transaction import/rollback. Stop the local Worker before
+bootstrap. Remote imports continue through Wrangler and require their own
+publication authority.
+
+For chunked imports, set a positive whole operation
+`TOS_D1_SQL_STREAM_MAX_SECONDS`; it includes the time the consumer holds each
+chunk while Wrangler imports it. The native child reads each chunk through
+a clone of the original source descriptor, produces it only after the consumer
+requests it, and checks descriptor and pathname currentness before and after
+reading. EOF cancels the reader. Node uses one five-second monotonic cleanup
+deadline for EOF, SIGTERM, SIGKILL and exact-child close, separately from the
+native operation deadline. It removes its temporary district only after close.
+If close cannot be observed, it reports the unreaped PID and retains that exact
+directory. Deadline expiry never unlinks a handed-off chunk under a consumer. Direct
+`edge-sql-stream` callers supply an empty directory and `--max-seconds N` and
+own its cleanup after the child exits. `edge-sql-chunk` remains a bounded,
+single-chunk tool for independent parity checks.
+
+`scripts/sql_stream.py` and `scripts/import_local_sqlite.py` remain independent
+parity oracles and are no longer called by the maintained deployment entry.
+The private prepared-pair, catchup and source-navigation Python capture APIs
+remain retained runtime paths: the public builder/import cutover does not
+replace their owner-selected snapshots or grant selected-D1 admission.
+
+`npm run build:data` invokes installed `tos build-data` (or the explicit
+`TOS_ACCESS_BIN`) and requires a positive
+whole-build `TOS_BUILD_MAX_SECONDS` environment variable. Direct CLI callers
+may override it with `--max-build-seconds N`; the CLI refuses a missing,
+invalid, or overflowing deadline before locking the runtime directory or
+changing completion markers. For example, from this directory, set an
+operation-specific deadline and run `TOS_BUILD_MAX_SECONDS=3600 npm run build:data`.
+The value is a caller decision, not a maintained default or a
+promise that a particular corpus fits. The Rust route always computes the full
+disposable v9 SQL, row baseline, and static outputs. It does not install a
+native-current read model or grant publication authority. Its SQLite page and
+work limits are per component and do not form an aggregate host-disk quota.
+Prepare the native software product through the separate release route before
+running this profile; the maintained build/import entries never invoke Cargo.
+The explicit deadline begins in native `build-data` and
+covers the producer, not Cargo compilation. An invalid CLI deadline refuses
+before output lock, directory creation, or completion-marker changes.
 The generated D1 revision binds the source inputs, actual per-item normalized
 content revisions, capability data, and the explicit read-model schema
 version. API, LensSpec grammar, catalog, documentation, and Worker-only code
@@ -37,6 +88,33 @@ The source-bound Zarathustra word-analysis provider is also local-only. The
 edge build records an explicit unavailable capability without importing that
 provider or its private SQLite dependencies.
 
+## Shared Rust temporal product
+
+The maintained `/api/knowledge/temporal/compare` POST executes the shared Rust
+temporal core over digest-verified exact D1 carriers. The v1 published contract
+selects the `source-claims` profile. The publisher/import owns public-data
+selection; publication metadata is not a native current-policy grant.
+The shared Rust request-shape validator runs before any D1 access, preserving
+400 for malformed requests even when the read model is unavailable. The same
+bounded parser/admission and validator are reused by comparison; actual source
+revision matching follows publication selection. Epoch/data_revision checks surround operand reads and run again immediately
+before the demand-driven whole-body enqueue. Cancellation, request abort or a
+changed snapshot discards the pending packet. Final enqueue/close is body
+handoff, not remote network flush; a change after Response headers were returned
+fails its body rather than replacing those headers with another HTTP status.
+
+Builds require the unmodified `wasm-bindgen --target web --out-name tos_web_rules`
+products from `rust/crates/tos-web-rules`: `generated/tos_web_rules.js`, its
+`.d.ts`, `tos_web_rules_bg.wasm` and its declarations. The build owner admits and
+verifies those exact products outside the checkout and supplies the generated
+directory handoff. Generated bytes are ignored outputs, not authored source;
+the ignore rule provides no storage admission. Static imports and type checking
+fail when the mandatory product is absent. There is no runtime fetch or TS
+fallback. The predecessor Worker TS temporal algorithm/store and unused entry
+are removed; host/D1 transport, browser display controls and independent Python
+oracle remain. `initSync` owns module initialization, with no second host cache.
+Existing build/deploy authorization and data-release procedures remain separate.
+
 ## Local verification
 
 From this directory, install the Worker dependencies with `npm ci` and the web
@@ -52,13 +130,13 @@ the public `/api/knowledge/contracts` schema bundle, focused neighborhoods,
 stored lenses, and arbitrary `tos_lens_spec_v1`
 compilation use the same
 display/provenance envelopes as local Python. D1 narrows identities, dimensions
-and incidence; the bounded native-v7 lens plan evaluates general predicates,
+and incidence; the shared Rust lens plan evaluates general predicates,
 sort/count and traversal before limiting results. A Worker request never materializes the full
 knowledge graph in memory. The lens `POST` is a structured read query and does
 not create server state.
 
 Execution v7 resolves node `property_id` selectors through the v9 snapshot's
-`knowledge_lens_top.query_properties`, including path steps. Native references
+`knowledge_lens_top.query_properties`, including path steps. FND values
 retain raw JSON number kinds, unsafe integers and source member order through
 matching, grouping, v7 fingerprints, pagination and the first wire serialization.
 The read-model revision includes these
@@ -67,6 +145,16 @@ an API-only rebuild. Existing row data is not reinterpreted; the staged metadata
 update remains revision-guarded. An older snapshot without a binding rejects
 the selector until the matching read model is supplied. This is not automatic
 deployment authorization.
+
+Compile, focus and stored-open use the mandatory generated WASM `LensSession`
+and shared pre-D1 request validation. Concrete needs resume once; the native
+consumer uses the same Rust plan. Host code retains indexed SQL, original row
+bytes and publication/digest admission. The exclusively replaced TS lens
+algorithm is removed; shared exploration carrier and browser preview helpers
+remain. A demand-driven Response checks the selected epoch/revision before
+whole-body enqueue/close; abort/cancel discard bytes and HEAD admits the same
+packet without a body. Cooperative cancellation surrounds synchronous WASM;
+there is no in-WASM interruption or remote-flush claim.
 
 The lens/focus route requires matching v9 publication metadata, row digests,
 Unicode 16.0.0 and ordered indexes; older or damaged publication carriers fail
@@ -87,7 +175,7 @@ seeds and exact `view_ids`/`graph_layers` membership indexes. Their offline owne
 API and transaction rules are in
 [`LOCAL_PREPARED_PUBLICATION.md`](../../LOCAL_PREPARED_PUBLICATION.md).
 The extension binds the complete v9 publication header and epoch. Missing
-optional stores retain the old bounded plan; stale or incompatible installed
+optional stores retain the bounded full-row path; stale or incompatible installed
 stores return 503, and invalidation observed during a read returns 409. Native
 numbers, source member order, human-form selection, full inspection and
 uncovered-field predicates retain their existing authority and representation.
@@ -429,14 +517,40 @@ or full-corpus runtime parity. Shared header/status alignment is described above
 
 ### Lossless inspection compatibility
 
-Node/relation inspection independently supports published v8/v9 rows. It uses
-the common bounded SQL/digest reader and retains full `NativeRef` rows through
-the first HTTP serialization. It does not execute a lens, read its histogram or
+Node/relation inspection independently supports published v8/v9 rows. The
+maintained GET/HEAD routes use the shared Rust `InspectPlan` through the same
+mandatory generated WASM product. Request validation precedes any D1 access.
+The common bounded SQL/digest reader passes original full row bytes to Rust;
+alias resolution, endpoint closure, counts, source refs and exact source targets
+belong to that shared plan. It does not execute a lens, read its histogram or
 catalog, scan a whole graph, or reread selected full rows. Existing packet
 schemas, exact/entity/native resolution precedence, code-point ID order,
 relation_limit 0..1000 (default 200), exact counts and the shared publication
 clock/ABA guard remain intact. V9 required migration indices are checked without
 loading the lens ordered carrier.
+
+The host executes only concrete lookup, incident and endpoint needs. Lookup
+lookahead refuses an oversized alias set before payload loading. Each selected
+full row is read once; no complete graph is loaded. Raw batch envelopes retain
+integer/float kinds, source object order and original carrier lexemes. Rust emits
+the insertion-ordered Python compact packet under the existing 16 MiB response
+ceiling. The shared snapshot response driver checks epoch/data_revision again
+before whole-body enqueue/close, handles cancel/abort, and computes the same
+bounded packet for HEAD before returning an empty body. This is optimistic
+publication consistency before body handoff, not remote network flush or a
+native current-policy grant. The inspection D1 reader checks request abort
+before and after each queued SQL operation.
+
+Physical D1 limits remain separate from Rust logical work admission: the shared
+plan caps accumulated supplied JSON value visits at 200,000; each FND batch parse
+has depth 64, 300,000 visits and 4300 integer digits. Aggregate raw batch input
+and output are capped at 16 MiB. These bounds are not CPU instruction accounting.
+The inspection product/typecheck and existing affected actual route controls
+passed: 13 inspection/CSV including real Miniflare, two overflow and two readable
+context cases. The exclusively replaced TS inspection algorithm and source-target
+projection are removed. Shared publication/header/SQL host transport remains.
+These local checks establish their bounded scope, not deployment or every WASM
+family; temporal's prior accepted evidence is retained without a repeated run.
 
 The following are explicit compatibility corrections to the older D1
 inspection implementation, matching the authoritative published Python reader:
@@ -556,6 +670,17 @@ baseline. Delta staging is replayable and one revision-guarded statement publish
 all changed tables atomically. Incomplete staging or a stale baseline leaves
 serving rows unchanged. Knowledge reads that cross publication return HTTP 409.
 
+The Rust `build:data` caller always prepares the complete SQL and row baseline.
+It attempts a delta when a bounded, compatible v9 deployed row baseline
+(or, if absent, the current row baseline) has the exact auxiliary publication
+descriptor. An absent or incompatible predecessor, or an unrepresentable delta
+key, leaves `counts.delta` null
+and retires any older local delta file; `deploy_edge.mjs` chooses the delta
+only when the live D1 revision equals its declared base. The build manifest
+binds measured public input labels, lengths, digests, ledger membership and
+partition-part closure for the local verifier. The Python producer remains an
+independent oracle until the Rust route passes the complete consumer check.
+
 `load:local` uses the same revision-aware selection against local D1. Full SQL
 bootstrap uses a streaming SQLite transaction when there is exactly one known
 local D1 store, with serving revisions verified through Wrangler on both sides.
@@ -673,7 +798,7 @@ See [TOS-D-0050](../../../docs/decisions/TOS-D-0050-incremental-checks-bounded-c
 
 ### Resumable build stages
 
-`build:data` stores disposable stage checkpoints in ignored
+The independent Python oracle `scripts/build_runtime.py` stores disposable stage checkpoints in ignored
 `runtime/build-stages.json`. SQL and static responses have separate inputs and
 outputs. Reuse requires matching source, contract and producer byte digests,
 Python version, path configuration, directory membership and output digests.
@@ -688,7 +813,7 @@ make that distinction explicit; `origin_run_id` refers to earlier processing.
 Input and output bytes are still read for integrity, so this is not constant-time
 source discovery. A static-only rebuild can still materialize the graph.
 
-The offline builder uses a fail-fast Unix OS lock per runtime directory, released
+The offline builders use a fail-fast Unix OS lock per runtime directory, released
 on process exit. Use one output directory per runtime and serialize deployment
 after successful build completion; concurrent external writers/deployments are
 not supported. Inputs must remain quiescent while building: rechecks reject
@@ -697,7 +822,7 @@ and runtime directories separate. CLI guards reject roots, home, source-tree
 outputs and overlapping paths before the producer can replace the output.
 
 Completion manifests are invalidated before rebuilding and written last via
-atomic file replacement. A failed static stage leaves a completed SQL checkpoint
+atomic file replacement. In the Python oracle, a failed static stage leaves a completed SQL checkpoint
 reusable on retry, but no deployable completion manifest. Checkpoints are not
 source history, signatures, review or publication receipts; their checksums
 detect accidental corruption, not a malicious cache writer. Removing a specific
@@ -830,3 +955,242 @@ host.
 The former Cloudflare Tunnel profile remains a temporary recovery and local
 preview route only. It is not the production availability architecture because
 it requires a continuously powered origin machine.
+
+## Native offline prepared-pair capture
+
+The native access source exposes `PREFIX/bin/tos edge-offline-capture
+--request ABS.json` as a bounded offline SQL-capture entry. The exact request
+schema is `tos_edge_offline_capture_request_v1`; it has no defaults for resource
+limits. All selected SQLite inputs and output paths are absolute. Input files
+must be regular, non-symlink files whose held SQLite identity matches the
+selected path. Pair operations hold D1 and prepared transactions; integrity
+operations hold the D1 transaction and explicit navigation/rights snapshots.
+Immediately before SQL emission, each held SQLite descriptor, identity guard
+and selected path are checked against the same file identity. This check does
+not establish a live selection lease. The selected output paths (`forward_sql`, optional `rollback_sql`, and
+`manifest_json`) must be distinct and fresh. SQL and manifest targets may have
+different exclusively owned parents. Delta and catch-up may omit rollback;
+bootstrap and integrity require it. Capture only returns unapplied artifacts; it does not mutate D1,
+switch a consumer or publish to Cloudflare.
+
+The transition/bootstrap request has exactly `schema`, `operation`,
+`d1_database`, `before_prepared_database`, `after_prepared_database`,
+`expected_d1_revision`, `before_binding`, `after_binding`,
+`before_source_inputs_json`, `rights_root`, `forward_sql`, `rollback_sql`,
+`manifest_json` and `limits`. It does not receive source-maintenance catalog
+inputs: the held prepared database supplies its persisted source state and
+reader/catalog/lens metadata, checked against the exact caller binding.
+`source-navigation-integrity` instead requires exactly `schema`, `operation`,
+`d1_database`, `expected_d1_revision`, `expected_source_revision`,
+`navigation_root`, `rights_root`, `header_only`, `forward_sql`, `rollback_sql`,
+`manifest_json` and `limits`. Each integrity root has `expected_sha256`,
+`namespace_path` and `root_json`; that digest must match the exact root bytes.
+`header_only` is a required boolean only on the integrity route.
+
+The request file is bounded by 10 MiB before decoding. Each selected prepared
+binding is bounded by the existing 1 MiB source-state law. Catch-up source-input
+JSON is at most 1 MiB before outer-string escaping; each retained projection
+root is at most 256 KiB. Strict JSON preflight rejects duplicate members and
+bounds depth at 128, visits at 6,500,000, integer digits at 4,300 and logical
+parser state at 2 GiB before constructing the request tree. The preflight tree
+is released before the serde request tree is built. This is not an allocator
+or RSS guarantee; native capture JSON conversion also has the visit limit.
+
+`limits.prepared` contains the nine positive `PreparedD1DeltaLimits` fields:
+`max_changes`, `max_row_bytes`, `max_metadata_bytes`, `max_read_bytes`,
+`max_rows`, `max_retained_bytes`, `max_sql_bytes`, `max_postings` and
+`max_manifest_rows`. Existing API defaults include a 4 MiB row-read ceiling and
+32 MiB metadata ceiling. Emitted SQL retains the independent 2,000,000-byte
+SQL-literal row boundary, including quote escaping and fixed framing.
+Bootstrap and integrity also accept `limits.projection`, containing the ten
+nonnegative `MutationLimits` fields: `max_changes`, `max_input_bytes`,
+`max_opened_parts`, `max_stored_read_bytes`, `max_decoded_bytes`, `max_keys`,
+`max_written_parts`, `max_written_decoded_bytes`, `max_written_stored_bytes`
+and `max_result_bytes`. Read dimensions accrue across the complete operation;
+zero permits no work in that dimension. These routes do not stage COW parts or
+a projection delta, so COW-only dimensions are validated without charging
+nonexistent writes. Transition routes derive their addressed projection budget
+from prepared limits and do not take a caller `projection` or `pair` object.
+Unknown or missing request fields refuse before capture artifacts are created.
+
+`operation` selects one of five source routes:
+
+- `prepared-delta` and `source-navigation-delta` require the held predecessor
+  and successor prepared snapshots plus their exact bindings.
+- `prepared-catchup` omits the predecessor prepared file and binding;
+  it requires the exact predecessor `before_source_inputs_json` and the held
+  successor prepared snapshot.
+- `source-navigation-bootstrap` omits all predecessor prepared/source fields
+  and requires exactly the native `nodes`/`edges` root plus a separate
+  `rights_root` containing only `rights`; collection key/order fields must
+  match their source identities. The rights root must carry the complete
+  `navigation_header` with schema, authority boundary and counts. Its request
+  object contains `namespace_path`, exact `root_json`, and
+  explicit matching `expected_sha256`/`trusted_sha256` values. These digests
+  check bytes and do not assess or admit rights.
+- `source-navigation-integrity` requires the held D1 source/revision, explicit
+  complete navigation `nodes`/`edges` and separate `rights` snapshots, and the
+  existing native navigation product. Full mode refuses any existing row or
+  header digest companion, compares every native base row and payload with the
+  source snapshots, checks table counts for orphan rows, and emits per-row plus
+  header checksums. With `header_only: true`, it compares the complete header
+  policy and counts and requires the existing row-digest inventory count to
+  match those counts. It deliberately does not read source rows, inspect row
+  digest contents, or repeat their audit; the result reports
+  `verified_source_rows: {}`. Both modes emit only checksum and reader-revision
+  metadata, leaving navigation rows unchanged.
+  Native capture additionally rejects a multipart row-digest companion inventory.
+  A complete `tos_source_navigation_v1` root header must equal the persisted
+  header; an Agent row root instead requires its exact minimal schema-only
+  header, as specified by the selected-Agent source contract. These checks
+  close shared gaps in the retained Python oracle and are explicit native
+  refusal boundaries, without reading row companions or granting authority.
+
+Every operation requires `expected_d1_revision` to match the held D1
+predecessor. Bootstrap additionally requires the native navigation product to
+be wholly absent. Transitions reuse the maintained D1 row, knowledge, Lens and
+metadata producers, including auxiliary-store guards, exact changed-row
+predecessors, search posting counts and reversible row closure. The command's
+stdout is a `tos_edge_offline_capture_result_v1` envelope containing the
+selected `operation` and its actual `receipt`. The receipt schemas are
+`tos_edge_native_prepared_delta_receipt_v1`,
+`tos_edge_native_prepared_catchup_receipt_v1`,
+`tos_edge_native_source_navigation_delta_receipt_v1`,
+`tos_edge_native_source_navigation_bootstrap_receipt_v1` and
+`tos_edge_native_source_navigation_integrity_receipt_v1` (both integrity modes).
+Each receipt retains source/revision bindings, actual artifact hashes and bytes,
+native accounting, auxiliary-store facts and its explicit lineage schema.
+Transition address plans identify actual before/after positions and high-water
+marks; `changed_ids` describes changed addresses. These versioned native fields
+do not relabel Python recorder metrics or promise the old Python receipt shape.
+The receipt reports held-snapshot binding checks, while
+`selected_pair_owner_admitted`, `source_currentness_verified`,
+`rights_admission`, `semantic_acceptance`, `d1_applied` and
+`consumer_switched` remain false. Offline source-input equality is not a live
+selection or owner lease.
+
+The Rust emitter binds target revisions to its private `d1.rs` lineage and
+included Rust implementation bytes. Integrity lineage identifies its mode,
+source revision, navigation/rights root digests and native implementation
+digests. That identity is distinct from the retained Python modules'
+`execution_profile()` digest and lineage packet; equal logical rows do not
+imply equal revision or audit metadata bytes. Native/Python fixture comparison
+must therefore retain and report complete metadata and audit-row differences
+rather than normalizing them away.
+
+Example invocation:
+
+```sh
+/absolute/prefix/bin/tos edge-offline-capture --request /absolute/scratch/request.json
+```
+
+For an addressed delta, `request.json` has this shape; each binding
+must be the complete value read from the selected prepared snapshots, and the
+revision must be read from the held D1 predecessor:
+
+```json
+{
+  "schema": "tos_edge_offline_capture_request_v1",
+  "operation": "prepared-delta",
+  "d1_database": "/absolute/scratch/selected-d1.sqlite",
+  "before_prepared_database": "/absolute/scratch/before.sqlite",
+  "after_prepared_database": "/absolute/scratch/after.sqlite",
+  "expected_d1_revision": "<64 lowercase hex characters>",
+  "before_binding": { "exact": "selected predecessor binding object" },
+  "after_binding": { "exact": "selected successor binding object" },
+  "before_source_inputs_json": null,
+  "rights_root": null,
+  "forward_sql": "/absolute/scratch/capture/forward.sql",
+  "rollback_sql": "/absolute/scratch/capture/rollback.sql",
+  "manifest_json": "/absolute/scratch/capture/manifest.json",
+  "limits": {
+    "prepared": {
+      "max_changes": 10000,
+      "max_row_bytes": 2097152,
+      "max_metadata_bytes": 2097152,
+      "max_read_bytes": 67108864,
+      "max_rows": 10000,
+      "max_retained_bytes": 33554432,
+      "max_sql_bytes": 67108864,
+      "max_postings": 100000,
+      "max_manifest_rows": 10000
+    }
+  }
+}
+```
+
+`prepared.max_sql_bytes` bounds the combined forward/reverse SQL bytes. With
+no reverse target it bounds forward SQL alone; no hidden reverse artifact is
+created. The `exact` binding values above are explanatory placeholders, not an
+accepted binding schema. Keep each selected output parent exclusively owned
+through the invocation. Output targets and the legacy `.next` names must be
+fresh and distinct. Inode checks protect held output custody; they are not an
+interprocess lock or a retained directory identity check. The caller owns each
+parent exclusively; newly created empty parent directories may remain after a
+failed capture.
+
+The returning Python APIs live in `scripts/prepared_delta_runtime.py` and
+`scripts/source_navigation_bootstrap_runtime.py`. Their four public functions
+select the Rust capture operation through an explicit `native_capture` keyword.
+Supply a `tos_access.native_edge_capture.NativeCaptureContext` containing an
+absolute installed `prefix`, an exclusively owned existing `scratch` directory,
+one original absolute monotonic `deadline`, a cumulative `max_snapshot_bytes`
+budget and a per-stream `max_stream_bytes` budget. `max_snapshot_bytes` bounds
+actual encoded typed frames, including descriptors and hashes. Optional
+`max_schema_allocation_bytes` separately bounds cumulative schema metadata
+allocation and UTF-16 TEXT carrier copies, decoding work and decoded output.
+The native importer charges the raw carrier before copying and the decoding
+work/output before scanning or allocating. Its default derives from the frame
+allowance, and a caller may select a smaller explicit computational budget.
+These are transport resource selections, not source admission or measured RSS.
+The caller must also
+account for two private stream files of at most `max_stream_bytes + 1` bytes
+each and at most 16 KiB of diagnostic metadata in the same owned scratch.
+Retained failure scopes need explicit owner disposition or an additional
+coexistence budget before retries. Missing context refuses;
+there is no automatic software discovery or Python fallback. Algorithmic limits
+keep their existing defaults. Delta and catch-up still permit
+`rollback_target=None`; bootstrap and integrity require a reverse target.
+
+These functions are host source adapters, not members of the standard native
+software archive. Keep the exact Python source package and script district
+available to the caller. The bridge runs the existing installed-prefix verifier
+in an owned Linux child, then executes its verified ELF. The fresh isolated
+child arms `PR_SET_PDEATHSIG(SIGKILL)` and checks its exact expected caller PID
+before verifier dispatch; the request-v2 native entry rearms and checks it before
+request parsing. This preserves caller signal handlers and threaded use. Abrupt
+caller death does not execute Python cleanup: the whole owner supervisor must
+still terminate/reap descendants and retain or dispose scratch under its accepted
+lifetime contract. Cooperative cleanup keeps the unreaped leader through final
+group signals, then performs bounded reap. The request-v2 bridge reads
+exact typed rows through each borrowed SQLite connection, including its selected
+uncommitted view. It carries raw TEXT bytes with validated UTF-8/UTF-16le/UTF-16be
+encoding and storage-class tags, preserves table presence and row order, and
+carries schema evidence without executing source DDL. Only native owner-known
+schemas are imported; unknown ordinary tables remain inert evidence. Virtual or
+shadow tables cannot be reconstructed by this finite transport. The bridge does
+not serialize a stale memdb backing buffer, reopen the current database pathname,
+or modify the caller transaction. Its independently checked `snapshot_transport`
+inventory binds wire custody, not physical page identity or source currentness.
+The physical-file request-v1 CLI route remains separate. The bridge returns the
+actual native operation receipt and removes its exclusive transport directory
+after successful validation and bounded child cleanup. Failures after the private scope is created retain that scope and whatever
+request, typed frames and capped private stdout/stderr were materialized. Fixed-size private metadata records phase,
+status, counts, SHA and EOF; exception text contains no native payload, while
+its notes reference the owned evidence directory. Evidence metadata may be incomplete
+if its original deadline or write bound prevents completion; no crash durability
+is claimed. An unreleased child/group also retains its selected input directory
+under the whole owner supervisor's custody contract. WAL and dirty-view interpretation, default limits,
+optional rollback and complete receipts require the corresponding installed
+consumer checks; a source candidate or direct CLI run does not establish them.
+
+The retained reference functions are `build_prepared_delta_sql_oracle`,
+`build_prepared_catchup_sql_oracle`,
+`build_source_navigation_bootstrap_sql_oracle` and
+`build_source_navigation_integrity_sql_oracle`. Their bodies remain independent
+Python implementations, and fixtures select these names explicitly. The
+internal `scripts/source_navigation_delta_runtime.py` composition remains an
+independent reference helper. No Python oracle retirement, accepted API cutover,
+owner-selected D1 pair, global currentness or publication authority is claimed
+by this source candidate. Review the complete six-mode differential and real
+returning callers before changing that disposition.

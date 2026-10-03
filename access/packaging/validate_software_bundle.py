@@ -12,6 +12,8 @@ import sys
 import tempfile
 import zipfile
 
+from native_access_artifact import NATIVE_MEMBER, NATIVE_PROOF_MEMBERS, MAX_STATIC_BYTES, MAX_MANIFEST_BYTES, validate_native_header, validate_native_proof
+
 SCHEMA = "tos_software_bundle_manifest_v1"
 TOS_SCHEMAS = {
     "semantic-entity-type-registry.schema.json",
@@ -31,6 +33,8 @@ def software_member(name: str) -> bool:
     path = PurePosixPath(name)
     if path.is_absolute() or ".." in path.parts or "\\" in name or path.as_posix() != name or ":" in name:
         return False
+    if name in {NATIVE_MEMBER, *NATIVE_PROOF_MEMBERS}:
+        return True
     if name in {"README.md", "software.manifest.json", "access/README.md", "access/pyproject.toml", "access/packaging/tos_build_backend.py"}:
         return True
     runtime = "access/src/tos_access/runtime_data/"
@@ -63,6 +67,8 @@ def verify_archive(bundle: Path) -> dict:
             mode = stat.S_IFMT(item.external_attr >> 16)
             if not software_member(item.filename) or item.is_dir() or mode not in (0, stat.S_IFREG):
                 raise RuntimeError(f"non-software or unsafe archive member: {item.filename}")
+        if NATIVE_MEMBER in names and archive.getinfo("software.manifest.json").file_size > MAX_MANIFEST_BYTES:
+            raise RuntimeError("native software manifest exceeds delivery cap")
         manifest = json.loads(archive.read("software.manifest.json"))
         if manifest.get("schema_version") != SCHEMA or manifest.get("data_included") is not False:
             raise RuntimeError("unsupported software manifest")
@@ -84,40 +90,102 @@ def verify_archive(bundle: Path) -> dict:
                 actual = digest(stream)
             if actual != item.get("sha256") or info.file_size != item.get("size_bytes"):
                 raise RuntimeError(f"software member integrity mismatch: {item['path']}")
+        native = manifest.get("native_access")
+        if native is None:
+            if NATIVE_MEMBER in names or any(name in names for name in NATIVE_PROOF_MEMBERS):
+                raise RuntimeError("native software member lacks build-owned proof")
+        else:
+            validate_native_proof(native, manifest["software_ref"])
+            if archive.getinfo("software.manifest.json").file_size > MAX_MANIFEST_BYTES:
+                raise RuntimeError("native software manifest exceeds delivery cap")
+            static_members = [item for item in members if item["path"].startswith("access/src/tos_access/web_dist/")]
+            if any(item["size_bytes"] > MAX_STATIC_BYTES for item in static_members) or sum(item["size_bytes"] for item in static_members) > 2**64 - 1:
+                raise RuntimeError("native static member exceeds cap or total is not representable")
+            if "access/src/tos_access/web_dist/assets/tos-graph.css" not in names:
+                raise RuntimeError("native site stylesheet missing")
+            if manifest["source_dirty"] or NATIVE_MEMBER not in names or any(name not in names for name in NATIVE_PROOF_MEMBERS):
+                raise RuntimeError("native software source/companion closure differs")
+            info = archive.getinfo(NATIVE_MEMBER)
+            if info.file_size != native["size_bytes"] or (info.external_attr >> 16) & 0o777 != 0o755:
+                raise RuntimeError("native executable size/mode differs")
+            with archive.open(info) as stream:
+                validate_native_header(stream.read(64))
+            member = next(item for item in members if item["path"] == NATIVE_MEMBER)
+            if member["sha256"] != native["sha256"]:
+                raise RuntimeError("native executable build binding differs")
+            with archive.open("Cargo.lock") as stream:
+                if digest(stream) != native["lock_sha256"]:
+                    raise RuntimeError("native lock binding differs")
+            pin = archive.getinfo("rust-toolchain.toml")
+            if pin.file_size > 8192:
+                raise RuntimeError("native toolchain pin oversized")
+            import tomllib
+            if tomllib.loads(archive.read(pin).decode("utf-8"))["toolchain"]["channel"] != native["toolchain"]:
+                raise RuntimeError("native toolchain pin differs")
     return manifest
 
 
-def installed_probe(bundle: Path) -> dict:
-    """Build a real wheel and install it in a fresh, dependency-free venv."""
+def extract_verified_archive(bundle: Path, destination: Path) -> dict:
+    """Extract the existing exact software closure; never execute members."""
+    manifest = verify_archive(bundle)
+    destination.mkdir()  # A fresh target is required; no installation overwrite.
+    with zipfile.ZipFile(bundle) as archive:
+        archive.extractall(destination)
+    if manifest.get("native_access") is not None:
+        # zipfile drops Unix modes. Only the exact verified member is executable.
+        (destination / NATIVE_MEMBER).chmod(0o755)
+    return manifest
+
+
+def installed_probe(bundle: Path, *, native_prefix: Path | None = None) -> dict:
+    """Build and install the wheel in a fresh venv with its native caller extra."""
     env = {key: value for key, value in os.environ.items()
            if key != "PYTHONPATH" and not key.startswith(("TOS_", "AOA_"))}
     env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
     with tempfile.TemporaryDirectory(prefix="tos-software-install-", dir=bundle.parent) as raw:
         root = Path(raw)
-        source, outside, wheels, venv = (root / part for part in ("source", "outside", "wheels", "venv"))
+        prefix = root / "native-prefix"
+        source = prefix / "software"
+        prefix.mkdir()
+        outside, wheels, venv = (root / part for part in ("outside", "wheels", "venv"))
         outside.mkdir()
-        with zipfile.ZipFile(bundle) as archive:
-            archive.extractall(source)
+        manifest = extract_verified_archive(bundle, source)
+        selected_native_prefix = native_prefix
+        if selected_native_prefix is None and manifest.get("native_access") is not None:
+            selected_native_prefix = prefix
+        if selected_native_prefix is None:
+            raise RuntimeError(
+                "installed native caller probe requires --native-prefix or a bundled native member"
+            )
 
-        def run(command):
-            result = subprocess.run(command, cwd=outside, env=env, text=True, capture_output=True)
+        def run(command, *, timeout=300):
+            try:
+                result = subprocess.run(command, cwd=outside, env=env, text=True,
+                                        capture_output=True, timeout=timeout)
+            except subprocess.TimeoutExpired as exc:
+                raise RuntimeError(
+                    f"software install probe timed out after {timeout} seconds"
+                ) from exc
             if result.returncode:
                 raise RuntimeError(f"software install probe failed: {result.stdout}\n{result.stderr}")
             return result.stdout
 
         run([sys.executable, "-m", "pip", "wheel", "--no-deps", "--no-build-isolation", "--no-cache-dir",
-             "--wheel-dir", str(wheels), str(source / "access")])
+             "--wheel-dir", str(wheels), str(source / "access")], timeout=600)
         wheel_files = list(wheels.glob("*.whl"))
         if len(wheel_files) != 1:
             raise RuntimeError("software build did not produce exactly one wheel")
         run([sys.executable, "-m", "venv", str(venv)])
         python = venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
-        run([str(python), "-m", "pip", "install", "--no-deps", "--no-index", str(wheel_files[0])])
+        # NativeAccessCore is the maintained Python caller for the native MCP
+        # ABI. Its existing package extra supplies MCP and its runtime
+        # dependencies; a dependency-free install cannot exercise that caller.
+        run([str(python), "-m", "pip", "install", str(wheel_files[0]) + "[mcp]"], timeout=600)
         result = run([str(python), "-c", """
 import json
-from tos_access.core import ToSAccessCore
+from tos_access.core import ReferenceToSAccessCore
 from tos_access.locations import data_root, program_path, web_root
-core = ToSAccessCore.discover()
+core = ReferenceToSAccessCore.discover()
 contracts = core.knowledge_exploration_contracts()
 assert contracts['request']['$schema']
 assert program_path('ToS/contracts/semantic-entity-type-registry.schema.json').is_file()
@@ -126,25 +194,55 @@ assert not core.index_exists(), 'software wheel unexpectedly includes corpus'
 assert not (data_root() / 'ToS/source-witnesses').exists()
 print(json.dumps({'installed': True, 'api_contracts': True, 'web_assets': True, 'data_included': False}))
 """])
-        return json.loads(result)
+        report = json.loads(result)
+        report["reference_oracle"] = "legacy wheel integrity and no-data package compatibility"
+        report["native_archive_entry"] = manifest.get("native_access") is not None
+        report["native_wheel_entry"] = False  # Existing backend does not package ELF.
+        state_root = root / "native-state"
+        state_root.mkdir(mode=0o700)
+        native_result = run([str(python), "-c", """
+import json, sys
+from pathlib import Path
+from tos_access import NativeAccessCore
+core = NativeAccessCore.discover(
+    native_prefix=Path(sys.argv[1]), native_state_root=Path(sys.argv[2]))
+try:
+    contracts = core.knowledge_exploration_contracts()
+    assert contracts['request']['$schema']
+    print(json.dumps({'imported_core': True, 'api_contracts': True, 'data_included': False}))
+finally:
+    core.close()
+""", str(selected_native_prefix), str(state_root)], timeout=90)
+        report["native_imported_core"] = json.loads(native_result)
+        return report
 
 
-def validate(bundle: Path, *, install: bool = True) -> dict:
+def validate(bundle: Path, *, install: bool = True,
+             native_prefix: Path | None = None) -> dict:
     manifest = verify_archive(bundle)
     result = {"schema_version": "tos_software_validation_v1", "ok": True,
               "software_ref": manifest["software_ref"], "source_dirty": manifest["source_dirty"],
               "data_validated": False, "archive_members": len(manifest["members"])}
     if install:
-        result["installation"] = installed_probe(bundle)
+        result["installation"] = installed_probe(bundle, native_prefix=native_prefix)
     return result
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bundle", type=Path, required=True)
+    parser.add_argument("--native-prefix", type=Path,
+                        help="explicit installed native software prefix for the wheel bridge probe")
     parser.add_argument("--integrity-only", action="store_true")
     args = parser.parse_args()
-    print(json.dumps(validate(args.bundle.resolve(), install=not args.integrity_only), indent=2))
+    native_prefix = None if args.native_prefix is None else args.native_prefix.expanduser()
+    if native_prefix is not None and not native_prefix.is_absolute():
+        parser.error("--native-prefix must be an absolute installed software prefix")
+    if args.native_prefix is not None and args.integrity_only:
+        parser.error("--native-prefix requires the installed wheel probe")
+    result = validate(args.bundle.resolve(), install=not args.integrity_only,
+                      native_prefix=native_prefix)
+    print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

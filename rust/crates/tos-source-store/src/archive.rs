@@ -1,0 +1,574 @@
+//! Existing Git capture v1/v2 transport. Restoring bytes grants no admission.
+use crate::software::read_capture_index;
+use crate::{ReadLimits, Result, SoftwareCaptureSelectionV1, StoreError, StoreErrorCode as Code};
+use sha1::{Digest, Sha1};
+use std::fs::{self, File, OpenOptions};
+use std::io::{self, Read, Seek, SeekFrom, Write};
+use std::os::fd::AsRawFd;
+use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Instant;
+use tos_foundation::{Digest256Hasher, JsonValue};
+
+#[derive(Clone, Copy, Debug)]
+pub struct CaptureRestoreLimits {
+    pub metadata: ReadLimits,
+    pub max_archive_bytes: u64,
+    pub max_decoded_bytes: u64,
+    pub max_source_bytes: u64,
+}
+
+/// Actual successfully consumed bytes in the SAME capture traversal.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct CaptureReadUsage {
+    pub metadata_bytes: u64,
+    pub archive_read_bytes: u64,
+    pub decoded_bytes: u64,
+}
+impl CaptureReadUsage {
+    pub fn total_read_bytes(self) -> Result<u64> {
+        self.metadata_bytes
+            .checked_add(self.archive_read_bytes)
+            .and_then(|n| n.checked_add(self.decoded_bytes))
+            .ok_or_else(|| StoreError::new(Code::BudgetExceeded, "capture read count overflow"))
+    }
+}
+pub struct CaptureVerification {
+    pub manifest: JsonValue,
+    pub usage: CaptureReadUsage,
+}
+
+fn fail(detail: &'static str) -> StoreError {
+    StoreError::new(Code::CorruptSelectedObject, detail)
+}
+fn io_error(e: io::Error) -> StoreError {
+    StoreError::io("capture restore IO", e)
+}
+fn check(deadline: Instant, cancelled: &AtomicBool) -> io::Result<()> {
+    if cancelled.load(Ordering::Relaxed) || Instant::now() >= deadline {
+        Err(io::Error::new(
+            io::ErrorKind::TimedOut,
+            "capture restore interrupted",
+        ))
+    } else {
+        Ok(())
+    }
+}
+struct Limited<'a, R> {
+    inner: R,
+    remaining: u64,
+    consumed: u64,
+    deadline: Instant,
+    cancelled: &'a AtomicBool,
+}
+impl<R: Read> Read for Limited<'_, R> {
+    fn read(&mut self, out: &mut [u8]) -> io::Result<usize> {
+        check(self.deadline, self.cancelled)?;
+        if out.is_empty() {
+            return Ok(0);
+        }
+        let count = out
+            .len()
+            .min(self.remaining.saturating_add(1).min(65536) as usize);
+        let n = self.inner.read(&mut out[..count])?;
+        if n as u64 > self.remaining {
+            return Err(io::Error::other("capture byte budget exceeded"));
+        }
+        self.remaining -= n as u64;
+        self.consumed = self
+            .consumed
+            .checked_add(n as u64)
+            .ok_or_else(|| io::Error::other("capture read count overflow"))?;
+        Ok(n)
+    }
+}
+fn fd_path(dir: &File, name: &str) -> PathBuf {
+    PathBuf::from(format!("/proc/self/fd/{}", dir.as_raw_fd())).join(name)
+}
+fn directory(parent: &File, name: &str) -> Result<File> {
+    tos_fd_open::open_directory_at(parent, Path::new(name))
+        .map_err(|_| fail("unsafe restore directory"))
+}
+pub(crate) fn new_file(
+    root: &File,
+    path: &str,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<File> {
+    let mut dir = root.try_clone().map_err(io_error)?;
+    let mut parts = path.split('/').peekable();
+    while let Some(part) = parts.next() {
+        check(deadline, cancelled).map_err(io_error)?;
+        if parts.peek().is_none() {
+            let file = OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .mode(0o600)
+                .open(fd_path(&dir, part))
+                .map_err(io_error)?;
+            // Persist this name before a later success receipt can survive.
+            dir.sync_all().map_err(io_error)?;
+            return Ok(file);
+        }
+        match fs::DirBuilder::new()
+            .mode(0o700)
+            .create(fd_path(&dir, part))
+        {
+            Ok(()) => dir.sync_all().map_err(io_error)?,
+            Err(e) if e.kind() == io::ErrorKind::AlreadyExists => (),
+            Err(e) => return Err(io_error(e)),
+        }
+        dir = directory(&dir, part)?;
+    }
+    Err(fail("empty restore member path"))
+}
+
+pub(crate) fn fresh_destination(destination: &Path) -> Result<File> {
+    let parent_path = destination
+        .parent()
+        .ok_or_else(|| fail("restore parent absent"))?;
+    let name = destination
+        .file_name()
+        .and_then(|v| v.to_str())
+        .ok_or_else(|| fail("invalid restore name"))?;
+    if matches!(name, "." | ".." | "") {
+        return Err(fail("invalid restore name"));
+    }
+    let parent = tos_fd_open::open_absolute_directory(parent_path)
+        .map_err(|_| fail("unsafe restore parent"))?;
+    fs::DirBuilder::new()
+        .mode(0o700)
+        .create(fd_path(&parent, name))
+        .map_err(io_error)?;
+    parent.sync_all().map_err(io_error)?;
+    let output = directory(&parent, name)?;
+    Ok(output)
+}
+
+/// Restore into a new private directory. On failure it may contain partial bytes,
+/// and must not be consumed. Caller owns cleanup and physical reservation.
+/// Input capture and destination parent must remain exclusively owner-controlled.
+/// The selected manifest digest is supplied by the caller, not trusted from input.
+pub fn restore_capture(
+    capture_root: &Path,
+    destination: &Path,
+    selection: &SoftwareCaptureSelectionV1,
+    limits: CaptureRestoreLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<()> {
+    walk_capture(
+        capture_root,
+        Some(destination),
+        selection,
+        limits,
+        deadline,
+        cancelled,
+    )
+    .map(|_| ())
+}
+
+/// Verify the selected capture without creating files or granting source admission.
+pub fn verify_capture(
+    capture_root: &Path,
+    selection: &SoftwareCaptureSelectionV1,
+    limits: CaptureRestoreLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<JsonValue> {
+    verify_capture_with_usage(capture_root, selection, limits, deadline, cancelled)
+        .map(|verified| verified.manifest)
+}
+/// Verify without extraction and report actual consumed read costs. Caps remain
+/// enforced per chunk; usage is not a resource grant and never resets a ledger.
+pub fn verify_capture_with_usage(
+    capture_root: &Path,
+    selection: &SoftwareCaptureSelectionV1,
+    limits: CaptureRestoreLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<CaptureVerification> {
+    walk_capture(capture_root, None, selection, limits, deadline, cancelled)
+}
+
+fn walk_capture(
+    capture_root: &Path,
+    destination: Option<&Path>,
+    selection: &SoftwareCaptureSelectionV1,
+    limits: CaptureRestoreLimits,
+    deadline: Instant,
+    cancelled: &AtomicBool,
+) -> Result<CaptureVerification> {
+    let metadata = limits.metadata.validate()?;
+    for n in [
+        limits.max_archive_bytes,
+        limits.max_decoded_bytes,
+        limits.max_source_bytes,
+    ] {
+        if n == 0 || n == u64::MAX {
+            return Err(StoreError::new(
+                Code::BudgetExceeded,
+                "invalid capture restore limits",
+            ));
+        }
+    }
+    check(deadline, cancelled).map_err(io_error)?;
+    let capture = tos_fd_open::open_absolute_directory(capture_root)
+        .map_err(|_| fail("unsafe capture root"))?;
+    let mut names = Vec::new();
+    for entry in fs::read_dir(fd_path(&capture, ".")).map_err(io_error)? {
+        if names.len() == 3 {
+            return Err(fail("extra capture member"));
+        }
+        names.push(entry.map_err(io_error)?.file_name());
+    }
+    names.sort();
+    if names != ["capture.json", "members.jsonl", "source.tar.gz"].map(std::ffi::OsString::from) {
+        return Err(fail("capture file set differs"));
+    }
+    let index = read_capture_index(&capture, selection, metadata, deadline, cancelled)?;
+    if index.archive_size_bytes > limits.max_archive_bytes
+        || index.source_bytes > limits.max_source_bytes
+    {
+        return Err(StoreError::new(
+            Code::BudgetExceeded,
+            "capture totals exceed limits",
+        ));
+    }
+    if destination.is_some()
+        && index.members.keys().any(|p| {
+            p.as_str() == "restore-receipt.json" || p.as_str().starts_with("restore-receipt.json/")
+        })
+    {
+        return Err(fail("capture conflicts with restore receipt"));
+    }
+    let mut archive_file = tos_fd_open::open_regular_at(&capture, Path::new("source.tar.gz"))
+        .map_err(|_| fail("unsafe capture archive"))?;
+    let initial = archive_file.metadata().map_err(io_error)?;
+    if initial.len() != index.archive_size_bytes {
+        return Err(fail("archive size differs"));
+    }
+    let mut hash = Digest256Hasher::new();
+    let mut buffer = [0u8; 65536];
+    let mut input = Limited {
+        inner: &mut archive_file,
+        remaining: limits.max_archive_bytes,
+        consumed: 0,
+        deadline,
+        cancelled,
+    };
+    loop {
+        let n = input.read(&mut buffer).map_err(io_error)?;
+        if n == 0 {
+            break;
+        }
+        hash.update(&buffer[..n]);
+    }
+    if hash.finalize() != index.archive_sha256 {
+        return Err(fail("archive digest differs"));
+    }
+    let hash_pass_bytes = input.consumed;
+    drop(input);
+    archive_file.seek(SeekFrom::Start(0)).map_err(io_error)?;
+    let output = if let Some(destination) = destination {
+        let output = fresh_destination(destination)?;
+        Some(output)
+    } else {
+        None
+    };
+    let compressed = Limited {
+        inner: &mut archive_file,
+        remaining: limits.max_archive_bytes,
+        consumed: 0,
+        deadline,
+        cancelled,
+    };
+    let gzip = flate2::read::MultiGzDecoder::new(compressed);
+    let decoded = Limited {
+        inner: gzip,
+        remaining: limits.max_decoded_bytes,
+        consumed: 0,
+        deadline,
+        cancelled,
+    };
+    let mut archive = tar::Archive::new(decoded);
+    let mut expected = index.members.iter();
+    for item in archive.entries().map_err(io_error)? {
+        check(deadline, cancelled).map_err(io_error)?;
+        let mut item = item.map_err(io_error)?;
+        let (path, member) = expected
+            .next()
+            .ok_or_else(|| fail("extra archive member"))?;
+        if !item.header().entry_type().is_file()
+            || item.path_bytes().as_ref() != path.as_str().as_bytes()
+            || item.size() != member.size_bytes
+            || item.header().mode().map_err(io_error)? != member.mode
+        {
+            return Err(fail("archive member metadata differs"));
+        }
+        let mut target = output
+            .as_ref()
+            .map(|output| new_file(output, path.as_str(), deadline, cancelled))
+            .transpose()?;
+        let mut sha256 = Digest256Hasher::new();
+        let mut sha1 = Sha1::new();
+        sha1.update(format!("blob {}\0", member.size_bytes).as_bytes());
+        let mut count = 0u64;
+        loop {
+            check(deadline, cancelled).map_err(io_error)?;
+            let n = item.read(&mut buffer).map_err(io_error)?;
+            if n == 0 {
+                break;
+            }
+            count = count
+                .checked_add(n as u64)
+                .ok_or_else(|| fail("member size overflow"))?;
+            if count > member.size_bytes {
+                return Err(fail("member grew"));
+            }
+            sha256.update(&buffer[..n]);
+            sha1.update(&buffer[..n]);
+            if let Some(target) = &mut target {
+                target.write_all(&buffer[..n]).map_err(io_error)?;
+            }
+        }
+        if count != member.size_bytes
+            || sha256.finalize() != member.sha256
+            || format!("{:x}", sha1.finalize()) != index.git_blob_oids[path]
+        {
+            return Err(fail("member bytes differ"));
+        }
+        if let Some(target) = &mut target {
+            target
+                .set_permissions(fs::Permissions::from_mode(member.mode))
+                .map_err(io_error)?;
+            target.sync_all().map_err(io_error)?;
+        }
+    }
+    if expected.next().is_some() {
+        return Err(fail("missing archive member"));
+    }
+    let mut decoded = archive.into_inner();
+    loop {
+        let n = decoded.read(&mut buffer).map_err(io_error)?;
+        if n == 0 {
+            break;
+        }
+        if buffer[..n].iter().any(|b| *b != 0) {
+            return Err(fail("nonzero trailing tar bytes"));
+        }
+    }
+    let usage = CaptureReadUsage {
+        metadata_bytes: index.metadata_read_bytes,
+        archive_read_bytes: hash_pass_bytes
+            .checked_add(decoded.inner.get_ref().consumed)
+            .ok_or_else(|| fail("archive read count overflow"))?,
+        decoded_bytes: decoded.consumed,
+    };
+    usage.total_read_bytes()?;
+    drop(decoded);
+    let final_meta = archive_file.metadata().map_err(io_error)?;
+    if (
+        initial.dev(),
+        initial.ino(),
+        initial.len(),
+        initial.mtime(),
+        initial.mtime_nsec(),
+        initial.ctime(),
+        initial.ctime_nsec(),
+    ) != (
+        final_meta.dev(),
+        final_meta.ino(),
+        final_meta.len(),
+        final_meta.mtime(),
+        final_meta.mtime_nsec(),
+        final_meta.ctime(),
+        final_meta.ctime_nsec(),
+    ) {
+        return Err(fail("capture archive changed during restore"));
+    }
+    check(deadline, cancelled).map_err(io_error)?;
+    let Some(output) = output else {
+        return Ok(CaptureVerification {
+            manifest: index.manifest,
+            usage,
+        });
+    };
+    let receipt = format!(
+        "{{\"manifest_sha256\":\"{}\",\"member_count\":{},\"schema_version\":\"tos_corpus_restore_receipt_v1\",\"source_bytes\":{},\"source_git_commit\":\"{}\"}}\n",
+        selection.capture_manifest_sha256.to_hex(),
+        index.member_count,
+        index.source_bytes,
+        selection.source_git_commit
+    );
+    let mut file = new_file(&output, "restore-receipt.json", deadline, cancelled)?;
+    let result = (|| {
+        file.write_all(receipt.as_bytes()).map_err(io_error)?;
+        file.sync_all().map_err(io_error)?;
+        output.sync_all().map_err(io_error)?;
+        Ok(())
+    })();
+    if result.is_err() {
+        // A failed receipt write must not leave a parseable success marker.
+        // Cleanup can itself fail; callers must always honor the returned error.
+        drop(file);
+        let _ = fs::remove_file(fd_path(&output, "restore-receipt.json"));
+    }
+    result.map(|()| CaptureVerification {
+        manifest: index.manifest,
+        usage,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tos_foundation::{Digest256, JsonLimits};
+    struct Scratch(PathBuf);
+    impl Drop for Scratch {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn python_pax_capture_restores_exact_bytes_and_rejects_corruption() {
+        let dir = std::env::temp_dir().join(format!(
+            "tos-capture-restore-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::DirBuilder::new().mode(0o700).create(&dir).unwrap();
+        let scratch = Scratch(dir);
+        let script = r#"
+import sys,io,json,gzip,tarfile,hashlib
+from pathlib import Path
+root=Path(sys.argv[1]); root.mkdir()
+canon=lambda x:(json.dumps(x,sort_keys=True,separators=(',',':'),ensure_ascii=False)+'\n').encode()
+path='scripts/'+('nested/'*18)+'δοκιμή.py'; data=b'old bytes\x00\xff\n'
+row={'path':path,'git_blob_oid':hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest(),'size_bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'mode':493}
+with (root/'source.tar.gz').open('wb') as raw:
+ with gzip.GzipFile(fileobj=raw,mode='wb',mtime=0,filename='') as gz:
+  with tarfile.open(fileobj=gz,mode='w|',format=tarfile.PAX_FORMAT) as tar:
+   info=tarfile.TarInfo(path); info.size=len(data); info.mode=493; tar.addfile(info,io.BytesIO(data))
+members=canon(row); (root/'members.jsonl').write_bytes(members)
+archive=(root/'source.tar.gz').read_bytes()
+manifest={'schema_version':'tos_corpus_capture_v2','source_git_commit':'1'*40,'source_git_tree':'2'*40,'include_prefixes':['scripts'],'exclude_prefixes':[],'exclude_path_parts':[],'member_count':1,'source_bytes':len(data),'members_sha256':hashlib.sha256(members).hexdigest(),'archive_sha256':hashlib.sha256(archive).hexdigest(),'archive_size_bytes':len(archive)}
+(root/'capture.json').write_bytes(canon(manifest))
+"#;
+        let capture = scratch.0.join("capture");
+        assert!(
+            std::process::Command::new("python3")
+                .arg("-I")
+                .arg("-c")
+                .arg(script)
+                .arg(&capture)
+                .status()
+                .unwrap()
+                .success()
+        );
+        let selection = SoftwareCaptureSelectionV1 {
+            source_git_commit: "1".repeat(40),
+            source_git_tree: "2".repeat(40),
+            capture_manifest_sha256: Digest256::of_bytes(
+                &fs::read(capture.join("capture.json")).unwrap(),
+            ),
+        };
+        let limits = CaptureRestoreLimits {
+            metadata: ReadLimits {
+                max_manifest_bytes: 16384,
+                max_manifest_entries: 8,
+                max_selected_object_bytes: 16384,
+                json: JsonLimits {
+                    max_bytes: 16384,
+                    ..JsonLimits::default()
+                },
+            },
+            max_archive_bytes: 65536,
+            max_decoded_bytes: 65536,
+            max_source_bytes: 16384,
+        };
+        let cancelled = AtomicBool::new(false);
+        let deadline = Instant::now() + std::time::Duration::from_secs(10);
+        let output = scratch.0.join("restored");
+        restore_capture(&capture, &output, &selection, limits, deadline, &cancelled).unwrap();
+        let reader = crate::SoftwareCaptureReader::open(
+            &capture,
+            &output,
+            selection.clone(),
+            limits.metadata,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let member = reader.members().next().unwrap();
+        assert_eq!(
+            reader
+                .read_current(&member.path, 16384, deadline, &cancelled)
+                .unwrap()
+                .unwrap(),
+            b"old bytes\x00\xff\n"
+        );
+        assert_eq!(
+            fs::metadata(output.join(member.path.as_str()))
+                .unwrap()
+                .mode()
+                & 0o777,
+            0o755
+        );
+        assert!(
+            restore_capture(&capture, &output, &selection, limits, deadline, &cancelled).is_err()
+        );
+        let mut archive = fs::read(capture.join("source.tar.gz")).unwrap();
+        archive[10] ^= 1;
+        fs::write(capture.join("source.tar.gz"), archive).unwrap();
+        let rejected = scratch.0.join("rejected");
+        assert!(
+            restore_capture(
+                &capture, &rejected, &selection, limits, deadline, &cancelled
+            )
+            .is_err()
+        );
+        assert!(!rejected.exists());
+        // Restore the stream, corrupt only gzip CRC, then honestly rebind the
+        // outer digest. The decoder still must reject it before receipting.
+        let mutate = r#"
+import sys,json,hashlib
+from pathlib import Path
+p=Path(sys.argv[1]); a=bytearray((p/'source.tar.gz').read_bytes()); a[10]^=1; a[-8]^=1
+(p/'source.tar.gz').write_bytes(a)
+m=json.loads((p/'capture.json').read_bytes()); m['archive_sha256']=hashlib.sha256(a).hexdigest()
+(p/'capture.json').write_bytes((json.dumps(m,sort_keys=True,separators=(',',':'))+'\n').encode())
+"#;
+        assert!(
+            std::process::Command::new("python3")
+                .arg("-I")
+                .arg("-c")
+                .arg(mutate)
+                .arg(&capture)
+                .status()
+                .unwrap()
+                .success()
+        );
+        let mut rebound = selection.clone();
+        rebound.capture_manifest_sha256 =
+            Digest256::of_bytes(&fs::read(capture.join("capture.json")).unwrap());
+        let crc_output = scratch.0.join("bad-crc");
+        assert!(
+            restore_capture(
+                &capture,
+                &crc_output,
+                &rebound,
+                limits,
+                deadline,
+                &cancelled
+            )
+            .is_err()
+        );
+        assert!(!crc_output.join("restore-receipt.json").exists());
+    }
+}

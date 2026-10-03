@@ -1,3 +1,5 @@
+import {buildInterpretationComparison as projectInterpretationComparison} from './interpretation-comparison.mjs';
+import {pageCommandInteger as commandInteger, pageCommandOpaqueString as commandOpaqueString, pageCommandDirection as commandDirection} from "./page-input";
 import type { Graph as CosmosGraph, GraphConfig } from "@cosmos.gl/graph";
 import Graphology from "graphology";
 import forceAtlas2 from "graphology-layout-forceatlas2";
@@ -15,12 +17,12 @@ import {
 import { createToSQueryOperations } from "./query-operations";
 import {
   createLocalStoragePersistence,
-  createResearchWorkspace,
   type ResearchHypothesis,
   type ResearchProposal,
   type ResearchProposalKind,
   type RouteSnapshot,
 } from "./research-workspace";
+import {createBrowserResearchWorkspace} from './research-workspace-rust';
 import { agentSurfaceState, PRODUCT_DEMO_PROMPTS } from "./product-shell";
 import { createWebMCPAdapter, type WebMCPDocument } from "./webmcp";
 import { localizedContentPayload, localizedContentText } from "./content-i18n";
@@ -856,18 +858,21 @@ function readInitialRoute(): InitialRoute {
 
 const initialRoute = readInitialRoute();
 
-function createBrowserResearchWorkspace() {
+function createPageResearchWorkspace() {
   try {
-    return createResearchWorkspace({
+    return createBrowserResearchWorkspace({
       sessionId: "tos-local-research",
       persistence: createLocalStoragePersistence(window.localStorage, "tos-research-workspace-v1"),
     });
   } catch {
-    return createResearchWorkspace({ sessionId: "tos-local-research", persistence: false });
+    return createBrowserResearchWorkspace({ sessionId: "tos-local-research", persistence: false });
   }
 }
 
-const researchWorkspace = createBrowserResearchWorkspace();
+const researchWorkspace = createPageResearchWorkspace();
+window.addEventListener('pagehide',(event)=>{
+  if(!event.persisted&&'dispose' in researchWorkspace)researchWorkspace.dispose();
+});
 
 function initialLanguage(): Language {
   if (initialRoute.language) return initialRoute.language;
@@ -3764,25 +3769,6 @@ function interpretationComparisonCards(itemIdValue: string): string[] {
   return cards;
 }
 
-function buildInterpretationComparison(packet: EpistemicPayload, selection: PageSelection): InterpretationComparisonPayload {
-  const challengeReadings = (packet.challenge_relations || []).map(readingSummary);
-  const contextReadings = (packet.context_relations || []).map(readingSummary);
-  const posture = challengeReadings.length
-    ? "contested_review_required"
-    : packet.posture || packet.selection_posture?.review_posture || "review_status_unresolved";
-  const localizedGaps = state.language === "ru" ? packet.gaps_ru || packet.gaps : packet.gaps;
-  return {
-    schema: "tos_interpretation_comparison_v1",
-    selection,
-    posture,
-    can_conclude: packet.conclusion?.can_conclude === true,
-    competing_reading_count: challengeReadings.length,
-    competing_readings: challengeReadings.slice(0, 8),
-    contextual_readings: contextReadings.slice(0, 8),
-    gaps: (localizedGaps || []).slice(0, 12),
-    authority_note: packet.authority_note || "Projected challenge relations are review leads, not adjudicated counterevidence or canon decisions.",
-  };
-}
 
 async function compareReadings(itemIdValue: string, limit = 60, signal?: AbortSignal): Promise<InterpretationComparisonPayload> {
   const selected = pageSelection();
@@ -3794,7 +3780,7 @@ async function compareReadings(itemIdValue: string, limit = 60, signal?: AbortSi
     : await showEpistemic(itemIdValue, limit, signal);
   signal?.throwIfAborted();
   if (pageSelection()?.id !== itemIdValue) throw new DOMException("superseded comparison request", "AbortError");
-  const comparison = buildInterpretationComparison(packet, selected);
+  const comparison = projectInterpretationComparison(packet, selected, () => state.language, readingSummary) as InterpretationComparisonPayload;
   state.interpretationComparison = comparison;
   state.inspectorOpen = true;
   renderInspector();
@@ -4512,24 +4498,6 @@ function commandString(input: Record<string, unknown>, key: string, fallback = "
   return text(input[key] ?? fallback).trim();
 }
 
-function commandOpaqueString(input: Record<string, unknown>, key: string): string | undefined {
-  const value = input[key];
-  if (value === undefined || value === null) return undefined;
-  if (typeof value !== "string") throw new Error(`${key} must be a string`);
-  return value || undefined;
-}
-
-function commandInteger(input: Record<string, unknown>, key: string, fallback: number, low: number, high: number): number {
-  const parsed = Number(input[key]);
-  return Number.isFinite(parsed) ? Math.max(low, Math.min(high, Math.trunc(parsed))) : fallback;
-}
-
-function commandDirection(input: Record<string, unknown>): "outgoing" | "incoming" | "either" {
-  const direction = commandString(input, "direction", "outgoing");
-  if (direction === "outgoing" || direction === "incoming" || direction === "either") return direction;
-  throw new Error("direction must be outgoing, incoming, or either");
-}
-
 function selectedNodeId(): string {
   return state.selected ? selectedNodeIdFor(state.selected) : "";
 }
@@ -4587,14 +4555,14 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     commandString(input, "query"),
     commandOpaqueString(input, "cursor"),
     execution.signal,
-    commandInteger(input, "limit", 40, 1, 40),
+    commandInteger(input, "limit", "page-knowledge-limit"),
     commandString(input, "search_mode") || undefined,
   ),
   "tos.page.find-source-gaps": async (input, execution) => {
     const query = commandString(input, "query");
     const payload = await queryOperations.invoke("tos.source-gaps.search", {
       query,
-      limit: commandInteger(input, "limit", 20, 1, 100),
+      limit: commandInteger(input, "limit", "gaps-limit"),
     }, { signal: execution.signal }) as { gaps?: AnyItem[]; authority_note?: string };
     execution.signal.throwIfAborted();
     state.epistemicPacket = null;
@@ -4621,33 +4589,12 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     const query = commandString(input, "query");
     if (!query) throw new Error("query is required");
     const language = commandString(input, "language", "ru");
-    let result: Record<string, unknown>;
-    try {
-      result = await queryOperations.invoke("tos.zarathustra.word-analysis.prepare", {
-        query,
-        language,
-        rank: commandInteger(input, "rank", 1, 1, 100),
-        include_semantic_neighbors: input.include_semantic_neighbors === true,
-      }, { signal: execution.signal });
-    } catch {
-      execution.signal.throwIfAborted();
-      result = {
-        schema: "tos_zarathustra_word_analysis_capability_v1",
-        available: false,
-        reason: "the local source-bound word-analysis capability failed its integrity check",
-        provider_ref: "scripts/prepare_zarathustra_word_analysis_v1.py",
-        publication_posture: "excluded_from_public_bundle",
-        task: null,
-        authority: {
-          source_owner: "Tree-of-Sophia",
-          access_plane_is_source: false,
-          is_semantic_truth: false,
-          writes_to_tree: false,
-          reviewed: false,
-          canon: false,
-        },
-      };
-    }
+    const result = await queryOperations.invoke("tos.zarathustra.word-analysis.prepare", {
+      query,
+      language,
+      rank: commandInteger(input, "rank", "page-word-rank"),
+      include_semantic_neighbors: input.include_semantic_neighbors === true,
+    }, { signal: execution.signal });
     execution.signal.throwIfAborted();
     const task = result.task && typeof result.task === "object" ? result.task as Record<string, unknown> : null;
     const source = task?.source && typeof task.source === "object" ? task.source as Record<string, unknown> : null;
@@ -4687,7 +4634,7 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
   },
   "tos.page.show-neighborhood": async (input, execution) => {
     const nodeId = commandString(input, "node_id", selectedNodeId());
-    return showNeighborhood(nodeId, commandInteger(input, "depth", 1, 1, 3), execution.signal);
+    return showNeighborhood(nodeId, commandInteger(input, "depth", "neighborhood-depth"), execution.signal);
   },
   "tos.page.start-path": (input) => {
     assertPhilosophyRouteAvailable();
@@ -4702,8 +4649,8 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     const constrainToView = input.constrain_to_view !== false;
     return showPath(fromId, toId, {
       direction: commandDirection(input),
-      maxDepth: commandInteger(input, "max_depth", 6, 1, 8),
-      alternativeLimit: commandInteger(input, "alternative_limit", 1, 1, 5),
+      maxDepth: commandInteger(input, "max_depth", "page-path-depth"),
+      alternativeLimit: commandInteger(input, "alternative_limit", "page-path-alternatives"),
       excludedEdgeIds: workspaceExcludedEdgeIds(stringList(input.excluded_edge_ids)),
       viewId: constrainToView && state.mode === "philosophy" ? state.currentViewId : undefined,
       signal: execution.signal,
@@ -4723,8 +4670,8 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     const constrainToView = input.constrain_to_view !== false;
     return showPath(selected.from_id, selected.to_id, {
       direction: commandDirection(input),
-      maxDepth: commandInteger(input, "max_depth", 6, 1, 8),
-      alternativeLimit: commandInteger(input, "alternative_limit", 3, 1, 5),
+      maxDepth: commandInteger(input, "max_depth", "page-path-depth"),
+      alternativeLimit: commandInteger(input, "alternative_limit", "page-reroute-alternatives"),
       excludedEdgeIds: workspaceExcludedEdgeIds([selected.id]),
       viewId: constrainToView && state.mode === "philosophy" ? state.currentViewId : undefined,
       signal: execution.signal,
@@ -4734,7 +4681,7 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
     const itemIdValue = commandString(input, "item_id", pageSelection()?.id || "");
     const result = await showEpistemic(
       itemIdValue,
-      commandInteger(input, "limit", 80, 1, 200),
+      commandInteger(input, "limit", "epistemic-limit"),
       execution.signal,
     );
     const selected = pageSelection();
@@ -4746,7 +4693,7 @@ const pageCommands = createPageCommandRegistry(pageContextSnapshot, {
   },
   "tos.page.compare-readings": async (input, execution) => compareReadings(
     commandString(input, "item_id", pageSelection()?.id || ""),
-    commandInteger(input, "limit", 60, 1, 80),
+    commandInteger(input, "limit", "page-compare-limit"),
     execution.signal,
   ),
   "tos.page.research-workspace": () => ({

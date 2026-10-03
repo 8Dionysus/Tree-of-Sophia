@@ -8,13 +8,34 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 use tempfile::TempDir;
 use tos_foundation::{
-    CanonicalProfile, CodePointSpan, Digest256, JsonLimits, JsonMode, JsonNumberKind, JsonValue,
-    RelativePath, SourceRevision, canonical_bytes_v1, canonical_raw_bytes_v1, emit_preserved_json,
-    parse_json,
+    CanonicalProfile, CodePointSpan, Digest256, JsonEmissionProfile, JsonLimits, JsonMode,
+    JsonNumberKind, JsonValue, RelativePath, SourceRevision, canonical_bytes_v1,
+    canonical_raw_bytes_v1, emit_json_profile, emit_preserved_json, parse_json,
 };
 use tos_source_store::{CorpusReader, ReadLimits, Selector, StoreErrorCode};
 
+// Every maintained Python oracle/adapter uses the interpreter selected by
+// the native lane. A distro interpreter can have different installed packages.
+fn maintained_python() -> PathBuf {
+    let python = PathBuf::from(
+        std::env::var_os("TOS_MAINTAINED_PYTHON").expect("explicit maintained fixture interpreter"),
+    );
+    assert!(
+        python.is_absolute(),
+        "maintained fixture interpreter is absolute"
+    );
+    python
+}
+
 fn fixtures() -> PathBuf {
+    if std::env::var("TOS_NATIVE_INSTALLED_SOFTWARE_SITE").as_deref() == Ok("1") {
+        let source = PathBuf::from(
+            std::env::var_os("TOS_NATIVE_SOFTWARE_SOURCE_ROOT")
+                .expect("installed cohort requires its exact admitted fixture source"),
+        );
+        assert!(source.is_absolute());
+        return source.join("tests/conformance/rust");
+    }
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
@@ -269,6 +290,86 @@ fn independent_python_canonical_profile_oracles() {
     );
 }
 
+#[test]
+fn independent_python_whole_form_set_history_bytes() {
+    let cases = lines("history-v1/legacy-whole-form-set.jsonl");
+    assert_eq!(
+        cases.len(),
+        12,
+        "a dropped Python history oracle is a contract change"
+    );
+    let limits = JsonLimits::new(2 * 1024 * 1024, 64, 300_000, 4_300).unwrap();
+    for case in cases {
+        let id = required(&case, "case_id");
+        let raw = match required(&case, "input_kind") {
+            "inline_json" => required(&case, "input_json").as_bytes().to_vec(),
+            "repeat_string" => format!(
+                "{{\"{}\":\"{}\"}}",
+                required(&case, "key"),
+                required(&case, "unit").repeat(case["count"].as_u64().unwrap() as usize),
+            )
+            .into_bytes(),
+            "repo_file" => {
+                let path = fixtures()
+                    .join("../../..")
+                    .join(required(&case, "input_path"));
+                let raw = fs::read(path).unwrap();
+                assert_eq!(
+                    Digest256::of_bytes(&raw).to_hex(),
+                    required(&case, "input_sha256"),
+                    "{id}"
+                );
+                raw
+            }
+            kind => panic!("{id}: unknown input kind {kind}"),
+        };
+        let parsed = parse_json(&raw, JsonMode::PublishedStrict, limits);
+        if case.get("expected_python_error").and_then(Value::as_str) == Some("ValueError") {
+            assert_eq!(parsed.unwrap_err().code.as_str(), "nonfinite_float", "{id}");
+            continue;
+        }
+        let parsed = parsed.unwrap_or_else(|error| panic!("{id}: parse failed: {error}"));
+        let emitted = emit_json_profile(
+            parsed.root(),
+            JsonEmissionProfile::SourceFormSetPublishedV1,
+            limits,
+        );
+        if case.get("expected_python_error").and_then(Value::as_str) == Some("UnicodeEncodeError") {
+            assert_eq!(
+                emitted.unwrap_err().code.as_str(),
+                "invalid_unicode_scalar",
+                "{id}"
+            );
+            continue;
+        }
+        if case.get("expected_error").is_some() {
+            assert_eq!(
+                emitted.unwrap_err().code.as_str(),
+                required(&case, "expected_error"),
+                "{id}"
+            );
+            continue;
+        }
+        let emitted = emitted.unwrap_or_else(|error| panic!("{id}: emit failed: {error}"));
+        let expected = &case["expected"];
+        assert_eq!(
+            emitted.bytes.len() as u64,
+            expected["size_bytes"].as_u64().unwrap(),
+            "{id}"
+        );
+        assert_eq!(
+            emitted.sha256.to_hex(),
+            required(expected, "sha256"),
+            "{id}"
+        );
+        if let Some(text) = expected.get("utf8").and_then(Value::as_str) {
+            assert_eq!(emitted.bytes, text.as_bytes(), "{id}");
+        } else if required(&case, "input_kind") == "repo_file" {
+            assert_eq!(emitted.bytes, raw, "{id}: pinned public file bytes changed");
+        }
+    }
+}
+
 fn read_limits() -> ReadLimits {
     ReadLimits {
         max_manifest_bytes: 8192,
@@ -319,7 +420,11 @@ fn selected_object(root: &Path, sha256: &str) -> PathBuf {
 fn canonical_json(value: &Value) -> Vec<u8> {
     // This setup encodes only the ASCII v1 manifest; its expected digest and
     // original bytes come from the checked-in independent fixture.
-    let mut raw = serde_json::to_vec(value).unwrap();
+    // Workspace feature unification may enable serde_json/preserve_order.
+    // Canonical fixture bytes must not depend on the map's insertion order.
+    let mut sorted = value.clone();
+    sorted.sort_all_objects();
+    let mut raw = serde_json::to_vec(&sorted).unwrap();
     raw.push(b'\n');
     raw
 }
@@ -728,3 +833,53 @@ fn corpus_reader_refuses_fifo_object() {
         "child test filter did not execute the FIFO probe"
     );
 }
+#[path = "source_cut_cases.rs"]
+mod source_cut_cases;
+
+#[path = "validation_cut_cases.rs"]
+mod validation_cut_cases;
+
+#[path = "retirement_cut_cases.rs"]
+mod retirement_cut_cases;
+
+#[path = "command_form_cases.rs"]
+mod command_form_cases;
+
+#[path = "command_record_cases.rs"]
+mod command_record_cases;
+
+#[path = "command_claim_cases.rs"]
+mod command_claim_cases;
+
+#[path = "command_collection_cases.rs"]
+mod command_collection_cases;
+#[path = "command_item_cases.rs"]
+mod command_item_cases;
+#[path = "command_work_cases.rs"]
+mod command_work_cases;
+
+#[path = "command_text_cases.rs"]
+mod command_text_cases;
+
+#[path = "compiler_source_cases.rs"]
+mod compiler_source_cases;
+
+mod command_claim_publication_cases;
+mod command_public_text_cases;
+
+mod command_responsibility_cases;
+
+mod command_edition_cases;
+
+mod command_artifact_cases;
+mod command_object_link_cases;
+
+#[path = "command_legacy_claim_cases.rs"]
+mod command_legacy_claim_cases;
+#[path = "command_metadata_publication_cases.rs"]
+mod command_metadata_publication_cases;
+mod command_owner_text_cases;
+#[path = "command_private_claim_cases.rs"]
+mod command_private_claim_cases;
+#[path = "command_private_profile_cases.rs"]
+mod command_private_profile_cases;

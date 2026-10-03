@@ -1133,13 +1133,28 @@
       "home_scope": "root",
       "family": "generated_parity",
       "validation_lane": "source_witness_foundation",
-      "owner_surface": "ToS/contracts/source-resource-inventory.schema.json",
-      "protects": "deterministic text-free PDF, EPUB, and TEI resource inventories and format-specific parser boundaries",
+      "owner_surface": "tests/oracles/source_resource_inventory/README.md",
+      "protects": "frozen pre-native inventory oracle fixture behavior for historical profiles; it is migration/reference evidence, not the production builder",
       "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
       "mode": "blocking",
       "runtime_cost": "fast",
       "focused_target": "tests/test_source_resource_inventories.py",
-      "failure_route": "Fix the resource-inventory contract or focused builder behavior before changing test expectations.",
+      "failure_route": "Fix the frozen oracle or fixture/reference drift; production behavior is owned and checked by the native inventory module.",
+      "disposition": "keep"
+    },
+    {
+      "path": "tests/test_source_inventory_native_facade.py",
+      "home": "tests",
+      "home_scope": "root",
+      "family": "generated_parity",
+      "validation_lane": "source_witness_foundation",
+      "owner_surface": "ToS/source-witnesses/README.md",
+      "protects": "historical Python file and Item builder call shapes route to the native inventory family, preserve missing-payload behavior, and source metadata from the native owner",
+      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
+      "mode": "blocking",
+      "runtime_cost": "fast",
+      "focused_target": "tests/test_source_inventory_native_facade.py",
+      "failure_route": "Fix the source inventory facade/native operation contract without adding a Python parser fallback.",
       "disposition": "keep"
     },
     {
@@ -2430,21 +2445,6 @@
       "runtime_cost": "fast",
       "focused_target": "tests/test_documentation_cross_corpus.py",
       "failure_route": "Fix the authored family map, generated carrier, coordinator, or named owner validator before changing test expectations.",
-      "disposition": "keep"
-    },
-    {
-      "path": "tests/test_generic_xml_uxlc_lab.py",
-      "home": "tests",
-      "home_scope": "root",
-      "family": "validator_behavior",
-      "validation_lane": "source_witness_foundation",
-      "owner_surface": "ToS/research-packets/foundation-laboratory-2026-07/generic-xml-resource-inventory-uxlc-abc-v1/README.md",
-      "protects": "generic XML laboratory consumer selection-key completeness and exact UXLC provider projection membership, including preserved duplicate and incomplete negatives",
-      "coverage_authority": "tests/AGENTS.md root test collection (including unittest cases)",
-      "mode": "blocking",
-      "runtime_cost": "fast",
-      "focused_target": "tests/test_generic_xml_uxlc_lab.py",
-      "failure_route": "Fix the generic XML laboratory owner validators or candidate-only authority boundary before changing test expectations.",
       "disposition": "keep"
     },
     {

@@ -10,6 +10,8 @@ pub enum SegmentErrorCode {
     InvalidFormat,
     CorruptBytes,
     BudgetExceeded,
+    Cancelled,
+    DeadlineExceeded,
     InvalidReceipt,
     PinConflict,
     Io,

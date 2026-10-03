@@ -400,7 +400,7 @@ class OccurrenceAssessmentGuardTests(unittest.TestCase):
         (f.root / 'ToS/source-witnesses/signs').mkdir()
         owner = f.owner.parent / 'sign-owner.json'
         owner.write_text(json.dumps(config)); owner.chmod(0o600)
-        described = commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+        described = commands.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
         body = {'schema_version': 'tos_sign_description_record_v1', 'record_type': 'sign',
             'record_id': config['record_id'], 'record_version': 1, 'preferred_label': 'Условный знак',
             'notes': 'Synthetic Sign of the exact candidate, not historical or linguistic evidence.',
@@ -413,7 +413,7 @@ class OccurrenceAssessmentGuardTests(unittest.TestCase):
             'record': body, 'forms': [
                 {'form_id': config['allowed_form_ids'][0], 'field_id': 'metadata.preferred-name'},
                 {'form_id': config['allowed_form_ids'][1], 'field_id': 'metadata.source-note'}]}
-        prepared = commands.run_local_command(owner, preview_request)
+        prepared = commands.run_legacy_oracle_command(owner, preview_request)
         request = {**preview_request, 'operation': 'sign.promote', 'command_id': 'synthetic-sign-once',
             'expected_configuration': described['owner_configuration'], 'expected_source': None,
             'expected_revision': None, 'expected_dependencies': prepared['expected_dependencies']}
@@ -436,7 +436,7 @@ class OccurrenceAssessmentGuardTests(unittest.TestCase):
             checked.append(True)
             publish(staging, target)
         with patch.object(commands, '_publish_new_directory', checked_publish):
-            result = commands.run_local_command(owner, request)
+            result = commands.run_legacy_oracle_command(owner, request)
         self.assertEqual(checked, [True])
         self.assertFalse(result['grants_admission'])
         self.assertEqual(result['supported_operations'], ['sign.promote'])
@@ -444,7 +444,7 @@ class OccurrenceAssessmentGuardTests(unittest.TestCase):
         body = json.loads(path.read_bytes())
         self.assertEqual(body, request['record'])
         self.assertEqual(before, (f.root / f.native.packet_ref).read_bytes())
-        replay = commands.run_local_command(owner, request)
+        replay = commands.run_legacy_oracle_command(owner, request)
         self.assertTrue(replay['replayed'])
         self.assertEqual(replay['receipt'], result['receipt'])
         forms = json.loads(path.with_name('sign.human-forms.json').read_bytes())
@@ -454,12 +454,12 @@ class OccurrenceAssessmentGuardTests(unittest.TestCase):
         generic.update(schema_version=commands.PROFILE_CONFIG, allowed_operations=['source.create'])
         owner.write_text(json.dumps(generic))
         with self.assertRaisesRegex(PermissionError, 'separately delegated'):
-            commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
+            commands.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1', 'operation': 'describe'})
         config.update(record_id='tos.sign.synthetic-duplicate',
             source_path='ToS/source-witnesses/signs/synthetic-duplicate/sign.json')
         owner.write_text(json.dumps(config))
         with self.assertRaisesRegex(JournalConflict, 'candidate already has a Sign'):
-            commands.run_local_command(owner, {'schema_version': 'tos_local_source_command_v1',
+            commands.run_legacy_oracle_command(owner, {'schema_version': 'tos_local_source_command_v1',
                 'operation': 'prepare-create', 'record': {**body, 'record_id': config['record_id']}, 'forms': request['forms']})
 
     def test_sign_command_refuses_withdrawn_basis_at_final_publish_without_losing_history(self):
@@ -469,14 +469,14 @@ class OccurrenceAssessmentGuardTests(unittest.TestCase):
         forged = copy.deepcopy(request)
         forged['record']['promotion_basis']['candidate']['digest'] = 'sha256:' + '0' * 64
         with self.assertRaisesRegex(JournalConflict, 'exact current promotion basis'):
-            commands.run_local_command(owner, forged)
+            commands.run_legacy_oracle_command(owner, forged)
         aliased = copy.deepcopy(request)
         aliased['record']['promotion_basis']['candidate']['version'] = float(
             aliased['record']['promotion_basis']['candidate']['version'])
         with self.assertRaisesRegex(JournalConflict, 'exact current promotion basis'):
-            commands.run_local_command(owner, aliased)
+            commands.run_legacy_oracle_command(owner, aliased)
         with self.assertRaises(ValueError):
-            commands.run_local_command(owner, {**request, 'assessments': [{'decision': 'admit'}]})
+            commands.run_legacy_oracle_command(owner, {**request, 'assessments': [{'decision': 'admit'}]})
         self.assertFalse(target.parent.exists())
         original_publish = commands._publish
         changed = False
@@ -490,7 +490,7 @@ class OccurrenceAssessmentGuardTests(unittest.TestCase):
                 authority['payload'].update(authority_version=authority['version'], state='revoked')
                 f.save()
         with patch.object(commands, '_publish', revoke_after_staging), self.assertRaises(PermissionError):
-            commands.run_local_command(owner, request)
+            commands.run_legacy_oracle_command(owner, request)
         self.assertTrue(changed)
         self.assertFalse(target.parent.exists())
         self.assertEqual(list((f.root / 'ToS').glob('.source-create-*.pending')), [])
@@ -868,7 +868,7 @@ class OccurrenceAssessmentGuardTests(unittest.TestCase):
         fixture.native.write_json("claim-owner.json", config)
         owner = fixture.root / "claim-owner.json"
         proposal = {"schema_version": "tos_local_source_command_v1", "operation": "prepare-create", "claims": [claim]}
-        first = commands.run_local_command(owner, proposal)
+        first = commands.run_legacy_oracle_command(owner, proposal)
         before = _ground_claims(config, [claim], initial=False)
         profiles = SourceRecordProfiles(fixture.root)
         profiles.validate("occurrence", fixture.subject.payload)
@@ -886,7 +886,7 @@ class OccurrenceAssessmentGuardTests(unittest.TestCase):
             "expected_configuration": first["owner_configuration"], "expected_revision": None,
             "expected_dependencies": first["expected_dependencies"], "expected_inputs": first["source_bindings"]}
         with self.assertRaises(commands.JournalConflict):
-            commands.run_local_command(owner, request)
+            commands.run_legacy_oracle_command(owner, request)
         target = fixture.root / config["source_path"]
         self.assertFalse(target.parent.exists())
 
@@ -915,15 +915,15 @@ class OccurrenceAssessmentGuardTests(unittest.TestCase):
         with self.assertRaises(CatalogBuildError):
             _ground_claims(config, [claim], initial=False)
         with self.assertRaises(CatalogBuildError):
-            commands.run_local_command(owner, proposal)
+            commands.run_legacy_oracle_command(owner, proposal)
         self.assertFalse(target.parent.exists())
 
         packet["entities"].pop()
         fixture.native.write_json(packet_ref, packet)
-        fresh = commands.run_local_command(owner, proposal)
+        fresh = commands.run_legacy_oracle_command(owner, proposal)
         request.update(expected_configuration=fresh["owner_configuration"],
             expected_dependencies=fresh["expected_dependencies"], expected_inputs=fresh["source_bindings"])
-        created = commands.run_local_command(owner, request)
+        created = commands.run_legacy_oracle_command(owner, request)
         self.assertFalse(created["grants_admission"])
         self.assertEqual(json.loads(target.read_bytes().splitlines()[0]), claim)
 

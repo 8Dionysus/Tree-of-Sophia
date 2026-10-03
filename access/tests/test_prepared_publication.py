@@ -1,17 +1,25 @@
 """Actual-file atomic local publication and native reference preservation."""
 import copy
+import dataclasses
 from contextlib import closing
 import json
 import os
 from pathlib import Path
 import sqlite3
+import subprocess
+import time
 import tempfile
 import unittest
 from unittest.mock import patch
 
 from tos_access.prepared_publication import (
-    PreparedChange, PublicationLimits, SCHEMA, apply_prepared_delta,
-    apply_prepared_delta_transaction, publish_prepared, publish_prepared_rows,
+    PreparedChange,
+    PublicationLimits,
+    SCHEMA,
+    reference_apply_prepared_delta as apply_prepared_delta,
+    apply_prepared_delta_transaction,
+    reference_publish_prepared as publish_prepared,
+    reference_publish_prepared_rows as publish_prepared_rows,
 )
 from tos_access.compressed_search_store import SearchStore, STORAGE_VERSION, decode_postings, encode_postings
 from tos_access.prepared_search_reuse import PreparedSearchReuse
@@ -98,6 +106,263 @@ class PreparedPublicationTests(unittest.TestCase):
     def state(self):
         with closing(sqlite3.connect(self.path)) as db:
             return list(db.iterdump())
+
+    @unittest.skipUnless(os.environ.get('TOS_NATIVE_PREPARED_EXECUTABLE'),
+                         'explicit protected installed publication executor required')
+    def test_default_file_owner_uses_selected_native_and_keeps_python_reference(self):
+        """The maintained default selects code once and never falls back to Python."""
+        graph = copy.deepcopy(self.graph)
+        graph['nodes'][0]['type_id'] = [True, None, {'quoted': "a'b\\c", 'unicode': '\u00a0'}]
+        expected = publish_prepared(self.path, graph=graph, catalog=self.catalog)
+        target = self.path.with_name('default-native.sqlite')
+        executable = os.environ['TOS_NATIVE_PREPARED_EXECUTABLE']
+        with patch.dict(os.environ, TOS_PREPARED_EXECUTOR=executable,
+                        TOS_PREPARED_MAX_SECONDS='20'):
+            with patch.object(publication, '_publish_prepared_rows',
+                              side_effect=AssertionError('Python fallback')):
+                actual = publication.publish_prepared(target, graph=graph, catalog=self.catalog)
+            header, catalog = self.header()
+            updated = copy.deepcopy(graph['nodes'][0])
+            updated['probe']['default-native'] = 'changed by selected executor'
+            changes = [PreparedChange('update', 'node', 'a', updated)]
+            expected = apply_prepared_delta(self.path, expected_binding=expected,
+                source_header=header, catalog=catalog, changes=changes)
+            with patch.object(publication, 'reference_apply_prepared_delta',
+                              side_effect=AssertionError('Python fallback')):
+                actual = publication.apply_prepared_delta(target, expected_binding=actual,
+                    source_header=header, catalog=catalog, changes=changes)
+        self.assertEqual(actual, expected)
+        with closing(sqlite3.connect(self.path)) as reference, closing(sqlite3.connect(target)) as native:
+            for table in ('edge_meta', 'prepared_documents', 'prepared_state',
+                          'knowledge_nodes', 'knowledge_relations', 'knowledge_exploration_clock'):
+                self.assertEqual(reference.execute(f'SELECT * FROM {table}').fetchall(),
+                                 native.execute(f'SELECT * FROM {table}').fetchall(), table)
+        # Callback refusal must happen before commit, after actual donor copy.
+        donor = self.path.with_name('callback-donor.sqlite')
+        donor_binding = publish_prepared(donor, graph=graph, catalog=self.catalog)
+        predecessor_bytes = donor.read_bytes()
+        donor_target = self.path.with_name('callback-native.sqlite')
+        complete = []
+        with patch.dict(os.environ, TOS_PREPARED_EXECUTOR=executable,
+                        TOS_PREPARED_MAX_SECONDS='20'):
+            successor = publication.publish_prepared_rows(donor_target,
+                source_header={key: value for key, value in graph.items()
+                               if key not in ('nodes', 'relations')}, catalog=self.catalog,
+                row_factory=lambda kind: iter(graph[kind + 's']),
+                search_reuse=PreparedSearchReuse(donor, donor_binding, progress=complete.append))
+        self.assertEqual(successor, donor_binding)
+        self.assertEqual(complete[-1]['phase'], 'search_successor_prepared')
+        self.assertIs(complete[-1]['committed'], False)
+        self.assertEqual(donor.read_bytes(), predecessor_bytes)
+        donor_target = self.path.with_name('callback-refused.sqlite')
+        phases = []
+        def stop_after_copy(report):
+            phases.append(report['phase'])
+            if report['phase'] == 'donor_table_copied':
+                raise RuntimeError('intentional callback cancellation')
+        with patch.dict(os.environ, TOS_PREPARED_EXECUTOR=executable,
+                        TOS_PREPARED_MAX_SECONDS='20'):
+            with self.assertRaisesRegex(RuntimeError, 'intentional callback cancellation'):
+                publication.publish_prepared_rows(donor_target, source_header={key: value for key, value in graph.items() if key not in ('nodes', 'relations')}, catalog=self.catalog,
+                    row_factory=lambda kind: iter(graph[kind + 's']),
+                    search_reuse=PreparedSearchReuse(donor, donor_binding, progress=stop_after_copy))
+        self.assertIn('donor_table_copied', phases)
+        self.assertFalse(donor_target.exists())
+        self.assertEqual(donor.read_bytes(), predecessor_bytes)
+        absent = self.path.with_name('missing-executor.sqlite')
+        with patch.dict(os.environ, TOS_PREPARED_EXECUTOR=str(self.path.with_name('missing-native')),
+                        TOS_PREPARED_MAX_SECONDS='20'):
+            with self.assertRaises(ValueError):
+                publication.publish_prepared(absent, graph=self.graph, catalog=self.catalog)
+        self.assertFalse(absent.exists())
+        with patch.dict(os.environ, TOS_PREPARED_EXECUTOR=executable, TOS_PREPARED_MAX_SECONDS='20'):
+            with self.assertRaises(ValueError):
+                publication.publish_prepared(absent, graph=self.graph, catalog=self.catalog,
+                                             native_executable='')
+        self.assertFalse(absent.exists())
+
+    @unittest.skipUnless(os.environ.get('TOS_NATIVE_PREPARED_EXECUTABLE'),
+                         'explicit protected native publication executable required')
+    def test_native_framed_input_deadline_rolls_back_stalled_second_pass(self):
+        """A live idle stdin pipe cannot outlive CLI deadline or leave its new DB."""
+        header = {key: value for key, value in self.graph.items() if key not in ('nodes', 'relations')}
+        frame = {'operation': 'bootstrap', 'path': str(self.path), 'header': header,
+                 'catalog': self.catalog, 'limits': dataclasses.asdict(PublicationLimits()),
+                 'max_seconds': 2}
+        frames = [_compact(frame)]
+        for kind in ('node', 'relation'):
+            frames.extend(_compact({'row': item}) for item in self.graph[kind + 's'])
+            frames.append('{"end":true}')
+        payload = ('\n'.join(frames) + '\n').encode('utf-8')
+        self.assertLess(len(payload), 65536)
+        process = subprocess.Popen([os.environ['TOS_NATIVE_PREPARED_EXECUTABLE'],
+                                    'prepared-publication', '--max-seconds', '2'],
+                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, close_fds=True)
+        try:
+            process.stdin.write(payload)
+            process.stdin.flush()
+            # Keep stdin open; the new DB proves bootstrap entered the same
+            # write transaction and is waiting for the absent second pass.
+            until = time.monotonic() + 1.5
+            while not self.path.exists() and process.poll() is None and time.monotonic() < until:
+                time.sleep(0.01)
+            self.assertTrue(self.path.exists(), 'native bootstrap did not reach its retained transaction')
+            self.assertEqual(process.wait(timeout=6), 2)
+            self.assertEqual(process.stdout.read(65537), b'')
+            errors = process.stderr.read(8193)
+            self.assertLessEqual(len(errors), 8192)
+            self.assertIn(b'prepared input deadline', errors)
+            self.assertFalse(self.path.exists())
+            self.assertFalse(Path(str(self.path) + '-journal').exists())
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait()
+            for stream in (process.stdin, process.stdout, process.stderr):
+                stream.close()
+
+    @unittest.skipUnless(os.environ.get('TOS_NATIVE_PREPARED_EXECUTABLE'),
+                         'explicit protected native publication executable required')
+    def test_native_file_owner_matches_python_full_delta_and_atomic_auxiliary_rollback(self):
+        """One real opt-in caller protects publication identity and all-lane rollback."""
+        from tos_access.compact_lens_store import prepare_compact_lens_store_transaction
+        from tos_access.lens_membership_index import prepare_membership_index_transaction
+        from tos_access.published_search import PublishedSearchService
+        executable = os.environ['TOS_NATIVE_PREPARED_EXECUTABLE']
+        native = self.path.with_name('native.sqlite')
+        expected = publish_prepared(self.path, graph=self.graph, catalog=self.catalog)
+        actual = publication.publish_prepared(native, graph=self.graph, catalog=self.catalog,
+                                  native_executable=executable, native_timeout=20)
+        self.assertEqual(actual, expected)
+        for selected in (self.path, native):
+            with closing(sqlite3.connect(selected, isolation_level=None)) as db:
+                db.execute('BEGIN IMMEDIATE')
+                prepare_compact_lens_store_transaction(db, expected_binding=expected)
+                prepare_membership_index_transaction(db, expected_binding=expected)
+                db.execute('COMMIT')
+        # A node deletion that leaves incidence must rollback full rows, search,
+        # auxiliary triggers/state, metadata, address map and the serving clock.
+        with closing(sqlite3.connect(native)) as db:
+            before = list(db.iterdump())
+        header, catalog = self.header()
+        with self.assertRaises(ValueError):
+            publication.apply_prepared_delta(native, expected_binding=actual, source_header=header,
+                                 catalog=catalog, changes=[PreparedChange('delete', 'node', 'a')],
+                                 native_executable=executable, native_timeout=20)
+        with closing(sqlite3.connect(native)) as db:
+            self.assertEqual(list(db.iterdump()), before)
+        changed = copy.deepcopy(self.graph['nodes'][0])
+        changed['probe']['new'] = 'native prepared successor'
+        inserted = copy.deepcopy(self.graph['nodes'][2])
+        inserted.update(id='z', entity_id='z-entity', native_id='z-native')
+        changes = [PreparedChange('update', 'node', 'a', changed, 7),
+                   PreparedChange('insert', 'node', 'z', inserted, 3),
+                   PreparedChange('delete', 'relation', 'r'),
+                   PreparedChange('delete', 'node', 'b')]
+        new_expected = apply_prepared_delta(self.path, expected_binding=expected,
+                                           source_header=header, catalog=catalog, changes=changes)
+        new_actual = publication.apply_prepared_delta(native, expected_binding=actual, source_header=header,
+                                         catalog=catalog, changes=changes,
+                                         native_executable=executable, native_timeout=20)
+        self.assertEqual(new_actual, new_expected)
+        for table in ('edge_meta', 'prepared_documents', 'prepared_state',
+                      'knowledge_nodes', 'knowledge_relations', 'knowledge_lens_order',
+                      'knowledge_exploration_clock', 'knowledge_compact_lens',
+                      'knowledge_compact_lens_state', 'knowledge_lens_memberships',
+                      'knowledge_lens_membership_state'):
+            with closing(sqlite3.connect(self.path)) as reference, closing(sqlite3.connect(native)) as candidate:
+                self.assertEqual(sorted(reference.execute(f'SELECT * FROM {table}').fetchall()),
+                                 sorted(candidate.execute(f'SELECT * FROM {table}').fetchall()), table)
+        for query in ('', 'native prepared successor', 'a', 'missing'):
+            packets = [PublishedSearchService(PublishedKnowledgeReadModel(selected, binding)).search(
+                query=query, limit=100) for selected, binding in
+                ((self.path, new_expected), (native, new_actual))]
+            for key in ('nodes', 'relations', 'ranks', 'counts', 'source_revision'):
+                self.assertEqual(packets[0][key], packets[1][key], (query, key))
+        with self.assertRaises(ValueError):
+            publication.apply_prepared_delta(native, expected_binding=actual, source_header=header,
+                                 catalog=catalog, changes=[],
+                                 native_executable=executable, native_timeout=20)
+        # Metadata-only rollback to the earlier source revision still advances
+        # actual epoch/incarnation. It cannot resurrect the predecessor binding.
+        original_header = {key: value for key, value in self.graph.items()
+                           if key not in ('nodes', 'relations')}
+        restored = publication.apply_prepared_delta(native, expected_binding=new_actual,
+                                        source_header=original_header, catalog=self.catalog,
+                                        changes=[], native_executable=executable, native_timeout=20)
+        self.assertGreater(restored['publication_epoch'], new_actual['publication_epoch'])
+        self.assertNotEqual(restored, actual)
+
+    @unittest.skipUnless(os.environ.get('TOS_NATIVE_PREPARED_EXECUTABLE'),
+                         'explicit protected native publication executable required')
+    def test_native_donor_file_owner_matches_python_successor_and_preserves_predecessor(self):
+        """Actual maintained donor caller retains complete unchanged search bytes."""
+        old = self.publish()
+        before = self.path.read_bytes()
+        graph = copy.deepcopy(self.graph)
+        graph['source_revision'] = 'd' * 64
+        graph['normalization_binding']['processor_digest'] = 'e' * 64
+        graph['nodes'][0]['probe']['new-context'] = 'native donor successor'
+        header = {key: value for key, value in graph.items() if key not in ('nodes', 'relations')}
+        catalog = {**self.catalog, 'source_revision': graph['source_revision']}
+        reference = self.path.with_name('donor-reference.sqlite')
+        target = self.path.with_name('donor-native.sqlite')
+        expected = publish_prepared(reference, graph=graph, catalog=catalog)
+        actual = publication.publish_prepared_rows(target, source_header=header, catalog=catalog,
+            row_factory=lambda kind: iter(graph[kind + 's']),
+            search_reuse=PreparedSearchReuse(self.path, self.binding),
+            native_executable=os.environ['TOS_NATIVE_PREPARED_EXECUTABLE'], native_timeout=20)
+        self.assertEqual(actual, expected)
+        self.assertEqual(self.path.read_bytes(), before)
+        for query in ('', 'native donor successor', 'a', 'missing'):
+            packets = [SearchStore(selected, binding=binding).query_page(kind='node', query=query,
+                page_size=10, candidate_budget=100, verification_bytes=1_000_000)
+                for selected, binding in ((reference, expected), (target, actual))]
+            for key in ('matches', 'returned_count', 'total_matching', 'has_more'):
+                self.assertEqual(packets[0].get(key), packets[1].get(key), (query, key))
+        with closing(sqlite3.connect(self.path)) as donor, closing(sqlite3.connect(target)) as candidate:
+            self.assertEqual(donor.execute('SELECT * FROM search_text_chunks WHERE doc_id IN (2,3,4) ORDER BY doc_id,category,field,chunk').fetchall(),
+                             candidate.execute('SELECT * FROM search_text_chunks WHERE doc_id IN (2,3,4) ORDER BY doc_id,category,field,chunk').fetchall())
+            self.assertNotEqual(donor.execute('SELECT cursor_key FROM search_header').fetchone(),
+                                candidate.execute('SELECT cursor_key FROM search_header').fetchone())
+        self.assertEqual(PublishedLensService(old).execute(lens()), execute_knowledge_lens(self.graph, lens()))
+        refused = self.path.with_name('donor-refused.sqlite')
+        with self.assertRaises(ValueError):
+            publication.publish_prepared_rows(refused, source_header=header, catalog=catalog,
+                row_factory=lambda kind: iter(graph[kind + 's']),
+                search_reuse=PreparedSearchReuse(self.path, self.binding, max_queries=1),
+                native_executable=os.environ['TOS_NATIVE_PREPARED_EXECUTABLE'], native_timeout=20)
+        self.assertFalse(refused.exists())
+        self.assertEqual(self.path.read_bytes(), before)
+
+    @unittest.skipUnless(os.environ.get('TOS_NATIVE_PREPARED_EXECUTABLE'),
+                         'explicit protected native publication executable required')
+    def test_native_bulk_file_owner_matches_python_and_removes_private_scratch(self):
+        """Actual bounded disk-tail producer uses the same full carriers/search."""
+        reference = self.path.with_name('bulk-reference.sqlite')
+        target = self.path.with_name('bulk-native.sqlite')
+        scratch = self.path.with_name('bulk-scratch.sqlite')
+        expected = publish_prepared(reference, graph=self.graph, catalog=self.catalog)
+        actual = publication.publish_prepared(target, graph=self.graph, catalog=self.catalog,
+            search_scratch_path=scratch,
+            search_scratch_limits=BulkBootstrapLimits(max_bytes=1_048_576, max_mutations=200_000,
+                max_cached_terms=2, max_cached_bytes=1024, batch_size=16,
+                max_cached_tails=2, max_tail_bytes=1024),
+            native_executable=os.environ['TOS_NATIVE_PREPARED_EXECUTABLE'], native_timeout=20)
+        self.assertEqual(actual, expected)
+        self.assertFalse(scratch.exists())
+        for query in ('', 'слово', 'a', 'missing'):
+            packets = [SearchStore(selected, binding=binding).query_page(kind='node', query=query,
+                page_size=10, candidate_budget=100, verification_bytes=1_000_000)
+                for selected, binding in ((reference, expected), (target, actual))]
+            for key in ('matches', 'returned_count', 'total_matching', 'has_more'):
+                self.assertEqual(packets[0].get(key), packets[1].get(key), (query, key))
+        for table in ('edge_meta', 'prepared_documents', 'prepared_state',
+                      'knowledge_nodes', 'knowledge_relations', 'knowledge_lens_order'):
+            with closing(sqlite3.connect(reference)) as before, closing(sqlite3.connect(target)) as after:
+                self.assertEqual(sorted(before.execute(f'SELECT * FROM {table}').fetchall()),
+                                 sorted(after.execute(f'SELECT * FROM {table}').fetchall()), table)
 
     def test_new_file_normalization_bootstrap_reuses_search_without_changing_old_reader(self):
         old = self.publish()

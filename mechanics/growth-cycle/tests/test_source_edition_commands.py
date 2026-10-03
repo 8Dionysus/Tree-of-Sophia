@@ -28,9 +28,9 @@ class NativeEditionTests(unittest.TestCase):
         self.origin = expression_fixture.NativeExpressionTests('runTest')
         self.origin.setUp()
         self.addCleanup(self.origin.doCleanups)
-        self.root, self.write = self.origin.root, self.origin.write
+        self.root = self.origin.root
         self.origin_request = self.origin.request()
-        commands.run_local_command(self.origin.owner, self.origin_request)
+        commands.run_legacy_oracle_command(self.origin.owner, self.origin_request)
         self.expression_ref = self.origin.config['expression_source_path']
         self.expression_path = self.root / self.expression_ref
         self.expression = json.loads(self.expression_path.read_bytes())
@@ -73,11 +73,16 @@ class NativeEditionTests(unittest.TestCase):
 
     def request(self):
         proposal = self.proposal()
-        result = commands.run_local_command(self.owner, proposal)
+        result = commands.run_legacy_oracle_command(self.owner, proposal)
         return {**proposal, 'operation': edition.OPERATION, 'command_id': self.config['claim_id'],
             'fields': result['prepared_fields'], 'expected_source': result['source'],
             'expected_revision': result['revision'], 'expected_configuration': result['owner_configuration'],
             'expected_dependencies': result['expected_dependencies'], 'expected_publication': result['expected_publication']}
+
+    def write(self, ref, value):
+        path = self.root / ref
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(value if isinstance(value, bytes) else revisions._encode(value))
 
     def rebuild(self):
         """Only tiny fixture records/carriers, never the production builder."""
@@ -125,7 +130,7 @@ class NativeEditionTests(unittest.TestCase):
         before = self.expression_path.read_bytes()
         request = self.request()
         self.assertEqual(before, self.expression_path.read_bytes())
-        result = commands.run_local_command(self.owner, request)
+        result = commands.run_legacy_oracle_command(self.owner, request)
         self.assertFalse(result['grants_admission'])
         self.assertEqual(result['source_profiles']['edition']['type_id'], 'tos.entity.edition')
         self.assertEqual(result['source_profiles']['embodied_by']['reader'], 'identity-relation-v1')
@@ -157,17 +162,17 @@ class NativeEditionTests(unittest.TestCase):
 
     def test_later_sibling_retains_both_editions_and_exact_old_retry(self):
         first, first_config = self.request(), copy.deepcopy(self.config)
-        first_result = commands.run_local_command(self.owner, first)
+        first_result = commands.run_legacy_oracle_command(self.owner, first)
         self.rebuild()
         self.select_child('second')
         second = self.request()
-        commands.run_local_command(self.owner, second)
+        commands.run_legacy_oracle_command(self.owner, second)
         self.rebuild()
         self.assertEqual(json.loads(self.expression_path.read_bytes())['embodiment_claim_refs'],
             [first['claim']['claim_id'], second['claim']['claim_id']])
         self.config = first_config
         self.owner.write_text(json.dumps(self.config))
-        self.assertTrue(commands.run_local_command(self.owner, first)['replayed'])
+        self.assertTrue(commands.run_legacy_oracle_command(self.owner, first)['replayed'])
         self.assertEqual(resolve_metadata_version(self.root, first_result['source'])['status'], 'available')
         self.assert_origin()
 
@@ -186,12 +191,12 @@ class NativeEditionTests(unittest.TestCase):
             proposal = self.proposal()
             mutate(proposal)
             with self.subTest(mutation=mutate), self.assertRaises((ValueError, OSError)):
-                commands.run_local_command(self.owner, proposal)
+                commands.run_legacy_oracle_command(self.owner, proposal)
             self.assertEqual(self.expression_path.read_bytes(), before)
         self.config['allowed_operations'] = []
         self.owner.write_text(json.dumps(self.config))
         with self.assertRaises(PermissionError):
-            commands.run_local_command(self.owner, self.proposal())
+            commands.run_legacy_oracle_command(self.owner, self.proposal())
 
     def crash(self, request):
         process = subprocess.run([sys.executable, '-c', expression_fixture.CRASH_WRITER,
@@ -210,11 +215,11 @@ class NativeEditionTests(unittest.TestCase):
         request = self.request()
         pending = self.crash(request)
         with self.assertRaises(PublicationPending):
-            commands.run_local_command(self.owner, {'schema_version': edition.REQUEST, 'operation': 'describe'})
+            commands.run_legacy_oracle_command(self.owner, {'schema_version': edition.REQUEST, 'operation': 'describe'})
         self.config.update(allowed_operations=[edition.RECOVERY], principal_id='model:synthetic-recoverer')
         self.owner.write_text(json.dumps(self.config))
         with self.assertRaises(PermissionError):
-            commands.run_local_command(self.owner, request)
+            commands.run_legacy_oracle_command(self.owner, request)
         process = subprocess.run([sys.executable, str(MECHANIC / 'source_commands.py'), '--owner-config', str(self.owner)],
             input=json.dumps(self.recovery(pending, 'resume')), text=True, capture_output=True)
         self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
@@ -224,7 +229,7 @@ class NativeEditionTests(unittest.TestCase):
         before = revisions._selected_package(self.expression_path)
         request = self.request()
         pending = self.crash(request)
-        commands.run_local_command(self.owner, self.recovery(pending, 'rollback'))
+        commands.run_legacy_oracle_command(self.owner, self.recovery(pending, 'rollback'))
         self.assertEqual(revisions._selected_package(self.expression_path), before)
         self.assertFalse((self.root / self.config['edition_source_path']).exists())
         self.assert_origin()
@@ -234,9 +239,9 @@ class NativeEditionTests(unittest.TestCase):
         work = json.loads(self.original_work)
         self.write(self.origin.work_ref, {**work, 'notes': 'Concurrent changed context'})
         with self.assertRaises((ValueError, OSError)):
-            commands.run_local_command(self.owner, request)
+            commands.run_legacy_oracle_command(self.owner, request)
         self.write(self.origin.work_ref, self.original_work)
-        commands.run_local_command(self.owner, request)
+        commands.run_legacy_oracle_command(self.owner, request)
         # A re-catalogued manual child rewrite cannot masquerade as retained
         # Edition lineage when preparing a later sibling.
         original_config = copy.deepcopy(self.config)
@@ -254,7 +259,7 @@ class NativeEditionTests(unittest.TestCase):
         capture = (self.root / self.config['edition_source_path']).with_name(edition.ENVIRONMENT_FILE)
         capture.write_bytes(capture.read_bytes() + b' ')
         with self.assertRaises((ValueError, OSError)):
-            commands.run_local_command(self.owner, request)
+            commands.run_legacy_oracle_command(self.owner, request)
 
     def test_real_translator_receipt_survives_new_edition_and_exact_old_reads(self):
         import source_responsibility_commands as attachment
@@ -285,17 +290,17 @@ class NativeEditionTests(unittest.TestCase):
         proposal = {'schema_version': attachment.REQUEST, 'operation': attachment.PREPARE, 'agent': agent,
             'claim': claim, 'forms': self.proposal()['forms'], 'claim_forms': [
                 {'form_id': config['allowed_claim_form_ids'][0], 'field_id': 'claim.statement'}], 'reason': 'Synthetic attribution.'}
-        prepared = commands.run_local_command(owner, proposal)
+        prepared = commands.run_legacy_oracle_command(owner, proposal)
         request = {**proposal, 'operation': attachment.OPERATION, 'command_id': config['claim_id'],
             'fields': prepared['prepared_fields'], 'expected_source': prepared['source'],
             'expected_revision': prepared['revision'], 'expected_configuration': prepared['owner_configuration'],
             'expected_dependencies': prepared['expected_dependencies'], 'expected_publication': prepared['expected_publication']}
-        result = commands.run_local_command(owner, request)
+        result = commands.run_legacy_oracle_command(owner, request)
         self.extra_claims.append(self.root / carrier)
         self.rebuild()
-        commands.run_local_command(self.owner, self.request())
+        commands.run_legacy_oracle_command(self.owner, self.request())
         self.rebuild()
-        self.assertTrue(commands.run_local_command(owner, request)['replayed'])
+        self.assertTrue(commands.run_legacy_oracle_command(owner, request)['replayed'])
         self.assertFalse(attachment.verify_compound(self.root, carrier, claim)['grants_admission'])
         for reference in (prepared['source'], result['source']):
             self.assertEqual(resolve_metadata_version(self.root, reference)['status'], 'available')

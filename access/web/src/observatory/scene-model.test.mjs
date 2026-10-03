@@ -1,3 +1,4 @@
+import './human-forms-wasm-test-runtime.mjs';
 import {test,expect} from 'vitest';
 import {buildSceneModel,SceneContractError,SCENE_LIMITS} from './scene-model.mjs';
 

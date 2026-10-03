@@ -437,7 +437,9 @@ class DataSnapshotTests(unittest.TestCase):
                         "import tos_access.knowledge_compile; "
                         "assert 'tos_access.core' not in sys.modules; "
                         "from tos_access import ToSAccessCore; "
-                        "assert ToSAccessCore.__name__ == 'ToSAccessCore'; "
+                        "from tos_access import ReferenceToSAccessCore; "
+                        "assert ToSAccessCore is ReferenceToSAccessCore; "
+                        "assert ReferenceToSAccessCore.__name__ == 'ReferenceToSAccessCore'; "
                         "print('ok')"
                     ),
                 ],

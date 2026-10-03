@@ -15,8 +15,8 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
-import acquisition_batch as acquisition  # noqa: E402
-import acquisition_handoff_adapter as adapter  # noqa: E402
+from tests.oracles.acquisition import acquisition_batch as acquisition  # noqa: E402
+from tests.oracles.acquisition import acquisition_handoff_adapter as adapter  # noqa: E402
 import corpus_admit  # noqa: E402
 from corpus_source_validation import SourceValidator  # noqa: E402
 from corpus_store import CorpusStore, canonical  # noqa: E402
@@ -205,6 +205,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             path = self.metadata / ref
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(body)
+            path.chmod(0o644)
             records.append(
                 {"ref": ref, "kind": kind, "sha256": hashlib.sha256(body).hexdigest()}
             )
@@ -443,6 +444,7 @@ class AcquisitionHandoffAdapterTests(unittest.TestCase):
             destination = self.accepted_source / record["ref"]
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, destination)
+            destination.chmod(0o644)
 
         body = {
             "schema_version": "tos_corpus_snapshot_v1",

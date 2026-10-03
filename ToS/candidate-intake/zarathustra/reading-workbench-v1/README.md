@@ -20,8 +20,19 @@ ledger belong to the explicitly selected private dataset, not this source tree.
 python scripts/build_zarathustra_reading_workbench_v1.py --build --source-root /path/to/private-source-root --output-root /path/to/new-reading-data
 python scripts/build_zarathustra_reading_workbench_v1.py --check --source-root /path/to/private-source-root --output-root /path/to/reading-data
 python scripts/build_zarathustra_reading_workbench_v1.py --validate-tracked --source-root /path/to/private-source-root --output-root /path/to/reading-data
-python scripts/query_zarathustra_reading_workbench_v1.py --query судьбы --language ru --limit 100 --group-by speaker,formula --source-root /path/to/private-source-root --analysis-root /path/to/reading-data
+python scripts/query_zarathustra_reading_workbench_v1.py --native-prefix /absolute/installed-prefix --data-root /path/to/private-source-root --analysis-root /path/to/reading-data --query судьбы --language ru --limit 100 --group-by speaker,formula
 ```
+
+The maintained query CLI selects installed native code before importing the retained
+reference helpers. `--data-root` selects source data and `--analysis-root` selects
+reading outputs; neither selects software. The native selector is `--root` plus
+`--reading-analysis-root`. Omitting the analysis selector preserves the existing
+single-root local-provider contract. Larger selected files require the explicit paired native selectors
+`--reading-max-file-bytes N --reading-max-total-file-bytes N`, also accepted by
+the maintained script. They alter only file and aggregate fixity limits; the
+existing deadline, SQL, materialization, work and response bounds still apply.
+No default limit is increased. Both root identities and the selected input
+bindings are checked before returning a packet.
 
 The source and analysis roots are explicit data selections. The builder requires a
 separate output root outside both the software checkout and the input dataset; it

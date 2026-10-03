@@ -11,6 +11,9 @@ pub enum JsonMode {
     PublishedStrict,
     /// Legacy request/cursor input: last value wins at the first key position.
     RequestLastWins,
+    /// Explicit legacy Python input compatibility. Retains nonfinite float
+    /// lexemes; this does not make them publishable or canonically encodable.
+    LegacyPythonObserved,
 }
 
 impl JsonMode {
@@ -18,6 +21,7 @@ impl JsonMode {
         match self {
             Self::PublishedStrict => "tos_published_json_v1",
             Self::RequestLastWins => "tos_request_last_wins_json_v1",
+            Self::LegacyPythonObserved => "tos_legacy_python_observed_json_v1",
         }
     }
 
@@ -25,6 +29,7 @@ impl JsonMode {
         match profile {
             "tos_published_json_v1" => Ok(Self::PublishedStrict),
             "tos_request_last_wins_json_v1" => Ok(Self::RequestLastWins),
+            "tos_legacy_python_observed_json_v1" => Ok(Self::LegacyPythonObserved),
             _ => Err(FoundationError::new(
                 Code::UnsupportedFormat,
                 "unknown JSON parse profile",
@@ -118,6 +123,20 @@ impl JsonString {
     pub fn units(&self) -> &[u16] {
         &self.units
     }
+    /// Retained heap storage of the two existing buffers, excluding the
+    /// inline JsonString slot charged by the owning container.
+    pub fn retained_storage_bytes(&self) -> Result<usize> {
+        self.units
+            .capacity()
+            .checked_mul(std::mem::size_of::<u16>())
+            .and_then(|bytes| bytes.checked_add(self.utf8.as_ref().map_or(0, String::capacity)))
+            .ok_or_else(|| {
+                FoundationError::new(
+                    Code::BudgetExceeded,
+                    "JSON string retained storage overflow",
+                )
+            })
+    }
     pub fn has_lone_surrogate(&self) -> bool {
         self.utf8.is_none()
     }
@@ -133,6 +152,23 @@ pub enum JsonNumberKind {
 pub struct JsonNumber {
     pub kind: JsonNumberKind,
     pub lexeme: String,
+}
+
+impl JsonNumber {
+    /// Python float observation for an explicitly decoded legacy value.
+    /// NaN remains non-reflexive; structural `JsonValue` equality is not Python
+    /// numeric equality. Exact identity still belongs to original input bytes.
+    pub fn as_python_float(&self) -> Option<f64> {
+        if self.kind != JsonNumberKind::Float {
+            return None;
+        }
+        match self.lexeme.as_str() {
+            "NaN" => Some(f64::NAN),
+            "Infinity" => Some(f64::INFINITY),
+            "-Infinity" => Some(f64::NEG_INFINITY),
+            _ => self.lexeme.parse().ok(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -238,6 +274,26 @@ impl JsonDocument {
 }
 
 pub fn parse_json(raw: &[u8], mode: JsonMode, limits: JsonLimits) -> Result<JsonDocument> {
+    parse_json_inner(raw, mode, limits, None)
+}
+
+/// The legacy Item decoder supplies its remaining logical parser workspace.
+/// This uses the same grammar; allocator overhead and RSS remain separate.
+pub fn parse_json_with_state_budget(
+    raw: &[u8],
+    mode: JsonMode,
+    limits: JsonLimits,
+    available: usize,
+) -> Result<JsonDocument> {
+    parse_json_inner(raw, mode, limits, Some((0, available)))
+}
+
+fn parse_json_inner(
+    raw: &[u8],
+    mode: JsonMode,
+    limits: JsonLimits,
+    state: Option<(usize, usize)>,
+) -> Result<JsonDocument> {
     limits.validate()?;
     if raw.len() > limits.max_bytes {
         return Err(FoundationError::new(
@@ -255,7 +311,22 @@ pub fn parse_json(raw: &[u8], mode: JsonMode, limits: JsonLimits) -> Result<Json
         visits: 0,
         mode,
         limits,
+        state,
     };
+    // Recursive keys and values temporarily coexist with container indexes.
+    // Their fixed stack slots are priced once, independently of node count.
+    parser.charge(
+        (limits.max_depth + 1)
+            .checked_mul(
+                std::mem::size_of::<JsonValue>()
+                    + std::mem::size_of::<JsonString>()
+                    + std::mem::size_of::<HashMap<Vec<u16>, usize>>()
+                    + 2 * std::mem::size_of::<Vec<JsonValue>>(),
+            )
+            .ok_or_else(|| {
+                parser.error(Code::BudgetExceeded, "JSON parser state budget exceeded")
+            })?,
+    )?;
     let root = parser.value(0)?;
     parser.spaces();
     if parser.at != raw.len() {
@@ -273,11 +344,77 @@ struct Parser<'a> {
     raw: &'a [u8],
     at: usize,
     visits: usize,
+    state: Option<(usize, usize)>,
     mode: JsonMode,
     limits: JsonLimits,
 }
 
 impl Parser<'_> {
+    fn charge(&mut self, amount: usize) -> Result<()> {
+        if let Some((used, available)) = &mut self.state {
+            *used = used
+                .checked_add(amount)
+                .filter(|n| *n <= *available)
+                .ok_or_else(|| {
+                    FoundationError::new(Code::BudgetExceeded, "JSON parser state budget exceeded")
+                })?;
+        }
+        Ok(())
+    }
+    fn reserve<T>(&mut self, values: &mut Vec<T>, additional: usize) -> Result<()> {
+        if self.state.is_none() {
+            return Ok(());
+        }
+        let needed = values
+            .len()
+            .checked_add(additional)
+            .ok_or_else(|| self.error(Code::BudgetExceeded, "JSON parser state budget exceeded"))?;
+        if needed > values.capacity() {
+            let capacity = needed.max(values.capacity().saturating_mul(2)).max(4);
+            self.charge(
+                capacity
+                    .checked_sub(values.capacity())
+                    .and_then(|n| n.checked_mul(std::mem::size_of::<T>()))
+                    .ok_or_else(|| {
+                        self.error(Code::BudgetExceeded, "JSON parser state budget exceeded")
+                    })?,
+            )?;
+            values
+                .try_reserve_exact(capacity - values.len())
+                .map_err(|_| {
+                    self.error(Code::BudgetExceeded, "JSON parser state budget exceeded")
+                })?;
+        }
+        Ok(())
+    }
+    fn units_push(&mut self, units: &mut Vec<u16>, unit: u16) -> Result<()> {
+        self.reserve(units, 1)?;
+        units.push(unit);
+        Ok(())
+    }
+    fn finish_string(&mut self, units: Vec<u16>) -> Result<JsonString> {
+        if self.state.is_none() {
+            return Ok(JsonString::from_units(units));
+        }
+        let length = char::decode_utf16(units.iter().copied())
+            .try_fold(0usize, |n, c| n.checked_add(c.ok()?.len_utf8()));
+        let utf8 = if let Some(length) = length {
+            self.charge(length)?;
+            let mut text = String::new();
+            text.try_reserve_exact(length).map_err(|_| {
+                self.error(Code::BudgetExceeded, "JSON parser state budget exceeded")
+            })?;
+            for c in char::decode_utf16(units.iter().copied()) {
+                text.push(c.map_err(|_| {
+                    self.error(Code::InvalidUnicodeScalar, "decoded string changed")
+                })?);
+            }
+            Some(text)
+        } else {
+            None
+        };
+        Ok(JsonString { units, utf8 })
+    }
     fn error(&self, code: Code, detail: &'static str) -> FoundationError {
         FoundationError::new(code, detail).at(self.at)
     }
@@ -308,10 +445,35 @@ impl Parser<'_> {
                 self.literal(b"null")?;
                 Ok(JsonValue::Null)
             }
+            Some(b'N' | b'I') if self.mode == JsonMode::LegacyPythonObserved => {
+                self.python_constant()
+            }
+            Some(b'-')
+                if self.mode == JsonMode::LegacyPythonObserved
+                    && self.raw.get(self.at + 1) == Some(&b'I') =>
+            {
+                self.python_constant()
+            }
             Some(b'-' | b'0'..=b'9') => Ok(JsonValue::Number(self.number()?)),
             _ => Err(self.error(Code::InvalidJson, "expected JSON value")),
         }
     }
+    fn python_constant(&mut self) -> Result<JsonValue> {
+        let expected: &[u8] = match self.raw[self.at] {
+            b'N' => b"NaN",
+            b'I' => b"Infinity",
+            b'-' => b"-Infinity",
+            _ => unreachable!(),
+        };
+        // Charge retained lexeme bytes before allocating, as for finite numbers.
+        self.literal(expected)?;
+        self.charge(expected.len())?;
+        Ok(JsonValue::Number(JsonNumber {
+            kind: JsonNumberKind::Float,
+            lexeme: std::str::from_utf8(expected).unwrap().to_owned(),
+        }))
+    }
+
     fn literal(&mut self, expected: &[u8]) -> Result<()> {
         if self.raw.get(self.at..self.at + expected.len()) != Some(expected) {
             return Err(self.error(Code::InvalidJson, "invalid JSON literal"));
@@ -337,7 +499,7 @@ impl Parser<'_> {
             match byte {
                 b'"' => {
                     self.at += 1;
-                    return Ok(JsonString::from_units(units));
+                    return self.finish_string(units);
                 }
                 b'\\' => {
                     self.at += 1;
@@ -347,12 +509,12 @@ impl Parser<'_> {
                         .ok_or_else(|| self.error(Code::InvalidJson, "incomplete JSON escape"))?;
                     self.at += 1;
                     match escaped {
-                        b'"' | b'\\' | b'/' => units.push(escaped as u16),
-                        b'b' => units.push(8),
-                        b'f' => units.push(12),
-                        b'n' => units.push(10),
-                        b'r' => units.push(13),
-                        b't' => units.push(9),
+                        b'"' | b'\\' | b'/' => self.units_push(&mut units, escaped as u16)?,
+                        b'b' => self.units_push(&mut units, 8)?,
+                        b'f' => self.units_push(&mut units, 12)?,
+                        b'n' => self.units_push(&mut units, 10)?,
+                        b'r' => self.units_push(&mut units, 13)?,
+                        b't' => self.units_push(&mut units, 9)?,
                         b'u' => {
                             let hex = self.raw.get(self.at..self.at + 4).ok_or_else(|| {
                                 self.error(Code::InvalidJson, "short Unicode escape")
@@ -373,7 +535,7 @@ impl Parser<'_> {
                                     };
                             }
                             self.at += 4;
-                            units.push(unit);
+                            self.units_push(&mut units, unit)?;
                         }
                         _ => return Err(self.error(Code::InvalidJson, "invalid JSON escape")),
                     }
@@ -386,7 +548,9 @@ impl Parser<'_> {
                         .chars()
                         .next()
                         .ok_or_else(|| self.error(Code::InvalidJson, "invalid JSON string"))?;
-                    units.extend(ch.encode_utf16(&mut [0u16; 2]).iter().copied());
+                    for &unit in ch.encode_utf16(&mut [0u16; 2]).iter() {
+                        self.units_push(&mut units, unit)?;
+                    }
                     self.at += ch.len_utf8();
                 }
             }
@@ -397,6 +561,7 @@ impl Parser<'_> {
         self.spaces();
         let mut entries = Vec::new();
         let mut positions: HashMap<Vec<u16>, usize> = HashMap::new();
+        let mut index_capacity_charge = 0usize;
         if self.raw.get(self.at) == Some(&b'}') {
             self.at += 1;
             return Ok(JsonValue::Object(entries));
@@ -416,6 +581,54 @@ impl Parser<'_> {
                 }
                 entries[position].1 = value;
             } else {
+                if self.state.is_some() {
+                    if positions.len() == positions.capacity() {
+                        // Pinned std HashMap grows in power-of-two buckets;
+                        // admit a conservative bucket-slot ceiling before it.
+                        let slots = positions
+                            .len()
+                            .checked_add(1)
+                            .and_then(|n| n.max(4).checked_next_power_of_two())
+                            .and_then(|n| n.checked_mul(2))
+                            .ok_or_else(|| {
+                                self.error(
+                                    Code::BudgetExceeded,
+                                    "JSON parser state budget exceeded",
+                                )
+                            })?;
+                        self.charge(
+                            slots
+                                .saturating_sub(index_capacity_charge)
+                                .checked_mul(std::mem::size_of::<(Vec<u16>, usize)>() + 1)
+                                // The pinned table also retains a trailing SIMD control group.
+                                .and_then(|n| {
+                                    n.checked_add(if index_capacity_charge == 0 { 16 } else { 0 })
+                                })
+                                .ok_or_else(|| {
+                                    self.error(
+                                        Code::BudgetExceeded,
+                                        "JSON parser state budget exceeded",
+                                    )
+                                })?,
+                        )?;
+                        index_capacity_charge = slots;
+                        positions.try_reserve(1).map_err(|_| {
+                            self.error(Code::BudgetExceeded, "JSON parser state budget exceeded")
+                        })?;
+                    }
+                    self.charge(
+                        key.units
+                            .len()
+                            .checked_mul(std::mem::size_of::<u16>())
+                            .ok_or_else(|| {
+                                self.error(
+                                    Code::BudgetExceeded,
+                                    "JSON parser state budget exceeded",
+                                )
+                            })?,
+                    )?;
+                }
+                self.reserve(&mut entries, 1)?;
                 positions.insert(key.units.clone(), entries.len());
                 entries.push((key, value));
             }
@@ -441,7 +654,9 @@ impl Parser<'_> {
             return Ok(JsonValue::Array(items));
         }
         loop {
-            items.push(self.value(depth + 1)?);
+            let value = self.value(depth + 1)?;
+            self.reserve(&mut items, 1)?;
+            items.push(value);
             self.spaces();
             match self.raw.get(self.at) {
                 Some(b',') => {
@@ -502,11 +717,15 @@ impl Parser<'_> {
                 return Err(self.error(Code::InvalidNumber, "missing exponent digits"));
             }
         }
+        self.charge(self.at - start)?;
         let lexeme = self.source[start..self.at].to_owned();
         if kind == JsonNumberKind::Int && integer_digits > self.limits.max_integer_digits {
             return Err(self.error(Code::BudgetExceeded, "integer digit budget exceeded"));
         }
-        if kind == JsonNumberKind::Float && !lexeme.parse::<f64>().is_ok_and(f64::is_finite) {
+        if kind == JsonNumberKind::Float
+            && self.mode != JsonMode::LegacyPythonObserved
+            && !lexeme.parse::<f64>().is_ok_and(f64::is_finite)
+        {
             return Err(self.error(Code::NonfiniteFloat, "nonfinite or unrepresentable float"));
         }
         Ok(JsonNumber { kind, lexeme })
@@ -549,7 +768,20 @@ impl CanonicalProfile {
 }
 
 pub fn emit_preserved_json(document: &JsonDocument, limits: JsonLimits) -> Result<Vec<u8>> {
-    write_document(document.root(), limits, false, false)
+    emit_value_preserved_json(document.root(), limits)
+}
+
+/// Bounded compact emission for an explicitly constructed ordered value.
+/// This retains numeric lexemes; it does not select a transport response ABI.
+pub fn emit_value_preserved_json(value: &JsonValue, limits: JsonLimits) -> Result<Vec<u8>> {
+    write_document(value, limits, WriteStyle::PreservedCompact)
+}
+
+/// Published packet framing: Python compact JSON with insertion-ordered object
+/// members, Python numeric spelling and no final line feed. This selects only
+/// bytes; it does not grant publication or change canonical digest profiles.
+pub fn emit_python_compact_json(value: &JsonValue, limits: JsonLimits) -> Result<Vec<u8>> {
+    write_document(value, limits, WriteStyle::PythonPublishedCompact)
 }
 
 /// Produce owner-profile bytes using Python's sorted compact JSON spelling.
@@ -560,11 +792,134 @@ pub fn canonical_bytes_v1(
     limits: JsonLimits,
 ) -> Result<Vec<u8>> {
     match profile {
-        CanonicalProfile::CorpusSnapshotV1 => write_document(value, limits, true, true),
+        CanonicalProfile::CorpusSnapshotV1 => {
+            write_document(value, limits, WriteStyle::PythonCompactLf)
+        }
         CanonicalProfile::SourceRecordDigestV1 | CanonicalProfile::SourceCommandInputV1 => {
-            write_document(value, limits, true, false)
+            write_document(value, limits, WriteStyle::PythonCompact)
         }
     }
+}
+
+/// Count canonical bytes through the same closed output visitor without retaining discarded bytes.
+pub fn canonical_count_v1(
+    value: &JsonValue,
+    profile: CanonicalProfile,
+    limits: JsonLimits,
+) -> Result<usize> {
+    let style = match profile {
+        CanonicalProfile::CorpusSnapshotV1 => WriteStyle::PythonCompactLf,
+        CanonicalProfile::SourceRecordDigestV1 | CanonicalProfile::SourceCommandInputV1 => {
+            WriteStyle::PythonCompact
+        }
+    };
+    let mut output = JsonOutput::Count(0);
+    write_document_into(value, limits, style, &mut output)?;
+    Ok(output.len())
+}
+
+/// Feed one bounded canonical fragment to the actual inventory digest sink.
+/// Same ordering/number/escape/structural limits as canonical_bytes_v1.
+pub fn canonical_feed_digest_v1(
+    value: &JsonValue,
+    profile: CanonicalProfile,
+    limits: JsonLimits,
+    hasher: &mut crate::Digest256Hasher,
+    written: &mut usize,
+    visits: &mut usize,
+    depth: usize,
+) -> Result<()> {
+    limits.validate()?;
+    let mut output = JsonOutput::Digest {
+        hasher,
+        bytes: *written,
+    };
+    let style = if profile == CanonicalProfile::CorpusSnapshotV1 {
+        WriteStyle::PythonCompactLf
+    } else {
+        WriteStyle::PythonCompact
+    };
+    write_value(value, &mut output, depth, visits, limits, style)?;
+    if style.newline() {
+        emit(&mut output, b"\n", limits)?;
+    }
+    *written = output.len();
+    Ok(())
+}
+
+/// Exact published bytes of the legacy public Work/HumanForm set as a whole.
+/// The receipt is an embedded field; this is not a standalone receipt codec.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum JsonEmissionProfile {
+    SourceFormSetPublishedV1,
+    SourceWitnessCatalogPublishedV3,
+    SourceFoundationLabReportV1,
+}
+
+impl JsonEmissionProfile {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::SourceFormSetPublishedV1 => "tos_source_form_set_published_v1",
+            Self::SourceWitnessCatalogPublishedV3 => "tos_source_witness_catalog_published_v3",
+            Self::SourceFoundationLabReportV1 => "tos_source_foundation_lab_report_v1",
+        }
+    }
+
+    pub fn from_profile(profile: &str) -> Result<Self> {
+        match profile {
+            "tos_source_form_set_published_v1" => Ok(Self::SourceFormSetPublishedV1),
+            "tos_source_witness_catalog_published_v3" => Ok(Self::SourceWitnessCatalogPublishedV3),
+            "tos_source_foundation_lab_report_v1" => Ok(Self::SourceFoundationLabReportV1),
+            _ => Err(FoundationError::new(
+                Code::UnsupportedFormat,
+                "unknown JSON emission profile",
+            )),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EncodedJson {
+    pub bytes: Vec<u8>,
+    pub sha256: Digest256,
+}
+
+/// Python `json.dumps(value, ensure_ascii=False, allow_nan=False, indent=2)
+/// + '\n'` for a caller-built, insertion-ordered entire form-set value.
+pub fn emit_json_profile(
+    value: &JsonValue,
+    profile: JsonEmissionProfile,
+    limits: JsonLimits,
+) -> Result<EncodedJson> {
+    let bytes = match profile {
+        JsonEmissionProfile::SourceFormSetPublishedV1
+        | JsonEmissionProfile::SourceWitnessCatalogPublishedV3 => {
+            if value.as_object().is_none() {
+                return Err(FoundationError::new(
+                    Code::InvalidJson,
+                    if profile == JsonEmissionProfile::SourceFormSetPublishedV1 {
+                        "form set must be a JSON object"
+                    } else {
+                        "catalog manifest must be a JSON object"
+                    },
+                ));
+            }
+            write_document(value, limits, WriteStyle::PythonPretty2Lf)?
+        }
+        JsonEmissionProfile::SourceFoundationLabReportV1 => {
+            if value.as_object().is_none() {
+                return Err(FoundationError::new(
+                    Code::InvalidJson,
+                    "foundation lab report must be a JSON object",
+                ));
+            }
+            write_document(value, limits, WriteStyle::PythonPretty2SortedLf)?
+        }
+    };
+    Ok(EncodedJson {
+        sha256: Digest256::of_bytes(&bytes),
+        bytes,
+    })
 }
 
 pub fn canonical_digest_v1(
@@ -597,30 +952,93 @@ pub fn canonical_raw_bytes_profile(
     canonical_raw_bytes_v1(raw, CanonicalProfile::from_profile(profile)?, limits)
 }
 
-fn write_document(
-    value: &JsonValue,
-    limits: JsonLimits,
-    sort_keys: bool,
-    newline: bool,
-) -> Result<Vec<u8>> {
-    limits.validate()?;
-    let mut output = Vec::new();
-    let mut visits = 0;
-    write_value(value, &mut output, 0, &mut visits, limits, sort_keys)?;
-    if newline {
-        emit(&mut output, b"\n", limits)?;
-    }
-    Ok(output)
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum WriteStyle {
+    PreservedCompact,
+    PythonPublishedCompact,
+    PythonCompact,
+    PythonCompactLf,
+    PythonPretty2Lf,
+    PythonPretty2SortedLf,
 }
 
-fn emit(output: &mut Vec<u8>, bytes: &[u8], limits: JsonLimits) -> Result<()> {
-    if bytes.len() > limits.max_bytes.saturating_sub(output.len()) {
-        return Err(FoundationError::new(
-            Code::BudgetExceeded,
-            "JSON output byte budget exceeded",
-        ));
+impl WriteStyle {
+    fn sort_keys(self) -> bool {
+        matches!(
+            self,
+            Self::PythonCompact | Self::PythonCompactLf | Self::PythonPretty2SortedLf
+        )
     }
-    output.extend_from_slice(bytes);
+    fn python_numbers(self) -> bool {
+        self != Self::PreservedCompact
+    }
+    fn pretty(self) -> bool {
+        matches!(self, Self::PythonPretty2Lf | Self::PythonPretty2SortedLf)
+    }
+    fn newline(self) -> bool {
+        matches!(
+            self,
+            Self::PythonCompactLf | Self::PythonPretty2Lf | Self::PythonPretty2SortedLf
+        )
+    }
+}
+
+// Closed sinks share the existing visitor, styles, escaping and budget law.
+enum JsonOutput<'a> {
+    Bytes(&'a mut Vec<u8>),
+    Count(usize),
+    Digest {
+        hasher: &'a mut crate::Digest256Hasher,
+        bytes: usize,
+    },
+}
+impl JsonOutput<'_> {
+    fn len(&self) -> usize {
+        match self {
+            Self::Bytes(bytes) => bytes.len(),
+            Self::Count(count) => *count,
+            Self::Digest { bytes, .. } => *bytes,
+        }
+    }
+}
+fn write_document(value: &JsonValue, limits: JsonLimits, style: WriteStyle) -> Result<Vec<u8>> {
+    let mut bytes = Vec::new();
+    write_document_into(value, limits, style, &mut JsonOutput::Bytes(&mut bytes))?;
+    Ok(bytes)
+}
+fn write_document_into(
+    value: &JsonValue,
+    limits: JsonLimits,
+    style: WriteStyle,
+    output: &mut JsonOutput<'_>,
+) -> Result<()> {
+    limits.validate()?;
+    let mut visits = 0;
+    write_value(value, output, 0, &mut visits, limits, style)?;
+    if style.newline() {
+        emit(output, b"\n", limits)?;
+    }
+    Ok(())
+}
+fn emit(output: &mut JsonOutput<'_>, bytes: &[u8], limits: JsonLimits) -> Result<()> {
+    let next = output
+        .len()
+        .checked_add(bytes.len())
+        .filter(|next| *next <= limits.max_bytes)
+        .ok_or_else(|| {
+            FoundationError::new(Code::BudgetExceeded, "JSON output byte budget exceeded")
+        })?;
+    match output {
+        JsonOutput::Bytes(output) => output.extend_from_slice(bytes),
+        JsonOutput::Count(count) => *count = next,
+        JsonOutput::Digest {
+            hasher,
+            bytes: count,
+        } => {
+            hasher.update(bytes);
+            *count = next;
+        }
+    }
     Ok(())
 }
 
@@ -698,11 +1116,11 @@ fn python_float_text(value: f64) -> String {
 
 fn write_value(
     value: &JsonValue,
-    output: &mut Vec<u8>,
+    output: &mut JsonOutput<'_>,
     depth: usize,
     visits: &mut usize,
     limits: JsonLimits,
-    sort_keys: bool,
+    style: WriteStyle,
 ) -> Result<()> {
     if depth > limits.max_depth || *visits >= limits.max_visits {
         return Err(FoundationError::new(
@@ -725,25 +1143,42 @@ fn write_value(
                     "number lexeme and kind disagree",
                 ));
             }
-            if sort_keys && number.kind == JsonNumberKind::Float {
+            if style.python_numbers() && number.kind == JsonNumberKind::Float {
                 let value = number.lexeme.parse::<f64>().map_err(|_| {
                     FoundationError::new(Code::InvalidNumber, "float lexeme is invalid")
                 })?;
                 emit(output, python_float_text(value).as_bytes(), limits)?;
-            } else if sort_keys && number.lexeme == "-0" {
+            } else if style.python_numbers() && number.lexeme == "-0" {
                 emit(output, b"0", limits)?;
             } else {
                 emit(output, number.lexeme.as_bytes(), limits)?;
             }
         }
-        JsonValue::String(value) => write_string(value, output, sort_keys, limits)?,
+        JsonValue::String(value) => write_string(value, output, style.python_numbers(), limits)?,
         JsonValue::Array(items) => {
             emit(output, b"[", limits)?;
             for (index, item) in items.iter().enumerate() {
                 if index != 0 {
-                    emit(output, b",", limits)?;
+                    emit(
+                        output,
+                        if style.pretty() {
+                            &b",\n"[..]
+                        } else {
+                            &b","[..]
+                        },
+                        limits,
+                    )?;
+                } else if style.pretty() {
+                    emit(output, b"\n", limits)?;
                 }
-                write_value(item, output, depth + 1, visits, limits, sort_keys)?;
+                if style.pretty() {
+                    emit_indent(output, depth + 1, limits)?;
+                }
+                write_value(item, output, depth + 1, visits, limits, style)?;
+            }
+            if style.pretty() && !items.is_empty() {
+                emit(output, b"\n", limits)?;
+                emit_indent(output, depth, limits)?;
             }
             emit(output, b"]", limits)?;
         }
@@ -762,7 +1197,7 @@ fn write_value(
                 ));
             }
             emit(output, b"{", limits)?;
-            if sort_keys {
+            if style.sort_keys() {
                 let mut ordered: Vec<_> = entries.iter().collect();
                 ordered.sort_by(|(left, _), (right, _)| left.as_str().cmp(&right.as_str()));
                 for (index, (key, item)) in ordered.into_iter().enumerate() {
@@ -771,17 +1206,42 @@ fn write_value(
                     }
                     write_string(key, output, true, limits)?;
                     emit(output, b":", limits)?;
-                    write_value(item, output, depth + 1, visits, limits, sort_keys)?;
+                    write_value(item, output, depth + 1, visits, limits, style)?;
                 }
             } else {
                 for (index, (key, item)) in entries.iter().enumerate() {
                     if index != 0 {
-                        emit(output, b",", limits)?;
+                        emit(
+                            output,
+                            if style.pretty() {
+                                &b",\n"[..]
+                            } else {
+                                &b","[..]
+                            },
+                            limits,
+                        )?;
+                    } else if style.pretty() {
+                        emit(output, b"\n", limits)?;
                     }
-                    write_string(key, output, false, limits)?;
-                    emit(output, b":", limits)?;
-                    write_value(item, output, depth + 1, visits, limits, sort_keys)?;
+                    if style.pretty() {
+                        emit_indent(output, depth + 1, limits)?;
+                    }
+                    write_string(key, output, style.python_numbers(), limits)?;
+                    emit(
+                        output,
+                        if style.pretty() {
+                            &b": "[..]
+                        } else {
+                            &b":"[..]
+                        },
+                        limits,
+                    )?;
+                    write_value(item, output, depth + 1, visits, limits, style)?;
                 }
+            }
+            if style.pretty() && !entries.is_empty() {
+                emit(output, b"\n", limits)?;
+                emit_indent(output, depth, limits)?;
             }
             emit(output, b"}", limits)?;
         }
@@ -789,9 +1249,20 @@ fn write_value(
     Ok(())
 }
 
+fn emit_indent(output: &mut JsonOutput<'_>, depth: usize, limits: JsonLimits) -> Result<()> {
+    const SPACES: [u8; 256] = [b' '; 256];
+    let count = depth.checked_mul(2).ok_or_else(|| {
+        FoundationError::new(Code::BudgetExceeded, "JSON indentation depth exceeded")
+    })?;
+    let spaces = SPACES.get(..count).ok_or_else(|| {
+        FoundationError::new(Code::BudgetExceeded, "JSON indentation depth exceeded")
+    })?;
+    emit(output, spaces, limits)
+}
+
 fn write_string(
     value: &JsonString,
-    output: &mut Vec<u8>,
+    output: &mut JsonOutput<'_>,
     strict_utf8: bool,
     limits: JsonLimits,
 ) -> Result<()> {
@@ -837,7 +1308,7 @@ fn write_string(
     Ok(())
 }
 
-fn write_unicode_escape(unit: u16, output: &mut Vec<u8>, limits: JsonLimits) -> Result<()> {
+fn write_unicode_escape(unit: u16, output: &mut JsonOutput<'_>, limits: JsonLimits) -> Result<()> {
     const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut escaped = *b"\\u0000";
     for (index, shift) in [12, 8, 4, 0].into_iter().enumerate() {

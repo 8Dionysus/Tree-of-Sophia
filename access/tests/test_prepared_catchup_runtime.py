@@ -54,7 +54,7 @@ class PreparedD1CatchupTests(unittest.TestCase):
             if not db.in_transaction:
                 db.execute("BEGIN")
         try:
-            return delta.build_prepared_catchup_sql(
+            return delta.build_prepared_catchup_sql_oracle(
                 self.d1,
                 self.f.db,
                 self.root / name,

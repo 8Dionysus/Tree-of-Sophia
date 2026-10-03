@@ -49,13 +49,13 @@ class SourceClaimCatalogTests(unittest.TestCase):
             'allowed_subject_refs': [self.claim['subject_ref']], 'allowed_object_refs': [self.claim['object']],
             'allowed_predicates': [self.claim['predicate']], 'allowed_evidence_refs': [self.evidence]}
         self.owner.write_bytes(canonical_bytes(self.config))
-        prepared = commands.run_local_command(self.owner, {'schema_version': 'tos_local_source_command_v1',
+        prepared = commands.run_legacy_oracle_command(self.owner, {'schema_version': 'tos_local_source_command_v1',
             'operation': 'prepare-create', 'claims': [self.claim]})
         self.request = {'schema_version': 'tos_local_source_command_v1', 'operation': 'claims.create',
             'command_id': 'synthetic-addressed-claim-addition', 'claims': [self.claim],
             'expected_revision': None, 'expected_configuration': prepared['owner_configuration'],
             'expected_dependencies': prepared['expected_dependencies'], 'expected_inputs': prepared['source_bindings']}
-        result = commands.run_local_command(self.owner, self.request)
+        result = commands.run_legacy_oracle_command(self.owner, self.request)
         self.receipt_path = (self.root / self.relative).with_name('source-create-receipt.json')
         self.expected = {'expected_receipt_sha256': hashlib.sha256(self.receipt_path.read_bytes()).hexdigest(),
                          'expected_request_digest': result['receipt']['request_digest']}
@@ -70,7 +70,7 @@ class SourceClaimCatalogTests(unittest.TestCase):
         with patch.object(Path, 'rglob', side_effect=AssertionError('global source scan')), \
                 patch.object(ProjectionReader, 'iter_items', side_effect=AssertionError('full catalog scan')), \
                 patch.object(legacy, 'collect_claims', side_effect=AssertionError('whole Claim collection')), \
-                patch.object(commands, 'run_local_command', side_effect=AssertionError('observer executed source command')):
+                patch.object(commands, 'run_legacy_oracle_command', side_effect=AssertionError('observer executed source command')):
             with self.stage() as operation:
                 candidate = operation.candidate
                 after = self.helper.snapshot(candidate)

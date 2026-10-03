@@ -7,6 +7,41 @@ evidence; it never turns a paragraph speaker into a word's speaker.
 """
 from __future__ import annotations
 
+# The maintained CLI always selects installed native code before importing
+# the retained reference functions or schema/database dependencies.
+# Only the installed package selects code;
+# --data-root selects source data and is forwarded as the native --root option.
+if __name__ == "__main__":
+    import sys as _sys
+    if len(_sys.argv) < 2 or not (
+        _sys.argv[1] == "--native-prefix" or _sys.argv[1].startswith("--native-prefix=")
+    ):
+        raise SystemExit(
+            "native installation required: pass --native-prefix /absolute/installed-prefix "
+            "before operation arguments; --data-root selects source data only"
+        )
+    import argparse as _argparse
+    from pathlib import Path as _Path
+    _native = _argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+    _native.add_argument("--native-prefix", required=True)
+    _native.add_argument("--data-root", type=_Path, default=_Path(__file__).resolve().parents[1])
+    _native.add_argument("--analysis-root", type=_Path)
+    _native.add_argument("--reading-max-file-bytes", type=int)
+    _native.add_argument("--reading-max-total-file-bytes", type=int)
+    _selected, _operation_args = _native.parse_known_args(_sys.argv[1:])
+    from tos_access.__main__ import native_main as _native_main
+    raise SystemExit(_native_main([
+        "--native-prefix", _selected.native_prefix,
+        "--root", str(_selected.data_root.absolute()),
+        *(["--reading-analysis-root", str(_selected.analysis_root.absolute())]
+          if _selected.analysis_root is not None else []),
+        *(["--reading-max-file-bytes", str(_selected.reading_max_file_bytes)]
+          if _selected.reading_max_file_bytes is not None else []),
+        *(["--reading-max-total-file-bytes", str(_selected.reading_max_total_file_bytes)]
+          if _selected.reading_max_total_file_bytes is not None else []),
+        "reading-search", *_operation_args,
+    ]))
+
 import argparse
 import hashlib
 import importlib.util

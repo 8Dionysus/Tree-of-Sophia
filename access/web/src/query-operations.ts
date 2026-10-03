@@ -1,4 +1,33 @@
-import {chooseKnowledgeSearchMode} from "./knowledge-search";
+import {chooseKnowledgeSearchMode} from "./knowledge-search.ts";
+
+type WordQuerySession = {query(length: number): boolean; language(value: Uint16Array): boolean; number(value: number): number; free(): void};
+type PathQuerySession = {required(length: number): boolean; depth(value: number): number; direction(value: Uint16Array): boolean; alternatives(value: number): number; filter_empty(length: number): boolean; empty_filter(): string; free(): void};
+type QueryRequestRules = {mode(corpus: boolean): string; required(length: number): boolean; optional(length: number): boolean; cursor_action(tag: number): number; page_cursor_action(tag: number, length: number): number; page_direction(value: Uint16Array): boolean; search_mode_allowed(tag: number): boolean; filter_empty(length: number): boolean; empty_filter(): string; number(field: string, value: number): number};
+let RequestRules: QueryRequestRules | undefined;
+function requestRules(): QueryRequestRules {
+  if (!RequestRules) throw new Error("Query request Rust runtime is required");
+  return RequestRules;
+}
+let PathQueryRules: (new () => PathQuerySession) | undefined;
+let WordQueryRules: (new () => WordQuerySession) | undefined;
+export function installQueryRequestRules(runtime: {WordQuerySession?: new () => WordQuerySession; PathQuerySession?: new () => PathQuerySession; QueryRequestRules?: QueryRequestRules}) {
+  if (!runtime.WordQuerySession) throw new Error("Word query Rust runtime is required");
+  WordQueryRules = runtime.WordQuerySession;
+  if (!runtime.PathQuerySession) throw new Error("Path query Rust runtime is required");
+  PathQueryRules = runtime.PathQuerySession;
+  if (!runtime.QueryRequestRules) throw new Error("Query request Rust runtime is required");
+  RequestRules = runtime.QueryRequestRules;
+}
+
+export function pageIntegerRule(value: number, profile: string): number {
+  return requestRules().number(profile, value);
+}
+export function pageCursorRule(tag: number, length: number): number {
+  return requestRules().page_cursor_action(tag, length);
+}
+export function pageDirectionRule(value: Uint16Array): boolean {
+  return requestRules().page_direction(value);
+}
 
 export type ToSMode = "philosophy" | "corpus";
 
@@ -22,26 +51,27 @@ export type ToSQueryResult = Record<string, unknown>;
 export type ToSQueryOptions = { signal?: AbortSignal };
 export type FetchJson = <T>(url: string, options?: RequestInit) => Promise<T>;
 
-function boundedInt(value: unknown, fallback: number, minimum: number, maximum: number): number {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? Math.max(minimum, Math.min(maximum, Math.trunc(parsed))) : fallback;
+function boundedInt(value: unknown, field: string): number {
+  return requestRules().number(field, Number(value));
 }
 
 function requiredString(value: unknown, name: string): string {
   const result = String(value || "").trim();
-  if (!result) throw new Error(`${name} is required`);
+  if (!requestRules().required(result.length)) throw new Error(`${name} is required`);
   return result;
 }
 
 function optionalString(value: unknown): string | undefined {
   const result = String(value || "").trim();
-  return result || undefined;
+  return requestRules().optional(result.length) ? result : undefined;
 }
 
 function optionalOpaqueString(value: unknown): string | undefined {
-  if (value === undefined || value === null) return undefined;
-  if (typeof value !== "string") throw new Error("knowledge search cursor must be a string");
-  return value;
+  const tag = value === undefined || value === null ? 0 : typeof value === "string" ? 1 : 2;
+  const action = requestRules().cursor_action(tag);
+  if (action === 0) return undefined;
+  if (action === 2) throw new Error("knowledge search cursor must be a string");
+  return value as string;
 }
 
 function list(value: unknown): string[] {
@@ -51,13 +81,7 @@ function list(value: unknown): string[] {
 function filterList(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined;
   const selected = list(value);
-  return selected.length ? selected : ["__tos_none__"];
-}
-
-function oneOf(value: unknown, fallback: string, allowed: Set<string>): string {
-  const result = String(value || fallback).trim().toLowerCase();
-  if (!allowed.has(result)) throw new Error(`unsupported value: ${result}`);
-  return result;
+  return requestRules().filter_empty(selected.length) ? [requestRules().empty_filter()] : selected;
 }
 
 function params(values: Record<string, string | number | boolean | string[] | undefined>): string {
@@ -79,7 +103,7 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
     input: ToSQueryInput = {},
     options: ToSQueryOptions = {},
   ): Promise<ToSQueryResult> => {
-    const mode = input.mode === "corpus" ? "corpus" : "philosophy";
+    const mode = requestRules().mode(input.mode === "corpus");
     const request = options.signal ? { signal: options.signal } : undefined;
     switch (operationId) {
       case "tos.status": {
@@ -93,17 +117,18 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
         return fetchJson<ToSQueryResult>("/api/philosophy/snapshot", request);
       case "tos.search": {
         const query = String(input.query || "").trim();
-        const limit = boundedInt(input.limit, 20, 1, 100);
+        const limit = boundedInt(input.limit, "search-limit");
         return fetchJson<ToSQueryResult>(`/api/${mode}/search${params({ query, limit })}`, request);
       }
       case "tos.knowledge.search": {
         const query = String(input.query || "").trim();
-        const limit = boundedInt(input.limit, 40, 1, 100);
+        const limit = boundedInt(input.limit, "knowledge-limit");
         const sources = Array.isArray(input.sources) ? list(input.sources) : undefined;
         const kindIds = Array.isArray(input.kind_ids) ? list(input.kind_ids) : undefined;
         const predicateIds = Array.isArray(input.predicate_ids) ? list(input.predicate_ids) : undefined;
         const requestedMode = input.search_mode;
-        if (requestedMode !== undefined && requestedMode !== "indexed" && requestedMode !== "compressed") {
+        const requestedTag = requestedMode === undefined ? 0 : requestedMode === "indexed" ? 1 : requestedMode === "compressed" ? 2 : 3;
+        if (!requestRules().search_mode_allowed(requestedTag)) {
           throw new Error(`knowledge search mode must be indexed or compressed: ${String(requestedMode)}`);
         }
         const capabilities = await fetchJson<unknown>("/api/knowledge/search/capabilities", request);
@@ -122,15 +147,15 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
       }
       case "tos.source-gaps.search": {
         const query = String(input.query || "").trim();
-        const limit = boundedInt(input.limit, 20, 1, 100);
+        const limit = boundedInt(input.limit, "gaps-limit");
         return fetchJson<ToSQueryResult>(`/api/source-gaps${params({ query, limit })}`, request);
       }
       case "tos.source.descend": {
         const nodeId = requiredString(input.node_id, "node_id");
         return fetchJson<ToSQueryResult>(
           `/api/source/navigation/${encodeURIComponent(nodeId)}${params({
-            max_depth: boundedInt(input.max_depth, 8, 1, 8),
-            limit: boundedInt(input.limit, 300, 1, 300),
+            max_depth: boundedInt(input.max_depth, "descent-depth"),
+            limit: boundedInt(input.limit, "source-limit"),
           })}`,
           request,
         );
@@ -139,14 +164,14 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
         const objectId = requiredString(input.object_id, "object_id");
         return fetchJson<ToSQueryResult>(
           `/api/source/dossiers/${encodeURIComponent(objectId)}${params({
-            limit: boundedInt(input.limit, 300, 1, 300),
+            limit: boundedInt(input.limit, "source-limit"),
           })}`,
           request,
         );
       }
       case "tos.view.open": {
         const viewId = requiredString(input.view_id, "view_id");
-        const limit = boundedInt(input.limit, mode === "corpus" ? 100 : 1000, 1, 1000);
+        const limit = boundedInt(input.limit, mode === "corpus" ? "view-corpus" : "view-philosophy");
         const route = mode === "corpus" ? "graph-views" : "views";
         return fetchJson<ToSQueryResult>(`/api/${mode}/${route}/${encodeURIComponent(viewId)}${params({ limit })}`, request);
       }
@@ -158,8 +183,8 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
         const nodeId = requiredString(input.node_id, "node_id");
         return fetchJson<ToSQueryResult>(
           `/api/philosophy/query/neighborhood/${encodeURIComponent(nodeId)}${params({
-            depth: boundedInt(input.depth, 1, 1, 3),
-            limit: boundedInt(input.limit, 80, 1, 300),
+            depth: boundedInt(input.depth, "neighborhood-depth"),
+            limit: boundedInt(input.limit, "neighborhood-limit"),
             layers: filterList(input.layers),
             predicates: filterList(input.predicates),
           })}`,
@@ -171,37 +196,55 @@ export function createToSQueryOperations(fetchJson: FetchJson) {
         return fetchJson<ToSQueryResult>(
           `/api/${mode}/query/epistemic/${encodeURIComponent(itemId)}${params({
             view_id: optionalString(input.view_id),
-            limit: boundedInt(input.limit, 80, 1, 200),
+            limit: boundedInt(input.limit, "epistemic-limit"),
           })}`,
           request,
         );
       }
       case "tos.path.find": {
-        return fetchJson<ToSQueryResult>(
-          `/api/philosophy/query/paths${params({
-            from: requiredString(input.from_id, "from_id"),
-            to: requiredString(input.to_id, "to_id"),
-            max_depth: boundedInt(input.max_depth, 6, 1, 8),
-            direction: oneOf(input.direction, "outgoing", new Set(["outgoing", "incoming", "either"])),
-            view_id: optionalString(input.view_id),
-            exclude: list(input.excluded_edge_ids),
-            alternatives: boundedInt(input.alternative_limit, 1, 1, 5),
-            layers: filterList(input.layers),
-            predicates: filterList(input.predicates),
-          })}`,
-          request,
-        );
+        if (!PathQueryRules) throw new Error("Path query Rust runtime is required");
+        const rules = new PathQueryRules();
+        let url: string;
+        try {
+          const from = String(input.from_id || "").trim();
+          if (!rules.required(from.length)) throw new Error("from_id is required");
+          const to = String(input.to_id || "").trim();
+          if (!rules.required(to.length)) throw new Error("to_id is required");
+          const maxDepth = rules.depth(Number(input.max_depth));
+          const direction = String(input.direction || "outgoing").trim().toLowerCase();
+          const units = new Uint16Array(direction.length);
+          for (let i = 0; i < direction.length; i += 1) units[i] = direction.charCodeAt(i);
+          if (!rules.direction(units)) throw new Error(`unsupported value: ${direction}`);
+          const viewId = optionalString(input.view_id);
+          const exclude = list(input.excluded_edge_ids);
+          const alternatives = rules.alternatives(Number(input.alternative_limit));
+          const filter = (value: unknown): string[] | undefined => {
+            if (!Array.isArray(value)) return undefined;
+            const selected = list(value);
+            return rules.filter_empty(selected.length) ? [rules.empty_filter()] : selected;
+          };
+          url = `/api/philosophy/query/paths${params({from, to, max_depth: maxDepth,
+            direction, view_id: viewId, exclude, alternatives,
+            layers: filter(input.layers), predicates: filter(input.predicates)})}`;
+        } finally { rules.free(); }
+        return fetchJson<ToSQueryResult>(url, request);
       }
       case "tos.zarathustra.word-analysis.prepare": {
-        return fetchJson<ToSQueryResult>(
-          `/api/zarathustra/word-analysis${params({
-            query: requiredString(input.query, "query"),
-            language: oneOf(input.language, "ru", new Set(["de", "ru", "en"])),
-            rank: boundedInt(input.rank, 1, 1, 100),
-            include_semantic_neighbors: input.include_semantic_neighbors === true,
-          })}`,
-          request,
-        );
+        if (!WordQueryRules) throw new Error("Word query Rust runtime is required");
+        const rules = new WordQueryRules();
+        let url: string;
+        try {
+          const query = String(input.query || "").trim();
+          if (!rules.query(query.length)) throw new Error("query is required");
+          const language = String(input.language || "ru").trim().toLowerCase();
+          const units = new Uint16Array(language.length);
+          for (let i = 0; i < language.length; i += 1) units[i] = language.charCodeAt(i);
+          if (!rules.language(units)) throw new Error(`unsupported value: ${language}`);
+          const rank = rules.number(Number(input.rank));
+          url = `/api/zarathustra/word-analysis${params({query, language, rank,
+            include_semantic_neighbors: input.include_semantic_neighbors === true})}`;
+        } finally { rules.free(); }
+        return fetchJson<ToSQueryResult>(url, request);
       }
     }
   };

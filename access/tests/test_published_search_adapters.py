@@ -24,7 +24,7 @@ from tos_access.compressed_search_store import (
 )
 from tos_access.http_server import build_handler
 from tos_access.mcp_server import build_server
-from tos_access.prepared_publication import publish_prepared
+from tos_access.prepared_publication import (reference_publish_prepared as publish_prepared)
 from tos_access.published_read_metadata import _compact
 from test_prepared_publication import fixture
 

@@ -4,7 +4,9 @@ import {validateReading} from '../observatory/reading-resume.mjs';
 import {exactFormRef,FORM_ROLES} from '../observatory/human-forms.mjs';
 import {validateDraft} from '../observatory/lens-model.mjs';
 import {COPY_SCHEMA,validateWorkspaceCopy} from '../observatory/workspace-copy.mjs';
-import {RESEARCH_WORKSPACE_SCHEMA,RESEARCH_WORKSPACE_VERSION,createResearchWorkspace} from '../research-workspace.ts';
+import {RESEARCH_WORKSPACE_SCHEMA,RESEARCH_WORKSPACE_VERSION} from '../research-workspace.ts';
+import {createBrowserResearchWorkspace} from '../research-workspace-rust.ts';
+import {researchShelfRule,researchShelfRulesReady,validateResearchShelfPacketIndex} from './rules.mjs';
 
 // The shelf is a local, user-owned index of exact addresses. It never owns a
 // source passage, an exploration page, or a command/runtime handle.
@@ -141,6 +143,7 @@ export function validateMaterialTarget(value){
     result.claimReference=clone(reading.entries[0].claimReference);
   }
   if(jsonBytes(result)>MAX_TARGET_BYTES)fail('limit','The material target is too large.');
+  researchShelfRule('validate_target',{type:'material',target:result});
   return result;
 }
 
@@ -151,7 +154,9 @@ export function validateFormTarget(value){
   if(!exactFormRef(value.form))fail('invalid-target','The form reference is not exact.');
   const form={id:boundedId(value.form.id,'form id'),version:safeInt(value.form.version,1,Number.MAX_SAFE_INTEGER,'form version'),digest:value.form.digest};
   if(typeof form.digest!=='string'||!/^sha256:[a-f0-9]{64}$/.test(form.digest))fail('invalid-target','The form digest is invalid.');
-  return {material,role:value.role,form};
+  const result={material,role:value.role,form};
+  researchShelfRule('validate_target',{type:'form',target:result});
+  return result;
 }
 
 export function validateTextTarget(value){
@@ -159,7 +164,9 @@ export function validateTextTarget(value){
   let reference;
   try{reference=validateReference(value.reference);}catch(error){fail('invalid-target','The exact text reference is invalid.',{cause:error});}
   if(jsonBytes(reference)>MAX_TARGET_BYTES)fail('limit','The text target is too large.');
-  return {reference:clone(reference)};
+  const result={reference:clone(reference)};
+  researchShelfRule('validate_target',{type:'text',target:result});
+  return result;
 }
 
 export function validateLensTarget(value){
@@ -169,7 +176,9 @@ export function validateLensTarget(value){
   let draft;
   try{draft=validateDraft(value.draft);}catch(error){fail('invalid-target','The lens draft is invalid.',{cause:error});}
   if(jsonBytes(draft)>MAX_TARGET_BYTES)fail('limit','The lens target is too large.');
-  return {draft:clone(draft)};
+  const result={draft:clone(draft)};
+  researchShelfRule('validate_target',{type:'lens',target:result});
+  return result;
 }
 
 export function validateRouteTarget(value){
@@ -181,7 +190,9 @@ export function validateRouteTarget(value){
   const max_depth=safeInt(value.options.max_depth,EXPLORATION_DEPTH.min,EXPLORATION_DEPTH.max,'route depth');
   const sources=uniqueStrings(value.options.sources,MAX_OPTION_LIST,'route sources');
   const predicate_ids=uniqueStrings(value.options.predicate_ids,MAX_OPTION_LIST,'route predicates',MAX_ID_LENGTH,{allowEmpty:true});
-  return {origin,options:{profile:value.options.profile,direction:value.options.direction,max_depth,sources,predicate_ids}};
+  const result={origin,options:{profile:value.options.profile,direction:value.options.direction,max_depth,sources,predicate_ids}};
+  researchShelfRule('validate_target',{type:'route',target:result});
+  return result;
 }
 
 export function validateTarget(type,value){
@@ -213,6 +224,7 @@ export function validateShelfRecord(value){
   const revision=safeInt(value.revision,1,Number.MAX_SAFE_INTEGER,'record revision');
   const result={id,title,type:value.type,target,collectionIds,createdAt,updatedAt,revision};
   if(jsonBytes(result)>MAX_TARGET_BYTES+8_192)fail('limit','The shelf record is too large.');
+  researchShelfRule('validate_record',result);
   return result;
 }
 
@@ -225,6 +237,10 @@ export function createShelfRecord(input,{id,now=canonicalTimestamp}={}){
   if(input.createdAt!==undefined||input.updatedAt!==undefined||input.revision!==undefined)
     fail('invalid-input','Stored timestamps and revisions cannot be supplied for a new shelf record.');
   const createdAt=timestamp(now(),'createdAt');
+  if(researchShelfRulesReady()){
+    const target=validateTarget(input.type,input.target);
+    return researchShelfRule('create_record',{input:{...input,target},id:recordId,now:createdAt});
+  }
   const base={id:recordId,title:input.title,type:input.type,target:input.target,collectionIds:input.collectionIds??[],createdAt,updatedAt:createdAt,revision:1};
   return validateShelfRecord(base);
 }
@@ -236,12 +252,16 @@ export function updateShelfRecord(existing,input,{now=canonicalTimestamp}={}){
   if(Object.keys(input).some(key=>!INPUT_FIELDS.includes(key)))fail('invalid-input','The shelf input contains an unknown field.');
   if(input.id!==undefined&&input.id!==old.id)fail('invalid-input','A record update cannot change its id.');
   if(input.type!==undefined&&input.type!==old.type)fail('invalid-input','A record update cannot change its type.');
-  if(input.target!==undefined&&JSON.stringify(validateTarget(old.type,input.target))!==JSON.stringify(old.target))
+  const canonicalTarget=input.target===undefined?undefined:validateTarget(old.type,input.target);
+  if(canonicalTarget!==undefined&&JSON.stringify(canonicalTarget)!==JSON.stringify(old.target))
     fail('invalid-input','A record update cannot change its exact target.');
   if(input.createdAt!==undefined&&input.createdAt!==old.createdAt)fail('invalid-input','A record update cannot change createdAt.');
   const updatedAt=timestamp(now(),'updatedAt');
-  return validateShelfRecord({id:old.id,title:input.title??old.title,type:old.type,target:old.target,
-    collectionIds:input.collectionIds??old.collectionIds,createdAt:old.createdAt,updatedAt,revision:old.revision+1});
+  if(researchShelfRulesReady())return researchShelfRule('update_record',{
+    old,input:canonicalTarget===undefined?input:{...input,target:canonicalTarget},now:updatedAt});
+  const base={id:old.id,title:input.title??old.title,type:old.type,target:old.target,
+    collectionIds:input.collectionIds??old.collectionIds,createdAt:old.createdAt,updatedAt,revision:old.revision+1};
+  return validateShelfRecord(base);
 }
 
 export function validateCollection(value){
@@ -250,7 +270,9 @@ export function validateCollection(value){
   if(!title)fail('invalid-record','The collection title must not be blank.');
   const createdAt=timestamp(value.createdAt,'collection.createdAt'),updatedAt=timestamp(value.updatedAt,'collection.updatedAt');
   if(Date.parse(updatedAt)<Date.parse(createdAt))fail('invalid-record','collection.updatedAt must not precede createdAt.');
-  return {id,title,createdAt,updatedAt,revision:safeInt(value.revision,1,Number.MAX_SAFE_INTEGER,'collection revision')};
+  const result={id,title,createdAt,updatedAt,revision:safeInt(value.revision,1,Number.MAX_SAFE_INTEGER,'collection revision')};
+  researchShelfRule('validate_collection',result);
+  return result;
 }
 
 export function createShelfCollection(input,{id,now=canonicalTimestamp}={}){
@@ -259,6 +281,7 @@ export function createShelfCollection(input,{id,now=canonicalTimestamp}={}){
   const collectionId=input.id??(typeof id==='function'?id():`collection-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`);
   boundedString(collectionId??'generated id',256,'collection id');
   const at=timestamp(now(),'collection.createdAt');
+  if(researchShelfRulesReady())return researchShelfRule('create_collection',{input,id:collectionId,now:at});
   return validateCollection({id:collectionId,title:input.title,createdAt:at,updatedAt:at,revision:1});
 }
 
@@ -267,6 +290,7 @@ export function updateShelfCollection(existing,input,{now=canonicalTimestamp}={}
   if(!object(input)||Object.keys(input).some(key=>!['id','title'].includes(key)))fail('invalid-input','The collection input contains an unknown field.');
   if(input.id!==undefined&&input.id!==old.id)fail('invalid-input','A collection update cannot change its id.');
   const at=timestamp(now(),'collection.updatedAt');
+  if(researchShelfRulesReady())return researchShelfRule('update_collection',{old,input,now:at});
   return validateCollection({id:old.id,title:input.title??old.title,createdAt:old.createdAt,updatedAt:at,revision:old.revision+1});
 }
 
@@ -275,7 +299,7 @@ function stable(value){
   if(object(value))return `{${Object.keys(value).sort().map(key=>`${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`;
   return JSON.stringify(value);
 }
-export const sameShelfValue=(left,right)=>stable(left)===stable(right);
+export const sameShelfValue=(left,right)=>researchShelfRule('same_value',{left,right})??stable(left)===stable(right);
 
 function encodeBase64(value){
   const text=JSON.stringify(value);
@@ -300,7 +324,9 @@ export function validateListOptions(options={}){
   if(type!==null&&!['material','form','text','lens','route'].includes(type))fail('invalid-input','The shelf type filter is unsupported.');
   const collectionId=options.collectionId===undefined||options.collectionId===null?null:boundedString(options.collectionId,256,'collection filter');
   const cursor=options.cursor===undefined||options.cursor===null?null:boundedString(options.cursor,16_384,'cursor');
-  return {limit,type,collectionId,cursor};
+  const result={limit,type,collectionId,cursor};
+  researchShelfRule('list_options',result);
+  return result;
 }
 
 export function encodeShelfCursor({generation,type=null,collectionId=null,updatedAt,id}){
@@ -319,6 +345,7 @@ export function decodeShelfCursor(cursor,{generation,type=null,collectionId=null
     ||(value.filter.type??null)!==(type??null)||(value.filter.collectionId??null)!==(collectionId??null)
     ||value.generation!==generation)fail('invalid-cursor','The shelf cursor belongs to another list generation or filter.');
   timestamp(value.updatedAt,'cursor timestamp');boundedId(value.id);
+  researchShelfRule('cursor',{decoded:{v:value.v,generation:value.generation,filter:{type:value.filter.type??null,collectionId:value.filter.collectionId??null},updatedAt:value.updatedAt,id:value.id},generation,type,collectionId});
   return {generation:value.generation,filter:{type:value.filter.type??null,collectionId:value.filter.collectionId??null},updatedAt:value.updatedAt,id:value.id};
 }
 
@@ -339,9 +366,11 @@ export function validateShelfExport(value){
     fail('limit','The shelf export is outside its record bounds.');
   if(packet.exportedAt!==undefined)timestamp(packet.exportedAt,'exportedAt');
   const records=packet.records.map(validateShelfRecord),collections=packet.collections.map(validateCollection);
-  if(new Set(records.map(item=>item.id)).size!==records.length)fail('invalid-packet','The shelf export contains duplicate record ids.');
-  if(new Set(collections.map(item=>item.id)).size!==collections.length)fail('invalid-packet','The shelf export contains duplicate collection ids.');
-  return {schema:SHELF_EXPORT_SCHEMA,version:SHELF_VERSION,generation,records:records.map(clone),collections:collections.map(clone),
+  if(!validateResearchShelfPacketIndex({...packet,generation,records,collections})){
+    if(new Set(records.map(item=>item.id)).size!==records.length)fail('invalid-packet','The shelf export contains duplicate record ids.');
+    if(new Set(collections.map(item=>item.id)).size!==collections.length)fail('invalid-packet','The shelf export contains duplicate collection ids.');
+  }
+  return {schema:SHELF_EXPORT_SCHEMA,version:SHELF_VERSION,generation,records,collections,
     ...(packet.exportedAt===undefined?{}:{exportedAt:packet.exportedAt})};
 }
 
@@ -384,7 +413,8 @@ function migrationHash(value){
   for(const byte of new TextEncoder().encode(stable(value))){hash^=BigInt(byte);hash=BigInt.asUintN(64,hash*0x100000001b3n);}
   return hash.toString(16).padStart(16,'0');
 }
-function migrationRecordId(type,target){return `import:${type}:${migrationHash({target})}`;}
+function migrationRecordId(type,target){return researchShelfRule('migration_id',{type,target})??`import:${type}:${migrationHash({target})}`;}
+const migrationPolicy=(source,section)=>researchShelfRule('migration_policy',{source,section});
 
 function checkedReadingPacket(value){
   const packet=parseSuppliedPacket(value,'reading-resume');
@@ -400,9 +430,9 @@ function checkedResearchWorkspacePacket(value){
     // The owner parser remains authoritative for exact field and posture
     // checks. Exporting immediately gives the importer a detached canonical
     // packet without touching the browser persistence namespace.
-    const workspace=createResearchWorkspace({persistence:false});
-    workspace.importPacket(JSON.stringify(packet));
-    return JSON.parse(workspace.exportPacket());
+    const workspace=createBrowserResearchWorkspace({persistence:false});
+    try{workspace.importPacket(JSON.stringify(packet));return JSON.parse(workspace.exportPacket());}
+    finally{if('dispose' in workspace)workspace.dispose();}
   }catch(error){fail('invalid-packet','The supplied research-workspace packet is invalid.',{cause:error});}
 }
 
@@ -428,35 +458,59 @@ function checkedLensList(value){
   return drafts;
 }
 
-function addMaterial(records,retained,entry,source,index,at){
+function addMaterial(records,retained,skipped,entry,source,index,at){
   const target={kind:entry.kind,id:entry.id,sourceRevision:entry.sourceRevision,contentRevision:entry.contentRevision,
     ...(entry.claimReference===undefined?{}:{claimReference:entry.claimReference})};
+  if(researchShelfRulesReady()){
+    const result=researchShelfRule('migration_record',{source,section:'entries',index,target:validateMaterialTarget(target),now:at,hasPositions:entry.positions.length>0});
+    records.push(result.record);retained.push(result.retained);for(const item of result.skipped)skipped.push(item);return;
+  }
+  const policy=migrationPolicy(source,'entries');
+  if(policy!==null&&policy!=='retain-material')fail('invalid-packet','The supplied material section is unsupported.');
   const record=createShelfRecord({id:migrationRecordId('material',target),title:'Материал',type:'material',target,collectionIds:[]},{now:()=>at});
   records.push(record);retained.push({source,section:'entries',index,type:'material',recordId:record.id});
 }
 
 function addLens(records,retained,draft,source,index,at){
   const target={draft};
+  if(researchShelfRulesReady()){
+    const result=researchShelfRule('migration_record',{source,section:'lenses',index,target:validateLensTarget(target),now:at});
+    records.push(result.record);retained.push(result.retained);return;
+  }
+  const policy=migrationPolicy(source,'lenses');
+  if(policy!==null&&policy!=='retain-lens')fail('invalid-packet','The supplied lens section is unsupported.');
   const record=createShelfRecord({id:migrationRecordId('lens',target),title:draft.name,type:'lens',target,collectionIds:[]},{now:()=>at});
   records.push(record);retained.push({source,section:'lenses',index,type:'lens',recordId:record.id});
 }
 
-function skip(skipped,source,section,index,reason){skipped.push({source,section,index,reason});}
+function skip(skipped,source,section,index,reason){
+  const policySection=section==='entries'&&reason==='non-portable-reading-position'?'entries.positions':section;
+  skipped.push({source,section,index,reason:migrationPolicy(source,policySection)??reason});
+}
+
+// Array traversal belongs to the host, but report layout/posture belongs to
+// Rust. One bounded owner section enters; full packet bodies are never copied.
+function skipSection(skipped,source,section,count,reason,{single=false}={}){
+  if(count===0)return;
+  const result=researchShelfRule('migration_skips',{source,section,count,single});
+  if(result!==null){for(const item of result)skipped.push(item);return;}
+  for(let index=0;index<count;index++)skip(skipped,source,section,single?null:index,reason);
+}
 
 function carryReading(records,retained,skipped,reading,source,at){
   reading.entries.forEach((entry,index)=>{
-    addMaterial(records,retained,entry,source,index,at);
-    if(entry.positions.length)skip(skipped,source,'entries',index,'non-portable-reading-position');
+    addMaterial(records,retained,skipped,entry,source,index,at);
+    if(!researchShelfRulesReady()&&entry.positions.length)skip(skipped,source,'entries',index,'non-portable-reading-position');
   });
 }
 
 function carryResearchWorkspace(records,retained,skipped,workspace,source,at,lenses){
-  if(workspace.selected_lens)skip(skipped,source,'selected_lens',null,'non-portable-lens-selection');
-  workspace.excluded_edge_ids.forEach((_,index)=>skip(skipped,source,'excluded_edge_ids',index,'legacy-graph-pose'));
-  workspace.route_snapshots.forEach((_,index)=>skip(skipped,source,'route_snapshots',index,'legacy-graph-pose'));
-  workspace.hypotheses.forEach((_,index)=>skip(skipped,source,'hypotheses',index,'non-portable-research-record'));
-  workspace.proposals.forEach((_,index)=>skip(skipped,source,'proposals',index,'non-portable-research-record'));
-  workspace.notes.forEach((_,index)=>skip(skipped,source,'notes',index,'non-portable-note'));
+  skipSection(skipped,source,'selected_lens',workspace.selected_lens?1:0,'non-portable-lens-selection',{single:true});
+  skipSection(skipped,source,'excluded_edge_ids',workspace.excluded_edge_ids.length,'legacy-graph-pose');
+  skipSection(skipped,source,'route_snapshots',workspace.route_snapshots.length,'legacy-graph-pose');
+  skipSection(skipped,source,'hypotheses',workspace.hypotheses.length,'non-portable-research-record');
+  skipSection(skipped,source,'proposals',workspace.proposals.length,'non-portable-research-record');
+  skipSection(skipped,source,'notes',workspace.notes.length,'non-portable-note');
   checkedLensList(lenses).forEach((draft,index)=>addLens(records,retained,draft,source,index,at));
 }
 
@@ -479,9 +533,9 @@ export function importSuppliedResearchPacket(value,options={}){
     const copyPacket=checkedWorkspaceCopy(value);
     carryReading(records,retained,skipped,copyPacket.reading,source,at);
     copyPacket.lenses.forEach((draft,index)=>addLens(records,retained,draft,source,index,at));
-    copyPacket.history?.entries?.forEach((_,index)=>skip(skipped,source,'history',index,'legacy-graph-pose'));
-    copyPacket.places.forEach((_,index)=>skip(skipped,source,'places',index,'legacy-graph-pose'));
-    if(copyPacket.resume)skip(skipped,source,'resume',null,'legacy-graph-pose');
+    skipSection(skipped,source,'history',copyPacket.history?.entries?.length??0,'legacy-graph-pose');
+    skipSection(skipped,source,'places',copyPacket.places.length,'legacy-graph-pose');
+    skipSection(skipped,source,'resume',copyPacket.resume?1:0,'legacy-graph-pose',{single:true});
     carryResearchWorkspace(records,retained,skipped,copyPacket.research,source,at);
   }
   return {source,packet:makeShelfExport({generation:0,records,collections:[],exportedAt:times.exportedAt}),retained,skipped};
