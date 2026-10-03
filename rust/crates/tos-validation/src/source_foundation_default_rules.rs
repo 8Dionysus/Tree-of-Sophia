@@ -16,10 +16,10 @@ use crate::source_foundation_closure::{
 use crate::source_foundation_discovery::{
     ArtifactCorrectionReplayMap, CandidateArtifactCorrectionReplayMap,
     CandidateArtifactEvidenceProvider, CandidateArtifactInvalidSchemaProofs, Cost as DiscoveryCost,
-    CurrentArtifactInvalidSchemaProofs, DiscoveryRunSummaryStore, DiscoverySeenIds,
-    Issue as DiscoveryIssue, SchemaRequest as DiscoverySchemaRequest, SourcePhysicalFacts,
-    UnsupportedScope as DiscoveryUnsupported, inspect_with_cut_and_artifact_replays,
-    inspect_with_cut_and_artifact_replays_and_records,
+    CurrentArtifactInvalidSchemaProofs, DiscoveryEventSummaryStore, DiscoveryRunSummaryStore,
+    DiscoverySeenIds, Issue as DiscoveryIssue, SchemaRequest as DiscoverySchemaRequest,
+    SourcePhysicalFacts, UnsupportedScope as DiscoveryUnsupported,
+    inspect_with_cut_and_artifact_replays, inspect_with_cut_and_artifact_replays_and_records,
     inspect_with_cut_and_artifact_replays_and_records_with_proofs,
 };
 use crate::source_foundation_goldsets::{
@@ -32,6 +32,7 @@ use crate::source_foundation_records::{
     SourceFoundationRecordKernelOutcome, SourceFoundationRecordsReport,
 };
 use serde_json::Value;
+use std::cell::Cell;
 use std::collections::BTreeMap;
 use std::io::{self, Write};
 use std::mem::size_of;
@@ -817,6 +818,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored<
         None,
         None,
         None,
+        None,
         require_local_payloads,
         limits,
         stored_limits,
@@ -862,6 +864,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         None,
         None,
         Some(evidence_provider),
+        None,
         None,
         None,
         require_local_payloads,
@@ -910,6 +913,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         Some(evidence_provider),
         Some(discovery_seen_ids),
         None,
+        None,
         require_local_payloads,
         limits,
         stored_limits,
@@ -957,6 +961,57 @@ pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_e
         Some(evidence_provider),
         Some(discovery_seen_ids),
         Some(discovery_run_summaries),
+        None,
+        require_local_payloads,
+        limits,
+        stored_limits,
+        cancelled,
+    )
+}
+
+/// Candidate stored composition with all three bounded Discovery scratch
+/// providers: exact-ID uniqueness, path-keyed run summaries, and ordered event
+/// summaries. Event values are folded into `events` after Discovery finishes.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_source_foundation_default_rules_from_input_stored_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries<
+    I: Copy + Eq,
+    S: LayerFamilySource + ?Sized,
+>(
+    source: &mut S,
+    input: &dyn crate::record_biblio_cut::SourceCutInputWithIdentity<I>,
+    coverage: &crate::record_biblio_cut::SourceCutInputCoverage,
+    records: &crate::source_foundation_records::SourceFoundationRecordsStreamedReport<'_, I>,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    paths: &dyn SourceFoundationDefaultPaths,
+    events: &mut dyn SourceFoundationDefaultEventStore,
+    claims: &dyn SourceFoundationDefaultClaims,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    discovery_seen_ids: &mut dyn DiscoverySeenIds,
+    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
+    discovery_event_summaries: &mut dyn DiscoveryEventSummaryStore,
+    require_local_payloads: bool,
+    limits: SourceFoundationDefaultRulesLimits,
+    stored_limits: SourceFoundationDefaultStoredLimits,
+    cancelled: &AtomicBool,
+) -> Result<SourceFoundationDefaultRulesStoredReport<I>, ItemRefusal> {
+    inspect_source_foundation_default_rules_from_input_stored_inner(
+        source,
+        input,
+        coverage,
+        records,
+        records_lookup,
+        paths,
+        events,
+        None,
+        claims,
+        physical,
+        None,
+        None,
+        Some(evidence_provider),
+        Some(discovery_seen_ids),
+        Some(discovery_run_summaries),
+        Some(discovery_event_summaries),
         require_local_payloads,
         limits,
         stored_limits,
@@ -986,6 +1041,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     mut evidence_provider: Option<&mut dyn CandidateArtifactEvidenceProvider<I>>,
     mut discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
     mut discovery_run_summaries: Option<&mut dyn DiscoveryRunSummaryStore>,
+    mut discovery_event_summaries: Option<&mut dyn DiscoveryEventSummaryStore>,
     require_local_payloads: bool,
     limits: SourceFoundationDefaultRulesLimits,
     stored_limits: SourceFoundationDefaultStoredLimits,
@@ -999,6 +1055,16 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     {
         return Err(ItemRefusal::Source(
             "source-foundation stored input/report binding differs".into(),
+        ));
+    }
+    if discovery_event_summaries.is_some()
+        && (evidence_provider.is_none()
+            || discovery_seen_ids.is_none()
+            || discovery_run_summaries.is_none())
+    {
+        return Err(ItemRefusal::Source(
+            "candidate Discovery event spill requires the evidence, ID, and run-summary providers"
+                .into(),
         ));
     }
     input.verify_current_fence(coverage, operation.deadline, cancelled)?;
@@ -1113,21 +1179,43 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     let discovery = if let Some(provider) = evidence_provider.as_deref_mut() {
         if let Some(seen_ids) = discovery_seen_ids.as_deref_mut() {
             if let Some(run_summaries) = discovery_run_summaries.as_deref_mut() {
-                crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries(
-                    &mut aggregate_source,
-                    input,
-                    coverage,
-                    paths,
-                    events.event_lookup(),
-                    records_lookup,
-                    records,
-                    discovery_limits,
-                    physical,
-                    provider,
-                    seen_ids,
-                    run_summaries,
-                    require_local_payloads,
-                )?
+                if let Some(event_summaries) = discovery_event_summaries.as_deref_mut() {
+                    crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries(
+                        &mut aggregate_source,
+                        input,
+                        coverage,
+                        paths,
+                        events.event_lookup(),
+                        records_lookup,
+                        records,
+                        discovery_limits,
+                        physical,
+                        provider,
+                        seen_ids,
+                        run_summaries,
+                        event_summaries,
+                        limits
+                            .max_event_map_bytes
+                            .min(discovery_limits.max_member_bytes),
+                        require_local_payloads,
+                    )?
+                } else {
+                    crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries(
+                        &mut aggregate_source,
+                        input,
+                        coverage,
+                        paths,
+                        events.event_lookup(),
+                        records_lookup,
+                        records,
+                        discovery_limits,
+                        physical,
+                        provider,
+                        seen_ids,
+                        run_summaries,
+                        require_local_payloads,
+                    )?
+                }
             } else {
                 crate::source_foundation_discovery::inspect_candidate_with_artifact_evidence_provider_and_seen_ids(
                     &mut aggregate_source,
@@ -1203,7 +1291,7 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
     // district read allowance must still consume those bytes once. Recorded
     // and payload calls already passed through AggregateLayerFamilySource.
     aggregate_source.charge_read(discovery.candidate_direct_source_bytes())?;
-    let discovery = discovery.into_report();
+    let mut discovery = discovery.into_report();
     direct_owner_issue_count = direct_owner_issue_count
         .checked_add(discovery.issues.len())
         .ok_or(ItemRefusal::Budget)?;
@@ -1212,15 +1300,60 @@ fn inspect_source_foundation_default_rules_from_input_stored_inner<
         discovery.cost.state_bytes,
         operation.max_state_bytes,
     )?;
-    for (id, value) in &discovery.source_event_insertions {
-        insert_stored_event(
-            events,
-            id,
-            value,
-            &mut used_state,
-            &mut event_charge,
-            limits,
-        )?;
+    if let Some(event_summaries) = discovery_event_summaries.as_deref_mut() {
+        if !discovery.source_event_insertions.is_empty() {
+            return Err(ItemRefusal::Source(
+                "candidate Discovery event spill also returned resident insertions".into(),
+            ));
+        }
+        let used_state_after_discovery = Cell::new(used_state);
+        let mut remaining_state_bytes = || {
+            operation
+                .max_state_bytes
+                .checked_sub(used_state_after_discovery.get())
+                .ok_or(ItemRefusal::Budget)
+        };
+        let mut insert = |id: &str, value: &Value, workspace_state_bytes: usize| {
+            let mut row_state = add_state(
+                used_state_after_discovery.get(),
+                workspace_state_bytes,
+                operation.max_state_bytes,
+            )?;
+            insert_stored_event(events, id, value, &mut row_state, &mut event_charge, limits)?;
+            used_state_after_discovery.set(
+                row_state
+                    .checked_sub(workspace_state_bytes)
+                    .ok_or(ItemRefusal::Budget)?,
+            );
+            Ok(())
+        };
+        let event_cost =
+            event_summaries.for_each_owner_insertion(&mut remaining_state_bytes, &mut insert)?;
+        used_state = used_state_after_discovery.get();
+        discovery
+            .cost
+            .candidate_discovery_event_summary_serialized_read_bytes =
+            event_cost.serialized_read_bytes;
+        discovery
+            .cost
+            .candidate_discovery_event_summary_peak_workspace_state_bytes = discovery
+            .cost
+            .candidate_discovery_event_summary_peak_workspace_state_bytes
+            .max(event_cost.workspace_state_bytes);
+        discovery
+            .cost
+            .candidate_discovery_event_summary_scan_row_operations = event_cost.scan_row_operations;
+    } else {
+        for (id, value) in &discovery.source_event_insertions {
+            insert_stored_event(
+                events,
+                id,
+                value,
+                &mut used_state,
+                &mut event_charge,
+                limits,
+            )?;
+        }
     }
     let discovery = SourceFoundationDefaultDiscoveryFindings {
         issues: discovery.issues,

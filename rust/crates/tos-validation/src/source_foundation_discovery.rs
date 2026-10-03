@@ -187,6 +187,71 @@ pub struct DiscoveryRunSummaryStoreCost {
     /// Scan-row equivalents charged to the shared candidate operation cap.
     pub scan_row_operations: u64,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DiscoveryEventSummaryNamespace {
+    Boundary,
+    Discovery,
+}
+
+impl DiscoveryEventSummaryNamespace {
+    pub const fn storage_key(self) -> &'static str {
+        match self {
+            Self::Boundary => "boundary",
+            Self::Discovery => "discovery",
+        }
+    }
+}
+
+/// Candidate-local keyed summary and ordered insertion spool for Discovery
+/// provenance. Lookups preserve the source map's last-value replacement law;
+/// owner insertions are drained later in their original encounter order.
+pub trait DiscoveryEventSummaryStore {
+    fn record_event(
+        &mut self,
+        namespace: DiscoveryEventSummaryNamespace,
+        id: &str,
+        location: &str,
+        value: &Value,
+        insert_into_owner_map: bool,
+        max_serialized_value_bytes: usize,
+        max_state_bytes: usize,
+    ) -> Result<usize, ItemRefusal>;
+
+    fn lookup_event(
+        &mut self,
+        namespace: DiscoveryEventSummaryNamespace,
+        id: &str,
+        max_state_bytes: usize,
+    ) -> Result<(Option<(String, Value)>, usize), ItemRefusal>;
+
+    fn finish(
+        &mut self,
+        expected_observation_rows: u64,
+        expected_owner_insertion_rows: u64,
+        max_state_bytes: usize,
+    ) -> Result<DiscoveryEventSummaryStoreCost, ItemRefusal>;
+
+    /// Stream the accepted source rows to the existing DefaultEventStore.
+    /// `remaining_state_bytes` is called before each SQLite row is
+    /// materialized so the enclosing owner map and its row workspace overlap
+    /// under one operation budget.
+    fn for_each_owner_insertion(
+        &mut self,
+        remaining_state_bytes: &mut dyn FnMut() -> Result<usize, ItemRefusal>,
+        visit: &mut dyn FnMut(&str, &Value, usize) -> Result<(), ItemRefusal>,
+    ) -> Result<DiscoveryEventSummaryStoreCost, ItemRefusal>;
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct DiscoveryEventSummaryStoreCost {
+    pub observation_rows: u64,
+    pub owner_insertion_rows: u64,
+    pub serialized_write_bytes: u64,
+    pub serialized_read_bytes: u64,
+    pub workspace_state_bytes: usize,
+    pub scan_row_operations: u64,
+}
 const PRIVATE_HANDOFF_REQUIRED_FORBIDDEN_CLASSES: &[&str] = &[
     "source_page_bytes",
     "source_text_or_transcription",
@@ -554,6 +619,20 @@ pub struct Cost {
     /// SQLite point/write/count scan-row operations charged to the shared
     /// candidate scan limit for this summary projection.
     pub candidate_discovery_run_summary_scan_row_operations: u64,
+    /// Valid boundary and discovery event observations recorded in the
+    /// candidate event-summary spool.
+    pub candidate_discovery_event_summary_observation_rows: u64,
+    /// Owner event rows streamed to CMD's replacement-law event map.
+    pub candidate_discovery_event_summary_owner_insertion_rows: u64,
+    /// Logical event value bytes serialized into the candidate summary spool.
+    pub candidate_discovery_event_summary_serialized_write_bytes: u64,
+    /// Logical event summary and insertion rows materialized from SQLite.
+    pub candidate_discovery_event_summary_serialized_read_bytes: u64,
+    /// High-water row workspace used by candidate event summary operations.
+    pub candidate_discovery_event_summary_peak_workspace_state_bytes: usize,
+    /// SQLite event summary point/write/count operations charged to the shared
+    /// candidate scan-row limit.
+    pub candidate_discovery_event_summary_scan_row_operations: u64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -562,7 +641,8 @@ pub struct Report {
     pub issues: Vec<Issue>,
     pub schema_requests: Vec<SchemaRequest>,
     /// Parsed owner event records in maintained insertion/overwrite order.
-    /// CMD folds these over its Records→Gold event map before Closure.
+    /// Candidate event-summary callers leave this empty and stream those rows
+    /// into CMD's Records→Gold event map before Closure.
     pub source_event_insertions: Vec<(String, Value)>,
     pub unsupported: Vec<UnsupportedScope>,
     pub cost: Cost,
@@ -704,6 +784,7 @@ struct Inspector<'s, 'p, S: LayerFamilySource + ?Sized, I: Copy + Eq = ()> {
     artifact_replays: ArtifactReplaySet<'p, I>,
     candidate_invalid_schema_proofs: Option<&'p dyn CandidateInvalidArtifactSchemaProof<I>>,
     candidate_discovery_run_summaries: Option<&'p mut dyn DiscoveryRunSummaryStore>,
+    candidate_discovery_event_summaries: Option<&'p mut dyn DiscoveryEventSummaryStore>,
     limits: ItemLimits,
     physical: Option<&'s SourcePhysicalFacts>,
     issues: Vec<Issue>,
@@ -728,6 +809,8 @@ struct Inspector<'s, 'p, S: LayerFamilySource + ?Sized, I: Copy + Eq = ()> {
     candidate_current_discovery_run_summary_state_bytes: usize,
     candidate_discovery_run_summary_peak_workspace_state_bytes: usize,
     candidate_discovery_seen_ids_peak_workspace_state_bytes: usize,
+    candidate_discovery_event_summary_peak_workspace_state_bytes: usize,
+    candidate_discovery_event_json_limit: Option<usize>,
 }
 
 impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
@@ -1222,9 +1305,14 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
         Ok(())
     }
 
-    fn jsonl(&mut self, path: &str, contract: &str) -> Result<Vec<(String, Value)>, ItemRefusal> {
+    fn for_each_jsonl(
+        &mut self,
+        path: &str,
+        contract: &str,
+        visit: &mut dyn FnMut(&mut Self, &str, &Value) -> Result<(), ItemRefusal>,
+    ) -> Result<(), ItemRefusal> {
         let Some(raw) = self.current_bytes(path)? else {
-            return Ok(Vec::new());
+            return Ok(());
         };
         let text = match std::str::from_utf8(&raw) {
             Ok(text) => text,
@@ -1234,10 +1322,9 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                     "invalid-jsonl-utf8",
                     "current provenance stream is not UTF-8",
                 )?;
-                return Ok(Vec::new());
+                return Ok(());
             }
         };
-        let mut parsed = Vec::new();
         for (index, line) in text.lines().enumerate() {
             self.checkpoint()?;
             if line.trim().is_empty() {
@@ -1271,13 +1358,17 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
             let raw_size = line.len();
             self.reserve_state(raw_size.checked_mul(8).ok_or(ItemRefusal::Budget)?)?;
             self.request_schema(&location, contract, &value, raw_size)?;
-            parsed.push((location, value));
+            visit(self, &location, &value)?;
         }
-        Ok(parsed)
+        Ok(())
     }
 
     fn event_info(&mut self, value: &Value, location: &str) -> Result<EventInfo, ItemRefusal> {
         self.source_refs(value, location)?;
+        Ok(Self::event_info_from_value(value, location))
+    }
+
+    fn event_info_from_value(value: &Value, location: &str) -> EventInfo {
         let mut outputs = BTreeMap::new();
         for row in array(value, "outputs") {
             if let Some(reference) = string(row, "ref") {
@@ -1293,11 +1384,76 @@ impl<S: LayerFamilySource + ?Sized, I: Copy + Eq> Inspector<'_, '_, S, I> {
                 inputs.insert((reference.to_owned(), sha256.to_owned()));
             }
         }
-        Ok(EventInfo {
+        EventInfo {
             location: location.to_owned(),
             outputs,
             inputs,
-        })
+        }
+    }
+
+    fn record_candidate_event_summary(
+        &mut self,
+        namespace: DiscoveryEventSummaryNamespace,
+        id: &str,
+        location: &str,
+        value: &Value,
+        insert_into_owner_map: bool,
+    ) -> Result<(), ItemRefusal> {
+        if self.candidate_discovery_event_summaries.is_none() {
+            return Err(ItemRefusal::Source(
+                "candidate Discovery event summary store is unavailable".into(),
+            ));
+        }
+        let remaining_state_bytes = self.remaining_state_bytes()?;
+        let max_serialized_value_bytes =
+            self.candidate_discovery_event_json_limit.ok_or_else(|| {
+                ItemRefusal::Source("candidate Discovery event JSON limit is unavailable".into())
+            })?;
+        let store = self
+            .candidate_discovery_event_summaries
+            .as_deref_mut()
+            .ok_or_else(|| {
+                ItemRefusal::Source("candidate Discovery event summary store is unavailable".into())
+            })?;
+        let workspace_state_bytes = store.record_event(
+            namespace,
+            id,
+            location,
+            value,
+            insert_into_owner_map,
+            max_serialized_value_bytes,
+            remaining_state_bytes,
+        )?;
+        self.check_temporary_state(workspace_state_bytes)?;
+        self.candidate_discovery_event_summary_peak_workspace_state_bytes = self
+            .candidate_discovery_event_summary_peak_workspace_state_bytes
+            .max(workspace_state_bytes);
+        Ok(())
+    }
+
+    fn event_summary(
+        &mut self,
+        namespace: DiscoveryEventSummaryNamespace,
+        id: &str,
+        fallback: &BTreeMap<String, EventInfo>,
+    ) -> Result<Option<EventInfo>, ItemRefusal> {
+        if self.candidate_discovery_event_summaries.is_none() {
+            return Ok(fallback.get(id).cloned());
+        }
+        let remaining_state_bytes = self.remaining_state_bytes()?;
+        let store = self
+            .candidate_discovery_event_summaries
+            .as_deref_mut()
+            .ok_or_else(|| {
+                ItemRefusal::Source("candidate Discovery event summary store is unavailable".into())
+            })?;
+        let (stored, workspace_state_bytes) =
+            store.lookup_event(namespace, id, remaining_state_bytes)?;
+        self.check_temporary_state(workspace_state_bytes)?;
+        self.candidate_discovery_event_summary_peak_workspace_state_bytes = self
+            .candidate_discovery_event_summary_peak_workspace_state_bytes
+            .max(workspace_state_bytes);
+        Ok(stored.map(|(location, value)| Self::event_info_from_value(&value, &location)))
     }
 
     fn metadata_git(&mut self, path: &str, location: &str) -> Result<(), ItemRefusal> {
@@ -6898,6 +7054,8 @@ fn inspect_internal<S: LayerFamilySource + ?Sized>(
         None,
         None,
         None,
+        None,
+        None,
     )
     .map(|output| output.report)
 }
@@ -6994,6 +7152,8 @@ pub fn inspect_candidate_with_artifact_replays_and_records_with_proofs<
         None,
         None,
         None,
+        None,
+        None,
     )?;
     input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
     Ok(SourceFoundationCandidateDiscoveryReport {
@@ -7038,6 +7198,8 @@ pub fn inspect_candidate_with_artifact_evidence_provider<
         evidence_provider,
         None,
         None,
+        None,
+        None,
         require_local_payloads,
     )
 }
@@ -7074,6 +7236,8 @@ pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids<
         physical,
         evidence_provider,
         Some(discovery_seen_ids),
+        None,
+        None,
         None,
         require_local_payloads,
     )
@@ -7115,6 +7279,50 @@ pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_su
         evidence_provider,
         Some(discovery_seen_ids),
         Some(discovery_run_summaries),
+        None,
+        None,
+        require_local_payloads,
+    )
+}
+
+/// Candidate variant that also spills provenance event summaries and owner
+/// insertions to CMD's invocation-scoped event scratch store.
+#[allow(clippy::too_many_arguments)]
+pub fn inspect_candidate_with_artifact_evidence_provider_and_seen_ids_and_run_summaries_and_event_summaries<
+    S: LayerFamilySource + ?Sized,
+    I: Copy + Eq,
+>(
+    source: &mut S,
+    input: &dyn SourceCutInputWithIdentity<I>,
+    coverage: &SourceCutInputCoverage,
+    paths: &dyn SourceFoundationDefaultPaths,
+    prior_events: &dyn SourceFoundationDefaultEventLookup,
+    records_lookup: &dyn SourceFoundationDefaultRecordsLookup,
+    records: &SourceFoundationRecordsStreamedReport<'_, I>,
+    limits: ItemLimits,
+    physical: &SourcePhysicalFacts,
+    evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
+    discovery_seen_ids: &mut dyn DiscoverySeenIds,
+    discovery_run_summaries: &mut dyn DiscoveryRunSummaryStore,
+    discovery_event_summaries: &mut dyn DiscoveryEventSummaryStore,
+    max_event_json_bytes: usize,
+    require_local_payloads: bool,
+) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
+    inspect_candidate_with_artifact_evidence_provider_impl(
+        source,
+        input,
+        coverage,
+        paths,
+        prior_events,
+        records_lookup,
+        records,
+        limits,
+        physical,
+        evidence_provider,
+        Some(discovery_seen_ids),
+        Some(discovery_run_summaries),
+        Some(discovery_event_summaries),
+        Some(max_event_json_bytes),
         require_local_payloads,
     )
 }
@@ -7136,6 +7344,8 @@ fn inspect_candidate_with_artifact_evidence_provider_impl<
     evidence_provider: &mut dyn CandidateArtifactEvidenceProvider<I>,
     discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
     discovery_run_summaries: Option<&mut dyn DiscoveryRunSummaryStore>,
+    discovery_event_summaries: Option<&mut dyn DiscoveryEventSummaryStore>,
+    candidate_discovery_event_json_limit: Option<usize>,
     require_local_payloads: bool,
 ) -> Result<SourceFoundationCandidateDiscoveryReport<I>, ItemRefusal> {
     source.checkpoint(limits.deadline)?;
@@ -7174,6 +7384,8 @@ fn inspect_candidate_with_artifact_evidence_provider_impl<
         Some(evidence_provider),
         discovery_seen_ids,
         discovery_run_summaries,
+        discovery_event_summaries,
+        candidate_discovery_event_json_limit,
     )?;
     input.verify_current_fence(coverage, limits.deadline, source.cancellation())?;
     Ok(SourceFoundationCandidateDiscoveryReport {
@@ -7303,7 +7515,23 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     mut candidate_artifact_evidence_provider: Option<&mut dyn CandidateArtifactEvidenceProvider<I>>,
     mut discovery_seen_ids: Option<&mut dyn DiscoverySeenIds>,
     candidate_discovery_run_summaries: Option<&mut dyn DiscoveryRunSummaryStore>,
+    candidate_discovery_event_summaries: Option<&mut dyn DiscoveryEventSummaryStore>,
+    candidate_discovery_event_json_limit: Option<usize>,
 ) -> Result<DiscoveryKernelOutput, ItemRefusal> {
+    if candidate_discovery_event_summaries.is_some()
+        && (candidate_input.is_none()
+            || discovery_seen_ids.is_none()
+            || candidate_artifact_evidence_provider.is_none())
+        || candidate_discovery_event_summaries.is_some()
+            != candidate_discovery_event_json_limit.is_some()
+        || candidate_discovery_event_json_limit
+            .is_some_and(|limit| limit < 2 || limit > limits.max_member_bytes)
+    {
+        return Err(ItemRefusal::Source(
+            "candidate Discovery event summary store requires the bounded evidence and ID providers"
+                .into(),
+        ));
+    }
     let mut inspector = Inspector {
         source,
         paths,
@@ -7315,6 +7543,8 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         artifact_replays,
         candidate_invalid_schema_proofs,
         candidate_discovery_run_summaries,
+        candidate_discovery_event_summaries,
+        candidate_discovery_event_json_limit,
         limits,
         physical,
         issues: Vec::new(),
@@ -7341,6 +7571,7 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
         candidate_current_discovery_run_summary_state_bytes: 0,
         candidate_discovery_run_summary_peak_workspace_state_bytes: 0,
         candidate_discovery_seen_ids_peak_workspace_state_bytes: 0,
+        candidate_discovery_event_summary_peak_workspace_state_bytes: 0,
     };
     let mut previous_path: Option<String> = None;
     let mut previous_path_state = 0usize;
@@ -7383,40 +7614,63 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     }
     let mut source_event_insertions: Vec<(String, Value)> = Vec::new();
     let mut boundary_events: BTreeMap<String, EventInfo> = BTreeMap::new();
+    let mut discovery_event_observation_rows = 0u64;
+    let mut discovery_event_owner_insertion_rows = 0u64;
 
     // The maintained Python route validates this earlier private/handoff and
     // target-map district before its later discovery and artifact pass.
     inspect_companion_district(&mut inspector)?;
 
     for path in [ACCESS_EVENTS, SERVER_EVENTS] {
-        for (location, value) in inspector.jsonl(path, PROVENANCE_SCHEMA)? {
-            let info = inspector.event_info(&value, &location)?;
-            let Some(id) = string(&value, "event_id") else {
-                inspector.issue(
-                    &location,
-                    "missing-event-id",
-                    "boundary provenance event has no event_id",
+        inspector.for_each_jsonl(
+            path,
+            PROVENANCE_SCHEMA,
+            &mut |inspector, location, value| {
+                let info = inspector.event_info(value, location)?;
+                let Some(id) = string(value, "event_id") else {
+                    inspector.issue(
+                        location,
+                        "missing-event-id",
+                        "boundary provenance event has no event_id",
+                    )?;
+                    return Ok(());
+                };
+                let id = id.to_owned();
+                let first_in_cut = remember_discovery_id(
+                    inspector,
+                    &mut discovery_seen_ids,
+                    &mut event_ids,
+                    DiscoverySeenIdNamespace::Event,
+                    &id,
+                    location,
                 )?;
-                continue;
-            };
-            let id = id.to_owned();
-            let first_in_cut = remember_discovery_id(
-                &mut inspector,
-                &mut discovery_seen_ids,
-                &mut event_ids,
-                DiscoverySeenIdNamespace::Event,
-                &id,
-                &location,
-            )?;
-            let duplicate_prior = discovery_seen_ids.is_some()
-                && first_in_cut
-                && prior_event_contains(inspector, prior_events, &id)?;
-            if !first_in_cut || duplicate_prior {
-                inspector.issue(&location, "duplicate-event-id", id.as_str())?;
-            }
-            boundary_events.insert(id.clone(), info);
-            source_event_insertions.push((id, value));
-        }
+                let duplicate_prior = discovery_seen_ids.is_some()
+                    && first_in_cut
+                    && prior_event_contains(inspector, prior_events, &id)?;
+                if !first_in_cut || duplicate_prior {
+                    inspector.issue(location, "duplicate-event-id", id.as_str())?;
+                }
+                if inspector.candidate_discovery_event_summaries.is_some() {
+                    inspector.record_candidate_event_summary(
+                        DiscoveryEventSummaryNamespace::Boundary,
+                        &id,
+                        location,
+                        value,
+                        true,
+                    )?;
+                    discovery_event_observation_rows = discovery_event_observation_rows
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?;
+                    discovery_event_owner_insertion_rows = discovery_event_owner_insertion_rows
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?;
+                } else {
+                    boundary_events.insert(id.clone(), info);
+                    source_event_insertions.push((id, value.clone()));
+                }
+                Ok(())
+            },
+        )?;
     }
 
     let mut discoveries: BTreeMap<String, DiscoveryInfo> = BTreeMap::new();
@@ -7550,46 +7804,71 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
 
     let mut discovery_events: BTreeMap<String, EventInfo> = BTreeMap::new();
     let mut discovery_event_ids = BTreeSet::new();
-    for (location, value) in inspector.jsonl(DISCOVERY_EVENTS, PROVENANCE_SCHEMA)? {
-        let info = inspector.event_info(&value, &location)?;
-        let Some(id) = string(&value, "event_id") else {
-            inspector.issue(
-                &location,
-                "missing-event-id",
-                "discovery provenance event has no event_id",
+    inspector.for_each_jsonl(
+        DISCOVERY_EVENTS,
+        PROVENANCE_SCHEMA,
+        &mut |inspector, location, value| {
+            let info = inspector.event_info(value, location)?;
+            let Some(id) = string(value, "event_id") else {
+                inspector.issue(
+                    location,
+                    "missing-event-id",
+                    "discovery provenance event has no event_id",
+                )?;
+                return Ok(());
+            };
+            let id = id.to_owned();
+            let first_discovery_event = remember_discovery_id(
+                inspector,
+                &mut discovery_seen_ids,
+                &mut discovery_event_ids,
+                DiscoverySeenIdNamespace::DiscoveryEvent,
+                &id,
+                location,
             )?;
-            continue;
-        };
-        let id = id.to_owned();
-        let first_discovery_event = remember_discovery_id(
-            &mut inspector,
-            &mut discovery_seen_ids,
-            &mut discovery_event_ids,
-            DiscoverySeenIdNamespace::DiscoveryEvent,
-            &id,
-            &location,
-        )?;
-        if !first_discovery_event {
-            inspector.issue(&location, "duplicate-discovery-event-id", id.as_str())?;
-        }
-        let first_event = remember_discovery_id(
-            &mut inspector,
-            &mut discovery_seen_ids,
-            &mut event_ids,
-            DiscoverySeenIdNamespace::Event,
-            &id,
-            &location,
-        )?;
-        let duplicate_prior = discovery_seen_ids.is_some()
-            && first_event
-            && prior_event_contains(&mut inspector, prior_events, &id)?;
-        if !first_event || duplicate_prior {
-            inspector.issue(&location, "duplicate-event-id", id.as_str())?;
-        } else {
-            source_event_insertions.push((id.clone(), value));
-        }
-        discovery_events.insert(id, info);
-    }
+            if !first_discovery_event {
+                inspector.issue(location, "duplicate-discovery-event-id", id.as_str())?;
+            }
+            let first_event = remember_discovery_id(
+                inspector,
+                &mut discovery_seen_ids,
+                &mut event_ids,
+                DiscoverySeenIdNamespace::Event,
+                &id,
+                location,
+            )?;
+            let duplicate_prior = discovery_seen_ids.is_some()
+                && first_event
+                && prior_event_contains(inspector, prior_events, &id)?;
+            let insert_into_owner_map = first_event && !duplicate_prior;
+            if !insert_into_owner_map {
+                inspector.issue(location, "duplicate-event-id", id.as_str())?;
+            }
+            if inspector.candidate_discovery_event_summaries.is_some() {
+                inspector.record_candidate_event_summary(
+                    DiscoveryEventSummaryNamespace::Discovery,
+                    &id,
+                    location,
+                    value,
+                    insert_into_owner_map,
+                )?;
+                discovery_event_observation_rows = discovery_event_observation_rows
+                    .checked_add(1)
+                    .ok_or(ItemRefusal::Budget)?;
+                if insert_into_owner_map {
+                    discovery_event_owner_insertion_rows = discovery_event_owner_insertion_rows
+                        .checked_add(1)
+                        .ok_or(ItemRefusal::Budget)?;
+                }
+            } else {
+                if insert_into_owner_map {
+                    source_event_insertions.push((id.clone(), value.clone()));
+                }
+                discovery_events.insert(id, info);
+            }
+            Ok(())
+        },
+    )?;
 
     let mut artifact_ids = BTreeSet::new();
     inspector.for_each_current_path(&mut |inspector, path| {
@@ -7888,7 +8167,11 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 }
             }
         } else if native_capture == NativeArtifactCapture::Legacy {
-            if let Some(event) = discovery_events.get(event_ref).cloned() {
+            if let Some(event) = inspector.event_summary(
+                DiscoveryEventSummaryNamespace::Discovery,
+                event_ref,
+                &discovery_events,
+            )? {
                 let mut required = BTreeSet::from([
                     path.to_owned(),
                     rights_ref.to_owned(),
@@ -8153,7 +8436,11 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             }
         }
         let event_ref = string(&value, "provenance_event_ref").unwrap_or("");
-        match discovery_events.get(event_ref).cloned() {
+        match inspector.event_summary(
+            DiscoveryEventSummaryNamespace::Discovery,
+            event_ref,
+            &discovery_events,
+        )? {
             Some(event) => {
                 let mut required = BTreeSet::from([path.to_owned(), rights_ref.to_owned()]);
                 if safe_payload {
@@ -8335,7 +8622,11 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             }
         }
         let event_ref = string(&value, "provenance_event_ref").unwrap_or("");
-        match discovery_events.get(event_ref).cloned() {
+        match inspector.event_summary(
+            DiscoveryEventSummaryNamespace::Discovery,
+            event_ref,
+            &discovery_events,
+        )? {
             Some(event) => {
                 let mut required = BTreeSet::from([
                     path.to_owned(),
@@ -8632,7 +8923,11 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             }
 
             let event_ref = string(&value, "provenance_event_ref").unwrap_or("");
-            match discovery_events.get(event_ref).cloned() {
+            match inspector.event_summary(
+                DiscoveryEventSummaryNamespace::Discovery,
+                event_ref,
+                &discovery_events,
+            )? {
                 Some(event) => {
                     let mut required = BTreeSet::from([
                         path.to_owned(),
@@ -8817,7 +9112,11 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             .iter()
             .filter_map(Value::as_str)
         {
-            let Some(event) = boundary_events.get(event_ref).cloned() else {
+            let Some(event) = inspector.event_summary(
+                DiscoveryEventSummaryNamespace::Boundary,
+                event_ref,
+                &boundary_events,
+            )? else {
                 inspector.issue(path, "unresolved-server-plan-boundary-event", event_ref)?;
                 continue;
             };
@@ -8867,6 +9166,24 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
     }
 
     inspector.checkpoint()?;
+    let discovery_event_summary_cost = if inspector.candidate_discovery_event_summaries.is_some() {
+        let remaining_state_bytes = inspector.remaining_state_bytes()?;
+        let cost = inspector
+            .candidate_discovery_event_summaries
+            .as_deref_mut()
+            .ok_or(ItemRefusal::Budget)?
+            .finish(
+                discovery_event_observation_rows,
+                discovery_event_owner_insertion_rows,
+                remaining_state_bytes,
+            )?;
+        inspector.candidate_discovery_event_summary_peak_workspace_state_bytes = inspector
+            .candidate_discovery_event_summary_peak_workspace_state_bytes
+            .max(cost.workspace_state_bytes);
+        Some(cost)
+    } else {
+        None
+    };
     let discovery_run_summary_cost = if inspector.candidate_discovery_run_summaries.is_some() {
         let remaining_state_bytes = inspector.remaining_state_bytes()?;
         let cost = inspector
@@ -8926,6 +9243,25 @@ fn inspect_kernel<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 candidate_discovery_run_summary_serialized_read_bytes: discovery_run_summary_cost
                     .map_or(0, |cost| cost.serialized_summary_read_bytes),
                 candidate_discovery_run_summary_scan_row_operations: discovery_run_summary_cost
+                    .map_or(0, |cost| cost.scan_row_operations),
+                candidate_discovery_event_summary_observation_rows: discovery_event_summary_cost
+                    .map_or(0, |cost| cost.observation_rows),
+                candidate_discovery_event_summary_owner_insertion_rows:
+                    discovery_event_summary_cost.map_or(0, |cost| cost.owner_insertion_rows),
+                candidate_discovery_event_summary_serialized_write_bytes:
+                    discovery_event_summary_cost.map_or(0, |cost| cost.serialized_write_bytes),
+                candidate_discovery_event_summary_serialized_read_bytes:
+                    discovery_event_summary_cost.map_or(0, |cost| cost.serialized_read_bytes),
+                candidate_discovery_event_summary_peak_workspace_state_bytes:
+                    discovery_event_summary_cost.map_or(
+                        inspector.candidate_discovery_event_summary_peak_workspace_state_bytes,
+                        |cost| {
+                            inspector
+                                .candidate_discovery_event_summary_peak_workspace_state_bytes
+                                .max(cost.workspace_state_bytes)
+                        },
+                    ),
+                candidate_discovery_event_summary_scan_row_operations: discovery_event_summary_cost
                     .map_or(0, |cost| cost.scan_row_operations),
             },
         },
