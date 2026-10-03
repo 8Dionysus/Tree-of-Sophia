@@ -17,8 +17,13 @@ use tos_segment_store::{
 use tos_source_store::SourceMembershipV1;
 
 const ROOTSET_SCHEMA: &str = "tos-native-source-rootset-v2";
+const LEGACY_REVISION_ROOT_SCHEMA: &str = "tos-native-source-revision-roots-v2";
+const TYPED_REVISION_ROOT_SCHEMA: &str = "tos-native-source-revision-roots-v2-records";
+const COMPACT_COMMIT_SCHEMA: &str = "tos-native-source-compact-commit-v2";
+const COMPACT_COMMIT_REVISION_DOMAIN: &[u8] = b"tos-native-source-compact-commit-revision-v2\0";
 const ROOTSET_MAX_BYTES: usize = 65_536;
 const TREE_DESCRIPTOR_MAX_BYTES: usize = 12_288;
+pub(crate) const MAX_COMPACT_COMMIT_V2_BYTES: usize = 65_536;
 pub(crate) const MEMBERS_KIND: &[u8] = b"source-members-v2";
 pub(crate) const IDENTITIES_KIND: &[u8] = b"source-identities-v2";
 pub(crate) const DEPENDENCIES_KIND: &[u8] = b"source-dependencies-v2";
@@ -88,6 +93,83 @@ fn tree(value: &serde_json::Value) -> io::Result<AuthenticatedTreeDescriptorV2> 
         .map_err(|_| invalid("source rootset tree descriptor is invalid"))
 }
 
+/// The file format retained for one immutable source revision. The legacy
+/// variant exists only to decode old rootsets and preserves their original
+/// scalar wire field exactly; it is never emitted by a new writer.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum SourceRevisionArtifactV2 {
+    LegacyManifestV1 { sha256: Digest256 },
+    SnapshotV1 { sha256: Digest256, bytes: u64 },
+    CompactCommitV2 { sha256: Digest256, bytes: u64 },
+}
+
+impl SourceRevisionArtifactV2 {
+    pub(crate) fn format(&self) -> &'static str {
+        match self {
+            Self::LegacyManifestV1 { .. } => "legacy-manifest-v1",
+            Self::SnapshotV1 { .. } => "tos-corpus-snapshot-v1",
+            Self::CompactCommitV2 { .. } => "tos-native-source-compact-commit-v2",
+        }
+    }
+
+    pub(crate) fn sha256(&self) -> Digest256 {
+        match self {
+            Self::LegacyManifestV1 { sha256 }
+            | Self::SnapshotV1 { sha256, .. }
+            | Self::CompactCommitV2 { sha256, .. } => *sha256,
+        }
+    }
+
+    pub(crate) fn bytes(&self) -> Option<u64> {
+        match self {
+            Self::LegacyManifestV1 { .. } => None,
+            Self::SnapshotV1 { bytes, .. } | Self::CompactCommitV2 { bytes, .. } => Some(*bytes),
+        }
+    }
+
+    pub(crate) fn filename(&self) -> &'static str {
+        match self {
+            Self::LegacyManifestV1 { .. } | Self::SnapshotV1 { .. } => "snapshot.json",
+            Self::CompactCommitV2 { .. } => "commit-v2.json",
+        }
+    }
+
+    fn wire_value(&self) -> serde_json::Value {
+        match self {
+            Self::LegacyManifestV1 { sha256 } => serde_json::json!(sha256.to_hex()),
+            Self::SnapshotV1 { sha256, bytes } => {
+                serde_json::json!(["snapshot-v1", sha256.to_hex(), bytes])
+            }
+            Self::CompactCommitV2 { sha256, bytes } => {
+                serde_json::json!(["compact-commit-v2", sha256.to_hex(), bytes])
+            }
+        }
+    }
+
+    fn from_typed_wire(value: &serde_json::Value) -> io::Result<Self> {
+        let fields = value
+            .as_array()
+            .filter(|fields| fields.len() == 3)
+            .ok_or_else(|| invalid("source revision artifact tuple shape differs"))?;
+        let format = fields[0]
+            .as_str()
+            .ok_or_else(|| invalid("source revision artifact format is not text"))?;
+        let sha256 = digest(&fields[1])?;
+        let bytes = number(&fields[2])?;
+        if bytes == 0 {
+            return Err(invalid("source revision artifact byte length is zero"));
+        }
+        match format {
+            "snapshot-v1" => Ok(Self::SnapshotV1 { sha256, bytes }),
+            "compact-commit-v2" if bytes <= MAX_COMPACT_COMMIT_V2_BYTES as u64 => {
+                Ok(Self::CompactCommitV2 { sha256, bytes })
+            }
+            "compact-commit-v2" => Err(invalid("compact source commit exceeds its byte profile")),
+            _ => Err(invalid("source revision artifact format is unsupported")),
+        }
+    }
+}
+
 /// One revision's current persistent roots. V1 membership remains its exact
 /// historical digest; V2 tree commitments are separately named descriptors.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -95,7 +177,11 @@ pub(crate) struct SourceRevisionRootsV2 {
     pub revision: SourceRevision,
     pub base_revision: Option<SourceRevision>,
     pub validator_sha256: Digest256,
+    /// Compatibility alias for existing CMD receipts. It always equals the
+    /// typed source artifact's digest, not necessarily a V1 manifest digest.
     pub manifest_sha256: Digest256,
+    pub source_artifact: SourceRevisionArtifactV2,
+    pub batch_sha256: Option<Digest256>,
     pub membership_v1: SourceMembershipV1,
     pub source_bytes: u64,
     pub member_count: u64,
@@ -110,17 +196,30 @@ pub(crate) struct SourceRevisionRootsV2 {
 }
 
 impl SourceRevisionRootsV2 {
+    pub(crate) const MAX_ENCODED_BYTES: usize = ROOTSET_MAX_BYTES;
+
     pub(crate) fn validate_store_binding(
         &self,
         store_id: [u8; 16],
         domain_digest: Digest256,
     ) -> io::Result<()> {
-        if self.member_count != self.membership_v1.count
+        if self.manifest_sha256 != self.source_artifact.sha256()
+            || self.member_count != self.membership_v1.count
             || self.base_revision == Some(self.revision)
             || self.dependency_source_count > self.dependency_count
             || (self.dependency_source_count == 0) != (self.dependency_count == 0)
         {
             return Err(invalid("source revision root logical counts differ"));
+        }
+        match (&self.source_artifact, self.base_revision, self.batch_sha256) {
+            (SourceRevisionArtifactV2::LegacyManifestV1 { .. }, _, None) => (),
+            (SourceRevisionArtifactV2::SnapshotV1 { bytes, .. }, None, Some(_)) if *bytes > 0 => (),
+            (SourceRevisionArtifactV2::CompactCommitV2 { bytes, .. }, Some(_), Some(_))
+                if *bytes > 0 && *bytes <= MAX_COMPACT_COMMIT_V2_BYTES as u64 =>
+            {
+                ()
+            }
+            _ => return Err(invalid("source revision artifact and batch binding differ")),
         }
         for (root, kind, count) in [
             (&self.members, MEMBERS_KIND, self.member_count),
@@ -159,12 +258,39 @@ impl SourceRevisionRootsV2 {
 
     fn wire_value(&self) -> io::Result<serde_json::Value> {
         self.validate_store_binding(self.members.store_id, self.members.domain_digest)?;
+        if matches!(
+            self.source_artifact,
+            SourceRevisionArtifactV2::LegacyManifestV1 { .. }
+        ) {
+            return Ok(serde_json::json!([
+                LEGACY_REVISION_ROOT_SCHEMA,
+                self.revision.0.to_hex(),
+                self.base_revision.map(|revision| revision.0.to_hex()),
+                self.validator_sha256.to_hex(),
+                self.manifest_sha256.to_hex(),
+                self.membership_v1.count,
+                self.membership_v1.digest.to_hex(),
+                self.source_bytes,
+                self.member_count,
+                self.identity_count,
+                self.dependency_source_count,
+                self.dependency_count,
+                self.retirement_count,
+                tree_bytes(&self.members)?,
+                tree_bytes(&self.identities)?,
+                tree_bytes(&self.dependencies)?,
+                tree_bytes(&self.retirements)?
+            ]));
+        }
         Ok(serde_json::json!([
-            "tos-native-source-revision-roots-v2",
+            TYPED_REVISION_ROOT_SCHEMA,
             self.revision.0.to_hex(),
             self.base_revision.map(|revision| revision.0.to_hex()),
             self.validator_sha256.to_hex(),
-            self.manifest_sha256.to_hex(),
+            self.source_artifact.wire_value(),
+            self.batch_sha256
+                .ok_or_else(|| invalid("typed source revision lacks its batch digest"))?
+                .to_hex(),
             self.membership_v1.count,
             self.membership_v1.digest.to_hex(),
             self.source_bytes,
@@ -183,16 +309,203 @@ impl SourceRevisionRootsV2 {
     fn from_wire(value: &serde_json::Value) -> io::Result<Self> {
         let fields = value
             .as_array()
-            .filter(|fields| fields.len() == 17)
             .ok_or_else(|| invalid("source revision root tuple shape differs"))?;
-        if fields[0].as_str() != Some("tos-native-source-revision-roots-v2") {
-            return Err(invalid("source revision root version differs"));
+        let legacy = fields.len() == 17 && fields[0].as_str() == Some(LEGACY_REVISION_ROOT_SCHEMA);
+        let typed = fields.len() == 18 && fields[0].as_str() == Some(TYPED_REVISION_ROOT_SCHEMA);
+        if !legacy && !typed {
+            return Err(invalid("source revision root version or shape differs"));
         }
+        let (artifact, batch_sha256, membership_index) = if legacy {
+            let sha256 = digest(&fields[4])?;
+            (
+                SourceRevisionArtifactV2::LegacyManifestV1 { sha256 },
+                None,
+                5,
+            )
+        } else {
+            (
+                SourceRevisionArtifactV2::from_typed_wire(&fields[4])?,
+                Some(digest(&fields[5])?),
+                6,
+            )
+        };
+        let tree_index = membership_index + 8;
         let result = Self {
             revision: SourceRevision(digest(&fields[1])?),
             base_revision: optional_revision(&fields[2])?,
             validator_sha256: digest(&fields[3])?,
-            manifest_sha256: digest(&fields[4])?,
+            manifest_sha256: artifact.sha256(),
+            source_artifact: artifact,
+            batch_sha256,
+            membership_v1: SourceMembershipV1 {
+                count: number(&fields[membership_index])?,
+                digest: digest(&fields[membership_index + 1])?,
+            },
+            source_bytes: number(&fields[membership_index + 2])?,
+            member_count: number(&fields[membership_index + 3])?,
+            identity_count: number(&fields[membership_index + 4])?,
+            dependency_source_count: number(&fields[membership_index + 5])?,
+            dependency_count: number(&fields[membership_index + 6])?,
+            retirement_count: number(&fields[membership_index + 7])?,
+            members: tree(&fields[tree_index])?,
+            identities: tree(&fields[tree_index + 1])?,
+            dependencies: tree(&fields[tree_index + 2])?,
+            retirements: tree(&fields[tree_index + 3])?,
+        };
+        if result.wire_value()? != *value {
+            return Err(invalid("source revision root encoding is not canonical"));
+        }
+        Ok(result)
+    }
+}
+
+/// Compact successor metadata persisted beside the immutable COW roots.
+/// Its revision is derived from the exact transaction identity and committed
+/// roots; it contains no whole-corpus V1 manifest.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct CompactCommitV2 {
+    pub revision: SourceRevision,
+    pub base_revision: SourceRevision,
+    pub validator_sha256: Digest256,
+    pub batch_sha256: Digest256,
+    pub membership_v1: SourceMembershipV1,
+    pub source_bytes: u64,
+    pub member_count: u64,
+    pub identity_count: u64,
+    pub dependency_source_count: u64,
+    pub dependency_count: u64,
+    pub retirement_count: u64,
+    pub members: AuthenticatedTreeDescriptorV2,
+    pub identities: AuthenticatedTreeDescriptorV2,
+    pub dependencies: AuthenticatedTreeDescriptorV2,
+    pub retirements: AuthenticatedTreeDescriptorV2,
+}
+
+impl CompactCommitV2 {
+    pub(crate) fn seal_successor(
+        mut roots: SourceRevisionRootsV2,
+        batch_sha256: Digest256,
+    ) -> io::Result<(SourceRevisionRootsV2, Self, Vec<u8>)> {
+        let base_revision = roots
+            .base_revision
+            .ok_or_else(|| invalid("compact source successor lacks its base revision"))?;
+        let mut commit = Self {
+            revision: roots.revision,
+            base_revision,
+            validator_sha256: roots.validator_sha256,
+            batch_sha256,
+            membership_v1: roots.membership_v1,
+            source_bytes: roots.source_bytes,
+            member_count: roots.member_count,
+            identity_count: roots.identity_count,
+            dependency_source_count: roots.dependency_source_count,
+            dependency_count: roots.dependency_count,
+            retirement_count: roots.retirement_count,
+            members: roots.members.clone(),
+            identities: roots.identities.clone(),
+            dependencies: roots.dependencies.clone(),
+            retirements: roots.retirements.clone(),
+        };
+        commit.revision = commit.derived_revision()?;
+        let bytes = commit.encode()?;
+        let sha256 = Digest256::of_bytes(&bytes);
+        roots.revision = commit.revision;
+        roots.batch_sha256 = Some(batch_sha256);
+        roots.manifest_sha256 = sha256;
+        roots.source_artifact = SourceRevisionArtifactV2::CompactCommitV2 {
+            sha256,
+            bytes: u64::try_from(bytes.len())
+                .map_err(|_| invalid("compact source commit length exceeds range"))?,
+        };
+        Ok((roots, commit, bytes))
+    }
+
+    fn root_fields(&self) -> io::Result<serde_json::Value> {
+        Ok(serde_json::json!([
+            "tos-native-source-compact-commit-v2-preimage",
+            self.base_revision.0.to_hex(),
+            self.validator_sha256.to_hex(),
+            self.batch_sha256.to_hex(),
+            self.membership_v1.count,
+            self.membership_v1.digest.to_hex(),
+            self.source_bytes,
+            self.member_count,
+            self.identity_count,
+            self.dependency_source_count,
+            self.dependency_count,
+            self.retirement_count,
+            tree_bytes(&self.members)?,
+            tree_bytes(&self.identities)?,
+            tree_bytes(&self.dependencies)?,
+            tree_bytes(&self.retirements)?
+        ]))
+    }
+
+    pub(crate) fn derived_revision(&self) -> io::Result<SourceRevision> {
+        if self.member_count != self.membership_v1.count
+            || self.dependency_source_count > self.dependency_count
+            || (self.dependency_source_count == 0) != (self.dependency_count == 0)
+        {
+            return Err(invalid("compact source commit logical counts differ"));
+        }
+        let preimage = serde_json::to_vec(&self.root_fields()?)
+            .map_err(|_| invalid("compact source revision preimage failed"))?;
+        let mut hasher = Digest256Hasher::new();
+        hasher.update(COMPACT_COMMIT_REVISION_DOMAIN);
+        hasher.update(&preimage);
+        Ok(SourceRevision(hasher.finalize()))
+    }
+
+    pub(crate) fn encode(&self) -> io::Result<Vec<u8>> {
+        if self.derived_revision()? != self.revision {
+            return Err(invalid("compact source revision derivation differs"));
+        }
+        let raw = serde_json::to_vec(&serde_json::json!([
+            COMPACT_COMMIT_SCHEMA,
+            self.revision.0.to_hex(),
+            self.base_revision.0.to_hex(),
+            self.validator_sha256.to_hex(),
+            self.batch_sha256.to_hex(),
+            self.membership_v1.count,
+            self.membership_v1.digest.to_hex(),
+            self.source_bytes,
+            self.member_count,
+            self.identity_count,
+            self.dependency_source_count,
+            self.dependency_count,
+            self.retirement_count,
+            tree_bytes(&self.members)?,
+            tree_bytes(&self.identities)?,
+            tree_bytes(&self.dependencies)?,
+            tree_bytes(&self.retirements)?
+        ]))
+        .map_err(|_| invalid("compact source commit serialization failed"))?;
+        if raw.is_empty() || raw.len() > MAX_COMPACT_COMMIT_V2_BYTES {
+            return Err(invalid("compact source commit byte profile exceeded"));
+        }
+        Ok(raw)
+    }
+
+    pub(crate) fn decode(raw: &[u8]) -> io::Result<Self> {
+        if raw.is_empty() || raw.len() > MAX_COMPACT_COMMIT_V2_BYTES {
+            return Err(invalid("compact source commit byte profile exceeded"));
+        }
+        let value: serde_json::Value = serde_json::from_slice(raw)
+            .map_err(|_| invalid("compact source commit JSON is invalid"))?;
+        let fields = value
+            .as_array()
+            .filter(|fields| fields.len() == 17)
+            .ok_or_else(|| invalid("compact source commit tuple shape differs"))?;
+        if fields[0].as_str() != Some(COMPACT_COMMIT_SCHEMA) {
+            return Err(invalid("compact source commit version differs"));
+        }
+        let base_revision = optional_revision(&fields[2])?
+            .ok_or_else(|| invalid("compact source commit base revision is absent"))?;
+        let result = Self {
+            revision: SourceRevision(digest(&fields[1])?),
+            base_revision,
+            validator_sha256: digest(&fields[3])?,
+            batch_sha256: digest(&fields[4])?,
             membership_v1: SourceMembershipV1 {
                 count: number(&fields[5])?,
                 digest: digest(&fields[6])?,
@@ -208,10 +521,32 @@ impl SourceRevisionRootsV2 {
             dependencies: tree(&fields[15])?,
             retirements: tree(&fields[16])?,
         };
-        if result.wire_value()? != *value {
-            return Err(invalid("source revision root encoding is not canonical"));
+        if result.encode()?.as_slice() != raw {
+            return Err(invalid("compact source commit encoding is not canonical"));
         }
         Ok(result)
+    }
+
+    pub(crate) fn matches_roots(&self, roots: &SourceRevisionRootsV2) -> bool {
+        self.revision == roots.revision
+            && Some(self.base_revision) == roots.base_revision
+            && self.validator_sha256 == roots.validator_sha256
+            && Some(self.batch_sha256) == roots.batch_sha256
+            && self.membership_v1 == roots.membership_v1
+            && self.source_bytes == roots.source_bytes
+            && self.member_count == roots.member_count
+            && self.identity_count == roots.identity_count
+            && self.dependency_source_count == roots.dependency_source_count
+            && self.dependency_count == roots.dependency_count
+            && self.retirement_count == roots.retirement_count
+            && self.members == roots.members
+            && self.identities == roots.identities
+            && self.dependencies == roots.dependencies
+            && self.retirements == roots.retirements
+            && matches!(
+                roots.source_artifact,
+                SourceRevisionArtifactV2::CompactCommitV2 { .. }
+            )
     }
 }
 
@@ -467,6 +802,8 @@ pub(crate) fn build_initial_rootset_v2(
     index: &super::source_admission_spooled_index::IndexView<'_>,
     revision: SourceRevision,
     manifest_sha256: Digest256,
+    manifest_bytes: u64,
+    batch_sha256: Digest256,
     deadline: Instant,
     cancelled: &std::sync::atomic::AtomicBool,
 ) -> io::Result<BuiltInitialRootSetV2> {
@@ -681,6 +1018,11 @@ pub(crate) fn build_initial_rootset_v2(
         base_revision: None,
         validator_sha256: fence.validator_sha256,
         manifest_sha256,
+        source_artifact: SourceRevisionArtifactV2::SnapshotV1 {
+            sha256: manifest_sha256,
+            bytes: manifest_bytes,
+        },
+        batch_sha256: Some(batch_sha256),
         membership_v1: fence.membership,
         source_bytes,
         member_count,

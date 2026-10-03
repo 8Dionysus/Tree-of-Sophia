@@ -850,6 +850,8 @@ impl<'host> SpoolCandidate<'host> {
                     index,
                     revision,
                     manifest_sha256,
+                    manifest_bytes,
+                    fence.batch_sha256,
                     self.deadline,
                     &self.cancelled,
                 ) {
