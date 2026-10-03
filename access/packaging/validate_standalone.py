@@ -5,11 +5,9 @@ import argparse
 import importlib.util
 import itertools
 import json
-import math
 import os
 import subprocess
 import sys
-import time
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -525,8 +523,8 @@ def _scan_source(access_root: Path) -> None:
             raise RuntimeError(f"hard-coded host path: {path.relative_to(access_root)}")
 
 
-def validate_software_reference(repo_root: Path) -> dict[str, Any]:
-    """Independent Python software-contract oracle retained for comparisons."""
+def validate_software(repo_root: Path) -> dict[str, Any]:
+    """Check owned code/contracts without selecting or scanning any corpus."""
     _validate_contracts(repo_root)
     _scan_source(repo_root / "access")
     return {
@@ -537,8 +535,7 @@ def validate_software_reference(repo_root: Path) -> dict[str, Any]:
     }
 
 
-def validate_source_reference(repo_root: Path) -> dict[str, Any]:
-    """Independent Python source-validation oracle retained for comparisons."""
+def validate_source(repo_root: Path) -> dict[str, Any]:
     _validate_contracts(repo_root)
     _validate_runtime_data(repo_root, repo_root)
     _scan_source(repo_root / "access")
@@ -574,183 +571,21 @@ def validate_source_reference(repo_root: Path) -> dict[str, Any]:
     }
 
 
-def _native_validate(
-    repo_root: Path,
-    *,
-    mode: str,
-    native_prefix: Path,
-    operation_seconds: int,
-    source_limits: dict[str, int] | None = None,
-) -> dict[str, Any]:
-    """Forward one maintained validation request to the selected installed ELF."""
-    access_src = (Path(__file__).resolve().parents[1] / "src").as_posix()
-    if access_src not in sys.path:
-        sys.path.insert(0, access_src)
-    from tos_access.native_io import native_packets
-
-    root = repo_root.resolve(strict=True)
-    prefix = native_prefix.expanduser()
-    if not prefix.is_absolute() or ".." in prefix.parts:
-        raise ValueError("native validation requires an explicit absolute --native-prefix")
-    if type(operation_seconds) is not int or operation_seconds <= 5:
-        raise ValueError("native validation requires a selected finite operation envelope")
-    try:
-        absolute_deadline = time.monotonic() + operation_seconds
-        finite_deadline = math.isfinite(absolute_deadline)
-    except OverflowError as exc:
-        raise ValueError("native validation operation envelope is too large") from exc
-    if not finite_deadline:
-        raise ValueError("native validation operation deadline is not finite")
-
-    argv = ["--root", root.as_posix(), "validate-standalone", "--json", f"--{mode}"]
-    pass_fds: tuple[int, ...] = ()
-    env = os.environ.copy()
-    if mode == "source":
-        required = {
-            "tmpfs_quota_bytes": "--tmpfs-quota-bytes",
-            "tmpfs_inode_limit": "--tmpfs-inode-limit",
-            "working_ram_bytes": "--working-ram-bytes",
-            "max_build_seconds": "--max-build-seconds",
-            "max_query_rows": "--max-query-rows",
-            "max_query_row_bytes": "--max-query-row-bytes",
-            "max_query_decoded_bytes": "--max-query-decoded-bytes",
-            "max_query_response_bytes": "--max-query-response-bytes",
-        }
-        if source_limits is None or set(source_limits) != set(required):
-            raise ValueError("source validation requires the complete admitted native limit tuple")
-        build_seconds = source_limits["max_build_seconds"]
-        if type(build_seconds) is not int or not 600 <= build_seconds <= 7200:
-            raise ValueError("source validation build seconds must match the native 600..7200 contract")
-        if operation_seconds <= build_seconds + 5:
-            raise ValueError("outer operation envelope must include native build time and five-second cleanup")
-        for field, option in required.items():
-            value = source_limits[field]
-            if type(value) is not int or value <= 0:
-                raise ValueError(f"source validation {option} must be a positive selected limit")
-            argv.append(f"{option}={value}")
-        fd_text = env.get("ABYSS_STAGE_TICKET_FD")
-        if fd_text is None or not fd_text.isascii() or not fd_text.isdecimal():
-            raise ValueError("source validation requires an inherited ABYSS_STAGE_TICKET_FD")
-        ticket_fd = int(fd_text)
-        if ticket_fd < 3:
-            raise ValueError("source validation stage ticket descriptor is invalid")
-        os.fstat(ticket_fd)
-        pass_fds = (ticket_fd,)
-    elif mode != "software" or source_limits is not None:
-        raise ValueError("native validation mode and selected limits differ")
-
-    packets = list(native_packets(
-        argv,
-        prefix=prefix.as_posix(),
-        input_cap=1,
-        frame_cap=65_536,
-        absolute_deadline=absolute_deadline,
-        operation_seconds=operation_seconds,
-        env=env,
-        pass_fds=pass_fds,
-    ))
-    if len(packets) != 1 or not isinstance(packets[0], dict):
-        raise RuntimeError("native standalone validator must return exactly one JSON report")
-    report = packets[0]
-    if (report.get("schema_version") != "tos_standalone_validation_v1"
-            or report.get("ok") is not True or report.get("mode") != mode
-            or report.get("data_validated") is not (mode == "source")):
-        raise RuntimeError("native standalone validation report contract differs")
-    return report
-
-
-def validate_software(
-    repo_root: Path,
-    *,
-    native_prefix: Path,
-    operation_seconds: int = 50,
-) -> dict[str, Any]:
-    """Run the maintained Rust software-contract and marker checks."""
-    return _native_validate(
-        repo_root,
-        mode="software",
-        native_prefix=native_prefix,
-        operation_seconds=operation_seconds,
-    )
-
-
-def validate_source(
-    repo_root: Path,
-    *,
-    native_prefix: Path,
-    operation_seconds: int,
-    source_limits: dict[str, int],
-) -> dict[str, Any]:
-    """Run source5 validation through the installed native Access command."""
-    return _native_validate(
-        repo_root,
-        mode="source",
-        native_prefix=native_prefix,
-        operation_seconds=operation_seconds,
-        source_limits=source_limits,
-    )
-
-
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Validate Tree of Sophia standalone access")
-    parser.add_argument("--repo-root", "--root", type=Path, default=Path(__file__).resolve().parents[2])
-    parser.add_argument("--native-prefix", type=Path, default=os.environ.get("TOS_NATIVE_PREFIX"))
-    parser.add_argument("--operation-seconds", type=int)
+    parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument(
         "--software",
         action="store_true",
         help="validate software contracts without loading a data snapshot",
     )
-    parser.add_argument("--reference-oracle", action="store_true",
-                        help="run the retained independent Python oracle for comparison only")
-    parser.add_argument("--tmpfs-quota-bytes", type=int)
-    parser.add_argument("--tmpfs-inode-limit", type=int)
-    parser.add_argument("--working-ram-bytes", type=int)
-    parser.add_argument("--max-build-seconds", type=int)
-    parser.add_argument("--max-query-rows", type=int)
-    parser.add_argument("--max-query-row-bytes", type=int)
-    parser.add_argument("--max-query-decoded-bytes", type=int)
-    parser.add_argument("--max-query-response-bytes", type=int)
     args = parser.parse_args()
-    root = args.repo_root.resolve()
-    if args.reference_oracle:
-        source_values = [args.tmpfs_quota_bytes, args.tmpfs_inode_limit, args.working_ram_bytes,
-                         args.max_build_seconds, args.max_query_rows, args.max_query_row_bytes,
-                         args.max_query_decoded_bytes, args.max_query_response_bytes]
-        if args.native_prefix is not None or args.operation_seconds is not None or any(
-            value is not None for value in source_values
-        ):
-            parser.error("--reference-oracle cannot be combined with native execution options")
-        result = validate_software_reference(root) if args.software else validate_source_reference(root)
-    else:
-        if args.native_prefix is None:
-            parser.error("native validation requires --native-prefix or TOS_NATIVE_PREFIX")
-        prefix = Path(args.native_prefix)
-        operation_seconds = args.operation_seconds
-        if args.software:
-            values = [args.tmpfs_quota_bytes, args.tmpfs_inode_limit, args.working_ram_bytes,
-                      args.max_build_seconds, args.max_query_rows, args.max_query_row_bytes,
-                      args.max_query_decoded_bytes, args.max_query_response_bytes]
-            if any(value is not None for value in values):
-                parser.error("software mode does not accept source limits")
-            result = validate_software(root, native_prefix=prefix,
-                                       operation_seconds=50 if operation_seconds is None else operation_seconds)
-        else:
-            fields = {
-                "tmpfs_quota_bytes": args.tmpfs_quota_bytes,
-                "tmpfs_inode_limit": args.tmpfs_inode_limit,
-                "working_ram_bytes": args.working_ram_bytes,
-                "max_build_seconds": args.max_build_seconds,
-                "max_query_rows": args.max_query_rows,
-                "max_query_row_bytes": args.max_query_row_bytes,
-                "max_query_decoded_bytes": args.max_query_decoded_bytes,
-                "max_query_response_bytes": args.max_query_response_bytes,
-            }
-            if operation_seconds is None or any(value is None for value in fields.values()):
-                parser.error("source mode requires --operation-seconds and the complete selected source/query limit tuple")
-            result = validate_source(root, native_prefix=prefix, operation_seconds=operation_seconds,
-                                    source_limits=fields)
+    result = (
+        validate_software(args.repo_root.resolve())
+        if args.software
+        else validate_source(args.repo_root.resolve())
+    )
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
