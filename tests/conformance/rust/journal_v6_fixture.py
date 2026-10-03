@@ -64,6 +64,17 @@ def prepare(repository, root):
         config[name]['expires_at']=expiry
         config[name]['authority_ref']='test:journal-v6-'+name
     config['maker']['agent_ref']='test:journal-v6-retained-authenticated-ocr'
+    # Separate synthetic scope record; never amend the earlier layer's rights.
+    rights_ref=PREFIX+'rights/journal-v6-synthetic-layer.json'
+    rights=json.loads((BASE/'private'/PREFIX/'rights/synthetic-new-ocr-layer.json').read_bytes())
+    rights.update(rights_id='tos.rights.synthetic.journal-v6-retained-ocr',scope_refs=[LAYER_ID],
+        assessed_at=datetime.now(timezone.utc).isoformat(),
+        assessed_by={'maker_type':'model','agent_ref':'test:journal-v6-fixture'},
+        assessment_status='not_assessed',review_status='unreviewed')
+    write(private/rights_ref,rights)
+    for binding in config['derivation_access']['rights_record_refs']:
+        if binding['ref'].startswith(PREFIX):
+            binding.update(ref=rights_ref,sha256=hashlib.sha256((private/rights_ref).read_bytes()).hexdigest())
     owner=root/'v6-create-owner.json';write(owner,config)
     initial={'public':str(public),'private':str(private),'context':str(context),
         'owner':str(owner),'assessment_owner':str(root/'v6-assessment-owner.json'),
