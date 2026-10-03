@@ -69,7 +69,35 @@ impl From<FoundationBootstrapError> for FoundationOrchestratorError {
 impl FoundationOrchestratorError {
     pub(crate) fn public_reason(&self) -> &'static str {
         match self {
-            Self::Bootstrap(_) => "source-foundation bootstrap refused",
+            Self::Bootstrap(error) => match error {
+                FoundationBootstrapError::Command(_) => {
+                    "source-foundation bootstrap invocation refused"
+                }
+                FoundationBootstrapError::StageSelection(_) => {
+                    "source-foundation bootstrap stage selection refused"
+                }
+                FoundationBootstrapError::IsolatedRoot(_) => {
+                    "source-foundation bootstrap isolated root refused"
+                }
+                FoundationBootstrapError::RouteRoot(_) => {
+                    "source-foundation bootstrap route root refused"
+                }
+                FoundationBootstrapError::Capture(_) => {
+                    "source-foundation bootstrap capture refused"
+                }
+                FoundationBootstrapError::Selection(_) => {
+                    "source-foundation bootstrap physical selection refused"
+                }
+                FoundationBootstrapError::Payload(_) => {
+                    "source-foundation bootstrap payload snapshot refused"
+                }
+                FoundationBootstrapError::Physical(_) => {
+                    "source-foundation bootstrap physical snapshot refused"
+                }
+                FoundationBootstrapError::Configuration(_) => {
+                    "source-foundation bootstrap configuration refused"
+                }
+            },
             Self::Command(_) => "source-foundation invocation refused",
             Self::Owner(_) => "source-foundation owner phase refused",
             Self::Default(_) => "source-foundation default rules refused",
