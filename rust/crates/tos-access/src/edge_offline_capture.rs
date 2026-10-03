@@ -39,8 +39,10 @@ use tos_foundation::{
     canonical_bytes_v1, emit_python_compact_json, parse_json, parse_json_with_state_budget,
 };
 
+mod native_selected_capture;
 #[cfg(test)]
 mod private_runtime_tests;
+mod selected_entry;
 mod typed_snapshot;
 
 const REQUEST_SCHEMA: &str = "tos_edge_offline_capture_request_v1";
@@ -602,6 +604,18 @@ fn open_read_only(
     vm_steps: u64,
     max_value_bytes: usize,
 ) -> Result<HeldSqlite, String> {
+    open_read_only_with_deadline(path, vm_steps, max_value_bytes, None)
+}
+
+fn open_read_only_with_deadline(
+    path: &Path,
+    vm_steps: u64,
+    max_value_bytes: usize,
+    original_deadline: Option<std::time::Instant>,
+) -> Result<HeldSqlite, String> {
+    if original_deadline.is_some_and(|deadline| std::time::Instant::now() >= deadline) {
+        return Err(invalid("selected SQLite original deadline elapsed"));
+    }
     let descriptors_before = process_fds()?;
     let identity_guard = tos_fd_open::open_absolute_regular(path, u64::MAX)
         .map_err(|error| format!("pin selected SQLite input: {error}"))?;
@@ -617,12 +631,17 @@ fn open_read_only(
             | OpenFlags::SQLITE_OPEN_NOFOLLOW,
     )
     .map_err(|error| error.to_string())?;
+    if original_deadline.is_some() {
+        db.busy_timeout(std::time::Duration::ZERO)
+            .map_err(|error| error.to_string())?;
+    }
     let mut used = 0u64;
     db.progress_handler(
         1000,
         Some(move || {
             used = used.saturating_add(1000);
             used > vm_steps
+                || original_deadline.is_some_and(|deadline| std::time::Instant::now() >= deadline)
         }),
     );
     db.set_limit(
@@ -5935,6 +5954,11 @@ pub fn run_if_requested(
 ) -> Option<i32> {
     if args.first().is_none_or(|arg| arg != "edge-offline-capture") {
         return None;
+    }
+    if let [_, mode, path] = args
+        && mode == "--selected-request"
+    {
+        return Some(selected_entry::run(path, stdout, stderr));
     }
     Some(match run(args, stdout) {
         Ok(()) => 0,

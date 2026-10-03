@@ -1474,245 +1474,146 @@ fn navigation_integrity_persisted_rights_drift_and_read_budget_refuse() {
     }
 }
 
-/// Finite fixture-only transport encoder. It reads caller-held transactions;
-/// it never opens a pathname to choose a newer snapshot or runs a subprocess.
-/// The fixed role IDs match the importer contract, while descriptors and cells
-/// come from SQLite, including opaque prepared search tables and schema objects.
-fn held_frame(db: &Connection, role: typed_snapshot::Role, path: &Path) {
+/// Production encoder with a fixture-owned interrupt watchdog. The source
+/// transaction was selected by the test and remains borrowed/exclusively used;
+/// no test-only transport profile or cell encoder remains here.
+fn held_frame(
+    db: &Connection,
+    role: typed_snapshot::Role,
+    input_field: &str,
+    path: &Path,
+    budget: &mut typed_snapshot::EncodeBudget,
+) -> Value {
     assert!(
         !db.is_autocommit(),
-        "frame requires a genuinely held read transaction"
+        "frame requires a genuinely held transaction"
     );
-    let known: Vec<(u16, &str)> = match role {
-        typed_snapshot::Role::Prepared => vec![
-            (32, "edge_meta"),
-            (33, "knowledge_exploration_clock"),
-            (34, "knowledge_lens_order"),
-            (35, "prepared_documents"),
-            (36, "prepared_state"),
-            (37, "knowledge_nodes"),
-            (38, "knowledge_relations"),
-            (39, "prepared_source_state"),
-        ],
-        typed_snapshot::Role::D1 => vec![
-            (1, "knowledge_nodes"),
-            (2, "knowledge_relations"),
-            (3, "knowledge_search_documents"),
-            (4, "knowledge_search_grams"),
-            (5, "knowledge_search_gram_stats"),
-            (6, "knowledge_lens_order"),
-            (7, "source_navigation_nodes"),
-            (8, "source_navigation_node_payload"),
-            (9, "source_navigation_edges"),
-            (10, "source_navigation_edge_payload"),
-            (11, "source_navigation_rights"),
-            (12, "source_navigation_rights_payload"),
-            (13, "edge_meta"),
-            (14, "knowledge_exploration_clock"),
-            (16, "knowledge_compact_lens"),
-            (17, "knowledge_compact_lens_state"),
-            (18, "knowledge_lens_memberships"),
-            (19, "knowledge_lens_membership_state"),
-        ],
-    };
-    let objects: Vec<(String,String,String,Option<String>)> = db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' OR name LIKE 'sqlite_autoindex_%' ORDER BY type,name").unwrap().query_map([], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).unwrap().map(Result::unwrap).collect();
-    let opaque: Vec<&str> = objects
-        .iter()
-        .filter(|o| o.0 == "table" && !known.iter().any(|(_, name)| *name == o.1))
-        .map(|o| o.1.as_str())
-        .collect();
-    assert!(objects.len() < 4096 && opaque.len() < 256);
-    let mut wire = b"TOSLSNP1".to_vec();
-    wire.push(role as u8);
-    wire.push(1); // UTF-8
+    let mut output = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
+        .unwrap();
+    let duration = std::time::Duration::from_secs(10);
+    let deadline = std::time::Instant::now() + duration;
+    let interrupt = db.get_interrupt_handle();
+    let (finish, stopped) = std::sync::mpsc::channel();
+    let result = std::thread::scope(|scope| {
+        scope.spawn(move || {
+            if matches!(
+                stopped.recv_timeout(deadline.saturating_duration_since(std::time::Instant::now())),
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout)
+            ) {
+                interrupt.interrupt();
+            }
+        });
+        let result = typed_snapshot::encode_borrowed(
+            db,
+            role,
+            input_field,
+            &mut output,
+            budget,
+            deadline,
+            &|| Ok(()),
+        );
+        let _ = finish.send(());
+        result
+    })
+    .unwrap();
+    assert!(
+        !db.is_autocommit(),
+        "encoder released the selected transaction"
+    );
     assert_eq!(
-        db.query_row("PRAGMA encoding", [], |r| r.get::<_, String>(0))
-            .unwrap(),
-        "UTF-8"
+        result["frame_bytes"],
+        json!(fs::metadata(path).unwrap().len())
     );
-    wire.extend_from_slice(&(known.len() as u16).to_le_bytes());
-    wire.extend_from_slice(&(opaque.len() as u16).to_le_bytes());
-    wire.extend_from_slice(&(objects.len() as u32).to_le_bytes());
-    wire.extend_from_slice(&0u64.to_le_bytes());
-    for (id, name) in known
-        .iter()
-        .copied()
-        .chain(opaque.iter().map(|name| (u16::MAX, *name)))
-    {
-        let present = objects.iter().any(|o| o.0 == "table" && o.1 == name);
-        let without_rowid = present
-            && objects
-                .iter()
-                .find(|o| o.0 == "table" && o.1 == name)
-                .unwrap()
-                .3
-                .as_ref()
-                .unwrap()
-                .to_uppercase()
-                .contains("WITHOUT ROWID");
-        assert!(!without_rowid || id == u16::MAX);
-        wire.extend_from_slice(&id.to_le_bytes());
-        wire.push(u8::from(present));
-        wire.push(if !present {
-            0
-        } else if without_rowid {
-            1
-        } else {
-            4
-        });
-        wire_text16(&mut wire, name);
-        if !present {
-            wire.extend_from_slice(&0u16.to_le_bytes());
-            wire.extend_from_slice(&0u16.to_le_bytes());
-            wire.extend_from_slice(&0u64.to_le_bytes());
-            continue;
-        }
-        let columns: Vec<(String, String, i64, Option<String>, i64, i64)> = db
-            .prepare(&format!("PRAGMA table_xinfo(\"{name}\")"))
-            .unwrap()
-            .query_map([], |r| {
-                Ok((
-                    r.get(1)?,
-                    r.get(2)?,
-                    r.get(3)?,
-                    r.get(4)?,
-                    r.get(5)?,
-                    r.get(6)?,
-                ))
-            })
-            .unwrap()
-            .map(Result::unwrap)
-            .collect();
-        let indexes: Vec<(String, i64, String, i64)> = db
-            .prepare(&format!("PRAGMA index_list(\"{name}\")"))
-            .unwrap()
-            .query_map([], |r| Ok((r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)))
-            .unwrap()
-            .map(Result::unwrap)
-            .collect();
-        let count: i64 = db
-            .query_row(&format!("SELECT count(*) FROM \"{name}\""), [], |r| {
-                r.get(0)
-            })
-            .unwrap();
-        assert!(count <= 200_000);
-        wire.extend_from_slice(&(columns.len() as u16).to_le_bytes());
-        wire.extend_from_slice(&(indexes.len() as u16).to_le_bytes());
-        wire.extend_from_slice(&(count as u64).to_le_bytes());
-        for (name, ty, not_null, default, pk, hidden) in &columns {
-            wire_text16(&mut wire, name);
-            wire_text16(&mut wire, ty);
-            wire.push(*not_null as u8);
-            wire.extend_from_slice(&(*pk as u16).to_le_bytes());
-            wire.push(*hidden as u8);
-            wire_optional32(&mut wire, default.as_deref());
-        }
-        for (name, unique, origin, partial) in indexes {
-            wire_text16(&mut wire, &name);
-            wire.push(unique as u8);
-            wire.push(match origin.as_str() {
-                "c" => 0,
-                "u" => 1,
-                "pk" => 2,
-                _ => panic!("index origin"),
-            });
-            wire.push(partial as u8);
-            let keys: Vec<(i32, Option<String>, i64, String, i64)> = db
-                .prepare(&format!("PRAGMA index_xinfo(\"{name}\")"))
-                .unwrap()
-                .query_map([], |r| {
-                    Ok((r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?))
-                })
-                .unwrap()
-                .map(Result::unwrap)
-                .collect();
-            wire.extend_from_slice(&(keys.len() as u16).to_le_bytes());
-            for (cid, name, descending, collation, key) in keys {
-                wire.extend_from_slice(&cid.to_le_bytes());
-                if let Some(name) = name {
-                    wire_text16(&mut wire, &name);
-                } else {
-                    wire.extend_from_slice(&u16::MAX.to_le_bytes());
-                }
-                wire.push(descending as u8);
-                wire_text16(&mut wire, &collation);
-                wire.push(key as u8);
-            }
-        }
-        let query = if without_rowid {
-            format!(
-                "SELECT * FROM \"{name}\" ORDER BY {}",
-                (1..=columns.len())
-                    .map(|n| n.to_string())
-                    .collect::<Vec<_>>()
-                    .join(",")
+    assert_eq!(
+        result["frame_sha256"],
+        json!(Digest256::of_bytes(&fs::read(path).unwrap()).to_hex())
+    );
+    result
+}
+
+#[test]
+fn production_encoder_import_preserves_uncommitted_utf16_text_views() {
+    for (encoding, raw) in [
+        (
+            "UTF-16le",
+            vec![0xff, 0xfe, 0x41, 0x00, 0x00, 0x00, 0x3d, 0xd8, 0x00, 0xde],
+        ),
+        (
+            "UTF-16be",
+            vec![0xfe, 0xff, 0x00, 0x41, 0x00, 0x00, 0xd8, 0x3d, 0xde, 0x00],
+        ),
+    ] {
+        let directory = Directory::new();
+        let database = directory.0.join("uncommitted.sqlite");
+        let frame = directory.0.join("uncommitted.frame");
+        let source = Connection::open(&database).unwrap();
+        source.pragma_update(None, "encoding", encoding).unwrap();
+        source.execute_batch("CREATE TABLE edge_meta(key TEXT NOT NULL,part INTEGER NOT NULL,json_chunk TEXT NOT NULL,PRIMARY KEY(key,part)); BEGIN").unwrap();
+        source
+            .execute(
+                "INSERT INTO edge_meta VALUES('fixture',0,?1)",
+                ["\u{feff}A\0😀"],
             )
-        } else {
-            format!("SELECT rowid,* FROM \"{name}\" ORDER BY rowid")
-        };
-        let mut statement = db.prepare(&query).unwrap();
-        let mut rows = statement.query([]).unwrap();
-        while let Some(row) = rows.next().unwrap() {
-            if !without_rowid {
-                wire.extend_from_slice(&row.get::<_, i64>(0).unwrap().to_le_bytes());
-            }
-            let offset = usize::from(!without_rowid);
-            for index in offset..columns.len() + offset {
-                match row.get_ref(index).unwrap() {
-                    ValueRef::Null => wire.push(0),
-                    ValueRef::Integer(v) => {
-                        wire.push(1);
-                        wire.extend_from_slice(&v.to_le_bytes());
-                    }
-                    ValueRef::Real(v) => {
-                        wire.push(2);
-                        wire.extend_from_slice(&v.to_bits().to_le_bytes());
-                    }
-                    ValueRef::Text(v) | ValueRef::Blob(v) => {
-                        wire.push(
-                            if matches!(row.get_ref(index).unwrap(), ValueRef::Text(_)) {
-                                3
-                            } else {
-                                4
-                            },
-                        );
-                        wire.extend_from_slice(&(v.len() as u64).to_le_bytes());
-                        wire.extend_from_slice(v);
-                    }
-                }
-            }
-            assert!(wire.len() <= 64 * 1024 * 1024);
-        }
-    }
-    for (kind, name, table, sql) in objects {
-        wire.push(match kind.as_str() {
-            "table" => 1,
-            "index" => 2,
-            "trigger" => 3,
-            "view" => 4,
-            _ => panic!("schema object"),
-        });
-        wire_text16(&mut wire, &name);
-        wire_text16(&mut wire, &table);
-        wire_optional32(&mut wire, sql.as_deref());
-    }
-    let len = (wire.len() + 32) as u64;
-    wire[18..26].copy_from_slice(&len.to_le_bytes());
-    let sha = Digest256::of_bytes(&wire);
-    wire.extend_from_slice(sha.as_bytes());
-    fs::write(path, wire).unwrap();
-}
-fn wire_text16(wire: &mut Vec<u8>, text: &str) {
-    assert!(text.len() < u16::MAX as usize);
-    wire.extend_from_slice(&(text.len() as u16).to_le_bytes());
-    wire.extend_from_slice(text.as_bytes());
-}
-fn wire_optional32(wire: &mut Vec<u8>, text: Option<&str>) {
-    if let Some(text) = text {
-        wire.extend_from_slice(&(text.len() as u32).to_le_bytes());
-        wire.extend_from_slice(text.as_bytes());
-    } else {
-        wire.extend_from_slice(&u32::MAX.to_le_bytes());
+            .unwrap();
+        let observer = Connection::open(&database).unwrap();
+        assert_eq!(
+            observer
+                .query_row("SELECT count(*) FROM edge_meta", [], |row| row
+                    .get::<_, i64>(0))
+                .unwrap(),
+            0
+        );
+        let selected: Vec<u8> = source
+            .query_row(
+                "SELECT CAST(json_chunk AS BLOB) FROM edge_meta",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(selected, raw);
+        let mut budget = typed_snapshot::EncodeBudget::new(1024 * 1024, 1024 * 1024).unwrap();
+        let inventory = held_frame(
+            &source,
+            typed_snapshot::Role::Prepared,
+            "after_prepared_database",
+            &frame,
+            &mut budget,
+        );
+        let imported = typed_snapshot::import(
+            &frame,
+            typed_snapshot::Role::Prepared,
+            "after_prepared_database",
+            1024 * 1024,
+            1024 * 1024,
+            100_000,
+            1024,
+        )
+        .unwrap();
+        assert_eq!(inventory, imported.inventory);
+        assert_eq!(imported.inventory["database_encoding"], encoding);
+        let (kind, returned): (String, Vec<u8>) = imported.connection.query_row("SELECT typeof(json_chunk),CAST(json_chunk AS BLOB) FROM edge_meta WHERE key='fixture' AND part=0", [], |row| Ok((row.get(0)?, row.get(1)?))).unwrap();
+        assert_eq!(kind, "text");
+        assert_eq!(returned, raw);
+        assert!(!source.is_autocommit());
+        source.execute_batch("ROLLBACK").unwrap();
+        assert_eq!(
+            observer
+                .query_row("SELECT count(*) FROM edge_meta", [], |row| row
+                    .get::<_, i64>(0))
+                .unwrap(),
+            0
+        );
+        assert_eq!(
+            imported
+                .connection
+                .query_row("SELECT count(*) FROM edge_meta", [], |row| row
+                    .get::<_, i64>(0))
+                .unwrap(),
+            1
+        );
     }
 }
 
@@ -1820,9 +1721,29 @@ fn wal_two_held_transactions_same_file_feed_distinct_typed_frames() {
     let before_frame = f.directory.0.join("before.frame");
     let after_frame = f.directory.0.join("after.frame");
     let d1_frame = f.directory.0.join("d1.frame");
-    held_frame(&before, typed_snapshot::Role::Prepared, &before_frame);
-    held_frame(&after, typed_snapshot::Role::Prepared, &after_frame);
-    held_frame(&d1, typed_snapshot::Role::D1, &d1_frame);
+    let mut frame_budget =
+        typed_snapshot::EncodeBudget::new(64 * 1024 * 1024, 64 * 1024 * 1024).unwrap();
+    held_frame(
+        &before,
+        typed_snapshot::Role::Prepared,
+        "before_prepared_database",
+        &before_frame,
+        &mut frame_budget,
+    );
+    held_frame(
+        &after,
+        typed_snapshot::Role::Prepared,
+        "after_prepared_database",
+        &after_frame,
+        &mut frame_budget,
+    );
+    held_frame(
+        &d1,
+        typed_snapshot::Role::D1,
+        "d1_database",
+        &d1_frame,
+        &mut frame_budget,
+    );
     assert_ne!(
         fs::read(&before_frame).unwrap(),
         fs::read(&after_frame).unwrap()

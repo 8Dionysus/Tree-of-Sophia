@@ -3,6 +3,10 @@
 //! receipt. Only fixed ToS table profiles are materialized; other ordinary
 //! tables are parsed and fingerprinted as inert opaque records.
 
+#[path = "typed_snapshot_encoder.rs"]
+mod encoder;
+pub(crate) use encoder::{EncodeBudget, encode as encode_borrowed};
+
 use rusqlite::{
     Connection, TransactionBehavior, params_from_iter,
     types::{Value as SqlValue, ValueRef},

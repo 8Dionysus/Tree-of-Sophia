@@ -1,5 +1,8 @@
 //! Native software-only ZIP v1 assembly. No data selection or code execution.
 //! Receipt integrity is not build admission; OPS supplies the actual products.
+#[path = "software_installed.rs"]
+pub mod installed;
+
 use rawzip::{FileReader, ZipArchive, ZipArchiveEntryWayfinder};
 use std::{
     collections::BTreeMap,

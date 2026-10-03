@@ -77,6 +77,69 @@ the migration requires a compatible older consumer; the new reader refuses the
 checksum-less product. These checks detect persisted carrier drift, not a
 malicious publisher able to replace both rows and their checksums. Source,
 rights and publication admission remain independent.
+
+The selected native transport uses the same installed command with
+`--selected-request ABS.json`. It is a Linux supervised-host capability;
+the public reader and the direct v1/v2 capture entry remain portable within
+their declared profiles. The selected envelope has exactly `schema`
+(`tos_edge_selected_capture_request_v1`), `capture` (the original ordered v1
+request), `selected_prefix`, `scratch`, `transport_limits`, `installed_limits`,
+`work_timeout_ms`, `cleanup_timeout_ms`, `supervisor_unit`, and
+`supervisor_total_ms`. Prefix and
+scratch are explicit existing absolute directories. Work is at most
+1,200,000 ms and cleanup at most 10,000 ms, both measured from the original
+entry clock; neither scope renews a deadline. There are no limit defaults.
+The explicit outer supervisor total is at most 1,210,000 ms. Actual service
+RuntimeMax may not exceed it; actual TimeoutStop may not exceed the selected
+cleanup interval.
+
+`transport_limits` contains positive integers `frame_bytes`, `schema_bytes`,
+`request_state_bytes`, `result_state_bytes`, `stream_bytes`, `metadata_bytes`,
+`state_bytes`, `io_bytes`, `held_fds`, and `census_entries`. `installed_limits`
+contains `max_image_bytes`, `max_metadata_bytes`, `max_state_bytes`,
+`max_io_bytes`, and `max_held_fds`. Installed association reserves three
+transient descriptors for the running-image witness and component-safe opens.
+The entry reads a strict, bounded 10 MiB envelope with a 64 MiB Foundation
+parser state ceiling, verifies the selected Access image against
+`/proc/self/exe`, opens each selected database once read-only, and holds its
+SQLite transaction throughout the borrowed encoder, native child and normal
+anchored cleanup. The emitted result is an unapplied capture, never admission.
+The wrapper reserves the coexisting 64 MiB parser state, two 10 MiB raw/ordered
+buffers, 4 MiB owner-limit conversion and bounded platform state from the same
+transport state cap before giving its remainder to the native caller. Its
+bounded envelope/platform reads similarly consume the IO cap. FD preflight
+includes selected main/identity/WAL/SHM handles, frame handles, native internals,
+three association temporaries and six service-probe spawn descriptors. SQLite
+heap, allocator RSS and physical disk IO still require the host profile.
+
+The supported optional AbyssOS launch route is the existing host resource
+adapter, with a finite service lifetime established at creation:
+
+```sh
+ABS_ADMITTED_ABYSS_MACHINE resource launch --class CLASS --kind agent \
+  --activity foreground --unit UNIT.service --timeout OUTER_SECONDS \
+  --runtime-max-sec ORIGINAL_TOTAL_SECONDS \
+  --timeout-stop-sec ORIGINAL_CLEANUP_SECONDS \
+  --bytes OUTPUT_CAP --target ABS_SCRATCH \
+  --memory-demand-mib MEMORY --demand-owner OWNER --json -- \
+  ABS_INSTALLED_PREFIX/bin/tos edge-offline-capture \
+  --selected-request ABS_SELECTED_REQUEST
+```
+
+The request selects that exact `UNIT.service`. The native entry verifies the
+actual service InvocationID, finite RuntimeMax/TimeoutStop, control-group
+killing, no restart/randomized extension, and its kernel cgroup and main
+process ancestry; environment strings cannot supply this capability. A host
+launcher lacking the finite creation options is unavailable for this operation.
+The resource adapter, its admission and physical caps remain host-owned.
+
+If native child release cannot be proved within the original cleanup clock,
+the CLI exits 125 with no success/adoption, retains immutable frames and
+failure evidence, and reports the owned child and selected service. Process
+death closes this CLI's owned read transactions. PDEATHSIG requests child death;
+it is not evidence of release. The selected finite outer service owns residual
+cleanup and its census. Library callers retain the separate borrowed failure
+custody contract; a CLI exit does not transfer their live transactions.
 Both Worker source routes use the same revision/epoch guard as knowledge reads.
 A concurrent publication is reported as a snapshot conflict even when it
 interrupts row/checksum verification; stable carrier corruption remains an error.
