@@ -179,6 +179,7 @@ struct Selection {
     operation: String,
     state_fd: Option<i32>,
     reply_fd: Option<i32>,
+    work_deadline_ns: u64,
 }
 fn selection(args: &[String]) -> Result<Option<Selection>> {
     let claimed = args.first().is_some_and(|a| a == "core-snapshot")
@@ -191,6 +192,7 @@ fn selection(args: &[String]) -> Result<Option<Selection>> {
     let mut operation = None;
     let mut state_fd = None;
     let mut reply_fd = None;
+    let mut work_deadline_ns = None;
     let mut command = false;
     let mut i = 0;
     while i < args.len() {
@@ -204,6 +206,13 @@ fn selection(args: &[String]) -> Result<Option<Selection>> {
         }
         let value = args.get(i + 1).ok_or("Core selector value absent")?;
         match args[i].as_str() {
+            "--work-deadline-ns" if work_deadline_ns.is_none() => {
+                work_deadline_ns = Some(
+                    value
+                        .parse::<u64>()
+                        .map_err(|_| "Core original deadline selector")?,
+                );
+            }
             "--root" if root.is_none() => root = Some(PathBuf::from(value)),
             "--operation" if operation.is_none() => operation = Some(value.clone()),
             "--snapshot-state-fd" if state_fd.is_none() => {
@@ -230,14 +239,46 @@ fn selection(args: &[String]) -> Result<Option<Selection>> {
         operation: operation.ok_or("Core operation absent")?,
         state_fd,
         reply_fd,
+        work_deadline_ns: work_deadline_ns
+            .filter(|n| *n > 0)
+            .ok_or("Core original deadline selector required")?,
     }))
 }
-fn read_request(input: &mut dyn Read) -> Result<Request> {
+fn read_request(input: &mut dyn Read, deadline: Instant) -> Result<Request> {
+    active(deadline)?;
+    let previous = unsafe { libc::fcntl(0, libc::F_GETFL) };
+    if previous < 0 || unsafe { libc::fcntl(0, libc::F_SETFL, previous | libc::O_NONBLOCK) } < 0 {
+        return Err("Core stdin descriptor mode refused");
+    }
     let mut raw = Vec::new();
-    input
-        .take((INPUT_CAP + 1) as u64)
-        .read_to_end(&mut raw)
-        .map_err(|_| "Core request read")?;
+    let read = (|| -> Result<()> {
+        let mut buffer = [0_u8; 65536];
+        loop {
+            active(deadline)?;
+            let remaining = (INPUT_CAP + 1).saturating_sub(raw.len());
+            if remaining == 0 {
+                return Err("Core request byte cap");
+            }
+            match input.read(&mut buffer[..remaining.min(65536)]) {
+                Ok(0) => return Ok(()),
+                Ok(count) => raw.extend_from_slice(&buffer[..count]),
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        std::io::ErrorKind::Interrupted | std::io::ErrorKind::WouldBlock
+                    ) =>
+                {
+                    std::thread::sleep(Duration::from_millis(1))
+                }
+                Err(_) => return Err("Core request read"),
+            }
+        }
+    })();
+    if unsafe { libc::fcntl(0, libc::F_SETFL, previous) } < 0 {
+        return Err("Core stdin descriptor restoration refused");
+    }
+    read?;
+    active(deadline)?;
     if raw.len() > INPUT_CAP {
         return Err("Core request byte cap");
     }
@@ -248,10 +289,13 @@ fn read_request(input: &mut dyn Read) -> Result<Request> {
         max_visits: INPUT_CAP,
         max_integer_digits: 4096,
     };
+    active(deadline)?;
     let parsed = parse_json(&raw, JsonMode::PublishedStrict, guard)
         .map_err(|_| "Core strict request JSON")?;
     drop(parsed);
+    active(deadline)?;
     let request: Request = serde_json::from_slice(&raw).map_err(|_| "Core request shape")?;
+    active(deadline)?;
     request.source_paths.validate()?;
     if !request.query_store.path.is_absolute() || request.query_store.path.as_os_str().len() > 8193
     {
@@ -1177,12 +1221,19 @@ fn emit_value(value: &Value, deadline: Instant) -> Result<Vec<u8>> {
     Ok(out.bytes)
 }
 
-fn run(selection: Selection, request: Request) -> Result<()> {
+fn run(
+    selection: Selection,
+    request: Request,
+    deadline: Instant,
+    cancelled: &Arc<AtomicBool>,
+) -> Result<()> {
     use tos_compiler::RuntimeCaptureRole as R;
     use tos_compiler::native_snapshot_carriers::CapturedCarrierRequest as C;
-    let deadline = request.admission.deadline()?;
-    let signal = SignalGuard::install()?;
-    let cancelled = signal.token.clone();
+    if request.admission.work_deadline_ns != selection.work_deadline_ns {
+        return Err("Core request deadline differs from the original CLI cutoff");
+    }
+    let deadline = deadline.min(request.admission.deadline()?);
+    active(deadline)?;
     let operation = operation(&selection.operation, request.arguments.clone())?;
     // The former QueryStore has independent five-input binding and selection
     // semantics. Until that owner is migrated, do not silently replace an
@@ -1257,7 +1308,7 @@ fn run(selection: Selection, request: Request) -> Result<()> {
             .map_err(|_| "Core carrier disclosure currentness refused");
     }
     if matches!(operation, Operation::Evidence) {
-        let held = read_selected_evidence(&selection.root, &request, deadline, &cancelled)?;
+        let held = read_selected_evidence(&selection.root, &request, deadline, cancelled)?;
         return held
             .evidence
             .with_current(|_| {
@@ -1398,12 +1449,43 @@ pub fn run_if_requested(args: &[String], input: &mut dyn Read) -> Option<i32> {
         Ok(None) => None,
         Err(_) => Some(2),
         Ok(Some(selection)) => Some(
-            match read_request(input).and_then(|request| run(selection, request)) {
+            match (|| {
+                let deadline = original_cli_deadline(selection.work_deadline_ns)?;
+                let signal = SignalGuard::install()?;
+                let request = read_request(input, deadline)?;
+                run(selection, request, deadline, &signal.token)
+            })() {
                 Ok(()) => 0,
                 Err(_) => 1,
             },
         ),
     }
+}
+
+fn original_cli_deadline(cutoff_ns: u64) -> Result<Instant> {
+    let instant_before_clock = Instant::now();
+    let mut now = libc::timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    if unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut now) } != 0
+        || now.tv_sec < 0
+        || now.tv_nsec < 0
+    {
+        return Err("Core original monotonic clock unavailable");
+    }
+    let now_ns = u64::try_from(now.tv_sec)
+        .ok()
+        .and_then(|n| n.checked_mul(1_000_000_000))
+        .and_then(|n| n.checked_add(now.tv_nsec as u64))
+        .ok_or("Core original clock overflow")?;
+    let remaining = cutoff_ns
+        .checked_sub(now_ns)
+        .filter(|n| *n > 0)
+        .ok_or("Core original deadline expired before stdin")?;
+    instant_before_clock
+        .checked_add(Duration::from_nanos(remaining))
+        .ok_or("Core original deadline overflow")
 }
 
 fn serve_selected_root(
