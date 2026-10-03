@@ -137,36 +137,55 @@ def extract_verified_archive(bundle: Path, destination: Path) -> dict:
     return manifest
 
 
-def installed_probe(bundle: Path) -> dict:
-    """Build a real wheel and install it in a fresh, dependency-free venv."""
+def installed_probe(bundle: Path, *, native_prefix: Path | None = None) -> dict:
+    """Build and install the wheel in a fresh venv with its native caller extra."""
     env = {key: value for key, value in os.environ.items()
            if key != "PYTHONPATH" and not key.startswith(("TOS_", "AOA_"))}
     env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
     with tempfile.TemporaryDirectory(prefix="tos-software-install-", dir=bundle.parent) as raw:
         root = Path(raw)
-        source, outside, wheels, venv = (root / part for part in ("source", "outside", "wheels", "venv"))
+        prefix = root / "native-prefix"
+        source = prefix / "software"
+        prefix.mkdir()
+        outside, wheels, venv = (root / part for part in ("outside", "wheels", "venv"))
         outside.mkdir()
         manifest = extract_verified_archive(bundle, source)
+        selected_native_prefix = native_prefix
+        if selected_native_prefix is None and manifest.get("native_access") is not None:
+            selected_native_prefix = prefix
+        if selected_native_prefix is None:
+            raise RuntimeError(
+                "installed native caller probe requires --native-prefix or a bundled native member"
+            )
 
-        def run(command):
-            result = subprocess.run(command, cwd=outside, env=env, text=True, capture_output=True)
+        def run(command, *, timeout=300):
+            try:
+                result = subprocess.run(command, cwd=outside, env=env, text=True,
+                                        capture_output=True, timeout=timeout)
+            except subprocess.TimeoutExpired as exc:
+                raise RuntimeError(
+                    f"software install probe timed out after {timeout} seconds"
+                ) from exc
             if result.returncode:
                 raise RuntimeError(f"software install probe failed: {result.stdout}\n{result.stderr}")
             return result.stdout
 
         run([sys.executable, "-m", "pip", "wheel", "--no-deps", "--no-build-isolation", "--no-cache-dir",
-             "--wheel-dir", str(wheels), str(source / "access")])
+             "--wheel-dir", str(wheels), str(source / "access")], timeout=600)
         wheel_files = list(wheels.glob("*.whl"))
         if len(wheel_files) != 1:
             raise RuntimeError("software build did not produce exactly one wheel")
         run([sys.executable, "-m", "venv", str(venv)])
         python = venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
-        run([str(python), "-m", "pip", "install", "--no-deps", "--no-index", str(wheel_files[0])])
+        # NativeAccessCore is the maintained Python caller for the native MCP
+        # ABI. Its existing package extra supplies MCP and its runtime
+        # dependencies; a dependency-free install cannot exercise that caller.
+        run([str(python), "-m", "pip", "install", str(wheel_files[0]) + "[mcp]"], timeout=600)
         result = run([str(python), "-c", """
 import json
-from tos_access.core import ToSAccessCore
+from tos_access.core import ReferenceToSAccessCore
 from tos_access.locations import data_root, program_path, web_root
-core = ToSAccessCore.discover()
+core = ReferenceToSAccessCore.discover()
 contracts = core.knowledge_exploration_contracts()
 assert contracts['request']['$schema']
 assert program_path('ToS/contracts/semantic-entity-type-registry.schema.json').is_file()
@@ -176,27 +195,54 @@ assert not (data_root() / 'ToS/source-witnesses').exists()
 print(json.dumps({'installed': True, 'api_contracts': True, 'web_assets': True, 'data_included': False}))
 """])
         report = json.loads(result)
+        report["reference_oracle"] = "legacy wheel integrity and no-data package compatibility"
         report["native_archive_entry"] = manifest.get("native_access") is not None
         report["native_wheel_entry"] = False  # Existing backend does not package ELF.
+        state_root = root / "native-state"
+        state_root.mkdir(mode=0o700)
+        native_result = run([str(python), "-c", """
+import json, sys
+from pathlib import Path
+from tos_access import NativeAccessCore
+core = NativeAccessCore.discover(
+    native_prefix=Path(sys.argv[1]), native_state_root=Path(sys.argv[2]))
+try:
+    contracts = core.knowledge_exploration_contracts()
+    assert contracts['request']['$schema']
+    print(json.dumps({'imported_core': True, 'api_contracts': True, 'data_included': False}))
+finally:
+    core.close()
+""", str(selected_native_prefix), str(state_root)], timeout=90)
+        report["native_imported_core"] = json.loads(native_result)
         return report
 
 
-def validate(bundle: Path, *, install: bool = True) -> dict:
+def validate(bundle: Path, *, install: bool = True,
+             native_prefix: Path | None = None) -> dict:
     manifest = verify_archive(bundle)
     result = {"schema_version": "tos_software_validation_v1", "ok": True,
               "software_ref": manifest["software_ref"], "source_dirty": manifest["source_dirty"],
               "data_validated": False, "archive_members": len(manifest["members"])}
     if install:
-        result["installation"] = installed_probe(bundle)
+        result["installation"] = installed_probe(bundle, native_prefix=native_prefix)
     return result
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bundle", type=Path, required=True)
+    parser.add_argument("--native-prefix", type=Path,
+                        help="explicit installed native software prefix for the wheel bridge probe")
     parser.add_argument("--integrity-only", action="store_true")
     args = parser.parse_args()
-    print(json.dumps(validate(args.bundle.resolve(), install=not args.integrity_only), indent=2))
+    native_prefix = None if args.native_prefix is None else args.native_prefix.expanduser()
+    if native_prefix is not None and not native_prefix.is_absolute():
+        parser.error("--native-prefix must be an absolute installed software prefix")
+    if args.native_prefix is not None and args.integrity_only:
+        parser.error("--native-prefix requires the installed wheel probe")
+    result = validate(args.bundle.resolve(), install=not args.integrity_only,
+                      native_prefix=native_prefix)
+    print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

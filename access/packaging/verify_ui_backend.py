@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
-"""Opt-in real UI-client/HTTP compatibility check, without editing either tree."""
+"""Verify the real UI client against one explicitly selected native backend."""
 import argparse
 import hashlib
 import json
 import subprocess
 import sys
-import threading
 import time
-from http.server import ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import urlsplit
 from urllib.request import urlopen
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
-from tos_access.core import ToSAccessCore
-from tos_access.http_server import build_handler
+from tos_access.core import ReferenceToSAccessCore
+from tos_access.native_access_core import NativeAccessCore
 from tos_access.knowledge import search_knowledge_graph
 
 CLIENT_CHECK = r'''
@@ -98,10 +97,24 @@ def main():
     parser.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[2])
     parser.add_argument('--web-root',type=Path,required=True)
     parser.add_argument('--client-module',type=Path,required=True)
+    parser.add_argument('--native-prefix',type=Path,required=True,
+                        help='explicit installed native software prefix')
+    parser.add_argument('--release-root',type=Path,required=True,
+                        help='explicit managed release selected by both native query and HTTP routes')
+    parser.add_argument('--native-state-root',type=Path,required=True,
+                        help='existing private state parent selected for NativeAccessCore')
+    parser.add_argument('--http-base',required=True,
+                        help='loopback base URL of the already-running native Rust HTTP server')
     parser.add_argument('--material-id',help='exact public knowledge node ID with human forms for the material canary')
     parser.add_argument('--language',default='ru',help='content-language request for the actual UI material reader')
     parser.add_argument('--report',type=Path,help='new JSONL report outside the source repository')
     args=parser.parse_args()
+    parsed=urlsplit(args.http_base)
+    if (parsed.scheme!='http' or parsed.hostname not in {'127.0.0.1','localhost','::1'}
+            or parsed.username is not None or parsed.password is not None
+            or parsed.query or parsed.fragment or parsed.path not in ('','/')):
+        parser.error('--http-base must be an http loopback origin without path, query, or credentials')
+    base_url=args.http_base.rstrip('/')
     if args.report:
         args.report=args.report.resolve()
         if args.report.exists() or args.report.is_relative_to(args.root.resolve()):
@@ -115,44 +128,77 @@ def main():
         print(line,flush=True)
     emit({'client_sha256':hashlib.sha256(args.client_module.read_bytes()).hexdigest(),
           'html_sha256':hashlib.sha256((args.web_root/'index.html').read_bytes()).hexdigest()})
-    core=ToSAccessCore.discover(args.root)
-    for name,operation in [('catalog-cold',core.knowledge_catalog),('catalog-warm',core.knowledge_catalog),
-                           ('search-first',lambda:core.knowledge_search('Заратустра',limit=6)),
-                           ('search-warm',lambda:core.knowledge_search('Заратустра',limit=6)),
-                           ('search-alternative',lambda:core.knowledge_search('Ницше',limit=6)),
-                           ('focus',lambda:core.knowledge_focus('tos.work.friedrich-nietzsche.also-sprach-zarathustra',node_limit=40,relation_limit=80))]:
-        started=time.monotonic();packet=operation();seconds=time.monotonic()-started
-        emit({'query':name,'seconds':seconds,'bytes':len(json.dumps(packet,ensure_ascii=False).encode())})
-    expected=search_knowledge_graph(core.knowledge_graph(),'Заратустра',limit=6)
-    assert core.knowledge_search('Заратустра',limit=6)==expected
-    selected=packet['relations'][0]
-    for name,operation in [('inspect-node',lambda:core.knowledge_node(selected['from_id'],relation_limit=0)),
-                           ('inspect-relation',lambda:core.knowledge_relation(selected['id'])),
-                           ('explore',lambda:core.knowledge_explore({'focus_node_id':selected['from_id'],'max_depth':2,'page_nodes':10,'page_relations':10}))]:
-        started=time.monotonic();result=operation();seconds=time.monotonic()-started
-        emit({'query':name,'seconds':seconds,'bytes':len(json.dumps(result,ensure_ascii=False).encode())})
-    cursor=result['page']['next_cursor']
-    if cursor:
-        started=time.monotonic();result=core.knowledge_explore({'cursor':cursor})
-        emit({'query':'explore-resume','seconds':time.monotonic()-started,
-              'bytes':len(json.dumps(result,ensure_ascii=False).encode())})
-    server=ThreadingHTTPServer(('127.0.0.1',0),build_handler(core,args.web_root))
-    worker=threading.Thread(target=server.serve_forever,daemon=True);worker.start()
-    base=f'http://127.0.0.1:{server.server_port}'
+    core=NativeAccessCore.discover(
+        tos_root=args.root,
+        native_prefix=args.native_prefix,
+        release_root=args.release_root,
+        native_state_root=args.native_state_root,
+    )
+    direct_source_revision=None
+    try:
+        for name,operation in [('catalog-cold',core.knowledge_catalog),('catalog-warm',core.knowledge_catalog),
+                               ('search-first',lambda:core.knowledge_search('Заратустра',limit=6)),
+                               ('search-warm',lambda:core.knowledge_search('Заратустра',limit=6)),
+                               ('search-alternative',lambda:core.knowledge_search('Ницше',limit=6)),
+                               ('focus',lambda:core.knowledge_focus('tos.work.friedrich-nietzsche.also-sprach-zarathustra',node_limit=40,relation_limit=80))]:
+            started=time.monotonic();packet=operation();seconds=time.monotonic()-started
+            emit({'query':name,'seconds':seconds,'bytes':len(json.dumps(packet,ensure_ascii=False).encode())})
+            if name=='search-first':
+                direct_source_revision=packet.get('source_revision')
+        if not isinstance(direct_source_revision,str) or not direct_source_revision:
+            raise RuntimeError('selected native Core search omitted its source revision')
+        # Search semantics are compared with the source-owned reference graph;
+        # the native query route never builds that graph in Python.
+        reference=ReferenceToSAccessCore.discover(tos_root=args.root)
+        expected=search_knowledge_graph(reference.knowledge_graph(),'Заратустра',limit=6)
+        actual=core.knowledge_search('Заратустра',limit=6)
+        if expected.get('source_revision')!=actual.get('source_revision'):
+            raise RuntimeError('independent source search oracle does not match the selected release revision')
+        if actual!=expected:
+            raise RuntimeError('native search differs from the independent source search oracle')
+        selected=packet['relations'][0]
+        for name,operation in [('inspect-node',lambda:core.knowledge_node(selected['from_id'],relation_limit=0)),
+                               ('inspect-relation',lambda:core.knowledge_relation(selected['id'])),
+                               ('explore',lambda:core.knowledge_explore({'focus_node_id':selected['from_id'],'max_depth':2,'page_nodes':10,'page_relations':10}))]:
+            started=time.monotonic();result=operation();seconds=time.monotonic()-started
+            emit({'query':name,'seconds':seconds,'bytes':len(json.dumps(result,ensure_ascii=False).encode())})
+        cursor=result['page']['next_cursor']
+        if cursor:
+            started=time.monotonic();result=core.knowledge_explore({'cursor':cursor})
+            emit({'query':'explore-resume','seconds':time.monotonic()-started,
+                  'bytes':len(json.dumps(result,ensure_ascii=False).encode())})
+    except BaseException:
+        core.close()
+        raise
+    base=base_url
     try:
         with urlopen(base,timeout=30) as response:
             assert response.status==200
             assert 'script-src' in response.headers['Content-Security-Policy']
-            assert response.read(), 'empty frontend HTML'
+            html=response.read()
+            assert html, 'empty frontend HTML'
+        expected_html=(args.web_root/'index.html').read_bytes()
+        if hashlib.sha256(html).digest()!=hashlib.sha256(expected_html).digest():
+            raise RuntimeError('native HTTP server HTML differs from the selected --web-root asset')
+        with urlopen(base+'/api/knowledge/catalog',timeout=30) as response:
+            http_catalog=json.loads(response.read())
+        direct_catalog=core.knowledge_catalog()
+        if http_catalog!=direct_catalog:
+            raise RuntimeError('native HTTP and imported native Core selected different catalogs')
+        if http_catalog.get('source_revision')!=direct_source_revision:
+            raise RuntimeError('native HTTP, imported Core and independent source oracle revisions differ')
         result=subprocess.run(['node','--experimental-strip-types','--input-type=module','-e',CLIENT_CHECK,
                                args.client_module.resolve().as_uri(),base,args.material_id or '',args.language],
                               timeout=240,capture_output=True,text=True)
         if result.returncode:
             raise RuntimeError(f'UI consumer check failed:\n{result.stderr}')
-        emit(json.loads(result.stdout))
+        client_report=json.loads(result.stdout)
+        if client_report.get('source_revision')!=direct_source_revision:
+            raise RuntimeError('UI HTTP client and imported native Core selected different source revisions')
+        emit(client_report)
     finally:
-        server.shutdown();server.server_close();worker.join(timeout=5)
-    emit({'ok':True,'scope':'local real-client HTTP contract, not browser rendering or deployment'})
+        core.close()
+    emit({'ok':True,'scope':'selected native Rust HTTP and imported Core contracts, not browser rendering or deployment'})
 
 
 if __name__=='__main__':

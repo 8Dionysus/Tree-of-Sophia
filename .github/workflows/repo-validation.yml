@@ -312,7 +312,7 @@ jobs:
           python access/packaging/build_software_bundle.py \
             --output "$RUNNER_TEMP/tree-of-sophia-legacy-reference.zip" \
             --source-ref "${{ github.sha }}"
-          python access/packaging/validate_software_bundle.py --bundle "$RUNNER_TEMP/tree-of-sophia-legacy-reference.zip"
+          python access/packaging/validate_software_bundle.py --bundle "$RUNNER_TEMP/tree-of-sophia-legacy-reference.zip" --native-prefix "$RUNNER_TEMP/tos-native-install"
 
       - name: Preserve validated software candidate
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

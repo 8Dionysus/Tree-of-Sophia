@@ -1126,11 +1126,18 @@ new and outside the source checkout; its adjacent `.profile.jsonl` is diagnostic
 output, not source/review history. Admit CPU/RAM/storage through the host route
 before a full-corpus pass and account for SQLite metadata beyond payload limits.
 
-`python access/packaging/verify_ui_backend.py --web-root /absolute/ui/dist
---client-module /absolute/ui/src/observatory/knowledge-client.mjs` measures local
-catalog/search/focus, then runs the supplied actual UI client against a temporary
-loopback HTTP server. It checks focus/search/inspection/relation selection and
-the HTML/CSP response, closing its server afterward. The supplied UI source must
+`python access/packaging/verify_ui_backend.py --root /absolute/source
+--native-prefix /absolute/native-prefix --release-root /absolute/managed-release
+--native-state-root /absolute/private-state --http-base http://127.0.0.1:5429
+--web-root /absolute/ui/dist
+--client-module /absolute/ui/src/observatory/knowledge-client.mjs` measures native
+catalog/search/focus, then runs the supplied actual UI client against the already
+running Rust HTTP server selected by `--http-base`. Start that server with the
+same native prefix and managed release. The check compares the native HTTP and
+imported Core catalogs and the served HTML with the selected web assets. Its
+independent Python search oracle uses `--root`; its source revision must match
+the native selection before packet comparison. The check closes its imported
+Core after verifying focus/search/inspection/relation selection and HTML/CSP. The supplied UI source must
 also contain the sibling navigation/evidence modules and query operations;
 Node's TypeScript stripping executes those same adapters. The check follows up
 to four exploration pages, binds a source-owned contested relation to its
@@ -1201,7 +1208,12 @@ validation or turn the build-time processing cache into a query dependency.
 After building the browser, package the exact reviewed Git commit:
 `python access/packaging/build_software_bundle.py --source-ref HEAD_SHA --output dist/tos-software.zip`.
 Validate it with
-`python access/packaging/validate_software_bundle.py --bundle dist/tos-software.zip`.
+`python access/packaging/validate_software_bundle.py --bundle dist/tos-software.zip
+--native-prefix /absolute/installed-native-prefix`. The wheel probe installs its
+declared `[mcp]` extra and exercises `NativeAccessCore` against that separately
+installed native binary. The legacy reference archive and its wheel do not
+package that binary; the report records this distinction. `--integrity-only`
+checks archive integrity without the installed caller probe.
 The adjacent external `.zip.manifest.json` binds the archive digest, while the
 embedded manifest binds every member's path, size and hash. Local dirty builds
 must use `--allow-dirty` and retain `source_dirty: true`.
@@ -1802,7 +1814,14 @@ they require the prepared pair and a separately declared `tos_root`.
 
 `tos_root` independently selects the private Reading/Word source root. Optional
 `reading_analysis_root` and the paired `reading_max_file_bytes` /
-`reading_max_total_file_bytes` apply to Reading only. A generic release or
+`reading_max_total_file_bytes` apply to Reading only. The separate paired
+`concept_max_file_bytes` / `concept_max_total_file_bytes` select the root-only
+Concept/Word file budget for the Word child. They require an explicit `tos_root`
+and positive integers with file <= total; they never change Reading, SQL, work,
+output or clock budgets. Both native and reference named factories forward
+these selectors only to their explicitly selected native Word delegate. The
+installed binary must support the matching concept budget flags.
+A generic release or
 prepared publication does not supply local source authority, and a local source
 root does not supply generic publication authority. Missing capabilities keep
 the native unavailable result. Python `SourceReadService` objects and callback

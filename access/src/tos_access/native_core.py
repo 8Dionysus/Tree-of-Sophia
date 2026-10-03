@@ -148,6 +148,27 @@ class NativeCore:
     def knowledge_contracts(self) -> dict:
         return self._packet('tos_knowledge_contracts', {}, source_errors=False)
 
+    def _knowledge_registry(self, key: str, schema_version: str) -> dict:
+        packet = self.knowledge_contracts()
+        if (packet.get("schema") != "tos_knowledge_contract_bundle_v1"
+                or type(packet.get("contracts")) is not dict):
+            raise ValueError("Native knowledge contract bundle has an invalid shape")
+        registry = packet["contracts"].get(key)
+        if (type(registry) is not dict
+                or registry.get("schema_version") != schema_version):
+            raise ValueError(f"Native selected {key} has an invalid shape")
+        return registry
+
+    def entity_type_registry(self) -> dict:
+        """Return the exact selected entity registry carried by native contracts."""
+        return self._knowledge_registry(
+            "entity_type_registry", "tos_semantic_entity_type_registry_v1")
+
+    def relation_type_registry(self) -> dict:
+        """Return the exact selected relation registry carried by native contracts."""
+        return self._knowledge_registry(
+            "relation_type_registry", "tos_semantic_relation_type_registry_v1")
+
     def knowledge_search_capabilities(self) -> dict:
         return self._packet('tos_knowledge_search_capabilities', {}, source_errors=False)
 
@@ -244,6 +265,25 @@ class NativeCore:
 
     def philosophy_audit(self) -> dict:
         return self._packet('tos_philosophy_graph_audit', {}, source_errors=False)
+
+    def _philosophy_audit_fields(self) -> tuple[bool, str, dict]:
+        packet = self.philosophy_audit()
+        if (packet.get("schema") != "tos_philosophy_mcp_audit_v1"
+                or type(packet.get("audit_exists")) is not bool
+                or not isinstance(packet.get("audit_path"), str)
+                or type(packet.get("audit")) is not dict):
+            raise ValueError("Native philosophy audit packet has an invalid shape")
+        return packet["audit_exists"], packet["audit_path"], packet["audit"]
+
+    def philosophy_audit_exists(self) -> bool:
+        exists, _, _ = self._philosophy_audit_fields()
+        return exists
+
+    def philosophy_audit_payload(self) -> dict:
+        exists, path, payload = self._philosophy_audit_fields()
+        if not exists:
+            raise FileNotFoundError(path)
+        return payload
 
     def philosophy_unresolved(self, view_id: str | None=None) -> dict:
         return self._packet('tos_philosophy_graph_unresolved', {'view_id': view_id}, source_errors=False)

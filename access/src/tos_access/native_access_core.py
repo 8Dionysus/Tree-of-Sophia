@@ -76,6 +76,8 @@ class NativeAccessCore(NativeCore):
                  reading_analysis_root: str | Path | None = None,
                  reading_max_file_bytes: int | None = None,
                  reading_max_total_file_bytes: int | None = None,
+                 concept_max_file_bytes: int | None = None,
+                 concept_max_total_file_bytes: int | None = None,
                  native_state_root: str | Path | None = None):
         self._lifetime_lock = RLock()
         self._closed = False
@@ -139,7 +141,20 @@ class NativeAccessCore(NativeCore):
             self._reading_core = NativeCore(prefix, reading_arguments, inherit_data_selection=False)
             # Word observes the source root, never an independently selected
             # Reading output root or its file budget.
-        self._word_core = NativeCore(prefix, ['--root', str(self.tos_root)], inherit_data_selection=False) if self.tos_root is not None else NativeCore(prefix, inherit_data_selection=False)
+        concept_file, concept_total = concept_max_file_bytes, concept_max_total_file_bytes
+        if (concept_file is None) != (concept_total is None):
+            raise ValueError('native concept file budgets require a pair')
+        if concept_file is not None:
+            if self.tos_root is None:
+                raise ValueError('native concept file budgets require an explicit source root')
+            if (type(concept_file) is not int or type(concept_total) is not int
+                    or not 0 < concept_file <= concept_total <= 2**64 - 1):
+                raise ValueError('invalid explicit native concept file budgets')
+        word_arguments = ['--root', str(self.tos_root)] if self.tos_root is not None else []
+        if concept_file is not None:
+            word_arguments += ['--concept-max-file-bytes', str(concept_file),
+                               '--concept-max-total-file-bytes', str(concept_total)]
+        self._word_core = NativeCore(prefix, word_arguments, inherit_data_selection=False)
 
     @classmethod
     def discover(cls, tos_root: str | Path | None = None, *,

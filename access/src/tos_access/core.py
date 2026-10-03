@@ -635,6 +635,8 @@ class ReferenceToSAccessCore:
     reading_analysis_root: Path | None = None
     reading_max_file_bytes: int | None = None
     reading_max_total_file_bytes: int | None = None
+    concept_max_file_bytes: int | None = None
+    concept_max_total_file_bytes: int | None = None
     _native_core: Any = field(default=None, init=False, repr=False, compare=False)
     _native_reading_core: Any = field(default=None, init=False, repr=False, compare=False)
     _data_guard: DataGuard | None = field(default=None, init=False, repr=False, compare=False)
@@ -683,10 +685,22 @@ class ReferenceToSAccessCore:
                 self.reading_max_total_file_bytes,
             )):
                 raise ValueError("native reading selectors require an explicit native_prefix")
+            if self.concept_max_file_bytes is not None or self.concept_max_total_file_bytes is not None:
+                raise ValueError("native concept selectors require an explicit native_prefix")
         else:
             from .native_core import NativeCore
             arguments = ["--root", str(Path(self.tos_root).absolute())]
-            self._native_core = NativeCore(self.native_prefix, arguments)
+            word_arguments = list(arguments)
+            concept_file, concept_total = self.concept_max_file_bytes, self.concept_max_total_file_bytes
+            if (concept_file is None) != (concept_total is None):
+                raise ValueError("native concept file budgets require a pair")
+            if concept_file is not None:
+                if (type(concept_file) is not int or type(concept_total) is not int
+                        or not 0 < concept_file <= concept_total <= 2**64 - 1):
+                    raise ValueError("invalid explicit native concept file budgets")
+                word_arguments.extend(["--concept-max-file-bytes", str(concept_file),
+                                       "--concept-max-total-file-bytes", str(concept_total)])
+            self._native_core = NativeCore(self.native_prefix, word_arguments)
             if self.reading_analysis_root is not None:
                 analysis = Path(self.reading_analysis_root)
                 if not analysis.is_absolute() or ".." in analysis.parts:
@@ -702,7 +716,7 @@ class ReferenceToSAccessCore:
                 arguments.extend(["--reading-max-file-bytes", str(file_bytes),
                                   "--reading-max-total-file-bytes", str(total_bytes)])
             self._native_reading_core = (NativeCore(self.native_prefix, arguments)
-                                         if len(arguments) > 2 else self._native_core)
+                                         if len(arguments) > 2 or concept_file is not None else self._native_core)
         self._data_guard = DataGuard.for_data_root(self.tos_root)
         if self._data_guard is not None:
             # A selected release cannot borrow another source tree through a
@@ -842,6 +856,8 @@ class ReferenceToSAccessCore:
         reading_analysis_root: str | Path | None = None,
         reading_max_file_bytes: int | None = None,
         reading_max_total_file_bytes: int | None = None,
+        concept_max_file_bytes: int | None = None,
+        concept_max_total_file_bytes: int | None = None,
     ) -> "ReferenceToSAccessCore":
         """Select legacy carrier reads, or explicitly pin the prepared reader.
 
@@ -934,6 +950,8 @@ class ReferenceToSAccessCore:
             reading_analysis_root=Path(reading_analysis_root) if reading_analysis_root is not None else None,
             reading_max_file_bytes=reading_max_file_bytes,
             reading_max_total_file_bytes=reading_max_total_file_bytes,
+            concept_max_file_bytes=concept_max_file_bytes,
+            concept_max_total_file_bytes=concept_max_total_file_bytes,
         )
 
     def index_exists(self) -> bool:
