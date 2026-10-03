@@ -3,7 +3,9 @@
 use crate::PredicateRead;
 use crate::item_rules::{ItemLimits, ItemRefusal};
 use crate::record_biblio_cut::{account, check, current, reserve};
-use crate::source_cut::{CutExecutionBinding, CutSchemaExecutor, CutWorkerSchemaExecutor};
+use crate::source_cut::{
+    CutExecutionBinding, CutSchemaExecutor, CutSchemaReceiptRange, CutWorkerSchemaExecutor,
+};
 use serde_json::{Value, json};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
@@ -6809,11 +6811,11 @@ impl NativeCompoundReader<'_> {
         }
         Ok(())
     }
-    fn reconstruct(
+    fn reconstruct<S: CutSchemaExecutor + CutSchemaReceiptRange>(
         &mut self,
         tx: &Transaction,
         kind: CompoundKind,
-        schemas: &mut CutWorkerSchemaExecutor,
+        schemas: &mut S,
     ) -> Result<Reconstructed, ItemRefusal> {
         let before = self.temporary_state;
         let result = self.reconstruct_inner(tx, kind, schemas);
@@ -6845,7 +6847,7 @@ impl NativeCompoundReader<'_> {
         }
         result
     }
-    fn prepare_compound_core<'b>(
+    fn prepare_compound_core<'b, S: CutSchemaExecutor + CutSchemaReceiptRange>(
         &mut self,
         kind: CompoundKind,
         authority: Cow<'b, Value>,
@@ -6855,7 +6857,7 @@ impl NativeCompoundReader<'_> {
         before: Package,
         old: Value,
         recorded_at: &str,
-        schemas: &mut CutWorkerSchemaExecutor,
+        schemas: &mut S,
         after: &impl Fn(&str) -> Result<Vec<u8>, ItemRefusal>,
         work_grammar: Option<WorkGrammar>,
         item_input: Option<(&[u8], &str)>,
@@ -7326,12 +7328,12 @@ impl NativeCompoundReader<'_> {
             recorded_at: recorded_at.to_owned(),
         })
     }
-    fn finish_compound_core<'b>(
+    fn finish_compound_core<'b, S: CutSchemaExecutor + CutSchemaReceiptRange>(
         &mut self,
         core: CompoundCore<'b>,
         environment: &Value,
         native_event_raw: Option<&[u8]>,
-        schemas: &mut CutWorkerSchemaExecutor,
+        schemas: &mut S,
     ) -> Result<FinishedCompound<'b>, ItemRefusal> {
         let CompoundCore {
             kind,
@@ -7614,11 +7616,11 @@ impl NativeCompoundReader<'_> {
             archive_path,
         })
     }
-    fn reconstruct_inner(
+    fn reconstruct_inner<S: CutSchemaExecutor + CutSchemaReceiptRange>(
         &mut self,
         tx: &Transaction,
         kind: CompoundKind,
-        schemas: &mut CutWorkerSchemaExecutor,
+        schemas: &mut S,
     ) -> Result<Reconstructed, ItemRefusal> {
         let plan = &tx.manifest["plan"];
         let authority = &plan["authorization"];
@@ -8416,10 +8418,10 @@ fn native_compound_capture_event(
 }
 
 impl NativeCompoundReader<'_> {
-    fn reconstruct_object_link(
+    fn reconstruct_object_link<S: CutSchemaExecutor + CutSchemaReceiptRange>(
         &mut self,
         tx: &Transaction,
-        schemas: &mut CutWorkerSchemaExecutor,
+        schemas: &mut S,
     ) -> Result<ObjectLinkReconstructed, ItemRefusal> {
         let plan = &tx.manifest["plan"];
         keys(plan, &["authorization", "new_directories", "files"])?;
@@ -8497,14 +8499,14 @@ impl NativeCompoundReader<'_> {
         }
         Ok(result)
     }
-    fn compose_object_link(
+    fn compose_object_link<S: CutSchemaExecutor + CutSchemaReceiptRange>(
         &mut self,
         scope: &Value,
         authority: &Value,
         request_raw: &[u8],
         environment_raw: &[u8],
         recorded_at: &str,
-        schemas: &mut CutWorkerSchemaExecutor,
+        schemas: &mut S,
         retained_event: Option<&[u8]>,
         mut capture: Option<
             &mut dyn FnMut(&[(String, &[u8])]) -> Result<(Vec<u8>, Vec<u8>), ItemRefusal>,
@@ -9017,11 +9019,11 @@ impl NativeCompoundReader<'_> {
 }
 
 impl NativeCompoundReader<'_> {
-    pub(crate) fn verify(
+    pub(crate) fn verify<S: CutSchemaExecutor + CutSchemaReceiptRange>(
         &mut self,
         path: &str,
         claim: &Value,
-        schemas: &mut CutWorkerSchemaExecutor,
+        schemas: &mut S,
     ) -> Result<NativeCompoundObservation, ItemRefusal> {
         let before = self.temporary_state;
         let result = if claim.get("schema_version").and_then(Value::as_str)
@@ -9039,11 +9041,11 @@ impl NativeCompoundReader<'_> {
         self.release_raw_cache();
         result
     }
-    fn verify_object_link(
+    fn verify_object_link<S: CutSchemaExecutor + CutSchemaReceiptRange>(
         &mut self,
         path: &str,
         claim: &Value,
-        schemas: &mut CutWorkerSchemaExecutor,
+        schemas: &mut S,
     ) -> Result<NativeCompoundObservation, ItemRefusal> {
         check(self.limits.deadline, self.cancelled)?;
         if !path.ends_with("/source-claims.jsonl")
@@ -9220,11 +9222,11 @@ impl NativeCompoundReader<'_> {
         check(self.limits.deadline, self.cancelled)?;
         Ok(observation)
     }
-    fn verify_inner(
+    fn verify_inner<S: CutSchemaExecutor + CutSchemaReceiptRange>(
         &mut self,
         path: &str,
         claim: &Value,
-        schemas: &mut CutWorkerSchemaExecutor,
+        schemas: &mut S,
     ) -> Result<NativeCompoundObservation, ItemRefusal> {
         check(self.limits.deadline, self.cancelled)?;
         let kind = CompoundKind::from_predicate(text(claim, "predicate")?)?;

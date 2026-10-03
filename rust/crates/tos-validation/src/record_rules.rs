@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{Value, json};
 use tos_foundation::Digest256;
 
-use crate::source_cut::CutSchemaReceiptRange;
+use crate::source_cut::{CutSchemaExecutor, CutSchemaReceiptRange};
 
 use crate::{FormatProfile, SchemaBackendProbe, SchemaProbeError, SchemaResource, published_value};
 
@@ -2788,10 +2788,10 @@ fn local_route_state(
 /// Execute the source owner's complete local Claim forms route against the
 /// same immutable current cut and the maintained disposable schema worker.
 /// The selected Claim bytes are bound separately from their decoded instance.
-pub fn validate_source_claim_from_cut(
+pub fn validate_source_claim_from_cut<S: CutSchemaExecutor + CutSchemaReceiptRange>(
     cut: &tos_source_store::CorpusCutReader,
     selected_claim_raw: &[u8],
-    worker: &mut crate::source_cut::CutWorkerSchemaExecutor,
+    worker: &mut S,
     limits: crate::item_rules::ItemLimits,
     cancelled: &std::sync::atomic::AtomicBool,
 ) -> Result<SourceClaimLocalReport, crate::item_rules::ItemRefusal> {
@@ -4332,12 +4332,12 @@ pub fn work_expression_source_descriptors(
     Ok(result)
 }
 
-fn local_claim_resources(
+fn local_claim_resources<S: CutSchemaReceiptRange>(
     cut: &tos_source_store::CorpusCutReader,
     paths: &[String],
     claim: &Value,
     route_state: usize,
-    worker: &crate::source_cut::CutWorkerSchemaExecutor,
+    worker: &S,
     limits: crate::item_rules::ItemLimits,
     cancelled: &std::sync::atomic::AtomicBool,
     bytes: &mut u64,
@@ -4424,12 +4424,12 @@ fn local_claim_resources(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn validate_local_claim_shape(
+fn validate_local_claim_shape<S: CutSchemaExecutor + CutSchemaReceiptRange>(
     cut: &tos_source_store::CorpusCutReader,
     claim: &Value,
     raw: &[u8],
     routes: &BTreeMap<(String, String), LocalClaimRoute>,
-    worker: &mut crate::source_cut::CutWorkerSchemaExecutor,
+    worker: &mut S,
     limits: crate::item_rules::ItemLimits,
     cancelled: &std::sync::atomic::AtomicBool,
     bytes: &mut u64,
