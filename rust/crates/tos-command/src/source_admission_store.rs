@@ -667,6 +667,14 @@ impl AdmissionStore {
         cancel: &AtomicBool,
         io_budget: Option<&tos_source_store::PinnedSqliteIoBudget>,
     ) -> io::Result<Option<tos_source_store::CorpusCurrentSelection>> {
+        if let Some(io) = self.v2_layout_io.borrow().as_ref() {
+            let selected =
+                io_budget.ok_or_else(|| invalid("V2 selector lacks its original IO ledger"))?;
+            if !io.shares_with(selected) {
+                return Err(invalid("V2 selector and layout IO ledgers differ"));
+            }
+            charge_v2_component_guard(io, "current.json")?;
+        }
         let reader = self.reader(limits)?;
         let selection = match io_budget {
             Some(io) => reader.select_current_selection_budgeted(io, deadline, cancel),
