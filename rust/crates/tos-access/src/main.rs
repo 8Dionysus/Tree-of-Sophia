@@ -2,7 +2,7 @@
 //! Without selection, no source or projection authority is invented.
 use std::{path::Path, sync::Arc};
 use tos_access::{
-    cli, http, managed_local::ManagedLocalExecutor, mcp, AccessExecutor, AccessProfile, NoOwner,
+    AccessExecutor, AccessProfile, NoOwner, cli, http, managed_local::ManagedLocalExecutor, mcp,
 };
 fn main() {
     let mut args: Vec<String> = std::env::args().skip(1).collect();
