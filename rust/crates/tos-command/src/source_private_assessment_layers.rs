@@ -2492,19 +2492,9 @@ fn validate_initial_anchor(
     ]);
     let identities = cmd::field(config, "identities")?;
     let maker = cmd::field(cmd::field(&target.layer, "derivation")?, "maker")?;
-    let expected_method = cmd::object(
-        ["maker_type", "method", "version"]
-            .iter()
-            .map(|key| Ok((*key, cmd::field(maker, key)?.clone())))
-            .collect::<SourceCommandResult<Vec<_>>>()?,
-    );
-    let mut expected_method = expected_method;
-    cmd::set(
-        &mut expected_method,
-        "agent_ref",
-        cmd::field(maker, "agent_ref")?.clone(),
-    )?;
-    let mut selector_method = expected_method.clone();
+    // The authored extraction maker also binds its configuration reference
+    // and digest. Only the actor identity is absent from selector_method.
+    let mut selector_method = maker.clone();
     if let JsonValue::Object(fields) = &mut selector_method {
         fields.retain(|(key, _)| key.as_str() != Some("agent_ref"));
     }

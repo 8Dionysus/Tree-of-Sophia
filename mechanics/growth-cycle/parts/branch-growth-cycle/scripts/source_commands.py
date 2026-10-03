@@ -1603,8 +1603,8 @@ def _run_selected_native_owner(owner_config: Path, invocation_path: Path, reques
         info = os.fstat(selected.fileno())
         if info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600:
             raise PermissionError('native owner configuration must be private owner bytes')
-        config_raw = selected.read(MAX_COMMAND_BYTES + 1)
-    if len(config_raw) > MAX_COMMAND_BYTES:
+        config_raw = selected.read(8 * MAX_COMMAND_BYTES + 1)
+    if len(config_raw) > 8 * MAX_COMMAND_BYTES:
         raise ValueError('native owner configuration exceeds the input budget')
     config = _json_object(config_raw)
     schema = config.get('schema_version')

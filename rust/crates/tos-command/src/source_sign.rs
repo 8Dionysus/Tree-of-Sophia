@@ -88,6 +88,7 @@ struct SignSourceReader<'a> {
     native_reads: BTreeSet<String>,
     native_bytes: usize,
     publication: Option<Vec<u8>>,
+    publication_selected: bool,
     source_reads: BTreeSet<String>,
     source_bytes: usize,
     source_carriers: Vec<String>,
@@ -99,6 +100,15 @@ impl<'a> SignSourceReader<'a> {
     fn select(
         root_path: &Path,
         cut: &'a CorpusCutReader,
+        deadline: Instant,
+        cancelled: &AtomicBool,
+    ) -> Result<Self> {
+        Self::select_with_publication(root_path, cut, true, deadline, cancelled)
+    }
+    fn select_with_publication(
+        root_path: &Path,
+        cut: &'a CorpusCutReader,
+        publication_selected: bool,
         deadline: Instant,
         cancelled: &AtomicBool,
     ) -> Result<Self> {
@@ -126,6 +136,7 @@ impl<'a> SignSourceReader<'a> {
             native_reads: BTreeSet::new(),
             native_bytes: 0,
             publication: None,
+            publication_selected,
             source_reads: BTreeSet::new(),
             source_bytes: 0,
             source_carriers: Vec::new(),
@@ -133,7 +144,9 @@ impl<'a> SignSourceReader<'a> {
             identity_snapshot: None,
             profile_native_inputs: BTreeMap::new(),
         };
-        reader.publication = reader.publication_current(deadline, cancelled)?;
+        if publication_selected {
+            reader.publication = reader.publication_current(deadline, cancelled)?;
+        }
         Ok(reader)
     }
     fn open_optional(&self, name: &str) -> Result<Option<File>> {
@@ -364,7 +377,9 @@ impl SignNativeRead for SignSourceReader<'_> {
         {
             return Err(Error::Conflict("Sign selected root replaced"));
         }
-        if self.publication_current(deadline, cancelled)? != self.publication {
+        if self.publication_selected
+            && self.publication_current(deadline, cancelled)? != self.publication
+        {
             return Err(Error::Conflict("Sign source publication epoch changed"));
         }
         for (name, bytes) in &self.observed {
@@ -821,8 +836,10 @@ pub(crate) fn select_owner_assessment_public_sources<'a>(
             "private assessment public source cut differs from its selected context",
         ));
     }
-    let mut reader = SignSourceReader::select(public_root, cut, deadline, cancelled)?;
     let inline = cmd::text(config, "schema_version")? == "tos_local_assessment_owner_v1";
+    let mut reader = SignSourceReader::select_with_publication(
+        public_root, cut, !inline, deadline, cancelled,
+    )?;
     let source_bindings: &[JsonValue] = if inline {
         &[]
     } else {

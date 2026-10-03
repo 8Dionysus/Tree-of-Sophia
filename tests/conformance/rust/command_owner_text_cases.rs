@@ -920,6 +920,9 @@ print(json.dumps(f['prepare'](repository,root),separators=(',',':')))
     let observe = |selected_owner: &Path, request: &Value| {
         let mut selected_invocation = invocation.clone();
         selected_invocation["owner_config"] = Value::from(selected_owner.to_str().unwrap());
+        if request["schema_version"] != "tos_local_assessment_command_v1" {
+            selected_invocation["assessment_schema_worker"] = Value::Null;
+        }
         fs::write(
             &invocation_path,
             serde_json::to_vec(&selected_invocation).unwrap(),
