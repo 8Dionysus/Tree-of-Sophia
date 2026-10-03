@@ -18,12 +18,13 @@
     "load:local": "node scripts/deploy_edge.mjs --local --data-only",
     "dev": "npm run build && npm run load:local && wrangler dev",
     "test": "node --experimental-strip-types --import ../../web/src/observatory/human-forms-wasm-test-runtime.mjs --test test/*.test.ts test/*.test.mjs",
-    "verify:local": "python scripts/verify_local_runtime.py",
+    "verify:local": "sh scripts/verify_local_native.sh",
     "deploy:edge": "node scripts/deploy_edge.mjs",
     "deploy:edge:plan": "node scripts/deploy_edge.mjs --plan",
     "load:remote": "wrangler d1 execute DB --remote --file=runtime/read-model.sql --yes",
     "check": "npm run build && npm run types && npm run typecheck && npm test",
-    "check:local": "npm run check && npm run load:local && npm run verify:local"
+    "check:local": "npm run check && npm run load:local && npm run verify:local",
+    "verify:local:reference": "python scripts/verify_local_runtime.py"
   },
   "devDependencies": {
     "typescript": "5.9.3",

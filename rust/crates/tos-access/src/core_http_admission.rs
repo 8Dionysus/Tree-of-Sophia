@@ -455,6 +455,7 @@ impl SelectedKnowledgeBudgets {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct HttpAdmission {
+    pub(crate) max_startup_receipt_bytes: usize,
     pub(crate) selected: SelectedKnowledgeBudgets,
     pub(crate) legacy: LegacySearchBudget,
     pub(crate) indexed: IndexedPageBudget,
@@ -470,7 +471,9 @@ pub(crate) struct HttpAdmission {
 }
 impl HttpAdmission {
     pub(crate) fn profile(&self) -> Result<crate::AccessProfile, &'static str> {
-        if self.max_request_bytes == 0
+        if self.max_startup_receipt_bytes == 0
+            || self.max_startup_receipt_bytes > 64 * 1024 * 1024
+            || self.max_request_bytes == 0
             || self.max_response_bytes == 0
             || self.max_mcp_frame_bytes == 0
             || self.max_line_bytes == 0

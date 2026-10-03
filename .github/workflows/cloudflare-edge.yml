@@ -84,7 +84,7 @@ jobs:
         run: npm run check
       - name: Import local D1 read model
         run: npm run load:local > "$RUNNER_TEMP/tos-d1-import.log"
-      - name: Verify Python-to-Worker contract
-        run: npm run verify:local
+      - name: Verify historical Python reference-to-Worker contract
+        run: npm run verify:local:reference
       - name: Validate deployment bundle
         run: npx wrangler deploy --dry-run --outdir="$RUNNER_TEMP/tos-worker-dry-run"

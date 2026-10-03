@@ -23,6 +23,10 @@ pub mod prepared_local;
 pub mod prepared_maintenance;
 pub mod prepared_publication;
 pub mod public_d1_build;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod public_packet_compare;
+#[cfg(target_os = "linux")]
+pub mod edge_local_verify;
 pub mod reading;
 pub mod release_state;
 pub mod word_analysis;

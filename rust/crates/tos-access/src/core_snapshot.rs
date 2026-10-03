@@ -1238,8 +1238,22 @@ fn run(
     // The former QueryStore has independent five-input binding and selection
     // semantics. Until that owner is migrated, do not silently replace an
     // explicitly selected or discovered existing store with a source rebuild.
-    if request.query_store.configured || request.query_store.path.exists() {
+    let uses_query_store = matches!(
+        operation,
+        Operation::Graph
+            | Operation::Snapshot
+            | Operation::Addressed(_)
+            | Operation::KnowledgeHeader
+            | Operation::CorpusHeader
+            | Operation::Serve(_, _)
+    );
+    if uses_query_store && (request.query_store.configured || request.query_store.path.exists()) {
         return Err("Core selected legacy QueryStore requires its native owner");
+    }
+    // Lower exact carrier reads and one-shot bootstrap do not consult the
+    // Reference QueryStore; preserve their independent selectors.
+    if request.http.is_some() && !matches!(operation, Operation::Serve(_, _)) {
+        return Err("Core HTTP allowances supplied to a non-HTTP operation");
     }
     let retained = matches!(
         operation,
@@ -1267,9 +1281,6 @@ fn run(
             &cancelled,
         );
     }
-    if request.http.is_some() {
-        return Err("Core HTTP allowances supplied to a non-HTTP operation");
-    }
     let carrier = match &operation {
         Operation::CorpusIndex => Some((C::CorpusIndex, R::Corpus)),
         // Reference's direct-source branch returns the complete index;
@@ -1279,11 +1290,7 @@ fn run(
             C::SourceNavigation {
                 bibliographic_only: *bibliographic_only,
             },
-            if *bibliographic_only {
-                R::Bibliographic
-            } else {
-                R::Corpus
-            },
+            R::Corpus,
         )),
         Operation::Bibliographic => Some((C::BibliographicGraph, R::Bibliographic)),
         Operation::PhilosophyProjection => Some((C::PhilosophyProjection, R::Philosophy)),
@@ -1606,6 +1613,35 @@ fn serve_selected_root(
                     Some(&corpus),
                 )
                 .map_err(|_| tos_compiler::Error::Invalid("Core HTTP selected executor refused"))?;
+                // This is association evidence from the admitted held model,
+                // not a Worker publication marker or a new owner grant.
+                let inputs = view.retained_inputs()?;
+                let binding = &completed.stage().binding;
+                evidence_view.charge_work(evidence_view.raw().len() as u64)?;
+                let receipt = serde_json::json!({
+                    "schema": "tos_native_core_http_startup_v1",
+                    "source_revision": bound.require_source_revision().map_err(|_| {
+                        tos_compiler::Error::Invalid("Core HTTP startup source revision absent")
+                    })?,
+                    "owner_profile": binding.owner_profile,
+                    "source_cut": binding.source_cut,
+                    "through_commit_seq": binding.through_commit_seq,
+                    "model_abi": bound.selection().model_abi,
+                    "graph_root_sha256": bound.selection().graph_root_sha256.to_hex(),
+                    "catalog_packet_sha256": bound.selection().catalog_packet_sha256.to_hex(),
+                    "declaration_sha256": completed.declaration_sha256().to_hex(),
+                    "evidence_source_revision": evidence_view.source_revision(),
+                    "evidence_sha256": tos_foundation::Digest256::of_bytes(evidence_view.raw()).to_hex(),
+                    "captured_inputs": inputs.into_iter().map(|(path, sha256, size_bytes)| {
+                        serde_json::json!({"path":path,"sha256":sha256,"size_bytes":size_bytes})
+                    }).collect::<Vec<_>>()
+                });
+                let mut startup = BoundedOutput::new(http.max_startup_receipt_bytes, deadline);
+                startup.value(&receipt).map_err(tos_compiler::Error::Invalid)?;
+                startup.literal(b"\n").map_err(tos_compiler::Error::Invalid)?;
+                view.verify_current()?;
+                disclose_bytes(&startup.bytes, deadline).map_err(tos_compiler::Error::Invalid)?;
+                view.verify_current()?;
                 let finished = AtomicBool::new(false);
                 let mut accepted = 0_u64;
                 crate::http::serve_selected_connections(
