@@ -301,12 +301,12 @@ pub(crate) struct Reader<'a, 'b, A: ?Sized> {
 }
 impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
     fn parse_document(
-        &mut self,
+        visit_meter: Option<&mut InspectVisitMeter>,
         raw: &[u8],
         mode: JsonMode,
         limits: JsonLimits,
     ) -> Result<JsonDocument, FoundationError> {
-        match self.visit_meter.as_deref_mut() {
+        match visit_meter {
             Some(meter) => meter.parse_json(raw, mode, limits),
             None => parse_json(raw, mode, limits),
         }
@@ -530,10 +530,14 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             sha,
         )?;
         self.check_interrupt()?;
-        let value = self
-            .parse_document(&row.raw, JsonMode::PublishedStrict, self.budget.json)
-            .map_err(|_| corrupt("selected corpus original JSON invalid"))?
-            .into_root();
+        let value = Self::parse_document(
+            self.visit_meter.as_deref_mut(),
+            &row.raw,
+            JsonMode::PublishedStrict,
+            self.budget.json,
+        )
+        .map_err(|_| corrupt("selected corpus original JSON invalid"))?
+        .into_root();
         Ok(Some((row.ordinal, value)))
     }
     pub(crate) fn philosophy_row(
@@ -577,10 +581,14 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             sha,
         )?;
         self.check_interrupt()?;
-        let value = self
-            .parse_document(&row.raw, JsonMode::PublishedStrict, self.budget.json)
-            .map_err(|_| corrupt("selected philosophy original JSON invalid"))?
-            .into_root();
+        let value = Self::parse_document(
+            self.visit_meter.as_deref_mut(),
+            &row.raw,
+            JsonMode::PublishedStrict,
+            self.budget.json,
+        )
+        .map_err(|_| corrupt("selected philosophy original JSON invalid"))?
+        .into_root();
         Ok(Some((row.ordinal, value)))
     }
     pub(crate) fn original_row(
@@ -612,10 +620,14 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             Digest256::of_bytes(&raw),
         )?;
         self.check_interrupt()?;
-        let value = self
-            .parse_document(&raw, JsonMode::PublishedStrict, self.budget.json)
-            .map_err(|_| corrupt("selected navigation original JSON invalid"))?
-            .into_root();
+        let value = Self::parse_document(
+            self.visit_meter.as_deref_mut(),
+            &raw,
+            JsonMode::PublishedStrict,
+            self.budget.json,
+        )
+        .map_err(|_| corrupt("selected navigation original JSON invalid"))?
+        .into_root();
         Ok(Some((ordinal, value)))
     }
     pub(crate) fn original_member(
@@ -776,9 +788,14 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         if Digest256::of_bytes(&payload).as_bytes() != sha.as_slice() {
             return Err(corrupt("selected header digest differs"));
         }
-        self.parse_document(&payload, JsonMode::PublishedStrict, self.budget.json)
-            .map(|doc| doc.into_root())
-            .map_err(|_| corrupt("selected header JSON invalid"))
+        Self::parse_document(
+            self.visit_meter.as_deref_mut(),
+            &payload,
+            JsonMode::PublishedStrict,
+            self.budget.json,
+        )
+        .map(|doc| doc.into_root())
+        .map_err(|_| corrupt("selected header JSON invalid"))
     }
     /// A stored spec is source-owned catalog data, never a request-supplied
     /// replacement. Admission occurs before copying its complete bounded BLOB.
@@ -825,10 +842,14 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         {
             return Err(corrupt("selected catalog digest differs"));
         }
-        let packet = self
-            .parse_document(&payload, JsonMode::PublishedStrict, self.budget.json)
-            .map_err(|_| corrupt("selected catalog JSON invalid"))?
-            .into_root();
+        let packet = Self::parse_document(
+            self.visit_meter.as_deref_mut(),
+            &payload,
+            JsonMode::PublishedStrict,
+            self.budget.json,
+        )
+        .map_err(|_| corrupt("selected catalog JSON invalid"))?
+        .into_root();
         match self.visit_meter.as_deref_mut() {
             Some(meter) => {
                 bound.validate_catalog_identity_metered(&packet, self.budget.json, meter)?
@@ -1110,9 +1131,13 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             }
             let mut limits = self.budget.json;
             limits.max_bytes = limits.max_bytes.min(payload.len());
-            let parsed = self
-                .parse_document(&payload, JsonMode::PublishedStrict, limits)
-                .map_err(|_| corrupt("inspect carrier JSON invalid"))?;
+            let parsed = Self::parse_document(
+                self.visit_meter.as_deref_mut(),
+                &payload,
+                JsonMode::PublishedStrict,
+                limits,
+            )
+            .map_err(|_| corrupt("inspect carrier JSON invalid"))?;
             let value = parsed.root().clone();
             if value.object_get("id").and_then(JsonValue::as_str) != Some(row_id.as_str()) {
                 return Err(corrupt("inspect carrier ID mirror differs"));
